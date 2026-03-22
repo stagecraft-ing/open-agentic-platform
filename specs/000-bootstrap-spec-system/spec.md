@@ -2,9 +2,10 @@
 id: "000-bootstrap-spec-system"
 title: "Bootstrap spec system (markdown → compiled JSON registry)"
 feature_branch: "000-bootstrap-spec-system"
-status: draft
+status: active
 kind: constitutional-bootstrap
-created: "2025-03-22"
+created: "2026-03-22"
+ratified: "2026-03-22"
 authors:
   - "open-agentic-platform"
 language: en
@@ -17,8 +18,9 @@ summary: >
 # Feature Specification: Bootstrap spec system
 
 **Feature Branch**: `000-bootstrap-spec-system`  
-**Created**: 2025-03-22  
-**Status**: Draft  
+**Created**: 2026-03-22  
+**Ratified**: 2026-03-22 (ratification pass: dates, determinism split, frontmatter rules, V-005 scope)  
+**Status**: Active  
 **Input**: Constitutional bootstrap — establish spec-first markdown → compiled JSON registry for the new repository.
 
 ## Purpose and charter
@@ -53,10 +55,16 @@ Spec-first is non-negotiable: **implementation work is justified by specs**, not
 
 **All human-authored durable truth** in this repository MUST be expressed as **Markdown files** (`.md`), optionally using a **YAML frontmatter block** at the top of the file delimited by `---` lines.
 
+**Frontmatter rules (normative):**
+
+- Frontmatter is **metadata embedded in a `.md` file only**. It is **not** an independent authoring format and MUST NOT be extracted to standalone YAML or treated as a parallel schema.
+- No tool or workflow may use frontmatter as a **free-form escape hatch** to park system semantics, large structured config, or “the other half” of the platform in YAML. If content does not belong in prose or in the **document grammar** for allowed keys, it belongs in a **new or existing feature spec**, not in unbounded frontmatter.
+- Allowed frontmatter keys are those required or optional under **Markdown document grammar** and any **explicitly documented** extension per feature; ad-hoc keys MAY appear but MUST map into **`extraFrontmatter`** in the compiled registry (see data model) with **strict cardinality limits**—never a wholesale YAML blob in JSON.
+
 Rationale:
 
 - Markdown is diff-friendly, review-native, and suitable for narrative plus light structure.
-- YAML **embedded only as frontmatter inside markdown** is permitted as a **constrained metadata envelope** for a single document. This is **not** “authored YAML” in the forbidden sense (see below).
+- YAML **only** as frontmatter inside `.md` keeps a single reviewable artifact while avoiding “YAML by stealth.”
 
 ## Machine truth: compiler-owned JSON only
 
@@ -74,7 +82,7 @@ The following are **forbidden** in this repository’s **authored** surface area
 - Standalone `.yaml` / `.yml` files written or maintained by contributors (e.g. `meta.yaml`, `approvals.yaml`, `traceability.yaml`, CI-authored config exceptions).
 - Any pattern that makes YAML the **authoritative** parallel channel for the same facts already expressed in specs.
 
-**Not forbidden:** YAML **inside** markdown frontmatter, because it is part of a `.md` artifact and governed by the markdown document grammar.
+**Not forbidden:** YAML **inside** markdown frontmatter, subject to **Frontmatter rules** above.
 
 **Rejected legacy pattern:** Reverse-engineered flows that passed a **`features_yaml_path`** (or similar) as the registry input. In this repository, **features are defined in markdown**; any YAML-shaped interchange is **compiler output**, not an authoring format.
 
@@ -91,7 +99,9 @@ The following **normative layout** applies to Spec Kit features in this repo:
 | `specs/<NNN>-<kebab-name>/plan.md` | Implementation plan (markdown). |
 | `specs/<NNN>-<kebab-name>/tasks.md` | Task list (markdown; no YAML document header required). |
 | `specs/<NNN>-<kebab-name>/contracts/` | **Optional** JSON Schema or example JSON **for machine contracts** tied to the feature; not a parallel authoring channel. |
-| `build/spec-registry/` (or path fixed in a later implementation task) | **Default location for compiler-emitted JSON registry** (directory name is normative for bootstrap; creation deferred to implementation). |
+| `build/spec-registry/` (or path fixed in a later implementation task) | **Compiler-emitted JSON**: deterministic `registry.json` and ephemeral `build-meta.json` (see below). |
+
+**Repository location of feature specs (sticky decision):** Authoritative feature specs live under **`specs/<NNN>-<kebab-name>/` at the repository root**, not under `.specify/specifications/` or other tool-internal trees. This keeps specs **first-class repo content**, visible in review and branching like source code. `.specify/` holds **templates, scripts, and constitution**—not the canonical feature library. A future amendment may add mirrors or symlinks, but **must not** introduce a second authoritative path without superseding this spec.
 
 **Feature ID rule:** Directory name MUST be `NNN-kebab-case` where `NNN` is three decimal digits, zero-padded. Feature `000` is reserved for this bootstrap contract.
 
@@ -104,7 +114,7 @@ Every **feature spec** (`specs/*/spec.md`) MUST contain:
    - `title` — non-empty string.
    - `status` — enum string (`draft` \| `active` \| `superseded` \| `retired`) as used by this repo.
    - `created` — ISO 8601 date string.
-   - `summary` — single-line or folded summary string.
+   - `summary` — single-line or folded summary string (required; compiled into the registry as a **normalized** field, not only as raw YAML).
 
 2. **Body** after frontmatter using level-1 heading for the document title, followed by structured sections. Required sections for feature specs follow the Spec Kit template **adapted as needed**, but MUST always include:
    - **User Scenarios & Testing** (or equivalently named mandatory section for testable journeys).
@@ -115,23 +125,31 @@ Other authored markdown (e.g. plans, checklists) SHOULD include minimal frontmat
 
 ## Minimum viable compiled JSON registry contract
 
-The compiler MUST emit a single **registry root** JSON document (MVP) conforming to `contracts/registry.schema.json` in this feature directory. Minimum semantic content:
+The compiler MUST emit two related JSON artifacts under `build/spec-registry/`:
 
-- **`specVersion`** — registry format version string.
-- **`build`** — who built it, with which compiler version, when, from which input root, and a **single deterministic `contentHash`** over canonical inputs.
-- **`features`** — ordered array of feature records keyed to `specs/<id>/spec.md` sources, each carrying normalized metadata extracted from frontmatter and a list of **body section headings** (table of contents), not necessarily full body text in MVP.
-- **`validation`** — aggregate pass/fail and a list of violations with stable error codes.
+1. **`registry.json`** (deterministic) — conforms to `contracts/registry.schema.json`. Minimum semantic content:
+   - **`specVersion`** — registry format version string.
+   - **`build`** — `compilerId`, `compilerVersion`, `inputRoot`, and a **single deterministic `contentHash`** over canonical inputs. **No wall-clock timestamp** in this file (see determinism below).
+   - **`features`** — ordered array of feature records: **normalized fields** from frontmatter (`id`, `title`, `status`, `created`, `summary`, optional `authors`, `kind`, `featureBranch`), **`specPath`**, **`sectionHeadings`**, and optionally **`extraFrontmatter`** (only for keys not mapped to normalized fields; max **8** keys; no dumping of full parsed YAML).
+   - **`validation`** — aggregate pass/fail and a list of violations with stable error codes.
 
-The MVP **may** omit large markdown bodies from JSON as long as **every feature record** references the authoritative `.md` path and captured metadata is **complete for validation**.
+2. **`build-meta.json`** (ephemeral, compiler-owned) — conforms to `contracts/build-meta.schema.json`. Carries **`builtAt`** (UTC wall-clock) and optional duplicate `compilerId` / `compilerVersion` for log correlation. **Not** included in determinism or golden-file equality checks.
+
+Downstream consumers that require **reproducible** output MUST depend only on **`registry.json`**. Ops, CI logs, and humans MAY read **`build-meta.json`**.
+
+The MVP **may** omit large markdown bodies from JSON as long as **every feature record** references the authoritative `.md` path and normalized metadata is **complete for validation**.
 
 ## Deterministic compiler expectations
 
+**Deterministic artifact:** `registry.json` only.
+
 Given the **same committed input file tree** (markdown sources designated as compiler inputs) and the **same compiler version**:
 
-- The compiler MUST produce **byte-identical** output JSON when run repeatedly (same OS/architecture normalization rules as declared in `research.md`).
+- The compiler MUST produce **byte-identical `registry.json`** when run repeatedly (same OS/architecture normalization rules as declared in `research.md`).
+- **`build-meta.json` is explicitly out of scope** for byte-identical comparison (its `builtAt` changes every run).
 - Canonicalization MUST include: UTF-8 encoding; stable key ordering in emitted JSON; stable sorting of arrays derived from unordered sets; and a documented rule for newline normalization when hashing path contents.
 
-If nondeterminism is discovered, it is a **compiler bug**, not an authoring workaround.
+If nondeterminism is discovered **in `registry.json`**, it is a **compiler bug**, not an authoring workaround.
 
 ## Minimum validation invariants
 
@@ -141,7 +159,7 @@ The compiler MUST reject or emit `validation.passed: false` when:
 - **V-002**: Frontmatter is missing required keys or `id` does not match directory name.
 - **V-003**: Duplicate feature `id` values exist across the tree.
 - **V-004**: A standalone `.yaml` or `.yml` file appears under authored paths designated by policy (default: entire repo except `node_modules/`, `.git/`, and explicitly listed third-party vendored paths in a later amendment).
-- **V-005**: Hand-edited JSON is detected under the compiler output directory (heuristic: file modification outside compiler — exact check defined at implementation time; bootstrap requires the rule to exist).
+- **V-005** (**reserved; not MVP-enforced**): Hand-edited or non-compiler mutation of JSON under the compiler output directory SHOULD be detectable in a future phase (heuristic TBD: e.g. tamper-evident hash, read-only CI artifacts). The **intent** is workflow integrity, not a cryptographic guarantee in Feature 000. Until enforcement exists, implementations MUST NOT claim full **V-005** compliance; they MAY emit **warnings** only if explicitly implemented.
 
 ## Reverse-engineered provenance expectations
 
@@ -191,15 +209,15 @@ A reviewer searches the repo for standalone `.yml`/`.yaml` and finds none in aut
 
 ### User Story 3 — Consumer reads stable JSON (Priority: P3)
 
-A downstream tool (placeholder for future featuregraph) reads only `build/spec-registry/registry.json` and needs no markdown parsing.
+A downstream tool (placeholder for future featuregraph) reads **`build/spec-registry/registry.json`** for deterministic feature metadata and needs no markdown parsing. It does **not** require `build-meta.json`.
 
 **Why this priority:** Proves the separation of human and machine layers.
 
-**Independent Test:** JSON Schema validation against `contracts/registry.schema.json`.
+**Independent Test:** JSON Schema validation of `registry.json` against `contracts/registry.schema.json`.
 
 **Acceptance Scenarios**:
 
-1. **Given** emitted registry JSON, **When** validated against the schema, **Then** validation succeeds.
+1. **Given** emitted `registry.json`, **When** validated against the schema, **Then** validation succeeds.
 
 ---
 
@@ -216,29 +234,38 @@ A downstream tool (placeholder for future featuregraph) reads only `build/spec-r
 - **FR-001**: Repository MUST define a single **normative bootstrap spec** (this document) that future features extend rather than contradict without explicit supersession.
 - **FR-002**: Authoring MUST be **markdown-centric**; machine registries MUST be **compiler-emitted JSON** only.
 - **FR-003**: Standalone authored YAML MUST be forbidden subject to invariant **V-004**.
-- **FR-004**: The spec compiler MUST implement **full compilation** from designated markdown inputs to the **MVP registry JSON** (full here means “all inputs → one registry document,” not “include full markdown bodies in JSON”).
+- **FR-004**: The spec compiler MUST implement **full compilation** from designated markdown inputs to the **MVP outputs**: deterministic **`registry.json`** plus ephemeral **`build-meta.json`** (full here means “all spec inputs → normalized registry,” not “include full markdown bodies in JSON”).
 - **FR-005**: The compiler MUST be **deterministic** per rules in this spec.
-- **FR-006**: The compiler MUST implement **minimum validation** rules **V-001**–**V-005** or explicitly scope deferred items in a superseding spec (not recommended for V-001–**V-003**).
+- **FR-006**: The compiler MUST implement **minimum validation** rules **V-001** through **V-004** for MVP. **V-005** is **reserved** (see invariants); full enforcement is explicitly **post-MVP** unless a later feature promotes it.
 - **FR-007**: Feature directories MUST follow `specs/NNN-kebab-case/` with matching `id` frontmatter.
 - **FR-008**: Provenance from legacy repos MUST be **declared in spec text** when used, per “Reverse-engineered provenance expectations.”
 
 ### Key Entities
 
 - **Feature Spec Document**: A markdown file with frontmatter + body; authoritative human record for a numbered feature.
-- **Spec Compiler**: The tool that reads markdown inputs and writes JSON registry output; only component allowed to author machine registry JSON.
-- **Registry Record**: A JSON object describing one feature’s normalized metadata and references to its markdown source.
+- **Spec Compiler**: The tool that reads markdown inputs and writes **`registry.json`** and **`build-meta.json`**; only component allowed to author those machine JSON artifacts.
+- **Registry Record**: A JSON object describing one feature’s **normalized** metadata (`id`, `title`, `status`, `created`, `summary`, …), optional **`extraFrontmatter`** (capped), and references to its markdown source—**not** a dump of raw parsed frontmatter.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: A reviewer can state, without inspecting implementation, whether a change violates markdown-only / JSON-only rules by reading Feature 000 alone.
-- **SC-002**: For a golden fixture tree, two compiler runs produce **identical** output JSON (byte-for-byte).
-- **SC-003**: JSON emitted for a sample feature passes **`contracts/registry.schema.json`** validation with no errors.
+- **SC-002**: For a golden fixture tree, two compiler runs produce **byte-identical `registry.json`** (ephemeral `build-meta.json` excluded from this criterion).
+- **SC-003**: `registry.json` emitted for a sample feature passes **`contracts/registry.schema.json`** validation with no errors.
 - **SC-004**: Adding a standalone `test.yaml` under a covered path causes validation to fail with **V-004** in CI (once CI exists).
 
 ## Clarifications
 
-### Session 2025-03-22
+### Session 2026-03-22 (initial)
 
 - Interactive `/speckit.clarify` loop was **not required**: bootstrap rules were drafted as a complete constitutional contract. See `clarify.md` for the handoff note.
+
+### Session 2026-03-22 (ratification pass)
+
+- Normalized documentation dates to **2026**.
+- Confirmed **repo-root `specs/`** as the sole authoritative feature-spec tree (vs `.specify/specifications/`).
+- Tightened **frontmatter** rules to forbid YAML-as-escape-hatch semantics.
+- Resolved **determinism vs `builtAt`**: split **`registry.json`** (deterministic) and **`build-meta.json`** (ephemeral); updated schema and success criteria.
+- Replaced bulk **`frontmatter`** blob in registry with **normalized fields** + optional **`extraFrontmatter`** (capped).
+- Marked **V-005** as **reserved**, not MVP-mandatory enforcement.

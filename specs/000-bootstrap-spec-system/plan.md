@@ -1,12 +1,12 @@
 # Implementation Plan: Bootstrap spec system
 
-**Branch**: `000-bootstrap-spec-system` | **Date**: 2025-03-22 | **Spec**: [spec.md](./spec.md)
+**Branch**: `000-bootstrap-spec-system` | **Date**: 2026-03-22 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/000-bootstrap-spec-system/spec.md`
 
 ## Summary
 
-Establish the **spec compiler** scaffolding that reads authoritative feature markdown under `specs/` and emits a **single deterministic JSON registry** under `build/spec-registry/` (exact subdirectory layout may nest `registry.json` — see contracts). No product runtime (axiomregent, xray, featuregraph servers) is implemented in this feature; those components will **consume** this registry in later features.
+Establish the **spec compiler** scaffolding that reads authoritative feature markdown under `specs/` and emits **`build/spec-registry/registry.json`** (deterministic) plus **`build/spec-registry/build-meta.json`** (ephemeral wall-clock metadata). No product runtime (axiomregent, xray, featuregraph servers) is implemented in this feature; those components will **consume** `registry.json` in later features.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Establish the **spec compiler** scaffolding that reads authoritative feature mar
 
 **Primary Dependencies**: JSON Schema validation library for the chosen language; markdown + YAML frontmatter parser; SHA-256 for `contentHash`.
 
-**Storage**: File-system inputs only; output JSON file(s) under `build/spec-registry/`. No database in MVP.
+**Storage**: File-system inputs only; output `registry.json` + `build-meta.json` under `build/spec-registry/`. No database in MVP.
 
 **Testing**: Golden-fixture tests asserting byte-identical JSON output; schema validation of emitted JSON; policy tests for forbidden YAML paths.
 
@@ -55,7 +55,8 @@ specs/000-bootstrap-spec-system/
 ├── quickstart.md           # How to run compiler / validate
 ├── clarify.md              # Clarification handoff note
 ├── contracts/
-│   └── registry.schema.json
+│   ├── registry.schema.json
+│   └── build-meta.schema.json
 └── checklists/
     └── requirements.md
 ```

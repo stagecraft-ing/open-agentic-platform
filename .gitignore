@@ -1,2 +1,5 @@
 # Spec compiler output (compiler-owned JSON; regenerate, do not hand-edit)
 build/spec-registry/
+
+# IDE
+.idea/

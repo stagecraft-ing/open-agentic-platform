@@ -2,36 +2,51 @@
 
 **Feature**: `000-bootstrap-spec-system`
 
-## RegistryDocument (root)
+## RegistryDocument (`registry.json`, deterministic)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `specVersion` | string | yes | Format version for `registry.schema.json`. |
-| `build` | BuildInfo | yes | Provenance of this JSON artifact. |
+| `build` | BuildInfo | yes | Compiler identity, input root, content hash. **No wall-clock timestamp.** |
 | `features` | FeatureRecord[] | yes | All compiled features from markdown inputs. |
 | `validation` | ValidationSummary | yes | Aggregate validation result. |
 
-## BuildInfo
+## BuildInfo (inside `registry.json` only)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `compilerId` | string | yes | Stable identifier of the compiler implementation (e.g. `open-agentic-spec-compiler`). |
 | `compilerVersion` | string | yes | Semantic version of the compiler. |
-| `builtAt` | string (ISO 8601) | yes | UTC timestamp of emission. |
 | `inputRoot` | string | yes | Repository-relative root scanned (e.g. `.`). |
 | `contentHash` | string | yes | SHA-256 hex per `research.md` D2. |
 
+## BuildMeta (`build-meta.json`, ephemeral)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `builtAt` | string (ISO 8601 date-time) | yes | UTC wall-clock emission time. |
+| `compilerId` | string | no | Optional duplicate for logs. |
+| `compilerVersion` | string | no | Optional duplicate for logs. |
+
+Schema: `contracts/build-meta.schema.json`.
+
 ## FeatureRecord
+
+Normalized fields (from frontmatter + compiler):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | yes | Matches `specs/<id>/` and frontmatter `id`. |
 | `title` | string | yes | From frontmatter. |
 | `status` | string | yes | From frontmatter. |
-| `specPath` | string | yes | Relative path to authoritative `spec.md`. |
 | `created` | string | yes | From frontmatter ISO date. |
-| `sectionHeadings` | string[] | yes | Level-1 and level-2 headings in document order (for TOC / navigation); exact depth fixed in compiler. |
-| `frontmatter` | object | yes | Parsed frontmatter as a JSON object (keys sorted on emit). |
+| `summary` | string | yes | From frontmatter; always normalized, never only inside a blob. |
+| `specPath` | string | yes | Relative path to authoritative `spec.md`. |
+| `sectionHeadings` | string[] | yes | Level-1 and level-2 headings in document order (exact depth fixed in compiler). |
+| `authors` | string[] | no | From frontmatter when present. |
+| `kind` | string | no | From frontmatter when present (e.g. `constitutional-bootstrap`). |
+| `featureBranch` | string | no | From frontmatter `feature_branch` when present. |
+| `extraFrontmatter` | object | no | Only for **unmapped** frontmatter keys; **max 8** keys; values MUST be JSON-serializable scalars or arrays of strings. **Forbidden:** copying the entire parsed YAML tree wholesale. |
 
 ## ValidationSummary
 
