@@ -2,7 +2,7 @@
 
 **Purpose**: Validate the constitutional bootstrap specification before treating it as ratified input for compiler implementation.
 
-**Created**: 2025-03-22  
+**Created**: 2026-03-22  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -20,12 +20,15 @@
 - [x] Edge cases enumerated for compiler MVP boundaries
 - [x] Scope bounded; future components referenced only as consumers
 - [x] Dependencies and assumptions captured in plan/research
+- [x] Determinism vs `builtAt` resolved (`registry.json` / `build-meta.json` split)
+- [x] Frontmatter anti-escape-hatch rules explicit
+- [x] `specs/` vs `.specify/` location decision explicit
 
 ## Feature Readiness
 
 - [x] Functional requirements trace to validation codes where applicable
 - [x] User scenarios cover compiler-centric journeys (author, reviewer, consumer)
-- [x] JSON Schema contract present at `contracts/registry.schema.json`
+- [x] JSON Schema contracts present at `contracts/registry.schema.json` and `contracts/build-meta.schema.json`
 - [x] Determinism and hashing approach documented in research
 
 ## Notes

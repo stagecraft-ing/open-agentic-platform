@@ -1,7 +1,7 @@
 # Tasks: Bootstrap spec system
 
 **Input**: Design documents from `/specs/000-bootstrap-spec-system/`  
-**Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/registry.schema.json](./contracts/registry.schema.json)
+**Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/registry.schema.json](./contracts/registry.schema.json), [contracts/build-meta.schema.json](./contracts/build-meta.schema.json)
 
 **Tests**: Golden-output and schema-validation tests are **required** for this feature’s compiler scaffold.
 
@@ -29,9 +29,9 @@
 
 - [ ] T004 Implement markdown discovery for `specs/*/spec.md` under repository root
 - [ ] T005 Parse YAML frontmatter + extract `sectionHeadings` per [data-model.md](./data-model.md)
-- [ ] T006 Emit `registry.json` with **sorted JSON keys** and sorted violation lists; write to `build/spec-registry/registry.json`
-- [ ] T007 Compute `build.contentHash` per [research.md](./research.md) decision D2
-- [ ] T008 Implement validation codes **V-001**–**V-003** minimum; stub **V-004**–**V-005** with explicit `NOT IMPLEMENTED` violations until policy paths are wired
+- [ ] T006 Emit **`registry.json`** (deterministic) and **`build-meta.json`** (ephemeral) per [spec.md](./spec.md); sorted JSON keys and sorted violation lists; paths under `build/spec-registry/`
+- [ ] T007 Compute `build.contentHash` per [research.md](./research.md) decision D2 (**registry.json** inputs only)
+- [ ] T008 Implement validation codes **V-001**–**V-004** for MVP; **V-005** reserved (warnings only if implemented; no mandatory MVP enforcement per spec)
 
 ---
 
@@ -42,8 +42,8 @@
 **Independent Test**: Golden test compares emitted JSON to expected file for a tiny `specs/` fixture.
 
 - [ ] T009 [US1] Add `tools/spec-compiler/tests/fixtures/minimal/` with one valid feature spec
-- [ ] T010 [US1] Golden test: two runs produce byte-identical `registry.json`
-- [ ] T011 [US1] Schema validation test using [contracts/registry.schema.json](./contracts/registry.schema.json)
+- [ ] T010 [US1] Golden test: two runs produce byte-identical **`registry.json`** (exclude `build-meta.json` from equality)
+- [ ] T011 [US1] Schema validation test using [contracts/registry.schema.json](./contracts/registry.schema.json); optional separate test for [contracts/build-meta.schema.json](./contracts/build-meta.schema.json)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Phase 6: Polish
 
-- [ ] T015 [P] Wire **V-005** heuristic or document deferral with explicit violation code if postponed
+- [ ] T015 [P] If implementing **V-005** warnings, document heuristic; otherwise explicitly **defer** with reference to spec (“reserved; not MVP-enforced”)
 - [ ] T016 Run `/speckit.checklist` parity manually: ensure [checklists/requirements.md](./checklists/requirements.md) complete
 
 ---

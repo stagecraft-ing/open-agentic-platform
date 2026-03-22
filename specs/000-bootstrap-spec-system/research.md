@@ -1,7 +1,7 @@
 # Research: Bootstrap spec system
 
 **Feature**: `000-bootstrap-spec-system`  
-**Date**: 2025-03-22
+**Date**: 2026-03-22
 
 ## Decisions
 
@@ -35,6 +35,12 @@
 ### D6 — `platform` repo
 
 - **Decision**: No concrete patterns were found under the searched workspace path; no additional legacy constraints adopted. Future discovery of patterns uses the same provenance rules as `opc`.
+
+### D7 — Determinism vs wall-clock timestamps
+
+- **Decision**: **`registry.json`** contains **no** `builtAt`. Wall-clock time lives only in **`build-meta.json`**, which is **compiler-owned** but **not** subject to golden-file byte equality. Golden tests compare **`registry.json`** only.
+- **Rationale**: Preserves a single deterministic artifact while still allowing ops to record when a build ran.
+- **Alternatives considered**: Deterministic timestamp from last git commit (couples output to VCS); omitting ephemeral file entirely (loses useful CI logs).
 
 ## Open items (for implementation tasks, not spec ambiguity)
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-agentic-platform.local/specs/000-bootstrap-spec-system/registry.schema.json",
-  "title": "Open Agentic Platform — compiled spec registry (MVP)",
+  "title": "Open Agentic Platform — compiled spec registry (deterministic MVP)",
   "type": "object",
   "additionalProperties": false,
   "required": ["specVersion", "build", "features", "validation"],
@@ -13,11 +13,10 @@
     "build": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["compilerId", "compilerVersion", "builtAt", "inputRoot", "contentHash"],
+      "required": ["compilerId", "compilerVersion", "inputRoot", "contentHash"],
       "properties": {
         "compilerId": { "type": "string", "minLength": 1 },
         "compilerVersion": { "type": "string", "minLength": 1 },
-        "builtAt": { "type": "string", "format": "date-time" },
         "inputRoot": { "type": "string", "minLength": 1 },
         "contentHash": {
           "type": "string",
@@ -46,7 +45,7 @@
     "featureRecord": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title", "status", "specPath", "created", "sectionHeadings", "frontmatter"],
+      "required": ["id", "title", "status", "created", "summary", "specPath", "sectionHeadings"],
       "properties": {
         "id": {
           "type": "string",
@@ -57,13 +56,24 @@
           "type": "string",
           "enum": ["draft", "active", "superseded", "retired"]
         },
-        "specPath": { "type": "string", "pattern": "^specs/[0-9]{3}-[^/]+/spec\\.md$" },
         "created": { "type": "string", "format": "date" },
+        "summary": { "type": "string", "minLength": 1 },
+        "specPath": { "type": "string", "pattern": "^specs/[0-9]{3}-[^/]+/spec\\.md$" },
         "sectionHeadings": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
         },
-        "frontmatter": { "type": "object" }
+        "authors": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "kind": { "type": "string" },
+        "featureBranch": { "type": "string" },
+        "extraFrontmatter": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": true
+        }
       }
     },
     "violation": {

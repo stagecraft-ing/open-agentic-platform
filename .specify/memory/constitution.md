@@ -24,8 +24,8 @@ Repositories used for reverse engineering (for example `opc`, `platform`) are **
 
 ## Additional Constraints
 
-- Feature directories use the pattern `specs/NNN-kebab-case/` with matching `id` in frontmatter.
-- The compiled registry format is versioned (`specVersion`) and described by JSON Schema in Feature 000.
+- Feature directories use the pattern `specs/NNN-kebab-case/` with matching `id` in frontmatter. Authoritative specs live under **repo-root `specs/`**, not under `.specify/`.
+- The compiled registry format is versioned (`specVersion`) and described by JSON Schema in Feature 000. Deterministic output is **`registry.json`**; **`build-meta.json`** holds non-deterministic wall-clock metadata only.
 
 ## Development Workflow
 
@@ -36,4 +36,4 @@ Repositories used for reverse engineering (for example `opc`, `platform`) are **
 
 This constitution is subordinate to **explicit** normative text in `specs/000-bootstrap-spec-system/spec.md` where stricter rules apply. Amendments to constitutional rules require a spec change (new feature or superseding revision) and review of downstream consumers.
 
-**Version**: 1.0.0 | **Ratified**: 2025-03-22 | **Last Amended**: 2025-03-22
+**Version**: 1.0.1 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22

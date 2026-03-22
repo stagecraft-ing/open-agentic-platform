@@ -5,18 +5,22 @@
 ## What exists today
 
 - **Authoritative contract**: [spec.md](./spec.md)
-- **Machine contract**: [contracts/registry.schema.json](./contracts/registry.schema.json)
+- **Deterministic machine contract**: [contracts/registry.schema.json](./contracts/registry.schema.json)
+- **Ephemeral build metadata**: [contracts/build-meta.schema.json](./contracts/build-meta.schema.json)
 - **Data shapes**: [data-model.md](./data-model.md)
 
 The **spec compiler binary** is not yet implemented; this quickstart describes the **intended** validation loop once `tasks.md` is executed.
 
-## Validate a registry JSON (schema only)
+## Validate emitted JSON (schema only)
 
-When `registry.json` exists (e.g. `build/spec-registry/registry.json`), validate with any JSON Schema CLI:
+When `registry.json` and optionally `build-meta.json` exist under `build/spec-registry/`:
 
 ```bash
-# Example — tool name varies by ecosystem
+# Deterministic registry (golden tests use this file only)
 npx --yes ajv-cli validate -s specs/000-bootstrap-spec-system/contracts/registry.schema.json -d build/spec-registry/registry.json
+
+# Wall-clock metadata (optional; changes every run)
+npx --yes ajv-cli validate -s specs/000-bootstrap-spec-system/contracts/build-meta.schema.json -d build/spec-registry/build-meta.json
 ```
 
 Adjust command after the compiler implementation chooses its validation stack.
