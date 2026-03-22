@@ -1,50 +1,39 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# open-agentic-platform Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Markdown-Only Authored Truth
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All human-authored durable truth in this repository is expressed as Markdown (`.md`). Optional YAML may appear **only** as **frontmatter inside** a markdown file. Standalone YAML files are not an authoring channel for platform truth.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Compiler-Owned JSON Machine Truth
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Machine-consumable registries, indices, and normalized spec metadata live in JSON **produced only** by the designated spec compiler. Hand-edited JSON in compiler output paths is a workflow violation.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Spec-First Development
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Features are specified before implementation; implementation is justified by specs under `specs/`. Feature `000-bootstrap-spec-system` is the constitutional baseline for how specs and compiled registries behave.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Determinism and Validation
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+The spec compiler must be deterministic for the same committed inputs. Validation rules (including rejection of forbidden standalone YAML) are product requirements, not suggestions.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Legacy Inputs Are Non-Normative
+
+Repositories used for reverse engineering (for example `opc`, `platform`) are **evidence only**. They are not sources of truth for this repository. Provenance must be declared in feature text when legacy concepts inform a design.
+
+## Additional Constraints
+
+- Feature directories use the pattern `specs/NNN-kebab-case/` with matching `id` in frontmatter.
+- The compiled registry format is versioned (`specVersion`) and described by JSON Schema in Feature 000.
+
+## Development Workflow
+
+- Use Spec Kit commands (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, etc.) with feature branches named `NNN-short-name`.
+- Read `.specify/contract.md` and Feature 000 before adding new authoring formats or tooling outputs.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution is subordinate to **explicit** normative text in `specs/000-bootstrap-spec-system/spec.md` where stricter rules apply. Amendments to constitutional rules require a spec change (new feature or superseding revision) and review of downstream consumers.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-03-22 | **Last Amended**: 2025-03-22

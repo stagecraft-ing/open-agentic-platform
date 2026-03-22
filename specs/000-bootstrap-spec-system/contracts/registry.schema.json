@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-agentic-platform.local/specs/000-bootstrap-spec-system/registry.schema.json",
+  "title": "Open Agentic Platform — compiled spec registry (MVP)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["specVersion", "build", "features", "validation"],
+  "properties": {
+    "specVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerId", "compilerVersion", "builtAt", "inputRoot", "contentHash"],
+      "properties": {
+        "compilerId": { "type": "string", "minLength": 1 },
+        "compilerVersion": { "type": "string", "minLength": 1 },
+        "builtAt": { "type": "string", "format": "date-time" },
+        "inputRoot": { "type": "string", "minLength": 1 },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/featureRecord" }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "violations"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "violations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/violation" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "featureRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "status", "specPath", "created", "sectionHeadings", "frontmatter"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "active", "superseded", "retired"]
+        },
+        "specPath": { "type": "string", "pattern": "^specs/[0-9]{3}-[^/]+/spec\\.md$" },
+        "created": { "type": "string", "format": "date" },
+        "sectionHeadings": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "frontmatter": { "type": "object" }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^V-[0-9]{3}$" },
+        "severity": { "type": "string", "enum": ["error", "warning"] },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "type": "string" }
+      }
+    }
+  }
+}

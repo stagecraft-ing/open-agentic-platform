@@ -1,0 +1,42 @@
+# Research: Bootstrap spec system
+
+**Feature**: `000-bootstrap-spec-system`  
+**Date**: 2025-03-22
+
+## Decisions
+
+### D1 — Compiler implementation language
+
+- **Decision**: Defer binding choice until first implementation task; **default shortlist**: Rust or Go for static binaries and predictable UTF-8 handling.
+- **Rationale**: Determinism and single-binary distribution matter for CI; both ecosystems have mature JSON and crypto libraries.
+- **Alternatives considered**: Python (faster iteration, higher risk of nondeterminism unless carefully pinned); TypeScript on Node (acceptable if pinned lockfile and fixed JSON stringify — slightly higher drift risk).
+
+### D2 — Canonicalization for hashing
+
+- **Decision**: Hash **normalized text** per file: UTF-8 without BOM; LF newlines; for each file, `path + "\0" + normalized_content` concatenated in **sorted path order**, then SHA-256 hex digest for `build.contentHash`.
+- **Rationale**: Stable across OSes when authors use `.gitattributes` for line endings; path-sorted concatenation avoids directory walk order issues.
+- **Alternatives considered**: Git tree hash (ties compiler to git presence — rejected for bootstrap MVP).
+
+### D3 — JSON key ordering
+
+- **Decision**: Emit JSON with **lexicographically sorted keys** at every object level (recursive).
+- **Rationale**: Simplest portable approach to byte-identical output without relying on a specific library default.
+
+### D4 — Forbidden YAML scope
+
+- **Decision**: **V-004** applies to the **entire repository tree** except: `.git/`, dependency directories (`node_modules/`, `vendor/`, language package caches), and **explicitly listed** third-party subtrees if ever added (must be named in `spec-compiler` config markdown in a later amendment).
+- **Rationale**: Maximizes alignment with “no authored YAML”; narrows only when a vendored dependency forces YAML and cannot be subtree-excluded.
+
+### D5 — Relationship to legacy `opc`
+
+- **Decision**: Treat `opc` crates **axiomregent**, **xray**, **featuregraph** as **capability hints**: governance MCP, repo scanning, and feature graph visualization are **not** recreated in Feature 000. Their **future** specs must declare consumption of **`registry.json`**, not YAML registries.
+- **Rationale**: Legacy `featuregraph_overview(features_yaml_path: ...)` is a **rejected authoring pattern** for this repo (see main spec).
+
+### D6 — `platform` repo
+
+- **Decision**: No concrete patterns were found under the searched workspace path; no additional legacy constraints adopted. Future discovery of patterns uses the same provenance rules as `opc`.
+
+## Open items (for implementation tasks, not spec ambiguity)
+
+- Exact CLI flags and exit codes for the compiler binary.
+- Whether `build/spec-registry/` is gitignored entirely or keeps a **committed** golden fixture for tests only.
