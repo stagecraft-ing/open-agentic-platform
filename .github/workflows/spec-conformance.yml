@@ -24,3 +24,11 @@ jobs:
 
       - name: Tests (golden, schema conformance, exit codes)
         run: cargo test --manifest-path tools/spec-compiler/Cargo.toml
+
+      - name: Build registry-consumer (Feature 002)
+        run: cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+
+      - name: Registry consumer smoke + tests
+        run: |
+          ./tools/registry-consumer/target/release/registry-consumer list | head -n 5
+          cargo test --manifest-path tools/registry-consumer/Cargo.toml

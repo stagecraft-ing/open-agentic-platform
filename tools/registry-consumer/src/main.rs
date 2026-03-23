@@ -1,0 +1,117 @@
+use clap::{Parser, Subcommand};
+use open_agentic_registry_consumer::{
+    authoritative_or_allow_invalid, filter_features, find_feature_by_id, features_sorted,
+    load_registry, DEFAULT_REGISTRY_REL_PATH,
+};
+use std::path::PathBuf;
+use std::process::ExitCode;
+
+#[derive(Parser, Debug)]
+#[command(
+    name = "registry-consumer",
+    version,
+    about = "Read-only CLI over build/spec-registry/registry.json (specs/002-registry-consumer-mvp)"
+)]
+struct Cli {
+    /// Path to registry.json (default: build/spec-registry/registry.json relative to cwd)
+    #[arg(long = "registry-path", value_name = "PATH")]
+    registry_path: Option<PathBuf>,
+
+    /// Allow reading when validation.passed is false (diagnostics only)
+    #[arg(long)]
+    allow_invalid: bool,
+
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand, Debug)]
+enum Command {
+    /// List features (human-readable table), sorted by id
+    List {
+        #[arg(long)]
+        status: Option<String>,
+        #[arg(long)]
+        id_prefix: Option<String>,
+    },
+    /// Print one feature record as JSON
+    Show {
+        feature_id: String,
+    },
+}
+
+fn default_registry_path() -> PathBuf {
+    PathBuf::from(DEFAULT_REGISTRY_REL_PATH)
+}
+
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    let path = cli.registry_path.unwrap_or_else(default_registry_path);
+
+    let registry = match load_registry(&path) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("registry-consumer: {}: {e}", path.display());
+            return ExitCode::from(3);
+        }
+    };
+
+    if let Err(msg) = authoritative_or_allow_invalid(&registry, cli.allow_invalid) {
+        eprintln!("registry-consumer: {msg}");
+        return ExitCode::from(1);
+    }
+
+    match cli.command {
+        Command::List { status, id_prefix } => {
+            let sorted = match features_sorted(&registry) {
+                Ok(f) => f,
+                Err(msg) => {
+                    eprintln!("registry-consumer: {msg}");
+                    return ExitCode::from(3);
+                }
+            };
+            let filtered = filter_features(sorted, status.as_deref(), id_prefix.as_deref());
+            print_list_table(&filtered);
+            ExitCode::SUCCESS
+        }
+        Command::Show { feature_id } => {
+            match find_feature_by_id(&registry, &feature_id) {
+                Some(rec) => {
+                    match serde_json::to_string_pretty(&rec) {
+                        Ok(s) => println!("{s}"),
+                        Err(e) => {
+                            eprintln!("registry-consumer: {e}");
+                            return ExitCode::from(3);
+                        }
+                    }
+                    ExitCode::SUCCESS
+                }
+                None => {
+                    eprintln!("registry-consumer: feature id not found: {feature_id}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+    }
+}
+
+fn print_list_table(features: &[serde_json::Value]) {
+    // id (max ~40), status (8), title — simple fixed layout
+    println!("{:<44} {:<10} {}", "id", "status", "title");
+    for f in features {
+        let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
+        let status = f.get("status").and_then(|x| x.as_str()).unwrap_or("?");
+        let title = f.get("title").and_then(|x| x.as_str()).unwrap_or("?");
+        let id_disp = truncate(id, 43);
+        let title_disp = truncate(title, 72);
+        println!("{:<44} {:<10} {}", id_disp, status, title_disp);
+    }
+}
+
+fn truncate(s: &str, max_chars: usize) -> String {
+    if s.chars().count() <= max_chars {
+        return s.to_string();
+    }
+    let t: String = s.chars().take(max_chars.saturating_sub(1)).collect();
+    format!("{t}…")
+}
