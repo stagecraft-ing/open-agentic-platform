@@ -4,3 +4,7 @@ Authoritative architecture rules: human truth is **markdown** (with optional YAM
 
 - [`specs/000-bootstrap-spec-system/spec.md`](specs/000-bootstrap-spec-system/spec.md)
 - [`.specify/contract.md`](.specify/contract.md)
+
+The **spec compiler MVP** (implements Feature 000’s contracts) is specified here; implementation will live under `tools/spec-compiler/`:
+
+- [`specs/001-spec-compiler-mvp/spec.md`](specs/001-spec-compiler-mvp/spec.md)
