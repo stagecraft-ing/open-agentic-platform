@@ -43,6 +43,9 @@ enum Command {
         /// Include sorted feature ids per status
         #[arg(long)]
         show_ids: bool,
+        /// Emit machine-readable JSON report rows
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -98,7 +101,7 @@ fn main() -> ExitCode {
                 }
             }
         }
-        Command::StatusReport { show_ids } => {
+        Command::StatusReport { show_ids, json } => {
             let report = match status_report(&registry) {
                 Ok(r) => r,
                 Err(msg) => {
@@ -106,6 +109,26 @@ fn main() -> ExitCode {
                     return ExitCode::from(3);
                 }
             };
+            if json {
+                let rows: Vec<serde_json::Value> = report
+                    .into_iter()
+                    .map(|(status, count, ids)| {
+                        serde_json::json!({
+                            "status": status,
+                            "count": count,
+                            "ids": ids
+                        })
+                    })
+                    .collect();
+                match serde_json::to_string_pretty(&rows) {
+                    Ok(s) => println!("{s}"),
+                    Err(e) => {
+                        eprintln!("registry-consumer: {e}");
+                        return ExitCode::from(3);
+                    }
+                }
+                return ExitCode::SUCCESS;
+            }
             for (status, count, ids) in report {
                 println!("{:<10} {}", status, count);
                 if show_ids {
