@@ -26,3 +26,5 @@ This file is a **short normative summary** of Feature `000-bootstrap-spec-system
 ## Next step
 
 Read the full contract: `specs/000-bootstrap-spec-system/spec.md`.
+
+For registry-consumer process governance after contract stabilization, see `docs/registry-consumer-contract-governance.md`.
