@@ -20,6 +20,10 @@ cargo build --release
 
 Exit codes: `0` = success and validation passed; `1` = validation failed; `3` = I/O or parse error.
 
+## Frontmatter (strict MVP)
+
+The parser expects a line that starts exactly with `---` (no leading spaces, no trailing content on that line), then YAML, then a closing `---` delimiter before the markdown body. Variants such as `--- ` with trailing spaces on the opening line are **not** accepted—document this if editors emit them.
+
 ## Heading extraction (normative for this binary)
 
 `sectionHeadings` lists ATX headings:
