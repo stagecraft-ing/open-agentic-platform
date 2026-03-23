@@ -30,6 +30,34 @@ Every change touching `tools/registry-consumer/` MUST declare one class:
 3. **breaking change candidate**
    - Alters settled observable behavior; requires explicit versioning and migration language.
 
+## Extension acceptance rubric (required for contract extensions)
+
+A proposed `registry-consumer` extension is acceptable only if it satisfies all of the following:
+
+1. **Clear interface value**
+   - Adds a new user-reliable guarantee with obvious operator or automation value.
+   - Is not merely a convenience variation of an existing mode.
+2. **Minimal surface area**
+   - Introduces the smallest new surface needed for the guarantee.
+   - Prefer one flag, one mode, or one narrowly scoped behavior over broad option families.
+3. **No semantic overlap**
+   - Must not blur or overload existing semantics.
+   - If behavior can be confused with an existing output mode or contract, reject or explicitly redesign.
+4. **Explicit interaction rules**
+   - All interactions with existing flags and modes are defined up front.
+   - Conflicts, precedence, and mutual exclusivity are intentional and documented.
+5. **Fixture-first contract definition**
+   - Observable behavior is captured in fixtures and contract tests as normative behavior before the change is complete.
+   - Help output changes are treated as contract changes when user-visible.
+6. **Preservation of settled guarantees**
+   - Does not alter existing guarantees for output shape, ordering, exit behavior, stdout/stderr discipline, or invalid-input handling unless explicitly classified as a breaking change candidate.
+7. **Spec and README linkage**
+   - Reflect the new guarantee in the feature spec spine and user-facing documentation so behavior, governance, and discoverability stay aligned.
+8. **Versioning trigger**
+   - If the proposal cannot satisfy the above without redefining an existing contract, it is not an extension; it is a breaking change candidate and must enter explicit versioning discussion.
+
+**Reviewer check:** Does this change add exactly one clear guarantee, with minimal surface, explicit mode interaction, fixture-backed behavior, and zero drift to settled contracts?
+
 ## Release gate checklist (required)
 
 For every PR touching `tools/registry-consumer/`, answer:
