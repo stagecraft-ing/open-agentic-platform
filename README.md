@@ -5,6 +5,11 @@ Authoritative architecture rules: human truth is **markdown** (with optional YAM
 - [`specs/000-bootstrap-spec-system/spec.md`](specs/000-bootstrap-spec-system/spec.md)
 - [`.specify/contract.md`](.specify/contract.md)
 
-The **spec compiler MVP** (implements Feature 000’s contracts) is specified here; implementation will live under `tools/spec-compiler/`:
+The **spec compiler MVP** (implements Feature 000’s contracts) is specified in [`specs/001-spec-compiler-mvp/spec.md`](specs/001-spec-compiler-mvp/spec.md). Build and run from the repo root:
 
-- [`specs/001-spec-compiler-mvp/spec.md`](specs/001-spec-compiler-mvp/spec.md)
+```bash
+cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+./tools/spec-compiler/target/release/spec-compiler compile
+```
+
+Outputs: `build/spec-registry/registry.json` and `build-meta.json`. Details: [`tools/spec-compiler/README.md`](tools/spec-compiler/README.md).

@@ -31,6 +31,11 @@
 
 - **Rationale**: Feature 000 D8 canonical case; avoids inconsistent consumer behavior.
 
+### R7 — `contentHash` inputs (ties to FR-007)
+
+- **Decision**: MVP compiler hashes **only** the contents of discovered `specs/<NNN>-*/spec.md` files per Feature 000 D2. It does **not** read Feature 000 JSON Schema files at runtime for hashing (schemas are validated externally or in tests).
+- **Rationale**: Keeps FR-007 non-elastic; schema files are contract artifacts, not compilation inputs unless we later embed validation in-process.
+
 ### R6 — V-004 scan roots
 
 - **Decision**: Walk from repo root (cwd), exclude `.git/`, `build/`, `target/`, `node_modules/`, `vendor/`, and `tools/spec-compiler/target/` if applicable. Scan **all** remaining paths for `*.yaml` / `*.yml` **files** (not only `specs/`).

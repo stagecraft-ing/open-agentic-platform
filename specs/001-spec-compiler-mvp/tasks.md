@@ -5,33 +5,33 @@
 
 ## Phase 1: Crate skeleton
 
-- [ ] T001 Create `tools/spec-compiler/` with `Cargo.toml`, `src/main.rs`, `src/lib.rs`, workspace-friendly README linking Feature 001 spec
-- [ ] T002 Add `clap` subcommand `compile`; stub output writing empty valid `registry.json` shell (manual schema tweak until parsers exist)
-- [ ] T003 [P] Add `rust-toolchain.toml` or `rust-version` in `Cargo.toml`
+- [x] T001 Create `tools/spec-compiler/` with `Cargo.toml`, `src/main.rs`, `src/lib.rs`, workspace-friendly README linking Feature 001 spec
+- [x] T002 Add `clap` subcommand `compile`; write `registry.json` + `build-meta.json`
+- [x] T003 [P] `rust-version` in `Cargo.toml` (no `rust-toolchain.toml` yet)
 
 ## Phase 2: Read & parse
 
-- [ ] T004 Implement `specs/*/spec.md` discovery (sorted directory walk)
-- [ ] T005 Parse YAML frontmatter + markdown; extract H1/H2 headings per [data-model.md](./data-model.md)
-- [ ] T006 Map frontmatter → `FeatureRecord` + `extraFrontmatter` (normalized keys only in top-level fields; remainder with schema-allowed value shapes)
+- [x] T004 Implement `specs/*/spec.md` discovery (sorted directory walk)
+- [x] T005 Parse YAML frontmatter + markdown; extract H1/H2 headings per [data-model.md](./data-model.md) / [README.md](../../../tools/spec-compiler/README.md)
+- [x] T006 Map frontmatter → `FeatureRecord` + `extraFrontmatter` (normalized keys + schema-allowed extras)
 
 ## Phase 3: Validation
 
-- [ ] T007 **V-001** / **V-002** / **V-003** implementation
-- [ ] T008 **V-004** repo walk excluding standard vendor dirs per [research.md](./research.md) R6
-- [ ] T009 Wire `validation` object and non-zero exit on failure per [research.md](./research.md) R4
+- [x] T007 **V-001** / **V-002** / **V-003** implementation
+- [x] T008 **V-004** repo walk excluding standard vendor dirs per [research.md](./research.md) R6 (+ `.idea`)
+- [x] T009 Wire `validation` object and non-zero exit on failure per [research.md](./research.md) R4
 
 ## Phase 4: Emit & hash
 
-- [ ] T010 Deterministic JSON writer (BTreeMap / canonical sort) for `registry.json`
-- [ ] T011 `contentHash` per Feature 000 research D2
-- [ ] T012 Emit `build-meta.json` with UTC `builtAt`
+- [x] T010 Deterministic JSON (`sort_json_value` recursive) for `registry.json`
+- [x] T011 `contentHash` per Feature 000 research D2 (spec `spec.md` inputs only per FR-007)
+- [x] T012 Emit `build-meta.json` with UTC `builtAt`
 
 ## Phase 5: Tests & docs
 
-- [ ] T013 [P] Golden integration test: two runs, identical `registry.json` bytes on fixture
-- [ ] T014 [P] Schema validation test (invoke `ajv` in CI script or Rust jsonschema crate—pick one in implementation)
-- [ ] T015 Expand root [README.md](../../README.md) with real `cargo build` / run commands once `tools/spec-compiler/` exists (pointer to Feature 001 already added)
+- [x] T013 [P] Golden integration test: two runs, identical `registry.json` bytes on this repo
+- [ ] T014 [P] Optional: CI schema check (`ajv` or `jsonschema` crate) — deferred until CI pipeline exists
+- [x] T015 Root [README.md](../../README.md) with `cargo build --manifest-path` + `compile` run
 
 ## Dependencies
 
