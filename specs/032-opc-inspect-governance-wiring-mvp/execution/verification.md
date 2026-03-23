@@ -53,6 +53,25 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ---
 
+## PR-1.2 — spec-compiler V-004 conformance (governance CI)
+
+**Symptom:** CI `spec-compiler` job failed at **Emit registry (smoke)** (`spec-compiler compile` exit code 1) after consolidation added root `pnpm-workspace.yaml` / `pnpm-lock.yaml` and large imported trees.
+
+**Root cause:** V-004 walks the repo for standalone `.yaml` / `.yml` files. Root pnpm workspace files are package-manager / lockfile material, not authored spec YAML. Imported `apps/`, `crates/`, `grammars/`, `packages/` trees are outside the spec authoring surface and must not trip governance scans.
+
+**Fix (consolidation-only):** Narrow V-004 scan in `tools/spec-compiler` — skip consolidated product/vendor directory names; exempt root `pnpm-workspace.yaml` and `pnpm-lock.yaml`. Added `tools/spec-compiler/tests/v004_consolidation_excludes.rs`.
+
+| Check | Command / how | Result (pass / fail) | Notes |
+|-------|----------------|----------------------|-------|
+| Spec compiler | `cargo build --release --manifest-path tools/spec-compiler/Cargo.toml && ./tools/spec-compiler/target/release/spec-compiler compile` | pass | Exit code 0; `validation.passed` true. |
+| Spec-compiler tests | `cargo test --manifest-path tools/spec-compiler/Cargo.toml` | pass | Includes new V-004 consolidation test. |
+
+### Freeform: PR-1.2
+
+- No Feature 032 product behavior; compiler boundary fix only.
+
+---
+
 ## PR-2+ — Feature 032 implementation commands
 
 ```bash
@@ -63,4 +82,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 - PR-1 baseline: preserved above (degraded truth at merge time).
 - PR-1.1 baseline: **T000a green** for desktop install, desktop build, and Tauri compile on this host.
-- Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable).
+- PR-1.2: **spec-compiler compile green** (governance CI smoke unblocked).
+- Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.
