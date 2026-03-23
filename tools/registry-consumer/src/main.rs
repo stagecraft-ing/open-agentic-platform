@@ -46,6 +46,9 @@ enum Command {
         /// Emit machine-readable JSON report rows
         #[arg(long)]
         json: bool,
+        /// Omit statuses with zero counts
+        #[arg(long)]
+        nonzero_only: bool,
     },
 }
 
@@ -101,14 +104,21 @@ fn main() -> ExitCode {
                 }
             }
         }
-        Command::StatusReport { show_ids, json } => {
-            let report = match status_report(&registry) {
+        Command::StatusReport {
+            show_ids,
+            json,
+            nonzero_only,
+        } => {
+            let mut report = match status_report(&registry) {
                 Ok(r) => r,
                 Err(msg) => {
                     eprintln!("registry-consumer: {msg}");
                     return ExitCode::from(3);
                 }
             };
+            if nonzero_only {
+                report.retain(|(_, count, _)| *count > 0);
+            }
             if json {
                 let rows: Vec<serde_json::Value> = report
                     .into_iter()

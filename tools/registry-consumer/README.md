@@ -1,6 +1,6 @@
 # registry-consumer
 
-Implements **Feature 002**, **Feature 007**, and **Feature 008** ([`specs/002-registry-consumer-mvp/spec.md`](../../specs/002-registry-consumer-mvp/spec.md), [`specs/007-registry-consumer-status-report-mvp/spec.md`](../../specs/007-registry-consumer-status-report-mvp/spec.md), [`specs/008-registry-consumer-status-report-json-mvp/spec.md`](../../specs/008-registry-consumer-status-report-json-mvp/spec.md)): a **read-only CLI** over compiler-emitted **`registry.json`** (Feature **000** shape, produced by **`spec-compiler`**, Feature **001**), including lifecycle/status reporting UX.
+Implements **Feature 002**, **Feature 007**, **Feature 008**, and **Feature 009** ([`specs/002-registry-consumer-mvp/spec.md`](../../specs/002-registry-consumer-mvp/spec.md), [`specs/007-registry-consumer-status-report-mvp/spec.md`](../../specs/007-registry-consumer-status-report-mvp/spec.md), [`specs/008-registry-consumer-status-report-json-mvp/spec.md`](../../specs/008-registry-consumer-status-report-json-mvp/spec.md), [`specs/009-registry-consumer-status-report-nonzero-mvp/spec.md`](../../specs/009-registry-consumer-status-report-nonzero-mvp/spec.md)): a **read-only CLI** over compiler-emitted **`registry.json`** (Feature **000** shape, produced by **`spec-compiler`**, Feature **001**), including lifecycle/status reporting UX.
 
 ## Prerequisite
 
@@ -28,6 +28,8 @@ Default registry path: **`build/spec-registry/registry.json`** relative to the *
 ./tools/registry-consumer/target/release/registry-consumer status-report
 ./tools/registry-consumer/target/release/registry-consumer status-report --show-ids
 ./tools/registry-consumer/target/release/registry-consumer status-report --json
+./tools/registry-consumer/target/release/registry-consumer status-report --nonzero-only
+./tools/registry-consumer/target/release/registry-consumer status-report --json --nonzero-only
 ```
 
 **`--status`** filters on the Feature **000** enum (`draft`, `active`, `superseded`, `retired`). Normative meanings and recommended transitions: [`specs/003-feature-lifecycle-mvp/spec.md`](../../specs/003-feature-lifecycle-mvp/spec.md).

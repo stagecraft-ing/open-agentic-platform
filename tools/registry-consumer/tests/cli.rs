@@ -376,3 +376,112 @@ fn status_report_json_ids_are_sorted_for_each_status() {
         .expect("active row present");
     assert_eq!(active["ids"], json!(["001-a", "010-z"]));
 }
+
+#[test]
+fn status_report_nonzero_only_omits_zero_rows_in_text_mode() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let v = json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "test",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "features": [
+            { "id": "002-b", "title": "B", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/002-b/spec.md", "sectionHeadings": ["H"] },
+            { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
+        ],
+        "validation": { "passed": true, "violations": [] }
+    });
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--nonzero-only"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("draft      1"));
+    assert!(stdout.contains("active     1"));
+    assert!(!stdout.contains("superseded"));
+    assert!(!stdout.contains("retired"));
+    let draft_idx = stdout.find("draft").expect("draft row present");
+    let active_idx = stdout.find("active").expect("active row present");
+    assert!(draft_idx < active_idx, "remaining rows keep deterministic order");
+}
+
+#[test]
+fn status_report_json_nonzero_only_omits_zero_rows() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let v = json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "test",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "features": [
+            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
+        ],
+        "validation": { "passed": true, "violations": [] }
+    });
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json", "--nonzero-only"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let rows: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
+    let arr = rows.as_array().expect("json output must be an array");
+    assert_eq!(arr.len(), 1);
+    assert_eq!(arr[0]["status"], "active");
+    assert_eq!(arr[0]["count"], 1);
+    assert_eq!(arr[0]["ids"], json!(["009-a"]));
+}
+
+#[test]
+fn status_report_default_behavior_unchanged_without_nonzero_only() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let v = json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "test",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "features": [
+            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
+        ],
+        "validation": { "passed": true, "violations": [] }
+    });
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("status-report")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("draft      0"));
+    assert!(stdout.contains("active     1"));
+    assert!(stdout.contains("superseded 0"));
+    assert!(stdout.contains("retired    0"));
+}
