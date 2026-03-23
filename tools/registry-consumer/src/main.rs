@@ -33,10 +33,16 @@ enum Command {
         status: Option<String>,
         #[arg(long)]
         id_prefix: Option<String>,
+        /// Emit filtered features as a JSON array (pretty-printed)
+        #[arg(long)]
+        json: bool,
     },
     /// Print one feature record as JSON
     Show {
         feature_id: String,
+        /// Explicit JSON contract output (pretty-printed object; same as default show today)
+        #[arg(long)]
+        json: bool,
     },
     /// Print lifecycle/status summary report
     StatusReport {
@@ -77,7 +83,11 @@ fn main() -> ExitCode {
     }
 
     match cli.command {
-        Command::List { status, id_prefix } => {
+        Command::List {
+            status,
+            id_prefix,
+            json,
+        } => {
             let sorted = match features_sorted(&registry) {
                 Ok(f) => f,
                 Err(msg) => {
@@ -86,10 +96,20 @@ fn main() -> ExitCode {
                 }
             };
             let filtered = filter_features(sorted, status.as_deref(), id_prefix.as_deref());
+            if json {
+                match serde_json::to_string_pretty(&filtered) {
+                    Ok(s) => println!("{s}"),
+                    Err(e) => {
+                        eprintln!("registry-consumer: {e}");
+                        return ExitCode::from(3);
+                    }
+                }
+                return ExitCode::SUCCESS;
+            }
             print_list_table(&filtered);
             ExitCode::SUCCESS
         }
-        Command::Show { feature_id } => {
+        Command::Show { feature_id, json: _json } => {
             match find_feature_by_id(&registry, &feature_id) {
                 Some(rec) => {
                     match serde_json::to_string_pretty(&rec) {
