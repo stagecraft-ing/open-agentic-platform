@@ -34,8 +34,11 @@ enum Command {
         #[arg(long)]
         id_prefix: Option<String>,
         /// Emit filtered features as a JSON array (pretty-printed)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "compact")]
         json: bool,
+        /// Single-line compact JSON array (mutually exclusive with --json)
+        #[arg(long, conflicts_with = "json")]
+        compact: bool,
     },
     /// Print one feature record as JSON
     Show {
@@ -90,6 +93,7 @@ fn main() -> ExitCode {
             status,
             id_prefix,
             json,
+            compact,
         } => {
             let sorted = match features_sorted(&registry) {
                 Ok(f) => f,
@@ -101,6 +105,16 @@ fn main() -> ExitCode {
             let filtered = filter_features(sorted, status.as_deref(), id_prefix.as_deref());
             if json {
                 match serde_json::to_string_pretty(&filtered) {
+                    Ok(s) => println!("{s}"),
+                    Err(e) => {
+                        eprintln!("registry-consumer: {e}");
+                        return ExitCode::from(3);
+                    }
+                }
+                return ExitCode::SUCCESS;
+            }
+            if compact {
+                match serde_json::to_string(&filtered) {
                     Ok(s) => println!("{s}"),
                     Err(e) => {
                         eprintln!("registry-consumer: {e}");

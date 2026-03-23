@@ -281,6 +281,156 @@ fn show_json_and_compact_are_mutually_exclusive() {
 }
 
 #[test]
+fn list_compact_emits_valid_array_equal_to_pretty_when_parsed() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let pretty = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json"])
+        .output()
+        .expect("spawn");
+    let compact = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(pretty.status.code(), Some(0));
+    assert_eq!(compact.status.code(), Some(0));
+
+    let vp: serde_json::Value = serde_json::from_slice(&pretty.stdout).unwrap();
+    let vc: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+    assert_eq!(vp, vc);
+}
+
+#[test]
+fn list_compact_output_is_single_line() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(stdout.lines().count(), 1);
+    assert!(!stdout.trim_end().contains('\n'));
+}
+
+#[test]
+fn list_json_and_compact_are_mutually_exclusive() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+}
+
+#[test]
+fn list_compact_status_filter_matches_pretty_json() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let pretty = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json", "--status", "draft"])
+        .output()
+        .expect("spawn");
+    let compact = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact", "--status", "draft"])
+        .output()
+        .expect("spawn");
+    assert_eq!(pretty.status.code(), Some(0));
+    assert_eq!(compact.status.code(), Some(0));
+    let vp: serde_json::Value = serde_json::from_slice(&pretty.stdout).unwrap();
+    let vc: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+    assert_eq!(vp, vc);
+    assert_eq!(vc.as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn list_compact_id_prefix_filter_matches_pretty_json() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let pretty = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json", "--id-prefix", "001"])
+        .output()
+        .expect("spawn");
+    let compact = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact", "--id-prefix", "001"])
+        .output()
+        .expect("spawn");
+    assert_eq!(pretty.status.code(), Some(0));
+    assert_eq!(compact.status.code(), Some(0));
+    let vp: serde_json::Value = serde_json::from_slice(&pretty.stdout).unwrap();
+    let vc: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+    assert_eq!(vp, vc);
+}
+
+#[test]
+fn list_compact_validation_failed_exits_one_without_allow_invalid() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let mut v = fixture_registry_ok();
+    v["validation"]["passed"] = json!(false);
+    v["validation"]["violations"] = json!([]);
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(1));
+}
+
+#[test]
+fn list_compact_invalid_registry_file_exits_three() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    fs::write(&reg, "not json {{{").unwrap();
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+}
+
+#[test]
 fn list_filter_status_and_id_prefix() {
     let dir = tempfile::tempdir().expect("tempdir");
     let reg = dir.path().join("registry.json");
