@@ -559,3 +559,69 @@ fn status_report_json_nonzero_only_contract_is_stable() {
     ]);
     assert_eq!(rows, expected, "nonzero JSON contract must remain stable");
 }
+
+#[test]
+fn status_report_status_filter_text_mode_keeps_selected_row() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--status", "active"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("active     1"));
+    assert!(!stdout.contains("draft"));
+    assert!(!stdout.contains("superseded"));
+    assert!(!stdout.contains("retired"));
+}
+
+#[test]
+fn status_report_status_filter_json_mode_keeps_selected_row() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let mut v = fixture_registry_statuses();
+    v["features"] = json!([
+        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
+        { "id": "099-x", "title": "X", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/099-x/spec.md", "sectionHeadings": ["H"] }
+    ]);
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json", "--status", "active"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let rows: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
+    let expected = json!([
+        { "status": "active", "count": 2, "ids": ["001-a", "010-z"] }
+    ]);
+    assert_eq!(rows, expected);
+}
+
+#[test]
+fn status_report_status_filter_rejects_unknown_value() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--status", "unknown"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+}
