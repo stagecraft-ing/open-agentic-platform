@@ -75,21 +75,32 @@ fn default_registry_path() -> PathBuf {
     PathBuf::from(DEFAULT_REGISTRY_REL_PATH)
 }
 
+fn exit_with_prefixed_message(code: u8, message: impl std::fmt::Display) -> ExitCode {
+    eprintln!("registry-consumer: {message}");
+    ExitCode::from(code)
+}
+
+fn print_json_or_exit<T: serde::Serialize>(value: &T, compact: bool) -> Result<(), ExitCode> {
+    match serialize_json_compact_or_pretty(value, compact) {
+        Ok(s) => {
+            println!("{s}");
+            Ok(())
+        }
+        Err(e) => Err(exit_with_prefixed_message(3, e)),
+    }
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let path = cli.registry_path.unwrap_or_else(default_registry_path);
 
     let registry = match load_registry(&path) {
         Ok(v) => v,
-        Err(e) => {
-            eprintln!("registry-consumer: {}: {e}", path.display());
-            return ExitCode::from(3);
-        }
+        Err(e) => return exit_with_prefixed_message(3, format_args!("{}: {e}", path.display())),
     };
 
     if let Err(msg) = authoritative_or_allow_invalid(&registry, cli.allow_invalid) {
-        eprintln!("registry-consumer: {msg}");
-        return ExitCode::from(1);
+        return exit_with_prefixed_message(1, msg);
     }
 
     match cli.command {
@@ -101,19 +112,12 @@ fn main() -> ExitCode {
         } => {
             let sorted = match features_sorted(&registry) {
                 Ok(f) => f,
-                Err(msg) => {
-                    eprintln!("registry-consumer: {msg}");
-                    return ExitCode::from(3);
-                }
+                Err(msg) => return exit_with_prefixed_message(3, msg),
             };
             let filtered = filter_features(sorted, status.as_deref(), id_prefix.as_deref());
             if json || compact {
-                match serialize_json_compact_or_pretty(&filtered, compact) {
-                    Ok(s) => println!("{s}"),
-                    Err(e) => {
-                        eprintln!("registry-consumer: {e}");
-                        return ExitCode::from(3);
-                    }
+                if let Err(code) = print_json_or_exit(&filtered, compact) {
+                    return code;
                 }
                 return ExitCode::SUCCESS;
             }
@@ -127,19 +131,12 @@ fn main() -> ExitCode {
         } => {
             match find_feature_by_id(&registry, &feature_id) {
                 Some(rec) => {
-                    match serialize_json_compact_or_pretty(&rec, compact) {
-                        Ok(s) => println!("{s}"),
-                        Err(e) => {
-                            eprintln!("registry-consumer: {e}");
-                            return ExitCode::from(3);
-                        }
+                    if let Err(code) = print_json_or_exit(&rec, compact) {
+                        return code;
                     }
                     ExitCode::SUCCESS
                 }
-                None => {
-                    eprintln!("registry-consumer: feature id not found: {feature_id}");
-                    ExitCode::from(1)
-                }
+                None => exit_with_prefixed_message(1, format_args!("feature id not found: {feature_id}")),
             }
         }
         Command::StatusReport {
@@ -151,10 +148,7 @@ fn main() -> ExitCode {
         } => {
             let mut report = match status_report(&registry) {
                 Ok(r) => r,
-                Err(msg) => {
-                    eprintln!("registry-consumer: {msg}");
-                    return ExitCode::from(3);
-                }
+                Err(msg) => return exit_with_prefixed_message(3, msg),
             };
             if let Some(status) = status {
                 report.retain(|(row_status, _, _)| row_status == &status);
@@ -173,12 +167,8 @@ fn main() -> ExitCode {
                         })
                     })
                     .collect();
-                match serialize_json_compact_or_pretty(&rows, compact) {
-                    Ok(s) => println!("{s}"),
-                    Err(e) => {
-                        eprintln!("registry-consumer: {e}");
-                        return ExitCode::from(3);
-                    }
+                if let Err(code) = print_json_or_exit(&rows, compact) {
+                    return code;
                 }
                 return ExitCode::SUCCESS;
             }
