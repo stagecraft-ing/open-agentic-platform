@@ -1,0 +1,19 @@
+{
+  "specVersion": "1.0.0",
+  "build": {
+    "compilerId": "test",
+    "compilerVersion": "0.1.0",
+    "inputRoot": ".",
+    "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "validation": {
+    "passed": false,
+    "violations": [
+      {
+        "code": "V-001",
+        "severity": "error",
+        "message": "fixture contract"
+      }
+    ]
+  }
+}
