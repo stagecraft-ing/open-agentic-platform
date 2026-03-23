@@ -30,22 +30,25 @@ fn registry_json_is_deterministic_across_runs() {
     let root = repo_root();
     let out = root.join("build/spec-registry/registry.json");
 
-    for _ in 0..2 {
-        let status = Command::new(&exe)
-            .arg("compile")
-            .arg("--repo")
-            .arg(&root)
-            .status()
-            .expect("spawn spec-compiler");
-        assert!(
-            status.success(),
-            "spec-compiler should exit 0 when validation passes"
-        );
-        assert!(out.is_file(), "registry.json should exist");
-    }
+    let status = Command::new(&exe)
+        .arg("compile")
+        .arg("--repo")
+        .arg(&root)
+        .status()
+        .expect("spawn spec-compiler run 1");
+    assert!(status.success(), "run 1 should exit 0 when validation passes");
+    assert!(out.is_file(), "registry.json should exist after run 1");
+    let first = std::fs::read(&out).expect("read registry after run 1");
 
-    let first = std::fs::read(&out).expect("read registry");
-    let second = std::fs::read(&out).expect("read registry again");
+    let status = Command::new(&exe)
+        .arg("compile")
+        .arg("--repo")
+        .arg(&root)
+        .status()
+        .expect("spawn spec-compiler run 2");
+    assert!(status.success(), "run 2 should exit 0 when validation passes");
+    let second = std::fs::read(&out).expect("read registry after run 2");
+
     assert_eq!(
         first, second,
         "registry.json must be byte-identical across runs"
