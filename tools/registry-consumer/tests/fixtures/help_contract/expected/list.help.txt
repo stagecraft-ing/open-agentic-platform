@@ -1,0 +1,10 @@
+List features (human-readable table), sorted by id
+
+Usage: registry-consumer list [OPTIONS]
+
+Options:
+      --status <STATUS>        
+      --id-prefix <ID_PREFIX>  
+      --json                   Emit filtered features as a JSON array (pretty-printed)
+      --compact                Single-line compact JSON array (mutually exclusive with --json)
+  -h, --help                   Print help

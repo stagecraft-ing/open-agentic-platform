@@ -1,0 +1,11 @@
+Print lifecycle/status summary report
+
+Usage: registry-consumer status-report [OPTIONS]
+
+Options:
+      --show-ids         Include sorted feature ids per status
+      --json             Emit machine-readable JSON report rows
+      --compact          Single-line compact JSON array of report rows (mutually exclusive with --json)
+      --nonzero-only     Omit statuses with zero counts
+      --status <STATUS>  Filter report to one lifecycle status [possible values: draft, active, superseded, retired]
+  -h, --help             Print help

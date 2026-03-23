@@ -1925,3 +1925,65 @@ fn shape_contract_optional_feature_fields_are_omitted_not_null_in_list_and_show(
         vec!["created", "id", "specPath", "status", "title"]
     );
 }
+
+/// Feature 022: fixture-locked help/usage output contracts.
+#[test]
+fn help_contract_top_level_help_stdout_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe).arg("--help").output().expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/help_contract/expected/top_level.help.txt"),
+        "top-level --help",
+    );
+}
+
+#[test]
+fn help_contract_list_help_stdout_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["list", "--help"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/help_contract/expected/list.help.txt"),
+        "list --help",
+    );
+}
+
+#[test]
+fn help_contract_show_help_stdout_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["show", "--help"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/help_contract/expected/show.help.txt"),
+        "show --help",
+    );
+}
+
+#[test]
+fn help_contract_status_report_help_stdout_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["status-report", "--help"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/help_contract/expected/status_report.help.txt"),
+        "status-report --help",
+    );
+}

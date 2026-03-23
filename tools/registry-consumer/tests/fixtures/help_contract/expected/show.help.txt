@@ -1,0 +1,11 @@
+Print one feature record as JSON
+
+Usage: registry-consumer show [OPTIONS] <FEATURE_ID>
+
+Arguments:
+  <FEATURE_ID>  
+
+Options:
+      --json     Explicit JSON contract output (pretty-printed object; same as default show today)
+      --compact  Single-line compact JSON object (mutually exclusive with --json)
+  -h, --help     Print help
