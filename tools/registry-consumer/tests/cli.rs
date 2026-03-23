@@ -317,3 +317,62 @@ fn status_report_show_ids_lists_sorted_ids() {
     assert!(stdout.contains("active"));
     assert!(stdout.contains("ids: 001-a, 010-z"));
 }
+
+#[test]
+fn status_report_json_emits_machine_readable_rows() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let rows: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
+    let arr = rows.as_array().expect("json output must be an array");
+    assert_eq!(arr.len(), 4, "one row per known status");
+    assert_eq!(arr[0]["status"], "draft");
+    assert_eq!(arr[1]["status"], "active");
+    assert_eq!(arr[2]["status"], "superseded");
+    assert_eq!(arr[3]["status"], "retired");
+    assert_eq!(arr[0]["count"], 1);
+    assert_eq!(arr[1]["count"], 1);
+    assert_eq!(arr[2]["count"], 1);
+    assert_eq!(arr[3]["count"], 1);
+}
+
+#[test]
+fn status_report_json_ids_are_sorted_for_each_status() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let mut v = fixture_registry_statuses();
+    v["features"] = json!([
+        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
+    ]);
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let rows: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
+    let arr = rows.as_array().expect("json output must be an array");
+    let active = arr
+        .iter()
+        .find(|row| row.get("status").and_then(|x| x.as_str()) == Some("active"))
+        .expect("active row present");
+    assert_eq!(active["ids"], json!(["001-a", "010-z"]));
+}
