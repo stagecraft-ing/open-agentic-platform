@@ -1,5 +1,15 @@
 # open-agentic-platform Constitution
 
+## Normative hierarchy (read this first)
+
+Contributors MUST resolve conflicts in this order (**highest wins first**):
+
+1. **`specs/000-bootstrap-spec-system/spec.md`** — constitutional bootstrap for specs and registry contracts.
+2. **This file** (`.specify/memory/constitution.md`) — durable principles; subordinate to Feature 000 where they differ.
+3. **`.specify/contract.md`** — short summary; subordinate to both above.
+
+The name “constitution” here does **not** imply this file overrides Feature 000. When in doubt, open Feature 000.
+
 ## Core Principles
 
 ### I. Markdown-Only Authored Truth
@@ -34,6 +44,6 @@ Repositories used for reverse engineering (for example `opc`, `platform`) are **
 
 ## Governance
 
-This constitution is subordinate to **explicit** normative text in `specs/000-bootstrap-spec-system/spec.md` where stricter rules apply. Amendments to constitutional rules require a spec change (new feature or superseding revision) and review of downstream consumers.
+Amendments to principles in this file require alignment with Feature 000 (or its successor bootstrap spec) and review of downstream consumers.
 
-**Version**: 1.0.1 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+**Version**: 1.0.2 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22

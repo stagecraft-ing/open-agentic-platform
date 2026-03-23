@@ -17,7 +17,7 @@
 |-------|------|----------|-------------|
 | `compilerId` | string | yes | Stable identifier of the compiler implementation (e.g. `open-agentic-spec-compiler`). |
 | `compilerVersion` | string | yes | Semantic version of the compiler. |
-| `inputRoot` | string | yes | Repository-relative root scanned (e.g. `.`). |
+| `inputRoot` | string | yes | Normalized repository-relative root (canonical full-repo value: `"."`). See Feature 000 research **D8**. |
 | `contentHash` | string | yes | SHA-256 hex per `research.md` D2. |
 
 ## BuildMeta (`build-meta.json`, ephemeral)
@@ -46,7 +46,7 @@ Normalized fields (from frontmatter + compiler):
 | `authors` | string[] | no | From frontmatter when present. |
 | `kind` | string | no | From frontmatter when present (e.g. `constitutional-bootstrap`). |
 | `featureBranch` | string | no | From frontmatter `feature_branch` when present. |
-| `extraFrontmatter` | object | no | Only for **unmapped** frontmatter keys; **max 8** keys; values MUST be JSON-serializable scalars or arrays of strings. **Forbidden:** copying the entire parsed YAML tree wholesale. |
+| `extraFrontmatter` | object | no | Only for **unmapped** frontmatter keys; **max 8** keys; each value MUST match **`extraFrontmatterValue`** in `registry.schema.json` (string, number, boolean, null, or string array ≤64 items). **Forbidden:** nested objects, non-string arrays, copying the entire parsed YAML tree wholesale. |
 
 ## ValidationSummary
 

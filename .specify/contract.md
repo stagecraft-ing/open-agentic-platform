@@ -1,6 +1,8 @@
 # `.specify/` contract (open-agentic-platform)
 
-This file is a **short normative summary** of Feature `000-bootstrap-spec-system`. If this file disagrees with `specs/000-bootstrap-spec-system/spec.md`, **the feature spec wins**.
+This file is a **short normative summary** of Feature `000-bootstrap-spec-system`.
+
+**Precedence:** `specs/000-bootstrap-spec-system/spec.md` > `.specify/memory/constitution.md` > **this file**. The constitution filename does **not** override Feature 000.
 
 ## Authoring
 
