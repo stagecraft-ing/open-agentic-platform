@@ -1764,3 +1764,164 @@ fn error_contract_status_report_missing_features_stderr_and_exit() {
         "status-report missing features",
     );
 }
+
+fn shape_contract_fixture(name: &str) -> PathBuf {
+    PathBuf::from(format!("tests/fixtures/shape_contract/{name}"))
+}
+
+fn object_keys_in_order(v: &serde_json::Value) -> Vec<String> {
+    v.as_object()
+        .expect("json value must be object")
+        .keys()
+        .cloned()
+        .collect()
+}
+
+/// Feature 021: field-shape invariants for list/show/status-report JSON outputs.
+#[test]
+fn shape_contract_list_json_feature_object_keys_are_exact_and_ordered() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let rows: serde_json::Value = serde_json::from_slice(&out.stdout).expect("list json");
+    let arr = rows.as_array().expect("list --json must return array");
+    for row in arr {
+        let keys = object_keys_in_order(row);
+        assert_eq!(
+            keys,
+            vec![
+                "created",
+                "id",
+                "sectionHeadings",
+                "specPath",
+                "status",
+                "summary",
+                "title",
+            ]
+        );
+        assert_eq!(row.as_object().expect("row object").len(), 7);
+        for value in row.as_object().expect("row object").values() {
+            assert_ne!(value, &serde_json::Value::Null, "nulls must be omitted");
+        }
+    }
+}
+
+#[test]
+fn shape_contract_show_json_feature_object_keys_are_exact_and_ordered() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let row: serde_json::Value = serde_json::from_slice(&out.stdout).expect("show json");
+    let keys = object_keys_in_order(&row);
+    assert_eq!(
+        keys,
+        vec![
+            "created",
+            "id",
+            "sectionHeadings",
+            "specPath",
+            "status",
+            "summary",
+            "title",
+        ]
+    );
+    let obj = row.as_object().expect("show object");
+    assert_eq!(obj.len(), 7);
+    assert!(obj.contains_key("summary"));
+    assert!(obj.contains_key("sectionHeadings"));
+    for value in obj.values() {
+        assert_ne!(value, &serde_json::Value::Null, "nulls must be omitted");
+    }
+}
+
+#[test]
+fn shape_contract_status_report_json_row_keys_are_exact_and_ordered() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let rows: serde_json::Value = serde_json::from_slice(&out.stdout).expect("status-report json");
+    let arr = rows.as_array().expect("status-report --json must return array");
+    for row in arr {
+        let keys = object_keys_in_order(row);
+        assert_eq!(keys, vec!["count", "ids", "status"]);
+        let obj = row.as_object().expect("row object");
+        assert_eq!(obj.len(), 3);
+        assert!(obj.contains_key("count"));
+        assert!(obj.contains_key("ids"));
+        assert!(obj.contains_key("status"));
+        for value in obj.values() {
+            assert_ne!(value, &serde_json::Value::Null, "nulls must be omitted");
+        }
+    }
+}
+
+#[test]
+fn shape_contract_optional_feature_fields_are_omitted_not_null_in_list_and_show() {
+    let reg = shape_contract_fixture("registry_optional_fields_omitted.json");
+    let exe = registry_consumer_exe();
+
+    let list = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(list.status.code(), Some(0));
+    let list_rows: serde_json::Value = serde_json::from_slice(&list.stdout).expect("list json");
+    let first = list_rows
+        .as_array()
+        .expect("list array")
+        .first()
+        .expect("one row")
+        .as_object()
+        .expect("row object");
+    assert!(!first.contains_key("summary"));
+    assert!(!first.contains_key("sectionHeadings"));
+    assert_eq!(
+        first.keys().cloned().collect::<Vec<_>>(),
+        vec!["created", "id", "specPath", "status", "title"]
+    );
+
+    let show = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(show.status.code(), Some(0));
+    let show_row: serde_json::Value = serde_json::from_slice(&show.stdout).expect("show json");
+    let show_obj = show_row.as_object().expect("show object");
+    assert!(!show_obj.contains_key("summary"));
+    assert!(!show_obj.contains_key("sectionHeadings"));
+    assert_eq!(
+        show_obj.keys().cloned().collect::<Vec<_>>(),
+        vec!["created", "id", "specPath", "status", "title"]
+    );
+}
