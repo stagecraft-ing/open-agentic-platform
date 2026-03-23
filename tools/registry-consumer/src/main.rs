@@ -56,8 +56,11 @@ enum Command {
         #[arg(long)]
         show_ids: bool,
         /// Emit machine-readable JSON report rows
-        #[arg(long)]
+        #[arg(long, conflicts_with = "compact")]
         json: bool,
+        /// Single-line compact JSON array of report rows (mutually exclusive with --json)
+        #[arg(long, conflicts_with = "json")]
+        compact: bool,
         /// Omit statuses with zero counts
         #[arg(long)]
         nonzero_only: bool,
@@ -156,6 +159,7 @@ fn main() -> ExitCode {
         Command::StatusReport {
             show_ids,
             json,
+            compact,
             nonzero_only,
             status,
         } => {
@@ -172,7 +176,7 @@ fn main() -> ExitCode {
             if nonzero_only {
                 report.retain(|(_, count, _)| *count > 0);
             }
-            if json {
+            if json || compact {
                 let rows: Vec<serde_json::Value> = report
                     .into_iter()
                     .map(|(status, count, ids)| {
@@ -183,7 +187,12 @@ fn main() -> ExitCode {
                         })
                     })
                     .collect();
-                match serde_json::to_string_pretty(&rows) {
+                let serialized = if compact {
+                    serde_json::to_string(&rows)
+                } else {
+                    serde_json::to_string_pretty(&rows)
+                };
+                match serialized {
                     Ok(s) => println!("{s}"),
                     Err(e) => {
                         eprintln!("registry-consumer: {e}");
