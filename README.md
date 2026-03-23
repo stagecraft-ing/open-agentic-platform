@@ -22,4 +22,10 @@ cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 ./tools/registry-consumer/target/release/registry-consumer show 000-bootstrap-spec-system
 ```
 
-Details: [`tools/registry-consumer/README.md`](tools/registry-consumer/README.md).
+Details: [`tools/registry-consumer/README.md`](tools/registry-consumer/README.md). Lifecycle semantics for feature **`status`** (draft / active / superseded / retired): [`specs/003-feature-lifecycle-mvp/spec.md`](specs/003-feature-lifecycle-mvp/spec.md).
+
+**Execution protocol** (spec → plan → tasks → changeset / verification, task lifecycle vs feature lifecycle): [`specs/004-spec-to-execution-bridge-mvp/spec.md`](specs/004-spec-to-execution-bridge-mvp/spec.md).
+
+**Verification & reconciliation** (evidence, changeset states, drift, `execution/verification.md`): [`specs/005-verification-reconciliation-mvp/spec.md`](specs/005-verification-reconciliation-mvp/spec.md).
+
+**Conformance lint** (optional **`W-xxx`** workflow warnings; non-blocking vs **`spec-compiler`**): [`specs/006-conformance-lint-mvp/spec.md`](specs/006-conformance-lint-mvp/spec.md), tool: [`tools/spec-lint/README.md`](tools/spec-lint/README.md).

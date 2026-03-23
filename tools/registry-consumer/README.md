@@ -27,6 +27,8 @@ Default registry path: **`build/spec-registry/registry.json`** relative to the *
 ./tools/registry-consumer/target/release/registry-consumer show 002-registry-consumer-mvp
 ```
 
+**`--status`** filters on the Feature **000** enum (`draft`, `active`, `superseded`, `retired`). Normative meanings and recommended transitions: [`specs/003-feature-lifecycle-mvp/spec.md`](../../specs/003-feature-lifecycle-mvp/spec.md).
+
 Override path:
 
 ```bash
