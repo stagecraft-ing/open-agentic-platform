@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
     authoritative_or_allow_invalid, filter_features, find_feature_by_id, features_sorted,
-    load_registry, status_report, DEFAULT_REGISTRY_REL_PATH,
+    load_registry, status_report, DEFAULT_REGISTRY_REL_PATH, KNOWN_STATUSES,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -49,6 +49,9 @@ enum Command {
         /// Omit statuses with zero counts
         #[arg(long)]
         nonzero_only: bool,
+        /// Filter report to one lifecycle status
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(KNOWN_STATUSES))]
+        status: Option<String>,
     },
 }
 
@@ -108,6 +111,7 @@ fn main() -> ExitCode {
             show_ids,
             json,
             nonzero_only,
+            status,
         } => {
             let mut report = match status_report(&registry) {
                 Ok(r) => r,
@@ -116,6 +120,9 @@ fn main() -> ExitCode {
                     return ExitCode::from(3);
                 }
             };
+            if let Some(status) = status {
+                report.retain(|(row_status, _, _)| row_status == &status);
+            }
             if nonzero_only {
                 report.retain(|(_, count, _)| *count > 0);
             }
