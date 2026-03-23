@@ -3,3 +3,6 @@ build/spec-registry/
 
 # IDE
 .idea/
+
+# Rust (spec-compiler)
+tools/spec-compiler/target/

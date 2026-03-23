@@ -85,8 +85,8 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 
 ### Edge Cases
 
-- **Empty `specs/`** (only tooling, no features): compiler emits a valid empty `features` array or documents bootstrap-only behavior; must remain schema-valid.
-- **Feature 000 only**: at minimum, `000-bootstrap-spec-system` appears in `features[]`.
+- **Empty `specs/` directory (no `specs/*/spec.md` files):** The compiler MUST emit **`features: []`**, **`validation.passed: true`** (assuming no other errors), and a **`contentHash`** computed per **FR-007** over the **empty** set of spec inputs (deterministic empty-input hash). This is the **only** valid behavior—no alternate “bootstrap-only” mode that invents synthetic feature rows without a `spec.md` source.
+- **At least one feature spec:** Normal operation; `features[]` lists one record per `specs/<NNN>-<kebab>/spec.md` discovered.
 - **Frontmatter keys** not mapped to normalized fields: appear only under **`extraFrontmatter`**, constrained by Feature 000 schema (`extraFrontmatterValue`).
 
 ## Requirements *(mandatory)*
@@ -99,7 +99,11 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 - **FR-004**: Emit **`build-meta.json`** satisfying `specs/000-bootstrap-spec-system/contracts/build-meta.schema.json`.
 - **FR-005**: Implement **V-001**, **V-002**, **V-003**, **V-004** as defined in Feature 000. **V-005** MUST NOT be claimed as enforced.
 - **FR-006**: Implement **deterministic** emission for **`registry.json`** per Feature 000 (sorted keys, sorted arrays where applicable, stable feature order—**lexicographic by `id`** unless Feature 000 specifies otherwise).
-- **FR-007**: Compute **`build.contentHash`** per Feature 000 `research.md` **D2** over inputs relevant to compilation (at minimum: all scanned `spec.md` sources and any other inputs documented in `research.md`).
+- **FR-007**: Compute **`build.contentHash`** per Feature 000 `research.md` **D2** using **only** the following inputs (nothing else unless this list is amended by a spec change):
+  1. **Every** file path `specs/<NNN>-<kebab-name>/spec.md` that exists and is read for compilation, with file content normalized per D2 (UTF-8 without BOM, LF newlines), concatenated in **sorted path order** as D2 defines.
+  2. **Optionally**, the bytes of `specs/000-bootstrap-spec-system/contracts/registry.schema.json` and `build-meta.schema.json` **only if** the compiler reads them at runtime to validate or embed—if the compiler does **not** read these files, they MUST NOT be included in the hash.
+
+  Adding new inputs to the fingerprint **requires** an explicit spec amendment; implementations MUST NOT silently fold in extra paths (“relevant to compilation” is **not** an elastic escape hatch).
 - **FR-008**: Exit with **non-zero** status when `validation.passed` is false or on unrecoverable I/O error; exact mapping in `research.md`.
 
 ### Key Entities
