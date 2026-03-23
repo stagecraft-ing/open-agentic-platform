@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "axiomregent://spec/verification.schema.json",
+  "title": "VerificationConfig",
+  "type": "object",
+  "required": ["version", "skills"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "toolchains": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["required"],
+        "additionalProperties": false,
+        "properties": {
+          "required": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/commandCheck" }
+          }
+        }
+      }
+    },
+    "defaults": { "$ref": "#/$defs/defaults" },
+    "skills": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/skill" }
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/profile" }
+    }
+  },
+  "$defs": {
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workdir": { "type": "string", "default": "." },
+        "timeout_ms": { "type": "integer", "minimum": 1, "default": 600000 },
+        "network": { "$ref": "#/$defs/networkMode", "default": "deny" },
+        "read_only": { "$ref": "#/$defs/readOnlyMode", "default": "tracked" },
+        "env_allowlist": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+          "default": []
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "default": {}
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": ["include"],
+      "additionalProperties": false,
+      "properties": {
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "required": ["determinism", "tier", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "determinism": { "$ref": "#/$defs/determinismClass" },
+        "tier": { "type": "integer", "enum": [1, 2] },
+        "workdir": { "type": "string" },
+        "timeout_ms": { "type": "integer", "minimum": 1 },
+        "network": { "$ref": "#/$defs/networkMode" },
+        "read_only": { "$ref": "#/$defs/readOnlyMode" },
+        "env_allowlist": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["name", "cmd"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-zA-Z0-9_.-]+$" },
+        "cmd": { "$ref": "#/$defs/cmd" },
+        "workdir": { "type": "string" },
+        "timeout_ms": { "type": "integer", "minimum": 1 },
+        "network": { "$ref": "#/$defs/networkMode" },
+        "read_only": { "$ref": "#/$defs/readOnlyMode" },
+        "env_allowlist": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "cmd": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      ]
+    },
+    "commandCheck": {
+      "type": "object",
+      "required": ["cmd"],
+      "additionalProperties": false,
+      "properties": {
+        "cmd": { "$ref": "#/$defs/cmd" }
+      }
+    },
+    "determinismClass": {
+      "type": "string",
+      "enum": ["D0", "D1", "D2"]
+    },
+    "networkMode": {
+      "type": "string",
+      "enum": ["deny", "allow"]
+    },
+    "readOnlyMode": {
+      "type": "string",
+      "enum": ["off", "tracked", "strict"]
+    }
+  }
+}

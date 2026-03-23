@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0",
+  "graph_fingerprint": "sha256:9c50486c0d93d9e173756b509742d60a8c4e4281512f936661fa9c94030911b7",
+  "features": [
+    {
+      "feature_id": "AGENT_AUTOMATION",
+      "title": "Agent Changeset Protocol (propose / execute / verify)",
+      "spec_path": "spec/agent/automation.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "automation-team",
+      "group": "automation",
+      "depends_on": [
+        "MCP_SNAPSHOT_WORKSPACE",
+        "GOVERNANCE_ENGINE",
+        "XRAY_ANALYSIS"
+      ],
+      "impl_files": [
+        "crates/agent/src/agent.rs",
+        "crates/agent/src/canonical.rs",
+        "crates/agent/src/executor.rs",
+        "crates/agent/src/id.rs",
+        "crates/agent/src/lib.rs",
+        "crates/agent/src/safety.rs",
+        "crates/agent/src/schemas.rs",
+        "crates/agent/src/validator.rs",
+        "src/agent_tools.rs",
+        "src/internal_client.rs"
+      ],
+      "test_files": ["crates/agent/tests/golden_tests.rs"],
+      "violations": []
+    },
+    {
+      "feature_id": "FEATUREGRAPH_REGISTRY",
+      "title": "Feature Graph Registry & Lookup",
+      "spec_path": "spec/core/featuregraph.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "core-team",
+      "group": "core",
+      "depends_on": ["MCP_ROUTER"],
+      "impl_files": [
+        "crates/featuregraph/src/graph.rs",
+        "crates/featuregraph/src/lib.rs",
+        "crates/featuregraph/src/locate.rs",
+        "crates/featuregraph/src/scanner.rs",
+        "crates/featuregraph/src/tools.rs",
+        "src/feature_tools.rs"
+      ],
+      "test_files": ["crates/featuregraph/tests/golden.rs"],
+      "violations": []
+    },
+    {
+      "feature_id": "GOVERNANCE_ENGINE",
+      "title": "Governance Engine (Preflight & Drift)",
+      "spec_path": "spec/core/governance.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "core-team",
+      "group": "core",
+      "depends_on": ["FEATUREGRAPH_REGISTRY"],
+      "impl_files": ["crates/featuregraph/src/preflight.rs"],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "MCP_ROUTER",
+      "title": "Core MCP Router & Dispatch",
+      "spec_path": "spec/core/router.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "core-team",
+      "group": "core",
+      "depends_on": [],
+      "impl_files": [
+        "src/config/mod.rs",
+        "src/io/mod.rs",
+        "src/lib.rs",
+        "src/main.rs",
+        "src/router/mod.rs",
+        "src/util/mod.rs",
+        "src/util/paths.rs",
+        "src/util/stable.rs"
+      ],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "MCP_SNAPSHOT_WORKSPACE",
+      "title": "Snapshot & Workspace Tools",
+      "spec_path": "spec/core/snapshot-workspace.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "core-team",
+      "group": "core",
+      "depends_on": ["MCP_ROUTER"],
+      "impl_files": [
+        "src/snapshot/lease.rs",
+        "src/snapshot/mod.rs",
+        "src/snapshot/store.rs",
+        "src/snapshot/tools.rs",
+        "src/workspace/mod.rs"
+      ],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "TASK_RUNNER",
+      "title": "Language-Agnostic Task Runner",
+      "spec_path": "spec/run/skills.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "cli-team",
+      "group": "run",
+      "depends_on": [],
+      "impl_files": [
+        "crates/run/src/config.rs",
+        "crates/run/src/lib.rs",
+        "crates/run/src/registry.rs",
+        "crates/run/src/runner.rs",
+        "crates/run/src/skills/mod.rs",
+        "crates/run/src/state.rs",
+        "src/run_tools.rs"
+      ],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "VERIFY_PROTOCOL",
+      "title": "Post-execution Verification Protocol",
+      "spec_path": "spec/verification.yaml",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "automation-team",
+      "group": "automation",
+      "depends_on": ["AGENT_AUTOMATION"],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "XRAY_ANALYSIS",
+      "title": "Xray Repository Analysis",
+      "spec_path": "spec/xray/analysis.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "analysis-team",
+      "group": "analysis",
+      "depends_on": [],
+      "impl_files": [
+        "crates/xray/src/canonical.rs",
+        "crates/xray/src/digest.rs",
+        "crates/xray/src/docs.rs",
+        "crates/xray/src/hash.rs",
+        "crates/xray/src/invariant_tests.rs",
+        "crates/xray/src/language.rs",
+        "crates/xray/src/lib.rs",
+        "crates/xray/src/loc.rs",
+        "crates/xray/src/main.rs",
+        "crates/xray/src/schema.rs",
+        "crates/xray/src/tools.rs",
+        "crates/xray/src/traversal.rs",
+        "crates/xray/src/write.rs"
+      ],
+      "test_files": ["crates/xray/tests/index_format_test.rs"],
+      "violations": []
+    },
+    {
+      "feature_id": "XRAY_SCAN_POLICY",
+      "title": "Xray Scan Policy & Configuration",
+      "spec_path": "spec/xray/scan-policy.md",
+      "status": "implemented",
+      "governance": "approved",
+      "owner": "analysis-team",
+      "group": "analysis",
+      "depends_on": ["XRAY_ANALYSIS"],
+      "impl_files": [],
+      "test_files": ["crates/xray/tests/golden_scan.rs"],
+      "violations": []
+    }
+  ],
+  "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/verification/config.rs",
+      "message": "Malformed Spec directive: // Spec: spec/verification.yaml",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/verification/engine.rs",
+      "message": "Malformed Spec directive: // Spec: spec/verification.yaml",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/verification/mod.rs",
+      "message": "Malformed Spec directive: // Spec: spec/verification.yaml",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/verification/runner.rs",
+      "message": "Malformed Spec directive: // Spec: spec/verification.yaml",
+      "suggested_fix": "Fix header format"
+    }
+  ]
+}
