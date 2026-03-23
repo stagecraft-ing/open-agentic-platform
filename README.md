@@ -13,3 +13,13 @@ cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
 ```
 
 Outputs: `build/spec-registry/registry.json` and `build-meta.json`. Details: [`tools/spec-compiler/README.md`](tools/spec-compiler/README.md).
+
+The **registry consumer** (Feature 002) reads `build/spec-registry/registry.json` after a successful compile:
+
+```bash
+cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+./tools/registry-consumer/target/release/registry-consumer list
+./tools/registry-consumer/target/release/registry-consumer show 000-bootstrap-spec-system
+```
+
+Details: [`tools/registry-consumer/README.md`](tools/registry-consumer/README.md).

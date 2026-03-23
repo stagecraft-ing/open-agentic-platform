@@ -1,0 +1,243 @@
+//! Integration tests: exit codes 0 / 1 / 3 per specs/002-registry-consumer-mvp.
+
+use serde_json::json;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+fn registry_consumer_exe() -> PathBuf {
+    if let Some(e) = std::env::var_os("CARGO_BIN_EXE_registry_consumer") {
+        return PathBuf::from(e);
+    }
+    #[cfg(windows)]
+    {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/registry-consumer.exe")
+    }
+    #[cfg(not(windows))]
+    {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/registry-consumer")
+    }
+}
+
+fn write_registry(path: &Path, v: &serde_json::Value) {
+    fs::write(path, serde_json::to_vec_pretty(v).unwrap()).unwrap();
+}
+
+fn fixture_registry_ok() -> serde_json::Value {
+    json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "test",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "features": [
+            {
+                "id": "002-b",
+                "title": "Second",
+                "status": "draft",
+                "created": "2026-03-22",
+                "summary": "sum",
+                "specPath": "specs/002-b/spec.md",
+                "sectionHeadings": ["H"]
+            },
+            {
+                "id": "001-a",
+                "title": "First",
+                "status": "active",
+                "created": "2026-03-22",
+                "summary": "sum",
+                "specPath": "specs/001-a/spec.md",
+                "sectionHeadings": ["H"]
+            }
+        ],
+        "validation": { "passed": true, "violations": [] }
+    })
+}
+
+#[test]
+fn exit_code_zero_list_and_show() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0), "stderr={}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("001-a"));
+    assert!(stdout.contains("002-b"));
+    let pos_001 = stdout.find("001-a").unwrap();
+    let pos_002 = stdout.find("002-b").unwrap();
+    assert!(
+        pos_001 < pos_002,
+        "list must be sorted by id lexicographically"
+    );
+
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let shown: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("show emits JSON");
+    assert_eq!(shown["id"], "001-a");
+    assert_eq!(shown["title"], "First");
+}
+
+#[test]
+fn list_filter_status_and_id_prefix() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--status", "draft"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("002-b"));
+    assert!(
+        !stdout.contains("001-a"),
+        "draft filter must exclude 001-a row"
+    );
+
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--id-prefix", "001"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("001-a"));
+    assert!(!stdout.contains("002-b"));
+}
+
+#[test]
+fn exit_code_one_validation_failed_without_allow_invalid() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let mut v = fixture_registry_ok();
+    v["validation"]["passed"] = json!(false);
+    v["validation"]["violations"] = json!([{
+        "code": "V-001",
+        "severity": "error",
+        "message": "test"
+    }]);
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(1));
+}
+
+#[test]
+fn allow_invalid_permits_list() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let mut v = fixture_registry_ok();
+    v["validation"]["passed"] = json!(false);
+    v["validation"]["violations"] = json!([]);
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+}
+
+#[test]
+fn exit_code_one_show_not_found() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "999-nope"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(1));
+}
+
+#[test]
+fn exit_code_three_missing_file() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("does-not-exist.json");
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+}
+
+#[test]
+fn exit_code_three_invalid_json() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    fs::write(&reg, "not json {{{").unwrap();
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+}
+
+#[test]
+fn exit_code_three_missing_features_array() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let v = json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "t",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "validation": { "passed": true, "violations": [] }
+    });
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+}
