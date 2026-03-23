@@ -1,0 +1,26 @@
+# T014: machine-check emitted JSON against Feature 000 schemas (see specs/001-spec-compiler-mvp/tasks.md).
+
+name: Spec conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  spec-compiler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build spec-compiler
+        run: cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+
+      - name: Emit registry (smoke)
+        run: ./tools/spec-compiler/target/release/spec-compiler compile
+
+      - name: Tests (golden, schema conformance, exit codes)
+        run: cargo test --manifest-path tools/spec-compiler/Cargo.toml
