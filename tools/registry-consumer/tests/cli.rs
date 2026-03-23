@@ -485,3 +485,77 @@ fn status_report_default_behavior_unchanged_without_nonzero_only() {
     assert!(stdout.contains("superseded 0"));
     assert!(stdout.contains("retired    0"));
 }
+
+#[test]
+fn status_report_json_contract_has_stable_row_shape_and_order() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let rows: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
+    let arr = rows.as_array().expect("json output must be an array");
+    for row in arr {
+        let obj = row.as_object().expect("row must be JSON object");
+        assert_eq!(obj.len(), 3, "row shape must remain stable");
+        assert!(obj.contains_key("status"));
+        assert!(obj.contains_key("count"));
+        assert!(obj.contains_key("ids"));
+    }
+
+    let expected = json!([
+        { "status": "draft", "count": 1, "ids": ["004-d"] },
+        { "status": "active", "count": 1, "ids": ["001-a"] },
+        { "status": "superseded", "count": 1, "ids": ["003-c"] },
+        { "status": "retired", "count": 1, "ids": ["002-b"] }
+    ]);
+    assert_eq!(rows, expected, "default JSON contract must remain stable");
+}
+
+#[test]
+fn status_report_json_nonzero_only_contract_is_stable() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let v = json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "test",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "features": [
+            { "id": "009-b", "title": "B", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-b/spec.md", "sectionHeadings": ["H"] },
+            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] },
+            { "id": "010-z", "title": "Z", "status": "retired", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] }
+        ],
+        "validation": { "passed": true, "violations": [] }
+    });
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json", "--nonzero-only"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let rows: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
+    let expected = json!([
+        { "status": "active", "count": 2, "ids": ["009-a", "009-b"] },
+        { "status": "retired", "count": 1, "ids": ["010-z"] }
+    ]);
+    assert_eq!(rows, expected, "nonzero JSON contract must remain stable");
+}
