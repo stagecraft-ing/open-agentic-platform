@@ -29,3 +29,5 @@ Details: [`tools/registry-consumer/README.md`](tools/registry-consumer/README.md
 **Verification & reconciliation** (evidence, changeset states, drift, `execution/verification.md`): [`specs/005-verification-reconciliation-mvp/spec.md`](specs/005-verification-reconciliation-mvp/spec.md).
 
 **Conformance lint** (optional **`W-xxx`** workflow warnings; non-blocking vs **`spec-compiler`**): [`specs/006-conformance-lint-mvp/spec.md`](specs/006-conformance-lint-mvp/spec.md), tool: [`tools/spec-lint/README.md`](tools/spec-lint/README.md).
+
+**Registry-consumer governance** (controlled extension mode, change-class rubric, release gate checklist, contract baseline): [`docs/registry-consumer-contract-governance.md`](docs/registry-consumer-contract-governance.md).
