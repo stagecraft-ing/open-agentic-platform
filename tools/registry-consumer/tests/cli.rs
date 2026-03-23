@@ -1656,3 +1656,111 @@ fn readme_markers_embed_exact_transcripts() {
         );
     }
 }
+
+fn error_contract_fixture(name: &str) -> PathBuf {
+    PathBuf::from(format!("tests/fixtures/error_contract/{name}"))
+}
+
+fn assert_bytes_eq_stderr(actual: &[u8], expected: &str, label: &str) {
+    let expected_b = expected.as_bytes();
+    assert_eq!(
+        actual, expected_b,
+        "{label}: stderr must match committed transcript"
+    );
+}
+
+/// Feature 020: fixture-based error contracts for key runtime failure paths.
+#[test]
+fn error_contract_list_missing_file_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let reg = error_contract_fixture("does_not_exist.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/error_contract/expected/list_missing_file.stderr.txt"),
+        "list missing file",
+    );
+}
+
+#[test]
+fn error_contract_list_invalid_json_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let reg = error_contract_fixture("registry_invalid_json.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/error_contract/expected/list_invalid_json.stderr.txt"),
+        "list invalid json",
+    );
+}
+
+#[test]
+fn error_contract_list_validation_failed_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let reg = error_contract_fixture("registry_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/error_contract/expected/list_validation_failed.stderr.txt"),
+        "list validation failed",
+    );
+}
+
+#[test]
+fn error_contract_show_not_found_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let reg = error_contract_fixture("registry_ok_single.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "999-nope"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/error_contract/expected/show_not_found.stderr.txt"),
+        "show not found",
+    );
+}
+
+#[test]
+fn error_contract_status_report_missing_features_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let reg = error_contract_fixture("registry_missing_features.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("status-report")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/error_contract/expected/status_report_missing_features.stderr.txt"),
+        "status-report missing features",
+    );
+}

@@ -1,0 +1,1 @@
+registry-consumer: tests/fixtures/error_contract/registry_invalid_json.json: expected ident at line 1 column 2
