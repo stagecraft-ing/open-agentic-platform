@@ -28,3 +28,5 @@ This file is a **short normative summary** of Feature `000-bootstrap-spec-system
 Read the full contract: `specs/000-bootstrap-spec-system/spec.md`.
 
 For registry-consumer process governance after contract stabilization, see `docs/registry-consumer-contract-governance.md`.
+
+Distilled extension rule (registry-consumer): accept an extension only when it adds one clear guarantee with minimal surface area, explicit mode/flag interaction rules, fixture-first contract coverage (including help surface), and no drift to settled guarantees; otherwise classify it as a breaking change candidate and enter explicit versioning discussion.
