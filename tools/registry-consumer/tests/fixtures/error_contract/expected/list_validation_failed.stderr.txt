@@ -1,0 +1,1 @@
+registry-consumer: registry is not authoritative (validation.passed is false); use --allow-invalid for diagnostics
