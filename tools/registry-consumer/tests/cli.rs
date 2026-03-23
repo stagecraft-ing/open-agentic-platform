@@ -430,6 +430,155 @@ fn list_compact_invalid_registry_file_exits_three() {
     assert_eq!(out.status.code(), Some(3));
 }
 
+/// Feature 018: fixture contracts for list/show JSON and compact (mirrors status-report JSON contracts).
+#[test]
+fn list_json_contract_has_stable_array_shape_and_order() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let expected = json!([
+        {
+            "id": "001-a",
+            "title": "First",
+            "status": "active",
+            "created": "2026-03-22",
+            "summary": "sum",
+            "specPath": "specs/001-a/spec.md",
+            "sectionHeadings": ["H"]
+        },
+        {
+            "id": "002-b",
+            "title": "Second",
+            "status": "draft",
+            "created": "2026-03-22",
+            "summary": "sum",
+            "specPath": "specs/002-b/spec.md",
+            "sectionHeadings": ["H"]
+        }
+    ]);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let got: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("list --json emits valid JSON");
+    assert_eq!(got, expected, "list --json contract must remain stable");
+}
+
+#[test]
+fn list_compact_contract_matches_expected_serialization() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let expected = json!([
+        {
+            "id": "001-a",
+            "title": "First",
+            "status": "active",
+            "created": "2026-03-22",
+            "summary": "sum",
+            "specPath": "specs/001-a/spec.md",
+            "sectionHeadings": ["H"]
+        },
+        {
+            "id": "002-b",
+            "title": "Second",
+            "status": "draft",
+            "created": "2026-03-22",
+            "summary": "sum",
+            "specPath": "specs/002-b/spec.md",
+            "sectionHeadings": ["H"]
+        }
+    ]);
+    let expected_line = serde_json::to_string(&expected).unwrap();
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let got: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("list --compact emits valid JSON");
+    assert_eq!(got, expected);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(
+        stdout.trim_end(),
+        expected_line,
+        "compact list line must match serde_json::to_string of expected value"
+    );
+}
+
+#[test]
+fn show_json_contract_has_stable_object_shape() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let expected = json!({
+        "id": "001-a",
+        "title": "First",
+        "status": "active",
+        "created": "2026-03-22",
+        "summary": "sum",
+        "specPath": "specs/001-a/spec.md",
+        "sectionHeadings": ["H"]
+    });
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let got: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("show --json emits valid JSON");
+    assert_eq!(got, expected, "show --json contract must remain stable");
+}
+
+#[test]
+fn show_compact_contract_matches_expected_serialization() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let expected = json!({
+        "id": "001-a",
+        "title": "First",
+        "status": "active",
+        "created": "2026-03-22",
+        "summary": "sum",
+        "specPath": "specs/001-a/spec.md",
+        "sectionHeadings": ["H"]
+    });
+    let expected_line = serde_json::to_string(&expected).unwrap();
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let got: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("show --compact emits valid JSON");
+    assert_eq!(got, expected);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(stdout.trim_end(), expected_line);
+}
+
 #[test]
 fn list_filter_status_and_id_prefix() {
     let dir = tempfile::tempdir().expect("tempdir");
