@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
     authoritative_or_allow_invalid, filter_features, find_feature_by_id, features_sorted,
-    load_registry, status_report, DEFAULT_REGISTRY_REL_PATH, KNOWN_STATUSES,
+    load_registry, serialize_json_compact_or_pretty, status_report, DEFAULT_REGISTRY_REL_PATH,
+    KNOWN_STATUSES,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -106,18 +107,8 @@ fn main() -> ExitCode {
                 }
             };
             let filtered = filter_features(sorted, status.as_deref(), id_prefix.as_deref());
-            if json {
-                match serde_json::to_string_pretty(&filtered) {
-                    Ok(s) => println!("{s}"),
-                    Err(e) => {
-                        eprintln!("registry-consumer: {e}");
-                        return ExitCode::from(3);
-                    }
-                }
-                return ExitCode::SUCCESS;
-            }
-            if compact {
-                match serde_json::to_string(&filtered) {
+            if json || compact {
+                match serialize_json_compact_or_pretty(&filtered, compact) {
                     Ok(s) => println!("{s}"),
                     Err(e) => {
                         eprintln!("registry-consumer: {e}");
@@ -136,12 +127,7 @@ fn main() -> ExitCode {
         } => {
             match find_feature_by_id(&registry, &feature_id) {
                 Some(rec) => {
-                    let serialized = if compact {
-                        serde_json::to_string(&rec)
-                    } else {
-                        serde_json::to_string_pretty(&rec)
-                    };
-                    match serialized {
+                    match serialize_json_compact_or_pretty(&rec, compact) {
                         Ok(s) => println!("{s}"),
                         Err(e) => {
                             eprintln!("registry-consumer: {e}");
@@ -187,12 +173,7 @@ fn main() -> ExitCode {
                         })
                     })
                     .collect();
-                let serialized = if compact {
-                    serde_json::to_string(&rows)
-                } else {
-                    serde_json::to_string_pretty(&rows)
-                };
-                match serialized {
+                match serialize_json_compact_or_pretty(&rows, compact) {
                     Ok(s) => println!("{s}"),
                     Err(e) => {
                         eprintln!("registry-consumer: {e}");

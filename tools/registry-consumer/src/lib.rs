@@ -1,5 +1,6 @@
 //! Read-only access to compiler-emitted `registry.json` (Feature 000 / 002).
 
+use serde::Serialize;
 use serde_json::Value;
 use std::path::Path;
 
@@ -135,4 +136,35 @@ pub fn status_report(v: &Value) -> Result<Vec<(String, usize, Vec<String>)>, &'s
         ids.sort();
     }
     Ok(out)
+}
+
+/// Serialize `value` as compact one-line JSON (`compact == true`) or pretty-printed JSON (`compact == false`).
+pub fn serialize_json_compact_or_pretty<T: Serialize>(
+    value: &T,
+    compact: bool,
+) -> Result<String, serde_json::Error> {
+    if compact {
+        serde_json::to_string(value)
+    } else {
+        serde_json::to_string_pretty(value)
+    }
+}
+
+#[cfg(test)]
+mod serialize_tests {
+    use super::serialize_json_compact_or_pretty;
+    use serde_json::json;
+
+    #[test]
+    fn serialize_json_compact_or_pretty_matches_serde_json_helpers() {
+        let v = json!({ "a": 1, "b": [2, 3] });
+        assert_eq!(
+            serialize_json_compact_or_pretty(&v, true).unwrap(),
+            serde_json::to_string(&v).unwrap()
+        );
+        assert_eq!(
+            serialize_json_compact_or_pretty(&v, false).unwrap(),
+            serde_json::to_string_pretty(&v).unwrap()
+        );
+    }
 }
