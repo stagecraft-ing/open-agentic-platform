@@ -2307,3 +2307,105 @@ fn sorting_contract_status_report_ids_sorted_even_with_allow_invalid() {
     assert_eq!(draft, vec!["099-x"]);
     assert_eq!(active, vec!["001-a", "010-z"]);
 }
+
+/// Feature 028: representative stdout/stderr channel discipline invariants.
+#[test]
+fn channel_contract_success_data_goes_to_stdout_only() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/default_path_contract/expected/list_success.stdout.txt"),
+        "success data channel",
+    );
+}
+
+#[test]
+fn channel_contract_help_and_version_go_to_stdout_only() {
+    let exe = registry_consumer_exe();
+
+    let help = Command::new(&exe).arg("--help").output().expect("spawn");
+    assert_eq!(help.status.code(), Some(0));
+    assert_eq!(help.stderr, b"");
+    assert_bytes_eq_stdout(
+        &help.stdout,
+        include_str!("fixtures/help_contract/expected/top_level.help.txt"),
+        "help channel",
+    );
+
+    let version = Command::new(&exe).arg("--version").output().expect("spawn");
+    assert_eq!(version.status.code(), Some(0));
+    assert_eq!(version.stderr, b"");
+    assert_bytes_eq_stdout(
+        &version.stdout,
+        include_str!("fixtures/version_contract/expected/top_level.version.txt"),
+        "version channel",
+    );
+}
+
+#[test]
+fn channel_contract_argument_errors_go_to_stderr_only() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["list", "--json", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/arg_contract/expected/list_json_compact_conflict.stderr.txt"),
+        "argument error channel",
+    );
+}
+
+#[test]
+fn channel_contract_runtime_errors_go_to_stderr_only() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("does-not-exist.json");
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(out.stdout, b"");
+    let expected = format!(
+        "registry-consumer: {}: No such file or directory (os error 2)\n",
+        reg.display()
+    );
+    assert_bytes_eq_stderr(&out.stderr, &expected, "runtime error channel");
+}
+
+#[test]
+fn channel_contract_allow_invalid_success_stays_stdout_only() {
+    let exe = registry_consumer_exe();
+    let reg = allow_invalid_contract_fixture("registry_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .args(["show", "001-a"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/allow_invalid_contract/expected/show_allow_invalid.stdout.txt"),
+        "allow-invalid success channel",
+    );
+}
