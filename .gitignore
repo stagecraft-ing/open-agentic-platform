@@ -285,6 +285,7 @@ build/spec-registry/
 
 # IDE
 .idea/
+_tmp/
 
 # Rust (spec-compiler)
 tools/spec-compiler/target/
