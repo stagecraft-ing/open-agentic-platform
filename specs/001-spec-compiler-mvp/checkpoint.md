@@ -1,6 +1,8 @@
 # Feature 001 — spec conformance checkpoint (2026-03-22)
 
-**Status**: MVP + machine-checked schemas + CLI exit codes pinned in tests.
+**Verdict**: **Approved.** Feature 001 is the constitutional compiler baseline for this repo: implemented, tested, schema-gated in CI.
+
+**Status**: **Closed** for MVP scope—no further compiler work unless Feature 000/001 text changes, schema drift, or an explicit scope decision. (Fixture + real-repo schema tests + golden + exit codes.)
 
 ## What is verified
 

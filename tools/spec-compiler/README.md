@@ -3,7 +3,9 @@
 Implements **Feature 001** ([`specs/001-spec-compiler-mvp/spec.md`](../../specs/001-spec-compiler-mvp/spec.md)), emitting Feature **000** JSON contracts:
 
 - `build/spec-registry/registry.json` (deterministic)
-- `build/spec-registry/build-meta.json` (ephemeral `builtAt`)
+- `build/spec-registry/build-meta.json` (ephemeral `builtAt` — **not** byte-stable across runs; only `registry.json` is subject to determinism checks)
+
+`builtAt` changes every run by design (Feature 000); compare or cache **`registry.json`** for reproducible artifacts.
 
 ## Conformance (Feature 000 schemas)
 

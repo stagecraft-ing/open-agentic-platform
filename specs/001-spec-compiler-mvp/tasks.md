@@ -3,6 +3,8 @@
 **Input**: `/specs/001-spec-compiler-mvp/` (spec, plan, research)  
 **Prerequisites**: Feature **000** schemas at `specs/000-bootstrap-spec-system/contracts/`
 
+**Feature status**: **Complete** — treat `tools/spec-compiler` and CI `spec-conformance` as the required gate for downstream features unless Feature 000/001 is amended.
+
 ## Phase 1: Crate skeleton
 
 - [x] T001 Create `tools/spec-compiler/` with `Cargo.toml`, `src/main.rs`, `src/lib.rs`, workspace-friendly README linking Feature 001 spec
