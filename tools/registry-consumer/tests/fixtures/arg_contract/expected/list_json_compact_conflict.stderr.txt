@@ -1,0 +1,5 @@
+error: the argument '--json' cannot be used with '--compact'
+
+Usage: registry-consumer list --json
+
+For more information, try '--help'.
