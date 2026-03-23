@@ -130,7 +130,7 @@ The compiler MUST emit two related JSON artifacts under `build/spec-registry/`:
 1. **`registry.json`** (deterministic) — conforms to `contracts/registry.schema.json`. Minimum semantic content:
    - **`specVersion`** — registry format version string.
    - **`build`** — `compilerId`, `compilerVersion`, `inputRoot`, and a **single deterministic `contentHash`** over canonical inputs. **No wall-clock timestamp** in this file (see determinism below).
-   - **`features`** — ordered array of feature records: **normalized fields** from frontmatter (`id`, `title`, `status`, `created`, `summary`, optional `authors`, `kind`, `featureBranch`), **`specPath`**, **`sectionHeadings`**, and optionally **`extraFrontmatter`** (only for keys not mapped to normalized fields; max **8** keys; no dumping of full parsed YAML).
+   - **`features`** — ordered array of feature records: **normalized fields** from frontmatter (`id`, `title`, `status`, `created`, `summary`, optional `authors`, `kind`, `featureBranch`), **`specPath`**, **`sectionHeadings`**, and optionally **`extraFrontmatter`** (only for keys not mapped to normalized fields; max **8** keys; values constrained by schema **`extraFrontmatterValue`**; no dumping of full parsed YAML).
    - **`validation`** — aggregate pass/fail and a list of violations with stable error codes.
 
 2. **`build-meta.json`** (ephemeral, compiler-owned) — conforms to `contracts/build-meta.schema.json`. Carries **`builtAt`** (UTC wall-clock) and optional duplicate `compilerId` / `compilerVersion` for log correlation. **Not** included in determinism or golden-file equality checks.

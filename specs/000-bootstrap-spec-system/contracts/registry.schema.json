@@ -17,7 +17,11 @@
       "properties": {
         "compilerId": { "type": "string", "minLength": 1 },
         "compilerVersion": { "type": "string", "minLength": 1 },
-        "inputRoot": { "type": "string", "minLength": 1 },
+        "inputRoot": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repository-relative root used for this compilation. Canonical full-repo value is \".\"; normalization rules: Feature 000 research D8 and Feature 001 spec."
+        },
         "contentHash": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
@@ -72,9 +76,23 @@
         "extraFrontmatter": {
           "type": "object",
           "maxProperties": 8,
-          "additionalProperties": true
+          "additionalProperties": { "$ref": "#/$defs/extraFrontmatterValue" }
         }
       }
+    },
+    "extraFrontmatterValue": {
+      "description": "Scalar or string-list only; no nested objects or heterogeneous arrays.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "maxItems": 64
+        }
+      ]
     },
     "violation": {
       "type": "object",

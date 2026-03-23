@@ -42,6 +42,12 @@
 - **Rationale**: Preserves a single deterministic artifact while still allowing ops to record when a build ran.
 - **Alternatives considered**: Deterministic timestamp from last git commit (couples output to VCS); omitting ephemeral file entirely (loses useful CI logs).
 
+### D8 — `build.inputRoot` normalization
+
+- **Decision (bootstrap-level):** The string **`"."`** is the **canonical** `inputRoot` for **full-repository** compilation (CI, golden tests, default CLI). The compiler MUST normalize before emit: **no trailing slash**; **forward slashes only**; **`.`** means repository root as passed to the compiler (see Feature 001 for CLI resolution).
+- **Sub-tree compilation:** A later compiler MAY accept a non-`.` root (e.g. a subdirectory) for local iteration; when used, the compiler MUST still emit the **normalized** path string in `inputRoot` and SHOULD document that consumers comparing registries across runs MUST scope comparisons to the same root. Feature 001 MVP SHOULD default to repo-root `.` only and MAY defer sub-tree mode to a patch if needed.
+- **Rationale:** Avoids ambiguous `inputRoot` strings (`./` vs `.` vs `specs`) that would make cross-tool comparison brittle.
+
 ## Open items (for implementation tasks, not spec ambiguity)
 
 - Exact CLI flags and exit codes for the compiler binary.
