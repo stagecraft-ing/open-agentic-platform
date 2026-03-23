@@ -1,0 +1,15 @@
+Read-only CLI over build/spec-registry/registry.json (specs/002-registry-consumer-mvp)
+
+Usage: registry-consumer [OPTIONS] <COMMAND>
+
+Commands:
+  list           List features (human-readable table), sorted by id
+  show           Print one feature record as JSON
+  status-report  Print lifecycle/status summary report
+  help           Print this message or the help of the given subcommand(s)
+
+Options:
+      --registry-path <PATH>  Path to registry.json (default: build/spec-registry/registry.json relative to cwd)
+      --allow-invalid         Allow reading when validation.passed is false (diagnostics only)
+  -h, --help                  Print help
+  -V, --version               Print version
