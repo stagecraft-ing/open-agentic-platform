@@ -2409,3 +2409,77 @@ fn channel_contract_allow_invalid_success_stays_stdout_only() {
         "allow-invalid success channel",
     );
 }
+
+/// Feature 031: list --ids-only contract extension.
+#[test]
+fn ids_only_contract_list_emits_sorted_ids_one_per_line() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--ids-only"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/ids_only_contract/expected/list_ids_only_default.stdout.txt"),
+        "list --ids-only default",
+    );
+}
+
+#[test]
+fn ids_only_contract_list_respects_existing_filters() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--ids-only", "--status", "draft", "--id-prefix", "002"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/ids_only_contract/expected/list_ids_only_filtered.stdout.txt"),
+        "list --ids-only with filters",
+    );
+}
+
+#[test]
+fn ids_only_contract_conflicts_with_json_and_compact() {
+    let exe = registry_consumer_exe();
+
+    let with_json = Command::new(&exe)
+        .args(["list", "--ids-only", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(with_json.status.code(), Some(2));
+    assert_eq!(with_json.stdout, b"");
+    assert!(
+        String::from_utf8_lossy(&with_json.stderr).contains("cannot be used with"),
+        "stderr={}",
+        String::from_utf8_lossy(&with_json.stderr)
+    );
+
+    let with_compact = Command::new(&exe)
+        .args(["list", "--ids-only", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(with_compact.status.code(), Some(2));
+    assert_eq!(with_compact.stdout, b"");
+    assert!(
+        String::from_utf8_lossy(&with_compact.stderr).contains("cannot be used with"),
+        "stderr={}",
+        String::from_utf8_lossy(&with_compact.stderr)
+    );
+}

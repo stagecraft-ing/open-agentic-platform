@@ -35,11 +35,14 @@ enum Command {
         #[arg(long)]
         id_prefix: Option<String>,
         /// Emit filtered features as a JSON array (pretty-printed)
-        #[arg(long, conflicts_with = "compact")]
+        #[arg(long, conflicts_with_all = ["compact", "ids_only"])]
         json: bool,
         /// Single-line compact JSON array (mutually exclusive with --json)
-        #[arg(long, conflicts_with = "json")]
+        #[arg(long, conflicts_with_all = ["json", "ids_only"])]
         compact: bool,
+        /// Emit only feature ids, one per line (sorted/filter semantics preserved)
+        #[arg(long = "ids-only", conflicts_with_all = ["json", "compact"])]
+        ids_only: bool,
     },
     /// Print one feature record as JSON
     Show {
@@ -109,6 +112,7 @@ fn main() -> ExitCode {
             id_prefix,
             json,
             compact,
+            ids_only,
         } => {
             let sorted = match features_sorted(&registry) {
                 Ok(f) => f,
@@ -119,6 +123,10 @@ fn main() -> ExitCode {
                 if let Err(code) = print_json_or_exit(&filtered, compact) {
                     return code;
                 }
+                return ExitCode::SUCCESS;
+            }
+            if ids_only {
+                print_list_ids(&filtered);
                 return ExitCode::SUCCESS;
             }
             print_list_table(&filtered);
@@ -197,6 +205,13 @@ fn print_list_table(features: &[serde_json::Value]) {
         let id_disp = truncate(id, 43);
         let title_disp = truncate(title, 72);
         println!("{:<44} {:<10} {}", id_disp, status, title_disp);
+    }
+}
+
+fn print_list_ids(features: &[serde_json::Value]) {
+    for f in features {
+        let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
+        println!("{id}");
     }
 }
 
