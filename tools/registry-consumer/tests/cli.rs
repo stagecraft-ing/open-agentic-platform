@@ -2124,3 +2124,107 @@ fn default_path_contract_list_missing_default_path_stderr_and_exit() {
         "default path list missing file",
     );
 }
+
+fn allow_invalid_contract_fixture(name: &str) -> PathBuf {
+    PathBuf::from(format!("tests/fixtures/allow_invalid_contract/{name}"))
+}
+
+/// Feature 026: policy override contracts for --allow-invalid.
+#[test]
+fn allow_invalid_contract_without_flag_remains_authority_failure() {
+    let exe = registry_consumer_exe();
+    let reg = allow_invalid_contract_fixture("registry_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/allow_invalid_contract/expected/list_without_allow_invalid.stderr.txt"),
+        "without --allow-invalid",
+    );
+}
+
+#[test]
+fn allow_invalid_contract_list_succeeds_with_exact_stdout() {
+    let exe = registry_consumer_exe();
+    let reg = allow_invalid_contract_fixture("registry_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/allow_invalid_contract/expected/list_allow_invalid.stdout.txt"),
+        "allow-invalid list",
+    );
+}
+
+#[test]
+fn allow_invalid_contract_show_succeeds_with_exact_stdout() {
+    let exe = registry_consumer_exe();
+    let reg = allow_invalid_contract_fixture("registry_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .args(["show", "001-a"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/allow_invalid_contract/expected/show_allow_invalid.stdout.txt"),
+        "allow-invalid show",
+    );
+}
+
+#[test]
+fn allow_invalid_contract_status_report_succeeds_with_exact_stdout() {
+    let exe = registry_consumer_exe();
+    let reg = allow_invalid_contract_fixture("registry_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .arg("status-report")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/allow_invalid_contract/expected/status_report_allow_invalid.stdout.txt"),
+        "allow-invalid status-report",
+    );
+}
+
+#[test]
+fn allow_invalid_contract_malformed_registry_still_fails_with_flag() {
+    let exe = registry_consumer_exe();
+    let reg = allow_invalid_contract_fixture("registry_missing_features_validation_failed.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/allow_invalid_contract/expected/list_allow_invalid_malformed.stderr.txt"),
+        "allow-invalid malformed registry",
+    );
+}
