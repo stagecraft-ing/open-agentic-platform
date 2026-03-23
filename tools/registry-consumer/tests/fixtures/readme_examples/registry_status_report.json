@@ -1,0 +1,59 @@
+{
+  "specVersion": "1.0.0",
+  "build": {
+    "compilerId": "test",
+    "compilerVersion": "0.1.0",
+    "inputRoot": ".",
+    "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "features": [
+    {
+      "id": "004-d",
+      "title": "D",
+      "status": "draft",
+      "created": "2026-03-22",
+      "summary": "s",
+      "specPath": "specs/004-d/spec.md",
+      "sectionHeadings": [
+        "H"
+      ]
+    },
+    {
+      "id": "001-a",
+      "title": "A",
+      "status": "active",
+      "created": "2026-03-22",
+      "summary": "s",
+      "specPath": "specs/001-a/spec.md",
+      "sectionHeadings": [
+        "H"
+      ]
+    },
+    {
+      "id": "003-c",
+      "title": "C",
+      "status": "superseded",
+      "created": "2026-03-22",
+      "summary": "s",
+      "specPath": "specs/003-c/spec.md",
+      "sectionHeadings": [
+        "H"
+      ]
+    },
+    {
+      "id": "002-b",
+      "title": "B",
+      "status": "retired",
+      "created": "2026-03-22",
+      "summary": "s",
+      "specPath": "specs/002-b/spec.md",
+      "sectionHeadings": [
+        "H"
+      ]
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "violations": []
+  }
+}

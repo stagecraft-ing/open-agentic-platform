@@ -1,0 +1,4 @@
+draft      1
+active     1
+superseded 1
+retired    1
