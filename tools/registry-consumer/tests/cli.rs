@@ -2065,3 +2065,20 @@ fn arg_contract_status_report_invalid_status_stderr_and_exit() {
         "status-report invalid --status value",
     );
 }
+
+/// Feature 024: top-level --version contract.
+#[test]
+fn version_contract_top_level_stdout_exit_and_stderr() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .arg("--version")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/version_contract/expected/top_level.version.txt"),
+        "--version",
+    );
+}
