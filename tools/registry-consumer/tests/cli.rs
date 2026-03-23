@@ -1987,3 +1987,81 @@ fn help_contract_status_report_help_stdout_and_exit() {
         "status-report --help",
     );
 }
+
+/// Feature 023: argument-layer contract tests (flag conflicts and validation errors).
+#[test]
+fn arg_contract_list_json_compact_conflict_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["list", "--json", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/arg_contract/expected/list_json_compact_conflict.stderr.txt"),
+        "list --json --compact conflict",
+    );
+}
+
+#[test]
+fn arg_contract_show_json_compact_conflict_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["show", "001-a", "--json", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/arg_contract/expected/show_json_compact_conflict.stderr.txt"),
+        "show --json --compact conflict",
+    );
+}
+
+#[test]
+fn arg_contract_status_report_json_compact_conflict_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["status-report", "--json", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/arg_contract/expected/status_report_json_compact_conflict.stderr.txt"),
+        "status-report --json --compact conflict",
+    );
+}
+
+#[test]
+fn arg_contract_show_missing_required_feature_id_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe).arg("show").output().expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/arg_contract/expected/show_missing_feature_id.stderr.txt"),
+        "show missing feature id",
+    );
+}
+
+#[test]
+fn arg_contract_status_report_invalid_status_stderr_and_exit() {
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["status-report", "--status", "unknown"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/arg_contract/expected/status_report_invalid_status.stderr.txt"),
+        "status-report invalid --status value",
+    );
+}

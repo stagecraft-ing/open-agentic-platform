@@ -1,0 +1,5 @@
+error: the argument '--json' cannot be used with '--compact'
+
+Usage: registry-consumer show --json <FEATURE_ID>
+
+For more information, try '--help'.

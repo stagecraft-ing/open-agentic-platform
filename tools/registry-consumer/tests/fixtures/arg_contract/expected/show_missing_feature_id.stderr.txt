@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <FEATURE_ID>
+
+Usage: registry-consumer show <FEATURE_ID>
+
+For more information, try '--help'.
