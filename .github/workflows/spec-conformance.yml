@@ -32,3 +32,12 @@ jobs:
         run: |
           ./tools/registry-consumer/target/release/registry-consumer list | head -n 5
           cargo test --manifest-path tools/registry-consumer/Cargo.toml
+
+      - name: Build spec-lint (Feature 006)
+        run: cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+
+      - name: spec-lint (warnings non-blocking)
+        run: ./tools/spec-lint/target/release/spec-lint
+
+      - name: spec-lint tests
+        run: cargo test --manifest-path tools/spec-lint/Cargo.toml
