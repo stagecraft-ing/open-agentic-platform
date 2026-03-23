@@ -41,8 +41,11 @@ enum Command {
     Show {
         feature_id: String,
         /// Explicit JSON contract output (pretty-printed object; same as default show today)
-        #[arg(long)]
+        #[arg(long, conflicts_with = "compact")]
         json: bool,
+        /// Single-line compact JSON object (mutually exclusive with --json)
+        #[arg(long, conflicts_with = "json")]
+        compact: bool,
     },
     /// Print lifecycle/status summary report
     StatusReport {
@@ -109,10 +112,19 @@ fn main() -> ExitCode {
             print_list_table(&filtered);
             ExitCode::SUCCESS
         }
-        Command::Show { feature_id, json: _json } => {
+        Command::Show {
+            feature_id,
+            json: _json,
+            compact,
+        } => {
             match find_feature_by_id(&registry, &feature_id) {
                 Some(rec) => {
-                    match serde_json::to_string_pretty(&rec) {
+                    let serialized = if compact {
+                        serde_json::to_string(&rec)
+                    } else {
+                        serde_json::to_string_pretty(&rec)
+                    };
+                    match serialized {
                         Ok(s) => println!("{s}"),
                         Err(e) => {
                             eprintln!("registry-consumer: {e}");
