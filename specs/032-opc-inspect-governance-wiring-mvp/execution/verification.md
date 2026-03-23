@@ -9,17 +9,20 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 | Check | Command / how | Result (pass / fail / skip) | Notes |
 |-------|----------------|-----------------------------|-------|
-| Desktop frontend install | _(e.g. pnpm/npm install in workspace)_ | | |
-| Desktop frontend build | _(e.g. vite/turbo build for `apps/desktop`)_ | | |
-| Tauri / backend compile | _(e.g. `cargo build` for desktop crate)_ | | |
-| `packages/mcp-client` in workspace | _(workspace file lists package; resolves from desktop)_ | | |
-| Baseline tests | _(list commands: unit/e2e as applicable)_ | | |
-| Temporary shims / path fixes | N/A — prose | | Only what PR-1 needed for baseline; link commits or files |
-| Known non-032 breakages | N/A — prose | | Documented degraded baseline if not fully green |
+| Desktop frontend install | `pnpm -C apps/desktop install --no-frozen-lockfile` | fail | Missing workspace packages (`@opc/types@workspace:*` not present in this repo yet). |
+| Desktop frontend build | `pnpm -C apps/desktop build` | skip | Build blocked because install step fails from unresolved workspace dependencies. |
+| Tauri / backend compile | `cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml` | fail | Desktop backend depends on crates not yet imported (`crates/agent` and peers missing). |
+| `packages/mcp-client` in workspace | `test -f packages/mcp-client/package.json && test -f packages/mcp-client/src/index.ts` | pass | Package path present after import; workspace resolution remains degraded until workspace files/deps are consolidated. |
+| Baseline tests | `cargo test --manifest-path tools/registry-consumer/Cargo.toml --all --quiet` | pass | Existing pre-import repo baseline remains green for current toolchain surface (non-desktop path). |
+| Temporary shims / path fixes | N/A — prose | pass | None applied in this PR slice yet. |
+| Known non-032 breakages | N/A — prose | pass | Degraded baseline is bounded to missing consolidated workspace dependencies/crates required by imported desktop trees. |
 
 ### Freeform: import-only fixes
 
-- List any files changed **only** for consolidation (paths, workspace, CI), not for 032 behavior.
+- Imported trees only:
+  - `apps/desktop/**`
+  - `packages/mcp-client/**`
+- No inspect/git/governance feature behavior changes in this baseline capture step.
 
 ---
 
@@ -32,5 +35,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ## Results
 
-- Pending implementation.
-- Baseline verification results (T000a): pending — complete table in **PR-1**.
+- PR-1 baseline captured with bounded degraded state.
+- Consolidation gate status: **T000 complete**, **T000a complete (degraded, documented)**.
