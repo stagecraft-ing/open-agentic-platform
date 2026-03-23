@@ -30,7 +30,7 @@
 ## Phase 5: Tests & docs
 
 - [x] T013 [P] Golden integration test: two runs, identical `registry.json` bytes on this repo
-- [ ] T014 [P] Optional: CI schema check (`ajv` or `jsonschema` crate) — deferred until CI pipeline exists
+- [x] T014 [P] Schema conformance: integration tests (`tests/schema_conformance.rs`) validate emitted JSON against Feature 000 schemas via `jsonschema` (default-features = false); GitHub Actions workflow `.github/workflows/spec-conformance.yml` runs `cargo test` + smoke `compile`
 - [x] T015 Root [README.md](../../README.md) with `cargo build --manifest-path` + `compile` run
 
 ## Dependencies

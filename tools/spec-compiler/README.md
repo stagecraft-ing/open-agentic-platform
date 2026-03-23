@@ -5,6 +5,10 @@ Implements **Feature 001** ([`specs/001-spec-compiler-mvp/spec.md`](../../specs/
 - `build/spec-registry/registry.json` (deterministic)
 - `build/spec-registry/build-meta.json` (ephemeral `builtAt`)
 
+## Conformance (Feature 000 schemas)
+
+Integration tests compile this repo and validate output with the **`jsonschema`** crate (see `tests/schema_conformance.rs`). CI runs `cargo test --manifest-path tools/spec-compiler/Cargo.toml` (workflow: `.github/workflows/spec-conformance.yml`).
+
 ## Build
 
 ```bash

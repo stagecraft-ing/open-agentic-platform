@@ -38,8 +38,8 @@
 
 ### R6 — V-004 scan roots
 
-- **Decision**: Walk from repo root (cwd), exclude `.git/`, `build/`, `target/`, `node_modules/`, `vendor/`, and `tools/spec-compiler/target/` if applicable. Scan **all** remaining paths for `*.yaml` / `*.yml` **files** (not only `specs/`).
-- **Rationale**: Feature 000 default policy is repo-wide authored surface; matches D4 spirit.
+- **Decision**: Walk from repo root (cwd), **do not descend** into `.git/`, `.github/`, `build/`, `target/`, `node_modules/`, `vendor/`, `.idea/`, etc. Scan **all** remaining paths for `*.yaml` / `*.yml` **files** (not only `specs/`).
+- **Rationale**: Feature 000 default policy is repo-wide authored surface; matches D4 spirit. **`.github/` is excluded** so CI workflow YAML (e.g. GitHub Actions) does not collide with V-004—those files are repository tooling, not platform feature specs.
 
 ## Open items
 

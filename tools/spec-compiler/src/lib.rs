@@ -377,13 +377,19 @@ fn missing_spec_md_dirs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> 
 }
 
 /// Standalone `.yaml` / `.yml` under the repo are rejected (V-004). Skipped path
-/// components match Feature 001 research; a future spec may add an explicit allowlist
-/// for vendored or fixture YAML outside these directories.
+/// components include `.git`, `.github` (CI workflows), build artifacts, etc.; see
+/// Feature 001 research R6. A future spec may add an explicit allowlist for other trees.
 fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
     let skip_dir_name = |name: &str| {
         matches!(
             name,
-            ".git" | "build" | "node_modules" | "vendor" | "target" | ".idea"
+            ".git"
+                | ".github"
+                | "build"
+                | "node_modules"
+                | "vendor"
+                | "target"
+                | ".idea"
         )
     };
     for ent in WalkDir::new(repo_root)
