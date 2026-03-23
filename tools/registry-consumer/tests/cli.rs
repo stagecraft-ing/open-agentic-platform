@@ -2082,3 +2082,45 @@ fn version_contract_top_level_stdout_exit_and_stderr() {
         "--version",
     );
 }
+
+/// Feature 025: default-path contract when --registry-path is omitted.
+#[test]
+fn default_path_contract_list_success_uses_build_spec_registry_registry_json() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg_dir = dir.path().join("build/spec-registry");
+    fs::create_dir_all(&reg_dir).expect("create build/spec-registry");
+    let reg = reg_dir.join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .arg("list")
+        .current_dir(dir.path())
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(out.stderr, b"");
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/default_path_contract/expected/list_success.stdout.txt"),
+        "default path list success",
+    );
+}
+
+#[test]
+fn default_path_contract_list_missing_default_path_stderr_and_exit() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .arg("list")
+        .current_dir(dir.path())
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(out.stdout, b"");
+    assert_bytes_eq_stderr(
+        &out.stderr,
+        include_str!("fixtures/default_path_contract/expected/list_missing_default_path.stderr.txt"),
+        "default path list missing file",
+    );
+}

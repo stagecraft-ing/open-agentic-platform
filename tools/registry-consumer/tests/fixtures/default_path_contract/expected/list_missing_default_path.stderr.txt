@@ -1,0 +1,1 @@
+registry-consumer: build/spec-registry/registry.json: No such file or directory (os error 2)
