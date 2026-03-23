@@ -237,6 +237,7 @@ fn build_registry_value(
         a.code
             .cmp(&b.code)
             .then_with(|| a.message.cmp(&b.message))
+            .then_with(|| a.path.as_deref().cmp(&b.path.as_deref()))
     });
 
     let features_val = serde_json::to_value(features)?;
@@ -314,6 +315,18 @@ fn normalize_repo_path(repo_root: &Path, path: &Path) -> String {
         .replace('\\', "/")
 }
 
+/// `specs/<NNN>-<kebab>/` directory names per Feature 000 (three digits, hyphen, rest).
+fn is_specs_feature_directory(name: &str) -> bool {
+    let b = name.as_bytes();
+    if b.len() < 5 {
+        return false;
+    }
+    if !b[..3].iter().all(|u| u.is_ascii_digit()) {
+        return false;
+    }
+    b[3] == b'-'
+}
+
 fn discover_spec_paths(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> {
     let specs = repo_root.join("specs");
     if !specs.is_dir() {
@@ -327,11 +340,7 @@ fn discover_spec_paths(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> {
             continue;
         }
         let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        if !name
-            .chars()
-            .take(3)
-            .all(|c| c.is_ascii_digit())
-        {
+        if !is_specs_feature_directory(name) {
             continue;
         }
         let spec_md = p.join("spec.md");
@@ -343,7 +352,7 @@ fn discover_spec_paths(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> {
     Ok(paths)
 }
 
-/// Directories under specs/NNN-* that exist but lack spec.md (V-001).
+/// Directories under `specs/<NNN>-<kebab>/` that exist but lack spec.md (V-001).
 fn missing_spec_md_dirs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> {
     let specs = repo_root.join("specs");
     if !specs.is_dir() {
@@ -356,7 +365,7 @@ fn missing_spec_md_dirs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> 
             continue;
         }
         let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        if name.len() < 5 || !name.chars().take(3).all(|c| c.is_ascii_digit()) {
+        if !is_specs_feature_directory(name) {
             continue;
         }
         if !p.join("spec.md").is_file() {
@@ -371,25 +380,22 @@ fn missing_spec_md_dirs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> 
 /// components match Feature 001 research; a future spec may add an explicit allowlist
 /// for vendored or fixture YAML outside these directories.
 fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
-    let skip = |p: &Path| {
-        p.components().any(|c| {
-            matches!(
-                c.as_os_str().to_str(),
-                Some(
-                    ".git" | "build" | "node_modules" | "vendor" | "target" | ".idea"
-                )
-            )
-        })
+    let skip_dir_name = |name: &str| {
+        matches!(
+            name,
+            ".git" | "build" | "node_modules" | "vendor" | "target" | ".idea"
+        )
     };
     for ent in WalkDir::new(repo_root)
         .into_iter()
+        .filter_entry(|e| {
+            let name = e.file_name().to_str().unwrap_or("");
+            !skip_dir_name(name)
+        })
         .filter_map(|e| e.ok())
     {
         let p = ent.path();
         if !p.is_file() {
-            continue;
-        }
-        if skip(p) {
             continue;
         }
         let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -581,5 +587,14 @@ mod tests {
         let body = "# Feature X\n\n## A\n## B\n";
         let h = extract_headings(body, "Feature X");
         assert_eq!(h, vec!["A", "B"]);
+    }
+
+    #[test]
+    fn feature_dir_name_matches_feature_000() {
+        assert!(is_specs_feature_directory("000-bootstrap-spec-system"));
+        assert!(is_specs_feature_directory("001-spec-compiler-mvp"));
+        assert!(!is_specs_feature_directory("001"));
+        assert!(!is_specs_feature_directory("docs"));
+        assert!(!is_specs_feature_directory("00a-x"));
     }
 }
