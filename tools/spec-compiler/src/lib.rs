@@ -96,7 +96,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             code: "V-001".to_string(),
             severity: "error".to_string(),
             message: "spec.md missing for feature directory".to_string(),
-            path: Some(dir.to_string_lossy().into_owned()),
+            path: Some(normalize_repo_path(repo_root, &dir)),
         });
     }
 
@@ -127,13 +127,13 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
                 code: "V-003".to_string(),
                 severity: "error".to_string(),
                 message: format!("duplicate feature id {id:?}"),
-                path: Some(spec_path.to_string_lossy().into_owned()),
+                path: Some(normalize_repo_path(repo_root, spec_path)),
             });
             violations.push(Violation {
                 code: "V-003".to_string(),
                 severity: "error".to_string(),
                 message: format!("duplicate feature id {id:?} (first occurrence)"),
-                path: Some(prev.to_string_lossy().into_owned()),
+                path: Some(normalize_repo_path(repo_root, prev)),
             });
             continue;
         }
@@ -143,7 +143,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let authors = optional_string_list(fm, "authors");
         let kind = optional_str(fm, "kind");
         let feature_branch = optional_str(fm, "feature_branch");
-        let extra = extra_frontmatter(fm, spec_path, &mut violations)?;
+        let extra = extra_frontmatter(repo_root, fm, spec_path, &mut violations)?;
 
         let headings = extract_headings(&body, &title);
 
@@ -367,6 +367,9 @@ fn missing_spec_md_dirs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> 
     Ok(missing)
 }
 
+/// Standalone `.yaml` / `.yml` under the repo are rejected (V-004). Skipped path
+/// components match Feature 001 research; a future spec may add an explicit allowlist
+/// for vendored or fixture YAML outside these directories.
 fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
     let skip = |p: &Path| {
         p.components().any(|c| {
@@ -457,6 +460,7 @@ fn optional_string_list(m: &serde_yaml::Mapping, key: &str) -> Option<Vec<String
 }
 
 fn extra_frontmatter(
+    repo_root: &Path,
     m: &serde_yaml::Mapping,
     path: &Path,
     violations: &mut Vec<Violation>,
@@ -481,7 +485,7 @@ fn extra_frontmatter(
                     message: format!(
                         "frontmatter key {key:?} has a value that cannot be represented in extraFrontmatter"
                     ),
-                    path: Some(path.to_string_lossy().into_owned()),
+                    path: Some(normalize_repo_path(repo_root, path)),
                 });
             }
         }
@@ -491,7 +495,7 @@ fn extra_frontmatter(
             code: "V-002".to_string(),
             severity: "error".to_string(),
             message: "extraFrontmatter exceeds maxProperties (8)".into(),
-            path: Some(path.to_string_lossy().into_owned()),
+            path: Some(normalize_repo_path(repo_root, path)),
         });
     }
     if extra.is_empty() {
