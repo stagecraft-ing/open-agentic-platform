@@ -1389,3 +1389,270 @@ fn status_report_compact_invalid_registry_file_exits_three() {
         .expect("spawn");
     assert_eq!(out.status.code(), Some(3));
 }
+
+// --- Feature 019: README examples contract (fixture transcripts + README markers) ---
+
+fn readme_fixture_registry_list_show() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/readme_examples/registry_list_show.json")
+}
+
+fn readme_fixture_registry_status_report() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/readme_examples/registry_status_report.json")
+}
+
+fn readme_contract_section<'a>(readme: &'a str, id: &str) -> Option<&'a str> {
+    let start = format!("<!-- readme-contract:{id} -->");
+    let end = format!("<!-- /readme-contract:{id} -->");
+    let i = readme.find(&start)?;
+    let tail = &readme[i + start.len()..];
+    let j = tail.find(&end)?;
+    Some(&tail[..j])
+}
+
+fn first_markdown_fence_inner(section: &str) -> &str {
+    let s = section.trim_start();
+    let s = s.strip_prefix("```").expect("expected opening ``` fence");
+    let body = match s.find('\n') {
+        None => s,
+        Some(nl) => {
+            let first = s[..nl].trim();
+            if !first.is_empty()
+                && first.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+            {
+                &s[nl + 1..]
+            } else {
+                s
+            }
+        }
+    };
+    let end = body.rfind("```").expect("expected closing ``` fence");
+    &body[..end]
+}
+
+fn assert_bytes_eq_stdout(actual: &[u8], expected: &str, label: &str) {
+    let expected_b = expected.as_bytes();
+    assert_eq!(
+        actual, expected_b,
+        "{label}: stdout must match committed transcript"
+    );
+}
+
+#[test]
+fn readme_example_cli_list_text_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_list_show();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("list")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/list_text.txt"),
+        "list text",
+    );
+}
+
+#[test]
+fn readme_example_cli_list_json_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_list_show();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/list_json.txt"),
+        "list --json",
+    );
+}
+
+#[test]
+fn readme_example_cli_list_compact_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_list_show();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/list_compact.txt"),
+        "list --compact",
+    );
+}
+
+#[test]
+fn readme_example_cli_show_text_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_list_show();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/show_text.txt"),
+        "show (default)",
+    );
+}
+
+#[test]
+fn readme_example_cli_show_json_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_list_show();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/show_json.txt"),
+        "show --json",
+    );
+}
+
+#[test]
+fn readme_example_cli_show_compact_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_list_show();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/show_compact.txt"),
+        "show --compact",
+    );
+}
+
+#[test]
+fn readme_example_cli_status_report_text_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_status_report();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("status-report")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/status_report_text.txt"),
+        "status-report text",
+    );
+}
+
+#[test]
+fn readme_example_cli_status_report_json_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_status_report();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/status_report_json.txt"),
+        "status-report --json",
+    );
+}
+
+#[test]
+fn readme_example_cli_status_report_compact_matches_transcript() {
+    let exe = registry_consumer_exe();
+    let reg = readme_fixture_registry_status_report();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    assert_bytes_eq_stdout(
+        &out.stdout,
+        include_str!("fixtures/readme_examples/expected/status_report_compact.txt"),
+        "status-report --compact",
+    );
+}
+
+#[test]
+fn readme_markers_embed_exact_transcripts() {
+    let readme_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("README.md");
+    let readme = fs::read_to_string(&readme_path).expect("read README");
+
+    let checks: &[(&str, &str)] = &[
+        (
+            "list-text",
+            include_str!("fixtures/readme_examples/expected/list_text.txt"),
+        ),
+        (
+            "list-json",
+            include_str!("fixtures/readme_examples/expected/list_json.txt"),
+        ),
+        (
+            "list-compact",
+            include_str!("fixtures/readme_examples/expected/list_compact.txt"),
+        ),
+        (
+            "show-text",
+            include_str!("fixtures/readme_examples/expected/show_text.txt"),
+        ),
+        (
+            "show-json",
+            include_str!("fixtures/readme_examples/expected/show_json.txt"),
+        ),
+        (
+            "show-compact",
+            include_str!("fixtures/readme_examples/expected/show_compact.txt"),
+        ),
+        (
+            "status-report-text",
+            include_str!("fixtures/readme_examples/expected/status_report_text.txt"),
+        ),
+        (
+            "status-report-json",
+            include_str!("fixtures/readme_examples/expected/status_report_json.txt"),
+        ),
+        (
+            "status-report-compact",
+            include_str!("fixtures/readme_examples/expected/status_report_compact.txt"),
+        ),
+    ];
+
+    for (id, expected) in checks {
+        let section = readme_contract_section(&readme, id).unwrap_or_else(|| {
+            panic!("README missing readme-contract marker pair for {id}");
+        });
+        let got = first_markdown_fence_inner(section);
+        assert_eq!(
+            got, *expected,
+            "README fenced body for {id} must match tests/fixtures/readme_examples/expected/{id}.txt (use that file as source of truth)"
+        );
+    }
+}

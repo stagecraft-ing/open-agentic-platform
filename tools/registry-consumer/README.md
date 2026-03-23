@@ -1,6 +1,6 @@
 # registry-consumer
 
-Implements **Feature 002**, **Feature 007**, **Feature 008**, **Feature 009**, **Feature 010**, **Feature 011**, **Feature 012**, **Feature 013**, **Feature 014**, **Feature 015**, **Feature 016**, **Feature 017**, and **Feature 018** ([`specs/002-registry-consumer-mvp/spec.md`](../../specs/002-registry-consumer-mvp/spec.md), [`specs/007-registry-consumer-status-report-mvp/spec.md`](../../specs/007-registry-consumer-status-report-mvp/spec.md), [`specs/008-registry-consumer-status-report-json-mvp/spec.md`](../../specs/008-registry-consumer-status-report-json-mvp/spec.md), [`specs/009-registry-consumer-status-report-nonzero-mvp/spec.md`](../../specs/009-registry-consumer-status-report-nonzero-mvp/spec.md), [`specs/010-registry-consumer-status-report-json-contract-mvp/spec.md`](../../specs/010-registry-consumer-status-report-json-contract-mvp/spec.md), [`specs/011-registry-consumer-status-report-status-filter-mvp/spec.md`](../../specs/011-registry-consumer-status-report-status-filter-mvp/spec.md), [`specs/012-registry-consumer-list-json-mvp/spec.md`](../../specs/012-registry-consumer-list-json-mvp/spec.md), [`specs/013-registry-consumer-show-json-mvp/spec.md`](../../specs/013-registry-consumer-show-json-mvp/spec.md), [`specs/014-registry-consumer-show-compact-json-mvp/spec.md`](../../specs/014-registry-consumer-show-compact-json-mvp/spec.md), [`specs/015-registry-consumer-list-compact-json-mvp/spec.md`](../../specs/015-registry-consumer-list-compact-json-mvp/spec.md), [`specs/016-registry-consumer-status-report-compact-json-mvp/spec.md`](../../specs/016-registry-consumer-status-report-compact-json-mvp/spec.md), [`specs/017-registry-consumer-shared-json-serialization-helper-mvp/spec.md`](../../specs/017-registry-consumer-shared-json-serialization-helper-mvp/spec.md), [`specs/018-registry-consumer-list-show-json-contract-mvp/spec.md`](../../specs/018-registry-consumer-list-show-json-contract-mvp/spec.md)): a **read-only CLI** over compiler-emitted **`registry.json`** (Feature **000** shape, produced by **`spec-compiler`**, Feature **001**), including lifecycle/status reporting UX. Feature **017** centralizes pretty vs compact JSON serialization in `serialize_json_compact_or_pretty` (`src/lib.rs`) without changing CLI output. Feature **018** adds fixture contract tests for **`list`/`show`** JSON and compact output (similar to Feature **010** for **`status-report --json`**).
+Implements **Feature 002**, **Feature 007**, **Feature 008**, **Feature 009**, **Feature 010**, **Feature 011**, **Feature 012**, **Feature 013**, **Feature 014**, **Feature 015**, **Feature 016**, **Feature 017**, **Feature 018**, and **Feature 019** ([`specs/002-registry-consumer-mvp/spec.md`](../../specs/002-registry-consumer-mvp/spec.md), [`specs/007-registry-consumer-status-report-mvp/spec.md`](../../specs/007-registry-consumer-status-report-mvp/spec.md), [`specs/008-registry-consumer-status-report-json-mvp/spec.md`](../../specs/008-registry-consumer-status-report-json-mvp/spec.md), [`specs/009-registry-consumer-status-report-nonzero-mvp/spec.md`](../../specs/009-registry-consumer-status-report-nonzero-mvp/spec.md), [`specs/010-registry-consumer-status-report-json-contract-mvp/spec.md`](../../specs/010-registry-consumer-status-report-json-contract-mvp/spec.md), [`specs/011-registry-consumer-status-report-status-filter-mvp/spec.md`](../../specs/011-registry-consumer-status-report-status-filter-mvp/spec.md), [`specs/012-registry-consumer-list-json-mvp/spec.md`](../../specs/012-registry-consumer-list-json-mvp/spec.md), [`specs/013-registry-consumer-show-json-mvp/spec.md`](../../specs/013-registry-consumer-show-json-mvp/spec.md), [`specs/014-registry-consumer-show-compact-json-mvp/spec.md`](../../specs/014-registry-consumer-show-compact-json-mvp/spec.md), [`specs/015-registry-consumer-list-compact-json-mvp/spec.md`](../../specs/015-registry-consumer-list-compact-json-mvp/spec.md), [`specs/016-registry-consumer-status-report-compact-json-mvp/spec.md`](../../specs/016-registry-consumer-status-report-compact-json-mvp/spec.md), [`specs/017-registry-consumer-shared-json-serialization-helper-mvp/spec.md`](../../specs/017-registry-consumer-shared-json-serialization-helper-mvp/spec.md), [`specs/018-registry-consumer-list-show-json-contract-mvp/spec.md`](../../specs/018-registry-consumer-list-show-json-contract-mvp/spec.md), [`specs/019-registry-consumer-readme-examples-contract-mvp/spec.md`](../../specs/019-registry-consumer-readme-examples-contract-mvp/spec.md)): a **read-only CLI** over compiler-emitted **`registry.json`** (Feature **000** shape, produced by **`spec-compiler`**, Feature **001**), including lifecycle/status reporting UX. Feature **017** centralizes pretty vs compact JSON serialization in `serialize_json_compact_or_pretty` (`src/lib.rs`) without changing CLI output. Feature **018** adds fixture contract tests for **`list`/`show`** JSON and compact output (similar to Feature **010** for **`status-report --json`**). Feature **019** ties README examples to the same committed transcripts as integration tests (CLI + fenced blocks).
 
 ## Prerequisite
 
@@ -16,6 +16,191 @@ cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
 ```bash
 cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 ```
+
+## Verified examples (Feature 019)
+
+The transcripts below are **contract-tested**: `cargo test` checks that the CLI matches the files under `tests/fixtures/readme_examples/expected/`, and that these fenced blocks match those files. Registries are committed next to the tests.
+
+**Registries**
+
+- `tests/fixtures/readme_examples/registry_list_show.json` — **list** / **show**
+- `tests/fixtures/readme_examples/registry_status_report.json` — **status-report**
+
+From the repository root, using the **release** binary (paths below are relative to the repo root).
+
+### Human-facing (terminal tables and readable JSON)
+
+**`list` (text table)**
+
+```bash
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_list_show.json list
+```
+
+<!-- readme-contract:list-text -->
+```text
+id                                           status     title
+001-a                                        active     First
+002-b                                        draft      Second
+```
+<!-- /readme-contract:list-text -->
+
+**`show` (default output; same object as `show --json`)**
+
+```bash
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_list_show.json show 001-a
+```
+
+<!-- readme-contract:show-text -->
+```json
+{
+  "created": "2026-03-22",
+  "id": "001-a",
+  "sectionHeadings": [
+    "H"
+  ],
+  "specPath": "specs/001-a/spec.md",
+  "status": "active",
+  "summary": "sum",
+  "title": "First"
+}
+```
+<!-- /readme-contract:show-text -->
+
+**`status-report` (counts per status)**
+
+```bash
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_status_report.json status-report
+```
+
+<!-- readme-contract:status-report-text -->
+```text
+draft      1
+active     1
+superseded 1
+retired    1
+```
+<!-- /readme-contract:status-report-text -->
+
+### Automation-facing (JSON and compact)
+
+**`list --json` / `list --compact`**
+
+```bash
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_list_show.json list --json
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_list_show.json list --compact
+```
+
+<!-- readme-contract:list-json -->
+```json
+[
+  {
+    "created": "2026-03-22",
+    "id": "001-a",
+    "sectionHeadings": [
+      "H"
+    ],
+    "specPath": "specs/001-a/spec.md",
+    "status": "active",
+    "summary": "sum",
+    "title": "First"
+  },
+  {
+    "created": "2026-03-22",
+    "id": "002-b",
+    "sectionHeadings": [
+      "H"
+    ],
+    "specPath": "specs/002-b/spec.md",
+    "status": "draft",
+    "summary": "sum",
+    "title": "Second"
+  }
+]
+```
+<!-- /readme-contract:list-json -->
+
+<!-- readme-contract:list-compact -->
+```json
+[{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"active","summary":"sum","title":"First"},{"created":"2026-03-22","id":"002-b","sectionHeadings":["H"],"specPath":"specs/002-b/spec.md","status":"draft","summary":"sum","title":"Second"}]
+```
+<!-- /readme-contract:list-compact -->
+
+**`show --json` / `show --compact`**
+
+```bash
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_list_show.json show 001-a --json
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_list_show.json show 001-a --compact
+```
+
+<!-- readme-contract:show-json -->
+```json
+{
+  "created": "2026-03-22",
+  "id": "001-a",
+  "sectionHeadings": [
+    "H"
+  ],
+  "specPath": "specs/001-a/spec.md",
+  "status": "active",
+  "summary": "sum",
+  "title": "First"
+}
+```
+<!-- /readme-contract:show-json -->
+
+<!-- readme-contract:show-compact -->
+```json
+{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"active","summary":"sum","title":"First"}
+```
+<!-- /readme-contract:show-compact -->
+
+**`status-report --json` / `status-report --compact`**
+
+```bash
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_status_report.json status-report --json
+./tools/registry-consumer/target/release/registry-consumer --registry-path tools/registry-consumer/tests/fixtures/readme_examples/registry_status_report.json status-report --compact
+```
+
+<!-- readme-contract:status-report-json -->
+```json
+[
+  {
+    "count": 1,
+    "ids": [
+      "004-d"
+    ],
+    "status": "draft"
+  },
+  {
+    "count": 1,
+    "ids": [
+      "001-a"
+    ],
+    "status": "active"
+  },
+  {
+    "count": 1,
+    "ids": [
+      "003-c"
+    ],
+    "status": "superseded"
+  },
+  {
+    "count": 1,
+    "ids": [
+      "002-b"
+    ],
+    "status": "retired"
+  }
+]
+```
+<!-- /readme-contract:status-report-json -->
+
+<!-- readme-contract:status-report-compact -->
+```json
+[{"count":1,"ids":["004-d"],"status":"draft"},{"count":1,"ids":["001-a"],"status":"active"},{"count":1,"ids":["003-c"],"status":"superseded"},{"count":1,"ids":["002-b"],"status":"retired"}]
+```
+<!-- /readme-contract:status-report-compact -->
 
 ## Usage (repository root)
 
