@@ -212,6 +212,75 @@ fn show_json_invalid_registry_file_exits_three() {
 }
 
 #[test]
+fn show_compact_emits_valid_json_equal_to_pretty_when_parsed() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let pretty = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a"])
+        .output()
+        .expect("spawn");
+    let compact = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(pretty.status.code(), Some(0));
+    assert_eq!(compact.status.code(), Some(0));
+
+    let vp: serde_json::Value = serde_json::from_slice(&pretty.stdout).unwrap();
+    let vc: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+    assert_eq!(vp, vc, "compact and pretty must parse to the same feature object");
+}
+
+#[test]
+fn show_compact_output_is_single_line_of_json() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "compact show must print exactly one line (plus trailing newline from println)"
+    );
+    assert!(
+        !stdout.trim_end().contains('\n'),
+        "compact JSON body must not contain embedded newlines"
+    );
+}
+
+#[test]
+fn show_json_and_compact_are_mutually_exclusive() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["show", "001-a", "--json", "--compact"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(2));
+}
+
+#[test]
 fn list_filter_status_and_id_prefix() {
     let dir = tempfile::tempdir().expect("tempdir");
     let reg = dir.path().join("registry.json");
