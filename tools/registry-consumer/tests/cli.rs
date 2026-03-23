@@ -2228,3 +2228,82 @@ fn allow_invalid_contract_malformed_registry_still_fails_with_flag() {
         "allow-invalid malformed registry",
     );
 }
+
+fn sorting_contract_fixture(name: &str) -> PathBuf {
+    PathBuf::from(format!("tests/fixtures/sorting_contract/{name}"))
+}
+
+/// Feature 027: explicit sorting-order contracts.
+#[test]
+fn sorting_contract_list_json_order_is_lexicographic_by_feature_id() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_ok());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["list", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let arr: serde_json::Value = serde_json::from_slice(&out.stdout).expect("list json");
+    let items = arr.as_array().expect("array");
+    let ids: Vec<&str> = items
+        .iter()
+        .map(|x| x["id"].as_str().expect("id"))
+        .collect();
+    assert_eq!(ids, vec!["001-a", "002-b"]);
+}
+
+#[test]
+fn sorting_contract_status_report_rows_follow_fixed_status_sequence() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let rows: serde_json::Value = serde_json::from_slice(&out.stdout).expect("status-report json");
+    let arr = rows.as_array().expect("array");
+    let statuses: Vec<&str> = arr
+        .iter()
+        .map(|x| x["status"].as_str().expect("status"))
+        .collect();
+    assert_eq!(statuses, vec!["draft", "active", "superseded", "retired"]);
+}
+
+#[test]
+fn sorting_contract_status_report_ids_sorted_even_with_allow_invalid() {
+    let exe = registry_consumer_exe();
+    let reg = sorting_contract_fixture("registry_unsorted_allow_invalid.json");
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("--allow-invalid")
+        .args(["status-report", "--json"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let rows: serde_json::Value = serde_json::from_slice(&out.stdout).expect("status-report json");
+    let arr = rows.as_array().expect("array");
+    let statuses: Vec<&str> = arr
+        .iter()
+        .map(|x| x["status"].as_str().expect("status"))
+        .collect();
+    assert_eq!(statuses, vec!["draft", "active", "superseded", "retired"]);
+
+    let draft_ids = arr[0]["ids"].as_array().expect("ids");
+    let active_ids = arr[1]["ids"].as_array().expect("ids");
+    let draft: Vec<&str> = draft_ids.iter().map(|x| x.as_str().unwrap()).collect();
+    let active: Vec<&str> = active_ids.iter().map(|x| x.as_str().unwrap()).collect();
+    assert_eq!(draft, vec!["099-x"]);
+    assert_eq!(active, vec!["001-a", "010-z"]);
+}
