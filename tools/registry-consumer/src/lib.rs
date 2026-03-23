@@ -5,6 +5,7 @@ use std::path::Path;
 
 /// Default path relative to the repository root (current working directory).
 pub const DEFAULT_REGISTRY_REL_PATH: &str = "build/spec-registry/registry.json";
+pub const KNOWN_STATUSES: [&str; 4] = ["draft", "active", "superseded", "retired"];
 
 #[derive(Debug)]
 pub enum LoadError {
@@ -102,4 +103,36 @@ pub fn find_feature_by_id(v: &Value, feature_id: &str) -> Option<Value> {
     arr.iter()
         .find(|f| f.get("id").and_then(|x| x.as_str()) == Some(feature_id))
         .cloned()
+}
+
+/// Build a deterministic status report from `features[]`.
+///
+/// Returns one tuple per known status in fixed order:
+/// `(status, count, sorted_feature_ids)`.
+pub fn status_report(v: &Value) -> Result<Vec<(String, usize, Vec<String>)>, &'static str> {
+    let features = features_sorted(v)?;
+    let mut out: Vec<(String, usize, Vec<String>)> = KNOWN_STATUSES
+        .iter()
+        .map(|s| (s.to_string(), 0usize, Vec::<String>::new()))
+        .collect();
+
+    for f in &features {
+        let status = f
+            .get("status")
+            .and_then(|x| x.as_str())
+            .ok_or("feature is missing status")?;
+        let id = f
+            .get("id")
+            .and_then(|x| x.as_str())
+            .ok_or("feature is missing id")?;
+        if let Some((_, count, ids)) = out.iter_mut().find(|(s, _, _)| s == status) {
+            *count += 1;
+            ids.push(id.to_string());
+        }
+    }
+
+    for (_, _, ids) in &mut out {
+        ids.sort();
+    }
+    Ok(out)
 }

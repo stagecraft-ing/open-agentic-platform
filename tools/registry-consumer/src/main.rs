@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
     authoritative_or_allow_invalid, filter_features, find_feature_by_id, features_sorted,
-    load_registry, DEFAULT_REGISTRY_REL_PATH,
+    load_registry, status_report, DEFAULT_REGISTRY_REL_PATH,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -37,6 +37,12 @@ enum Command {
     /// Print one feature record as JSON
     Show {
         feature_id: String,
+    },
+    /// Print lifecycle/status summary report
+    StatusReport {
+        /// Include sorted feature ids per status
+        #[arg(long)]
+        show_ids: bool,
     },
 }
 
@@ -91,6 +97,26 @@ fn main() -> ExitCode {
                     ExitCode::from(1)
                 }
             }
+        }
+        Command::StatusReport { show_ids } => {
+            let report = match status_report(&registry) {
+                Ok(r) => r,
+                Err(msg) => {
+                    eprintln!("registry-consumer: {msg}");
+                    return ExitCode::from(3);
+                }
+            };
+            for (status, count, ids) in report {
+                println!("{:<10} {}", status, count);
+                if show_ids {
+                    if ids.is_empty() {
+                        println!("  ids: (none)");
+                    } else {
+                        println!("  ids: {}", ids.join(", "));
+                    }
+                }
+            }
+            ExitCode::SUCCESS
         }
     }
 }

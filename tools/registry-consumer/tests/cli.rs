@@ -56,6 +56,25 @@ fn fixture_registry_ok() -> serde_json::Value {
     })
 }
 
+fn fixture_registry_statuses() -> serde_json::Value {
+    json!({
+        "specVersion": "1.0.0",
+        "build": {
+            "compilerId": "test",
+            "compilerVersion": "0.1.0",
+            "inputRoot": ".",
+            "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "features": [
+            { "id": "004-d", "title": "D", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/004-d/spec.md", "sectionHeadings": ["H"] },
+            { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
+            { "id": "003-c", "title": "C", "status": "superseded", "created": "2026-03-22", "summary": "s", "specPath": "specs/003-c/spec.md", "sectionHeadings": ["H"] },
+            { "id": "002-b", "title": "B", "status": "retired", "created": "2026-03-22", "summary": "s", "specPath": "specs/002-b/spec.md", "sectionHeadings": ["H"] }
+        ],
+        "validation": { "passed": true, "violations": [] }
+    })
+}
+
 #[test]
 fn exit_code_zero_list_and_show() {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -240,4 +259,61 @@ fn exit_code_three_missing_features_array() {
         .output()
         .expect("spawn");
     assert_eq!(out.status.code(), Some(3));
+}
+
+#[test]
+fn status_report_has_deterministic_status_order() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    write_registry(&reg, &fixture_registry_statuses());
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .arg("status-report")
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    let status_lines: Vec<&str> = lines
+        .iter()
+        .copied()
+        .filter(|line| {
+            line.starts_with("draft")
+                || line.starts_with("active")
+                || line.starts_with("superseded")
+                || line.starts_with("retired")
+        })
+        .collect();
+    assert_eq!(
+        status_lines,
+        vec!["draft      1", "active     1", "superseded 1", "retired    1"]
+    );
+}
+
+#[test]
+fn status_report_show_ids_lists_sorted_ids() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let reg = dir.path().join("registry.json");
+    let mut v = fixture_registry_statuses();
+    v["features"] = json!([
+        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
+    ]);
+    write_registry(&reg, &v);
+
+    let exe = registry_consumer_exe();
+    let out = Command::new(&exe)
+        .args(["--registry-path"])
+        .arg(&reg)
+        .args(["status-report", "--show-ids"])
+        .output()
+        .expect("spawn");
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("active"));
+    assert!(stdout.contains("ids: 001-a, 010-z"));
 }

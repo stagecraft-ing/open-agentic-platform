@@ -1,6 +1,6 @@
 # registry-consumer
 
-Implements **Feature 002** ([`specs/002-registry-consumer-mvp/spec.md`](../../specs/002-registry-consumer-mvp/spec.md)): a **read-only CLI** over compiler-emitted **`registry.json`** (Feature **000** shape, produced by **`spec-compiler`**, Feature **001**).
+Implements **Feature 002** and **Feature 007** ([`specs/002-registry-consumer-mvp/spec.md`](../../specs/002-registry-consumer-mvp/spec.md), [`specs/007-registry-consumer-status-report-mvp/spec.md`](../../specs/007-registry-consumer-status-report-mvp/spec.md)): a **read-only CLI** over compiler-emitted **`registry.json`** (Feature **000** shape, produced by **`spec-compiler`**, Feature **001**), including lifecycle/status reporting UX.
 
 ## Prerequisite
 
@@ -25,6 +25,8 @@ Default registry path: **`build/spec-registry/registry.json`** relative to the *
 ./tools/registry-consumer/target/release/registry-consumer list
 ./tools/registry-consumer/target/release/registry-consumer list --status draft --id-prefix 002
 ./tools/registry-consumer/target/release/registry-consumer show 002-registry-consumer-mvp
+./tools/registry-consumer/target/release/registry-consumer status-report
+./tools/registry-consumer/target/release/registry-consumer status-report --show-ids
 ```
 
 **`--status`** filters on the Feature **000** enum (`draft`, `active`, `superseded`, `retired`). Normative meanings and recommended transitions: [`specs/003-feature-lifecycle-mvp/spec.md`](../../specs/003-feature-lifecycle-mvp/spec.md).
