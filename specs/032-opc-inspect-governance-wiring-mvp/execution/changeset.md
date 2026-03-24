@@ -37,4 +37,4 @@ Slice 1 implementation batch for OPC inspect + governance wiring.
 ## Governance evidence
 
 - Fixtures touched: `none`
-- Spec/doc touchpoints: `specs/032-opc-inspect-governance-wiring-mvp/tasks.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/verification.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/pr1-import-runbook.md`
+- Spec/doc touchpoints: `specs/032-opc-inspect-governance-wiring-mvp/tasks.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/verification.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/changeset.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/pr1-import-runbook.md`
