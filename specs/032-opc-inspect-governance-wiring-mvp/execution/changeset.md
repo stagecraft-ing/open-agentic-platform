@@ -6,12 +6,12 @@ feature_id: "032-opc-inspect-governance-wiring-mvp"
 
 Slice 1 implementation batch for OPC inspect + governance wiring.
 
-**PR-1:** import + T000a baseline only — record evidence in [`verification.md`](./verification.md); no 032 product behavior except consolidation fixes.  
-**PR-2:** T003 inspect shell only (see `plan.md` PR sequencing).
+**PR-1:** **Complete (merged to `main`).** Import + T000a baseline + spec-compiler V-004 fix (PR-1.2); evidence in [`verification.md`](./verification.md).  
+**PR-2 (active slice):** **T003 only** — inspect shell entrypoint + typed flow states (`loading` / `success` / `error` / `degraded`); no git, governance, or action handoff (see `plan.md` PR sequencing).
 
 ## In-scope tasks
 
-- T003
+- **PR-2 / current:** T003 only
 - T004
 - T005
 - T006
