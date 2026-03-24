@@ -55,11 +55,10 @@ Consolidated OPC trees are present under `apps/desktop/`, `packages/*`, `crates/
 
 ### T006-T007 Git context integration
 
-- `packages/mcp-client/src/index.ts` (transport/client completion for sidecar communication)
-- `apps/desktop/src/features/git/GitContextPanel.tsx` (replace placeholder, render live data)
-- `apps/desktop/src/features/git/useGitContext.ts` (query hook / data adapter)
-- `apps/desktop/src/features/git/__tests__/GitContextPanel.test.tsx`
-- `apps/desktop/src/features/git/__tests__/fixtures/*.json` (deterministic panel state fixtures)
+**PR-3 (native path):** `apps/desktop/src/features/git/{types.ts,useGitContext.ts,GitContextSurface.tsx}`, `apps/desktop/src/components/GitContextPanel.tsx` — uses `commands.gitCurrentBranch`, `gitStatus`, `gitAheadBehind` from `@/lib/bindings` (not MCP).
+
+- `packages/mcp-client/src/index.ts` (optional later: sidecar transport; **not** required for PR-3)
+- `apps/desktop/src/features/git/__tests__/*` (deferred — no Vitest in desktop yet)
 
 ### T008-T009 Governance integration
 

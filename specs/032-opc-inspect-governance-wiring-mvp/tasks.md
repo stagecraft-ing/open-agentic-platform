@@ -34,8 +34,13 @@
 
 ## Phase 3: Git context integration
 
-- [ ] T006 Complete frontend MCP/sidecar client path used by git context panel
-- [ ] T007 Wire git context panel to live sidecar data and add deterministic panel-state tests
+- [ ] T006 Complete frontend MCP/sidecar client path used by git context panel (optional follow-up; PR-3 uses **native** git commands)
+- [x] T007 Wire git context panel to live git data and explicit panel states — **PR-3** (`feat/032-pr3-git-context`): `commands.gitCurrentBranch`, `gitStatus`, `gitAheadBehind` via `useGitContext` / `GitContextSurface`
+
+### PR-3 slice (user milestone: “T004–T005 git hydration”)
+
+- [x] Git context: branch / detached HEAD / clean vs dirty / ahead–behind / status entries
+- [x] Placeholder copy removed from `GitContextPanel`; failures bounded to git panel only
 
 ## Phase 4: Governance integration
 
