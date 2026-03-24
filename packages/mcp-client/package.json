@@ -1,0 +1,16 @@
+{
+  "name": "@opc/mcp-client",
+  "version": "0.1.0",
+  "description": "MCP Client for Opcode Desktop App",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

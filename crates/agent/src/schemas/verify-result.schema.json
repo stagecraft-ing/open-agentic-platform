@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "axiomregent://spec/verify-result.schema.json",
+  "title": "VerifyResult",
+  "type": "object",
+  "required": [
+    "version",
+    "changeset_id",
+    "profile",
+    "skill",
+    "determinism",
+    "tier",
+    "repo_snapshot_before",
+    "repo_snapshot_after",
+    "tracked_drift",
+    "steps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "changeset_id": { "type": "string", "minLength": 1 },
+    "profile": { "type": "string" },
+    "skill": { "type": "string" },
+    "determinism": { "type": "string", "enum": ["D0", "D1", "D2"] },
+    "tier": { "type": "integer", "enum": [1, 2, 3] },
+    "repo_snapshot_before": { "type": "string" },
+    "repo_snapshot_after": { "type": "string" },
+    "tracked_drift": {
+      "type": "object",
+      "required": ["mode", "changed_files"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["off", "tracked", "strict"] },
+        "changed_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "additionalProperties": false,
+        "properties": {
+          "cmd": { "$ref": "#/$defs/cmd" },
+          "exit_code": { "type": "integer" },
+          "stdout_sha256": { "type": "string" },
+          "stderr_sha256": { "type": "string" }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/stepResult" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall_exit_code": { "type": "integer" },
+        "duration_ms": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "cmd": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      ]
+    },
+    "stepResult": {
+      "type": "object",
+      "required": [
+        "name",
+        "cmd",
+        "exit_code",
+        "duration_ms",
+        "stdout_sha256",
+        "stderr_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "cmd": { "$ref": "#/$defs/cmd" },
+        "workdir": { "type": "string" },
+        "timeout_ms": { "type": "integer" },
+        "network": { "type": "string", "enum": ["deny", "allow"] },
+        "read_only": { "type": "string", "enum": ["off", "tracked", "strict"] },
+        "env_allowlist": { "type": "array", "items": { "type": "string" } },
+        "exit_code": { "type": "integer" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "stdout_sha256": { "type": "string" },
+        "stderr_sha256": { "type": "string" },
+        "stdout_preview": { "type": "string" },
+        "stderr_preview": { "type": "string" }
+      }
+    }
+  }
+}

@@ -378,7 +378,9 @@ fn missing_spec_md_dirs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> 
 
 /// Standalone `.yaml` / `.yml` under the repo are rejected (V-004). Skipped path
 /// components include `.git`, `.github` (CI workflows), build artifacts, etc.; see
-/// Feature 001 research R6. A future spec may add an explicit allowlist for other trees.
+/// Feature 001 research R6. Consolidated product/vendor trees (`apps/`, `crates/`, …)
+/// are excluded from this scan — they are not the authored spec surface (V-004 targets
+/// repo-authored YAML, not imported third-party or lockfile material).
 fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
     let skip_dir_name = |name: &str| {
         matches!(
@@ -390,6 +392,12 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
                 | "vendor"
                 | "target"
                 | ".idea"
+                | // Consolidated OPC / monorepo trees (not spec authoring surface)
+                "apps"
+                | "crates"
+                | "grammars"
+                | "packages"
+                | "_tmp"
         )
     };
     for ent in WalkDir::new(repo_root)
@@ -404,6 +412,9 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
         if !p.is_file() {
             continue;
         }
+        if v004_yaml_scan_exempt(repo_root, p) {
+            continue;
+        }
         let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("");
         if ext == "yaml" || ext == "yml" {
             violations.push(Violation {
@@ -414,6 +425,22 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
             });
         }
     }
+}
+
+/// Lockfiles and workspace manifests at the repository root (e.g. pnpm) are not
+/// "standalone authored YAML" in the sense of V-004; they are package-manager output
+/// or workspace glue, not parallel spec registries.
+fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
+    let Some(parent) = p.parent() else {
+        return false;
+    };
+    if parent != repo_root {
+        return false;
+    }
+    let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
+        return false;
+    };
+    matches!(name, "pnpm-workspace.yaml" | "pnpm-lock.yaml")
 }
 
 fn split_frontmatter(raw: &str, path: &Path) -> Result<(serde_yaml::Value, String), CompileError> {

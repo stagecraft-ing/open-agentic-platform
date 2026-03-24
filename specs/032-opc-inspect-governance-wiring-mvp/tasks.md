@@ -9,11 +9,11 @@
 
 **PR-1 objective:** complete T000 + T000a only — import + baseline evidence; behavior-neutral except fixes required for baseline green or explicitly documented degraded baseline.
 
-- [ ] T000 Import OPC code trees required for this slice:
+- [x] T000 Import OPC code trees required for this slice:
   - `apps/desktop`
   - `apps/desktop/src-tauri` (or the repository’s actual Tauri backend path after consolidation)
   - `packages/mcp-client`
-- [ ] T000a Verify imported trees build/test at baseline before Feature 032 wiring starts
+- [x] T000a Verify imported trees build/test at baseline before Feature 032 wiring starts
   - frontend workspace installs/builds for desktop app baseline
   - Tauri backend compiles for desktop baseline
   - `packages/mcp-client` resolves as a workspace package
