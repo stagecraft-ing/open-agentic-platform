@@ -28,7 +28,7 @@
 
 ## Phase 2: Inspect journey wiring
 
-- [ ] T003 Define/confirm inspect UI contract and state model (success/loading/error/degraded)
+- [x] T003 Define/confirm inspect UI contract and state model (success/loading/error/degraded) — **PR-2** (`feat/032-pr2-inspect-shell`)
 - [ ] T004 Wire inspect entrypoint to execute inspect flow and hydrate panels
 - [ ] T005 Replace inspect placeholder states with explicit real or degraded states
 

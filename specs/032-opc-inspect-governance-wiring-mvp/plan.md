@@ -42,13 +42,14 @@ After PR-1, the first implementation PR should be **small and vertical**: prove 
 
 ## File-level touch map (T003-T011)
 
-Current repository note: this workspace does not yet contain the consolidated OPC app trees (`apps/desktop`, `src-tauri`, `packages/mcp-client`). The map below defines expected touch targets once those trees are imported into open-agentic-platform.
+Consolidated OPC trees are present under `apps/desktop/`, `packages/*`, `crates/*`. **T003 (PR-2)** implemented the inspect shell under `apps/desktop/src/features/inspect/` and rewired `XrayPanel` to render `InspectSurface`.
 
 ### T003-T005 Inspect journey wiring
 
-- `apps/desktop/src/features/inspect/InspectSurface.tsx` (or equivalent inspect container)
+- `apps/desktop/src/features/inspect/InspectSurface.tsx` (inspect shell UI)
 - `apps/desktop/src/features/inspect/types.ts` (inspect UI contract types)
-- `apps/desktop/src/features/inspect/useInspectFlow.ts` (state machine: loading/error/degraded/success)
+- `apps/desktop/src/features/inspect/useInspectFlow.ts` (state machine: idle/loading/success/error/degraded)
+- `apps/desktop/src/features/inspect/xrayResult.ts` (pure xray payload classification for degraded)
 - `apps/desktop/src/lib/apiAdapter.ts` (inspect entrypoint wiring if routed through shared adapter)
 - `apps/desktop/src/features/inspect/__tests__/InspectSurface.test.tsx`
 

@@ -72,6 +72,20 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ---
 
+## PR-2 — T003 inspect shell only (`feat/032-pr2-inspect-shell`)
+
+**Scope:** Typed inspect flow + `InspectSurface` for the existing Xray tab entry (`createXrayTab` → `XrayPanel` → `xray_scan_project`). **Out of scope:** git/governance hydration, follow-up actions, T004–T011.
+
+| Check | Command / how | Result |
+|-------|----------------|--------|
+| Desktop build | `pnpm -C apps/desktop build` | pass |
+| Spec compiler | `./tools/spec-compiler/target/release/spec-compiler compile` | pass (after rebuild if needed) |
+| Registry consumer tests | `cargo test --manifest-path tools/registry-consumer/Cargo.toml --all --quiet` | pass |
+
+**Touchpoints:** `apps/desktop/src/features/inspect/{types.ts,xrayResult.ts,useInspectFlow.ts,InspectSurface.tsx}`, `apps/desktop/src/components/XrayPanel.tsx`.
+
+---
+
 ## PR-2+ — Feature 032 implementation commands
 
 ```bash
@@ -83,4 +97,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 - PR-1 baseline: preserved above (degraded truth at merge time).
 - PR-1.1 baseline: **T000a green** for desktop install, desktop build, and Tauri compile on this host.
 - PR-1.2: **spec-compiler compile green** (governance CI smoke unblocked).
+- PR-2: **T003 complete** — inspect shell states + real `xray_scan_project` path via `useInspectFlow` / `InspectSurface`.
 - Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.
