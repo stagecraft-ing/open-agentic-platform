@@ -86,6 +86,22 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ---
 
+## PR-3 — Git context panel (`feat/032-pr3-git-context`)
+
+**Scope (user milestone T004–T005: git hydration only):** Native git via Tauri `commands` — **no** governance, **no** inspect refactors, **no** MCP/sidecar in this PR (T006 remains).
+
+| Check | Command / how | Result |
+|-------|----------------|--------|
+| Desktop build | `pnpm -C apps/desktop build` | pass |
+| Spec compiler | `./tools/spec-compiler/target/release/spec-compiler compile` | pass |
+| Registry consumer tests | `cargo test --manifest-path tools/registry-consumer/Cargo.toml --all --quiet` | pass |
+
+**Touchpoints:** `apps/desktop/src/features/git/{types.ts,useGitContext.ts,GitContextSurface.tsx}`, `apps/desktop/src/components/GitContextPanel.tsx`.
+
+**Behavior:** `idle` / `loading` / `success` / `error` / `unavailable` (not a repo) / `degraded` (partial, e.g. ahead/behind failed). Branch name shown when not detached; `(detached)` when `DetachedHead`; dirty/clean from status entries; ahead/behind when upstream resolvable.
+
+---
+
 ## PR-2+ — Feature 032 implementation commands
 
 ```bash
@@ -98,4 +114,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 - PR-1.1 baseline: **T000a green** for desktop install, desktop build, and Tauri compile on this host.
 - PR-1.2: **spec-compiler compile green** (governance CI smoke unblocked).
 - PR-2: **T003 complete** — inspect shell states + real `xray_scan_project` path via `useInspectFlow` / `InspectSurface`.
+- PR-3: **Git context panel** — native `git_*` bindings + typed UI states (`GitContextSurface`).
 - Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.

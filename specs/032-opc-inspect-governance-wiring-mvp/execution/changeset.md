@@ -7,13 +7,13 @@ feature_id: "032-opc-inspect-governance-wiring-mvp"
 Slice 1 implementation batch for OPC inspect + governance wiring.
 
 **PR-1:** **Complete (merged to `main`).** Import + T000a baseline + spec-compiler V-004 fix (PR-1.2); evidence in [`verification.md`](./verification.md).  
-**PR-2 (active slice):** **T003 only** — inspect shell entrypoint + typed flow states (`loading` / `success` / `error` / `degraded`); no git, governance, or action handoff (see `plan.md` PR sequencing).
+**PR-2:** **Complete (merged to `main`).** T003 inspect shell — `InspectSurface` + `useInspectFlow` / `xray_scan_project`.  
+**PR-3 (active slice):** **T004–T005** — git context panel hydration (native `git_*` commands); no governance, no follow-up action (see `plan.md` PR sequencing).
 
 ## In-scope tasks
 
-- **PR-2 / current:** T003 only
-- T004
-- T005
+- **PR-3 / current:** T004–T005 (git context panel only)
+- T006
 - T006
 - T007
 - T008
@@ -37,4 +37,4 @@ Slice 1 implementation batch for OPC inspect + governance wiring.
 ## Governance evidence
 
 - Fixtures touched: `none`
-- Spec/doc touchpoints: `specs/032-opc-inspect-governance-wiring-mvp/tasks.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/verification.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/changeset.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/pr1-import-runbook.md`
+- Spec/doc touchpoints: `specs/032-opc-inspect-governance-wiring-mvp/tasks.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/verification.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/changeset.md`, `specs/032-opc-inspect-governance-wiring-mvp/plan.md`, `specs/032-opc-inspect-governance-wiring-mvp/execution/pr1-import-runbook.md`
