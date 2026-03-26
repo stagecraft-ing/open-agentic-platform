@@ -19,6 +19,7 @@
     "check": "tsc --noEmit && cd src-tauri && cargo check"
   },
   "dependencies": {
+    "@opc/mcp-client": "workspace:*",
     "@opc/types": "workspace:*",
     "@opc/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.1",

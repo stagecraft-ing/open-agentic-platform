@@ -3,6 +3,7 @@ import { AlertCircle, AlertTriangle, GitBranch, Loader2, RefreshCw } from 'lucid
 import { Button } from '@opc/ui/button';
 import { api } from '@/lib/api';
 import { useGitContext } from './useGitContext';
+import { useGitCtxEnrichment } from './useGitCtxEnrichment';
 import type { GitContextViewState } from './types';
 
 /**
@@ -11,6 +12,7 @@ import type { GitContextViewState } from './types';
 export const GitContextSurface: React.FC = () => {
   const [path, setPath] = useState('');
   const { state, refresh, reset } = useGitContext();
+  const enrichment = useGitCtxEnrichment(path, state);
 
   const busy = state.status === 'loading';
 
@@ -119,7 +121,7 @@ export const GitContextSurface: React.FC = () => {
         )}
 
         {(state.status === 'success' || state.status === 'degraded') && (
-          <GitContextSummary state={state} />
+          <GitContextSummary state={state} enrichment={enrichment} />
         )}
       </div>
     </div>
@@ -128,15 +130,19 @@ export const GitContextSurface: React.FC = () => {
 
 function GitContextSummary(props: {
   state: Extract<GitContextViewState, { status: 'success' | 'degraded' }>;
+  enrichment: ReturnType<typeof useGitCtxEnrichment>;
 }) {
   const { data, warnings } =
     props.state.status === 'degraded'
       ? { data: props.state.data, warnings: props.state.warnings }
       : { data: props.state.data, warnings: [] as string[] };
+  const enrichmentWarning =
+    props.enrichment.status === 'degraded' ? props.enrichment.message : null;
+  const allWarnings = enrichmentWarning ? [...warnings, enrichmentWarning] : warnings;
 
   return (
     <div className="flex-1 overflow-auto p-4 space-y-4">
-      {warnings.length > 0 && (
+      {allWarnings.length > 0 && (
         <div
           className="border border-amber-500/50 rounded-md bg-amber-500/5 p-3 text-sm"
           role="status"
@@ -146,7 +152,7 @@ function GitContextSummary(props: {
             Partial data
           </div>
           <ul className="list-disc pl-5 text-muted-foreground space-y-1">
-            {warnings.map((w) => (
+            {allWarnings.map((w) => (
               <li key={w}>{w}</li>
             ))}
           </ul>
@@ -189,6 +195,33 @@ function GitContextSummary(props: {
           </dd>
         </div>
       </dl>
+
+      <div className="border rounded-md p-3 bg-background text-sm">
+        <h2 className="font-semibold mb-2">GitHub context (gitctx via MCP bridge)</h2>
+        {props.enrichment.status === 'idle' && (
+          <p className="text-muted-foreground">Enrichment idle.</p>
+        )}
+        {props.enrichment.status === 'loading' && (
+          <p className="text-muted-foreground">Loading gitctx enrichment…</p>
+        )}
+        {props.enrichment.status === 'degraded' && (
+          <p className="text-muted-foreground">{props.enrichment.message}</p>
+        )}
+        {props.enrichment.status === 'success' && (
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <dt className="text-muted-foreground text-xs uppercase tracking-wide">Repository</dt>
+              <dd className="font-mono mt-1">
+                {props.enrichment.data.repository?.full_name ?? 'none selected'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-xs uppercase tracking-wide">Authenticated</dt>
+              <dd className="mt-1">{props.enrichment.data.authenticated ? 'yes' : 'no'}</dd>
+            </div>
+          </dl>
+        )}
+      </div>
 
       <div>
         <h2 className="text-sm font-semibold mb-2">Status entries</h2>
