@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import type { InspectFlowState } from './types';
 import { classifyXrayIndexPayload } from './xrayResult';
+import { apiCall } from '@/lib/apiAdapter';
 
 const DEGRADED_EMPTY_REASON =
   'Scan completed but no files were indexed for this path (empty index).';
@@ -40,7 +40,16 @@ export function useInspectFlow(): UseInspectFlowResult {
 
     setState({ status: 'loading' });
     try {
-      const payload = await invoke<unknown>('xray_scan_project', { path: trimmed });
+      const payload = await apiCall<unknown>('xray_scan_project', { path: trimmed });
+      if (payload === null || typeof payload !== 'object') {
+        setState({
+          status: 'degraded',
+          payload,
+          reason: 'Scan completed but returned a non-object payload.',
+        });
+        return;
+      }
+
       if (classifyXrayIndexPayload(payload) === 'empty_index') {
         setState({
           status: 'degraded',

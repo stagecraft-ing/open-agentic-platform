@@ -3,6 +3,51 @@ import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { useInspectFlow } from './useInspectFlow';
 
+interface XrayFileNode {
+  path?: string;
+  size?: number;
+  lang?: string;
+  loc?: number;
+}
+
+interface XrayViewModel {
+  digest?: string;
+  root?: string;
+  target?: string;
+  fileCount: number;
+  totalSize?: number;
+  files: XrayFileNode[];
+}
+
+function toXrayViewModel(payload: unknown): XrayViewModel | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as Record<string, unknown>;
+  const files = Array.isArray(record.files) ? (record.files as XrayFileNode[]) : [];
+  const stats =
+    record.stats && typeof record.stats === 'object'
+      ? (record.stats as Record<string, unknown>)
+      : undefined;
+
+  return {
+    digest: typeof record.digest === 'string' ? record.digest : undefined,
+    root: typeof record.root === 'string' ? record.root : undefined,
+    target: typeof record.target === 'string' ? record.target : undefined,
+    fileCount:
+      typeof stats?.fileCount === 'number'
+        ? stats.fileCount
+        : typeof stats?.file_count === 'number'
+          ? stats.file_count
+          : files.length,
+    totalSize:
+      typeof stats?.totalSize === 'number'
+        ? stats.totalSize
+        : typeof stats?.total_size === 'number'
+          ? stats.total_size
+          : undefined,
+    files,
+  };
+}
+
 /**
  * Feature 032 — T003: inspect shell for xray scan (explicit loading / success / error / degraded).
  */
@@ -15,6 +60,8 @@ export const InspectSurface: React.FC = () => {
   };
 
   const busy = state.status === 'loading';
+  const successData = state.status === 'success' ? toXrayViewModel(state.payload) : null;
+  const degradedData = state.status === 'degraded' ? toXrayViewModel(state.payload) : null;
 
   return (
     <div className="p-6 h-full flex flex-col gap-4 text-foreground">
@@ -89,19 +136,105 @@ export const InspectSurface: React.FC = () => {
               Degraded result
             </div>
             <p className="text-sm text-muted-foreground">{state.reason}</p>
-            <div className="flex-1 overflow-auto max-h-[50vh] bg-muted p-3 rounded border text-foreground">
-              <pre className="text-xs whitespace-pre-wrap font-mono">
-                {JSON.stringify(state.payload, null, 2)}
-              </pre>
-            </div>
+            {degradedData ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+                  <div className="border rounded-md bg-background p-3">
+                    <div className="text-xs text-muted-foreground">Root</div>
+                    <div className="font-mono break-all">{degradedData.root ?? 'n/a'}</div>
+                  </div>
+                  <div className="border rounded-md bg-background p-3">
+                    <div className="text-xs text-muted-foreground">Target</div>
+                    <div className="font-mono break-all">{degradedData.target ?? 'n/a'}</div>
+                  </div>
+                  <div className="border rounded-md bg-background p-3">
+                    <div className="text-xs text-muted-foreground">Files</div>
+                    <div>{degradedData.fileCount}</div>
+                  </div>
+                  <div className="border rounded-md bg-background p-3">
+                    <div className="text-xs text-muted-foreground">Total bytes</div>
+                    <div>{degradedData.totalSize ?? 'n/a'}</div>
+                  </div>
+                </div>
+                <div className="border rounded-md bg-background p-3">
+                  <div className="text-xs text-muted-foreground mb-2">Digest</div>
+                  <div className="font-mono text-xs break-all">{degradedData.digest ?? 'n/a'}</div>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 overflow-auto max-h-[50vh] bg-muted p-3 rounded border text-foreground">
+                <pre className="text-xs whitespace-pre-wrap font-mono">
+                  {JSON.stringify(state.payload, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
 
         {state.status === 'success' && (
-          <div className="flex-1 overflow-auto p-4 m-4 bg-background border rounded-md text-foreground">
-            <pre className="text-sm whitespace-pre-wrap font-mono">
-              {JSON.stringify(state.payload, null, 2)}
-            </pre>
+          <div className="flex-1 min-h-0 flex flex-col gap-3 p-4 m-4 bg-background border rounded-md text-foreground">
+            {!successData ? (
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4" aria-hidden />
+                Scan succeeded but payload format is unexpected.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+                  <div className="border rounded-md bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">Root</div>
+                    <div className="font-mono break-all">{successData.root ?? 'n/a'}</div>
+                  </div>
+                  <div className="border rounded-md bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">Target</div>
+                    <div className="font-mono break-all">{successData.target ?? 'n/a'}</div>
+                  </div>
+                  <div className="border rounded-md bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">Files</div>
+                    <div>{successData.fileCount}</div>
+                  </div>
+                  <div className="border rounded-md bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">Total bytes</div>
+                    <div>{successData.totalSize ?? 'n/a'}</div>
+                  </div>
+                </div>
+                <div className="border rounded-md p-3">
+                  <div className="text-xs text-muted-foreground mb-2">Digest</div>
+                  <div className="font-mono text-xs break-all">{successData.digest ?? 'n/a'}</div>
+                </div>
+                <div className="flex-1 min-h-0 border rounded-md">
+                  <div className="px-3 py-2 border-b text-xs text-muted-foreground">
+                    Indexed files ({successData.files.length})
+                  </div>
+                  <div className="max-h-[40vh] overflow-auto">
+                    {successData.files.length === 0 ? (
+                      <div className="p-3 text-sm text-muted-foreground">No files indexed.</div>
+                    ) : (
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-background">
+                          <tr className="border-b">
+                            <th className="text-left font-medium p-2">Path</th>
+                            <th className="text-left font-medium p-2">Lang</th>
+                            <th className="text-right font-medium p-2">LOC</th>
+                            <th className="text-right font-medium p-2">Bytes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {successData.files.slice(0, 200).map((file, idx) => (
+                            <tr key={`${file.path ?? 'unknown'}-${idx}`} className="border-b last:border-b-0">
+                              <td className="p-2 font-mono break-all">{file.path ?? 'n/a'}</td>
+                              <td className="p-2">{file.lang ?? 'n/a'}</td>
+                              <td className="p-2 text-right">{file.loc ?? '-'}</td>
+                              <td className="p-2 text-right">{file.size ?? '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

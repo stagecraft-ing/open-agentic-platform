@@ -1,6 +1,6 @@
 # Verification: OPC inspect + governance wiring
 
-Date: 2026-03-23 (updated 2026-03-26 — PR-4 T006 recorded)  
+Date: 2026-03-23 (updated 2026-03-26 — PR-5 T004/T005 recorded)  
 Feature: `032-opc-inspect-governance-wiring-mvp`
 
 ## PR-1 — T000a baseline evidence (fill on import PR)
@@ -117,6 +117,22 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ---
 
+## PR-5 — T004/T005 inspect journey wiring (`feat/032-t004-t005-inspect-wiring`)
+
+**Scope:** Wire inspect entrypoint through shared adapter path and replace inspect success/degraded placeholder JSON rendering with explicit hydrated inspect panels. Keep bounded explicit degraded/error states.
+
+| Check | Command / how | Result |
+|-------|----------------|--------|
+| Desktop build | `pnpm -C apps/desktop build` | pass |
+| Lint status (touched files) | `ReadLints` scoped to `apps/desktop/src/features/inspect/InspectSurface.tsx`, `apps/desktop/src/features/inspect/useInspectFlow.ts`, `apps/desktop/src/lib/apiAdapter.ts` | pass (no lints) |
+| Type status (touched files) | Included in `pnpm -C apps/desktop build` via `tsc` | pass |
+
+**Touchpoints:** `apps/desktop/src/features/inspect/{InspectSurface.tsx,useInspectFlow.ts}`, `apps/desktop/src/lib/apiAdapter.ts`, `specs/032-opc-inspect-governance-wiring-mvp/{tasks.md,execution/changeset.md,execution/verification.md}`.
+
+**Test note:** `apps/desktop/src/features/inspect/__tests__/InspectSurface.test.tsx` did not exist before this slice and remains pending (not added in PR-5).
+
+---
+
 ## PR-2+ — Feature 032 implementation commands
 
 ```bash
@@ -131,4 +147,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 - PR-2: **T003 complete** — inspect shell states + real `xray_scan_project` path via `useInspectFlow` / `InspectSurface`.
 - PR-3: **Git context panel** — native `git_*` bindings + typed UI states (`GitContextSurface`).
 - PR-4: **T006 complete** — gitctx MCP enrichment (Rust stdio bridge + additive UI); see PR-4 section above.
+- PR-5: **T004/T005 complete** — inspect entrypoint routed via shared adapter; inspect success/degraded surfaces hydrated with explicit panels; degraded/error behavior remains bounded and explicit.
 - Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.

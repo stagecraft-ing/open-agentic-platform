@@ -10,13 +10,14 @@ Slice 1 implementation batch for OPC inspect + governance wiring.
 **PR-2:** **Complete (merged to `main`).** T003 inspect shell — `InspectSurface` + `useInspectFlow` / `xray_scan_project`.  
 **PR-3:** **Complete (merged to `main`).** T007 — native git context panel (`useGitContext` / `GitContextSurface`).  
 **PR-4:** **Complete (merged to `main`).** T006 — gitctx MCP enrichment (Rust stdio bridge, `@opc/mcp-client`, additive enrichment); see [`t006-checklist.md`](./t006-checklist.md).
+**PR-5:** **In progress (this branch).** T004–T005 inspect journey wiring on `feat/032-t004-t005-inspect-wiring` — shared adapter path for inspect entrypoint, explicit inspect panel hydration (summary + indexed files), and bounded degraded/error states.
 
-**Next slice (per `tasks.md`):** T004–T005 inspect journey wiring; then governance T008–T009, etc.
+**Next slice (per `tasks.md`):** Governance T008–T009, then inspect follow-up action/docs T010–T011.
 
 ## In-scope tasks
 
-- **Done:** T003 (PR-2), T000/T000a (PR-1), T007 (PR-3), T006 (PR-4).
-- **Next:** T004–T005 (inspect journey wiring), then T008–T011 (governance, action, docs, verification) per `tasks.md`.
+- **Done:** T000/T000a (PR-1), T003 (PR-2), T007 (PR-3), T006 (PR-4), T004–T005 (PR-5 branch).
+- **Next:** T008–T011 (governance, action, docs, verification) per `tasks.md`.
 
 ## Planned touch targets
 

@@ -3,7 +3,7 @@
 **Input**: `/specs/032-opc-inspect-governance-wiring-mvp/`  
 **Prerequisites**: Features **000-004**, **029-031**
 
-**Feature status**: **In progress** (T006 merged; inspect/governance/action slices remain)
+**Feature status**: **In progress** (inspect + git slices complete; governance/action/verification slices remain)
 
 ## Phase 0: Consolidation gate (blocking)
 
@@ -29,8 +29,8 @@
 ## Phase 2: Inspect journey wiring
 
 - [x] T003 Define/confirm inspect UI contract and state model (success/loading/error/degraded) — **PR-2** (`feat/032-pr2-inspect-shell`)
-- [ ] T004 Wire inspect entrypoint to execute inspect flow and hydrate panels
-- [ ] T005 Replace inspect placeholder states with explicit real or degraded states
+- [x] T004 Wire inspect entrypoint to execute inspect flow and hydrate panels — **PR-5** (`feat/032-t004-t005-inspect-wiring`)
+- [x] T005 Replace inspect placeholder states with explicit real or degraded states — **PR-5** (`feat/032-t004-t005-inspect-wiring`)
 
 ## Phase 3: Git context integration
 
