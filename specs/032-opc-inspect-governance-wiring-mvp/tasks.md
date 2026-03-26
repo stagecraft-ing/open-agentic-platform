@@ -34,7 +34,7 @@
 
 ## Phase 3: Git context integration
 
-- [ ] T006 Complete frontend MCP/sidecar client path used by git context panel (optional follow-up; PR-3 uses **native** git commands)
+- [ ] T006 Complete frontend MCP/sidecar client path used by git context panel — **PR-4 gate:** [`execution/t006-checklist.md`](./execution/t006-checklist.md) (optional follow-up; PR-3 uses **native** git commands)
 - [x] T007 Wire git context panel to live git data and explicit panel states — **PR-3** (`feat/032-pr3-git-context`): `commands.gitCurrentBranch`, `gitStatus`, `gitAheadBehind` via `useGitContext` / `GitContextSurface`
 
 ### PR-3 slice (user milestone: “T004–T005 git hydration”)
@@ -92,13 +92,17 @@
 
 - Files:
   - `packages/mcp-client/src/index.ts`
-  - `apps/desktop/src/features/git/GitContextPanel.tsx`
+  - `apps/desktop/src-tauri/src/commands/mcp.rs`
+  - `apps/desktop/src-tauri/src/sidecars.rs`
+  - `apps/desktop/src/components/GitContextPanel.tsx`
+  - `apps/desktop/src/features/git/GitContextSurface.tsx`
   - `apps/desktop/src/features/git/useGitContext.ts`
+  - `apps/desktop/src/features/git/useGitCtxEnrichment.ts`
   - `apps/desktop/src/features/git/__tests__/GitContextPanel.test.tsx`
   - `apps/desktop/src/features/git/__tests__/fixtures/*.json`
 - Done when:
   - panel renders live branch/head/cleanliness/repository identity
-  - unavailable sidecar state is explicit in UI
+  - gitctx enrichment is additive; degraded/absent enrichment is explicit without breaking native git
   - deterministic fixture-backed coverage exists for success/degraded/error panel states
 
 ### T008-T009 Governance integration

@@ -19,6 +19,24 @@ export interface GitContextData {
   upstreamResolved: boolean;
 }
 
+/** Additive gitctx MCP context from `gitctx://context/current` (never source-of-truth for local git). */
+export interface GitCtxEnrichment {
+  authenticated: boolean;
+  status: string;
+  repository:
+    | {
+        owner: string;
+        name: string;
+        full_name: string;
+        default_branch: string | null;
+        description: string | null;
+        is_private: boolean;
+      }
+    | null;
+  current_branch: string | null;
+  current_path: string | null;
+}
+
 export type GitContextViewState =
   | { status: 'idle' }
   | { status: 'loading' }

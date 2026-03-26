@@ -293,7 +293,7 @@ async sandboxStatus() : Promise<SandboxStatus> {
     return await TAURI_INVOKE("sandbox_status");
 },
 /**
- * Returns the currently-known ports for all sidecars.
+ * Returns the currently-known ports for sidecars that use port discovery.
  * A `None` entry means the sidecar hasn't announced its port yet.
  */
 async getSidecarPorts() : Promise<SidecarPorts> {
@@ -334,7 +334,7 @@ active: boolean;
  * The sandboxing method in use, e.g. "bwrap". None when inactive.
  */
 method: string | null }
-export type SidecarPorts = { axiomregent: number | null; gitctx: number | null }
+export type SidecarPorts = { axiomregent: number | null }
 export type UpdateError = { type: "NoUpdateAvailable" } | { type: "NetworkError"; message: string } | { type: "ChecksumMismatch" } | { type: "LaunchFailed"; message: string }
 export type UpdateInfo = { 
 /**

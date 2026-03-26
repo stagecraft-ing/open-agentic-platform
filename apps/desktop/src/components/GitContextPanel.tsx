@@ -1,7 +1,7 @@
 import React from 'react';
 import { GitContextSurface } from '@/features/git/GitContextSurface';
 
-/** Git Context tab — Feature 032 T004–T005 (native git state, no sidecar MCP in this slice). */
+/** Git Context tab — native git is source-of-truth; optional gitctx MCP enrichment via Rust bridge (T006). */
 export const GitContextPanel: React.FC = () => {
   return <GitContextSurface />;
 };
