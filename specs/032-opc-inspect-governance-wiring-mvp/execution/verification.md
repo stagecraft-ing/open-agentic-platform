@@ -1,6 +1,6 @@
 # Verification: OPC inspect + governance wiring
 
-Date: 2026-03-23  
+Date: 2026-03-23 (updated 2026-03-26 — PR-4 T006 recorded)  
 Feature: `032-opc-inspect-governance-wiring-mvp`
 
 ## PR-1 — T000a baseline evidence (fill on import PR)
@@ -102,6 +102,21 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ---
 
+## PR-4 — T006 gitctx MCP enrichment (`feat/032-pr4-t006-gitctx-sidecar`, merged)
+
+**Scope:** T006 — Rust-owned per-request stdio MCP bridge to bundled `gitctx-mcp` (`commands/mcp.rs`); `@opc/mcp-client` wraps Tauri commands; additive enrichment via `useGitCtxEnrichment` + `GitContextSurface`. **Not** port-based gitctx readiness; `get_sidecar_ports` remains for axiomregent-class sidecars only. Native git (PR-3) stays source-of-truth.
+
+| Check | Command / how | Result |
+|-------|----------------|--------|
+| Desktop check | `pnpm -C apps/desktop check` | pass (at merge; re-run after pull) |
+| Spec compiler | `./tools/spec-compiler/target/release/spec-compiler compile` | pass (when run in CI / locally) |
+
+**Touchpoints:** `apps/desktop/src-tauri/src/commands/mcp.rs`, `packages/mcp-client/src/index.ts`, `apps/desktop/src/features/git/useGitCtxEnrichment.ts`, `GitContextSurface.tsx`, `sidecars.rs` (gitctx port removed), `execution/t006-checklist.md`, `tasks.md`.
+
+**Merge:** [PR #4](https://github.com/stagecraft-ing/open-agentic-platform/pull/4) to `main` (2026-03-26).
+
+---
+
 ## PR-2+ — Feature 032 implementation commands
 
 ```bash
@@ -115,4 +130,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 - PR-1.2: **spec-compiler compile green** (governance CI smoke unblocked).
 - PR-2: **T003 complete** — inspect shell states + real `xray_scan_project` path via `useInspectFlow` / `InspectSurface`.
 - PR-3: **Git context panel** — native `git_*` bindings + typed UI states (`GitContextSurface`).
+- PR-4: **T006 complete** — gitctx MCP enrichment (Rust stdio bridge + additive UI); see PR-4 section above.
 - Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.

@@ -25,8 +25,8 @@ After PR-1, the first implementation PR should be **small and vertical**: prove 
    - Ensure inspect entrypoint drives xray + panel updates in a single user flow.
 
 2. **Git context wiring**
-   - Complete frontend sidecar client path needed for the git context panel.
-   - Replace placeholder panel behavior with real sidecar-backed data and explicit fallbacks.
+   - **T006 (done, PR-4):** Rust-owned MCP over stdio to bundled `gitctx-mcp`; `@opc/mcp-client` wraps Tauri commands; additive gitctx enrichment on top of native git (PR-3).
+   - Native git remains authoritative; enrichment failures degrade without breaking the panel.
 
 3. **Governance wiring**
    - Connect governance/feature status panel to compiled registry + featuregraph outputs.
@@ -57,7 +57,7 @@ Consolidated OPC trees are present under `apps/desktop/`, `packages/*`, `crates/
 
 **PR-3 (native path):** `apps/desktop/src/features/git/{types.ts,useGitContext.ts,GitContextSurface.tsx}`, `apps/desktop/src/components/GitContextPanel.tsx` — uses `commands.gitCurrentBranch`, `gitStatus`, `gitAheadBehind` from `@/lib/bindings` (not MCP).
 
-- `packages/mcp-client/src/index.ts` (optional later: sidecar transport; **not** required for PR-3)
+- `packages/mcp-client/src/index.ts` (**T006 / PR-4:** Tauri `invoke` wrapper — not browser stdio)
 - `apps/desktop/src/features/git/__tests__/*` (deferred — no Vitest in desktop yet)
 
 ### T008-T009 Governance integration

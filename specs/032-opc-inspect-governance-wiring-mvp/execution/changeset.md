@@ -8,20 +8,17 @@ Slice 1 implementation batch for OPC inspect + governance wiring.
 
 **PR-1:** **Complete (merged to `main`).** Import + T000a baseline + spec-compiler V-004 fix (PR-1.2); evidence in [`verification.md`](./verification.md).  
 **PR-2:** **Complete (merged to `main`).** T003 inspect shell — `InspectSurface` + `useInspectFlow` / `xray_scan_project`.  
-**PR-3 (active slice):** **T004–T005** — git context panel hydration (native `git_*` commands); no governance, no follow-up action (see `plan.md` PR sequencing).
+**PR-3:** **Complete (merged to `main`).** T007 — native git context panel (`useGitContext` / `GitContextSurface`).  
+**PR-4:** **Complete (merged to `main`).** T006 — gitctx MCP enrichment (Rust stdio bridge, `@opc/mcp-client`, additive enrichment); see [`t006-checklist.md`](./t006-checklist.md).
+
+**Next slice (per `tasks.md`):** T004–T005 inspect journey wiring; then governance T008–T009, etc.
 
 ## In-scope tasks
 
-- **PR-3 / current:** T004–T005 (git context panel only)
-- T006
-- T006
-- T007
-- T008
-- T009
-- T010
-- T011
+- **Done:** T003 (PR-2), T000/T000a (PR-1), T007 (PR-3), T006 (PR-4).
+- **Next:** T004–T005 (inspect journey wiring), then T008–T011 (governance, action, docs, verification) per `tasks.md`.
 
-## Planned touch targets (pending OPC tree import)
+## Planned touch targets
 
 - Inspect: `apps/desktop/src/features/inspect/*`
 - Git context: `apps/desktop/src/features/git/*`, `packages/mcp-client/src/index.ts`

@@ -29,7 +29,7 @@ This feature is the first governed product-facing consolidation slice after cont
 In scope:
 
 - Inspect entrypoint and inspect surface wiring in OPC UI
-- Live git context panel wired to sidecar client path
+- Live git context panel: native git as source-of-truth; optional gitctx MCP enrichment (additive)
 - Governance/feature status panel wired to local governance outputs
 - Inspect/xray result surface with stable UI data contract
 - One actionable follow-up from inspect output
@@ -43,7 +43,7 @@ Out of scope:
 ## Requirements
 
 - **FR-001**: OPC exposes an inspect entrypoint that executes an inspect flow for the current workspace and returns a deterministic result payload.
-- **FR-002**: Git context panel renders live sidecar-backed repository context (at minimum: branch/head, working tree cleanliness, and repository identity).
+- **FR-002**: Git context panel renders live repository context from **native git** (branch/head, working tree cleanliness, repository path) and may show **additive** gitctx MCP enrichment (e.g. GitHub identity from `gitctx://context/current`) without replacing local git as authority.
 - **FR-003**: Governance panel renders feature/governance status from compiled registry and featuregraph-backed outputs, with explicit handling for unavailable data.
 - **FR-004**: Inspect surface renders xray/analysis outputs via a documented UI contract; error states are explicit and non-placeholder.
 - **FR-005**: At least one actionable follow-up is available from inspect results (for example: open related feature spec, open governance details, or run a bounded follow-up command).

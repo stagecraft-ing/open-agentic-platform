@@ -2,7 +2,7 @@
 
 **Feature:** `032-opc-inspect-governance-wiring-mvp`  
 **Task:** T006 — Complete frontend MCP path used by the git context panel  
-**Status:** This document is the **PR-4 Definition of Done**. Implementation and review should satisfy it; it is not informal chat guidance.
+**Status:** **Merged to `main` via [PR #4](https://github.com/stagecraft-ing/open-agentic-platform/pull/4)** (2026-03-26). This document remains the **T006** contract reference for reviewers and follow-up work.
 
 **Related:** `tasks.md` (T006), `plan.md`, `execution/verification.md`
 

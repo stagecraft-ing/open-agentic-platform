@@ -3,7 +3,7 @@
 **Input**: `/specs/032-opc-inspect-governance-wiring-mvp/`  
 **Prerequisites**: Features **000-004**, **029-031**
 
-**Feature status**: **Planned**
+**Feature status**: **In progress** (T006 merged; inspect/governance/action slices remain)
 
 ## Phase 0: Consolidation gate (blocking)
 
@@ -34,7 +34,7 @@
 
 ## Phase 3: Git context integration
 
-- [ ] T006 Complete frontend MCP/sidecar client path used by git context panel — **PR-4 gate:** [`execution/t006-checklist.md`](./execution/t006-checklist.md) (optional follow-up; PR-3 uses **native** git commands)
+- [x] T006 Complete frontend MCP path used by git context panel — **merged PR #4** (`feat/032-pr4-t006-gitctx-sidecar`); gate: [`execution/t006-checklist.md`](./execution/t006-checklist.md). Rust-owned stdio bridge + `@opc/mcp-client` + additive `useGitCtxEnrichment`; native git unchanged from PR-3.
 - [x] T007 Wire git context panel to live git data and explicit panel states — **PR-3** (`feat/032-pr3-git-context`): `commands.gitCurrentBranch`, `gitStatus`, `gitAheadBehind` via `useGitContext` / `GitContextSurface`
 
 ### PR-3 slice (user milestone: “T004–T005 git hydration”)
