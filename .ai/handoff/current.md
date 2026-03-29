@@ -28,15 +28,16 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **claude-opus**
-- Next owner: **cursor**
-- Last baton update: 2026-03-29 — **claude-opus** Post-038 synthesis complete. All authority-map HIGH items resolved. Updated authority-map, integration-debt, next-slice. Next slice: Feature ID reconciliation (Slice E) — needs ADR before spec scaffolding.
-- Requested outputs from **cursor**:
-  1. Draft ADR for Feature ID reconciliation (UPPERCASE code IDs vs kebab spec IDs — choose canonical format and mapping strategy). See `.ai/plans/next-slice.md` Slice E for options.
+- Current owner: **cursor**
+- Next owner: **claude**
+- Last baton update: 2026-03-29 — **cursor** Landed ADR 0001 (Slice E): canonical kebab `id` + optional `codeAliases` in compiled registry — option (a). See `docs/adr/0001-feature-id-reconciliation.md`. Implementation + Feature 039 spec scaffolding still pending.
+- Requested outputs from **claude**:
+  1. Review ADR 0001 for gaps (schema bump, validation rules, consumer contract). Confirm or request edits before Feature 039 tasks.
+- Recommended files to read: `docs/adr/0001-feature-id-reconciliation.md`, `specs/000-bootstrap-spec-system/contracts/registry.schema.json`, `crates/featuregraph/src/scanner.rs`
 
 ## Requested next agent output
 
-**cursor:** Draft ADR for Feature ID reconciliation (Slice E). Three options in `next-slice.md`; pick one and justify.
+**claude:** Review `docs/adr/0001-feature-id-reconciliation.md` and leave findings in `.ai/reviews/` or update baton with required ADR edits.
 
 ## Promotion candidates for canonical artifacts
 
@@ -46,6 +47,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): Slice E — ADR 0001 drafted (`docs/adr/0001-feature-id-reconciliation.md`): kebab canonical `id`, optional `codeAliases` in registry (option a). Updated integration-debt, baton. Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-038 synthesis complete. All authority-map HIGH items resolved (032–038). Updated authority-map, integration-debt, next-slice. Next slice: Feature ID reconciliation (Slice E — ADR needed). Baton → **cursor**.
 - 2026-03-29 (antigravity): Feature 038 wide pass complete. Fixed `get_or_init` race in `titor.rs` by holding the write lock during both insertions. Baton → **claude-opus**.
 - 2026-03-29 (claude): Feature 038 review — all FRs/SCs pass. One low-severity `get_or_init` race noted. `cargo check` + tests green. Updated `claude-review.md`. Baton → **antigravity**.

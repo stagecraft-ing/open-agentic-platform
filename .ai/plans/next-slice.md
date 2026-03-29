@@ -50,7 +50,7 @@ Desktop UI stub exists but backend is not wired. The `crates/blockoli/` library 
 **Why first:** Only remaining MEDIUM item. Growing urgency (38+ features, every new feature adds entries in both systems with no cross-reference). Purely a data architecture concern — no runtime impact, but increasingly confusing for governance panel consumers.
 
 Scope:
-1. **ADR** — choose canonical ID format, define mapping strategy. Three options:
+1. **ADR** — ~~choose canonical ID format, define mapping strategy~~ **Done:** `docs/adr/0001-feature-id-reconciliation.md` (kebab `id` + `codeAliases`). Three options considered:
    - (a) Add `aliases` field to compiled registry JSON — scanner emits both forms, consumers match either.
    - (b) Convention-derived: `032-opc-inspect-governance-wiring-mvp` → `OPC_INSPECT_GOVERNANCE_WIRING_MVP` or similar. Zero-config but noisy.
    - (c) Adopt kebab everywhere and migrate all `// Feature:` headers in code. Clean but large change surface.
