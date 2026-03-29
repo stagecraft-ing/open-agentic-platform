@@ -21,6 +21,8 @@ interface UseTabStateReturn {
   createMCPTab: () => string | null;
   createSettingsTab: () => string | null;
   createClaudeMdTab: () => string | null;
+  /** Open a workspace markdown file (e.g. feature spec) in the markdown editor tab. */
+  createSpecMarkdownTab: (absolutePath: string, title?: string) => string | null;
   createClaudeFileTab: (fileId: string, fileName: string) => string;
   createCreateAgentTab: () => string;
   createImportAgentTab: () => string;
@@ -177,8 +179,10 @@ export const useTabState = (): UseTabStateReturn => {
   }, [addTab, tabs, setActiveTab]);
 
   const createClaudeMdTab = useCallback((): string | null => {
-    // Check if claude-md tab already exists (singleton)
-    const existingTab = tabs.find(tab => tab.type === 'claude-md');
+    // Singleton for the global system prompt tab (no spec path)
+    const existingTab = tabs.find(
+      tab => tab.type === 'claude-md' && !tab.specMarkdownAbsolutePath
+    );
     if (existingTab) {
       setActiveTab(existingTab.id);
       return existingTab.id;
@@ -192,6 +196,33 @@ export const useTabState = (): UseTabStateReturn => {
       icon: 'file-text'
     });
   }, [addTab, tabs, setActiveTab]);
+
+  const createSpecMarkdownTab = useCallback(
+    (absolutePath: string, title?: string): string | null => {
+      const normalized = absolutePath.trim();
+      if (!normalized) return null;
+      const existingTab = tabs.find(
+        tab => tab.type === 'claude-md' && tab.specMarkdownAbsolutePath === normalized
+      );
+      if (existingTab) {
+        setActiveTab(existingTab.id);
+        return existingTab.id;
+      }
+      const label =
+        title?.trim() ||
+        normalized.split(/[/\\]/).filter(Boolean).pop() ||
+        'Spec';
+      return addTab({
+        type: 'claude-md',
+        title: label,
+        specMarkdownAbsolutePath: normalized,
+        status: 'idle',
+        hasUnsavedChanges: false,
+        icon: 'file-text',
+      });
+    },
+    [addTab, tabs, setActiveTab]
+  );
 
   const createClaudeFileTab = useCallback((fileId: string, fileName: string): string => {
     // Check if tab already exists for this file
@@ -421,6 +452,7 @@ export const useTabState = (): UseTabStateReturn => {
     createMCPTab,
     createSettingsTab,
     createClaudeMdTab,
+    createSpecMarkdownTab,
     createClaudeFileTab,
     createCreateAgentTab,
     createImportAgentTab,

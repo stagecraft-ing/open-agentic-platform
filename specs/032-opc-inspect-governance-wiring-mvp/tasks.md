@@ -49,7 +49,7 @@
 
 ## Phase 5: Action path and docs
 
-- [ ] T010 Add one bounded follow-up action from inspect results
+- [x] T010 Add one bounded follow-up action from inspect results
 - [ ] T011 Update user-facing docs for inspect/governance path and operator usage notes
 
 ## Phase 6: Verification

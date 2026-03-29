@@ -323,7 +323,11 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
       case 'claude-md':
         return (
           <div className="h-full">
-            <MarkdownEditor onBack={() => {}} />
+            <MarkdownEditor
+              onBack={() => {}}
+              filePath={tab.specMarkdownAbsolutePath}
+              documentTitle={tab.specMarkdownAbsolutePath ? tab.title : undefined}
+            />
           </div>
         );
       

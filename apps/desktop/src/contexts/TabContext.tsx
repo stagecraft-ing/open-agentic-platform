@@ -11,6 +11,8 @@ export interface Tab {
   agentRunId?: string; // for agent tabs
   agentData?: any; // for agent-execution tabs
   claudeFileId?: string; // for claude-file tabs
+  /** When set on `claude-md`, MarkdownEditor loads this absolute file path instead of the global system prompt. */
+  specMarkdownAbsolutePath?: string;
   initialProjectPath?: string; // for chat tabs
   projectPath?: string; // for agent-execution tabs
   status: 'active' | 'idle' | 'running' | 'complete' | 'error';

@@ -127,11 +127,42 @@ fn read_registry_summary(path: &PathBuf) -> Result<Value, String> {
         .map(|items| items.len())
         .unwrap_or(0);
 
+    let mut feature_summaries = Vec::new();
+    for feature in features {
+        let Some(obj) = feature.as_object() else {
+            continue;
+        };
+        let id = obj
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        let title = obj
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        let spec_path = obj
+            .get("specPath")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        if spec_path.is_empty() {
+            continue;
+        }
+        feature_summaries.push(json!({
+            "id": id,
+            "title": title,
+            "specPath": spec_path,
+        }));
+    }
+
     Ok(json!({
         "featureCount": features.len(),
         "validationPassed": validation_passed,
         "violationsCount": violations_count,
         "statusCounts": status_counts,
+        "featureSummaries": feature_summaries,
     }))
 }
 
@@ -148,7 +179,11 @@ mod tests {
         writeln!(
             file,
             r#"{{
-  "features":[{{"id":"001","status":"active"}},{{"id":"002","status":"active"}},{{"id":"003","status":"draft"}}],
+  "features":[
+    {{"id":"001","status":"active","title":"A","specPath":"specs/001-a/spec.md"}},
+    {{"id":"002","status":"active","title":"B","specPath":"specs/002-b/spec.md"}},
+    {{"id":"003","status":"draft","title":"C","specPath":"specs/003-c/spec.md"}}
+  ],
   "validation":{{"passed":true,"violations":[]}}
 }}"#
         )
@@ -159,6 +194,9 @@ mod tests {
         assert_eq!(summary["validationPassed"], true);
         assert_eq!(summary["statusCounts"]["active"], 2);
         assert_eq!(summary["statusCounts"]["draft"], 1);
+        let fs = summary["featureSummaries"].as_array().expect("featureSummaries");
+        assert_eq!(fs.len(), 3);
+        assert_eq!(fs[0]["specPath"], "specs/001-a/spec.md");
     }
 
     #[test]

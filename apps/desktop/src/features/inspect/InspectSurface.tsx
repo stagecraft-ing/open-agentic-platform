@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
+import { useTabState } from '@/hooks/useTabState';
+import { apiCall } from '@/lib/apiAdapter';
+import type { GovernanceOverview } from '@/features/governance/useGovernanceStatus';
+import { RegistrySpecFollowUp } from './RegistrySpecFollowUp';
 import { useInspectFlow } from './useInspectFlow';
 
 interface XrayFileNode {
@@ -53,7 +57,30 @@ function toXrayViewModel(payload: unknown): XrayViewModel | null {
  */
 export const InspectSurface: React.FC = () => {
   const [path, setPath] = useState('');
+  const { createSpecMarkdownTab } = useTabState();
+  const [inspectFollowUp, setInspectFollowUp] = useState<GovernanceOverview | null>(null);
   const { state, scan, reset } = useInspectFlow();
+
+  useEffect(() => {
+    if (state.status !== 'success' || !path.trim()) {
+      setInspectFollowUp(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await apiCall<GovernanceOverview>('featuregraph_overview', {
+          featuresYamlPath: path.trim(),
+        });
+        if (!cancelled) setInspectFollowUp(data);
+      } catch {
+        if (!cancelled) setInspectFollowUp(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.status, path]);
 
   const handleScan = () => {
     void scan(path);
@@ -202,6 +229,16 @@ export const InspectSurface: React.FC = () => {
                   <div className="text-xs text-muted-foreground mb-2">Digest</div>
                   <div className="font-mono text-xs break-all">{successData.digest ?? 'n/a'}</div>
                 </div>
+                {inspectFollowUp && (
+                  <RegistrySpecFollowUp
+                    repoRoot={inspectFollowUp.repoRoot}
+                    registry={inspectFollowUp.registry}
+                    onViewSpec={(abs, title) => {
+                      void createSpecMarkdownTab(abs, title);
+                    }}
+                  />
+                )}
+
                 <div className="flex-1 min-h-0 border rounded-md">
                   <div className="px-3 py-2 border-b text-xs text-muted-foreground">
                     Indexed files ({successData.files.length})

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
+import { useTabState } from '@/hooks/useTabState';
+import { RegistrySpecFollowUp } from '@/features/inspect/RegistrySpecFollowUp';
 import { useGovernanceCtxEnrichment } from './useGovernanceCtxEnrichment';
 import { useGovernanceStatus } from './useGovernanceStatus';
 
 export const GovernanceSurface: React.FC = () => {
   const [repoRoot, setRepoRoot] = useState('');
+  const { createSpecMarkdownTab } = useTabState();
   const { state, load, reset } = useGovernanceStatus();
   const enrichmentPath =
     state.status === 'success' || state.status === 'degraded' ? state.data.repoRoot : repoRoot;
@@ -150,6 +153,14 @@ export const GovernanceSurface: React.FC = () => {
                 )}
               </div>
             </div>
+
+            <RegistrySpecFollowUp
+              repoRoot={state.data.repoRoot}
+              registry={state.data.registry}
+              onViewSpec={(abs, title) => {
+                void createSpecMarkdownTab(abs, title);
+              }}
+            />
           </div>
         )}
       </div>

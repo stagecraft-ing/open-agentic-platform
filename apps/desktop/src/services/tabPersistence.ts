@@ -16,6 +16,7 @@ interface SerializedTab {
   sessionId?: string;
   agentRunId?: string;
   claudeFileId?: string;
+  specMarkdownAbsolutePath?: string;
   initialProjectPath?: string;
   projectPath?: string;
   status: Tab['status'];
@@ -74,6 +75,7 @@ export class TabPersistenceService {
         sessionId: tab.sessionId,
         agentRunId: tab.agentRunId,
         claudeFileId: tab.claudeFileId,
+        specMarkdownAbsolutePath: tab.specMarkdownAbsolutePath,
         initialProjectPath: tab.initialProjectPath,
         projectPath: tab.projectPath,
         status: tab.status === 'running' ? 'idle' : tab.status, // Reset running status

@@ -13,6 +13,8 @@ export interface GovernanceOverview {
       validationPassed: boolean;
       violationsCount: number;
       statusCounts: Record<string, number>;
+      /** Present when registry was compiled with per-feature spec paths (Feature 032 follow-up actions). */
+      featureSummaries?: Array<{ id: string; title: string; specPath: string }>;
     };
   };
   featuregraph: {

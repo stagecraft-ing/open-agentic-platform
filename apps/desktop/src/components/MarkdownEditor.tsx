@@ -16,6 +16,12 @@ interface MarkdownEditorProps {
    * Optional className for styling
    */
   className?: string;
+  /**
+   * Absolute path to a markdown file in the workspace (e.g. a feature spec). When set, loads/saves this file instead of the global CLAUDE.md system prompt.
+   */
+  filePath?: string;
+  /** Heading shown when `filePath` is set (defaults to file basename). */
+  documentTitle?: string;
 }
 
 /**
@@ -26,6 +32,8 @@ interface MarkdownEditorProps {
  */
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   className,
+  filePath,
+  documentTitle,
 }) => {
   const [content, setContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
@@ -36,21 +44,27 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   
   const hasChanges = content !== originalContent;
   
-  // Load the system prompt on mount
   useEffect(() => {
-    loadSystemPrompt();
-  }, []);
-  
-  const loadSystemPrompt = async () => {
+    void loadContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when target file changes
+  }, [filePath]);
+
+  const loadContent = async () => {
     try {
       setLoading(true);
       setError(null);
-      const prompt = await api.getSystemPrompt();
-      setContent(prompt);
-      setOriginalContent(prompt);
+      if (filePath) {
+        const text = await api.readClaudeMdFile(filePath);
+        setContent(text);
+        setOriginalContent(text);
+      } else {
+        const prompt = await api.getSystemPrompt();
+        setContent(prompt);
+        setOriginalContent(prompt);
+      }
     } catch (err) {
-      console.error("Failed to load system prompt:", err);
-      setError("Failed to load CLAUDE.md file");
+      console.error("Failed to load markdown:", err);
+      setError(filePath ? "Failed to load file" : "Failed to load CLAUDE.md file");
     } finally {
       setLoading(false);
     }
@@ -61,17 +75,30 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       setSaving(true);
       setError(null);
       setToast(null);
-      await api.saveSystemPrompt(content);
-      setOriginalContent(content);
-      setToast({ message: "CLAUDE.md saved successfully", type: "success" });
+      if (filePath) {
+        await api.saveClaudeMdFile(filePath, content);
+        setOriginalContent(content);
+        setToast({ message: "File saved successfully", type: "success" });
+      } else {
+        await api.saveSystemPrompt(content);
+        setOriginalContent(content);
+        setToast({ message: "CLAUDE.md saved successfully", type: "success" });
+      }
     } catch (err) {
-      console.error("Failed to save system prompt:", err);
-      setError("Failed to save CLAUDE.md file");
-      setToast({ message: "Failed to save CLAUDE.md", type: "error" });
+      console.error("Failed to save markdown:", err);
+      setError(filePath ? "Failed to save file" : "Failed to save CLAUDE.md file");
+      setToast({ message: filePath ? "Failed to save file" : "Failed to save CLAUDE.md", type: "error" });
     } finally {
       setSaving(false);
     }
   };
+
+  const heading = filePath
+    ? documentTitle ?? filePath.split(/[/\\]/).pop() ?? "Spec"
+    : "CLAUDE.md";
+  const subheading = filePath
+    ? filePath
+    : "Edit your Claude Code system prompt";
   
   
   return (
@@ -81,9 +108,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         <div className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">CLAUDE.md</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Edit your Claude Code system prompt
+              <h1 className="text-3xl font-bold tracking-tight">{heading}</h1>
+              <p className="mt-1 text-sm text-muted-foreground font-mono break-all">
+                {subheading}
               </p>
             </div>
             <Button
