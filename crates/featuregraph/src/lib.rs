@@ -6,5 +6,6 @@
 pub mod graph;
 pub mod locate;
 pub mod preflight;
+pub mod registry_source;
 pub mod scanner;
 pub mod tools;
