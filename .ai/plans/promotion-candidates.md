@@ -6,26 +6,29 @@
 
 | Item | Current evidence | Target artifact |
 |------|------------------|-----------------|
-| Feature 032 delivery recorded | `tasks.md` T000–T013 complete; `verification.md` green 2026-03-28 | Frontmatter stays `status: active` (valid enum per Feature 000/003). Delivery proven by tasks + verification artifacts. |
-| Feature 033 - axiomregent activation | `spawn_axiomregent()` exists; sidecar/state/port plumbing already present; post-032 synthesis says this is the highest-leverage next slice | New `specs/033-axiomregent-activation/spec.md` |
-| Featuregraph scanner fix | `scanner.rs:167` reads forbidden `features.yaml`; governance panel remains degraded until registry-backed scan exists | New `specs/034-featuregraph-registry-scanner-fix/spec.md` |
-| Safety tier governance spec | `safety.rs` defines tiers in code only; no spec governs tier meanings or assignment rules | New feature spec after 033 promotion |
+| Blockoli semantic search discovery | `crates/blockoli/` library exists, desktop UI stub present, no Tauri command wiring | New `specs/040-blockoli-semantic-search/` (after discovery pass) |
+| Checkpoint/restore UI | Feature 038 wired all 6 Tauri commands, no desktop UI for temporal controls | New feature spec (after design input) |
+| Minor code cleanup batch | V-005 message, lease.rs doc comment, CI timeout portability | Direct code commits (no spec needed) |
 
 ## Needs more verification
 
 | Item | What would prove it |
 |------|---------------------|
-| Feature 033 - axiomregent activation | Verify `spawn_axiomregent()` works on supported platforms; confirm Tauri sidecar bundling and port discovery behave correctly |
-| Featuregraph scanner adaptation | Prototype scanner input from `registry.json`; confirm graph output shape remains compatible with governance UI |
-| Safety tier governance spec | Review `safety.rs` for full tier coverage and determine whether tier->permission mapping is sufficient as canonical policy |
-| Agent execution reroute | Confirm activation/UI visibility land cleanly before changing execution authority |
-| Feature ID reconciliation | Survey all `// Feature:` headers in codebase; count unique uppercase IDs; determine whether convention-based derivation from kebab IDs is feasible |
+| Blockoli semantic search | Survey `crates/blockoli/` public API; assess embedding model requirements; determine startup cost |
+| Checkpoint/restore UI | Design input on desktop UX; determine per-project vs per-agent-session scope |
 
 ## Done / discarded (archive)
 
-- ~~T010 action recommendation: "View spec" button~~ - **promoted and implemented** (Cursor, 2026-03-28). `RegistrySpecFollowUp.tsx` + `actions.ts` using `featureSummaries` from backend.
-- ~~Verification command list for T013~~ - **promoted** to `execution/verification.md` T010-T013 section.
-- ~~Featuregraph degraded state documentation~~ - **promoted** to `execution/verification.md` product notes.
+- ~~T010 action recommendation: "View spec" button~~ - **promoted and implemented** (Cursor, 2026-03-28)
+- ~~Verification command list for T013~~ - **promoted** to `execution/verification.md`
+- ~~Featuregraph degraded state documentation~~ - **promoted** to `execution/verification.md`
+- ~~Feature 033 - axiomregent activation~~ - **DELIVERED** (Feature 033)
+- ~~Featuregraph scanner fix~~ - **DELIVERED** (Feature 034)
+- ~~Agent governed execution~~ - **DELIVERED** (Feature 035)
+- ~~Safety tier governance spec~~ - **DELIVERED** (Feature 036)
+- ~~Cross-platform axiomregent~~ - **DELIVERED** (Feature 037)
+- ~~Titor command wiring~~ - **DELIVERED** (Feature 038)
+- ~~Feature ID reconciliation~~ - **DELIVERED** (Feature 039)
 
 ## Reminder
 

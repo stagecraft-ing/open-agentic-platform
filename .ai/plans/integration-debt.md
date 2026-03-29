@@ -5,9 +5,9 @@
 ## Context
 
 - Branch: `main`
-- Features 032–038: complete (all delivered 2026-03-29)
+- Features 032–039: complete (all delivered 2026-03-29)
 - Slice A (post-035 hardening): complete
-- Related specs: 000 (constitutional), 003–005 (lifecycle/execution), 029–031 (consumer contracts), 032–037 (governance stack + cross-platform)
+- Related specs: 000 (constitutional), 003–005 (lifecycle/execution), 029–031 (consumer contracts), 032–039 (governance stack + cross-platform + temporal safety + identity reconciliation)
 
 ## Debt items (ranked)
 
@@ -20,13 +20,13 @@
 | ~~featuregraph scanner reads forbidden `features.yaml`~~ | Governance / data | Unblocks governance panel | **RESOLVED (Feature 034)** |
 | ~~Cross-platform axiomregent~~ | Platform coverage | Governance on Windows/Linux | **RESOLVED (Feature 037)** — Windows binary built, CI workflow for all targets |
 | ~~Titor Tauri commands stubbed~~ | Temporal safety | Enables checkpoint/restore from desktop | **RESOLVED (Feature 038)** — `TitorState` + all 6 commands wired, round-trip verified |
-| **Feature ID duality** | Data architecture | Enables cross-referencing registry/code features | **Feature 039 scaffolded** — ADR reviewed (sound, 4 gaps to close in T001), spec + 9 tasks ready for cursor |
+| ~~Feature ID duality~~ | Data architecture | Enables cross-referencing registry/code features | **RESOLVED (Feature 039)** — ADR 0001 accepted, `codeAliases` in schema 1.1.0, compiler + scanner + frontmatter. All 12 tokens bridged, zero orphans. |
 | **Blockoli semantic search stubbed** | Product capability | Enables AI-native code search from desktop | Heavy lift; lowest urgency |
 
 ## Notes
 
-- Items 1–7 are now **all resolved** (Features 032–038 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, and the temporal safety net is wired.
-- **Feature ID duality** (item 8): ADR 0001 reviewed and confirmed sound. Feature 039 scaffolded (9 tasks). ADR gap closure (T001) + schema/compiler/scanner changes (T002–T009) ready for cursor.
+- Items 1–8 are now **all resolved** (Features 032–039 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, the temporal safety net is wired, and the dual identity system is bridged.
+- **Only remaining item:** Blockoli semantic search (lowest urgency, heavy lift, requires discovery pass).
 
 ## Promotion
 
@@ -36,5 +36,5 @@
 - [x] Safety tier governance → `specs/036-safety-tier-governance/` (delivered)
 - [x] Cross-platform axiomregent → `specs/037-cross-platform-axiomregent/` (delivered 2026-03-29)
 - [x] Titor command wiring → `specs/038-titor-tauri-command-wiring/` (delivered 2026-03-29)
-- [x] Feature ID reconciliation (ADR) → `docs/adr/0001-feature-id-reconciliation.md` — reviewed, sound
-- [ ] Feature ID reconciliation (implementation) → `specs/039-feature-id-reconciliation/` — scaffolded, 9 tasks
+- [x] Feature ID reconciliation (ADR) → `docs/adr/0001-feature-id-reconciliation.md` — accepted
+- [x] Feature ID reconciliation (implementation) → `specs/039-feature-id-reconciliation/` — delivered, all 9 tasks complete, reviewed by claude

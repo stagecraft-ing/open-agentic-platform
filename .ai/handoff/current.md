@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–039** delivered: Feature **039** (codeAliases / Feature ID reconciliation) implemented — ADR 0001 accepted, schema **1.1.0**, compiler + scanner + frontmatter + verification artifacts.
+Features **032–039** delivered and reviewed. All original 032-era concerns resolved. Platform has reached **capability plateau** — governed execution story complete end-to-end. Next priorities: product surface expansion (blockoli, checkpoint UI) or minor cleanup batch.
 
 ## Agent pack
 
@@ -18,28 +18,25 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Canonical feature authority
 
-- **037 spec:** `specs/037-cross-platform-axiomregent/spec.md` (status: **active**, complete — T003/T004 deferred to CI)
-- **038 spec:** `specs/038-titor-tauri-command-wiring/spec.md` (status: **active**, complete — all tasks done, round-trip verified)
-- **039 spec:** `specs/039-feature-id-reconciliation/spec.md` (status: **active**, complete — T001–T009 done; `execution/verification.md`)
+- **032–039:** All `status: active`, all complete. See individual `specs/<id>/spec.md` for details.
+- **039 spec:** `specs/039-feature-id-reconciliation/spec.md` (most recent — ADR 0001 accepted, schema 1.1.0, all verified)
 
 ## Current execution truth
 
-- **037:** All local tasks complete (T001/T002/T005/T006/T007/T008/T009). T003/T004 deferred to CI runners. Registry compiled.
-- **038:** Complete — `TitorState`, all 6 commands wired, round-trip verified (init→checkpoint→list→verify→diff→restore). Reviewed by claude, wide-passed by antigravity (race condition fixed). Registry compiled.
-- **039:** Complete — ADR 0001 accepted; `registry.schema.json` + spec-compiler `code_aliases` / V-005 / V-006 / `specVersion` 1.1.0; featuregraph `codeAliases` → `FeatureEntry.aliases`; frontmatter on specs **004, 005, 032–035**; verification recorded; golden graph updated. `build/spec-registry/registry.json` remains gitignored — run `spec-compiler compile` locally/CI.
+- **032–039:** All complete. All reviewed by claude. All authority-map items resolved.
+- **039 (most recent):** ADR 0001 accepted; `registry.schema.json` schema 1.1.0; spec-compiler `code_aliases` / V-005 / V-006; featuregraph `codeAliases` → `FeatureEntry.aliases`; frontmatter on specs 004, 005, 032–035; verification recorded; golden graph updated.
+- **Platform state:** Governed execution complete end-to-end. No CRITICAL/HIGH/MEDIUM items remain.
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **claude-opus**
-- Last baton update: 2026-03-29 — **claude** Reviewed Feature 039 delivery. All FRs/SCs pass. All 4 ADR gaps closed. All code aliases populated with zero orphans. Two minor non-blocking items noted (V-005 message wording, `language` extraFrontmatter). All original 032 review concerns now resolved.
-- Requested outputs from **claude-opus**:
-  1. Post-039 synthesis: update authority-map, integration-debt, next-slice. Determine next priorities given all 032–039 concerns are resolved.
-- Recommended files to read: `specs/039-feature-id-reconciliation/execution/verification.md`, `docs/adr/0001-feature-id-reconciliation.md`, `tools/spec-compiler/src/lib.rs`, `crates/featuregraph/src/registry_source.rs`
+- Current owner: **claude-opus**
+- Next owner: **(awaiting direction)**
+- Last baton update: 2026-03-29 — **claude-opus** Post-039 synthesis complete. All authority-map items resolved (032–039). Updated authority-map, integration-debt, next-slice, promotion-candidates. Platform at capability plateau. Next priorities: blockoli discovery (Slice F), checkpoint UI (Slice G), or minor cleanup batch (Slice H).
+- Recommended files to read: `.ai/plans/next-slice.md` (updated priorities), `.ai/findings/authority-map.md` (all items resolved)
 
 ## Requested next agent output
 
-**claude-opus:** Post-039 synthesis. All 032–039 review concerns resolved. Determine next priorities, update authority-map, integration-debt, next-slice.
+**(Awaiting direction.)** All 032–039 work is complete. The platform has reached a capability plateau. See `.ai/plans/next-slice.md` for prioritized options: Slice F (blockoli discovery), Slice G (checkpoint UI), Slice H (minor cleanup batch).
 
 ## Promotion candidates for canonical artifacts
 
@@ -49,6 +46,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude-opus): Post-039 synthesis complete. All authority-map items resolved (032–039). Platform at capability plateau. Updated authority-map, integration-debt, next-slice, promotion-candidates. Next: blockoli discovery (F), checkpoint UI (G), or cleanup batch (H). Baton → **(awaiting direction)**.
 - 2026-03-29 (claude): Feature 039 review — all FRs/SCs pass, all 4 ADR gaps closed, zero orphan aliases, all original 032 concerns resolved. Two minor items (V-005 message wording, `language` key). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Feature 039 implemented — codeAliases pipeline (ADR, schema 1.1.0, compiler V-005/V-006, scanner, frontmatter, verification, golden). Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-ADR synthesis. Scaffolded Feature 039 (`specs/039-feature-id-reconciliation/` — 9 tasks). ADR edits bundled as T001. Updated next-slice, integration-debt, authority-map. Baton → **cursor**.

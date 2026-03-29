@@ -5,13 +5,13 @@
 ## Context
 
 - Branch: `main`
-- **Features 032–038: COMPLETE** — all delivered 2026-03-29, verification green
+- **Features 032–039: COMPLETE** — all delivered 2026-03-29, verification green
 - **Slice A (post-035 hardening): COMPLETE** — no-lease bypass fixed, NF-001 benchmark, max_tier rationale documented
 - Synthesis by: **claude-opus** (2026-03-29)
 
-## Platform state after Feature 038
+## Platform state after Feature 039
 
-The governed execution thesis is **live, spec-governed, enforcement-complete on macOS arm64, partially extended to Windows, and temporally recoverable**:
+The governed execution thesis is **live, spec-governed, enforcement-complete, cross-platform, temporally recoverable, and identity-reconciled**:
 
 | Milestone | Feature | Status |
 |-----------|---------|--------|
@@ -22,22 +22,27 @@ The governed execution thesis is **live, spec-governed, enforcement-complete on 
 | Safety tier governance | 036 | Active, complete |
 | Cross-platform axiomregent | 037 | Active, complete (T003/T004 deferred to CI) |
 | Titor Tauri command wiring | 038 | Active, complete |
+| Feature ID reconciliation | 039 | Active, complete |
 
-**All authority-map items from 032 through 038 are RESOLVED.** The only remaining items are **Feature ID duality** (MEDIUM — 13 UPPERCASE vs 38+ kebab IDs, no bridge) and **Blockoli semantic search** (LOW — heavy lift, stubbed).
+**All authority-map items from 032 through 039 are RESOLVED.** The original four critical concerns from the 032 review are all closed:
+1. ~~Governance is display-only~~ → Feature 035
+2. ~~Scanner depends on nonexistent artifact~~ → Feature 034
+3. ~~axiomregent is dead code~~ → Feature 033
+4. ~~Dual feature identity with no bridge~~ → Feature 039
 
-The platform's critical gap has shifted from **"temporal safety net not accessible from desktop"** (post-037) to **"no identifier bridge between code attribution and spec registry"** (post-038). This is a data architecture debt, not a capability gap.
+The platform has reached a **capability plateau**: the governed execution story is complete end-to-end. Remaining work falls into three categories: (1) **product surface expansion** (blockoli, checkpoint UI), (2) **CI/infra polish** (cross-platform binaries, smoke test portability), (3) **minor code cleanup** (V-005 message, stale doc comment).
 
 ## Residuals inventory
-
-### Feature ID duality (MEDIUM — authority-map)
-
-13 UPPERCASE code IDs (`// Feature: FEATUREGRAPH_REGISTRY` etc.) vs 38+ kebab spec IDs (`032-opc-inspect-governance-wiring-mvp` etc.), no mapping. The scanner's alias system works in legacy YAML mode but not in the compiled registry. This grows worse with every new feature.
-
-**Fix:** Needs an ADR to choose the canonical format and mapping strategy before implementation. Options: (a) add `aliases` field to compiled registry JSON, (b) derive UPPERCASE from kebab via convention, (c) adopt kebab everywhere and migrate code headers.
 
 ### Cross-platform axiomregent CI residuals (LOW)
 
 T003 (macOS x86_64) and T004 (Linux x86_64/arm64) deferred to CI runners. CI workflow exists (`.github/workflows/build-axiomregent.yml`) but hasn't run yet. Will resolve automatically when CI runners are available.
+
+### Minor code cleanup (LOW)
+
+- `tools/spec-compiler/src/lib.rs:591` — V-005 second violation message names wrong feature for its path (review item from claude)
+- `crates/axiomregent/src/snapshot/lease.rs:97` — stale doc comment `agent::safety::Tier` → `agent::safety::ToolTier` (carried since 037 review)
+- CI smoke test `timeout` command portability on macOS (`build-axiomregent.yml:73`)
 
 ### Blockoli semantic search (LOW — heavy lift)
 
@@ -45,43 +50,44 @@ Desktop UI stub exists but backend is not wired. The `crates/blockoli/` library 
 
 ## Ordered next-slice priority
 
-### Slice E: Feature ID reconciliation (Feature 039)
+### Slice F: Product surface expansion — Blockoli semantic search
 
-**Why first:** Only remaining MEDIUM item. Growing urgency (38+ features, every new feature adds entries in both systems with no cross-reference). Purely a data architecture concern — no runtime impact, but increasingly confusing for governance panel consumers.
+**Why first among remaining items:** The only substantial new capability left to unlock. The governance stack, temporal safety, and data architecture are all complete. Product-visible value now comes from exposing AI-native capabilities through the desktop app.
 
-Progress:
-1. **ADR** — **Done:** `docs/adr/0001-feature-id-reconciliation.md` (kebab `id` + `codeAliases`, option a). Reviewed by claude — **sound**, 4 gaps identified (schema bump, validation codes, consumer contract, population ordering).
-2. **Feature 039 spec** — **Scaffolded:** `specs/039-feature-id-reconciliation/spec.md` (9 tasks). ADR gap closure is T001; implementation is T002–T009.
-3. **Implement** — schema + compiler + scanner + frontmatter population. 1–2 cursor sessions.
-4. **Verify** — governance panel shows unified view, featuregraph cross-references resolve.
+**Not ready to scaffold.** Needs a discovery pass:
+1. Survey `crates/blockoli/` public API — what capabilities exist?
+2. Determine Tauri command signatures for search/index operations
+3. Assess embedding model requirements and startup cost
+4. Draft feature spec (040-class)
 
-**Decision on ADR edits:** Bundle with Feature 039 as T001. The ADR is in "Proposed" status; the edits are refinements from review, not a new decision. Changing status to "Accepted" after gap closure makes the ADR and implementation coherent in one feature.
+### Slice G: Desktop UI for checkpoint/restore
 
-### Slice F: Blockoli semantic search (future)
+**Why second:** Feature 038 wired the backend commands. The next product-visible step is a UI for checkpoint/restore in the desktop app. Depends on design decisions about where checkpoint controls appear (per-project? per-agent-session?).
 
-**Why second:** Lowest urgency. Heavy lift. Desktop UI stub exists but backend (embedding, indexing, query) is not wired. Requires scoping the `crates/blockoli/` library API and determining Tauri command signatures.
+**Not ready to scaffold.** Needs design input.
 
-Not ready to scaffold — needs discovery pass first.
+### Slice H: Minor code cleanup batch
 
-### Slice G: Desktop UI for checkpoint/restore (future)
+**Why lowest:** All items are non-blocking cosmetic fixes. Can be batched into a single commit when convenient. No spec needed.
 
-**Why after Slice E:** Feature 038 wired the backend commands. The next product-visible step is a UI for checkpoint/restore in the desktop app. Depends on design decisions about where checkpoint controls appear (per-project? per-agent-session?).
-
-Not ready to scaffold — needs design input.
+Items:
+- V-005 message wording fix (`lib.rs:591`)
+- Stale doc comment (`lease.rs:97`)
+- CI smoke test portability (`build-axiomregent.yml:73`)
 
 ## Fork resolution
 
-**Chosen path: reconcile identifiers → expand product UI.**
+**Chosen path: expand product surface.**
 
-Features 032–038 established, broadened, and completed the governed execution thesis including the temporal safety net. The next priority is reconciling the dual identity system (Slice E), then expanding product-visible capabilities (Slices F/G). The platform is now capability-complete for the governed execution story; remaining work is polish, coverage, and product surface.
+Features 032–039 established and completed the governed execution thesis including temporal safety and identity reconciliation. The platform is now capability-complete for governance. The next meaningful increment is product capability expansion (blockoli, checkpoint UI). The minor cleanup items can be batched at any convenient moment.
 
 ## Recommended promotion set
 
 ### Promote now
 
-- ~~**Feature 039 ADR**~~ **Done** — `docs/adr/0001-feature-id-reconciliation.md` (reviewed, sound)
-- **Feature 039 spec** — **Scaffolded** — `specs/039-feature-id-reconciliation/` (9 tasks, ready for cursor)
+(Nothing to promote — Feature 039 is the last item from the 032-era debt list. All promoted.)
 
 ### Promote next
 
 - **Blockoli semantic search discovery** — scoping pass on `crates/blockoli/` API and Tauri command signatures
+- **Checkpoint/restore UI design** — design input on desktop UX for temporal controls

@@ -19,7 +19,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 | Git branch/status | `git2` library via Tauri `git_*` commands (local repo) | `GitContextSurface` / `useGitContext` | **Low** — cleanly separated; gitctx MCP is explicitly additive per FR-002 |
 | GitHub enrichment | `gitctx-mcp` binary via stdio MCP bridge | `useGitCtxEnrichment` overlay in `GitContextSurface` | **Low** — additive only, absence shows "unavailable" not error |
 | Spec/feature registry | `build/spec-registry/registry.json` (compiled by `spec-compiler`, CI-gated) | `featuregraph_overview` → registry half (incl. `featureSummaries`) → `GovernanceSurface` + `InspectSurface` → `RegistrySpecFollowUp` "View spec" buttons | **Low** — deterministic compilation, contract-tested; `featureSummaries` emitted server-side at `analysis.rs:130-166` |
-| Code→feature attribution | `// Feature: UPPERCASE_ID` file headers → `featuregraph::Scanner::scan()` → reads `registry.json` first | `featuregraph_overview` → featuregraph half → `GovernanceSurface` | **MEDIUM → Feature 039 scaffolded** — scanner reads registry.json (034). ADR 0001 reviewed (sound): `codeAliases` field bridges UPPERCASE→kebab. Spec + 9 tasks ready for cursor. |
+| Code→feature attribution | `// Feature: UPPERCASE_ID` file headers → `featuregraph::Scanner::scan()` → reads `registry.json` (with `codeAliases`) first | `featuregraph_overview` → featuregraph half → `GovernanceSurface` | **RESOLVED (Feature 039)** — `codeAliases` in registry.schema.json (1.1.0), spec-compiler emits from frontmatter, scanner resolves aliases via `FeatureEntry.aliases`. All 12 code tokens across 6 specs bridged. Zero orphan headers. |
 | Agent permissions | SQLite `agents` table: `enable_file_read`, `enable_file_write`, `enable_network` | Agent creation/edit UI shows toggles | **RESOLVED (035+Slice A)** — flags enforced at runtime via per-session axiomregent subprocess. No-lease fallback now checks session default grants (Slice A hardening). |
 | Safety tiers | `crates/agent/src/safety.rs` — ToolTier classification + `get_tool_tier()` + `explicitly_classified_tools()` | GovernanceSurface shows per-tool tier assignments from backend | **RESOLVED (036)** — all 21 router tools explicitly classified, dual enums renamed (ToolTier/ChangeTier), coverage test enforces classification, UI derives from authoritative source. |
 | Governed tool execution | `axiomregent` MCP router (`crates/axiomregent/src/router/mod.rs`) — `gov.preflight`, `gov.drift`, `snapshot.*`, `workspace.*` | MCPManager shows sidecar status + probe port; GovernanceSurface shows safety tier labels | **RESOLVED (033+035)** — sidecar alive (033), agent execution routed through governed dispatch (035). All 7 `--dangerously-skip-permissions` sites replaced. |
@@ -51,8 +51,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 ## Implications
 
 - **Feature 032 is complete.** The authority map is sound for the delivered inspect journey. Git and registry authorities are clean. Featuregraph degradation is bounded and explicit. The "View spec" action (T010) uses registry `specPath` — a clean, compiler-owned authority — avoiding the broken `features.yaml` path entirely. The permission/execution enforcement gaps are real but out of scope per Feature 032's own spec (no cockpit, no control-plane modules).
-- **For post-038 work:** All CRITICAL/HIGH items are now **RESOLVED** (Features 032–038). The governance stack is complete (033–036), cross-platform (037), and the temporal safety net is wired (038). The remaining MEDIUM item is **Feature ID duality** (now 38+ features and counting). The remaining LOW items are CI runner targets (037 T003/T004) and blockoli semantic search.
-- **Feature ID duality** is a design debt that will compound: every new feature adds entries in both systems with no cross-reference. A reconciliation strategy needs a spec before it becomes unmanageable.
+- **For post-039 work:** All CRITICAL/HIGH/MEDIUM items are now **RESOLVED** (Features 032–039). The governance stack is complete (033–036), cross-platform (037), temporal safety wired (038), and the dual identity system bridged (039). The remaining LOW items are CI runner targets (037 T003/T004), blockoli semantic search, and two minor code-level cleanups (V-005 message wording, `lease.rs:97` stale doc comment).
 
 ## Candidate promotions
 
@@ -60,6 +59,6 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 - [ ] `execution/changeset.md` — no change needed; PR-6 already records governance wiring with explicit degraded/unavailable handling
 - [x] ~~Future spec candidate — "Safety tier model"~~ **DELIVERED (Feature 036)**
 - [x] ~~Future spec candidate — "axiomregent activation"~~ **DELIVERED (Feature 033)**
-- [ ] ~~Future spec candidate — "Feature ID reconciliation"~~ **Scaffolded (Feature 039)** — `specs/039-feature-id-reconciliation/` (ADR reviewed, 9 tasks)
+- [x] ~~Future spec candidate — "Feature ID reconciliation"~~ **DELIVERED (Feature 039)** — ADR 0001 accepted, schema 1.1.0, compiler+scanner+frontmatter, all verified
 - [x] ~~Future spec candidate — "Cross-platform axiomregent binaries"~~ **DELIVERED (Feature 037)**
 - [x] ~~Future spec candidate — "Titor command wiring"~~ **DELIVERED (Feature 038)**
