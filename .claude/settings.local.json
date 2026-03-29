@@ -13,7 +13,11 @@
       "LS",
       "Task",
       "Agent(*)",
-      "mcp__*"
+      "mcp__*",
+      "Bash(find /c/Dev/open-agentic-platform/.ai -type f -name *)",
+      "Bash(find /c/Dev/open-agentic-platform -name *.md -path *spec* -type f)",
+      "Bash(find /c/Dev/open-agentic-platform/crates -type d -name *)",
+      "Bash(find /c/Dev/open-agentic-platform/packages -type d -name *)"
     ],
     "defaultMode": "acceptEdits"
   }
