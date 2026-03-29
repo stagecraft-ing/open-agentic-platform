@@ -5,13 +5,13 @@
 ## Context
 
 - Branch: `main`
-- **Features 032–040: COMPLETE** — all delivered 2026-03-29, verification green
+- **Features 032–041: COMPLETE** — all delivered 2026-03-29, verification green
 - **Slice A (post-035 hardening): COMPLETE** — no-lease bypass fixed, NF-001 benchmark, max_tier rationale documented
 - Synthesis by: **claude-opus** (2026-03-29)
 
-## Platform state after Feature 040
+## Platform state after Feature 041
 
-The governed execution thesis is **live, spec-governed, enforcement-complete, cross-platform, temporally recoverable, identity-reconciled, and AI-native search enabled**:
+The governed execution thesis is **live, spec-governed, enforcement-complete, cross-platform, temporally recoverable, identity-reconciled, AI-native search enabled, and checkpoint/restore UI live**:
 
 | Milestone | Feature | Status |
 |-----------|---------|--------|
@@ -24,14 +24,15 @@ The governed execution thesis is **live, spec-governed, enforcement-complete, cr
 | Titor Tauri command wiring | 038 | Active, complete |
 | Feature ID reconciliation | 039 | Active, complete |
 | Blockoli semantic search wiring | 040 | Active, complete |
+| Checkpoint/restore UI | 041 | Active, complete |
 
-**All authority-map items from 032 through 040 are RESOLVED.** The original four critical concerns from the 032 review are all closed:
+**All authority-map items from 032 through 041 are RESOLVED.** The original four critical concerns from the 032 review are all closed:
 1. ~~Governance is display-only~~ → Feature 035
 2. ~~Scanner depends on nonexistent artifact~~ → Feature 034
 3. ~~axiomregent is dead code~~ → Feature 033
 4. ~~Dual feature identity with no bridge~~ → Feature 039
 
-Feature 040 delivered the first **product surface expansion**: blockoli semantic code search is now wired end-to-end from `SemanticSearchPanel.tsx` through Tauri commands to the fastembed/KD-tree/SQLite library. Remaining work falls into two categories: (1) **product surface expansion** (checkpoint UI), (2) **CI/infra polish + minor code cleanup**.
+Features 040–041 delivered the **product surface expansion**: blockoli semantic code search (040) wired end-to-end, and checkpoint/restore UI (041) exposing all 6 titor temporal safety commands through a singleton panel. Remaining work: **CI/infra polish + minor code cleanup** (Slice H).
 
 ## Residuals inventory
 
@@ -49,7 +50,7 @@ T003 (macOS x86_64) and T004 (Linux x86_64/arm64) deferred to CI runners. CI wor
 
 `BlockoliState` wired, both `blockoli_index_project` and `blockoli_search` commands implemented, app-data SQLite, embedded asterisk config. All FRs/SCs pass. Build green.
 
-## Ordered next-slice priority (post-040)
+## Ordered next-slice priority (post-041)
 
 ### ~~Slice F: Blockoli semantic search wiring (Feature 040) — COMPLETE~~
 
@@ -70,16 +71,16 @@ Items:
 
 ## Fork resolution
 
-**Chosen path: expand product surface.**
+**Chosen path: product surface expansion complete.**
 
-Features 032–040 established and completed the governed execution thesis including temporal safety, identity reconciliation, and AI-native code search. The platform is now capability-complete for governance and has its first AI-native product capability (semantic code search). The next meaningful increment is checkpoint/restore UI. The minor cleanup items can be batched at any convenient moment.
+Features 032–041 established the governed execution thesis (033–036), extended it cross-platform (037), wired temporal safety (038), reconciled identities (039), added AI-native code search (040), and surfaced checkpoint/restore in the desktop UI (041). The platform is now capability-complete for governance with two product surfaces (semantic search + checkpoint/restore). The only remaining work is Slice H (minor code cleanup batch).
 
 ## Recommended promotion set
 
 ### Promote now
 
-- **Checkpoint/restore UI design** — design input on desktop UX for temporal controls (Slice G)
+- **Minor code cleanup batch** — V-005 message wording, `lease.rs:97` doc comment, CI portability (Slice H)
 
 ### Promote next
 
-- **Minor code cleanup batch** — V-005 message wording, `lease.rs:97` doc comment, CI portability (Slice H)
+- New product surface or feature direction (post-041 — awaiting direction)

@@ -26,6 +26,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 | Checkpoint/temporal state | `crates/titor/` library (production-grade, ~17k LOC) + `TitorState` in Tauri `AppState` | All 6 Tauri commands wired via `TitorState` (`commands/titor.rs`) | **RESOLVED (Feature 038)** — `TitorState` created, all 5 stubs replaced, `titor_init` persists instance. Round-trip verified. |
 | Registry consumer contracts | `tools/registry-consumer/` + CI contract tests (Feature 029) | CLI only; not surfaced in desktop UI | **Low** — contracts enforced via CI, not relevant to desktop runtime |
 | Semantic code search | `crates/blockoli/` library (fastembed, KD-tree, SQLite) + `BlockoliState` in Tauri managed state | `SemanticSearchPanel.tsx` → `blockoli_index_project` / `blockoli_search` Tauri commands | **RESOLVED (Feature 040)** — `BlockoliState` wired, both commands implemented, app-data SQLite, embedded asterisk config. Build green, all FRs/SCs pass. |
+| Checkpoint/restore UI | `crates/titor/` library + `TitorState` in Tauri `AppState` + 6 Tauri commands (`commands/titor.rs`) | `CheckpointSurface.tsx` → `useCheckpointFlow.ts` → `titor_init` / `titor_checkpoint` / `titor_list` / `titor_restore` / `titor_diff` / `titor_verify` | **RESOLVED (Feature 041)** — Singleton `checkpoint` tab, `CheckpointSurface` exposes all 6 titor commands, project-scoped. All 8 FRs pass, all 6 SCs pass. `tsc --noEmit` green. |
 | Desktop UI state | React (Zustand/Context/localStorage) | Tab manager, settings, agent list | **Low** — no competing authority |
 
 ## Verified findings
@@ -52,7 +53,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 ## Implications
 
 - **Feature 032 is complete.** The authority map is sound for the delivered inspect journey. Git and registry authorities are clean. Featuregraph degradation is bounded and explicit. The "View spec" action (T010) uses registry `specPath` — a clean, compiler-owned authority — avoiding the broken `features.yaml` path entirely. The permission/execution enforcement gaps are real but out of scope per Feature 032's own spec (no cockpit, no control-plane modules).
-- **For post-040 work:** All CRITICAL/HIGH/MEDIUM items are now **RESOLVED** (Features 032–040). The governance stack is complete (033–036), cross-platform (037), temporal safety wired (038), the dual identity system bridged (039), and semantic code search wired (040). The remaining LOW items are CI runner targets (037 T003/T004) and two minor code-level cleanups (V-005 message wording, `lease.rs:97` stale doc comment).
+- **For post-041 work:** All CRITICAL/HIGH/MEDIUM items are now **RESOLVED** (Features 032–041). The governance stack is complete (033–036), cross-platform (037), temporal safety wired (038) and surfaced in UI (041), the dual identity system bridged (039), semantic code search wired (040), and checkpoint/restore UI live (041). The remaining LOW items are CI runner targets (037 T003/T004) and two minor code-level cleanups (V-005 message wording, `lease.rs:97` stale doc comment).
 
 ## Candidate promotions
 
@@ -64,3 +65,4 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 - [x] ~~Future spec candidate — "Cross-platform axiomregent binaries"~~ **DELIVERED (Feature 037)**
 - [x] ~~Future spec candidate — "Titor command wiring"~~ **DELIVERED (Feature 038)**
 - [x] ~~Future spec candidate — "Blockoli semantic search wiring"~~ **DELIVERED (Feature 040)**
+- [x] ~~Future spec candidate — "Checkpoint/restore UI"~~ **DELIVERED (Feature 041)**

@@ -5,9 +5,9 @@
 ## Context
 
 - Branch: `main`
-- Features 032–039: complete (all delivered 2026-03-29)
+- Features 032–041: complete (all delivered 2026-03-29)
 - Slice A (post-035 hardening): complete
-- Related specs: 000 (constitutional), 003–005 (lifecycle/execution), 029–031 (consumer contracts), 032–039 (governance stack + cross-platform + temporal safety + identity reconciliation)
+- Related specs: 000 (constitutional), 003–005 (lifecycle/execution), 029–031 (consumer contracts), 032–041 (governance stack + cross-platform + temporal safety + identity reconciliation + product surfaces)
 
 ## Debt items (ranked)
 
@@ -25,8 +25,8 @@
 
 ## Notes
 
-- All 9 items are now **resolved** (Features 032–040 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, the temporal safety net is wired, the dual identity system is bridged, and AI-native semantic code search is wired end-to-end.
-- **No remaining integration debt items.** Remaining work is product surface expansion (checkpoint UI) and minor code cleanup.
+- All 9 items are now **resolved** (Features 032–041 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, the temporal safety net is wired and surfaced in UI (041), the dual identity system is bridged, AI-native semantic code search is wired end-to-end, and checkpoint/restore UI is live.
+- **No remaining integration debt items.** Feature 041 introduced no new debt — `CheckpointSurface` cleanly consumes the existing 6 titor Tauri commands wired in Feature 038. Remaining work is minor code cleanup (Slice H).
 
 ## Promotion
 
@@ -39,3 +39,4 @@
 - [x] Feature ID reconciliation (ADR) → `docs/adr/0001-feature-id-reconciliation.md` — accepted
 - [x] Feature ID reconciliation (implementation) → `specs/039-feature-id-reconciliation/` — delivered, all 9 tasks complete, reviewed by claude
 - [x] Blockoli semantic search wiring → `specs/040-blockoli-semantic-search-wiring/` — delivered, all FRs/SCs pass, reviewed by claude
+- [x] Checkpoint/restore UI → `specs/041-checkpoint-restore-ui/` — delivered, all 8 FRs/6 SCs pass, reviewed by claude

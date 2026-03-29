@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–041** delivered. Platform past capability plateau — governance stack complete, AI-native semantic search wired, checkpoint/restore UI live. Next: minor cleanup batch (Slice H) or new product surface.
+Features **032–041** delivered and synthesized. Platform past capability plateau — governance stack complete, AI-native semantic search wired, checkpoint/restore UI live. All authority-map items resolved (032–041). Next: Slice H (minor code cleanup) or new product surface.
 
 ## Agent pack
 
@@ -18,22 +18,24 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Canonical feature authority
 
-- **032–041:** All `status: active`, all complete. See individual `specs/<id>/spec.md` for details.
+- **032–041:** All `status: active`, all complete, all synthesized. See individual `specs/<id>/spec.md` for details.
 
 ## Current execution truth
 
-- **032–041:** All complete. All authority-map items resolved. Integration debt fully cleared.
+- **032–041:** All complete, all synthesized. All authority-map items resolved. Integration debt fully cleared. Remaining: Slice H (minor code cleanup) or new product direction.
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **claude-opus** (for post-041 synthesis)
-- Last baton update: 2026-03-29 — **claude**: Feature 041 review complete. All 8 FRs pass, all 6 SCs pass. Tab wiring verified (5/5 files). All 6 titor command invocation patterns match Rust backend. `tsc --noEmit` green. Two minor non-blocking observations (diff busy-flag pattern inconsistency, closure capture style). Updated `claude-review.md`.
-- Recommended files to read: `.ai/reviews/claude-review.md` (Feature 041 section at bottom)
+- Current owner: **claude-opus**
+- Next owner: **cursor** (for Slice H implementation) or **claude-opus** (for new product direction)
+- Last baton update: 2026-03-29 — **claude-opus**: Post-041 synthesis complete. Spec already `active`. Authority-map updated (Feature 041 row added). Next-slice advanced (Slice G complete, post-041 state). Integration-debt updated (no new debt from 041, promotion added). All working notes now reflect 032–041 complete.
+- Recommended files to read: `.ai/findings/authority-map.md`, `.ai/plans/next-slice.md`
 
 ## Requested next agent output
 
-**claude-opus:** Post-041 synthesis — promote spec `draft` → `active` if still draft, update authority-map (Feature 041 row), advance next-slice (Slice G complete), clear integration-debt. Then assess: Slice H (cleanup batch) or new product surface.
+**Awaiting direction.** Two paths:
+1. **Slice H** (minor code cleanup) — cursor can batch V-005 message wording, `lease.rs:97` doc comment, CI portability fix in one commit. No spec needed.
+2. **New product surface** — requires product decision on next direction beyond governance + temporal safety + semantic search + checkpoint/restore.
 
 ## Promotion candidates for canonical artifacts
 
@@ -43,6 +45,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude-opus): Post-041 synthesis complete. Spec already `active`. Authority-map updated (Feature 041 row). Next-slice advanced (post-041). Integration-debt updated (no new debt, promotion added). All working notes reflect 032–041 complete. Baton held, awaiting direction for Slice H or new product surface.
 - 2026-03-29 (claude): Feature 041 review — all 8 FRs pass, all 6 SCs pass. Tab wiring verified (5/5 integration points). Titor command invocation patterns match Rust backend. `tsc --noEmit` green. Two non-blocking observations (diff busy-flag pattern, closure capture style). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (claude-opus): Feature 041 implemented — Checkpoint/Restore UI panel (Slice G). `CheckpointSurface` with init/create/list/restore/diff/verify. `useCheckpointFlow` hook wrapping all 6 titor commands. Singleton `checkpoint` tab type wired through TabContext → useTabState → TabContent → CustomTitlebar → App.tsx. Types mirroring titor structs. `tsc --noEmit` clean. Baton → **claude** for review.
 - 2026-03-29 (claude-opus): Post-040 synthesis complete. Spec promoted `draft` → `active`. Authority-map updated (Feature 040 row added, all items resolved). Next-slice advanced (Slice F complete, Slice G next). Integration-debt fully cleared (all 9 items resolved). Baton held, awaiting direction for Slice G or H.
