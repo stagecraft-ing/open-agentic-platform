@@ -6,11 +6,11 @@
 
 ## Objective
 
-Feature **032** is complete (`status: active`, delivery proven by tasks + verification). Feature **033** (`axiomregent activation`) is scaffolded under `specs/033-axiomregent-activation/` as `draft`. Claude has reviewed the 033 spec and identified two implementation-relevant issues. **Next:** Cursor implements 033 per `tasks.md`.
+Feature **032** is complete (`status: active`, delivery proven by tasks + verification). Feature **033** (`axiomregent activation`) is scaffolded under `specs/033-axiomregent-activation/` as `draft`. Claude has reviewed the 033 spec and identified two implementation-relevant issues. Handoff docs were cleaned (agent pack, no obsolete vendor references). **Next:** Claude quick review pass, then **Cursor** implements 033 per `tasks.md`.
 
-## Agent pack change (2026-03-29)
+## Agent pack
 
-**ChatGPT removed from the agent pack.** Synthesis/prioritization role reassigned to **Claude Opus** (same model family as deep-analysis agent). Reason: ChatGPT introduced an invalid `status: implemented` value that doesn't exist in the registry enum (Feature 000/003), requiring Cursor repair. Using the same model family for both analysis and synthesis avoids cross-model translation errors. Updated files: `.ai/handoff/chatgpt.md` (now Claude Opus role card), `.ai/prompts/chatgpt-slice-synthesis.md` (now Claude Opus prompt).
+**Cursor** (implementation), **Claude** (review / deep analysis), **Antigravity** (wide exploration), **Claude Opus** (`claude-opus` — synthesis and next-slice prioritization). Details: `.ai/README.md`, `.ai/prompts/baton-rules.md`, role cards under `.ai/handoff/`.
 
 ## Lifecycle note
 
@@ -38,17 +38,19 @@ Full review in `.ai/reviews/claude-review.md` (Feature 033 review section).
 ## Data integrity fixes (this pass)
 
 - `.ai/plans/integration-debt.md` — **restored** (was corrupted: contained concatenation of next-slice + promotion-candidates + current.md)
-- `.ai/handoff/chatgpt.md` — **replaced** with Claude Opus synthesis role card (was corrupted concatenation)
-- `.ai/prompts/chatgpt-slice-synthesis.md` — **updated** to target Claude Opus
 - `.ai/plans/next-slice.md` — cleaned stale `implemented` references
 - `.ai/plans/promotion-candidates.md` — cleaned stale `implemented` reference
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude** (for post-implementation review) or **claude-opus** (for synthesis if needed)
-- Last baton update: 2026-03-29 — Claude reviewed 033 spec, fixed corrupted files, replaced ChatGPT with Claude Opus; baton to Cursor for 033 implementation
-- Requested outputs from Cursor:
+- Current owner: **claude**
+- Next owner: **cursor** (Feature 033 implementation after this pass), then **claude** (post-implementation review) or **claude-opus** (synthesis if needed)
+- Last baton update: 2026-03-28 — Cursor removed obsolete vendor references from handoff; passed baton to Claude for pre-implementation consistency check
+- Requested outputs from Claude:
+  1. Skim `.ai/handoff/current.md` and confirm **Agent pack** + baton wording are coherent.
+  2. Confirm `.ai/reviews/claude-review.md` (Feature 033 section) still matches `sidecars.rs`, `lib.rs`, `tauri.conf.json`, and `apps/desktop/src-tauri/binaries/` (patch review if drifted).
+  3. Return baton to **cursor**: set **current owner** → **cursor**, **next owner** → **claude**, keep the **Requested outputs from Cursor** list below unchanged unless a spec blocker appears.
+- Requested outputs from Cursor (when baton is back with **cursor**):
   1. **T001**: Add `spawn_axiomregent(app)` call in `lib.rs` after `SidecarState` management (~line 189). Handle spawn failure gracefully (FR-002).
   2. **T002**: Smoke test — verify port announcement works on current platform (macOS arm64).
   3. **T003**: Document binary availability per platform. For Windows: either cross-compile axiomregent or document degraded state. Consider following `gitctx-mcp` bundling pattern (`scripts/fetch-and-build.js`).
@@ -63,7 +65,7 @@ Full review in `.ai/reviews/claude-review.md` (Feature 033 review section).
 
 ## Requested next agent output
 
-Cursor: implement Feature 033 T001–T008 per spec and tasks.md. Key constraint: axiomregent binary currently only exists for macOS arm64 — handle other platforms as graceful degradation for now.
+Claude: handoff consistency + 033 review spot-check; then pass baton to **cursor** for Feature 033 T001–T008. Key constraint for implementation: axiomregent binary currently only exists for macOS arm64 — handle other platforms as graceful degradation for now.
 
 ## Promotion candidates for canonical artifacts
 
@@ -75,8 +77,9 @@ Cursor: implement Feature 033 T001–T008 per spec and tasks.md. Key constraint:
 
 ## Recent outputs
 
-- 2026-03-29 (claude): 033 spec review, data integrity fixes (integration-debt.md restored, chatgpt→claude-opus), baton to cursor
+- 2026-03-28 (cursor): Removed obsolete vendor references from `.ai/handoff/current.md`; passed baton to **claude** (pre-033 review pass)
+- 2026-03-29 (claude): 033 spec review, data integrity fixes (integration-debt.md restored), baton to cursor
 - 2026-03-29 (cursor): Repaired handoff (NUL bytes, lifecycle); scaffolded `specs/033-axiomregent-activation/`
-- 2026-03-29 (chatgpt — removed): synthesis in `.ai/plans/next-slice.md`
+- 2026-03-29 (claude-opus): synthesis in `.ai/plans/next-slice.md`
 - 2026-03-28 (cursor): T010–T013 implementation + verification
 - 2026-03-28 (claude): Reconciled findings with 032 closure, staged post-032 priorities
