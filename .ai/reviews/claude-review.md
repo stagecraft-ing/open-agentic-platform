@@ -564,6 +564,79 @@ The simplest correct answer: **frontmatter is authoritative at compile time; sca
 
 ### Promotion candidates
 
-- [ ] ADR 0001 edits: schema bump strategy, validation rules, consumer contract, population ordering (4 gaps above)
-- [ ] Feature 039 task list should include: schema update, compiler extension, scanner alias bridging, conformance tests
+- [x] ADR 0001 edits: schema bump strategy, validation rules, consumer contract, population ordering (4 gaps above) — **all 4 closed by Feature 039**
+- [x] Feature 039 task list should include: schema update, compiler extension, scanner alias bridging, conformance tests — **delivered**
+
+---
+
+## Feature 039 review: codeAliases / Feature ID reconciliation (2026-03-29)
+
+**Reviewed**: `specs/039-feature-id-reconciliation/spec.md`, `docs/adr/0001-feature-id-reconciliation.md` (post-implementation), `tools/spec-compiler/src/lib.rs`, `crates/featuregraph/src/registry_source.rs`, `crates/featuregraph/src/scanner.rs`, `specs/000-bootstrap-spec-system/contracts/registry.schema.json`, `tools/spec-compiler/tests/code_aliases.rs`, `specs/039-feature-id-reconciliation/execution/verification.md`
+
+### Verdict: Feature 039 is correctly implemented. All FRs and SCs satisfied. All 4 ADR gaps closed. Two minor items noted (non-blocking).
+
+### FR/SC assessment
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| FR-001: `codeAliases` in schema | `registry.schema.json:81-88` — optional `codeAliases` array on `featureRecord`, items pattern `^[A-Z][A-Z0-9_]{2,63}$`, `uniqueItems: true`. Not in `required`. | **Pass** |
+| FR-002: Compiler reads `code_aliases` from frontmatter, emits sorted `codeAliases`, omits when absent | `lib.rs:24` (`KNOWN_KEYS`), `lib.rs:150-157` (`parse_code_aliases`), `lib.rs:228` (`skip_serializing_if`), `lib.rs:610-616` (empty→None). Sorting at `lib.rs:614`. | **Pass** |
+| FR-003: V-005 duplicate alias across features | `lib.rs:580-596` — cross-feature collision check via `alias_owner` map. Test: `code_aliases.rs:14-61`. | **Pass** |
+| FR-004: V-006 invalid pattern warning | `lib.rs:566-576` — `is_valid_code_alias` check. Invalid entries omitted from output. Test: `code_aliases.rs:63-97`. | **Pass** |
+| FR-005: `RegistryFeatureRecord` deserializes `codeAliases` | `registry_source.rs:25-26` — `#[serde(rename = "codeAliases", default)]`. Test: `registry_source.rs:101-133`. | **Pass** |
+| FR-006: Scanner resolves `// Feature: TOKEN` via `codeAliases` | `scanner.rs:164` — `aliases: r.code_aliases.clone()`. `scanner.rs:259-261` — alias_map populated from `entry.aliases`. Test: `scanner.rs:470-479`. | **Pass** |
+| FR-007: Schema conformance + golden determinism | `repo_spec_version_is_1_1_0` test. `code_aliases_sorted_deterministically` test. Golden graph updated. | **Pass** |
+| NF-001: No overhead when absent | `parse_code_aliases` returns `Ok(None)` immediately when key missing (`lib.rs:537-539`). Zero allocation. | **Pass** |
+| NF-002: `specVersion` 1.1.0 | `lib.rs:12` — `SPEC_VERSION: &str = "1.1.0"`. Test confirms. | **Pass** |
+| SC-001–SC-006 | All confirmed in `execution/verification.md` with commands. Cross-checked against test suite (15 tests pass). | **Pass** |
+
+### ADR 0001 gap closure
+
+All 4 gaps identified in the prior ADR review are now addressed in the accepted ADR:
+
+| Gap | Resolution |
+|-----|-----------|
+| Gap 1 (schema bump) | ADR §"Schema versioning" — `specVersion` 1.1.0 minor bump, `codeAliases` optional/omit-when-empty, atomic commit. |
+| Gap 2 (validation rules) | ADR §"Validation rules" — V-005 (error, cross-feature dup), V-006 (warning, pattern mismatch). Note: orphan alias policy relaxed vs. original review suggestion — orphaned aliases are acceptable per contract notes. Correct call: features may not have code yet. |
+| Gap 3 (consumer contract) | ADR §"Consumer contract" — explicit requirement that `RegistryFeatureRecord` deserializes `codeAliases` and `FeatureEntry.aliases` is populated. Implemented. |
+| Gap 4 (population ordering) | ADR §"Population ordering" — frontmatter-only at compile time, scanner validates at scan time. No circular dependency. |
+
+### Frontmatter population verified
+
+All 6 specs with code attribution tokens have `code_aliases` populated:
+
+- `032` → `XRAY_ANALYSIS`, `XRAY_SCAN_POLICY`
+- `033` → `MCP_ROUTER`, `MCP_ROUTER_CONTRACT`, `MCP_SNAPSHOT_WORKSPACE`, `MCP_TOOLS`
+- `034` → `FEATUREGRAPH_REGISTRY`, `GOVERNANCE_ENGINE`
+- `035` → `AGENT_AUTOMATION`
+- `004` → `TASK_RUNNER`
+- `005` → `VERIFICATION_SKILLS`, `VERIFY_PROTOCOL`
+
+**No orphaned code headers.** Every `// Feature: TOKEN` in `crates/` and `apps/` has a matching `code_aliases` entry in some spec. Complete coverage.
+
+### Minor item 1 (LOW): V-005 second violation message is inverted
+
+`lib.rs:591-593`: the second V-005 violation says `"code alias {s:?} is already claimed by feature {feature_id:?} (first occurrence)"` and attaches `prev_path`. But `feature_id` is the *second* claimant, and `prev_path` points to the *first*. The message names the wrong feature for the path it's annotating. Compare the first violation at `:585` which correctly pairs `prev_id` with the current `spec_path`.
+
+**Suggested fix:** change `:592` to `format!("code alias {s:?} conflicts — also declared by feature {prev_id:?}")` or swap to name `prev_id` since the path is `prev_path`. **Non-blocking** — both violations fire together, so the user sees both paths and both IDs regardless.
+
+### Minor item 2 (LOW): `language` key in 039 frontmatter goes to `extraFrontmatter`
+
+`specs/039-feature-id-reconciliation/spec.md:10` has `language: en`. This isn't in `KNOWN_KEYS` (`lib.rs:15-25`), so it flows into `extraFrontmatter` in the compiled registry. This is true for any spec that uses `language:`. Not a bug — `extraFrontmatter` is the designed catchall — but if `language` becomes standard across specs, it should be promoted to `KNOWN_KEYS`.
+
+### What's resolved from prior reviews
+
+**Section 4 of the original 032 review** ("Dual feature identity systems with no bridge") is now **fully resolved**. The `codeAliases` field in `registry.json` bridges spec IDs and code tokens. The featuregraph scanner resolves `// Feature: TOKEN` → canonical kebab ID via the compiled registry's `codeAliases` arrays.
+
+This was the last remaining open item from the original 032 review. All 4 original concerns are now closed:
+1. ~~Governance is display-only~~ → resolved by Feature 035
+2. ~~Scanner depends on nonexistent artifact~~ → resolved by Feature 034
+3. ~~axiomregent is dead code~~ → resolved by Feature 033
+4. ~~Dual feature identity with no bridge~~ → resolved by Feature 039
+
+### Remaining open items (not Feature 039 scope)
+
+1. **Cross-platform axiomregent binaries** — Windows delivered (037), macOS x86_64 + Linux pending CI
+2. **Stale doc comment** `lease.rs:97` — `agent::safety::Tier` → `agent::safety::ToolTier` (carried from 037 review)
+3. **CI smoke test** — `timeout` command portability on macOS (carried from 037 review)
 

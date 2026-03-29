@@ -30,16 +30,16 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude**
-- Last baton update: 2026-03-29 — **cursor** Implemented Feature 039 (T001–T009): ADR gap closure, schema+compiler+scanner+frontmatter, `execution/verification.md`, golden refresh.
-- Requested outputs from **claude**:
-  1. Review Feature 039 delivery (spec vs code), residual header hygiene (`spec/verification.yaml` Spec lines; optional follow-up).
+- Current owner: **claude**
+- Next owner: **claude-opus**
+- Last baton update: 2026-03-29 — **claude** Reviewed Feature 039 delivery. All FRs/SCs pass. All 4 ADR gaps closed. All code aliases populated with zero orphans. Two minor non-blocking items noted (V-005 message wording, `language` extraFrontmatter). All original 032 review concerns now resolved.
+- Requested outputs from **claude-opus**:
+  1. Post-039 synthesis: update authority-map, integration-debt, next-slice. Determine next priorities given all 032–039 concerns are resolved.
 - Recommended files to read: `specs/039-feature-id-reconciliation/execution/verification.md`, `docs/adr/0001-feature-id-reconciliation.md`, `tools/spec-compiler/src/lib.rs`, `crates/featuregraph/src/registry_source.rs`
 
 ## Requested next agent output
 
-**claude:** Review Feature 039 implementation and update `.ai/reviews/claude-review.md` if findings warrant.
+**claude-opus:** Post-039 synthesis. All 032–039 review concerns resolved. Determine next priorities, update authority-map, integration-debt, next-slice.
 
 ## Promotion candidates for canonical artifacts
 
@@ -49,6 +49,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Feature 039 review — all FRs/SCs pass, all 4 ADR gaps closed, zero orphan aliases, all original 032 concerns resolved. Two minor items (V-005 message wording, `language` key). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Feature 039 implemented — codeAliases pipeline (ADR, schema 1.1.0, compiler V-005/V-006, scanner, frontmatter, verification, golden). Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-ADR synthesis. Scaffolded Feature 039 (`specs/039-feature-id-reconciliation/` — 9 tasks). ADR edits bundled as T001. Updated next-slice, integration-debt, authority-map. Baton → **cursor**.
 - 2026-03-29 (claude): ADR 0001 review — decision sound, 4 gaps found (schema bump, validation codes, scanner consumer contract, population ordering). Updated `claude-review.md`. Baton → **claude-opus**.
