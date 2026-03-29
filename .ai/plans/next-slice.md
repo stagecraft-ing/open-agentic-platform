@@ -62,15 +62,19 @@ Scope:
 
 Estimated effort: 1 Cursor session. No spec scaffolding needed — these are hardening tasks on existing features.
 
-### Slice B: Safety tier governance (Feature 037)
+### Slice B: Safety tier governance (Feature 036) — SPEC SCAFFOLDED
 
 **Why second:** Safety tiers are now enforcement-critical (Feature 035 consults `get_tool_tier()` on every tool call). Tier definitions must be spec-governed before adding more tools or changing tier assignments.
 
+**Key finding:** 13 of 21 router tools default to Tier3 without explicit classification — including read-only tools (`snapshot.read`, `xray.scan`, `run.logs`) that should be Tier1. Two separate `SafetyTier` enums exist with identical names but different semantics.
+
+Spec: `specs/036-safety-tier-governance/spec.md` (status: **draft**, 9 tasks scaffolded)
+
 Scope:
-1. Formalize tier definitions (Tier1=autonomous, Tier2=gated, Tier3=manual) in a spec.
-2. Define tier assignment rules (which tool category → which tier).
-3. Add verification that `safety.rs` matches spec.
-4. Surface tier assignments in governance UI (beyond current hardcoded labels).
+1. Classify all 21 router tools explicitly (T001) + coverage test (T002).
+2. Rename dual enums: `Tier` → `ToolTier`, `SafetyTier` → `ChangeTier` (T003–T004).
+3. Surface per-tool tier assignments in governance UI (T005–T006).
+4. Verify permission flag coverage after reclassification (T007).
 
 ### Slice C: Cross-platform axiomregent binaries (Feature 033 residual)
 
