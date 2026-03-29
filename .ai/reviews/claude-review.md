@@ -136,3 +136,40 @@ Feature 033 spec is ready for implementation with two additions:
 
 **Remaining gap (not 033 scope):** axiomregent is now live and visible, but agent execution still bypasses it (`--dangerously-skip-permissions`). This is the Feature 035-class work (agent routing through governed dispatch).
 
+---
+
+## Feature 034 review (2026-03-29)
+
+### Spec-vs-implementation spot-check
+
+**Verdict: Feature 034 is correctly implemented. All three FRs satisfied.**
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| FR-001: registry.json removes features.yaml dependency | `scanner.rs:170-186` — `load_feature_entries` checks `registry.json` first, returns immediately if found. Scanner never touches `features.yaml` when registry exists. | **Pass** |
+| FR-002: Missing registry degrades explicitly | `scanner.rs:199-203` — `anyhow::bail!` with message naming both paths and instructing `spec-compiler compile`. Matches existing degraded patterns in GovernanceSurface. | **Pass** |
+| FR-003: No regression to registry-consumer contracts | No files in `tools/registry-consumer/` modified. `registry_source.rs` is a new read-only consumer; `CompiledRegistry` deserializes the same shape spec-compiler emits. | **Pass** |
+
+### Code quality notes
+
+- **`registry_source.rs`** is minimal and correct. `#[serde(rename = "specPath")]` matches the actual registry JSON shape. Sort-by-id ensures deterministic output. Two unit tests cover parsing and ordering.
+- **`FeatureEntry::from_registry_record`** (`scanner.rs:154-167`) maps registry records into the existing internal model cleanly. Empty defaults for `governance`, `owner`, `group`, `depends_on` are appropriate — these fields exist only in the legacy `features.yaml` schema and aren't present in the compiled registry.
+- **`load_feature_entries`** (`scanner.rs:170-204`) has correct precedence: registry → yaml → explicit error. The backslash-to-forward-slash normalization (`replace('\\', "/")`) ensures Windows paths don't break the manifest path in violation messages.
+- **`featuregraph_overview`** (`analysis.rs:17-20`) has updated doc comments citing the registry-first resolution. The command itself calls `FeatureGraphTools::new().features_overview()` which goes through `Scanner::scan()`, so the registry-first logic is picked up automatically.
+- **Golden test** (`golden.rs`) and regenerated `features_graph.json` confirm the scanner produces valid output from the compiled registry.
+
+### Concern addressed from prior review
+
+Section 2 of the original review ("featuregraph scanner has a structural dependency on a nonexistent forbidden artifact") is now **resolved**. The scanner reads `build/spec-registry/registry.json` first, which exists after `spec-compiler compile`. The `spec/features.yaml` path is retained only as a fallback for repos that haven't migrated.
+
+### Suggested fix message wording (minor)
+
+`scanner.rs:275-276` suggests "Update the compiled registry / spec/features.yaml" for `MISSING_SPEC_FILE`. Now that registry is the primary source, consider leading with "Re-run `spec-compiler compile`" for consistency with the bail message at line 200. **Non-blocking.**
+
+### Remaining open items (not 034 scope)
+
+1. **Feature ID reconciliation** — spec IDs (kebab) vs code IDs (UPPERCASE) remain unbridged. Section 4 of original review still applies.
+2. **Agent execution bypass** — `--dangerously-skip-permissions` still in all agent paths. Feature 035-class.
+3. **Titor command stubs** — still pending.
+4. **Safety tier spec** — `safety.rs` tiers display-only, not yet spec-governed.
+

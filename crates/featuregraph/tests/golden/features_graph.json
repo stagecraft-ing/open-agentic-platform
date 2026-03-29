@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:a7716400d4b3de5023aefb39d0a1bf9da72c1f9c3e3b24a4e3185dfc24b763e0",
+  "graph_fingerprint": "sha256:0fcd303eb40ebeb52af1ec109152d30385718fa880aeebc053751938f2cc6fce",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -448,6 +448,19 @@
       "feature_id": "034-featuregraph-registry-scanner-fix",
       "title": "featuregraph scanner reads compiled registry",
       "spec_path": "specs/034-featuregraph-registry-scanner-fix/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "035-agent-governed-execution",
+      "title": "agent execution through governed dispatch",
+      "spec_path": "specs/035-agent-governed-execution/spec.md",
       "status": "draft",
       "governance": "",
       "owner": "",

@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–034** **delivered** (`status: active` where applicable). **034** implemented: featuregraph **`Scanner`** prefers **`build/spec-registry/registry.json`**, falls back to **`spec/features.yaml`**, explicit error if neither; governance overview documented. **Next:** **Claude** post-034 review; then **claude-opus** (priorities) or **cursor** (**035** agent routing / next slice).
+Features **032–034** **delivered** (`status: active`). **035** scaffolded: **agent governed execution** — route agent dispatch through axiomregent, enforce permission flags + safety tiers, replace `--dangerously-skip-permissions`. Spec + tasks + execution stubs at `specs/035-agent-governed-execution/`. **Next:** **Cursor** implements 035.
 
 ## Agent pack
 
@@ -21,6 +21,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 - **032 spec:** `specs/032-opc-inspect-governance-wiring-mvp/spec.md` (status: active, delivered)
 - **033 spec:** `specs/033-axiomregent-activation/spec.md` (status: active, delivered)
 - **034 spec:** `specs/034-featuregraph-registry-scanner-fix/spec.md` (status: active, delivered)
+- **035 spec:** `specs/035-agent-governed-execution/spec.md` (status: draft, scaffolded)
 - **Execution:** per-feature `execution/changeset.md`, `execution/verification.md`
 
 ## Current execution truth
@@ -44,33 +45,37 @@ Historical review: `.ai/reviews/claude-review.md` (Feature 033 section).
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **cursor** (035 scaffold / implementation) or **claude-opus** (next-slice synthesis)
-- Last baton update: 2026-03-28 — **Cursor** completed **034** (registry-first scanner, docs, verification, spec active); baton to **Claude** for review
-- Requested outputs from **Claude**:
-  1. Spot-check **034** vs `specs/034-featuregraph-registry-scanner-fix/spec.md` and `execution/verification.md`.
-  2. Optionally refresh `.ai/findings/` if governance path behavior changed materially.
-  3. Return baton to **cursor** for **035** (agent routing / governed execution) per `.ai/plans/next-slice.md`, or to **claude-opus** for prioritization.
-- Deferred: **035** — scaffold + implement when prioritized.
+- Current owner: **cursor**
+- Next owner: **claude** (post-implementation review)
+- Last baton update: 2026-03-29 — **claude-opus** synthesized Feature 035 scope, scaffolded `specs/035-agent-governed-execution/` with spec + tasks + execution stubs; baton to **cursor** for implementation
+- Requested outputs from **cursor**:
+  1. **T001 spike first** — validate axiomregent-as-MCP-server integration pattern (can Claude CLI use `--mcp-server` pointing at axiomregent's port?). Produce findings before full implementation.
+  2. Implement T002–T013 per `specs/035-agent-governed-execution/tasks.md`.
+  3. Key files to modify: `agents.rs` (1 site), `claude.rs` (3 sites), `web_server.rs` (3 sites), `router/mod.rs`, `lease.rs`, `CreateAgent.tsx`, `api.ts`.
+- Deferred: safety-tier governance spec, feature ID reconciliation, titor command stubs, cross-platform axiomregent binaries.
 - Recommended files to read:
-  - `specs/034-featuregraph-registry-scanner-fix/execution/changeset.md`
-  - `crates/featuregraph/src/registry_source.rs`, `crates/featuregraph/src/scanner.rs`
-  - `.ai/plans/next-slice.md`
+  - `specs/035-agent-governed-execution/spec.md` (full spec with architecture diagram)
+  - `specs/035-agent-governed-execution/tasks.md` (13 tasks, 5 phases)
+  - `crates/agent/src/safety.rs` (existing tier model — no changes needed)
+  - `crates/axiomregent/src/router/mod.rs` (tool dispatch + `PermissionDenied` already defined)
+  - `crates/axiomregent/src/snapshot/lease.rs` (lease model to extend with permission grants)
 
 ## Requested next agent output
 
-**Claude:** 034 post-delivery review. **Cursor:** pick up **035** when baton returns.
+**Cursor:** implement **035** (agent governed execution) per scaffolded spec. Start with T001 spike.
 
 ## Promotion candidates for canonical artifacts
 
 - **`spec-compiler compile`** — re-run after large spec edits (green at 034 close)
 - ~~**034** registry scanner~~ — delivered
-- **035** agent execution reroute → next major slice
+- **035** agent governed execution → scaffolded, ready for implementation
 
 ---
 
 ## Recent outputs
 
+- 2026-03-29 (claude-opus): Synthesized Feature **035** scope (agent governed execution); scaffolded `specs/035-agent-governed-execution/` (spec, tasks, execution stubs); baton → **cursor**
+- 2026-03-29 (claude): Feature **034** post-delivery review — all FRs pass, no blockers; original concern §2 (scanner yaml dependency) resolved; baton forward to cursor/claude-opus for **035**
 - 2026-03-28 (cursor): Feature **034** complete (registry-first `Scanner`, `registry_source`, golden update, execution docs, baton → **claude**)
 - 2026-03-28 (cursor): `spec-compiler compile` green; scaffolded **`specs/034-featuregraph-registry-scanner-fix/`**; baton → implement 034
 - 2026-03-29 (claude): Verified 033 implementation (all FRs pass); updated findings/authority-map/debt; baton to cursor for 034/035

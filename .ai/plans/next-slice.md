@@ -90,6 +90,7 @@
 
 - [x] Record Feature 032 completion via tasks + verification (status stays `active`)
 - [x] Create `specs/033-axiomregent-activation/` with spec/plan/tasks (scaffolded 2026-03-29)
-- [ ] Claude review of 033 spec against actual code (this pass)
-- [ ] Decide whether scanner fix becomes Feature 034 or a narrowly scoped follow-on slice
-- [ ] Hand implementation back to Cursor once 033 spec is reviewed
+- [x] Claude review of 033 spec against actual code (completed 2026-03-29)
+- [x] Scanner fix delivered as Feature 034 (completed 2026-03-29, reviewed by Claude)
+- [x] Feature 035 scaffolded: `specs/035-agent-governed-execution/` (2026-03-29, claude-opus synthesis)
+- [ ] Hand implementation to Cursor for 035 (agent governed execution)
