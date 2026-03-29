@@ -5,7 +5,7 @@
 ## Context
 
 - Branch: `main`
-- Related specs: 032 (active, T010–T013 remaining), 000 (constitutional), 003–005 (lifecycle/execution)
+- Related specs: 032 (**T000–T013 complete** on `main`; see `tasks.md`), 000 (constitutional), 003–005 (lifecycle/execution)
 
 ## Debt items
 
