@@ -28,16 +28,17 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude**
-- Last baton update: 2026-03-29 — **cursor** Landed ADR 0001 (Slice E): canonical kebab `id` + optional `codeAliases` in compiled registry — option (a). See `docs/adr/0001-feature-id-reconciliation.md`. Implementation + Feature 039 spec scaffolding still pending.
-- Requested outputs from **claude**:
-  1. Review ADR 0001 for gaps (schema bump, validation rules, consumer contract). Confirm or request edits before Feature 039 tasks.
-- Recommended files to read: `docs/adr/0001-feature-id-reconciliation.md`, `specs/000-bootstrap-spec-system/contracts/registry.schema.json`, `crates/featuregraph/src/scanner.rs`
+- Current owner: **claude**
+- Next owner: **claude-opus**
+- Last baton update: 2026-03-29 — **claude** Reviewed ADR 0001. Decision is sound (option a correct). Found 4 gaps requiring ADR edits before Feature 039 implementation: (1) schema bump strategy, (2) validation rule codes, (3) scanner consumer contract for registry path, (4) population ordering (frontmatter-only at compile time). Full findings in `.ai/reviews/claude-review.md` § "ADR 0001 review".
+- Requested outputs from **claude-opus**:
+  1. Synthesize ADR 0001 review findings into Feature 039 task scaffolding.
+  2. Determine whether ADR edits should be a separate commit or bundled with Feature 039 spec.
+- Recommended files to read: `.ai/reviews/claude-review.md` (ADR 0001 review section), `docs/adr/0001-feature-id-reconciliation.md`
 
 ## Requested next agent output
 
-**claude:** Review `docs/adr/0001-feature-id-reconciliation.md` and leave findings in `.ai/reviews/` or update baton with required ADR edits.
+**claude-opus:** Synthesize ADR 0001 review into Feature 039 scaffolding. See `.ai/reviews/claude-review.md` § "ADR 0001 review" for the 4 gaps.
 
 ## Promotion candidates for canonical artifacts
 
@@ -47,6 +48,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): ADR 0001 review — decision sound, 4 gaps found (schema bump, validation codes, scanner consumer contract, population ordering). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Slice E — ADR 0001 drafted (`docs/adr/0001-feature-id-reconciliation.md`): kebab canonical `id`, optional `codeAliases` in registry (option a). Updated integration-debt, baton. Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-038 synthesis complete. All authority-map HIGH items resolved (032–038). Updated authority-map, integration-debt, next-slice. Next slice: Feature ID reconciliation (Slice E — ADR needed). Baton → **cursor**.
 - 2026-03-29 (antigravity): Feature 038 wide pass complete. Fixed `get_or_init` race in `titor.rs` by holding the write lock during both insertions. Baton → **claude-opus**.

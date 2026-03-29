@@ -493,3 +493,77 @@ cargo test titor: 4/4 passed (2 in lib, 2 in opc-web)
 
 **Feature 038: PASS.** All FRs and SCs met. One low-severity race condition noted (non-blocking for promotion). Implementation is clean, follows established patterns, and the round-trip test is thorough.
 
+---
+
+## ADR 0001 review: Feature ID reconciliation (2026-03-29)
+
+**Reviewed**: `docs/adr/0001-feature-id-reconciliation.md`
+**Cross-referenced**: `registry.schema.json`, `scanner.rs`, `tools/spec-compiler/src/lib.rs`, `crates/featuregraph/src/registry_source.rs`, all registry consumers
+
+### Verdict: ADR 0001 is SOUND. Option (a) is the correct choice. Four gaps must be addressed in Feature 039 tasks before implementation.
+
+### Decision assessment
+
+The ADR correctly identifies the problem (two parallel ID systems with no bridge in compiled output) and selects the least-disruptive solution. Options (b) and (c) are rightly rejected — derivation from kebab slugs is lossy and many-to-one, and mass header churn has high blast radius for marginal gain.
+
+### Gap 1 (HIGH): Schema bump strategy undefined
+
+Adding `codeAliases` to `featureRecord` in `registry.schema.json` is a **breaking change** for strict consumers that use `"additionalProperties": false` (line 50). The schema currently enforces a closed set of properties — any JSON with `codeAliases` will **fail** schema validation until the schema is updated. The ADR says "Schema and compiler must be extended" but does not specify:
+
+- Whether `specVersion` should be bumped (e.g. `0.1.0` → `0.2.0`) to signal the new field.
+- Whether consumers should be given a migration window where `codeAliases` is absent vs present.
+- The schema conformance tests (`tools/spec-compiler/tests/schema_conformance.rs`) validate output against the JSON Schema — these will break the moment the compiler emits the field without a corresponding schema update.
+
+**Required ADR edit:** Add a "Schema versioning" subsection to Consequences specifying: (1) `specVersion` bump policy, (2) `codeAliases` is optional (omitted when empty, not `null` or `[]`), (3) schema and compiler must be updated atomically in the same commit.
+
+### Gap 2 (MEDIUM): Validation rules for alias uniqueness only partially specified
+
+The ADR says "each alias appears under at most one feature" but does not define the enforcement mechanism:
+
+- **When**: compile-time only, or also runtime in featuregraph scanner?
+- **Violation code**: should be a new `V-00x` in the registry schema's `violation` definition, or a scanner-level `DUPLICATE_ALIAS` violation?
+- **Severity**: error (blocks compilation) or warning (advisory)?
+- **Orphaned aliases**: the ADR mentions "orphaned mappings are forbidden by policy" — but an alias in frontmatter that no code file uses is harmless (the feature may not have code yet). This should be a warning, not an error.
+
+**Required ADR edit:** Add a "Validation rules" subsection specifying: alias-uniqueness is a compile-time error (`V-005`), orphaned aliases are a warning (`V-006`), and scanner emits `DANGLING_FEATURE_ID` for code tokens not in any feature's `codeAliases`.
+
+### Gap 3 (MEDIUM): `RegistryFeatureRecord` consumer contract
+
+`crates/featuregraph/src/registry_source.rs` currently deserializes only 4 fields (`id`, `title`, `specPath`, `status`). The scanner in `scanner.rs:154-166` constructs `FeatureEntry` from these records with `aliases: Vec::new()` — meaning the **new `codeAliases` field will be silently ignored** when loading from the compiled registry.
+
+This creates a subtle regression: legacy `features.yaml` path (`scanner.rs:188-193`) reads aliases from YAML entries, but the preferred compiled-registry path (`scanner.rs:174-185`) drops them. After ADR 0001 is implemented, the scanner must be updated to:
+
+1. Deserialize `codeAliases` from `RegistryFeatureRecord` (add optional field with `#[serde(default)]`).
+2. Map `codeAliases` → `FeatureEntry.aliases` in `from_registry_record()` (`scanner.rs:154`).
+
+**Required ADR edit:** Add to "Consumers" consequence: "featuregraph scanner MUST populate `FeatureEntry.aliases` from `codeAliases` when loading from compiled registry, closing the current gap where the registry path produces empty alias maps."
+
+### Gap 4 (LOW): Population strategy ordering and conflict resolution
+
+The ADR lists two sources: (a) spec frontmatter, (b) scanner-derived attribution. It says "merge alias sets" but doesn't define:
+
+- **Priority**: if frontmatter declares `codeAliases: [FOO]` but scanner finds `// Feature: BAR` in files under `specs/039-*/`, which wins?
+- **Directionality**: does the scanner feed aliases *into* the compiler (compile-time enrichment), or is this a separate post-compilation step?
+
+The simplest correct answer: **frontmatter is authoritative at compile time; scanner validates at scan time.** The compiler reads `codeAliases` from frontmatter only. The scanner then validates that scanned code tokens match declared aliases. This avoids circular dependencies (scanner can't run before compilation, compilation can't depend on scanner output).
+
+**Recommended ADR edit:** Clarify in the Decision section that population at compile time is frontmatter-only; scanner-derived enrichment is a future enhancement, not part of the initial merge strategy.
+
+### Minor observations (non-blocking)
+
+1. **Token pattern mismatch**: ADR says `[A-Z][A-Z0-9_]{2,63}` matching scanner's `FEATURE_REGEX`. The schema should use the same pattern for the `codeAliases` items constraint. Verified: scanner regex at `scanner.rs:34` is `^(//|#)\s*Feature:\s*([A-Z][A-Z0-9_]{2,63})\s*$` — the capture group `[A-Z][A-Z0-9_]{2,63}` should be the schema item pattern.
+
+2. **Sorted lexicographically**: ADR correctly specifies this. The compiler already sorts `sectionHeadings` and other arrays. Consistent.
+
+3. **`extraFrontmatter` alternative**: The ADR could technically use `extraFrontmatter` to carry aliases without a schema change (since it allows string arrays). However, this would be incorrect — `codeAliases` has validation semantics (uniqueness, pattern) that `extraFrontmatter` cannot enforce. A dedicated field is the right call.
+
+### Remaining open items from prior reviews
+
+1. **Cross-platform axiomregent binaries** — Windows delivered (037), others pending CI
+2. **Feature ID reconciliation** — ADR 0001 reviewed here; implementation in Feature 039
+
+### Promotion candidates
+
+- [ ] ADR 0001 edits: schema bump strategy, validation rules, consumer contract, population ordering (4 gaps above)
+- [ ] Feature 039 task list should include: schema update, compiler extension, scanner alias bridging, conformance tests
+
