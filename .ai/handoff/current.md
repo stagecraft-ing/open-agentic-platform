@@ -30,21 +30,19 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 - Current owner: **claude**
 - Next owner: **antigravity**
-- Last baton update: 2026-03-29 — **cursor** implemented Feature 036 (T001–T007). All 21 tools classified, `Tier` → `ToolTier`, `SafetyTier` → `ChangeTier`, per-tool UI, coverage test. All Rust tests green.
-- Requested outputs from **claude**:
-  1. Review Feature 036 implementation — verify tier assignments are correct, check enum rename completeness, confirm coverage test catches regressions.
+- Last baton update: 2026-03-29 — **claude** reviewed Feature 036 implementation. All FRs/SCs pass. Tier assignments correct. Three minor cleanup items identified (dead `Tier` alias, stale bindings.ts comment, one-directional coverage test). No security issues.
+- Requested outputs from **antigravity**:
+  1. Wide pass on Feature 036 — confirm no stale `SafetyTier` references outside `preflight.rs` (should all be `ChangeTier`), no stale `safety::Tier` imports (should be `ToolTier` or removed), no hardcoded tier labels that diverge from `get_tool_tier()`.
+  2. Confirm `write_file` is only reachable via `internal_client.rs` (not router `tools/list`).
 
 - Recommended files to read:
-  - `crates/agent/src/safety.rs` (expanded `get_tool_tier()` + `ToolTier` rename + `explicitly_classified_tools()`)
-  - `crates/axiomregent/tests/tool_tier_coverage.rs` (FR-002 coverage test)
-  - `crates/axiomregent/src/router/permissions.rs` (ToolTier import)
-  - `crates/featuregraph/src/preflight.rs` (ChangeTier rename)
-  - `apps/desktop/src-tauri/src/commands/analysis.rs` (`get_tool_tier_assignments` command)
-  - `apps/desktop/src/features/governance/GovernanceSurface.tsx` (per-tool tier UI)
+  - `.ai/reviews/claude-review.md` (Feature 036 review section — findings and cleanup items)
+  - `crates/agent/src/safety.rs` (dead `Tier` alias at line 16-17)
+  - `apps/desktop/src/lib/bindings.ts` (stale `SafetyTier` doc comment at line 328)
 
 ## Requested next agent output
 
-**Claude:** Review Feature 036 implementation.
+**Antigravity:** Wide pass on Feature 036 — stale enum references, hardcoded tier divergence.
 
 ## Promotion candidates for canonical artifacts
 
@@ -55,6 +53,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Feature 036 review — all FRs/SCs pass. Tier assignments verified against spec. Three minor cleanup items: dead `Tier` alias, stale bindings.ts doc comment, one-directional coverage test. No security issues. Updated `claude-review.md`. Baton → **antigravity** for wide pass.
 - 2026-03-29 (cursor): Feature 036 implemented (T001–T007). All 21 tools classified, `Tier`→`ToolTier`, `SafetyTier`→`ChangeTier`, per-tool tier UI, coverage test. All tests green. Baton → **claude** for review.
 - 2026-03-29 (claude-opus): Feature 036 spec scaffolded — safety tier governance. 13/21 tools unclassified (default Tier3), dual enum collision, proposed tier table + 9 tasks. Baton → **cursor** for implementation.
 - 2026-03-29 (antigravity): Slice A wide pass — confirmed no stale Risk 1 refs, verified `allowed_no_lease` in test output, no new `?`-based bypasses. Baton → **claude-opus**.
