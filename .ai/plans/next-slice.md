@@ -5,12 +5,13 @@
 ## Context
 
 - Branch: `main`
-- **Features 032–035: COMPLETE** — all delivered 2026-03-28/29, verification green
+- **Features 032–036: COMPLETE** — all delivered 2026-03-29, verification green
+- **Slice A (post-035 hardening): COMPLETE** — no-lease bypass fixed, NF-001 benchmark, max_tier rationale documented
 - Synthesis by: **claude-opus** (2026-03-29)
 
-## Platform state after Feature 035
+## Platform state after Feature 036
 
-The governed execution thesis is now **live end-to-end**:
+The governed execution thesis is **live, spec-governed, and enforcement-complete on macOS arm64**:
 
 | Milestone | Feature | Status |
 |-----------|---------|--------|
@@ -18,105 +19,85 @@ The governed execution thesis is now **live end-to-end**:
 | axiomregent sidecar alive | 033 | Active, complete |
 | featuregraph reads registry | 034 | Active, complete |
 | Agent execution governed | 035 | Active, complete |
+| Safety tier governance | 036 | Active, complete |
 
-The platform has moved from "Claude wrapper with governance aspirations" to "governed execution environment with known gaps." What remains is **hardening, cross-platform, and capability expansion**.
+Every authority-map item from 032 through 036 is RESOLVED except **Titor** (HIGH — library complete, commands stubbed) and **Feature ID duality** (MEDIUM — 13 UPPERCASE vs 36 kebab IDs, no bridge).
+
+The platform's critical gap has shifted from **"governance isn't enforced"** (pre-035) to **"governance only works on one platform"** (post-036).
 
 ## Residuals inventory
 
-### From Feature 035 review (Risk 1 — MEDIUM)
+### From Feature 033 (cross-platform — HIGH priority)
 
-**No-lease tool calls bypass permission checks.** `preflight_tool_permission` in `router/mod.rs:118-119` returns `None` (no denial) when `lease_id` is absent or unknown. Practical risk is low (Claude CLI sends structured calls; read-only tools are Tier 1), but the gap should be closed.
+**Only macOS arm64 axiomregent binary bundled.** Windows/Linux degrade to bypass mode — the entire governance thesis is inoperative on those platforms. The development team is on Windows, making this especially impactful.
 
-**Fix:** Default to session-level grants from `PermissionGrants::from_env_or_default()` when no lease is found. Audit-log the fallback.
+**Fix:** Build axiomregent for 5 targets, bundle in `src-tauri/binaries/`. Pattern: follow `gitctx-mcp` binary resolution in `mcp.rs:29-60`. Spec scaffolded: `specs/037-cross-platform-axiomregent/`.
 
-### From Feature 035 review (Risk 2 — LOW)
+### Titor command stubs (HIGH — authority-map)
 
-**Agent max_tier=3 vs Claude max_tier=2.** Defensible (agents have per-permission flags as primary gate), but should be documented as a contract note in `spec.md`.
+5 of 6 Tauri commands are `todo!()`. The titor library is production-ready (~17k LOC: checkpoint, restore, diff, verify, timeline, GC). Gap: no `TitorState` in Tauri `AppState`, no per-root-path instance tracking. One Cursor session to wire.
 
-### From Feature 033 (cross-platform)
+### Feature ID duality (MEDIUM — authority-map)
 
-**Only macOS arm64 axiomregent binary bundled.** Windows/Linux degrade gracefully but cannot run governed dispatch. Needs cross-compilation pipeline.
+13 UPPERCASE code IDs vs 36 kebab spec IDs, no mapping. The scanner's alias system works in legacy YAML mode but not in the compiled registry. Needs an ADR before implementation.
 
-### From Feature 034 review (minor)
+### Ongoing minor items
 
-**Error message wording** at `scanner.rs:275-276` should lead with "Re-run `spec-compiler compile`" now that registry is primary source.
-
-### Ongoing debt
-
-- **Feature ID duality** — kebab spec IDs vs UPPERCASE code IDs remain unbridged.
-- **Titor command stubs** — 5 of 6 Tauri commands are `todo!()`. Temporal safety net blocked.
-- **Safety tier model** — code-only in `safety.rs`, not spec-governed.
-- **NF-001 latency gate** — no automated measurement artifact.
+- **NF-001 automated latency gate** — RESOLVED (Slice A). Sub-µs per call.
+- **Scanner error wording** — RESOLVED (Slice A). Leads with `spec-compiler compile`.
 
 ## Ordered next-slice priority
 
-### Slice A: Post-035 hardening (Feature 036)
+### Slice C: Cross-platform axiomregent binaries (Feature 037) — SPEC SCAFFOLDED
 
-**Why first:** Closes the most critical gap in the just-delivered feature before adding new surface area. Small scope, high confidence.
+**Why first:** The development team is on Windows. Governed execution is fully functional in code but inoperative on Windows due to missing binary. This is the single highest-impact change: one binary file enables the entire governance stack (035 permission enforcement + 036 tier governance) on the team's primary platform.
 
-Scope:
-1. **Fix no-lease bypass** — default to session grants when lease_id absent; audit-log the fallback path. Touches `router/mod.rs:112-141`.
-2. **Document max_tier rationale** — add contract note to `specs/035-agent-governed-execution/spec.md`.
-3. **Add NF-001 benchmark** — integration test asserting < 50ms overhead per tool call.
-4. **Minor wording fix** — `scanner.rs:275-276` message update.
-
-Estimated effort: 1 Cursor session. No spec scaffolding needed — these are hardening tasks on existing features.
-
-### Slice B: Safety tier governance (Feature 036) — SPEC SCAFFOLDED
-
-**Why second:** Safety tiers are now enforcement-critical (Feature 035 consults `get_tool_tier()` on every tool call). Tier definitions must be spec-governed before adding more tools or changing tier assignments.
-
-**Key finding:** 13 of 21 router tools default to Tier3 without explicit classification — including read-only tools (`snapshot.read`, `xray.scan`, `run.logs`) that should be Tier1. Two separate `SafetyTier` enums exist with identical names but different semantics.
-
-Spec: `specs/036-safety-tier-governance/spec.md` (status: **draft**, 9 tasks scaffolded)
+Spec: `specs/037-cross-platform-axiomregent/spec.md` (status: **draft**, 9 tasks scaffolded)
 
 Scope:
-1. Classify all 21 router tools explicitly (T001) + coverage test (T002).
-2. Rename dual enums: `Tier` → `ToolTier`, `SafetyTier` → `ChangeTier` (T003–T004).
-3. Surface per-tool tier assignments in governance UI (T005–T006).
-4. Verify permission flag coverage after reclassification (T007).
+1. **Build Windows binary** — `cargo build --release --target x86_64-pc-windows-msvc -p axiomregent` (T002). Highest priority single deliverable.
+2. **Build script** for reproducible builds across all 5 targets (T001).
+3. **Verify sidecar spawn on Windows** — confirm port discovery, governance UI, governed dispatch (T005).
+4. **Build remaining targets** — macOS x86_64, Linux x86_64/arm64 (T003–T004).
+5. **CI workflow** for automated builds (T006).
 
-### Slice C: Cross-platform axiomregent binaries (Feature 033 residual)
-
-**Why third:** Broadens governed execution from macOS-only to all development platforms. Prerequisite for any production deployment.
-
-Scope:
-1. Add cross-compilation targets (x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu).
-2. CI pipeline for binary builds (follow `gitctx-mcp` fetch-and-build pattern).
-3. Update `tauri.conf.json` externalBin list.
-4. Verification on at least one non-macOS target.
+Key risk: `rusqlite` and `zstd` bundle C source code requiring platform-native C compilers. On Windows, MSVC toolchain handles this natively. CI matrix (one runner per OS) avoids cross-compilation complexity.
 
 ### Slice D: Titor Tauri command wiring (Feature 038)
 
-**Why fourth:** Titor is ~17k LOC of production-grade checkpoint/restore. Desktop access enables the temporal safety net — critical for governed agent execution to be recoverable.
+**Why second:** Last HIGH item in the authority-map. Library is production-ready, gap is well-scoped. Enables the temporal safety net: checkpoint before agent actions, restore on failure.
 
 Scope:
-1. Wire the 5 stubbed Tauri commands to titor library.
-2. Expose checkpoint/restore in agent execution UI.
-3. Add verification for round-trip checkpoint→execute→restore.
+1. **Create `TitorState`** — `HashMap<PathBuf, Arc<Mutex<Titor>>>` in Tauri `AppState`.
+2. **Wire 5 commands** — `titor_checkpoint`, `titor_list`, `titor_restore`, `titor_diff`, `titor_verify` using existing library API.
+3. **Fix `titor_init`** — currently creates instance then discards it. Persist into `TitorState`.
+4. **Expose in agent execution UI** — checkpoint/restore controls.
+5. **Verification** — round-trip checkpoint→execute→restore.
+
+Estimated effort: 1 Cursor session. No new crate dependencies.
 
 ### Slice E: Feature ID reconciliation (ADR)
 
-**Why fifth:** Grows in urgency with each new feature, but has no enforcement impact today. Needs an architecture decision record (ADR) before implementation.
+**Why third:** Growing urgency (36 features and counting) but no enforcement impact today. Needs a design decision before implementation.
 
 Scope:
-1. ADR: choose canonical ID format, define mapping strategy.
-2. Either generate UPPERCASE→kebab mapping from registry, or adopt one system.
-3. Update `Scanner` and code attribution headers to reconcile.
+1. **ADR**: choose canonical ID format, define mapping strategy.
+2. **Options**: (a) add `aliases` field to compiled registry JSON, (b) derive UPPERCASE from kebab via convention, (c) adopt kebab everywhere and migrate code headers.
+3. **Implement chosen strategy** in `Scanner` and `spec-compiler`.
 
 ## Fork resolution
 
-**Chosen path: hardening-first, then widen.**
+**Chosen path: broaden platform → complete capabilities → reconcile identifiers.**
 
-Features 032–035 established the governed execution thesis. The next priority is to harden what exists (Slice A), then formalize the tier model that enforcement depends on (Slice B), then broaden platform support (Slice C). Capability expansion (D, E) follows after the foundation is solid.
+Features 032–036 established the governed execution thesis on macOS. The next priority is to bring that governance to all platforms (Slice C), then complete the temporal safety net (Slice D). Identifier reconciliation (Slice E) follows as a data-architecture improvement.
 
 ## Recommended promotion set
 
 ### Promote now
 
-- **Slice A tasks** — no new spec needed; add tasks to `specs/035-agent-governed-execution/tasks.md` as T014–T017 (hardening), or scaffold a lightweight `specs/036-post-035-hardening/`.
+- **Feature 037 spec** — `specs/037-cross-platform-axiomregent/` (scaffolded 2026-03-29). Ready for cursor implementation.
 
 ### Promote next
 
-- **Slice B spec** — `specs/037-safety-tier-governance/spec.md`
-- **Slice C plan** — extension of `specs/033-axiomregent-activation/` or standalone `specs/038-cross-platform-axiomregent/`
+- **Feature 038 spec** — titor Tauri command wiring (scaffold after 037 delivery)
+- **Feature 039 ADR** — feature ID reconciliation (needs design decision)

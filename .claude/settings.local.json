@@ -28,7 +28,11 @@
       "Bash(UPDATE_GOLDEN=1 cargo test test_golden_graph)",
       "Bash(cargo check:*)",
       "Bash(find /c/Dev/open-agentic-platform -type f -name \"*.rs\" -path \"*/src/*\" -exec grep -l \"Tier\\\\|safety\" {})",
-      "Bash(RUSTFLAGS=\"-C target-feature=+aes,+sse2\" cargo check)"
+      "Bash(RUSTFLAGS=\"-C target-feature=+aes,+sse2\" cargo check)",
+      "Bash(find /c/Dev/open-agentic-platform -name *.sh -type f)",
+      "Bash(find /c/Dev/open-agentic-platform -type f \\\\\\(-name *.sh -o -name *.yml -o -name *.yaml \\\\\\))",
+      "Bash(find /c/Dev/open-agentic-platform/specs -type f \\\\\\(-name *.md -o -name *.txt -o -name *.rs \\\\\\))",
+      "Bash(find . -name features.yaml -o -name *alias* -type f)"
     ],
     "defaultMode": "acceptEdits"
   }
