@@ -2,7 +2,7 @@
 id: "034-featuregraph-registry-scanner-fix"
 title: "featuregraph scanner reads compiled registry"
 feature_branch: "034-featuregraph-registry-scanner-fix"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:

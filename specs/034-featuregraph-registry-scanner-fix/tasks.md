@@ -16,4 +16,4 @@
 ## Phase 3: Closure
 
 - [x] T005 Update `execution/changeset.md` and `execution/verification.md`
-- [ ] T006 Set spec `status: active` when verification proves delivery
+- [x] T006 Set spec `status: active` when verification proves delivery
