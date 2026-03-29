@@ -289,3 +289,7 @@ _tmp/
 
 # Rust (spec-compiler)
 tools/spec-compiler/target/
+
+# Other
+build/
+.axiomregent/
