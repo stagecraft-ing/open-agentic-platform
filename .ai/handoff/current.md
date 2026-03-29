@@ -51,7 +51,7 @@
 
 ## Open questions
 
-- Should **spec-lint** be added to CI verification once CLI invocation is standardized? (Current `spec-lint` invocation in `.ai` notes used wrong subcommand — verify with `spec-lint --help` before documenting.)
+- Should **`spec-lint`** (default: `spec-lint` from repo root, optional `--fail-on-warn`) be added to CI verification?
 - Any **UX** follow-up: cap/limit number of “View spec” buttons (currently first 24) or add search?
 
 ## Baton
