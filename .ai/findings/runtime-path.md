@@ -38,7 +38,7 @@ Trace **actual** execution from entrypoints (CLI/UI/commands) through IPC, sidec
 
 | Gap | Location | Impact |
 |-----|----------|--------|
-| **axiomregent never spawned** | `sidecars.rs:48` `spawn_axiomregent()` defined; never called from `lib.rs` | Entire governed tool surface (gov.preflight, gov.drift, features.impact, snapshot.*, workspace.*, agent.*, run.*) is dead code from desktop perspective |
+| ~~axiomregent never spawned~~ | ~~`sidecars.rs:48` defined; never called~~ | **RESOLVED (Feature 033)**: `lib.rs:190` now calls `spawn_axiomregent(app.handle())`. Sidecar starts, announces probe port on stderr, UI surfaces status in MCP manager + governance panel. Governed tool surface is live but not yet routing agent execution. |
 | **Titor Tauri commands** | `commands/titor.rs` — 5 of 6 commands are `todo!()` | No checkpoint/restore/diff/verify from desktop; library is production-grade underneath |
 | **Blockoli Tauri commands** | `commands/search.rs` — both commands `todo!()` | Semantic search tab renders but cannot function |
 | **`--dangerously-skip-permissions` hardcoded** | `claude.rs:969,1001,1036`, `agents.rs:774`, `web_server.rs:494,607,695` | All execution bypasses Claude's permission system; agent DB permission flags (`enable_file_read/write/network`) are stored but never enforced |

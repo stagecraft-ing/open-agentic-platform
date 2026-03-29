@@ -111,9 +111,28 @@ Spec IDs (kebab: `032-opc-inspect-governance-wiring-mvp`) and code attribution I
 
 **Confirmed: `status: active` is correct.** The registry enum (Feature 000/003) allows only `draft|active|superseded|retired`. There is no `implemented` value. Feature 032 remains `active` — it is current platform truth. Delivery is proven by `tasks.md` (all checked) + `execution/verification.md` (green run 2026-03-28).
 
-### Recommendation
+### Recommendation (pre-implementation)
 
 Feature 033 spec is ready for implementation with two additions:
 1. Add a note to `spec.md` or `plan.md` acknowledging binary availability constraint (only macOS arm64 currently)
 2. T003 should include cross-compilation or graceful degradation as explicit deliverables
+
+### Post-implementation verification (2026-03-29)
+
+**Verdict: Feature 033 is correctly implemented. All four FRs satisfied.**
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| FR-001: Start sidecar, record port | `lib.rs:190` calls `spawn_axiomregent`. `sidecars.rs:56-95` parses stderr. `main.rs` binds TCP probe + `eprintln!` | **Pass** |
+| FR-002: Bounded degraded state | `sidecars.rs:60-63,68-69` logs and returns on failure. UI shows amber degraded message when port is `None` | **Pass** |
+| FR-003: Operator-visible status | MCPManager shows "OPC axiomregent (bundled sidecar)" card with probe port or degraded. GovernanceSurface shows probe port + tier labels | **Pass** |
+| FR-004: No registry-consumer changes | No changes to `tools/registry-consumer/` | **Pass** |
+
+**Architecture notes:**
+- **Probe port on stderr** is the right call — stdout reserved for MCP framing. `sidecars.rs:75` correctly matches `Stderr` first, `Stdout` as fallback.
+- **Safety tier reference** (`analysis.rs:87-107`) is hardcoded labels matching `safety.rs` semantics (Tier1=Autonomous, Tier2=Gated, Tier3=Manual). These are read-only display — enforcement still only happens inside axiomregent's router (which is now running but not yet routing agent execution).
+- **Binary constraint** documented in `verification.md`: only macOS arm64 binary present. Other platforms degrade gracefully.
+- **Probe listener** (`main.rs`) binds `127.0.0.1:0` and holds the socket — diagnostics-only, no protocol. Clean pattern.
+
+**Remaining gap (not 033 scope):** axiomregent is now live and visible, but agent execution still bypasses it (`--dangerously-skip-permissions`). This is the Feature 035-class work (agent routing through governed dispatch).
 

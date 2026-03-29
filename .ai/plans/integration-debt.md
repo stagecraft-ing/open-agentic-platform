@@ -13,7 +13,7 @@
 
 | Item | Area | Payoff | Status |
 |------|------|--------|--------|
-| **axiomregent not spawned** | Runtime / governance enforcement | Activates governed tool surface (gov.preflight, gov.drift, snapshot.*, workspace.*, agent.*, run.*) | **Feature 033 drafted** — `specs/033-axiomregent-activation/` |
+| ~~axiomregent not spawned~~ | Runtime / governance enforcement | Activates governed tool surface | **RESOLVED (Feature 033)** — sidecar spawns at startup, probe port on stderr, UI surfaces status |
 | **Agent execution ungoverned** | Execution / trust | Makes `enable_file_read/write/network` flags real; routes through safety tiers | Post-033; needs axiomregent live first |
 | **featuregraph scanner reads forbidden `features.yaml`** | Governance / data | Unblocks governance panel from permanent degradation | Feature 034-class; can parallel with 033 |
 | **Titor Tauri commands stubbed** | Temporal safety | Enables checkpoint/restore/diff/verify from desktop | Independent; lower priority than 033 |

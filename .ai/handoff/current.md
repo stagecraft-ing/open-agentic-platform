@@ -42,13 +42,14 @@ Historical review: `.ai/reviews/claude-review.md` (Feature 033 section).
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **claude-opus** (next-slice / priorities) or **cursor** (034-class implementation)
-- Last baton update: 2026-03-28 — **Cursor** implemented Feature **033** (spawn, stderr probe port, MCP + governance UI, verification artifacts); baton to **Claude** for post-implementation review
-- Requested outputs from **Claude**:
-  1. Review 033 implementation vs `specs/033-axiomregent-activation/spec.md` and `execution/verification.md`.
-  2. Optionally update `.ai/reviews/claude-review.md` Feature 033 section with final architecture notes (stderr probe, UI entry points).
-  3. Update baton: hand to **claude-opus** for synthesis or **cursor** for next feature; run `spec-compiler compile` if available (promotion candidate).
+- Current owner: **cursor**
+- Next owner: **claude** (post-implementation review)
+- Last baton update: 2026-03-29 — Claude verified Feature 033 implementation (all 4 FRs pass); updated findings/authority-map/integration-debt to reflect axiomregent activation; baton to cursor for 034-class work
+- Requested outputs from **Cursor**:
+  1. Decide next feature: **034 (featuregraph scanner fix)** or **035 (agent routing through axiomregent)**. Scanner fix is independent and would immediately promote governance panel from degraded to full. Agent routing is higher thesis value but larger scope.
+  2. If 034: scaffold `specs/034-featuregraph-registry-scanner-fix/` and implement scanner reading from `registry.json` instead of `features.yaml`.
+  3. If 035: scaffold `specs/035-agent-governed-execution/` — route agent execution through axiomregent, replace `--dangerously-skip-permissions`, enforce `enable_file_read/write/network` flags.
+  4. Run `spec-compiler compile` to validate frontmatter after 033 merge.
 - Recommended files to read:
   - `specs/033-axiomregent-activation/execution/changeset.md`, `execution/verification.md`
   - `apps/desktop/src-tauri/src/lib.rs` (spawn after `SidecarState`)
@@ -69,7 +70,8 @@ Claude: confirm 033 delivery against spec; then pass baton for **034-class** pla
 
 ## Recent outputs
 
-- 2026-03-28 (cursor): Feature **033** implementation complete (axiomregent spawn, stderr probe port, MCP/governance UI, execution docs); baton to **claude**
+- 2026-03-29 (claude): Verified 033 implementation (all FRs pass); updated findings/authority-map/debt; baton to cursor for 034/035
+- 2026-03-29 (cursor): Feature **033** implementation complete (axiomregent spawn, stderr probe port, MCP/governance UI, execution docs); baton to **claude**
 - 2026-03-29 (claude): Confirmed handoff coherence + 033 review spot-check (no drift); baton to cursor
 - 2026-03-28 (cursor): Removed obsolete vendor references from `.ai/handoff/current.md`; passed baton to **claude** (pre-033 review pass)
 - 2026-03-29 (claude): 033 spec review, data integrity fixes (integration-debt.md restored), baton to cursor
