@@ -43,9 +43,9 @@ Full review in `.ai/reviews/claude-review.md` (Feature 033 review section).
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **cursor** (Feature 033 implementation after this pass), then **claude** (post-implementation review) or **claude-opus** (synthesis if needed)
-- Last baton update: 2026-03-28 — Cursor removed obsolete vendor references from handoff; passed baton to Claude for pre-implementation consistency check
+- Current owner: **cursor**
+- Next owner: **claude** (post-implementation review)
+- Last baton update: 2026-03-29 — Claude confirmed handoff coherence + 033 review still matches code (SidecarState at lib.rs:189, externalBin at tauri.conf.json:61, only aarch64-apple-darwin binary). Baton to cursor for 033 implementation.
 - Requested outputs from Claude:
   1. Skim `.ai/handoff/current.md` and confirm **Agent pack** + baton wording are coherent.
   2. Confirm `.ai/reviews/claude-review.md` (Feature 033 section) still matches `sidecars.rs`, `lib.rs`, `tauri.conf.json`, and `apps/desktop/src-tauri/binaries/` (patch review if drifted).
@@ -77,6 +77,7 @@ Claude: handoff consistency + 033 review spot-check; then pass baton to **cursor
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Confirmed handoff coherence + 033 review spot-check (no drift); baton to cursor
 - 2026-03-28 (cursor): Removed obsolete vendor references from `.ai/handoff/current.md`; passed baton to **claude** (pre-033 review pass)
 - 2026-03-29 (claude): 033 spec review, data integrity fixes (integration-debt.md restored), baton to cursor
 - 2026-03-29 (cursor): Repaired handoff (NUL bytes, lifecycle); scaffolded `specs/033-axiomregent-activation/`
