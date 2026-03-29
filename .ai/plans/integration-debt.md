@@ -21,12 +21,12 @@
 | ~~Cross-platform axiomregent~~ | Platform coverage | Governance on Windows/Linux | **RESOLVED (Feature 037)** — Windows binary built, CI workflow for all targets |
 | ~~Titor Tauri commands stubbed~~ | Temporal safety | Enables checkpoint/restore from desktop | **RESOLVED (Feature 038)** — `TitorState` + all 6 commands wired, round-trip verified |
 | ~~Feature ID duality~~ | Data architecture | Enables cross-referencing registry/code features | **RESOLVED (Feature 039)** — ADR 0001 accepted, `codeAliases` in schema 1.1.0, compiler + scanner + frontmatter. All 12 tokens bridged, zero orphans. |
-| **Blockoli semantic search stubbed** | Product capability | Enables AI-native code search from desktop | Heavy lift; lowest urgency |
+| ~~Blockoli semantic search stubbed~~ | Product capability | Enables AI-native code search from desktop | **RESOLVED (Feature 040)** — `BlockoliState` + both commands wired, app-data SQLite, embedded asterisk config. All FRs/SCs pass. |
 
 ## Notes
 
-- Items 1–8 are now **all resolved** (Features 032–039 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, the temporal safety net is wired, and the dual identity system is bridged.
-- **Only remaining item:** Blockoli semantic search (lowest urgency, heavy lift, requires discovery pass).
+- All 9 items are now **resolved** (Features 032–040 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, the temporal safety net is wired, the dual identity system is bridged, and AI-native semantic code search is wired end-to-end.
+- **No remaining integration debt items.** Remaining work is product surface expansion (checkpoint UI) and minor code cleanup.
 
 ## Promotion
 
@@ -38,3 +38,4 @@
 - [x] Titor command wiring → `specs/038-titor-tauri-command-wiring/` (delivered 2026-03-29)
 - [x] Feature ID reconciliation (ADR) → `docs/adr/0001-feature-id-reconciliation.md` — accepted
 - [x] Feature ID reconciliation (implementation) → `specs/039-feature-id-reconciliation/` — delivered, all 9 tasks complete, reviewed by claude
+- [x] Blockoli semantic search wiring → `specs/040-blockoli-semantic-search-wiring/` — delivered, all FRs/SCs pass, reviewed by claude

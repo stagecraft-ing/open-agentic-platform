@@ -5,13 +5,13 @@
 ## Context
 
 - Branch: `main`
-- **Features 032–039: COMPLETE** — all delivered 2026-03-29, verification green
+- **Features 032–040: COMPLETE** — all delivered 2026-03-29, verification green
 - **Slice A (post-035 hardening): COMPLETE** — no-lease bypass fixed, NF-001 benchmark, max_tier rationale documented
 - Synthesis by: **claude-opus** (2026-03-29)
 
-## Platform state after Feature 039
+## Platform state after Feature 040
 
-The governed execution thesis is **live, spec-governed, enforcement-complete, cross-platform, temporally recoverable, and identity-reconciled**:
+The governed execution thesis is **live, spec-governed, enforcement-complete, cross-platform, temporally recoverable, identity-reconciled, and AI-native search enabled**:
 
 | Milestone | Feature | Status |
 |-----------|---------|--------|
@@ -23,14 +23,15 @@ The governed execution thesis is **live, spec-governed, enforcement-complete, cr
 | Cross-platform axiomregent | 037 | Active, complete (T003/T004 deferred to CI) |
 | Titor Tauri command wiring | 038 | Active, complete |
 | Feature ID reconciliation | 039 | Active, complete |
+| Blockoli semantic search wiring | 040 | Active, complete |
 
-**All authority-map items from 032 through 039 are RESOLVED.** The original four critical concerns from the 032 review are all closed:
+**All authority-map items from 032 through 040 are RESOLVED.** The original four critical concerns from the 032 review are all closed:
 1. ~~Governance is display-only~~ → Feature 035
 2. ~~Scanner depends on nonexistent artifact~~ → Feature 034
 3. ~~axiomregent is dead code~~ → Feature 033
 4. ~~Dual feature identity with no bridge~~ → Feature 039
 
-The platform has reached a **capability plateau**: the governed execution story is complete end-to-end. Remaining work falls into three categories: (1) **product surface expansion** (blockoli, checkpoint UI), (2) **CI/infra polish** (cross-platform binaries, smoke test portability), (3) **minor code cleanup** (V-005 message, stale doc comment).
+Feature 040 delivered the first **product surface expansion**: blockoli semantic code search is now wired end-to-end from `SemanticSearchPanel.tsx` through Tauri commands to the fastembed/KD-tree/SQLite library. Remaining work falls into two categories: (1) **product surface expansion** (checkpoint UI), (2) **CI/infra polish + minor code cleanup**.
 
 ## Residuals inventory
 
@@ -44,24 +45,15 @@ T003 (macOS x86_64) and T004 (Linux x86_64/arm64) deferred to CI runners. CI wor
 - `crates/axiomregent/src/snapshot/lease.rs:97` — stale doc comment `agent::safety::Tier` → `agent::safety::ToolTier` (carried since 037 review)
 - CI smoke test `timeout` command portability on macOS (`build-axiomregent.yml:73`)
 
-### Blockoli semantic search (LOW — heavy lift)
+### ~~Blockoli semantic search~~ — RESOLVED (Feature 040)
 
-Desktop UI stub exists but backend is not wired. The `crates/blockoli/` library exists but Tauri command integration has not been scoped.
+`BlockoliState` wired, both `blockoli_index_project` and `blockoli_search` commands implemented, app-data SQLite, embedded asterisk config. All FRs/SCs pass. Build green.
 
-## Ordered next-slice priority
+## Ordered next-slice priority (post-040)
 
-### Slice F: Blockoli semantic search wiring (Feature 040) — SCAFFOLDED
+### ~~Slice F: Blockoli semantic search wiring (Feature 040) — COMPLETE~~
 
-**Why first among remaining items:** The only substantial new capability left to unlock. The governance stack, temporal safety, and data architecture are all complete. Product-visible value now comes from exposing AI-native capabilities through the desktop app.
-
-**Discovery complete.** Key findings:
-- `crates/blockoli/` — 1,284 LOC, fastembed (384-dim vectors), KD-tree similarity, SQLite persistence, asterisk AST parsing
-- Two `todo!()` stubs in `commands/search.rs` already registered in Tauri invoke handler
-- `SemanticSearchPanel.tsx` fully implemented frontend — just needs working backend
-- Integration pattern: `BlockoliState` managed state (like `TitorState`), direct `VectorStore::SQLiteStore(conn)` construction to override hardcoded DB path
-- Risk: fastembed model download (~30 MB) on first embedding call
-
-**Spec:** `specs/040-blockoli-semantic-search-wiring/spec.md` (6 FRs, 5 SCs). Ready for cursor implementation.
+**Delivered 2026-03-29.** Spec promoted `draft` → `active`. All 6 FRs pass, all 5 SCs pass. No blockoli HTTP route regressions. `cargo check` green. Review: `.ai/reviews/claude-review.md` (lines 645–698).
 
 ### Slice G: Desktop UI for checkpoint/restore
 
@@ -82,14 +74,14 @@ Items:
 
 **Chosen path: expand product surface.**
 
-Features 032–039 established and completed the governed execution thesis including temporal safety and identity reconciliation. The platform is now capability-complete for governance. The next meaningful increment is product capability expansion (blockoli, checkpoint UI). The minor cleanup items can be batched at any convenient moment.
+Features 032–040 established and completed the governed execution thesis including temporal safety, identity reconciliation, and AI-native code search. The platform is now capability-complete for governance and has its first AI-native product capability (semantic code search). The next meaningful increment is checkpoint/restore UI. The minor cleanup items can be batched at any convenient moment.
 
 ## Recommended promotion set
 
 ### Promote now
 
-- **Feature 040 spec** — `specs/040-blockoli-semantic-search-wiring/spec.md` (drafted, ready for implementation)
+- **Checkpoint/restore UI design** — design input on desktop UX for temporal controls (Slice G)
 
 ### Promote next
 
-- **Checkpoint/restore UI design** — design input on desktop UX for temporal controls
+- **Minor code cleanup batch** — V-005 message wording, `lease.rs:97` doc comment, CI portability (Slice H)
