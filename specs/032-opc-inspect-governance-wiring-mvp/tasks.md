@@ -3,7 +3,7 @@
 **Input**: `/specs/032-opc-inspect-governance-wiring-mvp/`  
 **Prerequisites**: Features **000-004**, **029-031**
 
-**Feature status**: **In progress** (inspect + git + governance slices complete; action/docs/verification slices remain)
+**Feature status**: **Implemented** (T000–T013 complete per this file; see `execution/verification.md`)
 
 ## Phase 0: Consolidation gate (blocking)
 
@@ -55,7 +55,7 @@
 ## Phase 6: Verification
 
 - [x] T012 Run targeted test suites for touched UI/backend packages
-- [ ] T013 Run full relevant validation path and record outcomes in `execution/verification.md`
+- [x] T013 Run full relevant validation path and record outcomes in `execution/verification.md`
 
 ## Dependencies
 

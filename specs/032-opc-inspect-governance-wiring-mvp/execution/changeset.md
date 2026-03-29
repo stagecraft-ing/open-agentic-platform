@@ -15,12 +15,12 @@ Slice 1 implementation batch for OPC inspect + governance wiring.
 
 **T010–T011 (this batch on `main`):** Registry `featureSummaries` emitted from `read_registry_summary` for “View spec” follow-up; `MarkdownEditor` + `claude-md` tab support optional absolute spec path; `RegistrySpecFollowUp` on Xray and Governance surfaces; vitest unit tests for `actions.ts`. Docs: [`apps/desktop/README.md`](../../../../apps/desktop/README.md), root [`README.md`](../../../../README.md) pointer.
 
-**Next slice (per `tasks.md`):** T012–T013 targeted tests and full verification recording.
+**T012–T013:** Vitest + `RegistrySpecFollowUp` component tests; full verification commands recorded in [`verification.md`](./verification.md) (2026-03-28).
 
 ## In-scope tasks
 
-- **Done:** T000/T000a (PR-1), T003 (PR-2), T007 (PR-3), T006 (PR-4), T004–T005 (PR-5), T008–T009 (PR-6), T010, T011.
-- **Next:** T012–T013 (verification closure) per `tasks.md`.
+- **Done:** T000–T013 (including T010–T013 on `main` as of 2026-03-28).
+- **Next:** Post-032 product work per `plan.md` / new features (out of scope for this changeset).
 
 ## Planned touch targets
 

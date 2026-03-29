@@ -1,6 +1,6 @@
 # Verification: OPC inspect + governance wiring
 
-Date: 2026-03-23 (updated 2026-03-26 — PR-6 T008/T009 recorded)  
+Date: 2026-03-23 (updated 2026-03-28 — T010–T013 closure recorded)  
 Feature: `032-opc-inspect-governance-wiring-mvp`
 
 ## PR-1 — T000a baseline evidence (fill on import PR)
@@ -168,3 +168,22 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 - PR-5: **T004/T005 complete** — inspect entrypoint routed via shared adapter; inspect success/degraded surfaces hydrated with explicit panels; degraded/error behavior remains bounded and explicit.
 - PR-6: **T008/T009 complete** — governance surface wired to backend overview; compiled registry + featuregraph hydration with explicit degraded/unavailable/error states and no action-flow wiring.
 - Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.
+
+---
+
+## T010–T013 — Action, docs, targeted tests, full verification (`main`, 2026-03-28)
+
+**Scope:** “View spec” follow-up from compiled registry (`featureSummaries` in `featuregraph_overview` / `read_registry_summary`), markdown editor tab for arbitrary spec paths, operator docs, Vitest coverage, recorded green run.
+
+| Check | Command / how | Result |
+|-------|----------------|--------|
+| Desktop build | `pnpm -C apps/desktop build` | pass |
+| Desktop unit tests | `pnpm -C apps/desktop test` | pass (6 tests) |
+| Tauri backend check | `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` | pass |
+| Analysis registry tests | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml commands::analysis::tests::` | pass |
+| Registry consumer | `cargo test --manifest-path tools/registry-consumer/Cargo.toml --all --quiet` | pass |
+| Spec compiler smoke | `cargo build --release --manifest-path tools/spec-compiler/Cargo.toml && ./tools/spec-compiler/target/release/spec-compiler compile` | pass |
+
+**Product notes:** When `spec/features.yaml` is absent, featuregraph overview remains **unavailable** while the compiled registry can still be **ok** — this is a **bounded degraded** state (FR-003), not a verification failure.
+
+**Touchpoints:** `apps/desktop/src-tauri/src/commands/analysis.rs` (`featureSummaries`), `apps/desktop/src/features/inspect/{actions.ts,RegistrySpecFollowUp.tsx,InspectSurface.tsx}`, `apps/desktop/src/features/governance/GovernanceSurface.tsx`, `apps/desktop/src/components/MarkdownEditor.tsx`, `apps/desktop/src/hooks/useTabState.ts`, `apps/desktop/README.md`, root `README.md`.
