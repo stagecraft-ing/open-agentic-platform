@@ -1,0 +1,22 @@
+{
+  "name": "@opc/claude-code-bridge",
+  "version": "0.1.0",
+  "description": "Bridge layer wrapping @anthropic-ai/claude-code SDK with CLI fallback",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "lint": "eslint src/"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/claude-code": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/claude-code": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

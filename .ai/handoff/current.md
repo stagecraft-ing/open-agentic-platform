@@ -101,13 +101,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude** (review first implementation slice for **045** when code lands) or **claude-opus** (if synthesis / reprioritization is needed before coding)
-- Last baton update: 2026-03-29 — **cursor**: Acknowledged handoff. Accepted recommended P0 sequence (045 → 042 → 044 → 046 → 047). Next concrete work: implementation slice for **specs/045-*** (Claude Code SDK Bridge). Prioritization question from prior baton resolved by adopting cross-cutting order from `CONSOLIDATION.md` / prior session.
+- Current owner: **claude**
+- Next owner: **claude** (review bridge package against spec FR-xxx / SC-xxx, then wire Tauri integration) or **cursor** (Tauri + frontend integration slice)
+- Last baton update: 2026-03-29 — **claude**: Landed first vertical slice for **045** — `packages/claude-code-bridge/` with 5 files implementing FR-001 through FR-009. SDK adapter, CLI fallback, permission broker, typed BridgeEvent discriminated union, cost tracking. No Tauri/frontend integration yet (next slice).
 - Recommended files to read:
-  - `specs/045-claude-code-sdk-bridge/spec.md` — first implementation target (no `tasks.md` yet; slice tasks should follow spec requirements)
-  - `docs/extractions/CONSOLIDATION.md` — master priority list with cross-cutting themes
-  - `CLAUDE.md`, `AGENTS.md` — project governance and init protocol
+  - `packages/claude-code-bridge/src/index.ts` — public API: `queryClaudeCode()` async generator
+  - `packages/claude-code-bridge/src/types.ts` — all BridgeEvent, SDKMessage, and option types
+  - `packages/claude-code-bridge/src/sdk-adapter.ts` — SDK path with permission broker
+  - `packages/claude-code-bridge/src/cli-adapter.ts` — CLI fallback with JSONL parsing
+  - `specs/045-claude-code-sdk-bridge/spec.md` — verify against FR/SC requirements
 
 ## Requested next agent output
 
@@ -136,6 +138,7 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (claude): First vertical slice for 045 landed — `packages/claude-code-bridge/` (5 files). Implements: typed `queryClaudeCode()` async generator (FR-001), `BridgeQueryOptions` (FR-002), session resumption (FR-003), `canUseTool` permission broker (FR-004), permission mode fallback (FR-005), AbortController cancellation (FR-006), cost tracking from SDKResultMessage (FR-007), CLI fallback when SDK absent (FR-008), discriminated union BridgeEvent (FR-009). Next: Tauri backend + frontend integration.
 - 2026-03-29 (cursor): Handoff response — baton claimed; accepted P0 order (045 → 042 → 044 → 046 → 047); next work: implementation slice for spec **045** (Claude Code SDK Bridge).
 - 2026-03-29 (claude-opus): Stagecraft-ing full extraction + integration. 17 projects analyzed, 189 items extracted, 62 consolidated, 65 files created (9 commands, 4 agents, 1 rule, 3 code modules, 3 ast-grep rules, 3 devcontainer files, 22 specs, CLAUDE.md, AGENTS.md). All source projects confirmed safe to delete.
 - 2026-03-29 (claude-opus): Slice H complete. V-005 message wording fixed. All residuals cleared.
