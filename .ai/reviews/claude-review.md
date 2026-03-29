@@ -432,6 +432,64 @@ The 3x size difference between macOS (22.2 MB) and Windows (7.3 MB) is surprisin
 2. **CI smoke test** — fix `timeout` command for macOS portability. Recommend cursor fix.
 3. **T003/T004** — macOS x86_64 and Linux binaries will be produced once CI workflow runs. Not a blocker.
 4. **T009** — `spec-compiler compile` still pending.
-5. **Titor command stubs** (Slice D) — 5 stubs blocking temporal safety
+5. **Titor command stubs** (Slice D) — ~~5 stubs blocking temporal safety~~ **resolved by Feature 038**
 6. **Feature ID reconciliation** (Slice E) — kebab vs UPPERCASE unbridged
+
+---
+
+## Feature 038: titor Tauri command wiring
+
+**Reviewed**: 2026-03-29 (claude)
+**Scope**: `commands/titor.rs` (full file), `lib.rs:185` (manage), spec FR-001–FR-007, SC-001–SC-006
+
+### FR/SC checklist
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| FR-001 (init, idempotent) | **Pass** | `get_or_init` double-check pattern at `titor.rs:39-61`; test at `:183-240` |
+| FR-002 (checkpoint) | **Pass** | `titor_checkpoint` at `:112-122`; `guard.checkpoint(message)` delegates correctly |
+| FR-003 (list) | **Pass** | `titor_list` at `:124-133`; serializes `Vec<Checkpoint>` to JSON |
+| FR-004 (restore) | **Pass** | `titor_restore` at `:135-147`; discards `RestoreResult` (returns `()`) — acceptable per existing signature |
+| FR-005 (diff) | **Pass** | `titor_diff` at `:149-160` |
+| FR-006 (verify) | **Pass** | `titor_verify` at `:162-174`; `VerificationReport` serialized, `.is_valid()` asserted in test |
+| FR-007 (error without init) | **Pass** | `require_titor` at `:64-71`; dedicated test `require_titor_errors_without_init` |
+| SC-001–SC-005 (round-trip) | **Pass** | Single integration test covers full cycle |
+| SC-006 (error path) | **Pass** | Tested at `:243-253` |
+| NF-002 (non-blocking) | **Pass** | `tokio::sync::RwLock` outer + `tokio::sync::Mutex` inner — matches spec architecture |
+
+### Architecture conformance
+
+- **`TitorState` design**: matches spec exactly — `Arc<RwLock<HashMap<PathBuf, Arc<Mutex<Titor>>>>>`. Extra `storage_paths` map is a reasonable addition not in the spec but useful for idempotent return values.
+- **`.manage(TitorState::new())`**: correctly placed at `lib.rs:185`, alongside `CheckpointState` and other managed states.
+- **`canonical_root`**: good defensive canonicalization prevents duplicate instances for the same directory via different paths (e.g., symlinks, trailing slashes).
+- **`build_titor`**: uses `CompressionStrategy::Adaptive { min_size: 4096, skip_extensions: vec![] }` — sensible defaults. The builder pattern matches the titor crate's API.
+- **Thread safety**: Titor is `Send` (no SQLite — uses file-based content-addressable storage with `DashMap` caching). R-001 risk from spec does not materialize. `tokio::sync::Mutex` wrapping is correct.
+
+### Finding: race in `get_or_init` (LOW)
+
+There is a narrow race window between `instances.write()` drop at `:58` and `storage_paths.write()` at `:59-60`. If a concurrent `get_or_init` for the same root enters between these two points:
+
+1. It reads `instances` → finds key present (`:41-42`)
+2. It reads `storage_paths` → key not yet inserted → falls through
+3. It acquires `instances.write()` (`:48`) → finds key present (`:49`)
+4. It reads `storage_paths` (`:50-51`) → still missing → returns error at `:52-54`
+
+**Impact**: transient "internal: missing storage path" error on concurrent init of the same root. Self-healing on retry. Unlikely in practice (init is called once per project root from UI).
+
+**Fix**: insert into `storage_paths` while still holding the `instances` write lock, before `drop(map)`. Alternatively, merge both maps into a single `HashMap<PathBuf, (Arc<Mutex<Titor>>, PathBuf)>`.
+
+### What's resolved from prior reviews
+
+- **Item 5** (titor command stubs / Slice D) from the Feature 032 review is now fully addressed. All 5 `todo!()` stubs are replaced with working delegations.
+
+### Compilation & tests
+
+```
+cargo check (desktop crate): OK (warnings only — pre-existing, unrelated)
+cargo test titor: 4/4 passed (2 in lib, 2 in opc-web)
+```
+
+### Verdict
+
+**Feature 038: PASS.** All FRs and SCs met. One low-severity race condition noted (non-blocking for promotion). Implementation is clean, follows established patterns, and the round-trip test is thorough.
 

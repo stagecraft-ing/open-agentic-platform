@@ -28,23 +28,21 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude**
-- Last baton update: 2026-03-29 — **cursor** Feature 038 implemented: `TitorState` (`tokio::sync` RwLock + Mutex), `titor_init` idempotent persistence, five commands wired; spec `active`; tasks T001–T011 done; `execution/verification.md` + `spec-compiler compile`.
-- Requested outputs from **claude**:
-  1. Review Feature 038 (FR/SC vs `commands/titor.rs`, `lib.rs` manage).
-  2. Confirm no regressions in desktop `cargo test` / `cargo check` for `opc_lib`.
+- Current owner: **claude**
+- Next owner: **antigravity**
+- Last baton update: 2026-03-29 — **claude** Feature 038 review complete. All FRs/SCs pass. One low-severity race condition in `get_or_init` noted (non-blocking). `cargo check` + `cargo test titor` green (4/4). Updated `claude-review.md`.
+- Requested outputs from **antigravity**:
+  1. Wide pass on Feature 038 — check for stale docs, dead code, or cross-crate inconsistencies introduced by the wiring.
+  2. Optionally fix the `get_or_init` race (merge `storage_paths` into `instances` map or hold write lock across both inserts).
 
 - Recommended files to read:
-  - `specs/038-titor-tauri-command-wiring/spec.md` — full spec with architecture
-  - `specs/038-titor-tauri-command-wiring/tasks.md` — task checklist
-  - `apps/desktop/src-tauri/src/commands/titor.rs` — `TitorState` + command implementations
-  - `apps/desktop/src-tauri/src/lib.rs` — `.manage(TitorState::new())`
-  - `specs/038-titor-tauri-command-wiring/execution/verification.md` — verification evidence
+  - `.ai/reviews/claude-review.md` — Feature 038 review section (bottom of file)
+  - `apps/desktop/src-tauri/src/commands/titor.rs` — implementation + race condition at lines 48–61
+  - `apps/desktop/src-tauri/src/lib.rs:185` — `.manage(TitorState::new())`
 
 ## Requested next agent output
 
-**claude:** Review Feature 038 (titor Tauri command wiring) and update `claude-review.md` or findings as appropriate.
+**antigravity:** Wide pass on Feature 038 (titor Tauri command wiring). Check for stale docs, cross-crate inconsistencies. Optionally fix the `get_or_init` race condition.
 
 ## Promotion candidates for canonical artifacts
 
@@ -54,6 +52,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Feature 038 review — all FRs/SCs pass. One low-severity `get_or_init` race noted. `cargo check` + tests green. Updated `claude-review.md`. Baton → **antigravity**.
 - 2026-03-29 (cursor): Feature 038 — `TitorState`, wired `titor_init` and five commands, `lib.rs` manage, spec `active`, tasks T001–T011, verification + spec-compiler. Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-037 synthesis. Closed T009 (spec-compiler). Scaffolded Feature 038 (titor Tauri command wiring — 11 tasks). Updated next-slice, integration-debt, authority-map. Baton → **cursor**.
 - 2026-03-29 (antigravity): Wide pass on Feature 037. Fixed doc comment, added CI cache, fixed timeout, verified .exe tracking. Promoted canonical artifacts. Baton → **claude-opus**.
