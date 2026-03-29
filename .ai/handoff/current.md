@@ -6,7 +6,7 @@
 
 ## Objective
 
-Feature **032** is complete. Feature **033** (`axiomregent activation`) is **delivered**: `status: active`, tasks T001–T008 checked, `execution/verification.md` + `changeset.md` updated. Spawn wired in `lib.rs`; probe port on **stderr**; MCP + governance UI show sidecar / preflight tier reference. **Next:** **Claude** post-implementation review; then **claude-opus** for next-slice synthesis or **cursor** for 034-class work.
+Feature **032** complete. Feature **033** **delivered** (`status: active`). **Feature 034** (`featuregraph registry scanner fix`) is **scaffolded** under `specs/034-featuregraph-registry-scanner-fix/` as **`draft`** — registry-first scanner vs `spec/features.yaml`. **`spec-compiler compile`** run green at handoff. **Next:** **Cursor** implements **034** per `tasks.md`; then **Claude** review.
 
 ## Agent pack
 
@@ -20,12 +20,14 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 - **032 spec:** `specs/032-opc-inspect-governance-wiring-mvp/spec.md` (status: active, delivered)
 - **033 spec:** `specs/033-axiomregent-activation/spec.md` (status: active, delivered)
+- **034 spec:** `specs/034-featuregraph-registry-scanner-fix/spec.md` (status: draft, scaffolded)
 - **Execution:** per-feature `execution/changeset.md`, `execution/verification.md`
 
 ## Current execution truth
 
 - Feature 032: T000–T013 complete. Verification green 2026-03-28.
-- Feature 033: T001–T008 complete. Sidecar spawned at startup; probe port announced on stderr from `axiomregent` (TCP listener); UI surfaces in MCP manager + governance. Binary bundling: still **macOS arm64 only** in-repo — other targets degrade gracefully (documented in `execution/verification.md`).
+- Feature 033: T001–T008 complete (sidecar + UI + verification).
+- Feature 034: spec/plan/tasks/execution stubs added; implementation **not** started.
 
 ## Residual notes (033)
 
@@ -43,33 +45,35 @@ Historical review: `.ai/reviews/claude-review.md` (Feature 033 section).
 ## Baton
 
 - Current owner: **cursor**
-- Next owner: **claude** (post-implementation review)
-- Last baton update: 2026-03-29 — Claude verified Feature 033 implementation (all 4 FRs pass); updated findings/authority-map/integration-debt to reflect axiomregent activation; baton to cursor for 034-class work
-- Requested outputs from **Cursor**:
-  1. Decide next feature: **034 (featuregraph scanner fix)** or **035 (agent routing through axiomregent)**. Scanner fix is independent and would immediately promote governance panel from degraded to full. Agent routing is higher thesis value but larger scope.
-  2. If 034: scaffold `specs/034-featuregraph-registry-scanner-fix/` and implement scanner reading from `registry.json` instead of `features.yaml`.
-  3. If 035: scaffold `specs/035-agent-governed-execution/` — route agent execution through axiomregent, replace `--dangerously-skip-permissions`, enforce `enable_file_read/write/network` flags.
-  4. Run `spec-compiler compile` to validate frontmatter after 033 merge.
+- Next owner: **claude** (post-034 review) or **claude-opus** (synthesis)
+- Last baton update: 2026-03-28 — **Cursor**: ran **`spec-compiler compile`** (pass); **chose 034** over 035 (smaller, unblocks governance degraded state); **scaffolded** `specs/034-featuregraph-registry-scanner-fix/`
+- Requested outputs from **Cursor** (Feature **034**):
+  1. **T001–T002**: Registry → scanner adapter in `crates/featuregraph`; registry-first path in `scanner.rs` with yaml fallback where still needed.
+  2. **T003**: Confirm `featuregraph_overview` / governance uses registry-backed data when `build/spec-registry/registry.json` exists.
+  3. **T004**: `cargo test -p featuregraph`, `pnpm -C apps/desktop check`.
+  4. **T005–T006**: Fill `execution/verification.md`, `changeset.md`, set spec **`status: active`** when done.
+- Deferred: **035** (`specs/035-agent-governed-execution/`) — scaffold after 034 unless reprioritized.
 - Recommended files to read:
-  - `specs/033-axiomregent-activation/execution/changeset.md`, `execution/verification.md`
-  - `apps/desktop/src-tauri/src/lib.rs` (spawn after `SidecarState`)
-  - `apps/desktop/src-tauri/src/sidecars.rs`, `crates/axiomregent/src/main.rs` (probe + stderr line)
-  - `apps/desktop/src/components/MCPManager.tsx`, `apps/desktop/src/features/governance/GovernanceSurface.tsx`
+  - `specs/034-featuregraph-registry-scanner-fix/spec.md`, `plan.md`, `tasks.md`
+  - `crates/featuregraph/src/scanner.rs`
+  - `build/spec-registry/registry.json` (after `spec-compiler compile`)
+  - `apps/desktop/src-tauri/src/commands/analysis.rs`
 
 ## Requested next agent output
 
-Claude: confirm 033 delivery against spec; then pass baton for **034-class** planning (registry/scanner) or next slice per `.ai/plans/next-slice.md`.
+**Cursor:** implement **034** T001–T006. **Claude:** review when Cursor returns baton.
 
 ## Promotion candidates for canonical artifacts
 
-- Run `spec-compiler compile` to validate registry frontmatter after 033 merge
-- Scanner / `registry.json` work → Feature 034-class
-- Agent execution reroute → Feature 035-class
+- ~~`spec-compiler compile`~~ — run at 034 handoff (green)
+- **034** registry scanner → in progress
+- **035** agent execution reroute → after 034
 
 ---
 
 ## Recent outputs
 
+- 2026-03-28 (cursor): `spec-compiler compile` green; scaffolded **`specs/034-featuregraph-registry-scanner-fix/`**; baton → implement 034
 - 2026-03-29 (claude): Verified 033 implementation (all FRs pass); updated findings/authority-map/debt; baton to cursor for 034/035
 - 2026-03-29 (cursor): Feature **033** implementation complete (axiomregent spawn, stderr probe port, MCP/governance UI, execution docs); baton to **claude**
 - 2026-03-29 (claude): Confirmed handoff coherence + 033 review spot-check (no drift); baton to cursor
