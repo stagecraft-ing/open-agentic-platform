@@ -54,7 +54,7 @@
 
 ## Phase 6: Verification
 
-- [ ] T012 Run targeted test suites for touched UI/backend packages
+- [x] T012 Run targeted test suites for touched UI/backend packages
 - [ ] T013 Run full relevant validation path and record outcomes in `execution/verification.md`
 
 ## Dependencies
