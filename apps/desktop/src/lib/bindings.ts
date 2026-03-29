@@ -298,6 +298,9 @@ async sandboxStatus() : Promise<SandboxStatus> {
  */
 async getSidecarPorts() : Promise<SidecarPorts> {
     return await TAURI_INVOKE("get_sidecar_ports");
+},
+async getPreflightSafetyTierReference() : Promise<SafetyTierRef[]> {
+    return await TAURI_INVOKE("get_preflight_safety_tier_reference");
 }
 }
 
@@ -321,6 +324,10 @@ export type GitStatusEntry = { path: string;
 status: string; staged: boolean }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type RecoveryError = { type: "FileNotFound" } | { type: "ValidationError"; message: string } | { type: "DataTooLarge"; max_bytes: number } | { type: "IoError"; message: string } | { type: "ParseError"; message: string }
+/**
+ * Read-only labels for `featuregraph::preflight::SafetyTier` (governance UI).
+ */
+export type SafetyTierRef = { id: string; label: string; description: string }
 export type SandboxStatus = { 
 /**
  * True if a sandboxing method (bwrap) was found on PATH.

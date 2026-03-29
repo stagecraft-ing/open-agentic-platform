@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@opc/ui/tabs";
 import { Card } from "@opc/ui/card";
 import { Toast, ToastContainer } from "@opc/ui/toast";
-import { api, type MCPServer } from "@/lib/api";
+import { api, type MCPServer, type SidecarPorts } from "@/lib/api";
 import { MCPServerList } from "./MCPServerList";
 import { MCPAddServer } from "./MCPAddServer";
 import { MCPImportExport } from "./MCPImportExport";
@@ -32,12 +32,27 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  
+  const [sidecarPorts, setSidecarPorts] = useState<SidecarPorts | null>(null);
+  const [sidecarLoading, setSidecarLoading] = useState(true);
 
   // Load servers on mount
   useEffect(() => {
     loadServers();
+    void loadSidecarPorts();
   }, []);
+
+  const loadSidecarPorts = async () => {
+    try {
+      setSidecarLoading(true);
+      const ports = await api.getSidecarPorts();
+      setSidecarPorts(ports);
+    } catch (e) {
+      console.warn("MCPManager: getSidecarPorts failed", e);
+      setSidecarPorts(null);
+    } finally {
+      setSidecarLoading(false);
+    }
+  };
 
   /**
    * Loads all MCP servers
@@ -131,6 +146,44 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6">
+            <Card className="p-4 mb-6 border-dashed">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Server className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+                  <div>
+                    <div className="font-medium text-sm">OPC axiomregent (bundled sidecar)</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Governed MCP router started with the app on supported builds. Probe port is
+                      announced on stderr; MCP traffic stays on stdio.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadSidecarPorts()}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  aria-label="Refresh axiomregent status"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${sidecarLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </button>
+              </div>
+              <div className="mt-3 text-sm">
+                {sidecarLoading && !sidecarPorts ? (
+                  <span className="text-muted-foreground">Checking sidecar…</span>
+                ) : sidecarPorts?.axiomregent != null ? (
+                  <span>
+                    Probe port:{" "}
+                    <span className="font-mono">{sidecarPorts.axiomregent}</span>
+                  </span>
+                ) : (
+                  <span className="text-amber-700 dark:text-amber-400">
+                    No probe port yet (still starting, degraded, or unsupported target — see logs).
+                  </span>
+                )}
+              </div>
+            </Card>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-3 w-full max-w-md mb-6 h-auto p-1">
                 <TabsTrigger value="servers" className="py-2.5 px-3">

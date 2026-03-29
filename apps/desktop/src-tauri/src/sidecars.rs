@@ -1,7 +1,8 @@
 //! Sidecar lifecycle and port discovery.
 //!
-//! **axiomregent** announces its listening port on stdout as:
+//! **axiomregent** announces a local probe port on **stderr** as:
 //!   `OPC_AXIOMREGENT_PORT=<port>`
+//! (Stdout is reserved for MCP framing.)
 //!
 //! **gitctx** is not sidecar-port-driven in the desktop app: MCP is invoked on demand
 //! via `commands::mcp` (Rust-owned per-request stdio to `gitctx-mcp`). See T006 checklist.
@@ -44,7 +45,14 @@ pub fn get_sidecar_ports(state: State<'_, SidecarState>) -> SidecarPorts {
 // Spawn helpers
 // ============================================================================
 
-/// Spawn axiomregent and watch stdout for `OPC_AXIOMREGENT_PORT=<port>`.
+/// Parse a line for `OPC_AXIOMREGENT_PORT=<u16>` (first line win).
+pub fn parse_axiomregent_port_line(line: &str) -> Option<u16> {
+    line.trim()
+        .strip_prefix("OPC_AXIOMREGENT_PORT=")
+        .and_then(|s| s.parse::<u16>().ok())
+}
+
+/// Spawn axiomregent and watch stderr for `OPC_AXIOMREGENT_PORT=<port>`.
 pub fn spawn_axiomregent(app: &AppHandle) {
     let port_slot = Arc::clone(&app.state::<SidecarState>().axiomregent_port);
     let cmd = match app.shell().sidecar("axiomregent") {
@@ -64,14 +72,12 @@ pub fn spawn_axiomregent(app: &AppHandle) {
         };
         while let Some(event) = rx.recv().await {
             match event {
-                CommandEvent::Stdout(bytes) => {
+                CommandEvent::Stderr(bytes) | CommandEvent::Stdout(bytes) => {
                     let line = String::from_utf8_lossy(&bytes);
-                    if let Some(port_str) = line.trim().strip_prefix("OPC_AXIOMREGENT_PORT=") {
-                        if let Ok(port) = port_str.parse::<u16>() {
-                            *port_slot.lock().unwrap() = Some(port);
-                            log::info!("axiomregent listening on port {port}");
-                            break;
-                        }
+                    if let Some(port) = parse_axiomregent_port_line(&line) {
+                        *port_slot.lock().unwrap() = Some(port);
+                        log::info!("axiomregent probe port {port}");
+                        break;
                     }
                 }
                 CommandEvent::Error(e) => {
@@ -86,4 +92,16 @@ pub fn spawn_axiomregent(app: &AppHandle) {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_axiomregent_port_line;
+
+    #[test]
+    fn parse_port_line_accepts_stderr_style() {
+        assert_eq!(parse_axiomregent_port_line("OPC_AXIOMREGENT_PORT=9123\n"), Some(9123));
+        assert_eq!(parse_axiomregent_port_line("  OPC_AXIOMREGENT_PORT=1  "), Some(1));
+        assert_eq!(parse_axiomregent_port_line("noise"), None);
+    }
 }

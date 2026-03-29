@@ -1,15 +1,34 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { useTabState } from '@/hooks/useTabState';
 import { RegistrySpecFollowUp } from '@/features/inspect/RegistrySpecFollowUp';
 import { useGovernanceCtxEnrichment } from './useGovernanceCtxEnrichment';
 import { useGovernanceStatus } from './useGovernanceStatus';
+import { api, type SafetyTierRef } from '@/lib/api';
 
 export const GovernanceSurface: React.FC = () => {
   const [repoRoot, setRepoRoot] = useState('');
+  const [safetyTiers, setSafetyTiers] = useState<SafetyTierRef[]>([]);
+  const [axiomProbePort, setAxiomProbePort] = useState<number | null>(null);
   const { createSpecMarkdownTab } = useTabState();
   const { state, load, reset } = useGovernanceStatus();
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [tiers, ports] = await Promise.all([
+          api.getPreflightSafetyTierReference(),
+          api.getSidecarPorts(),
+        ]);
+        setSafetyTiers(tiers);
+        setAxiomProbePort(ports.axiomregent);
+      } catch {
+        setSafetyTiers([]);
+        setAxiomProbePort(null);
+      }
+    })();
+  }, []);
   const enrichmentPath =
     state.status === 'success' || state.status === 'degraded' ? state.data.repoRoot : repoRoot;
   const enrichment = useGovernanceCtxEnrichment(enrichmentPath, state);
@@ -24,6 +43,34 @@ export const GovernanceSurface: React.FC = () => {
           enrichment (same T006 bridge as the git panel) is additive only.
         </p>
       </header>
+
+      <div className="border rounded-md p-3 bg-muted/30 text-sm space-y-2">
+        <div className="font-medium">Preflight safety tiers (read-only)</div>
+        <p className="text-xs text-muted-foreground">
+          From <code className="text-[11px]">featuregraph::preflight::SafetyTier</code>. Enforcement
+          applies when tools are dispatched through axiomregent.
+        </p>
+        {safetyTiers.length > 0 ? (
+          <ul className="text-xs grid gap-1 sm:grid-cols-3">
+            {safetyTiers.map((t) => (
+              <li key={t.id} className="border rounded px-2 py-1 bg-background">
+                <span className="font-medium">{t.label}</span>
+                <span className="text-muted-foreground"> — {t.description}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">Tier reference unavailable.</p>
+        )}
+        <div className="text-xs text-muted-foreground pt-1 border-t border-border/60">
+          Bundled axiomregent probe port:{' '}
+          {axiomProbePort != null ? (
+            <span className="font-mono text-foreground">{axiomProbePort}</span>
+          ) : (
+            <span className="text-amber-700 dark:text-amber-400">not announced yet</span>
+          )}
+        </div>
+      </div>
 
       <div className="flex gap-2 items-center">
         <input

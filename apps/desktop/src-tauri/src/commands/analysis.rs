@@ -1,9 +1,11 @@
 use tauri::command;
 use xray::scan_target;
 use featuregraph::tools::FeatureGraphTools;
+use serde::Serialize;
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use specta::Type;
 use std::fs;
+use std::path::PathBuf;
 
 #[command]
 pub async fn xray_scan_project(path: String) -> Result<serde_json::Value, String> {
@@ -70,6 +72,36 @@ pub async fn featuregraph_overview(features_yaml_path: String) -> Result<serde_j
         "registry": registry,
         "featuregraph": featuregraph,
     }))
+}
+
+/// Read-only labels for `featuregraph::preflight::SafetyTier` (governance UI).
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct SafetyTierRef {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+}
+
+#[command]
+#[specta::specta]
+pub fn get_preflight_safety_tier_reference() -> Vec<SafetyTierRef> {
+    vec![
+        SafetyTierRef {
+            id: "tier1".into(),
+            label: "Tier 1".into(),
+            description: "Autonomous".into(),
+        },
+        SafetyTierRef {
+            id: "tier2".into(),
+            label: "Tier 2".into(),
+            description: "Gated".into(),
+        },
+        SafetyTierRef {
+            id: "tier3".into(),
+            label: "Tier 3".into(),
+            description: "Forbidden".into(),
+        },
+    ]
 }
 
 #[command]

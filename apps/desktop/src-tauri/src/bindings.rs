@@ -59,6 +59,8 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::sandbox::sandbox_status,
         // Sidecar port discovery
         crate::sidecars::get_sidecar_ports,
+        // Preflight / governance reference
+        crate::commands::analysis::get_preflight_safety_tier_reference,
     ])
 }
 

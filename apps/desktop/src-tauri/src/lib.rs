@@ -187,6 +187,7 @@ pub fn run() {
 
             // Initialize sidecar state (ports populated when sidecars announce them)
             app.manage(SidecarState::default());
+            sidecars::spawn_axiomregent(app.handle());
 
             // Initialize zoom state (Tauri 2 has no zoom getter; we track it here)
             app.manage(commands::window_ctrl::ZoomState::default());
@@ -360,6 +361,7 @@ pub fn run() {
             commands::analysis::xray_scan_project,
             commands::analysis::featuregraph_overview,
             commands::analysis::featuregraph_impact,
+            commands::analysis::get_preflight_safety_tier_reference,
             // Blockoli & Stackwalk Search
             commands::search::blockoli_index_project,
             commands::search::blockoli_search,

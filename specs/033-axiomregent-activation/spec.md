@@ -2,7 +2,7 @@
 id: "033-axiomregent-activation"
 title: "axiomregent sidecar activation and governance surface"
 feature_branch: "033-axiomregent-activation"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:
@@ -26,7 +26,7 @@ The **axiomregent** crate and Tauri **sidecar** wiring exist (`spawn_axiomregent
 
 - Call **`spawn_axiomregent`** during app startup when policy allows (see tasks for gating).
 - Verify **sidecar binary** packaging per target (macOS/Windows/Linux as supported).
-- **Port discovery** from stdout (`OPC_AXIOMREGENT_PORT=`) integrated with existing `SidecarState`.
+- **Port discovery** from stderr (`OPC_AXIOMREGENT_PORT=`; stdout remains MCP-framed) integrated with existing `SidecarState`.
 - **MCP management UI**: list/discover axiomregent tools alongside existing MCP bridges (e.g. gitctx) where architecture permits.
 - **Safety tier** visibility in governance or settings surfaces (read-only display tied to existing `safety.rs` semantics).
 

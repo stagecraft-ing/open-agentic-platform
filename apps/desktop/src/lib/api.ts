@@ -124,6 +124,18 @@ export interface Agent {
   updated_at: string;
 }
 
+/** Port discovery for bundled sidecars (`get_sidecar_ports`). */
+export interface SidecarPorts {
+  axiomregent: number | null;
+}
+
+/** Labels aligned with `featuregraph::preflight::SafetyTier`. */
+export interface SafetyTierRef {
+  id: string;
+  label: string;
+  description: string;
+}
+
 export interface AgentExport {
   version: number;
   exported_at: string;
@@ -1940,6 +1952,20 @@ export const api = {
       console.error("Failed to delete slash command:", error);
       throw error;
     }
+  },
+
+  /**
+   * Bundled sidecar ports (axiomregent probe port when announced).
+   */
+  async getSidecarPorts(): Promise<SidecarPorts> {
+    return await apiCall<SidecarPorts>("get_sidecar_ports");
+  },
+
+  /**
+   * Read-only preflight safety tier labels (featuregraph semantics).
+   */
+  async getPreflightSafetyTierReference(): Promise<SafetyTierRef[]> {
+    return await apiCall<SafetyTierRef[]>("get_preflight_safety_tier_reference");
   },
 
 };
