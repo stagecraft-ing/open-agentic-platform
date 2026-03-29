@@ -28,4 +28,4 @@ Search and reason across the repo for:
 
 - **Source-grounded** references; flag speculation.
 - **Non-authoritative** — list promotion candidates; do not rewrite `tasks.md` wholesale.
-- **Update the baton** before commit; hand to `chatgpt` for synthesis or `cursor` for a thin implementation PR.
+- **Update the baton** before commit; hand to `claude-opus` for synthesis or `cursor` for a thin implementation PR.

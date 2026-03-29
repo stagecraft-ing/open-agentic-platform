@@ -28,4 +28,4 @@ Implementation and repo work on the **current branch**: edits, small refactors, 
 
 ## Baton updates
 
-Before commit: set **Current owner** to `cursor`, set **Next owner** to whoever should act next (often `claude` after implementation, or `chatgpt` for synthesis), list **Requested outputs** and **Recommended files to read**. Use `./.ai/scripts/ai-claim-baton.sh` when only ownership changes.
+Before commit: set **Current owner** to `cursor`, set **Next owner** to whoever should act next (often `claude` after implementation, or `claude-opus` for synthesis), list **Requested outputs** and **Recommended files to read**. Use `./.ai/scripts/ai-claim-baton.sh` when only ownership changes.

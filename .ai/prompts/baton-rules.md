@@ -1,6 +1,6 @@
 # Baton rules — operating contract
 
-> **Non-authoritative.** One-page rules for handoff between Cursor, Claude, ChatGPT, and Antigravity.
+> **Non-authoritative.** One-page rules for handoff between Cursor, Claude, Claude Opus (synthesis), and Antigravity.
 
 ## Before you start
 
@@ -17,7 +17,7 @@
 ## Before you commit
 
 1. Update **`## Baton`** in `.ai/handoff/current.md`:
-   - **Current owner:** your tool name (`cursor` | `claude` | `chatgpt` | `antigravity`)
+   - **Current owner:** your tool name (`cursor` | `claude` | `claude-opus` | `antigravity`)
    - **Next owner:** who should act next
    - **Requested outputs:** concrete files the next agent should produce or update
    - **Recommended files to read:** minimal, high-signal list
@@ -34,4 +34,4 @@ If you reach a **durable** conclusion, do not stop at `.ai/` — note it under *
 
 ## Loop (default narrative)
 
-`cursor` → implement / adjust → `claude` → deep analysis → `antigravity` → wide pass → `chatgpt` → synthesize next slice → `cursor` again (flex as needed).
+`cursor` → implement / adjust → `claude` → deep analysis → `antigravity` → wide pass → `claude-opus` → synthesize next slice → `cursor` again (flex as needed).

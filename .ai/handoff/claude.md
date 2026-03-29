@@ -26,4 +26,4 @@
 
 ## Baton updates
 
-Before commit: hand to **`antigravity`** for wide repo exploration or **`chatgpt`** for synthesis/prioritization; list specific files you created or materially updated.
+Before commit: hand to **`antigravity`** for wide repo exploration or **`claude-opus`** for synthesis/prioritization; list specific files you created or materially updated.

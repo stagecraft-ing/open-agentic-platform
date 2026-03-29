@@ -25,4 +25,4 @@
 
 ## Baton updates
 
-Before commit: hand to **`chatgpt`** for synthesis or **`cursor`** for targeted implementation; list the highest-signal files to read next.
+Before commit: hand to **`claude-opus`** for synthesis or **`cursor`** for targeted implementation; list the highest-signal files to read next.

@@ -1,6 +1,6 @@
 # `.ai/` — auxiliary multi-agent handoff workspace
 
-**Non-authoritative.** This directory is a **collaboration bus** for Cursor, Claude, ChatGPT, and Antigravity. It does **not** replace or compete with canonical product truth.
+**Non-authoritative.** This directory is a **collaboration bus** for Cursor, Claude, Claude Opus (synthesis), and Antigravity. It does **not** replace or compete with canonical product truth.
 
 ## What belongs elsewhere (canonical)
 

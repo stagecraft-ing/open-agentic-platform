@@ -63,6 +63,57 @@ Spec IDs (kebab: `032-opc-inspect-governance-wiring-mvp`) and code attribution I
 
 ## Promotion candidates
 
-- [ ] `execution/verification.md` — add governance backend test command (`cargo test ... commands::analysis::tests::`) and expected featuregraph degraded state documentation
-- [ ] `execution/changeset.md` — update with T010–T013 status when implemented
-- [ ] Post-032 spec candidates — axiomregent activation, safety tier model, feature ID reconciliation (track as planned next features, not 032 scope)
+- [x] `execution/verification.md` — governance backend tests and featuregraph degraded state documented (T013, 2026-03-28)
+- [x] `execution/changeset.md` — T010–T013 recorded (2026-03-28)
+- [x] `specs/033-axiomregent-activation/` — scaffolded (2026-03-29)
+- [ ] Post-033 spec candidates — safety tier model, feature ID reconciliation, featuregraph scanner fix (Feature 034-class)
+
+---
+
+## Feature 033 review (2026-03-29)
+
+### Spec assessment: `specs/033-axiomregent-activation/spec.md`
+
+**Verdict: Spec is sound. Two issues to address before implementation.**
+
+#### What's right
+
+- **Scope is correctly bounded.** In-scope: spawn, port discovery, MCP UI visibility, safety tier display. Out-of-scope: agent rerouting, permission enforcement, scanner fix, titor. This is the right sequencing.
+- **FR-001 through FR-004 are clear and testable.** Each has a verifiable condition.
+- **Degraded state handling required (FR-002)** — consistent with 032's approach of explicit degradation rather than crashes.
+- **Contract note about `tauri.conf.json` authority** is correct — `externalBin` already lists `binaries/axiomregent` (verified at `tauri.conf.json:61-63`).
+
+#### Issue 1: axiomregent binary only exists for aarch64-apple-darwin
+
+**Evidence:** `apps/desktop/src-tauri/binaries/` contains only `axiomregent-aarch64-apple-darwin`. No Windows (`x86_64-pc-windows-msvc`) or Linux binaries present.
+
+**Impact:** FR-001 says "on supported builds" — which currently means only Apple Silicon macOS. On Windows/Linux, `spawn_axiomregent` will fail at `app.shell().sidecar("axiomregent")` because the binary doesn't exist.
+
+**Recommendation:** T003 (packaging verification) should explicitly:
+1. Document which targets have bundled binaries
+2. For missing targets, either cross-compile axiomregent or ensure FR-002 degraded state works cleanly
+3. Consider adding a `build:executables` step for axiomregent (similar to gitctx-mcp's `fetch-and-build.js` pattern at `apps/desktop/package.json`)
+
+#### Issue 2: `spawn_axiomregent` uses `app.shell().sidecar()` which requires Tauri shell plugin
+
+**Evidence:** `sidecars.rs:50` calls `app.shell().sidecar("axiomregent")`. The shell plugin is registered in `lib.rs` plugin chain. This should work, but the sidecar name must match the `externalBin` entry exactly (minus architecture suffix).
+
+**Verification needed:** Confirm that Tauri 2's sidecar resolution correctly maps `"axiomregent"` to `binaries/axiomregent-{arch}` with the current `tauri.conf.json` externalBin config. This is a known Tauri 2 pattern but should be smoke-tested per T002.
+
+#### Tasks assessment
+
+- **T001–T002 (startup + smoke):** Correct sequencing. T001 should add `spawn_axiomregent(app)` after `SidecarState` management at `lib.rs:189`. T002 should verify port appears in `SidecarState`.
+- **T003–T004 (packaging + verification):** Need to account for binary availability per platform. The gitctx-mcp approach (per-architecture bundled binary) is the pattern to follow.
+- **T005–T006 (UI + safety tiers):** Well-scoped. T005 can use `get_sidecar_ports` which is already a Tauri command. T006 can read `safety.rs` tier definitions — but note these are only meaningful once axiomregent is actually dispatching tool calls.
+- **T007–T008 (closure):** Standard.
+
+### Feature 032 lifecycle status
+
+**Confirmed: `status: active` is correct.** The registry enum (Feature 000/003) allows only `draft|active|superseded|retired`. There is no `implemented` value. Feature 032 remains `active` — it is current platform truth. Delivery is proven by `tasks.md` (all checked) + `execution/verification.md` (green run 2026-03-28).
+
+### Recommendation
+
+Feature 033 spec is ready for implementation with two additions:
+1. Add a note to `spec.md` or `plan.md` acknowledging binary availability constraint (only macOS arm64 currently)
+2. T003 should include cross-compilation or graceful degradation as explicit deliverables
+

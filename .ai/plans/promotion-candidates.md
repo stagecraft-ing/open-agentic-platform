@@ -6,7 +6,7 @@
 
 | Item | Current evidence | Target artifact |
 |------|------------------|-----------------|
-| Feature 032 delivery recorded (lifecycle-safe) | `tasks.md` complete; `verification.md` green 2026-03-28 | Keep frontmatter `status: active` per registry enum; delivery in body + execution artifacts (**not** `implemented` — invalid enum) |
+| Feature 032 delivery recorded | `tasks.md` T000–T013 complete; `verification.md` green 2026-03-28 | Frontmatter stays `status: active` (valid enum per Feature 000/003). Delivery proven by tasks + verification artifacts. |
 | Feature 033 - axiomregent activation | `spawn_axiomregent()` exists; sidecar/state/port plumbing already present; post-032 synthesis says this is the highest-leverage next slice | New `specs/033-axiomregent-activation/spec.md` |
 | Featuregraph scanner fix | `scanner.rs:167` reads forbidden `features.yaml`; governance panel remains degraded until registry-backed scan exists | New `specs/034-featuregraph-registry-scanner-fix/spec.md` |
 | Safety tier governance spec | `safety.rs` defines tiers in code only; no spec governs tier meanings or assignment rules | New feature spec after 033 promotion |

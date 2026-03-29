@@ -53,9 +53,9 @@
 ### Promote now
 
 - `specs/032-opc-inspect-governance-wiring-mvp/spec.md`
-  - **Do not** set `status: implemented` — not in the registry enum (Feature **000**). Keep **`active`** or move to **`superseded`/`retired`** only per Feature **003**. Record delivery via **tasks + `execution/verification.md`** (and optional **Delivery** section in spec body).
+  - Stays **`status: active`** — delivery proven by tasks.md + verification.md. Registry enum is `draft|active|superseded|retired` only (Feature 000/003).
 
-- `specs/033-axiomregent-activation/spec.md`
+- `specs/033-axiomregent-activation/spec.md` (scaffolded 2026-03-29)
   - New canonical feature for:
     - sidecar activation on startup
     - sidecar bundling/runtime verification
@@ -88,7 +88,8 @@
 
 ## After promotion (canonical)
 
-- [x] Record Feature 032 completion via tasks + verification (no invalid `implemented` status)
-- [x] Create `specs/033-axiomregent-activation/` with spec/plan/tasks/execution artifacts
+- [x] Record Feature 032 completion via tasks + verification (status stays `active`)
+- [x] Create `specs/033-axiomregent-activation/` with spec/plan/tasks (scaffolded 2026-03-29)
+- [ ] Claude review of 033 spec against actual code (this pass)
 - [ ] Decide whether scanner fix becomes Feature 034 or a narrowly scoped follow-on slice
-- [ ] Hand implementation back to Cursor once 033 exists canonically
+- [ ] Hand implementation back to Cursor once 033 spec is reviewed
