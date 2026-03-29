@@ -14,10 +14,18 @@
       "Task",
       "Agent(*)",
       "mcp__*",
-      "Bash(find /c/Dev/open-agentic-platform/.ai -type f -name *)",
+      "Bash(*)",
+      "Bash(**)",
       "Bash(find /c/Dev/open-agentic-platform -name *.md -path *spec* -type f)",
       "Bash(find /c/Dev/open-agentic-platform/crates -type d -name *)",
-      "Bash(find /c/Dev/open-agentic-platform/packages -type d -name *)"
+      "Bash(find /c/Dev/open-agentic-platform/packages -type d -name *)",
+      "Bash(find /c/Dev/open-agentic-platform/crates/axiomregent -name *.rs -type f)",
+      "Bash(cargo build:*)",
+      "Bash(./tools/spec-compiler/target/release/spec-compiler compile:*)",
+      "Bash(cargo test:*)",
+      "Bash(UPDATE_GOLDEN=1 cargo test --manifest-path crates/featuregraph/Cargo.toml)",
+      "Bash(REGENERATE_GOLDEN=1 cargo test --manifest-path crates/featuregraph/Cargo.toml)",
+      "Bash(UPDATE_GOLDEN=1 cargo test test_golden_graph)"
     ],
     "defaultMode": "acceptEdits"
   }
