@@ -46,6 +46,13 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
+      # gitctx-mcp depends on openssl-sys via reqwest/octocrab
+      - name: Install OpenSSL dev (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+
       - name: Build gitctx-mcp
         run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/gitctx/Cargo.toml
 
@@ -92,15 +99,23 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Install cross-compilation tools
+      - name: Install cross-compilation tools and OpenSSL
         run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i 's/^deb http/deb [arch=amd64] http/' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ jammy main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/arm64-ports.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64-ports.list
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt-get install -y gcc-aarch64-linux-gnu libssl-dev:arm64
 
       - name: Build gitctx-mcp
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          PKG_CONFIG_ALLOW_CROSS: '1'
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
+          OPENSSL_LIB_DIR: /usr/lib/aarch64-linux-gnu
+          OPENSSL_INCLUDE_DIR: /usr/include
         run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/gitctx/Cargo.toml
 
       - name: Copy binary
