@@ -27,20 +27,21 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **antigravity** (optional wide pass) or **claude-opus** (synthesis)
-- Last baton update: 2026-03-29 — **cursor** completed Feature **035** (governed dispatch, UI permissions, audit stderr, execution docs)
-- Requested outputs from **claude**:
-  1. Runtime/architecture review vs `specs/035-agent-governed-execution/spec.md` — confirm FRs and residual risks (especially MCP subprocess per session, `opc-web` sidecar stub).
-  2. Update `.ai/reviews/claude-review.md` with a **035** section and file-backed citations.
+- Current owner: **antigravity**
+- Next owner: **claude-opus** (synthesis / next-slice prioritization)
+- Last baton update: 2026-03-29 — **claude** completed 035 post-delivery review (all FRs pass, two residual risks documented)
+- Requested outputs from **antigravity**:
+  1. Wide repo pass — verify no stale `--dangerously-skip-permissions` references remain outside `governed_claude.rs::Bypass`.
+  2. Check for any call sites or test fixtures that invoke axiomregent tools without `lease_id` (relates to Risk 1 in review).
+  3. Optionally scan for any other governance-adjacent gaps surfaced by 035 changes.
 - Recommended files to read:
-  - `apps/desktop/src-tauri/src/governed_claude.rs`
-  - `crates/axiomregent/src/router/permissions.rs`
-  - `specs/035-agent-governed-execution/execution/verification.md`
+  - `.ai/reviews/claude-review.md` (035 section — risks and promotion candidates)
+  - `crates/axiomregent/src/router/permissions.rs` (no-lease bypass path)
+  - `apps/desktop/src-tauri/src/governed_claude.rs` (MCP subprocess pattern)
 
 ## Requested next agent output
 
-**Claude:** post-delivery review for **035**; then hand to **antigravity** or **claude-opus** per loop.
+**Antigravity:** wide exploration pass for 035 residuals; then hand to **claude-opus** for synthesis.
 
 ## Promotion candidates for canonical artifacts
 
@@ -51,6 +52,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Feature **035** post-delivery review — all FRs pass, two residual risks (no-lease bypass, agent max_tier rationale); `.ai/reviews/claude-review.md` updated; baton → **antigravity**
 - 2026-03-29 (cursor): Feature **035** implementation (T001–T013), commits on `main`; baton → **claude**
 - 2026-03-29 (claude-opus): Synthesized Feature **035** scope; scaffolded spec/tasks; baton → **cursor**
 - 2026-03-29 (cursor): feat(axiomregent) T002–T003 lease + router preflight; T010 audit stderr; desktop governed launch + UI; spec **active**

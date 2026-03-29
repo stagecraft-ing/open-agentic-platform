@@ -169,7 +169,70 @@ Section 2 of the original review ("featuregraph scanner has a structural depende
 ### Remaining open items (not 034 scope)
 
 1. **Feature ID reconciliation** — spec IDs (kebab) vs code IDs (UPPERCASE) remain unbridged. Section 4 of original review still applies.
-2. **Agent execution bypass** — `--dangerously-skip-permissions` still in all agent paths. Feature 035-class.
+2. ~~**Agent execution bypass** — `--dangerously-skip-permissions` still in all agent paths. Feature 035-class.~~ **Resolved by Feature 035.**
 3. **Titor command stubs** — still pending.
 4. **Safety tier spec** — `safety.rs` tiers display-only, not yet spec-governed.
+
+---
+
+## Feature 035 review (2026-03-29)
+
+### Verdict: Feature 035 is correctly implemented. All FRs satisfied. Two residual risks identified.
+
+### FR assessment
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| FR-001: Tool calls routed through axiomregent MCP | `governed_claude.rs:95-107` — `GovernedPlan::Governed` adds `--mcp-config` + `--permission-mode default`; bypass removed from all 7 sites (`agents.rs:773-778`, `claude.rs:965-987,1012-1035,1062-1086`, `web_server.rs:488-501,605-619,699-714`) | **Pass** |
+| FR-002: Router enforces tier + permission flags | `permissions.rs:56-79` — `check_tool_permission` checks `tier_rank(tool_tier) > max_allowed`, `requires_file_read/write/network` against `grants`. `router/mod.rs:489` calls `preflight_tool_permission` before every `tools/call` dispatch | **Pass** |
+| FR-003: UI exposes permission toggles | `CreateAgent.tsx:327-347` — three Toggle switches for file_read, file_write, network. `api.ts` carries fields through `createAgent`/`updateAgent`. Defaults: read=true, write=true, network=false | **Pass** |
+| FR-004: Degraded fallback with visible warning | `governed_claude.rs:103-105` — `Bypass` variant adds `--dangerously-skip-permissions`. `AgentExecution.tsx:563-574` and `ClaudeCodeSession.tsx:1502-1515` show amber "Bypass" badge when governance unavailable | **Pass** |
+| FR-005: Structured audit log | `permissions.rs:84-100` — `audit_tool_dispatch` emits JSON to stderr with `op`, `tool`, `tier`, `decision`, `lease_id`, `ts`. Called on both allow and deny paths (`router/mod.rs:123-128,132-137`) | **Pass** |
+
+### Architecture: MCP subprocess per session (correct design)
+
+The implementation uses a **two-axiomregent** pattern:
+
+1. **Sidecar axiomregent** (spawned at startup via `sidecars.rs`) — acts as a readiness probe. Its `announce_port` is checked in `plan_governed` (`governed_claude.rs:83`) to decide governed vs bypass.
+2. **Per-session axiomregent** (spawned by Claude CLI via `--mcp-config`) — receives `OPC_GOVERNANCE_GRANTS` env with session-specific grants. `main.rs:36-38` reads this env into `PermissionGrants::from_env_or_default()` and creates the `LeaseStore` with those grants as defaults.
+
+This is a good isolation model: each session gets its own grant scope, and the sidecar is only a health check for platform capability. The sidecar's own `LeaseStore` is irrelevant to governed sessions — it's the per-session subprocess that enforces permissions.
+
+### Risk 1 (MEDIUM): No-lease tool calls bypass permission checks
+
+`preflight_tool_permission` (`router/mod.rs:112-141`) uses the `?` operator on both `args.get("lease_id")` (line 118) and `self.lease_store.get_lease(lease_id)` (line 119). If either returns `None`, the function returns `None` — which means "no denial", and the tool executes **without any permission check**.
+
+**Impact:** Any tool call without a `lease_id` argument silently bypasses all tier and permission enforcement. Many tools don't require `lease_id` in their schemas (e.g., `xray.scan`, `features.impact`, `gov.preflight`). A Claude CLI session could call these tools without a lease and skip governance entirely.
+
+**Severity:** Medium. The practical attack surface is limited because:
+- Claude CLI sends tool calls as the MCP client; users don't craft raw JSON-RPC.
+- Read-only tools like `xray.scan` and `features.impact` are Tier 1 (autonomous) and would pass permission checks anyway.
+- Write-path tools (`workspace.write_file`, `snapshot.create`) typically require `lease_id` for functional reasons (worktree mode).
+
+**Recommended fix:** Default to `PermissionGrants::from_env_or_default()` (the session grants) when no lease is found, rather than silently allowing. This closes the bypass without requiring lease_id on every tool schema. Alternatively, audit-log the bypass so it's visible.
+
+### Risk 2 (LOW): Agent max_tier=3 vs Claude default max_tier=2
+
+`grants_json_for_agent` (`governed_claude.rs:46-53`) sets `max_tier: 3` for all agents, while `grants_json_claude_default` (`governed_claude.rs:55-63`) sets `max_tier: 2` for direct Claude sessions. This means agents can invoke Tier 3 (manual/dangerous) tools that interactive Claude sessions cannot.
+
+**Rationale:** Agents have per-permission flags (`enable_file_read/write/network`) that individually constrain tool access, so Tier 3 tools are gated by those flags. Interactive Claude sessions have all permissions enabled but are tier-capped at 2 as a blanket safety measure.
+
+**Assessment:** Defensible but non-obvious. The agent's explicit permission grants are the primary enforcement mechanism; `max_tier: 3` just means the tier ceiling doesn't redundantly block tools already gated by permission flags. Document this design decision in the spec's contract notes.
+
+### Concern from prior review resolved
+
+Section 1 ("Governance is display-only") of the original 032 review is now **fully resolved**. All 7 `--dangerously-skip-permissions` call sites are replaced with governed dispatch. Permission flags in SQLite are read at execution time (`agents.rs:774`, `governed_claude.rs:46`) and enforced by the per-session axiomregent subprocess.
+
+Section 3 ("axiomregent is dead code") — also resolved. axiomregent is both live as a sidecar (033) and actively used for per-session governance (035).
+
+### NF-001 (latency) status
+
+Per `execution/verification.md`: "no automated p99 gate in-repo — manual profiling recommended when hardening." The per-session subprocess startup adds process-spawn + MCP handshake latency. No measurement artifact exists yet. **Recommended follow-up:** add a benchmark or integration test that asserts < 50ms overhead per tool call (excluding subprocess startup, which is amortized over the session).
+
+### Promotion candidates
+
+- [ ] Risk 1 fix (no-lease bypass) — new task for post-035 hardening
+- [ ] NF-001 automated latency gate — as noted in spec and verification
+- [ ] Document max_tier agent vs claude rationale in `spec.md` contract notes
+- [ ] Cross-platform axiomregent binaries (033 residual, still open)
 
