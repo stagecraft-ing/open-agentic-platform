@@ -12,9 +12,6 @@ pub enum ToolTier {
     Tier3, // Manual — dangerous or unclassified (execution, arbitrary commands)
 }
 
-/// Backwards-compatible alias (T003 — will be removed once all consumers migrate).
-pub type Tier = ToolTier;
-
 impl ToolTier {
     pub fn as_str(&self) -> &'static str {
         match self {

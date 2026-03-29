@@ -325,7 +325,7 @@ status: string; staged: boolean }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type RecoveryError = { type: "FileNotFound" } | { type: "ValidationError"; message: string } | { type: "DataTooLarge"; max_bytes: number } | { type: "IoError"; message: string } | { type: "ParseError"; message: string }
 /**
- * Read-only labels for `featuregraph::preflight::SafetyTier` (governance UI).
+ * Read-only labels for `featuregraph::preflight::ChangeTier` (governance UI).
  */
 export type SafetyTierRef = { id: string; label: string; description: string }
 export type SandboxStatus = { 

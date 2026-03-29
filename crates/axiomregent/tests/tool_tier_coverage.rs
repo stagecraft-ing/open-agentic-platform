@@ -91,6 +91,45 @@ fn every_router_tool_has_explicit_tier() {
 }
 
 #[test]
+fn explicitly_classified_tools_matches_router() {
+    let router = create_router();
+
+    // Get tools/list response
+    let req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "tools/list".to_string(),
+        params: None,
+        id: Some(json!(1)),
+    };
+    let resp = router.handle_request(&req);
+    let result = resp.result.expect("tools/list should return result");
+    let tools = result["tools"].as_array().expect("tools should be an array");
+
+    let router_tool_names: HashSet<&str> = tools
+        .iter()
+        .map(|t| t["name"].as_str().expect("tool name should be string"))
+        .collect();
+
+    let classified: HashSet<&str> = agent::safety::explicitly_classified_tools()
+        .iter()
+        .copied()
+        .collect();
+
+    // Every explicitly classified tool MUST exist in the router,
+    // EXCEPT "write_file", which is a legacy alias kept for internal use.
+    let missing_in_router: Vec<&&str> = classified
+        .iter()
+        .filter(|&&name| name != "write_file" && !router_tool_names.contains(name))
+        .collect();
+
+    assert!(
+        missing_in_router.is_empty(),
+        "The following tools are listed in explicitly_classified_tools() but DO NOT exist in the router:\n  {:?}",
+        missing_in_router
+    );
+}
+
+#[test]
 fn tier_assignments_match_spec() {
     // Verify specific tier assignments from the 036 spec
     use agent::safety::{ToolTier, get_tool_tier};
