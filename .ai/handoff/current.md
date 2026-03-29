@@ -101,26 +101,25 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude-opus**
-- Next owner: **cursor** (for P0 spec implementation) or **claude-opus** (for next-slice prioritization among 042–063)
-- Last baton update: 2026-03-29 — **claude-opus**: Stagecraft-ing extraction + integration complete. 65 new files. 22 draft specs (042–063). All 17 source projects safe to delete. Awaiting direction on which spec to implement first.
+- Current owner: **cursor**
+- Next owner: **claude** (review first implementation slice for **045** when code lands) or **claude-opus** (if synthesis / reprioritization is needed before coding)
+- Last baton update: 2026-03-29 — **cursor**: Acknowledged handoff. Accepted recommended P0 sequence (045 → 042 → 044 → 046 → 047). Next concrete work: implementation slice for **specs/045-*** (Claude Code SDK Bridge). Prioritization question from prior baton resolved by adopting cross-cutting order from `CONSOLIDATION.md` / prior session.
 - Recommended files to read:
+  - `specs/045-claude-code-sdk-bridge/spec.md` — first implementation target (no `tasks.md` yet; slice tasks should follow spec requirements)
   - `docs/extractions/CONSOLIDATION.md` — master priority list with cross-cutting themes
-  - `CLAUDE.md` — new project governance
-  - `AGENTS.md` — agent protocol and available commands
-  - Any spec in `specs/042-*` through `specs/063-*` for implementation candidates
+  - `CLAUDE.md`, `AGENTS.md` — project governance and init protocol
 
 ## Requested next agent output
 
-**Prioritization needed.** 22 draft specs (042–063) are ready. Recommended implementation order based on cross-cutting validation (7+ projects confirmed the pattern):
+**Implementation (045).** Draft specs 042–063 remain; execution starts with **045 — Claude Code SDK Bridge** per validated P0 order:
 
-1. **045 — Claude Code SDK Bridge** (unblocks desktop app agent execution)
-2. **042 — Multi-Provider Agent Registry** (unblocks multi-backend support)
-3. **044 — Multi-Agent Orchestration** (unblocks sophisticated agent workflows)
-4. **046 — Context Compaction** (unblocks long sessions)
-5. **047 — Governance Control Plane** (extends spec-compiler with runtime enforcement)
+1. **045 — Claude Code SDK Bridge** (unblocks desktop app agent execution) — **current focus**
+2. **042 — Multi-Provider Agent Registry**
+3. **044 — Multi-Agent Orchestration**
+4. **046 — Context Compaction**
+5. **047 — Governance Control Plane**
 
-Each P0 spec has full interface definitions, architecture, and success criteria ready for implementation.
+Land a minimal vertical slice for 045 aligned with functional requirements (FR-xxx) in `spec.md`, with verification artifacts as defined in the spec. After a slice merges, **claude** should review against `spec.md` / integration gaps.
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -137,6 +136,7 @@ Each P0 spec has full interface definitions, architecture, and success criteria 
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): Handoff response — baton claimed; accepted P0 order (045 → 042 → 044 → 046 → 047); next work: implementation slice for spec **045** (Claude Code SDK Bridge).
 - 2026-03-29 (claude-opus): Stagecraft-ing full extraction + integration. 17 projects analyzed, 189 items extracted, 62 consolidated, 65 files created (9 commands, 4 agents, 1 rule, 3 code modules, 3 ast-grep rules, 3 devcontainer files, 22 specs, CLAUDE.md, AGENTS.md). All source projects confirmed safe to delete.
 - 2026-03-29 (claude-opus): Slice H complete. V-005 message wording fixed. All residuals cleared.
 - 2026-03-29 (claude-opus): Post-041 synthesis complete. Authority-map, next-slice, integration-debt all updated for 032–041.
