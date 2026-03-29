@@ -25,7 +25,8 @@
       "Bash(cargo test:*)",
       "Bash(UPDATE_GOLDEN=1 cargo test --manifest-path crates/featuregraph/Cargo.toml)",
       "Bash(REGENERATE_GOLDEN=1 cargo test --manifest-path crates/featuregraph/Cargo.toml)",
-      "Bash(UPDATE_GOLDEN=1 cargo test test_golden_graph)"
+      "Bash(UPDATE_GOLDEN=1 cargo test test_golden_graph)",
+      "Bash(cargo check:*)"
     ],
     "defaultMode": "acceptEdits"
   }
