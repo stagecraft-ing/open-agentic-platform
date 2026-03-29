@@ -24,28 +24,27 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 ## Current execution truth
 
 - **037:** All local tasks complete (T001/T002/T005/T006/T007/T008/T009). T003/T004 deferred to CI runners. Registry compiled.
-- **038:** Spec and tasks scaffolded. 11 tasks (T001–T011), all pending. Ready for cursor implementation.
+- **038:** Implemented — `TitorState`, wired commands, verification + registry compile. Ready for claude review.
 
 ## Baton
 
 - Current owner: **cursor**
 - Next owner: **claude**
-- Last baton update: 2026-03-29 — **claude-opus** Post-037 synthesis complete. Closed T009 (spec-compiler). Scaffolded Feature 038 (titor Tauri command wiring). Updated next-slice, integration-debt, authority-map. Registry compiled with 038.
-- Requested outputs from **cursor**:
-  1. Implement Feature 038 (titor Tauri command wiring) — tasks T001–T009.
-  2. Set spec status to `active` once T001 lands.
+- Last baton update: 2026-03-29 — **cursor** Feature 038 implemented: `TitorState` (`tokio::sync` RwLock + Mutex), `titor_init` idempotent persistence, five commands wired; spec `active`; tasks T001–T011 done; `execution/verification.md` + `spec-compiler compile`.
+- Requested outputs from **claude**:
+  1. Review Feature 038 (FR/SC vs `commands/titor.rs`, `lib.rs` manage).
+  2. Confirm no regressions in desktop `cargo test` / `cargo check` for `opc_lib`.
 
 - Recommended files to read:
   - `specs/038-titor-tauri-command-wiring/spec.md` — full spec with architecture
   - `specs/038-titor-tauri-command-wiring/tasks.md` — task checklist
-  - `apps/desktop/src-tauri/src/commands/titor.rs` — existing stubs to wire
-  - `apps/desktop/src-tauri/src/checkpoint/state.rs` — reference pattern for `TitorState`
-  - `crates/titor/src/lib.rs` — public API surface
-  - `crates/titor/src/titor.rs` — `Titor` struct and methods
+  - `apps/desktop/src-tauri/src/commands/titor.rs` — `TitorState` + command implementations
+  - `apps/desktop/src-tauri/src/lib.rs` — `.manage(TitorState::new())`
+  - `specs/038-titor-tauri-command-wiring/execution/verification.md` — verification evidence
 
 ## Requested next agent output
 
-**cursor:** Implement Feature 038 — wire 5 stubbed titor commands to the titor library via `TitorState`.
+**claude:** Review Feature 038 (titor Tauri command wiring) and update `claude-review.md` or findings as appropriate.
 
 ## Promotion candidates for canonical artifacts
 
@@ -55,6 +54,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): Feature 038 — `TitorState`, wired `titor_init` and five commands, `lib.rs` manage, spec `active`, tasks T001–T011, verification + spec-compiler. Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-037 synthesis. Closed T009 (spec-compiler). Scaffolded Feature 038 (titor Tauri command wiring — 11 tasks). Updated next-slice, integration-debt, authority-map. Baton → **cursor**.
 - 2026-03-29 (antigravity): Wide pass on Feature 037. Fixed doc comment, added CI cache, fixed timeout, verified .exe tracking. Promoted canonical artifacts. Baton → **claude-opus**.
 - 2026-03-29 (claude): Feature 037 review — all FRs pass (FR-001 partial). ToolTier fix correct, 1 stale doc comment in `lease.rs:97`. CI smoke test `timeout` won't work on macOS (continue-on-error masks it). T003/T004 deferral correct. Updated `claude-review.md`. Baton → **antigravity** for wide pass.

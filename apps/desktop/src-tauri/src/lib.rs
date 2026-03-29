@@ -182,6 +182,8 @@ pub fn run() {
             }
             app.manage(checkpoint_state);
 
+            app.manage(commands::titor::TitorState::new());
+
             // Initialize process registry and Claude process state
             app.manage(ProcessRegistryState::default());
             app.manage(ClaudeProcessState::default());

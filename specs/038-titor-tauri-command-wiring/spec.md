@@ -2,7 +2,7 @@
 id: "038-titor-tauri-command-wiring"
 title: "titor Tauri command wiring"
 feature_branch: "038-titor-tauri-command-wiring"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:
