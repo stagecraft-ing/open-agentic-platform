@@ -14,6 +14,8 @@ pub async fn xray_scan_project(path: String) -> Result<serde_json::Value, String
     serde_json::to_value(&index).map_err(|e| e.to_string())
 }
 
+/// Governance + inspect: compiled **registry** summary plus **featuregraph** scan.
+/// The graph scan prefers `build/spec-registry/registry.json` (via `spec-compiler`), then `spec/features.yaml` — see `featuregraph::scanner::Scanner::scan`.
 #[command]
 pub async fn featuregraph_overview(features_yaml_path: String) -> Result<serde_json::Value, String> {
     let repo_root = resolve_repo_root(&features_yaml_path);
