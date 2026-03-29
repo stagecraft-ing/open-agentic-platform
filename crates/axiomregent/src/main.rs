@@ -71,7 +71,8 @@ async fn main() -> Result<()> {
     // Stdout is reserved for MCP framing; the desktop watches stderr for this line.
     let probe_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     let probe_port = probe_listener.local_addr()?.port();
-    eprintln!("OPC_AXIOMREGENT_PORT={probe_port}");
+    let mut stderr = std::io::stderr();
+    let _ = writeln!(stderr, "OPC_AXIOMREGENT_PORT={probe_port}");
     tokio::spawn(async move {
         loop {
             match probe_listener.accept().await {

@@ -117,9 +117,26 @@ impl Router {
     ) -> Option<JsonRpcResponse> {
         let lease_id = args.get("lease_id").and_then(|v| v.as_str())?;
         let lease = self.lease_store.get_lease(lease_id)?;
+        let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
         match permissions::check_tool_permission(tool_name, &lease) {
-            Ok(()) => None,
-            Err(e) => Some(json_rpc_permission_denied(id, &e.to_string())),
+            Ok(()) => {
+                permissions::audit_tool_dispatch(
+                    tool_name,
+                    tier_label,
+                    "allowed",
+                    Some(lease_id),
+                );
+                None
+            }
+            Err(e) => {
+                permissions::audit_tool_dispatch(
+                    tool_name,
+                    tier_label,
+                    "denied",
+                    Some(lease_id),
+                );
+                Some(json_rpc_permission_denied(id, &e.to_string()))
+            }
         }
     }
 

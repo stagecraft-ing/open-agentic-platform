@@ -1,6 +1,8 @@
 // Feature 035 — governed tool dispatch
 
 use agent::safety::{Tier, get_tool_tier};
+use serde_json::json;
+use std::io::Write;
 
 use crate::router::AxiomRegentError;
 use crate::snapshot::lease::{Lease, PermissionGrants};
@@ -76,6 +78,25 @@ pub fn check_tool_permission(tool_name: &str, lease: &Lease) -> Result<(), Axiom
         )));
     }
     Ok(())
+}
+
+/// Structured audit line on stderr (Feature 035 / T010).
+pub fn audit_tool_dispatch(
+    tool_name: &str,
+    tier: &str,
+    decision: &str,
+    lease_id: Option<&str>,
+) {
+    let line = json!({
+        "op": "axiomregent.tool_audit",
+        "tool": tool_name,
+        "tier": tier,
+        "decision": decision,
+        "lease_id": lease_id,
+        "ts": chrono::Utc::now().to_rfc3339(),
+    });
+    let mut stderr = std::io::stderr();
+    let _ = writeln!(stderr, "{line}");
 }
 
 #[cfg(test)]
