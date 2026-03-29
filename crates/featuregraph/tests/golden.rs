@@ -13,9 +13,10 @@ fn test_golden_graph() {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let repo_root = Path::new(&manifest_dir).parent().unwrap().parent().unwrap();
 
-    // Ensure we are in the right repo
+    // Ensure we are in the right repo (compiled registry and/or legacy yaml)
     assert!(
-        repo_root.join("spec/features.yaml").exists(),
+        repo_root.join("build/spec-registry/registry.json").exists()
+            || repo_root.join("spec/features.yaml").exists(),
         "Repo root not found at {:?}",
         repo_root
     );

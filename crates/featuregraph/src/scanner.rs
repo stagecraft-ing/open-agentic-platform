@@ -150,6 +150,59 @@ struct FeatureEntry {
     aliases: Vec<String>,
 }
 
+impl FeatureEntry {
+    fn from_registry_record(r: &crate::registry_source::RegistryFeatureRecord) -> Self {
+        Self {
+            id: r.id.clone(),
+            title: r.title.clone(),
+            spec: r.spec_path.clone(),
+            governance: String::new(),
+            owner: String::new(),
+            group: String::new(),
+            depends_on: Vec::new(),
+            implementation: Some(r.status.clone()),
+            aliases: Vec::new(),
+        }
+    }
+}
+
+/// Prefer **`build/spec-registry/registry.json`** (spec-compiler); fall back to **`spec/features.yaml`**.
+fn load_feature_entries(root: &Path) -> Result<(Vec<FeatureEntry>, String), anyhow::Error> {
+    let registry_json = root.join("build/spec-registry/registry.json");
+    let features_yaml = root.join("spec/features.yaml");
+
+    if registry_json.is_file() {
+        let records = crate::registry_source::load_registry_records(&registry_json)?;
+        let features: Vec<FeatureEntry> = records
+            .iter()
+            .map(FeatureEntry::from_registry_record)
+            .collect();
+        let rel = registry_json
+            .strip_prefix(root)
+            .unwrap_or(&registry_json)
+            .to_string_lossy()
+            .replace('\\', "/");
+        return Ok((features, rel));
+    }
+
+    if features_yaml.is_file() {
+        let features_file = File::open(&features_yaml)?;
+        let parsed: FeaturesYaml = serde_yaml::from_reader(features_file)?;
+        let rel = features_yaml
+            .strip_prefix(root)
+            .unwrap_or(&features_yaml)
+            .to_string_lossy()
+            .replace('\\', "/");
+        return Ok((parsed.features, rel));
+    }
+
+    anyhow::bail!(
+        "Feature manifest not found: need {} (run `spec-compiler compile`) or {}",
+        registry_json.display(),
+        features_yaml.display()
+    );
+}
+
 pub struct Scanner {
     root: PathBuf,
     parser: HeaderParser,
@@ -164,9 +217,7 @@ impl Scanner {
     }
 
     pub fn scan(&self) -> Result<FeatureGraph, anyhow::Error> {
-        let features_yaml_path = self.root.join("spec/features.yaml");
-        let features_file = File::open(features_yaml_path)?;
-        let registry: FeaturesYaml = serde_yaml::from_reader(features_file)?;
+        let (features, manifest_path) = load_feature_entries(&self.root)?;
 
         let mut graph = FeatureGraph::new();
         let mut feature_map: HashMap<String, FeatureNode> = HashMap::new();
@@ -174,13 +225,13 @@ impl Scanner {
         let mut alias_map: HashMap<String, String> = HashMap::new();
         let mut global_violations: Vec<Violation> = Vec::new();
 
-        // Populate from registry
-        for entry in registry.features {
+        // Populate from manifest (compiled registry or legacy yaml)
+        for entry in features {
             if feature_map.contains_key(&entry.id) {
                 global_violations.push(Violation {
                     code: "DUPLICATE_FEATURE_ID".to_string(),
                     severity: "error".to_string(),
-                    path: "spec/features.yaml".to_string(),
+                    path: manifest_path.clone(),
                     feature_id: Some(entry.id.clone()),
                     message: format!("Duplicate feature ID: {}", entry.id),
                     suggested_fix: Some("Remove duplicate entry".to_string()),
@@ -221,7 +272,8 @@ impl Scanner {
                         feature_id: Some(entry.id.clone()),
                         message: format!("Spec file {} does not exist", entry.spec),
                         suggested_fix: Some(
-                            "Create the spec file or update spec/features.yaml".to_string(),
+                            "Create the spec file or update the compiled registry / spec/features.yaml"
+                                .to_string(),
                         ),
                     });
                 }
@@ -288,7 +340,7 @@ impl Scanner {
                                         feature_id: Some(fid.clone()),
                                         message: format!("Feature {} not found in registry", fid),
                                         suggested_fix: Some(
-                                            "Add feature to spec/features.yaml or register as alias".to_string(),
+                                            "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias".to_string(),
                                         ),
                                     });
                                 }

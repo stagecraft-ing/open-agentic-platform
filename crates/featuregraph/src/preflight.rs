@@ -100,11 +100,11 @@ impl PreflightChecker {
                                 path: rel_path.clone(),
                                 feature_id: Some(fid.clone()),
                                 message: format!(
-                                    "Feature '{}' is not defined in spec/features.yaml",
+                                    "Feature '{}' is not defined in the feature manifest (registry.json or spec/features.yaml)",
                                     fid
                                 ),
                                 suggested_fix: Some(
-                                    "Add feature to spec/features.yaml or check for typos"
+                                    "Add feature to the compiled registry (spec-compiler) or spec/features.yaml"
                                         .to_string(),
                                 ),
                             });
