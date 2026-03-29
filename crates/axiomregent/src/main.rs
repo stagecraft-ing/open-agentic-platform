@@ -33,7 +33,10 @@ async fn main() -> Result<()> {
     // 2. Setup Stores & Tools
     let storage_config = axiomregent::config::StorageConfig::default();
     let store = Arc::new(axiomregent::snapshot::store::Store::new(storage_config)?);
-    let lease_store = Arc::new(axiomregent::snapshot::lease::LeaseStore::new());
+    let default_grants = axiomregent::snapshot::lease::PermissionGrants::from_env_or_default();
+    let lease_store = Arc::new(axiomregent::snapshot::lease::LeaseStore::with_default_grants(
+        default_grants,
+    ));
 
     let snapshot_tools = Arc::new(axiomregent::snapshot::tools::SnapshotTools::new(
         lease_store.clone(),
@@ -55,6 +58,7 @@ async fn main() -> Result<()> {
 
     // 3. Setup Router
     let router = Router::new(
+        lease_store.clone(),
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,

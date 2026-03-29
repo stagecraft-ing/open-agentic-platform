@@ -80,6 +80,7 @@ fn test_stale_lease_error_structure() {
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(repo.path()));
 
     let router = Router::new(
+        lease_store.clone(),
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,

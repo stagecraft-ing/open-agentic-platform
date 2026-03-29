@@ -32,6 +32,7 @@ fn make_router(dir: &std::path::Path) -> Router {
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(dir));
 
     Router::new(
+        lease_store.clone(),
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,

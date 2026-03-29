@@ -43,6 +43,7 @@ fn test_agent_verify_flow() {
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(&repo_root));
 
     let router = Router::new(
+        lease_store.clone(),
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,

@@ -36,6 +36,7 @@ fn test_mcp_tools_list_contract() {
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(dir.path()));
 
     let router = Router::new(
+        lease_store.clone(),
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,

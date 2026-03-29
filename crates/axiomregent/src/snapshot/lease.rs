@@ -85,22 +85,108 @@ impl Fingerprint {
     }
 }
 
+/// Permission grants bound to a lease (Feature 035). Serialized for `OPC_GOVERNANCE_GRANTS` env.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct PermissionGrants {
+    #[serde(default = "default_true")]
+    pub enable_file_read: bool,
+    #[serde(default = "default_true")]
+    pub enable_file_write: bool,
+    #[serde(default = "default_false")]
+    pub enable_network: bool,
+    /// `1` = Tier1, `2` = Tier2, `3` = Tier3 (see `agent::safety::Tier`).
+    #[serde(default = "default_max_tier_three")]
+    pub max_tier: u8,
+}
+
+fn default_true() -> bool {
+    true
+}
+fn default_false() -> bool {
+    false
+}
+fn default_max_tier_three() -> u8 {
+    3
+}
+
+impl Default for PermissionGrants {
+    fn default() -> Self {
+        Self::test_permissive()
+    }
+}
+
+impl PermissionGrants {
+    /// Permissive defaults for unit tests and legacy callers.
+    pub fn test_permissive() -> Self {
+        Self {
+            enable_file_read: true,
+            enable_file_write: true,
+            enable_network: true,
+            max_tier: 3,
+        }
+    }
+
+    /// Default Claude Code session (non-agent): all capabilities, cap at Tier2.
+    pub fn claude_default() -> Self {
+        Self {
+            enable_file_read: true,
+            enable_file_write: true,
+            enable_network: true,
+            max_tier: 2,
+        }
+    }
+
+    /// From `OPC_GOVERNANCE_GRANTS` JSON, or [`Self::claude_default`].
+    pub fn from_env_or_default() -> Self {
+        std::env::var("OPC_GOVERNANCE_GRANTS")
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_else(Self::claude_default)
+    }
+
+    pub fn for_agent(
+        enable_file_read: bool,
+        enable_file_write: bool,
+        enable_network: bool,
+    ) -> Self {
+        Self {
+            enable_file_read,
+            enable_file_write,
+            enable_network,
+            max_tier: 3,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Lease {
     pub id: String,
     pub fingerprint: Fingerprint,
     pub touched_files: HashSet<String>,
+    pub grants: PermissionGrants,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct LeaseStore {
     leases: Arc<RwLock<HashMap<String, Lease>>>,
+    default_grants: PermissionGrants,
+}
+
+impl Default for LeaseStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LeaseStore {
     pub fn new() -> Self {
+        Self::with_default_grants(PermissionGrants::test_permissive())
+    }
+
+    pub fn with_default_grants(default_grants: PermissionGrants) -> Self {
         Self {
             leases: Arc::new(RwLock::new(HashMap::new())),
+            default_grants,
         }
     }
 
@@ -110,9 +196,18 @@ impl LeaseStore {
             id: id.clone(),
             fingerprint,
             touched_files: HashSet::new(),
+            grants: self.default_grants.clone(),
         };
         self.leases.write().unwrap().insert(id.clone(), lease);
         id
+    }
+
+    pub fn get_lease(&self, lease_id: &str) -> Option<Lease> {
+        self.leases
+            .read()
+            .unwrap()
+            .get(lease_id)
+            .cloned()
     }
 
     pub fn get_fingerprint(&self, lease_id: &str) -> Option<Fingerprint> {

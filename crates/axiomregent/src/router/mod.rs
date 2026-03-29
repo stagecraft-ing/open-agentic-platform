@@ -12,6 +12,10 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use xray::tools::XrayTools;
 
+use crate::snapshot::lease::LeaseStore;
+
+mod permissions;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonRpcRequest {
     pub jsonrpc: String,
@@ -75,6 +79,7 @@ impl std::fmt::Display for AxiomRegentError {
 impl std::error::Error for AxiomRegentError {}
 
 pub struct Router {
+    lease_store: Arc<LeaseStore>,
     snapshot_tools: Arc<SnapshotTools>,
     workspace_tools: Arc<WorkspaceTools>,
     featuregraph_tools: Arc<FeatureGraphTools>,
@@ -85,6 +90,7 @@ pub struct Router {
 
 impl Router {
     pub fn new(
+        lease_store: Arc<LeaseStore>,
         snapshot_tools: Arc<SnapshotTools>,
         workspace_tools: Arc<WorkspaceTools>,
         featuregraph_tools: Arc<FeatureGraphTools>,
@@ -93,12 +99,27 @@ impl Router {
         run_tools: Arc<RunTools>,
     ) -> Self {
         Self {
+            lease_store,
             snapshot_tools,
             workspace_tools,
             featuregraph_tools,
             xray_tools,
             agent_tools,
             run_tools,
+        }
+    }
+
+    fn preflight_tool_permission(
+        &self,
+        id: Option<Value>,
+        tool_name: &str,
+        args: &serde_json::Map<String, Value>,
+    ) -> Option<JsonRpcResponse> {
+        let lease_id = args.get("lease_id").and_then(|v| v.as_str())?;
+        let lease = self.lease_store.get_lease(lease_id)?;
+        match permissions::check_tool_permission(tool_name, &lease) {
+            Ok(()) => None,
+            Err(e) => Some(json_rpc_permission_denied(id, &e.to_string())),
         }
     }
 
@@ -447,6 +468,10 @@ impl Router {
                     Some(a) => a,
                     None => return json_rpc_error(req.id.clone(), -32602, "Missing arguments"),
                 };
+
+                if let Some(resp) = self.preflight_tool_permission(req.id.clone(), name, args) {
+                    return resp;
+                }
 
                 match name {
                     // --- FeatureGraph Tools ---
@@ -1111,6 +1136,18 @@ fn json_rpc_error(id: Option<Value>, code: i64, message: &str) -> JsonRpcRespons
         error: Some(json!({
             "code": code,
             "message": message
+        })),
+        id,
+    }
+}
+
+fn json_rpc_permission_denied(id: Option<Value>, message: &str) -> JsonRpcResponse {
+    JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: None,
+        error: Some(json!({
+            "code": AxiomRegentError::PermissionDenied(message.to_string()).code(),
+            "message": message,
         })),
         id,
     }

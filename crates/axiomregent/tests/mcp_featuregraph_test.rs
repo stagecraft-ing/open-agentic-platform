@@ -9,6 +9,7 @@ use axiomregent::router::Router;
 use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 fn create_router() -> Router {
@@ -31,6 +32,7 @@ fn create_router() -> Router {
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(&root));
 
     Router::new(
+        lease_store.clone(),
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
@@ -43,7 +45,10 @@ fn create_router() -> Router {
 #[test]
 fn test_features_impact() {
     let router = create_router();
-    let repo_root = std::env::current_dir().unwrap();
+    let repo_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .unwrap();
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -80,7 +85,10 @@ fn test_features_impact() {
 #[test]
 fn test_gov_drift() {
     let router = create_router();
-    let repo_root = std::env::current_dir().unwrap();
+    let repo_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .unwrap();
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
