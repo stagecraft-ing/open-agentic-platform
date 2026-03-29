@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–039** delivered and reviewed. All original 032-era concerns resolved. Platform has reached **capability plateau** — governed execution story complete end-to-end. Next priorities: product surface expansion (blockoli, checkpoint UI) or minor cleanup batch.
+Features **032–039** delivered and reviewed. **Feature 040** (blockoli semantic search wiring) scaffolded — spec drafted, ready for implementation. Platform at capability plateau; now expanding product surface.
 
 ## Agent pack
 
@@ -19,24 +19,30 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 ## Canonical feature authority
 
 - **032–039:** All `status: active`, all complete. See individual `specs/<id>/spec.md` for details.
-- **039 spec:** `specs/039-feature-id-reconciliation/spec.md` (most recent — ADR 0001 accepted, schema 1.1.0, all verified)
+- **040 spec:** `specs/040-blockoli-semantic-search-wiring/spec.md` (status: **draft**, ready for implementation)
 
 ## Current execution truth
 
-- **032–039:** All complete. All reviewed by claude. All authority-map items resolved.
-- **039 (most recent):** ADR 0001 accepted; `registry.schema.json` schema 1.1.0; spec-compiler `code_aliases` / V-005 / V-006; featuregraph `codeAliases` → `FeatureEntry.aliases`; frontmatter on specs 004, 005, 032–035; verification recorded; golden graph updated.
-- **Platform state:** Governed execution complete end-to-end. No CRITICAL/HIGH/MEDIUM items remain.
+- **032–039:** All complete. All reviewed. All authority-map items resolved.
+- **040:** Spec drafted. Discovery pass complete. Key findings:
+  - `crates/blockoli/` — 1,284 LOC, fastembed (384-dim), KD-tree, SQLite persistence, asterisk parsing
+  - `commands/search.rs` — two `todo!()` stubs already registered in `lib.rs` invoke handler
+  - `SemanticSearchPanel.tsx` — fully implemented frontend, invokes `blockoli_search`
+  - Integration pattern: `BlockoliState` managed state (like `TitorState`), direct `VectorStore::SQLiteStore(conn)` construction
+  - Key risk: fastembed model download (~30 MB) on first use; hardcoded DB path needs override
 
 ## Baton
 
 - Current owner: **claude-opus**
-- Next owner: **(awaiting direction)**
-- Last baton update: 2026-03-29 — **claude-opus** Post-039 synthesis complete. All authority-map items resolved (032–039). Updated authority-map, integration-debt, next-slice, promotion-candidates. Platform at capability plateau. Next priorities: blockoli discovery (Slice F), checkpoint UI (Slice G), or minor cleanup batch (Slice H).
-- Recommended files to read: `.ai/plans/next-slice.md` (updated priorities), `.ai/findings/authority-map.md` (all items resolved)
+- Next owner: **cursor**
+- Last baton update: 2026-03-29 — **claude-opus** Slice F: discovery pass complete, Feature 040 spec scaffolded (`specs/040-blockoli-semantic-search-wiring/spec.md`). Blockoli library + stubs + frontend all exist; spec defines 6 FRs for wiring them together.
+- Requested outputs from **cursor**:
+  1. Implement Feature 040: `BlockoliState` managed state, `blockoli_index_project`, `blockoli_search` commands. Verify end-to-end with `SemanticSearchPanel`.
+- Recommended files to read: `specs/040-blockoli-semantic-search-wiring/spec.md`, `apps/desktop/src-tauri/src/commands/search.rs`, `crates/blockoli/src/lib.rs`, `crates/blockoli/src/vector_store/vector_store.rs`, `crates/blockoli/src/embeddings/encoder.rs`
 
 ## Requested next agent output
 
-**(Awaiting direction.)** All 032–039 work is complete. The platform has reached a capability plateau. See `.ai/plans/next-slice.md` for prioritized options: Slice F (blockoli discovery), Slice G (checkpoint UI), Slice H (minor cleanup batch).
+**cursor:** Implement Feature 040 (blockoli semantic search wiring). Spec at `specs/040-blockoli-semantic-search-wiring/spec.md`. Stubs + frontend already exist — wire them to the library.
 
 ## Promotion candidates for canonical artifacts
 
@@ -46,7 +52,8 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
-- 2026-03-29 (claude-opus): Post-039 synthesis complete. All authority-map items resolved (032–039). Platform at capability plateau. Updated authority-map, integration-debt, next-slice, promotion-candidates. Next: blockoli discovery (F), checkpoint UI (G), or cleanup batch (H). Baton → **(awaiting direction)**.
+- 2026-03-29 (claude-opus): Slice F discovery + Feature 040 scaffolded. Blockoli library (1,284 LOC, fastembed, KD-tree, SQLite) + Tauri stubs + frontend all exist. Spec: 6 FRs for `BlockoliState` + command wiring. Baton → **cursor**.
+- 2026-03-29 (claude-opus): Post-039 synthesis complete. All authority-map items resolved (032–039). Platform at capability plateau. Updated authority-map, integration-debt, next-slice, promotion-candidates.
 - 2026-03-29 (claude): Feature 039 review — all FRs/SCs pass, all 4 ADR gaps closed, zero orphan aliases, all original 032 concerns resolved. Two minor items (V-005 message wording, `language` key). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Feature 039 implemented — codeAliases pipeline (ADR, schema 1.1.0, compiler V-005/V-006, scanner, frontmatter, verification, golden). Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-ADR synthesis. Scaffolded Feature 039 (`specs/039-feature-id-reconciliation/` — 9 tasks). ADR edits bundled as T001. Updated next-slice, integration-debt, authority-map. Baton → **cursor**.

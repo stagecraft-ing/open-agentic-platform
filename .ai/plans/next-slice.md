@@ -50,15 +50,18 @@ Desktop UI stub exists but backend is not wired. The `crates/blockoli/` library 
 
 ## Ordered next-slice priority
 
-### Slice F: Product surface expansion — Blockoli semantic search
+### Slice F: Blockoli semantic search wiring (Feature 040) — SCAFFOLDED
 
 **Why first among remaining items:** The only substantial new capability left to unlock. The governance stack, temporal safety, and data architecture are all complete. Product-visible value now comes from exposing AI-native capabilities through the desktop app.
 
-**Not ready to scaffold.** Needs a discovery pass:
-1. Survey `crates/blockoli/` public API — what capabilities exist?
-2. Determine Tauri command signatures for search/index operations
-3. Assess embedding model requirements and startup cost
-4. Draft feature spec (040-class)
+**Discovery complete.** Key findings:
+- `crates/blockoli/` — 1,284 LOC, fastembed (384-dim vectors), KD-tree similarity, SQLite persistence, asterisk AST parsing
+- Two `todo!()` stubs in `commands/search.rs` already registered in Tauri invoke handler
+- `SemanticSearchPanel.tsx` fully implemented frontend — just needs working backend
+- Integration pattern: `BlockoliState` managed state (like `TitorState`), direct `VectorStore::SQLiteStore(conn)` construction to override hardcoded DB path
+- Risk: fastembed model download (~30 MB) on first embedding call
+
+**Spec:** `specs/040-blockoli-semantic-search-wiring/spec.md` (6 FRs, 5 SCs). Ready for cursor implementation.
 
 ### Slice G: Desktop UI for checkpoint/restore
 
@@ -85,9 +88,8 @@ Features 032–039 established and completed the governed execution thesis inclu
 
 ### Promote now
 
-(Nothing to promote — Feature 039 is the last item from the 032-era debt list. All promoted.)
+- **Feature 040 spec** — `specs/040-blockoli-semantic-search-wiring/spec.md` (drafted, ready for implementation)
 
 ### Promote next
 
-- **Blockoli semantic search discovery** — scoping pass on `crates/blockoli/` API and Tauri command signatures
 - **Checkpoint/restore UI design** — design input on desktop UX for temporal controls
