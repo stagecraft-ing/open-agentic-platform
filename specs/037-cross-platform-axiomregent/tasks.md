@@ -49,7 +49,7 @@ feature: "037-cross-platform-axiomregent"
 ## Closure
 
 - [x] **T008** — Update `execution/verification.md` with test commands and results
-- [ ] **T009** — Run `spec-compiler compile` to update registry
+- [x] **T009** — Run `spec-compiler compile` to update registry
 
 ## Notes
 

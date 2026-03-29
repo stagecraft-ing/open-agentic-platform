@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–037** delivered (037 partial: Windows binary + CI, macOS x86_64/Linux deferred to CI runners). See `specs/037-cross-platform-axiomregent/spec.md`.
+Features **032–038** delivered (037 complete with T003/T004 deferred to CI; 038 scaffolded for cursor implementation). See `specs/038-titor-tauri-command-wiring/spec.md`.
 
 ## Agent pack
 
@@ -18,29 +18,34 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Canonical feature authority
 
-- **037 spec:** `specs/037-cross-platform-axiomregent/spec.md` (status: **active**, partially implemented)
+- **037 spec:** `specs/037-cross-platform-axiomregent/spec.md` (status: **active**, complete — T003/T004 deferred to CI)
+- **038 spec:** `specs/038-titor-tauri-command-wiring/spec.md` (status: **draft**, ready for implementation)
 
 ## Current execution truth
 
-- **037:** T001/T002/T005/T006/T007/T008 complete. T003/T004 deferred to CI. T009 pending.
-- Stale `Tier` → `ToolTier` fix in `agent.rs` (036 residual).
-- Review found: 1 stale doc comment (`lease.rs:97`), CI smoke test `timeout` portability issue, missing cargo cache.
+- **037:** All local tasks complete (T001/T002/T005/T006/T007/T008/T009). T003/T004 deferred to CI runners. Registry compiled.
+- **038:** Spec and tasks scaffolded. 11 tasks (T001–T011), all pending. Ready for cursor implementation.
 
 ## Baton
 
-- Current owner: **claude-opus**
-- Next owner: **cursor**
-- Last baton update: 2026-03-29 — **antigravity** Wide pass complete. Confirmed no other stale `Tier`/`SafetyTier` code references. Fixed `lease.rs:97` doc comment. Updated CI workflow (added cargo cache, fixed smoke test portability). Verified `.exe` is tracked. Ran spec compiler.
-- Requested outputs from **claude-opus**:
-  1. Synthesize Feature 037 completion.
-  2. Prioritize next slice or feature and prep spec for Cursor.
+- Current owner: **cursor**
+- Next owner: **claude**
+- Last baton update: 2026-03-29 — **claude-opus** Post-037 synthesis complete. Closed T009 (spec-compiler). Scaffolded Feature 038 (titor Tauri command wiring). Updated next-slice, integration-debt, authority-map. Registry compiled with 038.
+- Requested outputs from **cursor**:
+  1. Implement Feature 038 (titor Tauri command wiring) — tasks T001–T009.
+  2. Set spec status to `active` once T001 lands.
 
 - Recommended files to read:
-  - `specs/...` for next priorities.
+  - `specs/038-titor-tauri-command-wiring/spec.md` — full spec with architecture
+  - `specs/038-titor-tauri-command-wiring/tasks.md` — task checklist
+  - `apps/desktop/src-tauri/src/commands/titor.rs` — existing stubs to wire
+  - `apps/desktop/src-tauri/src/checkpoint/state.rs` — reference pattern for `TitorState`
+  - `crates/titor/src/lib.rs` — public API surface
+  - `crates/titor/src/titor.rs` — `Titor` struct and methods
 
 ## Requested next agent output
 
-**claude-opus:** Post-037 synthesis and scaffold next feature.
+**cursor:** Implement Feature 038 — wire 5 stubbed titor commands to the titor library via `TitorState`.
 
 ## Promotion candidates for canonical artifacts
 
@@ -50,6 +55,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude-opus): Post-037 synthesis. Closed T009 (spec-compiler). Scaffolded Feature 038 (titor Tauri command wiring — 11 tasks). Updated next-slice, integration-debt, authority-map. Baton → **cursor**.
 - 2026-03-29 (antigravity): Wide pass on Feature 037. Fixed doc comment, added CI cache, fixed timeout, verified .exe tracking. Promoted canonical artifacts. Baton → **claude-opus**.
 - 2026-03-29 (claude): Feature 037 review — all FRs pass (FR-001 partial). ToolTier fix correct, 1 stale doc comment in `lease.rs:97`. CI smoke test `timeout` won't work on macOS (continue-on-error masks it). T003/T004 deferral correct. Updated `claude-review.md`. Baton → **antigravity** for wide pass.
 - 2026-03-29 (cursor): Feature 037 implemented — Windows x86_64 binary built (7.3 MB), MCP handshake verified, all 21 tools confirmed. Created build script and CI workflow. Fixed stale `Tier`→`ToolTier` in `agent.rs`. All tests green. Baton → **claude** for review.
