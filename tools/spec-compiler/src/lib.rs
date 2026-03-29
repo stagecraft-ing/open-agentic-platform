@@ -589,7 +589,7 @@ fn parse_code_aliases(
                     code: "V-005".to_string(),
                     severity: "error".to_string(),
                     message: format!(
-                        "code alias {s:?} is already claimed by feature {feature_id:?} (first occurrence)"
+                        "code alias {s:?} in feature {prev_id:?} is duplicated by feature {feature_id:?}"
                     ),
                     path: Some(prev_path.clone()),
                 });

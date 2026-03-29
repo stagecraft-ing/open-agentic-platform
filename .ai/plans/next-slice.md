@@ -40,11 +40,11 @@ Features 040–041 delivered the **product surface expansion**: blockoli semanti
 
 T003 (macOS x86_64) and T004 (Linux x86_64/arm64) deferred to CI runners. CI workflow exists (`.github/workflows/build-axiomregent.yml`) but hasn't run yet. Will resolve automatically when CI runners are available.
 
-### Minor code cleanup (LOW)
+### ~~Minor code cleanup (LOW)~~ — RESOLVED (Slice H)
 
-- `tools/spec-compiler/src/lib.rs:591` — V-005 second violation message names wrong feature for its path (review item from claude)
-- `crates/axiomregent/src/snapshot/lease.rs:97` — stale doc comment `agent::safety::Tier` → `agent::safety::ToolTier` (carried since 037 review)
-- CI smoke test `timeout` command portability on macOS (`build-axiomregent.yml:73`)
+- ~~`tools/spec-compiler/src/lib.rs:591`~~ — V-005 message wording fixed
+- ~~`crates/axiomregent/src/snapshot/lease.rs:97`~~ — already correct (`ToolTier`)
+- ~~CI smoke test `timeout` command portability on macOS~~ — already uses portable perl
 
 ### ~~Blockoli semantic search~~ — RESOLVED (Feature 040)
 
@@ -60,14 +60,14 @@ T003 (macOS x86_64) and T004 (Linux x86_64/arm64) deferred to CI runners. CI wor
 
 **Delivered 2026-03-29.** Singleton `checkpoint` tab in titlebar tools dropdown. `CheckpointSurface` exposes all 6 titor commands (init, checkpoint, list, restore, diff, verify). Project-scoped design (user picks directory). `tsc --noEmit` clean.
 
-### Slice H: Minor code cleanup batch
+### ~~Slice H: Minor code cleanup batch — COMPLETE~~
 
-**Why lowest:** All items are non-blocking cosmetic fixes. Can be batched into a single commit when convenient. No spec needed.
+**Delivered 2026-03-29.** One fix applied, two items already resolved in prior commits.
 
 Items:
-- V-005 message wording fix (`lib.rs:591`)
-- Stale doc comment (`lease.rs:97`)
-- CI smoke test portability (`build-axiomregent.yml:73`)
+- V-005 message wording fix (`lib.rs:591`) — **FIXED**: second violation now correctly says "in feature X is duplicated by feature Y" instead of naming wrong feature
+- Stale doc comment (`lease.rs:97`) — **ALREADY RESOLVED**: doc comment already references `ToolTier` (fixed during Feature 038 implementation)
+- CI smoke test portability (`build-axiomregent.yml:73`) — **ALREADY RESOLVED**: uses portable `perl -e 'alarm shift; exec @ARGV'` instead of `timeout`
 
 ## Fork resolution
 
@@ -75,12 +75,6 @@ Items:
 
 Features 032–041 established the governed execution thesis (033–036), extended it cross-platform (037), wired temporal safety (038), reconciled identities (039), added AI-native code search (040), and surfaced checkpoint/restore in the desktop UI (041). The platform is now capability-complete for governance with two product surfaces (semantic search + checkpoint/restore). The only remaining work is Slice H (minor code cleanup batch).
 
-## Recommended promotion set
+## Recommended next
 
-### Promote now
-
-- **Minor code cleanup batch** — V-005 message wording, `lease.rs:97` doc comment, CI portability (Slice H)
-
-### Promote next
-
-- New product surface or feature direction (post-041 — awaiting direction)
+- New product surface or feature direction (post-041, Slice H complete — awaiting direction)
