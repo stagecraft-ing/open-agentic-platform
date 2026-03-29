@@ -227,12 +227,60 @@ Section 3 ("axiomregent is dead code") — also resolved. axiomregent is both li
 
 ### NF-001 (latency) status
 
-Per `execution/verification.md`: "no automated p99 gate in-repo — manual profiling recommended when hardening." The per-session subprocess startup adds process-spawn + MCP handshake latency. No measurement artifact exists yet. **Recommended follow-up:** add a benchmark or integration test that asserts < 50ms overhead per tool call (excluding subprocess startup, which is amortized over the session).
+~~Per `execution/verification.md`: "no automated p99 gate in-repo — manual profiling recommended when hardening."~~ **RESOLVED (Slice A).** `governed_dispatch_latency.rs` now measures permission check overhead: sub-microsecond per call across 10,000 iterations. Well within 50ms NF-001 budget. Note: this measures the enforcement overhead only — tool execution time is tool-specific and not governed by NF-001.
 
 ### Promotion candidates
 
-- [ ] Risk 1 fix (no-lease bypass) — new task for post-035 hardening
-- [ ] NF-001 automated latency gate — as noted in spec and verification
-- [ ] Document max_tier agent vs claude rationale in `spec.md` contract notes
+- [x] Risk 1 fix (no-lease bypass) — **done** (Slice A)
+- [x] NF-001 automated latency gate — **done** (Slice A)
+- [x] Document max_tier agent vs claude rationale in `spec.md` contract notes — **done** (Slice A)
 - [ ] Cross-platform axiomregent binaries (033 residual, still open)
+
+---
+
+## Slice A review (2026-03-29)
+
+### Verdict: Slice A is correctly implemented. All 4 hardening tasks complete. One observation (non-blocking).
+
+### Task assessment
+
+| Task | Evidence | Status |
+|------|----------|--------|
+| Fix no-lease bypass | `router/mod.rs:112-175` — `preflight_tool_permission` now has two paths: lease-present (checks via `check_tool_permission`) and lease-absent (falls back to `lease_store.default_grants()` via `check_grants`). Both paths audit-log with distinct decision tags. | **Pass** |
+| Document max_tier rationale | `spec.md:124-125` — two new contract notes explaining agent vs claude tier caps and no-lease fallback semantics | **Pass** |
+| NF-001 benchmark | `tests/governed_dispatch_latency.rs` — 3 tests: `permission_check_under_50ms` (10k calls with lease), `permission_check_grants_fallback_under_50ms` (4k calls no-lease), `permission_denial_works` (correctness) | **Pass** |
+| Scanner wording fix | `scanner.rs:274-276` — `suggested_fix` now leads with "Re-run `spec-compiler compile`" | **Pass** |
+
+### Architecture: `check_grants` extraction (correct refactoring)
+
+The factoring of `check_grants(tool_name, &grants)` out of `check_tool_permission(tool_name, &lease)` is clean. `check_tool_permission` is now a one-liner delegating to `check_grants(&lease.grants)`. This avoids duplicating the tier/permission logic across the lease and no-lease paths. The `pub` visibility on both functions is justified — `check_grants` is used directly in the no-lease fallback path, and the test file imports `permissions::check_grants`.
+
+### Correctness of the no-lease fallback
+
+The fix correctly closes Risk 1. Previously, `preflight_tool_permission` used `?` early-return on both `args.get("lease_id")` and `self.lease_store.get_lease(lease_id)`, meaning missing or unknown lease IDs silently bypassed all checks. Now:
+
+1. **Missing `lease_id`**: `lease_id_str` is `None` → `lease` is `None` → falls into `None` arm → checks against `self.lease_store.default_grants()`.
+2. **Invalid `lease_id`** (present but not in store): `lease_id_str` is `Some("...")` → `self.lease_store.get_lease(lid)` returns `None` → same fallback path.
+3. **Valid `lease_id`**: normal lease-based enforcement, unchanged from Feature 035.
+
+The default grants come from `LeaseStore::with_default_grants(PermissionGrants::from_env_or_default())` set in `main.rs:36-38`, which reads `OPC_GOVERNANCE_GRANTS` env (set by `governed_claude.rs:73` per session). This means the no-lease fallback inherits the **session-specific** grants, not a global permissive default. Correct.
+
+### Audit log format
+
+The four decision tags are well-chosen:
+- `allowed` / `denied` — lease-based (existing, unchanged)
+- `allowed_no_lease` / `denied_no_lease` — fallback path (new)
+
+This makes it trivial to grep audit logs for no-lease events. The `lease_id` field is correctly `null` in the no-lease path.
+
+### Observation (non-blocking): `mod permissions` is now `pub mod permissions`
+
+Making the permissions module public was necessary for the integration test to import `permissions::check_grants` and `permissions::check_tool_permission`. This is acceptable — the module was already effectively public via its effects (JSON-RPC responses), and the functions have clear semantics. However, it does expand the crate's public API surface. If this becomes a concern, the test could alternatively be placed under `src/router/` as a `#[cfg(test)]` submodule. **No action needed now.**
+
+### Remaining open items (not Slice A scope)
+
+1. **Cross-platform axiomregent binaries** (Slice C) — still only macOS arm64
+2. **Safety tier governance spec** (Slice B) — tier definitions code-only
+3. **Titor command stubs** (Slice D) — 5 stubs blocking temporal safety
+4. **Feature ID reconciliation** (Slice E) — kebab vs UPPERCASE unbridged
 

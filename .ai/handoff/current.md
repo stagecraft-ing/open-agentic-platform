@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–035** delivered + **Slice A hardening** complete (no-lease bypass fixed, NF-001 benchmark added, contract docs updated). **Next:** Claude review of Slice A, then **Slice B** (safety tier governance spec). See `.ai/plans/next-slice.md` for full prioritization.
+Features **032–035** delivered + **Slice A hardening** complete and reviewed. **Next:** Antigravity wide pass on Slice A, then **Slice B** (safety tier governance spec). See `.ai/plans/next-slice.md` for full prioritization.
 
 ## Agent pack
 
@@ -27,23 +27,20 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **antigravity**
-- Last baton update: 2026-03-29 — **cursor** completed Slice A (post-035 hardening). All 4 tasks implemented: no-lease bypass fix, max_tier contract docs, NF-001 benchmark (3 tests), scanner wording fix. All axiomregent + featuregraph tests green.
-- Requested outputs from **claude**:
-  1. Review Slice A implementation — verify no-lease fallback is correct, check `check_grants` factoring, confirm audit log format.
+- Current owner: **antigravity**
+- Next owner: **claude-opus**
+- Last baton update: 2026-03-29 — **claude** reviewed Slice A: all 4 tasks pass, no-lease fallback correct (session grants, not global permissive), `check_grants` factoring clean, audit log format good. One non-blocking observation (pub mod visibility). Authority map updated — Risk 1 residual removed.
+- Requested outputs from **antigravity**:
+  1. Wide pass on Slice A changes — confirm no stale Risk 1 references remain, verify no-lease audit tags appear in existing test output, check for any new `?`-based early returns that could introduce similar bypasses.
 
 - Recommended files to read:
-  - `crates/axiomregent/src/router/mod.rs:112-170` (refactored `preflight_tool_permission`)
-  - `crates/axiomregent/src/router/permissions.rs` (new `check_grants` + refactored `check_tool_permission`)
-  - `crates/axiomregent/src/snapshot/lease.rs:193-195` (new `default_grants()` accessor)
-  - `crates/axiomregent/tests/governed_dispatch_latency.rs` (NF-001 benchmark)
-  - `specs/035-agent-governed-execution/spec.md` (updated contract notes)
-  - `crates/featuregraph/src/scanner.rs:274-276` (wording fix)
+  - `.ai/reviews/claude-review.md` (Slice A review section at bottom)
+  - `crates/axiomregent/src/router/mod.rs:112-175` (refactored `preflight_tool_permission`)
+  - `crates/axiomregent/tests/` (all test files — look for audit log output confirming `allowed_no_lease`)
 
 ## Requested next agent output
 
-**Claude:** Review Slice A implementation for correctness and completeness.
+**Antigravity:** Wide pass on Slice A, then **claude-opus** for Slice B synthesis (safety tier governance spec).
 
 ## Promotion candidates for canonical artifacts
 
@@ -54,6 +51,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Slice A review — all 4 tasks pass. No-lease fallback correctly uses session grants. `check_grants` extraction clean. Audit log tags well-chosen. Updated `claude-review.md` and `authority-map.md` (Risk 1 residual cleared). Baton → **antigravity**.
 - 2026-03-29 (cursor): Slice A complete — no-lease bypass fixed (`router/mod.rs` falls back to session grants), NF-001 benchmark (3 tests, sub-µs overhead), max_tier rationale documented in spec contract notes, scanner error wording updated. All tests green.
 - 2026-03-29 (claude-opus): Post-035 synthesis complete. Ordered 5 slices (A: hardening, B: safety tier spec, C: cross-platform, D: titor wiring, E: ID reconciliation). Updated `authority-map.md` — 3 CRITICAL/HIGH items now RESOLVED. Baton → **cursor** for Slice A.
 - 2026-03-29 (antigravity): Feature **035** wide pass check complete. Confirmed zero stale `--dangerously-skip-permissions` outside of `Bypass`. Identified test fixtures (`mcp_featuregraph_test.rs`, `mcp_tools_test.rs`, `verify_test.rs`) invoking tools (`features.impact`, `gov.drift`) without `lease_id` due to `router` implicitly passing validation; baton → **claude-opus**
