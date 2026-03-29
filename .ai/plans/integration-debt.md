@@ -5,7 +5,7 @@
 ## Context
 
 - Branch: `main`
-- Features 032–037: complete (all delivered 2026-03-29)
+- Features 032–038: complete (all delivered 2026-03-29)
 - Slice A (post-035 hardening): complete
 - Related specs: 000 (constitutional), 003–005 (lifecycle/execution), 029–031 (consumer contracts), 032–037 (governance stack + cross-platform)
 
@@ -19,14 +19,13 @@
 | ~~Safety tiers not spec-governed~~ | Governance process | Formalizes tier model | **RESOLVED (Feature 036)** |
 | ~~featuregraph scanner reads forbidden `features.yaml`~~ | Governance / data | Unblocks governance panel | **RESOLVED (Feature 034)** |
 | ~~Cross-platform axiomregent~~ | Platform coverage | Governance on Windows/Linux | **RESOLVED (Feature 037)** — Windows binary built, CI workflow for all targets |
-| **Titor Tauri commands stubbed** | Temporal safety | Enables checkpoint/restore from desktop | **Feature 038 scaffolded** |
+| ~~Titor Tauri commands stubbed~~ | Temporal safety | Enables checkpoint/restore from desktop | **RESOLVED (Feature 038)** — `TitorState` + all 6 commands wired, round-trip verified |
 | **Feature ID duality** | Data architecture | Enables cross-referencing registry/code features | Design decision needed; no code dependency |
 | **Blockoli semantic search stubbed** | Product capability | Enables AI-native code search from desktop | Heavy lift; lowest urgency |
 
 ## Notes
 
-- Items 1–6 are now **all resolved** (Features 032–037 + Slice A). The governance stack is complete on macOS arm64 and partially extended to Windows (binary built, CI for remaining targets).
-- **Titor** (item 7) is production-ready in the library crate. Gap is purely Tauri state management + command wiring. One session. Spec scaffolded: `specs/038-titor-tauri-command-wiring/`.
+- Items 1–7 are now **all resolved** (Features 032–038 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, and the temporal safety net is wired.
 - **Feature ID duality** (item 8) has 13 UPPERCASE code IDs vs 38 kebab spec IDs with no bridge. The scanner alias system exists in legacy YAML but not in compiled registry JSON.
 
 ## Promotion
@@ -36,5 +35,5 @@
 - [x] Agent governed execution → `specs/035-agent-governed-execution/` (delivered)
 - [x] Safety tier governance → `specs/036-safety-tier-governance/` (delivered)
 - [x] Cross-platform axiomregent → `specs/037-cross-platform-axiomregent/` (delivered 2026-03-29)
-- [x] Titor command wiring → `specs/038-titor-tauri-command-wiring/` (scaffolded 2026-03-29)
+- [x] Titor command wiring → `specs/038-titor-tauri-command-wiring/` (delivered 2026-03-29)
 - [ ] Feature ID reconciliation → ADR needed before spec

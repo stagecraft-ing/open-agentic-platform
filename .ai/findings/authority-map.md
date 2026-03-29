@@ -23,7 +23,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 | Agent permissions | SQLite `agents` table: `enable_file_read`, `enable_file_write`, `enable_network` | Agent creation/edit UI shows toggles | **RESOLVED (035+Slice A)** — flags enforced at runtime via per-session axiomregent subprocess. No-lease fallback now checks session default grants (Slice A hardening). |
 | Safety tiers | `crates/agent/src/safety.rs` — ToolTier classification + `get_tool_tier()` + `explicitly_classified_tools()` | GovernanceSurface shows per-tool tier assignments from backend | **RESOLVED (036)** — all 21 router tools explicitly classified, dual enums renamed (ToolTier/ChangeTier), coverage test enforces classification, UI derives from authoritative source. |
 | Governed tool execution | `axiomregent` MCP router (`crates/axiomregent/src/router/mod.rs`) — `gov.preflight`, `gov.drift`, `snapshot.*`, `workspace.*` | MCPManager shows sidecar status + probe port; GovernanceSurface shows safety tier labels | **RESOLVED (033+035)** — sidecar alive (033), agent execution routed through governed dispatch (035). All 7 `--dangerously-skip-permissions` sites replaced. |
-| Checkpoint/temporal state | `crates/titor/` library (production-grade, ~17k LOC) | None (5 of 6 Tauri commands are `todo!()`) | **HIGH** — capability exists, no desktop access. Feature 038 scaffolded to wire commands. |
+| Checkpoint/temporal state | `crates/titor/` library (production-grade, ~17k LOC) + `TitorState` in Tauri `AppState` | All 6 Tauri commands wired via `TitorState` (`commands/titor.rs`) | **RESOLVED (Feature 038)** — `TitorState` created, all 5 stubs replaced, `titor_init` persists instance. Round-trip verified. |
 | Registry consumer contracts | `tools/registry-consumer/` + CI contract tests (Feature 029) | CLI only; not surfaced in desktop UI | **Low** — contracts enforced via CI, not relevant to desktop runtime |
 | Desktop UI state | React (Zustand/Context/localStorage) | Tab manager, settings, agent list | **Low** — no competing authority |
 
@@ -51,7 +51,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 ## Implications
 
 - **Feature 032 is complete.** The authority map is sound for the delivered inspect journey. Git and registry authorities are clean. Featuregraph degradation is bounded and explicit. The "View spec" action (T010) uses registry `specPath` — a clean, compiler-owned authority — avoiding the broken `features.yaml` path entirely. The permission/execution enforcement gaps are real but out of scope per Feature 032's own spec (no cockpit, no control-plane modules).
-- **For post-037 work:** The three CRITICAL/HIGH items (agent permissions, axiomregent activation, safety tier enforcement) are now all **RESOLVED** (Features 033–036). Cross-platform axiomregent is **RESOLVED** (Feature 037 — Windows binary built, CI workflow for all targets). The remaining HIGH item is **Titor command stubs** (checkpoint/temporal state) — Feature 038 scaffolded. The remaining MEDIUM item is **Feature ID duality** (now 38 features and counting).
+- **For post-038 work:** All CRITICAL/HIGH items are now **RESOLVED** (Features 032–038). The governance stack is complete (033–036), cross-platform (037), and the temporal safety net is wired (038). The remaining MEDIUM item is **Feature ID duality** (now 38+ features and counting). The remaining LOW items are CI runner targets (037 T003/T004) and blockoli semantic search.
 - **Feature ID duality** is a design debt that will compound: every new feature adds entries in both systems with no cross-reference. A reconciliation strategy needs a spec before it becomes unmanageable.
 
 ## Candidate promotions
@@ -62,4 +62,4 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 - [x] ~~Future spec candidate — "axiomregent activation"~~ **DELIVERED (Feature 033)**
 - [ ] Future spec candidate — "Feature ID reconciliation" to bridge kebab-case spec IDs and UPPERCASE code attribution IDs
 - [x] ~~Future spec candidate — "Cross-platform axiomregent binaries"~~ **DELIVERED (Feature 037)**
-- [x] ~~Future spec candidate — "Titor command wiring"~~ **SCAFFOLDED (Feature 038)**
+- [x] ~~Future spec candidate — "Titor command wiring"~~ **DELIVERED (Feature 038)**

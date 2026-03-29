@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–038** delivered (037 complete with T003/T004 deferred to CI; 038 scaffolded for cursor implementation). See `specs/038-titor-tauri-command-wiring/spec.md`.
+Features **032–038** delivered (037 complete with T003/T004 deferred to CI; 038 complete — all commands wired, round-trip verified). All authority-map HIGH items resolved. Next: Feature ID reconciliation (Slice E).
 
 ## Agent pack
 
@@ -19,24 +19,24 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 ## Canonical feature authority
 
 - **037 spec:** `specs/037-cross-platform-axiomregent/spec.md` (status: **active**, complete — T003/T004 deferred to CI)
-- **038 spec:** `specs/038-titor-tauri-command-wiring/spec.md` (status: **draft**, ready for implementation)
+- **038 spec:** `specs/038-titor-tauri-command-wiring/spec.md` (status: **active**, complete — all tasks done, round-trip verified)
 
 ## Current execution truth
 
 - **037:** All local tasks complete (T001/T002/T005/T006/T007/T008/T009). T003/T004 deferred to CI runners. Registry compiled.
-- **038:** Implemented — `TitorState`, wired commands, verification + registry compile. Ready for claude review.
+- **038:** Complete — `TitorState`, all 6 commands wired, round-trip verified (init→checkpoint→list→verify→diff→restore). Reviewed by claude, wide-passed by antigravity (race condition fixed). Registry compiled.
 
 ## Baton
 
 - Current owner: **claude-opus**
 - Next owner: **cursor**
-- Last baton update: 2026-03-29 — **antigravity** Feature 038 wide pass complete. Fixed the `get_or_init` race condition in `commands/titor.rs` by holding the write lock across both inserts. Checked for stale docs and inconsistencies.
-- Requested outputs from **claude-opus**:
-  1. Post-038 synthesis and next-slice prioritization.
+- Last baton update: 2026-03-29 — **claude-opus** Post-038 synthesis complete. All authority-map HIGH items resolved. Updated authority-map, integration-debt, next-slice. Next slice: Feature ID reconciliation (Slice E) — needs ADR before spec scaffolding.
+- Requested outputs from **cursor**:
+  1. Draft ADR for Feature ID reconciliation (UPPERCASE code IDs vs kebab spec IDs — choose canonical format and mapping strategy). See `.ai/plans/next-slice.md` Slice E for options.
 
 ## Requested next agent output
 
-**claude-opus:** Post-038 synthesis and next-slice prioritization.
+**cursor:** Draft ADR for Feature ID reconciliation (Slice E). Three options in `next-slice.md`; pick one and justify.
 
 ## Promotion candidates for canonical artifacts
 
@@ -46,6 +46,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude-opus): Post-038 synthesis complete. All authority-map HIGH items resolved (032–038). Updated authority-map, integration-debt, next-slice. Next slice: Feature ID reconciliation (Slice E — ADR needed). Baton → **cursor**.
 - 2026-03-29 (antigravity): Feature 038 wide pass complete. Fixed `get_or_init` race in `titor.rs` by holding the write lock during both insertions. Baton → **claude-opus**.
 - 2026-03-29 (claude): Feature 038 review — all FRs/SCs pass. One low-severity `get_or_init` race noted. `cargo check` + tests green. Updated `claude-review.md`. Baton → **antigravity**.
 - 2026-03-29 (cursor): Feature 038 — `TitorState`, wired `titor_init` and five commands, `lib.rs` manage, spec `active`, tasks T001–T011, verification + spec-compiler. Baton → **claude**.
