@@ -1,0 +1,118 @@
+# Feature 037: Build axiomregent sidecar binaries for all supported platforms.
+# Produces binaries compatible with Tauri's externalBin bundling convention.
+
+name: Build axiomregent binaries
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/axiomregent/**'
+      - 'crates/agent/**'
+      - 'crates/featuregraph/**'
+      - 'crates/xray/**'
+      - 'crates/run/**'
+  pull_request:
+    paths:
+      - 'crates/axiomregent/**'
+      - 'crates/agent/**'
+      - 'crates/featuregraph/**'
+      - 'crates/xray/**'
+      - 'crates/run/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary: axiomregent-aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary: axiomregent-x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: axiomregent-x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: axiomregent-x86_64-pc-windows-msvc.exe
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build axiomregent
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml
+
+      - name: Copy binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp crates/axiomregent/target/${{ matrix.target }}/release/axiomregent apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          strip apps/desktop/src-tauri/binaries/${{ matrix.binary }} || true
+          ls -lh apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+
+      - name: Copy binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          copy crates\axiomregent\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\${{ matrix.binary }}
+          dir apps\desktop\src-tauri\binaries\${{ matrix.binary }}
+        shell: cmd
+
+      - name: Smoke test
+        run: |
+          timeout 3 apps/desktop/src-tauri/binaries/${{ matrix.binary }} 2>&1 || true
+        shell: bash
+        continue-on-error: true
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary }}
+          path: apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          retention-days: 30
+
+  # aarch64-linux requires cross-compilation (no native GitHub runner)
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    name: aarch64-unknown-linux-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build axiomregent
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+        run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/axiomregent/Cargo.toml
+
+      - name: Copy binary
+        run: |
+          cp crates/axiomregent/target/aarch64-unknown-linux-gnu/release/axiomregent apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          ls -lh apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: axiomregent-aarch64-unknown-linux-gnu
+          path: apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          retention-days: 30

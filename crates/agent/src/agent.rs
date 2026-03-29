@@ -5,7 +5,7 @@
 
 use crate::canonical::{json_sha256, to_canonical_json};
 use crate::id::derive_changeset_id;
-use crate::safety::{Tier, calculate_plan_tier};
+use crate::safety::{ToolTier, calculate_plan_tier};
 use crate::schemas::*;
 use anyhow::{Result, anyhow};
 use std::fs;
@@ -112,7 +112,7 @@ fn validate_config(config: &AgentConfig) -> Result<()> {
     let declared_tier = config
         .tiers
         .first()
-        .and_then(|s| s.parse::<Tier>().ok())
+        .and_then(|s| s.parse::<ToolTier>().ok())
         .ok_or_else(|| anyhow!("Invalid or missing tier declaration"))?;
 
     if calculated_tier > declared_tier {

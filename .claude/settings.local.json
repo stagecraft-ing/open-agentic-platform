@@ -32,7 +32,13 @@
       "Bash(find /c/Dev/open-agentic-platform -name *.sh -type f)",
       "Bash(find /c/Dev/open-agentic-platform -type f \\\\\\(-name *.sh -o -name *.yml -o -name *.yaml \\\\\\))",
       "Bash(find /c/Dev/open-agentic-platform/specs -type f \\\\\\(-name *.md -o -name *.txt -o -name *.rs \\\\\\))",
-      "Bash(find . -name features.yaml -o -name *alias* -type f)"
+      "Bash(find . -name features.yaml -o -name *alias* -type f)",
+      "Bash(rustup target:*)",
+      "Bash(rustc --version)",
+      "Bash(rustup show:*)",
+      "Bash(timeout 3 /c/Dev/open-agentic-platform/apps/desktop/src-tauri/binaries/axiomregent-x86_64-pc-windows-msvc.exe)",
+      "Bash(timeout 5 /c/Dev/open-agentic-platform/apps/desktop/src-tauri/binaries/axiomregent-x86_64-pc-windows-msvc.exe)",
+      "Bash(git check-ignore:*)"
     ],
     "defaultMode": "acceptEdits"
   }
