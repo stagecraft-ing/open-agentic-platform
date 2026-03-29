@@ -58,7 +58,8 @@ function AppContent() {
     createXrayTab,
     createSemanticSearchTab,
     createCallGraphTab,
-    createGitContextTab
+    createGitContextTab,
+    createCheckpointTab
   } = useTabState();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -419,6 +420,7 @@ function AppContent() {
         onSemanticSearchClick={() => createSemanticSearchTab()}
         onCallGraphClick={() => createCallGraphTab()}
         onGitContextClick={() => createGitContextTab()}
+        onCheckpointClick={() => createCheckpointTab()}
       />
       
       {/* Topbar - Commented out since navigation moved to titlebar */}

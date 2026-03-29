@@ -31,6 +31,7 @@ interface UseTabStateReturn {
   createSemanticSearchTab: () => string | null;
   createCallGraphTab: () => string | null;
   createGitContextTab: () => string | null;
+  createCheckpointTab: () => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
   closeCurrentTab: () => Promise<boolean>;
   switchToTab: (id: string) => void;
@@ -363,6 +364,21 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab]);
 
+  const createCheckpointTab = useCallback((): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'checkpoint');
+    if (existingTab) {
+      setActiveTab(existingTab.id);
+      return existingTab.id;
+    }
+    return addTab({
+      type: 'checkpoint',
+      title: 'Checkpoint',
+      status: 'idle',
+      hasUnsavedChanges: false,
+      icon: 'history'
+    });
+  }, [addTab, tabs, setActiveTab]);
+
   const closeTab = useCallback(async (id: string, force: boolean = false): Promise<boolean> => {
     const tab = getTabById(id);
     if (!tab) return true;
@@ -461,6 +477,7 @@ export const useTabState = (): UseTabStateReturn => {
     createSemanticSearchTab,
     createCallGraphTab,
     createGitContextTab,
+    createCheckpointTab,
     closeTab,
     closeCurrentTab,
     switchToTab: setActiveTab,

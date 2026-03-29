@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Minus, Square, X, Bot, BarChart3, FileText, Network, Info, MoreVertical, Scan, Shield, Search, Share2, GitBranch } from 'lucide-react';
+import { Settings, Minus, Square, X, Bot, BarChart3, FileText, Network, Info, MoreVertical, Scan, Shield, Search, Share2, GitBranch, History } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { TooltipProvider, TooltipSimple } from '@opc/ui/tooltip-modern';
 
@@ -16,6 +16,7 @@ interface CustomTitlebarProps {
   onSemanticSearchClick?: () => void;
   onCallGraphClick?: () => void;
   onGitContextClick?: () => void;
+  onCheckpointClick?: () => void;
 }
 
 export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
@@ -30,6 +31,7 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
   onSemanticSearchClick,
   onCallGraphClick,
   onGitContextClick,
+  onCheckpointClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -300,7 +302,20 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
                       <span>Git Context</span>
                     </button>
                   )}
-                  
+
+                  {onCheckpointClick && (
+                    <button
+                      onClick={() => {
+                        onCheckpointClick();
+                        setIsDropdownOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
+                    >
+                      <History size={14} />
+                      <span>Checkpoint</span>
+                    </button>
+                  )}
+
                   {onInfoClick && (
                     <button
                       onClick={() => {

@@ -55,11 +55,9 @@ T003 (macOS x86_64) and T004 (Linux x86_64/arm64) deferred to CI runners. CI wor
 
 **Delivered 2026-03-29.** Spec promoted `draft` → `active`. All 6 FRs pass, all 5 SCs pass. No blockoli HTTP route regressions. `cargo check` green. Review: `.ai/reviews/claude-review.md` (lines 645–698).
 
-### Slice G: Desktop UI for checkpoint/restore
+### ~~Slice G: Desktop UI for checkpoint/restore (Feature 041) — COMPLETE~~
 
-**Why second:** Feature 038 wired the backend commands. The next product-visible step is a UI for checkpoint/restore in the desktop app. Depends on design decisions about where checkpoint controls appear (per-project? per-agent-session?).
-
-**Not ready to scaffold.** Needs design input.
+**Delivered 2026-03-29.** Singleton `checkpoint` tab in titlebar tools dropdown. `CheckpointSurface` exposes all 6 titor commands (init, checkpoint, list, restore, diff, verify). Project-scoped design (user picks directory). `tsc --noEmit` clean.
 
 ### Slice H: Minor code cleanup batch
 

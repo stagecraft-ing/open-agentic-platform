@@ -26,6 +26,7 @@ const GovernancePanel = lazy(() => import('@/components/GovernancePanel').then(m
 const SemanticSearchPanel = lazy(() => import('@/components/SemanticSearchPanel').then(m => ({ default: m.SemanticSearchPanel })));
 const CallGraphPanel = lazy(() => import('@/components/CallGraphPanel').then(m => ({ default: m.CallGraphPanel })));
 const GitContextPanel = lazy(() => import('@/components/GitContextPanel').then(m => ({ default: m.GitContextPanel })));
+const CheckpointPanel = lazy(() => import('@/components/CheckpointPanel').then(m => ({ default: m.CheckpointPanel })));
 
 // Import non-lazy components for projects view
 
@@ -408,7 +409,14 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
             <GitContextPanel />
           </div>
         );
-      
+
+      case 'checkpoint':
+        return (
+          <div className="h-full">
+            <CheckpointPanel />
+          </div>
+        );
+
       default:
         return (
           <div className="h-full">

@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–040** delivered and reviewed. Platform past capability plateau — governance stack complete, AI-native semantic search wired. Next: checkpoint/restore UI (Slice G) or minor cleanup batch (Slice H).
+Features **032–041** delivered. Platform past capability plateau — governance stack complete, AI-native semantic search wired, checkpoint/restore UI live. Next: minor cleanup batch (Slice H) or new product surface.
 
 ## Agent pack
 
@@ -18,24 +18,22 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Canonical feature authority
 
-- **032–040:** All `status: active`, all complete. See individual `specs/<id>/spec.md` for details.
+- **032–041:** All `status: active`, all complete. See individual `specs/<id>/spec.md` for details.
 
 ## Current execution truth
 
-- **032–040:** All complete. All reviewed. All authority-map items resolved. Integration debt fully cleared.
+- **032–041:** All complete. All authority-map items resolved. Integration debt fully cleared.
 
 ## Baton
 
 - Current owner: **claude-opus**
-- Next owner: **cursor** (when next slice is ready)
-- Last baton update: 2026-03-29 — **claude-opus**: Post-040 synthesis complete. Spec promoted `draft` → `active`. Authority-map, next-slice, integration-debt all updated. All 9 integration debt items resolved. Platform ready for Slice G (checkpoint/restore UI) or Slice H (minor cleanup batch).
-- Recommended files to read: `.ai/plans/next-slice.md` (updated priorities), `.ai/findings/authority-map.md` (all items resolved)
+- Next owner: **claude** (for review)
+- Last baton update: 2026-03-29 — **claude-opus**: Feature 041 (Slice G) implemented. Checkpoint/Restore UI panel: `CheckpointSurface` + `useCheckpointFlow` hook + tab wiring. All 6 titor commands exposed via desktop UI. TypeScript compiles clean.
+- Recommended files to read: `specs/041-checkpoint-restore-ui/spec.md`, `apps/desktop/src/features/checkpoint/CheckpointSurface.tsx`, `apps/desktop/src/features/checkpoint/useCheckpointFlow.ts`
 
 ## Requested next agent output
 
-**Awaiting direction.** All features 032–040 delivered. Next slice candidates:
-- **Slice G:** Desktop UI for checkpoint/restore (needs design input)
-- **Slice H:** Minor code cleanup batch (V-005 message, `lease.rs:97` doc comment, CI portability)
+**claude:** Review Feature 041 — verify all FRs/SCs, check titor command invocation patterns, confirm tab wiring. Then baton → **claude-opus** for post-041 synthesis.
 
 ## Promotion candidates for canonical artifacts
 
@@ -45,6 +43,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude-opus): Feature 041 implemented — Checkpoint/Restore UI panel (Slice G). `CheckpointSurface` with init/create/list/restore/diff/verify. `useCheckpointFlow` hook wrapping all 6 titor commands. Singleton `checkpoint` tab type wired through TabContext → useTabState → TabContent → CustomTitlebar → App.tsx. Types mirroring titor structs. `tsc --noEmit` clean. Baton → **claude** for review.
 - 2026-03-29 (claude-opus): Post-040 synthesis complete. Spec promoted `draft` → `active`. Authority-map updated (Feature 040 row added, all items resolved). Next-slice advanced (Slice F complete, Slice G next). Integration-debt fully cleared (all 9 items resolved). Baton held, awaiting direction for Slice G or H.
 - 2026-03-29 (claude): Feature 040 review — all FRs/SCs pass, no blockoli HTTP route regressions, `cargo check` green. Spec `Mutex` type discrepancy non-issue. Two minor observations (orphaned `stackwalk_index`, duplicated `validate_project_name`). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Feature 040 implemented — Tauri `BlockoliState`, `blockoli_index_project`, `blockoli_search`, app-data SQLite, embedded asterisk config; blockoli fixes (MODEL init `Result`, `VectorStore::search` `Result`, `get_code_vectors` column). Baton → **claude** for review.
