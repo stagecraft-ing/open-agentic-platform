@@ -22,6 +22,9 @@ Trace **actual** execution from entrypoints (CLI/UI/commands) through IPC, sidec
 | Governance (registry half) | `invoke("featuregraph_overview")` → `read_registry_summary(build/spec-registry/registry.json)` → feature count, status counts, validation | `apps/desktop/src-tauri/src/commands/analysis.rs:18-31,92-136` |
 | Governance (featuregraph half) | `FeatureGraphTools::features_overview()` → `Scanner::scan()` → `File::open("spec/features.yaml")` → **file not found** → returns `Err` → graceful degradation | `crates/featuregraph/src/tools.rs:26-36` → `crates/featuregraph/src/scanner.rs:167-168` |
 | Governance (composite) | Returns `{status: "degraded", registry: {status: "ok"}, featuregraph: {status: "unavailable"}}` | `apps/desktop/src-tauri/src/commands/analysis.rs:61-72` |
+| Governance (featureSummaries) | `read_registry_summary` now emits `featureSummaries` array (id, title, specPath) from registry features that have a `specPath` | `apps/desktop/src-tauri/src/commands/analysis.rs:130-166` |
+| **View spec action (T010)** | `RegistrySpecFollowUp` component renders "View spec" buttons per feature; `resolveSpecAbsolutePath(repoRoot, specPath)` builds absolute path; `onViewSpec` opens `claude-md` tab with `specMarkdownAbsolutePath` | `apps/desktop/src/features/inspect/RegistrySpecFollowUp.tsx`, `actions.ts` |
+| View spec surfaces | Wired into both `InspectSurface.tsx` (after successful scan + governance fetch) and `GovernanceSurface.tsx` | grep confirms 7 file references |
 | Claude execution | `invoke("execute_claude_code")` → find binary → spawn `claude --dangerously-skip-permissions -p ...` → stream JSONL via Tauri events | `apps/desktop/src-tauri/src/commands/claude.rs:947-974` |
 | Agent execution | `invoke("execute_agent")` → read SQLite → write `.claude/settings.json` (hooks) → spawn `claude --dangerously-skip-permissions ...` → stream JSONL | `apps/desktop/src-tauri/src/commands/agents.rs:681-792` |
 | Call graph | `invoke("stackwalk_index")` → stackwalk parser → call graph JSON | `apps/desktop/src-tauri/src/commands/analysis.rs` (via stackwalk crate) |
@@ -44,14 +47,14 @@ Trace **actual** execution from entrypoints (CLI/UI/commands) through IPC, sidec
 
 ## Implications
 
-- The **inspect → git → governance display** loop is real and working (T000–T009). Governance degrades gracefully rather than crashing.
+- The **inspect → git → governance display → follow-up action** loop is real and complete (T000–T013). Governance degrades gracefully rather than crashing. "View spec" action closes the loop from inspect to spec review.
 - The **governed execution** loop does not exist at runtime. axiomregent has the tools; the desktop app doesn't start it.
 - The gap between "show governance" and "enforce governance" is the platform's biggest structural debt.
-- T010 (next task) should be implementable using existing wired paths without touching axiomregent or titor.
+- Feature 032 is **implemented** — all tasks complete, verification green.
 
 ## Candidate promotions
 
-- [x] `execution/changeset.md` — PR-6 governance wiring already recorded
-- [ ] `execution/verification.md` — add command: `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml commands::analysis::tests::` for governance backend tests
-- [ ] `spec.md` or plan addendum — note that featuregraph half of governance panel returns degraded state due to `spec/features.yaml` not existing; this is bounded and expected for MVP scope
+- [x] `execution/changeset.md` — T010–T013 recorded (2026-03-28)
+- [x] `execution/verification.md` — T013 full verification recorded green (desktop build/test, cargo check, analysis tests, consumer tests, spec-compiler compile)
+- [x] `spec.md` / `verification.md` — featuregraph degraded state documented as expected bounded behavior (FR-003)
 - [ ] Future spec — safety tier model and axiomregent activation are post-032 work items that need specs

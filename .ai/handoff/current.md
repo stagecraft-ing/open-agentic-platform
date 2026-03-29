@@ -56,26 +56,27 @@
 
 ## Baton
 
-- Current owner: cursor
-- Next owner: claude
-- Last baton update: 2026-03-28 — T010–T013 implemented on `main`; baton to Claude for post-032 deep pass / `.ai` refresh
-- Requested outputs:
-  - Reconcile `.ai/findings/runtime-path.md` and `.ai/findings/authority-map.md` with new `featureSummaries` + spec tab path if needed
-  - Update `.ai/plans/promotion-candidates.md` with post-032 items (optional)
-  - Short update to `.ai/reviews/claude-review.md` if gaps found
+- Current owner: **claude**
+- Next owner: **chatgpt** (for post-032 synthesis/prioritization) or **cursor** (if proceeding directly to Feature 033 implementation)
+- Last baton update: 2026-03-28 — Claude reconciled `.ai/` findings with T010–T013 implementation; Feature 032 confirmed complete; post-032 priorities staged
+- Requested outputs (next agent):
+  - **If chatgpt:** Synthesize post-032 priorities from `plans/integration-debt.md` and `plans/next-slice.md`. Recommend whether to write Feature 033 (axiomregent activation) spec next or address scanner fix first. Evaluate UX/product implications of the governance display-vs-enforcement gap.
+  - **If cursor:** Write `specs/033-axiomregent-activation/` (spec.md, plan.md, tasks.md) per `plans/next-slice.md` sketch; implement sidecar spawn.
 - Recommended files to read:
-  - `specs/032-opc-inspect-governance-wiring-mvp/execution/verification.md`
-  - `specs/032-opc-inspect-governance-wiring-mvp/execution/changeset.md`
-  - `apps/desktop/src/features/inspect/actions.ts`, `RegistrySpecFollowUp.tsx`
-  - `apps/desktop/src-tauri/src/commands/analysis.rs`
+  - `.ai/plans/next-slice.md` (post-032 axiomregent proposal)
+  - `.ai/plans/integration-debt.md` (ranked debt items)
+  - `.ai/reviews/claude-review.md` (post-032 priorities)
+  - `.ai/findings/authority-map.md` (enforcement gaps)
 
 ## Requested next agent output
 
-Claude: confirm analysis docs still match code; refresh `.ai/findings/` as needed; run **`./.ai/scripts/ai-claim-baton.sh claude chatgpt`** when synthesis is the next step, or hand to **cursor** for follow-up fixes. Commit and push `.ai/` updates if you change them.
+Next agent: decide whether synthesis (chatgpt) or implementation (cursor) is the right next step. If the human operator has a preference, follow it. Otherwise, chatgpt synthesis is recommended before committing to Feature 033 scope — there may be product-level considerations that change the priority order.
 
 ## Promotion candidates for canonical artifacts
 
-- Post-032 integration debt items → new feature specs / plans (already listed in `.ai/plans/integration-debt.md` — validate against repo)
+- Feature 032 status remains `active` (correct per Feature 003 lifecycle — delivered features stay `active`)
+- Post-032 feature specs needed: axiomregent activation, safety tier model, feature ID reconciliation
+- Post-032 crate fixes: featuregraph scanner adaptation, titor Tauri command wiring
 
 ---
 
@@ -83,3 +84,4 @@ Claude: confirm analysis docs still match code; refresh `.ai/findings/` as neede
 
 - 2026-03-28 (claude): `.ai/findings/runtime-path.md`, `.ai/findings/authority-map.md`, `.ai/findings/under-integrated-assets.md`, `.ai/findings/open-questions.md`, `.ai/findings/integration-risks.md`, `.ai/reviews/claude-review.md`, `.ai/plans/next-slice.md`, `.ai/plans/promotion-candidates.md`, `.ai/plans/integration-debt.md`
 - 2026-03-28 (cursor): T010–T013 implementation + canonical `specs/032-.../execution/*` updates on `main`
+- 2026-03-28 (claude): Reconciled all `.ai/findings/` with T010–T013 implementation; updated runtime-path (featureSummaries + View spec action path), authority-map (registry→RegistrySpecFollowUp chain), review (032 complete, post-032 priorities), next-slice (Feature 033 axiomregent proposal), promotion-candidates (032 items archived, post-032 items staged), open-questions (Q1–Q3 resolved, Q4–Q6 added)

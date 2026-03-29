@@ -18,7 +18,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 |---------|----------------------------|-----------------|---------------|
 | Git branch/status | `git2` library via Tauri `git_*` commands (local repo) | `GitContextSurface` / `useGitContext` | **Low** — cleanly separated; gitctx MCP is explicitly additive per FR-002 |
 | GitHub enrichment | `gitctx-mcp` binary via stdio MCP bridge | `useGitCtxEnrichment` overlay in `GitContextSurface` | **Low** — additive only, absence shows "unavailable" not error |
-| Spec/feature registry | `build/spec-registry/registry.json` (compiled by `spec-compiler`, CI-gated) | `featuregraph_overview` → registry half → `GovernanceSurface` | **Low** — deterministic compilation, contract-tested |
+| Spec/feature registry | `build/spec-registry/registry.json` (compiled by `spec-compiler`, CI-gated) | `featuregraph_overview` → registry half (incl. `featureSummaries`) → `GovernanceSurface` + `InspectSurface` → `RegistrySpecFollowUp` "View spec" buttons | **Low** — deterministic compilation, contract-tested; `featureSummaries` emitted server-side at `analysis.rs:130-166` |
 | Code→feature attribution | `// Feature: UPPERCASE_ID` file headers → `featuregraph::Scanner::scan()` → requires `spec/features.yaml` | `featuregraph_overview` → featuregraph half → `GovernanceSurface` | **HIGH** — scanner depends on missing file; always returns unavailable; UPPERCASE IDs have no mapping to kebab-case spec IDs |
 | Agent permissions | SQLite `agents` table: `enable_file_read`, `enable_file_write`, `enable_network` | Agent creation/edit UI shows toggles | **CRITICAL** — flags stored and displayed but **never enforced**; all execution uses `--dangerously-skip-permissions` |
 | Safety tiers | `crates/agent/src/safety.rs` — Tier1/2/3 classification + `calculate_plan_tier()` | None (not surfaced in UI) | **HIGH** — tier system exists in code but is only consulted inside axiomregent, which is never spawned |
@@ -49,7 +49,7 @@ Document **where truth lives** for governance, registry, git context, and UI: **
 
 ## Implications
 
-- **For Feature 032 (current scope):** The authority map is adequate for the MVP inspect journey. Git and registry authorities are clean. Featuregraph degradation is bounded and explicit. The permission/execution enforcement gaps are real but out of scope per Feature 032's own spec (no cockpit, no control-plane modules).
+- **Feature 032 is complete.** The authority map is sound for the delivered inspect journey. Git and registry authorities are clean. Featuregraph degradation is bounded and explicit. The "View spec" action (T010) uses registry `specPath` — a clean, compiler-owned authority — avoiding the broken `features.yaml` path entirely. The permission/execution enforcement gaps are real but out of scope per Feature 032's own spec (no cockpit, no control-plane modules).
 - **For post-032 work:** The three CRITICAL/HIGH items (agent permissions, axiomregent activation, safety tier enforcement) are the same integration. Activating axiomregent and routing agent execution through it would resolve all three simultaneously.
 - **Feature ID duality** is a design debt that will compound: every new feature adds entries in both systems with no cross-reference. A reconciliation strategy needs a spec before it becomes unmanageable.
 

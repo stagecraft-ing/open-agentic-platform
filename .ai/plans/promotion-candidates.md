@@ -6,9 +6,10 @@
 
 | Item | Current evidence | Target artifact |
 |------|------------------|-----------------|
-| T010 action recommendation: "View spec" button using registry `specPath` | Source-grounded analysis in `findings/open-questions.md` Q1; `specPath` confirmed in `registry.schema.json` | T010 implementation by Cursor |
-| Verification command list for T013 | Listed in `findings/open-questions.md` Q3; covers frontend build, Tauri compile, governance tests, consumer contracts, spec compiler | `execution/verification.md` |
-| Featuregraph degraded state is expected for 032 MVP | `analysis.rs:55-58` returns `{status: "unavailable"}` gracefully; `scanner.rs:167` reads nonexistent file; FR-003 explicitly allows "explicit handling for unavailable data" | `execution/verification.md` as documented expected behavior |
+| Feature 032 status → `implemented` | `tasks.md` shows T000–T013 all [x]; `verification.md` has green run 2026-03-28 | `specs/032-opc-inspect-governance-wiring-mvp/spec.md` frontmatter `status: implemented` (per Feature 003 lifecycle) |
+| Post-032 axiomregent activation spec | Analysis in `plans/next-slice.md`; `spawn_axiomregent()` exists at `sidecars.rs:48`; infrastructure ready | New `specs/033-axiomregent-activation/spec.md` |
+| Post-032 featuregraph scanner fix | `scanner.rs:167` reads forbidden `features.yaml`; governance panel permanently degraded | Either standalone spec or 033-adjacent task |
+| Post-032 safety tier spec | `safety.rs` defines tiers in code only; no spec governs tier assignments | New spec (can parallel with 033) |
 
 ## Needs more verification
 
@@ -21,7 +22,9 @@
 
 ## Done / discarded (archive)
 
-- (none yet)
+- ~~T010 action recommendation: "View spec" button~~ — **promoted and implemented** (Cursor, 2026-03-28). `RegistrySpecFollowUp.tsx` + `actions.ts` using `featureSummaries` from backend.
+- ~~Verification command list for T013~~ — **promoted** to `execution/verification.md` T010–T013 section.
+- ~~Featuregraph degraded state documentation~~ — **promoted** to `execution/verification.md` product notes.
 
 ## Reminder
 

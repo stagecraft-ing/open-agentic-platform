@@ -15,9 +15,12 @@ Track **unresolved** questions that block or sharpen the next slice; keep each i
 
 | # | Question | Blocks | How to resolve |
 |---|----------|--------|------------------|
-| 1 | What is the smallest T010 action satisfying FR-005? | T010 | See recommendation below — **"Open spec file" button** from registry data is safest. Alternative: combine with "Check impact" secondary action. |
-| 2 | Should T012/T013 verification document featuregraph degraded state as expected? | T012 | Yes — record `featuregraph: unavailable` as known bounded degradation in `verification.md`. Not a failure. |
-| 3 | What verification commands complete the green baseline for T013? | T013 | See list below. |
+| 1 | ~~What is the smallest T010 action satisfying FR-005?~~ | ~~T010~~ | **RESOLVED** — "View spec" button implemented via `RegistrySpecFollowUp` + `featureSummaries`. |
+| 2 | ~~Should T012/T013 verification document featuregraph degraded state as expected?~~ | ~~T012~~ | **RESOLVED** — yes, documented in `verification.md` T010–T013 product notes. |
+| 3 | ~~What verification commands complete the green baseline for T013?~~ | ~~T013~~ | **RESOLVED** — recorded in `verification.md` T010–T013 section; all green. |
+| 4 | When should axiomregent activation get its own spec? | Post-032 | Proposed as Feature 033 — see `plans/next-slice.md`. Ready to write. |
+| 5 | Should `spec-lint` be added to CI verification? | Post-032 | Raised in handoff. Low priority — spec-lint is non-blocking by design (Feature 006). Could add as optional CI step. |
+| 6 | UX: cap/limit "View spec" buttons or add search? | Post-032 | Currently capped at 24 (`RegistrySpecFollowUp.tsx:30`). Acceptable for now; revisit if registry grows. |
 
 ### Q1 detail: T010 action recommendation
 

@@ -4,8 +4,9 @@
 
 ## Scope reviewed
 
-- Feature / slice: Feature 032 (OPC inspect + governance wiring MVP), T000–T013
+- Feature / slice: Feature 032 (OPC inspect + governance wiring MVP), T000–T013 — **all complete**
 - Code paths: Full Tauri backend (`apps/desktop/src-tauri/src/`), all 10 Rust crates, frontend features (`inspect/`, `git/`, `governance/`), spec system (`specs/`, `tools/`), `.ai/` workspace
+- Post-T009 review: T010 "View spec" action (`actions.ts`, `RegistrySpecFollowUp.tsx`), `featureSummaries` backend extension (`analysis.rs:130-166`), vitest coverage, verification suite
 
 ## Main concerns
 
@@ -35,9 +36,8 @@ Spec IDs (kebab: `032-opc-inspect-governance-wiring-mvp`) and code attribution I
 
 ## What still blocks convergence
 
-### For 032 completion (T010–T013):
-- **T010 needs a decision on action type.** Recommendation: "Open spec file" button using registry `specPath` field. Zero backend work, no `features.yaml` dependency.
-- **T012/T013 need verification commands.** Listed in `open-questions.md` Q3.
+### Feature 032: COMPLETE
+- T010–T013 implemented by Cursor (2026-03-28). "View spec" action uses `featureSummaries` from compiled registry. Backend extended to emit `featureSummaries` (id, title, specPath) in `read_registry_summary`. `RegistrySpecFollowUp` component wired into both `InspectSurface` and `GovernanceSurface`. Vitest coverage added. Verification green.
 
 ### For post-032 platform thesis:
 - **axiomregent activation** — needs its own spec
@@ -49,19 +49,17 @@ Spec IDs (kebab: `032-opc-inspect-governance-wiring-mvp`) and code attribution I
 
 ## Recommended next move
 
-**For Cursor (T010–T013 implementation):**
+**Feature 032 is done. Post-032 priorities (in order):**
 
-1. **T010:** Add "View spec" button to `InspectSurface.tsx` when registry data includes features with `specPath`. Create `apps/desktop/src/features/inspect/actions.ts` with `openSpecAction(specPath)` that opens a `claude-md` tab. Add fixture-backed test.
+1. **Spec: axiomregent activation** — write a feature spec for spawning axiomregent at startup and exposing its governed tool surface. This is the single move that transforms the platform from "Claude wrapper" to "governed execution environment."
 
-2. **T011:** Update `apps/desktop/README.md` with inspect/governance user flow. Update `specs/032-opc-inspect-governance-wiring-mvp/execution/changeset.md` with final touchpoints.
+2. **Spec: agent routing through axiomregent** — replace `--dangerously-skip-permissions` with governed dispatch. Make `enable_file_read/write/network` flags enforceable via safety tiers.
 
-3. **T012:** Add tests for:
-   - Inspect surface renders xray data
-   - Git panel renders branch/status data
-   - Governance panel renders registry summary + handles degraded featuregraph
-   - Action button renders when specPath available
+3. **Fix featuregraph scanner** — adapt `Scanner::scan()` to read from `registry.json` instead of the forbidden `spec/features.yaml`. This would immediately promote the governance panel from degraded to fully functional.
 
-4. **T013:** Run full verification suite (see `open-questions.md` Q3 for commands), record results in `verification.md`.
+4. **Wire titor Tauri commands** — implement the 5 stubbed checkpoint commands. Enables temporal safety net for agent execution.
+
+5. **Spec: safety tier model** — formalize `safety.rs` tier definitions. Make tier assignments governance-visible and spec-governed.
 
 ## Promotion candidates
 
