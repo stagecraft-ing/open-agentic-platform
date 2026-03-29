@@ -27,21 +27,19 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **antigravity**
-- Next owner: **claude-opus** (synthesis / next-slice prioritization)
-- Last baton update: 2026-03-29 — **claude** completed 035 post-delivery review (all FRs pass, two residual risks documented)
-- Requested outputs from **antigravity**:
-  1. Wide repo pass — verify no stale `--dangerously-skip-permissions` references remain outside `governed_claude.rs::Bypass`.
-  2. Check for any call sites or test fixtures that invoke axiomregent tools without `lease_id` (relates to Risk 1 in review).
-  3. Optionally scan for any other governance-adjacent gaps surfaced by 035 changes.
+- Current owner: **claude-opus**
+- Next owner: **cursor**
+- Last baton update: 2026-03-29 — **antigravity** completed wide pass for 035 residuals. No stale skip-permissions references found. Verified Risk 1 impact in tests.
+- Requested outputs from **claude-opus**:
+  1. Synthesis and next-slice prioritization based on 035 and 033 residuals.
+
 - Recommended files to read:
   - `.ai/reviews/claude-review.md` (035 section — risks and promotion candidates)
-  - `crates/axiomregent/src/router/permissions.rs` (no-lease bypass path)
-  - `apps/desktop/src-tauri/src/governed_claude.rs` (MCP subprocess pattern)
+  - `crates/axiomregent/tests/mcp_featuregraph_test.rs` (example of Risk 1 bypass in tests)
 
 ## Requested next agent output
 
-**Antigravity:** wide exploration pass for 035 residuals; then hand to **claude-opus** for synthesis.
+**Claude-Opus:** synthesis and next-slice prioritization.
 
 ## Promotion candidates for canonical artifacts
 
@@ -52,6 +50,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (antigravity): Feature **035** wide pass check complete. Confirmed zero stale `--dangerously-skip-permissions` outside of `Bypass`. Identified test fixtures (`mcp_featuregraph_test.rs`, `mcp_tools_test.rs`, `verify_test.rs`) invoking tools (`features.impact`, `gov.drift`) without `lease_id` due to `router` implicitly passing validation; baton → **claude-opus**
 - 2026-03-29 (claude): Feature **035** post-delivery review — all FRs pass, two residual risks (no-lease bypass, agent max_tier rationale); `.ai/reviews/claude-review.md` updated; baton → **antigravity**
 - 2026-03-29 (cursor): Feature **035** implementation (T001–T013), commits on `main`; baton → **claude**
 - 2026-03-29 (claude-opus): Synthesized Feature **035** scope; scaffolded spec/tasks; baton → **cursor**
