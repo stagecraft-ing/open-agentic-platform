@@ -1,0 +1,263 @@
+# Release desktop app bundles for all platforms.
+# Triggered by pushing a version tag (e.g. v0.2.1).
+# Builds sidecar binaries first, then uses Tauri Action to produce
+# platform installers and upload them to a GitHub Release.
+
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.2.1)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ── Stage 1: Build sidecar binaries ────────────────────────────────
+  sidecar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.os }}
+    name: sidecar / ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: sidecar-${{ matrix.target }}
+
+      # ── axiomregent ──
+      - name: Build axiomregent
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml
+
+      - name: Stage axiomregent (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p apps/desktop/src-tauri/binaries
+          cp "crates/axiomregent/target/${{ matrix.target }}/release/axiomregent" \
+             "apps/desktop/src-tauri/binaries/axiomregent-${{ matrix.target }}"
+          strip "apps/desktop/src-tauri/binaries/axiomregent-${{ matrix.target }}" || true
+
+      - name: Stage axiomregent (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          if not exist apps\desktop\src-tauri\binaries mkdir apps\desktop\src-tauri\binaries
+          copy crates\axiomregent\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\axiomregent-${{ matrix.target }}.exe
+
+      # ── gitctx-mcp ──
+      - name: Build gitctx-mcp
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/gitctx/Cargo.toml
+
+      - name: Stage gitctx-mcp (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp "crates/gitctx/target/${{ matrix.target }}/release/gitctx-mcp" \
+             "apps/desktop/src-tauri/binaries/gitctx-mcp-${{ matrix.target }}"
+          strip "apps/desktop/src-tauri/binaries/gitctx-mcp-${{ matrix.target }}" || true
+
+      - name: Stage gitctx-mcp (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          copy crates\gitctx\target\${{ matrix.target }}\release\gitctx-mcp.exe apps\desktop\src-tauri\binaries\gitctx-mcp-${{ matrix.target }}.exe
+
+      - name: Upload sidecar artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.target }}
+          path: apps/desktop/src-tauri/binaries/
+          retention-days: 5
+
+  # ── Stage 1b: Linux ARM64 sidecar (cross-compiled) ────────────────
+  sidecar-linux-arm64:
+    runs-on: ubuntu-22.04
+    name: sidecar / aarch64-unknown-linux-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: sidecar-aarch64-unknown-linux-gnu
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build axiomregent
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+        run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/axiomregent/Cargo.toml
+
+      - name: Build gitctx-mcp
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+        run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/gitctx/Cargo.toml
+
+      - name: Stage binaries
+        run: |
+          mkdir -p apps/desktop/src-tauri/binaries
+          cp crates/axiomregent/target/aarch64-unknown-linux-gnu/release/axiomregent \
+             apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          cp crates/gitctx/target/aarch64-unknown-linux-gnu/release/gitctx-mcp \
+             apps/desktop/src-tauri/binaries/gitctx-mcp-aarch64-unknown-linux-gnu
+
+      - name: Upload sidecar artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-aarch64-unknown-linux-gnu
+          path: apps/desktop/src-tauri/binaries/
+          retention-days: 5
+
+  # ── Stage 2: Build & release desktop app ───────────────────────────
+  release:
+    needs: [sidecar, sidecar-linux-arm64]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            args: '--target aarch64-apple-darwin'
+            config: src-tauri/tauri.macos.conf.json
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            args: '--target x86_64-apple-darwin'
+            config: src-tauri/tauri.macos.conf.json
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: ''
+            config: src-tauri/tauri.linux.conf.json
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: ''
+            config: src-tauri/tauri.windows.conf.json
+
+    runs-on: ${{ matrix.os }}
+    name: release / ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-${{ matrix.target }}
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Linux needs system libraries for Tauri / WebKit
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev
+
+      # Download pre-built sidecar binaries from Stage 1
+      - name: Download sidecar binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ matrix.target }}
+          path: apps/desktop/src-tauri/binaries/
+
+      - name: Mark sidecars executable (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x apps/desktop/src-tauri/binaries/*
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and release with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing (optional — set these secrets to enable)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Tauri updater signing (optional)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          tagName: ${{ steps.tag.outputs.tag }}
+          releaseName: 'OPC ${{ steps.tag.outputs.tag }}'
+          releaseBody: |
+            See the [changelog](https://github.com/stagecraft-ing/open-agentic-platform/commits/${{ steps.tag.outputs.tag }}) for details.
+
+            ## Downloads
+            | Platform | File |
+            |----------|------|
+            | macOS (Apple Silicon) | `.dmg` (aarch64) |
+            | macOS (Intel) | `.dmg` (x86_64) |
+            | Linux | `.AppImage`, `.deb`, `.rpm` |
+            | Windows | `.msi`, `.exe` (NSIS) |
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+          configPath: ${{ matrix.config }}

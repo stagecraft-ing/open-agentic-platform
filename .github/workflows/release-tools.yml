@@ -1,0 +1,171 @@
+# Release standalone CLI tools alongside the desktop app.
+# Attaches spec-compiler, registry-consumer, and spec-lint binaries
+# to the same GitHub Release created by release-desktop.yml.
+
+name: Release Tools
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to attach assets to (e.g. v0.2.1)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.os }}
+    name: tools / ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: tools-${{ matrix.target }}
+
+      - name: Build spec-compiler
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-compiler/Cargo.toml
+
+      - name: Build registry-consumer
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/registry-consumer/Cargo.toml
+
+      - name: Build spec-lint
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-lint/Cargo.toml
+
+      - name: Determine extension
+        id: ext
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = "x86_64-pc-windows-msvc" ]; then
+            echo "ext=.exe" >> "$GITHUB_OUTPUT"
+          else
+            echo "ext=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stage and strip binaries
+        shell: bash
+        run: |
+          mkdir -p dist
+          EXT="${{ steps.ext.outputs.ext }}"
+          TARGET="${{ matrix.target }}"
+
+          for tool in spec-compiler registry-consumer spec-lint; do
+            # Each tool has its own target dir under its manifest path
+            SRC="tools/${tool}/target/${TARGET}/release/${tool}${EXT}"
+            DEST="dist/${tool}-${TARGET}${EXT}"
+            cp "$SRC" "$DEST"
+            if [ "${{ runner.os }}" != "Windows" ]; then
+              strip "$DEST" || true
+            fi
+          done
+
+          ls -lh dist/
+
+      - name: Upload tool artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tools-${{ matrix.target }}
+          path: dist/
+          retention-days: 5
+
+  # ── Attach all tool binaries to the GitHub Release ─────────────────
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    name: publish to release
+
+    steps:
+      - name: Download all tool artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tools-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: List artifacts
+        run: ls -lhR dist/
+
+      # Create archives per platform for cleaner downloads
+      - name: Package archives
+        shell: bash
+        run: |
+          mkdir -p release
+          cd dist
+
+          for target in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu; do
+            tar czf "../release/oap-tools-${target}.tar.gz" *-${target}
+          done
+
+          # Windows gets a zip
+          if ls *-x86_64-pc-windows-msvc* 1>/dev/null 2>&1; then
+            zip "../release/oap-tools-x86_64-pc-windows-msvc.zip" *-x86_64-pc-windows-msvc*
+          fi
+
+          ls -lh ../release/
+
+      - name: Wait for release to exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          REPO="${{ github.repository }}"
+          # The desktop workflow creates the release as a draft.
+          # Wait up to 10 minutes for it to appear.
+          for i in $(seq 1 60); do
+            if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+              echo "Release $TAG found."
+              exit 0
+            fi
+            echo "Waiting for release $TAG... (attempt $i/60)"
+            sleep 10
+          done
+          echo "Release $TAG not found — creating it."
+          gh release create "$TAG" --repo "$REPO" --title "OPC $TAG" --draft --notes "Release $TAG"
+
+      - name: Upload tool archives to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.tag.outputs.tag }}" \
+            release/* \
+            --repo "${{ github.repository }}" \
+            --clobber
