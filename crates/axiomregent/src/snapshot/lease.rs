@@ -94,7 +94,7 @@ pub struct PermissionGrants {
     pub enable_file_write: bool,
     #[serde(default = "default_false")]
     pub enable_network: bool,
-    /// `1` = Tier1, `2` = Tier2, `3` = Tier3 (see `agent::safety::Tier`).
+    /// `1` = Tier1, `2` = Tier2, `3` = Tier3 (see `agent::safety::ToolTier`).
     #[serde(default = "default_max_tier_three")]
     pub max_tier: u8,
 }

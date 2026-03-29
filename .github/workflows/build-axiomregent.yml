@@ -51,6 +51,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
       - name: Build axiomregent
         run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml
 
@@ -70,7 +73,7 @@ jobs:
 
       - name: Smoke test
         run: |
-          timeout 3 apps/desktop/src-tauri/binaries/${{ matrix.binary }} 2>&1 || true
+          perl -e 'alarm shift; exec @ARGV' 3 apps/desktop/src-tauri/binaries/${{ matrix.binary }} 2>&1 || true
         shell: bash
         continue-on-error: true
 
@@ -93,6 +96,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-linux-gnu
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Install cross-compilation tools
         run: |
