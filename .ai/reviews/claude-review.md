@@ -696,3 +696,76 @@ The handoff flagged that `VectorStore::search` now returns `Result`. The HTTP ro
 2. **Stale doc comment** `lease.rs:97` — `agent::safety::Tier` → `agent::safety::ToolTier` (carried from 037 review)
 3. **CI smoke test** — `timeout` command portability on macOS (carried from 037 review)
 
+---
+
+## Feature 041: Checkpoint / Restore UI — desktop panel
+
+**Reviewed:** 2026-03-29
+**Code paths:** `apps/desktop/src/features/checkpoint/` (CheckpointSurface.tsx, useCheckpointFlow.ts, types.ts), `apps/desktop/src/components/CheckpointPanel.tsx`, tab wiring (TabContext, useTabState, TabContent, CustomTitlebar, App.tsx), Tauri backend (`src-tauri/src/commands/titor.rs`)
+
+### FR verification
+
+| FR | Status | Evidence |
+|----|--------|----------|
+| FR-001 | **PASS** | `CustomTitlebar.tsx` has `onCheckpointClick` prop + History icon dropdown entry. `App.tsx:423` wires `createCheckpointTab()`. Singleton enforced in `useTabState.ts:367-380` (finds existing tab or creates new). |
+| FR-002 | **PASS** | `CheckpointSurface.tsx:265-291` renders path input + Initialize button. `useCheckpointFlow.ts:57-75` calls `titor_init` then `titor_list`, transitions to `ready` state with sorted checkpoint list. |
+| FR-003 | **PASS** | `CheckpointSurface.tsx:323-350` renders create control with optional message. `useCheckpointFlow.ts:77-90` calls `titor_checkpoint` then `refreshList`. |
+| FR-004 | **PASS** | `CheckpointRow` at `CheckpointSurface.tsx:107-198` renders description (or "unnamed" italic), `relativeTime()` for timestamp, `file_count`, `formatBytes(total_size)`. List sorted most-recent-first at `useCheckpointFlow.ts:48-50`. |
+| FR-005 | **PASS** | Restore button at `CheckpointSurface.tsx:167-180` with `window.confirm()` confirmation dialog before calling `onRestore`. `useCheckpointFlow.ts:92-102` calls `titor_restore` then `refreshList`. |
+| FR-006 | **PASS** | Diff selection via toggle buttons (`handleToggleDiffSelect` at line 219-234, max 2 selections). `handleDiff` at line 236-249 orders chronologically and calls `diff(older, newer)`. `DiffSummary` component at line 38-70 shows added/modified/deleted counts + expandable file list. |
+| FR-007 | **PASS** | Verify button at `CheckpointSurface.tsx:151-164`. `VerifyBadge` at line 73-104 shows pass/fail with expandable detail (files checked, metadata/state_hash/merkle_root validity, timing, errors). |
+| FR-008 | **PASS** | All `invoke()` calls in `useCheckpointFlow.ts` are wrapped in try/catch. Errors route to `setError()` which sets `status: 'error'`. Error state rendered at `CheckpointSurface.tsx:308-318` as styled inline message with Reset button. |
+
+### SC verification
+
+| SC | Status | Evidence |
+|----|--------|----------|
+| SC-001 | **PASS** | Dropdown entry exists, singleton tab factory confirmed. |
+| SC-002 | **PASS** | Init → create → list flow: `initialize()` calls `titor_init` + `titor_list`; `createCheckpoint()` calls `titor_checkpoint` + `refreshList`. |
+| SC-003 | **PASS** | `restore()` calls `titor_restore` + `refreshList` (NF-001 satisfied). |
+| SC-004 | **PASS** | `diff()` returns `CheckpointDiff` with `stats.files_added/modified/deleted` + `changed_files`. |
+| SC-005 | **PASS** | `verify()` returns `VerificationReport` with validity booleans + errors list. |
+| SC-006 | **PASS** | Error state with styled `AlertCircle` + pre-formatted error message + Reset button. |
+
+### Titor command invocation patterns
+
+All 6 commands match the Rust backend signatures at `titor.rs:104-170`:
+- `titor_init(rootPath, storagePath: null)` → `root_path: String, storage_path: Option<String>` ✓
+- `titor_checkpoint(rootPath, message)` → `root_path: String, message: Option<String>` ✓
+- `titor_list(rootPath)` → `root_path: String` ✓
+- `titor_restore(rootPath, checkpointId)` → `root_path: String, checkpoint_id: String` ✓
+- `titor_diff(rootPath, id1, id2)` → `root_path: String, id1: String, id2: String` ✓
+- `titor_verify(rootPath, checkpointId)` → `root_path: String, checkpoint_id: String` ✓
+
+Tauri's JS-to-Rust bridge handles camelCase→snake_case conversion automatically.
+
+### Tab wiring verification
+
+| File | Change | Status |
+|------|--------|--------|
+| `TabContext.tsx` | `'checkpoint'` in type union | ✓ |
+| `useTabState.ts` | `createCheckpointTab()` singleton | ✓ |
+| `TabContent.tsx` | Lazy-loaded `CheckpointPanel` | ✓ |
+| `CustomTitlebar.tsx` | `onCheckpointClick` + dropdown entry | ✓ |
+| `App.tsx` | `onCheckpointClick={() => createCheckpointTab()}` | ✓ |
+
+### TypeScript types
+
+`types.ts` mirrors titor Rust structs: `Checkpoint`, `CheckpointMetadata`, `CheckpointDiff`, `ChangeStats`, `VerificationReport`, `FileVerification`, `FileEntry`. Field names use snake_case matching serde serialization.
+
+### Build verification
+
+- `tsc --noEmit` (desktop app): **green** — 0 errors.
+
+### Observations (non-blocking)
+
+1. **`diff()` busy flag not cleared on error path** — `useCheckpointFlow.ts:104-116`: the `diffing` busy flag is set to `false` inside the `try` block success path (`line 112`) but not in a `finally` block. If `titor_diff` throws, `setError()` resets all busy flags via the full state override, so this is actually safe — `setError` at line 41 sets `busy: { ...INITIAL_BUSY }`. No bug, but the pattern is inconsistent with `createCheckpoint`/`restore`/`verify` which use `finally` blocks.
+
+2. **`createCheckpoint` reads stale `state.projectRoot`** — `useCheckpointFlow.ts:77-90`: the `createCheckpoint` callback captures `state.projectRoot` in its closure dependency array. Since `useState` is used (not `useRef`), this works correctly — React will recreate the callback when `state.projectRoot` changes. Same pattern for `restore`, `diff`, `verify`. Correct but worth noting the closure-capture reliance.
+
+### Remaining open items (carried forward)
+
+1. **Cross-platform axiomregent binaries** — Windows delivered (037), macOS x86_64 + Linux pending CI
+2. **Stale doc comment** `lease.rs:97` — `agent::safety::Tier` → `agent::safety::ToolTier` (carried from 037 review)
+3. **CI smoke test** — `timeout` command portability on macOS (carried from 037 review)
+

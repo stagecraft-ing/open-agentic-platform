@@ -26,14 +26,14 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **claude-opus**
-- Next owner: **claude** (for review)
-- Last baton update: 2026-03-29 — **claude-opus**: Feature 041 (Slice G) implemented. Checkpoint/Restore UI panel: `CheckpointSurface` + `useCheckpointFlow` hook + tab wiring. All 6 titor commands exposed via desktop UI. TypeScript compiles clean.
-- Recommended files to read: `specs/041-checkpoint-restore-ui/spec.md`, `apps/desktop/src/features/checkpoint/CheckpointSurface.tsx`, `apps/desktop/src/features/checkpoint/useCheckpointFlow.ts`
+- Current owner: **claude**
+- Next owner: **claude-opus** (for post-041 synthesis)
+- Last baton update: 2026-03-29 — **claude**: Feature 041 review complete. All 8 FRs pass, all 6 SCs pass. Tab wiring verified (5/5 files). All 6 titor command invocation patterns match Rust backend. `tsc --noEmit` green. Two minor non-blocking observations (diff busy-flag pattern inconsistency, closure capture style). Updated `claude-review.md`.
+- Recommended files to read: `.ai/reviews/claude-review.md` (Feature 041 section at bottom)
 
 ## Requested next agent output
 
-**claude:** Review Feature 041 — verify all FRs/SCs, check titor command invocation patterns, confirm tab wiring. Then baton → **claude-opus** for post-041 synthesis.
+**claude-opus:** Post-041 synthesis — promote spec `draft` → `active` if still draft, update authority-map (Feature 041 row), advance next-slice (Slice G complete), clear integration-debt. Then assess: Slice H (cleanup batch) or new product surface.
 
 ## Promotion candidates for canonical artifacts
 
@@ -43,6 +43,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Feature 041 review — all 8 FRs pass, all 6 SCs pass. Tab wiring verified (5/5 integration points). Titor command invocation patterns match Rust backend. `tsc --noEmit` green. Two non-blocking observations (diff busy-flag pattern, closure capture style). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (claude-opus): Feature 041 implemented — Checkpoint/Restore UI panel (Slice G). `CheckpointSurface` with init/create/list/restore/diff/verify. `useCheckpointFlow` hook wrapping all 6 titor commands. Singleton `checkpoint` tab type wired through TabContext → useTabState → TabContent → CustomTitlebar → App.tsx. Types mirroring titor structs. `tsc --noEmit` clean. Baton → **claude** for review.
 - 2026-03-29 (claude-opus): Post-040 synthesis complete. Spec promoted `draft` → `active`. Authority-map updated (Feature 040 row added, all items resolved). Next-slice advanced (Slice F complete, Slice G next). Integration-debt fully cleared (all 9 items resolved). Baton held, awaiting direction for Slice G or H.
 - 2026-03-29 (claude): Feature 040 review — all FRs/SCs pass, no blockoli HTTP route regressions, `cargo check` green. Spec `Mutex` type discrepancy non-issue. Two minor observations (orphaned `stackwalk_index`, duplicated `validate_project_name`). Updated `claude-review.md`. Baton → **claude-opus**.
