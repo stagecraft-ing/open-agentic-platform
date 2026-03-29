@@ -257,6 +257,11 @@ function mapCommandToEndpoint(command: string, _params?: any): string {
     'slash_command_get': '/api/slash-commands/{commandId}',
     'slash_command_save': '/api/slash-commands',
     'slash_command_delete': '/api/slash-commands/{commandId}',
+
+    // Analysis commands
+    'xray_scan_project': '/api/analysis/xray-scan',
+    'featuregraph_overview': '/api/analysis/featuregraph-overview',
+    'featuregraph_impact': '/api/analysis/featuregraph-impact',
   };
 
   const endpoint = commandToEndpoint[command];
