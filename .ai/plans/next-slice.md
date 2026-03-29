@@ -1,47 +1,94 @@
 # Next slice (working synthesis)
 
-> **Non-authoritative.** This is a **staging** view for the smallest next increment — not a replacement for `specs/.../tasks.md` or `plan.md`. Promote agreed work into canonical tasks.
+> **Non-authoritative.** This is a **staging** view for the smallest next increment - not a replacement for `specs/.../tasks.md` or `plan.md`. Promote agreed work into canonical tasks.
 
 ## Context
 
 - Branch: `main`
-- **Feature 032: COMPLETE** (T000–T013 all done, verification green)
+- **Feature 032: COMPLETE** (T000-T013 all done, verification green)
 - Next priorities: post-032 convergence work
 
-## Smallest high-leverage slice (proposal): Feature 033 — axiomregent activation
+## Ordered post-032 priority list
 
-### Why this is the next convergence slice
+1. **Feature 033 - axiomregent activation (first)**
+   - Promote a canonical spec for sidecar activation, MCP surfacing, and safety-tier visibility.
+   - Smallest move with the highest thesis payoff: it turns dormant governed runtime infrastructure into a live platform surface.
 
-axiomregent is the only component that unifies governance enforcement, safety tiers, snapshot management, workspace operations, and feature analysis into a single dispatch surface. It is compiled, tested, has sidecar infrastructure (`spawn_axiomregent`, `SidecarState`, port discovery) — and is never started. One function call away from transforming the platform.
+2. **Activate axiomregent at app startup**
+   - Wire `spawn_axiomregent(app)` in `lib.rs` and verify sidecar bundling/port discovery on supported targets.
+   - Keep this scoped to activation and visibility only - do not yet reroute all agent execution through it.
 
-### Proposed scope
+3. **Surface axiomregent in the desktop UI**
+   - Expose tool/resource discovery in MCP management UI and show governance-relevant safety tier information.
+   - Goal: make governed capability visible and inspectable before expanding execution authority.
 
-1. **Write `specs/033-axiomregent-activation/spec.md`** — formalize sidecar activation, tool surface, and safety tier enforcement as a governed feature
-2. **Call `spawn_axiomregent(app)` in `lib.rs` setup** — activate the sidecar on app startup
-3. **Verify sidecar binary bundling** — confirm `axiomregent` binary is available as Tauri sidecar on all target platforms
-4. **Expose axiomregent tools in MCP management UI** — frontend can list/call axiomregent tools alongside gitctx
-5. **Add safety tier display** — show tier classification in governance panel
+4. **Fix featuregraph scanner to read `registry.json` instead of `features.yaml`**
+   - This is the highest-value parallel slice because it removes the governance panel's permanent degraded state.
+   - Treat as either Feature 034 or a tightly bounded adjacent slice after 033 is promoted.
 
-### What this explicitly does NOT include (defer to Feature 034+)
+5. **Spec-govern the safety tier model**
+   - `safety.rs` already defines tiers in code, but tier assignment and meaning are not yet governed by spec.
+   - Promote once axiomregent activation scope is stable so enforcement and documentation do not drift apart.
 
-- Rerouting agent execution through axiomregent (separate feature — changes execution authority)
-- Replacing `--dangerously-skip-permissions` (depends on agent routing)
-- Fixing featuregraph scanner (independent work, can parallel)
-- Titor command wiring (independent)
+6. **Route agent execution through governed authority**
+   - Only after axiomregent is alive and visible.
+   - This is the real display-vs-enforcement closure, but it changes execution authority and deserves its own feature.
 
-### Parallel work (can run alongside 033)
+## Fork resolution
 
-- **Fix featuregraph scanner** — adapt `Scanner::scan()` to read `registry.json`; promotes governance panel from degraded to full
-- **Wire titor commands** — implement 5 stubbed Tauri commands
+### Chosen path: **Fork C - parallel, but sequenced**
 
-## Dependencies / risks
+- **Primary track:** axiomregent-first
+- **Parallelizable secondary track:** scanner fix
+- **Not recommended:** scanner-first as the sole next slice
 
-- axiomregent binary must be bundled as Tauri sidecar (check `tauri.conf.json` sidecar config)
-- Port discovery (`OPC_AXIOMREGENT_PORT=`) must work on Windows (current code uses `cmd.spawn()` via Tauri shell plugin)
-- axiomregent's `Scanner::scan()` (via featuregraph) will also hit `features.yaml` issue — may need scanner fix first or accept degraded featuregraph tools
+### Why
+
+- **axiomregent-first** closes the platform's biggest architectural gap: governed runtime exists but is not active.
+- **scanner-first alone** improves one degraded panel, but does not change the platform's authority model.
+- **parallel** is best only if the work stays split into separate promotable slices: one for activation, one for scanner repair.
+
+## Recommended promotion set
+
+### Promote now
+
+- `specs/032-opc-inspect-governance-wiring-mvp/spec.md`
+  - Update frontmatter `status:` from `active` to `implemented`
+
+- `specs/033-axiomregent-activation/spec.md`
+  - New canonical feature for:
+    - sidecar activation on startup
+    - sidecar bundling/runtime verification
+    - MCP surface exposure in UI
+    - safety tier visibility
+
+### Promote next
+
+- `specs/034-featuregraph-registry-scanner-fix/spec.md`
+  - New feature for adapting scanner inputs from `features.yaml` to `registry.json`
+
+- Safety-tier governance spec
+  - Separate feature unless naturally absorbed into 033 after authoring review
+
+## Scope boundaries for 033
+
+### Include
+
+- app startup activation
+- sidecar readiness verification
+- MCP/UI visibility for axiomregent
+- safety tier display
+
+### Exclude
+
+- agent execution reroute
+- permission model replacement
+- titor command wiring
+- scanner repair unless explicitly merged into a broader approved slice
 
 ## After promotion (canonical)
 
-- [ ] Create `specs/033-axiomregent-activation/` with spec.md, plan.md, tasks.md
-- [ ] Update Feature 032 status from `active` to implemented in spec frontmatter (per Feature 003 lifecycle)
-- [ ] Track scanner fix and titor wiring as separate feature specs or 033-adjacent tasks
+- [ ] Update Feature 032 lifecycle status to `implemented`
+- [ ] Create `specs/033-axiomregent-activation/` with spec/plan/tasks/execution artifacts
+- [ ] Decide whether scanner fix becomes Feature 034 or a narrowly scoped follow-on slice
+- [ ] Hand implementation back to Cursor once 033 exists canonically
