@@ -35,6 +35,6 @@
 
 ## Promotion candidates
 
-- [ ] `specs/032-opc-inspect-governance-wiring-mvp/spec.md` — optional frontmatter `status: implemented` if Product agrees (Feature 003 lifecycle); `tasks.md` already marks complete
+- [x] `specs/032-opc-inspect-governance-wiring-mvp/spec.md` — remain **`active`** in frontmatter (registry enum); completion evidenced by `tasks.md` + verification (see Cursor handoff fix 2026-03-29)
 - [ ] New `specs/033-*` (or numbered) — axiomregent activation per `next-slice.md`
 - [ ] Future spec — scanner/registry alignment for featuregraph; safety tiers; feature ID bridge

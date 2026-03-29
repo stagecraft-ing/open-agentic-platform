@@ -3,7 +3,7 @@
 **Input**: `/specs/032-opc-inspect-governance-wiring-mvp/`  
 **Prerequisites**: Features **000-004**, **029-031**
 
-**Feature status**: **Implemented** (T000–T013 complete per this file; see `execution/verification.md`)
+**Feature status**: **Complete** — T000–T013 done (see `execution/verification.md`). Registry frontmatter **`status`** stays **`active`** per Feature **000/003** enum.
 
 ## Phase 0: Consolidation gate (blocking)
 

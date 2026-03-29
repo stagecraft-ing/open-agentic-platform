@@ -53,7 +53,7 @@
 ### Promote now
 
 - `specs/032-opc-inspect-governance-wiring-mvp/spec.md`
-  - Update frontmatter `status:` from `active` to `implemented`
+  - **Do not** set `status: implemented` — not in the registry enum (Feature **000**). Keep **`active`** or move to **`superseded`/`retired`** only per Feature **003**. Record delivery via **tasks + `execution/verification.md`** (and optional **Delivery** section in spec body).
 
 - `specs/033-axiomregent-activation/spec.md`
   - New canonical feature for:
@@ -88,7 +88,7 @@
 
 ## After promotion (canonical)
 
-- [ ] Update Feature 032 lifecycle status to `implemented`
-- [ ] Create `specs/033-axiomregent-activation/` with spec/plan/tasks/execution artifacts
+- [x] Record Feature 032 completion via tasks + verification (no invalid `implemented` status)
+- [x] Create `specs/033-axiomregent-activation/` with spec/plan/tasks/execution artifacts
 - [ ] Decide whether scanner fix becomes Feature 034 or a narrowly scoped follow-on slice
 - [ ] Hand implementation back to Cursor once 033 exists canonically

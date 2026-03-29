@@ -61,3 +61,7 @@ Out of scope:
 - **SC-002**: Git and governance panels are backed by real integrations, not stubs.
 - **SC-003**: Inspect outputs and panel states are reviewable through deterministic test evidence.
 - **SC-004**: Scope stays narrow: one vertical slice, no broad cockpit expansion.
+
+## Delivery record *(non-normative)*
+
+All tasks **T000–T013** are complete on `main` as of **2026-03-28**; see [`tasks.md`](./tasks.md) and [`execution/verification.md`](./execution/verification.md). Per Feature **003**, frontmatter **`status`** remains **`active`** (registry enum does not define a separate “implemented” value); completion is evidenced by tasks and verification artifacts.
