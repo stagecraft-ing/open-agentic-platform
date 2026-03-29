@@ -20,13 +20,13 @@
 | ~~featuregraph scanner reads forbidden `features.yaml`~~ | Governance / data | Unblocks governance panel | **RESOLVED (Feature 034)** |
 | ~~Cross-platform axiomregent~~ | Platform coverage | Governance on Windows/Linux | **RESOLVED (Feature 037)** — Windows binary built, CI workflow for all targets |
 | ~~Titor Tauri commands stubbed~~ | Temporal safety | Enables checkpoint/restore from desktop | **RESOLVED (Feature 038)** — `TitorState` + all 6 commands wired, round-trip verified |
-| **Feature ID duality** | Data architecture | Enables cross-referencing registry/code features | **ADR proposed** — `docs/adr/0001-feature-id-reconciliation.md`; implementation (Feature 039) pending |
+| **Feature ID duality** | Data architecture | Enables cross-referencing registry/code features | **Feature 039 scaffolded** — ADR reviewed (sound, 4 gaps to close in T001), spec + 9 tasks ready for cursor |
 | **Blockoli semantic search stubbed** | Product capability | Enables AI-native code search from desktop | Heavy lift; lowest urgency |
 
 ## Notes
 
 - Items 1–7 are now **all resolved** (Features 032–038 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, and the temporal safety net is wired.
-- **Feature ID duality** (item 8): ADR 0001 proposes kebab `id` + optional `codeAliases` in compiled registry. Scanner/compiler/schema work remains after review.
+- **Feature ID duality** (item 8): ADR 0001 reviewed and confirmed sound. Feature 039 scaffolded (9 tasks). ADR gap closure (T001) + schema/compiler/scanner changes (T002–T009) ready for cursor.
 
 ## Promotion
 
@@ -36,4 +36,5 @@
 - [x] Safety tier governance → `specs/036-safety-tier-governance/` (delivered)
 - [x] Cross-platform axiomregent → `specs/037-cross-platform-axiomregent/` (delivered 2026-03-29)
 - [x] Titor command wiring → `specs/038-titor-tauri-command-wiring/` (delivered 2026-03-29)
-- [x] Feature ID reconciliation (ADR) → `docs/adr/0001-feature-id-reconciliation.md` — Feature 039 spec + implementation pending
+- [x] Feature ID reconciliation (ADR) → `docs/adr/0001-feature-id-reconciliation.md` — reviewed, sound
+- [ ] Feature ID reconciliation (implementation) → `specs/039-feature-id-reconciliation/` — scaffolded, 9 tasks

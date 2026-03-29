@@ -45,19 +45,17 @@ Desktop UI stub exists but backend is not wired. The `crates/blockoli/` library 
 
 ## Ordered next-slice priority
 
-### Slice E: Feature ID reconciliation (ADR + Feature 039)
+### Slice E: Feature ID reconciliation (Feature 039)
 
 **Why first:** Only remaining MEDIUM item. Growing urgency (38+ features, every new feature adds entries in both systems with no cross-reference). Purely a data architecture concern — no runtime impact, but increasingly confusing for governance panel consumers.
 
-Scope:
-1. **ADR** — ~~choose canonical ID format, define mapping strategy~~ **Done:** `docs/adr/0001-feature-id-reconciliation.md` (kebab `id` + `codeAliases`). Three options considered:
-   - (a) Add `aliases` field to compiled registry JSON — scanner emits both forms, consumers match either.
-   - (b) Convention-derived: `032-opc-inspect-governance-wiring-mvp` → `OPC_INSPECT_GOVERNANCE_WIRING_MVP` or similar. Zero-config but noisy.
-   - (c) Adopt kebab everywhere and migrate all `// Feature:` headers in code. Clean but large change surface.
-2. **Implement chosen strategy** in `Scanner` and `spec-compiler`.
-3. **Verify** — governance panel shows unified view, featuregraph cross-references resolve.
+Progress:
+1. **ADR** — **Done:** `docs/adr/0001-feature-id-reconciliation.md` (kebab `id` + `codeAliases`, option a). Reviewed by claude — **sound**, 4 gaps identified (schema bump, validation codes, consumer contract, population ordering).
+2. **Feature 039 spec** — **Scaffolded:** `specs/039-feature-id-reconciliation/spec.md` (9 tasks). ADR gap closure is T001; implementation is T002–T009.
+3. **Implement** — schema + compiler + scanner + frontmatter population. 1–2 cursor sessions.
+4. **Verify** — governance panel shows unified view, featuregraph cross-references resolve.
 
-Estimated effort: ADR is 1 session (claude-opus or claude). Implementation is 1-2 cursor sessions depending on chosen option.
+**Decision on ADR edits:** Bundle with Feature 039 as T001. The ADR is in "Proposed" status; the edits are refinements from review, not a new decision. Changing status to "Accepted" after gap closure makes the ADR and implementation coherent in one feature.
 
 ### Slice F: Blockoli semantic search (future)
 
@@ -81,7 +79,8 @@ Features 032–038 established, broadened, and completed the governed execution 
 
 ### Promote now
 
-- **Feature 039 ADR** — feature ID reconciliation (needs design decision before spec scaffolding)
+- ~~**Feature 039 ADR**~~ **Done** — `docs/adr/0001-feature-id-reconciliation.md` (reviewed, sound)
+- **Feature 039 spec** — **Scaffolded** — `specs/039-feature-id-reconciliation/` (9 tasks, ready for cursor)
 
 ### Promote next
 
