@@ -390,7 +390,7 @@ impl SQLite {
         let query = format!("SELECT * FROM {}", project_name);
         let mut stmt = conn.prepare(&query)?;
         let project_iter = stmt.query_map(params![], |row| {
-            let content: String = row.get(2)?;
+            let content: String = row.get(3)?;
 
             let vectors_string = row.get::<_, String>(7)?;
             let vectors: Vec<f32> = serde_json::from_str(&vectors_string).unwrap();

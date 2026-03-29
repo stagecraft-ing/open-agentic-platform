@@ -4,14 +4,15 @@
 pub mod bindings;
 pub mod checkpoint;
 pub mod claude_binary;
-pub mod governed_claude;
 pub mod commands;
+pub mod governed_claude;
 pub mod process;
 pub mod sidecars;
 pub mod types;
 pub mod utils;
 pub mod web_server;
 
+use blockoli::vector_store::vector_store::VectorStore;
 use checkpoint::state::CheckpointState;
 use commands::agents::{
     cleanup_finished_processes, create_agent, delete_agent, execute_agent, export_agent,
@@ -107,7 +108,8 @@ pub fn run() {
     #[cfg(all(feature = "mcp-dev", any(target_os = "macos", target_os = "windows")))]
     let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 
-    builder.setup(|app| {
+    builder
+        .setup(|app| {
             // Initialize agents database
             let conn = init_database(&app.handle()).expect("Failed to initialize agents database");
 
@@ -136,8 +138,7 @@ pub fn run() {
                                         settings.http_proxy = Some(value).filter(|s| !s.is_empty())
                                     }
                                     "https_proxy" => {
-                                        settings.https_proxy =
-                                            Some(value).filter(|s| !s.is_empty())
+                                        settings.https_proxy = Some(value).filter(|s| !s.is_empty())
                                     }
                                     "no_proxy" => {
                                         settings.no_proxy = Some(value).filter(|s| !s.is_empty())
@@ -183,6 +184,29 @@ pub fn run() {
             app.manage(checkpoint_state);
 
             app.manage(commands::titor::TitorState::new());
+
+            // Blockoli semantic search — SQLite vector store in app data dir
+            {
+                let app_data = app.path().app_data_dir().map_err(|e| {
+                    log::error!("failed to resolve app data directory: {e}");
+                    e
+                })?;
+                std::fs::create_dir_all(&app_data).map_err(|e| {
+                    log::error!("failed to create app data directory: {e}");
+                    e
+                })?;
+                let db_path = app_data.join("blockoli.sqlite");
+                let conn = rusqlite::Connection::open(&db_path).map_err(|e| {
+                    log::error!(
+                        "failed to open blockoli database at {}: {e}",
+                        db_path.display()
+                    );
+                    e
+                })?;
+                app.manage(commands::search::BlockoliState::new(
+                    VectorStore::SQLiteStore(conn),
+                ));
+            }
 
             // Initialize process registry and Claude process state
             app.manage(ProcessRegistryState::default());

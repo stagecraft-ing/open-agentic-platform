@@ -110,12 +110,16 @@ impl VectorStore {
     /// # Returns
     ///
     /// A `NearestVectors` struct containing the most similar code block and a list of the nearest matching blocks.
-    pub async fn search(&self, project_name: &str, search_code: String) -> NearestVectors {
+    pub async fn search(
+        &self,
+        project_name: &str,
+        search_code: String,
+    ) -> Result<NearestVectors, String> {
         match self {
             VectorStore::SQLiteStore(conn) => {
-                let code_vectors = SQLite::get_code_vectors(conn, project_name).unwrap();
-
-                Embeddings::search(code_vectors, search_code, 5).unwrap()
+                let code_vectors =
+                    SQLite::get_code_vectors(conn, project_name).map_err(|e| e.to_string())?;
+                Embeddings::search(code_vectors, search_code, 5).map_err(|e| e.to_string())
             }
         }
     }

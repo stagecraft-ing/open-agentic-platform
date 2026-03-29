@@ -161,7 +161,19 @@ pub async fn generate_embeddings(
     let (blocks, _, _) = asterisk::indexer::index_directory(&asterisk_config, &project_path);
 
     let code_blocks: Vec<String> = blocks.iter().map(|block| block.content.clone()).collect();
-    let code_vectors = Embeddings::generate_vector_set(code_blocks).unwrap();
+    let code_vectors = match Embeddings::generate_vector_set(code_blocks) {
+        Ok(v) => v,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .body(
+                    serde_json::to_string_pretty(&ErrorResponse {
+                        message: e.to_string(),
+                    })
+                    .unwrap(),
+                );
+        }
+    };
 
     let mut embedded_blocks: Vec<EmbeddedBlock> = Vec::new();
     for (i, block) in blocks.iter().enumerate() {
@@ -226,11 +238,19 @@ pub async fn search_embeddings(
 
     let search_code = std::str::from_utf8(&data).unwrap().to_owned();
 
-    let nearest_vectors = app_state
+    let nearest_vectors = match app_state
         .vector_store
         .lock()
         .search(&project_name, search_code)
-        .await;
+        .await
+    {
+        Ok(v) => v,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .body(serde_json::to_string_pretty(&ErrorResponse { message: e }).unwrap());
+        }
+    };
 
     let res_json = serde_json::to_string_pretty(&nearest_vectors).unwrap();
 

@@ -4,8 +4,12 @@ use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Serialize;
 
-pub static MODEL: Lazy<parking_lot::Mutex<TextEmbedding>> =
-    Lazy::new(|| parking_lot::Mutex::new(TextEmbedding::try_new(Default::default()).unwrap()));
+/// Lazily initialized embedding model; [`Err`] if `TextEmbedding::try_new` fails (e.g. download, disk).
+pub static MODEL: Lazy<Result<parking_lot::Mutex<TextEmbedding>, String>> = Lazy::new(|| {
+    TextEmbedding::try_new(Default::default())
+        .map(|m| parking_lot::Mutex::new(m))
+        .map_err(|e| format!("fastembed model initialization failed: {e}"))
+});
 
 use kd_tree::{KdPoint, KdTree, KdTreeN};
 
@@ -54,9 +58,10 @@ impl Embeddings {
     ///
     /// Returns an error if the embedding model fails to generate a vector.
     pub fn generate_code_vector(code: String) -> Result<Vector> {
-        let mut code = code;
+        let code = code;
 
-        let output = MODEL.lock().embed(vec![code.to_owned()], None)?;
+        let model = MODEL.as_ref().map_err(|e| anyhow::anyhow!("{e}"))?;
+        let output = model.lock().embed(vec![code.to_owned()], None)?;
         let vector: [f32; VECTOR_SIZE] = output[0].as_slice().try_into().unwrap();
 
         Ok(Vector {
@@ -79,7 +84,8 @@ impl Embeddings {
     ///
     /// Returns an error if the embedding model fails to generate any of the vectors.
     pub fn generate_vector_set(code_blocks: Vec<String>) -> Result<Vec<Vector>> {
-        let output: Vec<Vec<f32>> = MODEL.lock().embed(code_blocks.to_owned(), None)?;
+        let model = MODEL.as_ref().map_err(|e| anyhow::anyhow!("{e}"))?;
+        let output: Vec<Vec<f32>> = model.lock().embed(code_blocks.to_owned(), None)?;
 
         let vector_set: Vec<Vector> = output
             .iter()
@@ -107,7 +113,8 @@ impl Embeddings {
     ///
     /// Returns an error if the embedding model fails to generate any of the vectors.
     pub fn _generate_embeddings(code_blocks: Vec<String>) -> Result<Self> {
-        let output: Vec<Vec<f32>> = MODEL.lock().embed(code_blocks.to_owned(), None)?;
+        let model = MODEL.as_ref().map_err(|e| anyhow::anyhow!("{e}"))?;
+        let output: Vec<Vec<f32>> = model.lock().embed(code_blocks.to_owned(), None)?;
 
         let vector_set: Vec<Vector> = output
             .iter()
@@ -171,6 +178,9 @@ impl Embeddings {
     ///
     /// A `NearestVectors` struct containing the closest matching code block and a list of the top `matches` closest matches.
     pub fn search(vector_set: Vec<Vector>, code: String, matches: usize) -> Result<NearestVectors> {
+        if vector_set.is_empty() {
+            return Err(anyhow::anyhow!("no indexed vectors in project"));
+        }
         let query: Vector = Self::generate_code_vector(code)?;
 
         let kdtree: VectorKdTree = KdTree::par_build_by_ordered_float(vector_set.to_owned());
