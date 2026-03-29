@@ -26,7 +26,9 @@
       "Bash(UPDATE_GOLDEN=1 cargo test --manifest-path crates/featuregraph/Cargo.toml)",
       "Bash(REGENERATE_GOLDEN=1 cargo test --manifest-path crates/featuregraph/Cargo.toml)",
       "Bash(UPDATE_GOLDEN=1 cargo test test_golden_graph)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "Bash(find /c/Dev/open-agentic-platform -type f -name \"*.rs\" -path \"*/src/*\" -exec grep -l \"Tier\\\\|safety\" {})",
+      "Bash(RUSTFLAGS=\"-C target-feature=+aes,+sse2\" cargo check)"
     ],
     "defaultMode": "acceptEdits"
   }
