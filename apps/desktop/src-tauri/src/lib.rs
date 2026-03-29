@@ -4,6 +4,7 @@
 pub mod bindings;
 pub mod checkpoint;
 pub mod claude_binary;
+pub mod governed_claude;
 pub mod commands;
 pub mod process;
 pub mod sidecars;

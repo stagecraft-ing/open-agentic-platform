@@ -2,7 +2,18 @@ use clap::Parser;
 
 mod checkpoint;
 mod claude_binary;
+mod governed_claude;
 mod commands;
+
+/// `opc-web` binary has no Tauri sidecar lifecycle; [`SidecarState::axiomregent_port`] stays `None`.
+pub mod sidecars {
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Default)]
+    pub struct SidecarState {
+        pub axiomregent_port: Arc<Mutex<Option<u16>>>,
+    }
+}
 mod process;
 mod types;
 mod utils;

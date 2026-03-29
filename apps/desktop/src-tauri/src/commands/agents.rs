@@ -10,6 +10,8 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::Stdio;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::sidecars::SidecarState;
 // Sidecar support removed; using system binary execution only
 use tokio::io::{AsyncBufReadExt, BufReader as TokioBufReader};
 use tokio::process::Command;
@@ -18,6 +20,13 @@ use tokio::process::Command;
 /// This is necessary because macOS apps have a limited PATH environment
 fn find_claude_binary(app_handle: &AppHandle) -> Result<String, String> {
     crate::claude_binary::find_claude_binary(app_handle)
+}
+
+/// Result of [`execute_agent`] (Feature 035): run id + governance mode for the UI.
+#[derive(Debug, Serialize, Deserialize, Clone, specta::Type)]
+pub struct ExecuteAgentResponse {
+    pub run_id: i64,
+    pub governance_mode: String,
 }
 
 /// Represents a CC Agent stored in the database
@@ -686,7 +695,8 @@ pub async fn execute_agent(
     model: Option<String>,
     db: State<'_, AgentDb>,
     registry: State<'_, crate::process::ProcessRegistryState>,
-) -> Result<i64, String> {
+    sidecar: State<'_, SidecarState>,
+) -> Result<ExecuteAgentResponse, String> {
     info!("Executing agent {} with task: {}", agent_id, task);
 
     // Get the agent from database
@@ -760,8 +770,20 @@ pub async fn execute_agent(
         }
     };
 
-    // Build arguments
-    let args = vec![
+    let announce_port = *sidecar.axiomregent_port.lock().unwrap();
+    let grants_json = crate::governed_claude::grants_json_for_agent(&agent);
+    let plan = crate::governed_claude::plan_governed(announce_port, grants_json);
+    let mode = match &plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+        crate::governed_claude::GovernedPlan::Bypass => "bypass",
+    };
+    let _ = app.emit(
+        "governance-mode",
+        serde_json::json!({ "mode": mode, "run_id": run_id }),
+    );
+
+    // Build arguments (governed: MCP axiomregent; bypass: skip-permissions)
+    let mut args = vec![
         "-p".to_string(),
         task.clone(),
         "--system-prompt".to_string(),
@@ -771,8 +793,8 @@ pub async fn execute_agent(
         "--output-format".to_string(),
         "stream-json".to_string(),
         "--verbose".to_string(),
-        "--dangerously-skip-permissions".to_string(),
     ];
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
 
     // Always use system binary execution (sidecar removed)
     spawn_agent_system(
@@ -788,7 +810,11 @@ pub async fn execute_agent(
         db,
         registry,
     )
-    .await
+    .await?;
+    Ok(ExecuteAgentResponse {
+        run_id,
+        governance_mode: mode.to_string(),
+    })
 }
 
 /// Creates a system binary command for agent execution

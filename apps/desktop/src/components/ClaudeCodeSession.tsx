@@ -108,6 +108,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
   
   // Add collapsed state for queued prompts
   const [queuedPromptsCollapsed, setQueuedPromptsCollapsed] = useState(false);
+  const [governanceMode, setGovernanceMode] = useState<'governed' | 'bypass' | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const unlistenRefs = useRef<UnlistenFn[]>([]);
@@ -849,13 +850,15 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
           console.log('[ClaudeCodeSession] Resuming session:', effectiveSession.id);
           trackEvent.sessionResumed(effectiveSession.id);
           trackEvent.modelSelected(model);
-          await api.resumeClaudeCode(projectPath, effectiveSession.id, prompt, model);
+          const mode = await api.resumeClaudeCode(projectPath, effectiveSession.id, prompt, model);
+          setGovernanceMode(mode === 'governed' ? 'governed' : 'bypass');
         } else {
           console.log('[ClaudeCodeSession] Starting new session');
           setIsFirstPrompt(false);
           trackEvent.sessionCreated(model, 'prompt_input');
           trackEvent.modelSelected(model);
-          await api.executeClaudeCode(projectPath, prompt, model);
+          const mode = await api.executeClaudeCode(projectPath, prompt, model);
+          setGovernanceMode(mode === 'governed' ? 'governed' : 'bypass');
         }
       }
     } catch (err) {
@@ -1496,6 +1499,20 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
             "fixed bottom-0 left-0 right-0 transition-all duration-300 z-50",
             showTimeline && "sm:right-96"
           )}>
+            {governanceMode && (
+              <div className="max-w-3xl mx-auto px-4 flex justify-end pb-1">
+                <span
+                  className={cn(
+                    'rounded px-2 py-0.5 text-xs font-medium',
+                    governanceMode === 'governed'
+                      ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-amber-500/15 text-amber-900 dark:text-amber-200'
+                  )}
+                >
+                  {governanceMode === 'governed' ? 'Governed' : 'Bypass'}
+                </span>
+              </div>
+            )}
             <FloatingPromptInput
               ref={floatingPromptRef}
               onSend={handleSendPrompt}

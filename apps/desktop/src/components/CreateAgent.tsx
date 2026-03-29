@@ -5,6 +5,7 @@ import { Button } from "@opc/ui/button";
 import { Input } from "@opc/ui/input";
 import { Label } from "@opc/ui/label";
 import { Card } from "@opc/ui/card";
+import { Switch } from "@opc/ui/switch";
 import { Toast, ToastContainer } from "@opc/ui/toast";
 import { api, type Agent } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,9 @@ export const CreateAgent: React.FC<CreateAgentProps> = ({
   const [systemPrompt, setSystemPrompt] = useState(agent?.system_prompt || "");
   const [defaultTask, setDefaultTask] = useState(agent?.default_task || "");
   const [model, setModel] = useState(agent?.model || "sonnet");
+  const [enableFileRead, setEnableFileRead] = useState(agent?.enable_file_read ?? true);
+  const [enableFileWrite, setEnableFileWrite] = useState(agent?.enable_file_write ?? true);
+  const [enableNetwork, setEnableNetwork] = useState(agent?.enable_network ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -78,7 +82,11 @@ export const CreateAgent: React.FC<CreateAgentProps> = ({
           selectedIcon, 
           systemPrompt, 
           defaultTask || undefined, 
-          model
+          model,
+          undefined,
+          enableFileRead,
+          enableFileWrite,
+          enableNetwork,
         );
       } else {
         await api.createAgent(
@@ -86,7 +94,11 @@ export const CreateAgent: React.FC<CreateAgentProps> = ({
           selectedIcon, 
           systemPrompt, 
           defaultTask || undefined, 
-          model
+          model,
+          undefined,
+          enableFileRead,
+          enableFileWrite,
+          enableNetwork,
         );
       }
       
@@ -108,7 +120,10 @@ export const CreateAgent: React.FC<CreateAgentProps> = ({
          selectedIcon !== (agent?.icon || "bot") || 
          systemPrompt !== (agent?.system_prompt || "") ||
          defaultTask !== (agent?.default_task || "") ||
-         model !== (agent?.model || "sonnet")) && 
+         model !== (agent?.model || "sonnet") ||
+         enableFileRead !== (agent?.enable_file_read ?? true) ||
+         enableFileWrite !== (agent?.enable_file_write ?? true) ||
+         enableNetwork !== (agent?.enable_network ?? false)) && 
         !confirm("You have unsaved changes. Are you sure you want to leave?")) {
       return;
     }
@@ -306,6 +321,28 @@ export const CreateAgent: React.FC<CreateAgentProps> = ({
                 <p className="text-caption text-muted-foreground">
                   This will be used as the default task placeholder when executing the agent
                 </p>
+              </div>
+            </Card>
+
+            {/* Governed execution (axiomregent) */}
+            <Card className="p-5">
+              <h3 className="text-heading-4 mb-2">Tool permissions</h3>
+              <p className="text-caption text-muted-foreground mb-4">
+                When the axiomregent sidecar is running, these flags constrain MCP tool dispatch. Otherwise execution falls back with a bypass indicator.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="perm-read" className="text-body-small">Allow file read</Label>
+                  <Switch id="perm-read" checked={enableFileRead} onCheckedChange={setEnableFileRead} />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="perm-write" className="text-body-small">Allow file write</Label>
+                  <Switch id="perm-write" checked={enableFileWrite} onCheckedChange={setEnableFileWrite} />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="perm-net" className="text-body-small">Allow network / run skills</Label>
+                  <Switch id="perm-net" checked={enableNetwork} onCheckedChange={setEnableNetwork} />
+                </div>
               </div>
             </Card>
 

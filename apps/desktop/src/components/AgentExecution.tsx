@@ -127,6 +127,7 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({
   const unlistenRefs = useRef<UnlistenFn[]>([]);
   const elapsedTimeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [runId, setRunId] = useState<number | null>(null);
+  const [governanceMode, setGovernanceMode] = useState<'governed' | 'bypass' | null>(null);
 
   // Filter out messages that shouldn't be displayed
   const displayableMessages = React.useMemo(() => {
@@ -298,14 +299,17 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({
       setMessages([]);
       setRawJsonlOutput([]);
       setRunId(null);
-      
+      setGovernanceMode(null);
+
       // Clear any existing listeners
       unlistenRefs.current.forEach(unlisten => unlisten());
       unlistenRefs.current = [];
       
-      // Execute the agent and get the run ID
-      const executionRunId = await api.executeAgent(agent.id!, projectPath, task, model);
-      console.log("Agent execution started with run ID:", executionRunId);
+      // Execute the agent and get the run ID + governance mode
+      const exec = await api.executeAgent(agent.id!, projectPath, task, model);
+      const executionRunId = exec.run_id;
+      setGovernanceMode(exec.governance_mode);
+      console.log("Agent execution started with run ID:", executionRunId, exec.governance_mode);
       setRunId(executionRunId);
       
       // Track agent execution start
@@ -552,8 +556,22 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({
               </Button>
               <div>
                 <h1 className="text-heading-1">{agent.name}</h1>
-                <p className="mt-1 text-body-small text-muted-foreground">
-                  {isRunning ? 'Running' : messages.length > 0 ? 'Complete' : 'Ready'} • {model === 'opus' ? 'Claude 4 Opus' : 'Claude 4 Sonnet'}
+                <p className="mt-1 text-body-small text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>
+                    {isRunning ? 'Running' : messages.length > 0 ? 'Complete' : 'Ready'} • {model === 'opus' ? 'Claude 4 Opus' : 'Claude 4 Sonnet'}
+                  </span>
+                  {governanceMode && (
+                    <span
+                      className={cn(
+                        'rounded px-2 py-0.5 text-caption font-medium',
+                        governanceMode === 'governed'
+                          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-amber-500/15 text-amber-900 dark:text-amber-200'
+                      )}
+                    >
+                      {governanceMode === 'governed' ? 'Governed' : 'Bypass'}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

@@ -6,7 +6,9 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::sidecars::SidecarState;
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 
@@ -949,7 +951,8 @@ pub async fn execute_claude_code(
     project_path: String,
     prompt: String,
     model: String,
-) -> Result<(), String> {
+    sidecar: State<'_, SidecarState>,
+) -> Result<String, String> {
     log::info!(
         "Starting new Claude Code session in: {} with model: {}",
         project_path,
@@ -958,7 +961,21 @@ pub async fn execute_claude_code(
 
     let claude_path = find_claude_binary(&app)?;
 
-    let args = vec![
+    let announce_port = *sidecar.axiomregent_port.lock().unwrap();
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mode = match &plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+        crate::governed_claude::GovernedPlan::Bypass => "bypass",
+    };
+    let _ = app.emit(
+        "governance-mode",
+        serde_json::json!({ "mode": mode, "context": "claude_code" }),
+    );
+
+    let mut args = vec![
         "-p".to_string(),
         prompt.clone(),
         "--model".to_string(),
@@ -966,11 +983,12 @@ pub async fn execute_claude_code(
         "--output-format".to_string(),
         "stream-json".to_string(),
         "--verbose".to_string(),
-        "--dangerously-skip-permissions".to_string(),
     ];
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
 
     let cmd = create_system_command(&claude_path, args, &project_path);
-    spawn_claude_process(app, cmd, prompt, model, project_path).await
+    spawn_claude_process(app, cmd, prompt, model, project_path).await?;
+    Ok(mode.to_string())
 }
 
 /// Continue an existing Claude Code conversation with streaming output
@@ -980,7 +998,8 @@ pub async fn continue_claude_code(
     project_path: String,
     prompt: String,
     model: String,
-) -> Result<(), String> {
+    sidecar: State<'_, SidecarState>,
+) -> Result<String, String> {
     log::info!(
         "Continuing Claude Code conversation in: {} with model: {}",
         project_path,
@@ -989,7 +1008,21 @@ pub async fn continue_claude_code(
 
     let claude_path = find_claude_binary(&app)?;
 
-    let args = vec![
+    let announce_port = *sidecar.axiomregent_port.lock().unwrap();
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mode = match &plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+        crate::governed_claude::GovernedPlan::Bypass => "bypass",
+    };
+    let _ = app.emit(
+        "governance-mode",
+        serde_json::json!({ "mode": mode, "context": "claude_code_continue" }),
+    );
+
+    let mut args = vec![
         "-c".to_string(), // Continue flag
         "-p".to_string(),
         prompt.clone(),
@@ -998,11 +1031,12 @@ pub async fn continue_claude_code(
         "--output-format".to_string(),
         "stream-json".to_string(),
         "--verbose".to_string(),
-        "--dangerously-skip-permissions".to_string(),
     ];
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
 
     let cmd = create_system_command(&claude_path, args, &project_path);
-    spawn_claude_process(app, cmd, prompt, model, project_path).await
+    spawn_claude_process(app, cmd, prompt, model, project_path).await?;
+    Ok(mode.to_string())
 }
 
 /// Resume an existing Claude Code session by ID with streaming output
@@ -1013,7 +1047,8 @@ pub async fn resume_claude_code(
     session_id: String,
     prompt: String,
     model: String,
-) -> Result<(), String> {
+    sidecar: State<'_, SidecarState>,
+) -> Result<String, String> {
     log::info!(
         "Resuming Claude Code session: {} in: {} with model: {}",
         session_id,
@@ -1023,7 +1058,21 @@ pub async fn resume_claude_code(
 
     let claude_path = find_claude_binary(&app)?;
 
-    let args = vec![
+    let announce_port = *sidecar.axiomregent_port.lock().unwrap();
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mode = match &plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+        crate::governed_claude::GovernedPlan::Bypass => "bypass",
+    };
+    let _ = app.emit(
+        "governance-mode",
+        serde_json::json!({ "mode": mode, "context": "claude_code_resume" }),
+    );
+
+    let mut args = vec![
         "--resume".to_string(),
         session_id.clone(),
         "-p".to_string(),
@@ -1033,11 +1082,12 @@ pub async fn resume_claude_code(
         "--output-format".to_string(),
         "stream-json".to_string(),
         "--verbose".to_string(),
-        "--dangerously-skip-permissions".to_string(),
     ];
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
 
     let cmd = create_system_command(&claude_path, args, &project_path);
-    spawn_claude_process(app, cmd, prompt, model, project_path).await
+    spawn_claude_process(app, cmd, prompt, model, project_path).await?;
+    Ok(mode.to_string())
 }
 
 /// Cancel the currently running Claude Code execution

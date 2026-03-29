@@ -483,25 +483,30 @@ async fn execute_claude_command(
     // Create Claude command
     println!("[TRACE] Creating Claude command...");
     let mut cmd = Command::new(&claude_path);
-    let args = [
-        "-p",
-        &prompt,
-        "--model",
-        &model,
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "--dangerously-skip-permissions",
+    let announce_port =
+        std::env::var("OPC_AXIOMREGENT_PORT").ok().and_then(|s| s.parse().ok());
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mut args: Vec<String> = vec![
+        "-p".into(),
+        prompt.clone(),
+        "--model".into(),
+        model.clone(),
+        "--output-format".into(),
+        "stream-json".into(),
+        "--verbose".into(),
     ];
-    cmd.args(args);
-    cmd.current_dir(&project_path);
-    cmd.stdout(std::process::Stdio::piped());
-    cmd.stderr(std::process::Stdio::piped());
-
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
     println!(
         "[TRACE] Command: {} {:?} (in dir: {})",
         claude_path, args, project_path
     );
+    cmd.args(args);
+    cmd.current_dir(&project_path);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
 
     // Spawn Claude process
     println!("[TRACE] Spawning Claude process...");
@@ -595,17 +600,24 @@ async fn continue_claude_command(
 
     // Create continue command
     let mut cmd = Command::new(&claude_path);
-    cmd.args([
-        "-c", // Continue flag
-        "-p",
-        &prompt,
-        "--model",
-        &model,
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "--dangerously-skip-permissions",
-    ]);
+    let announce_port =
+        std::env::var("OPC_AXIOMREGENT_PORT").ok().and_then(|s| s.parse().ok());
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mut args: Vec<String> = vec![
+        "-c".into(),
+        "-p".into(),
+        prompt.clone(),
+        "--model".into(),
+        model.clone(),
+        "--output-format".into(),
+        "stream-json".into(),
+        "--verbose".into(),
+    ];
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
+    cmd.args(args);
     cmd.current_dir(&project_path);
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
@@ -682,27 +694,32 @@ async fn resume_claude_command(
     // Create resume command
     println!("[resume_claude_command] Creating command...");
     let mut cmd = Command::new(&claude_path);
-    let args = [
-        "--resume",
-        &claude_session_id,
-        "-p",
-        &prompt,
-        "--model",
-        &model,
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "--dangerously-skip-permissions",
+    let announce_port =
+        std::env::var("OPC_AXIOMREGENT_PORT").ok().and_then(|s| s.parse().ok());
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mut args: Vec<String> = vec![
+        "--resume".into(),
+        claude_session_id.clone(),
+        "-p".into(),
+        prompt.clone(),
+        "--model".into(),
+        model.clone(),
+        "--output-format".into(),
+        "stream-json".into(),
+        "--verbose".into(),
     ];
-    cmd.args(args);
-    cmd.current_dir(&project_path);
-    cmd.stdout(std::process::Stdio::piped());
-    cmd.stderr(std::process::Stdio::piped());
-
+    crate::governed_claude::append_claude_governance_args(&mut args, &plan);
     println!(
         "[resume_claude_command] Command: {} {:?} (in dir: {})",
         claude_path, args, project_path
     );
+    cmd.args(args);
+    cmd.current_dir(&project_path);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
 
     // Spawn and stream output
     println!("[resume_claude_command] Spawning process...");

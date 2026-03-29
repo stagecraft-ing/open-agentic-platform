@@ -119,9 +119,19 @@ export interface Agent {
   system_prompt: string;
   default_task?: string;
   model: string;
+  /** Enforced when axiomregent governs tool dispatch (Feature 035). */
+  enable_file_read?: boolean;
+  enable_file_write?: boolean;
+  enable_network?: boolean;
   hooks?: string; // JSON string of HooksConfiguration
   created_at: string;
   updated_at: string;
+}
+
+/** Returned by `execute_agent` (Feature 035). */
+export interface ExecuteAgentResponse {
+  run_id: number;
+  governance_mode: 'governed' | 'bypass';
 }
 
 /** Port discovery for bundled sidecars (`get_sidecar_ports`). */
@@ -720,7 +730,10 @@ export const api = {
     system_prompt: string, 
     default_task?: string, 
     model?: string,
-    hooks?: string
+    hooks?: string,
+    enable_file_read?: boolean,
+    enable_file_write?: boolean,
+    enable_network?: boolean,
   ): Promise<Agent> {
     try {
       return await apiCall<Agent>('create_agent', { 
@@ -729,7 +742,10 @@ export const api = {
         systemPrompt: system_prompt,
         defaultTask: default_task,
         model,
-        hooks
+        hooks,
+        enable_file_read: enable_file_read,
+        enable_file_write: enable_file_write,
+        enable_network: enable_network,
       });
     } catch (error) {
       console.error("Failed to create agent:", error);
@@ -755,7 +771,10 @@ export const api = {
     system_prompt: string, 
     default_task?: string, 
     model?: string,
-    hooks?: string
+    hooks?: string,
+    enable_file_read?: boolean,
+    enable_file_write?: boolean,
+    enable_network?: boolean,
   ): Promise<Agent> {
     try {
       return await apiCall<Agent>('update_agent', { 
@@ -765,7 +784,10 @@ export const api = {
         systemPrompt: system_prompt,
         defaultTask: default_task,
         model,
-        hooks
+        hooks,
+        enable_file_read: enable_file_read,
+        enable_file_write: enable_file_write,
+        enable_network: enable_network,
       });
     } catch (error) {
       console.error("Failed to update agent:", error);
@@ -849,11 +871,11 @@ export const api = {
    * @param projectPath - The project path to run the agent in
    * @param task - The task description
    * @param model - Optional model override
-   * @returns Promise resolving to the run ID when execution starts
+   * @returns Promise resolving to run id and governance mode when execution starts
    */
-  async executeAgent(agentId: number, projectPath: string, task: string, model?: string): Promise<number> {
+  async executeAgent(agentId: number, projectPath: string, task: string, model?: string): Promise<ExecuteAgentResponse> {
     try {
-      return await apiCall<number>('execute_agent', { agentId, projectPath, task, model });
+      return await apiCall<ExecuteAgentResponse>('execute_agent', { agentId, projectPath, task, model });
     } catch (error) {
       console.error("Failed to execute agent:", error);
       // Return a sentinel value to indicate error
@@ -1038,24 +1060,25 @@ export const api = {
   },
 
   /**
-   * Executes a new interactive Claude Code session with streaming output
+   * Executes a new interactive Claude Code session with streaming output.
+   * @returns Governance mode: `governed` | `bypass`
    */
-  async executeClaudeCode(projectPath: string, prompt: string, model: string): Promise<void> {
-    return apiCall("execute_claude_code", { projectPath, prompt, model });
+  async executeClaudeCode(projectPath: string, prompt: string, model: string): Promise<string> {
+    return apiCall<string>("execute_claude_code", { projectPath, prompt, model });
   },
 
   /**
    * Continues an existing Claude Code conversation with streaming output
    */
-  async continueClaudeCode(projectPath: string, prompt: string, model: string): Promise<void> {
-    return apiCall("continue_claude_code", { projectPath, prompt, model });
+  async continueClaudeCode(projectPath: string, prompt: string, model: string): Promise<string> {
+    return apiCall<string>("continue_claude_code", { projectPath, prompt, model });
   },
 
   /**
    * Resumes an existing Claude Code session by ID with streaming output
    */
-  async resumeClaudeCode(projectPath: string, sessionId: string, prompt: string, model: string): Promise<void> {
-    return apiCall("resume_claude_code", { projectPath, sessionId, prompt, model });
+  async resumeClaudeCode(projectPath: string, sessionId: string, prompt: string, model: string): Promise<string> {
+    return apiCall<string>("resume_claude_code", { projectPath, sessionId, prompt, model });
   },
 
   /**
