@@ -10,7 +10,17 @@ Governed agent execution through axiomregent — permission enforcement, safety 
 
 ## Files
 
-_To be filled during implementation._
+| Area | Path |
+|------|------|
+| Spike / findings | `.ai/findings/035-mcp-spike.md` |
+| Lease + grants | `crates/axiomregent/src/snapshot/lease.rs` |
+| Router preflight + audit | `crates/axiomregent/src/router/mod.rs`, `crates/axiomregent/src/router/permissions.rs` |
+| MCP binary env | `crates/axiomregent/src/main.rs` |
+| Desktop launch | `apps/desktop/src-tauri/src/governed_claude.rs` |
+| Agent / Claude / web | `apps/desktop/src-tauri/src/commands/agents.rs`, `claude.rs`, `web_server.rs` |
+| opc-web stub | `apps/desktop/src-tauri/src/web_main.rs` (`sidecars` stub) |
+| UI | `CreateAgent.tsx`, `AgentExecution.tsx`, `ClaudeCodeSession.tsx`, `api.ts`, `agentStore.ts` |
+| Tests / golden | `crates/axiomregent/tests/*`, `tests/golden/tools_list.json` |
 
 ## Verification
 

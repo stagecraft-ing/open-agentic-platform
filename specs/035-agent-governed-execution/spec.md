@@ -2,7 +2,7 @@
 id: "035-agent-governed-execution"
 title: "agent execution through governed dispatch"
 feature_branch: "035-agent-governed-execution"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:
