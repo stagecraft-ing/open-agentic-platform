@@ -1,17 +1,17 @@
 // Feature 035 — governed tool dispatch
 
-use agent::safety::{Tier, get_tool_tier};
+use agent::safety::{ToolTier, get_tool_tier};
 use serde_json::json;
 use std::io::Write;
 
 use crate::router::AxiomRegentError;
 use crate::snapshot::lease::{Lease, PermissionGrants};
 
-fn tier_rank(t: Tier) -> u8 {
+fn tier_rank(t: ToolTier) -> u8 {
     match t {
-        Tier::Tier1 => 1,
-        Tier::Tier2 => 2,
-        Tier::Tier3 => 3,
+        ToolTier::Tier1 => 1,
+        ToolTier::Tier2 => 2,
+        ToolTier::Tier3 => 3,
     }
 }
 

@@ -76,7 +76,9 @@ pub async fn featuregraph_overview(features_yaml_path: String) -> Result<serde_j
     }))
 }
 
-/// Read-only labels for `featuregraph::preflight::SafetyTier` (governance UI).
+/// Read-only labels for safety tiers (governance UI).
+/// Change tiers: `featuregraph::preflight::ChangeTier` (classifies file changes).
+/// Tool tiers: `agent::safety::ToolTier` (classifies MCP tool dispatch).
 #[derive(Debug, Clone, Serialize, Type)]
 pub struct SafetyTierRef {
     pub id: String,
@@ -101,9 +103,28 @@ pub fn get_preflight_safety_tier_reference() -> Vec<SafetyTierRef> {
         SafetyTierRef {
             id: "tier3".into(),
             label: "Tier 3".into(),
-            description: "Forbidden".into(),
+            description: "Manual".into(),
         },
     ]
+}
+
+/// Per-tool tier assignments for governance UI (Feature 036).
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct ToolTierEntry {
+    pub tool: String,
+    pub tier: String,
+}
+
+#[command]
+#[specta::specta]
+pub fn get_tool_tier_assignments() -> Vec<ToolTierEntry> {
+    agent::safety::explicitly_classified_tools()
+        .iter()
+        .map(|name| ToolTierEntry {
+            tool: name.to_string(),
+            tier: agent::safety::get_tool_tier(name).as_str().to_string(),
+        })
+        .collect()
 }
 
 #[command]

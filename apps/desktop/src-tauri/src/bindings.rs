@@ -61,6 +61,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::sidecars::get_sidecar_ports,
         // Preflight / governance reference
         crate::commands::analysis::get_preflight_safety_tier_reference,
+        crate::commands::analysis::get_tool_tier_assignments,
     ])
 }
 

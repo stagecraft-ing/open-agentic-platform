@@ -363,6 +363,7 @@ pub fn run() {
             commands::analysis::featuregraph_overview,
             commands::analysis::featuregraph_impact,
             commands::analysis::get_preflight_safety_tier_reference,
+            commands::analysis::get_tool_tier_assignments,
             // Blockoli & Stackwalk Search
             commands::search::blockoli_index_project,
             commands::search::blockoli_search,

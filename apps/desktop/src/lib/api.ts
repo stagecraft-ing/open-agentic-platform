@@ -139,11 +139,17 @@ export interface SidecarPorts {
   axiomregent: number | null;
 }
 
-/** Labels aligned with `featuregraph::preflight::SafetyTier`. */
+/** Labels aligned with safety tier definitions (ChangeTier for changes, ToolTier for dispatch). */
 export interface SafetyTierRef {
   id: string;
   label: string;
   description: string;
+}
+
+/** Per-tool tier assignment (Feature 036). */
+export interface ToolTierEntry {
+  tool: string;
+  tier: string;
 }
 
 export interface AgentExport {
@@ -1989,6 +1995,13 @@ export const api = {
    */
   async getPreflightSafetyTierReference(): Promise<SafetyTierRef[]> {
     return await apiCall<SafetyTierRef[]>("get_preflight_safety_tier_reference");
+  },
+
+  /**
+   * Per-tool tier assignments from agent::safety (Feature 036).
+   */
+  async getToolTierAssignments(): Promise<ToolTierEntry[]> {
+    return await apiCall<ToolTierEntry[]>("get_tool_tier_assignments");
   },
 
 };

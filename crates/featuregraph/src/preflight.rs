@@ -35,7 +35,7 @@ pub struct PreflightRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SafetyTier {
+pub enum ChangeTier {
     #[serde(rename = "tier1")]
     Tier1, // Autonomous
     #[serde(rename = "tier2")]
@@ -47,7 +47,7 @@ pub enum SafetyTier {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreflightResponse {
     pub allowed: bool,
-    pub safety_tier: SafetyTier,
+    pub safety_tier: ChangeTier,
     pub violations: Vec<Violation>,
     pub graph_fingerprint: String,
 }
@@ -152,7 +152,7 @@ impl PreflightChecker {
         let safety_tier = self.calculate_safety_tier(req, &violations);
 
         // Tier 3 is never allowed
-        let allowed = violations.is_empty() && safety_tier != SafetyTier::Tier3;
+        let allowed = violations.is_empty() && safety_tier != ChangeTier::Tier3;
 
         Ok(PreflightResponse {
             allowed,
@@ -182,10 +182,10 @@ impl PreflightChecker {
         &self,
         req: &PreflightRequest,
         violations: &[Violation],
-    ) -> SafetyTier {
+    ) -> ChangeTier {
         // If there are any errors or Forbidden violations, it's Tier 3
         if violations.iter().any(|v| v.severity == "error") {
-            return SafetyTier::Tier3;
+            return ChangeTier::Tier3;
         }
 
         // Tier 1: Documentation only changes
@@ -194,11 +194,11 @@ impl PreflightChecker {
         });
 
         if all_docs {
-            return SafetyTier::Tier1;
+            return ChangeTier::Tier1;
         }
 
         // Tier 2: Code changes (Default)
-        SafetyTier::Tier2
+        ChangeTier::Tier2
     }
 }
 

@@ -6,54 +6,104 @@
 use crate::schemas::PlanTask;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Tier {
-    Tier1, // Safe to auto-execute
-    Tier2, // Requires human approval
-    Tier3, // Human only
+pub enum ToolTier {
+    Tier1, // Autonomous — safe to auto-execute (read-only, diagnostic)
+    Tier2, // Gated — requires human approval (writes, bounded mutations)
+    Tier3, // Manual — dangerous or unclassified (execution, arbitrary commands)
 }
 
-impl Tier {
+/// Backwards-compatible alias (T003 — will be removed once all consumers migrate).
+pub type Tier = ToolTier;
+
+impl ToolTier {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Tier::Tier1 => "tier1",
-            Tier::Tier2 => "tier2",
-            Tier::Tier3 => "tier3",
+            ToolTier::Tier1 => "tier1",
+            ToolTier::Tier2 => "tier2",
+            ToolTier::Tier3 => "tier3",
         }
     }
 }
 
-impl std::str::FromStr for Tier {
+impl std::str::FromStr for ToolTier {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "tier1" => Ok(Tier::Tier1),
-            "tier2" => Ok(Tier::Tier2),
-            "tier3" => Ok(Tier::Tier3),
+            "tier1" => Ok(ToolTier::Tier1),
+            "tier2" => Ok(ToolTier::Tier2),
+            "tier3" => Ok(ToolTier::Tier3),
             _ => Err(()),
         }
     }
 }
 
-pub fn get_tool_tier(tool_name: &str) -> Tier {
+pub fn get_tool_tier(tool_name: &str) -> ToolTier {
     match tool_name {
-        // Tier 1: Read-only / Safe checks
-        "gov.preflight" | "gov.drift" | "features.impact" | "snapshot.info" => Tier::Tier1,
+        // Tier 1: Read-only / diagnostic (Feature 036 — all router tools explicitly classified)
+        "gov.preflight"
+        | "gov.drift"
+        | "features.impact"
+        | "snapshot.info"
+        | "snapshot.list"
+        | "snapshot.read"
+        | "snapshot.grep"
+        | "snapshot.diff"
+        | "snapshot.changes"
+        | "snapshot.export"
+        | "xray.scan"
+        | "run.status"
+        | "run.logs"
+        | "agent.verify" => ToolTier::Tier1,
 
-        // Tier 2: Modifications that can be impactful
+        // Tier 2: Bounded mutations (writes, proposals, snapshot creation)
         "workspace.apply_patch"
         | "workspace.write_file"
         | "workspace.delete"
         | "write_file"
-        | "snapshot.create" => Tier::Tier2,
+        | "snapshot.create"
+        | "agent.propose" => ToolTier::Tier2,
 
-        // Tier 3: Anything else is assumed dangerous/unknown until classified
-        _ => Tier::Tier3,
+        // Tier 3: Dangerous / unclassified (execution, arbitrary commands, unknown tools)
+        // run.execute and agent.execute are explicitly Tier3; all unknown tools also land here.
+        _ => ToolTier::Tier3,
     }
 }
 
-pub fn calculate_plan_tier(tasks: &[PlanTask]) -> Tier {
-    let mut max_tier = Tier::Tier1;
+/// Returns the set of tool names that have explicit tier assignments (not the Tier3 catch-all).
+/// Used by coverage tests to verify all router tools are classified.
+pub fn explicitly_classified_tools() -> &'static [&'static str] {
+    &[
+        // Tier 1
+        "gov.preflight",
+        "gov.drift",
+        "features.impact",
+        "snapshot.info",
+        "snapshot.list",
+        "snapshot.read",
+        "snapshot.grep",
+        "snapshot.diff",
+        "snapshot.changes",
+        "snapshot.export",
+        "xray.scan",
+        "run.status",
+        "run.logs",
+        "agent.verify",
+        // Tier 2
+        "workspace.apply_patch",
+        "workspace.write_file",
+        "workspace.delete",
+        "write_file",
+        "snapshot.create",
+        "agent.propose",
+        // Tier 3 (explicit)
+        "run.execute",
+        "agent.execute",
+    ]
+}
+
+pub fn calculate_plan_tier(tasks: &[PlanTask]) -> ToolTier {
+    let mut max_tier = ToolTier::Tier1;
 
     for task in tasks {
         for call in &task.tool_calls {
@@ -92,17 +142,29 @@ mod tests {
     fn test_tier_calculation() {
         // Pure Tier 1
         let t1 = make_task(vec!["gov.preflight", "features.impact"]);
-        assert_eq!(calculate_plan_tier(&[t1]), Tier::Tier1);
+        assert_eq!(calculate_plan_tier(&[t1]), ToolTier::Tier1);
 
         // Tier 2 introduced
         let t2 = make_task(vec!["write_file"]);
         assert_eq!(
             calculate_plan_tier(&[make_task(vec!["gov.drift"]), t2]),
-            Tier::Tier2
+            ToolTier::Tier2
         );
 
         // Unknown tool -> Tier 3
         let t3 = make_task(vec!["rm_rf_root"]);
-        assert_eq!(calculate_plan_tier(&[t3]), Tier::Tier3);
+        assert_eq!(calculate_plan_tier(&[t3]), ToolTier::Tier3);
+
+        // Newly classified Tier 1 tools (Feature 036)
+        let t4 = make_task(vec!["snapshot.read", "xray.scan", "run.logs"]);
+        assert_eq!(calculate_plan_tier(&[t4]), ToolTier::Tier1);
+
+        // agent.propose is Tier 2
+        let t5 = make_task(vec!["agent.propose"]);
+        assert_eq!(calculate_plan_tier(&[t5]), ToolTier::Tier2);
+
+        // agent.execute is Tier 3
+        let t6 = make_task(vec!["agent.execute"]);
+        assert_eq!(calculate_plan_tier(&[t6]), ToolTier::Tier3);
     }
 }

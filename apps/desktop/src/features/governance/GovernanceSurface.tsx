@@ -5,11 +5,12 @@ import { useTabState } from '@/hooks/useTabState';
 import { RegistrySpecFollowUp } from '@/features/inspect/RegistrySpecFollowUp';
 import { useGovernanceCtxEnrichment } from './useGovernanceCtxEnrichment';
 import { useGovernanceStatus } from './useGovernanceStatus';
-import { api, type SafetyTierRef } from '@/lib/api';
+import { api, type SafetyTierRef, type ToolTierEntry } from '@/lib/api';
 
 export const GovernanceSurface: React.FC = () => {
   const [repoRoot, setRepoRoot] = useState('');
   const [safetyTiers, setSafetyTiers] = useState<SafetyTierRef[]>([]);
+  const [toolTiers, setToolTiers] = useState<ToolTierEntry[]>([]);
   const [axiomProbePort, setAxiomProbePort] = useState<number | null>(null);
   const { createSpecMarkdownTab } = useTabState();
   const { state, load, reset } = useGovernanceStatus();
@@ -17,14 +18,17 @@ export const GovernanceSurface: React.FC = () => {
   useEffect(() => {
     void (async () => {
       try {
-        const [tiers, ports] = await Promise.all([
+        const [tiers, tools, ports] = await Promise.all([
           api.getPreflightSafetyTierReference(),
+          api.getToolTierAssignments(),
           api.getSidecarPorts(),
         ]);
         setSafetyTiers(tiers);
+        setToolTiers(tools);
         setAxiomProbePort(ports.axiomregent);
       } catch {
         setSafetyTiers([]);
+        setToolTiers([]);
         setAxiomProbePort(null);
       }
     })();
@@ -47,8 +51,8 @@ export const GovernanceSurface: React.FC = () => {
       <div className="border rounded-md p-3 bg-muted/30 text-sm space-y-2">
         <div className="font-medium">Preflight safety tiers (read-only)</div>
         <p className="text-xs text-muted-foreground">
-          From <code className="text-[11px]">featuregraph::preflight::SafetyTier</code>. Enforcement
-          applies when tools are dispatched through axiomregent.
+          Change tiers (<code className="text-[11px]">featuregraph::preflight::ChangeTier</code>) classify file changes.
+          Tool tiers (<code className="text-[11px]">agent::safety::ToolTier</code>) classify MCP dispatch.
         </p>
         {safetyTiers.length > 0 ? (
           <ul className="text-xs grid gap-1 sm:grid-cols-3">
@@ -70,6 +74,21 @@ export const GovernanceSurface: React.FC = () => {
             <span className="text-amber-700 dark:text-amber-400">not announced yet</span>
           )}
         </div>
+        {toolTiers.length > 0 && (
+          <details className="pt-1 border-t border-border/60">
+            <summary className="text-xs font-medium cursor-pointer">
+              Tool tier assignments ({toolTiers.length} tools)
+            </summary>
+            <ul className="text-xs grid gap-0.5 mt-1 max-h-48 overflow-auto">
+              {toolTiers.map((t) => (
+                <li key={t.tool} className="font-mono flex justify-between px-1 py-0.5 rounded hover:bg-muted/50">
+                  <span>{t.tool}</span>
+                  <span className="text-muted-foreground">{t.tier}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
 
       <div className="flex gap-2 items-center">
