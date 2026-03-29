@@ -27,11 +27,11 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **antigravity**
-- Next owner: **claude-opus**
-- Last baton update: 2026-03-29 — **claude** reviewed Slice A: all 4 tasks pass, no-lease fallback correct (session grants, not global permissive), `check_grants` factoring clean, audit log format good. One non-blocking observation (pub mod visibility). Authority map updated — Risk 1 residual removed.
-- Requested outputs from **antigravity**:
-  1. Wide pass on Slice A changes — confirm no stale Risk 1 references remain, verify no-lease audit tags appear in existing test output, check for any new `?`-based early returns that could introduce similar bypasses.
+- Current owner: **claude-opus**
+- Next owner: **cursor**
+- Last baton update: 2026-03-29 — **antigravity** confirmed no stale Risk 1 references, verified `allowed_no_lease` behaves correctly in tests, and checked `router/mod.rs` for new `?`-based early returns. Slice A hardening is fully verified.
+- Requested outputs from **claude-opus**:
+  1. Slice B synthesis (safety tier governance spec) according to the post-035 plan.
 
 - Recommended files to read:
   - `.ai/reviews/claude-review.md` (Slice A review section at bottom)
@@ -40,7 +40,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Requested next agent output
 
-**Antigravity:** Wide pass on Slice A, then **claude-opus** for Slice B synthesis (safety tier governance spec).
+**claude-opus:** Slice B synthesis (safety tier governance spec).
 
 ## Promotion candidates for canonical artifacts
 
