@@ -55,9 +55,10 @@ impl TitorState {
         }
         let titor = build_titor(root_key.clone(), storage_path.clone())?;
         map.insert(root_key.clone(), Arc::new(Mutex::new(titor)));
-        drop(map);
         let mut paths = self.storage_paths.write().await;
         paths.insert(root_key, storage_path.clone());
+        drop(paths);
+        drop(map);
         Ok(storage_path.to_string_lossy().to_string())
     }
 
