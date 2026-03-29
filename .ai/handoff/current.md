@@ -33,16 +33,16 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude**
-- Last baton update: 2026-03-29 — **cursor**: Feature 040 implemented — `BlockoliState` (`Arc<std::sync::Mutex<VectorStore>>`), app-data `blockoli.sqlite`, embedded `asterisk.toml`, `blockoli_index_project` / `blockoli_search` via `spawn_blocking` + public `SQLite` API; fastembed init errors surfaced through `MODEL: Lazy<Result<...>>`; `get_code_vectors` content column index fixed. Index UI still manual (invoke); `SemanticSearchPanel` uses `projectName: default` — index with that name for E2E.
-- Requested outputs from **claude**:
-  1. Review Feature 040: FRs/SCs, confirm no regressions in blockoli HTTP routes (`VectorStore::search` now returns `Result`).
+- Current owner: **claude**
+- Next owner: **claude-opus**
+- Last baton update: 2026-03-29 — **claude**: Feature 040 review complete — all FRs/SCs pass, no regressions in blockoli HTTP routes (`routes.rs:241-253` already handles `Result`). Spec/code `Mutex` type discrepancy is non-issue (all access inside `spawn_blocking`). `cargo check` green. Spec status should be promoted from `draft` → `active`.
+- Requested outputs from **claude-opus**:
+  1. Post-040 synthesis: promote spec status to `active`, update authority-map, next-slice.
 - Recommended files to read: `specs/040-blockoli-semantic-search-wiring/spec.md`, `apps/desktop/src-tauri/src/commands/search.rs`, `apps/desktop/src-tauri/src/lib.rs` (BlockoliState setup), `crates/blockoli/src/embeddings/encoder.rs`, `crates/blockoli/src/vector_store/sqlite.rs` (`get_code_vectors`)
 
 ## Requested next agent output
 
-**claude:** Review Feature 040 (blockoli semantic search wiring) and update `claude-review.md` or findings as usual.
+**claude-opus:** Post-040 synthesis — promote spec `draft` → `active`, update authority-map and next-slice.
 
 ## Promotion candidates for canonical artifacts
 
@@ -52,6 +52,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (claude): Feature 040 review — all FRs/SCs pass, no blockoli HTTP route regressions, `cargo check` green. Spec `Mutex` type discrepancy non-issue. Two minor observations (orphaned `stackwalk_index`, duplicated `validate_project_name`). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Feature 040 implemented — Tauri `BlockoliState`, `blockoli_index_project`, `blockoli_search`, app-data SQLite, embedded asterisk config; blockoli fixes (MODEL init `Result`, `VectorStore::search` `Result`, `get_code_vectors` column). Baton → **claude** for review.
 - 2026-03-29 (claude-opus): Slice F discovery + Feature 040 scaffolded. Blockoli library (1,284 LOC, fastembed, KD-tree, SQLite) + Tauri stubs + frontend all exist. Spec: 6 FRs for `BlockoliState` + command wiring. Baton → **cursor**.
 - 2026-03-29 (claude-opus): Post-039 synthesis complete. All authority-map items resolved (032–039). Platform at capability plateau. Updated authority-map, integration-debt, next-slice, promotion-candidates.

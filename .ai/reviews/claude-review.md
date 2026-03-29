@@ -640,3 +640,59 @@ This was the last remaining open item from the original 032 review. All 4 origin
 2. **Stale doc comment** `lease.rs:97` — `agent::safety::Tier` → `agent::safety::ToolTier` (carried from 037 review)
 3. **CI smoke test** — `timeout` command portability on macOS (carried from 037 review)
 
+---
+
+## Feature 040 review — blockoli semantic search wiring (2026-03-29)
+
+### Spec: `specs/040-blockoli-semantic-search-wiring/spec.md`
+
+**Verdict: All FRs pass. All SCs pass. No regressions in blockoli HTTP routes. Two minor observations, zero blockers.**
+
+### FR assessment
+
+| FR | Status | Evidence |
+|----|--------|----------|
+| FR-001 | **PASS** | `BlockoliState` at `search.rs:46-57`, `Arc<std::sync::Mutex<VectorStore>>`. Registered via `app.manage()` at `lib.rs:206-208`. SQLite opened at `app_data.join("blockoli.sqlite")` (`lib.rs:198-205`). |
+| FR-002 | **PASS** | `blockoli_index_project` at `search.rs:77-136`. Creates project (delete-if-exists + create_table), parses via `asterisk::indexer::index_directory`, generates embeddings via `Embeddings::generate_vector_set`, inserts blocks. Returns `{project_name, total_blocks}`. CPU-bound work wrapped in `spawn_blocking`. |
+| FR-003 | **PASS** | `blockoli_search` at `search.rs:139-174`. Retrieves code vectors, calls `Embeddings::search(code_vectors, query, 5)`, returns serialized `NearestVectors`. k=5 hardcoded per spec. |
+| FR-004 | **PASS** | `MODEL` at `encoder.rs:8-12` is `Lazy<Result<parking_lot::Mutex<TextEmbedding>, String>>`. Both `generate_vector_set` and `search` call `MODEL.as_ref().map_err(...)` — errors propagate as `String` through the Tauri command `Result<_, String>`. No panic path. |
+| FR-005 | **PASS** | `search.rs:150-154` checks `SQLite::does_project_exist` before searching. Returns structured error: `"project '{name}' does not exist; index the project with blockoli_index_project first"`. Also checks for zero-block projects (`search.rs:155-163`). |
+| FR-006 | **PASS** | `ASTERISK_CONFIG_TOML` const at `search.rs:13-43`. Embedded as `&str`, covers Rust + Python matchers. Not read from filesystem. |
+
+### SC assessment
+
+| SC | Status | Evidence |
+|----|--------|----------|
+| SC-001 | **PASS** | Implementation creates project table, parses directory, embeds, inserts. Returns `total_blocks` count. |
+| SC-002 | **PASS** | Uses `Embeddings::search` → KD-tree nearest-neighbor search over 384-dim fastembed vectors. |
+| SC-003 | **PASS** | Both commands return `Result<serde_json::Value, String>` — Tauri serializes to JSON for the frontend. `SemanticSearchPanel.tsx` already invokes these commands. |
+| SC-004 | **PASS** | Project-not-found returns `Err(String)`, not panic. |
+| SC-005 | **PASS** | `app.path().app_data_dir()` at `lib.rs:190`, joined with `"blockoli.sqlite"` at `lib.rs:198`. |
+
+### Regression check: blockoli HTTP routes
+
+The handoff flagged that `VectorStore::search` now returns `Result`. The HTTP route at `routes.rs:241-253` already pattern-matches `Ok(v)` / `Err(e)` — **no regression**. The `search` method on `VectorStore` (`vector_store.rs:113-125`) wraps `SQLite::get_code_vectors` and `Embeddings::search`, both returning `Result`, and maps errors to `String`. The route handler was already written to handle this.
+
+### Observations (non-blocking)
+
+1. **Spec says `tokio::sync::Mutex`, code uses `std::sync::Mutex`** — `spec.md:68` specifies `tokio::sync::Mutex<VectorStore>`, but the implementation uses `Arc<std::sync::Mutex<VectorStore>>` (`search.rs:48`). This is actually fine: all store access is inside `spawn_blocking` closures, so the `std::sync::Mutex` is never held across `.await` points. The `Arc` clone pattern (`state.store.clone()`) moves ownership into the blocking task cleanly. No correctness issue.
+
+2. **`stackwalk_index` command is orphaned** — `search.rs:67-74` defines `stackwalk_index` but it's not registered in the `lib.rs` invoke handler. Pre-existing (not a 040 issue), but it imports `stackwalk` which adds a build dependency. Low priority cleanup candidate.
+
+3. **`validate_project_name` duplication** — Both `search.rs:59-64` and `sqlite.rs:39-46` validate project names. The command-level version returns `Result<(), String>` (graceful), while the library version panics. Belt-and-suspenders — the command validates first so the library panic is unreachable. Not a bug, just a note.
+
+### Build verification
+
+- `cargo check` (desktop app): **green** — 0 errors, warnings are pre-existing (unrelated modules).
+- blockoli standalone: pre-existing `indicatif`/`console` dependency conflict (not caused by Feature 040).
+
+### Spec status note
+
+`spec.md` frontmatter still shows `status: draft`. Should be promoted to `active` now that implementation is complete.
+
+### Remaining open items (carried forward)
+
+1. **Cross-platform axiomregent binaries** — Windows delivered (037), macOS x86_64 + Linux pending CI
+2. **Stale doc comment** `lease.rs:97` — `agent::safety::Tier` → `agent::safety::ToolTier` (carried from 037 review)
+3. **CI smoke test** — `timeout` command portability on macOS (carried from 037 review)
+
