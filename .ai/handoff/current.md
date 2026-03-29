@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–038** delivered (037 complete with T003/T004 deferred to CI; 038 complete — all commands wired, round-trip verified). All authority-map HIGH items resolved. Next: Feature ID reconciliation (Slice E).
+Features **032–039** delivered: Feature **039** (codeAliases / Feature ID reconciliation) implemented — ADR 0001 accepted, schema **1.1.0**, compiler + scanner + frontmatter + verification artifacts.
 
 ## Agent pack
 
@@ -20,25 +20,26 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 - **037 spec:** `specs/037-cross-platform-axiomregent/spec.md` (status: **active**, complete — T003/T004 deferred to CI)
 - **038 spec:** `specs/038-titor-tauri-command-wiring/spec.md` (status: **active**, complete — all tasks done, round-trip verified)
-- **039 spec:** `specs/039-feature-id-reconciliation/spec.md` (status: **draft**, scaffolded — 9 tasks, ADR reviewed)
+- **039 spec:** `specs/039-feature-id-reconciliation/spec.md` (status: **active**, complete — T001–T009 done; `execution/verification.md`)
 
 ## Current execution truth
 
 - **037:** All local tasks complete (T001/T002/T005/T006/T007/T008/T009). T003/T004 deferred to CI runners. Registry compiled.
 - **038:** Complete — `TitorState`, all 6 commands wired, round-trip verified (init→checkpoint→list→verify→diff→restore). Reviewed by claude, wide-passed by antigravity (race condition fixed). Registry compiled.
+- **039:** Complete — ADR 0001 accepted; `registry.schema.json` + spec-compiler `code_aliases` / V-005 / V-006 / `specVersion` 1.1.0; featuregraph `codeAliases` → `FeatureEntry.aliases`; frontmatter on specs **004, 005, 032–035**; verification recorded; golden graph updated. `build/spec-registry/registry.json` remains gitignored — run `spec-compiler compile` locally/CI.
 
 ## Baton
 
-- Current owner: **claude-opus**
-- Next owner: **cursor**
-- Last baton update: 2026-03-29 — **claude-opus** Synthesized ADR 0001 review into Feature 039 spec (9 tasks). ADR edits bundled as T001 (not separate commit). Updated next-slice, integration-debt, authority-map. Feature 039 ready for implementation.
-- Requested outputs from **cursor**:
-  1. Implement Feature 039 tasks T001–T009. Start with T001 (ADR gap closure), then T002+T003+T004 (schema+compiler, same commit), T005+T006 (scanner), T007 (frontmatter population), T008+T009 (verification).
-- Recommended files to read: `specs/039-feature-id-reconciliation/spec.md`, `specs/039-feature-id-reconciliation/tasks.md`, `docs/adr/0001-feature-id-reconciliation.md`
+- Current owner: **cursor**
+- Next owner: **claude**
+- Last baton update: 2026-03-29 — **cursor** Implemented Feature 039 (T001–T009): ADR gap closure, schema+compiler+scanner+frontmatter, `execution/verification.md`, golden refresh.
+- Requested outputs from **claude**:
+  1. Review Feature 039 delivery (spec vs code), residual header hygiene (`spec/verification.yaml` Spec lines; optional follow-up).
+- Recommended files to read: `specs/039-feature-id-reconciliation/execution/verification.md`, `docs/adr/0001-feature-id-reconciliation.md`, `tools/spec-compiler/src/lib.rs`, `crates/featuregraph/src/registry_source.rs`
 
 ## Requested next agent output
 
-**cursor:** Implement Feature 039 (T001–T009). See `specs/039-feature-id-reconciliation/tasks.md` for task breakdown. T002+T003+T004 MUST be one commit (schema+compiler+version bump).
+**claude:** Review Feature 039 implementation and update `.ai/reviews/claude-review.md` if findings warrant.
 
 ## Promotion candidates for canonical artifacts
 
@@ -48,6 +49,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): Feature 039 implemented — codeAliases pipeline (ADR, schema 1.1.0, compiler V-005/V-006, scanner, frontmatter, verification, golden). Baton → **claude**.
 - 2026-03-29 (claude-opus): Post-ADR synthesis. Scaffolded Feature 039 (`specs/039-feature-id-reconciliation/` — 9 tasks). ADR edits bundled as T001. Updated next-slice, integration-debt, authority-map. Baton → **cursor**.
 - 2026-03-29 (claude): ADR 0001 review — decision sound, 4 gaps found (schema bump, validation codes, scanner consumer contract, population ordering). Updated `claude-review.md`. Baton → **claude-opus**.
 - 2026-03-29 (cursor): Slice E — ADR 0001 drafted (`docs/adr/0001-feature-id-reconciliation.md`): kebab canonical `id`, optional `codeAliases` in registry (option a). Updated integration-debt, baton. Baton → **claude**.

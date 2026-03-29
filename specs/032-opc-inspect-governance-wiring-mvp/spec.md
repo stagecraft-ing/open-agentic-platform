@@ -12,6 +12,9 @@ summary: >
   First product-facing OAP vertical slice: wire OPC inspect and governance UI
   surfaces to existing sidecar and local analysis capabilities so one end-to-end
   user journey works without placeholders.
+code_aliases:
+  - XRAY_ANALYSIS
+  - XRAY_SCAN_POLICY
 ---
 
 # Feature Specification: OPC inspect + governance wiring

@@ -77,6 +77,14 @@
           "type": "object",
           "maxProperties": 8,
           "additionalProperties": { "$ref": "#/$defs/extraFrontmatterValue" }
+        },
+        "codeAliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+          },
+          "uniqueItems": true
         }
       }
     },

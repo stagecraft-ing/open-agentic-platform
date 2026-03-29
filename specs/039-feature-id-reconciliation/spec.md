@@ -2,7 +2,7 @@
 id: "039-feature-id-reconciliation"
 title: "Feature ID reconciliation (codeAliases)"
 feature_branch: "039-feature-id-reconciliation"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:

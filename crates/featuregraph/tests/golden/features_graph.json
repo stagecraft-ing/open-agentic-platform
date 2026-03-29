@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:0fcd303eb40ebeb52af1ec109152d30385718fa880aeebc053751938f2cc6fce",
+  "graph_fingerprint": "sha256:98b8510c460351879a8358faa2be9f61997b803a72f4eebeab695ee66498df72",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -63,9 +63,74 @@
       "owner": "",
       "group": "",
       "depends_on": [],
-      "impl_files": [],
+      "impl_files": [
+        "crates/axiomregent/src/run_tools.rs",
+        "crates/run/src/config.rs",
+        "crates/run/src/lib.rs",
+        "crates/run/src/registry.rs",
+        "crates/run/src/runner.rs",
+        "crates/run/src/skills/mod.rs",
+        "crates/run/src/state.rs"
+      ],
       "test_files": [],
-      "violations": []
+      "violations": [
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/run_tools.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/run/src/config.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/run/src/lib.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/run/src/registry.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/run/src/runner.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/run/src/skills/mod.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/run/src/state.rs",
+          "feature_id": "004-spec-to-execution-bridge-mvp",
+          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
+        }
+      ]
     },
     {
       "feature_id": "005-verification-reconciliation-mvp",
@@ -427,9 +492,147 @@
       "owner": "",
       "group": "",
       "depends_on": [],
-      "impl_files": [],
-      "test_files": [],
-      "violations": []
+      "impl_files": [
+        "crates/xray/src/canonical.rs",
+        "crates/xray/src/digest.rs",
+        "crates/xray/src/docs.rs",
+        "crates/xray/src/hash.rs",
+        "crates/xray/src/invariant_tests.rs",
+        "crates/xray/src/language.rs",
+        "crates/xray/src/lib.rs",
+        "crates/xray/src/loc.rs",
+        "crates/xray/src/main.rs",
+        "crates/xray/src/schema.rs",
+        "crates/xray/src/tools.rs",
+        "crates/xray/src/traversal.rs",
+        "crates/xray/src/write.rs"
+      ],
+      "test_files": [
+        "crates/xray/tests/golden_scan.rs",
+        "crates/xray/tests/index_format_test.rs"
+      ],
+      "violations": [
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/canonical.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/digest.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/docs.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/hash.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/invariant_tests.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/language.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/lib.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/loc.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/main.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/schema.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/tools.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/traversal.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/src/write.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/tests/golden_scan.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/scan-policy.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/xray/tests/index_format_test.rs",
+          "feature_id": "032-opc-inspect-governance-wiring-mvp",
+          "message": "File declares spec spec/xray/analysis.md but registry says specs/032-opc-inspect-governance-wiring-mvp/spec.md",
+          "suggested_fix": "Update header to Spec: specs/032-opc-inspect-governance-wiring-mvp/spec.md"
+        }
+      ]
     },
     {
       "feature_id": "033-axiomregent-activation",
@@ -440,9 +643,128 @@
       "owner": "",
       "group": "",
       "depends_on": [],
-      "impl_files": [],
+      "impl_files": [
+        "crates/axiomregent/src/config/mod.rs",
+        "crates/axiomregent/src/io/mod.rs",
+        "crates/axiomregent/src/lib.rs",
+        "crates/axiomregent/src/main.rs",
+        "crates/axiomregent/src/router/mod.rs",
+        "crates/axiomregent/src/snapshot/lease.rs",
+        "crates/axiomregent/src/snapshot/mod.rs",
+        "crates/axiomregent/src/snapshot/store.rs",
+        "crates/axiomregent/src/snapshot/tools.rs",
+        "crates/axiomregent/src/util/mod.rs",
+        "crates/axiomregent/src/util/paths.rs",
+        "crates/axiomregent/src/util/stable.rs",
+        "crates/axiomregent/src/workspace/mod.rs"
+      ],
       "test_files": [],
-      "violations": []
+      "violations": [
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/config/mod.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/io/mod.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/lib.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/main.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/router/mod.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/snapshot/lease.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/snapshot/mod.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/snapshot/store.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/snapshot/tools.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/util/mod.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/util/paths.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/util/stable.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/workspace/mod.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        }
+      ]
     },
     {
       "feature_id": "034-featuregraph-registry-scanner-fix",
@@ -453,15 +775,245 @@
       "owner": "",
       "group": "",
       "depends_on": [],
-      "impl_files": [],
-      "test_files": [],
-      "violations": []
+      "impl_files": [
+        "crates/axiomregent/src/feature_tools.rs",
+        "crates/featuregraph/src/graph.rs",
+        "crates/featuregraph/src/lib.rs",
+        "crates/featuregraph/src/locate.rs",
+        "crates/featuregraph/src/preflight.rs",
+        "crates/featuregraph/src/registry_source.rs",
+        "crates/featuregraph/src/scanner.rs",
+        "crates/featuregraph/src/tools.rs"
+      ],
+      "test_files": [
+        "crates/featuregraph/tests/golden.rs"
+      ],
+      "violations": [
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/feature_tools.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/src/graph.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/src/lib.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/src/locate.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/src/preflight.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/governance.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/src/scanner.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/src/tools.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/featuregraph/tests/golden.rs",
+          "feature_id": "034-featuregraph-registry-scanner-fix",
+          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
+          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
+        }
+      ]
     },
     {
       "feature_id": "035-agent-governed-execution",
       "title": "agent execution through governed dispatch",
       "spec_path": "specs/035-agent-governed-execution/spec.md",
-      "status": "draft",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [
+        "crates/agent/src/agent.rs",
+        "crates/agent/src/canonical.rs",
+        "crates/agent/src/executor.rs",
+        "crates/agent/src/id.rs",
+        "crates/agent/src/lib.rs",
+        "crates/agent/src/safety.rs",
+        "crates/agent/src/schemas.rs",
+        "crates/agent/src/validator.rs",
+        "crates/axiomregent/src/agent_tools.rs",
+        "crates/axiomregent/src/internal_client.rs"
+      ],
+      "test_files": [
+        "crates/agent/tests/golden_tests.rs"
+      ],
+      "violations": [
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/agent.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/canonical.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/executor.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/id.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/lib.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/safety.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/schemas.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/src/validator.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/agent/tests/golden_tests.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/agent_tools.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
+          "path": "crates/axiomregent/src/internal_client.rs",
+          "feature_id": "035-agent-governed-execution",
+          "message": "File declares spec spec/agent/automation.md but registry says specs/035-agent-governed-execution/spec.md",
+          "suggested_fix": "Update header to Spec: specs/035-agent-governed-execution/spec.md"
+        }
+      ]
+    },
+    {
+      "feature_id": "036-safety-tier-governance",
+      "title": "safety tier governance",
+      "spec_path": "specs/036-safety-tier-governance/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "037-cross-platform-axiomregent",
+      "title": "cross-platform axiomregent binaries",
+      "spec_path": "specs/037-cross-platform-axiomregent/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "038-titor-tauri-command-wiring",
+      "title": "titor Tauri command wiring",
+      "spec_path": "specs/038-titor-tauri-command-wiring/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "039-feature-id-reconciliation",
+      "title": "Feature ID reconciliation (codeAliases)",
+      "spec_path": "specs/039-feature-id-reconciliation/spec.md",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -472,438 +1024,6 @@
     }
   ],
   "violations": [
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/agent.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/canonical.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/executor.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/id.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/lib.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/safety.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/schemas.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/src/validator.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/agent/tests/golden_tests.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/agent_tools.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/config/mod.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/feature_tools.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/internal_client.rs",
-      "feature_id": "AGENT_AUTOMATION",
-      "message": "Feature AGENT_AUTOMATION not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/io/mod.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/lib.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/main.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/router/mod.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/run_tools.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/snapshot/lease.rs",
-      "feature_id": "MCP_SNAPSHOT_WORKSPACE",
-      "message": "Feature MCP_SNAPSHOT_WORKSPACE not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/snapshot/mod.rs",
-      "feature_id": "MCP_SNAPSHOT_WORKSPACE",
-      "message": "Feature MCP_SNAPSHOT_WORKSPACE not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/snapshot/store.rs",
-      "feature_id": "MCP_SNAPSHOT_WORKSPACE",
-      "message": "Feature MCP_SNAPSHOT_WORKSPACE not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/snapshot/tools.rs",
-      "feature_id": "MCP_SNAPSHOT_WORKSPACE",
-      "message": "Feature MCP_SNAPSHOT_WORKSPACE not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/util/mod.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/util/paths.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/util/stable.rs",
-      "feature_id": "MCP_ROUTER",
-      "message": "Feature MCP_ROUTER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/axiomregent/src/workspace/mod.rs",
-      "feature_id": "MCP_SNAPSHOT_WORKSPACE",
-      "message": "Feature MCP_SNAPSHOT_WORKSPACE not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/src/graph.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/src/lib.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/src/locate.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/src/preflight.rs",
-      "feature_id": "GOVERNANCE_ENGINE",
-      "message": "Feature GOVERNANCE_ENGINE not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/src/scanner.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/src/tools.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/featuregraph/tests/golden.rs",
-      "feature_id": "FEATUREGRAPH_REGISTRY",
-      "message": "Feature FEATUREGRAPH_REGISTRY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/run/src/config.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/run/src/lib.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/run/src/registry.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/run/src/runner.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/run/src/skills/mod.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/run/src/state.rs",
-      "feature_id": "TASK_RUNNER",
-      "message": "Feature TASK_RUNNER not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/canonical.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/digest.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/docs.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/hash.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/invariant_tests.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/language.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/lib.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/loc.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/main.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/schema.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/tools.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/traversal.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/src/write.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/tests/golden_scan.rs",
-      "feature_id": "XRAY_SCAN_POLICY",
-      "message": "Feature XRAY_SCAN_POLICY not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
-    {
-      "code": "DANGLING_FEATURE_ID",
-      "severity": "error",
-      "path": "crates/xray/tests/index_format_test.rs",
-      "feature_id": "XRAY_ANALYSIS",
-      "message": "Feature XRAY_ANALYSIS not found in registry",
-      "suggested_fix": "Add feature to build/spec-registry/registry.json (via spec-compiler) or spec/features.yaml, or register as alias"
-    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
@@ -930,13 +1050,6 @@
       "severity": "error",
       "path": "crates/agent/src/verification/runner.rs",
       "message": "Malformed Spec directive: // Spec: spec/verification.yaml",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "crates/featuregraph/src/registry_source.rs",
-      "message": "Malformed Feature directive: // Feature: 034-featuregraph-registry-scanner-fix",
       "suggested_fix": "Fix header format"
     }
   ]

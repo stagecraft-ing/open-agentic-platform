@@ -12,6 +12,11 @@ summary: >
   Activate the bundled axiomregent sidecar at OPC desktop startup, verify bundling and
   port discovery, expose governed tools in the MCP UI, and surface safety-tier visibility
   — without rerouting all agent execution in this slice.
+code_aliases:
+  - MCP_ROUTER
+  - MCP_ROUTER_CONTRACT
+  - MCP_SNAPSHOT_WORKSPACE
+  - MCP_TOOLS
 ---
 
 # Feature Specification: axiomregent activation

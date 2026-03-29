@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
-// Feature: 034-featuregraph-registry-scanner-fix
+// Feature: FEATUREGRAPH_REGISTRY
 
 //! Load feature manifest entries from **`build/spec-registry/registry.json`**
 //! (spec-compiler output) for the featuregraph scanner.
@@ -22,6 +22,8 @@ pub struct RegistryFeatureRecord {
     #[serde(rename = "specPath")]
     pub spec_path: String,
     pub status: String,
+    #[serde(rename = "codeAliases", default)]
+    pub code_aliases: Vec<String>,
 }
 
 /// Parse `registry.json` and return feature records (sorted by id for determinism).
@@ -44,7 +46,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
         let json = r#"{
-            "specVersion": "1.0.0",
+            "specVersion": "1.1.0",
             "features": [
                 {
                     "id": "002-registry-consumer-mvp",
@@ -67,7 +69,10 @@ mod tests {
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].id, "002-registry-consumer-mvp");
-        assert_eq!(records[0].spec_path, "specs/002-registry-consumer-mvp/spec.md");
+        assert_eq!(
+            records[0].spec_path,
+            "specs/002-registry-consumer-mvp/spec.md"
+        );
         assert_eq!(records[0].status, "draft");
     }
 
@@ -90,5 +95,40 @@ mod tests {
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records[0].id, "a");
         assert_eq!(records[1].id, "b");
+    }
+
+    #[test]
+    fn parses_code_aliases_from_registry() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("registry.json");
+        let json = r#"{
+            "specVersion": "1.1.0",
+            "features": [
+                {
+                    "id": "034-featuregraph-registry-scanner-fix",
+                    "title": "t",
+                    "specPath": "specs/034-featuregraph-registry-scanner-fix/spec.md",
+                    "status": "active",
+                    "summary": "x",
+                    "created": "2026-03-29",
+                    "sectionHeadings": [],
+                    "codeAliases": ["FEATUREGRAPH_REGISTRY", "GOVERNANCE_ENGINE"]
+                }
+            ],
+            "validation": { "passed": true, "violations": [] }
+        }"#;
+        std::fs::File::create(&path)
+            .unwrap()
+            .write_all(json.as_bytes())
+            .unwrap();
+
+        let records = load_registry_records(&path).unwrap();
+        assert_eq!(
+            records[0].code_aliases,
+            vec![
+                "FEATUREGRAPH_REGISTRY".to_string(),
+                "GOVERNANCE_ENGINE".to_string()
+            ]
+        );
     }
 }

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|--------|
-| Status | **Proposed** — pending review; schema/compiler work tracked under Feature 039 |
+| Status | **Accepted** — implemented under Feature 039 |
 | Date | 2026-03-29 |
 | Context | Slice E — `.ai/plans/next-slice.md` |
 
@@ -18,8 +18,8 @@ There is no stable bridge in compiled registry JSON between these systems, so go
 ## Decision
 
 - **Canonical feature identity** remains the **kebab-case `id`** in `registry.json` (and spec frontmatter). No change to directory layout, compiler primary key, or `specPath` rules.
-- **Code-side tokens** are treated as **aliases** of that canonical id. The compiled registry gains an optional, deterministic field on each feature record — working name **`codeAliases`**: a JSON array of unique strings matching the existing scanner token shape (`[A-Z][A-Z0-9_]{2,63}`), sorted lexicographically for stable output.
-- **Population strategy (for implementation):** merge alias sets from (a) optional spec frontmatter approved in Feature 039, (b) scanner-derived attribution grouped by resolved feature, with validation that **each alias appears under at most one feature** and CI/spec-compiler violations if ambiguous or orphaned mappings are forbidden by policy.
+- **Code-side tokens** are treated as **aliases** of that canonical id. The compiled registry gains an optional, deterministic field on each feature record — **`codeAliases`**: a JSON array of unique strings matching the existing scanner token shape (`[A-Z][A-Z0-9_]{2,63}`), sorted lexicographically for stable output.
+- **Population strategy (implemented):** aliases are declared in **spec frontmatter** (`code_aliases` in each `specs/<id>/spec.md`) as the **sole compile-time source**. The spec-compiler validates pattern and cross-feature uniqueness, then emits `codeAliases` in `registry.json`. The featuregraph scanner **does not** enrich aliases at compile time; it **loads** `codeAliases` from the compiled registry and populates `FeatureEntry.aliases` so existing `alias_map` resolution applies. At scan time, the scanner attributes files to features; policy for orphan or mismatched headers is unchanged.
 
 This corresponds to **option (a)** in the next-slice plan: extend the compiled registry so both human/spec ids and code tokens are first-class for matching.
 
@@ -40,9 +40,31 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 ### Negative / follow-up
 
-- **Schema and compiler** must be extended (`registry.schema.json`, `tools/spec-compiler`, validation rules) — scoped to Feature 039.
-- **Content maintenance:** new or renamed code tokens may require frontmatter or alias tables until scanner grouping is fully automated; document in Feature 039 tasks.
-- **Consumers** (`registry-consumer`, featuregraph, desktop) should treat **`id` as canonical** and use `codeAliases` only for lookup; optional field preserves backward compatibility until consumers opt in.
+- **Schema and compiler** were extended (`registry.schema.json`, `tools/spec-compiler`, validation rules) — Feature 039.
+- **Content maintenance:** new or renamed code tokens require updates to spec frontmatter `code_aliases` until optional automation exists; see Feature 039 tasks.
+- **Consumers** (`registry-consumer`, featuregraph, desktop) treat **`id` as canonical** and use `codeAliases` only for lookup; optional field preserves backward compatibility until consumers opt in.
+
+## Schema versioning
+
+- **`specVersion`** in compiled `registry.json` is **`1.1.0`** (minor bump from `1.0.0`).
+- **`codeAliases`** is optional and **omitted when empty** (not `null` or `[]`).
+- Schema and compiler changes that emit `codeAliases` **ship in the same commit** so `additionalProperties: false` on `featureRecord` stays satisfied and schema conformance tests do not break.
+
+## Validation rules (spec-compiler)
+
+| Code | Severity | Meaning |
+|------|----------|---------|
+| **V-005** | error | The same alias string appears in `code_aliases` frontmatter of **more than one** feature. |
+| **V-006** | warning | A `code_aliases` entry does not match `^[A-Z][A-Z0-9_]{2,63}$` (invalid entries are omitted from emitted `codeAliases`). |
+
+## Consumer contract
+
+- **featuregraph** (registry path): when loading `build/spec-registry/registry.json`, **`RegistryFeatureRecord` MUST deserialize `codeAliases`** (optional). **`FeatureEntry::from_registry_record()` MUST copy them into `FeatureEntry.aliases`** so `Scanner::scan()` builds `alias_map` and resolves `// Feature: TOKEN` lines to the canonical kebab `id`.
+
+## Population ordering
+
+- **Compile time:** only spec frontmatter `code_aliases` feeds the compiler.
+- **Scan time:** the scanner uses registry-provided aliases for resolution; it does not add aliases from scanned headers into the registry. No circular dependency.
 
 ## References
 

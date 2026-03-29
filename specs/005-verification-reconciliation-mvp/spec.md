@@ -13,6 +13,9 @@ summary: >
   tasks and changesets to files, commands, tests, and scope; verification states;
   drift handling; minimum markdown verification artifact—without compiler enforcement,
   CI prescriptions, or policy/runtime coupling.
+code_aliases:
+  - VERIFICATION_SKILLS
+  - VERIFY_PROTOCOL
 ---
 
 # Feature Specification: Verification and reconciliation

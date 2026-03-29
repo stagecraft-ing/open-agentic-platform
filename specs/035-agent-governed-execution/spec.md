@@ -13,6 +13,8 @@ summary: >
   stored permission flags (enable_file_read, enable_file_write, enable_network) and safety
   tiers are enforced at runtime — replacing the unconditional `--dangerously-skip-permissions`
   bypass in all seven execution paths.
+code_aliases:
+  - AGENT_AUTOMATION
 ---
 
 # Feature Specification: agent governed execution

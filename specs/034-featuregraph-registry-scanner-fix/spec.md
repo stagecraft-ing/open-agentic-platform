@@ -12,6 +12,9 @@ summary: >
   Point the featuregraph scanner and related governance inputs at `build/spec-registry/registry.json`
   (compiled by spec-compiler) instead of requiring `spec/features.yaml`, so the governance panel
   can hydrate from the same source of truth as CI and the Inspect surface.
+code_aliases:
+  - FEATUREGRAPH_REGISTRY
+  - GOVERNANCE_ENGINE
 ---
 
 # Feature Specification: featuregraph registry scanner fix

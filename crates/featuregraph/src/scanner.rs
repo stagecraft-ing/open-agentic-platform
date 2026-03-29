@@ -161,7 +161,7 @@ impl FeatureEntry {
             group: String::new(),
             depends_on: Vec::new(),
             implementation: Some(r.status.clone()),
-            aliases: Vec::new(),
+            aliases: r.code_aliases.clone(),
         }
     }
 }
@@ -464,5 +464,18 @@ mod tests {
             HeaderError::InvalidFormat(_) => (),
             _ => panic!("Expected InvalidFormat"),
         }
+    }
+
+    #[test]
+    fn registry_code_aliases_populate_feature_entry() {
+        let r = crate::registry_source::RegistryFeatureRecord {
+            id: "034-featuregraph-registry-scanner-fix".into(),
+            title: "t".into(),
+            spec_path: "specs/034-featuregraph-registry-scanner-fix/spec.md".into(),
+            status: "active".into(),
+            code_aliases: vec!["FEATUREGRAPH_REGISTRY".into()],
+        };
+        let e = FeatureEntry::from_registry_record(&r);
+        assert_eq!(e.aliases, vec!["FEATUREGRAPH_REGISTRY"]);
     }
 }

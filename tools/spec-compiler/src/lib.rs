@@ -3,13 +3,13 @@
 use serde::Serialize;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 const COMPILER_ID: &str = "open-agentic-spec-compiler";
-const SPEC_VERSION: &str = "1.0.0";
+const SPEC_VERSION: &str = "1.1.0";
 
 /// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
 const KNOWN_KEYS: &[&str] = &[
@@ -21,6 +21,7 @@ const KNOWN_KEYS: &[&str] = &[
     "authors",
     "kind",
     "feature_branch",
+    "code_aliases",
 ];
 
 #[derive(Debug)]
@@ -104,6 +105,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     let mut features: Vec<FeatureRecord> = Vec::new();
     let mut seen_ids: BTreeMap<String, PathBuf> = BTreeMap::new();
+    let mut alias_owner: BTreeMap<String, (String, String)> = BTreeMap::new();
 
     for spec_path in &spec_paths {
         let raw = fs::read_to_string(spec_path)?;
@@ -145,6 +147,15 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let feature_branch = optional_str(fm, "feature_branch");
         let extra = extra_frontmatter(repo_root, fm, spec_path, &mut violations)?;
 
+        let code_aliases = parse_code_aliases(
+            fm,
+            &id,
+            repo_root,
+            spec_path,
+            &mut violations,
+            &mut alias_owner,
+        )?;
+
         let headings = extract_headings(&body, &title);
 
         features.push(FeatureRecord {
@@ -158,6 +169,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             authors,
             kind,
             feature_branch,
+            code_aliases,
             extra_frontmatter: extra,
         });
     }
@@ -212,6 +224,8 @@ struct FeatureRecord {
     kind: Option<String>,
     #[serde(rename = "featureBranch", skip_serializing_if = "Option::is_none")]
     feature_branch: Option<String>,
+    #[serde(rename = "codeAliases", skip_serializing_if = "Option::is_none")]
+    code_aliases: Option<Vec<String>>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }
@@ -496,6 +510,109 @@ fn optional_string_list(m: &serde_yaml::Mapping, key: &str) -> Option<Vec<String
         out.push(x.as_str()?.to_string());
     }
     Some(out)
+}
+
+/// Token shape aligned with `featuregraph` / `registry.schema.json` `codeAliases` items.
+fn is_valid_code_alias(s: &str) -> bool {
+    let b = s.as_bytes();
+    if b.len() < 3 || b.len() > 64 {
+        return false;
+    }
+    if !b[0].is_ascii_uppercase() {
+        return false;
+    }
+    b[1..]
+        .iter()
+        .all(|&c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == b'_')
+}
+
+fn parse_code_aliases(
+    fm: &serde_yaml::Mapping,
+    feature_id: &str,
+    repo_root: &Path,
+    spec_path: &Path,
+    violations: &mut Vec<Violation>,
+    alias_owner: &mut BTreeMap<String, (String, String)>,
+) -> Result<Option<Vec<String>>, CompileError> {
+    let Some(raw) = fm.get("code_aliases") else {
+        return Ok(None);
+    };
+    let Some(seq) = raw.as_sequence() else {
+        violations.push(Violation {
+            code: "V-002".to_string(),
+            severity: "error".to_string(),
+            message: "code_aliases must be a list of strings".into(),
+            path: Some(normalize_repo_path(repo_root, spec_path)),
+        });
+        return Ok(None);
+    };
+    if seq.is_empty() {
+        return Ok(None);
+    }
+
+    let mut seen_in_feature: BTreeSet<String> = BTreeSet::new();
+    let mut out: Vec<String> = Vec::new();
+
+    for entry in seq {
+        let Some(s) = entry.as_str() else {
+            violations.push(Violation {
+                code: "V-002".to_string(),
+                severity: "error".to_string(),
+                message: "code_aliases must be a list of strings".into(),
+                path: Some(normalize_repo_path(repo_root, spec_path)),
+            });
+            continue;
+        };
+        if !is_valid_code_alias(s) {
+            violations.push(Violation {
+                code: "V-006".to_string(),
+                severity: "warning".to_string(),
+                message: format!(
+                    "code_aliases entry {s:?} does not match pattern ^[A-Z][A-Z0-9_]{{2,63}}$"
+                ),
+                path: Some(normalize_repo_path(repo_root, spec_path)),
+            });
+            continue;
+        }
+        if !seen_in_feature.insert(s.to_string()) {
+            continue;
+        }
+        if let Some((prev_id, prev_path)) = alias_owner.get(s) {
+            if prev_id != feature_id {
+                violations.push(Violation {
+                    code: "V-005".to_string(),
+                    severity: "error".to_string(),
+                    message: format!("code alias {s:?} is already claimed by feature {prev_id:?}"),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+                violations.push(Violation {
+                    code: "V-005".to_string(),
+                    severity: "error".to_string(),
+                    message: format!(
+                        "code alias {s:?} is already claimed by feature {feature_id:?} (first occurrence)"
+                    ),
+                    path: Some(prev_path.clone()),
+                });
+                continue;
+            }
+        } else {
+            alias_owner.insert(
+                s.to_string(),
+                (
+                    feature_id.to_string(),
+                    normalize_repo_path(repo_root, spec_path),
+                ),
+            );
+        }
+        out.push(s.to_string());
+    }
+
+    if out.is_empty() {
+        Ok(None)
+    } else {
+        out.sort();
+        Ok(Some(out))
+    }
 }
 
 fn extra_frontmatter(

@@ -13,6 +13,8 @@ summary: >
   unit (changeset), roles of spec/plan/tasks, task lifecycle separate from feature
   lifecycle, approval gates, verification, and on-disk markdown outputs—without
   orchestration runtime, registry schema expansion, or mandatory product bindings.
+code_aliases:
+  - TASK_RUNNER
 ---
 
 # Feature Specification: Spec-to-execution bridge
