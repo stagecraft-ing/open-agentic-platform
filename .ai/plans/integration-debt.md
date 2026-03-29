@@ -20,13 +20,13 @@
 | ~~featuregraph scanner reads forbidden `features.yaml`~~ | Governance / data | Unblocks governance panel | **RESOLVED (Feature 034)** |
 | ~~Cross-platform axiomregent~~ | Platform coverage | Governance on Windows/Linux | **RESOLVED (Feature 037)** — Windows binary built, CI workflow for all targets |
 | ~~Titor Tauri commands stubbed~~ | Temporal safety | Enables checkpoint/restore from desktop | **RESOLVED (Feature 038)** — `TitorState` + all 6 commands wired, round-trip verified |
-| **Feature ID duality** | Data architecture | Enables cross-referencing registry/code features | **ADR accepted** — `docs/adr/0001-feature-id-reconciliation.md`; implementation (Feature 039) pending |
+| **Feature ID duality** | Data architecture | Enables cross-referencing registry/code features | **ADR proposed** — `docs/adr/0001-feature-id-reconciliation.md`; implementation (Feature 039) pending |
 | **Blockoli semantic search stubbed** | Product capability | Enables AI-native code search from desktop | Heavy lift; lowest urgency |
 
 ## Notes
 
 - Items 1–7 are now **all resolved** (Features 032–038 + Slice A). The governance stack is complete on macOS arm64, partially extended to Windows, and the temporal safety net is wired.
-- **Feature ID duality** (item 8): ADR 0001 chooses kebab `id` + optional `codeAliases` in compiled registry. Scanner/compiler/schema work remains.
+- **Feature ID duality** (item 8): ADR 0001 proposes kebab `id` + optional `codeAliases` in compiled registry. Scanner/compiler/schema work remains after review.
 
 ## Promotion
 

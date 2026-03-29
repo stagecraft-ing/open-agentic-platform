@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|--------|
-| Status | **Accepted** (design intent; schema/compiler work tracked under Feature 039) |
+| Status | **Proposed** — pending review; schema/compiler work tracked under Feature 039 |
 | Date | 2026-03-29 |
 | Context | Slice E — `.ai/plans/next-slice.md` |
 
