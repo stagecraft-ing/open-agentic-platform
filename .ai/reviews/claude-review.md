@@ -344,7 +344,94 @@ No changes to enforcement logic in `permissions.rs` beyond the `Tier` → `ToolT
 
 ### Remaining open items (not Feature 036 scope)
 
-1. **Cross-platform axiomregent binaries** (Slice C) — still only macOS arm64
+1. ~~**Cross-platform axiomregent binaries** (Slice C) — still only macOS arm64~~ **Partially resolved by Feature 037** (Windows binary + CI workflow).
 2. **Titor command stubs** (Slice D) — 5 stubs blocking temporal safety
 3. **Feature ID reconciliation** (Slice E) — kebab vs UPPERCASE unbridged
+
+---
+
+## Feature 037 review (2026-03-29)
+
+### Verdict: Feature 037 is correctly implemented for the Windows target. CI workflow and build script have minor issues. One stale doc comment found.
+
+### FR assessment
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| FR-001: Binaries for all 5 targets | `binaries/` has macOS arm64 (pre-existing) + Windows x86_64 (new, 7.3 MB). macOS x86_64, Linux x86_64, Linux arm64 deferred to CI. | **Partial** (2/5 bundled; CI covers remaining 3) |
+| FR-002: Sidecar spawn on macOS + Windows | Windows: binary starts, `OPC_AXIOMREGENT_PORT=49679` on stderr, MCP `initialize` handshake succeeds, `tools/list` returns all 21 tools. macOS: pre-existing. | **Pass** |
+| FR-003: Build script produces binaries | `scripts/build-axiomregent.sh` — supports `--all`, specific triples, auto-detect host. Successfully built Windows binary. | **Pass** (with caveats — see below) |
+| FR-004: Governed execution on Windows | Windows binary responds identically to macOS for MCP protocol. Full Tauri desktop e2e pending but protocol-level verification is complete. | **Pass** (protocol-level) |
+
+### ToolTier fix in agent.rs: CORRECT
+
+`agent.rs:8` updated from `{Tier, calculate_plan_tier}` to `{ToolTier, calculate_plan_tier}`. `agent.rs:115` updated `parse::<Tier>()` to `parse::<ToolTier>()`. Both changes are mechanical and correct. All 13 agent tests pass.
+
+### Stale reference sweep (requested check #2)
+
+**Comprehensive grep confirms only one remaining stale reference:**
+
+- **`crates/axiomregent/src/snapshot/lease.rs:97`** — doc comment says `(see agent::safety::Tier)` but should say `agent::safety::ToolTier`. Non-blocking (doc comment only, no compilation impact).
+
+All other imports, types, and references across the entire codebase correctly use `ToolTier` or `ChangeTier`. The Feature 036 wide pass + this 037 fix have cleaned up all functional references.
+
+### T003/T004 deferral assessment (requested check #3)
+
+**Deferral to CI is the correct call.** Rationale:
+
+1. `rusqlite` with `bundled` feature and `zstd` both compile C source. Cross-compiling C from Windows to macOS/Linux requires platform-specific C toolchains that aren't available on Windows without complex setup (Docker, WSL, or specialized cross-compilers).
+2. The CI workflow (`build-axiomregent.yml`) correctly handles this with a platform-native matrix: macOS runner for Apple targets, Ubuntu runner for Linux x86_64, Windows runner for Windows, and a separate cross-compile job for Linux arm64.
+3. The most impactful deliverable — the Windows binary — is shipped. The dev team is on Windows, so this unblocks governed execution immediately.
+
+### CI workflow issues (3 items)
+
+#### Issue 1 (HIGH): Smoke test `timeout` command on macOS
+
+`build-axiomregent.yml:73`:
+```yaml
+timeout 3 apps/desktop/src-tauri/binaries/${{ matrix.binary }} 2>&1 || true
+```
+The `timeout` command doesn't exist on macOS by default (it's a GNU coreutils command, not available in BSD userland). On macOS runners, this smoke test will fail with `timeout: command not found`. The `continue-on-error: true` suppresses the failure, so it won't block CI — but the test won't actually run on macOS.
+
+**Fix:** Use a cross-platform alternative or conditional:
+```bash
+# Portable: kill after 3 seconds
+( apps/desktop/src-tauri/binaries/${{ matrix.binary }} & PID=$!; sleep 3; kill $PID 2>/dev/null ) 2>&1 || true
+```
+
+#### Issue 2 (LOW): macOS x86_64 cross-compile from arm64 runner
+
+`macos-latest` on GitHub Actions runs on Apple Silicon. Building `x86_64-apple-darwin` from an arm64 macOS runner works because Cargo + Rosetta 2 handle this transparently — but it's fragile if GitHub ever disables Rosetta on CI runners. **Non-blocking for now.**
+
+#### Issue 3 (LOW): Missing cargo cache
+
+No `Swatinem/rust-cache@v2` or equivalent. Every CI run recompiles all dependencies from scratch. With rusqlite + zstd C compilation, this adds significant build time. **Optimization, not correctness.**
+
+### Build script issues (2 items)
+
+#### Issue 1 (LOW): `--all` flag is unrealistic from a single host
+
+`scripts/build-axiomregent.sh --all` will attempt all 5 targets but will fail for most due to missing cross-compilation toolchains. The script's own header comments acknowledge this ("On CI, prefer matrix builds"). Not a bug — the flag exists for CI runners that might have cross-tools installed — but could confuse a developer.
+
+#### Issue 2 (LOW): No PowerShell alternative
+
+The script is bash-only. On Windows, developers must use Git Bash. The script works for the `x86_64-pc-windows-msvc` target from Git Bash (verified by cursor's successful build), but the path handling (`pwd` → POSIX paths) is fragile. A `.ps1` alternative would be more natural on Windows. **Non-blocking — Git Bash works.**
+
+### Binary size analysis
+
+| Target | Size | NF-001 (< 30 MB) |
+|--------|------|-------------------|
+| `aarch64-apple-darwin` | 22.2 MB | Pass |
+| `x86_64-pc-windows-msvc` | 7.3 MB | Pass |
+
+The 3x size difference between macOS (22.2 MB) and Windows (7.3 MB) is surprising but explainable: the macOS binary likely includes debug symbols (not stripped), while MSVC release builds strip by default. Stripping the macOS binary would likely bring it closer to 8-10 MB. **Not a concern — both are well under the 30 MB cap.**
+
+### Remaining open items
+
+1. **Stale doc comment** `lease.rs:97` — `agent::safety::Tier` → `agent::safety::ToolTier`. Recommend antigravity fix during wide pass.
+2. **CI smoke test** — fix `timeout` command for macOS portability. Recommend cursor fix.
+3. **T003/T004** — macOS x86_64 and Linux binaries will be produced once CI workflow runs. Not a blocker.
+4. **T009** — `spec-compiler compile` still pending.
+5. **Titor command stubs** (Slice D) — 5 stubs blocking temporal safety
+6. **Feature ID reconciliation** (Slice E) — kebab vs UPPERCASE unbridged
 

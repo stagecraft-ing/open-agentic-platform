@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–036** delivered. **Feature 037** (cross-platform axiomregent binaries) partially implemented: Windows binary built and verified, build script and CI workflow created. macOS x86_64 and Linux binaries deferred to CI. See `specs/037-cross-platform-axiomregent/spec.md`.
+Features **032–037** delivered (037 partial: Windows binary + CI, macOS x86_64/Linux deferred to CI runners). See `specs/037-cross-platform-axiomregent/spec.md`.
 
 ## Agent pack
 
@@ -18,52 +18,52 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Canonical feature authority
 
-- **036 spec:** `specs/036-safety-tier-governance/spec.md` (status: **active**, delivered)
 - **037 spec:** `specs/037-cross-platform-axiomregent/spec.md` (status: **active**, partially implemented)
 
 ## Current execution truth
 
-- **037:** T001 (build script), T002 (Windows binary), T005 (Windows verification), T006 (CI workflow), T007 (sizes), T008 (verification.md) complete. T003/T004 (macOS x86_64, Linux binaries) deferred to CI. T009 (spec-compiler) pending.
-- Also fixed: stale `Tier` → `ToolTier` import in `crates/agent/src/agent.rs` (Feature 036 residual).
+- **037:** T001/T002/T005/T006/T007/T008 complete. T003/T004 deferred to CI. T009 pending.
+- Stale `Tier` → `ToolTier` fix in `agent.rs` (036 residual).
+- Review found: 1 stale doc comment (`lease.rs:97`), CI smoke test `timeout` portability issue, missing cargo cache.
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **antigravity**
-- Last baton update: 2026-03-29 — **cursor** implemented Feature 037 (Windows binary + build infra). Built axiomregent for `x86_64-pc-windows-msvc` (7.3 MB), verified MCP handshake + tools/list (all 21 tools). Created `scripts/build-axiomregent.sh` and `.github/workflows/build-axiomregent.yml`. Fixed stale `Tier` import in agent crate. All tests green (13 agent, 42 axiomregent).
-- Requested outputs from **claude**:
-  1. Review Feature 037 implementation — verify Windows binary correctness, build script quality, CI workflow coverage.
-  2. Check the `Tier → ToolTier` fix in `agent.rs` — confirm no other stale references exist.
-  3. Assess whether T003/T004 deferral to CI is the right call.
+- Current owner: **antigravity**
+- Next owner: **claude-opus**
+- Last baton update: 2026-03-29 — **claude** reviewed Feature 037. All FRs pass (FR-001 partial: 2/5 binaries bundled, CI covers rest). ToolTier fix verified correct, no other stale `Tier` references in code (1 doc comment in `lease.rs:97`). T003/T004 deferral to CI confirmed as correct call. Three CI/build-script issues identified (smoke test timeout, cargo cache, `--all` flag docs).
+- Requested outputs from **antigravity**:
+  1. Wide pass: confirm no other stale `Tier`/`SafetyTier` references beyond `lease.rs:97` doc comment.
+  2. Fix `lease.rs:97` doc comment: `agent::safety::Tier` → `agent::safety::ToolTier`.
+  3. Optionally fix CI smoke test `timeout` portability (replace with cross-platform alternative).
+  4. Verify `.exe` binary is correctly tracked in git (it was added with `git add -f` due to `*.exe` gitignore).
 
 - Recommended files to read:
-  - `specs/037-cross-platform-axiomregent/execution/verification.md`
-  - `specs/037-cross-platform-axiomregent/execution/changeset.md`
-  - `crates/agent/src/agent.rs:8,115` (ToolTier fix)
-  - `scripts/build-axiomregent.sh`
-  - `.github/workflows/build-axiomregent.yml`
-  - `apps/desktop/src-tauri/binaries/` (binary inventory)
+  - `.ai/reviews/claude-review.md` (Feature 037 section at end)
+  - `crates/axiomregent/src/snapshot/lease.rs:97` (stale doc comment)
+  - `.github/workflows/build-axiomregent.yml:73` (smoke test timeout)
+  - `.gitignore` (*.exe rule vs tracked binary)
 
 ## Requested next agent output
 
-**Claude:** Review Feature 037 implementation, verify correctness and coverage.
+**Antigravity:** Wide pass on Feature 037, fix stale doc comment, verify git tracking.
 
 ## Promotion candidates for canonical artifacts
 
 - **`spec-compiler compile`** — re-run to pick up 037 spec (now active)
-- **T003/T004** — Linux/macOS binaries via CI (not yet available)
+- **Cargo cache** — add `Swatinem/rust-cache@v2` to CI workflow (performance optimization)
 
 ---
 
 ## Recent outputs
 
-- 2026-03-29 (cursor): Feature 037 implemented — Windows x86_64 binary built (7.3 MB), MCP handshake verified, all 21 tools confirmed. Created build script (`scripts/build-axiomregent.sh`) and CI workflow (`.github/workflows/build-axiomregent.yml`). Fixed stale `Tier`→`ToolTier` in `agent.rs`. All tests green (13 agent + 42 axiomregent). T003/T004 deferred to CI. Baton → **claude** for review.
-- 2026-03-29 (claude-opus): Post-036 synthesis complete. Scaffolded Feature 037 (cross-platform axiomregent binaries). Updated authority-map: safety tiers RESOLVED (036). Updated next-slice: Slices A+B complete; next is C (037 cross-platform) → D (titor wiring) → E (ID reconciliation). Updated integration-debt: 5 items resolved. Baton → **cursor**.
-- 2026-03-29 (antigravity): Feature 036 wide pass complete — confirmed no stale Safety/ToolTier references, removed dead `safety::Tier` alias, verified `write_file` routing. Added reverse coverage test for explicitly classified tools. Baton → **claude-opus**.
-- 2026-03-29 (claude): Feature 036 review — all FRs/SCs pass. Tier assignments verified against spec. Three minor cleanup items: dead `Tier` alias, stale bindings.ts doc comment, one-directional coverage test. No security issues. Updated `claude-review.md`. Baton → **antigravity** for wide pass.
-- 2026-03-29 (cursor): Feature 036 implemented (T001–T007). All 21 tools classified, `Tier`→`ToolTier`, `SafetyTier`→`ChangeTier`, per-tool tier UI, coverage test. All tests green. Baton → **claude** for review.
-- 2026-03-29 (claude-opus): Feature 036 spec scaffolded — safety tier governance. Baton → **cursor** for implementation.
-- 2026-03-29 (antigravity): Slice A wide pass — confirmed no stale Risk 1 refs. Baton → **claude-opus**.
-- 2026-03-29 (claude): Slice A review — all 4 tasks pass. Baton → **antigravity**.
-- 2026-03-29 (cursor): Slice A complete. All tests green. Baton → **claude** for review.
-- 2026-03-29 (claude-opus): Post-035 synthesis. Baton → **cursor** for Slice A.
+- 2026-03-29 (claude): Feature 037 review — all FRs pass (FR-001 partial). ToolTier fix correct, 1 stale doc comment in `lease.rs:97`. CI smoke test `timeout` won't work on macOS (continue-on-error masks it). T003/T004 deferral correct. Updated `claude-review.md`. Baton → **antigravity** for wide pass.
+- 2026-03-29 (cursor): Feature 037 implemented — Windows x86_64 binary built (7.3 MB), MCP handshake verified, all 21 tools confirmed. Created build script and CI workflow. Fixed stale `Tier`→`ToolTier` in `agent.rs`. All tests green. Baton → **claude** for review.
+- 2026-03-29 (claude-opus): Post-036 synthesis complete. Scaffolded Feature 037. Updated authority-map, next-slice, integration-debt. Baton → **cursor**.
+- 2026-03-29 (antigravity): Feature 036 wide pass complete. Baton → **claude-opus**.
+- 2026-03-29 (claude): Feature 036 review — all FRs/SCs pass. Baton → **antigravity**.
+- 2026-03-29 (cursor): Feature 036 implemented (T001–T007). Baton → **claude**.
+- 2026-03-29 (claude-opus): Feature 036 spec scaffolded. Baton → **cursor**.
+- 2026-03-29 (antigravity): Slice A wide pass. Baton → **claude-opus**.
+- 2026-03-29 (claude): Slice A review. Baton → **antigravity**.
+- 2026-03-29 (cursor): Slice A complete. Baton → **claude**.
+- 2026-03-29 (claude-opus): Post-035 synthesis. Baton → **cursor**.
