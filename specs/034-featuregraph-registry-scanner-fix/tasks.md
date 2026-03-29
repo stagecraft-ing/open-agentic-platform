@@ -5,13 +5,13 @@
 
 ## Phase 1: Registry adapter
 
-- [ ] T001 Define how `registry.json` `features[]` maps into scanner’s feature graph inputs (types + unit tests)
-- [ ] T002 Implement registry-first resolution in `scanner.rs` with explicit fallback / error when neither registry nor yaml exists
+- [x] T001 Define how `registry.json` `features[]` maps into scanner’s feature graph inputs (types + unit tests)
+- [x] T002 Implement registry-first resolution in `scanner.rs` with explicit fallback / error when neither registry nor yaml exists
 
 ## Phase 2: Integration
 
-- [ ] T003 Ensure `featuregraph_overview` / governance path uses the new resolution on desktop (no silent yaml-only assumption)
-- [ ] T004 `cargo test -p featuregraph` and desktop `pnpm run check` green
+- [x] T003 Ensure `featuregraph_overview` / governance path uses the new resolution on desktop (no silent yaml-only assumption)
+- [x] T004 `cargo test -p featuregraph` and desktop `pnpm run check` green
 
 ## Phase 3: Closure
 
