@@ -272,7 +272,7 @@ impl Scanner {
                         feature_id: Some(entry.id.clone()),
                         message: format!("Spec file {} does not exist", entry.spec),
                         suggested_fix: Some(
-                            "Create the spec file or update the compiled registry / spec/features.yaml"
+                            "Re-run `spec-compiler compile` to regenerate the registry, or create the spec file"
                                 .to_string(),
                         ),
                     });

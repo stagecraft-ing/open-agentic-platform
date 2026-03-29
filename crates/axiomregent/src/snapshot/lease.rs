@@ -190,6 +190,10 @@ impl LeaseStore {
         }
     }
 
+    pub fn default_grants(&self) -> PermissionGrants {
+        self.default_grants.clone()
+    }
+
     pub fn issue(&self, fingerprint: Fingerprint) -> String {
         let id = Uuid::new_v4().to_string();
         let lease = Lease {

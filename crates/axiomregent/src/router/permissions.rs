@@ -52,9 +52,8 @@ fn requires_network(tool_name: &str) -> bool {
     )
 }
 
-/// Enforces tier ceiling and coarse permission flags for a tool call when a lease is present.
-pub fn check_tool_permission(tool_name: &str, lease: &Lease) -> Result<(), AxiomRegentError> {
-    let grants: &PermissionGrants = &lease.grants;
+/// Enforces tier ceiling and coarse permission flags against a set of grants.
+pub fn check_grants(tool_name: &str, grants: &PermissionGrants) -> Result<(), AxiomRegentError> {
     let tool_tier = get_tool_tier(tool_name);
     let max_allowed = grants.max_tier.clamp(1, 3);
     if tier_rank(tool_tier) > max_allowed {
@@ -78,6 +77,11 @@ pub fn check_tool_permission(tool_name: &str, lease: &Lease) -> Result<(), Axiom
         )));
     }
     Ok(())
+}
+
+/// Enforces tier ceiling and coarse permission flags for a tool call when a lease is present.
+pub fn check_tool_permission(tool_name: &str, lease: &Lease) -> Result<(), AxiomRegentError> {
+    check_grants(tool_name, &lease.grants)
 }
 
 /// Structured audit line on stderr (Feature 035 / T010).

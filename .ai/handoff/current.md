@@ -6,7 +6,7 @@
 
 ## Objective
 
-Features **032–035** delivered (governed execution thesis live end-to-end). **Next:** **Slice A** post-035 hardening (no-lease bypass fix, NF-001 benchmark, contract docs). See `.ai/plans/next-slice.md` for full prioritization.
+Features **032–035** delivered + **Slice A hardening** complete (no-lease bypass fixed, NF-001 benchmark added, contract docs updated). **Next:** Claude review of Slice A, then **Slice B** (safety tier governance spec). See `.ai/plans/next-slice.md` for full prioritization.
 
 ## Agent pack
 
@@ -27,21 +27,23 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Baton
 
-- Current owner: **cursor**
-- Next owner: **claude**
-- Last baton update: 2026-03-29 — **claude-opus** completed synthesis and next-slice prioritization. Updated `next-slice.md` with ordered Slices A–E, updated `authority-map.md` with 034/035 resolutions.
-- Requested outputs from **cursor**:
-  1. Implement **Slice A** (post-035 hardening): fix no-lease bypass in `router/mod.rs:112-141`, add NF-001 benchmark, document max_tier rationale in `spec.md`, fix scanner error wording.
+- Current owner: **claude**
+- Next owner: **antigravity**
+- Last baton update: 2026-03-29 — **cursor** completed Slice A (post-035 hardening). All 4 tasks implemented: no-lease bypass fix, max_tier contract docs, NF-001 benchmark (3 tests), scanner wording fix. All axiomregent + featuregraph tests green.
+- Requested outputs from **claude**:
+  1. Review Slice A implementation — verify no-lease fallback is correct, check `check_grants` factoring, confirm audit log format.
 
 - Recommended files to read:
-  - `.ai/plans/next-slice.md` (full synthesis with ordered slices)
-  - `crates/axiomregent/src/router/mod.rs:112-141` (preflight_tool_permission — the no-lease bypass)
-  - `crates/axiomregent/src/router/permissions.rs` (permission check logic)
-  - `specs/035-agent-governed-execution/spec.md` (contract notes section for max_tier doc)
+  - `crates/axiomregent/src/router/mod.rs:112-170` (refactored `preflight_tool_permission`)
+  - `crates/axiomregent/src/router/permissions.rs` (new `check_grants` + refactored `check_tool_permission`)
+  - `crates/axiomregent/src/snapshot/lease.rs:193-195` (new `default_grants()` accessor)
+  - `crates/axiomregent/tests/governed_dispatch_latency.rs` (NF-001 benchmark)
+  - `specs/035-agent-governed-execution/spec.md` (updated contract notes)
+  - `crates/featuregraph/src/scanner.rs:274-276` (wording fix)
 
 ## Requested next agent output
 
-**Cursor:** Slice A implementation (post-035 hardening — 4 tasks).
+**Claude:** Review Slice A implementation for correctness and completeness.
 
 ## Promotion candidates for canonical artifacts
 
@@ -52,6 +54,7 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): Slice A complete — no-lease bypass fixed (`router/mod.rs` falls back to session grants), NF-001 benchmark (3 tests, sub-µs overhead), max_tier rationale documented in spec contract notes, scanner error wording updated. All tests green.
 - 2026-03-29 (claude-opus): Post-035 synthesis complete. Ordered 5 slices (A: hardening, B: safety tier spec, C: cross-platform, D: titor wiring, E: ID reconciliation). Updated `authority-map.md` — 3 CRITICAL/HIGH items now RESOLVED. Baton → **cursor** for Slice A.
 - 2026-03-29 (antigravity): Feature **035** wide pass check complete. Confirmed zero stale `--dangerously-skip-permissions` outside of `Bypass`. Identified test fixtures (`mcp_featuregraph_test.rs`, `mcp_tools_test.rs`, `verify_test.rs`) invoking tools (`features.impact`, `gov.drift`) without `lease_id` due to `router` implicitly passing validation; baton → **claude-opus**
 - 2026-03-29 (claude): Feature **035** post-delivery review — all FRs pass, two residual risks (no-lease bypass, agent max_tier rationale); `.ai/reviews/claude-review.md` updated; baton → **antigravity**

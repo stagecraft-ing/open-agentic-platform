@@ -121,6 +121,8 @@ Tauri command handler
 - Lease IDs from `snapshot/lease.rs` serve as session tokens for permission binding.
 - `AxiomRegentError::PermissionDenied` (router error code `PERMISSION_DENIED`) is the wire-level denial signal.
 - Degraded fallback preserves the pre-035 behavior exactly — this is a non-breaking change for platforms without axiomregent.
+- **Agent max_tier=3 vs Claude max_tier=2**: Agents receive `max_tier: 3` because their per-permission flags (`enable_file_read/write/network`) are the primary enforcement mechanism — the tier ceiling would redundantly block tools already gated by those flags. Interactive Claude Code sessions receive `max_tier: 2` as a blanket safety cap because they have all permissions enabled by default. This is intentional: agents are individually configurable; direct sessions use tier as the sole guardrail.
+- **No-lease fallback**: Tool calls without a `lease_id` are checked against the session's default grants (from `OPC_GOVERNANCE_GRANTS` env or `claude_default()`). The fallback is audit-logged with `allowed_no_lease` / `denied_no_lease` decision tags.
 
 ## Risk
 

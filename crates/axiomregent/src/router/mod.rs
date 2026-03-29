@@ -14,7 +14,7 @@ use xray::tools::XrayTools;
 
 use crate::snapshot::lease::LeaseStore;
 
-mod permissions;
+pub mod permissions;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonRpcRequest {
@@ -115,27 +115,61 @@ impl Router {
         tool_name: &str,
         args: &serde_json::Map<String, Value>,
     ) -> Option<JsonRpcResponse> {
-        let lease_id = args.get("lease_id").and_then(|v| v.as_str())?;
-        let lease = self.lease_store.get_lease(lease_id)?;
+        let lease_id_str = args.get("lease_id").and_then(|v| v.as_str());
+        let lease = match lease_id_str {
+            Some(lid) => self.lease_store.get_lease(lid),
+            None => None,
+        };
+
+        // When no lease is found, fall back to the store's default grants so that
+        // tool calls without a lease_id are still subject to tier + permission checks
+        // rather than silently bypassing enforcement (Risk 1 fix — post-035 hardening).
         let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
-        match permissions::check_tool_permission(tool_name, &lease) {
-            Ok(()) => {
-                permissions::audit_tool_dispatch(
-                    tool_name,
-                    tier_label,
-                    "allowed",
-                    Some(lease_id),
-                );
-                None
+        match &lease {
+            Some(l) => {
+                match permissions::check_tool_permission(tool_name, l) {
+                    Ok(()) => {
+                        permissions::audit_tool_dispatch(
+                            tool_name,
+                            tier_label,
+                            "allowed",
+                            lease_id_str,
+                        );
+                        None
+                    }
+                    Err(e) => {
+                        permissions::audit_tool_dispatch(
+                            tool_name,
+                            tier_label,
+                            "denied",
+                            lease_id_str,
+                        );
+                        Some(json_rpc_permission_denied(id, &e.to_string()))
+                    }
+                }
             }
-            Err(e) => {
-                permissions::audit_tool_dispatch(
-                    tool_name,
-                    tier_label,
-                    "denied",
-                    Some(lease_id),
-                );
-                Some(json_rpc_permission_denied(id, &e.to_string()))
+            None => {
+                let fallback = self.lease_store.default_grants();
+                match permissions::check_grants(tool_name, &fallback) {
+                    Ok(()) => {
+                        permissions::audit_tool_dispatch(
+                            tool_name,
+                            tier_label,
+                            "allowed_no_lease",
+                            None,
+                        );
+                        None
+                    }
+                    Err(e) => {
+                        permissions::audit_tool_dispatch(
+                            tool_name,
+                            tier_label,
+                            "denied_no_lease",
+                            None,
+                        );
+                        Some(json_rpc_permission_denied(id, &e.to_string()))
+                    }
+                }
             }
         }
     }
