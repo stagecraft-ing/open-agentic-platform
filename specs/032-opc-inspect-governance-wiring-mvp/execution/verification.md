@@ -1,6 +1,6 @@
 # Verification: OPC inspect + governance wiring
 
-Date: 2026-03-23 (updated 2026-03-26 — PR-5 T004/T005 recorded)  
+Date: 2026-03-23 (updated 2026-03-26 — PR-6 T008/T009 recorded)  
 Feature: `032-opc-inspect-governance-wiring-mvp`
 
 ## PR-1 — T000a baseline evidence (fill on import PR)
@@ -133,6 +133,24 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 ---
 
+## PR-6 — T008/T009 governance wiring (`feat/032-t008-t009-governance-wiring`)
+
+**Scope:** Replace governance placeholders with real hydrated panels using adapter-routed reads and backend analysis commands; keep compiled registry and featuregraph outputs authoritative with explicit degraded/unavailable/error states.
+
+| Check | Command / how | Result |
+|-------|----------------|--------|
+| Desktop build | `pnpm -C apps/desktop build` | pass |
+| Tauri backend compile check | `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` | pass |
+| Targeted backend tests | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml commands::analysis::tests:: -- --nocapture` | pass |
+| Lint status (touched files) | `ReadLints` scoped to governance/UI/backend touched files | pass (no lints) |
+| Type status (touched files) | Included in `pnpm -C apps/desktop build` via `tsc` | pass |
+
+**Touchpoints:** `apps/desktop/src/components/GovernancePanel.tsx`, `apps/desktop/src/features/governance/{GovernanceSurface.tsx,useGovernanceStatus.ts}`, `apps/desktop/src/lib/apiAdapter.ts`, `apps/desktop/src-tauri/src/commands/analysis.rs`, `specs/032-opc-inspect-governance-wiring-mvp/{tasks.md,execution/changeset.md,execution/verification.md}`.
+
+**Behavior notes:** Governance panel now renders structured registry/featuregraph summaries on success; unavailable sources are surfaced as bounded degraded states with source-specific reasons (registry missing, featuregraph unavailable, parse/read failures).
+
+---
+
 ## PR-2+ — Feature 032 implementation commands
 
 ```bash
@@ -148,4 +166,5 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 - PR-3: **Git context panel** — native `git_*` bindings + typed UI states (`GitContextSurface`).
 - PR-4: **T006 complete** — gitctx MCP enrichment (Rust stdio bridge + additive UI); see PR-4 section above.
 - PR-5: **T004/T005 complete** — inspect entrypoint routed via shared adapter; inspect success/degraded surfaces hydrated with explicit panels; degraded/error behavior remains bounded and explicit.
+- PR-6: **T008/T009 complete** — governance surface wired to backend overview; compiled registry + featuregraph hydration with explicit degraded/unavailable/error states and no action-flow wiring.
 - Consolidation gate: **T000 complete**, **T000a complete** after PR-1.1 (full baseline checks green where applicable); **spec registry emission** restored after PR-1.2.

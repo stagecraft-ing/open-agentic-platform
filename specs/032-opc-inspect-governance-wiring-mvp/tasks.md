@@ -3,7 +3,7 @@
 **Input**: `/specs/032-opc-inspect-governance-wiring-mvp/`  
 **Prerequisites**: Features **000-004**, **029-031**
 
-**Feature status**: **In progress** (inspect + git slices complete; governance/action/verification slices remain)
+**Feature status**: **In progress** (inspect + git + governance slices complete; action/docs/verification slices remain)
 
 ## Phase 0: Consolidation gate (blocking)
 
@@ -44,8 +44,8 @@
 
 ## Phase 4: Governance integration
 
-- [ ] T008 Wire governance/feature status panel to compiled registry outputs
-- [ ] T009 Replace stubbed governance command/data path with real integration and deterministic tests
+- [x] T008 Wire governance/feature status panel to compiled registry outputs — **PR-6** (`feat/032-t008-t009-governance-wiring`)
+- [x] T009 Replace stubbed governance command/data path with real integration and deterministic tests — **PR-6** (`feat/032-t008-t009-governance-wiring`)
 
 ## Phase 5: Action path and docs
 
@@ -108,7 +108,8 @@
 ### T008-T009 Governance integration
 
 - Files:
-  - `apps/desktop/src/features/governance/GovernancePanel.tsx`
+  - `apps/desktop/src/components/GovernancePanel.tsx`
+  - `apps/desktop/src/features/governance/GovernanceSurface.tsx`
   - `apps/desktop/src/features/governance/useGovernanceStatus.ts`
   - `apps/desktop/src-tauri/src/commands/analysis.rs`
   - `apps/desktop/src-tauri/src/commands/mod.rs`

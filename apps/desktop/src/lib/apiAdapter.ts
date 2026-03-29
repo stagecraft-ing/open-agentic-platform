@@ -260,6 +260,8 @@ function mapCommandToEndpoint(command: string, _params?: any): string {
 
     // Analysis commands
     'xray_scan_project': '/api/analysis/xray-scan',
+    'featuregraph_overview': '/api/analysis/featuregraph-overview',
+    'featuregraph_impact': '/api/analysis/featuregraph-impact',
   };
 
   const endpoint = commandToEndpoint[command];

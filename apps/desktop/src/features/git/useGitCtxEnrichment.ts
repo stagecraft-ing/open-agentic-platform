@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createMcpClient } from '@opc/mcp-client';
 import type { GitContextViewState, GitCtxEnrichment } from './types';
 
-type EnrichmentState =
+export type GitCtxEnrichmentState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'success'; data: GitCtxEnrichment }
@@ -29,22 +29,18 @@ function parseResource(result: unknown): GitCtxEnrichment {
 }
 
 /**
- * Additive gitctx enrichment via Rust-owned MCP bridge (per-request stdio to gitctx-mcp).
- * Readiness is the outcome of `readResource`, not sidecar port discovery.
+ * Fetch `gitctx://context/current` when `shouldFetch` is true (Rust-owned MCP bridge / T006).
+ * Shared by the git context panel and governance panel — additive only; callers own base state.
  */
-export function useGitCtxEnrichment(repoPath: string, baseState: GitContextViewState): EnrichmentState {
+export function useGitCtxResourceEnrichment(repoPath: string, shouldFetch: boolean): GitCtxEnrichmentState {
   const client = useMemo(() => createMcpClient('gitctx'), []);
-  const [state, setState] = useState<EnrichmentState>({ status: 'idle' });
+  const [state, setState] = useState<GitCtxEnrichmentState>({ status: 'idle' });
 
   useEffect(() => {
     let active = true;
 
     async function load() {
-      if (!repoPath.trim()) {
-        setState({ status: 'idle' });
-        return;
-      }
-      if (baseState.status !== 'success' && baseState.status !== 'degraded') {
+      if (!repoPath.trim() || !shouldFetch) {
         setState({ status: 'idle' });
         return;
       }
@@ -66,7 +62,16 @@ export function useGitCtxEnrichment(repoPath: string, baseState: GitContextViewS
     return () => {
       active = false;
     };
-  }, [baseState.status, client, repoPath]);
+  }, [client, repoPath, shouldFetch]);
 
   return state;
+}
+
+/**
+ * Additive gitctx enrichment layered on native git context (PR-4 / T006).
+ */
+export function useGitCtxEnrichment(repoPath: string, baseState: GitContextViewState): GitCtxEnrichmentState {
+  const shouldFetch =
+    !!repoPath.trim() && (baseState.status === 'success' || baseState.status === 'degraded');
+  return useGitCtxResourceEnrichment(repoPath, shouldFetch);
 }
