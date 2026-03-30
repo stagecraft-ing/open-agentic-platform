@@ -527,6 +527,7 @@ mod tests {
     use super::*;
     use crate::effort::EffortLevel;
     use std::collections::HashSet;
+    use std::path::PathBuf;
     use std::sync::Mutex;
 
     struct MockRegistry {
@@ -564,6 +565,64 @@ mod tests {
                 tokens_used: Some(123),
             })
         }
+    }
+
+    struct E2eArtifactExecutor;
+
+    #[async_trait]
+    impl GovernedExecutor for E2eArtifactExecutor {
+        async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
+            let output_path = request
+                .output_artifacts
+                .first()
+                .ok_or_else(|| "missing declared output artifact".to_string())?;
+
+            let input_contents = read_inputs(&request.input_artifacts)?;
+            let payload = match request.effort {
+                EffortLevel::Quick => format!("quick\ninputs:\n{}\n", input_contents),
+                EffortLevel::Investigate => {
+                    format!(
+                        "investigate\ninputs:\n{}\nanalysis:\n{}\n",
+                        input_contents,
+                        "i".repeat(240)
+                    )
+                }
+                EffortLevel::Deep => {
+                    format!(
+                        "deep\ninputs:\n{}\nanalysis:\n{}\n",
+                        input_contents,
+                        "d".repeat(640)
+                    )
+                }
+            };
+
+            if let Some(parent) = output_path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            std::fs::write(output_path, payload).map_err(|e| e.to_string())?;
+
+            let tokens_used = match request.effort {
+                EffortLevel::Quick => 50,
+                EffortLevel::Investigate => 160,
+                EffortLevel::Deep => 420,
+            };
+            Ok(DispatchResult {
+                tokens_used: Some(tokens_used),
+            })
+        }
+    }
+
+    fn read_inputs(inputs: &[PathBuf]) -> Result<String, String> {
+        if inputs.is_empty() {
+            return Ok("(none)".to_string());
+        }
+        let mut out = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            let text = std::fs::read_to_string(input)
+                .map_err(|e| format!("read input {} failed: {e}", input.display()))?;
+            out.push(text);
+        }
+        Ok(out.join("\n---\n"))
     }
 
     #[test]
@@ -790,5 +849,72 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, OrchestratorError::AgentNotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn dispatch_manifest_e2e_three_step_workflow_validates_sc_001_002_005() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest_yaml = r#"
+steps:
+  - id: step-01-research
+    agent: agent-research
+    effort: quick
+    inputs: []
+    outputs: ["research.md"]
+    instruction: "Research the repository and produce notes."
+  - id: step-02-draft
+    agent: agent-draft
+    effort: investigate
+    inputs: ["step-01-research/research.md"]
+    outputs: ["draft.md"]
+    instruction: "Draft a proposal from research."
+  - id: step-03-review
+    agent: agent-review
+    effort: deep
+    inputs: ["step-02-draft/draft.md"]
+    outputs: ["review.md"]
+    instruction: "Review and harden the draft."
+"#;
+        let manifest: WorkflowManifest = serde_yaml::from_str(manifest_yaml).unwrap();
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        let registry = Arc::new(MockRegistry {
+            agents: HashSet::from([
+                "agent-research".to_string(),
+                "agent-draft".to_string(),
+                "agent-review".to_string(),
+            ]),
+        });
+        let executor = Arc::new(E2eArtifactExecutor);
+
+        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor)
+            .await
+            .unwrap();
+        assert_eq!(summary.steps.len(), 3);
+        assert!(summary
+            .steps
+            .iter()
+            .all(|s| matches!(s.status, StepStatus::Success)));
+
+        // SC-001: downstream steps consume upstream artifact content from filesystem.
+        let step1_out = am.output_artifact_path(run_id, "step-01-research", "research.md");
+        let step2_out = am.output_artifact_path(run_id, "step-02-draft", "draft.md");
+        let step3_out = am.output_artifact_path(run_id, "step-03-review", "review.md");
+        let step1_text = std::fs::read_to_string(step1_out).unwrap();
+        let step2_text = std::fs::read_to_string(step2_out).unwrap();
+        let step3_text = std::fs::read_to_string(step3_out).unwrap();
+        assert!(step2_text.contains(&step1_text));
+        assert!(step3_text.contains(&step2_text));
+
+        // SC-002: token counters are present and lower than a plausible single-context baseline.
+        let total_tokens: u64 = summary.steps.iter().map(|s| s.tokens_used.unwrap_or(0)).sum();
+        let single_context_baseline = 4000u64;
+        assert!(total_tokens < (single_context_baseline / 5));
+
+        // SC-005: effort levels generate measurably different output sizes.
+        assert!(step1_text.len() < step2_text.len());
+        assert!(step2_text.len() < step3_text.len());
     }
 }

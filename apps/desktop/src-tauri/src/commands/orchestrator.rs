@@ -55,20 +55,15 @@ impl GovernedExecutor for RealGovernedExecutor {
             return Err(format!("agent execution profile not found: {}", request.agent_id));
         };
 
-        let effort_hint = match request.effort {
-            EffortLevel::Quick => "quick",
-            EffortLevel::Investigate => "investigate",
-            EffortLevel::Deep => "deep",
-        };
+        let user_prompt = build_user_prompt_with_requirements(&request);
         let full_prompt = format!(
-            "{}\n\n{}\n\nExecution requirements:\n- Effort hint: {}\n- You MUST write all declared output artifacts to the exact absolute paths listed in the prompt.",
+            "{}\n\n{}",
             profile.system_prompt.as_str(),
-            request.system_prompt,
-            effort_hint
+            user_prompt.as_str()
         );
 
         if profile.model.contains(':') {
-            self.dispatch_via_provider_registry(&request, profile, &full_prompt)
+            self.dispatch_via_provider_registry(&request, profile, &user_prompt)
                 .await
         } else {
             self.dispatch_via_governed_claude(&request, profile, &full_prompt)
@@ -111,6 +106,7 @@ impl RealGovernedExecutor {
         let query = serde_json::json!({
             "type": "query",
             "prompt": prompt,
+            "systemPrompt": &profile.system_prompt,
             "workingDirectory": &self.working_directory,
             "model": &profile.model,
             "permissionMode": "default"
@@ -324,9 +320,23 @@ impl RealGovernedExecutor {
     }
 }
 
+fn build_user_prompt_with_requirements(request: &DispatchRequest) -> String {
+    let effort_hint = match request.effort {
+        EffortLevel::Quick => "quick",
+        EffortLevel::Investigate => "investigate",
+        EffortLevel::Deep => "deep",
+    };
+    format!(
+        "{}\n\nExecution requirements:\n- Effort hint: {}\n- You MUST write all declared output artifacts to the exact absolute paths listed in the prompt.",
+        request.system_prompt,
+        effort_hint
+    )
+}
+
 #[tauri::command]
 pub async fn orchestrate_manifest(
     manifest_path: String,
+    project_path: String,
     db: State<'_, AgentDb>,
 ) -> Result<RunSummary, String> {
     let manifest_text =
@@ -378,9 +388,7 @@ pub async fn orchestrate_manifest(
         }),
         Arc::new(RealGovernedExecutor {
             agents: agent_profiles,
-            working_directory: std::env::current_dir()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|_| ".".to_string()),
+            working_directory: project_path,
         }),
     )
     .await

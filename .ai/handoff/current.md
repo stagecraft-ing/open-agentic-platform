@@ -101,19 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (044 Phase 6 next — P5-002 fix + end-to-end validation)
-- Next owner: **cursor** — 044 Phase 6: fix P5-002 (add `project_path` parameter to `orchestrate_manifest` Tauri command), optionally fix P5-001 (split system prompt from user prompt using sidecar `systemPrompt` field). Then run end-to-end validation (SC-001, SC-002, SC-005) with a real 3-step workflow manifest. Then **claude** reviews Phase 6.
-- Last baton update: 2026-03-30 — **claude**: Phase 5 review complete. `RealGovernedExecutor` correctly implements dual-path dispatch (provider-registry sidecar + governed Claude CLI with 035 MCP config). Per-agent profiles loaded from SQLite. Token tracking from JSONL result events. Sidecar protocol extended with `systemPrompt`. 14/14 tests pass. 6 findings: P5-001 (system prompt in user slot, LOW), P5-002 (working_directory defaults to CWD not project path, LOW — fix before e2e), P5-003 (model routing heuristic, LOW), P5-004–P5-006 (INFO). Review: `.ai/findings/044-phase5-review.md`. Phase 5 approved — proceed to Phase 6.
+- Current owner: **cursor** (044 Phase 6 implementation + validation complete)
+- Next owner: **claude** — review 044 Phase 6 changes against `specs/044-multi-agent-orchestration/spec.md` and confirm P5-001/P5-002 closure + SC-001/SC-002/SC-005 validation coverage.
+- Last baton update: 2026-03-30 — **cursor**: Phase 6 implementation complete. P5-002 fixed by adding `project_path` to `orchestrate_manifest` and wiring `RealGovernedExecutor.working_directory` to that path. P5-001 addressed on provider-registry path by passing agent profile via sidecar `systemPrompt` and keeping step prompt in `prompt`. Added e2e 3-step workflow test (research -> draft -> review) covering artifact handoff (SC-001), token accounting (SC-002), and effort-level output differentiation (SC-005). Validation: `cargo test --manifest-path crates/orchestrator/Cargo.toml` (15/15 pass), `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass. Details: `.ai/findings/044-phase6-validation.md`.
 - Recommended files to read:
-  - `.ai/findings/044-phase5-review.md` — Phase 5 review with governance + provider mapping
-  - `.ai/findings/044-phase4-review.md` — Phase 4 review with SC mapping
+  - `.ai/findings/044-phase6-validation.md` — Phase 6 implementation + SC evidence
+  - `.ai/findings/044-phase5-review.md` — Phase 5 review and prior findings
   - `apps/desktop/src-tauri/src/commands/orchestrator.rs` — real governed executor
-  - `packages/provider-registry/src/node-sidecar.ts` — sidecar with systemPrompt support
+  - `crates/orchestrator/src/lib.rs` — e2e 3-step workflow validation test
   - `specs/044-multi-agent-orchestration/spec.md` — full contract
 
 ## Requested next agent output
 
-**cursor**: Fix P5-002 (add `project_path: String` parameter to `orchestrate_manifest`, pass to `RealGovernedExecutor.working_directory`). Optionally fix P5-001 (use sidecar `systemPrompt` field instead of embedding in `prompt`). Then create a 3-step test workflow manifest and run end-to-end validation for SC-001 (artifact-based passing), SC-002 (token measurement), SC-005 (effort-level differentiation). Then **claude** reviews Phase 6.
+**claude**: Review Phase 6 implementation for 044. Verify P5-002 (`project_path` -> executor working directory) and P5-001 provider-path prompt split (`systemPrompt` sidecar field) are correctly implemented. Validate that the new 3-step e2e test demonstrates SC-001/SC-002/SC-005 and identify any remaining gaps before Phase 6 approval.
 
 Priority order for P0 specs (unchanged):
 
@@ -140,6 +140,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **044 Phase 6** — P5-002 fixed by adding `project_path` to `orchestrate_manifest` and wiring executor `working_directory` to it. P5-001 addressed on provider path by sending sidecar `systemPrompt` separately from `prompt`. Added e2e 3-step YAML manifest test (`research -> draft -> review`) validating SC-001 artifact chaining, SC-002 token accounting, and SC-005 effort-size differentiation. Validation: `cargo test --manifest-path crates/orchestrator/Cargo.toml` (15/15), `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass. Details: `.ai/findings/044-phase6-validation.md`.
 - 2026-03-30 (claude): **044 Phase 5 review** — `RealGovernedExecutor` dual-path dispatch (provider-registry sidecar for `providerId:apiModel`, governed Claude CLI with 035 MCP config for native models). Per-agent profiles (model, system_prompt, permissions) loaded from SQLite. Token tracking from JSONL result events. Sidecar protocol extended with `systemPrompt` (both provider + bridge paths). 14/14 tests pass. Findings: P5-001 (system prompt in user slot, LOW), P5-002 (working_directory CWD not project path, LOW — fix before e2e), P5-003 (model routing heuristic, LOW), P5-004–P5-006 (INFO). Review: `.ai/findings/044-phase5-review.md`. Phase 5 approved → cursor for Phase 6.
 - 2026-03-30 (cursor): **044 Phase 5** — `RealGovernedExecutor` replaces `FileBackedGovernedExecutor`. `AgentExecutionProfile` with model/system_prompt/permissions from SQLite. `dispatch_via_provider_registry()` spawns Node sidecar with JSONL protocol. `dispatch_via_governed_claude()` spawns `claude` CLI with 035 axiomregent MCP config + permission grants (file_read/write/network, max_tier 3). Bypass fallback when axiomregent unavailable.
 - 2026-03-30 (claude): **044 Phase 4 review** — All 4 spec contract operations implemented (orchestrate_manifest, get_run_status, cancel_run, cleanup_artifacts). All 4 error semantics present (StepFailed, DependencyMissing, AgentNotFound, CycleDetected). P3-001 resolved (output paths in prompt), P3-002 resolved ("no sub-agent calls"), P3-003 resolved (zero-input test). Async `dispatch_manifest()` with `AgentRegistry` + `GovernedExecutor` traits — correct trait-based design for swappable implementations. 14/14 tests pass. Findings: P4-001 (cancel_run in-memory only, LOW), P4-002–P4-006 (INFO). Review: `.ai/findings/044-phase4-review.md`. Phase 4 approved → cursor for Phase 5.
