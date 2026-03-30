@@ -101,21 +101,21 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (046 Phase 2 implementation complete)
-- Next owner: **claude** — Phase 2 review against `specs/046-context-compaction/spec.md` (FR-001, SC-006 coverage), then baton back to cursor for Phase 3.
-- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 2 in `apps/desktop/src/lib/contextCompaction.ts` via `TokenBudgetMonitor` with passive `reportUsage(promptTokens, completionTokens)`, cumulative usage totals, and `shouldCompact(contextWindowTokens)` trigger decision including observability reason string and ratio metadata. Added tests for below/at/above threshold behavior and explicit SC-006 override coverage for `OAP_COMPACTION_THRESHOLD=0.5` and `0.95`. Also added the missing positive env parse test (`readCompactionThresholdFromEnv`).
+- Current owner: **claude** (046 Phase 2 review complete)
+- Next owner: **cursor** — Phase 3 implementation (`ProgrammaticCompactor` + `<session_context>` XML block builder). See notes below.
+- Last baton update: 2026-03-30 — **claude**: Phase 2 approved. FR-001 cumulative accounting correct (`reportUsage` += with sanitization, `shouldCompact` >= comparison). SC-006 fully satisfied (0.5 early trigger, 0.95 late trigger, boundary equality all tested). Observability output deterministic (`.toFixed(4)` ratios + integer token counts). R-003 from Phase 1 resolved (positive env test added). 3 findings: P2-001 MEDIUM (no reset/adjustment mechanism — will cause compaction loop post-Phase 5 unless addressed), P2-002 INFO (contextWindowTokens per-call parameter — integration contract), P2-003 INFO (getTotals() untested directly). No blockers for Phase 3. Review: `.ai/findings/046-phase2-review.md`.
 - Recommended files to read:
-  - `.ai/findings/046-phase1-review.md` — full Phase 1 + design decision review
+  - `.ai/findings/046-phase2-review.md` — Phase 2 review (P2-001 reset gap)
+  - `.ai/findings/046-phase1-review.md` — Phase 1 review (R-001 content type, R-004 message IDs)
   - `specs/046-context-compaction/spec.md` — canonical contract
-  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (F-001..F-004 resolved)
+  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (Phase 3 deliverables)
 
 ## Requested next agent output
 
-**claude**: Review 046 Phase 2 implementation for spec fidelity and edge cases:
-- Verify FR-001 semantics for cumulative token accounting + threshold trigger.
-- Verify SC-006 behavior for threshold overrides (`0.5`/`0.95`) and boundary behavior at equality.
-- Confirm observability output (`reason`, ratios, token counts) is deterministic and useful.
-- Flag any blockers before Phase 3 (`ProgrammaticCompactor` + XML block builder) begins.
+**cursor**: Implement Phase 3 (`ProgrammaticCompactor` + XML block builder). Notes from review:
+- R-001: `content: string` may need widening to `string | ContentBlock[]` for tool_use/tool_result extraction in compactor.
+- R-004: Verify runtime message IDs exist and are stable before relying on `CompactionMessage.id`.
+- P2-001: Plan reset strategy for `TokenBudgetMonitor` post-compaction (add `resetTo()` method or document new-instance pattern).
 
 Priority order for P0 specs (unchanged):
 
@@ -142,6 +142,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **046 Phase 2 review** — Phase 2 approved. FR-001 cumulative token accounting correct (+=, sanitized, >= threshold comparison). SC-006 verified for 0.5/0.95 overrides and boundary equality. Observability reason string deterministic. R-003 resolved. 3 findings: P2-001 (no reset mechanism for post-compaction, MEDIUM), P2-002 (contextWindowTokens per-call, INFO), P2-003 (getTotals untested directly, INFO). No Phase 3 blockers. Review: `.ai/findings/046-phase2-review.md`.
 - 2026-03-30 (cursor): **046 Phase 2** — Implemented `TokenBudgetMonitor` in `apps/desktop/src/lib/contextCompaction.ts` with passive cumulative usage accounting (`reportUsage`) and trigger decision API (`shouldCompact`) that returns `shouldCompact`, ratio fields, token counts, and an observability `reason` string. Expanded `apps/desktop/src/lib/contextCompaction.test.ts` with below/at/above threshold tests plus explicit SC-006 override tests for `0.5` and `0.95`; added positive env threshold parse coverage.
 - 2026-03-30 (claude): **046 Phase 1 review** — F-001..F-004 resolutions validated (TypeScript architecture, deterministic template, caller-provided git snapshot, passive token accumulator — all sound). Phase 1 code approved: config, threshold validation [0.5–0.95], env > config > default precedence, deterministic `stableSerializeHistory()` with key-sorted meta normalization. 5 findings: R-001 (`content: string` needs block union for Phase 3, LOW), R-002 (shallow meta sort, INFO), R-003 (missing positive env test, INFO), R-004 (required `id` field — verify runtime IDs exist before Phase 5, LOW), R-005 (F-005/F-006 unresolved for later phases, INFO). No blockers. Phase 1 approved → cursor for Phase 2. Review: `.ai/findings/046-phase1-review.md`.
 - 2026-03-30 (claude): **046 plan review** — All FR/NF/SC requirements covered in plan. 7 findings: F-001 HIGH (compactor targets Rust `crates/orchestrator/` but conversation history lives in TypeScript — architectural mismatch), F-002 MEDIUM (deterministic `<task_summary>` construction undefined), F-003 MEDIUM (git state extraction source unspecified — `gitctx` crate?), F-004 MEDIUM (token count sourcing unspecified), F-005 LOW (Phase 3/4 ordering rework risk — add PreservePolicy trait), F-006 LOW (40% ceiling cascading-collapse strategy needed), F-007 LOW (SC-005 round-trip test should be structural, not LLM-dependent). No contract misses. F-001 must be resolved before coding. Review: `.ai/findings/046-plan-review.md`.
