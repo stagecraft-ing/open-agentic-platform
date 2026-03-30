@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Bartek Kus
 // Feature: 043-agent-organizer — deterministic complexity scoring (specs/043-agent-organizer/spec.md § Architecture)
 
-use crate::plan::{band_from_score, ComplexityBreakdown};
+use crate::plan::{ComplexityBreakdown, band_from_score};
 use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;

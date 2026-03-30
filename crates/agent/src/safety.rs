@@ -38,20 +38,11 @@ impl std::str::FromStr for ToolTier {
 pub fn get_tool_tier(tool_name: &str) -> ToolTier {
     match tool_name {
         // Tier 1: Read-only / diagnostic (Feature 036 — all router tools explicitly classified)
-        "gov.preflight"
-        | "gov.drift"
-        | "features.impact"
-        | "snapshot.info"
-        | "snapshot.list"
-        | "snapshot.read"
-        | "snapshot.grep"
-        | "snapshot.diff"
-        | "snapshot.changes"
-        | "snapshot.export"
-        | "xray.scan"
-        | "run.status"
-        | "run.logs"
-        | "agent.verify" => ToolTier::Tier1,
+        "gov.preflight" | "gov.drift" | "features.impact" | "snapshot.info" | "snapshot.list"
+        | "snapshot.read" | "snapshot.grep" | "snapshot.diff" | "snapshot.changes"
+        | "snapshot.export" | "xray.scan" | "run.status" | "run.logs" | "agent.verify" => {
+            ToolTier::Tier1
+        }
 
         // Tier 2: Bounded mutations (writes, proposals, snapshot creation)
         "workspace.apply_patch"

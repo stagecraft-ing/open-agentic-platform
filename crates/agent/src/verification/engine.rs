@@ -129,10 +129,9 @@ impl VerifyEngine {
 
         // 5. Run Skills
         for skill_id in &profile.include {
-            let skill = config
-                .skills
-                .get(skill_id)
-                .ok_or_else(|| anyhow::anyhow!("Skill '{}' not found in verification config", skill_id))?;
+            let skill = config.skills.get(skill_id).ok_or_else(|| {
+                anyhow::anyhow!("Skill '{}' not found in verification config", skill_id)
+            })?;
 
             let mut steps_results = Vec::new();
             let mut skill_duration = 0;
@@ -147,7 +146,11 @@ impl VerifyEngine {
             let repo_snapshot_before = client
                 .call_tool("snapshot.create", &serde_json::json!({}))
                 .ok()
-                .and_then(|v| v.get("snapshot_id").and_then(|s| s.as_str()).map(|s| s.to_string()))
+                .and_then(|v| {
+                    v.get("snapshot_id")
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string())
+                })
                 .unwrap_or_else(|| "unknown".to_string());
 
             for step in &skill.steps {
@@ -194,7 +197,11 @@ impl VerifyEngine {
             let repo_snapshot_after = client
                 .call_tool("snapshot.create", &serde_json::json!({}))
                 .ok()
-                .and_then(|v| v.get("snapshot_id").and_then(|s| s.as_str()).map(|s| s.to_string()))
+                .and_then(|v| {
+                    v.get("snapshot_id")
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string())
+                })
                 .unwrap_or_else(|| "unknown".to_string());
 
             // Write Artifact

@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 043 Phase 2 review (dispatch landed)
-- Next owner: **cursor** — Phase 3 registry (`crates/agent/src/registry.rs`) after Phase 2 review, or fixes from review
-- Last baton update: 2026-03-30 — **cursor**: Phase 2 complete. `crates/agent/src/dispatch.rs`: mandatory direct first (diagram + NEVER prose), then delegate (diagram + ALWAYS prose + `frontend`+`backend`, `\bbuild\b` vs `build project`), then score; `build_execution_plan` + deterministic stub `team`/`workflow` when `delegated`; `uuid` for `request_id`. Tests: SC-001–SC-004 + conflict/precedence fixtures. `cargo test --manifest-path crates/agent/Cargo.toml` (32 tests). Next: **claude** Phase 2 review.
+- Current owner: **cursor** — 043 Phase 3 registry (`crates/agent/src/registry.rs`)
+- Next owner: **claude** — Phase 3 review after implementation, or **claude-opus** for prioritization
+- Last baton update: 2026-03-30 — **claude**: Phase 2 approved. All diagram + prose triggers implemented (F-001 fully resolved). FR-003/FR-004/FR-005/FR-006 satisfied. SC-001–SC-004 directly tested. Evaluation order correct (direct → delegate → score). 0 HIGH, 0 MEDIUM findings. 2 LOW: P2-001 (no "set X to Y" pattern — acceptable, bare "set " would false-positive), P2-005 (no test for frontend+backend conjunction). 32/32 tests pass. Review: `.ai/findings/043-phase2-review.md`. Next: **cursor** Phase 3 registry.
 - Recommended files to read:
-  - `crates/agent/src/dispatch.rs` — Phase 2 implementation
-  - `specs/043-agent-organizer/spec.md` § Dispatch protocol — source of trigger lists
-  - `.ai/findings/043-plan-review.md` — F-001 (addressed in Phase 2 enumeration)
+  - `.ai/plans/043-agent-organizer-phased-plan.md` — Phase 3 deliverables
+  - `crates/agent/src/dispatch.rs` — Phase 2 (approved)
+  - `.ai/findings/043-phase2-review.md` — Phase 2 review
 
 ## Requested next agent output
 
-**claude**: review **043 Phase 2** — `dispatch.rs` + mandatory override tests vs spec; emit `.ai/findings/043-phase2-review.md` if not present. Then **cursor** for Phase 3 registry (`crates/agent/src/registry.rs`) per phased plan, or **claude-opus** for prioritization.
+**cursor**: implement **043 Phase 3** — `crates/agent/src/registry.rs` per phased plan. Then **claude** reviews Phase 3 against spec.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **043 Phase 2 review** — Phase 2 approved. All diagram + NEVER/ALWAYS prose triggers implemented (F-001 resolved). FR-003–FR-006 satisfied. Evaluation order spec-faithful (direct → delegate → score). `build project` vs `\bbuild\b` precedence correct. Stub team/workflow clearly marked for Phase 3 replacement. SC-001–SC-004 directly tested + conflict/precedence/empty-string edge cases. 32/32 tests pass. Findings: P2-001 (no "set X to Y" pattern, LOW), P2-005 (no frontend+backend conjunction test, LOW), P2-002/P2-003/P2-004/P2-006 (INFO). No blockers for Phase 3. Review: `.ai/findings/043-phase2-review.md`.
 - 2026-03-30 (cursor): **043 Phase 2** — `dispatch.rs`: `evaluate_mandatory_triggers`, `build_execution_plan` (PlanContext + UUID `request_id`); full direct/delegate lists per spec diagram + NEVER/ALWAYS prose; `lib.rs` exports. Tests SC-001–SC-004. Validation: `cargo test --manifest-path crates/agent/Cargo.toml`.
 - 2026-03-30 (claude): **043 Phase 1 review** — Phase 1 approved. All 6 spec signals match Architecture table (prompt_length 0-20, action_verbs 0-20, multi_step_connectors 0-20, technology_breadth 0-15, scope_indicators 0-15, file_path_references 0-10). ExecutionPlan JSON contract matches TypeScript schema field-for-field (all enum variants, nested types, optional fields). F-004 resolved (lib.rs modules wired). F-005 resolved (PlanContext with request_id). 12 Phase 1 tests pass (SC-005 determinism, NF-002 purity, 6 signal caps, band boundaries, JSON round-trip). 25 total crate tests pass. Findings: P1-002 (no empty-string test, LOW), P1-003 (no prompt_length boundary test at 50/2000, LOW), P1-001/P1-004/P1-005/P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/043-phase1-review.md`.
 - 2026-03-30 (cursor): **043 Phase 1** — `plan.rs` + `complexity.rs` + `lib.rs` modules; deterministic `score_complexity()` with six capped signals; `ExecutionPlan` / `PlanContext` serde; tests (SC-005, NF-002, caps, band boundaries, JSON round-trip). Validation: `cargo test --manifest-path crates/agent/Cargo.toml`.

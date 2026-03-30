@@ -231,7 +231,9 @@ fn resolve_template_vars(value: &serde_json::Value, lease_id: &str) -> serde_jso
                 .collect(),
         ),
         serde_json::Value::Array(arr) => serde_json::Value::Array(
-            arr.iter().map(|v| resolve_template_vars(v, lease_id)).collect(),
+            arr.iter()
+                .map(|v| resolve_template_vars(v, lease_id))
+                .collect(),
         ),
         other => other.clone(),
     }

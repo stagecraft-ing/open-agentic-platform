@@ -102,9 +102,7 @@ impl Validator {
                     }
                 }
                 if tool_call.tool_name == "workspace.apply_patch" {
-                    if let Some(patch) =
-                        tool_call.arguments.get("patch").and_then(|v| v.as_str())
-                    {
+                    if let Some(patch) = tool_call.arguments.get("patch").and_then(|v| v.as_str()) {
                         for line in patch.lines() {
                             if let Some(path_part) = line.strip_prefix("+++ ") {
                                 let clean = path_part

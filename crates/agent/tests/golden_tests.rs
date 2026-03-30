@@ -84,8 +84,7 @@ fn test_end_to_end_flow() -> Result<()> {
 
     // Verify status updated
     let status_bytes = fs::read(path1.join("05-status.json"))?;
-    let final_status: agent::schemas::ChangesetStatusV1 =
-        serde_json::from_slice(&status_bytes)?;
+    let final_status: agent::schemas::ChangesetStatusV1 = serde_json::from_slice(&status_bytes)?;
 
     assert_eq!(final_status.state, "executed");
     assert_eq!(final_status.execution.state, "completed");
@@ -120,8 +119,7 @@ fn test_multiple_tool_calls_counting() -> Result<()> {
     Executor::execute(&path, &mock)?;
 
     let status_bytes = fs::read(path.join("05-status.json"))?;
-    let final_status: agent::schemas::ChangesetStatusV1 =
-        serde_json::from_slice(&status_bytes)?;
+    let final_status: agent::schemas::ChangesetStatusV1 = serde_json::from_slice(&status_bytes)?;
 
     assert_eq!(
         final_status.execution.steps_completed, 2,
