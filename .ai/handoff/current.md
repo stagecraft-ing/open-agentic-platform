@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 048 Phase 4 implementation landed
-- Next owner: **claude** for Phase 4 review
-- Last baton update: 2026-03-30 — **cursor**: Phase 4 engine core added (`packages/hookify-rule-engine/src/engine.ts`): `evaluate({ rules, event })` filters by event type, sorts by `priority` ascending with tie-break `id` then `sourcePath`, threads `payload`/`warnings`/`matchedRuleIds`/`diagnostics` via `executeRuleAction`, uses current payload for matcher + conditions; short-circuits on `block`. `EvaluationResult.blockRationale` set when blocked (P3-001). Tests: `src/engine.test.ts` (ordering, tie-break, short-circuit, payload threading, skip paths). Validation: `pnpm --filter @opc/hookify-rule-engine test` (31/31).
+- Current owner: **claude** — 048 Phase 4 review complete
+- Next owner: **cursor** for Phase 5 (loader + hot-reload)
+- Last baton update: 2026-03-30 — **claude**: Phase 4 approved. FR-002 (priority-ordered evaluation with deterministic tie-break), FR-003 (block short-circuit with blockRationale — P3-001 resolved), FR-004/FR-005 (warn/modify payload threading), FR-009 (diagnostic propagation), NF-003 (pure function, no runtime dependency) all satisfied. `structuredClone` protects caller's payload. 6 tests cover ordering, tie-break, short-circuit, payload threading, matcher skip, condition skip. 31/31 tests pass. Findings: P4-001 no event-type filtering test (LOW), P4-002 no diagnostics content assertion (LOW), P4-003–P4-006 (INFO). No blockers. Review: `.ai/findings/048-phase4-review.md`.
 - Recommended files to read:
-  - `packages/hookify-rule-engine/src/engine.ts` — Phase 4 orchestration
-  - `packages/hookify-rule-engine/src/engine.test.ts` — Phase 4 tests
-  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 5 loader + hot-reload
+  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 5 loader + hot-reload spec
+  - `packages/hookify-rule-engine/src/index.ts` — current public API surface
+  - `.ai/findings/048-phase4-review.md` — Phase 4 review with findings
 
 ## Requested next agent output
 
-**claude**: Review 048 Phase 4 against `specs/048-hookify-rule-engine/spec.md` and plan Phase 4 deliverables; emit `.ai/findings/048-phase4-review.md` if findings warrant. Next implementation slice: **cursor** for Phase 5 (loader + hot-reload) after approval.
+**cursor**: Implement 048 Phase 5 (loader + hot-reload) per `.ai/plans/048-hookify-rule-engine-phased-plan.md` Phase 5 deliverables (FR-008, FR-009, SC-004). After implementation, hand to **claude** for Phase 5 review.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **048 Phase 4 review** — Phase 4 approved. FR-002 (priority ordering + deterministic tie-break), FR-003 (block short-circuit + blockRationale — P3-001 resolved), FR-004/FR-005 (warn/modify payload threading), FR-009 (diagnostic propagation), NF-003 (pure function) all satisfied. `structuredClone` protects caller payload. 31/31 tests. Findings: P4-001 no event-type filtering test (LOW), P4-002 no diagnostics assertion (LOW), P4-003–P4-006 (INFO). No blockers. Review: `.ai/findings/048-phase4-review.md`.
 - 2026-03-30 (cursor): **048 Phase 4** — `src/engine.ts`: `evaluate()` with priority ordering, tie-break, matcher + conditions + `executeRuleAction` pipeline, short-circuit on block, threaded payload for subsequent rules. `EvaluationResult.blockRationale` for P3-001. `src/engine.test.ts` (6 tests). Validation: `pnpm --filter @opc/hookify-rule-engine test` (31/31).
 - 2026-03-30 (claude): **048 Phase 3 review** — Phase 3 approved. FR-003/FR-004/FR-005 satisfied (`block` → terminal blocked + rule ID, `warn` → rationale warning + allowed, `modify` → safe transforms via `applyModifyTransform`). H-003 enforced (only `append_arg`, `replace_regex`, `set_field`; unknown types → `HKY_UNKNOWN_TRANSFORM` diagnostic, non-fatal skip). `structuredClone` prevents input mutation. SC-001/SC-002/SC-003 + invalid-transform skip all tested. `ActionExecutionResult` envelope with `terminalDecision`, `matchedRuleIds`, optional `blockedByRuleId`. 25/25 tests pass. Findings: P3-001 block rationale not in result (LOW), P3-002 regex flags unvalidated (LOW), P3-003 no replace_regex/set_field tests (LOW), P3-004–P3-006 (INFO). No blockers. Review: `.ai/findings/048-phase3-review.md`.
 - 2026-03-30 (cursor): **048 Phase 3** — Implemented `src/actions.ts` with `executeRuleAction()` for `block` / `warn` / `modify` execution paths. `block` returns terminal denied decision with blocking rule ID; `warn` appends rationale warning and continues; `modify` applies safe transforms only: `append_arg`, `replace_regex`, `set_field`. Added structured diagnostics for malformed/unknown transforms so invalid modify rules skip non-fatally. Added `ActionExecutionResult` + terminal decision/matched-rule envelope fields in `src/types.ts`, exported via `src/index.ts`, and added package subpath export `./actions`. Tests: new `src/actions.test.ts` covers SC-001 (force-push block), SC-002 (warn + allow), SC-003 (append_arg payload mutation), plus invalid-transform skip behavior. Validation: `pnpm --filter @opc/hookify-rule-engine test` (25/25).
