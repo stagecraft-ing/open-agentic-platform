@@ -32,6 +32,11 @@ import type { ClaudeStreamMessage } from "./AgentExecution";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTrackEvent, useComponentMetrics, useWorkflowTracking } from "@/hooks";
 import { SessionPersistenceService } from "@/services/sessionPersistence";
+import {
+  rewriteSessionHistoryForCompaction,
+  resolveContextCompactionConfig,
+  type GitSnapshot,
+} from "@/lib/contextCompaction";
 
 interface ClaudeCodeSessionProps {
   /**
@@ -77,6 +82,8 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
   onStreamingChange,
   onProjectPathChange,
 }) => {
+  const compactionConfig = useMemo(() => resolveContextCompactionConfig(undefined, {}), []);
+
   const [projectPath] = useState(initialProjectPath || session?.project_path || "");
   const [messages, setMessages] = useState<ClaudeStreamMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -324,25 +331,32 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       setError(null);
       
       const history = await api.loadSessionHistory(session.id, session.project_id);
+      const rewritten = rewriteSessionHistoryForCompaction({
+        rawMessages: history,
+        config: compactionConfig,
+        contextWindowTokens: getContextWindowTokens(),
+        gitSnapshot: buildRuntimeGitSnapshot(projectPath),
+      });
+      const historyToUse = rewritten.rewrittenMessages as any[];
       
       // Save session data for restoration
-      if (history && history.length > 0) {
+      if (historyToUse && historyToUse.length > 0) {
         SessionPersistenceService.saveSession(
           session.id,
           session.project_id,
           session.project_path,
-          history.length
+          historyToUse.length
         );
       }
       
       // Convert history to messages format
-      const loadedMessages: ClaudeStreamMessage[] = history.map(entry => ({
+      const loadedMessages: ClaudeStreamMessage[] = historyToUse.map(entry => ({
         ...entry,
         type: entry.type || "assistant"
       }));
       
       setMessages(loadedMessages);
-      setRawJsonlOutput(history.map(h => JSON.stringify(h)));
+      setRawJsonlOutput(historyToUse.map(h => JSON.stringify(h)));
       
       // After loading history, we're continuing a conversation
       setIsFirstPrompt(false);
@@ -369,6 +383,25 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getContextWindowTokens = (): number => {
+    return 200000;
+  };
+
+  const buildRuntimeGitSnapshot = (path: string): GitSnapshot => {
+    return {
+      branch: "unknown",
+      stagedChanges: 0,
+      unstagedChanges: 0,
+      lastCommitHash: "unknown",
+      lastCommitMessage: `session at ${path}`,
+      diffStats: {
+        insertions: 0,
+        deletions: 0,
+        filesChanged: 0,
+      },
+    };
   };
 
   const checkForActiveSession = async () => {

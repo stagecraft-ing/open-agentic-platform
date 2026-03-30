@@ -67,6 +67,20 @@ export interface TokenBudgetUsageTotals {
   totalTokens: number;
 }
 
+export interface SessionHistoryRewriteInput {
+  rawMessages: unknown[];
+  config: ContextCompactionConfig;
+  contextWindowTokens: number;
+  gitSnapshot: GitSnapshot;
+  compactedAt?: Date;
+}
+
+export interface SessionHistoryRewriteResult {
+  rewrittenMessages: unknown[];
+  compacted: boolean;
+  trigger: CompactionTriggerDecision;
+}
+
 export interface CompactionTriggerDecision {
   shouldCompact: boolean;
   reason: string;
@@ -122,6 +136,11 @@ export class TokenBudgetMonitor {
   reportUsage(promptTokens: number, completionTokens: number): void {
     this.promptTokens += sanitizeTokenDelta(promptTokens);
     this.completionTokens += sanitizeTokenDelta(completionTokens);
+  }
+
+  resetTo(promptTokens: number, completionTokens = 0): void {
+    this.promptTokens = sanitizeTokenDelta(promptTokens);
+    this.completionTokens = sanitizeTokenDelta(completionTokens);
   }
 
   getTotals(): TokenBudgetUsageTotals {
@@ -219,6 +238,81 @@ export class ProgrammaticCompactor {
   }
 }
 
+export function rewriteSessionHistoryForCompaction(
+  input: SessionHistoryRewriteInput,
+): SessionHistoryRewriteResult {
+  const normalized = normalizeRuntimeMessages(input.rawMessages);
+  const monitor = new TokenBudgetMonitor(input.config);
+  for (const message of normalized) {
+    const usage = message.usage;
+    if (usage) {
+      monitor.reportUsage(usage.input_tokens ?? 0, usage.output_tokens ?? 0);
+      continue;
+    }
+    monitor.reportUsage(estimateMessageTokens(message), 0);
+  }
+
+  const trigger = monitor.shouldCompact(input.contextWindowTokens);
+  if (!trigger.shouldCompact) {
+    return {
+      rewrittenMessages: elevateSessionContextForInit(input.rawMessages),
+      compacted: false,
+      trigger,
+    };
+  }
+
+  const compactor = new ProgrammaticCompactor(input.config);
+  const compactedAt = input.compactedAt ?? new Date();
+  const output = compactor.compact(
+    { messages: normalized },
+    input.gitSnapshot,
+    compactedAt,
+  );
+
+  let sessionContext = output.sessionContextBlock;
+  let rewritten = composeCompactedHistory(input.rawMessages, output.preservedMessages, sessionContext);
+
+  const maxCompactedTokens = Math.floor(input.contextWindowTokens * 0.4);
+  if (estimateRuntimeHistoryTokens(rewritten) > maxCompactedTokens) {
+    sessionContext = collapseFileModificationSection(sessionContext);
+    rewritten = composeCompactedHistory(input.rawMessages, output.preservedMessages, sessionContext);
+  }
+  if (estimateRuntimeHistoryTokens(rewritten) > maxCompactedTokens) {
+    sessionContext = minifySessionContextXml(sessionContext);
+    rewritten = composeCompactedHistory(input.rawMessages, output.preservedMessages, sessionContext);
+  }
+
+  monitor.resetTo(Math.min(estimateRuntimeHistoryTokens(rewritten), maxCompactedTokens));
+
+  return {
+    rewrittenMessages: elevateSessionContextForInit(rewritten),
+    compacted: true,
+    trigger,
+  };
+}
+
+export function elevateSessionContextForInit(rawMessages: unknown[]): unknown[] {
+  const entries = rawMessages.filter((value): value is Record<string, unknown> => isRecord(value));
+  if (entries.length === 0) return rawMessages;
+
+  const contextIndex = entries.findIndex((entry) => {
+    const text = normalizeUnknownMessageText(entry);
+    return text.includes("<session_context");
+  });
+  if (contextIndex < 0) return rawMessages;
+
+  const systemIndex = entries.findIndex((entry) => inferRuntimeRole(entry) === "system");
+  const targetIndex = systemIndex >= 0 ? systemIndex + 1 : 0;
+  if (contextIndex === targetIndex) {
+    return addInterruptionInitHint(entries);
+  }
+
+  const reordered = [...entries];
+  const [contextEntry] = reordered.splice(contextIndex, 1);
+  reordered.splice(targetIndex, 0, contextEntry);
+  return addInterruptionInitHint(reordered);
+}
+
 export function readCompactionThresholdFromEnv(
   env = safeProcessEnv(),
 ): number | undefined {
@@ -276,6 +370,291 @@ export function stableSerializeHistory(history: CompactionHistory): string {
 function safeProcessEnv(): Record<string, string | undefined> {
   if (typeof process === "undefined" || !process.env) return {};
   return process.env;
+}
+
+function normalizeRuntimeMessages(rawMessages: unknown[]): CompactionMessage[] {
+  const output: CompactionMessage[] = [];
+  for (let index = 0; index < rawMessages.length; index += 1) {
+    const raw = rawMessages[index];
+    if (!isRecord(raw)) continue;
+    output.push({
+      id: resolveRuntimeMessageId(raw, index),
+      role: inferRuntimeRole(raw),
+      content: extractRuntimeCompactionContent(raw),
+      timestamp: asString(raw["timestamp"]),
+      pinned: resolvePinned(raw),
+      usage: extractRuntimeUsage(raw),
+      tool_name: asString(raw["tool_name"]),
+      tool_call_id: asString(raw["tool_call_id"]),
+      meta: undefined,
+    });
+  }
+  return output;
+}
+
+function resolveRuntimeMessageId(raw: Record<string, unknown>, index: number): string {
+  const existing = asString(raw["id"]);
+  if (existing) return existing;
+  const key = stableSortRecord(raw);
+  return `runtime-${index}-${stableHash(JSON.stringify(key))}`;
+}
+
+function resolvePinned(raw: Record<string, unknown>): boolean {
+  if (raw["pinned"] === true) return true;
+  return containsPinAnnotation(normalizeUnknownMessageText(raw));
+}
+
+function containsPinAnnotation(text: string): boolean {
+  return /<!--\s*pin\s*-->/.test(text);
+}
+
+function inferRuntimeRole(raw: Record<string, unknown>): CompactionMessageRole {
+  const role = asString(raw["role"]);
+  if (role === "system" || role === "assistant" || role === "user" || role === "tool") return role;
+  const entryType = asString(raw["type"]);
+  if (entryType === "system") return "system";
+  if (entryType === "assistant") return "assistant";
+  if (entryType === "user") return "user";
+  if (entryType === "tool") return "tool";
+  return "assistant";
+}
+
+function extractRuntimeCompactionContent(raw: Record<string, unknown>): string | CompactionContentBlock[] {
+  const message = isRecord(raw["message"]) ? raw["message"] : null;
+  const directContent = raw["content"];
+  const messageContent = message?.["content"];
+  const candidate = messageContent ?? directContent;
+
+  if (!Array.isArray(candidate)) {
+    if (typeof candidate === "string") return candidate;
+    return normalizeUnknownMessageText(raw);
+  }
+
+  const blocks: CompactionContentBlock[] = [];
+  for (const item of candidate) {
+    if (!isRecord(item)) continue;
+    const type = asString(item["type"]);
+    if (type === "text") {
+      blocks.push({
+        type: "text",
+        text: asString(item["text"]) ?? "",
+      });
+      continue;
+    }
+    if (type === "tool_use") {
+      blocks.push({
+        type: "tool_use",
+        id: asString(item["id"]),
+        name: asString(item["name"]),
+        input: item["input"],
+      });
+      continue;
+    }
+    if (type === "tool_result") {
+      blocks.push({
+        type: "tool_result",
+        tool_use_id: asString(item["tool_use_id"]),
+        content: normalizeUnknown(item["content"]),
+      });
+    }
+  }
+
+  return blocks.length > 0 ? blocks : normalizeUnknownMessageText(raw);
+}
+
+function extractRuntimeUsage(raw: Record<string, unknown>): CompactionMessageUsage | undefined {
+  const directUsage = isRecord(raw["usage"]) ? raw["usage"] : null;
+  const messageUsage =
+    isRecord(raw["message"]) && isRecord((raw["message"] as Record<string, unknown>)["usage"])
+      ? ((raw["message"] as Record<string, unknown>)["usage"] as Record<string, unknown>)
+      : null;
+  const usage = directUsage ?? messageUsage;
+  if (!usage) return undefined;
+  return {
+    input_tokens: asNumber(usage["input_tokens"]) ?? 0,
+    output_tokens: asNumber(usage["output_tokens"]) ?? 0,
+  };
+}
+
+function composeCompactedHistory(
+  rawMessages: unknown[],
+  preservedMessages: CompactionMessage[],
+  sessionContext: string,
+): unknown[] {
+  const preservedIds = new Set(preservedMessages.map((m) => m.id));
+  const normalizedEntries = rawMessages.filter((value): value is Record<string, unknown> => isRecord(value));
+  const preservedRaw = normalizedEntries
+    .filter((entry, index) => preservedIds.has(resolveRuntimeMessageId(entry, index)))
+    .map((entry) => sanitizeRuntimeEntryForRewrite(entry));
+  const contextEntry = createSessionContextRuntimeEntry(sessionContext);
+  const systemIndex = preservedRaw.findIndex((entry) => inferRuntimeRole(entry) === "system");
+  if (systemIndex >= 0) {
+    const output = [...preservedRaw];
+    output.splice(systemIndex + 1, 0, contextEntry);
+    return output;
+  }
+  return [contextEntry, ...preservedRaw];
+}
+
+function sanitizeRuntimeEntryForRewrite(entry: Record<string, unknown>): Record<string, unknown> {
+  const clone: Record<string, unknown> = {
+    ...entry,
+  };
+  delete clone["usage"];
+  if (isRecord(clone["message"])) {
+    const message = { ...(clone["message"] as Record<string, unknown>) };
+    delete message["usage"];
+    clone["message"] = message;
+  }
+  return clone;
+}
+
+function createSessionContextRuntimeEntry(sessionContext: string): Record<string, unknown> {
+  return {
+    id: `session-context-${stableHash(sessionContext).slice(0, 12)}`,
+    type: "system",
+    subtype: "session_context",
+    timestamp: new Date().toISOString(),
+    pinned: true,
+    message: {
+      content: [
+        {
+          type: "text",
+          text: sessionContext,
+        },
+      ],
+    },
+  };
+}
+
+function collapseFileModificationSection(sessionContext: string): string {
+  const fileMatches = [...sessionContext.matchAll(/<file path="[^"]+" action="([^"]+)">/g)];
+  if (fileMatches.length === 0) return sessionContext;
+  const counts = { created: 0, modified: 0, deleted: 0 };
+  for (const match of fileMatches) {
+    const action = match[1];
+    if (action === "created") counts.created += 1;
+    if (action === "modified") counts.modified += 1;
+    if (action === "deleted") counts.deleted += 1;
+  }
+  const summary = [
+    "  <file_modifications>",
+    `    <file path="summary" action="modified">Collapsed ${fileMatches.length} file entries (created=${counts.created}, modified=${counts.modified}, deleted=${counts.deleted}).</file>`,
+    "  </file_modifications>",
+  ].join("\n");
+  return sessionContext.replace(
+    /  <file_modifications>[\s\S]*?  <\/file_modifications>/,
+    summary,
+  );
+}
+
+function minifySessionContextXml(sessionContext: string): string {
+  return sessionContext
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join("");
+}
+
+function estimateRuntimeHistoryTokens(messages: unknown[]): number {
+  return messages.reduce((total, message) => {
+    if (!isRecord(message)) return total;
+    const usage = extractRuntimeUsage(message);
+    if (usage) {
+      return total + sanitizeTokenDelta(usage.input_tokens ?? 0) + sanitizeTokenDelta(usage.output_tokens ?? 0);
+    }
+    return total + estimateTextTokens(normalizeUnknownMessageText(message));
+  }, 0);
+}
+
+function estimateMessageTokens(message: CompactionMessage): number {
+  const usage = message.usage;
+  if (usage) return sanitizeTokenDelta(usage.input_tokens ?? 0) + sanitizeTokenDelta(usage.output_tokens ?? 0);
+  return estimateTextTokens(normalizeMessageContent(message.content));
+}
+
+function estimateTextTokens(text: string): number {
+  if (!text) return 0;
+  return Math.ceil(text.length / 4);
+}
+
+function normalizeUnknownMessageText(raw: Record<string, unknown>): string {
+  const message = isRecord(raw["message"]) ? raw["message"] : null;
+  const messageContent = message?.["content"];
+  if (typeof messageContent === "string") return messageContent;
+  if (Array.isArray(messageContent)) return normalizeUnknown(messageContent);
+  if (typeof raw["content"] === "string") return raw["content"] as string;
+  if (Array.isArray(raw["content"])) return normalizeUnknown(raw["content"]);
+  if (typeof raw["result"] === "string") return raw["result"] as string;
+  return normalizeUnknown(raw);
+}
+
+function addInterruptionInitHint(messages: Record<string, unknown>[]): Record<string, unknown>[] {
+  const hasContext = messages.some((entry) => normalizeUnknownMessageText(entry).includes("<session_context"));
+  if (!hasContext) return messages;
+  const contextEntry = messages.find((entry) => normalizeUnknownMessageText(entry).includes("<session_context"));
+  const hasInterruption =
+    contextEntry !== undefined &&
+    normalizeUnknownMessageText(contextEntry).includes("<interruption detected=\"true\">");
+  const hintText = hasInterruption
+    ? "A compacted session context is available. Prioritize interruption resumption first."
+    : "A compacted session context is available. Review it before proceeding.";
+  const existingHint = messages.some((entry) => normalizeUnknownMessageText(entry) === hintText);
+  if (existingHint) return messages;
+
+  const systemIndex = messages.findIndex((entry) => inferRuntimeRole(entry) === "system");
+  const hintEntry = {
+    id: `session-context-hint-${stableHash(hintText).slice(0, 12)}`,
+    type: "system",
+    subtype: "context_hint",
+    timestamp: new Date().toISOString(),
+    message: {
+      content: [
+        {
+          type: "text",
+          text: hintText,
+        },
+      ],
+    },
+  };
+  if (systemIndex >= 0) {
+    const output = [...messages];
+    output.splice(systemIndex + 1, 0, hintEntry);
+    return output;
+  }
+  return [hintEntry, ...messages];
+}
+
+function stableHash(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function normalizeUnknown(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map((item) => normalizeUnknown(item)).join("\n");
+  if (isRecord(value)) {
+    if (typeof value["text"] === "string") return value["text"] as string;
+    return JSON.stringify(value);
+  }
+  if (value === null || value === undefined) return "";
+  return String(value);
 }
 
 function parseMaybeNumber(value: number | string | undefined): number | undefined {

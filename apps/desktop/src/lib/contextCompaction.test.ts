@@ -6,7 +6,9 @@ import {
   MIN_COMPACTION_THRESHOLD,
   ProgrammaticCompactor,
   TokenBudgetMonitor,
+  elevateSessionContextForInit,
   readCompactionThresholdFromEnv,
+  rewriteSessionHistoryForCompaction,
   resolveContextCompactionConfig,
   stableSerializeHistory,
   type CompactionHistory,
@@ -187,6 +189,14 @@ describe("TokenBudgetMonitor", () => {
     expect(decision.shouldCompact).toBe(false);
     monitor.reportUsage(40, 20);
     expect(monitor.shouldCompact(1000).shouldCompact).toBe(true);
+  });
+
+  it("resets token baseline after compaction rewrite", () => {
+    const monitor = new TokenBudgetMonitor(resolveContextCompactionConfig(undefined, {}));
+    monitor.reportUsage(700, 100);
+    expect(monitor.shouldCompact(1000).shouldCompact).toBe(true);
+    monitor.resetTo(150, 0);
+    expect(monitor.shouldCompact(1000).shouldCompact).toBe(false);
   });
 });
 
@@ -439,5 +449,113 @@ describe("ProgrammaticCompactor", () => {
     const output = compactor.compact(history, { ...gitSnapshot, stagedChanges: 0, unstagedChanges: 0 });
     expect(output.interruption).toBeNull();
     expect(output.sessionContextBlock).not.toContain("<interruption");
+  });
+});
+
+describe("Phase 5 integration", () => {
+  const gitSnapshot: GitSnapshot = {
+    branch: "main",
+    stagedChanges: 0,
+    unstagedChanges: 0,
+    lastCommitHash: "abc1234",
+    lastCommitMessage: "feat: baseline compaction",
+    diffStats: { insertions: 0, deletions: 0, filesChanged: 0 },
+  };
+
+  it("compacts runtime history above 75% and keeps output under 40%", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 1 } },
+      {},
+    );
+    const rawMessages = [
+      {
+        type: "system",
+        message: { content: [{ type: "text", text: "System policy" }] },
+      },
+      {
+        type: "user",
+        message: { content: [{ type: "text", text: "Implement feature 046 <!-- pin -->" }] },
+        usage: { input_tokens: 400, output_tokens: 120 },
+      },
+      {
+        type: "assistant",
+        message: {
+          content: [
+            { type: "text", text: "- [x] Added monitor\n- [ ] Wire message rewrite" },
+          ],
+          usage: { input_tokens: 200, output_tokens: 130 },
+        },
+      },
+      {
+        type: "assistant",
+        message: {
+          content: [
+            {
+              type: "text",
+              text: "Modified apps/desktop/src/lib/contextCompaction.ts and apps/desktop/src/components/ClaudeCodeSession.tsx",
+            },
+          ],
+          usage: { input_tokens: 180, output_tokens: 120 },
+        },
+      },
+      {
+        type: "user",
+        message: {
+          content: [{ type: "text", text: "continue" }],
+          usage: { input_tokens: 80, output_tokens: 0 },
+        },
+      },
+      {
+        type: "assistant",
+        message: {
+          content: [{ type: "text", text: "Next step: integrate session init?" }],
+          usage: { input_tokens: 100, output_tokens: 110 },
+        },
+      },
+    ];
+
+    const result = rewriteSessionHistoryForCompaction({
+      rawMessages,
+      config,
+      contextWindowTokens: 1400,
+      gitSnapshot,
+      compactedAt: new Date(0),
+    });
+
+    expect(result.compacted).toBe(true);
+    const rewrittenText = JSON.stringify(result.rewrittenMessages)
+      .replace(/"usage":\{[^}]+\}/g, "")
+      .replace(/"timestamp":"[^"]+"/g, "");
+    const approxTokens = Math.ceil(rewrittenText.length / 4);
+    expect(approxTokens).toBeLessThanOrEqual(560);
+    expect(rewrittenText).toContain("<session_context");
+  });
+
+  it("elevates session context and interruption hint on restart hydration", () => {
+    const hydrated = elevateSessionContextForInit([
+      { type: "system", message: { content: [{ type: "text", text: "System policy" }] } },
+      { type: "assistant", message: { content: [{ type: "text", text: "Recent assistant" }] } },
+      {
+        type: "assistant",
+        message: {
+          content: [
+            {
+              type: "text",
+              text: '<session_context version="1"><completed_steps><step index="1">Done</step></completed_steps><pending_steps><step index="1">Next</step></pending_steps><file_modifications><file path="apps/desktop/src/lib/contextCompaction.ts" action="modified">updated</file></file_modifications><interruption detected="true"><operation>X</operation></interruption></session_context>',
+            },
+          ],
+        },
+      },
+    ]) as Array<{ message?: { content?: Array<{ text?: string }> } }>;
+
+    const systemText = hydrated[0]?.message?.content?.[0]?.text ?? "";
+    const hintText = hydrated[1]?.message?.content?.[0]?.text ?? "";
+    const contextText = hydrated[2]?.message?.content?.[0]?.text ?? "";
+    expect(systemText).toContain("System policy");
+    expect(hintText).toContain("Prioritize interruption resumption first");
+    expect(contextText).toContain("<session_context");
+    expect(contextText).toContain("completed_steps");
+    expect(contextText).toContain("pending_steps");
+    expect(contextText).toContain("file_modifications");
   });
 });
