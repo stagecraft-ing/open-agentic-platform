@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (043 plan review — approved)
-- Next owner: **cursor** — implement Phase 1 (`crates/agent` modules `plan.rs` + `complexity.rs`, tests for NF-002 / SC-005 / signal caps). Before Phase 2, address F-001 (ensure full mandatory trigger lists from spec dispatch diagram + NEVER/ALWAYS prose).
-- Last baton update: 2026-03-30 — **claude**: Plan review complete. All 21 spec requirements (10 FR + 3 NF + 8 SC) mapped to phases. Phase ordering sound. 6 findings: F-001 MEDIUM (trigger list completeness — Phase 2 must implement all spec triggers, not just a subset), F-002–F-005 LOW (team assembly phasing ok, fallback schema test needed, lib.rs updates needed, PlanContext struct needed), F-007 INFO (agent-organizer.md prompt file not in plan). **Plan approved for Phase 1 start.** Review: `.ai/findings/043-plan-review.md`.
+- Current owner: **cursor** (043 Phase 1 landed — pending claude review)
+- Next owner: **claude** — review Phase 1 (`plan.rs`, `complexity.rs`, tests) against spec NF-002 / NF-003 / SC-005 and phased plan. Before Phase 2, address F-001 (full mandatory trigger lists from dispatch diagram + NEVER/ALWAYS prose).
+- Last baton update: 2026-03-30 — **cursor**: Phase 1 complete — `crates/agent/src/plan.rs` (`ExecutionPlan`, `ComplexityBlock`, `ComplexityBreakdown`, `PlanContext`, serde + JSON round-trip test), `crates/agent/src/complexity.rs` (`score_complexity()` with 6 weighted signals per Architecture table), `lib.rs` module wiring. Tests: SC-005 determinism, NF-002 purity, per-signal caps, band boundaries 25/26/50/51/75/76. Next: claude Phase 1 review.
 - Recommended files to read:
-  - `.ai/findings/043-plan-review.md` — plan review findings
-  - `.ai/plans/043-agent-organizer-phased-plan.md` — phased implementation plan
+  - `crates/agent/src/plan.rs`, `crates/agent/src/complexity.rs` — Phase 1 implementation
+  - `.ai/findings/043-plan-review.md` — plan review findings (F-001 before Phase 2)
   - `specs/043-agent-organizer/spec.md` — canonical 043 contract
 
 ## Requested next agent output
 
-**cursor**: Phase 1 — `crates/agent/src/plan.rs` (`ExecutionPlan`, `ComplexityBreakdown`, `PlanContext` types with serde), `crates/agent/src/complexity.rs` (`score_complexity()` with all 6 signal weights from spec), update `lib.rs` with module declarations. Tests: SC-005 determinism, NF-002 no-LLM, boundary tests for 25/50/75 bands, per-signal cap tests. Then **claude** reviews Phase 1.
+**claude**: Phase 1 review — verify signal table parity with spec Architecture, `ExecutionPlan` JSON field names vs TypeScript contract, test coverage for NF-002 / SC-005 / caps / band boundaries. Then **cursor** implements Phase 2 dispatch (`dispatch.rs`) with full F-001 trigger lists.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **043 Phase 1** — `plan.rs` + `complexity.rs` + `lib.rs` modules; deterministic `score_complexity()` with six capped signals; `ExecutionPlan` / `PlanContext` serde; tests (SC-005, NF-002, caps, band boundaries, JSON round-trip). Validation: `cargo test --manifest-path crates/agent/Cargo.toml`.
 - 2026-03-30 (claude): **043 plan review** — All 21 requirements (10 FR + 3 NF + 8 SC) covered across 6 phases. Phase ordering sound (deterministic Phases 1–3 before LLM Phase 4, Tauri Phase 5, verification Phase 6). 6 findings: F-001 MEDIUM (mandatory trigger list completeness — plan says "spec lists + extensible config" but must implement ALL triggers from both dispatch diagram and NEVER/ALWAYS prose lists), F-002 LOW (Phase 3 placeholder selection before Haiku — intentional, confirmed acceptable), F-003 LOW (fallback plan must still produce valid ExecutionPlan schema), F-004 LOW (lib.rs module declarations needed), F-005 LOW (PlanContext struct undefined), F-007 INFO (agent-organizer.md prompt file not in plan deliverables). Plan approved for Phase 1 start. No blockers. Review: `.ai/findings/043-plan-review.md`.
 - 2026-03-30 (cursor): **043 planning pass** — Drafted `.ai/plans/043-agent-organizer-phased-plan.md`: O-001..O-004 decisions; Phase 1–6 (ExecutionPlan + complexity, dispatch, registry/team rules, Haiku `OrganizerPlanner`, Tauri `plan_request`, `execution/verification.md`). Baton → claude for plan review, then Phase 1 implementation.
 - 2026-03-30 (claude): **047 Phase 6 review** — Phase 6 approved. Dispatch order (grants → evaluate → handler) spec-faithful. `POLICY_DENIED` vs `PERMISSION_DENIED` wire codes distinct (contract note satisfied). `PolicyBundleCache` per-repo with `Arc<PolicyBundle>`. `build_tool_call_context` extracts content/patch/text/body for diff metrics (NF-003). SC-010 ~0.9 µs/call (5 ms budget). NF-002 ~1.35 ms/compile (2 s budget). `execution/verification.md` complete. 2/2 preflight tests, 14/14 kernel tests. 6 findings: P6-001 cache never invalidated (LOW), P6-002 missing repo_root skips policy (LOW), P6-003 diff metrics overcount (LOW), P6-004..P6-006 (INFO). **047 feature-complete — all 6 phases approved.** Review: `.ai/findings/047-phase6-review.md`.
