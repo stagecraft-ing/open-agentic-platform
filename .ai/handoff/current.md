@@ -101,17 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 048 Phase 6 implementation complete
-- Next owner: **claude** for Phase 6 review
-- Last baton update: 2026-03-30 — **cursor**: Phase 6 — `hooks-json.ts` (`buildHooksManifest`, `writeHooksManifest` + `--check`), CLI `hookify-rule-engine` (`evaluate --event …`, `generate-manifest`), built-in rules under `packages/hookify-rule-engine/rules/`, NF-001 p99 test (`nf001.test.ts`), `specs/048-hookify-rule-engine/execution/verification.md`. 47/47 tests, `tsc` clean.
+- Current owner: **claude** — 048 Phase 6 review complete. **048 feature-complete — all 6 phases approved.**
+- Next owner: **cursor** for next P1 spec (054 Agent Frontmatter Schema or 051 Worktree Agents per prioritization)
+- Last baton update: 2026-03-30 — **claude**: Phase 6 approved. FR-007 (hooks.json manifest for all 4 lifecycle events), SC-006 (manifest registers engine correctly), NF-001 (p99 < 10ms benchmark). CLI stdin/stdout contract clean. 3 starter rules (block-force-push, block-credential-read, warn-large-write) exercised end-to-end. `verification.md` complete. 47/47 tests, `tsc` clean. 6 findings (all LOW/INFO, no blockers). P6-002: force-push regex also matches `--force-with-lease` (LOW, deferrable). Review: `.ai/findings/048-phase6-review.md`.
 - Recommended files to read:
-  - `packages/hookify-rule-engine/src/hooks-json.ts`, `packages/hookify-rule-engine/src/cli.ts`
-  - `specs/048-hookify-rule-engine/execution/verification.md`
-  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 6 complete; integration into desktop/CI is follow-on
+  - `.ai/findings/048-phase6-review.md`
+  - `.ai/findings/next-slice-prioritization-2026-03-30.md` — for next P1 spec selection
 
 ## Requested next agent output
 
-**claude**: Phase 6 review for 048 — `hooks-json.ts`, CLI stdin/stdout contract, starter rules + SC-006/NF-001 tests, `verification.md` vs `spec.md` (FR-007, SC-006, NF-001).
+**cursor**: Begin next P1 spec. Recommended order per prioritization: 054 Agent Frontmatter Schema → 051 Worktree Agents → remaining P1 specs.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **048 Phase 6 review** — Phase 6 approved. FR-007 (hooks.json manifest for all 4 lifecycle events), SC-006 (manifest registers engine + CLI invokes correctly), NF-001 (p99 < 10ms with 100 rules). CLI stdin/stdout contract sound (`evaluate --event` reads stdin JSON, writes `EvaluationResult` JSON to stdout; `generate-manifest` with `--check` drift detection). 3 starter rules (block-force-push, block-credential-read, warn-large-write) cover block + warn actions with realistic patterns. `verification.md` complete with all SC evidence. 47/47 tests, `tsc` clean. Findings: P6-001 stdin error silenced (LOW), P6-002 force-push regex matches `--force-with-lease` (LOW), P6-003–P6-006 (INFO). **048 feature-complete — all 6 phases approved.** Review: `.ai/findings/048-phase6-review.md`.
 - 2026-03-30 (cursor): **048 Phase 6** — `src/hooks-json.ts`: `HOOKIFY_LIFECYCLE_EVENTS`, `buildHooksManifest`, `stringifyHooksManifest`, `writeHooksManifest` (optional `check` for CI drift). `src/cli.ts`: `evaluate --event <HookEventType> [--rules-dir]` (stdin JSON payload → stdout `EvaluationResult` JSON); `generate-manifest [--output] [--check] [--command-prefix]`. `package.json` `bin` → `dist/cli.js`. Built-in rules: `rules/block-force-push.md`, `block-credential-read.md`, `warn-large-write.md`. Tests: `hooks-json.test.ts` (SC-006), `nf001.test.ts` (NF-001), `starter-rules.test.ts`, `cli.test.ts`. `specs/048-hookify-rule-engine/execution/verification.md`. Validation: `pnpm --filter @opc/hookify-rule-engine test` (47/47), `pnpm --filter @opc/hookify-rule-engine build`.
 - 2026-03-30 (claude): **048 Phase 5 review** — Phase 5 approved. FR-008 (configurable directory + hot-reload without restart), FR-009 (invalid rule diagnostic skip), SC-004 (new rule takes effect on next event), H-004 (atomic snapshot replacement with monotonic version) all satisfied. `discoverMarkdownRuleFiles` recursive sorted walk, per-directory `fs.watch` (Linux-safe), 75ms debounce, `readRuleFiles` race-safe. `createRuleRuntime` API: `getRulesSnapshot()`, `loadRules()`, `startHotReload()`/`stopHotReload()`. 39/39 tests, `tsc` clean. Findings: P5-001 global version counter shared across runtimes (LOW), P5-002 no subdirectory creation hot-reload test (LOW), P5-003 manual `loadRules()` doesn't cancel pending debounce (LOW), P5-004–P5-006 (INFO). No blockers. Review: `.ai/findings/048-phase5-review.md`.
 - 2026-03-30 (cursor): **048 Phase 5** — `src/loader.ts`: `DEFAULT_RULES_DIR`, `discoverMarkdownRuleFiles`, `loadRules`, `createRuleRuntime` with atomic `RulesetSnapshot`, debounced multi-dir `fs.watch` hot-reload. `src/loader.test.ts` (8 tests): nested discovery, SC-004, hot-reload add, change/delete, prior-snapshot race, FR-009 invalid file. Exports in `index.ts` + `./loader`. Parser strict `as unknown as` for `tsc`. Validation: `pnpm --filter @opc/hookify-rule-engine test` (39/39), `pnpm run build` in package.
