@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 048 Phase 1 implementation
+- Current owner: **cursor** — 048 Phase 1 implementation completed
 - Next owner: **claude** for Phase 1 review
-- Last baton update: 2026-03-30 — **claude**: Reviewed `.ai/plans/048-hookify-rule-engine-phased-plan.md` against spec. Plan approved for Phase 1 start. All 18 requirements (9 FR + 3 NF + 6 SC) covered across 6 phases. 6 findings: F-001 MEDIUM (CLI entry point + stdin/stdout protocol missing — needed before Phase 6), F-002 LOW (flat condition list = implicit AND should be stated), F-005 LOW (hooks.json output path undecided), F-003/F-004/F-006 INFO. No blockers for Phase 1. Review: `.ai/findings/048-plan-review.md`. Baton → **cursor** for Phase 1.
+- Last baton update: 2026-03-30 — **cursor**: Implemented 048 Phase 1 parser/types package at `packages/hookify-rule-engine/` with `src/types.ts`, `src/parser.ts`, `src/index.ts`, and parser test suite. Supports markdown + YAML frontmatter parsing for `event`, `matcher`, `conditions`, `action`, `priority`, preserves markdown body as `rationale` (NF-002), validates invalid/missing fields and malformed YAML, and skips invalid rules with structured diagnostics (FR-009). Added duplicate ID detection at ruleset load and normalized flat `conditions` arrays as implicit `AND` per F-002. Baton → **claude** for Phase 1 review against `specs/048-hookify-rule-engine/spec.md`.
 - Recommended files to read:
   - `.ai/findings/next-slice-prioritization-2026-03-30.md` — Full prioritization analysis for P1 wave
   - `specs/048-hookify-rule-engine/spec.md` — Next spec to implement
@@ -112,7 +112,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: Begin 048 Phase 1 implementation per `.ai/plans/048-hookify-rule-engine-phased-plan.md` Phase 1 deliverables. Note F-002 from plan review: clarify that flat conditions arrays are implicit AND when implementing the parser/normalizer. After Phase 1, baton to **claude** for review.
+**claude**: Review 048 Phase 1 implementation under `packages/hookify-rule-engine/` against `specs/048-hookify-rule-engine/spec.md` and `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Validate FR-001 and FR-009 behaviors, NF-002 rationale preservation, NF-003 isolated testability, and confirm F-002 is resolved (flat conditions arrays normalized as implicit `AND`). Emit review findings in `.ai/findings/048-phase1-review.md`.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-30 (cursor): **048 Phase 1** — Created `packages/hookify-rule-engine/` scaffold with `package.json`, `tsconfig.json`, `vitest.config.ts`, plus `src/types.ts`, `src/parser.ts`, `src/index.ts`, and `src/parser.test.ts`. Implemented markdown+YAML frontmatter parsing and validation for `event`/`matcher`/`conditions`/`action`/`priority`, structured diagnostics for invalid rules (non-fatal), duplicate ID detection in `parseRuleSet`, rationale body preservation, and flat condition array normalization to implicit `AND` (F-002). Validation: `pnpm --filter @opc/hookify-rule-engine test`.
 
 - 2026-03-30 (claude): **048 plan review** — Plan approved for Phase 1 start. All 18 requirements (9 FR + 3 NF + 6 SC) covered across 6 phases. Phase ordering sound (types → conditions → actions → engine core → loader → manifest). H-001..H-006 decisions all spec-faithful. 6 findings: F-001 MEDIUM (CLI entry point + stdin/stdout hook protocol not addressed — the spec's hooks.json shows shell commands but the plan only describes a library API; needed before Phase 6), F-002 LOW (flat conditions array = implicit AND should be stated explicitly), F-005 LOW (hooks.json output path undecided), F-003 INFO (tie-breaking is plan-originated), F-004 INFO (transform set sufficient), F-006 INFO (Stop event payload shape differs from tool events — needs Phase 2 fixture). No blockers. Review: `.ai/findings/048-plan-review.md`.
 - 2026-03-30 (cursor): **048 planning pass** — Read `specs/048-hookify-rule-engine/spec.md` plus `.ai/findings/next-slice-prioritization-2026-03-30.md`, then drafted `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Plan defines H-001..H-006 (package topology, condition AST normalization, modify transform safety envelope, atomic hot-reload snapshots, hooks manifest strategy, diagnostics contract) and six phases: parser/types, condition evaluator, action executors, engine ordering/short-circuiting, loader+hot-reload, hooks.json+built-in rules+verification evidence. Baton handed to **claude** for plan review against FR/NF/SC.
