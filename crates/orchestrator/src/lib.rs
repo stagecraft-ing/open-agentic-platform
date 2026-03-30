@@ -247,7 +247,7 @@ pub fn dispatch_manifest_noop(
             summary.write_to_disk(artifact_base)?;
 
             // Report which artifact was missing for this step.
-            let failing_input = &step.inputs[missing_idx];
+            let _failing_input = &step.inputs[missing_idx];
             let artifact_path = missing_path;
             return Err(OrchestratorError::DependencyMissing {
                 step_id: step.id.clone(),

@@ -101,27 +101,28 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (044 Phase 2 next)
-- Next owner: **cursor** — 044 Phase 2: step dispatcher (check input artifacts exist before dispatch, populate `summary.json` on completion, `StepStatus` cascade on failure). Then wire to governed agent execution (035) and agent registry lookup (042).
-- Last baton update: 2026-03-30 — **claude**: Phase 1 review complete. All Phase 1 deliverables spec-faithful. 8/8 tests pass. 4 findings (all LOW/INFO): P1-001 (CycleDetected no cycle path), P1-002 (greedy "quick" match), P1-003 (no investigate keyword test), P1-004 (no empty-manifest test). Review: `.ai/findings/044-phase1-review.md`. Phase 1 approved — proceed to Phase 2.
+- Current owner: **cursor** (044 Phase 3 next)
+- Next owner: **cursor** — 044 Phase 3: wire no-op dispatcher to real governed agent execution (035) + agent registry lookup (042). Replace inner no-op loop with `agent_dispatch(step, effort, artifact_paths)` calls. Then FR-004 (agent prompt with artifact paths).
+- Last baton update: 2026-03-30 — **claude**: Phase 2 review complete. All Phase 2 deliverables spec-faithful. 10/10 tests pass. 5 findings: P2-001 (unused var, COSMETIC — fixed), P2-002 (summary-building code duplication, LOW), P2-003 (no 3+ step transitive cascade test, INFO), P2-004 (linear scan for producer lookup, INFO), P2-005 (root steps trivially succeed in noop, INFO — by design). Review: `.ai/findings/044-phase2-review.md`. Phase 2 approved — proceed to Phase 3.
 - Recommended files to read:
+  - `.ai/findings/044-phase2-review.md` — Phase 2 review with FR mapping
   - `.ai/findings/044-phase1-review.md` — Phase 1 review with FR mapping
-  - `crates/orchestrator/src/lib.rs` — public surface + run directory materialization
+  - `crates/orchestrator/src/lib.rs` — dispatcher stub + summary persistence
   - `specs/044-multi-agent-orchestration/spec.md` — full contract
 
 ## Requested next agent output
 
-**cursor**: **044 Phase 2** — step dispatcher stub (check input artifacts exist before dispatch), populate `summary.json` after steps complete, wire `StepStatus::Skipped` cascade on step failure (FR-008). Then wire governed agent execution (035) + registry lookup (042).
+**cursor**: **044 Phase 3** — wire `dispatch_manifest_noop` to real governed agent execution (035) + agent registry lookup (042). Replace the no-op inner loop with actual agent dispatch. Implement FR-004 (agent system prompt includes absolute artifact paths + effort directive).
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
 2. **042 — Multi-Provider Agent Registry** — ✅ complete (all phases + Phase 6 review)
-3. **044 — Multi-Agent Orchestration** — Phase 1 (core crate) ✅; dispatch + UI follow
+3. **044 — Multi-Agent Orchestration** — Phase 1 ✅, Phase 2 ✅; governed dispatch + UI follow
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
 
-Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after each slice, **claude** reviews against `spec.md`.
+After each slice, **claude** reviews against `spec.md`.
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -138,6 +139,8 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **044 Phase 2 review** — All Phase 2 deliverables spec-faithful. FR-002 (input gating), FR-006 (summary persistence), FR-008 (failure cascade) all fully implemented. `dispatch_manifest_noop()` checks artifact existence, marks Failure/Skipped, writes summary.json before error return. 10/10 tests pass. Findings: P2-001 (unused var, COSMETIC — fixed), P2-002 (summary code dup, LOW), P2-003 (no transitive cascade test, INFO), P2-004 (linear producer scan, INFO), P2-005 (root noop success, INFO). Review: `.ai/findings/044-phase2-review.md`. Phase 2 approved → cursor for Phase 3.
+- 2026-03-30 (cursor): **044 Phase 2** — `dispatch_manifest_noop()`: no-op executor with FR-002 input gating, FR-008 Skipped cascade (eager + lazy), `RunSummary::write_to_disk()`, summary.json persistence on success and failure paths. Tests: 2 new unit tests (success path + failure cascade).
 - 2026-03-30 (claude): **044 Phase 1 review** — All Phase 1 deliverables spec-faithful. FR-002/003/005/006/007 covered; FR-001/008 partial (expected — dispatch-phase). Error variants match spec (4/4 + 1 extension). DAG validation: cycle detection, duplicate outputs, input reference checks all correct. 8/8 tests pass. Findings: P1-001 (CycleDetected generic message, LOW), P1-002 (greedy "quick" match, INFO), P1-003 (no investigate keyword test, INFO), P1-004 (no empty-manifest test, INFO). Review: `.ai/findings/044-phase1-review.md`. Phase 1 approved → cursor for Phase 2.
 - 2026-03-29 (cursor): **044 Phase 1** — `crates/orchestrator`: `WorkflowManifest` YAML, DAG validation + topological order, `ArtifactManager`, `EffortLevel` + `classify_from_task`, `materialize_run_directory`, `resolve_input_paths`, `OrchestratorError` variants. Tests: 8 unit tests in crate.
 - 2026-03-29 (claude): **042 Phase 6 review** — All 6 phases spec-faithful. Sidecar dual-path verified (registry for `providerId:apiModel`, legacy fallback). P5-003 resolved. AgentEventBridgeEncoder → BridgeEvent JSONL correct. 20/20 tests pass. Findings: P6-001 (encoder test thin, LOW), P6-002 (mergeAbortSignals dup, COSMETIC), P6-004 (no permission broker on registry path, LOW), P6-005 (hard-coded provider IDs, INFO). Review: `.ai/findings/042-phase6-review.md`. 042 complete. Baton → cursor for 044.
