@@ -4,6 +4,7 @@ import {
   DEFAULT_PRESERVE_RECENT_TURNS,
   MAX_COMPACTION_THRESHOLD,
   MIN_COMPACTION_THRESHOLD,
+  TokenBudgetMonitor,
   readCompactionThresholdFromEnv,
   resolveContextCompactionConfig,
   stableSerializeHistory,
@@ -92,6 +93,12 @@ describe("readCompactionThresholdFromEnv", () => {
       readCompactionThresholdFromEnv({ OAP_COMPACTION_THRESHOLD: "0.3" }),
     ).toBeUndefined();
   });
+
+  it("returns parsed threshold when value is valid", () => {
+    expect(
+      readCompactionThresholdFromEnv({ OAP_COMPACTION_THRESHOLD: "0.95" }),
+    ).toBe(0.95);
+  });
 });
 
 describe("stableSerializeHistory", () => {
@@ -118,5 +125,65 @@ describe("stableSerializeHistory", () => {
     };
 
     expect(stableSerializeHistory(historyA)).toBe(stableSerializeHistory(historyB));
+  });
+});
+
+describe("TokenBudgetMonitor", () => {
+  it("does not trigger compaction below threshold", () => {
+    const config = resolveContextCompactionConfig(undefined, {});
+    const monitor = new TokenBudgetMonitor(config);
+    monitor.reportUsage(200, 100);
+    const decision = monitor.shouldCompact(1000);
+
+    expect(decision.shouldCompact).toBe(false);
+    expect(decision.reason).toContain("< threshold");
+    expect(decision.usedTokens).toBe(300);
+  });
+
+  it("triggers compaction at threshold boundary", () => {
+    const config = resolveContextCompactionConfig(undefined, {});
+    const monitor = new TokenBudgetMonitor(config);
+    monitor.reportUsage(500, 250);
+    const decision = monitor.shouldCompact(1000);
+
+    expect(decision.shouldCompact).toBe(true);
+    expect(decision.reason).toContain(">= threshold");
+    expect(decision.usageRatio).toBe(0.75);
+  });
+
+  it("triggers compaction above threshold", () => {
+    const config = resolveContextCompactionConfig(undefined, {});
+    const monitor = new TokenBudgetMonitor(config);
+    monitor.reportUsage(600, 200);
+    const decision = monitor.shouldCompact(1000);
+
+    expect(decision.shouldCompact).toBe(true);
+    expect(decision.reason).toContain("800/1000");
+  });
+
+  it("respects 0.5 threshold override for earlier compaction", () => {
+    const config = resolveContextCompactionConfig(undefined, {
+      OAP_COMPACTION_THRESHOLD: "0.5",
+    });
+    const monitor = new TokenBudgetMonitor(config);
+    monitor.reportUsage(300, 220);
+    const decision = monitor.shouldCompact(1000);
+
+    expect(config.threshold).toBe(0.5);
+    expect(decision.shouldCompact).toBe(true);
+  });
+
+  it("respects 0.95 threshold override for later compaction", () => {
+    const config = resolveContextCompactionConfig(undefined, {
+      OAP_COMPACTION_THRESHOLD: "0.95",
+    });
+    const monitor = new TokenBudgetMonitor(config);
+    monitor.reportUsage(500, 400);
+    const decision = monitor.shouldCompact(1000);
+
+    expect(config.threshold).toBe(0.95);
+    expect(decision.shouldCompact).toBe(false);
+    monitor.reportUsage(40, 20);
+    expect(monitor.shouldCompact(1000).shouldCompact).toBe(true);
   });
 });

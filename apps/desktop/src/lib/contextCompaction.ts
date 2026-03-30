@@ -38,6 +38,64 @@ export interface CompactionHistory {
   messages: CompactionMessage[];
 }
 
+export interface TokenBudgetUsageTotals {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface CompactionTriggerDecision {
+  shouldCompact: boolean;
+  reason: string;
+  usageRatio: number;
+  thresholdRatio: number;
+  usedTokens: number;
+  contextWindowTokens: number;
+}
+
+export class TokenBudgetMonitor {
+  private promptTokens = 0;
+  private completionTokens = 0;
+  private readonly threshold: number;
+
+  constructor(config: ContextCompactionConfig) {
+    this.threshold = config.threshold;
+  }
+
+  reportUsage(promptTokens: number, completionTokens: number): void {
+    this.promptTokens += sanitizeTokenDelta(promptTokens);
+    this.completionTokens += sanitizeTokenDelta(completionTokens);
+  }
+
+  getTotals(): TokenBudgetUsageTotals {
+    const totalTokens = this.promptTokens + this.completionTokens;
+    return {
+      promptTokens: this.promptTokens,
+      completionTokens: this.completionTokens,
+      totalTokens,
+    };
+  }
+
+  shouldCompact(contextWindowTokens: number): CompactionTriggerDecision {
+    const safeContextWindow = sanitizeContextWindow(contextWindowTokens);
+    const totals = this.getTotals();
+    const usageRatio =
+      safeContextWindow === 0 ? 0 : totals.totalTokens / safeContextWindow;
+    const shouldCompact = usageRatio >= this.threshold;
+    const comparison = shouldCompact ? ">=" : "<";
+    const reason = `usage ratio ${usageRatio.toFixed(4)} ${comparison} threshold ${this.threshold.toFixed(4)} (${totals.totalTokens}/${safeContextWindow} tokens)`;
+
+    return {
+      shouldCompact,
+      reason,
+      usageRatio,
+      thresholdRatio: this.threshold,
+      usedTokens: totals.totalTokens,
+      contextWindowTokens: safeContextWindow,
+    };
+  }
+}
+
 export function readCompactionThresholdFromEnv(
   env = safeProcessEnv(),
 ): number | undefined {
@@ -135,4 +193,14 @@ function stableSortRecord(
     output[key] = value[key];
   }
   return output;
+}
+
+function sanitizeTokenDelta(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.floor(value);
+}
+
+function sanitizeContextWindow(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.floor(value);
 }
