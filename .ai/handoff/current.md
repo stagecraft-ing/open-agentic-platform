@@ -101,16 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (044 Phase 1 scaffold landed)
-- Next owner: **claude** — review `crates/orchestrator` Phase 1 vs `specs/044-multi-agent-orchestration/spec.md`; or **cursor** — continue with dispatch loop + agent integration (035/042)
-- Last baton update: 2026-03-29 — **cursor**: New Rust crate `crates/orchestrator` — YAML manifest load/validate, DAG topo order, cycle + duplicate-output checks, `ArtifactManager` + `OAP_ARTIFACT_DIR`, effort classification (`classify_from_task`), `materialize_run_directory` (frozen `manifest.yaml` + `summary.json`), `resolve_input_paths`. Unit tests pass (`cargo test` in crate). Full agent dispatch, run summary population, and Tauri commands are not yet implemented.
+- Current owner: **cursor** (044 Phase 2 next)
+- Next owner: **cursor** — 044 Phase 2: step dispatcher (check input artifacts exist before dispatch, populate `summary.json` on completion, `StepStatus` cascade on failure). Then wire to governed agent execution (035) and agent registry lookup (042).
+- Last baton update: 2026-03-30 — **claude**: Phase 1 review complete. All Phase 1 deliverables spec-faithful. 8/8 tests pass. 4 findings (all LOW/INFO): P1-001 (CycleDetected no cycle path), P1-002 (greedy "quick" match), P1-003 (no investigate keyword test), P1-004 (no empty-manifest test). Review: `.ai/findings/044-phase1-review.md`. Phase 1 approved — proceed to Phase 2.
 - Recommended files to read:
+  - `.ai/findings/044-phase1-review.md` — Phase 1 review with FR mapping
   - `crates/orchestrator/src/lib.rs` — public surface + run directory materialization
   - `specs/044-multi-agent-orchestration/spec.md` — full contract
 
 ## Requested next agent output
 
-**claude**: Optional **044 Phase 1** review (manifest/DAG/artifact helpers vs spec). **cursor**: **044** next slice — step dispatcher stub (check input artifacts exist), populate `summary.json`, then wire to governed agent execution when ready.
+**cursor**: **044 Phase 2** — step dispatcher stub (check input artifacts exist before dispatch), populate `summary.json` after steps complete, wire `StepStatus::Skipped` cascade on step failure (FR-008). Then wire governed agent execution (035) + registry lookup (042).
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +138,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **044 Phase 1 review** — All Phase 1 deliverables spec-faithful. FR-002/003/005/006/007 covered; FR-001/008 partial (expected — dispatch-phase). Error variants match spec (4/4 + 1 extension). DAG validation: cycle detection, duplicate outputs, input reference checks all correct. 8/8 tests pass. Findings: P1-001 (CycleDetected generic message, LOW), P1-002 (greedy "quick" match, INFO), P1-003 (no investigate keyword test, INFO), P1-004 (no empty-manifest test, INFO). Review: `.ai/findings/044-phase1-review.md`. Phase 1 approved → cursor for Phase 2.
 - 2026-03-29 (cursor): **044 Phase 1** — `crates/orchestrator`: `WorkflowManifest` YAML, DAG validation + topological order, `ArtifactManager`, `EffortLevel` + `classify_from_task`, `materialize_run_directory`, `resolve_input_paths`, `OrchestratorError` variants. Tests: 8 unit tests in crate.
 - 2026-03-29 (claude): **042 Phase 6 review** — All 6 phases spec-faithful. Sidecar dual-path verified (registry for `providerId:apiModel`, legacy fallback). P5-003 resolved. AgentEventBridgeEncoder → BridgeEvent JSONL correct. 20/20 tests pass. Findings: P6-001 (encoder test thin, LOW), P6-002 (mergeAbortSignals dup, COSMETIC), P6-004 (no permission broker on registry path, LOW), P6-005 (hard-coded provider IDs, INFO). Review: `.ai/findings/042-phase6-review.md`. 042 complete. Baton → cursor for 044.
 - 2026-03-29 (cursor): **042 Phase 6** — `ProviderRegistry` wired into Tauri Node sidecar (`packages/provider-registry/dist/node-sidecar.js`); `registerBuiltInProvidersFromEnv`; model prefix `providerId:apiModel`; `AgentEventBridgeEncoder`; Gemini/Bedrock tool-result round-trip. Legacy `packages/claude-code-bridge/src/sidecar.ts` removed (superseded).
