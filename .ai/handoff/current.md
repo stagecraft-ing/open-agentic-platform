@@ -101,16 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (047 planning pass complete)
-- Next owner: **claude** — review 047 plan against `spec.md`, identify contract gaps before implementation
-- Last baton update: 2026-03-30 — **cursor**: Created `.ai/plans/047-governance-control-plane-phased-plan.md` with 6-phase implementation sequence covering FR-001..FR-011, NF-001..NF-004, SC-001..SC-011, including pre-implementation decisions (discovery precedence, deterministic serialization, explicit rule extraction strategy, WASM target, proof-chain storage model), proposed file touchpoints, risks, and validation gates.
+- Current owner: **claude** (047 plan review complete)
+- Next owner: **cursor** — implement Phase 1 after resolving F-006 (rule annotation syntax) and F-005 (parser sharing). F-001 (WASM host runtime) must be resolved before Phase 3.
+- Last baton update: 2026-03-30 — **claude**: Produced `.ai/findings/047-plan-review.md`. All 26 requirements (11 FR + 4 NF + 11 SC) mapped to phases. 7 findings: F-001 HIGH (WASM host runtime unspecified — resolve before Phase 3), F-003 MEDIUM (constitution append-only invariant missing from plan), F-004 MEDIUM (governance.toml config not in Phase 4), F-005 MEDIUM (frontmatter parser sharing strategy undefined), F-006 LOW (rule annotation syntax not finalized), F-007 LOW (bundle format JSON vs msgpack), F-008 LOW (policyBundleHash in registry.json not tracked). Phase ordering sound. Plan approved.
 - Recommended files to read:
-  - `.ai/plans/047-governance-control-plane-phased-plan.md` — phased implementation plan for 047
+  - `.ai/findings/047-plan-review.md` — full review with coverage matrix and findings
+  - `.ai/plans/047-governance-control-plane-phased-plan.md` — phased implementation plan
   - `specs/047-governance-control-plane/spec.md` — canonical 047 contract
 
 ## Requested next agent output
 
-**claude**: Produce `.ai/findings/047-plan-review.md` validating plan coverage for all FR/NF/SC items, flagging any architecture/spec mismatches and phase-ordering risks before coding starts.
+**cursor**: Resolve F-006 (commit to fenced `policy` code blocks as rule annotation syntax) and F-005 (decide on shared frontmatter crate vs vendor copy), then implement Phase 1 (compiler skeleton, discovery, parsing, validation). Add G-006 decision for WASM host runtime strategy before Phase 3.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **047 plan review** — All 26 requirements (11 FR + 4 NF + 11 SC) covered across 6 phases. Phase ordering sound. 7 findings: F-001 HIGH (WASM host runtime unspecified — wasmtime vs dual-target native+WASM must be decided before Phase 3), F-003 MEDIUM (constitution append-only session invariant from contract notes missing from plan), F-004 MEDIUM (.claude/governance.toml config for coherence thresholds not in Phase 4), F-005 MEDIUM (no shared frontmatter parser crate exists — split_frontmatter duplicated in spec-compiler and spec-lint), F-006 LOW (rule annotation syntax not committed — recommend fenced `policy` blocks), F-007 LOW (bundle format JSON vs msgpack undecided), F-008 LOW (policyBundleHash field in registry.json not tracked). Plan approved for Phase 1 start. Review: `.ai/findings/047-plan-review.md`.
 - 2026-03-30 (cursor): **047 planning pass** — Responded to baton by reading `specs/047-governance-control-plane/spec.md` and drafting `.ai/plans/047-governance-control-plane-phased-plan.md`. Plan defines G-001..G-005 pre-implementation decisions and six implementation phases: compiler discovery/parsing, deterministic bundle emission, WASM gate enforcement, coherence scheduler, proof-chain verification, and axiomregent integration with perf/verification evidence targets.
 - 2026-03-30 (claude): **046 Phase 6 review** — Phase 6 approved. All 17 spec requirements (8 FR + 3 NF + 6 SC) satisfied. P5-001 resolved (recordIndex alignment in normalizeRuntimeMessages — regression test confirms). P5-002 resolved (fetchGitSnapshotFromRepo calls 4 Tauri git commands with graceful fallback — FR-006(b) interruption signal now live). P5-003 resolved (getContextWindowTokensForModel dispatches on model string — 1M for extended-context, 200k for standard Claude). NF-001 benchmark verified (400-message 100k-token-equiv compaction < 2s). SC-005 50-turn round-trip verified (completed steps, pending steps, file paths all preserved in session_context). git_last_commit Tauri command correct (git2 crate, returns OID + summary). 29/29 tests pass. Findings: P6-001 (no unit test for fetchGitSnapshotFromRepo, LOW), P6-002 (substring model matching, LOW), P6-003–P6-006 (INFO). **046 feature-complete.** Review: `.ai/findings/046-phase6-review.md`.
 - 2026-03-30 (cursor): **046 Phase 6** — `git_last_commit` + `fetchGitSnapshotFromRepo` (Tauri git status / diff stats / branch / last commit), `getContextWindowTokensForModel`, P5-001 `recordIndex` alignment, NF-001 & SC-005 & P5-001 tests, `ClaudeCodeSession` async snapshot load. Validation: `pnpm vitest run src/lib/contextCompaction.test.ts` (29/29), `cargo check` (src-tauri).
