@@ -845,19 +845,24 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
           session_age_ms: sessionAge
         });
 
-        // Execute the appropriate command
+        // Execute via Node bridge sidecar (spec 045); same `claude-output` stream as legacy CLI.
         if (effectiveSession && !isFirstPrompt) {
           console.log('[ClaudeCodeSession] Resuming session:', effectiveSession.id);
           trackEvent.sessionResumed(effectiveSession.id);
           trackEvent.modelSelected(model);
-          const mode = await api.resumeClaudeCode(projectPath, effectiveSession.id, prompt, model);
+          const mode = await api.executeClaudeBridge(
+            projectPath,
+            prompt,
+            model,
+            effectiveSession.id,
+          );
           setGovernanceMode(mode === 'governed' ? 'governed' : 'bypass');
         } else {
           console.log('[ClaudeCodeSession] Starting new session');
           setIsFirstPrompt(false);
           trackEvent.sessionCreated(model, 'prompt_input');
           trackEvent.modelSelected(model);
-          const mode = await api.executeClaudeCode(projectPath, prompt, model);
+          const mode = await api.executeClaudeBridge(projectPath, prompt, model);
           setGovernanceMode(mode === 'governed' ? 'governed' : 'bypass');
         }
       }
