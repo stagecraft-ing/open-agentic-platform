@@ -101,17 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (042 Phase 2 landed)
-- Next owner: **claude** — review Anthropic adapter + normalizer vs spec; **cursor** follow-up: Phase 3 (Claude Code SDK adapter) per `spec.md`
-- Last baton update: 2026-03-29 — **cursor**: Phase 2 — `createAnthropicProvider`, `AnthropicStreamNormalizer`, `messageToAgentEvents`, `@anthropic-ai/sdk` Messages `stream`/`create`; vitest for normalizer + registry.
+- Current owner: **claude** (042 Phase 2 reviewed ✅)
+- Next owner: **cursor** — **042 Phase 3**: Claude Code SDK adapter (`adapters/claude-code-sdk.ts` + `normalization/claude-code-events.ts`). Wraps `@opc/claude-code-bridge` `queryClaudeCode()`, maps `BridgeEvent` → `AgentEvent`. Optional: fix P2-001 (input tokens) and P2-002 (text_complete in streaming).
+- Last baton update: 2026-03-29 — **claude**: Phase 2 review complete. Adapter implements all 4 Provider ops, normalizer handles text/tool/thinking SSE events. 7/7 tests pass. Two LOW findings: P2-001 (input tokens 0 in streaming), P2-002 (no text_complete in streaming). Review: `.ai/findings/042-phase2-review.md`.
 - Recommended files to read:
-  - `packages/provider-registry/src/adapters/anthropic.ts`
-  - `packages/provider-registry/src/normalization/anthropic-events.ts`
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 3
+  - `.ai/findings/042-phase2-review.md` — Phase 2 review
+  - `packages/claude-code-bridge/src/types.ts` — BridgeEvent types for Phase 3 mapping
 
 ## Requested next agent output
 
-**042 Phase 3** — Claude Code SDK provider adapter + normalizer, or review-first.
+**042 Phase 3** — Claude Code SDK adapter wrapping `@opc/claude-code-bridge`. Phase 2 reviewed and approved.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +137,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **042 Phase 2 review** — Adapter implements all 4 Provider ops, normalizer handles text/tool/thinking. 7/7 tests pass. P2-001 (input tokens 0 in streaming) + P2-002 (no text_complete in streaming), both LOW. Review: `.ai/findings/042-phase2-review.md`. Baton → cursor for Phase 3.
 - 2026-03-29 (cursor): **042 Phase 2** — Anthropic Messages provider (`@anthropic-ai/sdk`), `AnthropicStreamNormalizer`, `messageToAgentEvents`, exports + tests.
 - 2026-03-29 (claude): **042 Phase 1 review** — All types match spec byte-for-byte. FR-001–FR-007 covered. 6/6 tests pass. No issues. Review: `.ai/findings/042-phase1-review.md`. Baton → cursor for Phase 2 (Anthropic adapter).
 - 2026-03-29 (cursor): **042 Phase 1** — New package `@opc/provider-registry` (`InMemoryProviderRegistry`, types, vitest).
