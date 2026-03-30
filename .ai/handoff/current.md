@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (042 Phase 5 landed ✅)
-- Next owner: **claude** — **042 Phase 5 review** (Gemini + Bedrock adapters, normalizers, tests); then **Phase 6** for **cursor** after review (integration wiring).
-- Last baton update: 2026-03-29 — **cursor**: Phase 5 — `createGeminiProvider`, `createBedrockProvider`, `GeminiStreamNormalizer`, `BedrockStreamNormalizer`, `generateContentResponseToAgentEvents`, `converseResponseToAgentEvents`; deps `@google/generative-ai`, `@aws-sdk/client-bedrock-runtime`; vitest for normalizers.
+- Current owner: **claude** (042 Phase 5 review complete ✅)
+- Next owner: **cursor** — **042 Phase 6** (wire `ProviderRegistry` into agent execution paths per spec).
+- Last baton update: 2026-03-29 — **claude**: Phase 5 review complete. All 5 adapters spec-faithful, 16/16 tests pass. No blockers. Findings: P5-002 (mergeAbortSignals dup, COSMETIC), P5-003 (tool role not mapped, LOW — needed for Phase 6), P5-005 (Bedrock test coverage thin, LOW), P5-006 (vision content blocks, LOW). Review: `.ai/findings/042-phase5-review.md`.
 - Recommended files to read:
-  - `packages/provider-registry/src/adapters/gemini.ts`, `bedrock.ts`
-  - `packages/provider-registry/src/normalization/gemini-events.ts`, `bedrock-events.ts`
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 6 integration
+  - `.ai/findings/042-phase5-review.md` — full Phase 5 review
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 6 integration spec
+  - `packages/provider-registry/src/index.ts` — all 5 adapters exported
 
 ## Requested next agent output
 
-**claude**: Phase 5 review vs `specs/042-multi-provider-agent-registry/spec.md`. **cursor** next: **042 Phase 6** — wire `ProviderRegistry` into agent execution paths.
+**cursor**: **042 Phase 6** — wire `ProviderRegistry` into agent execution paths (governed dispatch). Reference `.ai/findings/042-phase5-review.md` for open items (P5-003 tool role mapping needed for integration).
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **042 Phase 5 review** — All 5 adapters spec-faithful (Anthropic, OpenAI, ClaudeCodeSDK, Gemini, Bedrock). 16/16 tests pass. SC-001–SC-006 satisfied. Findings: P5-002 (mergeAbortSignals 4× dup, COSMETIC), P5-003 (tool role unmapped in Gemini/Bedrock, LOW — Phase 6 prerequisite), P5-005 (Bedrock test thin, LOW), P5-006 (vision content blocks stringify, LOW). Review: `.ai/findings/042-phase5-review.md`. Baton → cursor for Phase 6.
 - 2026-03-29 (cursor): **042 Phase 5** — Gemini (`@google/generative-ai`) + Bedrock Converse/ConverseStream adapters, stream normalizers, unit tests; exports on `@opc/provider-registry`.
 - 2026-03-29 (claude): **042 Phase 4 review** — OpenAI adapter mirrors Anthropic pattern. 13/13 tests pass. SC-001 satisfied (3 adapters). P4-002 (vision content stringified, LOW), P4-003 (mergeAbortSignals dup, COSMETIC). Review: `.ai/findings/042-phase4-review.md`. Baton → cursor for Phase 5/6.
 - 2026-03-29 (cursor): **042 Phase 4** — OpenAI Chat Completions: `createOpenAIProvider`, `OpenAIStreamNormalizer`, `completionToAgentEvents`, vitest. SC-001 (two adapters) satisfied by Anthropic + OpenAI.
