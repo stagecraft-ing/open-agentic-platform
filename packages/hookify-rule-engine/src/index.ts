@@ -29,3 +29,12 @@ export {
   loadRules,
 } from "./loader.js";
 export type { LoaderConfig, RuleRuntime, RulesetSnapshot } from "./loader.js";
+
+export {
+  HOOKIFY_LIFECYCLE_EVENTS,
+  buildHooksManifest,
+  defaultHookCommandForEvent,
+  stringifyHooksManifest,
+  writeHooksManifest,
+} from "./hooks-json.js";
+export type { HooksManifest, BuildHooksManifestOptions, WriteHooksManifestOptions } from "./hooks-json.js";

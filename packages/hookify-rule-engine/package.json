@@ -6,6 +6,9 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "bin": {
+    "hookify-rule-engine": "./dist/cli.js"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
@@ -14,7 +17,9 @@
     "./matcher": "./src/matcher.ts",
     "./actions": "./src/actions.ts",
     "./engine": "./src/engine.ts",
-    "./loader": "./src/loader.ts"
+    "./loader": "./src/loader.ts",
+    "./hooks-json": "./src/hooks-json.ts",
+    "./cli": "./src/cli.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
