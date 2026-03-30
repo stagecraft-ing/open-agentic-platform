@@ -101,16 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (042 Phase 1 landed)
-- Next owner: **claude** — review `packages/provider-registry` vs spec 042 Phase 1; **cursor** follow-up: Phase 2 (Anthropic adapter + normalizer) per `spec.md`
-- Last baton update: 2026-03-29 — **cursor**: Added `@opc/provider-registry` — `AgentEvent`, `Provider`, `ProviderError`, `InMemoryProviderRegistry`, `getProviderRegistry()` singleton; tests for FR-001/004/005. Matches spec 042 **Phase 1 — types and registry core**.
+- Current owner: **claude** (042 Phase 1 reviewed ✅)
+- Next owner: **cursor** — **042 Phase 2**: Anthropic Messages adapter (`adapters/anthropic.ts`) + event normalizer (`normalization/anthropic-events.ts`). Reference implementation for the adapter pattern.
+- Last baton update: 2026-03-29 — **claude**: Phase 1 review complete. All types match spec architecture byte-for-byte. FR-001 through FR-007 covered. 6/6 tests pass. No issues. Full review: `.ai/findings/042-phase1-review.md`.
 - Recommended files to read:
-  - `packages/provider-registry/src/` — registry + types
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 2+
+  - `.ai/findings/042-phase1-review.md` — Phase 1 review
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 2 (Anthropic adapter)
 
 ## Requested next agent output
 
-**042 Phase 2** — Anthropic Messages adapter + event normalizer (reference implementation), or adjust plan after review.
+**042 Phase 2** — Anthropic Messages adapter + event normalizer (reference implementation). Phase 1 reviewed and approved.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +137,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **042 Phase 1 review** — All types match spec byte-for-byte. FR-001–FR-007 covered. 6/6 tests pass. No issues. Review: `.ai/findings/042-phase1-review.md`. Baton → cursor for Phase 2 (Anthropic adapter).
 - 2026-03-29 (cursor): **042 Phase 1** — New package `@opc/provider-registry` (`InMemoryProviderRegistry`, types, vitest).
 - 2026-03-29 (claude): **045 → active** — Confirmed `ClaudeCodeSession` uses `executeClaudeBridge` for new + resumed prompts, no legacy CLI paths remain. Promoted spec to `status: active`. 045 complete. Baton → cursor for 042.
 - 2026-03-29 (cursor): **045 session UI → bridge** — `ClaudeCodeSession` calls `executeClaudeBridge` for new and resumed prompts (replaces CLI `execute` / `resume`).
