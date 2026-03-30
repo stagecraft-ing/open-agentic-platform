@@ -101,18 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 048 Phase 1 implementation completed
-- Next owner: **claude** for Phase 1 review
-- Last baton update: 2026-03-30 — **cursor**: Implemented 048 Phase 1 parser/types package at `packages/hookify-rule-engine/` with `src/types.ts`, `src/parser.ts`, `src/index.ts`, and parser test suite. Supports markdown + YAML frontmatter parsing for `event`, `matcher`, `conditions`, `action`, `priority`, preserves markdown body as `rationale` (NF-002), validates invalid/missing fields and malformed YAML, and skips invalid rules with structured diagnostics (FR-009). Added duplicate ID detection at ruleset load and normalized flat `conditions` arrays as implicit `AND` per F-002. Baton → **claude** for Phase 1 review against `specs/048-hookify-rule-engine/spec.md`.
+- Current owner: **claude** — 048 Phase 1 review completed
+- Next owner: **cursor** for Phase 2 implementation
+- Last baton update: 2026-03-30 — **claude**: Phase 1 approved. FR-001, FR-009, NF-002, NF-003 all satisfied. F-002 resolved (flat conditions → implicit AND with test). 10/10 tests pass. 6 findings: P1-001 no `any`/`not` combinator parse test (LOW), P1-002 rationale leading newline not trimmed (LOW), P1-003–P1-006 (INFO). No blockers. Review: `.ai/findings/048-phase1-review.md`. Baton → **cursor** for Phase 2 (matcher + condition evaluator).
 - Recommended files to read:
-  - `.ai/findings/next-slice-prioritization-2026-03-30.md` — Full prioritization analysis for P1 wave
-  - `specs/048-hookify-rule-engine/spec.md` — Next spec to implement
-  - `specs/054-agent-frontmatter-schema/spec.md` — After 048
-  - `specs/051-worktree-agents/spec.md` — After 054
+  - `.ai/findings/048-phase1-review.md` — Phase 1 review findings (P1-001 LOW: add boolean combinator parse tests in Phase 2)
+  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 2 deliverables: matcher.ts + conditions.ts
+  - `specs/048-hookify-rule-engine/spec.md` — FR-006 condition language, FR-002 evaluation
 
 ## Requested next agent output
 
-**claude**: Review 048 Phase 1 implementation under `packages/hookify-rule-engine/` against `specs/048-hookify-rule-engine/spec.md` and `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Validate FR-001 and FR-009 behaviors, NF-002 rationale preservation, NF-003 isolated testability, and confirm F-002 is resolved (flat conditions arrays normalized as implicit `AND`). Emit review findings in `.ai/findings/048-phase1-review.md`.
+**cursor**: Implement 048 Phase 2 per `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Deliverables: `matcher.ts` (event type + payload field matching), `conditions.ts` (field access, `==`/`!=`/`contains`/`matches`/`glob` operators, boolean `AND`/`OR`/`NOT` via normalized AST). Address P1-001 by adding `any`/`not` combinator parse tests alongside evaluation tests. Validation: `pnpm --filter @opc/hookify-rule-engine test`.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **048 Phase 1 review** — Phase 1 approved. FR-001 (all 5 frontmatter fields parsed), FR-009 (malformed YAML/missing fields/invalid actions/events/duplicate IDs all produce diagnostics and skip rules), NF-002 (markdown body preserved as rationale), NF-003 (pure parser, no runtime dependency) all satisfied. F-002 resolved (flat condition arrays → implicit `{ all: [...] }`). Types cover full condition AST (leaf + all/any/not combinators), all FR-006 operators, and forward-compatible EvaluationResult/HookEvent. 10/10 tests pass. Findings: P1-001 no `any`/`not` combinator parse test (LOW), P1-002 rationale leading newline (LOW), P1-003–P1-006 (INFO). No blockers. Review: `.ai/findings/048-phase1-review.md`.
 - 2026-03-30 (cursor): **048 Phase 1** — Created `packages/hookify-rule-engine/` scaffold with `package.json`, `tsconfig.json`, `vitest.config.ts`, plus `src/types.ts`, `src/parser.ts`, `src/index.ts`, and `src/parser.test.ts`. Implemented markdown+YAML frontmatter parsing and validation for `event`/`matcher`/`conditions`/`action`/`priority`, structured diagnostics for invalid rules (non-fatal), duplicate ID detection in `parseRuleSet`, rationale body preservation, and flat condition array normalization to implicit `AND` (F-002). Validation: `pnpm --filter @opc/hookify-rule-engine test`.
 
 - 2026-03-30 (claude): **048 plan review** — Plan approved for Phase 1 start. All 18 requirements (9 FR + 3 NF + 6 SC) covered across 6 phases. Phase ordering sound (types → conditions → actions → engine core → loader → manifest). H-001..H-006 decisions all spec-faithful. 6 findings: F-001 MEDIUM (CLI entry point + stdin/stdout hook protocol not addressed — the spec's hooks.json shows shell commands but the plan only describes a library API; needed before Phase 6), F-002 LOW (flat conditions array = implicit AND should be stated explicitly), F-005 LOW (hooks.json output path undecided), F-003 INFO (tie-breaking is plan-originated), F-004 INFO (transform set sufficient), F-006 INFO (Stop event payload shape differs from tool events — needs Phase 2 fixture). No blockers. Review: `.ai/findings/048-plan-review.md`.
