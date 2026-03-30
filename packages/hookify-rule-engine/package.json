@@ -13,7 +13,8 @@
     "./conditions": "./src/conditions.ts",
     "./matcher": "./src/matcher.ts",
     "./actions": "./src/actions.ts",
-    "./engine": "./src/engine.ts"
+    "./engine": "./src/engine.ts",
+    "./loader": "./src/loader.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

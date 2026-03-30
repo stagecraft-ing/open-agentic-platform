@@ -133,7 +133,7 @@ function normalizeLeafCondition(
     return null;
   }
 
-  return value as ConditionLeaf;
+  return value as unknown as ConditionLeaf;
 }
 
 function normalizeConditionNode(
@@ -247,7 +247,7 @@ function validateAction(
     return null;
   }
 
-  return raw as Action;
+  return raw as unknown as Action;
 }
 
 export function parseRuleFile(content: string, filePath: string): ParseRuleResult {

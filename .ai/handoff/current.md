@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 048 Phase 4 review complete
-- Next owner: **cursor** for Phase 5 (loader + hot-reload)
-- Last baton update: 2026-03-30 — **claude**: Phase 4 approved. FR-002 (priority-ordered evaluation with deterministic tie-break), FR-003 (block short-circuit with blockRationale — P3-001 resolved), FR-004/FR-005 (warn/modify payload threading), FR-009 (diagnostic propagation), NF-003 (pure function, no runtime dependency) all satisfied. `structuredClone` protects caller's payload. 6 tests cover ordering, tie-break, short-circuit, payload threading, matcher skip, condition skip. 31/31 tests pass. Findings: P4-001 no event-type filtering test (LOW), P4-002 no diagnostics content assertion (LOW), P4-003–P4-006 (INFO). No blockers. Review: `.ai/findings/048-phase4-review.md`.
+- Current owner: **cursor** — 048 Phase 5 implementation complete
+- Next owner: **claude** for Phase 5 review
+- Last baton update: 2026-03-30 — **cursor**: Phase 5 delivered. `loader.ts`: `loadRules()`, `createRuleRuntime()` with `getRulesSnapshot()`, `loadRules()`, `startHotReload()` / `stopHotReload()`; recursive `.md` discovery; atomic `RulesetSnapshot` with monotonic `version`; per-directory `fs.watch` (Linux-safe, debounced reload). FR-008/FR-009/SC-004 covered. Tests: `loader.test.ts` (8 tests). `pnpm --filter @opc/hookify-rule-engine test` 39/39; `tsc` clean (parser `as unknown as` fix for strict casts).
 - Recommended files to read:
-  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 5 loader + hot-reload spec
-  - `packages/hookify-rule-engine/src/index.ts` — current public API surface
-  - `.ai/findings/048-phase4-review.md` — Phase 4 review with findings
+  - `packages/hookify-rule-engine/src/loader.ts` — loader + hot-reload
+  - `packages/hookify-rule-engine/src/loader.test.ts` — SC-004 + snapshot stability
+  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 6 hooks.json next
 
 ## Requested next agent output
 
-**cursor**: Implement 048 Phase 5 (loader + hot-reload) per `.ai/plans/048-hookify-rule-engine-phased-plan.md` Phase 5 deliverables (FR-008, FR-009, SC-004). After implementation, hand to **claude** for Phase 5 review.
+**claude**: Phase 5 review for 048 (loader + hot-reload) against FR-008, FR-009, SC-004 and `.ai/plans/048-hookify-rule-engine-phased-plan.md` Phase 5. After review, hand to **cursor** for Phase 6 (`hooks.json` + built-in rules + verification) or document findings in `.ai/findings/`.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **048 Phase 5** — `src/loader.ts`: `DEFAULT_RULES_DIR`, `discoverMarkdownRuleFiles`, `loadRules`, `createRuleRuntime` with atomic `RulesetSnapshot`, debounced multi-dir `fs.watch` hot-reload. `src/loader.test.ts` (8 tests): nested discovery, SC-004, hot-reload add, change/delete, prior-snapshot race, FR-009 invalid file. Exports in `index.ts` + `./loader`. Parser strict `as unknown as` for `tsc`. Validation: `pnpm --filter @opc/hookify-rule-engine test` (39/39), `pnpm run build` in package.
 - 2026-03-30 (claude): **048 Phase 4 review** — Phase 4 approved. FR-002 (priority ordering + deterministic tie-break), FR-003 (block short-circuit + blockRationale — P3-001 resolved), FR-004/FR-005 (warn/modify payload threading), FR-009 (diagnostic propagation), NF-003 (pure function) all satisfied. `structuredClone` protects caller payload. 31/31 tests. Findings: P4-001 no event-type filtering test (LOW), P4-002 no diagnostics assertion (LOW), P4-003–P4-006 (INFO). No blockers. Review: `.ai/findings/048-phase4-review.md`.
 - 2026-03-30 (cursor): **048 Phase 4** — `src/engine.ts`: `evaluate()` with priority ordering, tie-break, matcher + conditions + `executeRuleAction` pipeline, short-circuit on block, threaded payload for subsequent rules. `EvaluationResult.blockRationale` for P3-001. `src/engine.test.ts` (6 tests). Validation: `pnpm --filter @opc/hookify-rule-engine test` (31/31).
 - 2026-03-30 (claude): **048 Phase 3 review** — Phase 3 approved. FR-003/FR-004/FR-005 satisfied (`block` → terminal blocked + rule ID, `warn` → rationale warning + allowed, `modify` → safe transforms via `applyModifyTransform`). H-003 enforced (only `append_arg`, `replace_regex`, `set_field`; unknown types → `HKY_UNKNOWN_TRANSFORM` diagnostic, non-fatal skip). `structuredClone` prevents input mutation. SC-001/SC-002/SC-003 + invalid-transform skip all tested. `ActionExecutionResult` envelope with `terminalDecision`, `matchedRuleIds`, optional `blockedByRuleId`. 25/25 tests pass. Findings: P3-001 block rationale not in result (LOW), P3-002 regex flags unvalidated (LOW), P3-003 no replace_regex/set_field tests (LOW), P3-004–P3-006 (INFO). No blockers. Review: `.ai/findings/048-phase3-review.md`.
