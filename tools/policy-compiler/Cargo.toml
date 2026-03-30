@@ -14,11 +14,14 @@ name = "open_agentic_policy_compiler"
 path = "src/lib.rs"
 
 [dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 clap = { version = "4", features = ["derive"] }
+hex = "0.4"
 open_agentic_frontmatter = { path = "../shared/frontmatter" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
+sha2 = "0.10"
 walkdir = "2"
 
 [dev-dependencies]

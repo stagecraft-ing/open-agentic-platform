@@ -1,9 +1,15 @@
+use chrono::{SecondsFormat, Utc};
 use open_agentic_frontmatter::split_frontmatter_optional;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Map, Value};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
+
+const COMPILER_ID: &str = "open-agentic-policy-compiler";
+const POLICY_BUNDLE_VERSION: &str = "1";
 
 #[derive(Debug)]
 pub enum CompileError {
@@ -68,15 +74,129 @@ pub struct CompileOutput {
     pub violations: Vec<Violation>,
     #[serde(rename = "validationPassed")]
     pub validation_passed: bool,
+    /// Canonical bundle hash (payload excludes `compiledAt` and `policyBundleHash`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy_bundle_hash: Option<String>,
+    pub constitution: Vec<PolicyRule>,
+    pub shards: BTreeMap<String, Vec<PolicyRule>>,
 }
 
 pub fn compile_and_write(repo_root: &Path) -> Result<CompileOutput, CompileError> {
     let out = compile(repo_root)?;
     let out_dir = repo_root.join("build/policy-bundles");
     fs::create_dir_all(&out_dir)?;
-    let json = serde_json::to_vec_pretty(&out)?;
-    fs::write(out_dir.join("phase1-validation.json"), json)?;
+    let json = serde_json::to_vec_pretty(&build_bundle_json_value(&out))?;
+    fs::write(out_dir.join("policy-bundle.json"), json)?;
     Ok(out)
+}
+
+/// Builds the JSON object written to `policy-bundle.json` (includes timestamp when applicable).
+pub fn build_bundle_json_value(out: &CompileOutput) -> Value {
+    let compiler_version = env!("CARGO_PKG_VERSION");
+    let compiled_at = Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true);
+    let sources_val = serde_json::to_value(&out.sources).expect("sources");
+    let viol_val = serde_json::to_value(&out.violations).expect("violations");
+    let constitution_val = serde_json::to_value(&out.constitution).expect("constitution");
+    let shards_val = serde_json::to_value(&out.shards).expect("shards");
+
+    let mut metadata = json!({
+        "compilerId": COMPILER_ID,
+        "compilerVersion": compiler_version,
+        "sources": sources_val,
+    });
+    if let Some(ref h) = out.policy_bundle_hash {
+        metadata
+            .as_object_mut()
+            .expect("metadata object")
+            .insert("policyBundleHash".into(), Value::String(h.clone()));
+        metadata
+            .as_object_mut()
+            .expect("metadata object")
+            .insert("compiledAt".into(), Value::String(compiled_at));
+    }
+
+    json!({
+        "policyBundleVersion": POLICY_BUNDLE_VERSION,
+        "metadata": metadata,
+        "validation": {
+            "passed": out.validation_passed,
+            "violations": viol_val,
+        },
+        "constitution": constitution_val,
+        "shards": shards_val,
+    })
+}
+
+/// Payload hashed for [`CompileOutput::policy_bundle_hash`]: no `compiledAt`, no `policyBundleHash`.
+pub fn bundle_hash_payload_value(out: &CompileOutput) -> Value {
+    let compiler_version = env!("CARGO_PKG_VERSION");
+    let sources_val = serde_json::to_value(&out.sources).expect("sources");
+    let constitution_val = serde_json::to_value(&out.constitution).expect("constitution");
+    let shards_val = serde_json::to_value(&out.shards).expect("shards");
+
+    json!({
+        "policyBundleVersion": POLICY_BUNDLE_VERSION,
+        "metadata": {
+            "compilerId": COMPILER_ID,
+            "compilerVersion": compiler_version,
+            "sources": sources_val,
+        },
+        "validation": {
+            "passed": out.validation_passed,
+            "violations": serde_json::to_value(&out.violations).expect("violations"),
+        },
+        "constitution": constitution_val,
+        "shards": shards_val,
+    })
+}
+
+pub fn compute_policy_bundle_hash(out: &CompileOutput) -> String {
+    let v = bundle_hash_payload_value(out);
+    hash_canonical_json(&v)
+}
+
+fn hash_canonical_json(value: &Value) -> String {
+    let sorted = sort_json_value(value.clone());
+    let s = serde_json::to_string(&sorted).expect("canonical json");
+    let mut hasher = Sha256::new();
+    hasher.update(s.as_bytes());
+    format!("sha256:{}", hex::encode(hasher.finalize()))
+}
+
+fn sort_json_value(v: Value) -> Value {
+    match v {
+        Value::Object(map) => {
+            let mut out: BTreeMap<String, Value> = BTreeMap::new();
+            for (k, val) in map {
+                out.insert(k, sort_json_value(val));
+            }
+            let mut m = Map::new();
+            for (k, v) in out {
+                m.insert(k, v);
+            }
+            Value::Object(m)
+        }
+        Value::Array(arr) => Value::Array(arr.into_iter().map(sort_json_value).collect()),
+        other => other,
+    }
+}
+
+/// FR-003: `scope == global` and `mode == enforce` → constitution; all other rules → shards by scope tag.
+pub fn classify_rules(rules: &[PolicyRule]) -> (Vec<PolicyRule>, BTreeMap<String, Vec<PolicyRule>>) {
+    let mut constitution = Vec::new();
+    let mut shards: BTreeMap<String, Vec<PolicyRule>> = BTreeMap::new();
+    for r in rules {
+        if r.scope == "global" && r.mode == "enforce" {
+            constitution.push(r.clone());
+        } else {
+            shards.entry(r.scope.clone()).or_default().push(r.clone());
+        }
+    }
+    constitution.sort_by(|a, b| a.id.cmp(&b.id));
+    for entry in shards.values_mut() {
+        entry.sort_by(|a, b| a.id.cmp(&b.id));
+    }
+    (constitution, shards)
 }
 
 pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
@@ -124,12 +244,20 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     rules.sort_by(|a, b| a.id.cmp(&b.id));
     let validation_passed = !violations.iter().any(|v| v.severity == "error");
-    Ok(CompileOutput {
+    let (constitution, shards) = classify_rules(&rules);
+    let mut out = CompileOutput {
         sources: discovered,
         rules,
         violations,
         validation_passed,
-    })
+        policy_bundle_hash: None,
+        constitution,
+        shards,
+    };
+    if validation_passed {
+        out.policy_bundle_hash = Some(compute_policy_bundle_hash(&out));
+    }
+    Ok(out)
 }
 
 pub fn discover_policy_sources(repo_root: &Path) -> Result<Vec<PolicySource>, CompileError> {
@@ -162,13 +290,14 @@ pub fn discover_policy_sources(repo_root: &Path) -> Result<Vec<PolicySource>, Co
     }
 
     let mut subdir_claudes = Vec::new();
-    for entry in WalkDir::new(repo_root).min_depth(1) {
-        let Ok(entry) = entry else {
-            continue;
-        };
-        if entry.file_type().is_dir() && should_skip_dir(entry.path()) {
-            continue;
-        }
+    for entry in WalkDir::new(repo_root)
+        .min_depth(1)
+        .into_iter()
+        .filter_entry(|e| !should_prune_walk_entry(e))
+    {
+        let entry = entry.map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::Other, format!("walkdir: {e}"))
+        })?;
         if !entry.file_type().is_file() {
             continue;
         }
@@ -198,6 +327,22 @@ pub fn discover_policy_sources(repo_root: &Path) -> Result<Vec<PolicySource>, Co
     }
 
     Ok(out)
+}
+
+/// P1-001: prune directories so WalkDir does not descend into heavy or irrelevant trees.
+fn should_prune_walk_entry(e: &walkdir::DirEntry) -> bool {
+    if !e.file_type().is_dir() {
+        return false;
+    }
+    e.file_name()
+        .to_str()
+        .map(|n| {
+            matches!(
+                n,
+                ".git" | ".claude" | "node_modules" | "target" | "build"
+            )
+        })
+        .unwrap_or(false)
 }
 
 #[derive(Debug, Deserialize)]
@@ -354,13 +499,6 @@ fn required_field(
     value
 }
 
-fn should_skip_dir(path: &Path) -> bool {
-    let Some(name) = path.file_name().and_then(|v| v.to_str()) else {
-        return false;
-    };
-    matches!(name, ".git" | "node_modules" | "target" | "build")
-}
-
 fn normalize_repo_path(repo_root: &Path, p: &Path) -> String {
     p.strip_prefix(repo_root)
         .unwrap_or(p)
@@ -397,6 +535,29 @@ mod tests {
         assert_eq!(got[0].precedence, 0);
         assert_eq!(got[1].precedence, 1);
         assert_eq!(got[3].precedence, 2);
+    }
+
+    #[test]
+    fn walkdir_does_not_descend_into_target_for_subdir_claude() {
+        let tmp = TempDir::new().expect("tempdir");
+        fs::write(tmp.path().join("CLAUDE.md"), "# root\n").expect("root");
+        fs::create_dir_all(tmp.path().join("target/nested")).expect("target");
+        let hidden_rule = r#"
+```policy
+id: HIDDEN
+description: should not be discovered
+mode: enforce
+scope: global
+```
+"#;
+        fs::write(tmp.path().join("target/nested/CLAUDE.md"), hidden_rule).expect("hidden");
+
+        let got = discover_policy_sources(tmp.path()).expect("discover");
+        let has_hidden = got.iter().any(|s| s.path.contains("target/"));
+        assert!(
+            !has_hidden,
+            "expected target/ subtree to be pruned from discovery"
+        );
     }
 
     #[test]
@@ -454,5 +615,66 @@ scope: invalid
         assert_eq!(out.rules.len(), 1);
         assert_eq!(out.rules[0].description, "root");
         assert!(out.violations.iter().any(|v| v.code == "V-103"));
+    }
+
+    #[test]
+    fn sc001_constitution_and_shards_classification() {
+        let tmp = TempDir::new().expect("tempdir");
+        fs::write(
+            tmp.path().join("CLAUDE.md"),
+            r#"
+```policy
+id: C-1
+description: core
+mode: enforce
+scope: global
+```
+```policy
+id: S-1
+description: domain rule
+mode: warn
+scope: domain:payments
+```
+"#,
+        )
+        .expect("claude");
+
+        let out = compile(tmp.path()).expect("compile");
+        assert!(out.validation_passed);
+        assert_eq!(out.constitution.len(), 1);
+        assert_eq!(out.constitution[0].id, "C-1");
+        assert_eq!(out.shards.len(), 1);
+        assert_eq!(out.shards.get("domain:payments").unwrap().len(), 1);
+        assert_eq!(out.shards.get("domain:payments").unwrap()[0].id, "S-1");
+
+        let v = build_bundle_json_value(&out);
+        assert!(v.get("constitution").is_some());
+        assert!(v.get("shards").is_some());
+        assert!(v.pointer("/metadata/policyBundleHash").is_some());
+    }
+
+    #[test]
+    fn sc002_identical_inputs_same_policy_bundle_hash() {
+        let tmp = TempDir::new().expect("tempdir");
+        fs::write(
+            tmp.path().join("CLAUDE.md"),
+            "```policy\nid: X\ndescription: x\nmode: enforce\nscope: global\n```\n",
+        )
+        .expect("write");
+
+        let a = compile(tmp.path()).expect("compile");
+        let b = compile(tmp.path()).expect("compile");
+        assert_eq!(
+            a.policy_bundle_hash,
+            b.policy_bundle_hash,
+            "hash must not depend on compilation timestamp"
+        );
+        let va = build_bundle_json_value(&a);
+        let vb = build_bundle_json_value(&b);
+        assert_eq!(
+            va.pointer("/metadata/policyBundleHash"),
+            vb.pointer("/metadata/policyBundleHash")
+        );
+        // `compiledAt` may match within the same UTC second; SC-002 is satisfied by stable hash.
     }
 }

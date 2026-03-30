@@ -101,17 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (047 Phase 1 review complete)
-- Next owner: **cursor** — implement Phase 2 (constitution/shard classification + deterministic bundle emission: FR-003, FR-004, FR-005, SC-001, SC-002). Fix P1-001 (WalkDir `filter_entry`) before Phase 2 work.
-- Last baton update: 2026-03-30 — **claude**: Phase 1 approved. FR-001/FR-002/FR-011 all spec-faithful. F-005/F-006/G-006 resolutions validated. 7 findings: P1-001 MEDIUM (WalkDir `continue` doesn't prevent descent into `.git`/`node_modules`/`target`/`build` — use `filter_entry` instead), P1-002 LOW (dead duplicate-replacement branch — sources always arrive in order), P1-003 LOW (V-103 message misleading for same-precedence duplicates), P1-004 LOW (no V-101 unterminated block test), P1-005 LOW (no V-102 missing field test), P1-006 INFO (no V-106 gate test), P1-007 INFO (no frontmatter stripping test). 4/4 tests pass. All 3 tools build clean with shared frontmatter crate.
+- Current owner: **cursor** (047 Phase 2 implementation complete — pending review)
+- Next owner: **claude** — review Phase 2 against `specs/047-governance-control-plane/spec.md` (FR-003..FR-005, SC-001, SC-002) and `.ai/plans/047-governance-control-plane-phased-plan.md` Phase 2.
+- Last baton update: 2026-03-30 — **cursor**: P1-001 fixed (`WalkDir::filter_entry` prunes `.git`, `.claude`, `node_modules`, `target`, `build` — no descent). Phase 2: `classify_rules` (constitution = `scope=global` + `mode=enforce`; shards keyed by scope), `build/policy-bundles/policy-bundle.json` with metadata (`compilerId`, `compilerVersion`, `sources`, `policyBundleHash`, `compiledAt`), `policyBundleHash` = SHA-256 of canonical JSON payload excluding `compiledAt` and `policyBundleHash` (matches FR-005 / SC-002). Unit tests: SC-001 (constitution + shards + bundle shape), SC-002 (stable hash across runs), walkdir prune regression. Replaces `phase1-validation.json` artifact with `policy-bundle.json`.
 - Recommended files to read:
-  - `.ai/findings/047-phase1-review.md` — Phase 1 review with all findings
-  - `.ai/plans/047-governance-control-plane-phased-plan.md` — phased implementation plan (Phase 2 next)
+  - `tools/policy-compiler/src/lib.rs` — discovery, classification, bundle emission, hash
+  - `.ai/findings/047-phase1-review.md` — prior Phase 1 findings (P1-001 addressed)
+  - `.ai/plans/047-governance-control-plane-phased-plan.md` — Phase 3 next
   - `specs/047-governance-control-plane/spec.md` — canonical 047 contract
 
 ## Requested next agent output
 
-**cursor**: Implement Phase 2 — constitution/shard classification + deterministic bundle emission (FR-003, FR-004, FR-005, SC-001, SC-002). First fix P1-001 (WalkDir `filter_entry`). See `.ai/plans/047-governance-control-plane-phased-plan.md` Phase 2 for deliverables.
+**claude**: Phase 2 review — confirm FR-003/FR-004/FR-005 and SC-001/SC-002; note any follow-ups before Phase 3 (WASM kernel).
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **047 Phase 2** — P1-001 WalkDir `filter_entry` prune; constitution/shard classification; deterministic `policy-bundle.json` + `policyBundleHash` (payload excludes timestamp/hash fields); SC-001/SC-002 tests. Output: `build/policy-bundles/policy-bundle.json`
 - 2026-03-30 (claude): **047 Phase 1 review** — Phase 1 approved. FR-001 discovery precedence correct (3-tier with exclusions). FR-002 fenced `policy` block parser faithful (YAML → PolicyRule with id/description/mode/scope/gate). FR-011 V-101..V-106 all implemented. F-005 resolved (shared frontmatter crate, 3 tools wired). F-006 resolved (fenced `policy` syntax committed). G-006 resolved (dual-target native+WASM strategy). 7 findings: P1-001 MEDIUM (WalkDir skip doesn't prevent descent — use `filter_entry`), P1-002 LOW (dead replacement branch), P1-003 LOW (V-103 message misleading for same-precedence), P1-004/P1-005 LOW (missing V-101/V-102 tests), P1-006/P1-007 INFO. 4/4 tests pass. Review: `.ai/findings/047-phase1-review.md`.
 - 2026-03-30 (cursor): **047 Phase 1 + decision resolution** — Implemented `tools/policy-compiler/` scaffold with `compile`/`validate` commands and Phase 1 outputs: policy source discovery precedence (`CLAUDE.md` root > `.claude/policies/*.md` > subdirectory `CLAUDE.md`), fenced `policy` block parsing, structured rule extraction (`id`, `description`, `mode`, `scope`, optional `gate`), and V-series validations (`V-101`..`V-106`, including duplicate IDs as `V-103`). Added tests for discovery precedence, valid/invalid parsing, and duplicate resolution. Resolved F-005 by introducing shared crate `tools/shared/frontmatter/` and reusing it in `tools/spec-compiler` and `tools/spec-lint`. Resolved F-006 by committing to fenced `policy` blocks in plan G-002. Added G-006 dual-target native+WASM host-runtime strategy in `.ai/plans/047-governance-control-plane-phased-plan.md`.
 - 2026-03-30 (claude): **047 plan review** — All 26 requirements (11 FR + 4 NF + 11 SC) covered across 6 phases. Phase ordering sound. 7 findings: F-001 HIGH (WASM host runtime unspecified — wasmtime vs dual-target native+WASM must be decided before Phase 3), F-003 MEDIUM (constitution append-only session invariant from contract notes missing from plan), F-004 MEDIUM (.claude/governance.toml config for coherence thresholds not in Phase 4), F-005 MEDIUM (no shared frontmatter parser crate exists — split_frontmatter duplicated in spec-compiler and spec-lint), F-006 LOW (rule annotation syntax not committed — recommend fenced `policy` blocks), F-007 LOW (bundle format JSON vs msgpack undecided), F-008 LOW (policyBundleHash field in registry.json not tracked). Plan approved for Phase 1 start. Review: `.ai/findings/047-plan-review.md`.

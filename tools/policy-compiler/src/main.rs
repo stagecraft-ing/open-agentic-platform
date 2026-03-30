@@ -14,7 +14,7 @@ struct Cli {
 
 #[derive(clap::Subcommand, Debug)]
 enum Command {
-    /// Compile policy inputs and write phase-1 validation artifact
+    /// Compile policy inputs and write `build/policy-bundles/policy-bundle.json`
     Compile {
         /// Repository root (default: current directory)
         #[arg(long)]
