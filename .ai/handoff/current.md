@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (044 Phase 6 review complete — approved)
-- Next owner: **cursor** — begin 046 (Context Compaction) or 047 (Governance Control Plane) per P0 priority order.
-- Last baton update: 2026-03-30 — **claude**: Phase 6 review approved. P5-002 verified (project_path wired to executor working_directory on both dispatch paths). P5-001 verified (systemPrompt sidecar field on provider-registry path; governed Claude path concatenates — acceptable for MVP). E2e 3-step workflow test validates SC-001 (artifact chaining), SC-002 (token reduction below 80% baseline), SC-005 (monotonic effort-size growth). 15/15 tests pass, cargo check clean. 4 findings (all INFO/LOW). 044 feature-complete. Review: `.ai/findings/044-phase6-review.md`.
+- Current owner: **cursor** (046 phased implementation plan drafted from canonical spec)
+- Next owner: **claude** — review plan coverage and identify implementation risks/gaps before coding starts.
+- Last baton update: 2026-03-30 — **cursor**: Read `specs/046-context-compaction/spec.md` and produced phased implementation plan at `.ai/plans/046-context-compaction-phased-plan.md`. Plan maps phases to FR-001..FR-008, NF-001..NF-003, and SC-001..SC-006 with concrete validation checkpoints and integration touchpoints.
 - Recommended files to read:
-  - `.ai/findings/044-phase6-review.md` — Phase 6 review and final SC coverage
-  - `specs/044-multi-agent-orchestration/spec.md` — full contract
-  - `crates/orchestrator/src/lib.rs` — orchestrator engine + tests
+  - `specs/046-context-compaction/spec.md` — canonical contract for this slice
+  - `.ai/plans/046-context-compaction-phased-plan.md` — phased execution plan + test strategy
+  - `crates/orchestrator/src/lib.rs` — likely primary integration surface
 
 ## Requested next agent output
 
-**cursor**: Begin next P0 spec (046 — Context Compaction or 047 — Governance Control Plane). Read the target spec.md for contract requirements and propose a phased implementation plan before starting.
+**claude**: Review `.ai/plans/046-context-compaction-phased-plan.md` against `specs/046-context-compaction/spec.md`. Produce a findings file with any contract misses, ambiguity risks, determinism/performance concerns, and recommended pre-implementation corrections.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **046 planning pass** — Responded to baton by reading `specs/046-context-compaction/spec.md` and drafting `.ai/plans/046-context-compaction-phased-plan.md`. Plan includes 6 phases: config + trigger, deterministic compactor + XML schema, preserve/compress policy, interruption heuristics, session-init integration, and perf/round-trip validation aligned to FR/NF/SC.
 - 2026-03-30 (claude): **044 Phase 6 review** — Phase 6 approved. P5-002 verified (project_path → working_directory). P5-001 verified (systemPrompt sidecar field on provider path). E2e 3-step test validates SC-001 (artifact chaining via filesystem), SC-002 (630 tokens < 800 = 80% below 4000 baseline), SC-005 (quick < investigate < deep output sizes). 15/15 tests pass. 4 findings: P6-001 (test double not real agent, INFO), P6-002 (double system prompt in governed path, INFO), P6-003 (hardcoded baseline, INFO), P6-004 (step prompt in user slot on provider path, LOW — acceptable). All FRs done except FR-001 NL decomposition (deferred). SC-001/002/003/004/005/006 done. SC-007 deferred. 044 feature-complete. Review: `.ai/findings/044-phase6-review.md`.
 - 2026-03-30 (cursor): **044 Phase 6** — P5-002 fixed by adding `project_path` to `orchestrate_manifest` and wiring executor `working_directory` to it. P5-001 addressed on provider path by sending sidecar `systemPrompt` separately from `prompt`. Added e2e 3-step YAML manifest test (`research -> draft -> review`) validating SC-001 artifact chaining, SC-002 token accounting, and SC-005 effort-size differentiation. Validation: `cargo test --manifest-path crates/orchestrator/Cargo.toml` (15/15), `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass. Details: `.ai/findings/044-phase6-validation.md`.
 - 2026-03-30 (claude): **044 Phase 5 review** — `RealGovernedExecutor` dual-path dispatch (provider-registry sidecar for `providerId:apiModel`, governed Claude CLI with 035 MCP config for native models). Per-agent profiles (model, system_prompt, permissions) loaded from SQLite. Token tracking from JSONL result events. Sidecar protocol extended with `systemPrompt` (both provider + bridge paths). 14/14 tests pass. Findings: P5-001 (system prompt in user slot, LOW), P5-002 (working_directory CWD not project path, LOW — fix before e2e), P5-003 (model routing heuristic, LOW), P5-004–P5-006 (INFO). Review: `.ai/findings/044-phase5-review.md`. Phase 5 approved → cursor for Phase 6.
