@@ -245,8 +245,9 @@ describe("ProgrammaticCompactor", () => {
       ],
     };
 
-    const outputA = compactor.compact(history, gitSnapshot);
-    const outputB = compactor.compact(history, gitSnapshot);
+    const fixedCompactedAt = new Date(0);
+    const outputA = compactor.compact(history, gitSnapshot, fixedCompactedAt);
+    const outputB = compactor.compact(history, gitSnapshot, fixedCompactedAt);
 
     expect(outputA.sessionContextBlock).toBe(outputB.sessionContextBlock);
     expect(outputA.sessionContextBlock).toContain("<session_context");
@@ -288,5 +289,155 @@ describe("ProgrammaticCompactor", () => {
     const output = compactor.compact(history, cleanGit);
     expect(output.sessionContextBlock).not.toContain("<interruption");
     expect(output.interruption).toBeNull();
+  });
+
+  it("preserves pinned messages and recent turns byte-identically", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 2 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const history: CompactionHistory = {
+      messages: [
+        {
+          id: "m-1",
+          role: "system",
+          content: "System prompt",
+        },
+        {
+          id: "m-2",
+          role: "user",
+          content: "Older context",
+        },
+        {
+          id: "m-3",
+          role: "assistant",
+          content: "Pinned and important",
+          pinned: true,
+        },
+        {
+          id: "m-4",
+          role: "user",
+          content: "Recent user turn A",
+        },
+        {
+          id: "m-5",
+          role: "assistant",
+          content: "Recent assistant turn A",
+        },
+        {
+          id: "m-6",
+          role: "assistant",
+          content: "Tool prelude within same turn",
+        },
+        {
+          id: "m-7",
+          role: "user",
+          content: "Recent user turn B",
+        },
+        {
+          id: "m-8",
+          role: "assistant",
+          content: "Recent assistant turn B",
+        },
+      ],
+    };
+
+    const output = compactor.compact(history, { ...gitSnapshot, stagedChanges: 0, unstagedChanges: 0 });
+    const preservedIds = output.preservedMessages.map((message) => message.id);
+
+    expect(preservedIds).toEqual(["m-1", "m-3", "m-4", "m-5", "m-6", "m-7", "m-8"]);
+    expect(output.preservedMessages[1]?.content).toBe("Pinned and important");
+    expect(output.preservedMessages[5]?.content).toBe("Recent user turn B");
+  });
+
+  it("preserves only active-operation tool messages", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 1 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const history: CompactionHistory = {
+      messages: [
+        {
+          id: "m-1",
+          role: "assistant",
+          content: [{ type: "tool_use", id: "tool-old", name: "read_file" }],
+        },
+        {
+          id: "m-2",
+          role: "tool",
+          content: "old result",
+          tool_call_id: "tool-old",
+        },
+        {
+          id: "m-3",
+          role: "assistant",
+          content: [{ type: "tool_use", id: "tool-active", name: "edit_file" }],
+        },
+        {
+          id: "m-4",
+          role: "user",
+          content: "continue",
+        },
+      ],
+    };
+
+    const output = compactor.compact(history, { ...gitSnapshot, stagedChanges: 0, unstagedChanges: 0 });
+    const preservedIds = output.preservedMessages.map((message) => message.id);
+    expect(preservedIds).toContain("m-3");
+    expect(preservedIds).not.toContain("m-2");
+  });
+
+  it("emits interruption for true-positive multi-signal case", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 1 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const history: CompactionHistory = {
+      messages: [
+        {
+          id: "m-1",
+          role: "user",
+          content: "Ship this change",
+        },
+        {
+          id: "m-2",
+          role: "assistant",
+          content: "Do the next step now?",
+        },
+      ],
+    };
+
+    const output = compactor.compact(history, { ...gitSnapshot, stagedChanges: 1, unstagedChanges: 0 });
+    expect(output.interruption).not.toBeNull();
+    expect(output.sessionContextBlock).toContain("<interruption detected=\"true\">");
+  });
+
+  it("does not emit interruption for false-positive single-signal case", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 1 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const history: CompactionHistory = {
+      messages: [
+        {
+          id: "m-1",
+          role: "user",
+          content: "Implement docs improvements",
+        },
+        {
+          id: "m-2",
+          role: "assistant",
+          content: "- [ ] update README",
+        },
+      ],
+    };
+
+    const output = compactor.compact(history, { ...gitSnapshot, stagedChanges: 0, unstagedChanges: 0 });
+    expect(output.interruption).toBeNull();
+    expect(output.sessionContextBlock).not.toContain("<interruption");
   });
 });

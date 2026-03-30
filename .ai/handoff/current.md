@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (046 Phase 3 review complete)
-- Next owner: **cursor** — Phase 4 (preserve-vs-compress policy + interruption heuristics). Priority fixes: P3-002 (scope active tool preservation), P3-001 (parameterize `compacted_at` timestamp).
-- Last baton update: 2026-03-30 — **claude**: Phase 3 review approved. All 7 FR-004 sections present with deterministic extraction (NF-002) and regex-parseable XML (NF-003). R-001 resolved (content block union). Two MEDIUM findings: P3-001 (`compacted_at` epoch placeholder needs parameterization), P3-002 (active tool preservation overly broad — `|| message.role === "tool"` preserves ALL tool messages, should scope to active call only). P2-001 (reset strategy) and R-004 (message IDs) remain open for Phase 5. Review: `.ai/findings/046-phase3-review.md`.
+- Current owner: **cursor** (046 Phase 4 implementation complete)
+- Next owner: **claude** — Phase 4 review against `specs/046-context-compaction/spec.md` and `.ai/plans/046-context-compaction-phased-plan.md`.
+- Last baton update: 2026-03-30 — **cursor**: Phase 4 implemented in `apps/desktop/src/lib/contextCompaction.ts` and `apps/desktop/src/lib/contextCompaction.test.ts`. Resolved P3-001 by parameterizing `compacted_at` via optional `Date` argument (`compact(..., compactedAt = new Date())`), with deterministic test injection (`new Date(0)`). Resolved P3-002 by scoping active-tool preservation to active call-linked messages only (tool_use/tool_result/tool_call_id match), removing blanket `role=tool` preservation. Refined recent-turn preservation to count recent user turns for non-alternating histories (replacing `* 2` heuristic). Tightened interruption heuristic to require 2+ active signals before emitting `<interruption>` to reduce false positives (SC-003 risk mitigation).
 - Recommended files to read:
   - `.ai/findings/046-phase3-review.md` — Phase 3 review (P3-001 timestamp, P3-002 tool scope)
   - `.ai/findings/046-phase2-review.md` — Phase 2 review (P2-001 reset gap)
@@ -112,19 +112,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: Implement Phase 4 (preserve-vs-compress policy + interruption heuristics) in:
+**claude**: Review 046 Phase 4 implementation in:
 - `apps/desktop/src/lib/contextCompaction.ts`
 - `apps/desktop/src/lib/contextCompaction.test.ts`
 
-Priority fixes from Phase 3 review:
-- P3-002 (MEDIUM): Fix active tool preservation at line 166–170 — remove `|| message.role === "tool"`, scope to active tool call only.
-- P3-001 (MEDIUM): Parameterize `compacted_at` timestamp (accept optional `Date` param, default `new Date()`, tests pass `new Date(0)`).
-
-Phase 4 deliverables per plan:
-- Byte-identical preservation tests for recent turns and pinned messages (SC-004).
-- Interruption heuristic fixtures for true-positive and false-positive control cases (SC-003).
-- Consider requiring 2+ signals for interruption confidence (current single-signal may false-positive).
-- Refine `* 2` turn heuristic (line 158) for non-alternating message patterns.
+Review focus:
+- Verify P3-001 and P3-002 are fully resolved.
+- Validate SC-004 via byte-identical preservation coverage for pinned + recent turns.
+- Validate SC-003 fixtures include true-positive and false-positive interruption cases.
+- Confirm non-alternating turn handling is improved vs previous `* 2` heuristic.
+- Call out any regressions or spec mismatches before Phase 5 integration.
 
 Priority order for P0 specs (unchanged):
 
@@ -151,6 +148,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **046 Phase 4** — Implemented preserve-vs-compress + interruption heuristic refinements in `apps/desktop/src/lib/contextCompaction.ts`: (1) `compact(..., compactedAt = new Date())` now parameterizes `compacted_at` for production correctness and deterministic testing, (2) active tool preservation now scopes to active operation messages only (`tool_use.id`, `tool_result.tool_use_id`, `tool_call_id`) and no longer preserves all `role=tool` messages, (3) recent-turn preservation now tracks recent user turns for non-alternating histories, (4) interruption summary now requires 2+ active signals to reduce false positives. Expanded `apps/desktop/src/lib/contextCompaction.test.ts` with SC-004 preservation tests, active-tool scoping test, and SC-003 true-positive/false-positive interruption fixtures.
 - 2026-03-30 (claude): **046 Phase 3 review** — Phase 3 approved. All 7 FR-004 sections present and deterministic. R-001 resolved (content block union). 6 findings: P3-001 (`compacted_at` epoch placeholder, MEDIUM), P3-002 (active tool preservation overly broad — preserves all `role=tool` messages instead of just active call, MEDIUM), P3-003 (`inferFileAction` per-message not per-mention, LOW), P3-004 (test coverage below plan — no golden snapshot or regex parse test, LOW), P3-005 (step extraction only on compacted messages, INFO), P3-006 (file path regex false positives, INFO). P2-001 reset strategy documented. R-004 message IDs still open. Review: `.ai/findings/046-phase3-review.md`.
 - 2026-03-30 (cursor): **046 Phase 3** — Implemented `ProgrammaticCompactor` and deterministic `<session_context>` builder in `apps/desktop/src/lib/contextCompaction.ts` with structured extraction for task summary, completed/pending steps, file modification entries, git snapshot serialization, key decisions, and optional interruption summaries. Expanded `CompactionMessage.content` to `string | ContentBlock[]` for tool-use/result aware compaction. Added two Phase 3 tests in `apps/desktop/src/lib/contextCompaction.test.ts` for deterministic XML output and interruption omission path. Validation: `pnpm vitest src/lib/contextCompaction.test.ts` (17/17 passing).
 - 2026-03-30 (claude): **046 Phase 2 review** — Phase 2 approved. FR-001 cumulative token accounting correct (+=, sanitized, >= threshold comparison). SC-006 verified for 0.5/0.95 overrides and boundary equality. Observability reason string deterministic. R-003 resolved. 3 findings: P2-001 (no reset mechanism for post-compaction, MEDIUM), P2-002 (contextWindowTokens per-call, INFO), P2-003 (getTotals untested directly, INFO). No Phase 3 blockers. Review: `.ai/findings/046-phase2-review.md`.

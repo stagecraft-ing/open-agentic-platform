@@ -102,6 +102,14 @@ export interface ProgrammaticCompactionOutput {
   interruption: InterruptionSummary | null;
 }
 
+interface InterruptionSignals {
+  unresolvedToolCallId: string | null;
+  uncommittedChanges: boolean;
+  asksQuestion: boolean;
+  explicitNextStep: boolean;
+  hasIncompletePlan: boolean;
+}
+
 export class TokenBudgetMonitor {
   private promptTokens = 0;
   private completionTokens = 0;
@@ -152,10 +160,15 @@ export class ProgrammaticCompactor {
     this.preserveRecentTurns = config.preserveRecentTurns;
   }
 
-  compact(history: CompactionHistory, gitSnapshot: GitSnapshot): ProgrammaticCompactionOutput {
+  compact(
+    history: CompactionHistory,
+    gitSnapshot: GitSnapshot,
+    compactedAt: Date = new Date(),
+  ): ProgrammaticCompactionOutput {
     const messages = history.messages;
-    const tailStart = Math.max(0, messages.length - this.preserveRecentTurns * 2);
-    const preserveIds = new Set(messages.slice(tailStart).map((message) => message.id));
+    const preserveIds = new Set(
+      collectRecentTurnMessageIds(messages, this.preserveRecentTurns),
+    );
 
     for (const message of messages) {
       if (message.role === "system") preserveIds.add(message.id);
@@ -165,7 +178,11 @@ export class ProgrammaticCompactor {
     const activeToolCallId = findLatestUnresolvedToolCallId(messages);
     if (activeToolCallId) {
       for (const message of messages) {
-        if (message.tool_call_id === activeToolCallId || message.role === "tool") {
+        if (
+          message.tool_call_id === activeToolCallId ||
+          messageContainsToolUseId(message, activeToolCallId) ||
+          messageContainsToolResultId(message, activeToolCallId)
+        ) {
           preserveIds.add(message.id);
         }
       }
@@ -181,6 +198,7 @@ export class ProgrammaticCompactor {
     const interruption = detectInterruption(messages, gitSnapshot, pendingSteps.length);
 
     const sessionContextBlock = buildSessionContextXml({
+      compactedAt,
       originalTurnCount: messages.length,
       originalTokenCount: countTokensFromUsage(messages),
       taskSummary: buildTaskSummary(messages, completedSteps.length, pendingSteps.length),
@@ -314,6 +332,7 @@ function sanitizeContextWindow(value: number): number {
 }
 
 interface SessionContextXmlInput {
+  compactedAt: Date;
   originalTurnCount: number;
   originalTokenCount: number;
   taskSummary: string;
@@ -332,7 +351,7 @@ interface SessionContextXmlInput {
 function buildSessionContextXml(input: SessionContextXmlInput): string {
   const lines: string[] = [];
   lines.push(
-    `<session_context version="1" compacted_at="${new Date(0).toISOString()}" turn_count_original="${input.originalTurnCount}" token_count_original="${input.originalTokenCount}">`,
+    `<session_context version="1" compacted_at="${input.compactedAt.toISOString()}" turn_count_original="${input.originalTurnCount}" token_count_original="${input.originalTokenCount}">`,
   );
   lines.push("  <task_summary>");
   lines.push(`    ${xmlEscape(input.taskSummary)}`);
@@ -499,17 +518,16 @@ function detectInterruption(
   gitSnapshot: GitSnapshot,
   pendingStepsCount: number,
 ): InterruptionSummary | null {
-  const unresolvedToolCallId = findLatestUnresolvedToolCallId(messages);
-  const uncommittedChanges = gitSnapshot.stagedChanges + gitSnapshot.unstagedChanges > 0;
-  const lastAssistant = findLastByRole(messages, "assistant");
-  const lastAssistantText = normalizeMessageContent(lastAssistant?.content).trim();
-  const asksQuestion = /\?\s*$/.test(lastAssistantText);
-  const explicitNextStep = /\bnext step\b/i.test(lastAssistantText);
-  const hasIncompletePlan = pendingStepsCount > 0;
+  const signals = collectInterruptionSignals(messages, gitSnapshot, pendingStepsCount);
+  const activeSignalCount = countActiveInterruptionSignals(signals);
 
-  if (!unresolvedToolCallId && !uncommittedChanges && !asksQuestion && !explicitNextStep && !hasIncompletePlan) {
+  if (activeSignalCount < 2) {
     return null;
   }
+
+  const { unresolvedToolCallId, uncommittedChanges, asksQuestion, explicitNextStep } = signals;
+  const lastAssistant = findLastByRole(messages, "assistant");
+  const lastAssistantText = normalizeMessageContent(lastAssistant?.content).trim();
 
   if (unresolvedToolCallId) {
     return {
@@ -571,6 +589,78 @@ function findLatestUnresolvedToolCallId(messages: CompactionMessage[]): string |
     }
   }
   return null;
+}
+
+function collectRecentTurnMessageIds(
+  messages: CompactionMessage[],
+  preserveRecentTurns: number,
+): string[] {
+  if (preserveRecentTurns <= 0 || messages.length === 0) return [];
+  let userTurnsSeen = 0;
+  let cutoffIndex = messages.length;
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role !== "user") continue;
+    userTurnsSeen += 1;
+    if (userTurnsSeen === preserveRecentTurns) {
+      cutoffIndex = index;
+      break;
+    }
+  }
+
+  if (userTurnsSeen < preserveRecentTurns) {
+    return messages.map((message) => message.id);
+  }
+
+  return messages.slice(cutoffIndex).map((message) => message.id);
+}
+
+function messageContainsToolUseId(message: CompactionMessage, toolUseId: string): boolean {
+  if (!Array.isArray(message.content)) return false;
+  for (const block of message.content) {
+    if (block.type === "tool_use" && block.id === toolUseId) return true;
+  }
+  return false;
+}
+
+function messageContainsToolResultId(message: CompactionMessage, toolUseId: string): boolean {
+  if (message.tool_call_id === toolUseId && message.role === "tool") return true;
+  if (!Array.isArray(message.content)) return false;
+  for (const block of message.content) {
+    if (block.type === "tool_result" && block.tool_use_id === toolUseId) return true;
+  }
+  return false;
+}
+
+function collectInterruptionSignals(
+  messages: CompactionMessage[],
+  gitSnapshot: GitSnapshot,
+  pendingStepsCount: number,
+): InterruptionSignals {
+  const unresolvedToolCallId = findLatestUnresolvedToolCallId(messages);
+  const uncommittedChanges = gitSnapshot.stagedChanges + gitSnapshot.unstagedChanges > 0;
+  const lastAssistant = findLastByRole(messages, "assistant");
+  const lastAssistantText = normalizeMessageContent(lastAssistant?.content).trim();
+  const asksQuestion = /\?\s*$/.test(lastAssistantText);
+  const explicitNextStep = /\bnext step\b/i.test(lastAssistantText);
+  const hasIncompletePlan = pendingStepsCount > 0;
+
+  return {
+    unresolvedToolCallId,
+    uncommittedChanges,
+    asksQuestion,
+    explicitNextStep,
+    hasIncompletePlan,
+  };
+}
+
+function countActiveInterruptionSignals(signals: InterruptionSignals): number {
+  let count = 0;
+  if (signals.unresolvedToolCallId) count += 1;
+  if (signals.uncommittedChanges) count += 1;
+  if (signals.asksQuestion || signals.explicitNextStep) count += 1;
+  if (signals.hasIncompletePlan) count += 1;
+  return count;
 }
 
 function findLastByRole(
