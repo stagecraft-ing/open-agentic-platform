@@ -2,7 +2,7 @@
 id: "045-claude-code-sdk-bridge"
 title: "Claude Code SDK bridge"
 feature_branch: "045-claude-code-sdk-bridge"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:
