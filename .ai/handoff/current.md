@@ -101,35 +101,32 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (046 Phase 4 review complete)
-- Next owner: **cursor** — Phase 5 (message rewrite integration + session init hydration). Priority: P2-001 (TokenBudgetMonitor reset), R-004 (runtime message IDs), P4-001 (`<!-- pin -->` content scanning), FR-007 (session init), FR-008 (40% ceiling).
-- Last baton update: 2026-03-30 — **claude**: Phase 4 approved. P3-001 resolved (compacted_at parameterized). P3-002 resolved (active tool scoped to tool_use.id/tool_result.tool_use_id/tool_call_id match). SC-004 satisfied (byte-identical preservation for system/pinned/recent with non-alternating coverage). SC-003 satisfied (2-signal threshold with true-positive and false-positive fixtures). Non-alternating turn handling improved (user-turn counting replaces `* 2`). 6 findings (0 HIGH, 1 LOW P4-001 pin annotation, 1 LOW P4-002 interruption type assertion, 4 INFO). No blockers.
+- Current owner: **claude** (046 Phase 5 review complete)
+- Next owner: **cursor** — Phase 6 (performance benchmarking + 50-turn round-trip scenario). Priority: P5-002 (real git snapshot from Tauri backend), P5-003 (context window from model metadata), P5-001 (index mismatch fix), plus Phase 6 plan deliverables (NF-001 perf benchmark, SC-005 round-trip).
+- Last baton update: 2026-03-30 — **claude**: Phase 5 approved. All 7 deliverables implemented: `rewriteSessionHistoryForCompaction()` wired into ClaudeCodeSession, FR-008 40% ceiling with 2-stage cascading collapse, FR-007 session init elevation, interruption init hint, P2-001 `resetTo()`, R-004 deterministic ID synthesis, P4-001 `<!-- pin -->` parsing. SC-001 satisfied (trigger at >75%, output <40%). SC-002 satisfied (session restart hydration with structured sections and interruption hint). 6 findings (0 HIGH, 1 MEDIUM P5-002 dummy git snapshot, 2 LOW P5-001/P5-003, 3 INFO). No blockers.
 - Recommended files to read:
-  - `.ai/findings/046-phase4-review.md` — Phase 4 review (this review)
-  - `.ai/findings/046-phase3-review.md` — Phase 3 review (P3-001, P3-002 now resolved)
-  - `.ai/findings/046-phase2-review.md` — Phase 2 review (P2-001 reset gap — still open)
+  - `.ai/findings/046-phase5-review.md` — Phase 5 review (this review)
+  - `.ai/findings/046-phase4-review.md` — Phase 4 review (all findings resolved)
   - `specs/046-context-compaction/spec.md` — canonical contract
-  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (Phase 5 deliverables)
+  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (Phase 6 deliverables)
 
 ## Requested next agent output
 
-**cursor**: Implement 046 Phase 5 (message rewrite integration + session init hydration) in:
+**cursor**: Implement 046 Phase 6 (performance benchmarking + 50-turn round-trip scenario) in:
 - `apps/desktop/src/lib/contextCompaction.ts`
 - `apps/desktop/src/lib/contextCompaction.test.ts`
-- Integration points in `apps/desktop/src/components/` or `apps/desktop/src-tauri/src/`
+- `apps/desktop/src/components/ClaudeCodeSession.tsx`
 
-Phase 5 deliverables per plan:
-- Integrate compactor into message rewrite path used by runtime session history.
-- Enforce post-compaction token ceiling: compacted payload ≤ 40% of context window (FR-008); if exceeded, collapse older file-modification entries to summary counts.
-- On session init, detect `<session_context>` and elevate it immediately after system prompt (FR-007).
-- Add init hint to prioritize interruption resumption when present.
-- Add `resetTo()` on `TokenBudgetMonitor` for post-compaction baseline (P2-001).
-- Verify runtime message IDs exist or synthesize deterministic IDs (R-004).
-- Parse `<!-- pin -->` from content and set `pinned` boolean (P4-001).
+Phase 6 deliverables per plan:
+- Performance benchmark: compaction of a 100k-token conversation completes in <2s (NF-001).
+- 50-turn round-trip scenario test: generate a realistic 50-turn history, compact it, then verify the compacted context preserves enough information for an agent to identify completed work, pending work, and modified files (SC-005).
+- Fix P5-002: replace `buildRuntimeGitSnapshot` placeholder with actual git state from Tauri backend (invoke `git status --porcelain`, `git log -1`, `git diff --stat`).
+- Fix P5-003: source `getContextWindowTokens` from model metadata or session configuration instead of hardcoded 200000.
+- Fix P5-001 (optional): align index tracking between `normalizeRuntimeMessages` and `composeCompactedHistory` to handle non-record entries correctly.
 
 Validation:
-- End-to-end compaction test proving trigger at >75% and output <40% (SC-001).
-- Session restart test proving resumed agent can identify completed/pending/files from context block (SC-002).
+- NF-001 benchmark test with large synthetic history.
+- SC-005 round-trip test proving structural information preservation.
 
 Priority order for P0 specs (unchanged):
 
@@ -156,6 +153,8 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **046 Phase 5 review** — Phase 5 approved. All 7 deliverables implemented: `rewriteSessionHistoryForCompaction()` integrated into `ClaudeCodeSession.tsx`, FR-008 40% ceiling with cascading collapse (file summary counts → XML minification), FR-007 session init elevation of `<session_context>` after system prompt, interruption init hint ("Prioritize interruption resumption first"), P2-001 `resetTo()` on TokenBudgetMonitor, R-004 deterministic runtime ID synthesis via FNV-1a hash, P4-001 `<!-- pin -->` regex parsing. SC-001 validated (trigger at >75%, compacted output ≤40%). SC-002 validated (session restart produces system→hint→context ordering with structured sections). 24/24 tests pass. Findings: P5-001 (index mismatch in normalizeRuntimeMessages vs composeCompactedHistory for non-record entries, LOW), P5-002 (buildRuntimeGitSnapshot returns dummy data — disables FR-006(b) uncommitted changes interruption signal, MEDIUM), P5-003 (getContextWindowTokens hardcoded 200000, LOW), P5-004–P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/046-phase5-review.md`.
+- 2026-03-30 (cursor): **046 Phase 5** — Implemented message rewrite integration + session init hydration: `rewriteSessionHistoryForCompaction()` as the main entry point normalizing runtime messages, triggering compaction via TokenBudgetMonitor, composing compacted history with session_context block, enforcing 40% ceiling via `collapseFileModificationSection()` + `minifySessionContextXml()`. `elevateSessionContextForInit()` detects `<session_context>` blocks and reorders after system prompt. `addInterruptionInitHint()` inserts priority hint when interruption detected. `normalizeRuntimeMessages()` bridges runtime `{type, message}` format to CompactionMessage. `resolveRuntimeMessageId()` synthesizes deterministic FNV-1a IDs for messages without `id`. `resolvePinned()` scans `<!-- pin -->` annotations. `ClaudeCodeSession.tsx` wired: `loadSessionHistory` → `rewriteSessionHistoryForCompaction` → display. Validation: 24/24 tests passing.
 - 2026-03-30 (claude): **046 Phase 4 review** — Phase 4 approved. P3-001 resolved (compacted_at parameterized via optional Date argument). P3-002 resolved (active tool preservation scoped to tool_use.id/tool_result.tool_use_id/tool_call_id match only). SC-004 satisfied (byte-identical preservation for system/pinned/recent turns including non-alternating patterns). SC-003 satisfied (2-signal threshold with true-positive multi-signal and false-positive single-signal fixtures). Non-alternating turn handling confirmed improved (user-turn counting replaces * 2 heuristic). 6 findings: P4-001 (<!-- pin --> annotation deferred to Phase 5, LOW), P4-002 (interruption type not asserted in test, LOW), P4-003 (only latest unresolved tool tracked, INFO), P4-004 (role guard on tool result matcher, INFO), P4-005 (P2-001 reset still open, INFO), P4-006 (R-004 message IDs still open, INFO). No blockers for Phase 5. Review: `.ai/findings/046-phase4-review.md`.
 - 2026-03-30 (cursor): **046 Phase 4** — Implemented preserve-vs-compress + interruption heuristic refinements in `apps/desktop/src/lib/contextCompaction.ts`: (1) `compact(..., compactedAt = new Date())` now parameterizes `compacted_at` for production correctness and deterministic testing, (2) active tool preservation now scopes to active operation messages only (`tool_use.id`, `tool_result.tool_use_id`, `tool_call_id`) and no longer preserves all `role=tool` messages, (3) recent-turn preservation now tracks recent user turns for non-alternating histories, (4) interruption summary now requires 2+ active signals to reduce false positives. Expanded `apps/desktop/src/lib/contextCompaction.test.ts` with SC-004 preservation tests, active-tool scoping test, and SC-003 true-positive/false-positive interruption fixtures.
 - 2026-03-30 (claude): **046 Phase 3 review** — Phase 3 approved. All 7 FR-004 sections present and deterministic. R-001 resolved (content block union). 6 findings: P3-001 (`compacted_at` epoch placeholder, MEDIUM), P3-002 (active tool preservation overly broad — preserves all `role=tool` messages instead of just active call, MEDIUM), P3-003 (`inferFileAction` per-message not per-mention, LOW), P3-004 (test coverage below plan — no golden snapshot or regex parse test, LOW), P3-005 (step extraction only on compacted messages, INFO), P3-006 (file path regex false positives, INFO). P2-001 reset strategy documented. R-004 message IDs still open. Review: `.ai/findings/046-phase3-review.md`.
