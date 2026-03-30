@@ -101,25 +101,25 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (044 Phase 4 next — governed dispatch wiring)
-- Next owner: **cursor** — 044 Phase 4: fix P3-001 (inject output artifact paths into system prompt), then wire `dispatch_manifest()` with async governed execution (035) + provider registry lookup (042). Replace no-op inner loop with real `agent_dispatch(step, effort, artifact_paths)` calls. Expose Tauri commands (`orchestrate_manifest`, `get_run_status`, `cancel_run`, `cleanup_artifacts`).
-- Last baton update: 2026-03-30 — **claude**: Phase 3 review complete. FR-004 satisfied — `build_step_system_prompt()` is spec-faithful. 11/11 tests pass. 4 findings: P3-001 (output paths not in prompt, LOW — fix before real dispatch), P3-002 (Quick effort text omits "no sub-agent calls", COSMETIC), P3-003 (no zero-input step test, INFO), P3-004 (to_string_lossy on paths, INFO). Full wiring plan provided in review. Review: `.ai/findings/044-phase3-review.md`. Phase 3 approved — proceed to Phase 4.
+- Current owner: **cursor** (044 Phase 5 next — real governed executor)
+- Next owner: **cursor** — 044 Phase 5: replace `FileBackedGovernedExecutor` with a real `GovernedExecutor` implementation that dispatches through the 042 provider registry and 035 governed execution layer. No changes to `dispatch_manifest()` or Tauri commands needed. Then **claude** reviews Phase 5.
+- Last baton update: 2026-03-30 — **claude**: Phase 4 review complete. All 4 spec contract operations + all 4 error semantics implemented. P3-001/P3-002/P3-003 all resolved. Async `dispatch_manifest()` correctly wires registry lookup, governed execution via traits, output artifact verification, failure cascade. 14/14 tests pass. 6 findings: P4-001 (cancel_run only touches in-memory state, LOW), P4-002–P4-006 (INFO). Review: `.ai/findings/044-phase4-review.md`. Phase 4 approved — proceed to Phase 5.
 - Recommended files to read:
+  - `.ai/findings/044-phase4-review.md` — Phase 4 review with SC mapping + findings
   - `.ai/findings/044-phase3-review.md` — Phase 3 review with FR mapping + wiring plan
-  - `.ai/findings/044-phase2-review.md` — Phase 2 review with FR mapping
-  - `.ai/findings/044-phase1-review.md` — Phase 1 review with FR mapping
-  - `crates/orchestrator/src/lib.rs` — prompt builder + dispatcher stub
+  - `crates/orchestrator/src/lib.rs` — async dispatcher + traits
+  - `apps/desktop/src-tauri/src/commands/orchestrator.rs` — Tauri command surface + scaffold executor
   - `specs/044-multi-agent-orchestration/spec.md` — full contract
 
 ## Requested next agent output
 
-**cursor**: Fix P3-001 (add output artifact paths to `build_step_system_prompt()`), then implement async `dispatch_manifest()` wiring governed execution (035) + provider registry (042). See wiring plan in `.ai/findings/044-phase3-review.md` § "Wiring recommendations". Then **claude** reviews Phase 4.
+**cursor**: Implement a real `GovernedExecutor` that dispatches agent steps through the 042 provider registry (`@opc/provider-registry`) and 035 governed execution layer, replacing `FileBackedGovernedExecutor`. The `dispatch_manifest()` function and Tauri command surface require no changes — only the executor implementation needs to be swapped. Then **claude** reviews Phase 5.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
 2. **042 — Multi-Provider Agent Registry** — ✅ complete (all phases + Phase 6 review)
-3. **044 — Multi-Agent Orchestration** — Phase 1 ✅, Phase 2 ✅, Phase 3 ✅ (FR-004); governed dispatch + UI follow
+3. **044 — Multi-Agent Orchestration** — Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅ (async dispatch + Tauri commands); real executor follow
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
 
@@ -140,6 +140,8 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **044 Phase 4 review** — All 4 spec contract operations implemented (orchestrate_manifest, get_run_status, cancel_run, cleanup_artifacts). All 4 error semantics present (StepFailed, DependencyMissing, AgentNotFound, CycleDetected). P3-001 resolved (output paths in prompt), P3-002 resolved ("no sub-agent calls"), P3-003 resolved (zero-input test). Async `dispatch_manifest()` with `AgentRegistry` + `GovernedExecutor` traits — correct trait-based design for swappable implementations. 14/14 tests pass. Findings: P4-001 (cancel_run in-memory only, LOW), P4-002–P4-006 (INFO). Review: `.ai/findings/044-phase4-review.md`. Phase 4 approved → cursor for Phase 5.
+- 2026-03-30 (cursor): **044 Phase 4** — Async `dispatch_manifest()` with `AgentRegistry` + `GovernedExecutor` traits, `DispatchRequest`/`DispatchResult` types, output artifact verification post-dispatch, `FileBackedGovernedExecutor` scaffold. Tauri commands: `orchestrate_manifest`, `get_run_status`, `cancel_run`, `cleanup_artifacts`. P3-001/P3-002/P3-003 resolved. Tests: 3 new (async success, agent-not-found, zero-input prompt).
 - 2026-03-30 (claude): **044 Phase 3 review** — FR-004 satisfied. `build_step_system_prompt()` includes absolute input artifact paths, filesystem-read directive, and effort level text matching FR-005. 11/11 tests pass. Findings: P3-001 (output paths not in prompt, LOW — actionable before real dispatch), P3-002 (Quick text omits "no sub-agent calls", COSMETIC), P3-003 (no zero-input test, INFO), P3-004 (to_string_lossy, INFO). Full wiring plan for governed dispatch + registry + Tauri commands provided. Review: `.ai/findings/044-phase3-review.md`. Phase 3 approved → cursor for Phase 4.
 - 2026-03-30 (claude): **044 Phase 2 review** — All Phase 2 deliverables spec-faithful. FR-002 (input gating), FR-006 (summary persistence), FR-008 (failure cascade) all fully implemented. `dispatch_manifest_noop()` checks artifact existence, marks Failure/Skipped, writes summary.json before error return. 10/10 tests pass. Findings: P2-001 (unused var, COSMETIC — fixed), P2-002 (summary code dup, LOW), P2-003 (no transitive cascade test, INFO), P2-004 (linear producer scan, INFO), P2-005 (root noop success, INFO). Review: `.ai/findings/044-phase2-review.md`. Phase 2 approved → cursor for Phase 3.
 - 2026-03-30 (cursor): **044 Phase 2** — `dispatch_manifest_noop()`: no-op executor with FR-002 input gating, FR-008 Skipped cascade (eager + lazy), `RunSummary::write_to_disk()`, summary.json persistence on success and failure paths. Tests: 2 new unit tests (success path + failure cascade).
