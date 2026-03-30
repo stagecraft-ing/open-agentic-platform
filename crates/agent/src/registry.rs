@@ -14,6 +14,34 @@ use std::collections::BTreeSet;
 const FR010_WARNING: &str =
     "agent_registry_empty_or_unavailable: degraded to direct mode per FR-010";
 
+/// Planner interface for delegated plans (Phase 4 — Haiku-backed in production).
+pub trait OrganizerPlanner {
+    fn plan_delegated(
+        &self,
+        prompt: &str,
+        breakdown: &ComplexityBreakdown,
+        snapshot: &AgentRegistrySnapshot,
+    ) -> (TeamBlock, WorkflowBlock, Vec<String>);
+}
+
+/// Default deterministic planner used in tests and legacy callers.
+///
+/// In production, a Haiku-backed planner can implement [`OrganizerPlanner`] and be
+/// injected via `plan_with_planner`.
+#[derive(Debug, Default)]
+pub struct DeterministicOrganizerPlanner;
+
+impl OrganizerPlanner for DeterministicOrganizerPlanner {
+    fn plan_delegated(
+        &self,
+        prompt: &str,
+        breakdown: &ComplexityBreakdown,
+        snapshot: &AgentRegistrySnapshot,
+    ) -> (TeamBlock, WorkflowBlock, Vec<String>) {
+        assemble_delegated_plan(snapshot, breakdown.band, prompt)
+    }
+}
+
 /// Single row from the agent catalog (Feature 042 injection surface).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentRegistryEntry {
@@ -144,15 +172,31 @@ fn build_team_agents(entries: &[&AgentRegistryEntry]) -> Vec<TeamAgent> {
         ModelTier::Opus,
     ];
 
+    fn truncate_for_justification(text: &str, max_bytes: usize) -> String {
+        if text.len() <= max_bytes {
+            return text.to_string();
+        }
+        let mut end = 0;
+        for (idx, _) in text.char_indices() {
+            if idx > max_bytes {
+                break;
+            }
+            end = idx;
+        }
+        if end == 0 {
+            // Defensive fallback: if a single codepoint exceeds max_bytes,
+            // fall back to the original string rather than panicking.
+            text.to_string()
+        } else {
+            format!("{}…", &text[..end])
+        }
+    }
+
     entries
         .iter()
         .enumerate()
         .map(|(i, e)| {
-            let desc = if e.description.len() > 120 {
-                format!("{}…", &e.description[..120])
-            } else {
-                e.description.clone()
-            };
+            let desc = truncate_for_justification(&e.description, 120);
             TeamAgent {
                 agent_id: e.id.clone(),
                 role: ROLES[i % ROLES.len()],
@@ -167,7 +211,18 @@ fn build_workflow(team: &[TeamAgent], request: &str) -> WorkflowBlock {
     let ids: Vec<String> = team.iter().map(|a| a.agent_id.clone()).collect();
     let n = ids.len();
     let task_base = if request.len() > 120 {
-        format!("{}…", &request[..120])
+        let mut end = 0;
+        for (idx, _) in request.char_indices() {
+            if idx > 120 {
+                break;
+            }
+            end = idx;
+        }
+        if end == 0 {
+            request.to_string()
+        } else {
+            format!("{}…", &request[..end])
+        }
     } else {
         request.to_string()
     };
@@ -253,8 +308,12 @@ fn fr010_plan(
     }
 }
 
-/// Full organizer plan: mandatory triggers, complexity, registry-backed team/workflow when delegated.
-pub fn plan(prompt: &str, ctx: &PlanContext, snapshot: &AgentRegistrySnapshot) -> ExecutionPlan {
+fn plan_inner<P: OrganizerPlanner>(
+    prompt: &str,
+    ctx: &PlanContext,
+    snapshot: &AgentRegistrySnapshot,
+    planner: &P,
+) -> ExecutionPlan {
     let request_id = ctx
         .request_id
         .clone()
@@ -276,7 +335,8 @@ pub fn plan(prompt: &str, ctx: &PlanContext, snapshot: &AgentRegistrySnapshot) -
             if snapshot.agents.is_empty() {
                 return fr010_plan(request_id, breakdown, Some(label));
             }
-            let (team, workflow, w) = assemble_delegated_plan(snapshot, breakdown.band, prompt);
+            let (team, workflow, w) =
+                planner.plan_delegated(prompt, &breakdown, snapshot);
             ExecutionPlan {
                 request_id,
                 mode: PlanMode::Delegated,
@@ -299,7 +359,8 @@ pub fn plan(prompt: &str, ctx: &PlanContext, snapshot: &AgentRegistrySnapshot) -
             } else if snapshot.agents.is_empty() {
                 fr010_plan(request_id, breakdown, None)
             } else {
-                let (team, workflow, w) = assemble_delegated_plan(snapshot, breakdown.band, prompt);
+                let (team, workflow, w) =
+                    planner.plan_delegated(prompt, &breakdown, snapshot);
                 ExecutionPlan {
                     request_id,
                     mode: PlanMode::Delegated,
@@ -313,6 +374,22 @@ pub fn plan(prompt: &str, ctx: &PlanContext, snapshot: &AgentRegistrySnapshot) -
     }
 }
 
+/// Full organizer plan: mandatory triggers, complexity, registry-backed team/workflow when delegated.
+pub fn plan(prompt: &str, ctx: &PlanContext, snapshot: &AgentRegistrySnapshot) -> ExecutionPlan {
+    let planner = DeterministicOrganizerPlanner::default();
+    plan_inner(prompt, ctx, snapshot, &planner)
+}
+
+/// Planner-injection variant for Haiku-backed OrganizerPlanner implementations.
+pub fn plan_with_planner<P: OrganizerPlanner>(
+    prompt: &str,
+    ctx: &PlanContext,
+    snapshot: &AgentRegistrySnapshot,
+    planner: &P,
+) -> ExecutionPlan {
+    plan_inner(prompt, ctx, snapshot, planner)
+}
+
 /// Backward-compatible entrypoint: uses a fixed stub catalog so existing callers keep stable agent ids.
 pub fn build_execution_plan(prompt: &str, ctx: &PlanContext) -> ExecutionPlan {
     plan(prompt, ctx, &AgentRegistrySnapshot::legacy_stub())
@@ -321,6 +398,7 @@ pub fn build_execution_plan(prompt: &str, ctx: &PlanContext) -> ExecutionPlan {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::plan::band_from_score;
 
     #[test]
     fn sc001_simple_typo_request_is_direct_low_score() {
@@ -434,5 +512,36 @@ mod tests {
         let n = team.agents.len();
         assert!((1..=5).contains(&n));
         assert!(n >= 2 && n <= 3, "complex band expects 2–3 agents when available: {n}");
+    }
+
+    #[test]
+    fn multi_byte_descriptions_and_requests_do_not_panic_or_split_chars() {
+        let agents = vec![AgentRegistryEntry {
+            id: "agent-emoji".to_string(),
+            description: "🚀 very capable agent with unicode description 🚀".repeat(10),
+        }];
+        let snap = AgentRegistrySnapshot { agents };
+        let prompt = "Plan work on 🚀 unicode-heavy request 🚀".repeat(20);
+        let breakdown = ComplexityBreakdown {
+            score: 80,
+            band: band_from_score(80),
+            signals: Default::default(),
+        };
+
+        let (team, workflow, _warnings) =
+            assemble_delegated_plan(&snap, breakdown.band, &prompt);
+
+        assert!(!team.agents.is_empty());
+        let justification = &team.agents[0].justification;
+        assert!(
+            justification.is_char_boundary(justification.len()),
+            "justification must end on a char boundary"
+        );
+
+        let wf = workflow.phases.first().expect("at least one phase");
+        assert!(
+            wf.task.is_char_boundary(wf.task.len()),
+            "task must end on a char boundary"
+        );
     }
 }

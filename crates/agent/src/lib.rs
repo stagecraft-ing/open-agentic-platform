@@ -17,4 +17,7 @@ pub mod validator;
 pub mod verification;
 
 pub use dispatch::{MandatoryOutcome, evaluate_mandatory_triggers};
-pub use registry::{build_execution_plan, plan, AgentRegistryEntry, AgentRegistrySnapshot};
+pub use registry::{
+    build_execution_plan, plan, plan_with_planner, AgentRegistryEntry, AgentRegistrySnapshot,
+    DeterministicOrganizerPlanner, OrganizerPlanner,
+};

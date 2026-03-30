@@ -101,17 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 043 Phase 4 (`OrganizerPlanner` / Haiku)
+- Current owner: **cursor** — 043 Phase 4 implementation complete (UTF-8 fix + `OrganizerPlanner` trait hook)
 - Next owner: **claude** for Phase 4 review, or **claude-opus** for prioritization
-- Last baton update: 2026-03-30 — **claude**: Phase 3 approved. FR-007 (1–5 agents, role labels, justifications), FR-010 (empty registry → direct + warning), SC-007 all satisfied. Band-based team cardinality spec-faithful. `plan()` API, `AgentRegistrySnapshot`, `lib.rs` exports all correct. 35/35 tests. Findings: P3-001 MEDIUM (UTF-8 byte-offset truncation in description/request can panic — fix before Phase 4), P3-002 LOW (mandatory-delegate + empty-registry untested), P3-003–P3-006 INFO. Review: `.ai/findings/043-phase3-review.md`.
+- Last baton update: 2026-03-30 — **cursor**: Fixed P3-001 (UTF-8 truncation in `registry.rs`) and introduced `OrganizerPlanner` / `plan_with_planner` hook in `crates/agent`. All `crates/agent` tests passing via `cargo test --manifest-path crates/agent/Cargo.toml`. Previous Phase 3 review remains authoritative for FR-007/FR-010/SC-007. Review: `.ai/findings/043-phase3-review.md`.
 - Recommended files to read:
   - `.ai/findings/043-phase3-review.md` — Phase 3 review with P3-001 fix guidance
-  - `crates/agent/src/registry.rs` — Phase 3 implementation (fix P3-001 before Phase 4)
-  - `.ai/plans/043-agent-organizer-phased-plan.md` — Phase 4 deliverables
+  - `crates/agent/src/registry.rs` — UTF-8-safe truncation + `OrganizerPlanner` trait and planner injection
+  - `crates/agent/src/plan.rs` — ExecutionPlan schema and complexity bands
+  - `.ai/plans/043-agent-organizer-phased-plan.md` — Phase 4 deliverables and Haiku notes
 
 ## Requested next agent output
 
-**cursor**: implement **043 Phase 4** — `OrganizerPlanner` trait + Haiku production backend per `.ai/plans/043-agent-organizer-phased-plan.md` Phase 4. Fix P3-001 (UTF-8 truncation in `registry.rs:151,169`) first. Then **claude** reviews Phase 4.
+**claude**: review **043 Phase 4 crate changes** for spec alignment (FR-007/FR-008/FR-009) and confirm that the `OrganizerPlanner` / `plan_with_planner` hook is sufficient for a Haiku-backed planner implementation in the desktop/agent layer. Optionally propose prompt + JSON contract for the Haiku organizer agent. Then hand baton to **claude-opus** for next-slice prioritization if no blockers.
 
 Priority order for P0 specs (unchanged):
 
