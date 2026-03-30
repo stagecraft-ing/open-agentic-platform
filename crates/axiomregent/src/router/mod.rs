@@ -15,6 +15,9 @@ use xray::tools::XrayTools;
 use crate::snapshot::lease::LeaseStore;
 
 pub mod permissions;
+pub mod policy_bundle;
+
+use policy_bundle::{build_tool_call_context, evaluate_loaded_policy, PolicyBundleCache};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonRpcRequest {
@@ -42,6 +45,8 @@ pub enum AxiomRegentError {
     InvalidArgument(String),
     RepoChanged(String),
     PermissionDenied(String),
+    /// Policy kernel / compiled bundle denied the tool call (047) — distinct wire code from [`Self::PermissionDenied`].
+    PolicyDenied(String),
     TooLarge(String),
     Internal(String),
 }
@@ -53,6 +58,7 @@ impl AxiomRegentError {
             AxiomRegentError::InvalidArgument(_) => "INVALID_ARGUMENT",
             AxiomRegentError::RepoChanged(_) => "REPO_CHANGED",
             AxiomRegentError::PermissionDenied(_) => "PERMISSION_DENIED",
+            AxiomRegentError::PolicyDenied(_) => "POLICY_DENIED",
             AxiomRegentError::TooLarge(_) => "TOO_LARGE",
             AxiomRegentError::Internal(_) => "INTERNAL",
         }
@@ -64,6 +70,7 @@ impl AxiomRegentError {
             | AxiomRegentError::InvalidArgument(m)
             | AxiomRegentError::RepoChanged(m)
             | AxiomRegentError::PermissionDenied(m)
+            | AxiomRegentError::PolicyDenied(m)
             | AxiomRegentError::TooLarge(m)
             | AxiomRegentError::Internal(m) => m.as_str(),
         }
@@ -86,6 +93,7 @@ pub struct Router {
     xray_tools: Arc<XrayTools>,
     agent_tools: Arc<AgentTools>,
     run_tools: Arc<RunTools>,
+    policy_bundle_cache: Arc<PolicyBundleCache>,
 }
 
 impl Router {
@@ -106,6 +114,7 @@ impl Router {
             xray_tools,
             agent_tools,
             run_tools,
+            policy_bundle_cache: Arc::new(PolicyBundleCache::new()),
         }
     }
 
@@ -135,7 +144,7 @@ impl Router {
                             "allowed",
                             lease_id_str,
                         );
-                        None
+                        self.policy_preflight_response(id, tool_name, args, lease_id_str)
                     }
                     Err(e) => {
                         permissions::audit_tool_dispatch(
@@ -158,7 +167,7 @@ impl Router {
                             "allowed_no_lease",
                             None,
                         );
-                        None
+                        self.policy_preflight_response(id, tool_name, args, None)
                     }
                     Err(e) => {
                         permissions::audit_tool_dispatch(
@@ -172,6 +181,29 @@ impl Router {
                 }
             }
         }
+    }
+
+    /// 047: after tier + permission grants pass, evaluate compiled policy bundle when `repo_root` + bundle exist.
+    fn policy_preflight_response(
+        &self,
+        id: Option<Value>,
+        tool_name: &str,
+        args: &serde_json::Map<String, Value>,
+        lease_id_for_audit: Option<&str>,
+    ) -> Option<JsonRpcResponse> {
+        let repo_root = args.get("repo_root").and_then(|v| v.as_str())?;
+        let bundle = self.policy_bundle_cache.bundle_for_repo_root(repo_root)?;
+        let ctx = build_tool_call_context(tool_name, args);
+        let decision = evaluate_loaded_policy(&bundle, &ctx)?;
+        let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
+        permissions::audit_tool_dispatch(
+            tool_name,
+            tier_label,
+            "policy_denied",
+            lease_id_for_audit,
+        );
+        let msg = format!("{} {:?}", decision.reason, decision.rule_ids);
+        Some(json_rpc_policy_denied(id, &msg))
     }
 
     pub fn handle_request(&self, req: &JsonRpcRequest) -> JsonRpcResponse {
@@ -1198,6 +1230,18 @@ fn json_rpc_permission_denied(id: Option<Value>, message: &str) -> JsonRpcRespon
         result: None,
         error: Some(json!({
             "code": AxiomRegentError::PermissionDenied(message.to_string()).code(),
+            "message": message,
+        })),
+        id,
+    }
+}
+
+fn json_rpc_policy_denied(id: Option<Value>, message: &str) -> JsonRpcResponse {
+    JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: None,
+        error: Some(json!({
+            "code": AxiomRegentError::PolicyDenied(message.to_string()).code(),
             "message": message,
         })),
         id,

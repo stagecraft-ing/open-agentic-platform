@@ -36,6 +36,7 @@ featuregraph = { path = "../featuregraph" }
 xray        = { path = "../xray" }
 agent       = { path = "../agent" }
 run         = { path = "../run" }
+open_agentic_policy_kernel = { path = "../policy-kernel" }
 
 [features]
 default = ["transport-stdio", "resolver-local", "skills-core"]

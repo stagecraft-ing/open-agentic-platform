@@ -101,16 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (047 Phase 5 review complete)
-- Next owner: **cursor** — 047 Phase 6 (axiomregent integration) or next P0 spec slice.
-- Last baton update: 2026-03-30 — **claude**: Phase 5 approved. FR-009/FR-010/NF-004/SC-009 all spec-faithful. P3-003 resolved (originating rule IDs from constitution + shards). 14/14 tests, WASM clean. 6 findings: P5-001 (no hash-tamper negative test, LOW), P5-002 (UUID format not enforced, LOW), P5-003..P5-006 (INFO). No blockers. Review: `.ai/findings/047-phase5-review.md`.
+- Current owner: **cursor** (047 Phase 6 implementation landed)
+- Next owner: **claude** — review Phase 6 (axiomregent policy preflight + `POLICY_DENIED` wire code + benchmarks + `execution/verification.md`).
+- Last baton update: 2026-03-30 — **cursor**: 047 Phase 6 — policy bundle cache (`build/policy-bundles/policy-bundle.json` per `repo_root`); dispatch order grants → `evaluate()` → handler; JSON-RPC `POLICY_DENIED` vs `PERMISSION_DENIED`; Criterion benches (policy-kernel SC-010, policy-compiler NF-002); `specs/047-governance-control-plane/execution/verification.md`; tests `crates/axiomregent/tests/policy_preflight_test.rs`.
 - Recommended files to read:
-  - `.ai/findings/047-phase5-review.md` — Phase 5 review with findings
-  - `specs/047-governance-control-plane/spec.md` — Phase 6 scope
+  - `crates/axiomregent/src/router/policy_bundle.rs` — bundle load + tool context
+  - `specs/047-governance-control-plane/execution/verification.md` — benchmark commands + evidence
 
 ## Requested next agent output
 
-**cursor**: 047 Phase 6 (axiomregent integration + perf/verification evidence) per phased plan, or next P0 spec slice if 047 is complete.
+**claude**: Review 047 Phase 6 against `specs/047-governance-control-plane/spec.md` (integration + NF/SC-010/011). Optional: next P0 slice (044 e2e follow-up, 046, or 047 coherence/proof wiring in axiomregent — out of current Phase 6 scope).
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **047 Phase 6** — axiomregent `open_agentic_policy_kernel` integration: `PolicyBundleCache`, `build_tool_call_context`, `evaluate` after permission grants when `repo_root` + bundle exist; `AxiomRegentError::PolicyDenied` / JSON-RPC `POLICY_DENIED`; benches + `execution/verification.md`; `policy_preflight_test` integration tests. Validation: `cargo test` (axiomregent, policy-kernel), `cargo bench` (policy-kernel, policy-compiler).
 - 2026-03-30 (claude): **047 Phase 5 review** — Phase 5 approved. FR-009 all 7 proof record fields present (id, timestamp, policy_bundle_hash, rule_ids, input_context_hash, decision, previous_record_hash + record_hash). FR-010 5-check independent verification + standalone `verify_proof_chain` binary. NF-004 1024-byte budget excluding context hash enforced in verifier. SC-009 100-record chain build + verify. P3-003 resolved (originating rule IDs from BTreeSet of constitution + shard tool_allowlist rules). 14/14 tests, WASM clean. 6 findings: P5-001 no hash-tamper negative test (LOW), P5-002 UUID format not enforced (LOW), P5-003..P5-006 (INFO). No blockers. Review: `.ai/findings/047-phase5-review.md`.
 - 2026-03-30 (cursor): **047 Phase 5** — `proof_chain` module + exports; `ProofChainWriter` / `verify_proof_chain` / `compute_record_hash`; genesis link to bundle hash; SC-009 synthetic 100-chain test; NF-004 check in verifier; `verify_proof_chain` CLI binary. P3-003: allowlist deny returns sorted originating rule IDs from merged constitution + shard `tool_allowlist` rules. Validation: `cargo test` + `wasm32-unknown-unknown` (policy-kernel), `cargo test` (policy-compiler).
 - 2026-03-30 (claude): **047 Phase 4 review** — Phase 4 approved. FR-008 four privilege bands (Full >= 0.8, Restricted >= 0.5, ReadOnly >= 0.2, Suspended < 0.2) match spec thresholds. SC-007 configurable violation floor (`violation_count_for_restricted`, default 3) forces at least Restricted via `max_severity`. SC-008 monotonic latch via `stuck_severity` ratchet + `human_restore()` as sole escape path. Weighted decay coherence (lambda=0.95, window=50) is a sound implementation of the spec formula. `record_from_policy_outcome` bridges evaluate() to coherence. 9/9 tests, WASM clean. 6 findings: P4-001 no `record_from_policy_outcome` test (LOW), P4-006 no exact boundary test (LOW), P4-002..P4-005 (INFO). P3-003 still open. No blockers for Phase 5. Review: `.ai/findings/047-phase4-review.md`.
