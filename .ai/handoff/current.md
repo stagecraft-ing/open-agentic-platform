@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 048 planning pass complete (`.ai/plans/048-hookify-rule-engine-phased-plan.md`)
-- Next owner: **claude** for 048 plan review, then cursor begins Phase 1 implementation
-- Last baton update: 2026-03-30 — **cursor**: Read `specs/048-hookify-rule-engine/spec.md` and `.ai/findings/next-slice-prioritization-2026-03-30.md`, then drafted `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Plan defines H-001..H-006 decisions and six phases covering parser/types, condition evaluator, action executors, engine ordering/short-circuiting, hot-reload loader, hooks.json + built-in rules + verification artifact. Baton passed to **claude** for plan review against FR/NF/SC.
+- Current owner: **cursor** — 048 Phase 1 implementation
+- Next owner: **claude** for Phase 1 review
+- Last baton update: 2026-03-30 — **claude**: Reviewed `.ai/plans/048-hookify-rule-engine-phased-plan.md` against spec. Plan approved for Phase 1 start. All 18 requirements (9 FR + 3 NF + 6 SC) covered across 6 phases. 6 findings: F-001 MEDIUM (CLI entry point + stdin/stdout protocol missing — needed before Phase 6), F-002 LOW (flat condition list = implicit AND should be stated), F-005 LOW (hooks.json output path undecided), F-003/F-004/F-006 INFO. No blockers for Phase 1. Review: `.ai/findings/048-plan-review.md`. Baton → **cursor** for Phase 1.
 - Recommended files to read:
   - `.ai/findings/next-slice-prioritization-2026-03-30.md` — Full prioritization analysis for P1 wave
   - `specs/048-hookify-rule-engine/spec.md` — Next spec to implement
@@ -112,7 +112,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**claude**: Review `.ai/plans/048-hookify-rule-engine-phased-plan.md` against `specs/048-hookify-rule-engine/spec.md`; record findings in `.ai/findings/048-plan-review.md` (severity-tagged, FR/NF/SC mapped), and confirm whether cursor can start Phase 1 as planned.
+**cursor**: Begin 048 Phase 1 implementation per `.ai/plans/048-hookify-rule-engine-phased-plan.md` Phase 1 deliverables. Note F-002 from plan review: clarify that flat conditions arrays are implicit AND when implementing the parser/normalizer. After Phase 1, baton to **claude** for review.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **048 plan review** — Plan approved for Phase 1 start. All 18 requirements (9 FR + 3 NF + 6 SC) covered across 6 phases. Phase ordering sound (types → conditions → actions → engine core → loader → manifest). H-001..H-006 decisions all spec-faithful. 6 findings: F-001 MEDIUM (CLI entry point + stdin/stdout hook protocol not addressed — the spec's hooks.json shows shell commands but the plan only describes a library API; needed before Phase 6), F-002 LOW (flat conditions array = implicit AND should be stated explicitly), F-005 LOW (hooks.json output path undecided), F-003 INFO (tie-breaking is plan-originated), F-004 INFO (transform set sufficient), F-006 INFO (Stop event payload shape differs from tool events — needs Phase 2 fixture). No blockers. Review: `.ai/findings/048-plan-review.md`.
 - 2026-03-30 (cursor): **048 planning pass** — Read `specs/048-hookify-rule-engine/spec.md` plus `.ai/findings/next-slice-prioritization-2026-03-30.md`, then drafted `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Plan defines H-001..H-006 (package topology, condition AST normalization, modify transform safety envelope, atomic hot-reload snapshots, hooks manifest strategy, diagnostics contract) and six phases: parser/types, condition evaluator, action executors, engine ordering/short-circuiting, loader+hot-reload, hooks.json+built-in rules+verification evidence. Baton handed to **claude** for plan review against FR/NF/SC.
 - 2026-03-30 (claude): **043 Phase 5+6 review** — Phase 5+6 approved. `plan_request` Tauri command (`agents.rs:387-408`) accepts request + optional `PlanContext`, loads `AgentRegistrySnapshot` from SQLite, calls `agent::plan()`, returns `ExecutionPlanDto` with all spec fields mapped. `load_agent_registry_snapshot` reads agent DB, uses `default_task` or first system_prompt line as description. DTO layer (`agents.rs:116-247`) faithfully maps all `ExecutionPlan` fields including enums → strings. Verification docs for 043 and 044 present (SC-008 satisfied). 36/36 agent crate tests, Tauri compiles clean. Findings: P5-001 missing `#[specta::specta]` = no TS bindings (LOW, systemic across all agent commands), P5-004 no Tauri integration test (LOW), P5-002/P5-003/P5-005/P5-006 (INFO). **043 feature-complete — all 6 phases approved. All P0 specs (042–047) now complete.** Review: `.ai/findings/043-phase5-review.md`.
 - 2026-03-30 (claude-opus): **Next-slice prioritization** — 043 is last incomplete P0 (Phase 5 Tauri wiring + Phase 6 verification remain). All other P0s (042, 044, 045, 046, 047) feature-complete. Recommended: finish 043 with deterministic planner (defer Haiku to post-048), then P1 wave: 048 Hookify Rule Engine → 054 Agent Frontmatter Schema → 051 Worktree Agents. 044 FR-001 (NL decomposition) deferred indefinitely. 044 SC-007 verification doc is minor housekeeping. Review: `.ai/findings/next-slice-prioritization-2026-03-30.md`.
