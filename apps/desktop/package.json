@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
+    "@opc/claude-code-bridge": "workspace:*",
     "@opc/mcp-client": "workspace:*",
     "@opc/types": "workspace:*",
     "@opc/ui": "workspace:*",

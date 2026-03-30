@@ -1,10 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import type {
-  BridgeEvent,
-  BridgeQueryOptions,
-  SessionCostSummary,
-} from "./types.js";
+import type { BridgeEvent, BridgeQueryOptions } from "./types.js";
 
 /**
  * Fallback adapter: spawns the `claude` CLI with `--output-format stream-json`

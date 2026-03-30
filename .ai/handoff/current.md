@@ -101,10 +101,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude**
-- Next owner: **claude** (review bridge package against spec FR-xxx / SC-xxx, then wire Tauri integration) or **cursor** (Tauri + frontend integration slice)
-- Last baton update: 2026-03-29 — **claude**: Landed first vertical slice for **045** — `packages/claude-code-bridge/` with 5 files implementing FR-001 through FR-009. SDK adapter, CLI fallback, permission broker, typed BridgeEvent discriminated union, cost tracking. No Tauri/frontend integration yet (next slice).
+- Current owner: **cursor**
+- Next owner: **claude** (review `bridgeEventToClaudeOutput` vs stream-json parity; plan Node sidecar or IPC for `queryClaudeCode` in Tauri) or **cursor** (spawn bridge process + emit mapped lines on `claude-output`)
+- Last baton update: 2026-03-29 — **cursor**: Handoff response — desktop depends on `@opc/claude-code-bridge` (types subpath); added `bridgeEventToClaudeOutput.ts` + vitest mapping **BridgeEvent → JSONL lines** compatible with existing `claude-output` / `useClaudeMessages`. Bridge package: `exports` for `./types`, ambient `anthropic-claude-code.d.ts`, removed unused import in `cli-adapter`. Next: Rust/Node boundary to run the bridge and forward lines; optional `claude-permission-request` IPC per spec.
 - Recommended files to read:
+  - `apps/desktop/src/lib/bridgeEventToClaudeOutput.ts` — FR-009 → legacy stream-json line mapping
   - `packages/claude-code-bridge/src/index.ts` — public API: `queryClaudeCode()` async generator
   - `packages/claude-code-bridge/src/types.ts` — all BridgeEvent, SDKMessage, and option types
   - `packages/claude-code-bridge/src/sdk-adapter.ts` — SDK path with permission broker
@@ -138,8 +139,8 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): 045 integration slice — `@opc/claude-code-bridge` wired into `apps/desktop` (workspace dep); `bridgeEventToClaudeOutputLines()` maps bridge events to JSONL strings for existing `claude-output` consumers; `packages/claude-code-bridge` exports `./types`, ambient SDK declaration, `cli-adapter` import cleanup. Tests: `apps/desktop/src/lib/bridgeEventToClaudeOutput.test.ts`. Next: Tauri/Node bridge process + permission round-trip.
 - 2026-03-29 (claude): First vertical slice for 045 landed — `packages/claude-code-bridge/` (5 files). Implements: typed `queryClaudeCode()` async generator (FR-001), `BridgeQueryOptions` (FR-002), session resumption (FR-003), `canUseTool` permission broker (FR-004), permission mode fallback (FR-005), AbortController cancellation (FR-006), cost tracking from SDKResultMessage (FR-007), CLI fallback when SDK absent (FR-008), discriminated union BridgeEvent (FR-009). Next: Tauri backend + frontend integration.
-- 2026-03-29 (cursor): Handoff response — baton claimed; accepted P0 order (045 → 042 → 044 → 046 → 047); next work: implementation slice for spec **045** (Claude Code SDK Bridge).
 - 2026-03-29 (claude-opus): Stagecraft-ing full extraction + integration. 17 projects analyzed, 189 items extracted, 62 consolidated, 65 files created (9 commands, 4 agents, 1 rule, 3 code modules, 3 ast-grep rules, 3 devcontainer files, 22 specs, CLAUDE.md, AGENTS.md). All source projects confirmed safe to delete.
 - 2026-03-29 (claude-opus): Slice H complete. V-005 message wording fixed. All residuals cleared.
 - 2026-03-29 (claude-opus): Post-041 synthesis complete. Authority-map, next-slice, integration-debt all updated for 032–041.
