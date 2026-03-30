@@ -1,3 +1,7 @@
+use agent::{
+    plan::{AgentRole as OrganizerAgentRole, ComplexityBand, ComplexityBlock, ExecutionPlan},
+    AgentRegistryEntry, AgentRegistrySnapshot,
+};
 use anyhow::Result;
 use chrono;
 use dirs;
@@ -9,6 +13,7 @@ use serde_json::Value as JsonValue;
 use std::io::{BufRead, BufReader, Write};
 use std::process::Stdio;
 use std::sync::Mutex;
+use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::sidecars::SidecarState;
@@ -104,6 +109,143 @@ pub struct AgentData {
 /// Database connection state
 pub struct AgentDb(pub Mutex<Connection>);
 
+// ============================================================================
+// Agent organizer (043) — thin ExecutionPlan DTO for Tauri
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct PlanContextInput {
+    #[serde(default)]
+    pub request_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ComplexityDto {
+    pub score: u8,
+    pub band: String,
+    pub signals: std::collections::BTreeMap<String, f64>,
+    pub mandatory_trigger: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct TeamAgentDto {
+    pub agent_id: String,
+    pub role: String,
+    pub justification: String,
+    pub model: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct TeamBlockDto {
+    pub agents: Vec<TeamAgentDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct WorkflowPhaseDto {
+    pub id: String,
+    pub name: String,
+    pub agents: Vec<String>,
+    pub task: String,
+    pub depends_on: Vec<String>,
+    pub output: String,
+    pub success_gate: String,
+    pub model: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct WorkflowBlockDto {
+    pub phases: Vec<WorkflowPhaseDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ExecutionPlanDto {
+    pub request_id: String,
+    pub mode: String,
+    pub complexity: ComplexityDto,
+    pub team: Option<TeamBlockDto>,
+    pub workflow: Option<WorkflowBlockDto>,
+    pub warnings: Option<Vec<String>>,
+}
+
+impl From<&ExecutionPlan> for ExecutionPlanDto {
+    fn from(plan: &ExecutionPlan) -> Self {
+        fn band_to_string(band: ComplexityBand) -> String {
+            match band {
+                ComplexityBand::Simple => "simple",
+                ComplexityBand::Moderate => "moderate",
+                ComplexityBand::Complex => "complex",
+                ComplexityBand::HighlyComplex => "highly_complex",
+            }
+            .to_string()
+        }
+
+        fn role_to_string(role: OrganizerAgentRole) -> String {
+            match role {
+                OrganizerAgentRole::Lead => "lead",
+                OrganizerAgentRole::Support => "support",
+                OrganizerAgentRole::Reviewer => "reviewer",
+            }
+            .to_string()
+        }
+
+        fn model_to_string(model: agent::plan::ModelTier) -> String {
+            match model {
+                agent::plan::ModelTier::Haiku => "haiku",
+                agent::plan::ModelTier::Sonnet => "sonnet",
+                agent::plan::ModelTier::Opus => "opus",
+            }
+            .to_string()
+        }
+
+        let complexity = &plan.complexity;
+        let team = plan.team.as_ref().map(|t| TeamBlockDto {
+            agents: t
+                .agents
+                .iter()
+                .map(|a| TeamAgentDto {
+                    agent_id: a.agent_id.clone(),
+                    role: role_to_string(a.role),
+                    justification: a.justification.clone(),
+                    model: model_to_string(a.model),
+                })
+                .collect(),
+        });
+        let workflow = plan.workflow.as_ref().map(|w| WorkflowBlockDto {
+            phases: w
+                .phases
+                .iter()
+                .map(|p| WorkflowPhaseDto {
+                    id: p.id.clone(),
+                    name: p.name.clone(),
+                    agents: p.agents.clone(),
+                    task: p.task.clone(),
+                    depends_on: p.depends_on.clone(),
+                    output: p.output.clone(),
+                    success_gate: p.success_gate.clone(),
+                    model: model_to_string(p.model),
+                })
+                .collect(),
+        });
+
+        ExecutionPlanDto {
+            request_id: plan.request_id.clone(),
+            mode: match plan.mode {
+                agent::plan::PlanMode::Direct => "direct".to_string(),
+                agent::plan::PlanMode::Delegated => "delegated".to_string(),
+            },
+            complexity: ComplexityDto {
+                score: complexity.score,
+                band: band_to_string(complexity.band),
+                signals: complexity.signals.clone(),
+                mandatory_trigger: complexity.mandatory_trigger.clone(),
+            },
+            team,
+            workflow,
+            warnings: plan.warnings.clone(),
+        }
+    }
+}
+
 /// Real-time JSONL reading and processing functions
 impl AgentRunMetrics {
     /// Calculate metrics from JSONL content
@@ -175,6 +317,42 @@ impl AgentRunMetrics {
     }
 }
 
+fn load_agent_registry_snapshot(conn: &Connection) -> Result<AgentRegistrySnapshot, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, system_prompt, default_task FROM agents ORDER BY created_at DESC",
+        )
+        .map_err(|e| format!("prepare agent registry query failed: {}", e))?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let id: i64 = row.get(0)?;
+            let name: String = row.get(1)?;
+            let system_prompt: String = row.get(2)?;
+            let default_task: Option<String> = row.get(3)?;
+
+            let description = default_task
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or_else(|| {
+                    system_prompt
+                        .lines()
+                        .next()
+                        .unwrap_or("agent")
+                        .to_string()
+                });
+
+            Ok(AgentRegistryEntry {
+                id: format!("agent-{}", id),
+                description,
+            })
+        })
+        .map_err(|e| format!("query agent registry failed: {}", e))?
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(|e| format!("collect agent registry failed: {}", e))?;
+
+    Ok(AgentRegistrySnapshot { agents: rows })
+}
+
 /// Read JSONL content from a session file
 pub async fn read_session_jsonl(session_id: &str, project_path: &str) -> Result<String, String> {
     let claude_dir = dirs::home_dir()
@@ -198,6 +376,35 @@ pub async fn read_session_jsonl(session_id: &str, project_path: &str) -> Result<
         Ok(content) => Ok(content),
         Err(e) => Err(format!("Failed to read session file: {}", e)),
     }
+}
+
+/// Plan an execution strategy for a free-form request using the Agent Organizer (043).
+///
+/// This command loads the current agent catalog from the SQLite database,
+/// builds an `AgentRegistrySnapshot`, and calls `agent::plan()` to produce
+/// a structured `ExecutionPlan`. The result is mapped into a thin DTO so
+/// TypeScript bindings stay simple while the Rust contract remains canonical.
+#[tauri::command]
+pub async fn plan_request(
+    db: State<'_, AgentDb>,
+    request: String,
+    context: Option<PlanContextInput>,
+) -> Result<ExecutionPlanDto, String> {
+    if request.trim().is_empty() {
+        return Err("request cannot be empty".to_string());
+    }
+
+    let ctx = agent::plan::PlanContext {
+        request_id: context.and_then(|c| c.request_id),
+    };
+
+    let snapshot = {
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        load_agent_registry_snapshot(&conn)?
+    };
+
+    let plan = agent::plan(&request, &ctx, &snapshot);
+    Ok(ExecutionPlanDto::from(&plan))
 }
 
 /// Get agent run with real-time metrics
