@@ -1,5 +1,10 @@
 //! FR-006 / FR-007: deterministic policy evaluation for a tool call against a compiled bundle.
-//! No I/O, no clock — suitable for `wasm32-unknown-unknown`.
+//! FR-008 / SC-007 / SC-008: coherence scheduler (see [`coherence`]).
+//! No I/O, no wall clock — suitable for `wasm32-unknown-unknown`.
+
+pub mod coherence;
+
+pub use coherence::{CoherenceScheduler, CoherenceSchedulerConfig, PrivilegeLevel};
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};

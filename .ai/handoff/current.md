@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (047 Phase 3 review complete)
-- Next owner: **cursor** — implement Phase 4 (coherence scheduler: FR-008, SC-007, SC-008).
-- Last baton update: 2026-03-30 — **claude**: Phase 3 approved. FR-006 `evaluate()` matches spec signature. FR-007 all four gates (secrets scanner, destructive op, tool allowlist, diff size limiter) spec-faithful with correct priority ordering and constitution/shard scoping. SC-003..SC-006 directly tested. P2-001 resolved. WASM target clean. 6 findings: P3-001 (no allow-path test, LOW), P3-002 (pattern list extensibility, LOW), P3-003 (allowlist gate returns KERNEL:BUILTIN-ALLOWLIST instead of originating rule IDs — fix before Phase 5 proof chains, LOW), P3-004..P3-006 (INFO). 5/5 kernel tests pass, 7/7 compiler tests pass. Review: `.ai/findings/047-phase3-review.md`.
+- Current owner: **cursor** (047 Phase 4 implementation complete)
+- Next owner: **claude** — review Phase 4 (coherence scheduler: FR-008, SC-007, SC-008) against `specs/047-governance-control-plane/spec.md`.
+- Last baton update: 2026-03-30 — **cursor**: Phase 4 landed in `crates/policy-kernel`: `coherence` module with `CoherenceScheduler` / `CoherenceSchedulerConfig`, weighted rolling-window coherence (`decay_lambda` default 0.95), `PrivilegeLevel` mapping per FR-008, SC-007 violation floor (`violation_count_for_restricted`, default 3), SC-008 monotonic latch + `human_restore()` clearing window and latch. Tests: SC-007, SC-008, threshold bands, weighted window. Validation: `cargo test` (policy-kernel), `cargo check --target wasm32-unknown-unknown` (policy-kernel).
 - Recommended files to read:
+  - `crates/policy-kernel/src/coherence.rs` — Phase 4 implementation
   - `specs/047-governance-control-plane/spec.md` — FR-008, SC-007, SC-008
-  - `.ai/findings/047-phase3-review.md` — Phase 3 findings context
-  - `.ai/plans/047-governance-control-plane-phased-plan.md` — Phase 4 plan
+  - `.ai/plans/047-governance-control-plane-phased-plan.md` — Phase 5 next
 
 ## Requested next agent output
 
-**cursor**: Phase 4 implementation — coherence scheduler (FR-008: privilege levels full/restricted/read-only/suspended based on rolling-window coherence score, SC-007: degradation after policy-violating actions, SC-008: monotonic degradation without self-promotion).
+**claude**: Phase 4 review — coherence scheduler (`coherence.rs`): FR-008 privilege bands, SC-007 configurable violation floor, SC-008 monotonic latch + human restore; confirm alignment with spec narrative and suggest any gaps before Phase 5 (proof chains).
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **047 Phase 4** — `crates/policy-kernel/src/coherence.rs`: `PrivilegeLevel`, `CoherenceScheduler` with weighted window coherence, `violation_count_for_restricted` (SC-007), monotonic `stuck_severity` + `human_restore()` (SC-008). Exported from `lib.rs`. Tests cover SC-007/SC-008, FR-008 thresholds, decay weighting. Validation: `cargo test` + `wasm32-unknown-unknown` check (policy-kernel).
 - 2026-03-30 (claude): **047 Phase 3 review** — Phase 3 approved. FR-006 `evaluate(ToolCallContext, PolicyBundle) -> PolicyDecision` entrypoint matches spec. FR-007 all four gates operational: secrets scanner (3 regex patterns, constitution-level invariant), destructive op guard (6 substring patterns + `allow_destructive` override), tool allowlist (constitution + shard merge into BTreeSet), diff size limiter (min-threshold-wins across applicable rules). SC-003..SC-006 directly tested. P2-001 resolved (validation excluded from hash payload). WASM `wasm32-unknown-unknown` check clean. PolicyRule shared type between kernel and compiler. 6 findings: P3-001 no allow-path test (LOW), P3-002 pattern list extensibility (LOW), P3-003 allowlist BUILTIN rule ID instead of originating IDs (LOW — fix before Phase 5), P3-004..P3-006 (INFO). 5/5 kernel tests, 7/7 compiler tests. Review: `.ai/findings/047-phase3-review.md`.
 - 2026-03-30 (cursor): **047 Phase 3** — `crates/policy-kernel` with `evaluate()`, four gates, SC-003..006 + determinism tests; `PolicyRule` extended + shared with policy-compiler; P2-001 hash excludes `validation`. Validation: `cargo test` (policy-kernel + policy-compiler), `cargo check --target wasm32-unknown-unknown` (policy-kernel).
 - 2026-03-30 (claude): **047 Phase 2 review** — Phase 2 approved. FR-003 classification (constitution = global+enforce, shards = all else by scope), FR-004 bundle emission (5 sections), FR-005 determinism (canonical JSON SHA-256 excluding compiledAt/policyBundleHash) — all spec-faithful. SC-001/SC-002 directly tested. P1-001 resolved. 6 findings: P2-001 MEDIUM (validation in hash payload), P2-002/P2-003 LOW, P2-004–P2-006 INFO. 7/7 tests pass. Review: `.ai/findings/047-phase2-review.md`.
