@@ -205,7 +205,7 @@ function waitForExit(child: ChildProcess): Promise<number> {
       resolve(child.exitCode);
       return;
     }
-    child.on("exit", (code) => resolve(code ?? 1));
+    child.on("exit", (code: number | null) => resolve(code ?? 1));
     child.on("error", () => resolve(1));
   });
 }

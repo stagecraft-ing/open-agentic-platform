@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "prebuild": "",
+    "prebuild": "pnpm exec tsc -p ../../packages/claude-code-bridge/tsconfig.json",
     "build:executables": "bun run scripts/fetch-and-build.js --version=1.0.41",
     "build:executables:current": "bun run scripts/fetch-and-build.js current --version=1.0.41",
     "build:executables:linux": "bun run scripts/fetch-and-build.js linux --version=1.0.41",

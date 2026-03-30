@@ -7,6 +7,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
+use tokio::io::AsyncWriteExt;
 
 use crate::sidecars::SidecarState;
 use tokio::process::{Child, Command};
@@ -23,6 +24,12 @@ impl Default for ClaudeProcessState {
             current_process: Arc::new(Mutex::new(None)),
         }
     }
+}
+
+/// Stdin of the active Node `@opc/claude-code-bridge` sidecar for permission responses (spec 045).
+#[derive(Default)]
+pub struct ClaudeBridgeIpcState {
+    pub bridge_stdin: Arc<Mutex<Option<tokio::process::ChildStdin>>>,
 }
 
 /// Represents a project in the ~/.claude/projects directory
@@ -142,6 +149,20 @@ fn get_claude_dir() -> Result<PathBuf> {
     Ok(dirs::home_dir()
         .context("Could not find home directory")?
         .join(".claude"))
+}
+
+/// Built `dist/sidecar.js` from `packages/claude-code-bridge` (`pnpm exec tsc -p ...`).
+fn bridge_sidecar_js_path() -> Result<PathBuf, String> {
+    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../..")
+        .join("packages/claude-code-bridge/dist/sidecar.js");
+    if !p.exists() {
+        return Err(format!(
+            "Bridge sidecar not found at {}. Build with: pnpm exec tsc -p packages/claude-code-bridge/tsconfig.json",
+            p.display()
+        ));
+    }
+    Ok(p)
 }
 
 /// Gets the actual project path by reading the cwd from the JSONL entries
@@ -1090,6 +1111,87 @@ pub async fn resume_claude_code(
     Ok(mode.to_string())
 }
 
+/// Run Claude Code via the Node bridge sidecar (`dist/sidecar.js`) — spec 045 IPC path.
+#[tauri::command]
+pub async fn execute_claude_bridge(
+    app: AppHandle,
+    project_path: String,
+    prompt: String,
+    model: String,
+    resume_session_id: Option<String>,
+    sidecar: State<'_, SidecarState>,
+) -> Result<String, String> {
+    log::info!(
+        "Starting Claude bridge sidecar in: {} with model: {}",
+        project_path,
+        model
+    );
+
+    let sidecar_js = bridge_sidecar_js_path()?;
+
+    let announce_port = *sidecar.axiomregent_port.lock().unwrap();
+    let plan = crate::governed_claude::plan_governed(
+        announce_port,
+        crate::governed_claude::grants_json_claude_default(),
+    );
+    let mode = match &plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+        crate::governed_claude::GovernedPlan::Bypass => "bypass",
+    };
+    let _ = app.emit(
+        "governance-mode",
+        serde_json::json!({ "mode": mode, "context": "claude_bridge" }),
+    );
+
+    let query_json = serde_json::json!({
+        "type": "query",
+        "prompt": prompt,
+        "workingDirectory": project_path,
+        "model": model,
+        "sessionId": resume_session_id,
+        "permissionMode": "default",
+    });
+
+    let mut cmd = create_command_with_env("node");
+    cmd.arg(sidecar_js.as_os_str())
+        .current_dir(&project_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    spawn_claude_bridge_process(app, cmd, query_json, prompt, model, project_path).await?;
+    Ok(mode.to_string())
+}
+
+/// Forward a tool permission decision to the active bridge sidecar stdin.
+#[tauri::command]
+pub async fn respond_to_bridge_permission(
+    request_id: String,
+    allowed: bool,
+    bridge_ipc: State<'_, ClaudeBridgeIpcState>,
+) -> Result<(), String> {
+    let mut guard = bridge_ipc.bridge_stdin.lock().await;
+    let Some(stdin) = guard.as_mut() else {
+        return Err("No active Claude bridge session".to_string());
+    };
+
+    let payload = serde_json::json!({
+        "type": "permission-response",
+        "requestId": request_id,
+        "allowed": allowed,
+    });
+    let line = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
+    stdin
+        .write_all(format!("{}\n", line).as_bytes())
+        .await
+        .map_err(|e| format!("Failed to write permission response: {}", e))?;
+    stdin
+        .flush()
+        .await
+        .map_err(|e| format!("Failed to flush permission response: {}", e))?;
+    Ok(())
+}
+
 /// Cancel the currently running Claude Code execution
 #[tauri::command]
 pub async fn cancel_claude_execution(
@@ -1100,6 +1202,11 @@ pub async fn cancel_claude_execution(
         "Cancelling Claude Code execution for session: {:?}",
         session_id
     );
+
+    {
+        let bridge = app.state::<ClaudeBridgeIpcState>();
+        *bridge.bridge_stdin.lock().await = None;
+    }
 
     let mut killed = false;
     let mut attempted_methods = Vec::new();
@@ -1409,6 +1516,191 @@ async fn spawn_claude_process(
         }
 
         // Clear the process from state
+        *current_process = None;
+    });
+
+    Ok(())
+}
+
+/// Spawns the Node bridge sidecar: writes the query line, streams stdout as `claude-output`.
+async fn spawn_claude_bridge_process(
+    app: AppHandle,
+    mut cmd: Command,
+    query_json: serde_json::Value,
+    prompt: String,
+    model: String,
+    project_path: String,
+) -> Result<(), String> {
+    use std::sync::Mutex as StdMutex;
+    use tokio::io::{AsyncBufReadExt, BufReader};
+
+    let bridge_stdin_clear = app.state::<ClaudeBridgeIpcState>().bridge_stdin.clone();
+    let claude_state_wait = app.state::<ClaudeProcessState>().current_process.clone();
+
+    {
+        let mut current_process = claude_state_wait.lock().await;
+        if let Some(mut existing_child) = current_process.take() {
+            log::warn!("Killing existing Claude process before starting bridge sidecar");
+            let _ = existing_child.kill().await;
+        }
+        *bridge_stdin_clear.lock().await = None;
+    }
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn Claude bridge sidecar: {}", e))?;
+
+    let pid = child.id().unwrap_or(0);
+    log::info!("Spawned Claude bridge sidecar with PID: {:?}", pid);
+
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| "Failed to get bridge stdin".to_string())?;
+
+    let query_line = serde_json::to_string(&query_json).map_err(|e| e.to_string())?;
+    stdin
+        .write_all(format!("{}\n", query_line).as_bytes())
+        .await
+        .map_err(|e| format!("Failed to write bridge query: {}", e))?;
+    stdin
+        .flush()
+        .await
+        .map_err(|e| format!("Failed to flush bridge query: {}", e))?;
+
+    *bridge_stdin_clear.lock().await = Some(stdin);
+
+    let stdout = child.stdout.take().ok_or("Failed to get stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to get stderr")?;
+
+    let session_id_holder: Arc<StdMutex<Option<String>>> = Arc::new(StdMutex::new(None));
+    let run_id_holder: Arc<StdMutex<Option<i64>>> = Arc::new(StdMutex::new(None));
+
+    {
+        let mut current_process = claude_state_wait.lock().await;
+        *current_process = Some(child);
+    }
+
+    let app_handle = app.clone();
+    let session_id_holder_clone = session_id_holder.clone();
+    let run_id_holder_clone = run_id_holder.clone();
+    let registry = app.state::<crate::process::ProcessRegistryState>();
+    let registry_clone = registry.0.clone();
+    let project_path_clone = project_path.clone();
+    let prompt_clone = prompt.clone();
+    let model_clone = model.clone();
+
+    let stdout_task = tokio::spawn(async move {
+        let mut lines = BufReader::new(stdout).lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            log::debug!("Bridge stdout: {}", line);
+
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) {
+                if v.get("done").and_then(|x| x.as_bool()) == Some(true) {
+                    break;
+                }
+            }
+
+            if let Ok(msg) = serde_json::from_str::<serde_json::Value>(&line) {
+                if msg.get("type") == Some(&serde_json::json!("system"))
+                    && msg.get("subtype") == Some(&serde_json::json!("init"))
+                {
+                    if let Some(claude_session_id) = msg.get("session_id").and_then(|s| s.as_str()) {
+                        let mut session_id_guard = session_id_holder_clone.lock().unwrap();
+                        if session_id_guard.is_none() {
+                            *session_id_guard = Some(claude_session_id.to_string());
+                            log::info!(
+                                "Extracted Claude session ID (bridge): {}",
+                                claude_session_id
+                            );
+                            match registry_clone.register_claude_session(
+                                claude_session_id.to_string(),
+                                pid,
+                                project_path_clone.clone(),
+                                prompt_clone.clone(),
+                                model_clone.clone(),
+                            ) {
+                                Ok(run_id) => {
+                                    log::info!(
+                                        "Registered Claude bridge session with run_id: {}",
+                                        run_id
+                                    );
+                                    let mut run_id_guard = run_id_holder_clone.lock().unwrap();
+                                    *run_id_guard = Some(run_id);
+                                }
+                                Err(e) => {
+                                    log::error!("Failed to register Claude bridge session: {}", e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(run_id) = *run_id_holder_clone.lock().unwrap() {
+                let _ = registry_clone.append_live_output(run_id, &line);
+            }
+
+            if let Some(ref session_id) = *session_id_holder_clone.lock().unwrap() {
+                let _ = app_handle.emit(&format!("claude-output:{}", session_id), &line);
+            }
+            let _ = app_handle.emit("claude-output", &line);
+        }
+    });
+
+    let app_handle_stderr = app.clone();
+    let session_id_holder_stderr = session_id_holder.clone();
+    let stderr_task = tokio::spawn(async move {
+        let mut lines = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            log::error!("Bridge stderr: {}", line);
+            if let Some(ref session_id) = *session_id_holder_stderr.lock().unwrap() {
+                let _ = app_handle_stderr.emit(&format!("claude-error:{}", session_id), &line);
+            }
+            let _ = app_handle_stderr.emit("claude-error", &line);
+        }
+    });
+
+    let app_handle_wait = app.clone();
+    let session_id_holder_wait = session_id_holder.clone();
+    let run_id_holder_wait = run_id_holder.clone();
+    let registry_wait = app.state::<crate::process::ProcessRegistryState>().0.clone();
+    let bridge_stdin_clear_wait = bridge_stdin_clear.clone();
+
+    tokio::spawn(async move {
+        let _ = stdout_task.await;
+        let _ = stderr_task.await;
+
+        *bridge_stdin_clear_wait.lock().await = None;
+
+        let mut current_process = claude_state_wait.lock().await;
+        if let Some(mut child) = current_process.take() {
+            match child.wait().await {
+                Ok(status) => {
+                    log::info!("Bridge sidecar exited with status: {}", status);
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                    if let Some(ref session_id) = *session_id_holder_wait.lock().unwrap() {
+                        let _ = app_handle_wait
+                            .emit(&format!("claude-complete:{}", session_id), status.success());
+                    }
+                    let _ = app_handle_wait.emit("claude-complete", status.success());
+                }
+                Err(e) => {
+                    log::error!("Failed to wait for bridge sidecar: {}", e);
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                    if let Some(ref session_id) = *session_id_holder_wait.lock().unwrap() {
+                        let _ =
+                            app_handle_wait.emit(&format!("claude-complete:{}", session_id), false);
+                    }
+                    let _ = app_handle_wait.emit("claude-complete", false);
+                }
+            }
+        }
+
+        if let Some(run_id) = *run_id_holder_wait.lock().unwrap() {
+            let _ = registry_wait.unregister_process(run_id);
+        }
+
         *current_process = None;
     });
 

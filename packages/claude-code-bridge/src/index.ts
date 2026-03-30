@@ -1,3 +1,5 @@
+export { bridgeEventToClaudeOutputLines } from "./claude-output-lines.js";
+
 export type {
   BridgeEvent,
   BridgeStartEvent,

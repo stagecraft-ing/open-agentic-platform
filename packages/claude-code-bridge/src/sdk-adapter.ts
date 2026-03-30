@@ -69,13 +69,18 @@ export async function* queryViaSdk(
 
   // Expose the broker so the caller can wire IPC-based permission responses.
   // Attach it to the generator for external access.
-  const gen = queryImpl(query, queryOptions, broker, options.abortController);
+  const gen = queryImpl(
+    query as (opts: Record<string, unknown>) => AsyncGenerator<unknown>,
+    queryOptions,
+    broker,
+    options.abortController,
+  );
   (gen as any).__permissionBroker = broker;
   yield* gen;
 }
 
 async function* queryImpl(
-  query: (...args: unknown[]) => AsyncGenerator<unknown>,
+  query: (opts: Record<string, unknown>) => AsyncGenerator<unknown>,
   queryOptions: Record<string, unknown>,
   broker: PermissionBroker,
   abortController?: AbortController,
