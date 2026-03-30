@@ -101,18 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 043 Phase 4 implementation complete (UTF-8 fix + `OrganizerPlanner` trait hook)
-- Next owner: **claude** for Phase 4 review, or **claude-opus** for prioritization
-- Last baton update: 2026-03-30 — **cursor**: Fixed P3-001 (UTF-8 truncation in `registry.rs`) and introduced `OrganizerPlanner` / `plan_with_planner` hook in `crates/agent`. All `crates/agent` tests passing via `cargo test --manifest-path crates/agent/Cargo.toml`. Previous Phase 3 review remains authoritative for FR-007/FR-010/SC-007. Review: `.ai/findings/043-phase3-review.md`.
+- Current owner: **claude-opus** — for next-slice prioritization
+- Next owner: **cursor** for 043 Phase 5 (Tauri `plan_request` command) or next P0 slice
+- Last baton update: 2026-03-30 — **claude**: Phase 4 approved. FR-007/FR-008/FR-009 satisfied. P3-001 UTF-8 truncation resolved. `OrganizerPlanner` trait confirmed sufficient for Haiku-backed planner (all inputs available: prompt, breakdown, snapshot; return type covers TeamBlock + WorkflowBlock + warnings). 36/36 tests. Findings: P4-001 LOW (no mock-planner test for `plan_with_planner`), P4-002–P4-006 INFO. Review: `.ai/findings/043-phase4-review.md`.
 - Recommended files to read:
-  - `.ai/findings/043-phase3-review.md` — Phase 3 review with P3-001 fix guidance
-  - `crates/agent/src/registry.rs` — UTF-8-safe truncation + `OrganizerPlanner` trait and planner injection
-  - `crates/agent/src/plan.rs` — ExecutionPlan schema and complexity bands
-  - `.ai/plans/043-agent-organizer-phased-plan.md` — Phase 4 deliverables and Haiku notes
+  - `.ai/findings/043-phase4-review.md` — Phase 4 review (this review)
+  - `crates/agent/src/registry.rs` — `OrganizerPlanner` trait, `plan_with_planner`, UTF-8-safe truncation
+  - `crates/agent/src/plan.rs` — ExecutionPlan schema (TeamBlock, WorkflowBlock, ModelTier)
 
 ## Requested next agent output
 
-**claude**: review **043 Phase 4 crate changes** for spec alignment (FR-007/FR-008/FR-009) and confirm that the `OrganizerPlanner` / `plan_with_planner` hook is sufficient for a Haiku-backed planner implementation in the desktop/agent layer. Optionally propose prompt + JSON contract for the Haiku organizer agent. Then hand baton to **claude-opus** for next-slice prioritization if no blockers.
+**claude-opus**: next-slice prioritization. 043 Phases 1–4 complete (crate-level organizer done). Remaining: 043 Phase 5 (Tauri `plan_request` wiring) and Phase 6 (verification). Consider whether to continue 043 or pivot to another P0 spec.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **043 Phase 4 review** — Phase 4 approved. FR-007 (team 1–5, roles, justifications via `OrganizerPlanner` return type), FR-008 (phased workflow with all 7 spec fields in `WorkflowPhase`), FR-009 (Haiku planner injection via `plan_with_planner`, advisory `ModelTier`) all satisfied. P3-001 resolved (UTF-8-safe `char_indices()` truncation in both `build_team_agents` and `build_workflow` + test). Trait confirmed sufficient for Haiku-backed implementation — inputs cover prompt, breakdown, snapshot; return type covers TeamBlock + WorkflowBlock + warnings; JSON contract already defined by serde schemas. 36/36 tests. Findings: P4-001 LOW (no mock-planner test), P4-002–P4-006 INFO. No blockers. Review: `.ai/findings/043-phase4-review.md`.
 - 2026-03-30 (claude): **043 Phase 3 review** — Phase 3 approved. FR-007 (1–5 agents, role labels, justifications), FR-010 (empty registry → direct + warning), SC-007 all satisfied. Band-based team cardinality spec-faithful (moderate 1–2, complex 2–3, highly complex 3–5). `plan()` three-way match on MandatoryOutcome covers all paths. `legacy_stub()` backward compat clean. 35/35 tests. Findings: P3-001 MEDIUM (UTF-8 byte-offset truncation `&desc[..120]` can panic on multi-byte chars — fix before Phase 4), P3-002 LOW (mandatory-delegate + empty-registry path untested), P3-003 LOW (substring keyword over-match), P3-004–P3-006 INFO. Review: `.ai/findings/043-phase3-review.md`.
 - 2026-03-30 (cursor): **043 Phase 3** — `registry.rs`: `plan(prompt, ctx, snapshot)`, `AgentRegistrySnapshot` / `AgentRegistryEntry`, band-based team sizes + deterministic keyword overlap selection, workflow from selected ids; FR-010 empty catalog path; `build_execution_plan` uses `legacy_stub()` for Phase 2 parity. `dispatch.rs` trimmed to triggers only. Tests: SC-001–SC-004 + FR-010 + band sizing. Validation: `cargo test --manifest-path crates/agent/Cargo.toml`.
 - 2026-03-30 (claude): **043 Phase 2 review** — Phase 2 approved. All diagram + NEVER/ALWAYS prose triggers implemented (F-001 resolved). FR-003–FR-006 satisfied. Evaluation order spec-faithful (direct → delegate → score). `build project` vs `\bbuild\b` precedence correct. Stub team/workflow clearly marked for Phase 3 replacement. SC-001–SC-004 directly tested + conflict/precedence/empty-string edge cases. 32/32 tests pass. Findings: P2-001 (no "set X to Y" pattern, LOW), P2-005 (no frontend+backend conjunction test, LOW), P2-002/P2-003/P2-004/P2-006 (INFO). No blockers for Phase 3. Review: `.ai/findings/043-phase2-review.md`.
