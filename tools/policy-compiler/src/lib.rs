@@ -1,5 +1,6 @@
 use chrono::{SecondsFormat, Utc};
 use open_agentic_frontmatter::split_frontmatter_optional;
+pub use open_agentic_policy_kernel::PolicyRule;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
@@ -40,18 +41,6 @@ impl std::fmt::Display for CompileError {
 
 impl std::error::Error for CompileError {}
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PolicyRule {
-    pub id: String,
-    pub description: String,
-    pub mode: String,
-    pub scope: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub gate: Option<String>,
-    #[serde(rename = "sourcePath")]
-    pub source_path: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicySource {
     pub path: String,
@@ -74,7 +63,7 @@ pub struct CompileOutput {
     pub violations: Vec<Violation>,
     #[serde(rename = "validationPassed")]
     pub validation_passed: bool,
-    /// Canonical bundle hash (payload excludes `compiledAt` and `policyBundleHash`).
+    /// Canonical bundle hash (payload excludes `compiledAt`, `policyBundleHash`, and `validation`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_bundle_hash: Option<String>,
     pub constitution: Vec<PolicyRule>,
@@ -128,6 +117,7 @@ pub fn build_bundle_json_value(out: &CompileOutput) -> Value {
 }
 
 /// Payload hashed for [`CompileOutput::policy_bundle_hash`]: no `compiledAt`, no `policyBundleHash`.
+/// Excludes `validation` so the hash reflects policy content only (P2-001).
 pub fn bundle_hash_payload_value(out: &CompileOutput) -> Value {
     let compiler_version = env!("CARGO_PKG_VERSION");
     let sources_val = serde_json::to_value(&out.sources).expect("sources");
@@ -140,10 +130,6 @@ pub fn bundle_hash_payload_value(out: &CompileOutput) -> Value {
             "compilerId": COMPILER_ID,
             "compilerVersion": compiler_version,
             "sources": sources_val,
-        },
-        "validation": {
-            "passed": out.validation_passed,
-            "violations": serde_json::to_value(&out.violations).expect("violations"),
         },
         "constitution": constitution_val,
         "shards": shards_val,
@@ -352,6 +338,10 @@ struct RawRuleBlock {
     mode: Option<String>,
     scope: Option<String>,
     gate: Option<String>,
+    allow_destructive: Option<bool>,
+    allowed_tools: Option<Vec<String>>,
+    max_diff_lines: Option<u32>,
+    max_diff_bytes: Option<u64>,
 }
 
 fn parse_policy_blocks(raw: &str, source_path: &str, violations: &mut Vec<Violation>) -> Vec<PolicyRule> {
@@ -465,6 +455,10 @@ fn parse_rule_block(block: &str, source_path: &str) -> Result<PolicyRule, Vec<Vi
         scope: scope.unwrap_or_default(),
         gate,
         source_path: source_path.into(),
+        allow_destructive: parsed.allow_destructive,
+        allowed_tools: parsed.allowed_tools,
+        max_diff_lines: parsed.max_diff_lines,
+        max_diff_bytes: parsed.max_diff_bytes,
     })
 }
 
