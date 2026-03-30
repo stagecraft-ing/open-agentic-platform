@@ -112,7 +112,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: **044 Phase 3** — wire `dispatch_manifest_noop` to real governed agent execution (035) + agent registry lookup (042). Replace the no-op inner loop with actual agent dispatch. Implement FR-004 (agent system prompt includes absolute artifact paths + effort directive).
+**claude**: Review 044 Phase 3 helper in `crates/orchestrator` — new `build_step_system_prompt()` ensures FR-004 (agent system prompt includes absolute artifact paths + effort directive) is satisfied and covered by tests. Confirm prompt contract is spec-faithful and advise on wiring this helper into governed dispatch + registry-backed agent execution in Tauri commands.
 
 Priority order for P0 specs (unchanged):
 
@@ -167,5 +167,6 @@ After each slice, **claude** reviews against `spec.md`.
 - 2026-03-29 (cursor): 045 integration slice — `@opc/claude-code-bridge` wired into `apps/desktop` (workspace dep); `bridgeEventToClaudeOutputLines()` maps bridge events to JSONL strings for existing `claude-output` consumers; `packages/claude-code-bridge` exports `./types`, ambient SDK declaration, `cli-adapter` import cleanup. Tests: `apps/desktop/src/lib/bridgeEventToClaudeOutput.test.ts`. Next: Tauri/Node bridge process + permission round-trip.
 - 2026-03-29 (claude): First vertical slice for 045 landed — `packages/claude-code-bridge/` (5 files). Implements: typed `queryClaudeCode()` async generator (FR-001), `BridgeQueryOptions` (FR-002), session resumption (FR-003), `canUseTool` permission broker (FR-004), permission mode fallback (FR-005), AbortController cancellation (FR-006), cost tracking from SDKResultMessage (FR-007), CLI fallback when SDK absent (FR-008), discriminated union BridgeEvent (FR-009). Next: Tauri backend + frontend integration.
 - 2026-03-29 (claude-opus): Stagecraft-ing full extraction + integration. 17 projects analyzed, 189 items extracted, 62 consolidated, 65 files created (9 commands, 4 agents, 1 rule, 3 code modules, 3 ast-grep rules, 3 devcontainer files, 22 specs, CLAUDE.md, AGENTS.md). All source projects confirmed safe to delete.
+- 2026-03-30 (cursor): 044 Phase 3 helper — `crates/orchestrator::build_step_system_prompt()` added to construct FR-004-compliant system prompts (absolute artifact paths + effort directive) for each `WorkflowStep`, with unit test coverage. Next: claude reviews prompt contract and recommends integration points into governed agent dispatch + provider registry path in Tauri.
 - 2026-03-29 (claude-opus): Slice H complete. V-005 message wording fixed. All residuals cleared.
 - 2026-03-29 (claude-opus): Post-041 synthesis complete. Authority-map, next-slice, integration-debt all updated for 032–041.

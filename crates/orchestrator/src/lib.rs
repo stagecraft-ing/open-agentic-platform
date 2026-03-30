@@ -134,6 +134,53 @@ pub fn resolve_input_paths(
     out
 }
 
+/// Builds a system prompt for a single workflow step that satisfies 044 FR-004:
+/// - includes absolute input artifact paths
+/// - carries an explicit effort directive.
+pub fn build_step_system_prompt(
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    step: &WorkflowStep,
+) -> String {
+    let input_paths = resolve_input_paths(artifact_base, run_id, step);
+
+    let effort_text = match step.effort {
+        EffortLevel::Quick => "quick — single-pass, very concise (< 2k tokens)",
+        EffortLevel::Investigate => {
+            "investigate — thorough analysis with tools (< 10k tokens)"
+        }
+        EffortLevel::Deep => {
+            "deep — exhaustive exploration, unrestricted depth (no hard token cap)"
+        }
+    };
+
+    let mut prompt = String::new();
+    prompt.push_str("You are a specialized agent executing one step in a multi-step workflow.\n\n");
+    prompt.push_str("Step instruction:\n");
+    prompt.push_str(&step.instruction);
+    prompt.push_str("\n\n");
+
+    if !input_paths.is_empty() {
+        prompt.push_str("Input artifact paths (absolute):\n");
+        for p in &input_paths {
+            prompt.push_str("- ");
+            prompt.push_str(&p.to_string_lossy());
+            prompt.push('\n');
+        }
+        prompt.push('\n');
+        prompt.push_str("You must read any needed context from these filesystem paths instead of expecting their contents in the conversation.\n");
+        prompt.push_str("Do not assume relative paths; always use the absolute paths listed above when opening files.\n\n");
+    } else {
+        prompt.push_str("This step has no upstream artifact dependencies.\n\n");
+    }
+
+    prompt.push_str("Effort level for this step:\n");
+    prompt.push_str(effort_text);
+    prompt.push('\n');
+
+    prompt
+}
+
 /// Dispatches a manifest using a no-op executor:
 /// - checks that all required input artifacts exist before "running" a step (FR-002)
 /// - marks steps as [`StepStatus::Success`] without invoking any agents
@@ -402,5 +449,34 @@ mod tests {
         let contents = std::fs::read_to_string(run_dir.join("summary.json")).unwrap();
         assert!(contents.contains("\"step_id\": \"step-02\""));
         assert!(contents.contains("\"failure\"") || contents.contains("\"skipped\""));
+    }
+
+    #[test]
+    fn build_step_system_prompt_includes_absolute_paths_and_effort() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+
+        let step = WorkflowStep {
+            id: "s1".into(),
+            agent: "agent-a".into(),
+            effort: EffortLevel::Investigate,
+            inputs: vec!["s0/in.md".into(), "/already/absolute.md".into()],
+            outputs: vec!["out.md".into()],
+            instruction: "Summarize the research artifacts.".into(),
+        };
+
+        // Materialize a fake producer output so the relative ref resolves under the run dir.
+        let producer_path = am.output_artifact_path(run_id, "s0", "in.md");
+        std::fs::create_dir_all(producer_path.parent().unwrap()).unwrap();
+        std::fs::write(&producer_path, "data").unwrap();
+
+        let prompt = build_step_system_prompt(&am, run_id, &step);
+
+        // Prompt should mention the absolute producer path and the explicit effort directive.
+        assert!(prompt.contains(&*producer_path.to_string_lossy()));
+        assert!(prompt.contains("/already/absolute.md"));
+        assert!(prompt.contains("investigate — thorough analysis"));
+        assert!(prompt.contains("filesystem paths instead of expecting their contents"));
     }
 }
