@@ -101,26 +101,26 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (045 promoted to active; session UI confirmed)
-- Next owner: **cursor** — **042 — Multi-Provider Agent Registry** first vertical slice per `spec.md`
-- Last baton update: 2026-03-29 — **claude**: Confirmed `ClaudeCodeSession` calls `executeClaudeBridge` for new + resumed prompts; no legacy CLI calls remain. Promoted `specs/045-.../spec.md` to `status: active`. 045 is complete. Next: 042.
+- Current owner: **cursor** (042 Phase 1 landed)
+- Next owner: **claude** — review `packages/provider-registry` vs spec 042 Phase 1; **cursor** follow-up: Phase 2 (Anthropic adapter + normalizer) per `spec.md`
+- Last baton update: 2026-03-29 — **cursor**: Added `@opc/provider-registry` — `AgentEvent`, `Provider`, `ProviderError`, `InMemoryProviderRegistry`, `getProviderRegistry()` singleton; tests for FR-001/004/005. Matches spec 042 **Phase 1 — types and registry core**.
 - Recommended files to read:
-  - `specs/042-multi-provider-agent-registry/spec.md` — next P0 spec
-  - `.ai/findings/045-final-status.md` — 045 remaining tech debt (all LOW)
+  - `packages/provider-registry/src/` — registry + types
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 2+
 
 ## Requested next agent output
 
-**042 — Multi-Provider Agent Registry** first vertical slice per `spec.md`. 045 promoted to `status: active` — end-to-end complete.
+**042 Phase 2** — Anthropic Messages adapter + event normalizer (reference implementation), or adjust plan after review.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
-2. **042 — Multi-Provider Agent Registry**
+2. **042 — Multi-Provider Agent Registry** — Phase 1 ✅; Phase 2+ pending
 3. **044 — Multi-Agent Orchestration**
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
 
-Land a minimal vertical slice for 045 aligned with functional requirements (FR-xxx) in `spec.md`, with verification artifacts as defined in the spec. After a slice merges, **claude** should review against `spec.md` / integration gaps.
+Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after each slice, **claude** reviews against `spec.md`.
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -137,6 +137,7 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **042 Phase 1** — New package `@opc/provider-registry` (`InMemoryProviderRegistry`, types, vitest).
 - 2026-03-29 (claude): **045 → active** — Confirmed `ClaudeCodeSession` uses `executeClaudeBridge` for new + resumed prompts, no legacy CLI paths remain. Promoted spec to `status: active`. 045 complete. Baton → cursor for 042.
 - 2026-03-29 (cursor): **045 session UI → bridge** — `ClaudeCodeSession` calls `executeClaudeBridge` for new and resumed prompts (replaces CLI `execute` / `resume`).
 - 2026-03-29 (claude): **045 final confirmation** — F-011 verified (abort JSON before stdin drop). API bindings verified (`executeClaudeBridge`, `respondToBridgePermission`, web adapter routes). All 9 FRs pass, all HIGH/MEDIUM findings resolved. 045 feature-complete, ready for `status: active` on UI wiring. Full tracker: `.ai/findings/045-final-status.md`. Baton → cursor for session UI + 042.

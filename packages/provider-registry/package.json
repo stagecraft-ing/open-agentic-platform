@@ -1,0 +1,23 @@
+{
+  "name": "@opc/provider-registry",
+  "version": "0.1.0",
+  "description": "Multi-provider LLM registry (spec 042) — normalized AgentEvent and ProviderRegistry",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.5"
+  }
+}
