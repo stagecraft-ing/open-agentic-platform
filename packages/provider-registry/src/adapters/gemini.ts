@@ -167,16 +167,49 @@ function toGeminiTools(params: QueryParams): Tool[] | undefined {
   return [{ functionDeclarations: decls }];
 }
 
+function toolRoleToGeminiParts(content: string | SpecContentBlock[]): Part[] {
+  if (typeof content === "string") {
+    return [{ text: content }];
+  }
+  const parts: Part[] = [];
+  for (const b of content) {
+    if (b.type !== "tool_result") continue;
+    const toolUseId = String(
+      (b as { tool_use_id?: string; toolUseId?: string }).tool_use_id ??
+        (b as { toolUseId?: string }).toolUseId ??
+        "",
+    );
+    const name = String(
+      (b as { name?: string }).name ?? `tool_${toolUseId.slice(0, 12) || "call"}`,
+    );
+    const raw = (b as { content?: unknown }).content;
+    const responseObj =
+      raw !== undefined &&
+      typeof raw === "object" &&
+      raw !== null &&
+      !Array.isArray(raw)
+        ? (raw as object)
+        : { result: raw };
+    parts.push({
+      functionResponse: {
+        name,
+        response: responseObj,
+      },
+    });
+  }
+  return parts;
+}
+
 function toGeminiContents(params: QueryParams): Content[] {
   const out: Content[] = [];
   for (const m of params.messages) {
     if (m.role === "system") continue;
     if (m.role === "tool") {
-      throw new ProviderError(
-        "Role 'tool' is not mapped for Gemini in this slice; extend mapping for function responses.",
-        "unsupported_role",
-        false,
-      );
+      const parts = toolRoleToGeminiParts(m.content);
+      if (parts.length > 0) {
+        out.push({ role: "user", parts });
+      }
+      continue;
     }
     const role = m.role === "assistant" ? "model" : "user";
     out.push({

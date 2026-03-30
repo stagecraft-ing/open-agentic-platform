@@ -151,14 +151,14 @@ fn get_claude_dir() -> Result<PathBuf> {
         .join(".claude"))
 }
 
-/// Built `dist/sidecar.js` from `packages/claude-code-bridge` (`pnpm exec tsc -p ...`).
+/// Built `dist/node-sidecar.js` from `packages/provider-registry` (spec 042 Phase 6).
 fn bridge_sidecar_js_path() -> Result<PathBuf, String> {
     let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../..")
-        .join("packages/claude-code-bridge/dist/sidecar.js");
+        .join("packages/provider-registry/dist/node-sidecar.js");
     if !p.exists() {
         return Err(format!(
-            "Bridge sidecar not found at {}. Build with: pnpm exec tsc -p packages/claude-code-bridge/tsconfig.json",
+            "Bridge sidecar not found at {}. Build with: pnpm exec tsc -p packages/provider-registry/tsconfig.json",
             p.display()
         ));
     }
@@ -1111,7 +1111,7 @@ pub async fn resume_claude_code(
     Ok(mode.to_string())
 }
 
-/// Run Claude Code via the Node bridge sidecar (`dist/sidecar.js`) — spec 045 IPC path.
+/// Run Claude Code / provider-registry via the Node sidecar (`packages/provider-registry/dist/node-sidecar.js`) — specs 045 + 042 Phase 6.
 #[tauri::command]
 pub async fn execute_claude_bridge(
     app: AppHandle,

@@ -50,3 +50,11 @@ export {
   converseResponseToAgentEvents,
   bedrockMessageToAgentEvents,
 } from "./normalization/bedrock-events.js";
+
+export {
+  KNOWN_PROVIDER_IDS,
+  parseProviderModel,
+  type KnownProviderId,
+} from "./model-selector.js";
+export { registerBuiltInProvidersFromEnv } from "./register-env-providers.js";
+export { AgentEventBridgeEncoder } from "./agent-event-bridge-encode.js";

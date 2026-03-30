@@ -101,17 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (042 Phase 5 review complete ✅)
-- Next owner: **cursor** — **042 Phase 6** (wire `ProviderRegistry` into agent execution paths per spec).
-- Last baton update: 2026-03-29 — **claude**: Phase 5 review complete. All 5 adapters spec-faithful, 16/16 tests pass. No blockers. Findings: P5-002 (mergeAbortSignals dup, COSMETIC), P5-003 (tool role not mapped, LOW — needed for Phase 6), P5-005 (Bedrock test coverage thin, LOW), P5-006 (vision content blocks, LOW). Review: `.ai/findings/042-phase5-review.md`.
+- Current owner: **cursor** (042 Phase 6 integration landed ✅)
+- Next owner: **claude** — review Phase 6: `packages/provider-registry/src/node-sidecar.ts` (Tauri IPC), `providerId:apiModel` model convention, Gemini/Bedrock `tool` role mapping (P5-003).
+- Last baton update: 2026-03-29 — **cursor**: Phase 6 — Node sidecar moved to `@opc/provider-registry` (`dist/node-sidecar.js`); stdin protocol unchanged; models like `anthropic:claude-3-5-sonnet-20241022` dispatch via `ProviderRegistry` + `AgentEventBridgeEncoder` → same `claude-output` JSONL. P5-003: `role: "tool"` mapped for Gemini (`functionResponse`) and Bedrock (`toolResult`). Rust `bridge_sidecar_js_path` + desktop `prebuild` updated. Tests: 20/20 in provider-registry.
 - Recommended files to read:
-  - `.ai/findings/042-phase5-review.md` — full Phase 5 review
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 6 integration spec
-  - `packages/provider-registry/src/index.ts` — all 5 adapters exported
+  - `packages/provider-registry/src/node-sidecar.ts` — sidecar entry
+  - `packages/provider-registry/src/model-selector.ts` — `providerId:model` parsing
+  - `packages/provider-registry/src/agent-event-bridge-encode.ts` — AgentEvent → bridge JSONL
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 6
 
 ## Requested next agent output
 
-**cursor**: **042 Phase 6** — wire `ProviderRegistry` into agent execution paths (governed dispatch). Reference `.ai/findings/042-phase5-review.md` for open items (P5-003 tool role mapping needed for integration).
+**claude**: **042 Phase 6 review** — confirm sidecar + registry wiring matches spec 042; note any gaps (e.g. P5-002 shared `mergeAbortSignals` still cosmetic).
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +139,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **042 Phase 6** — `ProviderRegistry` wired into Tauri Node sidecar (`packages/provider-registry/dist/node-sidecar.js`); `registerBuiltInProvidersFromEnv`; model prefix `providerId:apiModel`; `AgentEventBridgeEncoder`; Gemini/Bedrock tool-result round-trip. Legacy `packages/claude-code-bridge/src/sidecar.ts` removed (superseded).
 - 2026-03-29 (claude): **042 Phase 5 review** — All 5 adapters spec-faithful (Anthropic, OpenAI, ClaudeCodeSDK, Gemini, Bedrock). 16/16 tests pass. SC-001–SC-006 satisfied. Findings: P5-002 (mergeAbortSignals 4× dup, COSMETIC), P5-003 (tool role unmapped in Gemini/Bedrock, LOW — Phase 6 prerequisite), P5-005 (Bedrock test thin, LOW), P5-006 (vision content blocks stringify, LOW). Review: `.ai/findings/042-phase5-review.md`. Baton → cursor for Phase 6.
 - 2026-03-29 (cursor): **042 Phase 5** — Gemini (`@google/generative-ai`) + Bedrock Converse/ConverseStream adapters, stream normalizers, unit tests; exports on `@opc/provider-registry`.
 - 2026-03-29 (claude): **042 Phase 4 review** — OpenAI adapter mirrors Anthropic pattern. 13/13 tests pass. SC-001 satisfied (3 adapters). P4-002 (vision content stringified, LOW), P4-003 (mergeAbortSignals dup, COSMETIC). Review: `.ai/findings/042-phase4-review.md`. Baton → cursor for Phase 5/6.

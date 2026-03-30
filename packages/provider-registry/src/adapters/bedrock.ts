@@ -195,6 +195,37 @@ function toContentBlocks(content: string | SpecContentBlock[]): ContentBlock[] {
   return blocks.length > 0 ? blocks : [{ text: "" }];
 }
 
+function toolRoleToBedrockToolResults(
+  content: string | SpecContentBlock[],
+): ContentBlock[] {
+  if (typeof content === "string") {
+    return [{ text: content }];
+  }
+  const out: ContentBlock[] = [];
+  for (const b of content) {
+    if (b.type !== "tool_result") continue;
+    const toolUseId = String(
+      (b as { tool_use_id?: string; toolUseId?: string }).tool_use_id ??
+        (b as { toolUseId?: string }).toolUseId ??
+        "",
+    );
+    const raw = (b as { content?: unknown }).content;
+    const text =
+      typeof raw === "string"
+        ? raw
+        : raw === undefined
+          ? ""
+          : JSON.stringify(raw);
+    out.push({
+      toolResult: {
+        toolUseId,
+        content: [{ text }],
+      },
+    });
+  }
+  return out;
+}
+
 function toBedrockRequest(params: QueryParams): {
   messages: Message[];
   system?: SystemContentBlock[];
@@ -215,11 +246,14 @@ function toBedrockRequest(params: QueryParams): {
       continue;
     }
     if (m.role === "tool") {
-      throw new ProviderError(
-        "Role 'tool' is not mapped for Bedrock in this slice.",
-        "unsupported_role",
-        false,
-      );
+      const blocks = toolRoleToBedrockToolResults(m.content);
+      if (blocks.length > 0) {
+        messages.push({
+          role: "user",
+          content: blocks,
+        });
+      }
+      continue;
     }
     const role = (m.role === "assistant" ? "assistant" : "user") as ConversationRole;
     messages.push({
