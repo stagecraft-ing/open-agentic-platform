@@ -3,6 +3,7 @@ pub mod analysis;
 pub mod claude;
 pub mod git;
 pub mod mcp;
+pub mod orchestrator;
 pub mod proxy;
 pub mod quick_pane;
 pub mod recovery;

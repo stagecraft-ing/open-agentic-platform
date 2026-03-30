@@ -86,6 +86,7 @@ run          = { path = "../../../crates/run" }
 blockoli     = { path = "../../../crates/blockoli" }
 asterisk     = { path = "../../../crates/asterisk" }
 stackwalk    = { path = "../../../crates/stackwalk" }
+orchestrator = { path = "../../../crates/orchestrator" }
 
 
 git2 = { version = "0.19", default-features = false }

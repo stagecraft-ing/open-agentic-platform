@@ -15,8 +15,10 @@ pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
 pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::path::PathBuf;
 use thiserror::Error;
 use uuid::Uuid;
@@ -66,6 +68,31 @@ pub struct StepSummaryEntry {
     pub input_artifacts: Vec<PathBuf>,
     pub output_artifacts: Vec<PathBuf>,
     pub tokens_used: Option<u64>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DispatchResult {
+    pub tokens_used: Option<u64>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DispatchRequest {
+    pub step_id: String,
+    pub agent_id: String,
+    pub effort: EffortLevel,
+    pub system_prompt: String,
+    pub input_artifacts: Vec<PathBuf>,
+    pub output_artifacts: Vec<PathBuf>,
+}
+
+#[async_trait]
+pub trait AgentRegistry: Send + Sync {
+    async fn has_agent(&self, agent_id: &str) -> bool;
+}
+
+#[async_trait]
+pub trait GovernedExecutor: Send + Sync {
+    async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String>;
 }
 
 impl RunSummary {
@@ -145,7 +172,7 @@ pub fn build_step_system_prompt(
     let input_paths = resolve_input_paths(artifact_base, run_id, step);
 
     let effort_text = match step.effort {
-        EffortLevel::Quick => "quick — single-pass, very concise (< 2k tokens)",
+        EffortLevel::Quick => "quick — single-pass, very concise (< 2k tokens), no sub-agent calls",
         EffortLevel::Investigate => {
             "investigate — thorough analysis with tools (< 10k tokens)"
         }
@@ -172,6 +199,17 @@ pub fn build_step_system_prompt(
         prompt.push_str("Do not assume relative paths; always use the absolute paths listed above when opening files.\n\n");
     } else {
         prompt.push_str("This step has no upstream artifact dependencies.\n\n");
+    }
+
+    if !step.outputs.is_empty() {
+        prompt.push_str("Output artifact paths (write your results here):\n");
+        for o in &step.outputs {
+            let p = artifact_base.output_artifact_path(run_id, &step.id, o);
+            prompt.push_str("- ");
+            prompt.push_str(&p.to_string_lossy());
+            prompt.push('\n');
+        }
+        prompt.push('\n');
     }
 
     prompt.push_str("Effort level for this step:\n");
@@ -333,10 +371,200 @@ pub fn dispatch_manifest_noop(
     Ok(summary)
 }
 
+fn build_summary(
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    steps: &[WorkflowStep],
+    statuses: &[StepStatus],
+    tokens_used: &[Option<u64>],
+) -> RunSummary {
+    let mut summary_entries = Vec::with_capacity(steps.len());
+    for (i, step) in steps.iter().enumerate() {
+        let input_paths = resolve_input_paths(artifact_base, run_id, step);
+        let output_paths: Vec<PathBuf> = step
+            .outputs
+            .iter()
+            .map(|o| artifact_base.output_artifact_path(run_id, &step.id, o))
+            .collect();
+        summary_entries.push(StepSummaryEntry {
+            step_id: step.id.clone(),
+            agent: step.agent.clone(),
+            status: statuses[i].clone(),
+            input_artifacts: input_paths,
+            output_artifacts: output_paths,
+            tokens_used: tokens_used[i],
+        });
+    }
+    RunSummary {
+        run_id,
+        steps: summary_entries,
+    }
+}
+
+/// Async orchestrator dispatcher wired for agent-registry lookup and governed execution.
+pub async fn dispatch_manifest(
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    manifest: &WorkflowManifest,
+    registry: Arc<dyn AgentRegistry>,
+    executor: Arc<dyn GovernedExecutor>,
+) -> Result<RunSummary, OrchestratorError> {
+    let order = manifest.validate_and_order()?;
+    let steps = &manifest.steps;
+
+    let mut dependents: HashMap<&str, Vec<usize>> = HashMap::new();
+    for (idx, step) in steps.iter().enumerate() {
+        for input in &step.inputs {
+            if let Some((producer_id, _file)) = split_input_ref(input) {
+                dependents.entry(producer_id).or_default().push(idx);
+            }
+        }
+    }
+
+    let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
+    let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
+
+    for &idx in &order {
+        if matches!(statuses[idx], StepStatus::Skipped | StepStatus::Cancelled) {
+            continue;
+        }
+
+        let step = &steps[idx];
+        let input_paths = resolve_input_paths(artifact_base, run_id, step);
+        if let Some(missing_path) = input_paths.iter().find(|p| !p.exists()).cloned() {
+            statuses[idx] = StepStatus::Failure;
+            if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                for &d in dep_idxs {
+                    if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                        statuses[d] = StepStatus::Skipped;
+                    }
+                }
+            }
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            summary.write_to_disk(artifact_base)?;
+            return Err(OrchestratorError::DependencyMissing {
+                step_id: step.id.clone(),
+                artifact_path: missing_path,
+            });
+        }
+
+        if !registry.has_agent(&step.agent).await {
+            statuses[idx] = StepStatus::Failure;
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            summary.write_to_disk(artifact_base)?;
+            return Err(OrchestratorError::AgentNotFound {
+                agent_id: step.agent.clone(),
+            });
+        }
+
+        statuses[idx] = StepStatus::Running;
+        artifact_base
+            .ensure_step_dir(run_id, &step.id)
+            .map_err(|e| OrchestratorError::StepFailed {
+                step_id: step.id.clone(),
+                reason: format!("prepare output dir: {e}"),
+            })?;
+
+        let output_paths: Vec<PathBuf> = step
+            .outputs
+            .iter()
+            .map(|o| artifact_base.output_artifact_path(run_id, &step.id, o))
+            .collect();
+
+        let request = DispatchRequest {
+            step_id: step.id.clone(),
+            agent_id: step.agent.clone(),
+            effort: step.effort,
+            system_prompt: build_step_system_prompt(artifact_base, run_id, step),
+            input_artifacts: input_paths,
+            output_artifacts: output_paths.clone(),
+        };
+
+        match executor.dispatch_step(request).await {
+            Ok(result) => {
+                if let Some(missing_output) = output_paths.iter().find(|p| !p.exists()) {
+                    statuses[idx] = StepStatus::Failure;
+                    let summary =
+                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                    summary.write_to_disk(artifact_base)?;
+                    return Err(OrchestratorError::StepFailed {
+                        step_id: step.id.clone(),
+                        reason: format!(
+                            "agent did not produce declared output: {}",
+                            missing_output.display()
+                        ),
+                    });
+                }
+                statuses[idx] = StepStatus::Success;
+                tokens_used[idx] = result.tokens_used;
+            }
+            Err(reason) => {
+                statuses[idx] = StepStatus::Failure;
+                if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                    for &d in dep_idxs {
+                        if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                            statuses[d] = StepStatus::Skipped;
+                        }
+                    }
+                }
+                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                summary.write_to_disk(artifact_base)?;
+                return Err(OrchestratorError::StepFailed {
+                    step_id: step.id.clone(),
+                    reason,
+                });
+            }
+        }
+    }
+
+    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+    summary.write_to_disk(artifact_base)?;
+    Ok(summary)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::effort::EffortLevel;
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+
+    struct MockRegistry {
+        agents: HashSet<String>,
+    }
+
+    #[async_trait]
+    impl AgentRegistry for MockRegistry {
+        async fn has_agent(&self, agent_id: &str) -> bool {
+            self.agents.contains(agent_id)
+        }
+    }
+
+    struct MockExecutor {
+        writes_outputs: bool,
+        seen_prompts: Mutex<Vec<String>>,
+    }
+
+    #[async_trait]
+    impl GovernedExecutor for MockExecutor {
+        async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
+            self.seen_prompts
+                .lock()
+                .unwrap()
+                .push(request.system_prompt.clone());
+            if self.writes_outputs {
+                for path in request.output_artifacts {
+                    if let Some(parent) = path.parent() {
+                        std::fs::create_dir_all(parent).unwrap();
+                    }
+                    std::fs::write(path, "ok").unwrap();
+                }
+            }
+            Ok(DispatchResult {
+                tokens_used: Some(123),
+            })
+        }
+    }
 
     #[test]
     fn materialize_run_writes_files() {
@@ -478,5 +706,89 @@ mod tests {
         assert!(prompt.contains("/already/absolute.md"));
         assert!(prompt.contains("investigate — thorough analysis"));
         assert!(prompt.contains("filesystem paths instead of expecting their contents"));
+        assert!(prompt.contains("Output artifact paths (write your results here):"));
+        assert!(prompt.contains(&*am
+            .output_artifact_path(run_id, "s1", "out.md")
+            .to_string_lossy()));
+    }
+
+    #[test]
+    fn build_step_system_prompt_handles_no_inputs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let step = WorkflowStep {
+            id: "s-root".into(),
+            agent: "agent-a".into(),
+            effort: EffortLevel::Quick,
+            inputs: vec![],
+            outputs: vec!["out.md".into()],
+            instruction: "Do root work.".into(),
+        };
+        let prompt = build_step_system_prompt(&am, run_id, &step);
+        assert!(prompt.contains("This step has no upstream artifact dependencies."));
+        assert!(prompt.contains("no sub-agent calls"));
+    }
+
+    #[tokio::test]
+    async fn dispatch_manifest_async_writes_summary_and_tokens() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "step-01".into(),
+                agent: "agent-a".into(),
+                effort: EffortLevel::Investigate,
+                inputs: vec![],
+                outputs: vec!["out.md".into()],
+                instruction: "Write output.".into(),
+            }],
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        let registry = Arc::new(MockRegistry {
+            agents: HashSet::from(["agent-a".to_string()]),
+        });
+        let executor = Arc::new(MockExecutor {
+            writes_outputs: true,
+            seen_prompts: Mutex::new(vec![]),
+        });
+
+        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor).await.unwrap();
+        assert_eq!(summary.steps.len(), 1);
+        assert!(matches!(summary.steps[0].status, StepStatus::Success));
+        assert_eq!(summary.steps[0].tokens_used, Some(123));
+    }
+
+    #[tokio::test]
+    async fn dispatch_manifest_async_returns_agent_not_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "step-01".into(),
+                agent: "missing-agent".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out.md".into()],
+                instruction: "Write output.".into(),
+            }],
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        let registry = Arc::new(MockRegistry {
+            agents: HashSet::new(),
+        });
+        let executor = Arc::new(MockExecutor {
+            writes_outputs: true,
+            seen_prompts: Mutex::new(vec![]),
+        });
+
+        let err = dispatch_manifest(&am, run_id, &manifest, registry, executor)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, OrchestratorError::AgentNotFound { .. }));
     }
 }

@@ -45,6 +45,7 @@ use commands::mcp::{
     mcp_serve, mcp_test_connection,
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
+use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, orchestrate_manifest};
 use commands::storage::{
     storage_delete_row, storage_execute_sql, storage_insert_row, storage_list_tables,
     storage_read_table, storage_reset_database, storage_update_row,
@@ -348,6 +349,11 @@ pub fn run() {
             fetch_github_agents,
             fetch_github_agent_content,
             import_agent_from_github,
+            // Orchestrator (044)
+            orchestrate_manifest,
+            get_run_status,
+            cancel_run,
+            cleanup_artifacts,
             // Usage & Analytics
             get_usage_stats,
             get_usage_by_date_range,
