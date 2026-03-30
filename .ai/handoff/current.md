@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (047 Phase 4 review complete)
-- Next owner: **cursor** — implement Phase 5 (proof-chain records: FR-009, FR-010, NF-004, SC-009).
-- Last baton update: 2026-03-30 — **claude**: Phase 4 approved. FR-008 four privilege bands match spec thresholds (0.8/0.5/0.2). SC-007 violation floor via `violation_count_for_restricted` with `max_severity` enforcement. SC-008 monotonic latch via `stuck_severity` + `human_restore()`. Weighted decay coherence correct. 9/9 tests, WASM clean. 6 findings (0 HIGH, 0 MEDIUM, 2 LOW, 4 INFO). P3-003 (allowlist BUILTIN rule ID) still open — fix before Phase 5. Review: `.ai/findings/047-phase4-review.md`.
+- Current owner: **cursor** (047 Phase 5 implementation landed)
+- Next owner: **claude** — review Phase 5 (proof-chain + P3-003) against `specs/047-governance-control-plane/spec.md`.
+- Last baton update: 2026-03-30 — **cursor**: Phase 5 delivered. `crates/policy-kernel/src/proof_chain.rs`: `ProofRecord` schema, `compute_record_hash` (canonical JSON sans `record_hash`, SHA-256 `sha256:` hex), `ProofChainWriter` (genesis `previous_record_hash` = bundle hash), `verify_proof_chain` + NF-004 payload check, SC-009 100-record test. Standalone `verify_proof_chain` binary. P3-003 fixed: tool allowlist deny lists all originating `tool_allowlist` rule IDs (constitution + active shards). 14/14 kernel tests, WASM clean. Next: claude review.
 - Recommended files to read:
-  - `.ai/findings/047-phase4-review.md` — Phase 4 review with findings
-  - `.ai/plans/047-governance-control-plane-phased-plan.md` — Phase 5 deliverables
+  - `crates/policy-kernel/src/proof_chain.rs` — Phase 5 implementation
+  - `crates/policy-kernel/src/bin/verify_proof_chain.rs` — standalone verifier CLI
   - `specs/047-governance-control-plane/spec.md` — FR-009, FR-010, NF-004, SC-009
 
 ## Requested next agent output
 
-**cursor**: Phase 5 — proof-chain records + independent verification (FR-009, FR-010, NF-004, SC-009). Define proof-record schema, hash-chain construction (decision ID, bundle hash, context hash, rule IDs, outcome, previous hash, record hash), append-only writer, standalone verifier. Genesis record bound to bundle hash. SC-009 verification on 100-record synthetic chain. Also resolve P3-003 (allowlist BUILTIN rule ID → originating rule IDs).
+**claude**: Phase 5 review — proof records (FR-009/FR-010), verifier + SC-009, NF-004 budgeting, P3-003 allowlist rule IDs. Emit `.ai/findings/047-phase5-review.md` if findings warrant it.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **047 Phase 5** — `proof_chain` module + exports; `ProofChainWriter` / `verify_proof_chain` / `compute_record_hash`; genesis link to bundle hash; SC-009 synthetic 100-chain test; NF-004 check in verifier; `verify_proof_chain` CLI binary. P3-003: allowlist deny returns sorted originating rule IDs from merged constitution + shard `tool_allowlist` rules. Validation: `cargo test` + `wasm32-unknown-unknown` (policy-kernel), `cargo test` (policy-compiler).
 - 2026-03-30 (claude): **047 Phase 4 review** — Phase 4 approved. FR-008 four privilege bands (Full >= 0.8, Restricted >= 0.5, ReadOnly >= 0.2, Suspended < 0.2) match spec thresholds. SC-007 configurable violation floor (`violation_count_for_restricted`, default 3) forces at least Restricted via `max_severity`. SC-008 monotonic latch via `stuck_severity` ratchet + `human_restore()` as sole escape path. Weighted decay coherence (lambda=0.95, window=50) is a sound implementation of the spec formula. `record_from_policy_outcome` bridges evaluate() to coherence. 9/9 tests, WASM clean. 6 findings: P4-001 no `record_from_policy_outcome` test (LOW), P4-006 no exact boundary test (LOW), P4-002..P4-005 (INFO). P3-003 still open. No blockers for Phase 5. Review: `.ai/findings/047-phase4-review.md`.
 - 2026-03-30 (cursor): **047 Phase 4** — `crates/policy-kernel/src/coherence.rs`: `PrivilegeLevel`, `CoherenceScheduler` with weighted window coherence, `violation_count_for_restricted` (SC-007), monotonic `stuck_severity` + `human_restore()` (SC-008). Exported from `lib.rs`. Tests cover SC-007/SC-008, FR-008 thresholds, decay weighting. Validation: `cargo test` + `wasm32-unknown-unknown` check (policy-kernel).
 - 2026-03-30 (claude): **047 Phase 3 review** — Phase 3 approved. FR-006 `evaluate(ToolCallContext, PolicyBundle) -> PolicyDecision` entrypoint matches spec. FR-007 all four gates operational: secrets scanner (3 regex patterns, constitution-level invariant), destructive op guard (6 substring patterns + `allow_destructive` override), tool allowlist (constitution + shard merge into BTreeSet), diff size limiter (min-threshold-wins across applicable rules). SC-003..SC-006 directly tested. P2-001 resolved (validation excluded from hash payload). WASM `wasm32-unknown-unknown` check clean. PolicyRule shared type between kernel and compiler. 6 findings: P3-001 no allow-path test (LOW), P3-002 pattern list extensibility (LOW), P3-003 allowlist BUILTIN rule ID instead of originating IDs (LOW — fix before Phase 5), P3-004..P3-006 (INFO). 5/5 kernel tests, 7/7 compiler tests. Review: `.ai/findings/047-phase3-review.md`.

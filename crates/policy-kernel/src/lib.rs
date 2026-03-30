@@ -1,14 +1,20 @@
 //! FR-006 / FR-007: deterministic policy evaluation for a tool call against a compiled bundle.
 //! FR-008 / SC-007 / SC-008: coherence scheduler (see [`coherence`]).
+//! FR-009 / FR-010 / NF-004 / SC-009: proof-chain records (see [`proof_chain`]).
 //! No I/O, no wall clock — suitable for `wasm32-unknown-unknown`.
 
 pub mod coherence;
+pub mod proof_chain;
 
 pub use coherence::{CoherenceScheduler, CoherenceSchedulerConfig, PrivilegeLevel};
+pub use proof_chain::{
+    compute_record_hash, nf004_payload_bytes, verify_proof_chain, ProofChainError, ProofChainWriter,
+    ProofPrivilege, ProofRecord, ProofRecordDecision, NF004_MAX_BYTES_EXCLUDING_CONTEXT,
+};
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
 /// Policy rule as emitted by the policy compiler (`specs/047` fenced `policy` blocks).
@@ -149,8 +155,10 @@ fn gate_destructive_operation(ctx: &ToolCallContext, bundle: &PolicyBundle) -> O
 
 fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<PolicyDecision> {
     let mut allowed: Vec<String> = Vec::new();
+    let mut originating_rule_ids: BTreeSet<String> = BTreeSet::new();
     for r in &bundle.constitution {
         if r.gate.as_deref() == Some("tool_allowlist") {
+            originating_rule_ids.insert(r.id.clone());
             if let Some(ref tools) = r.allowed_tools {
                 allowed.extend(tools.iter().cloned());
             }
@@ -160,6 +168,7 @@ fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<P
         if let Some(rules) = bundle.shards.get(scope) {
             for r in rules {
                 if r.gate.as_deref() == Some("tool_allowlist") {
+                    originating_rule_ids.insert(r.id.clone());
                     if let Some(ref tools) = r.allowed_tools {
                         allowed.extend(tools.iter().cloned());
                     }
@@ -177,7 +186,7 @@ fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<P
         Some(PolicyDecision {
             outcome: PolicyOutcome::Deny,
             reason: "policy:deny:tool_allowlist:not_listed".into(),
-            rule_ids: vec!["KERNEL:BUILTIN-ALLOWLIST".into()],
+            rule_ids: originating_rule_ids.into_iter().collect(),
         })
     }
 }
@@ -300,6 +309,10 @@ static DESTRUCTIVE_SUBSTRINGS: &[&str] = &[
 /// Serialize decision to canonical JSON bytes for determinism checks (sorted keys).
 pub fn decision_to_canonical_json(decision: &PolicyDecision) -> String {
     let v = serde_json::to_value(decision).expect("decision json");
+    canonical_json_sorted(v)
+}
+
+pub(crate) fn canonical_json_sorted(v: serde_json::Value) -> String {
     sort_json_value(v)
 }
 
@@ -433,7 +446,54 @@ mod tests {
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
+        assert_eq!(d.rule_ids, vec!["T-1"]);
         assert!(d.reason.contains("tool_allowlist"));
+    }
+
+    #[test]
+    fn p3_003_allowlist_merges_originating_rule_ids_from_shards() {
+        let mut shards = BTreeMap::new();
+        shards.insert(
+            "domain:a".into(),
+            vec![PolicyRule {
+                id: "T-SHARD".into(),
+                description: "shard tools".into(),
+                mode: "enforce".into(),
+                scope: "domain:a".into(),
+                gate: Some("tool_allowlist".into()),
+                source_path: ".claude/policies/a.md".into(),
+                allow_destructive: None,
+                allowed_tools: Some(vec!["read_file".into()]),
+                max_diff_lines: None,
+                max_diff_bytes: None,
+            }],
+        );
+        let bundle = PolicyBundle {
+            constitution: vec![PolicyRule {
+                id: "T-CON".into(),
+                description: "const tools".into(),
+                mode: "enforce".into(),
+                scope: "global".into(),
+                gate: Some("tool_allowlist".into()),
+                source_path: "CLAUDE.md".into(),
+                allow_destructive: None,
+                allowed_tools: Some(vec!["grep".into()]),
+                max_diff_lines: None,
+                max_diff_bytes: None,
+            }],
+            shards,
+        };
+        let ctx = ToolCallContext {
+            tool_name: "bash".into(),
+            arguments_summary: "".into(),
+            proposed_file_content: None,
+            diff_lines: None,
+            diff_bytes: None,
+            active_shard_scopes: vec!["domain:a".into()],
+        };
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Deny);
+        assert_eq!(d.rule_ids, vec!["T-CON", "T-SHARD"]);
     }
 
     #[test]
