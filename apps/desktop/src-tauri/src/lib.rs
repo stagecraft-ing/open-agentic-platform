@@ -421,6 +421,7 @@ pub fn run() {
             commands::git::git_status,
             commands::git::git_ahead_behind,
             commands::git::git_current_branch,
+            commands::git::git_last_commit,
             // Quick pane window management
             commands::quick_pane::show_quick_pane,
             commands::quick_pane::dismiss_quick_pane,

@@ -1,5 +1,7 @@
 export const DEFAULT_COMPACTION_THRESHOLD = 0.75;
 export const DEFAULT_PRESERVE_RECENT_TURNS = 4;
+/** Default when model metadata does not specify a window (Claude 3.5 class). */
+export const DEFAULT_CONTEXT_WINDOW_TOKENS = 200_000;
 export const MIN_COMPACTION_THRESHOLD = 0.5;
 export const MAX_COMPACTION_THRESHOLD = 0.95;
 
@@ -79,6 +81,95 @@ export interface SessionHistoryRewriteResult {
   rewrittenMessages: unknown[];
   compacted: boolean;
   trigger: CompactionTriggerDecision;
+}
+
+/**
+ * Resolves context window size from UI model id (`sonnet` / `opus`) or API-style ids.
+ * Extend the map when new models ship different windows.
+ */
+export function getContextWindowTokensForModel(model?: string): number {
+  if (!model || model.trim() === "") return DEFAULT_CONTEXT_WINDOW_TOKENS;
+  const m = model.toLowerCase().trim();
+  if (m.includes("1m") || m.includes("1-m") || m.includes("1000000")) {
+    return 1_000_000;
+  }
+  if (m.includes("opus") || m.includes("sonnet") || m.includes("haiku")) {
+    return DEFAULT_CONTEXT_WINDOW_TOKENS;
+  }
+  return DEFAULT_CONTEXT_WINDOW_TOKENS;
+}
+
+/**
+ * Loads git snapshot via Tauri (`git_status`, `git diff` stats, `git_current_branch`, `git_last_commit`).
+ * On failure or non-Tauri environments, returns a conservative placeholder (matches prior dummy behavior).
+ */
+export async function fetchGitSnapshotFromRepo(repoPath: string): Promise<GitSnapshot> {
+  const trimmed = repoPath.trim();
+
+  const fallback = (detail: string): GitSnapshot => ({
+    branch: "unknown",
+    stagedChanges: 0,
+    unstagedChanges: 0,
+    lastCommitHash: "unknown",
+    lastCommitMessage: detail ? `session at ${trimmed} (${detail})` : `session at ${trimmed}`,
+    diffStats: {
+      insertions: 0,
+      deletions: 0,
+      filesChanged: 0,
+    },
+  });
+
+  if (!trimmed) return fallback("empty path");
+
+  try {
+    const { commands } = await import("./bindings");
+    const statusRes = await commands.gitStatus(trimmed);
+    if (statusRes.status === "error") {
+      return fallback(statusRes.error.type ?? "git_status");
+    }
+
+    let stagedChanges = 0;
+    let unstagedChanges = 0;
+    for (const entry of statusRes.data) {
+      if (entry.staged) stagedChanges += 1;
+      else unstagedChanges += 1;
+    }
+
+    const diffRes = await commands.gitDiff(trimmed, null, null);
+    const diffStats =
+      diffRes.status === "ok"
+        ? {
+            insertions: diffRes.data.insertions,
+            deletions: diffRes.data.deletions,
+            filesChanged: diffRes.data.files_changed,
+          }
+        : { insertions: 0, deletions: 0, filesChanged: 0 };
+
+    let branch = "unknown";
+    const branchRes = await commands.gitCurrentBranch(trimmed);
+    if (branchRes.status === "ok") {
+      branch = branchRes.data;
+    } else if (branchRes.error.type === "DetachedHead") {
+      branch = "detached";
+    }
+
+    const commitRes = await commands.gitLastCommit(trimmed);
+    const lastCommitHash =
+      commitRes.status === "ok" ? commitRes.data.hash.slice(0, 12) : "unknown";
+    const lastCommitMessage =
+      commitRes.status === "ok" ? commitRes.data.message : "(no commit)";
+
+    return {
+      branch,
+      stagedChanges,
+      unstagedChanges,
+      lastCommitHash,
+      lastCommitMessage,
+      diffStats,
+    };
+  } catch {
+    return fallback("unavailable");
+  }
 }
 
 export interface CompactionTriggerDecision {
@@ -374,11 +465,12 @@ function safeProcessEnv(): Record<string, string | undefined> {
 
 function normalizeRuntimeMessages(rawMessages: unknown[]): CompactionMessage[] {
   const output: CompactionMessage[] = [];
+  let recordIndex = 0;
   for (let index = 0; index < rawMessages.length; index += 1) {
     const raw = rawMessages[index];
     if (!isRecord(raw)) continue;
     output.push({
-      id: resolveRuntimeMessageId(raw, index),
+      id: resolveRuntimeMessageId(raw, recordIndex),
       role: inferRuntimeRole(raw),
       content: extractRuntimeCompactionContent(raw),
       timestamp: asString(raw["timestamp"]),
@@ -388,6 +480,7 @@ function normalizeRuntimeMessages(rawMessages: unknown[]): CompactionMessage[] {
       tool_call_id: asString(raw["tool_call_id"]),
       meta: undefined,
     });
+    recordIndex += 1;
   }
   return output;
 }

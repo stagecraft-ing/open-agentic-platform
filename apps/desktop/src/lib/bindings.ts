@@ -121,6 +121,17 @@ async gitCurrentBranch(repoPath: string) : Promise<Result<string, GitError>> {
 }
 },
 /**
+ * `git log -1` — full object id and first line of the commit message.
+ */
+async gitLastCommit(repoPath: string) : Promise<Result<GitHeadCommit, GitError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("git_last_commit", { repoPath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Shows the quick pane, positioning it on the monitor that contains the cursor.
  */
 async showQuickPane() : Promise<Result<null, string>> {
@@ -301,6 +312,9 @@ async getSidecarPorts() : Promise<SidecarPorts> {
 },
 async getPreflightSafetyTierReference() : Promise<SafetyTierRef[]> {
     return await TAURI_INVOKE("get_preflight_safety_tier_reference");
+},
+async getToolTierAssignments() : Promise<ToolTierEntry[]> {
+    return await TAURI_INVOKE("get_tool_tier_assignments");
 }
 }
 
@@ -317,6 +331,10 @@ async getPreflightSafetyTierReference() : Promise<SafetyTierRef[]> {
 export type GitAheadBehind = { ahead: number; behind: number }
 export type GitDiff = { stat: string; diff: string; files_changed: number; insertions: number; deletions: number }
 export type GitError = { type: "NotFound"; message: string } | { type: "RefNotFound"; message: string } | { type: "DetachedHead" } | { type: "Other"; message: string }
+/**
+ * Latest commit on `HEAD` (`git log -1` — hash + first line of message).
+ */
+export type GitHeadCommit = { hash: string; message: string }
 export type GitStatusEntry = { path: string; 
 /**
  * "added", "modified", "deleted", "renamed", "untracked", "conflicted"
@@ -325,7 +343,9 @@ status: string; staged: boolean }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type RecoveryError = { type: "FileNotFound" } | { type: "ValidationError"; message: string } | { type: "DataTooLarge"; max_bytes: number } | { type: "IoError"; message: string } | { type: "ParseError"; message: string }
 /**
- * Read-only labels for `featuregraph::preflight::ChangeTier` (governance UI).
+ * Read-only labels for safety tiers (governance UI).
+ * Change tiers: `featuregraph::preflight::ChangeTier` (classifies file changes).
+ * Tool tiers: `agent::safety::ToolTier` (classifies MCP tool dispatch).
  */
 export type SafetyTierRef = { id: string; label: string; description: string }
 export type SandboxStatus = { 
@@ -342,6 +362,10 @@ active: boolean;
  */
 method: string | null }
 export type SidecarPorts = { axiomregent: number | null }
+/**
+ * Per-tool tier assignments for governance UI (Feature 036).
+ */
+export type ToolTierEntry = { tool: string; tier: string }
 export type UpdateError = { type: "NoUpdateAvailable" } | { type: "NetworkError"; message: string } | { type: "ChecksumMismatch" } | { type: "LaunchFailed"; message: string }
 export type UpdateInfo = { 
 /**

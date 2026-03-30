@@ -5,7 +5,7 @@
 
 use git2::{DiffOptions, Repository, StatusOptions};
 
-use crate::types::{GitAheadBehind, GitDiff, GitError, GitStatusEntry};
+use crate::types::{GitAheadBehind, GitDiff, GitError, GitHeadCommit, GitStatusEntry};
 
 fn open_repo(repo_path: &str) -> Result<Repository, GitError> {
     Repository::open(repo_path).map_err(|e| {
@@ -248,4 +248,31 @@ pub fn git_current_branch(repo_path: String) -> Result<String, GitError> {
     } else {
         Err(GitError::DetachedHead)
     }
+}
+
+/// `git log -1` — full object id and first line of the commit message.
+#[tauri::command]
+#[specta::specta]
+pub fn git_last_commit(repo_path: String) -> Result<GitHeadCommit, GitError> {
+    let repo = open_repo(&repo_path)?;
+
+    let head = repo.head().map_err(|e| GitError::Other {
+        message: format!("Failed to read HEAD: {}", e.message()),
+    })?;
+
+    let oid = head.target().ok_or_else(|| GitError::Other {
+        message: "HEAD has no target OID".to_string(),
+    })?;
+
+    let commit = repo.find_commit(oid).map_err(|e| GitError::Other {
+        message: e.message().to_string(),
+    })?;
+
+    let hash = oid.to_string();
+    let message = commit
+        .summary()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "".to_string());
+
+    Ok(GitHeadCommit { hash, message })
 }

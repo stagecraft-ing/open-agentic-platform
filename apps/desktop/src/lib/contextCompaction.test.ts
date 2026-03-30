@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_COMPACTION_THRESHOLD,
+  DEFAULT_CONTEXT_WINDOW_TOKENS,
   DEFAULT_PRESERVE_RECENT_TURNS,
   MAX_COMPACTION_THRESHOLD,
   MIN_COMPACTION_THRESHOLD,
   ProgrammaticCompactor,
   TokenBudgetMonitor,
   elevateSessionContextForInit,
+  getContextWindowTokensForModel,
   readCompactionThresholdFromEnv,
   rewriteSessionHistoryForCompaction,
   resolveContextCompactionConfig,
   stableSerializeHistory,
   type CompactionHistory,
+  type CompactionMessage,
   type GitSnapshot,
 } from "./contextCompaction";
 
@@ -557,5 +560,134 @@ describe("Phase 5 integration", () => {
     expect(contextText).toContain("completed_steps");
     expect(contextText).toContain("pending_steps");
     expect(contextText).toContain("file_modifications");
+  });
+});
+
+describe("getContextWindowTokensForModel", () => {
+  it("defaults for empty and known UI models", () => {
+    expect(getContextWindowTokensForModel(undefined)).toBe(DEFAULT_CONTEXT_WINDOW_TOKENS);
+    expect(getContextWindowTokensForModel("sonnet")).toBe(DEFAULT_CONTEXT_WINDOW_TOKENS);
+    expect(getContextWindowTokensForModel("opus")).toBe(DEFAULT_CONTEXT_WINDOW_TOKENS);
+  });
+
+  it("detects 1M-window hints in model strings", () => {
+    expect(getContextWindowTokensForModel("claude-3-5-sonnet-1m")).toBe(1_000_000);
+  });
+});
+
+describe("Phase 6 — performance and round-trip (NF-001, SC-005)", () => {
+  const gitSnapshot: GitSnapshot = {
+    branch: "main",
+    stagedChanges: 0,
+    unstagedChanges: 0,
+    lastCommitHash: "abc1234",
+    lastCommitMessage: "feat: baseline compaction",
+    diffStats: { insertions: 0, deletions: 0, filesChanged: 0 },
+  };
+
+  it("NF-001 compacts a 100k-token-equivalent history in under 2 seconds", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 2 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const chunk = "x".repeat(1000);
+    const messages: CompactionMessage[] = [];
+    for (let i = 0; i < 400; i += 1) {
+      messages.push({
+        id: `m-${i}`,
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: chunk,
+      });
+    }
+
+    const t0 = performance.now();
+    compactor.compact({ messages }, gitSnapshot, new Date(0));
+    const elapsed = performance.now() - t0;
+
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it("SC-005 50-turn round-trip preserves completed work, pending work, and file paths in session_context", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 1 } },
+      {},
+    );
+    const rawMessages: unknown[] = [];
+    for (let turn = 0; turn < 25; turn += 1) {
+      rawMessages.push({
+        type: "user",
+        message: {
+          content: [{ type: "text", text: `User turn ${turn}` }],
+          usage: { input_tokens: 400, output_tokens: 0 },
+        },
+        usage: { input_tokens: 400, output_tokens: 0 },
+      });
+      rawMessages.push({
+        type: "assistant",
+        message: {
+          content: [
+            {
+              type: "text",
+              text:
+                turn === 0
+                  ? "Plan:\n- [x] Ship feature A\n- [ ] Ship feature B\nEdited src/app/feature.ts and packages/api/handler.rs"
+                  : `Progress note ${turn}`,
+            },
+          ],
+          usage: { input_tokens: 400, output_tokens: 200 },
+        },
+        usage: { input_tokens: 400, output_tokens: 200 },
+      });
+    }
+
+    const result = rewriteSessionHistoryForCompaction({
+      rawMessages,
+      config,
+      contextWindowTokens: 20_000,
+      gitSnapshot,
+      compactedAt: new Date(0),
+    });
+
+    expect(result.compacted).toBe(true);
+    const blob = JSON.stringify(result.rewrittenMessages);
+    expect(blob).toContain("Ship feature A");
+    expect(blob).toContain("Ship feature B");
+    expect(blob).toContain("src/app/feature.ts");
+    expect(blob).toContain("packages/api/handler.rs");
+    expect(blob).toContain("<session_context");
+  });
+
+  it("P5-001 aligns synthetic runtime ids when raw history contains non-record entries", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 0 } },
+      {},
+    );
+    const rawMessages: unknown[] = [
+      {
+        type: "user",
+        message: { content: [{ type: "text", text: "hello" }] },
+        usage: { input_tokens: 4000, output_tokens: 0 },
+      },
+      null,
+      {
+        type: "assistant",
+        message: { content: [{ type: "text", text: "world" }] },
+        usage: { input_tokens: 4000, output_tokens: 0 },
+      },
+    ];
+
+    const result = rewriteSessionHistoryForCompaction({
+      rawMessages,
+      config,
+      contextWindowTokens: 10_000,
+      gitSnapshot,
+      compactedAt: new Date(0),
+    });
+
+    expect(result.compacted).toBe(true);
+    const blob = JSON.stringify(result.rewrittenMessages);
+    expect(blob).toContain("hello");
+    expect(blob).toContain("world");
   });
 });

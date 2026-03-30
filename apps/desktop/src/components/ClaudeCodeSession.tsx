@@ -35,7 +35,8 @@ import { SessionPersistenceService } from "@/services/sessionPersistence";
 import {
   rewriteSessionHistoryForCompaction,
   resolveContextCompactionConfig,
-  type GitSnapshot,
+  fetchGitSnapshotFromRepo,
+  getContextWindowTokensForModel,
 } from "@/lib/contextCompaction";
 
 interface ClaudeCodeSessionProps {
@@ -331,11 +332,18 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       setError(null);
       
       const history = await api.loadSessionHistory(session.id, session.project_id);
+      const gitSnapshot = await fetchGitSnapshotFromRepo(
+        projectPath || session.project_path || "",
+      );
+      const lastModel =
+        sessionMetrics.current.modelChanges.length > 0
+          ? sessionMetrics.current.modelChanges[sessionMetrics.current.modelChanges.length - 1].to
+          : "sonnet";
       const rewritten = rewriteSessionHistoryForCompaction({
         rawMessages: history,
         config: compactionConfig,
-        contextWindowTokens: getContextWindowTokens(),
-        gitSnapshot: buildRuntimeGitSnapshot(projectPath),
+        contextWindowTokens: getContextWindowTokensForModel(lastModel),
+        gitSnapshot,
       });
       const historyToUse = rewritten.rewrittenMessages as any[];
       
@@ -383,25 +391,6 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getContextWindowTokens = (): number => {
-    return 200000;
-  };
-
-  const buildRuntimeGitSnapshot = (path: string): GitSnapshot => {
-    return {
-      branch: "unknown",
-      stagedChanges: 0,
-      unstagedChanges: 0,
-      lastCommitHash: "unknown",
-      lastCommitMessage: `session at ${path}`,
-      diffStats: {
-        insertions: 0,
-        deletions: 0,
-        filesChanged: 0,
-      },
-    };
   };
 
   const checkForActiveSession = async () => {

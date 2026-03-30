@@ -36,6 +36,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::git::git_status,
         crate::commands::git::git_ahead_behind,
         crate::commands::git::git_current_branch,
+        crate::commands::git::git_last_commit,
         // Quick pane window
         crate::commands::quick_pane::show_quick_pane,
         crate::commands::quick_pane::dismiss_quick_pane,

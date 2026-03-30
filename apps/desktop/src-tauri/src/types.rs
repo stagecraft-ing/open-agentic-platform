@@ -134,6 +134,13 @@ pub struct GitAheadBehind {
     pub behind: u32,
 }
 
+/// Latest commit on `HEAD` (`git log -1` — hash + first line of message).
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GitHeadCommit {
+    pub hash: String,
+    pub message: String,
+}
+
 // ============================================================================
 // Window control
 // ============================================================================
