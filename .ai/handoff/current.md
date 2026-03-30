@@ -101,22 +101,22 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (042 Phase 6 review complete ✅)
-- Next owner: **cursor** or **antigravity** — 042 fully landed; next P0 is **044 Multi-Agent Orchestration**
-- Last baton update: 2026-03-29 — **claude**: Phase 6 review in `.ai/findings/042-phase6-review.md`. Sidecar dispatch verified (dual-path: registry for `providerId:apiModel`, legacy fallback). P5-003 resolved (Gemini `functionResponse`, Bedrock `toolResult`). `AgentEventBridgeEncoder` correctly maps AgentEvent → BridgeEvent JSONL. 20/20 tests pass. Open: P6-001 (encoder test thin), P6-002 (mergeAbortSignals dup), P6-004 (no permission broker on registry path), P6-005 (hard-coded provider IDs). All 6 phases complete, SC-001–SC-006 satisfied.
+- Current owner: **cursor** (044 Phase 1 scaffold landed)
+- Next owner: **claude** — review `crates/orchestrator` Phase 1 vs `specs/044-multi-agent-orchestration/spec.md`; or **cursor** — continue with dispatch loop + agent integration (035/042)
+- Last baton update: 2026-03-29 — **cursor**: New Rust crate `crates/orchestrator` — YAML manifest load/validate, DAG topo order, cycle + duplicate-output checks, `ArtifactManager` + `OAP_ARTIFACT_DIR`, effort classification (`classify_from_task`), `materialize_run_directory` (frozen `manifest.yaml` + `summary.json`), `resolve_input_paths`. Unit tests pass (`cargo test` in crate). Full agent dispatch, run summary population, and Tauri commands are not yet implemented.
 - Recommended files to read:
-  - `.ai/findings/042-phase6-review.md` — full Phase 6 review
-  - `specs/044-multi-agent-orchestration/spec.md` — next P0 spec
+  - `crates/orchestrator/src/lib.rs` — public surface + run directory materialization
+  - `specs/044-multi-agent-orchestration/spec.md` — full contract
 
 ## Requested next agent output
 
-**cursor** or **antigravity**: **044 Multi-Agent Orchestration** — begin spec 044 implementation. 042 is fully reviewed and complete (all 6 phases landed, SC-001–SC-006 satisfied).
+**claude**: Optional **044 Phase 1** review (manifest/DAG/artifact helpers vs spec). **cursor**: **044** next slice — step dispatcher stub (check input artifacts exist), populate `summary.json`, then wire to governed agent execution when ready.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
-2. **042 — Multi-Provider Agent Registry** — Phase 1–5 ✅; Phase 5 review + Phase 6 integration remaining
-3. **044 — Multi-Agent Orchestration**
+2. **042 — Multi-Provider Agent Registry** — ✅ complete (all phases + Phase 6 review)
+3. **044 — Multi-Agent Orchestration** — Phase 1 (core crate) ✅; dispatch + UI follow
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
 
@@ -137,6 +137,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **044 Phase 1** — `crates/orchestrator`: `WorkflowManifest` YAML, DAG validation + topological order, `ArtifactManager`, `EffortLevel` + `classify_from_task`, `materialize_run_directory`, `resolve_input_paths`, `OrchestratorError` variants. Tests: 8 unit tests in crate.
 - 2026-03-29 (claude): **042 Phase 6 review** — All 6 phases spec-faithful. Sidecar dual-path verified (registry for `providerId:apiModel`, legacy fallback). P5-003 resolved. AgentEventBridgeEncoder → BridgeEvent JSONL correct. 20/20 tests pass. Findings: P6-001 (encoder test thin, LOW), P6-002 (mergeAbortSignals dup, COSMETIC), P6-004 (no permission broker on registry path, LOW), P6-005 (hard-coded provider IDs, INFO). Review: `.ai/findings/042-phase6-review.md`. 042 complete. Baton → cursor for 044.
 - 2026-03-29 (cursor): **042 Phase 6** — `ProviderRegistry` wired into Tauri Node sidecar (`packages/provider-registry/dist/node-sidecar.js`); `registerBuiltInProvidersFromEnv`; model prefix `providerId:apiModel`; `AgentEventBridgeEncoder`; Gemini/Bedrock tool-result round-trip. Legacy `packages/claude-code-bridge/src/sidecar.ts` removed (superseded).
 - 2026-03-29 (claude): **042 Phase 5 review** — All 5 adapters spec-faithful (Anthropic, OpenAI, ClaudeCodeSDK, Gemini, Bedrock). 16/16 tests pass. SC-001–SC-006 satisfied. Findings: P5-002 (mergeAbortSignals 4× dup, COSMETIC), P5-003 (tool role unmapped in Gemini/Bedrock, LOW — Phase 6 prerequisite), P5-005 (Bedrock test thin, LOW), P5-006 (vision content blocks stringify, LOW). Review: `.ai/findings/042-phase5-review.md`. Baton → cursor for Phase 6.
