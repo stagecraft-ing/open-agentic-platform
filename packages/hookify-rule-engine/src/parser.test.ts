@@ -39,6 +39,33 @@ describe("parseRuleFile", () => {
     });
   });
 
+  it("parses explicit any/not combinators", () => {
+    const combinators = `---
+id: combinators
+event: PreToolUse
+matcher: {}
+conditions:
+  any:
+    - field: input.command
+      contains: "git push"
+    - not:
+        field: tool.name
+        ==: "Read"
+action:
+  type: warn
+priority: 5
+---
+Combinator coverage.`;
+    const result = parseRuleFile(combinators, "rules/combinators.md");
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.rule?.conditions).toEqual({
+      any: [
+        { field: "input.command", contains: "git push" },
+        { not: { field: "tool.name", "==": "Read" } },
+      ],
+    });
+  });
+
   it("reports malformed YAML and skips rule (FR-009)", () => {
     const malformed = `---
 id: bad

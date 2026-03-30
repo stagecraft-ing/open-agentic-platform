@@ -14,3 +14,5 @@ export type {
 } from "./types.js";
 
 export { parseRuleFile, parseRuleSet } from "./parser.js";
+export { evaluateConditionNode } from "./conditions.js";
+export { matchesRuleEventType, matchesRuleMatcher } from "./matcher.js";
