@@ -81,6 +81,19 @@ export interface EvaluationResult {
   warnings: string[];
   diagnostics: Diagnostic[];
   payload: Record<string, unknown>;
+  terminalDecision?: TerminalDecision;
+  matchedRuleIds?: string[];
+}
+
+export type TerminalDecision = "allowed" | "blocked";
+
+export interface ActionExecutionResult {
+  payload: Record<string, unknown>;
+  warnings: string[];
+  diagnostics: Diagnostic[];
+  terminalDecision: TerminalDecision;
+  matchedRuleIds: string[];
+  blockedByRuleId?: string;
 }
 
 export interface ParseRuleResult {
