@@ -101,16 +101,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (047 Phase 6 implementation landed)
-- Next owner: **claude** — review Phase 6 (axiomregent policy preflight + `POLICY_DENIED` wire code + benchmarks + `execution/verification.md`).
-- Last baton update: 2026-03-30 — **cursor**: 047 Phase 6 — policy bundle cache (`build/policy-bundles/policy-bundle.json` per `repo_root`); dispatch order grants → `evaluate()` → handler; JSON-RPC `POLICY_DENIED` vs `PERMISSION_DENIED`; Criterion benches (policy-kernel SC-010, policy-compiler NF-002); `specs/047-governance-control-plane/execution/verification.md`; tests `crates/axiomregent/tests/policy_preflight_test.rs`.
+- Current owner: **claude** (047 Phase 6 review complete — 047 feature-complete)
+- Next owner: **cursor** — next P0 spec slice (043 Agent Organizer, 048 Hookify, or P1 specs). All P0 features with active implementation (042, 044, 045, 046, 047) now have all phases reviewed and approved.
+- Last baton update: 2026-03-30 — **claude**: Phase 6 approved. Dispatch order (grants → evaluate → handler) spec-faithful. `POLICY_DENIED` vs `PERMISSION_DENIED` wire codes distinct (contract note satisfied). SC-010 ~0.9 µs/call (budget: 5 ms). NF-002 ~1.35 ms/compile (budget: 2 s). `execution/verification.md` complete. 2/2 preflight tests pass. 6 findings: P6-001 bundle cache never invalidated (LOW), P6-002 missing `repo_root` skips policy (LOW), P6-003 diff metrics overcount (LOW), P6-004..P6-006 (INFO). **047 feature-complete.** Review: `.ai/findings/047-phase6-review.md`.
 - Recommended files to read:
-  - `crates/axiomregent/src/router/policy_bundle.rs` — bundle load + tool context
-  - `specs/047-governance-control-plane/execution/verification.md` — benchmark commands + evidence
+  - `.ai/findings/047-phase6-review.md` — Phase 6 review with findings
 
 ## Requested next agent output
 
-**claude**: Review 047 Phase 6 against `specs/047-governance-control-plane/spec.md` (integration + NF/SC-010/011). Optional: next P0 slice (044 e2e follow-up, 046, or 047 coherence/proof wiring in axiomregent — out of current Phase 6 scope).
+**cursor**: Next P0 spec slice. All P0 features (042, 044, 045, 046, 047) are feature-complete with reviews. Consider 043 (Agent Organizer / Meta-Orchestrator) as the next P0 target, or start P1 features (048–063).
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +136,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **047 Phase 6 review** — Phase 6 approved. Dispatch order (grants → evaluate → handler) spec-faithful. `POLICY_DENIED` vs `PERMISSION_DENIED` wire codes distinct (contract note satisfied). `PolicyBundleCache` per-repo with `Arc<PolicyBundle>`. `build_tool_call_context` extracts content/patch/text/body for diff metrics (NF-003). SC-010 ~0.9 µs/call (5 ms budget). NF-002 ~1.35 ms/compile (2 s budget). `execution/verification.md` complete. 2/2 preflight tests, 14/14 kernel tests. 6 findings: P6-001 cache never invalidated (LOW), P6-002 missing repo_root skips policy (LOW), P6-003 diff metrics overcount (LOW), P6-004..P6-006 (INFO). **047 feature-complete — all 6 phases approved.** Review: `.ai/findings/047-phase6-review.md`.
 - 2026-03-30 (cursor): **047 Phase 6** — axiomregent `open_agentic_policy_kernel` integration: `PolicyBundleCache`, `build_tool_call_context`, `evaluate` after permission grants when `repo_root` + bundle exist; `AxiomRegentError::PolicyDenied` / JSON-RPC `POLICY_DENIED`; benches + `execution/verification.md`; `policy_preflight_test` integration tests. Validation: `cargo test` (axiomregent, policy-kernel), `cargo bench` (policy-kernel, policy-compiler).
 - 2026-03-30 (claude): **047 Phase 5 review** — Phase 5 approved. FR-009 all 7 proof record fields present (id, timestamp, policy_bundle_hash, rule_ids, input_context_hash, decision, previous_record_hash + record_hash). FR-010 5-check independent verification + standalone `verify_proof_chain` binary. NF-004 1024-byte budget excluding context hash enforced in verifier. SC-009 100-record chain build + verify. P3-003 resolved (originating rule IDs from BTreeSet of constitution + shard tool_allowlist rules). 14/14 tests, WASM clean. 6 findings: P5-001 no hash-tamper negative test (LOW), P5-002 UUID format not enforced (LOW), P5-003..P5-006 (INFO). No blockers. Review: `.ai/findings/047-phase5-review.md`.
 - 2026-03-30 (cursor): **047 Phase 5** — `proof_chain` module + exports; `ProofChainWriter` / `verify_proof_chain` / `compute_record_hash`; genesis link to bundle hash; SC-009 synthetic 100-chain test; NF-004 check in verifier; `verify_proof_chain` CLI binary. P3-003: allowlist deny returns sorted originating rule IDs from merged constitution + shard `tool_allowlist` rules. Validation: `cargo test` + `wasm32-unknown-unknown` (policy-kernel), `cargo test` (policy-compiler).
