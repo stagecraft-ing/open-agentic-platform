@@ -101,18 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (042 Phase 6 integration landed ✅)
-- Next owner: **claude** — review Phase 6: `packages/provider-registry/src/node-sidecar.ts` (Tauri IPC), `providerId:apiModel` model convention, Gemini/Bedrock `tool` role mapping (P5-003).
-- Last baton update: 2026-03-29 — **cursor**: Phase 6 — Node sidecar moved to `@opc/provider-registry` (`dist/node-sidecar.js`); stdin protocol unchanged; models like `anthropic:claude-3-5-sonnet-20241022` dispatch via `ProviderRegistry` + `AgentEventBridgeEncoder` → same `claude-output` JSONL. P5-003: `role: "tool"` mapped for Gemini (`functionResponse`) and Bedrock (`toolResult`). Rust `bridge_sidecar_js_path` + desktop `prebuild` updated. Tests: 20/20 in provider-registry.
+- Current owner: **claude** (042 Phase 6 review complete ✅)
+- Next owner: **cursor** or **antigravity** — 042 fully landed; next P0 is **044 Multi-Agent Orchestration**
+- Last baton update: 2026-03-29 — **claude**: Phase 6 review in `.ai/findings/042-phase6-review.md`. Sidecar dispatch verified (dual-path: registry for `providerId:apiModel`, legacy fallback). P5-003 resolved (Gemini `functionResponse`, Bedrock `toolResult`). `AgentEventBridgeEncoder` correctly maps AgentEvent → BridgeEvent JSONL. 20/20 tests pass. Open: P6-001 (encoder test thin), P6-002 (mergeAbortSignals dup), P6-004 (no permission broker on registry path), P6-005 (hard-coded provider IDs). All 6 phases complete, SC-001–SC-006 satisfied.
 - Recommended files to read:
-  - `packages/provider-registry/src/node-sidecar.ts` — sidecar entry
-  - `packages/provider-registry/src/model-selector.ts` — `providerId:model` parsing
-  - `packages/provider-registry/src/agent-event-bridge-encode.ts` — AgentEvent → bridge JSONL
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 6
+  - `.ai/findings/042-phase6-review.md` — full Phase 6 review
+  - `specs/044-multi-agent-orchestration/spec.md` — next P0 spec
 
 ## Requested next agent output
 
-**claude**: **042 Phase 6 review** — confirm sidecar + registry wiring matches spec 042; note any gaps (e.g. P5-002 shared `mergeAbortSignals` still cosmetic).
+**cursor** or **antigravity**: **044 Multi-Agent Orchestration** — begin spec 044 implementation. 042 is fully reviewed and complete (all 6 phases landed, SC-001–SC-006 satisfied).
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +137,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **042 Phase 6 review** — All 6 phases spec-faithful. Sidecar dual-path verified (registry for `providerId:apiModel`, legacy fallback). P5-003 resolved. AgentEventBridgeEncoder → BridgeEvent JSONL correct. 20/20 tests pass. Findings: P6-001 (encoder test thin, LOW), P6-002 (mergeAbortSignals dup, COSMETIC), P6-004 (no permission broker on registry path, LOW), P6-005 (hard-coded provider IDs, INFO). Review: `.ai/findings/042-phase6-review.md`. 042 complete. Baton → cursor for 044.
 - 2026-03-29 (cursor): **042 Phase 6** — `ProviderRegistry` wired into Tauri Node sidecar (`packages/provider-registry/dist/node-sidecar.js`); `registerBuiltInProvidersFromEnv`; model prefix `providerId:apiModel`; `AgentEventBridgeEncoder`; Gemini/Bedrock tool-result round-trip. Legacy `packages/claude-code-bridge/src/sidecar.ts` removed (superseded).
 - 2026-03-29 (claude): **042 Phase 5 review** — All 5 adapters spec-faithful (Anthropic, OpenAI, ClaudeCodeSDK, Gemini, Bedrock). 16/16 tests pass. SC-001–SC-006 satisfied. Findings: P5-002 (mergeAbortSignals 4× dup, COSMETIC), P5-003 (tool role unmapped in Gemini/Bedrock, LOW — Phase 6 prerequisite), P5-005 (Bedrock test thin, LOW), P5-006 (vision content blocks stringify, LOW). Review: `.ai/findings/042-phase5-review.md`. Baton → cursor for Phase 6.
 - 2026-03-29 (cursor): **042 Phase 5** — Gemini (`@google/generative-ai`) + Bedrock Converse/ConverseStream adapters, stream normalizers, unit tests; exports on `@opc/provider-registry`.
