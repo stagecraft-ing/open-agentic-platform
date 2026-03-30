@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 048 Phase 1 review completed
-- Next owner: **cursor** for Phase 2 implementation
-- Last baton update: 2026-03-30 — **claude**: Phase 1 approved. FR-001, FR-009, NF-002, NF-003 all satisfied. F-002 resolved (flat conditions → implicit AND with test). 10/10 tests pass. 6 findings: P1-001 no `any`/`not` combinator parse test (LOW), P1-002 rationale leading newline not trimmed (LOW), P1-003–P1-006 (INFO). No blockers. Review: `.ai/findings/048-phase1-review.md`. Baton → **cursor** for Phase 2 (matcher + condition evaluator).
+- Current owner: **claude** — 048 Phase 2 review completed
+- Next owner: **cursor** for Phase 3 implementation
+- Last baton update: 2026-03-30 — **claude**: Phase 2 approved. FR-006 (all 5 operators + 3 boolean combinators), FR-002 partial (event type filtering + payload subset matching) satisfied. P1-001 resolved (any/not combinator parse tests added). 21/21 tests pass. 6 findings: P2-001 globToRegExp supports `*`/`?` only (LOW), P2-002 no `?` glob wildcard test (LOW), P2-003–P2-006 (INFO). No blockers. Review: `.ai/findings/048-phase2-review.md`. Baton → **cursor** for Phase 3 (action executors).
 - Recommended files to read:
-  - `.ai/findings/048-phase1-review.md` — Phase 1 review findings (P1-001 LOW: add boolean combinator parse tests in Phase 2)
-  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 2 deliverables: matcher.ts + conditions.ts
-  - `specs/048-hookify-rule-engine/spec.md` — FR-006 condition language, FR-002 evaluation
+  - `.ai/findings/048-phase2-review.md` — Phase 2 review findings
+  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 3 deliverables: actions.ts (block/warn/modify)
+  - `specs/048-hookify-rule-engine/spec.md` — FR-003 block, FR-004 warn, FR-005 modify
 
 ## Requested next agent output
 
-**cursor**: Implement 048 Phase 2 per `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Deliverables: `matcher.ts` (event type + payload field matching), `conditions.ts` (field access, `==`/`!=`/`contains`/`matches`/`glob` operators, boolean `AND`/`OR`/`NOT` via normalized AST). Address P1-001 by adding `any`/`not` combinator parse tests alongside evaluation tests. Validation: `pnpm --filter @opc/hookify-rule-engine test`.
+**cursor**: Implement 048 Phase 3 per `.ai/plans/048-hookify-rule-engine-phased-plan.md`. Deliverables: `actions.ts` (block action: deny + return rationale + short-circuit; warn action: emit warning + allow; modify action: apply transform to payload via `action.transform`). Safe transforms: `append_arg`, `replace_regex`, `set_field` (per H-003). Action result envelope: payload, warnings, terminal decision, matched rule IDs. Tests: SC-001 (git push --force blocked), SC-002 (warn + allow), SC-003 (modify payload). Validation: `pnpm --filter @opc/hookify-rule-engine test`.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,8 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **048 Phase 2 review** — Phase 2 approved. FR-006 (all 5 operators: `==`, `!=`, `contains`, `matches`, `glob` + 3 boolean combinators: `all`/AND, `any`/OR, `not`/NOT via recursive `evaluateConditionNode()`), FR-002 partial (`matchesRuleEventType()` + `matchesRuleMatcher()` with tool name, input/output subset matching) satisfied. P1-001 resolved (explicit `any`/`not` combinator parse test added at parser.test.ts:42). `getPathValue()` dot-path navigation with undefined → false + `HKY_FIELD_UNDEFINED` diagnostic. `globToRegExp()` handles `*`/`?`. Short-circuit: `all` stops on first false, `any` stops on first true. 21/21 tests pass. Findings: P2-001 glob supports `*`/`?` only (LOW), P2-002 no `?` wildcard test (LOW), P2-003 multi-discriminator node not guarded (INFO), P2-004 matcher failures silent (INFO), P2-005 `contains` dual string/array mode undocumented (INFO), P2-006 `resolveToolName` fallbacks untested individually (INFO). No blockers. Review: `.ai/findings/048-phase2-review.md`.
+- 2026-03-30 (cursor): **048 Phase 2** — Created `src/matcher.ts` (`matchesRuleEventType`, `matchesRuleMatcher` with `resolveToolName` + `deepSubsetMatch`) and `src/conditions.ts` (`evaluateConditionNode` recursive evaluator, `evaluateLeaf` with 5 operators, `getPathValue` dot-path navigation, `globToRegExp`). Updated `index.ts` exports and `package.json` subpath exports. Tests: `matcher.test.ts` (5 tests), `conditions.test.ts` (5 tests), `parser.test.ts` updated with any/not combinator parse test (P1-001). Validation: `pnpm --filter @opc/hookify-rule-engine test`.
 - 2026-03-30 (claude): **048 Phase 1 review** — Phase 1 approved. FR-001 (all 5 frontmatter fields parsed), FR-009 (malformed YAML/missing fields/invalid actions/events/duplicate IDs all produce diagnostics and skip rules), NF-002 (markdown body preserved as rationale), NF-003 (pure parser, no runtime dependency) all satisfied. F-002 resolved (flat condition arrays → implicit `{ all: [...] }`). Types cover full condition AST (leaf + all/any/not combinators), all FR-006 operators, and forward-compatible EvaluationResult/HookEvent. 10/10 tests pass. Findings: P1-001 no `any`/`not` combinator parse test (LOW), P1-002 rationale leading newline (LOW), P1-003–P1-006 (INFO). No blockers. Review: `.ai/findings/048-phase1-review.md`.
 - 2026-03-30 (cursor): **048 Phase 1** — Created `packages/hookify-rule-engine/` scaffold with `package.json`, `tsconfig.json`, `vitest.config.ts`, plus `src/types.ts`, `src/parser.ts`, `src/index.ts`, and `src/parser.test.ts`. Implemented markdown+YAML frontmatter parsing and validation for `event`/`matcher`/`conditions`/`action`/`priority`, structured diagnostics for invalid rules (non-fatal), duplicate ID detection in `parseRuleSet`, rationale body preservation, and flat condition array normalization to implicit `AND` (F-002). Validation: `pnpm --filter @opc/hookify-rule-engine test`.
 
