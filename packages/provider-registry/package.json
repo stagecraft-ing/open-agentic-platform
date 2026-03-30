@@ -12,9 +12,13 @@
     "./adapters/anthropic": "./src/adapters/anthropic.ts",
     "./adapters/claude-code-sdk": "./src/adapters/claude-code-sdk.ts",
     "./adapters/openai": "./src/adapters/openai.ts",
+    "./adapters/gemini": "./src/adapters/gemini.ts",
+    "./adapters/bedrock": "./src/adapters/bedrock.ts",
     "./normalization/anthropic-events": "./src/normalization/anthropic-events.ts",
     "./normalization/claude-code-events": "./src/normalization/claude-code-events.ts",
-    "./normalization/openai-events": "./src/normalization/openai-events.ts"
+    "./normalization/openai-events": "./src/normalization/openai-events.ts",
+    "./normalization/gemini-events": "./src/normalization/gemini-events.ts",
+    "./normalization/bedrock-events": "./src/normalization/bedrock-events.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -28,6 +32,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1019.0",
+    "@google/generative-ai": "^0.24.1",
     "@opc/claude-code-bridge": "workspace:*",
     "openai": "^4.104.0"
   }

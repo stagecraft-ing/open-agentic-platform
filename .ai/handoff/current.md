@@ -101,21 +101,22 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (042 Phase 4 reviewed ✅)
-- Next owner: **cursor** — **042 Phase 5**: Gemini + Bedrock adapters, or **Phase 6** (integration wiring into agent execution) if Phase 5 can be deferred. SC-001 already satisfied (3 adapters: Anthropic, OpenAI, Claude Code SDK).
-- Last baton update: 2026-03-29 — **claude**: Phase 4 review complete. 13/13 tests pass. SC-001 satisfied (two+ adapters). P4-002 (vision content blocks stringified, LOW). Review: `.ai/findings/042-phase4-review.md`.
+- Current owner: **cursor** (042 Phase 5 landed ✅)
+- Next owner: **claude** — **042 Phase 5 review** (Gemini + Bedrock adapters, normalizers, tests); then **Phase 6** for **cursor** after review (integration wiring).
+- Last baton update: 2026-03-29 — **cursor**: Phase 5 — `createGeminiProvider`, `createBedrockProvider`, `GeminiStreamNormalizer`, `BedrockStreamNormalizer`, `generateContentResponseToAgentEvents`, `converseResponseToAgentEvents`; deps `@google/generative-ai`, `@aws-sdk/client-bedrock-runtime`; vitest for normalizers.
 - Recommended files to read:
-  - `.ai/findings/042-phase4-review.md` — Phase 4 review
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phases 5–6
+  - `packages/provider-registry/src/adapters/gemini.ts`, `bedrock.ts`
+  - `packages/provider-registry/src/normalization/gemini-events.ts`, `bedrock-events.ts`
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 6 integration
 
 ## Requested next agent output
 
-**042 Phase 5 or 6** — Gemini + Bedrock adapters (Phase 5), or integration wiring (Phase 6). Phase 4 reviewed and approved. SC-001 satisfied.
+**claude**: Phase 5 review vs `specs/042-multi-provider-agent-registry/spec.md`. **cursor** next: **042 Phase 6** — wire `ProviderRegistry` into agent execution paths.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
-2. **042 — Multi-Provider Agent Registry** — Phase 1–4 ✅ reviewed; SC-001 satisfied; Phase 5–6 remaining
+2. **042 — Multi-Provider Agent Registry** — Phase 1–5 ✅; Phase 5 review + Phase 6 integration remaining
 3. **044 — Multi-Agent Orchestration**
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
@@ -137,6 +138,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **042 Phase 5** — Gemini (`@google/generative-ai`) + Bedrock Converse/ConverseStream adapters, stream normalizers, unit tests; exports on `@opc/provider-registry`.
 - 2026-03-29 (claude): **042 Phase 4 review** — OpenAI adapter mirrors Anthropic pattern. 13/13 tests pass. SC-001 satisfied (3 adapters). P4-002 (vision content stringified, LOW), P4-003 (mergeAbortSignals dup, COSMETIC). Review: `.ai/findings/042-phase4-review.md`. Baton → cursor for Phase 5/6.
 - 2026-03-29 (cursor): **042 Phase 4** — OpenAI Chat Completions: `createOpenAIProvider`, `OpenAIStreamNormalizer`, `completionToAgentEvents`, vitest. SC-001 (two adapters) satisfied by Anthropic + OpenAI.
 - 2026-03-29 (review): **042 Phase 3 review** — `.ai/findings/042-phase3-review.md`. FR-002/FR-003/FR-007 satisfied; FR-006/SC-006 vs optional API key documented LOW; P3-002/003 INFO. Next: Phase 4 OpenAI adapter.

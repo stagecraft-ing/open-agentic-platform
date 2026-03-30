@@ -23,6 +23,8 @@ export {
 
 export { createAnthropicProvider } from "./adapters/anthropic.js";
 export { createOpenAIProvider } from "./adapters/openai.js";
+export { createGeminiProvider } from "./adapters/gemini.js";
+export { createBedrockProvider } from "./adapters/bedrock.js";
 export {
   createClaudeCodeSdkProvider,
   CLAUDE_CODE_SDK_PROVIDER_ID,
@@ -39,3 +41,12 @@ export {
   completionToAgentEvents,
   OpenAIStreamNormalizer,
 } from "./normalization/openai-events.js";
+export {
+  GeminiStreamNormalizer,
+  generateContentResponseToAgentEvents,
+} from "./normalization/gemini-events.js";
+export {
+  BedrockStreamNormalizer,
+  converseResponseToAgentEvents,
+  bedrockMessageToAgentEvents,
+} from "./normalization/bedrock-events.js";
