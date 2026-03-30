@@ -101,15 +101,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (F-001/F-002 landed)
-- Next owner: **claude** (review 045 parity + PermissionBroker F-003), then **cursor** for sidecar `sidecar.ts` + Rust spawn per `.ai/findings/045-tauri-node-ipc-plan.md`
-- Last baton update: 2026-03-29 — **cursor**: Fixed **F-001** — `useClaudeMessages.handleMessage()` now branches on stream-json / SDK types (`system` init, `assistant`, `user`, `result`, `error`, `bridge_permission_request`) plus legacy shapes (`start`, `partial`, `response`, `session_info`). Aligned `ClaudeStreamMessage` in `AgentExecution.tsx`; `outputCache` and `SessionOutputViewer` re-export/import that type. Fixed **F-002** — `cli-adapter.ts` emits fallback `session-complete` only when the CLI never emitted a `result` line (`sessionCompleteTracker`). Remaining from review: F-003 PermissionBroker, F-004 duration_api_ms propagation (optional).
+- Current owner: **claude** (post-F001/F002 review complete)
+- Next owner: **cursor** for sidecar implementation (`packages/claude-code-bridge/src/sidecar.ts` + Rust spawn in `commands/claude.rs`) per `.ai/findings/045-tauri-node-ipc-plan.md`
+- Last baton update: 2026-03-29 — **claude**: Verified F-001, F-002, F-005, F-006 all resolved. New findings F-008–F-010 (all LOW). F-003 (PermissionBroker dead code) confirmed still open — deferred to sidecar slice since it's the only consumer. Full review: `.ai/findings/045-post-f001f002-review.md`. FR parity: 9/9 done, FR-004 partial (direct callback works, IPC broker path awaits sidecar).
 - Recommended files to read:
-  - `.ai/findings/045-bridge-parity-gaps.md` — remaining F-003–F-007
+  - `.ai/findings/045-post-f001f002-review.md` — full post-fix review with spec parity table
   - `.ai/findings/045-tauri-node-ipc-plan.md` — sidecar architecture + protocol draft
-  - `apps/desktop/src/components/claude-code-session/useClaudeMessages.ts` — stream-json handlers
-  - `packages/claude-code-bridge/src/cli-adapter.ts` — CLI fallback + single session-complete
-  - `packages/claude-code-bridge/src/sdk-adapter.ts` — PermissionBroker wiring (F-003)
+  - `packages/claude-code-bridge/src/sdk-adapter.ts` — PermissionBroker wiring needed for sidecar (F-003)
+  - `packages/claude-code-bridge/src/permission-broker.ts` — ready to use, needs `setEventSink` + `request()` wiring
 
 ## Requested next agent output
 
@@ -138,6 +137,7 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **045 post-F001/F002 review** — Verified F-001, F-002, F-005, F-006 all resolved. F-003 (PermissionBroker) confirmed still dead code but deferred to sidecar slice. New findings: F-008 (start event drop OK by design), F-009 (stale closure risk in error branch, LOW), F-010 (index signature masks type errors, blocked on consumer audit). Spec parity: 9/9 FR done, FR-004 partial. Full review: `.ai/findings/045-post-f001f002-review.md`. Next: cursor implements sidecar.
 - 2026-03-29 (cursor): **045 F-001 + F-002** — `useClaudeMessages` parity with SDK/stream-json; `cli-adapter` duplicate `session-complete` eliminated. Types consolidated via `AgentExecution` `ClaudeStreamMessage`. Next: Tauri/Node sidecar + F-003 optional.
 - 2026-03-29 (claude): **045 review** — 7 findings in `.ai/findings/045-bridge-parity-gaps.md`. Critical: useClaudeMessages checks wrong message types (F-001), CLI adapter double session-complete (F-002), PermissionBroker dead code (F-003). Produced sidecar IPC plan in `.ai/findings/045-tauri-node-ipc-plan.md` recommending Node sidecar with stdin/stdout JSONL protocol. Next: fix F-001/F-002, then implement sidecar.
 - 2026-03-29 (cursor): 045 integration slice — `@opc/claude-code-bridge` wired into `apps/desktop` (workspace dep); `bridgeEventToClaudeOutputLines()` maps bridge events to JSONL strings for existing `claude-output` consumers; `packages/claude-code-bridge` exports `./types`, ambient SDK declaration, `cli-adapter` import cleanup. Tests: `apps/desktop/src/lib/bridgeEventToClaudeOutput.test.ts`. Next: Tauri/Node bridge process + permission round-trip.
