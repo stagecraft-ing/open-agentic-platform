@@ -12,29 +12,14 @@ import type { AgentRun } from '@/lib/api';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { StreamMessage } from './StreamMessage';
 import { ErrorBoundary } from './ErrorBoundary';
+import type { ClaudeStreamMessage } from "./AgentExecution";
+
+export type { ClaudeStreamMessage };
 
 interface SessionOutputViewerProps {
   session: AgentRun;
   onClose: () => void;
   className?: string;
-}
-
-// Use the same message interface as AgentExecution for consistency
-export interface ClaudeStreamMessage {
-  type: "system" | "assistant" | "user" | "result";
-  subtype?: string;
-  message?: {
-    content?: any[];
-    usage?: {
-      input_tokens: number;
-      output_tokens: number;
-    };
-  };
-  usage?: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-  [key: string]: any;
 }
 
 export function SessionOutputViewer({ session, onClose, className }: SessionOutputViewerProps) {

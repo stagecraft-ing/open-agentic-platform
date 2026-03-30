@@ -43,11 +43,20 @@ export async function* queryViaCli(
   let totalOutputTokens = 0;
   const startTime = Date.now();
 
+  const sessionCompleteTracker = { emitted: false };
   try {
-    yield* streamOutput(child, () => sessionId, (id) => { sessionId = id; }, (inp, out) => {
-      totalInputTokens += inp;
-      totalOutputTokens += out;
-    });
+    yield* streamOutput(
+      child,
+      () => sessionId,
+      (id) => {
+        sessionId = id;
+      },
+      (inp, out) => {
+        totalInputTokens += inp;
+        totalOutputTokens += out;
+      },
+      sessionCompleteTracker,
+    );
   } finally {
     options.abortController?.signal.removeEventListener("abort", onAbort);
   }
@@ -56,19 +65,21 @@ export async function* queryViaCli(
   const exitCode = await waitForExit(child);
   const durationMs = Date.now() - startTime;
 
-  // Emit session-complete (best-effort cost data for CLI mode).
-  yield {
-    kind: "session-complete",
-    summary: {
-      sessionId,
-      totalCostUsd: 0, // CLI doesn't report cost directly
-      inputTokens: totalInputTokens,
-      outputTokens: totalOutputTokens,
-      numTurns: 0, // Not tracked in CLI mode
-      durationMs,
-      isError: exitCode !== 0,
-    },
-  };
+  // Emit session-complete only if the CLI never sent a `result` line (F-002).
+  if (!sessionCompleteTracker.emitted) {
+    yield {
+      kind: "session-complete",
+      summary: {
+        sessionId,
+        totalCostUsd: 0, // CLI doesn't report cost directly
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        numTurns: 0, // Not tracked in CLI mode
+        durationMs,
+        isError: exitCode !== 0,
+      },
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +128,7 @@ async function* streamOutput(
   getSessionId: () => string,
   setSessionId: (id: string) => void,
   addTokens: (input: number, output: number) => void,
+  sessionCompleteTracker: { emitted: boolean },
 ): AsyncGenerator<BridgeEvent> {
   if (!child.stdout) return;
 
@@ -161,6 +173,7 @@ async function* streamOutput(
       const result = parsed as Record<string, unknown>;
       const sid = (result.session_id as string) || getSessionId();
       setSessionId(sid);
+      sessionCompleteTracker.emitted = true;
       yield {
         kind: "session-complete",
         summary: {

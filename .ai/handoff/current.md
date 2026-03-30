@@ -101,15 +101,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (review complete)
-- Next owner: **cursor** (fix F-001 useClaudeMessages parity + F-002 duplicate session-complete, then implement sidecar.ts + Rust spawn)
-- Last baton update: 2026-03-29 — **claude**: Deep review of bridge ↔ stream-json parity. Found 7 findings (see `.ai/findings/045-bridge-parity-gaps.md`). **Critical:** `useClaudeMessages.handleMessage()` checks obsolete message types (`start`, `partial`, `response`) — none match SDK output (`system`, `assistant`, `user`, `result`), so all bridge messages will be silently ignored (F-001). Also: CLI adapter emits duplicate `session-complete` (F-002), PermissionBroker is dead code (F-003), spec has wrong feature_branch (F-005). Produced Node sidecar IPC plan (`.ai/findings/045-tauri-node-ipc-plan.md`): recommends stdin/stdout JSONL protocol between Rust and a Node sidecar hosting `queryClaudeCode()`.
+- Current owner: **cursor** (F-001/F-002 landed)
+- Next owner: **claude** (review 045 parity + PermissionBroker F-003), then **cursor** for sidecar `sidecar.ts` + Rust spawn per `.ai/findings/045-tauri-node-ipc-plan.md`
+- Last baton update: 2026-03-29 — **cursor**: Fixed **F-001** — `useClaudeMessages.handleMessage()` now branches on stream-json / SDK types (`system` init, `assistant`, `user`, `result`, `error`, `bridge_permission_request`) plus legacy shapes (`start`, `partial`, `response`, `session_info`). Aligned `ClaudeStreamMessage` in `AgentExecution.tsx`; `outputCache` and `SessionOutputViewer` re-export/import that type. Fixed **F-002** — `cli-adapter.ts` emits fallback `session-complete` only when the CLI never emitted a `result` line (`sessionCompleteTracker`). Remaining from review: F-003 PermissionBroker, F-004 duration_api_ms propagation (optional).
 - Recommended files to read:
-  - `.ai/findings/045-bridge-parity-gaps.md` — 7 findings with file:line evidence
+  - `.ai/findings/045-bridge-parity-gaps.md` — remaining F-003–F-007
   - `.ai/findings/045-tauri-node-ipc-plan.md` — sidecar architecture + protocol draft
-  - `apps/desktop/src/components/claude-code-session/useClaudeMessages.ts` — **must fix first** (F-001)
-  - `packages/claude-code-bridge/src/cli-adapter.ts` — duplicate session-complete (F-002)
-  - `packages/claude-code-bridge/src/sdk-adapter.ts` — dead PermissionBroker (F-003)
+  - `apps/desktop/src/components/claude-code-session/useClaudeMessages.ts` — stream-json handlers
+  - `packages/claude-code-bridge/src/cli-adapter.ts` — CLI fallback + single session-complete
+  - `packages/claude-code-bridge/src/sdk-adapter.ts` — PermissionBroker wiring (F-003)
 
 ## Requested next agent output
 
@@ -138,6 +138,7 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **045 F-001 + F-002** — `useClaudeMessages` parity with SDK/stream-json; `cli-adapter` duplicate `session-complete` eliminated. Types consolidated via `AgentExecution` `ClaudeStreamMessage`. Next: Tauri/Node sidecar + F-003 optional.
 - 2026-03-29 (claude): **045 review** — 7 findings in `.ai/findings/045-bridge-parity-gaps.md`. Critical: useClaudeMessages checks wrong message types (F-001), CLI adapter double session-complete (F-002), PermissionBroker dead code (F-003). Produced sidecar IPC plan in `.ai/findings/045-tauri-node-ipc-plan.md` recommending Node sidecar with stdin/stdout JSONL protocol. Next: fix F-001/F-002, then implement sidecar.
 - 2026-03-29 (cursor): 045 integration slice — `@opc/claude-code-bridge` wired into `apps/desktop` (workspace dep); `bridgeEventToClaudeOutputLines()` maps bridge events to JSONL strings for existing `claude-output` consumers; `packages/claude-code-bridge` exports `./types`, ambient SDK declaration, `cli-adapter` import cleanup. Tests: `apps/desktop/src/lib/bridgeEventToClaudeOutput.test.ts`. Next: Tauri/Node bridge process + permission round-trip.
 - 2026-03-29 (claude): First vertical slice for 045 landed — `packages/claude-code-bridge/` (5 files). Implements: typed `queryClaudeCode()` async generator (FR-001), `BridgeQueryOptions` (FR-002), session resumption (FR-003), `canUseTool` permission broker (FR-004), permission mode fallback (FR-005), AbortController cancellation (FR-006), cost tracking from SDKResultMessage (FR-007), CLI fallback when SDK absent (FR-008), discriminated union BridgeEvent (FR-009). Next: Tauri backend + frontend integration.

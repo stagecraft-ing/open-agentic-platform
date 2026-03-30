@@ -1,23 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { api } from './api';
+import type { ClaudeStreamMessage } from "@/components/AgentExecution";
 
-// Use the same message interface as AgentExecution for consistency
-export interface ClaudeStreamMessage {
-  type: "system" | "assistant" | "user" | "result";
-  subtype?: string;
-  message?: {
-    content?: any[];
-    usage?: {
-      input_tokens: number;
-      output_tokens: number;
-    };
-  };
-  usage?: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-  [key: string]: any;
-}
+export type { ClaudeStreamMessage };
 
 interface CachedSessionOutput {
   output: string;

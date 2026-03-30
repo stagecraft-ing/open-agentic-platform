@@ -21,61 +21,101 @@ export function useClaudeMessages(options: UseClaudeMessagesOptions = {}) {
   const accumulatedContentRef = useRef<{ [key: string]: string }>({});
 
   const handleMessage = useCallback((message: ClaudeStreamMessage) => {
-    console.log('[TRACE] useClaudeMessages.handleMessage called with:', message);
-    
-    if ((message as any).type === "start") {
-      console.log('[TRACE] Start message detected - clearing accumulated content and setting streaming=true');
-      // Clear accumulated content for new stream
+    const m = message as ClaudeStreamMessage & { tool_calls?: unknown[] };
+    const t = m.type;
+
+    // stream-json / SDK (system, assistant, user, result) + 045 bridge extras
+    if (t === "system" && m.subtype === "init" && m.session_id) {
       accumulatedContentRef.current = {};
       setIsStreaming(true);
-      options.onStreamingChange?.(true, currentSessionId);
-    } else if ((message as any).type === "partial") {
-      console.log('[TRACE] Partial message detected');
-      if (message.tool_calls && message.tool_calls.length > 0) {
-        message.tool_calls.forEach((toolCall: any) => {
-          if (toolCall.content && toolCall.partial_tool_call_index !== undefined) {
-            const key = `tool-${toolCall.partial_tool_call_index}`;
+      setCurrentSessionId(m.session_id);
+      options.onStreamingChange?.(true, m.session_id);
+      options.onSessionInfo?.({
+        sessionId: m.session_id,
+        projectId: typeof m.cwd === "string" ? m.cwd : "",
+      });
+    } else if (t === "assistant") {
+      const usage = m.message?.usage ?? m.usage;
+      if (usage) {
+        const totalTokens =
+          (usage.input_tokens || 0) + (usage.output_tokens || 0);
+        options.onTokenUpdate?.(totalTokens);
+      }
+      const toolCalls = m.message?.tool_calls ?? m.tool_calls;
+      if (Array.isArray(toolCalls)) {
+        toolCalls.forEach((toolCall: Record<string, unknown>) => {
+          if (
+            toolCall.content != null &&
+            toolCall.partial_tool_call_index !== undefined
+          ) {
+            const key = `tool-${String(toolCall.partial_tool_call_index)}`;
             if (!accumulatedContentRef.current[key]) {
               accumulatedContentRef.current[key] = "";
             }
-            accumulatedContentRef.current[key] += toolCall.content;
+            accumulatedContentRef.current[key] += String(toolCall.content);
             toolCall.accumulated_content = accumulatedContentRef.current[key];
           }
         });
       }
-    } else if ((message as any).type === "response" && message.message?.usage) {
-      console.log('[TRACE] Response message with usage detected');
-      const totalTokens = (message.message.usage.input_tokens || 0) + 
-                         (message.message.usage.output_tokens || 0);
-      console.log('[TRACE] Total tokens:', totalTokens);
-      options.onTokenUpdate?.(totalTokens);
-    } else if ((message as any).type === "error" || (message as any).type === "response") {
-      console.log('[TRACE] Error or response message detected - setting streaming=false');
+    } else if (t === "result") {
+      const inTok = m.total_input_tokens ?? 0;
+      const outTok = m.total_output_tokens ?? 0;
+      if (inTok + outTok > 0) {
+        options.onTokenUpdate?.(inTok + outTok);
+      }
+      if (m.session_id) {
+        setCurrentSessionId(m.session_id);
+      }
+      setIsStreaming(false);
+      options.onStreamingChange?.(false, m.session_id ?? currentSessionId);
+    } else if (t === "error") {
       setIsStreaming(false);
       options.onStreamingChange?.(false, currentSessionId);
-    } else if ((message as any).type === "output") {
-      console.log('[TRACE] Output message detected, content:', (message as any).content);
-    } else {
-      console.log('[TRACE] Unknown message type:', (message as any).type);
-    }
-
-    console.log('[TRACE] Adding message to state');
-    setMessages(prev => {
-      const newMessages = [...prev, message];
-      console.log('[TRACE] Total messages now:', newMessages.length);
-      return newMessages;
-    });
-    setRawJsonlOutput(prev => [...prev, JSON.stringify(message)]);
-
-    // Extract session info
-    if ((message as any).type === "session_info" && (message as any).session_id && (message as any).project_id) {
-      console.log('[TRACE] Session info detected:', (message as any).session_id, (message as any).project_id);
+    } else if (t === "bridge_permission_request") {
+      // Listed in UI via `messages`; permission UI can subscribe separately later
+    } else if (t === "start") {
+      accumulatedContentRef.current = {};
+      setIsStreaming(true);
+      options.onStreamingChange?.(true, currentSessionId);
+    } else if (t === "partial") {
+      const toolCalls = m.message?.tool_calls ?? m.tool_calls;
+      if (Array.isArray(toolCalls)) {
+        toolCalls.forEach((toolCall: Record<string, unknown>) => {
+          if (
+            toolCall.content != null &&
+            toolCall.partial_tool_call_index !== undefined
+          ) {
+            const key = `tool-${String(toolCall.partial_tool_call_index)}`;
+            if (!accumulatedContentRef.current[key]) {
+              accumulatedContentRef.current[key] = "";
+            }
+            accumulatedContentRef.current[key] += String(toolCall.content);
+            toolCall.accumulated_content = accumulatedContentRef.current[key];
+          }
+        });
+      }
+    } else if (t === "response" && m.message?.usage) {
+      const totalTokens =
+        (m.message.usage.input_tokens || 0) +
+        (m.message.usage.output_tokens || 0);
+      options.onTokenUpdate?.(totalTokens);
+    } else if (t === "response") {
+      setIsStreaming(false);
+      options.onStreamingChange?.(false, currentSessionId);
+    } else if (
+      t === "session_info" &&
+      typeof m.session_id === "string" &&
+      typeof m.project_id === "string"
+    ) {
       options.onSessionInfo?.({
-        sessionId: (message as any).session_id,
-        projectId: (message as any).project_id
+        sessionId: m.session_id,
+        projectId: m.project_id,
       });
-      setCurrentSessionId((message as any).session_id);
+      setCurrentSessionId(m.session_id);
     }
+
+    setMessages((prev) => [...prev, message]);
+    setRawJsonlOutput((prev) => [...prev, JSON.stringify(message)]);
   }, [currentSessionId, options]);
 
   const clearMessages = useCallback(() => {
@@ -159,15 +199,7 @@ export function useClaudeMessages(options: UseClaudeMessagesOptions = {}) {
         window.addEventListener('claude-output', webEventHandler);
         console.log('[TRACE] Web event listener added for claude-output');
         console.log('[TRACE] Event listener function:', webEventHandler);
-        
-        // Test if event listener is working
-        setTimeout(() => {
-          console.log('[TRACE] Testing event dispatch...');
-          window.dispatchEvent(new CustomEvent('claude-output', {
-            detail: { type: 'test', message: 'test event' }
-          }));
-        }, 1000);
-        
+
         eventListenerRef.current = () => {
           console.log('[TRACE] Removing web event listener');
           window.removeEventListener('claude-output', webEventHandler);

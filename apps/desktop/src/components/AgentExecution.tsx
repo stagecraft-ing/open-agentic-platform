@@ -58,20 +58,47 @@ interface AgentExecutionProps {
   className?: string;
 }
 
+/** Stream-json line from Claude Code CLI/SDK or 045 bridge → JSONL mapper. */
 export interface ClaudeStreamMessage {
-  type: "system" | "assistant" | "user" | "result";
+  type:
+    | "system"
+    | "assistant"
+    | "user"
+    | "result"
+    | "error"
+    | "bridge_permission_request"
+    | "start"
+    | "partial"
+    | "response"
+    | "output"
+    | "session_info";
   subtype?: string;
+  session_id?: string;
+  cwd?: string;
+  project_id?: string;
   message?: {
     content?: any[];
     usage?: {
       input_tokens: number;
       output_tokens: number;
     };
+    tool_calls?: any[];
   };
   usage?: {
     input_tokens: number;
     output_tokens: number;
   };
+  total_cost_usd?: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  num_turns?: number;
+  duration_ms?: number;
+  error?: string;
+  fatal?: boolean;
+  request_id?: string;
+  tool_name?: string;
+  tool_input?: unknown;
+  tool_calls?: any[];
   [key: string]: any;
 }
 
