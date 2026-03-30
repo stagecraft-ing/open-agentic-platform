@@ -260,10 +260,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
+name = "open_agentic_frontmatter"
+version = "0.1.0"
+dependencies = [
+ "serde_yaml",
+]
+
+[[package]]
 name = "open_agentic_spec_lint"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "open_agentic_frontmatter",
  "regex",
  "serde_yaml",
  "tempfile",

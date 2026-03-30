@@ -1,28 +1,25 @@
 [package]
-name = "open_agentic_spec_compiler"
+name = "open_agentic_policy_compiler"
 version = "0.1.0"
 edition = "2021"
-description = "Spec compiler MVP per specs/001-spec-compiler-mvp — emits registry.json + build-meta.json"
+description = "Policy compiler skeleton for governance control plane"
 rust-version = "1.74"
 
 [[bin]]
-name = "spec-compiler"
+name = "policy-compiler"
 path = "src/main.rs"
 
 [lib]
-name = "open_agentic_spec_compiler"
+name = "open_agentic_policy_compiler"
 path = "src/lib.rs"
 
 [dependencies]
-chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 clap = { version = "4", features = ["derive"] }
 open_agentic_frontmatter = { path = "../shared/frontmatter" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sha2 = "0.10"
 walkdir = "2"
 
 [dev-dependencies]
-jsonschema = { version = "0.33", default-features = false }
 tempfile = "3.27.0"

@@ -6,13 +6,18 @@
 
 Implement Feature 047 as a deterministic policy compilation + enforcement system: compile policy markdown (`CLAUDE.md` and `.claude/policies/*.md`) into policy bundles, enforce them via a Rust WASM kernel, degrade privilege on coherence drift, and produce verifiable proof-chain audit records.
 
-## Pre-implementation decisions (G-001 to G-005)
+## Pre-implementation decisions (G-001 to G-006)
 
 - **G-001 (repo topology):** add a dedicated compiler binary at `tools/policy-compiler/` and keep bundle outputs under `build/policy-bundles/` to mirror spec-compiler conventions without coupling runtime concerns into Feature 001 binaries.
-- **G-002 (rule extraction format):** support explicit machine-readable rule blocks first (e.g., fenced `policy` blocks or HTML policy directives). Freeform prose compiles as advisory `mode=log` unless explicitly annotated, aligning with risk mitigation R-001.
+- **G-002 (rule extraction format):** commit to fenced `policy` code blocks as the machine-readable rule syntax for Phase 1. HTML directives are out-of-scope for the initial parser. Freeform prose compiles as advisory `mode=log` unless explicitly annotated, aligning with risk mitigation R-001.
 - **G-003 (deterministic emission):** canonicalize rule ordering by source precedence, then by rule ID, and serialize with stable map key order to satisfy FR-005 / SC-002.
-- **G-004 (WASM target):** start with `wasm32-unknown-unknown` and host all required inputs via function args to preserve NF-003 (no FS/network/syscall access).
+- **G-004 (WASM target):** build the policy kernel core as pure Rust first, then compile it to `wasm32-unknown-unknown` for portability.
 - **G-005 (proof-chain storage):** keep append-only proof records in host-side storage with deterministic record hashing in shared Rust logic so chain verification is identical across runtime and offline verifier.
+- **G-006 (host runtime strategy):** adopt a dual-target runtime before Phase 3: axiomregent uses the native Rust kernel path on the critical dispatch path, and a WASM artifact is produced from the same core for non-native hosts. This avoids mandatory host-runtime overhead in axiomregent while preserving the spec's portability intent.
+
+### F-005 resolution (frontmatter parser sharing)
+
+Decision: extract and use a shared crate at `tools/shared/frontmatter/` (not a vendored copy) so policy-compiler does not introduce a third parser implementation. Existing `spec-compiler` and `spec-lint` frontmatter parsing now route through this crate.
 
 ## Implementation slices
 

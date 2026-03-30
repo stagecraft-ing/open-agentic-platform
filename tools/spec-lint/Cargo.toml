@@ -15,6 +15,7 @@ path = "src/lib.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+open_agentic_frontmatter = { path = "../shared/frontmatter" }
 regex = "1"
 serde_yaml = "0.9"
 

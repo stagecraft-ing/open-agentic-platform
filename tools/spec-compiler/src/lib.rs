@@ -1,5 +1,6 @@
 //! Library for compiling `specs/*/spec.md` into Feature 000 registry JSON.
 
+use open_agentic_frontmatter::{split_frontmatter_required, FrontmatterError};
 use serde::Serialize;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
@@ -109,7 +110,8 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     for spec_path in &spec_paths {
         let raw = fs::read_to_string(spec_path)?;
-        let (yaml_val, body): (serde_yaml::Value, String) = split_frontmatter(&raw, spec_path)?;
+        let (yaml_val, body): (serde_yaml::Value, String) =
+            split_frontmatter(&raw, spec_path)?;
 
         let fm = yaml_val
             .as_mapping()
@@ -458,31 +460,12 @@ fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
 }
 
 fn split_frontmatter(raw: &str, path: &Path) -> Result<(serde_yaml::Value, String), CompileError> {
-    let raw = raw.strip_prefix('\u{feff}').unwrap_or(raw);
-    let rest = raw
-        .strip_prefix("---")
-        .ok_or_else(|| CompileError::MissingFrontmatter {
+    split_frontmatter_required(raw).map_err(|err| match err {
+        FrontmatterError::MissingFrontmatter => CompileError::MissingFrontmatter {
             path: path.to_path_buf(),
-        })?;
-    let rest = rest
-        .strip_prefix('\n')
-        .or_else(|| rest.strip_prefix("\r\n"))
-        .ok_or_else(|| CompileError::MissingFrontmatter {
-            path: path.to_path_buf(),
-        })?;
-
-    let (yaml_str, body) = if let Some(i) = rest.find("\n---\n") {
-        (&rest[..i], rest[i + 5..].to_string())
-    } else if let Some(i) = rest.find("\r\n---\r\n") {
-        (&rest[..i], rest[i + 7..].to_string())
-    } else {
-        return Err(CompileError::MissingFrontmatter {
-            path: path.to_path_buf(),
-        });
-    };
-
-    let v: serde_yaml::Value = serde_yaml::from_str(yaml_str)?;
-    Ok((v, body))
+        },
+        FrontmatterError::Yaml(e) => CompileError::Yaml(e),
+    })
 }
 
 fn required_str(m: &serde_yaml::Mapping, key: &str, path: &Path) -> Result<String, CompileError> {

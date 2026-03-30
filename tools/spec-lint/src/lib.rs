@@ -1,5 +1,6 @@
 //! Optional conformance warnings (Feature 006) — does not replace spec-compiler validation.
 
+use open_agentic_frontmatter::split_frontmatter_optional;
 use regex::Regex;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -35,23 +36,6 @@ pub fn feature_spec_dirs(repo_root: &Path) -> std::io::Result<Vec<PathBuf>> {
 fn is_feature_dir_name(name: &str) -> bool {
     let b = name.as_bytes();
     b.len() >= 5 && b[..3].iter().all(|c| c.is_ascii_digit()) && b[3] == b'-'
-}
-
-fn split_frontmatter(raw: &str) -> Option<(serde_yaml::Value, String)> {
-    let raw = raw.strip_prefix('\u{feff}').unwrap_or(raw);
-    let rest = raw.strip_prefix("---")?;
-    let rest = rest
-        .strip_prefix('\n')
-        .or_else(|| rest.strip_prefix("\r\n"))?;
-    let (yaml_str, body) = if let Some(i) = rest.find("\n---\n") {
-        (&rest[..i], rest[i + 5..].to_string())
-    } else if let Some(i) = rest.find("\r\n---\r\n") {
-        (&rest[..i], rest[i + 7..].to_string())
-    } else {
-        return None;
-    };
-    let v: serde_yaml::Value = serde_yaml::from_str(yaml_str).ok()?;
-    Some((v, body))
 }
 
 fn superseded_pointer_ok(body: &str) -> bool {
@@ -101,7 +85,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
         Err(_) => return w,
     };
 
-    if let Some((fm, body)) = split_frontmatter(&spec_raw) {
+    if let Some((fm, body)) = split_frontmatter_optional(&spec_raw) {
         if let Some(status) = fm.get("status").and_then(|v| v.as_str()) {
             if status == "superseded" && !superseded_pointer_ok(&body) {
                 w.push(Warning {
