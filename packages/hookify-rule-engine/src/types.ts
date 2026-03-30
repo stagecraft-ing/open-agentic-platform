@@ -78,6 +78,8 @@ export interface HookEvent {
 export interface EvaluationResult {
   allowed: boolean;
   blockedByRuleId?: string;
+  /** When `allowed` is false due to a block action, human-facing rationale from the rule body. */
+  blockRationale?: string;
   warnings: string[];
   diagnostics: Diagnostic[];
   payload: Record<string, unknown>;

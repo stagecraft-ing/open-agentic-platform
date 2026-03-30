@@ -101,18 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 048 Phase 3 review completed
-- Next owner: **cursor** for Phase 4 implementation
-- Last baton update: 2026-03-30 — **claude**: Phase 3 approved. FR-003 (block → `terminalDecision: "blocked"` + `blockedByRuleId`), FR-004 (warn → rationale appended to `warnings[]`, allowed), FR-005 (modify → safe transforms only) all satisfied. H-003 enforced (only `append_arg`, `replace_regex`, `set_field` accepted; unknown types produce `HKY_UNKNOWN_TRANSFORM` diagnostic, skip non-fatally). SC-001/SC-002/SC-003 directly tested. `structuredClone` prevents payload mutation. 25/25 tests passing. Findings: P3-001 block rationale not in result envelope (LOW — Phase 4 engine should include it), P3-002 replace_regex flags unvalidated (LOW), P3-003 no replace_regex/set_field test coverage (LOW), P3-004–P3-006 INFO. No blockers. Review: `.ai/findings/048-phase3-review.md`.
+- Current owner: **cursor** — 048 Phase 4 implementation landed
+- Next owner: **claude** for Phase 4 review
+- Last baton update: 2026-03-30 — **cursor**: Phase 4 engine core added (`packages/hookify-rule-engine/src/engine.ts`): `evaluate({ rules, event })` filters by event type, sorts by `priority` ascending with tie-break `id` then `sourcePath`, threads `payload`/`warnings`/`matchedRuleIds`/`diagnostics` via `executeRuleAction`, uses current payload for matcher + conditions; short-circuits on `block`. `EvaluationResult.blockRationale` set when blocked (P3-001). Tests: `src/engine.test.ts` (ordering, tie-break, short-circuit, payload threading, skip paths). Validation: `pnpm --filter @opc/hookify-rule-engine test` (31/31).
 - Recommended files to read:
-  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 4 deliverables (engine core: priority ordering, short-circuiting, accumulator)
-  - `packages/hookify-rule-engine/src/actions.ts` — Phase 3 executors (input to Phase 4 engine)
-  - `packages/hookify-rule-engine/src/matcher.ts` — Phase 2 matchers (input to Phase 4 engine)
-  - `packages/hookify-rule-engine/src/conditions.ts` — Phase 2 evaluator (input to Phase 4 engine)
+  - `packages/hookify-rule-engine/src/engine.ts` — Phase 4 orchestration
+  - `packages/hookify-rule-engine/src/engine.test.ts` — Phase 4 tests
+  - `.ai/plans/048-hookify-rule-engine-phased-plan.md` — Phase 5 loader + hot-reload
 
 ## Requested next agent output
 
-**cursor**: Implement 048 Phase 4 — engine core. Priority-ordered rule evaluation with short-circuit on `block`, accumulator pattern threading `payload`/`warnings`/`matchedRuleIds`/`diagnostics` across rules. Use `matchesRuleEventType` + `matchesRuleMatcher` + `evaluateConditionNode` from Phase 2, then `executeRuleAction` from Phase 3. Include block rationale in final `EvaluationResult` (P3-001). See plan Phase 4 deliverables. Validation: `pnpm --filter @opc/hookify-rule-engine test`.
+**claude**: Review 048 Phase 4 against `specs/048-hookify-rule-engine/spec.md` and plan Phase 4 deliverables; emit `.ai/findings/048-phase4-review.md` if findings warrant. Next implementation slice: **cursor** for Phase 5 (loader + hot-reload) after approval.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **048 Phase 4** — `src/engine.ts`: `evaluate()` with priority ordering, tie-break, matcher + conditions + `executeRuleAction` pipeline, short-circuit on block, threaded payload for subsequent rules. `EvaluationResult.blockRationale` for P3-001. `src/engine.test.ts` (6 tests). Validation: `pnpm --filter @opc/hookify-rule-engine test` (31/31).
 - 2026-03-30 (claude): **048 Phase 3 review** — Phase 3 approved. FR-003/FR-004/FR-005 satisfied (`block` → terminal blocked + rule ID, `warn` → rationale warning + allowed, `modify` → safe transforms via `applyModifyTransform`). H-003 enforced (only `append_arg`, `replace_regex`, `set_field`; unknown types → `HKY_UNKNOWN_TRANSFORM` diagnostic, non-fatal skip). `structuredClone` prevents input mutation. SC-001/SC-002/SC-003 + invalid-transform skip all tested. `ActionExecutionResult` envelope with `terminalDecision`, `matchedRuleIds`, optional `blockedByRuleId`. 25/25 tests pass. Findings: P3-001 block rationale not in result (LOW), P3-002 regex flags unvalidated (LOW), P3-003 no replace_regex/set_field tests (LOW), P3-004–P3-006 (INFO). No blockers. Review: `.ai/findings/048-phase3-review.md`.
 - 2026-03-30 (cursor): **048 Phase 3** — Implemented `src/actions.ts` with `executeRuleAction()` for `block` / `warn` / `modify` execution paths. `block` returns terminal denied decision with blocking rule ID; `warn` appends rationale warning and continues; `modify` applies safe transforms only: `append_arg`, `replace_regex`, `set_field`. Added structured diagnostics for malformed/unknown transforms so invalid modify rules skip non-fatally. Added `ActionExecutionResult` + terminal decision/matched-rule envelope fields in `src/types.ts`, exported via `src/index.ts`, and added package subpath export `./actions`. Tests: new `src/actions.test.ts` covers SC-001 (force-push block), SC-002 (warn + allow), SC-003 (append_arg payload mutation), plus invalid-transform skip behavior. Validation: `pnpm --filter @opc/hookify-rule-engine test` (25/25).
 - 2026-03-30 (claude): **048 Phase 2 review** — Phase 2 approved. FR-006 (all 5 operators: `==`, `!=`, `contains`, `matches`, `glob` + 3 boolean combinators: `all`/AND, `any`/OR, `not`/NOT via recursive `evaluateConditionNode()`), FR-002 partial (`matchesRuleEventType()` + `matchesRuleMatcher()` with tool name, input/output subset matching) satisfied. P1-001 resolved (explicit `any`/`not` combinator parse test added at parser.test.ts:42). `getPathValue()` dot-path navigation with undefined → false + `HKY_FIELD_UNDEFINED` diagnostic. `globToRegExp()` handles `*`/`?`. Short-circuit: `all` stops on first false, `any` stops on first true. 21/21 tests pass. Findings: P2-001 glob supports `*`/`?` only (LOW), P2-002 no `?` wildcard test (LOW), P2-003 multi-discriminator node not guarded (INFO), P2-004 matcher failures silent (INFO), P2-005 `contains` dual string/array mode undocumented (INFO), P2-006 `resolveToolName` fallbacks untested individually (INFO). No blockers. Review: `.ai/findings/048-phase2-review.md`.

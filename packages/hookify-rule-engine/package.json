@@ -12,7 +12,8 @@
     "./parser": "./src/parser.ts",
     "./conditions": "./src/conditions.ts",
     "./matcher": "./src/matcher.ts",
-    "./actions": "./src/actions.ts"
+    "./actions": "./src/actions.ts",
+    "./engine": "./src/engine.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

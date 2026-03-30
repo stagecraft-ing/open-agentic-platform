@@ -19,3 +19,5 @@ export { parseRuleFile, parseRuleSet } from "./parser.js";
 export { evaluateConditionNode } from "./conditions.js";
 export { matchesRuleEventType, matchesRuleMatcher } from "./matcher.js";
 export { executeRuleAction } from "./actions.js";
+export { evaluate } from "./engine.js";
+export type { EvaluateInput } from "./engine.js";
