@@ -101,18 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (043 Phase 1 review complete — approved)
-- Next owner: **cursor** — implement Phase 2 dispatch (`crates/agent/src/dispatch.rs`) with full F-001 trigger lists from both dispatch diagram patterns AND NEVER/ALWAYS prose lists. Must implement SC-003/SC-004 mandatory override tests.
-- Last baton update: 2026-03-30 — **claude**: Phase 1 approved. All 6 signals match spec Architecture table (caps, measurements, keys). ExecutionPlan JSON matches TypeScript contract field-for-field. F-004 resolved (lib.rs wired). F-005 resolved (PlanContext defined). 12 Phase 1 tests + 25 total crate tests pass. 2 LOW findings (P1-002 empty-string test, P1-003 prompt_length boundary test), 4 INFO. No blockers. Review: `.ai/findings/043-phase1-review.md`.
+- Current owner: **claude** — 043 Phase 2 review (dispatch landed)
+- Next owner: **cursor** — Phase 3 registry (`crates/agent/src/registry.rs`) after Phase 2 review, or fixes from review
+- Last baton update: 2026-03-30 — **cursor**: Phase 2 complete. `crates/agent/src/dispatch.rs`: mandatory direct first (diagram + NEVER prose), then delegate (diagram + ALWAYS prose + `frontend`+`backend`, `\bbuild\b` vs `build project`), then score; `build_execution_plan` + deterministic stub `team`/`workflow` when `delegated`; `uuid` for `request_id`. Tests: SC-001–SC-004 + conflict/precedence fixtures. `cargo test --manifest-path crates/agent/Cargo.toml` (32 tests). Next: **claude** Phase 2 review.
 - Recommended files to read:
-  - `.ai/findings/043-phase1-review.md` — Phase 1 review (approved, 0 HIGH, 0 MEDIUM)
-  - `.ai/findings/043-plan-review.md` — plan review findings (F-001 MEDIUM — mandatory trigger completeness, must address in Phase 2)
-  - `specs/043-agent-organizer/spec.md` § Dispatch protocol — full trigger lists for Phase 2
-  - `crates/agent/src/plan.rs`, `crates/agent/src/complexity.rs` — Phase 1 code (approved)
+  - `crates/agent/src/dispatch.rs` — Phase 2 implementation
+  - `specs/043-agent-organizer/spec.md` § Dispatch protocol — source of trigger lists
+  - `.ai/findings/043-plan-review.md` — F-001 (addressed in Phase 2 enumeration)
 
 ## Requested next agent output
 
-**cursor**: Phase 2 dispatch — implement `crates/agent/src/dispatch.rs` with mandatory direct triggers (spec dispatch diagram: "single file edit", "what is", "how do I", "run command", "config change", "explain"; NEVER list: conversational questions, single-command execution, simple lookups, configuration tweaks) and mandatory delegate triggers (diagram: "implement feature", "refactor", "debug across", "create test suite", "generate docs", "build", "review PR", "analyze architecture", "migrate"; ALWAYS list: multi-file code gen, cross-module debugging, architecture design/review, full test suite creation, multi-component docs, frontend+backend features, security audits, performance analysis). Tests: SC-001, SC-002, SC-003, SC-004. Then **claude** reviews Phase 2.
+**claude**: review **043 Phase 2** — `dispatch.rs` + mandatory override tests vs spec; emit `.ai/findings/043-phase2-review.md` if not present. Then **cursor** for Phase 3 registry (`crates/agent/src/registry.rs`) per phased plan, or **claude-opus** for prioritization.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **043 Phase 2** — `dispatch.rs`: `evaluate_mandatory_triggers`, `build_execution_plan` (PlanContext + UUID `request_id`); full direct/delegate lists per spec diagram + NEVER/ALWAYS prose; `lib.rs` exports. Tests SC-001–SC-004. Validation: `cargo test --manifest-path crates/agent/Cargo.toml`.
 - 2026-03-30 (claude): **043 Phase 1 review** — Phase 1 approved. All 6 spec signals match Architecture table (prompt_length 0-20, action_verbs 0-20, multi_step_connectors 0-20, technology_breadth 0-15, scope_indicators 0-15, file_path_references 0-10). ExecutionPlan JSON contract matches TypeScript schema field-for-field (all enum variants, nested types, optional fields). F-004 resolved (lib.rs modules wired). F-005 resolved (PlanContext with request_id). 12 Phase 1 tests pass (SC-005 determinism, NF-002 purity, 6 signal caps, band boundaries, JSON round-trip). 25 total crate tests pass. Findings: P1-002 (no empty-string test, LOW), P1-003 (no prompt_length boundary test at 50/2000, LOW), P1-001/P1-004/P1-005/P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/043-phase1-review.md`.
 - 2026-03-30 (cursor): **043 Phase 1** — `plan.rs` + `complexity.rs` + `lib.rs` modules; deterministic `score_complexity()` with six capped signals; `ExecutionPlan` / `PlanContext` serde; tests (SC-005, NF-002, caps, band boundaries, JSON round-trip). Validation: `cargo test --manifest-path crates/agent/Cargo.toml`.
 - 2026-03-30 (claude): **043 plan review** — All 21 requirements (10 FR + 3 NF + 8 SC) covered across 6 phases. Phase ordering sound (deterministic Phases 1–3 before LLM Phase 4, Tauri Phase 5, verification Phase 6). 6 findings: F-001 MEDIUM (mandatory trigger list completeness — plan says "spec lists + extensible config" but must implement ALL triggers from both dispatch diagram and NEVER/ALWAYS prose lists), F-002 LOW (Phase 3 placeholder selection before Haiku — intentional, confirmed acceptable), F-003 LOW (fallback plan must still produce valid ExecutionPlan schema), F-004 LOW (lib.rs module declarations needed), F-005 LOW (PlanContext struct undefined), F-007 INFO (agent-organizer.md prompt file not in plan deliverables). Plan approved for Phase 1 start. No blockers. Review: `.ai/findings/043-plan-review.md`.
