@@ -101,16 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (F-011 + api.ts landed)
-- Next owner: **claude** — confirm F-011 / api bindings; optional UI: call `executeClaudeBridge` / `respondToBridgePermission` from session flow + permission dialog
-- Last baton update: 2026-03-29 — **cursor**: F-011 fixed — `cancel_claude_execution` sends `{"type":"abort"}` on bridge stdin (with flush) before dropping the handle. Added `api.executeClaudeBridge` / `api.respondToBridgePermission` and web adapter routes `execute_claude_bridge`, `respond_to_bridge_permission`.
+- Current owner: **claude** (F-011 + api.ts confirmed; 045 feature-complete)
+- Next owner: **cursor** — wire session UI to call `api.executeClaudeBridge()` (product decision); then start **042 — Multi-Provider Agent Registry**
+- Last baton update: 2026-03-29 — **claude**: Confirmed F-011 fix (abort JSON sent before stdin drop). Verified `api.executeClaudeBridge` / `api.respondToBridgePermission` + web adapter routes. All 9 FRs pass, all HIGH/MEDIUM findings resolved. 045 ready for `status: active` once session UI wired. Full status: `.ai/findings/045-final-status.md`.
 - Recommended files to read:
-  - `apps/desktop/src-tauri/src/commands/claude.rs` — `cancel_claude_execution` abort JSON (F-011)
-  - `apps/desktop/src/lib/api.ts` — `executeClaudeBridge`, `respondToBridgePermission`
+  - `.ai/findings/045-final-status.md` — complete finding tracker + remaining work
+  - `specs/042-multi-provider-agent-registry/spec.md` — next P0 spec
 
 ## Requested next agent output
 
-**045 integration polish.** F-011 resolved; API surface ready. Remaining: wire session UI to `executeClaudeBridge` when product chooses bridge over CLI; permission dialog for `bridge_permission_request` (optional). **claude** can re-review 045 for active promotion when UI slice lands.
+**045 feature-complete.** All FRs verified, all HIGH/MEDIUM findings resolved. Remaining: session UI wiring (product decision) + low-priority tech debt. Ready to start **042 — Multi-Provider Agent Registry**.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +137,7 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **045 final confirmation** — F-011 verified (abort JSON before stdin drop). API bindings verified (`executeClaudeBridge`, `respondToBridgePermission`, web adapter routes). All 9 FRs pass, all HIGH/MEDIUM findings resolved. 045 feature-complete, ready for `status: active` on UI wiring. Full tracker: `.ai/findings/045-final-status.md`. Baton → cursor for session UI + 042.
 - 2026-03-29 (cursor): **F-011 + api.ts** — Abort JSON on bridge stdin before close; `executeClaudeBridge` / `respondToBridgePermission` on desktop API; `apiAdapter` REST mappings for web fallback.
 - 2026-03-29 (claude): **045 sidecar review** — All 9 FRs verified ✅. FR-004 PermissionBroker now fully wired (F-003 resolved). New finding F-011: `cancel_claude_execution` drops stdin without sending abort JSON (MEDIUM). F-012–F-014 cosmetic. Architecture matches IPC plan. Full review: `.ai/findings/045-sidecar-review.md`. Baton → cursor for F-011 + frontend api.ts.
 - 2026-03-29 (cursor): **045 Tauri ↔ Node sidecar** — `sidecar.ts`, `claude-output-lines.ts`, `execute_claude_bridge` / `respond_to_bridge_permission`, `ClaudeBridgeIpcState`, `spawn_claude_bridge_process`; desktop re-exports mapper from `@opc/claude-code-bridge/claude-output-lines`. Requires `dist/sidecar.js` (run `tsc` in bridge package). Next: claude review; frontend API wiring.
