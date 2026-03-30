@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (046 Phase 1 started)
-- Next owner: **claude** — review F-001..F-004 resolutions and Phase 1 implementation (`contextCompaction.ts` + tests) against `spec.md`.
-- Last baton update: 2026-03-30 — **cursor**: Resolved F-001 by choosing TypeScript implementation in `apps/desktop/src/lib/` (history-local architecture). Updated phased plan with explicit decisions for F-002 deterministic `<task_summary>` template, F-003 caller-provided `git_snapshot`, F-004 passive token accumulator from runtime usage events. Began Phase 1 with config/model module + tests (`apps/desktop/src/lib/contextCompaction.ts`, `apps/desktop/src/lib/contextCompaction.test.ts`).
+- Current owner: **claude** (046 Phase 1 review complete)
+- Next owner: **cursor** — Phase 2 implementation (TokenBudgetMonitor + `should_compact()` + trigger tests). Note R-001 (content block type widening) for Phase 3 planning.
+- Last baton update: 2026-03-30 — **claude**: F-001..F-004 resolutions all validated and spec-aligned (TypeScript architecture correct, deterministic template sound, caller-provided git_snapshot clean, passive token accumulator standard). Phase 1 code approved — config, threshold validation, deterministic serialization all correct. 5 findings: R-001 `content: string` needs block union in Phase 3 (LOW), R-002 shallow meta sort (INFO), R-003 missing positive env test (INFO), R-004 `id` required — verify runtime has stable IDs before Phase 5 (LOW), R-005 F-005/F-006 still open for later phases (INFO). No blockers.
 - Recommended files to read:
-  - `.ai/findings/046-plan-review.md` — full plan review with pre-implementation corrections
+  - `.ai/findings/046-phase1-review.md` — full Phase 1 + design decision review
   - `specs/046-context-compaction/spec.md` — canonical contract
-  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (needs F-001 resolution before coding)
+  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (F-001..F-004 resolved)
 
 ## Requested next agent output
 
-**claude**: Validate updated `.ai/plans/046-context-compaction-phased-plan.md` decisions for F-001..F-004 and review Phase 1 code/tests for spec alignment + determinism guardrails before Phase 2 trigger wiring begins.
+**cursor**: Implement Phase 2 — `TokenBudgetMonitor` class with `reportUsage()` and `shouldCompact(contextWindowTokens)`, threshold comparison, observability reason string. Tests for below/at/above threshold, and explicit tests for threshold overrides (0.5, 0.95) per SC-006.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **046 Phase 1 review** — F-001..F-004 resolutions validated (TypeScript architecture, deterministic template, caller-provided git snapshot, passive token accumulator — all sound). Phase 1 code approved: config, threshold validation [0.5–0.95], env > config > default precedence, deterministic `stableSerializeHistory()` with key-sorted meta normalization. 5 findings: R-001 (`content: string` needs block union for Phase 3, LOW), R-002 (shallow meta sort, INFO), R-003 (missing positive env test, INFO), R-004 (required `id` field — verify runtime IDs exist before Phase 5, LOW), R-005 (F-005/F-006 unresolved for later phases, INFO). No blockers. Phase 1 approved → cursor for Phase 2. Review: `.ai/findings/046-phase1-review.md`.
 - 2026-03-30 (claude): **046 plan review** — All FR/NF/SC requirements covered in plan. 7 findings: F-001 HIGH (compactor targets Rust `crates/orchestrator/` but conversation history lives in TypeScript — architectural mismatch), F-002 MEDIUM (deterministic `<task_summary>` construction undefined), F-003 MEDIUM (git state extraction source unspecified — `gitctx` crate?), F-004 MEDIUM (token count sourcing unspecified), F-005 LOW (Phase 3/4 ordering rework risk — add PreservePolicy trait), F-006 LOW (40% ceiling cascading-collapse strategy needed), F-007 LOW (SC-005 round-trip test should be structural, not LLM-dependent). No contract misses. F-001 must be resolved before coding. Review: `.ai/findings/046-plan-review.md`.
 - 2026-03-30 (cursor): **046 Phase 1 start + design-resolution pass** — Updated `.ai/plans/046-context-compaction-phased-plan.md` to resolve F-001..F-004 (TypeScript architecture, deterministic summary template, caller-provided git snapshot, passive usage-fed token monitor). Added `apps/desktop/src/lib/contextCompaction.ts` and `apps/desktop/src/lib/contextCompaction.test.ts` with config parsing/validation (`OAP_COMPACTION_THRESHOLD`, `compaction.threshold`), deterministic history model serialization, and boundary/precedence tests.
 - 2026-03-30 (cursor): **046 planning pass** — Responded to baton by reading `specs/046-context-compaction/spec.md` and drafting `.ai/plans/046-context-compaction-phased-plan.md`. Plan includes 6 phases: config + trigger, deterministic compactor + XML schema, preserve/compress policy, interruption heuristics, session-init integration, and perf/round-trip validation aligned to FR/NF/SC.
