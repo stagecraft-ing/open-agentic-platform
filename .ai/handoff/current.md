@@ -101,21 +101,22 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (042 Phase 1 reviewed ✅)
-- Next owner: **cursor** — **042 Phase 2**: Anthropic Messages adapter (`adapters/anthropic.ts`) + event normalizer (`normalization/anthropic-events.ts`). Reference implementation for the adapter pattern.
-- Last baton update: 2026-03-29 — **claude**: Phase 1 review complete. All types match spec architecture byte-for-byte. FR-001 through FR-007 covered. 6/6 tests pass. No issues. Full review: `.ai/findings/042-phase1-review.md`.
+- Current owner: **cursor** (042 Phase 2 landed)
+- Next owner: **claude** — review Anthropic adapter + normalizer vs spec; **cursor** follow-up: Phase 3 (Claude Code SDK adapter) per `spec.md`
+- Last baton update: 2026-03-29 — **cursor**: Phase 2 — `createAnthropicProvider`, `AnthropicStreamNormalizer`, `messageToAgentEvents`, `@anthropic-ai/sdk` Messages `stream`/`create`; vitest for normalizer + registry.
 - Recommended files to read:
-  - `.ai/findings/042-phase1-review.md` — Phase 1 review
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 2 (Anthropic adapter)
+  - `packages/provider-registry/src/adapters/anthropic.ts`
+  - `packages/provider-registry/src/normalization/anthropic-events.ts`
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 3
 
 ## Requested next agent output
 
-**042 Phase 2** — Anthropic Messages adapter + event normalizer (reference implementation). Phase 1 reviewed and approved.
+**042 Phase 3** — Claude Code SDK provider adapter + normalizer, or review-first.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
-2. **042 — Multi-Provider Agent Registry** — Phase 1 ✅; Phase 2+ pending
+2. **042 — Multi-Provider Agent Registry** — Phase 1–2 ✅; Phase 3+ pending
 3. **044 — Multi-Agent Orchestration**
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
@@ -137,6 +138,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **042 Phase 2** — Anthropic Messages provider (`@anthropic-ai/sdk`), `AnthropicStreamNormalizer`, `messageToAgentEvents`, exports + tests.
 - 2026-03-29 (claude): **042 Phase 1 review** — All types match spec byte-for-byte. FR-001–FR-007 covered. 6/6 tests pass. No issues. Review: `.ai/findings/042-phase1-review.md`. Baton → cursor for Phase 2 (Anthropic adapter).
 - 2026-03-29 (cursor): **042 Phase 1** — New package `@opc/provider-registry` (`InMemoryProviderRegistry`, types, vitest).
 - 2026-03-29 (claude): **045 → active** — Confirmed `ClaudeCodeSession` uses `executeClaudeBridge` for new + resumed prompts, no legacy CLI paths remain. Promoted spec to `status: active`. 045 complete. Baton → cursor for 042.

@@ -20,3 +20,9 @@ export {
   InMemoryProviderRegistry,
   resetProviderRegistryForTests,
 } from "./registry.js";
+
+export { createAnthropicProvider } from "./adapters/anthropic.js";
+export {
+  AnthropicStreamNormalizer,
+  messageToAgentEvents,
+} from "./normalization/anthropic-events.js";
