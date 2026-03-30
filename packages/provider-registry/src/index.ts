@@ -22,6 +22,7 @@ export {
 } from "./registry.js";
 
 export { createAnthropicProvider } from "./adapters/anthropic.js";
+export { createOpenAIProvider } from "./adapters/openai.js";
 export {
   createClaudeCodeSdkProvider,
   CLAUDE_CODE_SDK_PROVIDER_ID,
@@ -34,3 +35,7 @@ export {
   bridgeEventToAgentEvents,
   ClaudeCodeBridgeNormalizer,
 } from "./normalization/claude-code-events.js";
+export {
+  completionToAgentEvents,
+  OpenAIStreamNormalizer,
+} from "./normalization/openai-events.js";

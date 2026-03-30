@@ -101,22 +101,22 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (042 Phase 3 review confirmed ✅, baton passing)
-- Next owner: **cursor** — **042 Phase 4**: OpenAI Chat Completions adapter (`adapters/openai.ts` + `normalization/openai-events.ts`) per `specs/042-multi-provider-agent-registry/spec.md` implementation approach.
-- Last baton update: 2026-03-29 — **claude**: Phase 3 review already recorded in `.ai/findings/042-phase3-review.md`. 10/10 tests pass. FR-002/FR-003/FR-007 ✅. Phase 1–3 all approved. Baton → cursor for Phase 4.
+- Current owner: **cursor** (042 Phase 4 implemented ✅)
+- Next owner: **claude** — **042 Phase 4 review**: `createOpenAIProvider` + `OpenAIStreamNormalizer` / `completionToAgentEvents`; optional `.ai/findings/042-phase4-review.md`.
+- Last baton update: 2026-03-29 — **cursor**: Phase 4 — `openai` dependency, `adapters/openai.ts`, `normalization/openai-events.ts`, `openai-events.test.ts` (3 tests), exports. `stream_options.include_usage` for terminal `message_complete`. 13/13 vitest pass.
 - Recommended files to read:
-  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 4 OpenAI adapter
-  - `packages/provider-registry/src/adapters/anthropic.ts` — reference Provider implementation
-  - `packages/provider-registry/src/normalization/anthropic-events.ts` — reference SSE normalizer
+  - `packages/provider-registry/src/adapters/openai.ts`
+  - `packages/provider-registry/src/normalization/openai-events.ts`
+  - `specs/042-multi-provider-agent-registry/spec.md` — Phase 5 Gemini + Bedrock adapters
 
 ## Requested next agent output
 
-**042 Phase 4** (cursor) — OpenAI Chat Completions provider + OpenAI SSE → `AgentEvent` normalizer; tests; exports. Optional follow-up: **claude** review → `.ai/findings/042-phase4-review.md`.
+**042 Phase 4 review** (claude) — or **042 Phase 5** (cursor): Gemini + Bedrock adapters per spec implementation approach.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
-2. **042 — Multi-Provider Agent Registry** — Phase 1–3 ✅; Phase 3 review ✅; Phase 4 next
+2. **042 — Multi-Provider Agent Registry** — Phase 1–4 implemented ✅; Phase 4 review pending; Phase 5 next per spec
 3. **044 — Multi-Agent Orchestration**
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
@@ -138,6 +138,7 @@ Land **042** phases per `specs/042-multi-provider-agent-registry/spec.md`; after
 
 ## Recent outputs
 
+- 2026-03-29 (cursor): **042 Phase 4** — OpenAI Chat Completions: `createOpenAIProvider`, `OpenAIStreamNormalizer`, `completionToAgentEvents`, vitest. SC-001 (two adapters) satisfied by Anthropic + OpenAI.
 - 2026-03-29 (review): **042 Phase 3 review** — `.ai/findings/042-phase3-review.md`. FR-002/FR-003/FR-007 satisfied; FR-006/SC-006 vs optional API key documented LOW; P3-002/003 INFO. Next: Phase 4 OpenAI adapter.
 - 2026-03-29 (cursor): **042 Phase 3** — Claude Code SDK provider: `queryClaudeCode()` + `ClaudeCodeBridgeNormalizer`, session resume map, abort forwarding, `ambient-claude-code-sdk.d.ts` for tsc with linked bridge. Tests: `claude-code-events.test.ts`. 10/10 vitest pass.
 - 2026-03-29 (claude): **042 Phase 2 review** — Adapter implements all 4 Provider ops, normalizer handles text/tool/thinking. 7/7 tests pass. P2-001 (input tokens 0 in streaming) + P2-002 (no text_complete in streaming), both LOW. Review: `.ai/findings/042-phase2-review.md`. Baton → cursor for Phase 3.
