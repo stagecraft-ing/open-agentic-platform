@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (046 plan review complete)
-- Next owner: **cursor** — resolve F-001 (architectural decision: new crate vs TypeScript vs orchestrator+IPC) and clarify F-002–F-004 before starting Phase 1 implementation.
-- Last baton update: 2026-03-30 — **claude**: Reviewed phased plan against spec. All FR/NF/SC requirements mapped. 7 findings: 1 HIGH (architectural mismatch — compactor targets `crates/orchestrator/` but conversation history lives in TypeScript layer), 3 MEDIUM (deterministic summary strategy, git state source, token count sourcing), 3 LOW (phase ordering rework risk, 40% ceiling overflow, round-trip test feasibility). No contract misses. Review: `.ai/findings/046-plan-review.md`.
+- Current owner: **cursor** (046 Phase 1 started)
+- Next owner: **claude** — review F-001..F-004 resolutions and Phase 1 implementation (`contextCompaction.ts` + tests) against `spec.md`.
+- Last baton update: 2026-03-30 — **cursor**: Resolved F-001 by choosing TypeScript implementation in `apps/desktop/src/lib/` (history-local architecture). Updated phased plan with explicit decisions for F-002 deterministic `<task_summary>` template, F-003 caller-provided `git_snapshot`, F-004 passive token accumulator from runtime usage events. Began Phase 1 with config/model module + tests (`apps/desktop/src/lib/contextCompaction.ts`, `apps/desktop/src/lib/contextCompaction.test.ts`).
 - Recommended files to read:
   - `.ai/findings/046-plan-review.md` — full plan review with pre-implementation corrections
   - `specs/046-context-compaction/spec.md` — canonical contract
@@ -111,7 +111,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: Resolve F-001 by choosing implementation stack (new `crates/compactor/`, TypeScript, or orchestrator+IPC). Update the phased plan with design decisions for F-002 (task_summary construction rule), F-003 (git state source), F-004 (token count sourcing). Then begin Phase 1 implementation.
+**claude**: Validate updated `.ai/plans/046-context-compaction-phased-plan.md` decisions for F-001..F-004 and review Phase 1 code/tests for spec alignment + determinism guardrails before Phase 2 trigger wiring begins.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 ## Recent outputs
 
 - 2026-03-30 (claude): **046 plan review** — All FR/NF/SC requirements covered in plan. 7 findings: F-001 HIGH (compactor targets Rust `crates/orchestrator/` but conversation history lives in TypeScript — architectural mismatch), F-002 MEDIUM (deterministic `<task_summary>` construction undefined), F-003 MEDIUM (git state extraction source unspecified — `gitctx` crate?), F-004 MEDIUM (token count sourcing unspecified), F-005 LOW (Phase 3/4 ordering rework risk — add PreservePolicy trait), F-006 LOW (40% ceiling cascading-collapse strategy needed), F-007 LOW (SC-005 round-trip test should be structural, not LLM-dependent). No contract misses. F-001 must be resolved before coding. Review: `.ai/findings/046-plan-review.md`.
+- 2026-03-30 (cursor): **046 Phase 1 start + design-resolution pass** — Updated `.ai/plans/046-context-compaction-phased-plan.md` to resolve F-001..F-004 (TypeScript architecture, deterministic summary template, caller-provided git snapshot, passive usage-fed token monitor). Added `apps/desktop/src/lib/contextCompaction.ts` and `apps/desktop/src/lib/contextCompaction.test.ts` with config parsing/validation (`OAP_COMPACTION_THRESHOLD`, `compaction.threshold`), deterministic history model serialization, and boundary/precedence tests.
 - 2026-03-30 (cursor): **046 planning pass** — Responded to baton by reading `specs/046-context-compaction/spec.md` and drafting `.ai/plans/046-context-compaction-phased-plan.md`. Plan includes 6 phases: config + trigger, deterministic compactor + XML schema, preserve/compress policy, interruption heuristics, session-init integration, and perf/round-trip validation aligned to FR/NF/SC.
 - 2026-03-30 (claude): **044 Phase 6 review** — Phase 6 approved. P5-002 verified (project_path → working_directory). P5-001 verified (systemPrompt sidecar field on provider path). E2e 3-step test validates SC-001 (artifact chaining via filesystem), SC-002 (630 tokens < 800 = 80% below 4000 baseline), SC-005 (quick < investigate < deep output sizes). 15/15 tests pass. 4 findings: P6-001 (test double not real agent, INFO), P6-002 (double system prompt in governed path, INFO), P6-003 (hardcoded baseline, INFO), P6-004 (step prompt in user slot on provider path, LOW — acceptable). All FRs done except FR-001 NL decomposition (deferred). SC-001/002/003/004/005/006 done. SC-007 deferred. 044 feature-complete. Review: `.ai/findings/044-phase6-review.md`.
 - 2026-03-30 (cursor): **044 Phase 6** — P5-002 fixed by adding `project_path` to `orchestrate_manifest` and wiring executor `working_directory` to it. P5-001 addressed on provider path by sending sidecar `systemPrompt` separately from `prompt`. Added e2e 3-step YAML manifest test (`research -> draft -> review`) validating SC-001 artifact chaining, SC-002 token accounting, and SC-005 effort-size differentiation. Validation: `cargo test --manifest-path crates/orchestrator/Cargo.toml` (15/15), `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass. Details: `.ai/findings/044-phase6-validation.md`.

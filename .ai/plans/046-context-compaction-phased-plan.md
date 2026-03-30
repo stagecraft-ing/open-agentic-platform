@@ -6,6 +6,16 @@
 
 Implement Feature 046 so long-running sessions compact deterministically into a structured `<session_context>` block before context exhaustion, while preserving recent working turns and active-operation continuity.
 
+## Pre-implementation decisions (F-001 to F-004)
+
+- **F-001 (architecture):** implement compaction in TypeScript under `apps/desktop/src/lib/` because session message history already lives in the TypeScript runtime (`ClaudeCodeSession` / `AgentExecution`) and this avoids unnecessary Tauri IPC serialization cost.
+- **F-002 (`<task_summary>` determinism):** construct summary using deterministic templates only:
+  - first non-empty user prompt as goal sentence (truncated to fixed char ceiling),
+  - fixed progress sentence: `Completed X step(s); Y pending/in-progress.`,
+  - no LLM-generated prose in this feature.
+- **F-003 (`<git_state>` source):** caller-provided `git_snapshot` object from session runtime integration layer (TypeScript), initially populated via existing git-facing APIs/commands in the app layer; compactor remains pure and does not shell out.
+- **F-004 (token source):** `TokenBudgetMonitor` is a passive accumulator fed by per-turn usage emitted by runtime events (`message.usage` / `usage`), via `reportUsage(promptTokens, completionTokens)`.
+
 ## Implementation slices
 
 ### Phase 1 — Core domain + config wiring (FR-002, FR-003 shape, NF-002)
@@ -21,6 +31,13 @@ Deliverables:
 Validation:
 - Unit tests for default config, env/config override precedence, boundary acceptance/rejection.
 - Determinism test for config + model serialization.
+
+Status:
+- In progress. Added `apps/desktop/src/lib/contextCompaction.ts` with:
+  - `ContextCompactionConfig` resolution and threshold validation,
+  - deterministic message/history model types,
+  - deterministic `stableSerializeHistory()` helper.
+- Added `apps/desktop/src/lib/contextCompaction.test.ts` covering defaults, precedence, boundaries, and deterministic serialization.
 
 ### Phase 2 — Token budget monitor and trigger logic (FR-001, SC-006)
 
@@ -102,9 +119,10 @@ Validation:
 
 ## Proposed file touchpoints (initial)
 
-- `crates/orchestrator/src/lib.rs` (or split modules under `crates/orchestrator/src/`)
+- `apps/desktop/src/lib/contextCompaction.ts` (core domain + config + deterministic serializers)
+- `apps/desktop/src/lib/contextCompaction.test.ts` (phase tests)
 - `apps/desktop/src-tauri/src/` command/session integration paths that own manifest/session dispatch context
-- test fixtures under `crates/orchestrator/tests/` (or existing crate-local test modules)
+- additional integration points in `apps/desktop/src/components/ClaudeCodeSession.tsx` and `apps/desktop/src/components/AgentExecution.tsx` for Phase 2+ token/trigger wiring
 
 ## Risks and guardrails
 
