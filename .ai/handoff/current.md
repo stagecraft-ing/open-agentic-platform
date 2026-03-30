@@ -101,18 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (046 Phase 6 implementation complete)
-- Next owner: **claude** — Phase 6 review (NF-001 / SC-005 / P5-001–P5-003 verification)
-- Last baton update: 2026-03-30 — **cursor**: Phase 6 delivered. `git_last_commit` Tauri command + `fetchGitSnapshotFromRepo()` (git status counts, diff stats, branch, last commit). `getContextWindowTokensForModel()` replaces hardcoded 200k. P5-001 fixed via `recordIndex` in `normalizeRuntimeMessages()`. NF-001 benchmark + SC-005 50-turn + P5-001 regression tests in `contextCompaction.test.ts`. `ClaudeCodeSession.loadSessionHistory` awaits real git snapshot + model-based context window.
+- Current owner: **claude** (046 Phase 6 review complete — feature-complete)
+- Next owner: **cursor** or **claude-opus** — begin next P0 spec (047 Governance Control Plane)
+- Last baton update: 2026-03-30 — **claude**: Phase 6 approved. All 17 spec requirements (8 FR + 3 NF + 6 SC) satisfied. P5-001/P5-002/P5-003 all resolved. 29/29 tests pass. `fetchGitSnapshotFromRepo` live via Tauri git commands. `getContextWindowTokensForModel` replaces hardcoded 200k. NF-001 benchmark + SC-005 50-turn round-trip verified. 6 findings (2 LOW, 4 INFO), no blockers. 046 feature-complete. Review: `.ai/findings/046-phase6-review.md`.
 - Recommended files to read:
-  - `apps/desktop/src/lib/contextCompaction.ts` — `fetchGitSnapshotFromRepo`, `getContextWindowTokensForModel`, P5-001 fix
-  - `apps/desktop/src/lib/contextCompaction.test.ts` — Phase 6 describe block
-  - `apps/desktop/src-tauri/src/commands/git.rs` — `git_last_commit`
-  - `specs/046-context-compaction/spec.md` — canonical contract
+  - `.ai/findings/046-phase6-review.md` — full Phase 6 review with spec coverage table
+  - `specs/047-governance-control-plane/spec.md` — next P0 spec
 
 ## Requested next agent output
 
-**claude**: Review 046 Phase 6 against `specs/046-context-compaction/spec.md` and emit `.ai/findings/046-phase6-review.md` (or append to existing findings pattern).
+**cursor** or **claude-opus**: Begin 047 Governance Control Plane planning or next-slice prioritization.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **046 Phase 6 review** — Phase 6 approved. All 17 spec requirements (8 FR + 3 NF + 6 SC) satisfied. P5-001 resolved (recordIndex alignment in normalizeRuntimeMessages — regression test confirms). P5-002 resolved (fetchGitSnapshotFromRepo calls 4 Tauri git commands with graceful fallback — FR-006(b) interruption signal now live). P5-003 resolved (getContextWindowTokensForModel dispatches on model string — 1M for extended-context, 200k for standard Claude). NF-001 benchmark verified (400-message 100k-token-equiv compaction < 2s). SC-005 50-turn round-trip verified (completed steps, pending steps, file paths all preserved in session_context). git_last_commit Tauri command correct (git2 crate, returns OID + summary). 29/29 tests pass. Findings: P6-001 (no unit test for fetchGitSnapshotFromRepo, LOW), P6-002 (substring model matching, LOW), P6-003–P6-006 (INFO). **046 feature-complete.** Review: `.ai/findings/046-phase6-review.md`.
 - 2026-03-30 (cursor): **046 Phase 6** — `git_last_commit` + `fetchGitSnapshotFromRepo` (Tauri git status / diff stats / branch / last commit), `getContextWindowTokensForModel`, P5-001 `recordIndex` alignment, NF-001 & SC-005 & P5-001 tests, `ClaudeCodeSession` async snapshot load. Validation: `pnpm vitest run src/lib/contextCompaction.test.ts` (29/29), `cargo check` (src-tauri).
 - 2026-03-30 (claude): **046 Phase 5 review** — Phase 5 approved. All 7 deliverables implemented: `rewriteSessionHistoryForCompaction()` integrated into `ClaudeCodeSession.tsx`, FR-008 40% ceiling with cascading collapse (file summary counts → XML minification), FR-007 session init elevation of `<session_context>` after system prompt, interruption init hint ("Prioritize interruption resumption first"), P2-001 `resetTo()` on TokenBudgetMonitor, R-004 deterministic runtime ID synthesis via FNV-1a hash, P4-001 `<!-- pin -->` regex parsing. SC-001 validated (trigger at >75%, compacted output ≤40%). SC-002 validated (session restart produces system→hint→context ordering with structured sections). 24/24 tests pass. Findings: P5-001 (index mismatch in normalizeRuntimeMessages vs composeCompactedHistory for non-record entries, LOW), P5-002 (buildRuntimeGitSnapshot returns dummy data — disables FR-006(b) uncommitted changes interruption signal, MEDIUM), P5-003 (getContextWindowTokens hardcoded 200000, LOW), P5-004–P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/046-phase5-review.md`.
 - 2026-03-30 (cursor): **046 Phase 5** — Implemented message rewrite integration + session init hydration: `rewriteSessionHistoryForCompaction()` as the main entry point normalizing runtime messages, triggering compaction via TokenBudgetMonitor, composing compacted history with session_context block, enforcing 40% ceiling via `collapseFileModificationSection()` + `minifySessionContextXml()`. `elevateSessionContextForInit()` detects `<session_context>` blocks and reorders after system prompt. `addInterruptionInitHint()` inserts priority hint when interruption detected. `normalizeRuntimeMessages()` bridges runtime `{type, message}` format to CompactionMessage. `resolveRuntimeMessageId()` synthesizes deterministic FNV-1a IDs for messages without `id`. `resolvePinned()` scans `<!-- pin -->` annotations. `ClaudeCodeSession.tsx` wired: `loadSessionHistory` → `rewriteSessionHistoryForCompaction` → display. Validation: 24/24 tests passing.
