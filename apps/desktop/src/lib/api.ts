@@ -1088,6 +1088,33 @@ export const api = {
   },
 
   /**
+   * Runs Claude via the Node `@opc/claude-code-bridge` sidecar (spec 045). Streaming uses the same
+   * `claude-output` events as `executeClaudeCode`.
+   * @param resumeSessionId - Optional session id to resume (maps to bridge `sessionId`)
+   * @returns Governance mode: `governed` | `bypass`
+   */
+  async executeClaudeBridge(
+    projectPath: string,
+    prompt: string,
+    model: string,
+    resumeSessionId?: string,
+  ): Promise<string> {
+    return apiCall<string>("execute_claude_bridge", {
+      projectPath,
+      prompt,
+      model,
+      resumeSessionId,
+    });
+  },
+
+  /**
+   * Resolves a pending tool permission from the bridge sidecar (`bridge_permission_request` JSONL).
+   */
+  async respondToBridgePermission(requestId: string, allowed: boolean): Promise<void> {
+    return apiCall("respond_to_bridge_permission", { requestId, allowed });
+  },
+
+  /**
    * Cancels the currently running Claude Code execution
    * @param sessionId - Optional session ID to cancel a specific session
    */

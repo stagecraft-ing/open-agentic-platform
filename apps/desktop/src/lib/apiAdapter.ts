@@ -214,9 +214,11 @@ function mapCommandToEndpoint(command: string, _params?: any): string {
     'load_session_history': '/api/sessions/{sessionId}/history/{projectId}',
     'list_running_claude_sessions': '/api/sessions/running',
     'execute_claude_code': '/api/sessions/execute',
+    'execute_claude_bridge': '/api/sessions/execute-bridge',
     'continue_claude_code': '/api/sessions/continue',
     'resume_claude_code': '/api/sessions/resume',
     'cancel_claude_execution': '/api/sessions/{sessionId}/cancel',
+    'respond_to_bridge_permission': '/api/sessions/bridge-permission',
     'get_claude_session_output': '/api/sessions/{sessionId}/output',
     
     // MCP commands

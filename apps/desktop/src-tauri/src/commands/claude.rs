@@ -1203,9 +1203,27 @@ pub async fn cancel_claude_execution(
         session_id
     );
 
+    // F-011: notify Node sidecar so AbortController / SDK can abort before stdin closes.
     {
         let bridge = app.state::<ClaudeBridgeIpcState>();
-        *bridge.bridge_stdin.lock().await = None;
+        let mut guard = bridge.bridge_stdin.lock().await;
+        if let Some(mut stdin) = guard.take() {
+            let line = serde_json::to_string(&serde_json::json!({ "type": "abort" }))
+                .unwrap_or_else(|_| r#"{"type":"abort"}"#.to_string());
+            let result = async {
+                stdin
+                    .write_all(format!("{}\n", line).as_bytes())
+                    .await
+                    .map_err(|e| e.to_string())?;
+                stdin.flush().await.map_err(|e| e.to_string())?;
+                Ok::<_, String>(())
+            }
+            .await;
+            match result {
+                Ok(()) => log::debug!("Sent abort JSON to Claude bridge sidecar stdin"),
+                Err(e) => log::warn!("Failed to send abort to bridge sidecar: {}", e),
+            }
+        }
     }
 
     let mut killed = false;
