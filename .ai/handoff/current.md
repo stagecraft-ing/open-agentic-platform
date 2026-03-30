@@ -101,26 +101,30 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (046 Phase 3 implementation complete)
-- Next owner: **claude** — Phase 3 review against `specs/046-context-compaction/spec.md` and call out any FR-004/FR-005 deltas before Phase 4.
-- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 3 `ProgrammaticCompactor` + deterministic `<session_context>` XML builder in `apps/desktop/src/lib/contextCompaction.ts`. Added `CompactionMessage.content` union support (`string | ContentBlock[]`) to address R-001, deterministic extraction for task summary/steps/file modifications/git state/key decisions, and optional interruption emission. Added Phase 3 tests in `apps/desktop/src/lib/contextCompaction.test.ts` validating deterministic XML generation and interruption omission path. Validation: `pnpm vitest src/lib/contextCompaction.test.ts` (17/17 passing).
+- Current owner: **claude** (046 Phase 3 review complete)
+- Next owner: **cursor** — Phase 4 (preserve-vs-compress policy + interruption heuristics). Priority fixes: P3-002 (scope active tool preservation), P3-001 (parameterize `compacted_at` timestamp).
+- Last baton update: 2026-03-30 — **claude**: Phase 3 review approved. All 7 FR-004 sections present with deterministic extraction (NF-002) and regex-parseable XML (NF-003). R-001 resolved (content block union). Two MEDIUM findings: P3-001 (`compacted_at` epoch placeholder needs parameterization), P3-002 (active tool preservation overly broad — `|| message.role === "tool"` preserves ALL tool messages, should scope to active call only). P2-001 (reset strategy) and R-004 (message IDs) remain open for Phase 5. Review: `.ai/findings/046-phase3-review.md`.
 - Recommended files to read:
+  - `.ai/findings/046-phase3-review.md` — Phase 3 review (P3-001 timestamp, P3-002 tool scope)
   - `.ai/findings/046-phase2-review.md` — Phase 2 review (P2-001 reset gap)
-  - `.ai/findings/046-phase1-review.md` — Phase 1 review (R-001 content type, R-004 message IDs)
   - `specs/046-context-compaction/spec.md` — canonical contract
-  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (Phase 3 deliverables)
+  - `.ai/plans/046-context-compaction-phased-plan.md` — phased plan (Phase 4 deliverables)
 
 ## Requested next agent output
 
-**claude**: Review Phase 3 implementation (`ProgrammaticCompactor` + XML block builder) in:
+**cursor**: Implement Phase 4 (preserve-vs-compress policy + interruption heuristics) in:
 - `apps/desktop/src/lib/contextCompaction.ts`
 - `apps/desktop/src/lib/contextCompaction.test.ts`
 
-Focus review checks:
-- FR-004 section completeness and deterministic output expectations (NF-002/NF-003).
-- Preserve-vs-compress boundary assumptions that may need tightening in Phase 4 (FR-005/FR-006 split).
-- R-004 follow-up: confirm runtime message IDs are available/stable at integration points before Phase 5 wiring.
-- P2-001 planning note: validate preferred reset strategy for `TokenBudgetMonitor` after compaction.
+Priority fixes from Phase 3 review:
+- P3-002 (MEDIUM): Fix active tool preservation at line 166–170 — remove `|| message.role === "tool"`, scope to active tool call only.
+- P3-001 (MEDIUM): Parameterize `compacted_at` timestamp (accept optional `Date` param, default `new Date()`, tests pass `new Date(0)`).
+
+Phase 4 deliverables per plan:
+- Byte-identical preservation tests for recent turns and pinned messages (SC-004).
+- Interruption heuristic fixtures for true-positive and false-positive control cases (SC-003).
+- Consider requiring 2+ signals for interruption confidence (current single-signal may false-positive).
+- Refine `* 2` turn heuristic (line 158) for non-alternating message patterns.
 
 Priority order for P0 specs (unchanged):
 
@@ -147,6 +151,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **046 Phase 3 review** — Phase 3 approved. All 7 FR-004 sections present and deterministic. R-001 resolved (content block union). 6 findings: P3-001 (`compacted_at` epoch placeholder, MEDIUM), P3-002 (active tool preservation overly broad — preserves all `role=tool` messages instead of just active call, MEDIUM), P3-003 (`inferFileAction` per-message not per-mention, LOW), P3-004 (test coverage below plan — no golden snapshot or regex parse test, LOW), P3-005 (step extraction only on compacted messages, INFO), P3-006 (file path regex false positives, INFO). P2-001 reset strategy documented. R-004 message IDs still open. Review: `.ai/findings/046-phase3-review.md`.
 - 2026-03-30 (cursor): **046 Phase 3** — Implemented `ProgrammaticCompactor` and deterministic `<session_context>` builder in `apps/desktop/src/lib/contextCompaction.ts` with structured extraction for task summary, completed/pending steps, file modification entries, git snapshot serialization, key decisions, and optional interruption summaries. Expanded `CompactionMessage.content` to `string | ContentBlock[]` for tool-use/result aware compaction. Added two Phase 3 tests in `apps/desktop/src/lib/contextCompaction.test.ts` for deterministic XML output and interruption omission path. Validation: `pnpm vitest src/lib/contextCompaction.test.ts` (17/17 passing).
 - 2026-03-30 (claude): **046 Phase 2 review** — Phase 2 approved. FR-001 cumulative token accounting correct (+=, sanitized, >= threshold comparison). SC-006 verified for 0.5/0.95 overrides and boundary equality. Observability reason string deterministic. R-003 resolved. 3 findings: P2-001 (no reset mechanism for post-compaction, MEDIUM), P2-002 (contextWindowTokens per-call, INFO), P2-003 (getTotals untested directly, INFO). No Phase 3 blockers. Review: `.ai/findings/046-phase2-review.md`.
 - 2026-03-30 (cursor): **046 Phase 2** — Implemented `TokenBudgetMonitor` in `apps/desktop/src/lib/contextCompaction.ts` with passive cumulative usage accounting (`reportUsage`) and trigger decision API (`shouldCompact`) that returns `shouldCompact`, ratio fields, token counts, and an observability `reason` string. Expanded `apps/desktop/src/lib/contextCompaction.test.ts` with below/at/above threshold tests plus explicit SC-006 override tests for `0.5` and `0.95`; added positive env threshold parse coverage.
