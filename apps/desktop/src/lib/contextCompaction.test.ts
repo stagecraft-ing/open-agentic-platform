@@ -4,11 +4,13 @@ import {
   DEFAULT_PRESERVE_RECENT_TURNS,
   MAX_COMPACTION_THRESHOLD,
   MIN_COMPACTION_THRESHOLD,
+  ProgrammaticCompactor,
   TokenBudgetMonitor,
   readCompactionThresholdFromEnv,
   resolveContextCompactionConfig,
   stableSerializeHistory,
   type CompactionHistory,
+  type GitSnapshot,
 } from "./contextCompaction";
 
 describe("context compaction config", () => {
@@ -185,5 +187,106 @@ describe("TokenBudgetMonitor", () => {
     expect(decision.shouldCompact).toBe(false);
     monitor.reportUsage(40, 20);
     expect(monitor.shouldCompact(1000).shouldCompact).toBe(true);
+  });
+});
+
+describe("ProgrammaticCompactor", () => {
+  const gitSnapshot: GitSnapshot = {
+    branch: "main",
+    stagedChanges: 1,
+    unstagedChanges: 2,
+    lastCommitHash: "abc1234",
+    lastCommitMessage: "feat: baseline compaction",
+    diffStats: {
+      insertions: 42,
+      deletions: 7,
+      filesChanged: 3,
+    },
+  };
+
+  it("builds deterministic session_context xml with required sections", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 2 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const history: CompactionHistory = {
+      messages: [
+        {
+          id: "m-1",
+          role: "system",
+          content: "You are a coding assistant.",
+          usage: { input_tokens: 100, output_tokens: 0 },
+        },
+        {
+          id: "m-2",
+          role: "user",
+          content: "Implement context compaction for session resumption.",
+          usage: { input_tokens: 20, output_tokens: 5 },
+        },
+        {
+          id: "m-3",
+          role: "assistant",
+          content:
+            "- [x] Added TokenBudgetMonitor\n- [ ] Build ProgrammaticCompactor\nDecision: Use deterministic XML output.",
+          usage: { input_tokens: 30, output_tokens: 40 },
+        },
+        {
+          id: "m-4",
+          role: "assistant",
+          content:
+            "Created apps/desktop/src/lib/contextCompaction.ts and modified apps/desktop/src/lib/contextCompaction.test.ts",
+        },
+        {
+          id: "m-5",
+          role: "assistant",
+          content: "Next step: implement interruption detection?",
+        },
+      ],
+    };
+
+    const outputA = compactor.compact(history, gitSnapshot);
+    const outputB = compactor.compact(history, gitSnapshot);
+
+    expect(outputA.sessionContextBlock).toBe(outputB.sessionContextBlock);
+    expect(outputA.sessionContextBlock).toContain("<session_context");
+    expect(outputA.sessionContextBlock).toContain("<task_summary>");
+    expect(outputA.sessionContextBlock).toContain("<completed_steps>");
+    expect(outputA.sessionContextBlock).toContain("<pending_steps>");
+    expect(outputA.sessionContextBlock).toContain("<file_modifications>");
+    expect(outputA.sessionContextBlock).toContain("<git_state>");
+    expect(outputA.sessionContextBlock).toContain("<key_decisions>");
+    expect(outputA.sessionContextBlock).toContain("<interruption detected=\"true\">");
+  });
+
+  it("omits interruption section when no interruption signal exists", () => {
+    const config = resolveContextCompactionConfig(
+      { compaction: { preserve_recent_turns: 1 } },
+      {},
+    );
+    const compactor = new ProgrammaticCompactor(config);
+    const cleanGit: GitSnapshot = {
+      ...gitSnapshot,
+      stagedChanges: 0,
+      unstagedChanges: 0,
+    };
+    const history: CompactionHistory = {
+      messages: [
+        {
+          id: "m-1",
+          role: "user",
+          content: "Add docs improvements",
+        },
+        {
+          id: "m-2",
+          role: "assistant",
+          content: "All requested docs updates are complete.",
+        },
+      ],
+    };
+
+    const output = compactor.compact(history, cleanGit);
+    expect(output.sessionContextBlock).not.toContain("<interruption");
+    expect(output.interruption).toBeNull();
   });
 });

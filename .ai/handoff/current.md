@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** (046 Phase 2 review complete)
-- Next owner: **cursor** — Phase 3 implementation (`ProgrammaticCompactor` + `<session_context>` XML block builder). See notes below.
-- Last baton update: 2026-03-30 — **claude**: Phase 2 approved. FR-001 cumulative accounting correct (`reportUsage` += with sanitization, `shouldCompact` >= comparison). SC-006 fully satisfied (0.5 early trigger, 0.95 late trigger, boundary equality all tested). Observability output deterministic (`.toFixed(4)` ratios + integer token counts). R-003 from Phase 1 resolved (positive env test added). 3 findings: P2-001 MEDIUM (no reset/adjustment mechanism — will cause compaction loop post-Phase 5 unless addressed), P2-002 INFO (contextWindowTokens per-call parameter — integration contract), P2-003 INFO (getTotals() untested directly). No blockers for Phase 3. Review: `.ai/findings/046-phase2-review.md`.
+- Current owner: **cursor** (046 Phase 3 implementation complete)
+- Next owner: **claude** — Phase 3 review against `specs/046-context-compaction/spec.md` and call out any FR-004/FR-005 deltas before Phase 4.
+- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 3 `ProgrammaticCompactor` + deterministic `<session_context>` XML builder in `apps/desktop/src/lib/contextCompaction.ts`. Added `CompactionMessage.content` union support (`string | ContentBlock[]`) to address R-001, deterministic extraction for task summary/steps/file modifications/git state/key decisions, and optional interruption emission. Added Phase 3 tests in `apps/desktop/src/lib/contextCompaction.test.ts` validating deterministic XML generation and interruption omission path. Validation: `pnpm vitest src/lib/contextCompaction.test.ts` (17/17 passing).
 - Recommended files to read:
   - `.ai/findings/046-phase2-review.md` — Phase 2 review (P2-001 reset gap)
   - `.ai/findings/046-phase1-review.md` — Phase 1 review (R-001 content type, R-004 message IDs)
@@ -112,10 +112,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: Implement Phase 3 (`ProgrammaticCompactor` + XML block builder). Notes from review:
-- R-001: `content: string` may need widening to `string | ContentBlock[]` for tool_use/tool_result extraction in compactor.
-- R-004: Verify runtime message IDs exist and are stable before relying on `CompactionMessage.id`.
-- P2-001: Plan reset strategy for `TokenBudgetMonitor` post-compaction (add `resetTo()` method or document new-instance pattern).
+**claude**: Review Phase 3 implementation (`ProgrammaticCompactor` + XML block builder) in:
+- `apps/desktop/src/lib/contextCompaction.ts`
+- `apps/desktop/src/lib/contextCompaction.test.ts`
+
+Focus review checks:
+- FR-004 section completeness and deterministic output expectations (NF-002/NF-003).
+- Preserve-vs-compress boundary assumptions that may need tightening in Phase 4 (FR-005/FR-006 split).
+- R-004 follow-up: confirm runtime message IDs are available/stable at integration points before Phase 5 wiring.
+- P2-001 planning note: validate preferred reset strategy for `TokenBudgetMonitor` after compaction.
 
 Priority order for P0 specs (unchanged):
 
@@ -142,6 +147,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **046 Phase 3** — Implemented `ProgrammaticCompactor` and deterministic `<session_context>` builder in `apps/desktop/src/lib/contextCompaction.ts` with structured extraction for task summary, completed/pending steps, file modification entries, git snapshot serialization, key decisions, and optional interruption summaries. Expanded `CompactionMessage.content` to `string | ContentBlock[]` for tool-use/result aware compaction. Added two Phase 3 tests in `apps/desktop/src/lib/contextCompaction.test.ts` for deterministic XML output and interruption omission path. Validation: `pnpm vitest src/lib/contextCompaction.test.ts` (17/17 passing).
 - 2026-03-30 (claude): **046 Phase 2 review** — Phase 2 approved. FR-001 cumulative token accounting correct (+=, sanitized, >= threshold comparison). SC-006 verified for 0.5/0.95 overrides and boundary equality. Observability reason string deterministic. R-003 resolved. 3 findings: P2-001 (no reset mechanism for post-compaction, MEDIUM), P2-002 (contextWindowTokens per-call, INFO), P2-003 (getTotals untested directly, INFO). No Phase 3 blockers. Review: `.ai/findings/046-phase2-review.md`.
 - 2026-03-30 (cursor): **046 Phase 2** — Implemented `TokenBudgetMonitor` in `apps/desktop/src/lib/contextCompaction.ts` with passive cumulative usage accounting (`reportUsage`) and trigger decision API (`shouldCompact`) that returns `shouldCompact`, ratio fields, token counts, and an observability `reason` string. Expanded `apps/desktop/src/lib/contextCompaction.test.ts` with below/at/above threshold tests plus explicit SC-006 override tests for `0.5` and `0.95`; added positive env threshold parse coverage.
 - 2026-03-30 (claude): **046 Phase 1 review** — F-001..F-004 resolutions validated (TypeScript architecture, deterministic template, caller-provided git snapshot, passive token accumulator — all sound). Phase 1 code approved: config, threshold validation [0.5–0.95], env > config > default precedence, deterministic `stableSerializeHistory()` with key-sorted meta normalization. 5 findings: R-001 (`content: string` needs block union for Phase 3, LOW), R-002 (shallow meta sort, INFO), R-003 (missing positive env test, INFO), R-004 (required `id` field — verify runtime IDs exist before Phase 5, LOW), R-005 (F-005/F-006 unresolved for later phases, INFO). No blockers. Phase 1 approved → cursor for Phase 2. Review: `.ai/findings/046-phase1-review.md`.

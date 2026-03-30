@@ -22,10 +22,33 @@ export interface CompactionMessageUsage {
   output_tokens?: number;
 }
 
+export interface CompactionContentTextBlock {
+  type: "text";
+  text: string;
+}
+
+export interface CompactionContentToolUseBlock {
+  type: "tool_use";
+  id?: string;
+  name?: string;
+  input?: unknown;
+}
+
+export interface CompactionContentToolResultBlock {
+  type: "tool_result";
+  tool_use_id?: string;
+  content?: string;
+}
+
+export type CompactionContentBlock =
+  | CompactionContentTextBlock
+  | CompactionContentToolUseBlock
+  | CompactionContentToolResultBlock;
+
 export interface CompactionMessage {
   id: string;
   role: CompactionMessageRole;
-  content: string;
+  content: string | CompactionContentBlock[];
   timestamp?: string;
   pinned?: boolean;
   usage?: CompactionMessageUsage;
@@ -51,6 +74,32 @@ export interface CompactionTriggerDecision {
   thresholdRatio: number;
   usedTokens: number;
   contextWindowTokens: number;
+}
+
+export interface GitSnapshot {
+  branch: string;
+  stagedChanges: number;
+  unstagedChanges: number;
+  lastCommitHash: string;
+  lastCommitMessage: string;
+  diffStats: {
+    insertions: number;
+    deletions: number;
+    filesChanged: number;
+  };
+}
+
+export interface InterruptionSummary {
+  operation: string;
+  state: string;
+  resumptionHint: string;
+}
+
+export interface ProgrammaticCompactionOutput {
+  sessionContextBlock: string;
+  preservedMessages: CompactionMessage[];
+  compactedMessages: CompactionMessage[];
+  interruption: InterruptionSummary | null;
 }
 
 export class TokenBudgetMonitor {
@@ -96,6 +145,62 @@ export class TokenBudgetMonitor {
   }
 }
 
+export class ProgrammaticCompactor {
+  private readonly preserveRecentTurns: number;
+
+  constructor(config: ContextCompactionConfig) {
+    this.preserveRecentTurns = config.preserveRecentTurns;
+  }
+
+  compact(history: CompactionHistory, gitSnapshot: GitSnapshot): ProgrammaticCompactionOutput {
+    const messages = history.messages;
+    const tailStart = Math.max(0, messages.length - this.preserveRecentTurns * 2);
+    const preserveIds = new Set(messages.slice(tailStart).map((message) => message.id));
+
+    for (const message of messages) {
+      if (message.role === "system") preserveIds.add(message.id);
+      if (message.pinned) preserveIds.add(message.id);
+    }
+
+    const activeToolCallId = findLatestUnresolvedToolCallId(messages);
+    if (activeToolCallId) {
+      for (const message of messages) {
+        if (message.tool_call_id === activeToolCallId || message.role === "tool") {
+          preserveIds.add(message.id);
+        }
+      }
+    }
+
+    const preservedMessages = messages.filter((message) => preserveIds.has(message.id));
+    const compactedMessages = messages.filter((message) => !preserveIds.has(message.id));
+
+    const completedSteps = extractSteps(compactedMessages, "completed");
+    const pendingSteps = extractSteps(compactedMessages, "pending");
+    const fileModifications = extractFileModifications(compactedMessages);
+    const keyDecisions = extractKeyDecisions(compactedMessages);
+    const interruption = detectInterruption(messages, gitSnapshot, pendingSteps.length);
+
+    const sessionContextBlock = buildSessionContextXml({
+      originalTurnCount: messages.length,
+      originalTokenCount: countTokensFromUsage(messages),
+      taskSummary: buildTaskSummary(messages, completedSteps.length, pendingSteps.length),
+      completedSteps,
+      pendingSteps,
+      fileModifications,
+      gitSnapshot,
+      keyDecisions,
+      interruption,
+    });
+
+    return {
+      sessionContextBlock,
+      preservedMessages,
+      compactedMessages,
+      interruption,
+    };
+  }
+}
+
 export function readCompactionThresholdFromEnv(
   env = safeProcessEnv(),
 ): number | undefined {
@@ -130,7 +235,10 @@ export function stableSerializeHistory(history: CompactionHistory): string {
   const normalized = history.messages.map((message) => ({
     id: message.id,
     role: message.role,
-    content: message.content,
+    content:
+      typeof message.content === "string"
+        ? message.content
+        : message.content.map((block) => stableSortRecord(block as Record<string, unknown>)),
     timestamp: message.timestamp ?? null,
     pinned: message.pinned ?? false,
     usage: message.usage
@@ -203,4 +311,320 @@ function sanitizeTokenDelta(value: number): number {
 function sanitizeContextWindow(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 0;
   return Math.floor(value);
+}
+
+interface SessionContextXmlInput {
+  originalTurnCount: number;
+  originalTokenCount: number;
+  taskSummary: string;
+  completedSteps: string[];
+  pendingSteps: string[];
+  fileModifications: Array<{
+    path: string;
+    action: "created" | "modified" | "deleted";
+    description: string;
+  }>;
+  gitSnapshot: GitSnapshot;
+  keyDecisions: string[];
+  interruption: InterruptionSummary | null;
+}
+
+function buildSessionContextXml(input: SessionContextXmlInput): string {
+  const lines: string[] = [];
+  lines.push(
+    `<session_context version="1" compacted_at="${new Date(0).toISOString()}" turn_count_original="${input.originalTurnCount}" token_count_original="${input.originalTokenCount}">`,
+  );
+  lines.push("  <task_summary>");
+  lines.push(`    ${xmlEscape(input.taskSummary)}`);
+  lines.push("  </task_summary>");
+  lines.push("");
+  lines.push("  <completed_steps>");
+  if (input.completedSteps.length === 0) {
+    lines.push('    <step index="1">No completed steps captured yet.</step>');
+  } else {
+    input.completedSteps.forEach((step, index) => {
+      lines.push(`    <step index="${index + 1}">${xmlEscape(step)}</step>`);
+    });
+  }
+  lines.push("  </completed_steps>");
+  lines.push("");
+  lines.push("  <pending_steps>");
+  if (input.pendingSteps.length === 0) {
+    lines.push('    <step index="1">No pending steps captured.</step>');
+  } else {
+    input.pendingSteps.forEach((step, index) => {
+      lines.push(`    <step index="${index + 1}">${xmlEscape(step)}</step>`);
+    });
+  }
+  lines.push("  </pending_steps>");
+  lines.push("");
+  lines.push("  <file_modifications>");
+  if (input.fileModifications.length === 0) {
+    lines.push('    <file path="none" action="modified">No file modifications detected.</file>');
+  } else {
+    input.fileModifications.forEach((entry) => {
+      lines.push(
+        `    <file path="${xmlEscape(entry.path)}" action="${entry.action}">${xmlEscape(entry.description)}</file>`,
+      );
+    });
+  }
+  lines.push("  </file_modifications>");
+  lines.push("");
+  lines.push("  <git_state>");
+  lines.push(`    <branch>${xmlEscape(input.gitSnapshot.branch)}</branch>`);
+  lines.push(`    <staged_changes>${input.gitSnapshot.stagedChanges}</staged_changes>`);
+  lines.push(`    <unstaged_changes>${input.gitSnapshot.unstagedChanges}</unstaged_changes>`);
+  lines.push(
+    `    <last_commit hash="${xmlEscape(input.gitSnapshot.lastCommitHash)}">${xmlEscape(input.gitSnapshot.lastCommitMessage)}</last_commit>`,
+  );
+  lines.push(
+    `    <diff_stats insertions="${input.gitSnapshot.diffStats.insertions}" deletions="${input.gitSnapshot.diffStats.deletions}" files_changed="${input.gitSnapshot.diffStats.filesChanged}"/>`,
+  );
+  lines.push("  </git_state>");
+  lines.push("");
+  lines.push("  <key_decisions>");
+  if (input.keyDecisions.length === 0) {
+    lines.push("    <decision>No key decisions captured.</decision>");
+  } else {
+    input.keyDecisions.forEach((decision) => {
+      lines.push(`    <decision>${xmlEscape(decision)}</decision>`);
+    });
+  }
+  lines.push("  </key_decisions>");
+  if (input.interruption) {
+    lines.push("");
+    lines.push('  <interruption detected="true">');
+    lines.push(`    <operation>${xmlEscape(input.interruption.operation)}</operation>`);
+    lines.push(`    <state>${xmlEscape(input.interruption.state)}</state>`);
+    lines.push(`    <resumption_hint>${xmlEscape(input.interruption.resumptionHint)}</resumption_hint>`);
+    lines.push("  </interruption>");
+  }
+  lines.push("</session_context>");
+  return lines.join("\n");
+}
+
+function countTokensFromUsage(messages: CompactionMessage[]): number {
+  return messages.reduce((total, message) => {
+    const input = message.usage?.input_tokens ?? 0;
+    const output = message.usage?.output_tokens ?? 0;
+    return total + sanitizeTokenDelta(input) + sanitizeTokenDelta(output);
+  }, 0);
+}
+
+function buildTaskSummary(messages: CompactionMessage[], completed: number, pending: number): string {
+  const firstUser = messages.find((message) => message.role === "user");
+  const goal = truncateText(normalizeMessageContent(firstUser?.content), 180) || "Continue current task.";
+  return `${goal} Completed ${completed} step(s); ${pending} pending/in-progress.`;
+}
+
+function extractSteps(
+  messages: CompactionMessage[],
+  kind: "completed" | "pending",
+): string[] {
+  const out: string[] = [];
+  const patterns =
+    kind === "completed"
+      ? [/^\s*[-*]\s*\[(x|X)\]\s+(.+)$/gm, /^\s*\d+\.\s*\[(x|X)\]\s+(.+)$/gm]
+      : [/^\s*[-*]\s*\[\s*\]\s+(.+)$/gm, /^\s*\d+\.\s*\[\s*\]\s+(.+)$/gm];
+  for (const message of messages) {
+    const text = normalizeMessageContent(message.content);
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;
+      let match: RegExpExecArray | null;
+      match = pattern.exec(text);
+      while (match) {
+        const value = kind === "completed" ? match[2] : match[1];
+        if (value) out.push(compactWhitespace(value));
+        match = pattern.exec(text);
+      }
+    }
+  }
+  return dedupeStable(out).slice(0, 12);
+}
+
+function extractFileModifications(messages: CompactionMessage[]): Array<{
+  path: string;
+  action: "created" | "modified" | "deleted";
+  description: string;
+}> {
+  const paths: Array<{
+    path: string;
+    action: "created" | "modified" | "deleted";
+    description: string;
+  }> = [];
+  for (const message of messages) {
+    const text = normalizeMessageContent(message.content);
+    const matches = text.matchAll(/\b([A-Za-z0-9_.\/-]+\.(ts|tsx|js|jsx|rs|md|json|yaml|yml|toml))\b/g);
+    for (const match of matches) {
+      const path = match[1];
+      const action = inferFileAction(text);
+      paths.push({
+        path,
+        action,
+        description: `Referenced during ${action} workflow.`,
+      });
+    }
+  }
+  const deduped = new Map<string, { path: string; action: "created" | "modified" | "deleted"; description: string }>();
+  for (const pathEntry of paths) {
+    deduped.set(pathEntry.path, pathEntry);
+  }
+  return Array.from(deduped.values()).sort((a, b) => a.path.localeCompare(b.path)).slice(0, 20);
+}
+
+function inferFileAction(text: string): "created" | "modified" | "deleted" {
+  const lower = text.toLowerCase();
+  if (/\b(delete|removed|remove)\b/.test(lower)) return "deleted";
+  if (/\b(create|created|add|added)\b/.test(lower)) return "created";
+  return "modified";
+}
+
+function extractKeyDecisions(messages: CompactionMessage[]): string[] {
+  const values: string[] = [];
+  for (const message of messages) {
+    const text = normalizeMessageContent(message.content);
+    const lines = text.split("\n");
+    for (const line of lines) {
+      const normalized = line.trim();
+      if (/^(decision|constraint|must|should|do not)\b/i.test(normalized)) {
+        values.push(compactWhitespace(normalized));
+      }
+    }
+  }
+  return dedupeStable(values).slice(0, 10);
+}
+
+function detectInterruption(
+  messages: CompactionMessage[],
+  gitSnapshot: GitSnapshot,
+  pendingStepsCount: number,
+): InterruptionSummary | null {
+  const unresolvedToolCallId = findLatestUnresolvedToolCallId(messages);
+  const uncommittedChanges = gitSnapshot.stagedChanges + gitSnapshot.unstagedChanges > 0;
+  const lastAssistant = findLastByRole(messages, "assistant");
+  const lastAssistantText = normalizeMessageContent(lastAssistant?.content).trim();
+  const asksQuestion = /\?\s*$/.test(lastAssistantText);
+  const explicitNextStep = /\bnext step\b/i.test(lastAssistantText);
+  const hasIncompletePlan = pendingStepsCount > 0;
+
+  if (!unresolvedToolCallId && !uncommittedChanges && !asksQuestion && !explicitNextStep && !hasIncompletePlan) {
+    return null;
+  }
+
+  if (unresolvedToolCallId) {
+    return {
+      operation: `Tool operation ${unresolvedToolCallId}`,
+      state: "Tool call has no corresponding tool result.",
+      resumptionHint: "Resume by collecting or replaying the missing tool result.",
+    };
+  }
+
+  if (uncommittedChanges) {
+    return {
+      operation: "Pending git worktree changes",
+      state: `${gitSnapshot.stagedChanges} staged and ${gitSnapshot.unstagedChanges} unstaged changes detected.`,
+      resumptionHint: "Review current diff and complete or commit the in-progress edits.",
+    };
+  }
+
+  if (asksQuestion || explicitNextStep) {
+    return {
+      operation: "Assistant requested next action",
+      state: truncateText(lastAssistantText, 220),
+      resumptionHint: "Answer the pending question or execute the proposed next step.",
+    };
+  }
+
+  return {
+    operation: "Incomplete multi-step plan",
+    state: `${pendingStepsCount} step(s) still pending/in-progress.`,
+    resumptionHint: "Continue remaining pending steps before starting new work.",
+  };
+}
+
+function findLatestUnresolvedToolCallId(messages: CompactionMessage[]): string | null {
+  const seenResults = new Set<string>();
+  for (const message of messages) {
+    if (message.role === "tool" && message.tool_call_id) {
+      seenResults.add(message.tool_call_id);
+    }
+    if (Array.isArray(message.content)) {
+      for (const block of message.content) {
+        if (block.type === "tool_result" && block.tool_use_id) {
+          seenResults.add(block.tool_use_id);
+        }
+      }
+    }
+  }
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.tool_call_id && !seenResults.has(message.tool_call_id)) {
+      return message.tool_call_id;
+    }
+    if (Array.isArray(message.content)) {
+      for (const block of message.content) {
+        if (block.type === "tool_use" && block.id && !seenResults.has(block.id)) {
+          return block.id;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function findLastByRole(
+  messages: CompactionMessage[],
+  role: CompactionMessageRole,
+): CompactionMessage | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === role) return messages[index];
+  }
+  return undefined;
+}
+
+function normalizeMessageContent(content: CompactionMessage["content"] | undefined): string {
+  if (!content) return "";
+  if (typeof content === "string") return content;
+  const parts: string[] = [];
+  for (const block of content) {
+    if (block.type === "text") {
+      parts.push(block.text);
+    } else if (block.type === "tool_use") {
+      parts.push(`tool_use:${block.name ?? "unknown"}:${block.id ?? "unknown"}`);
+    } else if (block.type === "tool_result") {
+      parts.push(block.content ?? "");
+    }
+  }
+  return parts.join("\n");
+}
+
+function truncateText(value: string, maxChars: number): string {
+  const compacted = compactWhitespace(value);
+  if (compacted.length <= maxChars) return compacted;
+  return `${compacted.slice(0, Math.max(0, maxChars - 1))}…`;
+}
+
+function compactWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function dedupeStable(values: string[]): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const value of values) {
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    output.push(value);
+  }
+  return output;
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
