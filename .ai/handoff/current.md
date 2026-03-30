@@ -101,21 +101,21 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (045 sidecar slice landed)
-- Next owner: **claude** — review sidecar + IPC against `specs/045-.../spec.md`; wire frontend to `execute_claude_bridge` when ready; optional: `apps/desktop` api layer + `claude-permission-request` if UX needs a dedicated listener beyond `bridge_permission_request` JSONL
-- Last baton update: 2026-03-29 — **cursor**: Implemented Node sidecar (`packages/claude-code-bridge/src/sidecar.ts` + `dist/sidecar.js` via `pnpm exec tsc -p packages/claude-code-bridge`), `claude-output-lines` in bridge package, Tauri `execute_claude_bridge` + `respond_to_bridge_permission` + `spawn_claude_bridge_process` in `commands/claude.rs`, `ClaudeBridgeIpcState`, cancel clears bridge stdin. Build bridge before `cargo run`: `pnpm exec tsc -p packages/claude-code-bridge/tsconfig.json`.
+- Current owner: **claude** (sidecar review complete)
+- Next owner: **cursor** — F-011 fix (send `{"type":"abort"}` before dropping stdin in `cancel_claude_execution`), then optional: expose `execute_claude_bridge` / `respond_to_bridge_permission` in `api.ts` for frontend wiring
+- Last baton update: 2026-03-29 — **claude**: Sidecar review complete. All 9 FRs verified ✅, including FR-004 (PermissionBroker now fully wired end-to-end via sidecar). One MEDIUM finding: F-011 (cancel drops stdin without sending abort JSON → SDK doesn't get graceful abort signal). Full review: `.ai/findings/045-sidecar-review.md`.
 - Recommended files to read:
-  - `packages/claude-code-bridge/src/sidecar.ts` — stdin protocol + PermissionBroker + `queryClaudeCode`
-  - `apps/desktop/src-tauri/src/commands/claude.rs` — `execute_claude_bridge`, `respond_to_bridge_permission`
-  - `specs/045-claude-code-sdk-bridge/spec.md` — FR verification vs implementation
+  - `.ai/findings/045-sidecar-review.md` — full sidecar review with FR parity table
+  - `apps/desktop/src-tauri/src/commands/claude.rs:1195-1209` — cancel path needs F-011 fix
+  - `apps/desktop/src/lib/api.ts` — needs `execute_claude_bridge` / `respond_to_bridge_permission` bindings
 
 ## Requested next agent output
 
-**Review / integration (045).** Draft specs 042–063 remain. Next: **claude** validates 045 sidecar slice vs `spec.md` (FR-004 IPC path); **cursor** follow-up: expose `execute_claude_bridge` / `respond_to_bridge_permission` in `api.ts` + wire session UI when product-ready.
+**045 bridge complete, frontend wiring next.** All 9 FRs verified. Remaining: F-011 (abort signal), frontend API bindings, permission dialog UI (out of scope per spec). 045 is ready for "active" status once frontend wiring lands.
 
 Priority order for P0 specs (unchanged):
 
-1. **045 — Claude Code SDK Bridge** — sidecar IPC landed; frontend wiring optional next slice
+1. **045 — Claude Code SDK Bridge** — bridge + sidecar + IPC complete; frontend `api.ts` wiring + F-011 fix remaining
 2. **042 — Multi-Provider Agent Registry**
 3. **044 — Multi-Agent Orchestration**
 4. **046 — Context Compaction**
@@ -138,6 +138,7 @@ Land a minimal vertical slice for 045 aligned with functional requirements (FR-x
 
 ## Recent outputs
 
+- 2026-03-29 (claude): **045 sidecar review** — All 9 FRs verified ✅. FR-004 PermissionBroker now fully wired (F-003 resolved). New finding F-011: `cancel_claude_execution` drops stdin without sending abort JSON (MEDIUM). F-012–F-014 cosmetic. Architecture matches IPC plan. Full review: `.ai/findings/045-sidecar-review.md`. Baton → cursor for F-011 + frontend api.ts.
 - 2026-03-29 (cursor): **045 Tauri ↔ Node sidecar** — `sidecar.ts`, `claude-output-lines.ts`, `execute_claude_bridge` / `respond_to_bridge_permission`, `ClaudeBridgeIpcState`, `spawn_claude_bridge_process`; desktop re-exports mapper from `@opc/claude-code-bridge/claude-output-lines`. Requires `dist/sidecar.js` (run `tsc` in bridge package). Next: claude review; frontend API wiring.
 - 2026-03-29 (claude): **045 post-F001/F002 review** — Verified F-001, F-002, F-005, F-006 all resolved. F-003 (PermissionBroker) confirmed still dead code but deferred to sidecar slice. New findings: F-008 (start event drop OK by design), F-009 (stale closure risk in error branch, LOW), F-010 (index signature masks type errors, blocked on consumer audit). Spec parity: 9/9 FR done, FR-004 partial. Full review: `.ai/findings/045-post-f001f002-review.md`. Next: cursor implements sidecar.
 - 2026-03-29 (cursor): **045 F-001 + F-002** — `useClaudeMessages` parity with SDK/stream-json; `cli-adapter` duplicate `session-complete` eliminated. Types consolidated via `AgentExecution` `ClaudeStreamMessage`. Next: Tauri/Node sidecar + F-003 optional.
