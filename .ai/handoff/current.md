@@ -101,18 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (047 Phase 2 implementation complete — pending review)
-- Next owner: **claude** — review Phase 2 against `specs/047-governance-control-plane/spec.md` (FR-003..FR-005, SC-001, SC-002) and `.ai/plans/047-governance-control-plane-phased-plan.md` Phase 2.
-- Last baton update: 2026-03-30 — **cursor**: P1-001 fixed (`WalkDir::filter_entry` prunes `.git`, `.claude`, `node_modules`, `target`, `build` — no descent). Phase 2: `classify_rules` (constitution = `scope=global` + `mode=enforce`; shards keyed by scope), `build/policy-bundles/policy-bundle.json` with metadata (`compilerId`, `compilerVersion`, `sources`, `policyBundleHash`, `compiledAt`), `policyBundleHash` = SHA-256 of canonical JSON payload excluding `compiledAt` and `policyBundleHash` (matches FR-005 / SC-002). Unit tests: SC-001 (constitution + shards + bundle shape), SC-002 (stable hash across runs), walkdir prune regression. Replaces `phase1-validation.json` artifact with `policy-bundle.json`.
+- Current owner: **claude** (047 Phase 2 review complete — approved)
+- Next owner: **cursor** — implement Phase 3 (WASM policy kernel + gate enforcement: FR-006, FR-007, SC-003, SC-004, SC-005, SC-006).
+- Last baton update: 2026-03-30 — **claude**: Phase 2 approved. FR-003 classification correct (constitution = `scope=global` + `mode=enforce`, shards = all other grouped by scope). FR-004 bundle emission structurally complete (constitution, shards, metadata with hash/timestamp/sources). FR-005 determinism satisfied (canonical JSON hash excluding `compiledAt`/`policyBundleHash`). SC-001/SC-002 directly tested. P1-001 resolved (WalkDir `filter_entry`). 6 findings: P2-001 MEDIUM (validation in hash payload — fragile if warning severities added), P2-002 LOW (compiledAt absent on failure), P2-003 LOW (no multi-scope shard test), P2-004–P2-006 INFO. 7/7 tests pass.
 - Recommended files to read:
-  - `tools/policy-compiler/src/lib.rs` — discovery, classification, bundle emission, hash
-  - `.ai/findings/047-phase1-review.md` — prior Phase 1 findings (P1-001 addressed)
-  - `.ai/plans/047-governance-control-plane-phased-plan.md` — Phase 3 next
-  - `specs/047-governance-control-plane/spec.md` — canonical 047 contract
+  - `.ai/findings/047-phase2-review.md` — Phase 2 review with findings
+  - `.ai/plans/047-governance-control-plane-phased-plan.md` — Phase 3 spec
+  - `specs/047-governance-control-plane/spec.md` — FR-006, FR-007, SC-003..SC-006
+  - `tools/policy-compiler/src/lib.rs` — current implementation base
 
 ## Requested next agent output
 
-**claude**: Phase 2 review — confirm FR-003/FR-004/FR-005 and SC-001/SC-002; note any follow-ups before Phase 3 (WASM kernel).
+**cursor**: Phase 3 — implement WASM policy kernel + gate enforcement (FR-006, FR-007, SC-003, SC-004, SC-005, SC-006). Consider P2-001 (exclude `validation` from hash payload) before proof chains in Phase 5.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **047 Phase 2 review** — Phase 2 approved. FR-003 classification (constitution = global+enforce, shards = all else by scope), FR-004 bundle emission (5 sections), FR-005 determinism (canonical JSON SHA-256 excluding compiledAt/policyBundleHash) — all spec-faithful. SC-001/SC-002 directly tested. P1-001 resolved. 6 findings: P2-001 MEDIUM (validation in hash payload), P2-002/P2-003 LOW, P2-004–P2-006 INFO. 7/7 tests pass. Review: `.ai/findings/047-phase2-review.md`.
 - 2026-03-30 (cursor): **047 Phase 2** — P1-001 WalkDir `filter_entry` prune; constitution/shard classification; deterministic `policy-bundle.json` + `policyBundleHash` (payload excludes timestamp/hash fields); SC-001/SC-002 tests. Output: `build/policy-bundles/policy-bundle.json`
 - 2026-03-30 (claude): **047 Phase 1 review** — Phase 1 approved. FR-001 discovery precedence correct (3-tier with exclusions). FR-002 fenced `policy` block parser faithful (YAML → PolicyRule with id/description/mode/scope/gate). FR-011 V-101..V-106 all implemented. F-005 resolved (shared frontmatter crate, 3 tools wired). F-006 resolved (fenced `policy` syntax committed). G-006 resolved (dual-target native+WASM strategy). 7 findings: P1-001 MEDIUM (WalkDir skip doesn't prevent descent — use `filter_entry`), P1-002 LOW (dead replacement branch), P1-003 LOW (V-103 message misleading for same-precedence), P1-004/P1-005 LOW (missing V-101/V-102 tests), P1-006/P1-007 INFO. 4/4 tests pass. Review: `.ai/findings/047-phase1-review.md`.
 - 2026-03-30 (cursor): **047 Phase 1 + decision resolution** — Implemented `tools/policy-compiler/` scaffold with `compile`/`validate` commands and Phase 1 outputs: policy source discovery precedence (`CLAUDE.md` root > `.claude/policies/*.md` > subdirectory `CLAUDE.md`), fenced `policy` block parsing, structured rule extraction (`id`, `description`, `mode`, `scope`, optional `gate`), and V-series validations (`V-101`..`V-106`, including duplicate IDs as `V-103`). Added tests for discovery precedence, valid/invalid parsing, and duplicate resolution. Resolved F-005 by introducing shared crate `tools/shared/frontmatter/` and reusing it in `tools/spec-compiler` and `tools/spec-lint`. Resolved F-006 by committing to fenced `policy` blocks in plan G-002. Added G-006 dual-target native+WASM host-runtime strategy in `.ai/plans/047-governance-control-plane-phased-plan.md`.
