@@ -10,7 +10,9 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./adapters/anthropic": "./src/adapters/anthropic.ts",
-    "./normalization/anthropic-events": "./src/normalization/anthropic-events.ts"
+    "./adapters/claude-code-sdk": "./src/adapters/claude-code-sdk.ts",
+    "./normalization/anthropic-events": "./src/normalization/anthropic-events.ts",
+    "./normalization/claude-code-events": "./src/normalization/claude-code-events.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -23,6 +25,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0"
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@opc/claude-code-bridge": "workspace:*"
   }
 }

@@ -23,6 +23,14 @@ export {
 
 export { createAnthropicProvider } from "./adapters/anthropic.js";
 export {
+  createClaudeCodeSdkProvider,
+  CLAUDE_CODE_SDK_PROVIDER_ID,
+} from "./adapters/claude-code-sdk.js";
+export {
   AnthropicStreamNormalizer,
   messageToAgentEvents,
 } from "./normalization/anthropic-events.js";
+export {
+  bridgeEventToAgentEvents,
+  ClaudeCodeBridgeNormalizer,
+} from "./normalization/claude-code-events.js";

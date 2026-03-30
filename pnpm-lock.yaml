@@ -225,6 +225,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.80.0
         version: 0.80.0(zod@3.25.76)
+      '@opc/claude-code-bridge':
+        specifier: workspace:*
+        version: link:../claude-code-bridge
     devDependencies:
       '@types/node':
         specifier: ^22.15.30
