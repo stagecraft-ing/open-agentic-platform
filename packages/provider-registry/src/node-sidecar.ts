@@ -27,6 +27,7 @@ interface SidecarQueryMessage {
   sessionId?: string;
   permissionMode?: PermissionMode;
   oauthToken?: string;
+  systemPrompt?: string;
 }
 
 interface PermissionResponseMessage {
@@ -81,6 +82,7 @@ async function runProviderPath(
   const params: QueryParams = {
     model: apiModel,
     messages: [{ role: "user", content: q.prompt }],
+    systemPrompt: q.systemPrompt,
     signal: ac.signal,
   };
 
@@ -181,6 +183,7 @@ async function run(): Promise<void> {
         model: rawModel || undefined,
         sessionId: q.sessionId,
         permissionMode: q.permissionMode ?? "default",
+        systemPrompt: q.systemPrompt,
         abortController: ac,
         oauthToken: q.oauthToken,
         canUseTool: (toolName, toolInput) => broker.request(toolName, toolInput),

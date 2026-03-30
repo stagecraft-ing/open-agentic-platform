@@ -101,25 +101,25 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** (044 Phase 5 next — real governed executor)
-- Next owner: **cursor** — 044 Phase 5: replace `FileBackedGovernedExecutor` with a real `GovernedExecutor` implementation that dispatches through the 042 provider registry and 035 governed execution layer. No changes to `dispatch_manifest()` or Tauri commands needed. Then **claude** reviews Phase 5.
-- Last baton update: 2026-03-30 — **claude**: Phase 4 review complete. All 4 spec contract operations + all 4 error semantics implemented. P3-001/P3-002/P3-003 all resolved. Async `dispatch_manifest()` correctly wires registry lookup, governed execution via traits, output artifact verification, failure cascade. 14/14 tests pass. 6 findings: P4-001 (cancel_run only touches in-memory state, LOW), P4-002–P4-006 (INFO). Review: `.ai/findings/044-phase4-review.md`. Phase 4 approved — proceed to Phase 5.
+- Current owner: **cursor** (044 Phase 6 next — P5-002 fix + end-to-end validation)
+- Next owner: **cursor** — 044 Phase 6: fix P5-002 (add `project_path` parameter to `orchestrate_manifest` Tauri command), optionally fix P5-001 (split system prompt from user prompt using sidecar `systemPrompt` field). Then run end-to-end validation (SC-001, SC-002, SC-005) with a real 3-step workflow manifest. Then **claude** reviews Phase 6.
+- Last baton update: 2026-03-30 — **claude**: Phase 5 review complete. `RealGovernedExecutor` correctly implements dual-path dispatch (provider-registry sidecar + governed Claude CLI with 035 MCP config). Per-agent profiles loaded from SQLite. Token tracking from JSONL result events. Sidecar protocol extended with `systemPrompt`. 14/14 tests pass. 6 findings: P5-001 (system prompt in user slot, LOW), P5-002 (working_directory defaults to CWD not project path, LOW — fix before e2e), P5-003 (model routing heuristic, LOW), P5-004–P5-006 (INFO). Review: `.ai/findings/044-phase5-review.md`. Phase 5 approved — proceed to Phase 6.
 - Recommended files to read:
-  - `.ai/findings/044-phase4-review.md` — Phase 4 review with SC mapping + findings
-  - `.ai/findings/044-phase3-review.md` — Phase 3 review with FR mapping + wiring plan
-  - `crates/orchestrator/src/lib.rs` — async dispatcher + traits
-  - `apps/desktop/src-tauri/src/commands/orchestrator.rs` — Tauri command surface + scaffold executor
+  - `.ai/findings/044-phase5-review.md` — Phase 5 review with governance + provider mapping
+  - `.ai/findings/044-phase4-review.md` — Phase 4 review with SC mapping
+  - `apps/desktop/src-tauri/src/commands/orchestrator.rs` — real governed executor
+  - `packages/provider-registry/src/node-sidecar.ts` — sidecar with systemPrompt support
   - `specs/044-multi-agent-orchestration/spec.md` — full contract
 
 ## Requested next agent output
 
-**cursor**: Implement a real `GovernedExecutor` that dispatches agent steps through the 042 provider registry (`@opc/provider-registry`) and 035 governed execution layer, replacing `FileBackedGovernedExecutor`. The `dispatch_manifest()` function and Tauri command surface require no changes — only the executor implementation needs to be swapped. Then **claude** reviews Phase 5.
+**cursor**: Fix P5-002 (add `project_path: String` parameter to `orchestrate_manifest`, pass to `RealGovernedExecutor.working_directory`). Optionally fix P5-001 (use sidecar `systemPrompt` field instead of embedding in `prompt`). Then create a 3-step test workflow manifest and run end-to-end validation for SC-001 (artifact-based passing), SC-002 (token measurement), SC-005 (effort-level differentiation). Then **claude** reviews Phase 6.
 
 Priority order for P0 specs (unchanged):
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
 2. **042 — Multi-Provider Agent Registry** — ✅ complete (all phases + Phase 6 review)
-3. **044 — Multi-Agent Orchestration** — Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅ (async dispatch + Tauri commands); real executor follow
+3. **044 — Multi-Agent Orchestration** — Phase 1–5 ✅ (manifest, DAG, prompts, async dispatch, real executor); e2e validation follow
 4. **046 — Context Compaction**
 5. **047 — Governance Control Plane**
 
@@ -140,6 +140,8 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **044 Phase 5 review** — `RealGovernedExecutor` dual-path dispatch (provider-registry sidecar for `providerId:apiModel`, governed Claude CLI with 035 MCP config for native models). Per-agent profiles (model, system_prompt, permissions) loaded from SQLite. Token tracking from JSONL result events. Sidecar protocol extended with `systemPrompt` (both provider + bridge paths). 14/14 tests pass. Findings: P5-001 (system prompt in user slot, LOW), P5-002 (working_directory CWD not project path, LOW — fix before e2e), P5-003 (model routing heuristic, LOW), P5-004–P5-006 (INFO). Review: `.ai/findings/044-phase5-review.md`. Phase 5 approved → cursor for Phase 6.
+- 2026-03-30 (cursor): **044 Phase 5** — `RealGovernedExecutor` replaces `FileBackedGovernedExecutor`. `AgentExecutionProfile` with model/system_prompt/permissions from SQLite. `dispatch_via_provider_registry()` spawns Node sidecar with JSONL protocol. `dispatch_via_governed_claude()` spawns `claude` CLI with 035 axiomregent MCP config + permission grants (file_read/write/network, max_tier 3). Bypass fallback when axiomregent unavailable.
 - 2026-03-30 (claude): **044 Phase 4 review** — All 4 spec contract operations implemented (orchestrate_manifest, get_run_status, cancel_run, cleanup_artifacts). All 4 error semantics present (StepFailed, DependencyMissing, AgentNotFound, CycleDetected). P3-001 resolved (output paths in prompt), P3-002 resolved ("no sub-agent calls"), P3-003 resolved (zero-input test). Async `dispatch_manifest()` with `AgentRegistry` + `GovernedExecutor` traits — correct trait-based design for swappable implementations. 14/14 tests pass. Findings: P4-001 (cancel_run in-memory only, LOW), P4-002–P4-006 (INFO). Review: `.ai/findings/044-phase4-review.md`. Phase 4 approved → cursor for Phase 5.
 - 2026-03-30 (cursor): **044 Phase 4** — Async `dispatch_manifest()` with `AgentRegistry` + `GovernedExecutor` traits, `DispatchRequest`/`DispatchResult` types, output artifact verification post-dispatch, `FileBackedGovernedExecutor` scaffold. Tauri commands: `orchestrate_manifest`, `get_run_status`, `cancel_run`, `cleanup_artifacts`. P3-001/P3-002/P3-003 resolved. Tests: 3 new (async success, agent-not-found, zero-input prompt).
 - 2026-03-30 (claude): **044 Phase 3 review** — FR-004 satisfied. `build_step_system_prompt()` includes absolute input artifact paths, filesystem-read directive, and effort level text matching FR-005. 11/11 tests pass. Findings: P3-001 (output paths not in prompt, LOW — actionable before real dispatch), P3-002 (Quick text omits "no sub-agent calls", COSMETIC), P3-003 (no zero-input test, INFO), P3-004 (to_string_lossy, INFO). Full wiring plan for governed dispatch + registry + Tauri commands provided. Review: `.ai/findings/044-phase3-review.md`. Phase 3 approved → cursor for Phase 4.
