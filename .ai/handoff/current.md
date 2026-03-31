@@ -101,27 +101,28 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 060 | Panel Event Bus | P1 | ✅ feature-complete |
 | 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete |
 | 062 | Multi-Model Chaining | P1 | ✅ feature-complete |
-| 063 | Coherence Scoring | P1 | outline-spec |
+| 063 | Coherence Scoring | P1 | ✅ feature-complete |
 
 ## Baton
 
-- Current owner: **claude** — 062 feature-complete (all 6 phases delivered).
-- Next owner: **claude** — implement next spec (063 Coherence Scoring).
-- Last baton update: 2026-03-31 — **claude**: 062 — Multi-Model Chaining, all 6 phases. New package `packages/multi-model-chaining` (`@opc/multi-model-chaining`). **Phase 1** — chain configuration and engine core: `src/types.ts` (ChainPhase, ModelChain, PhaseUsage, ChainUsage, PricingEntry, PricingTable, ChainEvent, ChainMessage, ChainExecuteOptions, PhaseResult, ChainResult, ChainProvider, ChainError, ChainAbortError), `src/engine.ts` (ChainEngine class — sequential chain execution with stream() and execute()). **Phase 2** — thinking-tag transformation: `src/transforms.ts` (applyTransform for thinking_tags/system_prompt/raw/custom TransformFn, buildPhaseMessages injects prior phase outputs into next phase's context). **Phase 3** — SSE streaming across phases: `src/streaming.ts` (createPhaseStartEvent, createPhaseEndEvent, createChainCompleteEvent, createChainErrorEvent, augmentEventWithPhase — phase transition markers in SSE stream). **Phase 4** — token aggregation: `src/usage.ts` (createPhaseUsage from AgentEvent TokenUsage, aggregateUsage across all phases with pricing integration). **Phase 5** — pricing tables: `src/pricing.ts` (pricingKey, createPricingTable, lookupPricing with O(1) Map lookup, computeCost from aggregated usage). **Phase 6** — error handling and abort: ChainError with phaseIndex + cause, ChainAbortError with partial results, abort signal propagation via AbortController, chain halts on phase failure preserving partial output. Barrel exports + 6 subpath exports (./types, ./transforms, ./streaming, ./usage, ./pricing, ./engine). Validation: `tsc` clean, 66/66 tests pass. FR-001–FR-009, NF-001–NF-003, SC-001–SC-006 satisfied.
+- Current owner: **claude** — 063 feature-complete (all 6 phases delivered).
+- Next owner: **—** — all 22 specs (042–063) delivered.
+- Last baton update: 2026-03-31 — **claude**: 063 — Coherence Scoring with Privilege Degradation, all 6 phases. New package `packages/coherence-scoring` (`@opc/coherence-scoring`). **Phase 1** — score computation: `src/types.ts` (CoherenceInputs, CoherenceWeights, CoherenceResult, PrivilegeLevel, CapabilitySet, ActionOutcome, ActionRecord, ProofRecord, ProofEventType, PipelineOptions, PrivilegeChangedEvent, EnforcementResult, CapabilityName + constants DEFAULT_WEIGHTS, DEFAULT_WINDOW_SIZE, PRIVILEGE_CAPABILITIES, PRIVILEGE_THRESHOLDS, PRIVILEGE_LEVELS), `src/scoring.ts` (computeCoherence weighted sum with [0,1] clamping, SlidingWindow class with record/evict/violationRate/reworkFrequency/getInputs/computeResult). **Phase 2** — privilege mapping: `src/privileges.ts` (scoreToLevel FR-005 boundary mapping, getCapabilities, hasCapability, enabledCapabilities, disabledCapabilities, compareLevels). **Phase 3** — capability enforcement: `src/enforcement.ts` (checkCapability, enforceCapability, checkCapabilities batch, actionToCapability mapping, CapabilityDeniedError class). **Phase 4** — proof chain: `src/proof-chain.ts` (ProofChain class with SHA-256 hash-chained append/verify/records/get, computePayloadHash, computeRecordHash, compaction support via maxLength). **Phase 5** — integration pipeline: `src/pipeline.ts` (CoherencePipeline class — recordAction wires sliding window + score computation + proof chain + privilege transition events, check/enforce capability, onPrivilegeChanged listener with unsubscribe). **Phase 6** — conformance kit: `src/conformance.ts` (runConformanceKit with 14 acceptance tests covering SC-001–SC-005, FR-005–FR-008, FR-011). Barrel exports + 7 subpath exports (./types, ./scoring, ./privileges, ./enforcement, ./proof-chain, ./pipeline, ./conformance). Validation: `tsc` clean, 93/93 tests pass. FR-001–FR-011, NF-001–NF-004, SC-001–SC-006 satisfied.
 - Recommended files to read:
-  - `packages/multi-model-chaining/src/index.ts` (barrel exports)
-  - `packages/multi-model-chaining/src/types.ts` (all types + error classes)
-  - `packages/multi-model-chaining/src/engine.ts` (ChainEngine class)
-  - `packages/multi-model-chaining/src/transforms.ts` (output transforms + message injection)
-  - `packages/multi-model-chaining/src/streaming.ts` (SSE event factories)
-  - `packages/multi-model-chaining/src/usage.ts` (token aggregation)
-  - `packages/multi-model-chaining/src/pricing.ts` (pricing table + cost computation)
+  - `packages/coherence-scoring/src/index.ts` (barrel exports)
+  - `packages/coherence-scoring/src/types.ts` (all types + constants)
+  - `packages/coherence-scoring/src/scoring.ts` (computeCoherence + SlidingWindow)
+  - `packages/coherence-scoring/src/privileges.ts` (scoreToLevel + capability queries)
+  - `packages/coherence-scoring/src/enforcement.ts` (capability enforcement + CapabilityDeniedError)
+  - `packages/coherence-scoring/src/proof-chain.ts` (ProofChain with SHA-256 hash chaining)
+  - `packages/coherence-scoring/src/pipeline.ts` (CoherencePipeline integration)
+  - `packages/coherence-scoring/src/conformance.ts` (conformance kit)
 
 ## Requested next agent output
 
-**claude**: 062 feature-complete. Next: implement 063 — Coherence Scoring.
+**claude**: 063 feature-complete. All 22 specs (042–063) delivered.
 
-### Completed features (20 of 22)
+### Completed features (22 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -145,10 +146,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 060 | Panel Event Bus | P1 | ✅ feature-complete (5 phases) |
 | 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete (7 phases) |
 | 062 | Multi-Model Chaining | P1 | ✅ feature-complete (6 phases) |
-
-### Priority order for remaining P1 specs (1 unstarted)
-
-1. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
+| 063 | Coherence Scoring | P1 | ✅ feature-complete (6 phases) |
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -164,6 +162,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **063 Coherence Scoring with Privilege Degradation — all 6 phases. 063 feature-complete.** New package `packages/coherence-scoring` (`@opc/coherence-scoring`). Phase 1: score computation — types.ts (CoherenceInputs, CoherenceWeights, CoherenceResult, PrivilegeLevel, CapabilitySet, ActionOutcome, ActionRecord, ProofRecord, ProofEventType, PipelineOptions, PrivilegeChangedEvent, EnforcementResult, CapabilityName + constants), scoring.ts (computeCoherence weighted-sum with [0,1] clamping, SlidingWindow class — record/evict/violationRate/reworkFrequency/getInputs/computeResult). Phase 2: privilege mapping — privileges.ts (scoreToLevel FR-005 boundary mapping >0.7/0.5/0.3, getCapabilities, hasCapability, enabledCapabilities, disabledCapabilities, compareLevels). Phase 3: capability enforcement — enforcement.ts (checkCapability returns EnforcementResult, enforceCapability throws CapabilityDeniedError, checkCapabilities batch, actionToCapability string-to-capability mapping). Phase 4: proof chain — proof-chain.ts (ProofChain class with SHA-256 hash-chained records, append creates linked ProofRecord, verify walks chain checking payloadHash+previousHash+recordHash, records/get range queries, compaction via maxLength). Phase 5: integration pipeline — pipeline.ts (CoherencePipeline class — recordAction wires sliding window→score computation→proof chain→privilege transition events, check/enforce for inline governance, onPrivilegeChanged with unsubscribe, reset). Phase 6: conformance kit — conformance.ts (runConformanceKit returns 14 ConformanceResult entries covering SC-001–SC-005, FR-005–FR-008, FR-011). Barrel exports + 7 subpath exports (./types, ./scoring, ./privileges, ./enforcement, ./proof-chain, ./pipeline, ./conformance). Validation: `tsc` clean, 93/93 tests pass. FR-001–FR-011, NF-001–NF-004, SC-001–SC-006 satisfied. **All 22 specs (042–063) now feature-complete.**
 
 - 2026-03-31 (claude): **062 Multi-Model Chaining — all 6 phases. 062 feature-complete.** New package `packages/multi-model-chaining` (`@opc/multi-model-chaining`). Phase 1: chain configuration and engine core — types.ts (ChainPhase, ModelChain, PhaseUsage, ChainUsage, PricingEntry, PricingTable, ChainEvent, ChainMessage, ChainExecuteOptions, PhaseResult, ChainResult, ChainProvider, ChainError, ChainAbortError), engine.ts (ChainEngine class with stream() and execute() — sequential chain execution dispatching through injectable ChainProvider). Phase 2: thinking-tag transformation — transforms.ts (applyTransform for thinking_tags wrapping in `<thinking>` tags, system_prompt, raw, and custom TransformFn; buildPhaseMessages injects prior phase outputs as assistant messages or system prompt extensions). Phase 3: SSE streaming across phases — streaming.ts (createPhaseStartEvent, createPhaseEndEvent, createChainCompleteEvent, createChainErrorEvent, augmentEventWithPhase adding phaseIndex to all AgentEvents). Phase 4: token aggregation — usage.ts (createPhaseUsage from message_complete TokenUsage, aggregateUsage sums across phases with optional pricing integration). Phase 5: pricing tables — pricing.ts (pricingKey "providerId:modelId", createPricingTable from entries array, lookupPricing O(1) Map lookup, computeCost per-million-token calculation). Phase 6: error handling and abort — ChainError with phaseIndex + cause, ChainAbortError with partial results, abort signal checked before each phase + propagated to provider stream, chain halts on failure emitting chain:error + chain:complete with partial usage before throwing. Barrel exports + 6 subpath exports (./types, ./transforms, ./streaming, ./usage, ./pricing, ./engine). Validation: `tsc` clean, 66/66 tests pass. FR-001–FR-009, NF-001–NF-003, SC-001–SC-006 satisfied.
 

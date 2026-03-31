@@ -2,7 +2,7 @@
 id: "063-coherence-scoring"
 title: "Coherence Scoring with Privilege Degradation"
 feature_branch: "063-coherence-scoring"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:
