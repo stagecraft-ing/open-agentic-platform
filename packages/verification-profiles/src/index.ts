@@ -9,6 +9,7 @@ export type {
   StepResult,
   SkillResult,
   ProfileResult,
+  GateResult,
   DiagnosticSeverity,
   VerificationDiagnostic,
   ParseProfileResult,
@@ -31,3 +32,6 @@ export type { SkillLibrary } from "./loader.js";
 // Runner
 export { executeStep, executeSkill, executeProfile } from "./runner.js";
 export type { ExecutionOptions } from "./runner.js";
+
+// Gate
+export { evaluatePostSessionGate, loadProfileDiagnostics } from "./gate.js";

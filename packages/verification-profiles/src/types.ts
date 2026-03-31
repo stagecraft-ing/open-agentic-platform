@@ -98,6 +98,22 @@ export interface ProfileResult {
   durationMs: number;
 }
 
+/** Result of evaluating a post-session gate (FR-004). */
+export interface GateResult {
+  /** Whether delivery is allowed. True if: profile is ungated, or all skills passed. */
+  passed: boolean;
+  /** Whether this profile is gated (blocks delivery on failure). */
+  gated: boolean;
+  /** Profile name. */
+  profile: string;
+  /** Per-skill results in execution order. */
+  results: SkillResult[];
+  /** Names of skills that failed. */
+  failedSkills: string[];
+  /** Total duration in milliseconds. */
+  durationMs: number;
+}
+
 // --- Diagnostic types ---
 
 export type DiagnosticSeverity = "error" | "warning" | "info";
