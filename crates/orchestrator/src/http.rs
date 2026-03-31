@@ -66,8 +66,8 @@ async fn workflow_events_sse(
 
     // Load replay + live subscription from SQLite.
     let replay_subscription = {
-        let mut guard = state.store.lock().await;
-        match broadcaster.subscribe_with_replay(&mut *guard, workflow_id, query.offset) {
+        let guard = state.store.lock().await;
+        match broadcaster.subscribe_with_replay(&guard, workflow_id, query.offset) {
             Ok(sub) => sub,
             Err(OrchestratorError::StatePersistence { reason }) => {
                 return (
@@ -111,8 +111,7 @@ fn build_sse_stream(
         let json = serde_json::to_string(&event).unwrap_or_else(|_| "{}".to_string());
         Ok(Event::default()
             .id(event.event_id.to_string())
-            .json_data(json)
-            .unwrap_or_else(|_| Event::default().data("{}")))
+            .data(json))
     });
 
     // Then, stream live events, skipping those with event_id <= high_water_mark.
@@ -126,11 +125,8 @@ fn build_sse_stream(
                     }
                     current_hwm = event.event_id;
                     let json = serde_json::to_string(&event).unwrap_or_else(|_| "{}".to_string());
-                    let event = Event::default()
-                        .id(event.event_id.to_string())
-                        .json_data(json)
-                        .unwrap_or_else(|_| Event::default().data("{}"));
-                    yield Ok(event);
+                    let sse_event = Event::default().id(event.event_id.to_string()).data(json);
+                    yield Ok(sse_event);
                 }
                 Err(_lagged) => {
                     // On lagged subscribers, clients should reconnect with a higher offset.
