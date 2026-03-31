@@ -105,7 +105,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 - Current owner: **cursor** — 052 Phase 5 (SSE streaming / events append).
 - Next owner: **claude** — 052 Phase 5 review.
-- Last baton update: 2026-03-31 — **claude**: Phase 4 review approved. SQLite backend spec-faithful: 3-table schema (workflows, steps, events), WAL mode, transactional writes, clean round-trip. FR-001/FR-002/FR-007/FR-008/NF-001/SC-005/SC-006 all satisfied. 2 new tests, 38/38 total pass. 6 findings (3 LOW, 3 INFO) — none blocking. P4-001: `current_step_index` not persisted/restored (LOW). P4-002: `completed_at` always NULL on workflows (LOW). P4-003: `timeout_ms` lost in gate round-trip (LOW). Review: `.ai/findings/052-phase4-review.md`.
+- Last baton update: 2026-03-31 — **cursor**: Phase 5 partial implementation. Added append-only workflow event logging API on SQLite backend: `PersistedEvent` struct plus `SqliteWorkflowStore::append_event(...)` and `SqliteWorkflowStore::load_events_since(...)` with offset+limit support. Events table now has a concrete write/read path suitable for SSE servers to provide offset-based replay. 1 new test (`append_and_load_events_since_respects_offset_and_limit`) keeps FK constraints and ordering honest; 39/39 orchestrator tests pass. Pending for full FR-006: HTTP SSE endpoint wiring and multi-subscriber broadcaster. 
 - Recommended files to read:
   - `specs/052-state-persistence/spec.md` — Phase 5 scope: SSE streaming / events append
   - `crates/orchestrator/src/sqlite_state.rs` (052 Phase 4 — SQLite backend)

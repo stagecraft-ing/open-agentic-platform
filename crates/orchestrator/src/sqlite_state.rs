@@ -30,6 +30,31 @@ pub struct SqliteWorkflowStore {
     conn: Connection,
 }
 
+/// Persisted workflow event row (Phase 5 SSE foundation).
+///
+/// These rows are append-only (auto-incrementing `event_id`) and can be
+/// consumed by higher-level SSE servers to provide offset-based replay.
+#[derive(Clone, Debug)]
+pub struct PersistedEvent {
+    pub event_id: i64,
+    pub workflow_id: Uuid,
+    pub timestamp: String,
+    pub event_type: String,
+    pub payload: JsonValue,
+}
+
+/// Returns a timestamp string for events. This mirrors the lightweight epoch-based
+/// format used in `gates::chrono_now_iso` without depending on that private helper.
+fn sqlite_now_ts() -> String {
+    use std::time::SystemTime;
+    let duration = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default();
+    let secs = duration.as_secs();
+    let millis = duration.subsec_millis();
+    format!("{secs}.{millis:03}")
+}
+
 impl SqliteWorkflowStore {
     /// Opens (or creates) a SQLite database at `path`, enabling WAL mode and
     /// initializing the schema if needed.
@@ -40,8 +65,7 @@ impl SqliteWorkflowStore {
             })?;
         }
 
-        let mut conn =
-            Connection::open(path).map_err(|e| OrchestratorError::StatePersistence {
+        let conn = Connection::open(path).map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("open sqlite state db {}: {e}", path.display()),
             })?;
 
@@ -395,6 +419,162 @@ impl SqliteWorkflowStore {
 
         Ok(Some(state))
     }
+
+    /// Appends a workflow event row to the `events` table and returns its id.
+    ///
+    /// This is the primary entry point for 052 Phase 5 append-only logging:
+    /// callers record step start/complete/checkpoint/error events and then a
+    /// higher-level SSE server can stream them to subscribers.
+    pub fn append_event(
+        &mut self,
+        workflow_id: Uuid,
+        event_type: &str,
+        payload: &JsonValue,
+        timestamp: Option<String>,
+    ) -> Result<i64, OrchestratorError> {
+        let wf_id_str = workflow_id.to_string();
+        let ts = timestamp.unwrap_or_else(sqlite_now_ts);
+        let payload_json =
+            serde_json::to_string(payload).map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("serialize event payload to json: {e}"),
+            })?;
+
+        self.conn
+            .execute(
+                r#"
+                INSERT INTO events (
+                  workflow_id,
+                  timestamp,
+                  event_type,
+                  payload
+                )
+                VALUES (?1, ?2, ?3, ?4)
+                "#,
+                params![wf_id_str, ts, event_type, payload_json],
+            )
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("insert workflow event row in sqlite: {e}"),
+            })?;
+
+        Ok(self.conn.last_insert_rowid())
+    }
+
+    /// Loads all workflow events for `workflow_id` with `event_id > from_event_id`.
+    ///
+    /// Results are ordered by ascending `event_id`. Callers can pass a `limit`
+    /// to page through large event streams.
+    pub fn load_events_since(
+        &self,
+        workflow_id: Uuid,
+        from_event_id: i64,
+        limit: Option<u32>,
+    ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
+        let wf_id_str = workflow_id.to_string();
+        let mut sql = String::from(
+            r#"
+            SELECT event_id, workflow_id, timestamp, event_type, payload
+            FROM events
+            WHERE workflow_id = ?1 AND event_id > ?2
+            ORDER BY event_id ASC
+            "#,
+        );
+
+        if limit.is_some() {
+            sql.push_str(" LIMIT ?3");
+        }
+
+        let mut out = Vec::new();
+        let mut stmt = self
+            .conn
+            .prepare(&sql)
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("prepare events select in sqlite: {e}"),
+            })?;
+
+        if let Some(limit) = limit {
+            let rows = stmt
+                .query_map(params![wf_id_str, from_event_id, limit as i64], |row| {
+                    let event_id: i64 = row.get(0)?;
+                    let wf_id_text: String = row.get(1)?;
+                    let timestamp: String = row.get(2)?;
+                    let event_type: String = row.get(3)?;
+                    let payload_text: String = row.get(4)?;
+                    Ok((event_id, wf_id_text, timestamp, event_type, payload_text))
+                })
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("query events for workflow in sqlite: {e}"),
+                })?;
+
+            for row in rows {
+                let (event_id, wf_id_text, timestamp, event_type, payload_text) =
+                    row.map_err(|e| OrchestratorError::StatePersistence {
+                        reason: format!("iterate event rows for workflow in sqlite: {e}"),
+                    })?;
+
+                let parsed_wf_id = Uuid::parse_str(&wf_id_text).map_err(|e| {
+                    OrchestratorError::StatePersistence {
+                        reason: format!("decode workflow_id uuid from sqlite events: {e}"),
+                    }
+                })?;
+
+                let payload: JsonValue = serde_json::from_str(&payload_text).map_err(|e| {
+                    OrchestratorError::StatePersistence {
+                        reason: format!("decode event payload json from sqlite: {e}"),
+                    }
+                })?;
+
+                out.push(PersistedEvent {
+                    event_id,
+                    workflow_id: parsed_wf_id,
+                    timestamp,
+                    event_type,
+                    payload,
+                });
+            }
+        } else {
+            let rows = stmt
+                .query_map(params![wf_id_str, from_event_id], |row| {
+                    let event_id: i64 = row.get(0)?;
+                    let wf_id_text: String = row.get(1)?;
+                    let timestamp: String = row.get(2)?;
+                    let event_type: String = row.get(3)?;
+                    let payload_text: String = row.get(4)?;
+                    Ok((event_id, wf_id_text, timestamp, event_type, payload_text))
+                })
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("query events for workflow in sqlite: {e}"),
+                })?;
+
+            for row in rows {
+                let (event_id, wf_id_text, timestamp, event_type, payload_text) =
+                    row.map_err(|e| OrchestratorError::StatePersistence {
+                        reason: format!("iterate event rows for workflow in sqlite: {e}"),
+                    })?;
+
+                let parsed_wf_id = Uuid::parse_str(&wf_id_text).map_err(|e| {
+                    OrchestratorError::StatePersistence {
+                        reason: format!("decode workflow_id uuid from sqlite events: {e}"),
+                    }
+                })?;
+
+                let payload: JsonValue = serde_json::from_str(&payload_text).map_err(|e| {
+                    OrchestratorError::StatePersistence {
+                        reason: format!("decode event payload json from sqlite: {e}"),
+                    }
+                })?;
+
+                out.push(PersistedEvent {
+                    event_id,
+                    workflow_id: parsed_wf_id,
+                    timestamp,
+                    event_type,
+                    payload,
+                });
+            }
+        }
+
+        Ok(out)
+    }
 }
 
 fn workflow_status_to_str(status: &WorkflowStatus) -> &'static str {
@@ -541,6 +721,79 @@ mod tests {
             .expect("query journal_mode");
 
         assert_eq!(mode.to_lowercase(), "wal");
+    }
+
+    #[test]
+    fn append_and_load_events_since_respects_offset_and_limit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let mut store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let wf_id = Uuid::new_v4();
+
+        // Ensure a corresponding workflow row exists to satisfy the FK constraint.
+        let state = WorkflowState::new(
+            wf_id,
+            "events-test",
+            "2026-03-31T00:00:00Z".to_string(),
+            Vec::<(String, String)>::new(),
+            serde_json::Map::new(),
+        );
+        store
+            .write_workflow_state(&state)
+            .expect("seed workflow row for events");
+
+        // Append three events with simple payloads.
+        let e1 = store
+            .append_event(
+                wf_id,
+                "step_started",
+                &JsonValue::from("step-1"),
+                Some("t1".to_string()),
+            )
+            .expect("append event 1");
+        let e2 = store
+            .append_event(
+                wf_id,
+                "step_completed",
+                &JsonValue::from("step-1"),
+                Some("t2".to_string()),
+            )
+            .expect("append event 2");
+        let e3 = store
+            .append_event(
+                wf_id,
+                "step_started",
+                &JsonValue::from("step-2"),
+                Some("t3".to_string()),
+            )
+            .expect("append event 3");
+
+        assert!(e1 < e2 && e2 < e3, "event ids should be monotonically increasing");
+
+        // Load all events from offset 0.
+        let all_events = store
+            .load_events_since(wf_id, 0, None)
+            .expect("load events since 0");
+        assert_eq!(all_events.len(), 3);
+        assert_eq!(all_events[0].event_id, e1);
+        assert_eq!(all_events[1].event_id, e2);
+        assert_eq!(all_events[2].event_id, e3);
+
+        // Load from the second event id.
+        let tail_events = store
+            .load_events_since(wf_id, e1, None)
+            .expect("load events since e1");
+        assert_eq!(tail_events.len(), 2);
+        assert_eq!(tail_events[0].event_id, e2);
+        assert_eq!(tail_events[1].event_id, e3);
+
+        // Load with a limit of 1 from the start.
+        let limited_events = store
+            .load_events_since(wf_id, 0, Some(1))
+            .expect("load limited events");
+        assert_eq!(limited_events.len(), 1);
+        assert_eq!(limited_events[0].event_id, e1);
     }
 }
 
