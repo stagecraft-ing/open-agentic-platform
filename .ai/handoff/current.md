@@ -21,7 +21,9 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 - **032–041:** All `status: active`, all complete, all synthesized.
 - **042–047:** All P0 specs — feature-complete (all 6 phases approved per spec).
 - **048, 049, 050, 051, 052, 053, 054:** P1 specs — feature-complete (all 6 phases approved per spec).
-- **055–063:** P1 specs — `status: draft`, unstarted. See priority order in "Requested next agent output".
+- **055–061:** P1 specs — feature-complete.
+- **062:** P1 spec — feature-complete (6 phases, `status: active`).
+- **063:** P1 spec — `status: draft`, unstarted.
 
 ## What was delivered in this session
 
@@ -98,30 +100,28 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 059 | Git Panel | P1 | ✅ feature-complete |
 | 060 | Panel Event Bus | P1 | ✅ feature-complete |
 | 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete |
-| 062 | Multi-Model Chaining | P1 | outline-spec |
+| 062 | Multi-Model Chaining | P1 | ✅ feature-complete |
 | 063 | Coherence Scoring | P1 | outline-spec |
 
 ## Baton
 
-- Current owner: **claude** — 061 feature-complete (all 7 phases delivered).
-- Next owner: **claude** — implement next spec (062 Multi-Model Chaining).
-- Last baton update: 2026-03-31 — **claude**: 061 — Conductor Track Lifecycle, all 7 phases. New package `packages/conductor-track` (`@opc/conductor-track`). **Phase 1** — track data model and storage: `src/types.ts` (TrackState, PlanStepStatus, PlanStep, TddPhase, TestResults, PhaseCheckpoint, GitBoundary, TrackMetadata, CreateTrackOptions, TrackTransitionError, TrackNotFoundError, TrackStorageError, TRACK_STATES, TDD_PHASES), `src/storage.ts` (buildInitialMetadata, createTrack, readMetadata, readSpec, readPlan, writeMetadata, writePlan, listTracks, removeTrackDir). **Phase 2** — state machine: `src/state-machine.ts` (canTransition, validateTransition with guard conditions, applyTransition — pending→in_progress→complete→archived, any-except-archived→reverted; FR-010 gates: all plan steps done + all TDD phases passed for completion). **Phase 3** — conductor integration: `src/conductor.ts` (Conductor class — createTrack, startTrack with plan generation + git boundary recording, completeTrack with endCommit, archiveTrack, canTransition, getTrack, listTracks). **Phase 4** — plan-implementer binding: `src/plan-implementer.ts` (parsePlanSteps from markdown, updateStepStatus, startNextStep, completeCurrentStep, getPlanProgress). **Phase 5** — TDD checkpoints: `src/checkpoints.ts` (recordCheckpoint with phase ordering validation red→green→refactor, validatePhaseOrder, validatePhaseResults with phase-appropriate test result checks, overrideCheckpoint for R-002 manual override, allPhasesPassed, nextRequiredPhase). **Phase 6** — git-aware revert: `src/git.ts` (GitOps interface, checkRevertSafety with dirty-tree/archived/already-reverted checks, revertTrack with git reset to start boundary + optional dir removal). **Phase 7** — CLI commands: `src/commands.ts` (trackList with progress formatting FR-008, formatTrackList as text table, trackInspect with TDD summary FR-009, formatTrackInspection with step status icons). Barrel exports + 8 subpath exports (./types, ./storage, ./state-machine, ./conductor, ./plan-implementer, ./checkpoints, ./git, ./commands). Validation: `tsc` clean, 127/127 tests pass. FR-001 through FR-010, NF-001 through NF-003, SC-001 through SC-005 satisfied.
+- Current owner: **claude** — 062 feature-complete (all 6 phases delivered).
+- Next owner: **claude** — implement next spec (063 Coherence Scoring).
+- Last baton update: 2026-03-31 — **claude**: 062 — Multi-Model Chaining, all 6 phases. New package `packages/multi-model-chaining` (`@opc/multi-model-chaining`). **Phase 1** — chain configuration and engine core: `src/types.ts` (ChainPhase, ModelChain, PhaseUsage, ChainUsage, PricingEntry, PricingTable, ChainEvent, ChainMessage, ChainExecuteOptions, PhaseResult, ChainResult, ChainProvider, ChainError, ChainAbortError), `src/engine.ts` (ChainEngine class — sequential chain execution with stream() and execute()). **Phase 2** — thinking-tag transformation: `src/transforms.ts` (applyTransform for thinking_tags/system_prompt/raw/custom TransformFn, buildPhaseMessages injects prior phase outputs into next phase's context). **Phase 3** — SSE streaming across phases: `src/streaming.ts` (createPhaseStartEvent, createPhaseEndEvent, createChainCompleteEvent, createChainErrorEvent, augmentEventWithPhase — phase transition markers in SSE stream). **Phase 4** — token aggregation: `src/usage.ts` (createPhaseUsage from AgentEvent TokenUsage, aggregateUsage across all phases with pricing integration). **Phase 5** — pricing tables: `src/pricing.ts` (pricingKey, createPricingTable, lookupPricing with O(1) Map lookup, computeCost from aggregated usage). **Phase 6** — error handling and abort: ChainError with phaseIndex + cause, ChainAbortError with partial results, abort signal propagation via AbortController, chain halts on phase failure preserving partial output. Barrel exports + 6 subpath exports (./types, ./transforms, ./streaming, ./usage, ./pricing, ./engine). Validation: `tsc` clean, 66/66 tests pass. FR-001–FR-009, NF-001–NF-003, SC-001–SC-006 satisfied.
 - Recommended files to read:
-  - `packages/conductor-track/src/index.ts` (barrel exports)
-  - `packages/conductor-track/src/types.ts` (all types)
-  - `packages/conductor-track/src/storage.ts` (track directory read/write)
-  - `packages/conductor-track/src/state-machine.ts` (lifecycle state machine)
-  - `packages/conductor-track/src/conductor.ts` (Conductor class)
-  - `packages/conductor-track/src/plan-implementer.ts` (plan parsing + step tracking)
-  - `packages/conductor-track/src/checkpoints.ts` (TDD phase checkpoints)
-  - `packages/conductor-track/src/git.ts` (git-aware revert)
-  - `packages/conductor-track/src/commands.ts` (CLI commands)
+  - `packages/multi-model-chaining/src/index.ts` (barrel exports)
+  - `packages/multi-model-chaining/src/types.ts` (all types + error classes)
+  - `packages/multi-model-chaining/src/engine.ts` (ChainEngine class)
+  - `packages/multi-model-chaining/src/transforms.ts` (output transforms + message injection)
+  - `packages/multi-model-chaining/src/streaming.ts` (SSE event factories)
+  - `packages/multi-model-chaining/src/usage.ts` (token aggregation)
+  - `packages/multi-model-chaining/src/pricing.ts` (pricing table + cost computation)
 
 ## Requested next agent output
 
-**claude**: 061 feature-complete. Next: implement 062 — Multi-Model Chaining.
+**claude**: 062 feature-complete. Next: implement 063 — Coherence Scoring.
 
-### Completed features (19 of 22)
+### Completed features (20 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -144,11 +144,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 059 | Git Panel | P1 | ✅ feature-complete (8 phases) |
 | 060 | Panel Event Bus | P1 | ✅ feature-complete (5 phases) |
 | 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete (7 phases) |
+| 062 | Multi-Model Chaining | P1 | ✅ feature-complete (6 phases) |
 
-### Priority order for remaining P1 specs (2 unstarted)
+### Priority order for remaining P1 specs (1 unstarted)
 
-1. **062 — Multi-Model Chaining** — chain different models in agent workflows
-2. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
+1. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -164,6 +164,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **062 Multi-Model Chaining — all 6 phases. 062 feature-complete.** New package `packages/multi-model-chaining` (`@opc/multi-model-chaining`). Phase 1: chain configuration and engine core — types.ts (ChainPhase, ModelChain, PhaseUsage, ChainUsage, PricingEntry, PricingTable, ChainEvent, ChainMessage, ChainExecuteOptions, PhaseResult, ChainResult, ChainProvider, ChainError, ChainAbortError), engine.ts (ChainEngine class with stream() and execute() — sequential chain execution dispatching through injectable ChainProvider). Phase 2: thinking-tag transformation — transforms.ts (applyTransform for thinking_tags wrapping in `<thinking>` tags, system_prompt, raw, and custom TransformFn; buildPhaseMessages injects prior phase outputs as assistant messages or system prompt extensions). Phase 3: SSE streaming across phases — streaming.ts (createPhaseStartEvent, createPhaseEndEvent, createChainCompleteEvent, createChainErrorEvent, augmentEventWithPhase adding phaseIndex to all AgentEvents). Phase 4: token aggregation — usage.ts (createPhaseUsage from message_complete TokenUsage, aggregateUsage sums across phases with optional pricing integration). Phase 5: pricing tables — pricing.ts (pricingKey "providerId:modelId", createPricingTable from entries array, lookupPricing O(1) Map lookup, computeCost per-million-token calculation). Phase 6: error handling and abort — ChainError with phaseIndex + cause, ChainAbortError with partial results, abort signal checked before each phase + propagated to provider stream, chain halts on failure emitting chain:error + chain:complete with partial usage before throwing. Barrel exports + 6 subpath exports (./types, ./transforms, ./streaming, ./usage, ./pricing, ./engine). Validation: `tsc` clean, 66/66 tests pass. FR-001–FR-009, NF-001–NF-003, SC-001–SC-006 satisfied.
 
 - 2026-03-31 (claude): **061 Conductor Track Lifecycle — all 7 phases. 061 feature-complete.** New package `packages/conductor-track` (`@opc/conductor-track`). Phase 1: track data model and storage — types.ts (TrackState, PlanStep, PhaseCheckpoint, GitBoundary, TrackMetadata, CreateTrackOptions + 3 error classes + TRACK_STATES/TDD_PHASES constants), storage.ts (buildInitialMetadata, createTrack, readMetadata/readSpec/readPlan, writeMetadata, writePlan, listTracks, removeTrackDir). Phase 2: state machine — state-machine.ts (canTransition, validateTransition with guard conditions per target state, applyTransition; valid transitions: pending→in_progress→complete→archived + any-except-archived→reverted; FR-010 completion gate: all plan steps done/skipped + all 3 TDD phases passed). Phase 3: conductor integration — conductor.ts (Conductor class with injectable git ops; createTrack records git HEAD + branch, startTrack transitions + writes plan + records fresh git boundary, completeTrack records endCommit, archiveTrack, canTransition check, getTrack, listTracks). Phase 4: plan-implementer binding — plan-implementer.ts (parsePlanSteps from markdown numbered/bulleted lists, updateStepStatus with completedAt tracking + completedSteps recomputation, startNextStep/completeCurrentStep convenience methods, getPlanProgress summary). Phase 5: TDD checkpoints — checkpoints.ts (recordCheckpoint with phase ordering validation red→green→refactor, validatePhaseResults with phase-appropriate checks: red expects failures / green+refactor require all-pass, overrideCheckpoint for R-002 manual override, allPhasesPassed, nextRequiredPhase). Phase 6: git-aware revert — git.ts (GitOps injectable interface, checkRevertSafety validates state + dirty tree + start boundary, revertTrack resets to startCommit + optional dir removal). Phase 7: CLI commands — commands.ts (trackList with progress formatting FR-008, formatTrackList as text table, trackInspect with TDD summary FR-009, formatTrackInspection with step status icons [x]/[>]/[-]/[ ]). Barrel exports + 8 subpath exports. Validation: `tsc` clean, 127/127 tests pass. FR-001–FR-010, NF-001–NF-003, SC-001–SC-005 satisfied.
 
