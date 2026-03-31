@@ -103,20 +103,23 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 057 Phase 6 (integration) complete. **057 feature-complete.**
-- Next owner: **claude** — implement next spec (058 File Mention System).
-- Last baton update: 2026-03-31 — **claude**: 057 Phase 6 — integration. `src/integration.ts`: Bridges agent lifecycle events to notification orchestrator. `AgentLifecycleEvent` interface — loose-coupled shape compatible with `@opc/worktree-agents` `AgentLifecyclePayload` without direct import. `AgentLifecycleStatus` type union (spawned, running, tool_use, completed, failed, timed_out). `DEFAULT_LIFECYCLE_MAPPINGS`: completed→task_complete/info (SC-001), failed→task_error/error, timed_out→task_error/warning, spawned→system_alert/info. `running` and `tool_use` intentionally unmapped (noise reduction). `createNotifyOptions(event, connectOpts)` converts lifecycle event to `NotifyOptions` or `null` (unmapped/suppressed). DedupeKey format: `lifecycle:{agentId}:{status}`. Metadata carries agentId, lifecycleStatus, plus conditional exitCode/signal/timeoutMs/branchName/detail. `ConnectOptions`: provider, sessionId, optional `mappings` overrides (custom `LifecycleMapping` per status, explicit `null` to suppress defaults). `LifecycleEventSource` interface (`onAny()`) — compatible with `AgentLifecycleBus` without importing. `connectLifecycleBus(orchestrator, source, options)` subscribes via `onAny()`, maps and fires `notify()` (fire-and-forget), returns `ConnectionHandle` with `disconnect()`. Barrel exports: `createNotifyOptions`, `connectLifecycleBus`, `DEFAULT_LIFECYCLE_MAPPINGS`, all types. Subpath export: `./integration`. Validation: `tsc` clean, 157/157 tests pass (133 existing + 24 integration). SC-001 satisfied (task_complete event → channel delivery). 057 feature-complete — all 6 phases delivered.
+- Current owner: **claude** — 058 feature-complete (all 7 phases delivered).
+- Next owner: **claude** — implement next spec (059 Git Panel).
+- Last baton update: 2026-03-31 — **claude**: 058 — File Mention System, all 7 phases. New package `packages/file-mention` (`@opc/file-mention`). **Phase 1** — file tree scanner with gitignore filtering (`src/file-tree/scanner.ts`): `scanFileTree()` async walker, `parseGitignorePatterns()` with `**` glob support, `ALWAYS_EXCLUDED` set (node_modules, .git, dist, etc.), `filesToCandidates()` converter. **Phase 2** — fuzzy matching engine (`src/fuzzy/scoring.ts`, `src/fuzzy/engine.ts`): `fuzzyScore()` with consecutive/segment-start/prefix bonuses, `scoreFilePath()` with basename boost (2x), `scoreAgent()`, `MentionSearchIndex` class implementing `MentionIndex` interface with `search()/rebuild()/addFile()/removeFile()`. **Phase 3** — mention trigger (`src/mention/trigger.ts`): `createMentionTrigger()` detects `@` in composer text, extracts query, returns `MentionState` with candidates; `findTriggerAt()` skips email-like patterns. **Phase 4** — dropdown UI (`src/ui/dropdown.ts`, `src/ui/highlight.ts`): headless `dropdownReducer()` pure reducer (open/close/arrow_up/arrow_down/select), `keyToAction()` mapper (FR-005), `highlightText()` for match range rendering. **Phase 5** — token insertion and file content attachment (`src/mention/token.ts`): `createToken()`, `tokenToText()` ([@displayText] format), `parseTokensFromText()`, `readFileAttachment()` with 100KB truncation (R-003), `resolveMessage()` resolves all tokens into `MentionMessage` with `fileAttachments` and optional `targetAgentId`. **Phase 6** — agent mentions and routing (`src/mention/routing.ts`): `MentionRouter` class with `loadAgents(source)`, `addAgent()`, `removeAgent()`, `route(message)` — delivers to registered handler, error handling for unknown agents and handler failures. **Phase 7** — file watching (`src/file-tree/watcher.ts`): `FileWatcher` class using `fs.watch` recursive, debounced events (100ms default), excluded-dir filtering, `connectWatcherToIndex()` for automatic index updates. Barrel exports + subpath exports. Validation: `tsc` clean, 125/125 tests pass. FR-001 through FR-010, NF-001/NF-002, SC-001 through SC-007 satisfied.
 - Recommended files to read:
-  - `packages/notification-orchestrator/src/integration.ts` (lifecycle→notification bridge)
-  - `packages/notification-orchestrator/src/integration.test.ts` (24 tests)
-  - `packages/notification-orchestrator/src/index.ts` (barrel exports)
-  - `packages/notification-orchestrator/package.json` (subpath exports)
+  - `packages/file-mention/src/index.ts` (barrel exports)
+  - `packages/file-mention/src/types.ts` (all types)
+  - `packages/file-mention/src/fuzzy/engine.ts` (MentionSearchIndex)
+  - `packages/file-mention/src/mention/trigger.ts` (@ detection)
+  - `packages/file-mention/src/mention/token.ts` (token + file attachment)
+  - `packages/file-mention/src/mention/routing.ts` (agent routing)
+  - `packages/file-mention/package.json` (subpath exports)
 
 ## Requested next agent output
 
-**claude**: 057 feature-complete. Next: implement 058 — File Mention System.
+**claude**: 058 feature-complete. Next: implement 059 — Git Panel.
 
-### Completed features (15 of 22)
+### Completed features (16 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -135,11 +138,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 055 | YAML Standards Schema | P1 | ✅ feature-complete (6 phases) |
 | 056 | Session Memory | P1 | ✅ feature-complete (6 phases) |
 | 057 | Notification System | P1 | ✅ feature-complete (6 phases) |
+| 058 | File Mention System | P1 | ✅ feature-complete (7 phases) |
 
-### Priority order for remaining P1 specs (6 unstarted)
+### Priority order for remaining P1 specs (5 unstarted)
 
-1. **058 — File Mention System** — @-mention file references in agent conversations
-8. **059 — Git Panel** — desktop git integration panel
+1. **059 — Git Panel** — desktop git integration panel
 9. **060 — Panel Event Bus** — cross-panel communication for desktop app
 10. **061 — Conductor Track Lifecycle** — orchestrator track state management
 11. **062 — Multi-Model Chaining** — chain different models in agent workflows
@@ -159,6 +162,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **058 File Mention System — all 7 phases. 058 feature-complete.** New package `packages/file-mention` (`@opc/file-mention`). Phase 1: file tree scanner with gitignore filtering (`scanFileTree`, `parseGitignorePatterns`, `filesToCandidates`, `ALWAYS_EXCLUDED` set). Phase 2: fuzzy matching engine (`fuzzyScore` with consecutive/segment-start/prefix bonuses, `scoreFilePath` with 2x basename boost, `MentionSearchIndex` class). Phase 3: mention trigger (`createMentionTrigger` detects `@`, extracts query, returns `MentionState`; skips email patterns). Phase 4: headless dropdown UI (`dropdownReducer` pure reducer, `keyToAction` mapper, `highlightText` for match rendering). Phase 5: token insertion and file attachment (`createToken`, `tokenToText`, `readFileAttachment` with 100KB truncation, `resolveMessage`). Phase 6: agent routing (`MentionRouter` with `loadAgents`/`addAgent`/`route`). Phase 7: file watching (`FileWatcher` using `fs.watch` recursive, debounced, `connectWatcherToIndex`). Validation: `tsc` clean, 125/125 tests pass. FR-001–FR-010, SC-001–SC-007 satisfied.
 
 - 2026-03-31 (claude): **057 Phase 6 — integration (lifecycle→notification bridge). 057 feature-complete.** `src/integration.ts`: `AgentLifecycleEvent` interface (loose-coupled, compatible with `@opc/worktree-agents` without direct import). `AgentLifecycleStatus` union (spawned, running, tool_use, completed, failed, timed_out). `DEFAULT_LIFECYCLE_MAPPINGS`: completed→task_complete/info (SC-001), failed→task_error/error, timed_out→task_error/warning, spawned→system_alert/info; running and tool_use intentionally unmapped. `createNotifyOptions(event, connectOpts)` maps lifecycle events to `NotifyOptions` or null. DedupeKey: `lifecycle:{agentId}:{status}`. `ConnectOptions` with optional `mappings` overrides (custom per-status, explicit null to suppress). `connectLifecycleBus(orchestrator, source, options)` subscribes to `LifecycleEventSource.onAny()`, fire-and-forget `notify()`, returns `ConnectionHandle` with `disconnect()`. Barrel exports + `./integration` subpath. Validation: `tsc` clean, 157/157 tests pass (133 existing + 24 integration). SC-001 satisfied. All 6 phases delivered — 057 feature-complete.
 
