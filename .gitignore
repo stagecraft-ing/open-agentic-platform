@@ -294,3 +294,6 @@ tools/spec-compiler/target/
 # Other
 build/
 .axiomregent/
+
+# OAP background agent worktrees (051-worktree-agents)
+.worktrees/

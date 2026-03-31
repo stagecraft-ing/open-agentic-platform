@@ -101,16 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — plan review complete, approved for Phase 1 start.
-- Next owner: **cursor** — implement Phase 1 (worktree manager core).
-- Last baton update: 2026-03-30 — **claude**: reviewed 051 phased plan against spec. All 19 requirements (10 FR + 3 NF + 6 SC) covered across 6 phases. W-001..W-006 decisions spec-faithful. 6 findings (3 LOW, 3 INFO), no blockers. Plan approved for Phase 1 start. Review: `.ai/findings/051-plan-review.md`.
+- Current owner: **cursor** — Phase 1 (worktree manager core) implemented in `packages/worktree-agents/`.
+- Next owner: **claude** — review Phase 1 implementation against `specs/051-worktree-agents/spec.md` (FR-001, FR-010, NF-003) and plan findings F-001/F-003.
+- Last baton update: 2026-03-30 — **cursor**: landed `@opc/worktree-agents` with `worktree-manager.ts` (create/list/remove, branch naming `agent/<id>-<slug>`, `.worktrees/` layout, `ensureWorktreesDirectoryIgnored`, `reconcileOrphanWorktreeDirs`, idempotent `removeAgentWorktree`, `sameRealPath` for `/var` vs `/private/var`); root `.gitignore` includes `.worktrees/` (F-001). Vitest coverage in `src/worktree-manager.test.ts`.
 - Recommended files to read:
-  - `.ai/plans/051-worktree-agents-phased-plan.md`
-  - `.ai/findings/051-plan-review.md`
+  - `packages/worktree-agents/src/worktree-manager.ts`
+  - `packages/worktree-agents/src/worktree-manager.test.ts`
 
 ## Requested next agent output
 
-**cursor**: Implement Phase 1 of 051 (worktree manager core — FR-001, FR-010, NF-003 baseline). Note LOW findings from plan review: F-001 (ensure `.worktrees/` is gitignored), F-003 (consider adding orphan reconciliation to Phase 1 worktree manager).
+**claude**: Review 051 Phase 1 code against spec (FR-001, FR-010, NF-003) and confirm F-001/F-003 handling; approve or list fixes before Phase 2 (concurrency queue).
+
+**cursor** (after review): Implement Phase 2 — concurrency + FIFO queue (FR-002, SC-002) per `.ai/plans/051-worktree-agents-phased-plan.md`.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **051 Phase 1** — New package `packages/worktree-agents` (`@opc/worktree-agents`): `createAgentWorktree`, `listOapWorktrees`, `removeAgentWorktree` (idempotent), `reconcileOrphanWorktreeDirs`, `ensureWorktreesDirectoryIgnored`, branch/path helpers; repo root `.gitignore` adds `.worktrees/`. Validation: `pnpm --filter @opc/worktree-agents test` (4/4), `tsc` clean.
 - 2026-03-30 (claude): **051 plan review** — Plan approved for Phase 1 start. All 19 requirements (10 FR + 3 NF + 6 SC) covered across 6 phases. Phase ordering sound (worktree manager → concurrency → runner → events → diff/merge → integration). W-001..W-006 decisions all spec-faithful. 6 findings: F-001 `.worktrees/` gitignore handling (LOW), F-002 cherry-pick commit selection API detail (LOW), F-003 orphan reconciliation not assigned to a phase (LOW), F-004–F-006 (INFO). No blockers. Baton handed to **cursor** for Phase 1 implementation. Review: `.ai/findings/051-plan-review.md`.
 - 2026-03-30 (cursor): **051 planning pass** — Responded to baton by selecting `051-worktree-agents` as the next P1 slice and drafting `.ai/plans/051-worktree-agents-phased-plan.md` with W-001..W-006 implementation decisions and six execution phases (worktree manager, concurrency queue, runner/timeout, lifecycle events, diff/merge/discard, Tauri integration + verification). Baton handed to **claude** for plan review before Phase 1 coding.
 - 2026-03-30 (claude): **054 Phase 6 review** — Phase 6 approved. FR-001 (4 required agent fields on all 4 agents), FR-003 (2 required skill fields on all 9 commands), FR-008 (description >= 50 chars, kebab-case names, non-empty tools) all satisfied. `init.md` frontmatter added correctly. `review-branch.md` description expanded from 47 to 136 chars. Tools converted from comma-separated to YAML arrays on all 4 agents. Linter: 4/4 agents, 9/9 commands pass. 21/21 tests, `tsc` clean. 6 findings: P6-001 `cleanup.md` flow syntax inconsistency (LOW), P6-002 P5 LOWs remain open (expected), P6-003–P6-006 (INFO). **054 feature-complete — all 6 phases approved.** Review: `.ai/findings/054-phase6-review.md`.
