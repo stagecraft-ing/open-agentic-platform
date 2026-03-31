@@ -101,16 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — Phase 2 implementation complete (concurrency limiter + FIFO queue).
-- Next owner: **claude** — review Phase 2 implementation against FR-002 / SC-002.
-- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 2 in `packages/worktree-agents/src/concurrency.ts` with `FifoConcurrencyLimiter` (default max=4), strict FIFO dequeue on slot release, and API metrics (`maxConcurrent`, `activeCount`, `queuedCount`). Added Phase 2 tests in `packages/worktree-agents/src/concurrency.test.ts` covering SC-002 (max=2 third acquire waits), FIFO order under queued releases, and invalid config guard. Validation: `pnpm --filter @opc/worktree-agents test` (7/7).
+- Current owner: **claude** — Phase 2 review complete, approved.
+- Next owner: **cursor** — implement Phase 3 (agent runner lifecycle + timeout: FR-003, FR-004, NF-002, SC-001, SC-003).
+- Last baton update: 2026-03-30 — **claude**: Phase 2 approved. FR-002 (configurable max concurrent, default 4, FIFO queue via push/shift) and SC-002 (max=2 third acquire blocks until release) both satisfied. Double-release guard sound. Promise-based semaphore idiomatic. 7/7 tests pass. 6 findings: P2-001 no double-release test (LOW), P2-002 no default-value test (LOW), P2-003 no cancellation API for queued acquires (LOW — Phase 3 may surface need), P2-004–P2-006 (INFO). No blockers. Review: `.ai/findings/051-phase2-review.md`.
 - Recommended files to read:
-  - `packages/worktree-agents/src/concurrency.ts`
-  - `packages/worktree-agents/src/concurrency.test.ts`
+  - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 3 section)
+  - `packages/worktree-agents/src/concurrency.ts` (acquire/release API for runner integration)
 
 ## Requested next agent output
 
-**claude**: Review Phase 2 (`packages/worktree-agents/src/concurrency.ts`) against spec FR-002/SC-002 and confirm no blockers for Phase 3 (agent lifecycle + timeout).
+**cursor**: Implement Phase 3 (`agent-runner.ts`) per plan — process lifecycle (spawn, monitor, terminate), inactivity timeout with worktree preservation, pre-approved permissions contract. Note P2-003/P2-005 (cancellation/drain) as design inputs for timeout-triggered cleanup.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **051 Phase 2 review** — Phase 2 approved. FR-002 (configurable max concurrent default 4, FIFO queue via push/shift on plain array) and SC-002 (max=2 third acquire blocks until release, resolves on releaseA) both satisfied. Double-release guard via per-closure `released` boolean. Release-then-dequeue atomicity safe in single-threaded JS. Promise-based semaphore pattern idiomatic. 7/7 tests pass. 6 findings: P2-001 no double-release test (LOW), P2-002 no default-value test (LOW), P2-003 no cancellation API for queued acquires (LOW — Phase 3 timeout may surface need), P2-004 Array shift O(n) negligible at scale (INFO), P2-005 no drain/destroy for shutdown (INFO — Phase 3 design input), P2-006 input validation thorough (INFO). No blockers for Phase 3. Review: `.ai/findings/051-phase2-review.md`.
 - 2026-03-30 (cursor): **051 Phase 2** — Added `packages/worktree-agents/src/concurrency.ts` with `FifoConcurrencyLimiter` semaphore (default max 4), strict FIFO pending queue, and queue/active metrics for API exposure. Added `src/concurrency.test.ts` validating SC-002 wait semantics (`max=2`, third acquire blocks until release), FIFO wake-up order, and invalid max guard. Package exports updated (`index.ts`, `package.json`). Validation: `pnpm --filter @opc/worktree-agents test` (7/7).
 - 2026-03-30 (claude): **051 Phase 1 review** — Phase 1 approved. FR-001 (worktree creation + branch naming `agent/<id>-<slug>`), FR-010 (shared `.git`, isolated working tree — test confirms write isolation), NF-003 (idempotent cleanup via `sameRealPath` matching + `--force` removal + `fs.rm` fallback) all satisfied. F-001 resolved (root `.gitignore` line 299 + `ensureWorktreesDirectoryIgnored` inner `.gitignore`). F-003 resolved (`reconcileOrphanWorktreeDirs` scans `.worktrees/` for directories not in known set — detection only, callers decide removal). 4/4 tests pass. 6 findings: P1-001 `sanitizeSegment` collision potential (LOW — safe failure via `PATH_EXISTS`), P1-002 no `startPoint` test (LOW), P1-003 no direct porcelain parser test (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/051-phase1-review.md`.
 - 2026-03-30 (cursor): **051 Phase 1** — New package `packages/worktree-agents` (`@opc/worktree-agents`): `createAgentWorktree`, `listOapWorktrees`, `removeAgentWorktree` (idempotent), `reconcileOrphanWorktreeDirs`, `ensureWorktreesDirectoryIgnored`, branch/path helpers; repo root `.gitignore` adds `.worktrees/`. Validation: `pnpm --filter @opc/worktree-agents test` (4/4), `tsc` clean.
