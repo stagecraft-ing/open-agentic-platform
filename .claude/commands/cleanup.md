@@ -1,4 +1,5 @@
 ---
+name: cleanup
 allowed-tools: [Task, Read, Bash, Glob, Grep, Edit]
 description: 'Run dead code and duplicate detection, get categorized cleanup recommendations'
 ---

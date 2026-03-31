@@ -1,7 +1,14 @@
 ---
 name: implementer
 description: Use this agent to execute focused code changes from an existing plan. Triggered when asked to implement, apply, code, build, or write changes — especially when a plan or spec already exists.
-tools: Read, Write, Edit, Grep, Glob, Bash, LS
+tools:
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - Bash
+  - LS
 model: sonnet
 ---
 

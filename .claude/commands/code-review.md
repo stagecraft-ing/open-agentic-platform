@@ -1,4 +1,5 @@
 ---
+name: code-review
 description: Multi-aspect code review using parallel sub-agents with adaptive agent selection
 allowed-tools: Task, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 argument-hint: "[scope] - e.g., \"recent changes\", \"src/components\", \"crates/agent\", \"PR #42\""

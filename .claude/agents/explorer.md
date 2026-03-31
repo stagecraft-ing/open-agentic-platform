@@ -1,7 +1,12 @@
 ---
 name: explorer
 description: Use this agent to investigate the codebase, gather context, trace dependencies, and answer questions about how things work. Triggered when asked to explore, search, trace, find, or explain existing code or architecture.
-tools: Read, Grep, Glob, Bash, LS
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - LS
 model: sonnet
 ---
 

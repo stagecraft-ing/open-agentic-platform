@@ -1,4 +1,5 @@
 ---
+name: refactor-claude-md
 description: Modularize large CLAUDE.md files with path-scoped rules and doc extraction
 ---
 

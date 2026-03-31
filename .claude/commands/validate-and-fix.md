@@ -1,4 +1,5 @@
 ---
+name: validate-and-fix
 description: Run quality checks and automatically fix issues using concurrent agents
 allowed-tools: Bash, Agent, Read, Edit, Glob, Grep
 ---

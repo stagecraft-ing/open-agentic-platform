@@ -1,6 +1,6 @@
 ---
 name: review-branch
-description: Review all changes in current branch (read-only analysis)
+description: Review all changes in the current branch with structured read-only analysis across risk, quality, and platform compatibility dimensions.
 ---
 # Review Branch
 

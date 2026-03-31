@@ -1,3 +1,8 @@
+---
+name: init
+description: Initialize an open-agentic-platform session by loading core repository context, recent activity, and memory before implementation work begins.
+---
+
 You are initializing a new session for the open-agentic-platform (OAP) repository. This is a self-extending protocol: the "New Sessions" section of AGENTS.md defines the init checklist. Any item added there is automatically picked up on the next init.
 
 ---

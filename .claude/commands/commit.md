@@ -1,4 +1,5 @@
 ---
+name: commit
 description: Create a git commit with an impact-focused conventional commit message
 ---
 

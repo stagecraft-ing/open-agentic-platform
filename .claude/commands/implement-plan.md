@@ -1,4 +1,5 @@
 ---
+name: implement-plan
 description: Execute a plan file step-by-step with progress tracking and phase checkpoints
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep, Agent
 argument-hint: "<path-to-plan-file>"

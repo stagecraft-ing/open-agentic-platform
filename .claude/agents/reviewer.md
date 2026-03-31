@@ -1,7 +1,12 @@
 ---
 name: reviewer
 description: Use this agent to review code changes for bugs, security issues, performance problems, and spec compliance. Triggered after implementation, or when asked to review, audit, or check recent changes.
-tools: Read, Grep, Glob, Bash, LS
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - LS
 model: sonnet
 ---
 

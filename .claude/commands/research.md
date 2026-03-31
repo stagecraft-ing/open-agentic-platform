@@ -1,4 +1,5 @@
 ---
+name: research
 description: Deep research with parallel sub-agents, query classification, and filesystem artifact passing
 allowed-tools: Task, Read, Write, Bash(git log:*), Bash(git diff:*), WebSearch, WebFetch, Glob, Grep
 argument-hint: "<question or topic to investigate>"

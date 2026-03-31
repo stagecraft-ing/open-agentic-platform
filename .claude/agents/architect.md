@@ -1,7 +1,12 @@
 ---
 name: architect
 description: Use this agent to plan and decompose tasks, validate implementation approaches against the spec spine, and produce structured work plans. Triggered when asked to plan, design, decompose, or architect a change — or before starting any complex feature.
-tools: Read, Grep, Glob, Bash, LS
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - LS
 model: sonnet
 ---
 
