@@ -101,20 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — completed 049 Phase 4 implementation (`canUseTool` hook integration).
-- Next owner: **claude** — review 049 Phase 4 implementation against spec.
-- Last baton update: 2026-03-31 — **cursor**: Implemented `createPermissionHandler(...)` in `packages/permission-system/src/handler.ts` and exported it through package public API (`src/index.ts`, `package.json` exports). Handler returns SDK-compatible `canUseTool`, routes every invocation through evaluator, and emits a structured blocked payload (`toolName`, resolved argument, evaluation source/rationale/pattern) via `onBlocked` for caller UI/error surfaces. Added integration tests in `packages/permission-system/src/handler.test.ts` proving every call is evaluated and denied decisions block with payload emission. Wired governed bridge path in `packages/provider-registry/src/node-sidecar.ts` to instantiate permission store/evaluator and enforce handler decisions on every tool invocation; denied decisions now throw clear reasons including rationale source for caller reporting. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`, `pnpm --filter @opc/provider-registry build` (all pass).
+- Current owner: **claude** — completed 049 Phase 4 review.
+- Next owner: **cursor** — implement 049 Phase 5 (CLI permissions management).
+- Last baton update: 2026-03-31 — **claude**: Phase 4 approved. FR-001 (every invocation routed through handler), FR-004 (prompt contract via broker), FR-007 (disallowed precedence preserved) all satisfied. `createPermissionHandler` at `handler.ts:53–79` returns SDK-compatible `canUseTool`, unconditionally routes through evaluator. Sidecar wiring at `node-sidecar.ts:202–261` chains allowlist → permission evaluation → error surface with rationale+source. 18/18 tests, `tsc` clean (both packages). 6 findings: P4-001 resolveArgument duplication (LOW), P4-002 blockedDecision closure mutation (LOW), P4-003 no default argument extraction test (LOW), P4-004 provider path skips permissions (LOW), P4-005/P4-006 (INFO). No blockers. Review: `.ai/findings/049-phase4-review.md`.
 - Recommended files to read:
-  - `specs/049-permission-system/spec.md` (canonical FR/NF/SC for Phase 4 review)
-  - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 4 section)
-  - `.ai/findings/049-phase3-review.md` (previous review and known LOW follow-ups)
-  - `packages/permission-system/src/handler.ts` (new `createPermissionHandler` API + blocked payload surface)
-  - `packages/permission-system/src/handler.test.ts` (Phase 4 integration/regression tests)
-  - `packages/provider-registry/src/node-sidecar.ts` (bridge path wiring to call handler on every tool invocation)
+  - `specs/049-permission-system/spec.md` (canonical FR/NF/SC — Phase 5 targets FR-008, SC-005, SC-006)
+  - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 5 section)
+  - `.ai/findings/049-phase4-review.md` (Phase 4 review and known LOW follow-ups)
+  - `packages/permission-system/src/store.ts` (store API used by CLI: list, revoke, clearExpired)
+  - `packages/permission-system/src/types.ts` (PermissionEntry shape for CLI output formatting)
 
 ## Requested next agent output
 
-**claude**: Review 049 Phase 4 implementation for spec fidelity. Focus checks: FR-001 (every invocation routed via handler), FR-004 prompt contract behavior through bridge callback mapping, denied-path clarity for caller error surfaces, and regression risk around allowlist + permission-handler interaction in `node-sidecar`. Confirm whether additional tests are needed for default argument extraction precedence and concurrent prompt requests.
+**cursor**: Implement 049 Phase 5 — CLI permissions management (FR-008, SC-005, SC-006). Deliverables: `packages/permission-system/src/cli.ts` with `permissions list`, `permissions revoke <pattern>`, `permissions clear --expired`. Output formatting includes pattern, decision, scope, timestamps. See plan Phase 5 section for full details. Validation: unit tests for list output, revoke re-prompt behavior, and clear --expired.
 
 Priority order for P0 specs (unchanged):
 
@@ -140,6 +139,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **049 Phase 4 review** — Phase 4 approved. FR-001 (every tool invocation routed through `createPermissionHandler` → evaluator), FR-004 (prompt contract via PermissionBroker → upstream UI), FR-007 (disallowed precedence preserved — handler delegates entirely to evaluator layer order) all satisfied. Handler at `handler.ts:53–79` returns SDK-compatible `canUseTool`, unconditionally evaluates every call. Sidecar at `node-sidecar.ts:202–261` chains allowlist gating → permission evaluation → error surface with rationale+source. 18/18 tests, `tsc` clean (both packages). 6 findings: P4-001 resolveArgument duplicated between handler default and sidecar inline (LOW), P4-002 blockedDecision captured via closure mutation (LOW — safe in single-threaded bridge path), P4-003 no test for default argument extraction precedence (LOW), P4-004 provider path skips permission enforcement (LOW — likely intentional), P4-005 handler test coverage minimal but sufficient (INFO), P4-006 allow_remember not exercisable through broker (INFO). No blockers for Phase 5. Review: `.ai/findings/049-phase4-review.md`.
 
 - 2026-03-31 (cursor): **049 Phase 4** — Added `createPermissionHandler(...)` in `packages/permission-system/src/handler.ts` and exported it through package entry points. The handler returns an SDK-compatible `canUseTool`, routes every invocation through the layered evaluator, resolves a stable argument string, and surfaces structured denied payloads via `onBlocked` for caller UI/error reporting. Added `packages/permission-system/src/handler.test.ts` integration coverage for per-call evaluator routing and deny-path payload emission. Wired bridge path in `packages/provider-registry/src/node-sidecar.ts` so every Claude Code tool invocation now runs through the permission handler; deny decisions block execution and return clear rationale/source text. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`, `pnpm --filter @opc/provider-registry build`.
 
