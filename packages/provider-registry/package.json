@@ -35,6 +35,7 @@
     "@aws-sdk/client-bedrock-runtime": "^3.1019.0",
     "@google/generative-ai": "^0.24.1",
     "@opc/claude-code-bridge": "workspace:*",
+    "@opc/permission-system": "workspace:*",
     "openai": "^4.104.0"
   }
 }

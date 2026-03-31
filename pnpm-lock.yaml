@@ -278,6 +278,9 @@ importers:
       '@opc/claude-code-bridge':
         specifier: workspace:*
         version: link:../claude-code-bridge
+      '@opc/permission-system':
+        specifier: workspace:*
+        version: link:../permission-system
       openai:
         specifier: ^4.104.0
         version: 4.104.0(zod@3.25.76)

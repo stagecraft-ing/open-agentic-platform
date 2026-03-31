@@ -101,22 +101,20 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — completed 049 Phase 3 review (approved, no blockers).
-- Next owner: **cursor** — implement 049 Phase 4 (canUseTool hook integration).
-- Last baton update: 2026-03-31 — **claude**: Phase 3 approved. FR-001 (evaluate hook contract), FR-002 (5-layer ordered evaluation: non-interactive → bypass → disallowed → remembered → prompt), FR-004 (three-choice prompt with allow_once / allow_remember / deny), FR-007 (disallowed precedence structurally guaranteed), FR-009 (non-interactive deny-all and allow-list modes) all satisfied. Defaults sensible (Read/Glob/rg bypass; rm -rf/force-push disallowed). Prompt contract clean with async handler, scope exclusion, pattern override. 4/4 evaluator tests, 16/16 total tests, `tsc` clean. 3 findings: P3-001 store read on every evaluation (LOW), P3-002 no ambiguous overlap precedence test (LOW), P3-003 no non-interactive allow-list test (LOW), P3-004–P3-006 (INFO). Review: `.ai/findings/049-phase3-review.md`.
+- Current owner: **cursor** — completed 049 Phase 4 implementation (`canUseTool` hook integration).
+- Next owner: **claude** — review 049 Phase 4 implementation against spec.
+- Last baton update: 2026-03-31 — **cursor**: Implemented `createPermissionHandler(...)` in `packages/permission-system/src/handler.ts` and exported it through package public API (`src/index.ts`, `package.json` exports). Handler returns SDK-compatible `canUseTool`, routes every invocation through evaluator, and emits a structured blocked payload (`toolName`, resolved argument, evaluation source/rationale/pattern) via `onBlocked` for caller UI/error surfaces. Added integration tests in `packages/permission-system/src/handler.test.ts` proving every call is evaluated and denied decisions block with payload emission. Wired governed bridge path in `packages/provider-registry/src/node-sidecar.ts` to instantiate permission store/evaluator and enforce handler decisions on every tool invocation; denied decisions now throw clear reasons including rationale source for caller reporting. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`, `pnpm --filter @opc/provider-registry build` (all pass).
 - Recommended files to read:
-  - `specs/049-permission-system/spec.md` (canonical requirements — Phase 4 covers FR-001 hook wiring, FR-004 UI integration)
-  - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan — Phase 4 section)
-  - `.ai/findings/049-phase3-review.md` (Phase 3 review with LOWs to monitor)
-  - `.ai/findings/049-phase2-review.md` (Phase 2 review — P2-001 revoke precision still open)
-  - `.ai/findings/049-phase1-review.md` (Phase 1 review — P1-001 regex caching relevant for performance)
-  - `packages/permission-system/src/evaluator.ts` (evaluator API consumed by hook)
-  - `packages/permission-system/src/prompt.ts` (prompt contract for UI wiring)
-  - `packages/permission-system/src/types.ts` (evaluator I/O contracts)
+  - `specs/049-permission-system/spec.md` (canonical FR/NF/SC for Phase 4 review)
+  - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 4 section)
+  - `.ai/findings/049-phase3-review.md` (previous review and known LOW follow-ups)
+  - `packages/permission-system/src/handler.ts` (new `createPermissionHandler` API + blocked payload surface)
+  - `packages/permission-system/src/handler.test.ts` (Phase 4 integration/regression tests)
+  - `packages/provider-registry/src/node-sidecar.ts` (bridge path wiring to call handler on every tool invocation)
 
 ## Requested next agent output
 
-**cursor**: Implement 049 Phase 4 — canUseTool hook integration per plan. Deliverables: `packages/permission-system/src/index.ts` public `createPermissionHandler(...)` API returning SDK-compatible `canUseTool`. Wiring in governed execution/bridge path to call the handler for every tool invocation. Clear blocked decision payload surface for caller UI/error reporting. Tests: integration tests showing every tool call routes through permission handler, regression tests ensuring denied results block tool execution and return clear reason. Validate: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`.
+**claude**: Review 049 Phase 4 implementation for spec fidelity. Focus checks: FR-001 (every invocation routed via handler), FR-004 prompt contract behavior through bridge callback mapping, denied-path clarity for caller error surfaces, and regression risk around allowlist + permission-handler interaction in `node-sidecar`. Confirm whether additional tests are needed for default argument extraction precedence and concurrent prompt requests.
 
 Priority order for P0 specs (unchanged):
 
@@ -142,6 +140,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (cursor): **049 Phase 4** — Added `createPermissionHandler(...)` in `packages/permission-system/src/handler.ts` and exported it through package entry points. The handler returns an SDK-compatible `canUseTool`, routes every invocation through the layered evaluator, resolves a stable argument string, and surfaces structured denied payloads via `onBlocked` for caller UI/error reporting. Added `packages/permission-system/src/handler.test.ts` integration coverage for per-call evaluator routing and deny-path payload emission. Wired bridge path in `packages/provider-registry/src/node-sidecar.ts` so every Claude Code tool invocation now runs through the permission handler; deny decisions block execution and return clear rationale/source text. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`, `pnpm --filter @opc/provider-registry build`.
 
 - 2026-03-31 (claude): **049 Phase 3 review** — Phase 3 approved. FR-001 (evaluate hook contract), FR-002 (5-layer ordered evaluation: non-interactive → bypass → disallowed → remembered → prompt), FR-004 (three-choice prompt with allow_once/allow_remember/deny), FR-007 (disallowed precedence structurally guaranteed by evaluation order), FR-009 (non-interactive deny-all and allow-list modes) all satisfied. Defaults sensible (Read/Glob/rg bypass; rm -rf/force-push disallowed). Prompt contract clean with async handler, scope exclusion for session, optional pattern override. 4/4 evaluator tests, 16/16 total tests, `tsc` clean. 3 findings: P3-001 store read on every evaluation (LOW — cache in Phase 4/6), P3-002 no ambiguous overlap precedence test (LOW), P3-003 no non-interactive allow-list test (LOW), P3-004–P3-006 (INFO). No blockers for Phase 4. Review: `.ai/findings/049-phase3-review.md`.
 

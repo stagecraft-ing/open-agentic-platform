@@ -12,6 +12,11 @@ import {
   queryClaudeCode,
 } from "@opc/claude-code-bridge";
 import type { BridgeQueryOptions, PermissionMode } from "@opc/claude-code-bridge/types";
+import {
+  createPermissionHandler,
+  createPermissionStore,
+  type PermissionBlockedDecision,
+} from "@opc/permission-system";
 import { AgentEventBridgeEncoder } from "./agent-event-bridge-encode.js";
 import { parseProviderModel } from "./model-selector.js";
 import { registerBuiltInProvidersFromEnv } from "./register-env-providers.js";
@@ -194,6 +199,36 @@ async function run(): Promise<void> {
   const rawModel = q.model ?? "";
   const { providerId, model: apiModel } = parseProviderModel(rawModel);
   const allowedTools = normalizeAllowedTools(q.allowedTools);
+  const permissionStore = createPermissionStore({ projectRoot: q.workingDirectory });
+  let blockedDecision: PermissionBlockedDecision | null = null;
+  const permissionCanUseTool = createPermissionHandler({
+    evaluatorOptions: {
+      store: permissionStore,
+      prompt: async ({ toolName, argument }) => {
+        const allowed = await broker.request(toolName, { argument });
+        return { choice: allowed ? "allow_once" : "deny" };
+      },
+    },
+    resolveArgument: (toolName, toolInput) => {
+      if (toolName === "Bash" && typeof toolInput.command === "string") {
+        return toolInput.command.trim().split(/\s+/).filter(Boolean).join(":");
+      }
+      if (typeof toolInput.file_path === "string") {
+        return toolInput.file_path;
+      }
+      if (typeof toolInput.path === "string") {
+        return toolInput.path;
+      }
+      if (typeof toolInput.server === "string" && typeof toolInput.tool === "string") {
+        return `${toolInput.server}:${toolInput.tool}`;
+      }
+      const compact = JSON.stringify(toolInput);
+      return compact && compact !== "{}" ? compact : "*";
+    },
+    onBlocked: async (blocked) => {
+      blockedDecision = blocked;
+    },
+  });
 
   try {
     if (providerId !== null) {
@@ -214,7 +249,15 @@ async function run(): Promise<void> {
             const error = formatToolAllowlistError(toolName, q.agentName, allowedTools);
             throw new Error(error);
           }
-          return broker.request(toolName, toolInput);
+          return permissionCanUseTool(toolName, toolInput).then((allowed) => {
+            if (!allowed) {
+              const reason =
+                blockedDecision?.evaluation.rationale ?? "Permission denied by policy";
+              const source = blockedDecision?.evaluation.source ?? "unknown";
+              throw new Error(`Permission denied for ${toolName}: ${reason} (source=${source})`);
+            }
+            return true;
+          });
         },
       };
 

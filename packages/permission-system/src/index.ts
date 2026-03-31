@@ -4,3 +4,4 @@ export * from "./store";
 export * from "./defaults";
 export * from "./prompt";
 export * from "./evaluator";
+export * from "./handler";
