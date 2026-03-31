@@ -14,7 +14,8 @@
     "./defaults": "./src/defaults.ts",
     "./loader": "./src/loader.ts",
     "./runner": "./src/runner.ts",
-    "./gate": "./src/gate.ts"
+    "./gate": "./src/gate.ts",
+    "./selector": "./src/selector.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

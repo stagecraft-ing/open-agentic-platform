@@ -9,6 +9,25 @@ import type { ExecutionOptions } from "./runner.js";
 /** Directory within a project root where profiles are stored. */
 const PROFILES_DIR = ".verification/profiles";
 
+async function loadProfileContent(
+  profileName: string,
+  projectRoot: string,
+): Promise<{ content: string; filePath: string } | null> {
+  const yamlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yaml`);
+  try {
+    const content = await readFile(yamlPath, "utf-8");
+    return { content, filePath: yamlPath };
+  } catch {
+    const ymlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yml`);
+    try {
+      const content = await readFile(ymlPath, "utf-8");
+      return { content, filePath: ymlPath };
+    } catch {
+      return null;
+    }
+  }
+}
+
 /**
  * Evaluate a post-session verification gate (FR-004).
  *
@@ -27,30 +46,19 @@ export async function evaluatePostSessionGate(
   opts?: ExecutionOptions,
 ): Promise<GateResult> {
   const start = Date.now();
-
-  // Load and parse the profile YAML.
-  const profilePath = join(projectRoot, PROFILES_DIR, `${profileName}.yaml`);
-  let content: string;
-  try {
-    content = await readFile(profilePath, "utf-8");
-  } catch {
-    // Also try .yml extension.
-    const ymlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yml`);
-    try {
-      content = await readFile(ymlPath, "utf-8");
-    } catch {
-      return {
-        passed: false,
-        gated: true,
-        profile: profileName,
-        results: [],
-        failedSkills: [],
-        durationMs: Date.now() - start,
-      };
-    }
+  const loaded = await loadProfileContent(profileName, projectRoot);
+  if (!loaded) {
+    return {
+      passed: false,
+      gated: true,
+      profile: profileName,
+      results: [],
+      failedSkills: [],
+      durationMs: Date.now() - start,
+    };
   }
 
-  const parseResult = parseProfileFile(content, profilePath);
+  const parseResult = parseProfileFile(loaded.content, loaded.filePath);
   if (!parseResult.profile) {
     return {
       passed: false,
@@ -94,27 +102,21 @@ export async function loadProfileDiagnostics(
   profileName: string,
   projectRoot: string,
 ): Promise<VerificationDiagnostic[]> {
-  const profilePath = join(projectRoot, PROFILES_DIR, `${profileName}.yaml`);
-  let content: string;
-  try {
-    content = await readFile(profilePath, "utf-8");
-  } catch {
+  const loaded = await loadProfileContent(profileName, projectRoot);
+  if (!loaded) {
+    const yamlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yaml`);
     const ymlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yml`);
-    try {
-      content = await readFile(ymlPath, "utf-8");
-    } catch {
-      return [
-        {
-          code: "VP_PROFILE_NOT_FOUND",
-          severity: "error",
-          message: `Profile "${profileName}" not found at ${profilePath} or ${ymlPath}.`,
-          filePath: profilePath,
-        },
-      ];
-    }
+    return [
+      {
+        code: "VP_PROFILE_NOT_FOUND",
+        severity: "error",
+        message: `Profile "${profileName}" not found at ${yamlPath} or ${ymlPath}.`,
+        filePath: yamlPath,
+      },
+    ];
   }
 
-  const parseResult = parseProfileFile(content, profilePath);
+  const parseResult = parseProfileFile(loaded.content, loaded.filePath);
   const library = await loadSkillLibrary(projectRoot);
 
   const diagnostics = [...parseResult.diagnostics, ...library.diagnostics];
@@ -127,7 +129,7 @@ export async function loadProfileDiagnostics(
           code: "VP_SKILL_NOT_FOUND",
           severity: "error",
           message: `Skill "${skillName}" referenced in profile "${profileName}" not found in library.`,
-          filePath: profilePath,
+          filePath: loaded.filePath,
         });
       }
     }

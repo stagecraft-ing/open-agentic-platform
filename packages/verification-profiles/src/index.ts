@@ -35,3 +35,7 @@ export type { ExecutionOptions } from "./runner.js";
 
 // Gate
 export { evaluatePostSessionGate, loadProfileDiagnostics } from "./gate.js";
+
+// Selector
+export { selectProfile, parseVerifyFlag } from "./selector.js";
+export type { ProfileContext } from "./selector.js";

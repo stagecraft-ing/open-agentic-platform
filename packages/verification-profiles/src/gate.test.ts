@@ -266,4 +266,15 @@ skills:
     const diags = await loadProfileDiagnostics("valid", tmpDir);
     expect(diags).toEqual([]);
   });
+
+  it("uses .yml file path in diagnostics when .yaml is absent", async () => {
+    const dir = join(tmpDir, ".verification", "profiles");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "diag.yml"), "name: diag\ngate: true\nskills:\n  - missing\n", "utf-8");
+
+    const diags = await loadProfileDiagnostics("diag", tmpDir);
+    const notFound = diags.find((d) => d.code === "VP_SKILL_NOT_FOUND");
+    expect(notFound).toBeDefined();
+    expect(notFound?.filePath).toMatch(/diag\.yml$/);
+  });
 });
