@@ -95,7 +95,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 056 | Session Memory | P1 | outline-spec |
 | 057 | Notification System | P1 | outline-spec |
 | 058 | File Mention System | P1 | outline-spec |
-| 059 | Git Panel | P1 | outline-spec |
+| 059 | Git Panel | P1 | ✅ feature-complete |
 | 060 | Panel Event Bus | P1 | outline-spec |
 | 061 | Conductor Track Lifecycle | P1 | outline-spec |
 | 062 | Multi-Model Chaining | P1 | outline-spec |
@@ -103,23 +103,25 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 058 feature-complete (all 7 phases delivered).
-- Next owner: **claude** — implement next spec (059 Git Panel).
-- Last baton update: 2026-03-31 — **claude**: 058 — File Mention System, all 7 phases. New package `packages/file-mention` (`@opc/file-mention`). **Phase 1** — file tree scanner with gitignore filtering (`src/file-tree/scanner.ts`): `scanFileTree()` async walker, `parseGitignorePatterns()` with `**` glob support, `ALWAYS_EXCLUDED` set (node_modules, .git, dist, etc.), `filesToCandidates()` converter. **Phase 2** — fuzzy matching engine (`src/fuzzy/scoring.ts`, `src/fuzzy/engine.ts`): `fuzzyScore()` with consecutive/segment-start/prefix bonuses, `scoreFilePath()` with basename boost (2x), `scoreAgent()`, `MentionSearchIndex` class implementing `MentionIndex` interface with `search()/rebuild()/addFile()/removeFile()`. **Phase 3** — mention trigger (`src/mention/trigger.ts`): `createMentionTrigger()` detects `@` in composer text, extracts query, returns `MentionState` with candidates; `findTriggerAt()` skips email-like patterns. **Phase 4** — dropdown UI (`src/ui/dropdown.ts`, `src/ui/highlight.ts`): headless `dropdownReducer()` pure reducer (open/close/arrow_up/arrow_down/select), `keyToAction()` mapper (FR-005), `highlightText()` for match range rendering. **Phase 5** — token insertion and file content attachment (`src/mention/token.ts`): `createToken()`, `tokenToText()` ([@displayText] format), `parseTokensFromText()`, `readFileAttachment()` with 100KB truncation (R-003), `resolveMessage()` resolves all tokens into `MentionMessage` with `fileAttachments` and optional `targetAgentId`. **Phase 6** — agent mentions and routing (`src/mention/routing.ts`): `MentionRouter` class with `loadAgents(source)`, `addAgent()`, `removeAgent()`, `route(message)` — delivers to registered handler, error handling for unknown agents and handler failures. **Phase 7** — file watching (`src/file-tree/watcher.ts`): `FileWatcher` class using `fs.watch` recursive, debounced events (100ms default), excluded-dir filtering, `connectWatcherToIndex()` for automatic index updates. Barrel exports + subpath exports. Validation: `tsc` clean, 125/125 tests pass. FR-001 through FR-010, NF-001/NF-002, SC-001 through SC-007 satisfied.
+- Current owner: **claude** — 059 feature-complete (all 8 phases delivered).
+- Next owner: **claude** — implement next spec (060 Panel Event Bus).
+- Last baton update: 2026-03-31 — **claude**: 059 — Git Panel, all 8 phases. New package `packages/git-panel` (`@opc/git-panel`). **Phase 1** — plumbing backend: `src/types.ts` (14 types: GitFileStatus, GitStatus, GitCommit, BranchInfo, HunkRange, DiffLine, DiffHunk, FileDiff, CommitOptions, CommitMessageProvider, GitBackend, GitPanelWatcher, FileStatusCode), `src/backend/plumbing.ts` (execGit, repoRoot, diffFiles, diffIndex, lsFilesUntracked, currentBranch, aheadBehind, upstreamBranch, fileDiff, gitLog with \x01 record separator, commitDiffRaw, forEachRef, stageFile, unstageFile, applyPatch, createCommit, checkoutBranch, createNewBranch, stagedDiff), `src/backend/parser.ts` (parseNameStatus for diff-files/diff-index, parseUntrackedFiles, parseLog with \x01 record splitting, parseBranches), `src/backend/diff-parser.ts` (parseDiff for unified diffs with line numbers, buildHunkPatch for hunk-level staging patches). **Phase 2** — staging operations: `src/operations/staging.ts` — `createStagingOps(cwd)` returns `StagingOperations` with `stage()` (whole file or hunk-level via parseDiff+buildHunkPatch+applyPatch), `unstage()` (whole file or hunk-level with reverse patch), `stageAll()`, `unstageAll()`. **Phase 3** — commit operations: `src/operations/commit.ts` — `createCommitOps(cwd)` with `commit(message, options?)`, validates non-empty message, delegates to createCommit, returns full GitCommit from log. **Phase 4** — branch operations: `src/operations/branch.ts` — `createBranchOps(cwd)` with `list()`, `checkout(branch, {force?})` with dirty-tree warning (R-004), `create(name)`, `isDirty()`. **Phase 5** — AI commit messages: `src/ai/commit-message.ts` — `buildPrompt(diff, recentMessages)` with conventional commit instructions, recent examples for style reference (R-003), MAX_DIFF_SIZE truncation; `generateCommitMessage(cwd, provider, exampleCount?)` fetches staged diff + recent log, delegates to CommitMessageProvider. **Phase 6** — GitBackend facade: `src/git-backend.ts` — `createGitBackend(cwd)` implements full GitBackend interface, parallel status retrieval (FR-011), wires staging/commit/branch operations. **Phase 7** — auto-refresh watcher: `src/watcher.ts` — `createWatcher(repoRoot, options?)` with debounced fs.watch (150ms default), filters .git noise except refs/HEAD/index; `withRefresh()` wrapper for post-operation refresh. **Phase 8** — barrel exports + validation. Validation: `tsc` clean, 88/88 tests pass. FR-001 through FR-012, SC-001 through SC-008 satisfied.
 - Recommended files to read:
-  - `packages/file-mention/src/index.ts` (barrel exports)
-  - `packages/file-mention/src/types.ts` (all types)
-  - `packages/file-mention/src/fuzzy/engine.ts` (MentionSearchIndex)
-  - `packages/file-mention/src/mention/trigger.ts` (@ detection)
-  - `packages/file-mention/src/mention/token.ts` (token + file attachment)
-  - `packages/file-mention/src/mention/routing.ts` (agent routing)
-  - `packages/file-mention/package.json` (subpath exports)
+  - `packages/git-panel/src/index.ts` (barrel exports)
+  - `packages/git-panel/src/types.ts` (all types)
+  - `packages/git-panel/src/git-backend.ts` (GitBackend facade)
+  - `packages/git-panel/src/backend/plumbing.ts` (plumbing commands)
+  - `packages/git-panel/src/backend/parser.ts` (output parsers)
+  - `packages/git-panel/src/backend/diff-parser.ts` (unified diff parser)
+  - `packages/git-panel/src/operations/staging.ts` (hunk-level staging)
+  - `packages/git-panel/src/ai/commit-message.ts` (AI commit messages)
+  - `packages/git-panel/package.json` (subpath exports)
 
 ## Requested next agent output
 
-**claude**: 058 feature-complete. Next: implement 059 — Git Panel.
+**claude**: 059 feature-complete. Next: implement 060 — Panel Event Bus.
 
-### Completed features (16 of 22)
+### Completed features (17 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -139,11 +141,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 056 | Session Memory | P1 | ✅ feature-complete (6 phases) |
 | 057 | Notification System | P1 | ✅ feature-complete (6 phases) |
 | 058 | File Mention System | P1 | ✅ feature-complete (7 phases) |
+| 059 | Git Panel | P1 | ✅ feature-complete (8 phases) |
 
-### Priority order for remaining P1 specs (5 unstarted)
+### Priority order for remaining P1 specs (4 unstarted)
 
-1. **059 — Git Panel** — desktop git integration panel
-9. **060 — Panel Event Bus** — cross-panel communication for desktop app
+1. **060 — Panel Event Bus** — cross-panel communication for desktop app
 10. **061 — Conductor Track Lifecycle** — orchestrator track state management
 11. **062 — Multi-Model Chaining** — chain different models in agent workflows
 12. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
@@ -162,6 +164,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **059 Git Panel — all 8 phases. 059 feature-complete.** New package `packages/git-panel` (`@opc/git-panel`). Phase 1: plumbing backend — types (14 types), plumbing.ts (20 git command wrappers using diff-files/diff-index/ls-files/for-each-ref), parser.ts (parseNameStatus, parseUntrackedFiles, parseLog with \x01 record separator, parseBranches), diff-parser.ts (parseDiff with line numbers, buildHunkPatch). Phase 2: staging operations — createStagingOps with file-level and hunk-level stage/unstage via parseDiff+buildHunkPatch+applyPatch, stageAll, unstageAll. Phase 3: commit operations — createCommitOps with empty-message validation, amend/signoff options. Phase 4: branch operations — createBranchOps with list, checkout (dirty-tree warning R-004), create, isDirty. Phase 5: AI commit messages — buildPrompt with conventional commit format and recent examples (R-003), generateCommitMessage with MAX_DIFF_SIZE truncation. Phase 6: GitBackend facade — createGitBackend wiring parallel plumbing status retrieval (FR-011). Phase 7: auto-refresh watcher — createWatcher with debounced fs.watch, .git noise filtering, withRefresh wrapper (FR-012). Phase 8: barrel exports + validation. Validation: `tsc` clean, 88/88 tests pass. FR-001–FR-012, SC-001–SC-008 satisfied.
 
 - 2026-03-31 (claude): **058 File Mention System — all 7 phases. 058 feature-complete.** New package `packages/file-mention` (`@opc/file-mention`). Phase 1: file tree scanner with gitignore filtering (`scanFileTree`, `parseGitignorePatterns`, `filesToCandidates`, `ALWAYS_EXCLUDED` set). Phase 2: fuzzy matching engine (`fuzzyScore` with consecutive/segment-start/prefix bonuses, `scoreFilePath` with 2x basename boost, `MentionSearchIndex` class). Phase 3: mention trigger (`createMentionTrigger` detects `@`, extracts query, returns `MentionState`; skips email patterns). Phase 4: headless dropdown UI (`dropdownReducer` pure reducer, `keyToAction` mapper, `highlightText` for match rendering). Phase 5: token insertion and file attachment (`createToken`, `tokenToText`, `readFileAttachment` with 100KB truncation, `resolveMessage`). Phase 6: agent routing (`MentionRouter` with `loadAgents`/`addAgent`/`route`). Phase 7: file watching (`FileWatcher` using `fs.watch` recursive, debounced, `connectWatcherToIndex`). Validation: `tsc` clean, 125/125 tests pass. FR-001–FR-010, SC-001–SC-007 satisfied.
 
