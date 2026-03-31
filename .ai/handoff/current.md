@@ -103,14 +103,13 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 053 Phase 2 implemented. Ready for **claude** review.
-- Next owner: **claude** — review 053 Phase 2 (skill library & resolution) against spec Phase 2 scope.
-- Last baton update: 2026-03-31 — **cursor**: 053 Phase 2 implemented. `src/defaults.ts`: 3 bundled platform default skills (lint, type-check, unit-tests) via `getDefaultSkills()`. `src/loader.ts`: `loadSkillLibrary(projectRoot)` discovers `.verification/skills/*.yaml|yml`, parses via `parseSkillFile`, merges with defaults (local overrides platform defaults per R-004). `resolveSkillRef(name, library)` resolves by name with diagnostic on miss. `SkillLibrary` type: `{ skills: Map<string, VerificationSkill>; diagnostics: VerificationDiagnostic[] }`. New diagnostic codes: `VP_SKILL_READ_ERROR`, `VP_SKILL_DUPLICATE_NAME` (warning), `VP_SKILL_NOT_FOUND`. 13 new tests: defaults content, no-dir fallback, empty-dir fallback, yaml discovery, yml support, non-yaml ignored, local-overrides-default (R-004), invalid file diagnostics, duplicate name warning, resolve hit/miss/available-list/empty-library. 38/38 tests pass, `tsc` clean. Updated `index.ts` barrel exports and `package.json` subpath exports (`./defaults`, `./loader`).
+- Current owner: **claude** — 053 Phase 2 reviewed and approved. Ready for **cursor** Phase 3 implementation.
+- Next owner: **cursor** — implement 053 Phase 3 (Execution Engine: `child_process.spawn` step execution with timeout, read_only advisory, network policy, structured results).
+- Last baton update: 2026-03-31 — **claude**: 053 Phase 2 approved. FR-006 (skill resolution by name from library), FR-002/FR-003 (skill/step schema in defaults), NF-001 (line-number errors via parser), R-004 (local overrides platform defaults) all satisfied. `getDefaultSkills()` returns 3 sensible defaults (lint, type-check, unit-tests) all `read_only: true` / `network: "deny"`. `loadSkillLibrary()` discovers `.yaml`/`.yml`, handles read errors and invalid files gracefully, warns on duplicate local names, merges local over defaults. `resolveSkillRef()` returns skill or null + diagnostic listing available skills. 6 findings: P2-001 Map allocation per call (LOW), P2-002 empty filePath in not-found diagnostic (LOW), P2-003–P2-006 (INFO). 38/38 tests pass, `tsc` clean. No blockers for Phase 3.
 - Recommended files to read:
-  - `packages/verification-profiles/src/loader.ts` (skill library discovery & resolution)
-  - `packages/verification-profiles/src/defaults.ts` (bundled platform default skills)
-  - `packages/verification-profiles/src/loader.test.ts` (Phase 2 tests)
+  - `.ai/findings/053-phase2-review.md` (this review)
   - `.ai/findings/053-readiness-review.md` (Phase 3 scope defined in "Phase 3 — Execution Engine" section)
+  - `packages/verification-profiles/src/types.ts` (StepResult, SkillResult types needed for Phase 3)
 
 ## Requested next agent output
 
@@ -159,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **053 Phase 2 review — approved.** FR-006 (skill resolution by name from library), FR-002/FR-003 (skill/step schema), NF-001 (line-number errors), R-004 (local overrides defaults) all satisfied. `defaults.ts`: 3 platform defaults (lint, type-check, unit-tests) with safe posture (`read_only: true`, `network: "deny"`), fresh Map per call. `loader.ts`: `readdir` + `.yaml`/`.yml` filter + deterministic `.sort()`, graceful fallback on missing directory, per-file error resilience (`VP_SKILL_READ_ERROR`), duplicate local name warning (`VP_SKILL_DUPLICATE_NAME`), `new Map(defaults)` + overlay for R-004 merge. `resolveSkillRef` returns skill or null + `VP_SKILL_NOT_FOUND` with available list. Barrel exports and subpath exports correct. 6 findings: P2-001 Map allocation per call (LOW), P2-002 empty filePath in not-found diagnostic (LOW), P2-003 no VP_SKILL_READ_ERROR filesystem test (INFO), P2-004 catch-all on readdir doesn't distinguish ENOENT/EACCES (INFO), P2-005 silent default shadowing by design (INFO), P2-006 defaults assume npm (INFO — Phase 6). 38/38 tests pass, `tsc` clean. No blockers for Phase 3. Review: `.ai/findings/053-phase2-review.md`.
 
 - 2026-03-31 (cursor): **053 Phase 2 — skill library & resolution.** Created `src/defaults.ts`: `getDefaultSkills()` returns 3 bundled platform defaults (lint, type-check, unit-tests) as `Map<string, VerificationSkill>`. Created `src/loader.ts`: `loadSkillLibrary(projectRoot)` discovers `.verification/skills/*.yaml|yml` files, parses each via `parseSkillFile()`, warns on duplicate local names (`VP_SKILL_DUPLICATE_NAME`), merges with platform defaults (local overrides per R-004). `resolveSkillRef(name, library)` resolves skill by name with `VP_SKILL_NOT_FOUND` diagnostic listing available skills on miss. `SkillLibrary` interface exported. Updated `index.ts` barrel exports and `package.json` subpath exports (`./defaults`, `./loader`). 13 new tests covering: defaults content, no-dir/empty-dir fallback to defaults only, yaml/yml discovery, non-yaml ignored, local-overrides-default (R-004), invalid file diagnostics without blocking valid files, duplicate name warning, resolve hit/miss/available-list/empty-library. Validation: `tsc` clean, 38/38 tests pass (25 Phase 1 + 13 Phase 2).
 
