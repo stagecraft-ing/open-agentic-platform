@@ -413,6 +413,7 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
                 | "crates"
                 | "grammars"
                 | "packages"
+                | "standards"
                 | "_tmp"
         )
     };
