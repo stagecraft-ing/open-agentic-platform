@@ -25,8 +25,8 @@ pub use state::{
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::path::PathBuf;
+use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -82,6 +82,19 @@ pub struct StepSummaryEntry {
 #[derive(Clone, Debug)]
 pub struct DispatchResult {
     pub tokens_used: Option<u64>,
+}
+
+/// Plan for resuming a workflow from a previously persisted `state.json` (052 FR-003).
+///
+/// Callers can use this to:
+/// - decide whether to offer a resume prompt (presence of completed + remaining steps)
+/// - configure step-skipping in their own dispatch loop or UI.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ResumePlan {
+    /// IDs of steps that were already completed in the persisted state.
+    pub completed_step_ids: Vec<String>,
+    /// Index (into the manifest's `steps` array) of the first non-completed step.
+    pub first_non_completed_step_index: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -151,6 +164,72 @@ pub fn materialize_run_directory(
         }
     })?;
     Ok(run_dir)
+}
+
+/// Computes a resume plan for a given manifest from an existing workflow state.
+///
+/// The plan implements 052 FR-003:
+/// - all steps marked `"completed"` in the state are considered eligible for skipping
+/// - resume begins at the first manifest step that is **not** marked completed
+pub fn compute_resume_plan_from_state(
+    state: &WorkflowState,
+    manifest: &WorkflowManifest,
+) -> Option<ResumePlan> {
+    // Map step id → status for quick lookup.
+    let status_by_id: HashMap<&str, &StepExecutionStatus> =
+        state.steps.iter().map(|s| (s.id.as_str(), &s.status)).collect();
+
+    // Collect all completed step ids that still exist in the manifest.
+    let mut completed_ids = Vec::new();
+    for step in &manifest.steps {
+        if matches!(
+            status_by_id.get(step.id.as_str()),
+            Some(StepExecutionStatus::Completed)
+        ) {
+            completed_ids.push(step.id.clone());
+        }
+    }
+
+    // Find the first manifest step that is *not* marked completed in the state.
+    let mut first_non_completed_index: Option<usize> = None;
+    for (idx, step) in manifest.steps.iter().enumerate() {
+        let is_completed = matches!(
+            status_by_id.get(step.id.as_str()),
+            Some(StepExecutionStatus::Completed)
+        );
+        if !is_completed {
+            first_non_completed_index = Some(idx);
+            break;
+        }
+    }
+
+    match (completed_ids.is_empty(), first_non_completed_index) {
+        // Nothing to resume: either no completed steps, or everything completed.
+        (true, _) | (_, None) => None,
+        (false, Some(first_non_completed_step_index)) => Some(ResumePlan {
+            completed_step_ids: completed_ids,
+            first_non_completed_step_index,
+        }),
+    }
+}
+
+/// Loads `state.json` for this run (if present) and computes a resume plan.
+///
+/// This is the main entry point for 052 Phase 2 resume detection:
+/// callers can invoke it at startup to decide whether to offer a resume
+/// prompt and which steps to skip if the user chooses to resume.
+pub fn detect_resume_plan_for_run(
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    manifest: &WorkflowManifest,
+) -> Result<Option<ResumePlan>, OrchestratorError> {
+    let path = state_file_path_for_run(artifact_base, run_id);
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let state = load_workflow_state(&path)?;
+    Ok(compute_resume_plan_from_state(&state, manifest))
 }
 
 /// Resolves absolute artifact paths for a step's declared inputs (044).
@@ -652,6 +731,191 @@ mod tests {
         let rd = materialize_run_directory(&am, run_id, &m).unwrap();
         assert!(rd.join("manifest.yaml").exists());
         assert!(rd.join("summary.json").exists());
+    }
+
+    #[test]
+    fn compute_resume_plan_from_state_identifies_completed_and_first_remaining_step() {
+        let wf_id = Uuid::new_v4();
+        let mut meta = serde_json::Map::new();
+        meta.insert("branch".to_string(), serde_json::json!("main"));
+
+        // Manifest with three ordered steps.
+        let manifest = WorkflowManifest {
+            steps: vec![
+                WorkflowStep {
+                    id: "step-1".into(),
+                    agent: "agent-a".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec![],
+                    outputs: vec!["out1.md".into()],
+                    instruction: "do 1".into(),
+                },
+                WorkflowStep {
+                    id: "step-2".into(),
+                    agent: "agent-b".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec!["step-1/out1.md".into()],
+                    outputs: vec!["out2.md".into()],
+                    instruction: "do 2".into(),
+                },
+                WorkflowStep {
+                    id: "step-3".into(),
+                    agent: "agent-c".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec!["step-2/out2.md".into()],
+                    outputs: vec!["out3.md".into()],
+                    instruction: "do 3".into(),
+                },
+            ],
+        };
+
+        // Persisted state with first two steps completed, third still pending.
+        let mut state = WorkflowState::new(
+            wf_id,
+            "example-workflow",
+            "2026-03-31T10:00:00Z".to_string(),
+            manifest
+                .steps
+                .iter()
+                .map(|s| (s.id.clone(), s.instruction.clone())),
+            meta,
+        );
+        state.mark_step_started("step-1", "2026-03-31T10:00:01Z".to_string());
+        state.mark_step_finished(
+            "step-1",
+            StepExecutionStatus::Completed,
+            "2026-03-31T10:00:05Z".to_string(),
+            Some(4000),
+            None,
+        );
+        state.mark_step_started("step-2", "2026-03-31T10:00:06Z".to_string());
+        state.mark_step_finished(
+            "step-2",
+            StepExecutionStatus::Completed,
+            "2026-03-31T10:00:10Z".to_string(),
+            Some(4000),
+            None,
+        );
+
+        let plan = compute_resume_plan_from_state(&state, &manifest).expect("expected resume plan");
+        assert_eq!(plan.completed_step_ids, vec!["step-1".to_string(), "step-2".to_string()]);
+        assert_eq!(plan.first_non_completed_step_index, 2);
+    }
+
+    #[test]
+    fn compute_resume_plan_from_state_returns_none_when_nothing_to_resume() {
+        let wf_id = Uuid::new_v4();
+        let state = WorkflowState::new(
+            wf_id,
+            "fresh-workflow",
+            "2026-03-31T10:00:00Z".to_string(),
+            vec![
+                ("step-1".to_string(), "do 1".to_string()),
+                ("step-2".to_string(), "do 2".to_string()),
+            ],
+            serde_json::Map::new(),
+        );
+        let manifest = WorkflowManifest {
+            steps: vec![
+                WorkflowStep {
+                    id: "step-1".into(),
+                    agent: "agent-a".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec![],
+                    outputs: vec!["out1.md".into()],
+                    instruction: "do 1".into(),
+                },
+                WorkflowStep {
+                    id: "step-2".into(),
+                    agent: "agent-b".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec!["step-1/out1.md".into()],
+                    outputs: vec!["out2.md".into()],
+                    instruction: "do 2".into(),
+                },
+            ],
+        };
+
+        // No steps are marked completed in the state, so there is no resume plan yet.
+        assert!(compute_resume_plan_from_state(&state, &manifest).is_none());
+    }
+
+    #[test]
+    fn detect_resume_plan_for_run_handles_missing_state_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let artifact_base = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "s1".into(),
+                agent: "agent-a".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out.md".into()],
+                instruction: "do".into(),
+            }],
+        };
+
+        let plan = detect_resume_plan_for_run(&artifact_base, run_id, &manifest).unwrap();
+        assert!(plan.is_none());
+    }
+
+    #[test]
+    fn detect_resume_plan_for_run_loads_state_and_computes_plan() {
+        let tmp = tempfile::tempdir().unwrap();
+        let artifact_base = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+
+        let manifest = WorkflowManifest {
+            steps: vec![
+                WorkflowStep {
+                    id: "s1".into(),
+                    agent: "agent-a".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec![],
+                    outputs: vec!["out1.md".into()],
+                    instruction: "do 1".into(),
+                },
+                WorkflowStep {
+                    id: "s2".into(),
+                    agent: "agent-b".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec!["s1/out1.md".into()],
+                    outputs: vec!["out2.md".into()],
+                    instruction: "do 2".into(),
+                },
+            ],
+        };
+
+        let path = state_file_path_for_run(&artifact_base, run_id);
+        let mut meta = serde_json::Map::new();
+        meta.insert("branch".to_string(), serde_json::json!("main"));
+        let mut state = WorkflowState::new(
+            run_id,
+            "example-workflow",
+            "2026-03-31T10:00:00Z".to_string(),
+            manifest
+                .steps
+                .iter()
+                .map(|s| (s.id.clone(), s.instruction.clone())),
+            meta,
+        );
+        state.mark_step_started("s1", "2026-03-31T10:00:01Z".to_string());
+        state.mark_step_finished(
+            "s1",
+            StepExecutionStatus::Completed,
+            "2026-03-31T10:00:05Z".to_string(),
+            Some(4000),
+            None,
+        );
+        write_workflow_state_atomic(&path, &state).unwrap();
+
+        let plan = detect_resume_plan_for_run(&artifact_base, run_id, &manifest)
+            .unwrap()
+            .expect("expected resume plan");
+        assert_eq!(plan.completed_step_ids, vec!["s1".to_string()]);
+        assert_eq!(plan.first_non_completed_step_index, 1);
     }
 
     #[test]
