@@ -27,3 +27,7 @@ export { getDefaultSkills } from "./defaults.js";
 // Loader
 export { loadSkillLibrary, resolveSkillRef } from "./loader.js";
 export type { SkillLibrary } from "./loader.js";
+
+// Runner
+export { executeStep, executeSkill, executeProfile } from "./runner.js";
+export type { ExecutionOptions } from "./runner.js";

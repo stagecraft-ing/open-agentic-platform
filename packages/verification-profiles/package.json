@@ -12,7 +12,8 @@
     "./parser": "./src/parser.ts",
     "./schema": "./src/schema.ts",
     "./defaults": "./src/defaults.ts",
-    "./loader": "./src/loader.ts"
+    "./loader": "./src/loader.ts",
+    "./runner": "./src/runner.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
