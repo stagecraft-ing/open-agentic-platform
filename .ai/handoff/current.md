@@ -103,19 +103,20 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 055 feature-complete (all 6 phases delivered).
-- Next owner: **unassigned** — 055 complete, pick next spec from priority list (056 Session Memory).
-- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 6 (integration — wire standards resolver into agent system prompts). `src/integration.ts`: 3 exported types (`FormatOptions`, `IntegrationOptions`, `IntegrationResult`), 3 exported functions (`formatStandardsForPrompt`, `resolveAndFormat`, `composeSystemPrompt`). `formatStandardsForPrompt(resolved, options?)` converts a `ResolveResult` into Markdown prompt text — sorts by priority (critical first, then id), supports `maxStandards` cap (R-003 context window mitigation), `includeAntiPatterns` (default true), `includeExamples` (default false to save tokens), returns `{ promptText, standardCount, standardIds }` for traceability. `resolveAndFormat(options)` is the high-level entry point: loads all three tiers via `loadAllTiers()`, resolves with optional category/tag filter, formats for prompt injection — single async call. `composeSystemPrompt(basePrompt, options)` appends resolved standards to an agent's base prompt; returns original prompt unchanged when no standards match the filter. Barrel exports updated (`index.ts`), `./integration` subpath export added (`package.json`). `src/integration.test.ts`: 26 tests covering format (empty, single standard, context, anti-patterns on/off, examples on/off, priority sort, id sort, maxStandards, maxStandards 0, sortByPriority off, dividers, multiple rules, singular/plural header), resolveAndFormat (disk load, category filter, tag filter, empty, three-tier override, candidate exclusion, format passthrough), composeSystemPrompt (append, no-match passthrough, base preservation). Validation: `tsc` clean, 130/130 tests pass (104 existing + 26 new). Phase 6 complete — all 6 phases of 055 delivered.
+- Current owner: **claude** — 056 feature-complete (all 6 phases delivered).
+- Next owner: **unassigned** — 056 complete, pick next spec from priority list (057 Notification System).
+- Last baton update: 2026-03-31 — **claude**: implemented 056 Session Memory — all 6 phases. `packages/session-memory` (`@opc/session-memory`): SQLite-backed memory persistence with MCP server, harvesting engine, expiry/promotion, session integration, and custom rules. Phase 1: `src/types.ts` (10 types: `MemoryEntry`, `MemoryKind`, `ImportanceLevel`, `StoreMemoryInput`, `QueryMemoryInput`, `ListMemoryInput`, constants `EXPIRY_DEFAULTS`, `IMPORTANCE_ORDER`, `PROMOTION_ACCESS_THRESHOLD`), `src/storage/migrations.ts` (schema v1 with 5 indexes), `src/storage/sqlite.ts` (`MemoryStorage` class: `store`, `getById`, `query` with FR-007 access bumping, `list` with pagination, `delete`, `sweepExpired`, `updateImportance`, `getPromotionCandidates`, `count`, `forProject` factory). Phase 2: `src/server.ts` (`MemoryServer` class with `processRequest` JSON-RPC handler, `handleToolCall` dispatcher, 4 tool definitions: `memory_store`, `memory_query`, `memory_delete`, `memory_list` — SC-001), `src/tools/{store,query,delete,list}.ts` (individual tool handlers with validation). Phase 3: `src/harvesting/rules.ts` (15 built-in `HarvestRule`s across 5 categories: decisions, corrections, notes, patterns, preferences — FR-003), `src/harvesting/engine.ts` (`harvest()` with dedup, `signalsToStoreInputs()` — NF-002 <50ms). Phase 4: `src/expiry/sweeper.ts` (`ExpirySweeper` with background interval and `unref()` — SC-004), `src/expiry/promotion.ts` (`runPromotion()`, `getNextImportance()` — SC-005 short→medium after 3 accesses). Phase 5: `src/integration.ts` (`loadSessionMemories()` with importance/kind filtering and maxEntries cap, `formatMemoriesForPrompt()` grouped by kind, `composeSessionPrompt()` — FR-006, SC-006). Phase 6: `src/harvesting/rules-loader.ts` (`loadHarvestRules()` reads `.session-memory/harvest-rules.yaml`, `configToRule()`, `validateRuleConfig()` — FR-004, custom rules override builtins by id). Dependencies: `better-sqlite3`, `yaml`. Validation: `tsc` clean, 116/116 tests pass (26 storage + 20 server + 23 harvesting + 16 expiry + 15 integration + 16 rules-loader).
 - Recommended files to read:
-  - `packages/yaml-standards-schema/src/integration.ts` (Phase 6 — prompt integration)
-  - `packages/yaml-standards-schema/src/integration.test.ts` (Phase 6 — 26 tests)
-  - `specs/055-yaml-standards-schema/spec.md` (spec — all phases complete)
+  - `packages/session-memory/src/server.ts` (MCP server — Phase 2)
+  - `packages/session-memory/src/harvesting/engine.ts` (harvesting — Phase 3)
+  - `packages/session-memory/src/integration.ts` (session integration — Phase 5)
+  - `specs/056-session-memory/spec.md` (spec — all phases complete)
 
 ## Requested next agent output
 
-**unassigned**: Pick up the next spec from the priority list (056 — Session Memory).
+**unassigned**: Pick up the next spec from the priority list (057 — Notification System).
 
-### Completed features (13 of 22)
+### Completed features (14 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -132,11 +133,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 054 | Agent Frontmatter Schema | P1 | ✅ feature-complete |
 | 053 | Verification Profiles | P1 | ✅ feature-complete (6 phases + review) |
 | 055 | YAML Standards Schema | P1 | ✅ feature-complete (6 phases) |
+| 056 | Session Memory | P1 | ✅ feature-complete (6 phases) |
 
-### Priority order for remaining P1 specs (8 unstarted)
+### Priority order for remaining P1 specs (7 unstarted)
 
-1. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
-6. **057 — Notification System** — agent event notifications for desktop app
+1. **057 — Notification System** — agent event notifications for desktop app
 7. **058 — File Mention System** — @-mention file references in agent conversations
 8. **059 — Git Panel** — desktop git integration panel
 9. **060 — Panel Event Bus** — cross-panel communication for desktop app
