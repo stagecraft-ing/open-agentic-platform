@@ -3,6 +3,11 @@ export type {
   ParsedFrontmatter,
   ParseFrontmatterResult,
 } from "./types.js";
+export type {
+  Tier1MetadataEntry,
+  Tier2InstructionsEntry,
+  ResourceRef,
+} from "./loader.js";
 export {
   discoverMarkdownDefinitionFiles,
   listResourceRefsFromMetadata,
