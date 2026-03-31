@@ -101,18 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — Phase 1 (worktree manager core) implemented in `packages/worktree-agents/`.
-- Next owner: **claude** — review Phase 1 implementation against `specs/051-worktree-agents/spec.md` (FR-001, FR-010, NF-003) and plan findings F-001/F-003.
-- Last baton update: 2026-03-30 — **cursor**: landed `@opc/worktree-agents` with `worktree-manager.ts` (create/list/remove, branch naming `agent/<id>-<slug>`, `.worktrees/` layout, `ensureWorktreesDirectoryIgnored`, `reconcileOrphanWorktreeDirs`, idempotent `removeAgentWorktree`, `sameRealPath` for `/var` vs `/private/var`); root `.gitignore` includes `.worktrees/` (F-001). Vitest coverage in `src/worktree-manager.test.ts`.
+- Current owner: **claude** — Phase 1 review complete, approved.
+- Next owner: **cursor** — implement Phase 2 (concurrency + FIFO queue, FR-002, SC-002) per `.ai/plans/051-worktree-agents-phased-plan.md`.
+- Last baton update: 2026-03-30 — **claude**: Phase 1 approved. FR-001 (worktree creation + branch), FR-010 (shared `.git`, isolated working tree), NF-003 (idempotent cleanup) all satisfied. F-001 resolved (root `.gitignore` + inner `.worktrees/.gitignore`). F-003 resolved (`reconcileOrphanWorktreeDirs` detects orphans, callers decide removal). 6 findings: P1-001 LOW (sanitize collision), P1-002 LOW (no startPoint test), P1-003 LOW (no direct porcelain parser test), P1-004–P1-006 INFO. 4/4 tests pass. Review: `.ai/findings/051-phase1-review.md`.
 - Recommended files to read:
+  - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 2 section)
   - `packages/worktree-agents/src/worktree-manager.ts`
-  - `packages/worktree-agents/src/worktree-manager.test.ts`
 
 ## Requested next agent output
 
-**claude**: Review 051 Phase 1 code against spec (FR-001, FR-010, NF-003) and confirm F-001/F-003 handling; approve or list fixes before Phase 2 (concurrency queue).
+**cursor**: Implement Phase 2 — concurrency + FIFO queue (FR-002, SC-002) per `.ai/plans/051-worktree-agents-phased-plan.md`.
 
-**cursor** (after review): Implement Phase 2 — concurrency + FIFO queue (FR-002, SC-002) per `.ai/plans/051-worktree-agents-phased-plan.md`.
+**claude** (after Phase 2): Review Phase 2 implementation against spec FR-002/SC-002.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **051 Phase 1 review** — Phase 1 approved. FR-001 (worktree creation + branch naming `agent/<id>-<slug>`), FR-010 (shared `.git`, isolated working tree — test confirms write isolation), NF-003 (idempotent cleanup via `sameRealPath` matching + `--force` removal + `fs.rm` fallback) all satisfied. F-001 resolved (root `.gitignore` line 299 + `ensureWorktreesDirectoryIgnored` inner `.gitignore`). F-003 resolved (`reconcileOrphanWorktreeDirs` scans `.worktrees/` for directories not in known set — detection only, callers decide removal). 4/4 tests pass. 6 findings: P1-001 `sanitizeSegment` collision potential (LOW — safe failure via `PATH_EXISTS`), P1-002 no `startPoint` test (LOW), P1-003 no direct porcelain parser test (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/051-phase1-review.md`.
 - 2026-03-30 (cursor): **051 Phase 1** — New package `packages/worktree-agents` (`@opc/worktree-agents`): `createAgentWorktree`, `listOapWorktrees`, `removeAgentWorktree` (idempotent), `reconcileOrphanWorktreeDirs`, `ensureWorktreesDirectoryIgnored`, branch/path helpers; repo root `.gitignore` adds `.worktrees/`. Validation: `pnpm --filter @opc/worktree-agents test` (4/4), `tsc` clean.
 - 2026-03-30 (claude): **051 plan review** — Plan approved for Phase 1 start. All 19 requirements (10 FR + 3 NF + 6 SC) covered across 6 phases. Phase ordering sound (worktree manager → concurrency → runner → events → diff/merge → integration). W-001..W-006 decisions all spec-faithful. 6 findings: F-001 `.worktrees/` gitignore handling (LOW), F-002 cherry-pick commit selection API detail (LOW), F-003 orphan reconciliation not assigned to a phase (LOW), F-004–F-006 (INFO). No blockers. Baton handed to **cursor** for Phase 1 implementation. Review: `.ai/findings/051-plan-review.md`.
 - 2026-03-30 (cursor): **051 planning pass** — Responded to baton by selecting `051-worktree-agents` as the next P1 slice and drafting `.ai/plans/051-worktree-agents-phased-plan.md` with W-001..W-006 implementation decisions and six execution phases (worktree manager, concurrency queue, runner/timeout, lifecycle events, diff/merge/discard, Tauri integration + verification). Baton handed to **claude** for plan review before Phase 1 coding.
