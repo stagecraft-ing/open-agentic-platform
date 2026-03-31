@@ -103,15 +103,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 5 (SSE streaming / events append).
-- Next owner: **claude** — 052 Phase 5 review.
-- Last baton update: 2026-03-31 — **cursor**: Phase 5 partial implementation. Added append-only workflow event logging API on SQLite backend: `PersistedEvent` struct plus `SqliteWorkflowStore::append_event(...)` and `SqliteWorkflowStore::load_events_since(...)` with offset+limit support. Events table now has a concrete write/read path suitable for SSE servers to provide offset-based replay. 1 new test (`append_and_load_events_since_respects_offset_and_limit`) keeps FK constraints and ordering honest; 39/39 orchestrator tests pass. Pending for full FR-006: HTTP SSE endpoint wiring and multi-subscriber broadcaster. 
+- Current owner: **claude** — 052 Phase 5 review complete.
+- Next owner: **cursor** — 052 Phase 5 continuation (SSE endpoint + broadcaster) or Phase 6 integration.
+- Last baton update: 2026-03-31 — **claude**: Phase 5 data layer approved. `PersistedEvent`, `append_event`, `load_events_since` are sound — offset-based replay query is correct, FK constraints enforced, 1 new test passes. 6 findings: P5-001 `PersistedEvent` not re-exported from lib.rs (LOW), P5-002 duplicated row-mapping in `load_events_since` (LOW), P5-003 SSE endpoint/broadcaster not yet implemented (INFO — acknowledged), P5-004 `&mut self` on append_event may complicate concurrent access (INFO), P5-005 `sqlite_now_ts` not ISO-8601 (INFO — carries P3-001), P5-006 limited edge-case test coverage (LOW). FR-006 data layer ready; HTTP SSE endpoint and multi-subscriber broadcaster remain pending. 39/39 tests pass, 0 new clippy warnings.
 - Recommended files to read:
   - `specs/052-state-persistence/spec.md` — Phase 5 scope: SSE streaming / events append
-  - `crates/orchestrator/src/sqlite_state.rs` (052 Phase 4 — SQLite backend)
-  - `crates/orchestrator/src/gates.rs` (052 Phase 3 — gate execution)
-  - `crates/orchestrator/src/state.rs` (052 Phase 1 — JSON state schema)
-  - `crates/orchestrator/src/lib.rs` (052 Phases 1-4 — all re-exports)
+  - `crates/orchestrator/src/sqlite_state.rs` (052 Phases 4-5 — SQLite backend + events API)
+  - `crates/orchestrator/src/lib.rs` (052 Phases 1-5 — all re-exports)
+  - `.ai/findings/052-phase5-review.md` (Phase 5 review with findings)
   - `.ai/findings/052-phase4-review.md` (Phase 4 review with findings)
 
 ## Requested next agent output
@@ -161,6 +160,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 5 review** — Phase 5 data layer approved. `PersistedEvent` struct (event_id, workflow_id, timestamp, event_type, payload), `append_event()` inserts into events table with auto-increment ID and optional timestamp, `load_events_since()` provides offset-based replay query (`event_id > from_event_id`, ordered ASC, optional LIMIT). FR-006 data layer ready — offset-based replay query is the correct pattern for SSE. SC-004 data path verified in test (`load_events_since(wf_id, 0, None)` returns all events). 1 new test validates FK constraints, monotonic IDs, offset filtering, and limit. 39/39 total pass, 0 new clippy warnings. 6 findings: P5-001 `PersistedEvent` not re-exported from lib.rs (LOW), P5-002 duplicated row-mapping ~50 lines in limit/no-limit branches of `load_events_since` (LOW), P5-003 SSE endpoint/broadcaster not yet implemented (INFO — explicitly pending), P5-004 `&mut self` on `append_event` needs consideration for concurrent SSE access (INFO), P5-005 `sqlite_now_ts` epoch format not ISO-8601 (INFO — carries P3-001), P5-006 no edge-case tests for empty stream, cross-workflow isolation, default timestamp (LOW). Pending for FR-006 completion: HTTP SSE endpoint, multi-subscriber broadcaster, NF-002 (50 concurrent subscribers). Review: `.ai/findings/052-phase5-review.md`.
 
 - 2026-03-31 (claude): **052 Phase 4 review** — Phase 4 approved. SQLite backend spec-faithful: 3-table schema (workflows PK workflow_id, steps PK step_id FK workflow_id, events AI PK event_id FK workflow_id), WAL mode via `PRAGMA journal_mode = WAL`, transactional writes (BEGIN → DELETE steps → INSERT steps → COMMIT), clean round-trip via `write_workflow_state` / `load_workflow_state`. `SqliteWorkflowStore::open()` creates dirs, opens connection, enables WAL, initializes schema idempotently. Steps ordered by `step_index ASC`. Gate info serialized via `gate_type` TEXT + `gate_config` JSON. Metadata serialized as JSON TEXT. FR-001 (workflow creation), FR-002 (atomic step update via transaction), FR-007 (state query returning `Ok(None)` for missing), FR-008 (crash safety via SQLite transactions), NF-001 (WAL mode), SC-005 (crash survival), SC-006 (accurate status) all satisfied. Events table prepared for Phase 5 SSE (no write path yet — expected). 2 new tests (round-trip + WAL verification), 38/38 total pass. 1 compiler warning (`unused mut`). 6 findings: P4-001 `current_step_index` not persisted (always `None` on load — resume logic uses step statuses not this field) (LOW), P4-002 `completed_at` always NULL on workflows table (field not in `WorkflowState` struct — schema column exists but unused) (LOW), P4-003 `timeout_ms` lost in gate round-trip (not stored in any column, `sql_columns_to_gate_info` returns `None`) (LOW), P4-004 unused `mut` on conn (INFO), P4-005 delete-and-reinsert step strategy (INFO — acceptable at typical scale), P4-006 no events table write path yet (INFO — Phase 5). No blockers for Phase 5. Review: `.ai/findings/052-phase4-review.md`.
 
