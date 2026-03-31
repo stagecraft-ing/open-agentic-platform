@@ -101,18 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — Phase 6 integration implemented.
-- Next owner: **claude** — review Phase 6 integration and verification evidence.
-- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 6 Tauri integration for worktree agents in `apps/desktop/src-tauri/src/commands/worktree_agents.rs` and wired commands in `src/lib.rs`/`commands/mod.rs`; exposed frontend wrappers in `apps/desktop/src/lib/api.ts` and `apiAdapter.ts`. Added `specs/051-worktree-agents/execution/verification.md` with FR/SC evidence and validation notes. Addressed P5-003 with `cherry-pick --abort` on failure and chained merge+discard cleanup per merge flow.
+- Current owner: **claude** — Phase 6 review complete. 051 feature-complete.
+- Next owner: **cursor** — next P1 spec slice (see priority order below).
+- Last baton update: 2026-03-30 — **claude**: Phase 6 approved. All 5 Tauri commands wired (spawn, list, diff, merge, discard). P5-003 (cherry-pick --abort) and P5-004 (merge→discard chain) both resolved. 6 findings: P6-001 in-memory state lost on restart (LOW), P6-002 dirty-check on main tree only (LOW), P6-003 no integration tests (LOW), P6-004 merge failure stale state (LOW), P6-005/P6-006 (INFO). **051 feature-complete — all 6 phases approved.** Review: `.ai/findings/051-phase6-review.md`.
 - Recommended files to read:
-  - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 6 section)
-  - `specs/051-worktree-agents/spec.md` (full spec for integration)
-  - `.ai/findings/051-phase5-review.md` (Phase 5 review with LOWs to address)
-  - `packages/worktree-agents/src/index.ts` (all exports)
+  - `.ai/findings/051-phase6-review.md` (Phase 6 review with findings)
+  - `.ai/findings/next-slice-prioritization-2026-03-30.md` (next slice selection)
 
 ## Requested next agent output
 
-**cursor**: Implement 051 Phase 6 — Tauri integration + verification. Wire `spawnBackgroundAgent`, `getAgentDiff`, `mergeAgent`, `discardAgent`, `listAgents` into desktop app Tauri commands. Add `execution/verification.md` with SC evidence. Address P5-003 (cherry-pick --abort on failure) if feasible. Chain merge+discard per spec merge flow diagram.
+**cursor**: Select and begin next P1 spec slice from priority order below. Draft phased plan, hand baton to **claude** for plan review before Phase 1 coding.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **051 Phase 6 review** — Phase 6 approved. All 5 Tauri commands wired (spawn, list, diff, merge, discard) with frontend API wrappers and type definitions. P5-003 (cherry-pick --abort) resolved at line 296. P5-004 (merge→discard chain) resolved at line 314. FR-006/FR-007/FR-008/FR-009 satisfied at Tauri layer. 6 findings: P6-001 in-memory state lost on restart (LOW), P6-002 dirty-check on main tree only (LOW), P6-003 no integration tests (LOW), P6-004 merge failure stale state (LOW), P6-005/P6-006 (INFO). **051 feature-complete — all 6 phases approved.** Review: `.ai/findings/051-phase6-review.md`.
 - 2026-03-30 (cursor): **051 Phase 6** — Added Tauri command surface for worktree agents (`spawn_background_agent`, `list_background_agents`, `get_agent_diff`, `merge_agent`, `discard_agent`) in `apps/desktop/src-tauri/src/commands/worktree_agents.rs`, wired into `commands/mod.rs` and `src/lib.rs` invoke handler, and added API wrappers in `apps/desktop/src/lib/api.ts` + endpoint mappings in `apiAdapter.ts`. Implemented merge->discard chaining and `cherry-pick --abort` on cherry-pick failure path. Added `specs/051-worktree-agents/execution/verification.md`. Validation: `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass.
 - 2026-03-30 (claude): **051 Phase 5 review** — Phase 5 approved. FR-006 (`getAgentDiff` unified diff via three-dot `git diff` + commit summary via two-dot `git log`, parallel execution), FR-007 (`mergeAgent` with `fast-forward`/`squash`/`cherry-pick`, clean-worktree precondition, branch validation, squash `merge --abort` on failure, `try/finally` branch restore), FR-008 (`discardAgent` delegates to idempotent `removeAgentWorktree`) all satisfied. SC-004 (diff covers all files + 2-commit summary), SC-005 (squash creates 1 non-merge commit, file contents verified), SC-006 (worktree dir + branch ref removed) all tested. 14/14 tests, `tsc` clean. 6 findings: P5-001 API takes branches not agentId (LOW), P5-002 no ff/cherry-pick test (LOW), P5-003 no cherry-pick abort on failure (LOW), P5-004 merge doesn't chain discard (LOW), P5-005/P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/051-phase5-review.md`.
 - 2026-03-30 (cursor): **051 Phase 5** — Implemented diff/merge/discard workflow in `packages/worktree-agents`: `src/diff.ts` (`getAgentDiff` unified diff + commit summary), `src/merge.ts` (`mergeAgent` with `fast-forward` / `squash` / `cherry-pick` and clean-worktree precondition), and `src/cleanup.ts` (`discardAgent` cleanup wiring). Added SC tests: `src/diff.test.ts` (SC-004), `src/merge.test.ts` (SC-005), `src/cleanup.test.ts` (SC-006). Export wiring updated in `src/index.ts` and package subpaths. Validation: `pnpm --filter @opc/worktree-agents test` (14/14), `pnpm --filter @opc/worktree-agents build`. Implementation notes: `.ai/findings/051-phase5-implementation.md`.
