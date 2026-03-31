@@ -14,7 +14,8 @@
     "./defaults": "./src/defaults.ts",
     "./prompt": "./src/prompt.ts",
     "./evaluator": "./src/evaluator.ts",
-    "./handler": "./src/handler.ts"
+    "./handler": "./src/handler.ts",
+    "./cli": "./src/cli.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
