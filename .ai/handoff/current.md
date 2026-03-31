@@ -103,14 +103,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 3 (checkpoint and approval gates per FR-004, FR-005).
-- Next owner: **claude** — 052 Phase 3 review.
-- Last baton update: 2026-03-31 — **claude**: Phase 2 review approved. FR-003 (resume detection, step-skipping) satisfied. `ResumePlan` + `compute_resume_plan_from_state` + `detect_resume_plan_for_run` correctly identify completed steps and resume point. Clean separation: pure computation vs I/O. 4 new tests, 22/22 total pass. 6 findings (3 LOW, 3 INFO) — none blocking. Review: `.ai/findings/052-phase2-review.md`.
+- Current owner: **claude** — 052 Phase 3 review.
+- Next owner: **cursor** — 052 Phase 4 (SQLite backend).
+- Last baton update: 2026-03-31 — **cursor**: Phase 3 implemented. `GateHandler` async trait for operator confirmation, `evaluate_gate` entry point with checkpoint pause/resume (FR-004 / SC-002) and approval timeout with escalation (FR-005 / SC-003). Default escalation is `Fail` when none configured. `evaluate_gate_if_present` convenience for steps without gates. Persist callback invoked after every state transition (FR-008). 14 new gate tests, 36/36 total orchestrator tests pass, zero warnings. New file: `crates/orchestrator/src/gates.rs`. Tokio `time` feature added as dependency.
 - Recommended files to read:
-  - `specs/052-state-persistence/spec.md` — Phase 3 scope: FR-004 (checkpoint gates), FR-005 (approval gates with timeout/escalation)
-  - `crates/orchestrator/src/state.rs` (052 Phase 1 — state schema with `GateInfo` forward-declaration)
-  - `crates/orchestrator/src/lib.rs` (052 Phase 2 — resume detection helpers, `ResumePlan`)
-  - `.ai/findings/052-phase2-review.md` (Phase 2 review with findings)
+  - `specs/052-state-persistence/spec.md` — Phase 4 scope: SQLite backend
+  - `crates/orchestrator/src/gates.rs` (052 Phase 3 — gate execution with GateHandler trait, timeout, escalation)
+  - `crates/orchestrator/src/state.rs` (052 Phase 1 — state schema, checkpoint/approval status transitions)
+  - `crates/orchestrator/src/lib.rs` (052 Phase 2 — resume detection + Phase 3 re-exports)
 
 ## Requested next agent output
 
@@ -159,6 +159,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (cursor): **052 Phase 3** — Implemented gate execution module in `crates/orchestrator/src/gates.rs`. `GateHandler` async trait with `await_checkpoint` and `await_approval` methods for pluggable confirmation (CLI, API, UI, test stubs). `evaluate_gate` handles both gate types: checkpoints pause with `mark_awaiting_checkpoint`, persist state, block for confirmation, then `mark_checkpoint_released`; approval gates wrap confirmation in `tokio::time::timeout`, apply escalation policy (`Fail`/`Skip`/`Notify`) on timeout via `mark_approval_timed_out`, default to `Fail` when no escalation configured. `evaluate_gate_if_present` convenience passes through `None` for ungated steps. Persist callback invoked after every state transition. Module wired into `lib.rs` with re-exports (`GateHandler`, `GateOutcome`, `GateError`, `evaluate_gate`, `evaluate_gate_if_present`). Added `tokio` `time` feature as regular dependency. 14 new tests (3 checkpoint, 7 approval timeout/escalation, 2 convenience, 2 error propagation), 36/36 total orchestrator tests pass, zero warnings. Validation: `cargo build`, `cargo test`.
 
 - 2026-03-31 (claude): **052 Phase 2 review** — Phase 2 approved. FR-003 (resume detection) satisfied. `ResumePlan` struct with `completed_step_ids` and `first_non_completed_step_index`. `compute_resume_plan_from_state` is pure (state + manifest → plan): collects completed steps in manifest order, finds first non-completed index. Returns `None` for no-completed, all-completed, or missing state file. `detect_resume_plan_for_run` handles I/O (existence check + deserialization). `ResumePlan` is `Serialize`/`Deserialize` for file-based context passing. 4 resume tests + 22/22 total orchestrator tests pass. 6 findings: P2-001 no all-completed→None test (LOW), P2-002 no failed-step-as-resume-point test (LOW), P2-003 workflow-level status not checked (LOW), P2-004–P2-006 (INFO). No blockers for Phase 3. Review: `.ai/findings/052-phase2-review.md`.
 
