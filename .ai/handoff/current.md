@@ -103,14 +103,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **available** — 053 Phase 1 complete. Ready for Phase 2 (skill library & resolution).
-- Next owner: **claude** — review 053 Phase 1 against spec.md, then **cursor** for Phase 2.
-- Last baton update: 2026-03-31 — **cursor**: 053 Phase 1 implemented. Created `packages/verification-profiles` (`@opc/verification-profiles`). `src/types.ts`: 14 types — `VerificationProfile`, `VerificationSkill`, `VerificationStep` (core schema), `Determinism`, `SafetyTier`, `NetworkPolicy` (enums), `StepResult`, `SkillResult`, `ProfileResult` (execution results), `VerificationDiagnostic`, `ParseProfileResult`, `ParseSkillResult` (diagnostics). `src/schema.ts`: `validateProfileObject()` and `validateSkillObject()` with 13 validation rules and VP_-prefixed diagnostic codes. `src/parser.ts`: `parseProfileFile()` and `parseSkillFile()` using `yaml.parseDocument()` for line-number error reporting (NF-001). Plain YAML parsing per spec (R-002). `src/index.ts`: barrel exports. 25/25 tests pass, `tsc` clean.
+- Current owner: **available** — 053 Phase 1 reviewed and approved. Ready for Phase 2 (skill library & resolution).
+- Next owner: **cursor** — implement 053 Phase 2 (skill library & resolution per spec Phase 2 scope). Then **claude** reviews.
+- Last baton update: 2026-03-31 — **claude**: 053 Phase 1 review approved. FR-001 (profile schema), FR-002 (skill schema), FR-003 (step properties), NF-001 (line-number errors) all satisfied at schema layer. 25/25 tests pass, `tsc` clean. 6 findings (2 LOW, 4 INFO — none blocking). Carry-forward: R-004 (skill name collision precedence — local overrides platform defaults). Review: `.ai/findings/053-phase1-review.md`.
 - Recommended files to read:
-  - `packages/verification-profiles/src/parser.test.ts` (**START HERE** — 25 tests covering valid parsing, schema violations, YAML errors with line numbers)
-  - `packages/verification-profiles/src/types.ts` (all type definitions)
-  - `packages/verification-profiles/src/schema.ts` (validation rules)
-  - `packages/verification-profiles/src/parser.ts` (YAML parsing with diagnostics)
+  - `.ai/findings/053-phase1-review.md` (Phase 1 review with findings)
+  - `.ai/findings/053-readiness-review.md` (Phase 2 scope defined in "Phase 2 — Skill Library & Resolution" section)
+  - `packages/verification-profiles/src/types.ts` (type definitions Phase 2 builds on)
+  - `packages/verification-profiles/src/parser.ts` (parsing functions Phase 2 loader will call)
 
 ## Requested next agent output
 
@@ -159,6 +159,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **053 Phase 1 review — approved.** FR-001 (profile schema: name, optional description, gate, skills array), FR-002 (skill schema: name, description, determinism, safety_tier, steps), FR-003 (step properties: command, timeout, read_only, network), NF-001 (line-number errors via `yaml.parseDocument()`) all satisfied at schema layer. Types match spec YAML examples exactly. 13 VP_-prefixed diagnostic codes cover all validation failure modes. Clean separation: `types.ts` (data), `schema.ts` (validation), `parser.ts` (YAML→typed objects). 25/25 tests pass, `tsc` clean. 6 findings: P1-001 `diag()` hardcodes severity "error" (LOW), P1-002 silent name trimming (LOW), P1-003 test tsconfig (INFO), P1-004 `diag` export scope (INFO), P1-005 YAML warnings not surfaced (INFO), P1-006 unknown keys silently ignored (INFO). No blockers for Phase 2. Carry-forward: R-004 skill name collision precedence. Review: `.ai/findings/053-phase1-review.md`.
 
 - 2026-03-31 (cursor): **053 Phase 1 — schema definition & package scaffold.** Created `packages/verification-profiles` (`@opc/verification-profiles`). Package scaffold follows 048/054 patterns: ESM, `tsc` build, vitest, `yaml` dependency. `src/types.ts`: 14 types covering core schema (`VerificationProfile`, `VerificationSkill`, `VerificationStep`), enum unions (`Determinism`, `SafetyTier`, `NetworkPolicy`), execution results (`StepResult`, `SkillResult`, `ProfileResult`), and diagnostics (`VerificationDiagnostic`, `ParseProfileResult`, `ParseSkillResult`). `src/schema.ts`: `validateProfileObject()` validates name/gate/skills with 5 rules; `validateSkillObject()` validates name/description/determinism/safety_tier/steps with 8 rules + per-step validation (command/timeout/read_only/network). 13 VP_-prefixed diagnostic codes total. `src/parser.ts`: `parseProfileFile()` and `parseSkillFile()` — plain YAML parsing via `yaml.parseDocument()` for line-number error reporting (NF-001, R-003). Returns typed results on success, diagnostics on failure. `src/index.ts`: barrel exports all types and functions. Validation: `pnpm build` (`tsc` clean), `pnpm test` (25/25 tests pass). FR-001 (profile schema), FR-002 (skill schema), FR-003 (step properties), NF-001 (line-number errors) satisfied at schema layer.
 
