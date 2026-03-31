@@ -97,31 +97,31 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 058 | File Mention System | P1 | outline-spec |
 | 059 | Git Panel | P1 | ✅ feature-complete |
 | 060 | Panel Event Bus | P1 | ✅ feature-complete |
-| 061 | Conductor Track Lifecycle | P1 | outline-spec |
+| 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete |
 | 062 | Multi-Model Chaining | P1 | outline-spec |
 | 063 | Coherence Scoring | P1 | outline-spec |
 
 ## Baton
 
-- Current owner: **claude** — 060 feature-complete (all 5 phases delivered).
-- Next owner: **claude** — implement next spec (061 Conductor Track Lifecycle).
-- Last baton update: 2026-03-31 — **claude**: 060 — Panel Event Bus, all 5 phases. New package `packages/panel-event-bus` (`@opc/panel-event-bus`). **Phase 1** — event type registry and bus core: `src/types.ts` (10 types: EventTypeName, PanelInstanceId, EventTypeSchema, BusEvent, PanelEventContract, EventHandler, SubscribeOptions, RingBufferOptions, EventBusOptions + DEFAULT_RING_BUFFER_SIZE constant), `src/ring-buffer.ts` (RingBuffer class — bounded circular buffer with push/last/size/clear), `src/event-bus.ts` (EventBus class — registerEventType, registerPanel, unregisterPanel, emit with contract enforcement + auto-exclusion + ring buffer storage, subscribe with wildcard matching + replay, history query, reset). **Phase 2** — panel contract enforcement: `src/contracts.ts` (defineContract, mergeContracts, validateContract — helpers for creating and validating PanelEventContract declarations). **Phase 3** — source auto-exclusion and wildcards: `src/wildcards.ts` (isWildcard, patternToRegExp, matchesPattern — glob-style pattern matching for event subscriptions). **Phase 4** — lifecycle integration: `src/lifecycle.ts` (mountPanel returns PanelHandle with scoped emit/subscribe, automatic cleanup on unmount, mounted state tracking). **Phase 5** — core event types: `src/core-events.ts` (11 typed event schemas across 4 namespaces: terminal, files, git, agent; payload types for all; CORE_EVENT_SCHEMAS/CORE_EVENT_NAMES constants; createBusWithCoreEvents factory). Barrel exports + subpath exports (./types, ./bus, ./contracts, ./wildcards, ./lifecycle, ./events). Validation: `tsc` clean, 75/75 tests pass. FR-001 through FR-008, NF-001 through NF-003, SC-001 through SC-005 satisfied.
+- Current owner: **claude** — 061 feature-complete (all 7 phases delivered).
+- Next owner: **claude** — implement next spec (062 Multi-Model Chaining).
+- Last baton update: 2026-03-31 — **claude**: 061 — Conductor Track Lifecycle, all 7 phases. New package `packages/conductor-track` (`@opc/conductor-track`). **Phase 1** — track data model and storage: `src/types.ts` (TrackState, PlanStepStatus, PlanStep, TddPhase, TestResults, PhaseCheckpoint, GitBoundary, TrackMetadata, CreateTrackOptions, TrackTransitionError, TrackNotFoundError, TrackStorageError, TRACK_STATES, TDD_PHASES), `src/storage.ts` (buildInitialMetadata, createTrack, readMetadata, readSpec, readPlan, writeMetadata, writePlan, listTracks, removeTrackDir). **Phase 2** — state machine: `src/state-machine.ts` (canTransition, validateTransition with guard conditions, applyTransition — pending→in_progress→complete→archived, any-except-archived→reverted; FR-010 gates: all plan steps done + all TDD phases passed for completion). **Phase 3** — conductor integration: `src/conductor.ts` (Conductor class — createTrack, startTrack with plan generation + git boundary recording, completeTrack with endCommit, archiveTrack, canTransition, getTrack, listTracks). **Phase 4** — plan-implementer binding: `src/plan-implementer.ts` (parsePlanSteps from markdown, updateStepStatus, startNextStep, completeCurrentStep, getPlanProgress). **Phase 5** — TDD checkpoints: `src/checkpoints.ts` (recordCheckpoint with phase ordering validation red→green→refactor, validatePhaseOrder, validatePhaseResults with phase-appropriate test result checks, overrideCheckpoint for R-002 manual override, allPhasesPassed, nextRequiredPhase). **Phase 6** — git-aware revert: `src/git.ts` (GitOps interface, checkRevertSafety with dirty-tree/archived/already-reverted checks, revertTrack with git reset to start boundary + optional dir removal). **Phase 7** — CLI commands: `src/commands.ts` (trackList with progress formatting FR-008, formatTrackList as text table, trackInspect with TDD summary FR-009, formatTrackInspection with step status icons). Barrel exports + 8 subpath exports (./types, ./storage, ./state-machine, ./conductor, ./plan-implementer, ./checkpoints, ./git, ./commands). Validation: `tsc` clean, 127/127 tests pass. FR-001 through FR-010, NF-001 through NF-003, SC-001 through SC-005 satisfied.
 - Recommended files to read:
-  - `packages/panel-event-bus/src/index.ts` (barrel exports)
-  - `packages/panel-event-bus/src/types.ts` (all types)
-  - `packages/panel-event-bus/src/event-bus.ts` (EventBus core)
-  - `packages/panel-event-bus/src/ring-buffer.ts` (bounded ring buffer)
-  - `packages/panel-event-bus/src/contracts.ts` (contract helpers)
-  - `packages/panel-event-bus/src/wildcards.ts` (glob matching)
-  - `packages/panel-event-bus/src/lifecycle.ts` (panel mount/unmount)
-  - `packages/panel-event-bus/src/core-events.ts` (11 core event types)
-  - `packages/panel-event-bus/package.json` (subpath exports)
+  - `packages/conductor-track/src/index.ts` (barrel exports)
+  - `packages/conductor-track/src/types.ts` (all types)
+  - `packages/conductor-track/src/storage.ts` (track directory read/write)
+  - `packages/conductor-track/src/state-machine.ts` (lifecycle state machine)
+  - `packages/conductor-track/src/conductor.ts` (Conductor class)
+  - `packages/conductor-track/src/plan-implementer.ts` (plan parsing + step tracking)
+  - `packages/conductor-track/src/checkpoints.ts` (TDD phase checkpoints)
+  - `packages/conductor-track/src/git.ts` (git-aware revert)
+  - `packages/conductor-track/src/commands.ts` (CLI commands)
 
 ## Requested next agent output
 
-**claude**: 060 feature-complete. Next: implement 061 — Conductor Track Lifecycle.
+**claude**: 061 feature-complete. Next: implement 062 — Multi-Model Chaining.
 
-### Completed features (18 of 22)
+### Completed features (19 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -143,12 +143,12 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 058 | File Mention System | P1 | ✅ feature-complete (7 phases) |
 | 059 | Git Panel | P1 | ✅ feature-complete (8 phases) |
 | 060 | Panel Event Bus | P1 | ✅ feature-complete (5 phases) |
+| 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete (7 phases) |
 
-### Priority order for remaining P1 specs (3 unstarted)
+### Priority order for remaining P1 specs (2 unstarted)
 
-1. **061 — Conductor Track Lifecycle** — orchestrator track state management
-11. **062 — Multi-Model Chaining** — chain different models in agent workflows
-12. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
+1. **062 — Multi-Model Chaining** — chain different models in agent workflows
+2. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -164,6 +164,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **061 Conductor Track Lifecycle — all 7 phases. 061 feature-complete.** New package `packages/conductor-track` (`@opc/conductor-track`). Phase 1: track data model and storage — types.ts (TrackState, PlanStep, PhaseCheckpoint, GitBoundary, TrackMetadata, CreateTrackOptions + 3 error classes + TRACK_STATES/TDD_PHASES constants), storage.ts (buildInitialMetadata, createTrack, readMetadata/readSpec/readPlan, writeMetadata, writePlan, listTracks, removeTrackDir). Phase 2: state machine — state-machine.ts (canTransition, validateTransition with guard conditions per target state, applyTransition; valid transitions: pending→in_progress→complete→archived + any-except-archived→reverted; FR-010 completion gate: all plan steps done/skipped + all 3 TDD phases passed). Phase 3: conductor integration — conductor.ts (Conductor class with injectable git ops; createTrack records git HEAD + branch, startTrack transitions + writes plan + records fresh git boundary, completeTrack records endCommit, archiveTrack, canTransition check, getTrack, listTracks). Phase 4: plan-implementer binding — plan-implementer.ts (parsePlanSteps from markdown numbered/bulleted lists, updateStepStatus with completedAt tracking + completedSteps recomputation, startNextStep/completeCurrentStep convenience methods, getPlanProgress summary). Phase 5: TDD checkpoints — checkpoints.ts (recordCheckpoint with phase ordering validation red→green→refactor, validatePhaseResults with phase-appropriate checks: red expects failures / green+refactor require all-pass, overrideCheckpoint for R-002 manual override, allPhasesPassed, nextRequiredPhase). Phase 6: git-aware revert — git.ts (GitOps injectable interface, checkRevertSafety validates state + dirty tree + start boundary, revertTrack resets to startCommit + optional dir removal). Phase 7: CLI commands — commands.ts (trackList with progress formatting FR-008, formatTrackList as text table, trackInspect with TDD summary FR-009, formatTrackInspection with step status icons [x]/[>]/[-]/[ ]). Barrel exports + 8 subpath exports. Validation: `tsc` clean, 127/127 tests pass. FR-001–FR-010, NF-001–NF-003, SC-001–SC-005 satisfied.
 
 - 2026-03-31 (claude): **060 Panel Event Bus — all 5 phases. 060 feature-complete.** New package `packages/panel-event-bus` (`@opc/panel-event-bus`). Phase 1: event type registry and bus core — types.ts (10 types + DEFAULT_RING_BUFFER_SIZE), ring-buffer.ts (RingBuffer class with bounded circular storage), event-bus.ts (EventBus class — registerEventType, registerPanel/unregisterPanel, emit with contract enforcement + source auto-exclusion + ring buffer, subscribe with wildcard glob matching + replay, history query, reset). Phase 2: panel contract enforcement — contracts.ts (defineContract, mergeContracts, validateContract helpers for PanelEventContract declarations). Phase 3: source auto-exclusion and wildcards — wildcards.ts (isWildcard, patternToRegExp, matchesPattern for glob-style event pattern matching). Phase 4: lifecycle integration — lifecycle.ts (mountPanel returns PanelHandle with scoped emit/subscribe, tracked subscription cleanup on unmount, mounted state guard). Phase 5: core event types — core-events.ts (11 typed event schemas across 4 namespaces: terminal (command_executed, output_received), files (changed, opened, saved), git (operation_commit/push/pull/branch), agent (message_received, tool_invoked); typed payload interfaces for all; CORE_EVENT_SCHEMAS/CORE_EVENT_NAMES constants; createBusWithCoreEvents factory). Barrel exports + 6 subpath exports (./types, ./bus, ./contracts, ./wildcards, ./lifecycle, ./events). Validation: `tsc` clean, 75/75 tests pass. FR-001–FR-008, SC-001–SC-005 satisfied.
 
