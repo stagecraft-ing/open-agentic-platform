@@ -2,6 +2,7 @@
 // Feature 052: State persistence for resumable workflows (JSON backend, Phase 1).
 
 use crate::artifact::ArtifactManager;
+use crate::manifest::{ApprovalEscalation, StepGateConfig, WorkflowManifest};
 use crate::OrchestratorError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -145,6 +146,106 @@ impl WorkflowState {
             step.completed_at = Some(completed_at);
             step.duration_ms = duration_ms;
             step.output = output_summary;
+        }
+    }
+
+    /// Attaches gate information to steps based on the workflow manifest.
+    ///
+    /// This is a convenience for callers that want `state.json` to carry gate
+    /// metadata derived from declarative workflow definitions (052 FR-004/FR-005).
+    pub fn attach_gates_from_manifest(&mut self, manifest: &WorkflowManifest) {
+        for step_state in &mut self.steps {
+            if let Some(manifest_step) = manifest.steps.iter().find(|s| s.id == step_state.id) {
+                if let Some(ref gate_cfg) = manifest_step.gate {
+                    step_state.gate = Some(gate_info_from_step_gate(gate_cfg));
+                }
+            }
+        }
+    }
+
+    /// Marks the workflow as waiting on a checkpoint gate for the given step (FR-004 / SC-002).
+    ///
+    /// Callers should invoke this when execution reaches a checkpoint gate and
+    /// is about to pause for operator confirmation.
+    pub fn mark_awaiting_checkpoint(&mut self, step_id: &str) {
+        if self.steps.iter().any(|s| s.id == step_id) {
+            self.status = WorkflowStatus::AwaitingCheckpoint;
+        }
+    }
+
+    /// Clears the `"awaiting_checkpoint"` status and returns the workflow to `"running"`.
+    ///
+    /// Callers should invoke this after an operator has confirmed a checkpoint
+    /// and execution is allowed to continue.
+    pub fn mark_checkpoint_released(&mut self) {
+        if matches!(self.status, WorkflowStatus::AwaitingCheckpoint) {
+            self.status = WorkflowStatus::Running;
+        }
+    }
+
+    /// Applies an approval-gate timeout outcome for the given step (FR-005 / SC-003).
+    ///
+    /// The workflow status transitions to `"timed_out"`, and the step's status
+    /// is updated according to the escalation policy:
+    /// - `Fail`   → step marked `Failed`
+    /// - `Skip`   → step marked `Skipped`
+    /// - `Notify` → step remains `Pending`
+    pub fn mark_approval_timed_out(
+        &mut self,
+        step_id: &str,
+        escalation: ApprovalEscalation,
+        completed_at: String,
+        duration_ms: Option<u64>,
+    ) {
+        self.status = WorkflowStatus::TimedOut;
+        if let Some(step) = self.steps.iter_mut().find(|s| s.id == step_id) {
+            step.completed_at = Some(completed_at);
+            step.duration_ms = duration_ms;
+            step.status = match escalation {
+                ApprovalEscalation::Fail => StepExecutionStatus::Failed,
+                ApprovalEscalation::Skip => StepExecutionStatus::Skipped,
+                ApprovalEscalation::Notify => StepExecutionStatus::Pending,
+            };
+        }
+    }
+}
+
+fn gate_info_from_step_gate(cfg: &StepGateConfig) -> GateInfo {
+    match cfg {
+        StepGateConfig::Checkpoint { label } => {
+            let config = label.as_ref().map(|label| {
+                let mut m = serde_json::Map::new();
+                m.insert("label".to_string(), JsonValue::String(label.clone()));
+                JsonValue::Object(m)
+            });
+            GateInfo {
+                gate_type: "checkpoint".to_string(),
+                timeout_ms: None,
+                config,
+            }
+        }
+        StepGateConfig::Approval {
+            timeout_ms,
+            escalation,
+        } => {
+            let mut m = serde_json::Map::new();
+            if let Some(e) = escalation {
+                let esc = match e {
+                    ApprovalEscalation::Fail => "fail",
+                    ApprovalEscalation::Skip => "skip",
+                    ApprovalEscalation::Notify => "notify",
+                };
+                m.insert("escalation".to_string(), JsonValue::String(esc.to_string()));
+            }
+            GateInfo {
+                gate_type: "approval".to_string(),
+                timeout_ms: Some(*timeout_ms),
+                config: if m.is_empty() {
+                    None
+                } else {
+                    Some(JsonValue::Object(m))
+                },
+            }
         }
     }
 }
@@ -307,6 +408,104 @@ mod tests {
         assert_eq!(loaded.workflow_name, state.workflow_name);
         assert_eq!(loaded.steps.len(), 1);
         assert_eq!(loaded.steps[0].id, "step_001");
+        // Gate field should round-trip as `None` by default.
+        assert!(loaded.steps[0].gate.is_none());
+    }
+
+    #[test]
+    fn attach_gates_from_manifest_populates_gate_info() {
+        let wf_id = Uuid::new_v4();
+        let step_defs = vec![
+            ("step_001".to_string(), "lint".to_string()),
+            ("step_002".to_string(), "deploy".to_string()),
+        ];
+        let mut state = WorkflowState::new(
+            wf_id,
+            "deploy-staging",
+            "2026-03-29T10:00:00Z".to_string(),
+            step_defs,
+            serde_json::Map::new(),
+        );
+
+        let manifest = WorkflowManifest {
+            steps: vec![
+                crate::manifest::WorkflowStep {
+                    id: "step_001".into(),
+                    agent: "agent-lint".into(),
+                    effort: crate::effort::EffortLevel::Quick,
+                    inputs: vec![],
+                    outputs: vec!["lint.md".into()],
+                    instruction: "Run lint".into(),
+                    gate: Some(StepGateConfig::Checkpoint { label: None }),
+                },
+                crate::manifest::WorkflowStep {
+                    id: "step_002".into(),
+                    agent: "agent-deploy".into(),
+                    effort: crate::effort::EffortLevel::Quick,
+                    inputs: vec!["step_001/lint.md".into()],
+                    outputs: vec!["deploy.md".into()],
+                    instruction: "Deploy".into(),
+                    gate: Some(StepGateConfig::Approval {
+                        timeout_ms: 30_000,
+                        escalation: Some(ApprovalEscalation::Fail),
+                    }),
+                },
+            ],
+        };
+
+        state.attach_gates_from_manifest(&manifest);
+
+        let gate1 = state.steps[0].gate.as_ref().expect("expected gate on step_001");
+        assert_eq!(gate1.gate_type, "checkpoint");
+        assert!(gate1.timeout_ms.is_none());
+
+        let gate2 = state.steps[1].gate.as_ref().expect("expected gate on step_002");
+        assert_eq!(gate2.gate_type, "approval");
+        assert_eq!(gate2.timeout_ms, Some(30_000));
+        let escalation = gate2
+            .config
+            .as_ref()
+            .and_then(|v| v.get("escalation"))
+            .and_then(|v| v.as_str());
+        assert_eq!(escalation, Some("fail"));
+    }
+
+    #[test]
+    fn checkpoint_and_approval_status_transitions_update_workflow_status() {
+        let wf_id = Uuid::new_v4();
+        let mut state = WorkflowState::new(
+            wf_id,
+            "deploy-staging",
+            "2026-03-29T10:00:00Z".to_string(),
+            vec![("step_001".to_string(), "deploy".to_string())],
+            serde_json::Map::new(),
+        );
+
+        // Initially running.
+        assert_eq!(state.status, WorkflowStatus::Running);
+
+        // Reaching a checkpoint moves the workflow into AwaitingCheckpoint.
+        state.mark_awaiting_checkpoint("step_001");
+        assert_eq!(state.status, WorkflowStatus::AwaitingCheckpoint);
+
+        // Releasing the checkpoint returns to Running.
+        state.mark_checkpoint_released();
+        assert_eq!(state.status, WorkflowStatus::Running);
+
+        // An approval timeout moves the workflow into TimedOut and updates the step.
+        state.mark_approval_timed_out(
+            "step_001",
+            ApprovalEscalation::Fail,
+            "2026-03-29T10:05:00Z".to_string(),
+            Some(5 * 60 * 1000),
+        );
+        assert_eq!(state.status, WorkflowStatus::TimedOut);
+        let step = &state.steps[0];
+        assert_eq!(step.status, StepExecutionStatus::Failed);
+        assert_eq!(
+            step.completed_at.as_deref(),
+            Some("2026-03-29T10:05:00Z")
+        );
     }
 }
 

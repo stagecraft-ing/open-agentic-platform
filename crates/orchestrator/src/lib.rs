@@ -726,6 +726,7 @@ mod tests {
                 inputs: vec![],
                 outputs: vec!["out.md".into()],
                 instruction: "do".into(),
+                gate: None,
             }],
         };
         let rd = materialize_run_directory(&am, run_id, &m).unwrap();
@@ -749,6 +750,7 @@ mod tests {
                     inputs: vec![],
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
+                    gate: None,
                 },
                 WorkflowStep {
                     id: "step-2".into(),
@@ -757,6 +759,7 @@ mod tests {
                     inputs: vec!["step-1/out1.md".into()],
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
+                    gate: None,
                 },
                 WorkflowStep {
                     id: "step-3".into(),
@@ -765,6 +768,7 @@ mod tests {
                     inputs: vec!["step-2/out2.md".into()],
                     outputs: vec!["out3.md".into()],
                     instruction: "do 3".into(),
+                    gate: None,
                 },
             ],
         };
@@ -824,6 +828,7 @@ mod tests {
                     inputs: vec![],
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
+                    gate: None,
                 },
                 WorkflowStep {
                     id: "step-2".into(),
@@ -832,6 +837,7 @@ mod tests {
                     inputs: vec!["step-1/out1.md".into()],
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
+                    gate: None,
                 },
             ],
         };
@@ -854,6 +860,7 @@ mod tests {
                 inputs: vec![],
                 outputs: vec!["out.md".into()],
                 instruction: "do".into(),
+                gate: None,
             }],
         };
 
@@ -876,6 +883,7 @@ mod tests {
                     inputs: vec![],
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
+                    gate: None,
                 },
                 WorkflowStep {
                     id: "s2".into(),
@@ -884,6 +892,7 @@ mod tests {
                     inputs: vec!["s1/out1.md".into()],
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
+                    gate: None,
                 },
             ],
         };
@@ -933,6 +942,7 @@ mod tests {
                     inputs: vec![],
                     outputs: vec!["out.md".into()],
                     instruction: "do a".into(),
+                    gate: None,
                 },
                 WorkflowStep {
                     id: "step-02".into(),
@@ -941,6 +951,7 @@ mod tests {
                     inputs: vec!["step-01/out.md".into()],
                     outputs: vec!["out.md".into()],
                     instruction: "do b".into(),
+                    gate: None,
                 },
             ],
         };
@@ -980,6 +991,7 @@ mod tests {
                     inputs: vec![],
                     outputs: vec!["out.md".into()],
                     instruction: "do a".into(),
+                    gate: None,
                 },
                 WorkflowStep {
                     id: "step-02".into(),
@@ -988,6 +1000,7 @@ mod tests {
                     inputs: vec!["step-01/out.md".into()],
                     outputs: vec!["out2.md".into()],
                     instruction: "do b".into(),
+                    gate: None,
                 },
             ],
         };
@@ -1024,6 +1037,7 @@ mod tests {
             inputs: vec!["s0/in.md".into(), "/already/absolute.md".into()],
             outputs: vec!["out.md".into()],
             instruction: "Summarize the research artifacts.".into(),
+            gate: None,
         };
 
         // Materialize a fake producer output so the relative ref resolves under the run dir.
@@ -1056,6 +1070,7 @@ mod tests {
             inputs: vec![],
             outputs: vec!["out.md".into()],
             instruction: "Do root work.".into(),
+            gate: None,
         };
         let prompt = build_step_system_prompt(&am, run_id, &step);
         assert!(prompt.contains("This step has no upstream artifact dependencies."));
@@ -1075,6 +1090,7 @@ mod tests {
                 inputs: vec![],
                 outputs: vec!["out.md".into()],
                 instruction: "Write output.".into(),
+                gate: None,
             }],
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
@@ -1106,6 +1122,7 @@ mod tests {
                 inputs: vec![],
                 outputs: vec!["out.md".into()],
                 instruction: "Write output.".into(),
+                gate: None,
             }],
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();

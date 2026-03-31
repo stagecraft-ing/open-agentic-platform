@@ -22,6 +22,48 @@ pub struct WorkflowStep {
     pub inputs: Vec<String>,
     pub outputs: Vec<String>,
     pub instruction: String,
+    /// Optional gate configuration for this step (052 FR-004, FR-005).
+    ///
+    /// When present, callers can use this to pause execution at a checkpoint
+    /// or require explicit approval with timeout/escalation behavior before
+    /// running the step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gate: Option<StepGateConfig>,
+}
+
+/// Escalation behavior when an approval gate times out (052 FR-005 / SC-003).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ApprovalEscalation {
+    Fail,
+    Skip,
+    Notify,
+}
+
+/// Gate configuration for a workflow step (052 FR-004, FR-005).
+///
+/// This is intentionally minimal and JSON/YAML-friendly – richer policies can
+/// be layered in `config` fields or higher-level orchestrator commands.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum StepGateConfig {
+    /// Checkpoint gate: execution pauses at this step until an operator
+    /// explicitly confirms via CLI or API.
+    Checkpoint {
+        /// Optional human-readable label for the checkpoint.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
+    },
+    /// Approval gate: requires explicit approval and supports timeout-based
+    /// escalation behavior.
+    Approval {
+        /// Timeout in milliseconds before escalation (required by FR-005).
+        #[serde(rename = "timeoutMs")]
+        timeout_ms: u64,
+        /// Escalation policy applied when the timeout elapses.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        escalation: Option<ApprovalEscalation>,
+    },
 }
 
 impl WorkflowManifest {
@@ -169,6 +211,7 @@ mod tests {
             inputs: inputs.into_iter().map(String::from).collect(),
             outputs: outputs.into_iter().map(String::from).collect(),
             instruction: "test".into(),
+            gate: None,
         }
     }
 
