@@ -14,7 +14,8 @@
     "./loader": "./src/loader.ts",
     "./resolver": "./src/resolver.ts",
     "./pipeline": "./src/pipeline.ts",
-    "./review": "./src/review.ts"
+    "./review": "./src/review.ts",
+    "./integration": "./src/integration.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

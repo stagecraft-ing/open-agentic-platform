@@ -54,3 +54,15 @@ export {
   promoteCandidate,
   rejectCandidate,
 } from "./review.js";
+
+// Integration (Phase 6)
+export type {
+  FormatOptions,
+  IntegrationOptions,
+  IntegrationResult,
+} from "./integration.js";
+export {
+  formatStandardsForPrompt,
+  resolveAndFormat,
+  composeSystemPrompt,
+} from "./integration.js";

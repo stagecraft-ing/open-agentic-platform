@@ -103,19 +103,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — implement 055 Phase 6 (integration).
-- Next owner: **claude** — implement 055 Phase 6 (wire standards resolver into agent system prompts).
-- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 5 (candidate review workflow). `src/review.ts`: 4 exported types (`CandidateEntry`, `ListCandidatesResult`, `EditCandidateOptions`, `ReviewActionResult`), 3 exported functions (`listCandidates`, `promoteCandidate`, `rejectCandidate`). `listCandidates(projectRoot)` discovers YAML files in `standards/candidates/`, parses each, returns only `status: candidate` entries (skips non-candidate with `CS_NOT_CANDIDATE` info diagnostic). `promoteCandidate(candidateId, targetTier, projectRoot, edits?)` changes status to `active`, applies optional edits (priority, context, tags, rules, anti_patterns, examples), writes to target tier directory (creates if needed), removes candidate file. `rejectCandidate(candidateId, projectRoot)` marks status as `rejected` in-place for audit trail; rejected candidates excluded from subsequent `listCandidates` calls. `StandardStatus` type extended with `"rejected"` (R-004). Schema validation updated. Barrel exports and `./review` subpath export added. `src/review.test.ts`: 20 tests covering list (empty dir, multiple candidates, non-candidate skip, invalid YAML, non-yaml ignored, sorted by filename, filePath/fileName fields), promote (to active, removes candidate file, creates tier dir, applies edits, applies rule edits, not-found error, official tier target), reject (marks rejected, preserves fields, not-found error, excluded from list), end-to-end (list→promote→reject→verify), yml extension support. Existing `schema.test.ts` updated (invalid status test value changed from `"rejected"` to `"bogus"`). Validation: `tsc` clean, 104/104 tests pass (84 existing + 20 new review tests). FR-007 (candidate→active promotion), R-004 (rejected status) satisfied.
+- Current owner: **claude** — 055 feature-complete (all 6 phases delivered).
+- Next owner: **unassigned** — 055 complete, pick next spec from priority list (056 Session Memory).
+- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 6 (integration — wire standards resolver into agent system prompts). `src/integration.ts`: 3 exported types (`FormatOptions`, `IntegrationOptions`, `IntegrationResult`), 3 exported functions (`formatStandardsForPrompt`, `resolveAndFormat`, `composeSystemPrompt`). `formatStandardsForPrompt(resolved, options?)` converts a `ResolveResult` into Markdown prompt text — sorts by priority (critical first, then id), supports `maxStandards` cap (R-003 context window mitigation), `includeAntiPatterns` (default true), `includeExamples` (default false to save tokens), returns `{ promptText, standardCount, standardIds }` for traceability. `resolveAndFormat(options)` is the high-level entry point: loads all three tiers via `loadAllTiers()`, resolves with optional category/tag filter, formats for prompt injection — single async call. `composeSystemPrompt(basePrompt, options)` appends resolved standards to an agent's base prompt; returns original prompt unchanged when no standards match the filter. Barrel exports updated (`index.ts`), `./integration` subpath export added (`package.json`). `src/integration.test.ts`: 26 tests covering format (empty, single standard, context, anti-patterns on/off, examples on/off, priority sort, id sort, maxStandards, maxStandards 0, sortByPriority off, dividers, multiple rules, singular/plural header), resolveAndFormat (disk load, category filter, tag filter, empty, three-tier override, candidate exclusion, format passthrough), composeSystemPrompt (append, no-match passthrough, base preservation). Validation: `tsc` clean, 130/130 tests pass (104 existing + 26 new). Phase 6 complete — all 6 phases of 055 delivered.
 - Recommended files to read:
-  - `packages/yaml-standards-schema/src/review.ts` (Phase 5 — candidate review workflow)
-  - `packages/yaml-standards-schema/src/review.test.ts` (Phase 5 — 20 tests)
-  - `specs/055-yaml-standards-schema/spec.md` (spec to implement)
+  - `packages/yaml-standards-schema/src/integration.ts` (Phase 6 — prompt integration)
+  - `packages/yaml-standards-schema/src/integration.test.ts` (Phase 6 — 26 tests)
+  - `specs/055-yaml-standards-schema/spec.md` (spec — all phases complete)
 
 ## Requested next agent output
 
-**claude**: Pick up the next implementation slice (055 Phase 6 — integration: wire standards resolver into agent system prompts). After each slice, review against `spec.md`.
+**unassigned**: Pick up the next spec from the priority list (056 — Session Memory).
 
-### Completed features (12 of 22)
+### Completed features (13 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -131,11 +131,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 052 | State Persistence | P1 | ✅ feature-complete (6 phases + verification) |
 | 054 | Agent Frontmatter Schema | P1 | ✅ feature-complete |
 | 053 | Verification Profiles | P1 | ✅ feature-complete (6 phases + review) |
+| 055 | YAML Standards Schema | P1 | ✅ feature-complete (6 phases) |
 
-### Priority order for remaining P1 specs (9 unstarted)
+### Priority order for remaining P1 specs (8 unstarted)
 
-1. **055 — YAML Standards Schema** — schema enforcement for all YAML frontmatter across specs/agents/commands
-5. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
+1. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
 6. **057 — Notification System** — agent event notifications for desktop app
 7. **058 — File Mention System** — @-mention file references in agent conversations
 8. **059 — Git Panel** — desktop git integration panel
@@ -158,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **055 Phase 6 — integration (wire standards resolver into agent system prompts).** `src/integration.ts`: 3 exported types (`FormatOptions`, `IntegrationOptions`, `IntegrationResult`), 3 exported functions (`formatStandardsForPrompt`, `resolveAndFormat`, `composeSystemPrompt`). `formatStandardsForPrompt(resolved, options?)` converts `ResolveResult` into Markdown prompt text sorted by priority (critical→low), with `maxStandards` cap (R-003), `includeAntiPatterns` (default true), `includeExamples` (default false). `resolveAndFormat(options)` is the high-level entry: loads three tiers, resolves with category/tag filter, formats — one async call. `composeSystemPrompt(basePrompt, options)` appends standards to agent base prompt; returns unchanged when no standards match. Barrel exports and `./integration` subpath export added. `src/integration.test.ts`: 26 tests (format: empty/single/context/anti-patterns/examples/priority-sort/id-sort/maxStandards/dividers/rules/header; resolveAndFormat: disk-load/category-filter/tag-filter/empty/override/candidate-exclusion/format-passthrough; composeSystemPrompt: append/no-match/preservation). Validation: `tsc` clean, 130/130 tests pass (104 existing + 26 new). 055 feature-complete — all 6 phases delivered. FR-008 (resolver integration), R-003 (context window mitigation via maxStandards + tag/category filtering), SC-003 (candidate exclusion in prompt output) satisfied at integration layer.
 
 - 2026-03-31 (claude): **055 Phase 5 — candidate review workflow (list/promote/reject).** `src/review.ts`: 4 exported types (`CandidateEntry`, `ListCandidatesResult`, `EditCandidateOptions`, `ReviewActionResult`), 3 exported functions (`listCandidates`, `promoteCandidate`, `rejectCandidate`). `listCandidates(projectRoot)` discovers YAML files in `standards/candidates/`, parses each via `parseStandardFile()`, returns only `status: candidate` entries sorted by filename; skips non-candidate files with `CS_NOT_CANDIDATE` info diagnostic; graceful empty on missing directory. `promoteCandidate(candidateId, targetTier, projectRoot, edits?)` finds candidate by id, changes status to `active`, applies optional `EditCandidateOptions` (priority, context, tags, rules, anti_patterns, examples), serializes to YAML, creates target tier directory if needed (`mkdir recursive`), writes to `standards/<tier>/<fileName>`, removes original candidate file (warns on delete failure without failing). `rejectCandidate(candidateId, projectRoot)` marks status as `rejected` in-place, preserving all other fields for audit trail; rejected candidates excluded from subsequent `listCandidates` calls (status check). `StandardStatus` type extended: `"active" | "candidate" | "rejected"` (R-004 resolved). `VALID_STATUSES` set in `schema.ts` updated. Existing `schema.test.ts` fixed (invalid status test changed from `"rejected"` to `"bogus"`). Barrel exports updated (`index.ts`), `./review` subpath export added (`package.json`). `src/review.test.ts`: 20 tests covering list (empty dir, multiple candidates, non-candidate skip, invalid YAML, non-yaml ignored, sorted by filename, filePath/fileName fields), promote (to active, removes candidate, creates tier dir, applies edits, applies rule edits, not-found error, official tier target), reject (marks rejected, preserves fields, not-found error, excluded from list), end-to-end workflow (list→promote+reject→verify empty→check promoted file), yml extension. Validation: `tsc` clean, 104/104 tests pass (84 existing + 20 new). FR-007, R-004 satisfied.
 
