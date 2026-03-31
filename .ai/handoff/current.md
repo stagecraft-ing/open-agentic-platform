@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — selected next P1 slice and drafted phased plan for 049.
-- Next owner: **claude** — review 049 phased plan against spec before Phase 1 coding.
-- Last baton update: 2026-03-30 — **cursor**: Selected **049 Permission System** as the next P1 implementation slice and created `.ai/plans/049-permission-system-phased-plan.md` with P-001..P-006 design decisions and six implementation phases (matcher, store, evaluator, `canUseTool` integration, CLI, non-interactive defaults + verification). Baton handed to **claude** for plan review.
+- Current owner: **claude** — reviewed 049 plan, approved for Phase 1 start.
+- Next owner: **cursor** — implement Phase 1 (types + wildcard matcher).
+- Last baton update: 2026-03-30 — **claude**: Reviewed `.ai/plans/049-permission-system-phased-plan.md` against `specs/049-permission-system/spec.md`. All 12 requirements (FR-001–FR-009, NF-001–NF-003) and 6 success criteria covered across 6 phases. Phase ordering sound. P-001–P-006 decisions spec-faithful. 3 LOW findings (F-001: include `expiresAt` in Phase 1 types; F-002: document colon-segment mapping in matcher tests; F-003: clarify `edit` subcommand scope). **Plan approved — no blockers for Phase 1.** Review: `.ai/findings/049-plan-review.md`. Baton handed to **cursor** for Phase 1 implementation.
 - Recommended files to read:
-  - `specs/049-permission-system/spec.md` (canonical requirements for 049)
-  - `.ai/plans/049-permission-system-phased-plan.md` (new phased implementation plan)
-  - `.ai/findings/next-slice-prioritization-2026-03-30.md` (prioritization context)
+  - `specs/049-permission-system/spec.md` (canonical requirements)
+  - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan)
+  - `.ai/findings/049-plan-review.md` (plan review with LOW findings to address in Phase 1)
 
 ## Requested next agent output
 
-**claude**: Review `.ai/plans/049-permission-system-phased-plan.md` against `specs/049-permission-system/spec.md`, report findings in `.ai/findings/049-plan-review.md`, and either approve Phase 1 start or return required plan fixes.
+**cursor**: Implement Phase 1 of 049 (types + wildcard matcher) per `.ai/plans/049-permission-system-phased-plan.md`. Address F-001 (include `expiresAt` in `PermissionEntry` types) and F-002 (document colon-segment mapping in matcher tests) inline. Validate with unit tests covering SC-004 fixture.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **049 plan review** — Plan approved for Phase 1 start. All 12 requirements (FR-001–FR-009, NF-001–NF-003) and 6 success criteria (SC-001–SC-006) covered across 6 phases. Phase ordering sound (matcher → store → evaluator → hook → CLI → non-interactive). P-001–P-006 decisions all spec-faithful. 6 findings: F-001 include `expiresAt` in Phase 1 types (LOW), F-002 document colon-segment mapping in matcher tests (LOW), F-003 `edit` subcommand scope clarification (LOW), F-004–F-006 (INFO). No blockers. Baton handed to **cursor** for Phase 1 implementation. Review: `.ai/findings/049-plan-review.md`.
 - 2026-03-30 (cursor): **049 planning pass** — Responded to baton by selecting `049-permission-system` as the next P1 slice and drafting `.ai/plans/049-permission-system-phased-plan.md`. Plan includes P-001..P-006 decisions and six execution phases: wildcard matcher/types, JSON permission store, layered evaluator + prompt contract, `canUseTool` integration, CLI permission management, and non-interactive defaults with verification evidence. Baton handed to **claude** for plan review before Phase 1 coding.
 - 2026-03-30 (claude): **051 Phase 6 review** — Phase 6 approved. All 5 Tauri commands wired (spawn, list, diff, merge, discard) with frontend API wrappers and type definitions. P5-003 (cherry-pick --abort) resolved at line 296. P5-004 (merge→discard chain) resolved at line 314. FR-006/FR-007/FR-008/FR-009 satisfied at Tauri layer. 6 findings: P6-001 in-memory state lost on restart (LOW), P6-002 dirty-check on main tree only (LOW), P6-003 no integration tests (LOW), P6-004 merge failure stale state (LOW), P6-005/P6-006 (INFO). **051 feature-complete — all 6 phases approved.** Review: `.ai/findings/051-phase6-review.md`.
 - 2026-03-30 (cursor): **051 Phase 6** — Added Tauri command surface for worktree agents (`spawn_background_agent`, `list_background_agents`, `get_agent_diff`, `merge_agent`, `discard_agent`) in `apps/desktop/src-tauri/src/commands/worktree_agents.rs`, wired into `commands/mod.rs` and `src/lib.rs` invoke handler, and added API wrappers in `apps/desktop/src/lib/api.ts` + endpoint mappings in `apiAdapter.ts`. Implemented merge->discard chaining and `cherry-pick --abort` on cherry-pick failure path. Added `specs/051-worktree-agents/execution/verification.md`. Validation: `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass.
