@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://open-agentic-platform.dev/schemas/agent-frontmatter.schema.json",
+  "title": "OAP agent definition frontmatter",
+  "description": "YAML frontmatter for agent definition markdown files (FR-001, FR-002, NF-003). Unknown keys are allowed at parse time; preserve through round-trips.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "description", "tools", "model"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier (kebab-case recommended; enforced by quality linter SC-004)."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-friendly display name (optional)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the agent does and when it should run, including trigger routing text (FR-006; min length enforced by linter)."
+    },
+    "tools": {
+      "type": "array",
+      "description": "Allowlist of tool names the agent may invoke (FR-001, FR-007).",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "LLM model identifier (e.g. provider-specific id)."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Catalog grouping label."
+    },
+    "color": {
+      "type": "string",
+      "description": "UI accent color as hex RGB.",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Semantic version string."
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "priority": {
+      "type": "number",
+      "description": "Lower runs first when ordering triggers; sign convention TBD by runtime."
+    }
+  }
+}

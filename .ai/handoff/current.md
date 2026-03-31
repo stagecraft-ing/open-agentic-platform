@@ -101,16 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 048 Phase 6 review complete. **048 feature-complete — all 6 phases approved.**
-- Next owner: **cursor** for next P1 spec (054 Agent Frontmatter Schema or 051 Worktree Agents per prioritization)
-- Last baton update: 2026-03-30 — **claude**: Phase 6 approved. FR-007 (hooks.json manifest for all 4 lifecycle events), SC-006 (manifest registers engine correctly), NF-001 (p99 < 10ms benchmark). CLI stdin/stdout contract clean. 3 starter rules (block-force-push, block-credential-read, warn-large-write) exercised end-to-end. `verification.md` complete. 47/47 tests, `tsc` clean. 6 findings (all LOW/INFO, no blockers). P6-002: force-push regex also matches `--force-with-lease` (LOW, deferrable). Review: `.ai/findings/048-phase6-review.md`.
+- Current owner: **cursor** — **054 Phase 1** delivered: JSON Schemas + phased plan (see Recent outputs).
+- Next owner: **claude** — review 054 Phase 1 artifacts against FR-005 / NF-003; then **cursor** for Phase 2 parser.
+- Last baton update: 2026-03-30 — **cursor**: 054 Agent Frontmatter Schema Phase 1 — added `schemas/agent-frontmatter.schema.json` and `schemas/skill-frontmatter.schema.json` (draft-07, `additionalProperties: true`); `.ai/plans/054-agent-frontmatter-schema-phased-plan.md` with A-001..A-004 and phases 1–6. Existing `.claude/agents/*.md` still use legacy `tools` comma form until Phase 6 migration.
 - Recommended files to read:
-  - `.ai/findings/048-phase6-review.md`
-  - `.ai/findings/next-slice-prioritization-2026-03-30.md` — for next P1 spec selection
+  - `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`
+  - `schemas/agent-frontmatter.schema.json`, `schemas/skill-frontmatter.schema.json`
+  - `specs/054-agent-frontmatter-schema/spec.md`
 
 ## Requested next agent output
 
-**cursor**: Begin next P1 spec. Recommended order per prioritization: 054 Agent Frontmatter Schema → 051 Worktree Agents → remaining P1 specs.
+**claude**: Review 054 Phase 1 (schemas + plan) vs `specs/054-agent-frontmatter-schema/spec.md`; emit `.ai/findings/054-phase1-review.md` if findings warrant.
+
+**cursor** (after review or in parallel): Begin **054 Phase 2** — frontmatter parser with path/line errors (NF-002) and unknown-field preservation (NF-003).
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +140,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **054 Phase 1** — Canonical JSON Schema at `schemas/agent-frontmatter.schema.json` (required: `name`, `description`, `tools`, `model`; optional: `category`, `color`, `displayName`, `version`, `author`, `tags`, `priority`) and `schemas/skill-frontmatter.schema.json` (required: `name`, `description`). Phased plan: `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`. Next: parser (Phase 2), then progressive loader, tool allowlist, linter, migration.
 - 2026-03-30 (claude): **048 Phase 6 review** — Phase 6 approved. FR-007 (hooks.json manifest for all 4 lifecycle events), SC-006 (manifest registers engine + CLI invokes correctly), NF-001 (p99 < 10ms with 100 rules). CLI stdin/stdout contract sound (`evaluate --event` reads stdin JSON, writes `EvaluationResult` JSON to stdout; `generate-manifest` with `--check` drift detection). 3 starter rules (block-force-push, block-credential-read, warn-large-write) cover block + warn actions with realistic patterns. `verification.md` complete with all SC evidence. 47/47 tests, `tsc` clean. Findings: P6-001 stdin error silenced (LOW), P6-002 force-push regex matches `--force-with-lease` (LOW), P6-003–P6-006 (INFO). **048 feature-complete — all 6 phases approved.** Review: `.ai/findings/048-phase6-review.md`.
 - 2026-03-30 (cursor): **048 Phase 6** — `src/hooks-json.ts`: `HOOKIFY_LIFECYCLE_EVENTS`, `buildHooksManifest`, `stringifyHooksManifest`, `writeHooksManifest` (optional `check` for CI drift). `src/cli.ts`: `evaluate --event <HookEventType> [--rules-dir]` (stdin JSON payload → stdout `EvaluationResult` JSON); `generate-manifest [--output] [--check] [--command-prefix]`. `package.json` `bin` → `dist/cli.js`. Built-in rules: `rules/block-force-push.md`, `block-credential-read.md`, `warn-large-write.md`. Tests: `hooks-json.test.ts` (SC-006), `nf001.test.ts` (NF-001), `starter-rules.test.ts`, `cli.test.ts`. `specs/048-hookify-rule-engine/execution/verification.md`. Validation: `pnpm --filter @opc/hookify-rule-engine test` (47/47), `pnpm --filter @opc/hookify-rule-engine build`.
 - 2026-03-30 (claude): **048 Phase 5 review** — Phase 5 approved. FR-008 (configurable directory + hot-reload without restart), FR-009 (invalid rule diagnostic skip), SC-004 (new rule takes effect on next event), H-004 (atomic snapshot replacement with monotonic version) all satisfied. `discoverMarkdownRuleFiles` recursive sorted walk, per-directory `fs.watch` (Linux-safe), 75ms debounce, `readRuleFiles` race-safe. `createRuleRuntime` API: `getRulesSnapshot()`, `loadRules()`, `startHotReload()`/`stopHotReload()`. 39/39 tests, `tsc` clean. Findings: P5-001 global version counter shared across runtimes (LOW), P5-002 no subdirectory creation hot-reload test (LOW), P5-003 manual `loadRules()` doesn't cancel pending debounce (LOW), P5-004–P5-006 (INFO). No blockers. Review: `.ai/findings/048-phase5-review.md`.
