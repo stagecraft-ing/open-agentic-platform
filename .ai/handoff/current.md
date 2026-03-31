@@ -103,22 +103,20 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 057 Phase 5 (event log + pruning) complete.
-- Next owner: **claude** — implement Phase 6 (integration).
-- Last baton update: 2026-03-31 — **claude**: 057 Phase 5 — event log and pruning. `src/log/event-log.ts`: `EventLog` class — in-memory event history storing `EventLogEntry` (event + status + deliveredTo + loggedAt). `append(event, status, deliveredTo)` records both delivered and suppressed events (SC-004). `query(filter?)` supports filtering by sessionId, kind, severity, status, time range (from/to inclusive), with `limit` — returns newest-first (FR-007). `prune(cutoffMs)` removes entries older than cutoff. `clear()` resets. `size` getter. `src/log/pruner.ts`: `LogPruner` class — retention-based pruning (NF-003). `DEFAULT_RETENTION_MS` = 30 days, `DEFAULT_PRUNE_INTERVAL_MS` = 24 hours. Constructor accepts `LogPrunerOptions` (retentionMs, pruneIntervalMs, injectable clock). `prune()` calculates cutoff = now - retentionMs, delegates to `EventLog.prune()`. Auto-prune via `setInterval` (unref'd). `dispose()` stops timer. Orchestrator integration: `OrchestratorOptions` extended with `eventLog?` and `pruner?`. Constructor creates `EventLog` and `LogPruner`. `notify()` logs all events — suppressed-by-dedup, suppressed-by-preference, and delivered/partial — via `eventLog.append()`. New methods: `queryLog(filter?)`, `logSize` getter, `pruneLog()`. `dispose()` now also stops pruner. Barrel exports: `EventLog`, `LogPruner`, `DEFAULT_RETENTION_MS`, `DEFAULT_PRUNE_INTERVAL_MS`, all option/query/entry types. Subpath exports: `./log`, `./pruner`. Validation: `tsc` clean, 133/133 tests pass (102 existing + 20 event-log + 11 pruner). FR-007, NF-003, SC-004 satisfied.
+- Current owner: **claude** — 057 Phase 6 (integration) complete. **057 feature-complete.**
+- Next owner: **claude** — implement next spec (058 File Mention System).
+- Last baton update: 2026-03-31 — **claude**: 057 Phase 6 — integration. `src/integration.ts`: Bridges agent lifecycle events to notification orchestrator. `AgentLifecycleEvent` interface — loose-coupled shape compatible with `@opc/worktree-agents` `AgentLifecyclePayload` without direct import. `AgentLifecycleStatus` type union (spawned, running, tool_use, completed, failed, timed_out). `DEFAULT_LIFECYCLE_MAPPINGS`: completed→task_complete/info (SC-001), failed→task_error/error, timed_out→task_error/warning, spawned→system_alert/info. `running` and `tool_use` intentionally unmapped (noise reduction). `createNotifyOptions(event, connectOpts)` converts lifecycle event to `NotifyOptions` or `null` (unmapped/suppressed). DedupeKey format: `lifecycle:{agentId}:{status}`. Metadata carries agentId, lifecycleStatus, plus conditional exitCode/signal/timeoutMs/branchName/detail. `ConnectOptions`: provider, sessionId, optional `mappings` overrides (custom `LifecycleMapping` per status, explicit `null` to suppress defaults). `LifecycleEventSource` interface (`onAny()`) — compatible with `AgentLifecycleBus` without importing. `connectLifecycleBus(orchestrator, source, options)` subscribes via `onAny()`, maps and fires `notify()` (fire-and-forget), returns `ConnectionHandle` with `disconnect()`. Barrel exports: `createNotifyOptions`, `connectLifecycleBus`, `DEFAULT_LIFECYCLE_MAPPINGS`, all types. Subpath export: `./integration`. Validation: `tsc` clean, 157/157 tests pass (133 existing + 24 integration). SC-001 satisfied (task_complete event → channel delivery). 057 feature-complete — all 6 phases delivered.
 - Recommended files to read:
-  - `packages/notification-orchestrator/src/log/event-log.ts` (event log)
-  - `packages/notification-orchestrator/src/log/pruner.ts` (retention pruner)
-  - `packages/notification-orchestrator/src/log/event-log.test.ts` (20 tests)
-  - `packages/notification-orchestrator/src/log/pruner.test.ts` (11 tests)
-  - `packages/notification-orchestrator/src/orchestrator.ts` (updated with log integration)
-  - `specs/057-notification-system/spec.md` (spec — Phase 6 next)
+  - `packages/notification-orchestrator/src/integration.ts` (lifecycle→notification bridge)
+  - `packages/notification-orchestrator/src/integration.test.ts` (24 tests)
+  - `packages/notification-orchestrator/src/index.ts` (barrel exports)
+  - `packages/notification-orchestrator/package.json` (subpath exports)
 
 ## Requested next agent output
 
-**claude**: Implement Phase 6 — integration. Wire notification orchestrator into agent lifecycle events per spec. Claude should review Phase 6 output to complete 057.
+**claude**: 057 feature-complete. Next: implement 058 — File Mention System.
 
-### Completed features (14 of 22)
+### Completed features (15 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -136,11 +134,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 053 | Verification Profiles | P1 | ✅ feature-complete (6 phases + review) |
 | 055 | YAML Standards Schema | P1 | ✅ feature-complete (6 phases) |
 | 056 | Session Memory | P1 | ✅ feature-complete (6 phases) |
+| 057 | Notification System | P1 | ✅ feature-complete (6 phases) |
 
-### Priority order for remaining P1 specs (7 unstarted)
+### Priority order for remaining P1 specs (6 unstarted)
 
-1. **057 — Notification System** — agent event notifications for desktop app
-7. **058 — File Mention System** — @-mention file references in agent conversations
+1. **058 — File Mention System** — @-mention file references in agent conversations
 8. **059 — Git Panel** — desktop git integration panel
 9. **060 — Panel Event Bus** — cross-panel communication for desktop app
 10. **061 — Conductor Track Lifecycle** — orchestrator track state management
@@ -161,6 +159,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **057 Phase 6 — integration (lifecycle→notification bridge). 057 feature-complete.** `src/integration.ts`: `AgentLifecycleEvent` interface (loose-coupled, compatible with `@opc/worktree-agents` without direct import). `AgentLifecycleStatus` union (spawned, running, tool_use, completed, failed, timed_out). `DEFAULT_LIFECYCLE_MAPPINGS`: completed→task_complete/info (SC-001), failed→task_error/error, timed_out→task_error/warning, spawned→system_alert/info; running and tool_use intentionally unmapped. `createNotifyOptions(event, connectOpts)` maps lifecycle events to `NotifyOptions` or null. DedupeKey: `lifecycle:{agentId}:{status}`. `ConnectOptions` with optional `mappings` overrides (custom per-status, explicit null to suppress). `connectLifecycleBus(orchestrator, source, options)` subscribes to `LifecycleEventSource.onAny()`, fire-and-forget `notify()`, returns `ConnectionHandle` with `disconnect()`. Barrel exports + `./integration` subpath. Validation: `tsc` clean, 157/157 tests pass (133 existing + 24 integration). SC-001 satisfied. All 6 phases delivered — 057 feature-complete.
 
 - 2026-03-31 (claude): **057 Phase 5 — event log and pruning.** `src/log/event-log.ts`: `EventLog` class — in-memory event history storing `EventLogEntry` (event, status, deliveredTo, loggedAt). `append(event, status, deliveredTo)` records both delivered and suppressed events (SC-004). `query(filter?)` supports filtering by sessionId, kind, severity, status, time range (from/to inclusive), with `limit` — returns newest-first (FR-007). `prune(cutoffMs)` removes entries older than cutoff. `clear()` resets. `src/log/pruner.ts`: `LogPruner` class — retention-based pruning (NF-003). `DEFAULT_RETENTION_MS` = 30 days, `DEFAULT_PRUNE_INTERVAL_MS` = 24 hours. Constructor accepts `LogPrunerOptions` (retentionMs, pruneIntervalMs, injectable clock). Auto-prune via `setInterval` (unref'd). Orchestrator integration: `OrchestratorOptions` extended with `eventLog?` and `pruner?`. `notify()` logs all events. New: `queryLog(filter?)`, `logSize`, `pruneLog()`. Barrel + subpath exports (`./log`, `./pruner`). Validation: `tsc` clean, 133/133 tests pass (102 existing + 20 event-log + 11 pruner). FR-007, NF-003, SC-004 satisfied.
 

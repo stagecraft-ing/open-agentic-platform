@@ -17,7 +17,8 @@
     "./channels/web-push": "./src/channels/web-push.ts",
     "./channels/toast": "./src/channels/toast.ts",
     "./log": "./src/log/event-log.ts",
-    "./pruner": "./src/log/pruner.ts"
+    "./pruner": "./src/log/pruner.ts",
+    "./integration": "./src/integration.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

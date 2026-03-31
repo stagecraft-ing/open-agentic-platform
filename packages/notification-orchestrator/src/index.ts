@@ -39,3 +39,17 @@ export type {
 
 export { LogPruner, DEFAULT_RETENTION_MS, DEFAULT_PRUNE_INTERVAL_MS } from "./log/pruner.js";
 export type { LogPrunerOptions } from "./log/pruner.js";
+
+export {
+  createNotifyOptions,
+  connectLifecycleBus,
+  DEFAULT_LIFECYCLE_MAPPINGS,
+} from "./integration.js";
+export type {
+  AgentLifecycleStatus,
+  AgentLifecycleEvent,
+  LifecycleMapping,
+  ConnectOptions,
+  LifecycleEventSource,
+  ConnectionHandle,
+} from "./integration.js";
