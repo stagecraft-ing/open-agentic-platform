@@ -2,7 +2,7 @@
 id: "050-tool-renderer-system"
 title: "Config-Driven Tool Rendering System"
 feature_branch: "050-tool-renderer-system"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:

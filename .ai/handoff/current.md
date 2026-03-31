@@ -86,7 +86,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 047 | Governance Control Plane (policy compiler) | P0 | outline-spec |
 | 048 | Hookify Rule Engine | P1 | outline-spec |
 | 049 | Permission System | P1 | outline-spec |
-| 050 | Tool Renderer System | P1 | outline-spec |
+| 050 | Tool Renderer System | P1 | ✅ feature-complete |
 | 051 | Worktree Agents | P1 | outline-spec |
 | 052 | State Persistence | P1 | outline-spec |
 | 053 | Verification Profiles | P1 | outline-spec |
@@ -103,9 +103,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **available** — 052 feature-complete. Pick up next spec (050 — Tool Renderer System).
-- Next owner: **cursor** — begin 050 Phase 1 implementation.
-- Last baton update: 2026-03-31 — **cursor**: 6D implemented. `dispatch_manifest_persisted` in `lib.rs` wires `SqliteWorkflowStore` + `EventBroadcaster` into the async dispatch loop. `PersistenceContext` struct holds `Arc<Mutex<SqliteWorkflowStore>>` + `EventBroadcaster`. Events emitted: `workflow_started`, `step_started`, `step_completed`/`step_failed`, `workflow_completed`/`workflow_failed`. State persisted after every transition. Full-stack integration test added (`integration_052_full_stack_dispatch_persist_crash_resume_sse`): 3-step manifest → dispatch → verify SQLite state (Completed) → verify 8 events in order → simulate crash (reopen store) → verify resume plan → SSE replay from offset 0 and partial offset. `verification.md` written with all FR/NF/SC evidence. 51/51 tests pass (48 unit + 3 integration), build clean, 7 pre-existing clippy warnings, zero new.
+- Current owner: **available** — 050 feature-complete. Pick up next spec (053 — Verification Profiles).
+- Next owner: **cursor** — begin 053 Phase 1 implementation.
+- Last baton update: 2026-03-31 — **claude-code**: 050 all 6 phases implemented. `dispatch_manifest_persisted` in `lib.rs` wires `SqliteWorkflowStore` + `EventBroadcaster` into the async dispatch loop. `PersistenceContext` struct holds `Arc<Mutex<SqliteWorkflowStore>>` + `EventBroadcaster`. Events emitted: `workflow_started`, `step_started`, `step_completed`/`step_failed`, `workflow_completed`/`workflow_failed`. State persisted after every transition. Full-stack integration test added (`integration_052_full_stack_dispatch_persist_crash_resume_sse`): 3-step manifest → dispatch → verify SQLite state (Completed) → verify 8 events in order → simulate crash (reopen store) → verify resume plan → SSE replay from offset 0 and partial offset. `verification.md` written with all FR/NF/SC evidence. 51/51 tests pass (48 unit + 3 integration), build clean, 7 pre-existing clippy warnings, zero new.
 - Recommended files to read:
   - `specs/052-state-persistence/execution/verification.md` (**START HERE** — full FR/NF/SC evidence matrix)
   - `crates/orchestrator/src/lib.rs` (`dispatch_manifest_persisted` + `PersistenceContext`)
@@ -115,7 +115,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 **cursor**: Pick up the next implementation slice. After each slice, **claude** reviews against `spec.md`.
 
-### Completed features (10 of 22)
+### Completed features (11 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -127,13 +127,13 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 048 | Hookify Rule Engine | P1 | ✅ feature-complete |
 | 049 | Permission System | P1 | ✅ feature-complete |
 | 051 | Worktree Agents | P1 | ✅ feature-complete |
+| 050 | Tool Renderer System | P1 | ✅ feature-complete (6 phases + verification) |
 | 052 | State Persistence | P1 | ✅ feature-complete (6 phases + verification) |
 | 054 | Agent Frontmatter Schema | P1 | ✅ feature-complete |
 
-### Priority order for remaining P1 specs (11 unstarted)
+### Priority order for remaining P1 specs (10 unstarted)
 
-1. **050 — Tool Renderer System** — config-driven UI rendering; independent of other specs, high user-facing impact
-3. **053 — Verification Profiles** — YAML verification gates; builds on 048 hookify + 054 frontmatter patterns
+1. **053 — Verification Profiles** — YAML verification gates; builds on 048 hookify + 054 frontmatter patterns
 4. **055 — YAML Standards Schema** — schema enforcement for all YAML frontmatter across specs/agents/commands
 5. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
 6. **057 — Notification System** — agent event notifications for desktop app
@@ -158,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude-code): **050 Tool Renderer System — all 6 phases implemented.** Created `packages/tool-renderer` (`@opc/tool-renderer`). Phase 1: `ToolDisplayConfig` type + `ToolDisplayRegistry` with register/get/fallback + JSON serialization. Phase 2: 7 built-in content renderers (code, diff, image, json, markdown, text, error) with `parseDiffLines` and `tryParseJson` utilities. Phase 3: `ToolBlock`, `InputDisplay`, `ResultDisplay`, `ElapsedTime` components — ToolBlock reads from registry, delegates to input/result display, shows elapsed time. `shouldAutoCollapse` based on config threshold. `selectContentRenderer` routes errors → error renderer, normal → config renderer, fallback → text. Phase 4: Default configs for 7 standard tools (Bash, Read, Edit, Write, Glob, Grep, MCP) with per-tool accent colors, input field extraction, and content renderer selection. Phase 5: `SubagentContainer` with agent identity header (name, model), nested ToolBlock list, aggregate ElapsedTime, auto-collapse at depth >= 2 (R-002). Phase 6: `ThinkingTraceBlock` using `<details>` for collapse/expand, summary line with elapsed time via `summarizeThinking()`. `createDefaultRegistry()` convenience initializes registry with all defaults + renderers. Wrote `verification.md` with FR-001–009, NF-001–003, SC-001–006 evidence. **050 feature-complete.** 57/57 tests pass, `tsc` clean, zero warnings.
 
 - 2026-03-31 (cursor): **052 Phase 6D — dispatch loop wiring + verification** — Implemented `dispatch_manifest_persisted` in `crates/orchestrator/src/lib.rs` with `PersistenceContext` (`Arc<Mutex<SqliteWorkflowStore>>` + `EventBroadcaster`). At workflow start: `WorkflowState::new` + `write_workflow_state` + `append_event("workflow_started")` + broadcast. At each step: `mark_step_started` + persist + emit `step_started` → execute → `mark_step_finished` + persist + emit `step_completed`/`step_failed`. On completion: `workflow_completed` event. On failure: `workflow_failed` status + `step_failed` event. Added full-stack integration test `integration_052_full_stack_dispatch_persist_crash_resume_sse`: 3-step manifest dispatched with persistence → verifies all 3 steps Success + 8 events in correct order (workflow_started, 3× step_started/completed, workflow_completed) → simulates crash (reopen SQLite) → verifies state survived + no resume needed (all complete) → SSE replay from offset 0 returns full history + partial offset replay returns subset. Re-exported `PersistenceContext` and `HttpState` from `lib.rs`. Wrote `specs/052-state-persistence/execution/verification.md` mapping all FR-001–008, NF-001–003, SC-001–006 to test evidence. **052 feature-complete.** 51/51 tests pass (48 unit + 3 integration), build clean, 7 pre-existing clippy warnings, zero new. Validation: `cargo build`, `cargo test`, `cargo clippy`.
 
