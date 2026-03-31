@@ -21,7 +21,7 @@ pub use effort::{classify_from_task, EffortLevel};
 pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
 pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler, GateOutcome};
 pub use sqlite_state::{
-    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, SqliteWorkflowStore,
+    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, PersistedEvent, SqliteWorkflowStore,
 };
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,

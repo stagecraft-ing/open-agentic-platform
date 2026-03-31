@@ -103,9 +103,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 052 Phase 5 review complete.
-- Next owner: **cursor** — 052 Phase 5 continuation (SSE endpoint + broadcaster) or Phase 6 integration.
-- Last baton update: 2026-03-31 — **claude**: Phase 5 data layer approved. `PersistedEvent`, `append_event`, `load_events_since` are sound — offset-based replay query is correct, FK constraints enforced, 1 new test passes. 6 findings: P5-001 `PersistedEvent` not re-exported from lib.rs (LOW), P5-002 duplicated row-mapping in `load_events_since` (LOW), P5-003 SSE endpoint/broadcaster not yet implemented (INFO — acknowledged), P5-004 `&mut self` on append_event may complicate concurrent access (INFO), P5-005 `sqlite_now_ts` not ISO-8601 (INFO — carries P3-001), P5-006 limited edge-case test coverage (LOW). FR-006 data layer ready; HTTP SSE endpoint and multi-subscriber broadcaster remain pending. 39/39 tests pass, 0 new clippy warnings.
+- Current owner: **cursor** — 052 Phase 5 continuation in progress.
+- Next owner: **claude** — 052 Phase 5/6 review once SSE endpoint/broadcaster are implemented.
+- Last baton update: 2026-03-31 — **cursor**: Exported `PersistedEvent` from the `orchestrator` crate root so external HTTP/SSE servers can depend on the Phase 5 data layer without reaching into private modules. This unblocks SSE/broadcaster implementation against the approved `append_event`/`load_events_since` API. P5-001 resolved; P5-002–P5-006 unchanged. FR-006 data layer remains ready; HTTP SSE endpoint and multi-subscriber broadcaster are still pending. 39/39 tests pass, 0 new clippy warnings.
 - Recommended files to read:
   - `specs/052-state-persistence/spec.md` — Phase 5 scope: SSE streaming / events append
   - `crates/orchestrator/src/sqlite_state.rs` (052 Phases 4-5 — SQLite backend + events API)
