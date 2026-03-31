@@ -101,19 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — completed 049 Phase 4 review.
-- Next owner: **cursor** — implement 049 Phase 5 (CLI permissions management).
-- Last baton update: 2026-03-31 — **claude**: Phase 4 approved. FR-001 (every invocation routed through handler), FR-004 (prompt contract via broker), FR-007 (disallowed precedence preserved) all satisfied. `createPermissionHandler` at `handler.ts:53–79` returns SDK-compatible `canUseTool`, unconditionally routes through evaluator. Sidecar wiring at `node-sidecar.ts:202–261` chains allowlist → permission evaluation → error surface with rationale+source. 18/18 tests, `tsc` clean (both packages). 6 findings: P4-001 resolveArgument duplication (LOW), P4-002 blockedDecision closure mutation (LOW), P4-003 no default argument extraction test (LOW), P4-004 provider path skips permissions (LOW), P4-005/P4-006 (INFO). No blockers. Review: `.ai/findings/049-phase4-review.md`.
+- Current owner: **claude** — completed 049 Phase 5 review.
+- Next owner: **cursor** — implement 049 Phase 6 (non-interactive defaults with verification evidence).
+- Last baton update: 2026-03-31 — **claude**: Phase 5 approved. FR-008 (list/revoke/clear CLI subcommands), SC-005 (list output includes patterns, scopes, timestamps), SC-006 (revoke removes entry, subsequent calls re-prompt) all satisfied. `runPermissionsCli` at `cli.ts:66–160` accepts injectable store/output, returns exit codes. Pipe-delimited output with header row. 25/25 tests, `tsc` clean. 6 findings: P5-001 CLI not re-exported from index.ts (LOW — intentional separation), P5-002 no --scope flag for list (LOW), P5-003 no empty store test (LOW), P5-004/P5-005/P5-006 (INFO). No blockers. Review: `.ai/findings/049-phase5-review.md`.
 - Recommended files to read:
-  - `specs/049-permission-system/spec.md` (canonical FR/NF/SC — Phase 5 targets FR-008, SC-005, SC-006)
-  - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 5 section)
-  - `.ai/findings/049-phase4-review.md` (Phase 4 review and known LOW follow-ups)
-  - `packages/permission-system/src/store.ts` (store API used by CLI: list, revoke, clearExpired)
-  - `packages/permission-system/src/types.ts` (PermissionEntry shape for CLI output formatting)
+  - `specs/049-permission-system/spec.md` (canonical FR/NF/SC — Phase 6 targets FR-009)
+  - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 6 section)
+  - `.ai/findings/049-phase5-review.md` (Phase 5 review and known LOW follow-ups)
+  - `packages/permission-system/src/evaluator.ts` (evaluator pipeline — non-interactive mode hooks into layer 1)
+  - `packages/permission-system/src/defaults.ts` (bypass/disallowed lists — non-interactive allow-list extends this)
 
 ## Requested next agent output
 
-**cursor**: Implement 049 Phase 5 — CLI permissions management (FR-008, SC-005, SC-006). Deliverables: `packages/permission-system/src/cli.ts` with `permissions list`, `permissions revoke <pattern>`, `permissions clear --expired`. Output formatting includes pattern, decision, scope, timestamps. See plan Phase 5 section for full details. Validation: unit tests for list output, revoke re-prompt behavior, and clear --expired.
+**cursor**: Implement 049 Phase 6 — non-interactive defaults and verification evidence (FR-009). Deliverables: configurable deny-all / allow-from-list default for non-interactive sessions, `specs/049-permission-system/execution/verification.md` with SC evidence for all 6 phases. See plan Phase 6 section for full details. Validation: unit tests for non-interactive deny-all and allow-list modes.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +139,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **049 Phase 5 review** — Phase 5 approved. FR-008 (list/revoke/clear CLI subcommands with injectable store, exit codes, flag parsing), SC-005 (list output with pipe-delimited header + data rows containing pattern, tool, decision, scope, createdAt, expiresAt), SC-006 (revoke removes entry by pattern, verified store no longer contains it, re-prompt follows from evaluator fallthrough) all satisfied. `runPermissionsCli` at `cli.ts:66–160` returns exit codes, accepts `PermissionCliOptions` with `store`, `nowIso`, `writeLine`, `writeError` for full testability. 25/25 tests (7 CLI-specific), `tsc` clean. 6 findings: P5-001 CLI not re-exported from index.ts (LOW — intentional separation via subpath export), P5-002 no `--scope` flag for `list` subcommand (LOW), P5-003 no empty store list test (LOW), P5-004 revoke matches pattern-only not tool+pattern (INFO — consistent with P2-001), P5-005 no scoped revoke test (INFO), P5-006 pipe-delimited format not machine-parseable (INFO). No blockers for Phase 6. Review: `.ai/findings/049-phase5-review.md`.
 
 - 2026-03-31 (claude): **049 Phase 4 review** — Phase 4 approved. FR-001 (every tool invocation routed through `createPermissionHandler` → evaluator), FR-004 (prompt contract via PermissionBroker → upstream UI), FR-007 (disallowed precedence preserved — handler delegates entirely to evaluator layer order) all satisfied. Handler at `handler.ts:53–79` returns SDK-compatible `canUseTool`, unconditionally evaluates every call. Sidecar at `node-sidecar.ts:202–261` chains allowlist gating → permission evaluation → error surface with rationale+source. 18/18 tests, `tsc` clean (both packages). 6 findings: P4-001 resolveArgument duplicated between handler default and sidecar inline (LOW), P4-002 blockedDecision captured via closure mutation (LOW — safe in single-threaded bridge path), P4-003 no test for default argument extraction precedence (LOW), P4-004 provider path skips permission enforcement (LOW — likely intentional), P4-005 handler test coverage minimal but sufficient (INFO), P4-006 allow_remember not exercisable through broker (INFO). No blockers for Phase 5. Review: `.ai/findings/049-phase4-review.md`.
 
