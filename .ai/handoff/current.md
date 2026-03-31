@@ -103,16 +103,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 6 remaining sub-tasks (6C integration tests, 6D dispatch loop wiring). Also fix P6-001 clippy and P6-003 double-serialization.
-- Next owner: **claude** — review 6C+6D once implementation lands.
-- Last baton update: 2026-03-31 — **claude**: Phase 6 partial review completed. 6A (HTTP SSE endpoint) and 6B (per-workflow broadcaster registry) approved — Axum handler correct, DashMap registry correct, R-001/R-002 resolved. 6C (integration tests) and 6D (dispatch loop wiring) not yet implemented. 48/48 tests pass, build clean. 6 findings: P6-001 unnecessary `&mut` in http.rs:70 (LOW), P6-002 no HTTP-level tests (LOW), P6-003 double-serialization via `json_data()` (LOW), P6-004 no broadcaster cleanup on workflow completion (INFO), P6-005 silent lagged subscriber handling (INFO), P6-006 no middleware (INFO). Review: `.ai/findings/052-phase6-review.md`.
+- Current owner: **cursor** — 052 Phase 6D (dispatch loop wiring — final sub-task). Wire state persistence + event broadcasting into `dispatch_manifest` in `lib.rs`.
+- Next owner: **claude** — review 6D once implementation lands, then write verification.md.
+- Last baton update: 2026-03-31 — **claude**: 6C review completed. 2 integration tests approved (crash-resume + SSE replay round-trip). P6-001 (clippy `&mut`) and P6-003 (double-serialization) fixes approved. 50/50 tests pass, build clean, zero new clippy warnings. 6D (dispatch loop wiring) not yet started — neither `dispatch_manifest_noop` nor `dispatch_manifest` persist state or emit events. 4 findings: P6C-001 no live-event integration test (INFO), P6C-002 no HTTP-level test (INFO), P6C-003 JSON-only crash test (INFO), P6C-004 no full-stack test blocked on 6D (LOW). Review: `.ai/findings/052-phase6-6C-review.md`.
 - Recommended files to read:
-  - `.ai/findings/052-phase6-review.md` (**START HERE** — 6A/6B approved, remaining work for 6C/6D)
-  - `.ai/findings/052-phase6-readiness.md` (original Phase 6 implementation guidance — 6C/6D sections still applicable)
+  - `.ai/findings/052-phase6-6C-review.md` (**START HERE** — 6C approved, 6D guidance at bottom)
+  - `.ai/findings/052-phase6-readiness.md` (original Phase 6 implementation guidance — 6D section still applicable)
   - `specs/052-state-persistence/spec.md` — Phase 6 scope: end-to-end integration + crash resume
-  - `crates/orchestrator/src/http.rs` (052 Phase 6A/6B — HTTP SSE endpoint + broadcaster registry)
-  - `crates/orchestrator/src/lib.rs` (dispatch_manifest_noop to extend for 6D)
+  - `crates/orchestrator/src/lib.rs` (`dispatch_manifest` at line 503 — wire persistence here)
   - `crates/orchestrator/src/sqlite_state.rs` (SQLite backend for 6D wiring)
+  - `crates/orchestrator/src/http.rs` (6A/6B — reviewed and approved)
 
 ## Requested next agent output
 
@@ -161,6 +161,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 6C review** — 6C (integration tests) approved. 2 tests: (1) crash-resume from JSON state file — 3-step manifest, partial execution, reload, `compute_resume_plan_from_state` asserts correct resume point (SC-001, SC-005); (2) SSE replay round-trip — SQLite store → `append_event` × 3 → `subscribe_with_replay` → asserts full history with correct types and ordering (FR-006). P6-001 fix approved (`&mut` → `&` in http.rs). P6-003 fix approved (`json_data` → `data` in both replay and live paths). 50/50 tests pass, build clean, zero new clippy warnings. 6D (dispatch loop wiring) not yet started — `dispatch_manifest` and `dispatch_manifest_noop` don't persist state or emit events. 4 findings: P6C-001 no live-event integration test (INFO), P6C-002 no HTTP-level test (INFO), P6C-003 JSON-only crash test (INFO), P6C-004 full-stack test blocked on 6D (LOW). Review: `.ai/findings/052-phase6-6C-review.md`.
 
 - 2026-03-31 (claude): **052 Phase 6 partial review** — 6A (HTTP SSE endpoint) and 6B (per-workflow broadcaster registry) approved. `http.rs` delivers Axum SSE handler at `GET /workflows/:id/events?offset=N` wrapping `subscribe_with_replay` with replay-then-live stream, dedup via `high_water_mark`, 15s keep-alive, 404 on missing workflow. `HttpState` uses `Arc<Mutex<SqliteWorkflowStore>>` (R-002 resolved) + `Arc<DashMap<Uuid, EventBroadcaster>>` (lock-free per-workflow). Tokio `rt-multi-thread` added to main deps (R-001 resolved). 48/48 tests pass, build clean. 6C (integration tests) and 6D (dispatch loop wiring) not yet started. 6 findings: P6-001 unnecessary `&mut` in `http.rs:70` (LOW), P6-002 no HTTP-level tests (LOW), P6-003 double-serialization via `json_data()` (LOW), P6-004 no broadcaster cleanup (INFO), P6-005 silent lagged handling (INFO), P6-006 no middleware (INFO). Review: `.ai/findings/052-phase6-review.md`.
 
