@@ -101,18 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — Phase 1 review complete, approved.
-- Next owner: **cursor** — implement Phase 2 (concurrency + FIFO queue, FR-002, SC-002) per `.ai/plans/051-worktree-agents-phased-plan.md`.
-- Last baton update: 2026-03-30 — **claude**: Phase 1 approved. FR-001 (worktree creation + branch), FR-010 (shared `.git`, isolated working tree), NF-003 (idempotent cleanup) all satisfied. F-001 resolved (root `.gitignore` + inner `.worktrees/.gitignore`). F-003 resolved (`reconcileOrphanWorktreeDirs` detects orphans, callers decide removal). 6 findings: P1-001 LOW (sanitize collision), P1-002 LOW (no startPoint test), P1-003 LOW (no direct porcelain parser test), P1-004–P1-006 INFO. 4/4 tests pass. Review: `.ai/findings/051-phase1-review.md`.
+- Current owner: **cursor** — Phase 2 implementation complete (concurrency limiter + FIFO queue).
+- Next owner: **claude** — review Phase 2 implementation against FR-002 / SC-002.
+- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 2 in `packages/worktree-agents/src/concurrency.ts` with `FifoConcurrencyLimiter` (default max=4), strict FIFO dequeue on slot release, and API metrics (`maxConcurrent`, `activeCount`, `queuedCount`). Added Phase 2 tests in `packages/worktree-agents/src/concurrency.test.ts` covering SC-002 (max=2 third acquire waits), FIFO order under queued releases, and invalid config guard. Validation: `pnpm --filter @opc/worktree-agents test` (7/7).
 - Recommended files to read:
-  - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 2 section)
-  - `packages/worktree-agents/src/worktree-manager.ts`
+  - `packages/worktree-agents/src/concurrency.ts`
+  - `packages/worktree-agents/src/concurrency.test.ts`
 
 ## Requested next agent output
 
-**cursor**: Implement Phase 2 — concurrency + FIFO queue (FR-002, SC-002) per `.ai/plans/051-worktree-agents-phased-plan.md`.
-
-**claude** (after Phase 2): Review Phase 2 implementation against spec FR-002/SC-002.
+**claude**: Review Phase 2 (`packages/worktree-agents/src/concurrency.ts`) against spec FR-002/SC-002 and confirm no blockers for Phase 3 (agent lifecycle + timeout).
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **051 Phase 2** — Added `packages/worktree-agents/src/concurrency.ts` with `FifoConcurrencyLimiter` semaphore (default max 4), strict FIFO pending queue, and queue/active metrics for API exposure. Added `src/concurrency.test.ts` validating SC-002 wait semantics (`max=2`, third acquire blocks until release), FIFO wake-up order, and invalid max guard. Package exports updated (`index.ts`, `package.json`). Validation: `pnpm --filter @opc/worktree-agents test` (7/7).
 - 2026-03-30 (claude): **051 Phase 1 review** — Phase 1 approved. FR-001 (worktree creation + branch naming `agent/<id>-<slug>`), FR-010 (shared `.git`, isolated working tree — test confirms write isolation), NF-003 (idempotent cleanup via `sameRealPath` matching + `--force` removal + `fs.rm` fallback) all satisfied. F-001 resolved (root `.gitignore` line 299 + `ensureWorktreesDirectoryIgnored` inner `.gitignore`). F-003 resolved (`reconcileOrphanWorktreeDirs` scans `.worktrees/` for directories not in known set — detection only, callers decide removal). 4/4 tests pass. 6 findings: P1-001 `sanitizeSegment` collision potential (LOW — safe failure via `PATH_EXISTS`), P1-002 no `startPoint` test (LOW), P1-003 no direct porcelain parser test (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/051-phase1-review.md`.
 - 2026-03-30 (cursor): **051 Phase 1** — New package `packages/worktree-agents` (`@opc/worktree-agents`): `createAgentWorktree`, `listOapWorktrees`, `removeAgentWorktree` (idempotent), `reconcileOrphanWorktreeDirs`, `ensureWorktreesDirectoryIgnored`, branch/path helpers; repo root `.gitignore` adds `.worktrees/`. Validation: `pnpm --filter @opc/worktree-agents test` (4/4), `tsc` clean.
 - 2026-03-30 (claude): **051 plan review** — Plan approved for Phase 1 start. All 19 requirements (10 FR + 3 NF + 6 SC) covered across 6 phases. Phase ordering sound (worktree manager → concurrency → runner → events → diff/merge → integration). W-001..W-006 decisions all spec-faithful. 6 findings: F-001 `.worktrees/` gitignore handling (LOW), F-002 cherry-pick commit selection API detail (LOW), F-003 orphan reconciliation not assigned to a phase (LOW), F-004–F-006 (INFO). No blockers. Baton handed to **cursor** for Phase 1 implementation. Review: `.ai/findings/051-plan-review.md`.
