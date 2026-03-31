@@ -1,0 +1,147 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# FullStack-App Feature Registry
+# Authoritative source of truth for FullStack-App capabilities and contracts.
+
+features:
+  # --- Existing Product (Uptime Monitoring) ---
+  - id: UPTIME_MONITORING
+    title: "Uptime monitoring UI - site list, add/delete, status polling"
+    governance: approved
+    implementation: done
+    spec: "spec/core/uptime-monitoring.md"
+    owner: core-team
+    group: product
+    tests: []
+    depends_on: [SITE_SERVICE, MONITOR_SERVICE]
+
+  - id: SITE_SERVICE
+    title: "Site CRUD API, Pub/Sub site.added"
+    governance: approved
+    implementation: done
+    spec: "spec/core/uptime-monitoring.md"
+    owner: core-team
+    group: backend
+    tests: []
+    depends_on: []
+
+  - id: MONITOR_SERVICE
+    title: "Ping, check, status, cron, Pub/Sub transitions"
+    governance: approved
+    implementation: done
+    spec: "spec/core/uptime-monitoring.md"
+    owner: core-team
+    group: backend
+    tests: []
+    depends_on: [SITE_SERVICE]
+
+  - id: SLACK_NOTIFICATIONS
+    title: "Slack webhook on uptime transitions"
+    governance: approved
+    implementation: done
+    spec: "spec/core/uptime-monitoring.md"
+    owner: core-team
+    group: backend
+    tests: []
+    depends_on: [MONITOR_SERVICE]
+
+  # --- SaaS Template (Auth & Sessions) ---
+  - id: AUTH_USER
+    title: "Signup, signin, signout, user session cookie (__session)"
+    governance: approved
+    implementation: done
+    spec: "spec/core/auth.md"
+    owner: core-team
+    group: auth
+    tests: []
+    depends_on: []
+
+  - id: AUTH_ADMIN
+    title: "Admin signin/signout, admin session cookie (__admin_session)"
+    governance: approved
+    implementation: done
+    spec: "spec/core/auth.md"
+    owner: core-team
+    group: auth
+    tests: []
+    depends_on: [AUTH_USER]
+
+  - id: RBAC
+    title: "Role-based access - user | admin"
+    governance: approved
+    implementation: done
+    spec: "spec/core/rbac.md"
+    owner: core-team
+    group: auth
+    tests: []
+    depends_on: [AUTH_USER, AUTH_ADMIN]
+
+  - id: AUDIT_LOG
+    title: "Admin action audit - actor, action, target, metadata"
+    governance: approved
+    implementation: done
+    spec: "spec/core/audit.md"
+    owner: core-team
+    group: admin
+    tests: []
+    depends_on: [RBAC]
+
+  - id: LANDING_PAGES
+    title: "Public landing, pricing"
+    governance: approved
+    implementation: done
+    spec: "spec/core/routing.md"
+    owner: core-team
+    group: frontend
+    tests: []
+    depends_on: []
+
+  - id: USER_APP
+    title: "Protected /app routes - dashboard, settings"
+    governance: approved
+    implementation: done
+    spec: "spec/core/routing.md"
+    owner: core-team
+    group: frontend
+    tests: []
+    depends_on: [AUTH_USER]
+
+  - id: ADMIN_APP
+    title: "Protected /admin routes - users, audit"
+    governance: approved
+    implementation: done
+    spec: "spec/core/routing.md"
+    owner: core-team
+    group: frontend
+    tests: []
+    depends_on: [AUTH_ADMIN, RBAC]
+
+  - id: BOOTSTRAP_ADMIN
+    title: "First admin creation - env var or CLI"
+    governance: approved
+    implementation: done
+    spec: "spec/core/auth.md"
+    owner: core-team
+    group: auth
+    tests: []
+    depends_on: [AUTH_USER]
+
+  # --- Encore + React Router Integration ---
+  - id: ENCORE_CLIENT_AUTH
+    title: "Typed Encore client for auth/admin - auth-api uses client, not raw fetch"
+    governance: approved
+    implementation: done
+    spec: "spec/core/auth.md"
+    owner: core-team
+    group: frontend
+    tests: []
+    depends_on: [AUTH_USER, AUTH_ADMIN]
+
+  - id: ENCORE_REQUEST_FORWARDING
+    title: "Encore request forwarding - fix Origin/Host, form data, CSRF"
+    governance: approved
+    implementation: done
+    spec: "spec/core/routing.md"
+    owner: core-team
+    group: frontend
+    tests: []
+    depends_on: [USER_APP, ADMIN_APP]

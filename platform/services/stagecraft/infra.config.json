@@ -1,0 +1,63 @@
+{
+  "$schema": "https://encore.dev/schemas/infra.schema.json",
+  "secrets": {
+    "DOMAIN": { "$env": "DOMAIN" },
+    "LOGTO_SPA_CLIENT_ID": { "$env": "LOGTO_SPA_CLIENT_ID" },
+    "SLACK_WEBHOOK_URL": { "$env": "SLACK_WEBHOOK_URL" }
+  },
+  "pubsub": [
+    {
+      "type": "nsq",
+      "hosts": "nsqd:4150",
+      "topics": {
+        "uptime-transition": {
+          "name": "uptime-transition",
+          "subscriptions": {
+            "slack-notification": {
+              "name": "slack-notification"
+            }
+          }
+        },
+        "site.added": {
+          "name": "site.added",
+          "subscriptions": {
+            "check-site": {
+              "name": "check-site"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "sql_servers": [
+    {
+      "host": "127.0.0.1",
+      "tls_config": {
+        "ca": "-----BEGIN CERTIFICATE-----\nMIIERDCCAqygAwIBAgIUAw4joL6SyPM3z0NavaIx49hmdhcwDQYJKoZIhvcNAQEM\nBQAwOjE4MDYGA1UEAwwvZDg1YWM3NWMtNzgyYy00YmFjLTkyOWMtZTZhZGNlZWE2\nYTdkIFByb2plY3QgQ0EwHhcNMjYwMjA3MjI1NDUxWhcNMzYwMjA1MjI1NDUxWjA6\nMTgwNgYDVQQDDC9kODVhYzc1Yy03ODJjLTRiYWMtOTI5Yy1lNmFkY2VlYTZhN2Qg\nUHJvamVjdCBDQTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBALDymDUM\nxRuLEcVEh3rRPWm39zzbSxcng6M6BnZje2Dg7UwrK2/j/nhI/48frSVZHVk6xdO2\nJRG+lpOXD9wq0TZZpEn5rwYHd3ix6m8nJWZYmxpNVTAm2TzWcz5TT5JEI7C6lEDV\nyIzlf8w5DEGN4BmSs0mNHZh1XS1JtKKcOzwr0G4dom3pp2AEIaui4aiJqCtIOrB4\nNPgLRO17iztMcf6YrYAJHcnJdO/u25N6YXdnn8BUn/u12e7FYI4rvVLGovPAGEip\n14XfLTvLKilXn2ZEP9p6vqDYw1qR1qbgPma86Ib1sNxSuvE2jZ5Yd4JhlkfbQBS5\nctm0YtLN98qggLw46ZmETo/Z06eG0Nh1fdGfdZoKWMD2Bsl37B0YTVGMrqcY4ADw\neV9oR7zEVvVJo1Gon/A6ZfvceTqOVa9MI+zsnT8J01anWK5fYboPgz6xq9EWlsX3\nOxZdlaoFOlx7xWE8MVThNjoynW4Np2NJJuO5EFPaBvdJwrJSVKL0bcebXwIDAQAB\no0IwQDAdBgNVHQ4EFgQUmFIOy1tSdB1GWDvlIwycbgiRn1owEgYDVR0TAQH/BAgw\nBgEB/wIBADALBgNVHQ8EBAMCAQYwDQYJKoZIhvcNAQEMBQADggGBAGPw4wsnrRKW\ndquNDxpJ/V81JnaoQEusrVmm5P7eQY/oKFdGeyzkuYopuno4KGrCm9O7GgMuoARn\nCtm/sjwSnZww0/ynxSjLlvsvo/dyixzINn0FMV0K+zzW4DyVVO9Rx92lAba3PNR3\nWHhqousCCc3kjZJr7DfnEuWk8DhYnT5zdivu+FbvChc3wkpAvaFqubZK1jnNBnri\nx86NSBnsvWMVk+8lh3DhpJ6N6EvxY0tbdnSlYpK/j/UrwUX/mMmv+nXb4txH3Ugv\ncuJLY3tvZNvUUxDL3uZN/iipQugyPT8GF4YZ8IoHN/aCxRTa0Taij/cGAVIldaqU\nQegJ8OSjOnjgX5MkoINDlxCKwwWnYDuZ53S506/QLvyTu5g5TFFCwxo9yM45flxL\n/p7e1NXjUzWMrP9KYgUSv5TWbAp9tBGAik9ptbMRFdKU/KI+y6/GpkNlyQDaoANj\nahLk2ghIumgwmW+ku4CmlASL7E2ZgaxGotZSt+n99sSVImkCLrvVbw==\n-----END CERTIFICATE-----"
+      },
+      "databases": {
+        "auth": {
+          "name": "auth",
+          "username": "doadmin",
+          "password": {
+            "$env": "DB_PASSWORD"
+          }
+        },
+        "monitor": {
+          "name": "monitor",
+          "username": "doadmin",
+          "password": {
+            "$env": "DB_PASSWORD"
+          }
+        },
+        "site": {
+          "name": "site",
+          "username": "doadmin",
+          "password": {
+            "$env": "DB_PASSWORD"
+          }
+        }
+      }
+    }
+  ]
+}

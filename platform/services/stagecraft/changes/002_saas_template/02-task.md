@@ -1,0 +1,31 @@
+# Task: SaaS Template Migration
+
+- [x] Create api/db/schema.ts (users, sessions, audit_log)
+- [x] Create api/db/drizzle.ts
+- [x] Add Drizzle migrations for auth schema
+- [x] Create api/auth/passwords.ts (argon2id)
+- [x] Create api/auth/sessions.ts (newToken, hashToken)
+- [x] Create api/auth/auth.ts (signup, signin, signout, adminSignin, adminSignout, session, adminSession)
+- [x] Add BOOTSTRAP_ADMIN_EMAIL to signup
+- [x] Create api/admin/admin.ts (listUsers, setRole, listAudit)
+- [x] Create api/admin/encore.service.ts
+- [x] Create api/auth/encore.service.ts
+- [x] Add argon2, drizzle-orm, drizzle-kit to package.json
+- [x] Create web/app/lib/auth.server.ts (requireUser, requireAdmin, getCookieToken)
+- [x] Create web/app/lib/auth-api.server.ts (fetch-based auth helpers for setCookie)
+- [x] Create web/app/routes/_index.tsx (landing)
+- [x] Create web/app/routes/pricing.tsx
+- [x] Create web/app/routes/signin.tsx
+- [x] Create web/app/routes/signup.tsx
+- [x] Create web/app/routes/admin.signin.tsx
+- [x] Create web/app/routes/app.tsx (layout + requireUser loader)
+- [x] Create web/app/routes/app._index.tsx (move uptime UI from home)
+- [x] Create web/app/routes/app.settings.tsx (signout)
+- [x] Create web/app/routes/admin.tsx (layout + requireAdmin loader)
+- [x] Create web/app/routes/admin._index.tsx
+- [x] Create web/app/routes/admin.users.tsx
+- [x] Create web/app/routes/admin.audit.tsx
+- [x] Update web/app/routes.ts with new route tree
+- [x] Remove or redirect old home.tsx
+- [x] Regenerate Encore client
+- [x] Verify build and encore run

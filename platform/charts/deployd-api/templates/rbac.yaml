@@ -1,0 +1,51 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deployd-controller
+rules:
+  # Namespace management (for tenant env namespaces)
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "patch", "update"]
+
+  # NetworkPolicy baseline
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "patch", "update"]
+
+  # Helm installs need broad access in target namespaces.
+  # For MVP, allow common workload resources cluster-wide.
+  # Later: tighten by restricting to tenant namespaces only (OPA/Gatekeeper + naming convention).
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets", "endpoints"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deployd-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deployd-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.workloadIdentity.serviceAccountName }}
+    namespace: {{ .Release.Namespace }}

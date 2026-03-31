@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stagecraft-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stagecraft-api
+  template:
+    metadata:
+      labels:
+        app: stagecraft-api
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: {{ .Values.workloadIdentity.serviceAccountName }}
+      containers:
+        - name: stagecraft-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: SECRETS_DIR
+              value: {{ .Values.secretsMount.mountPath | quote }}
+            - name: LOGTO_ENDPOINT
+              value: {{ .Values.logto.endpoint | quote }}
+            - name: DEPLOYD_AUDIENCE
+              value: {{ .Values.logto.deploydAudience | quote }}
+            - name: DEPLOYD_SCOPE
+              value: {{ .Values.logto.deploydScope | quote }}
+            - name: LOGTO_M2M_CLIENT_ID_FILE
+              value: "{{ .Values.secretsMount.mountPath }}/LOGTO_M2M_CLIENT_ID"
+            - name: LOGTO_M2M_CLIENT_SECRET_FILE
+              value: "{{ .Values.secretsMount.mountPath }}/LOGTO_M2M_CLIENT_SECRET"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: {{ .Values.secretsMount.mountPath | quote }}
+              readOnly: true
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: stagecraft-api-secrets

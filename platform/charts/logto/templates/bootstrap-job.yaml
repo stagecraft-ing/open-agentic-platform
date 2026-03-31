@@ -1,0 +1,52 @@
+{{- if .Values.customSetup.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "logto.fullname" . }}-bootstrap-{{ .Release.Revision }}
+  labels:
+    app: {{ include "logto.name" . }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ include "logto.name" . }}
+      annotations:
+        checksum/custom-env: {{ .Values.customSetup.env | toJson | sha256sum }}
+        checksum/custom-scripts: {{ .Values.customSetup.configMapHash | quote }}
+        checksum/custom-secrets: {{ .Values.customSetupSecrets.secretName | quote }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              chmod +x /custom-setup/entrypoint.sh
+              exec /custom-setup/entrypoint.sh
+          env:
+            - name: DB_URL
+              value: "postgres://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@logto-postgresql:5432/{{ .Values.postgresql.auth.database }}"
+            - name: FAIL_RELEASE_ON_ERROR
+              value: {{ ternary "true" "false" .Values.customSetup.failReleaseOnError | quote }}
+            {{- range $k, $v := .Values.customSetup.env }}
+            - name: {{ $k | quote }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- if .Values.customSetupSecrets.enabled }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.customSetupSecrets.secretName | quote }}
+          {{- end }}
+          volumeMounts:
+            - name: custom-setup
+              mountPath: /custom-setup
+              readOnly: true
+      volumes:
+        - name: custom-setup
+          configMap:
+            name: {{ .Values.customSetup.configMapName | quote }}
+            defaultMode: 0555
+{{- end }}
