@@ -10,7 +10,8 @@
     ".": "./src/index.ts",
     "./worktree-manager": "./src/worktree-manager.ts",
     "./concurrency": "./src/concurrency.ts",
-    "./agent-runner": "./src/agent-runner.ts"
+    "./agent-runner": "./src/agent-runner.ts",
+    "./lifecycle-events": "./src/lifecycle-events.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

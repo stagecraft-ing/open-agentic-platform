@@ -16,6 +16,18 @@ export type {
   AgentRunnerSpawnOptions,
   PreApprovedPermissions,
 } from "./agent-runner.js";
+export { AgentLifecycleBus } from "./lifecycle-events.js";
+export type {
+  AgentCompletedEvent,
+  AgentFailedEvent,
+  AgentLifecyclePayload,
+  AgentLifecyclePayloadByStatus,
+  AgentListItem,
+  AgentRunningEvent,
+  AgentSpawnedEvent,
+  AgentTimedOutEvent,
+  AgentToolUseEvent,
+} from "./lifecycle-events.js";
 export {
   WorktreeManagerError,
   WORKTREES_DIR_NAME,
