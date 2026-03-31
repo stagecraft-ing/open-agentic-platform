@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { GateResult, VerificationDiagnostic } from "./types.js";
+import type { GateResult, VerificationDiagnostic, VerificationProfile } from "./types.js";
 import { parseProfileFile } from "./parser.js";
 import { loadSkillLibrary } from "./loader.js";
 import { executeProfile } from "./runner.js";
 import type { ExecutionOptions } from "./runner.js";
+import { getDefaultProfiles } from "./profiles.js";
 
 /** Directory within a project root where profiles are stored. */
 const PROFILES_DIR = ".verification/profiles";
@@ -28,6 +29,26 @@ async function loadProfileContent(
   }
 }
 
+async function loadProfile(
+  profileName: string,
+  projectRoot: string,
+): Promise<{ profile: VerificationProfile; filePath: string | null } | null> {
+  const loaded = await loadProfileContent(profileName, projectRoot);
+  if (loaded) {
+    const parsed = parseProfileFile(loaded.content, loaded.filePath);
+    if (!parsed.profile) {
+      return null;
+    }
+    return { profile: parsed.profile, filePath: loaded.filePath };
+  }
+
+  const bundled = getDefaultProfiles().get(profileName) ?? null;
+  if (!bundled) {
+    return null;
+  }
+  return { profile: bundled, filePath: null };
+}
+
 /**
  * Evaluate a post-session verification gate (FR-004).
  *
@@ -46,7 +67,7 @@ export async function evaluatePostSessionGate(
   opts?: ExecutionOptions,
 ): Promise<GateResult> {
   const start = Date.now();
-  const loaded = await loadProfileContent(profileName, projectRoot);
+  const loaded = await loadProfile(profileName, projectRoot);
   if (!loaded) {
     return {
       passed: false,
@@ -57,20 +78,7 @@ export async function evaluatePostSessionGate(
       durationMs: Date.now() - start,
     };
   }
-
-  const parseResult = parseProfileFile(loaded.content, loaded.filePath);
-  if (!parseResult.profile) {
-    return {
-      passed: false,
-      gated: true,
-      profile: profileName,
-      results: [],
-      failedSkills: [],
-      durationMs: Date.now() - start,
-    };
-  }
-
-  const profile = parseResult.profile;
+  const profile = loaded.profile;
 
   // Load skill library from project.
   const library = await loadSkillLibrary(projectRoot);
@@ -104,6 +112,9 @@ export async function loadProfileDiagnostics(
 ): Promise<VerificationDiagnostic[]> {
   const loaded = await loadProfileContent(profileName, projectRoot);
   if (!loaded) {
+    if (getDefaultProfiles().has(profileName)) {
+      return [];
+    }
     const yamlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yaml`);
     const ymlPath = join(projectRoot, PROFILES_DIR, `${profileName}.yml`);
     return [

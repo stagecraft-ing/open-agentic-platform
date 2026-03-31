@@ -224,6 +224,29 @@ skills:
     const result = await evaluatePostSessionGate("cwd-test", tmpDir, { cwd: "/tmp" });
     expect(result.results[0].steps[0].stdout.trim()).toMatch(/\/tmp$/);
   });
+
+  it("uses bundled hotfix profile when no local profile exists", async () => {
+    const fastPass = `
+name: REPLACE_ME
+description: "Fast pass override"
+determinism: deterministic
+safety_tier: safe
+steps:
+  - command: 'echo "ok"'
+    timeout: 5
+    read_only: true
+    network: deny
+`;
+    for (const skillName of ["lint", "type-check", "unit-tests", "security-scan"]) {
+      await writeSkill(skillName, fastPass.replace("REPLACE_ME", skillName));
+    }
+
+    const result = await evaluatePostSessionGate("hotfix", tmpDir);
+    expect(result.profile).toBe("hotfix");
+    expect(result.gated).toBe(true);
+    // The profile should resolve bundled skills and execute each one.
+    expect(result.results.length).toBeGreaterThan(0);
+  });
 });
 
 // --- loadProfileDiagnostics ---
@@ -234,6 +257,11 @@ describe("loadProfileDiagnostics", () => {
     expect(diags).toHaveLength(1);
     expect(diags[0].code).toBe("VP_PROFILE_NOT_FOUND");
     expect(diags[0].message).toContain("missing");
+  });
+
+  it("returns empty diagnostics for bundled profiles", async () => {
+    const diags = await loadProfileDiagnostics("hotfix", tmpDir);
+    expect(diags).toEqual([]);
   });
 
   it("returns parse diagnostics for invalid profile YAML", async () => {

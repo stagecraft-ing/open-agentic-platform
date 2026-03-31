@@ -12,6 +12,7 @@
     "./parser": "./src/parser.ts",
     "./schema": "./src/schema.ts",
     "./defaults": "./src/defaults.ts",
+    "./profiles": "./src/profiles.ts",
     "./loader": "./src/loader.ts",
     "./runner": "./src/runner.ts",
     "./gate": "./src/gate.ts",

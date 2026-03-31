@@ -78,10 +78,12 @@ async function writeSkill(filename: string, content: string): Promise<void> {
 describe("getDefaultSkills", () => {
   it("returns bundled platform defaults", () => {
     const defaults = getDefaultSkills();
-    expect(defaults.size).toBe(3);
+    expect(defaults.size).toBe(5);
     expect(defaults.has("lint")).toBe(true);
     expect(defaults.has("type-check")).toBe(true);
     expect(defaults.has("unit-tests")).toBe(true);
+    expect(defaults.has("security-scan")).toBe(true);
+    expect(defaults.has("license-check")).toBe(true);
 
     const lint = defaults.get("lint")!;
     expect(lint.determinism).toBe("deterministic");
@@ -94,7 +96,7 @@ describe("loadSkillLibrary", () => {
   it("returns only defaults when no .verification/skills/ directory exists", async () => {
     const lib = await loadSkillLibrary(tempDir);
     expect(lib.diagnostics).toHaveLength(0);
-    expect(lib.skills.size).toBe(3); // 3 platform defaults
+    expect(lib.skills.size).toBe(5); // 5 platform defaults
     expect(lib.skills.has("lint")).toBe(true);
   });
 
@@ -102,7 +104,7 @@ describe("loadSkillLibrary", () => {
     await mkdir(join(tempDir, ".verification", "skills"), { recursive: true });
     const lib = await loadSkillLibrary(tempDir);
     expect(lib.diagnostics).toHaveLength(0);
-    expect(lib.skills.size).toBe(3);
+    expect(lib.skills.size).toBe(5);
   });
 
   it("discovers and parses local .yaml skill files", async () => {
@@ -111,8 +113,8 @@ describe("loadSkillLibrary", () => {
 
     const lib = await loadSkillLibrary(tempDir);
     expect(lib.diagnostics).toHaveLength(0);
-    // 3 defaults + 2 local
-    expect(lib.skills.size).toBe(5);
+    // 5 defaults + 2 local, with local security-scan overriding bundled one
+    expect(lib.skills.size).toBe(6);
     expect(lib.skills.has("custom-lint")).toBe(true);
     expect(lib.skills.has("security-scan")).toBe(true);
     expect(lib.skills.get("custom-lint")!.steps[0].command).toBe("./lint.sh");
@@ -132,8 +134,8 @@ describe("loadSkillLibrary", () => {
 
     const lib = await loadSkillLibrary(tempDir);
     expect(lib.diagnostics).toHaveLength(0);
-    // 3 defaults + 1 local (README.md ignored)
-    expect(lib.skills.size).toBe(4);
+    // 5 defaults + 1 local (README.md ignored)
+    expect(lib.skills.size).toBe(6);
   });
 
   it("local skill overrides platform default with same name (R-004)", async () => {
@@ -141,8 +143,8 @@ describe("loadSkillLibrary", () => {
 
     const lib = await loadSkillLibrary(tempDir);
     expect(lib.diagnostics).toHaveLength(0);
-    // Still 3 skills — local "lint" replaced default "lint"
-    expect(lib.skills.size).toBe(3);
+    // Still 5 skills — local "lint" replaced default "lint"
+    expect(lib.skills.size).toBe(5);
     const lint = lib.skills.get("lint")!;
     expect(lint.description).toBe("Project-specific lint override");
     expect(lint.steps[0].command).toBe("./custom-lint.sh");

@@ -24,6 +24,7 @@ export { parseProfileFile, parseSkillFile } from "./parser.js";
 
 // Defaults
 export { getDefaultSkills } from "./defaults.js";
+export { getDefaultProfiles } from "./profiles.js";
 
 // Loader
 export { loadSkillLibrary, resolveSkillRef } from "./loader.js";
