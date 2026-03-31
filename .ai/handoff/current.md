@@ -103,16 +103,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 6 integration pending (HTTP SSE endpoint, workflow broadcaster registry, end-to-end crash resume verification).
-- Next owner: **claude** — review and next-slice selection once Phase 6 lands.
-- Last baton update: 2026-03-31 — **cursor**: Read `specs/052-state-persistence/spec.md`, `crates/orchestrator/src/{sqlite_state.rs,sse.rs,lib.rs}`, and Phase 5 findings to understand the existing SQLite + `EventBroadcaster` layer and confirm that FR-006/NF-002/SC-004 are satisfied at the library level. No new code changes made in this slice; Phase 6 remains to implement the HTTP SSE endpoint that wraps `EventBroadcaster::subscribe_with_replay`, introduce a per-workflow broadcaster registry, and add an end-to-end crash-resume verification that exercises the full 052 stack.
+- Current owner: **cursor** — 052 Phase 6 implementation (4 sub-tasks: HTTP SSE endpoint, broadcaster registry, persisted dispatch loop, integration tests).
+- Next owner: **claude** — Phase 6 review once implementation lands.
+- Last baton update: 2026-03-31 — **claude**: Phase 6 readiness review completed. Phases 1–5 confirmed solid (48/48 tests, 0 warnings). Wrote detailed implementation guidance for all 4 Phase 6 sub-tasks (6A HTTP SSE endpoint with axum, 6B per-workflow broadcaster registry, 6C crash-resume integration tests, 6D wiring state persistence into dispatch loop). Identified 3 new findings: R-001 tokio runtime features needed for production HTTP (INFO), R-002 `&mut self` on `append_event` requires `Arc<Mutex>` wrapping (LOW), R-003 no integration tests exist yet (LOW). No blockers. Review: `.ai/findings/052-phase6-readiness.md`.
 - Recommended files to read:
+  - `.ai/findings/052-phase6-readiness.md` (**START HERE** — full Phase 6 implementation plan with guidance per sub-task)
   - `specs/052-state-persistence/spec.md` — Phase 6 scope: end-to-end integration + crash resume
-  - `crates/orchestrator/src/sse.rs` (052 Phase 5 — SSE broadcaster module)
+  - `crates/orchestrator/src/sse.rs` (052 Phase 5 — SSE broadcaster, the module 6A wraps)
   - `crates/orchestrator/src/sqlite_state.rs` (052 Phases 4-5 — SQLite backend + events API)
-  - `crates/orchestrator/src/lib.rs` (052 Phases 1-5 — all re-exports)
-  - `.ai/findings/052-phase5-sse-review.md` (Phase 5 completion review)
-  - `.ai/findings/052-phase5-review.md` (Phase 5 data layer review)
+  - `crates/orchestrator/src/lib.rs` (052 Phases 1-5 — all re-exports + dispatch_manifest_noop to extend)
+  - `crates/orchestrator/Cargo.toml` (needs axum + tokio runtime features per R-001)
 
 ## Requested next agent output
 
@@ -161,6 +161,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 6 readiness review** — Pre-implementation assessment completed. Confirmed Phases 1–5 solid (48/48 tests, 0 warnings, all FRs satisfied at library layer). Defined 4 Phase 6 sub-tasks: 6A HTTP SSE endpoint (axum `text/event-stream` wrapping `subscribe_with_replay`), 6B per-workflow broadcaster registry (`Arc<DashMap<Uuid, EventBroadcaster>>`), 6C end-to-end crash-resume integration tests (3 test scenarios: crash resume, SSE replay after crash, full stack), 6D wiring state persistence into dispatch loop (`dispatch_manifest_persisted` or extending existing `dispatch_manifest_noop`). 3 findings: R-001 tokio needs `rt-multi-thread` for production HTTP (INFO), R-002 `&mut self` on store needs `Arc<Mutex>` for concurrent access (LOW), R-003 no integration tests directory exists (LOW). Carry-forward: P3-001 epoch timestamps, P4-001/P4-002/P4-003 minor schema gaps. No blockers for Phase 6. Review: `.ai/findings/052-phase6-readiness.md`.
 
 - 2026-03-31 (claude): **052 Phase 5 SSE broadcaster** — Implemented `EventBroadcaster` in `crates/orchestrator/src/sse.rs`. Multi-subscriber broadcast via `tokio::sync::broadcast` (NF-002: 50 concurrent subscribers tested). `subscribe_with_replay(store, wf_id, offset)` loads historical events from SQLite then streams live events with dedup via `high_water_mark` (SC-004). Fixed P5-002 (duplicated row-mapping in `load_events_since` — unified via `LIMIT i64::MAX` sentinel). Added `Serialize` derive to `PersistedEvent`. Re-exported `EventBroadcaster`, `EventSubscriber`, `ReplaySubscription` from `lib.rs`. 9 new tests, 48/48 total pass, 0 new clippy warnings. FR-006 satisfied at library layer; HTTP SSE framing and workflow broadcaster registry remain for Phase 6. Findings: P5-007 no HTTP framing (INFO — Phase 6), P5-008 lagged subscriber recovery (INFO), P5-009 per-workflow broadcaster registry needed (INFO). Review: `.ai/findings/052-phase5-sse-review.md`.
 
