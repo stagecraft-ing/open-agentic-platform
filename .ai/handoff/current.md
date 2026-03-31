@@ -103,9 +103,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 052 Phase 5 complete (SSE broadcaster implemented).
-- Next owner: **cursor** — 052 Phase 6 integration (HTTP SSE endpoint, workflow broadcaster registry, end-to-end crash resume verification).
-- Last baton update: 2026-03-31 — **claude**: Implemented `EventBroadcaster` multi-subscriber broadcast layer in `crates/orchestrator/src/sse.rs` with `subscribe_with_replay()` for offset-based replay from SQLite + live streaming (FR-006, NF-002, SC-004 satisfied at library layer). Fixed P5-002 (duplicated row-mapping in `load_events_since` — unified via `LIMIT i64::MAX` sentinel). Added `Serialize` to `PersistedEvent` for SSE JSON output. Re-exported `EventBroadcaster`, `EventSubscriber`, `ReplaySubscription` from `lib.rs`. 9 new tests (50 concurrent subscribers, replay + dedup pattern, cross-workflow isolation, empty history). P5-002 and P5-006 resolved. 3 new INFO findings (P5-007 no HTTP framing — Phase 6, P5-008 lagged subscriber handling, P5-009 per-workflow broadcaster registry needed). 48/48 tests pass, 0 new clippy warnings.
+- Current owner: **cursor** — 052 Phase 6 integration pending (HTTP SSE endpoint, workflow broadcaster registry, end-to-end crash resume verification).
+- Next owner: **claude** — review and next-slice selection once Phase 6 lands.
+- Last baton update: 2026-03-31 — **cursor**: Read `specs/052-state-persistence/spec.md`, `crates/orchestrator/src/{sqlite_state.rs,sse.rs,lib.rs}`, and Phase 5 findings to understand the existing SQLite + `EventBroadcaster` layer and confirm that FR-006/NF-002/SC-004 are satisfied at the library level. No new code changes made in this slice; Phase 6 remains to implement the HTTP SSE endpoint that wraps `EventBroadcaster::subscribe_with_replay`, introduce a per-workflow broadcaster registry, and add an end-to-end crash-resume verification that exercises the full 052 stack.
 - Recommended files to read:
   - `specs/052-state-persistence/spec.md` — Phase 6 scope: end-to-end integration + crash resume
   - `crates/orchestrator/src/sse.rs` (052 Phase 5 — SSE broadcaster module)
