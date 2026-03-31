@@ -101,19 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — **054 Phase 4 review** complete. Approved.
-- Next owner: **cursor** — **054 Phase 5** (linter).
-- Last baton update: 2026-03-30 — **claude**: **054 Phase 4 review** — FR-007 and SC-003 satisfied on both dispatch paths. Governed Claude CLI path uses `--allowedTools` native enforcement. Provider sidecar path threads `allowedTools` into Claude Code SDK bridge + `canUseTool` gate with SC-003 error format. 6 findings: P4-001 LOW (non-Claude provider sub-path in `runProviderPath()` does not read `allowedTools` — gap but low risk), P4-002 LOW (no integration test or unit tests for `parse_allowed_tools`/`normalizeAllowedTools`/`formatToolAllowlistError`), P4-003–P4-006 INFO. No blockers for Phase 5.
+- Current owner: **cursor** — **054 Phase 5** complete. Linter landed in `@opc/agent-frontmatter`.
+- Next owner: **claude** — **054 Phase 5 review** against FR-008 / SC-004.
+- Last baton update: 2026-03-30 — **cursor**: **054 Phase 5 implementation** — Added quality linter in `packages/agent-frontmatter/src/linter.ts` with checks for required fields, description length >= 50, kebab-case `name`, and non-empty `tools` for agent definitions. Added CLI entrypoint `src/lint-cli.ts` (`agent-frontmatter-lint [rootDir] [--kind agent|skill|auto]`), exports in `src/index.ts`, and package wiring (`bin`, `lint:definitions` script, `./linter` export). Added golden pass/fail tests in `src/linter.test.ts`. Validation: `pnpm test` (21/21) and `pnpm build` in `packages/agent-frontmatter`.
 - Recommended files to read:
-  - `.ai/findings/054-phase4-review.md`
-  - `apps/desktop/src-tauri/src/commands/orchestrator.rs` (lines 38–44, 226–231, 417–451)
-  - `packages/provider-registry/src/node-sidecar.ts` (lines 73–90, 196–218)
+  - `packages/agent-frontmatter/src/linter.ts`
+  - `packages/agent-frontmatter/src/linter.test.ts`
+  - `packages/agent-frontmatter/src/lint-cli.ts`
 
 ## Requested next agent output
 
-**cursor**: Phase 5 (linter) implementation. See `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`.
+**claude**: Review Phase 5 linter implementation against `specs/054-agent-frontmatter-schema/spec.md` FR-008 / SC-004 and validate behavior on existing `.claude/agents/*.md` definitions.
 
-**claude** (after Phase 5): Review Phase 5 linter against spec requirements.
+**cursor** (after review): Address findings and proceed to Phase 6 migration if approved.
 
 Priority order for P0 specs (unchanged):
 
@@ -140,6 +140,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **054 Phase 5** — Added linter module at `packages/agent-frontmatter/src/linter.ts` with FR-008 checks (required fields, `description` >= 50 chars, kebab-case `name`, non-empty `tools` for agents), plus CLI `src/lint-cli.ts` and package wiring (`bin`, `lint:definitions`, exports). Added golden tests in `src/linter.test.ts` for pass/fail/formatting paths. Validation: `pnpm test` (21/21), `pnpm build`.
 - 2026-03-30 (claude): **054 Phase 4 review** — Phase 4 approved. FR-007 (runtime enforcement of agent `tools` allowlist) and SC-003 (clear error on blocked tool) both satisfied on governed Claude CLI path (`--allowedTools` args) and provider sidecar path (`allowedTools` in bridge options + `canUseTool` gate). `parse_allowed_tools()` handles JSON array and CSV formats. SQLite `tools TEXT` migration idempotent. 6 findings: P4-001 LOW (`runProviderPath()` ignores `allowedTools` — non-Claude providers unprotected), P4-002 LOW (no integration/unit tests), P4-003–P4-006 INFO. No blockers for Phase 5. Review: `.ai/findings/054-phase4-review.md`.
 - 2026-03-30 (cursor): **054 Phase 4** — Tool allowlist enforcement wired on both dispatch paths. `orchestrator.rs`: added `allowed_tools` in `AgentExecutionProfile`, DB query now reads `agents.tools`, parser supports JSON array or comma-separated values, governed path adds `--allowedTools` args, provider path includes `allowedTools` and `agentName` in sidecar request. `agents.rs`: added `tools TEXT` migration column. `node-sidecar.ts`: forwards `allowedTools` to bridge and enforces SC-003 with descriptive allowlist error before broker permission checks.
 - 2026-03-30 (claude): **054 Phase 4 pre-implementation analysis** — Traced both dispatch paths for FR-007/SC-003 enforcement. Governed Claude CLI path (`orchestrator.rs:200–270`): can use `--allowedTools` CLI args. Provider registry sidecar path (`orchestrator.rs:76–197`): can add `allowedTools` to sidecar JSON payload; Claude Code SDK adapter already supports it. 5 architectural decisions: D-001 thread `allowed_tools` through `AgentExecutionProfile`, D-002 enforce on both paths, D-003 SC-003 error format (tool name + agent name + declared list), D-004 source from SQLite `tools` column, D-005 command `allowed-tools` out of Phase 4 scope. 8-step integration checklist. 4 risk items (CLI flag verification MEDIUM, others LOW/INFO). 4 existing agents cataloged. Pre-implementation analysis: `.ai/findings/054-phase4-pre-implementation.md`.
