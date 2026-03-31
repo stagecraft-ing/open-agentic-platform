@@ -41,6 +41,7 @@ struct AgentExecutionProfile {
     enable_file_read: bool,
     enable_file_write: bool,
     enable_network: bool,
+    allowed_tools: Option<Vec<String>>,
 }
 
 struct RealGovernedExecutor {
@@ -106,10 +107,12 @@ impl RealGovernedExecutor {
         let query = serde_json::json!({
             "type": "query",
             "prompt": prompt,
+            "agentName": &request.agent_id,
             "systemPrompt": &profile.system_prompt,
             "workingDirectory": &self.working_directory,
             "model": &profile.model,
-            "permissionMode": "default"
+            "permissionMode": "default",
+            "allowedTools": &profile.allowed_tools
         });
         let line = serde_json::to_string(&query).map_err(|e| e.to_string())?;
         stdin
@@ -220,6 +223,12 @@ impl RealGovernedExecutor {
             "stream-json".to_string(),
             "--verbose".to_string(),
         ];
+        if let Some(allowed_tools) = &profile.allowed_tools {
+            if !allowed_tools.is_empty() {
+                args.push("--allowedTools".to_string());
+                args.extend(allowed_tools.iter().cloned());
+            }
+        }
         if let Ok(axiom) = crate::governed_claude::bundled_axiomregent_binary_path() {
             if let Ok(mcp_config) =
                 crate::governed_claude::axiomregent_mcp_config_json(&axiom, &grants_json)
@@ -347,7 +356,7 @@ pub async fn orchestrate_manifest(
     let agent_profiles = {
         let conn = db.0.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
-            .prepare("SELECT name, system_prompt, model, enable_file_read, enable_file_write, enable_network FROM agents")
+            .prepare("SELECT name, system_prompt, model, enable_file_read, enable_file_write, enable_network, tools FROM agents")
             .map_err(|e| format!("prepare registry query failed: {e}"))?;
         let rows = stmt
             .query_map(params![], |row| {
@@ -357,6 +366,8 @@ pub async fn orchestrate_manifest(
                 let enable_file_read: bool = row.get::<_, bool>(3).unwrap_or(true);
                 let enable_file_write: bool = row.get::<_, bool>(4).unwrap_or(true);
                 let enable_network: bool = row.get::<_, bool>(5).unwrap_or(true);
+                let tools_raw: Option<String> = row.get(6)?;
+                let allowed_tools = parse_allowed_tools(tools_raw.as_deref());
                 Ok((
                     name,
                     AgentExecutionProfile {
@@ -365,6 +376,7 @@ pub async fn orchestrate_manifest(
                         enable_file_read,
                         enable_file_write,
                         enable_network,
+                        allowed_tools,
                     },
                 ))
             })
@@ -400,6 +412,42 @@ pub async fn orchestrate_manifest(
         .summaries
         .insert(run_id, summary.clone());
     Ok(summary)
+}
+
+fn parse_allowed_tools(raw: Option<&str>) -> Option<Vec<String>> {
+    let Some(raw) = raw else {
+        return None;
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if trimmed.starts_with('[') {
+        if let Ok(parsed) = serde_json::from_str::<Vec<String>>(trimmed) {
+            let normalized: Vec<String> = parsed
+                .into_iter()
+                .map(|tool| tool.trim().to_string())
+                .filter(|tool| !tool.is_empty())
+                .collect();
+            return if normalized.is_empty() {
+                None
+            } else {
+                Some(normalized)
+            };
+        }
+    }
+
+    let normalized: Vec<String> = trimmed
+        .split(',')
+        .map(|tool| tool.trim().to_string())
+        .filter(|tool| !tool.is_empty())
+        .collect();
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized)
+    }
 }
 
 #[tauri::command]

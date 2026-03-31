@@ -452,6 +452,7 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
             enable_file_read BOOLEAN NOT NULL DEFAULT 1,
             enable_file_write BOOLEAN NOT NULL DEFAULT 1,
             enable_network BOOLEAN NOT NULL DEFAULT 0,
+            tools TEXT,
             hooks TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -478,6 +479,7 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
         "ALTER TABLE agents ADD COLUMN enable_network BOOLEAN DEFAULT 0",
         [],
     );
+    let _ = conn.execute("ALTER TABLE agents ADD COLUMN tools TEXT", []);
 
     // Create agent_runs table
     conn.execute(

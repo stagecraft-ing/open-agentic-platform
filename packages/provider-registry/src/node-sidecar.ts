@@ -22,12 +22,14 @@ import type { QueryParams } from "./types.js";
 interface SidecarQueryMessage {
   type: "query";
   prompt: string;
+  agentName?: string;
   workingDirectory: string;
   model?: string;
   sessionId?: string;
   permissionMode?: PermissionMode;
   oauthToken?: string;
   systemPrompt?: string;
+  allowedTools?: string[];
 }
 
 interface PermissionResponseMessage {
@@ -66,6 +68,25 @@ function parseQuery(raw: string): SidecarQueryMessage {
     throw new Error('First stdin line must be a JSON object with type: "query"');
   }
   return v as SidecarQueryMessage;
+}
+
+function normalizeAllowedTools(allowedTools: string[] | undefined): string[] | undefined {
+  if (!Array.isArray(allowedTools)) {
+    return undefined;
+  }
+  const normalized = allowedTools
+    .map((tool) => tool.trim())
+    .filter((tool) => tool.length > 0);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function formatToolAllowlistError(
+  toolName: string,
+  agentName: string | undefined,
+  allowedTools: string[],
+): string {
+  const agent = agentName?.trim() || "unknown-agent";
+  return `Tool '${toolName}' is not in agent '${agent}' allowlist. Declared tools: [${allowedTools.join(", ")}]`;
 }
 
 async function runProviderPath(
@@ -172,6 +193,7 @@ async function run(): Promise<void> {
 
   const rawModel = q.model ?? "";
   const { providerId, model: apiModel } = parseProviderModel(rawModel);
+  const allowedTools = normalizeAllowedTools(q.allowedTools);
 
   try {
     if (providerId !== null) {
@@ -184,9 +206,16 @@ async function run(): Promise<void> {
         sessionId: q.sessionId,
         permissionMode: q.permissionMode ?? "default",
         systemPrompt: q.systemPrompt,
+        allowedTools,
         abortController: ac,
         oauthToken: q.oauthToken,
-        canUseTool: (toolName, toolInput) => broker.request(toolName, toolInput),
+        canUseTool: (toolName, toolInput) => {
+          if (allowedTools && !allowedTools.includes(toolName)) {
+            const error = formatToolAllowlistError(toolName, q.agentName, allowedTools);
+            throw new Error(error);
+          }
+          return broker.request(toolName, toolInput);
+        },
       };
 
       for await (const ev of queryClaudeCode(opts)) {

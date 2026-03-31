@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — **054 Phase 4** tool allowlist enforcement.
+- Current owner: **cursor** — **054 Phase 4** implemented; pending review.
 - Next owner: **claude** — **054 Phase 4 review** against FR-007 and SC-003.
-- Last baton update: 2026-03-30 — **claude**: **054 Phase 4 pre-implementation analysis** — Traced both dispatch paths (governed Claude CLI and provider registry sidecar). Identified 5 architectural decisions (D-001..D-005): thread `allowed_tools` through `AgentExecutionProfile`, enforce on both paths (`--allowedTools` CLI args for governed path, `allowedTools` in sidecar JSON for provider path), SC-003 error format with agent name + attempted tool + declared list, source from SQLite `tools` column. P3-001 already resolved (commit 4512028). 8-step integration checklist provided. 4 existing agents cataloged (architect/explorer/reviewer: Read-only tools; implementer: adds Write+Edit). Pre-implementation analysis: `.ai/findings/054-phase4-pre-implementation.md`.
+- Last baton update: 2026-03-30 — **cursor**: **054 Phase 4 implementation** — Added agent tool allowlist threading and enforcement on both dispatch paths. `apps/desktop/src-tauri/src/commands/orchestrator.rs`: `AgentExecutionProfile.allowed_tools`, DB load from `agents.tools` with CSV/JSON parsing, provider sidecar payload now includes `allowedTools` + `agentName`, governed Claude path now appends `--allowedTools` args when configured. `apps/desktop/src-tauri/src/commands/agents.rs`: SQLite migration adds `tools TEXT` column for agent metadata source-of-truth plumbing. `packages/provider-registry/src/node-sidecar.ts`: accepts/normalizes `allowedTools`, forwards to bridge options, enforces SC-003 with descriptive error (`Tool '<tool>' is not in agent '<agent>' allowlist. Declared tools: [...]`) before permission broker calls.
 - Recommended files to read:
   - `.ai/findings/054-phase4-pre-implementation.md`
   - `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`
@@ -112,7 +112,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: Begin **054 Phase 4** — tool allowlist enforcement (FR-007, SC-003). Pre-implementation analysis at `.ai/findings/054-phase4-pre-implementation.md` provides 5 decisions and 8-step integration checklist. Key: add `allowed_tools` to `AgentExecutionProfile`, thread through both dispatch paths (governed Claude CLI via `--allowedTools` args, provider registry sidecar via `allowedTools` JSON field). SC-003 test: agent with `tools: [Read]` attempts `Write` → blocked with descriptive error.
+**cursor**: Phase 4 implementation complete in code; wait for **claude** review and SC-003 validation sign-off.
 
 **claude** (after Phase 4): Review Phase 4 implementation against FR-007 and SC-003.
 
@@ -141,6 +141,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **054 Phase 4** — Tool allowlist enforcement wired on both dispatch paths. `orchestrator.rs`: added `allowed_tools` in `AgentExecutionProfile`, DB query now reads `agents.tools`, parser supports JSON array or comma-separated values, governed path adds `--allowedTools` args, provider path includes `allowedTools` and `agentName` in sidecar request. `agents.rs`: added `tools TEXT` migration column. `node-sidecar.ts`: forwards `allowedTools` to bridge and enforces SC-003 with descriptive allowlist error before broker permission checks.
 - 2026-03-30 (claude): **054 Phase 4 pre-implementation analysis** — Traced both dispatch paths for FR-007/SC-003 enforcement. Governed Claude CLI path (`orchestrator.rs:200–270`): can use `--allowedTools` CLI args. Provider registry sidecar path (`orchestrator.rs:76–197`): can add `allowedTools` to sidecar JSON payload; Claude Code SDK adapter already supports it. 5 architectural decisions: D-001 thread `allowed_tools` through `AgentExecutionProfile`, D-002 enforce on both paths, D-003 SC-003 error format (tool name + agent name + declared list), D-004 source from SQLite `tools` column, D-005 command `allowed-tools` out of Phase 4 scope. 8-step integration checklist. 4 risk items (CLI flag verification MEDIUM, others LOW/INFO). 4 existing agents cataloged. Pre-implementation analysis: `.ai/findings/054-phase4-pre-implementation.md`.
 - 2026-03-30 (claude): **054 Phase 3 review** — Phase 3 approved. FR-004 Tiers 1–3 all satisfied: Tier 1 metadata-only scan (body structurally absent), Tier 2 body on activation, Tier 3 resource refs + on-demand load. P2-001 resolved (CRLF test added). Discovery deterministic. `AFS_READ_ERROR` diagnostic for unreadable files. 17/17 tests, `tsc` clean. 6 findings: P3-001 loader types not exported from index (LOW), P3-002 no NF-001 benchmark (LOW), P3-003 full file reads not bounded (LOW), P3-004–P3-006 (INFO). No blockers for Phase 4. Review: `.ai/findings/054-phase3-review.md`.
 - 2026-03-30 (cursor): **054 Phase 3** — `packages/agent-frontmatter/src/loader.ts`: `discoverMarkdownDefinitionFiles` recursive sorted walk, `loadTier1MetadataFromDir` metadata-only scan, `loadTier2Instructions` on-demand body, `listResourceRefsFromMetadata` + `loadResourceFile` for Tier 3 resources. CRLF test added (P2-001). 17/17 tests, `tsc` clean.
