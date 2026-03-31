@@ -46,6 +46,10 @@ use commands::mcp::{
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
 use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, orchestrate_manifest};
+use commands::worktree_agents::{
+    discard_agent, get_agent_diff, list_background_agents, merge_agent, spawn_background_agent,
+    WorktreeAgentsState,
+};
 use commands::storage::{
     storage_delete_row, storage_execute_sql, storage_insert_row, storage_list_tables,
     storage_read_table, storage_reset_database, storage_update_row,
@@ -222,6 +226,7 @@ pub fn run() {
 
             // Initialize zoom state (Tauri 2 has no zoom getter; we track it here)
             app.manage(commands::window_ctrl::ZoomState::default());
+            app.manage(WorktreeAgentsState::default());
 
             // Initialize quick pane (hidden, shown via global shortcut)
             if let Err(e) = commands::quick_pane::init_quick_pane(app.handle()) {
@@ -355,6 +360,12 @@ pub fn run() {
             get_run_status,
             cancel_run,
             cleanup_artifacts,
+            // Worktree agents (051)
+            spawn_background_agent,
+            list_background_agents,
+            get_agent_diff,
+            merge_agent,
+            discard_agent,
             // Usage & Analytics
             get_usage_stats,
             get_usage_by_date_range,

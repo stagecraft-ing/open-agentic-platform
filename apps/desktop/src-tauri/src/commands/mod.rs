@@ -16,6 +16,7 @@ pub mod titor;
 pub mod updater;
 pub mod usage;
 pub mod window_ctrl;
+pub mod worktree_agents;
 pub mod wsl;
 
 #[allow(unused_imports)]

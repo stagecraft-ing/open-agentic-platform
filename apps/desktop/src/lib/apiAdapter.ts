@@ -192,6 +192,11 @@ function mapCommandToEndpoint(command: string, _params?: any): string {
     'get_live_session_output': '/api/agents/sessions/{runId}/output/live',
     'stream_session_output': '/api/agents/sessions/{runId}/output/stream',
     'load_agent_session_history': '/api/agents/sessions/{sessionId}/history',
+    'spawn_background_agent': '/api/worktree-agents/spawn',
+    'list_background_agents': '/api/worktree-agents',
+    'get_agent_diff': '/api/worktree-agents/{agentId}/diff',
+    'merge_agent': '/api/worktree-agents/{agentId}/merge',
+    'discard_agent': '/api/worktree-agents/{agentId}',
     
     // Usage commands
     'get_usage_stats': '/api/usage',

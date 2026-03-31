@@ -216,6 +216,35 @@ export interface AgentRunWithMetrics {
   output?: string; // Real-time JSONL content
 }
 
+export interface WorktreeAgentHandle {
+  agent_id: string;
+  task: string;
+  repo_root: string;
+  parent_branch: string;
+  agent_branch: string;
+  worktree_path: string;
+  status: string;
+  started_at: string;
+  last_event_at: string;
+}
+
+export interface WorktreeAgentCommitSummaryEntry {
+  sha: string;
+  subject: string;
+}
+
+export interface WorktreeAgentDiffResult {
+  unified_diff: string;
+  commits: WorktreeAgentCommitSummaryEntry[];
+}
+
+export interface WorktreeMergeAgentResult {
+  strategy: string;
+  merged_commits: string[];
+  created_commit_sha?: string;
+  discarded: boolean;
+}
+
 // Usage Dashboard types
 export interface UsageEntry {
   project: string;
@@ -1063,6 +1092,59 @@ export const api = {
       console.error("Failed to load agent session history:", error);
       throw error;
     }
+  },
+
+  /**
+   * Spawns a background worktree agent (spec 051).
+   */
+  async spawnBackgroundAgent(
+    task: string,
+    repoRoot: string,
+    parentBranch?: string,
+  ): Promise<WorktreeAgentHandle> {
+    return apiCall<WorktreeAgentHandle>("spawn_background_agent", {
+      task,
+      repoRoot,
+      parentBranch,
+    });
+  },
+
+  /**
+   * Lists active/recent worktree agents tracked by the desktop runtime.
+   */
+  async listBackgroundAgents(): Promise<WorktreeAgentHandle[]> {
+    return apiCall<WorktreeAgentHandle[]>("list_background_agents");
+  },
+
+  /**
+   * Returns unified diff and commit summary for a worktree agent.
+   */
+  async getBackgroundAgentDiff(agentId: string): Promise<WorktreeAgentDiffResult> {
+    return apiCall<WorktreeAgentDiffResult>("get_agent_diff", { agentId });
+  },
+
+  /**
+   * Merges a worktree agent branch and chains cleanup.
+   */
+  async mergeBackgroundAgent(
+    agentId: string,
+    strategy: "fast-forward" | "squash" | "cherry-pick",
+    cherryPickCommits?: string[],
+    squashCommitMessage?: string,
+  ): Promise<WorktreeMergeAgentResult> {
+    return apiCall<WorktreeMergeAgentResult>("merge_agent", {
+      agentId,
+      strategy,
+      cherryPickCommits,
+      squashCommitMessage,
+    });
+  },
+
+  /**
+   * Discards a worktree agent branch and worktree.
+   */
+  async discardBackgroundAgent(agentId: string): Promise<void> {
+    return apiCall<void>("discard_agent", { agentId });
   },
 
   /**
