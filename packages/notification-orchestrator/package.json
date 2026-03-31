@@ -12,7 +12,10 @@
     "./orchestrator": "./src/orchestrator.ts",
     "./dedup": "./src/deduplication/dedup-index.ts",
     "./preferences": "./src/preferences/preference-engine.ts",
-    "./store": "./src/preferences/store.ts"
+    "./store": "./src/preferences/store.ts",
+    "./channels/native": "./src/channels/native.ts",
+    "./channels/web-push": "./src/channels/web-push.ts",
+    "./channels/toast": "./src/channels/toast.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

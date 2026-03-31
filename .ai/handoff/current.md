@@ -103,21 +103,21 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 057 Phase 3 (preference engine + persistence) complete.
-- Next owner: **claude** — implement Phase 4 (channel adapters: native, web-push, toast).
-- Last baton update: 2026-03-31 — **claude**: 057 Phase 3 — preference engine and persistence. `src/preferences/preference-engine.ts`: `resolveChannels(kind, severity, preferences)` evaluates ordered preference rules — first match wins, falls back to `defaultChannels`. Rule matching: `kind` undefined = wildcard, `severity` undefined = wildcard; both must match when specified. `src/preferences/store.ts`: `PreferenceStore` class — in-memory storage with `get()` (returns `null` if unset), `set(preferences)` (defensive copy), `addRule(rule)`, `removeRules(kind?, severity?)`, `setDefaultChannels(channels)`, `clear()`. Auto-initializes with empty defaults on first `addRule`/`setDefaultChannels` if null. Orchestrator integration: `OrchestratorOptions` extended with `preferences?: NotificationPreferences`. `NotificationOrchestrator` constructor creates `PreferenceStore`, optionally seeded from options. `setPreferences()` / `getPreferences()` for runtime updates. `notify()` pipeline: dedup check → preference resolution → filtered dispatch. When preferences set, `resolveChannels()` determines allowed channels; empty resolved list returns `status: "suppressed"` immediately. `dispatch()` accepts optional `allowedChannels` filter — when non-null, only adapters in the allowed set are considered. When no preferences set, all available adapters receive delivery (backward compatible). Barrel exports: `resolveChannels`, `PreferenceStore`. Subpath exports: `./preferences`, `./store`. Validation: `tsc` clean, 74/74 tests pass (10 type + 27 orchestrator [20 existing + 7 preference integration] + 17 dedup-index + 9 preference-engine + 11 store). FR-005 (preference-gated delivery with first-match-wins rules), SC-003 (info progress_update suppression verified in tests) satisfied.
+- Current owner: **claude** — 057 Phase 4 (channel adapters) complete.
+- Next owner: **claude** — implement Phase 5 (event log + pruning).
+- Last baton update: 2026-03-31 — **claude**: 057 Phase 4 — channel adapters. Three adapters implementing `ChannelAdapter` interface: `src/channels/native.ts`: `NativeNotificationAdapter` — wraps Web Notification API (Electron/Tauri webview). Constructor accepts optional `NotificationCtor` injection for testing. `isAvailable()` returns `true` only when `Notification.permission === "granted"` (R-001 graceful fallback). `deliver()` creates `new Notification(title, { body, tag: dedupeKey, data: { eventId, kind, severity, sessionId, provider } })`. `src/channels/web-push.ts`: `WebPushAdapter` — wraps service worker `showNotification()` via injectable `PushRegistration` interface. `isAvailable()` returns `true` when registration is set. `setRegistration()` allows runtime registration swap (e.g., after push permission grant). `deliver()` calls `registration.showNotification(title, { body, tag: dedupeKey, data: { eventId, kind, severity, sessionId, provider, metadata } })`. `src/channels/toast.ts`: `ToastAdapter` — event-emitter pattern for in-app UI consumption. Always available unless `disabled: true`. `onToast(handler)` registers callback, returns unsubscribe function. `deliver()` invokes all registered handlers with the full event. Pairs with `packages/ui/src/toast.tsx`. Barrel exports: `NativeNotificationAdapter`, `WebPushAdapter`, `ToastAdapter`, all option/handler types. Subpath exports: `./channels/native`, `./channels/web-push`, `./channels/toast`. Validation: `tsc` clean, 102/102 tests pass (74 existing + 9 native + 10 web-push + 9 toast). FR-006 (pluggable adapters), SC-005 (new adapter = single interface, no core changes), R-001 (isAvailable graceful fallback) satisfied.
 - Recommended files to read:
-  - `packages/notification-orchestrator/src/preferences/preference-engine.ts` (preference resolver)
-  - `packages/notification-orchestrator/src/preferences/store.ts` (preference persistence)
-  - `packages/notification-orchestrator/src/preferences/preference-engine.test.ts` (9 tests)
-  - `packages/notification-orchestrator/src/preferences/store.test.ts` (11 tests)
-  - `packages/notification-orchestrator/src/orchestrator.ts` (dispatch pipeline with preference gating)
-  - `packages/notification-orchestrator/src/orchestrator.test.ts` (27 tests incl. 7 preference integration)
-  - `specs/057-notification-system/spec.md` (spec — Phase 4 next)
+  - `packages/notification-orchestrator/src/channels/native.ts` (native OS adapter)
+  - `packages/notification-orchestrator/src/channels/web-push.ts` (service worker push adapter)
+  - `packages/notification-orchestrator/src/channels/toast.ts` (in-app toast adapter)
+  - `packages/notification-orchestrator/src/channels/native.test.ts` (9 tests)
+  - `packages/notification-orchestrator/src/channels/web-push.test.ts` (10 tests)
+  - `packages/notification-orchestrator/src/channels/toast.test.ts` (9 tests)
+  - `specs/057-notification-system/spec.md` (spec — Phase 5 next)
 
 ## Requested next agent output
 
-**claude**: Implement Phase 4 — channel adapters. Build native OS notification adapter (`channels/native.ts`), web push adapter (`channels/web-push.ts`), and in-app toast adapter (`channels/toast.ts`) per spec package structure. Each implements `ChannelAdapter` interface. Claude should review Phase 4 output before Phase 5 begins.
+**claude**: Implement Phase 5 — event log and pruning. Build `log/event-log.ts` (persistent event history with query by session, kind, severity, time range per FR-007) and `log/pruner.ts` (retention-based log pruning per NF-003, 30-day default). Claude should review Phase 5 output before Phase 6 begins.
 
 ### Completed features (14 of 22)
 
@@ -162,6 +162,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **057 Phase 4 — channel adapters.** Three adapters implementing `ChannelAdapter`: `src/channels/native.ts` (`NativeNotificationAdapter`) — wraps Web Notification API, injectable `NotificationCtor` for testing, `isAvailable()` checks `permission === "granted"` (R-001), `deliver()` creates `new Notification(title, { body, tag, data })`. `src/channels/web-push.ts` (`WebPushAdapter`) — wraps SW `showNotification()` via `PushRegistration` interface, `setRegistration()` for runtime swap, `isAvailable()` checks registration presence. `src/channels/toast.ts` (`ToastAdapter`) — event-emitter pattern, `onToast(handler)` returns unsubscribe fn, always available unless `disabled: true`, `deliver()` invokes all handlers with full event. Barrel exports + subpath exports (`./channels/native`, `./channels/web-push`, `./channels/toast`). Validation: `tsc` clean, 102/102 tests pass (74 existing + 9 native + 10 web-push + 9 toast). FR-006, SC-005, R-001 satisfied.
 
 - 2026-03-31 (claude): **057 Phase 3 — preference engine and persistence.** `src/preferences/preference-engine.ts`: `resolveChannels(kind, severity, preferences)` — first-match-wins rule evaluator. Rules match on optional `kind` and `severity` (undefined = wildcard); returns matched rule's `channels` or `defaultChannels` fallback. `src/preferences/store.ts`: `PreferenceStore` class — in-memory `get()`/`set()`/`addRule()`/`removeRules()`/`setDefaultChannels()`/`clear()`. Defensive copies on `set()`. Auto-initializes on `addRule`/`setDefaultChannels` if null. Orchestrator integration: `OrchestratorOptions.preferences` seeds initial preferences. `setPreferences()`/`getPreferences()` for runtime updates. `notify()` pipeline now: dedup → preference resolution → filtered dispatch. Empty resolved channels = `"suppressed"`. `dispatch()` accepts optional `allowedChannels` filter. No preferences = all adapters (backward compatible). Barrel exports: `resolveChannels`, `PreferenceStore`. Subpath exports: `./preferences`, `./store`. Validation: `tsc` clean, 74/74 tests pass (10 type + 27 orchestrator + 17 dedup-index + 9 preference-engine + 11 store). FR-005, SC-003 satisfied.
 
