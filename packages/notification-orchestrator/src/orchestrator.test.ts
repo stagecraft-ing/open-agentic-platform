@@ -419,7 +419,7 @@ describe("NotificationOrchestrator", () => {
     orch.dispose();
   });
 
-  it("configurable window via OrchestratorOptions (FR-004)", async () => {
+  it("respects configurable window via OrchestratorOptions (FR-004)", async () => {
     vi.useFakeTimers({ now: 0 });
     const orch = new NotificationOrchestrator({
       dedup: { windowMs: 2_000, cleanupIntervalMs: 0 },
@@ -442,6 +442,208 @@ describe("NotificationOrchestrator", () => {
     expect((await orch.notify(opts)).status).toBe("suppressed");
     vi.setSystemTime(4_000); // 2001ms after last seen (1999) — expired
     expect((await orch.notify(opts)).status).toBe("delivered");
+
+    orch.dispose();
+    vi.useRealTimers();
+  });
+
+  // --------------- Phase 3: preference-gated delivery (FR-005) ---------------
+
+  it("delivers to all adapters when no preferences are set", async () => {
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+    });
+    const native = makeAdapter("native");
+    const toast = makeAdapter("toast");
+    orch.registerAdapter(native);
+    orch.registerAdapter(toast);
+
+    const result = await orch.notify({
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete",
+      severity: "info",
+      dedupeKey: "pref-1",
+      title: "T",
+      body: "B",
+    });
+
+    expect(result.status).toBe("delivered");
+    expect(result.deliveredTo.sort()).toEqual(["native", "toast"]);
+    orch.dispose();
+  });
+
+  it("restricts delivery to preference-allowed channels (FR-005)", async () => {
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+      preferences: {
+        rules: [{ kind: "task_complete", channels: ["toast"] }],
+        defaultChannels: ["native", "toast"],
+      },
+    });
+    const native = makeAdapter("native");
+    const toast = makeAdapter("toast");
+    orch.registerAdapter(native);
+    orch.registerAdapter(toast);
+
+    const result = await orch.notify({
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete",
+      severity: "info",
+      dedupeKey: "pref-2",
+      title: "T",
+      body: "B",
+    });
+
+    expect(result.status).toBe("delivered");
+    expect(result.deliveredTo).toEqual(["toast"]);
+    expect(native.deliveredEvents).toHaveLength(0);
+    expect(toast.deliveredEvents).toHaveLength(1);
+    orch.dispose();
+  });
+
+  it("suppresses delivery when preference rule has empty channels (SC-003)", async () => {
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+      preferences: {
+        rules: [
+          { kind: "progress_update", severity: "info", channels: [] },
+        ],
+        defaultChannels: ["native", "toast"],
+      },
+    });
+    orch.registerAdapter(makeAdapter("native"));
+    orch.registerAdapter(makeAdapter("toast"));
+
+    const result = await orch.notify({
+      provider: "p",
+      sessionId: "s",
+      kind: "progress_update",
+      severity: "info",
+      dedupeKey: "pref-3",
+      title: "T",
+      body: "B",
+    });
+
+    expect(result.status).toBe("suppressed");
+    expect(result.deliveredTo).toHaveLength(0);
+    orch.dispose();
+  });
+
+  it("falls back to defaultChannels when no rule matches", async () => {
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+      preferences: {
+        rules: [{ kind: "task_error", channels: ["native"] }],
+        defaultChannels: ["toast"],
+      },
+    });
+    const native = makeAdapter("native");
+    const toast = makeAdapter("toast");
+    orch.registerAdapter(native);
+    orch.registerAdapter(toast);
+
+    // task_complete doesn't match the task_error rule → defaultChannels
+    const result = await orch.notify({
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete",
+      severity: "info",
+      dedupeKey: "pref-4",
+      title: "T",
+      body: "B",
+    });
+
+    expect(result.status).toBe("delivered");
+    expect(result.deliveredTo).toEqual(["toast"]);
+    expect(native.deliveredEvents).toHaveLength(0);
+    orch.dispose();
+  });
+
+  it("setPreferences updates routing at runtime", async () => {
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+    });
+    const native = makeAdapter("native");
+    const toast = makeAdapter("toast");
+    orch.registerAdapter(native);
+    orch.registerAdapter(toast);
+
+    // Initially no preferences → both get delivery
+    const r1 = await orch.notify({
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete",
+      severity: "info",
+      dedupeKey: "pref-5a",
+      title: "T",
+      body: "B",
+    });
+    expect(r1.deliveredTo.sort()).toEqual(["native", "toast"]);
+
+    // Set preferences to only allow toast
+    orch.setPreferences({
+      rules: [{ channels: ["toast"] }],
+      defaultChannels: [],
+    });
+
+    const r2 = await orch.notify({
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete",
+      severity: "info",
+      dedupeKey: "pref-5b",
+      title: "T",
+      body: "B",
+    });
+    expect(r2.deliveredTo).toEqual(["toast"]);
+    expect(native.deliveredEvents).toHaveLength(1); // only from r1
+    orch.dispose();
+  });
+
+  it("getPreferences returns null initially, then set value", () => {
+    const orch = new NotificationOrchestrator();
+    expect(orch.getPreferences()).toBeNull();
+
+    const prefs = {
+      rules: [{ kind: "task_error" as const, channels: ["native"] }],
+      defaultChannels: ["toast"],
+    };
+    orch.setPreferences(prefs);
+    expect(orch.getPreferences()).toEqual(prefs);
+    orch.dispose();
+  });
+
+  it("preference check runs after dedup check", async () => {
+    vi.useFakeTimers({ now: 0 });
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+      preferences: {
+        rules: [{ channels: ["toast"] }],
+        defaultChannels: [],
+      },
+    });
+    const toast = makeAdapter("toast");
+    orch.registerAdapter(toast);
+
+    const opts = {
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete" as const,
+      severity: "info" as const,
+      dedupeKey: "dedup-then-pref",
+      title: "T",
+      body: "B",
+    };
+
+    const r1 = await orch.notify(opts);
+    expect(r1.status).toBe("delivered");
+
+    // Second call is deduplicated BEFORE preferences are checked
+    vi.setSystemTime(1_000);
+    const r2 = await orch.notify(opts);
+    expect(r2.status).toBe("suppressed");
 
     orch.dispose();
     vi.useRealTimers();

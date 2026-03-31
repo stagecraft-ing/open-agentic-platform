@@ -2,11 +2,14 @@ import type {
   NotificationEvent,
   NotificationKind,
   Severity,
+  NotificationPreferences,
   ChannelAdapter,
   NotifyResult,
 } from "./types.js";
 import { DedupIndex } from "./deduplication/dedup-index.js";
 import type { DedupIndexOptions } from "./deduplication/dedup-index.js";
+import { resolveChannels } from "./preferences/preference-engine.js";
+import { PreferenceStore } from "./preferences/store.js";
 
 /**
  * Options for creating a notification event via {@link NotificationOrchestrator.notify}.
@@ -30,6 +33,8 @@ export interface NotifyOptions {
 export interface OrchestratorOptions {
   /** Options forwarded to the internal {@link DedupIndex}. */
   dedup?: DedupIndexOptions;
+  /** Initial user notification preferences (FR-005). */
+  preferences?: NotificationPreferences;
 }
 
 /**
@@ -43,9 +48,13 @@ export interface OrchestratorOptions {
 export class NotificationOrchestrator {
   private adapters: Map<string, ChannelAdapter> = new Map();
   private readonly dedup: DedupIndex;
+  private readonly preferenceStore: PreferenceStore = new PreferenceStore();
 
   constructor(options?: OrchestratorOptions) {
     this.dedup = new DedupIndex(options?.dedup);
+    if (options?.preferences) {
+      this.preferenceStore.set(options.preferences);
+    }
   }
 
   /**
@@ -69,6 +78,20 @@ export class NotificationOrchestrator {
    */
   getAdapterIds(): string[] {
     return [...this.adapters.keys()];
+  }
+
+  /**
+   * Replace the user's notification preferences (FR-005).
+   */
+  setPreferences(preferences: NotificationPreferences): void {
+    this.preferenceStore.set(preferences);
+  }
+
+  /**
+   * Return current notification preferences, or `null` if none are set.
+   */
+  getPreferences(): NotificationPreferences | null {
+    return this.preferenceStore.get();
   }
 
   /**
@@ -101,7 +124,24 @@ export class NotificationOrchestrator {
       };
     }
 
-    return this.dispatch(event);
+    // Phase 3: preference-gated delivery (FR-005).
+    // Resolve which channels should receive this event.
+    const prefs = this.preferenceStore.get();
+    let allowedChannels: string[] | null = null;
+    if (prefs) {
+      allowedChannels = resolveChannels(event.kind, event.severity, prefs);
+      // Empty resolved list = suppress delivery entirely.
+      if (allowedChannels.length === 0) {
+        return {
+          eventId: event.id,
+          status: "suppressed",
+          deliveredTo: [],
+          failures: [],
+        };
+      }
+    }
+
+    return this.dispatch(event, allowedChannels);
   }
 
   /**
@@ -112,16 +152,31 @@ export class NotificationOrchestrator {
   }
 
   /**
-   * Internal dispatch loop. Iterates all registered adapters, skips
-   * unavailable ones, and collects results.
+   * Internal dispatch loop. Iterates registered adapters, filters by
+   * availability and optional channel allowlist, and collects results.
+   *
+   * @param allowedChannels  When non-null, only adapters whose channelId
+   *   appears in this list are considered (preference-gated delivery).
+   *   When null, all available adapters are used.
    */
-  private async dispatch(event: NotificationEvent): Promise<NotifyResult> {
+  private async dispatch(
+    event: NotificationEvent,
+    allowedChannels: string[] | null = null,
+  ): Promise<NotifyResult> {
     const deliveredTo: string[] = [];
     const failures: Array<{ channelId: string; error: string }> = [];
 
-    const availableAdapters = [...this.adapters.values()].filter((a) =>
+    let availableAdapters = [...this.adapters.values()].filter((a) =>
       a.isAvailable()
     );
+
+    // Phase 3: restrict to preference-allowed channels (FR-005).
+    if (allowedChannels !== null) {
+      const allowed = new Set(allowedChannels);
+      availableAdapters = availableAdapters.filter((a) =>
+        allowed.has(a.channelId)
+      );
+    }
 
     if (availableAdapters.length === 0) {
       return {

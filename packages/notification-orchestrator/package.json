@@ -10,7 +10,9 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./orchestrator": "./src/orchestrator.ts",
-    "./dedup": "./src/deduplication/dedup-index.ts"
+    "./dedup": "./src/deduplication/dedup-index.ts",
+    "./preferences": "./src/preferences/preference-engine.ts",
+    "./store": "./src/preferences/store.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

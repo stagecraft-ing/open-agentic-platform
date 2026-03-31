@@ -14,3 +14,6 @@ export type { NotifyOptions, OrchestratorOptions } from "./orchestrator.js";
 
 export { DedupIndex, DEFAULT_WINDOW_MS } from "./deduplication/dedup-index.js";
 export type { DedupIndexOptions } from "./deduplication/dedup-index.js";
+
+export { resolveChannels } from "./preferences/preference-engine.js";
+export { PreferenceStore } from "./preferences/store.js";
