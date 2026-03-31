@@ -29,3 +29,13 @@ export type {
 
 export { ToastAdapter } from "./channels/toast.js";
 export type { ToastHandler, ToastAdapterOptions } from "./channels/toast.js";
+
+export { EventLog } from "./log/event-log.js";
+export type {
+  EventLogEntry,
+  EventLogQuery,
+  EventLogOptions,
+} from "./log/event-log.js";
+
+export { LogPruner, DEFAULT_RETENTION_MS, DEFAULT_PRUNE_INTERVAL_MS } from "./log/pruner.js";
+export type { LogPrunerOptions } from "./log/pruner.js";

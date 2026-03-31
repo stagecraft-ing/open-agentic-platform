@@ -10,6 +10,10 @@ import { DedupIndex } from "./deduplication/dedup-index.js";
 import type { DedupIndexOptions } from "./deduplication/dedup-index.js";
 import { resolveChannels } from "./preferences/preference-engine.js";
 import { PreferenceStore } from "./preferences/store.js";
+import { EventLog } from "./log/event-log.js";
+import type { EventLogOptions, EventLogQuery, EventLogEntry } from "./log/event-log.js";
+import { LogPruner } from "./log/pruner.js";
+import type { LogPrunerOptions } from "./log/pruner.js";
 
 /**
  * Options for creating a notification event via {@link NotificationOrchestrator.notify}.
@@ -35,6 +39,10 @@ export interface OrchestratorOptions {
   dedup?: DedupIndexOptions;
   /** Initial user notification preferences (FR-005). */
   preferences?: NotificationPreferences;
+  /** Options for the event log (FR-007). */
+  eventLog?: EventLogOptions;
+  /** Options for the log pruner (NF-003). */
+  pruner?: LogPrunerOptions;
 }
 
 /**
@@ -49,12 +57,16 @@ export class NotificationOrchestrator {
   private adapters: Map<string, ChannelAdapter> = new Map();
   private readonly dedup: DedupIndex;
   private readonly preferenceStore: PreferenceStore = new PreferenceStore();
+  private readonly eventLog: EventLog;
+  private readonly pruner: LogPruner;
 
   constructor(options?: OrchestratorOptions) {
     this.dedup = new DedupIndex(options?.dedup);
     if (options?.preferences) {
       this.preferenceStore.set(options.preferences);
     }
+    this.eventLog = new EventLog(options?.eventLog);
+    this.pruner = new LogPruner(this.eventLog, options?.pruner);
   }
 
   /**
@@ -116,12 +128,15 @@ export class NotificationOrchestrator {
 
     // Phase 2: sliding-window deduplication (FR-003, FR-004).
     if (this.dedup.isDuplicate(event.dedupeKey, event.timestamp)) {
-      return {
+      const result: NotifyResult = {
         eventId: event.id,
         status: "suppressed",
         deliveredTo: [],
         failures: [],
       };
+      // Phase 5: log suppressed-by-dedup events (FR-007, SC-004).
+      this.eventLog.append(event, result.status, result.deliveredTo);
+      return result;
     }
 
     // Phase 3: preference-gated delivery (FR-005).
@@ -132,16 +147,43 @@ export class NotificationOrchestrator {
       allowedChannels = resolveChannels(event.kind, event.severity, prefs);
       // Empty resolved list = suppress delivery entirely.
       if (allowedChannels.length === 0) {
-        return {
+        const result: NotifyResult = {
           eventId: event.id,
           status: "suppressed",
           deliveredTo: [],
           failures: [],
         };
+        // Phase 5: log suppressed-by-preference events (FR-007, SC-004).
+        this.eventLog.append(event, result.status, result.deliveredTo);
+        return result;
       }
     }
 
-    return this.dispatch(event, allowedChannels);
+    const result = await this.dispatch(event, allowedChannels);
+    // Phase 5: log delivered/partial events (FR-007, SC-004).
+    this.eventLog.append(event, result.status, result.deliveredTo);
+    return result;
+  }
+
+  /**
+   * Query the event log (FR-007). Returns entries newest-first.
+   */
+  queryLog(filter?: EventLogQuery): EventLogEntry[] {
+    return this.eventLog.query(filter);
+  }
+
+  /**
+   * Get the number of entries in the event log.
+   */
+  get logSize(): number {
+    return this.eventLog.size;
+  }
+
+  /**
+   * Manually trigger log pruning. Returns the number of entries removed.
+   */
+  pruneLog(): number {
+    return this.pruner.prune();
   }
 
   /**
@@ -149,6 +191,7 @@ export class NotificationOrchestrator {
    */
   dispose(): void {
     this.dedup.dispose();
+    this.pruner.dispose();
   }
 
   /**

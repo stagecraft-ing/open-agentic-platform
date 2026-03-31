@@ -15,7 +15,9 @@
     "./store": "./src/preferences/store.ts",
     "./channels/native": "./src/channels/native.ts",
     "./channels/web-push": "./src/channels/web-push.ts",
-    "./channels/toast": "./src/channels/toast.ts"
+    "./channels/toast": "./src/channels/toast.ts",
+    "./log": "./src/log/event-log.ts",
+    "./pruner": "./src/log/pruner.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -103,21 +103,20 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 057 Phase 4 (channel adapters) complete.
-- Next owner: **claude** — implement Phase 5 (event log + pruning).
-- Last baton update: 2026-03-31 — **claude**: 057 Phase 4 — channel adapters. Three adapters implementing `ChannelAdapter` interface: `src/channels/native.ts`: `NativeNotificationAdapter` — wraps Web Notification API (Electron/Tauri webview). Constructor accepts optional `NotificationCtor` injection for testing. `isAvailable()` returns `true` only when `Notification.permission === "granted"` (R-001 graceful fallback). `deliver()` creates `new Notification(title, { body, tag: dedupeKey, data: { eventId, kind, severity, sessionId, provider } })`. `src/channels/web-push.ts`: `WebPushAdapter` — wraps service worker `showNotification()` via injectable `PushRegistration` interface. `isAvailable()` returns `true` when registration is set. `setRegistration()` allows runtime registration swap (e.g., after push permission grant). `deliver()` calls `registration.showNotification(title, { body, tag: dedupeKey, data: { eventId, kind, severity, sessionId, provider, metadata } })`. `src/channels/toast.ts`: `ToastAdapter` — event-emitter pattern for in-app UI consumption. Always available unless `disabled: true`. `onToast(handler)` registers callback, returns unsubscribe function. `deliver()` invokes all registered handlers with the full event. Pairs with `packages/ui/src/toast.tsx`. Barrel exports: `NativeNotificationAdapter`, `WebPushAdapter`, `ToastAdapter`, all option/handler types. Subpath exports: `./channels/native`, `./channels/web-push`, `./channels/toast`. Validation: `tsc` clean, 102/102 tests pass (74 existing + 9 native + 10 web-push + 9 toast). FR-006 (pluggable adapters), SC-005 (new adapter = single interface, no core changes), R-001 (isAvailable graceful fallback) satisfied.
+- Current owner: **claude** — 057 Phase 5 (event log + pruning) complete.
+- Next owner: **claude** — implement Phase 6 (integration).
+- Last baton update: 2026-03-31 — **claude**: 057 Phase 5 — event log and pruning. `src/log/event-log.ts`: `EventLog` class — in-memory event history storing `EventLogEntry` (event + status + deliveredTo + loggedAt). `append(event, status, deliveredTo)` records both delivered and suppressed events (SC-004). `query(filter?)` supports filtering by sessionId, kind, severity, status, time range (from/to inclusive), with `limit` — returns newest-first (FR-007). `prune(cutoffMs)` removes entries older than cutoff. `clear()` resets. `size` getter. `src/log/pruner.ts`: `LogPruner` class — retention-based pruning (NF-003). `DEFAULT_RETENTION_MS` = 30 days, `DEFAULT_PRUNE_INTERVAL_MS` = 24 hours. Constructor accepts `LogPrunerOptions` (retentionMs, pruneIntervalMs, injectable clock). `prune()` calculates cutoff = now - retentionMs, delegates to `EventLog.prune()`. Auto-prune via `setInterval` (unref'd). `dispose()` stops timer. Orchestrator integration: `OrchestratorOptions` extended with `eventLog?` and `pruner?`. Constructor creates `EventLog` and `LogPruner`. `notify()` logs all events — suppressed-by-dedup, suppressed-by-preference, and delivered/partial — via `eventLog.append()`. New methods: `queryLog(filter?)`, `logSize` getter, `pruneLog()`. `dispose()` now also stops pruner. Barrel exports: `EventLog`, `LogPruner`, `DEFAULT_RETENTION_MS`, `DEFAULT_PRUNE_INTERVAL_MS`, all option/query/entry types. Subpath exports: `./log`, `./pruner`. Validation: `tsc` clean, 133/133 tests pass (102 existing + 20 event-log + 11 pruner). FR-007, NF-003, SC-004 satisfied.
 - Recommended files to read:
-  - `packages/notification-orchestrator/src/channels/native.ts` (native OS adapter)
-  - `packages/notification-orchestrator/src/channels/web-push.ts` (service worker push adapter)
-  - `packages/notification-orchestrator/src/channels/toast.ts` (in-app toast adapter)
-  - `packages/notification-orchestrator/src/channels/native.test.ts` (9 tests)
-  - `packages/notification-orchestrator/src/channels/web-push.test.ts` (10 tests)
-  - `packages/notification-orchestrator/src/channels/toast.test.ts` (9 tests)
-  - `specs/057-notification-system/spec.md` (spec — Phase 5 next)
+  - `packages/notification-orchestrator/src/log/event-log.ts` (event log)
+  - `packages/notification-orchestrator/src/log/pruner.ts` (retention pruner)
+  - `packages/notification-orchestrator/src/log/event-log.test.ts` (20 tests)
+  - `packages/notification-orchestrator/src/log/pruner.test.ts` (11 tests)
+  - `packages/notification-orchestrator/src/orchestrator.ts` (updated with log integration)
+  - `specs/057-notification-system/spec.md` (spec — Phase 6 next)
 
 ## Requested next agent output
 
-**claude**: Implement Phase 5 — event log and pruning. Build `log/event-log.ts` (persistent event history with query by session, kind, severity, time range per FR-007) and `log/pruner.ts` (retention-based log pruning per NF-003, 30-day default). Claude should review Phase 5 output before Phase 6 begins.
+**claude**: Implement Phase 6 — integration. Wire notification orchestrator into agent lifecycle events per spec. Claude should review Phase 6 output to complete 057.
 
 ### Completed features (14 of 22)
 
@@ -162,6 +161,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **057 Phase 5 — event log and pruning.** `src/log/event-log.ts`: `EventLog` class — in-memory event history storing `EventLogEntry` (event, status, deliveredTo, loggedAt). `append(event, status, deliveredTo)` records both delivered and suppressed events (SC-004). `query(filter?)` supports filtering by sessionId, kind, severity, status, time range (from/to inclusive), with `limit` — returns newest-first (FR-007). `prune(cutoffMs)` removes entries older than cutoff. `clear()` resets. `src/log/pruner.ts`: `LogPruner` class — retention-based pruning (NF-003). `DEFAULT_RETENTION_MS` = 30 days, `DEFAULT_PRUNE_INTERVAL_MS` = 24 hours. Constructor accepts `LogPrunerOptions` (retentionMs, pruneIntervalMs, injectable clock). Auto-prune via `setInterval` (unref'd). Orchestrator integration: `OrchestratorOptions` extended with `eventLog?` and `pruner?`. `notify()` logs all events. New: `queryLog(filter?)`, `logSize`, `pruneLog()`. Barrel + subpath exports (`./log`, `./pruner`). Validation: `tsc` clean, 133/133 tests pass (102 existing + 20 event-log + 11 pruner). FR-007, NF-003, SC-004 satisfied.
 
 - 2026-03-31 (claude): **057 Phase 4 — channel adapters.** Three adapters implementing `ChannelAdapter`: `src/channels/native.ts` (`NativeNotificationAdapter`) — wraps Web Notification API, injectable `NotificationCtor` for testing, `isAvailable()` checks `permission === "granted"` (R-001), `deliver()` creates `new Notification(title, { body, tag, data })`. `src/channels/web-push.ts` (`WebPushAdapter`) — wraps SW `showNotification()` via `PushRegistration` interface, `setRegistration()` for runtime swap, `isAvailable()` checks registration presence. `src/channels/toast.ts` (`ToastAdapter`) — event-emitter pattern, `onToast(handler)` returns unsubscribe fn, always available unless `disabled: true`, `deliver()` invokes all handlers with full event. Barrel exports + subpath exports (`./channels/native`, `./channels/web-push`, `./channels/toast`). Validation: `tsc` clean, 102/102 tests pass (74 existing + 9 native + 10 web-push + 9 toast). FR-006, SC-005, R-001 satisfied.
 
