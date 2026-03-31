@@ -20,8 +20,8 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 - **032–041:** All `status: active`, all complete, all synthesized.
 - **042–047:** All P0 specs — feature-complete (all 6 phases approved per spec).
-- **048, 049, 051, 052, 054:** P1 specs — feature-complete (all 6 phases approved per spec).
-- **050, 053, 055–063:** P1 specs — `status: draft`, unstarted. See priority order in "Requested next agent output".
+- **048, 049, 050, 051, 052, 053, 054:** P1 specs — feature-complete (all 6 phases approved per spec).
+- **055–063:** P1 specs — `status: draft`, unstarted. See priority order in "Requested next agent output".
 
 ## What was delivered in this session
 
@@ -103,18 +103,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 053 Phase 6 implemented (bundled skills and profiles, including `hotfix`).
-- Next owner: **claude** — review 053 Phase 6 against `specs/053-verification-profiles/spec.md` and confirm FR-006/Phase 6 expectations.
-- Last baton update: 2026-03-31 — **cursor**: 053 Phase 6 implemented. Added bundled skills `security-scan` and `license-check` in `packages/verification-profiles/src/defaults.ts` (Node.js tooling assumption retained per R-008). Added bundled profiles `pr`, `release`, and `hotfix` in new `src/profiles.ts`, with `hotfix` included to satisfy carry-forward P5-002 from Phase 5 selector mapping. Updated `evaluatePostSessionGate` fallback behavior in `src/gate.ts` to resolve bundled profiles when local `.verification/profiles/*.y(a)ml` files are absent. Exported profile defaults from barrel + `./profiles` subpath. Added/updated tests (`profiles.test.ts`, `loader.test.ts`, `gate.test.ts`) including bundled `hotfix` coverage and diagnostics behavior for bundled profiles. Validation: `pnpm --filter @opc/verification-profiles test` (81/81 pass) and `pnpm --filter @opc/verification-profiles build` (`tsc` clean).
+- Current owner: **claude** — 053 Phase 6 reviewed and approved. 053 is now feature-complete (all 6 phases).
+- Next owner: **cursor** — pick up next implementation slice (055 — YAML Standards Schema).
+- Last baton update: 2026-03-31 — **claude**: 053 Phase 6 review approved. FR-006 satisfied (5 bundled skills match spec list exactly). Phase 6 bundled skills delivered: lint, type-check, unit-tests, security-scan, license-check. Bundled profiles (pr, release, hotfix) satisfy P5-002 carry-forward. Gate fallback to bundled profiles correct (local takes precedence). R-008 acknowledged (Node.js assumption acceptable, local overrides available). 81/81 tests pass, `tsc` clean. 4 INFO findings (P6-001 through P6-004), no blockers. Review: `.ai/findings/053-phase6-review.md`.
 - Recommended files to read:
-  - `.ai/findings/053-phase5-review.md` (Phase 5 review with findings)
-  - `specs/053-verification-profiles/spec.md` (Phase 6: bundled skills and profiles)
+  - `.ai/findings/053-phase6-review.md` (Phase 6 review — final)
+  - `specs/055-yaml-standards-schema/spec.md` (next spec to implement)
 
 ## Requested next agent output
 
 **cursor**: Pick up the next implementation slice. After each slice, **claude** reviews against `spec.md`.
 
-### Completed features (11 of 22)
+### Completed features (12 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -129,11 +129,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 050 | Tool Renderer System | P1 | ✅ feature-complete (6 phases + verification) |
 | 052 | State Persistence | P1 | ✅ feature-complete (6 phases + verification) |
 | 054 | Agent Frontmatter Schema | P1 | ✅ feature-complete |
+| 053 | Verification Profiles | P1 | ✅ feature-complete (6 phases + review) |
 
-### Priority order for remaining P1 specs (10 unstarted)
+### Priority order for remaining P1 specs (9 unstarted)
 
-1. **053 — Verification Profiles** — YAML verification gates; builds on 048 hookify + 054 frontmatter patterns
-4. **055 — YAML Standards Schema** — schema enforcement for all YAML frontmatter across specs/agents/commands
+1. **055 — YAML Standards Schema** — schema enforcement for all YAML frontmatter across specs/agents/commands
 5. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
 6. **057 — Notification System** — agent event notifications for desktop app
 7. **058 — File Mention System** — @-mention file references in agent conversations
@@ -157,6 +157,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **053 Phase 6 review — approved. 053 feature-complete.** FR-006 satisfied (5 bundled skills: lint, type-check, unit-tests, security-scan, license-check — exact spec match). Phase 6 bundled skills all have correct safety postures (security-scan: cautious/allow, license-check: safe/allow, others: safe/deny). Bundled profiles (pr, release, hotfix) satisfy P5-002 carry-forward — release adds license-check over pr/hotfix, all gated. Gate fallback in `gate.ts:loadProfile` correctly prefers local files over bundled defaults (consistent with R-004 skill precedence). `loadProfileDiagnostics` updated to return clean for bundled profiles. R-008 acknowledged (npm/npx assumption, overridable via local skills). 81/81 tests pass, `tsc` clean. 4 findings: P6-001 profile test only checks keys not contents (INFO), P6-002 hotfix=pr skill lists (INFO), P6-003 no local-overrides-bundled-profile test (INFO), P6-004 profile→skill name coupling unchecked at compile time (INFO). No blockers. Review: `.ai/findings/053-phase6-review.md`.
 
 - 2026-03-31 (cursor): **053 Phase 6 — bundled skills and profiles.** Implemented Phase 6 in `packages/verification-profiles`. Added 2 new bundled skills in `src/defaults.ts`: `security-scan` (`npm audit --audit-level=high`) and `license-check` (`npx license-checker --summary`) alongside existing defaults. Added new `src/profiles.ts` with bundled gated profiles: `pr`, `release`, and `hotfix` (explicitly addressing P5-002 carry-forward from Phase 5). Updated `src/gate.ts` to fall back to bundled profiles when local profile files are missing, while preserving local `.yaml/.yml` loading precedence and fail-closed behavior for unknown profiles. Updated exports (`src/index.ts`, `package.json` `./profiles` subpath). Added `src/profiles.test.ts` and expanded `src/loader.test.ts` / `src/gate.test.ts` coverage for new defaults and bundled `hotfix` behavior. Validation: `pnpm --filter @opc/verification-profiles test` (81/81 pass), `pnpm --filter @opc/verification-profiles build` (`tsc` clean).
 
