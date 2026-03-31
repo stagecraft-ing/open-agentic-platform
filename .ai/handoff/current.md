@@ -103,13 +103,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 052 Phase 1 reviewed and approved.
-- Next owner: **cursor** — 052 Phase 2 (resume detection: startup state file check, resume prompt, step-skipping logic per FR-003).
-- Last baton update: 2026-03-31 — **claude**: Phase 1 review approved. All 6 requirements (FR-001, FR-002, FR-007, FR-008, NF-003, SC-006) satisfied. Schema matches spec exactly (15 camelCase fields). Atomic write pattern correct (temp+rename). 3 state tests + 15 existing all pass. 6 findings (3 LOW, 3 INFO) — none blocking. Review: `.ai/findings/052-phase1-review.md`.
+- Current owner: **cursor** — 052 Phase 3 (checkpoint and approval gates per FR-004, FR-005).
+- Next owner: **claude** — 052 Phase 3 review.
+- Last baton update: 2026-03-31 — **claude**: Phase 2 review approved. FR-003 (resume detection, step-skipping) satisfied. `ResumePlan` + `compute_resume_plan_from_state` + `detect_resume_plan_for_run` correctly identify completed steps and resume point. Clean separation: pure computation vs I/O. 4 new tests, 22/22 total pass. 6 findings (3 LOW, 3 INFO) — none blocking. Review: `.ai/findings/052-phase2-review.md`.
 - Recommended files to read:
-  - `specs/052-state-persistence/spec.md` — Phase 2 scope: FR-003 (resume detection, step-skipping)
-  - `crates/orchestrator/src/state.rs` (052 Phase 1 implementation — foundation for Phase 2)
-  - `.ai/findings/052-phase1-review.md` (Phase 1 review with findings)
+  - `specs/052-state-persistence/spec.md` — Phase 3 scope: FR-004 (checkpoint gates), FR-005 (approval gates with timeout/escalation)
+  - `crates/orchestrator/src/state.rs` (052 Phase 1 — state schema with `GateInfo` forward-declaration)
+  - `crates/orchestrator/src/lib.rs` (052 Phase 2 — resume detection helpers, `ResumePlan`)
+  - `.ai/findings/052-phase2-review.md` (Phase 2 review with findings)
 
 ## Requested next agent output
 
@@ -158,6 +159,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 2 review** — Phase 2 approved. FR-003 (resume detection) satisfied. `ResumePlan` struct with `completed_step_ids` and `first_non_completed_step_index`. `compute_resume_plan_from_state` is pure (state + manifest → plan): collects completed steps in manifest order, finds first non-completed index. Returns `None` for no-completed, all-completed, or missing state file. `detect_resume_plan_for_run` handles I/O (existence check + deserialization). `ResumePlan` is `Serialize`/`Deserialize` for file-based context passing. 4 resume tests + 22/22 total orchestrator tests pass. 6 findings: P2-001 no all-completed→None test (LOW), P2-002 no failed-step-as-resume-point test (LOW), P2-003 workflow-level status not checked (LOW), P2-004–P2-006 (INFO). No blockers for Phase 3. Review: `.ai/findings/052-phase2-review.md`.
 
 - 2026-03-31 (claude): **052 Phase 1 review** — Phase 1 approved. FR-001 (state file created with workflow id, start time, steps, status `"running"`), FR-002 (atomic step update with status/output/duration/timestamp), FR-007 (state query API via `load_workflow_state`), FR-008 (atomic write via temp+rename), NF-003 (pretty JSON), SC-006 (accurate status at any point) all satisfied. `WorkflowState` schema matches spec exactly — 15 fields, all camelCase. `GateInfo` forward-declares Phase 3 gate fields. `OrchestratorError::StatePersistence` variant handles all I/O errors with descriptive messages. 3/3 state tests, 18/18 total orchestrator tests pass. 6 findings: P1-001 Uuid vs spec string format (LOW — stronger type, acceptable), P1-002 silent no-op on unknown step_id (LOW), P1-003 no error-path test (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/052-phase1-review.md`.
 
