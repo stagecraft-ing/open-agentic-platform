@@ -103,16 +103,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 6 implementation (4 sub-tasks: HTTP SSE endpoint, broadcaster registry, persisted dispatch loop, integration tests).
-- Next owner: **claude** — Phase 6 review once implementation lands.
-- Last baton update: 2026-03-31 — **claude**: Phase 6 readiness review completed. Phases 1–5 confirmed solid (48/48 tests, 0 warnings). Wrote detailed implementation guidance for all 4 Phase 6 sub-tasks (6A HTTP SSE endpoint with axum, 6B per-workflow broadcaster registry, 6C crash-resume integration tests, 6D wiring state persistence into dispatch loop). Identified 3 new findings: R-001 tokio runtime features needed for production HTTP (INFO), R-002 `&mut self` on `append_event` requires `Arc<Mutex>` wrapping (LOW), R-003 no integration tests exist yet (LOW). No blockers. Review: `.ai/findings/052-phase6-readiness.md`.
+- Current owner: **cursor** — 052 Phase 6 remaining sub-tasks (6C integration tests, 6D dispatch loop wiring). Also fix P6-001 clippy and P6-003 double-serialization.
+- Next owner: **claude** — review 6C+6D once implementation lands.
+- Last baton update: 2026-03-31 — **claude**: Phase 6 partial review completed. 6A (HTTP SSE endpoint) and 6B (per-workflow broadcaster registry) approved — Axum handler correct, DashMap registry correct, R-001/R-002 resolved. 6C (integration tests) and 6D (dispatch loop wiring) not yet implemented. 48/48 tests pass, build clean. 6 findings: P6-001 unnecessary `&mut` in http.rs:70 (LOW), P6-002 no HTTP-level tests (LOW), P6-003 double-serialization via `json_data()` (LOW), P6-004 no broadcaster cleanup on workflow completion (INFO), P6-005 silent lagged subscriber handling (INFO), P6-006 no middleware (INFO). Review: `.ai/findings/052-phase6-review.md`.
 - Recommended files to read:
-  - `.ai/findings/052-phase6-readiness.md` (**START HERE** — full Phase 6 implementation plan with guidance per sub-task)
+  - `.ai/findings/052-phase6-review.md` (**START HERE** — 6A/6B approved, remaining work for 6C/6D)
+  - `.ai/findings/052-phase6-readiness.md` (original Phase 6 implementation guidance — 6C/6D sections still applicable)
   - `specs/052-state-persistence/spec.md` — Phase 6 scope: end-to-end integration + crash resume
-  - `crates/orchestrator/src/sse.rs` (052 Phase 5 — SSE broadcaster, the module 6A wraps)
-  - `crates/orchestrator/src/sqlite_state.rs` (052 Phases 4-5 — SQLite backend + events API)
-  - `crates/orchestrator/src/lib.rs` (052 Phases 1-5 — all re-exports + dispatch_manifest_noop to extend)
-  - `crates/orchestrator/Cargo.toml` (needs axum + tokio runtime features per R-001)
+  - `crates/orchestrator/src/http.rs` (052 Phase 6A/6B — HTTP SSE endpoint + broadcaster registry)
+  - `crates/orchestrator/src/lib.rs` (dispatch_manifest_noop to extend for 6D)
+  - `crates/orchestrator/src/sqlite_state.rs` (SQLite backend for 6D wiring)
 
 ## Requested next agent output
 
@@ -161,6 +161,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 6 partial review** — 6A (HTTP SSE endpoint) and 6B (per-workflow broadcaster registry) approved. `http.rs` delivers Axum SSE handler at `GET /workflows/:id/events?offset=N` wrapping `subscribe_with_replay` with replay-then-live stream, dedup via `high_water_mark`, 15s keep-alive, 404 on missing workflow. `HttpState` uses `Arc<Mutex<SqliteWorkflowStore>>` (R-002 resolved) + `Arc<DashMap<Uuid, EventBroadcaster>>` (lock-free per-workflow). Tokio `rt-multi-thread` added to main deps (R-001 resolved). 48/48 tests pass, build clean. 6C (integration tests) and 6D (dispatch loop wiring) not yet started. 6 findings: P6-001 unnecessary `&mut` in `http.rs:70` (LOW), P6-002 no HTTP-level tests (LOW), P6-003 double-serialization via `json_data()` (LOW), P6-004 no broadcaster cleanup (INFO), P6-005 silent lagged handling (INFO), P6-006 no middleware (INFO). Review: `.ai/findings/052-phase6-review.md`.
 
 - 2026-03-31 (claude): **052 Phase 6 readiness review** — Pre-implementation assessment completed. Confirmed Phases 1–5 solid (48/48 tests, 0 warnings, all FRs satisfied at library layer). Defined 4 Phase 6 sub-tasks: 6A HTTP SSE endpoint (axum `text/event-stream` wrapping `subscribe_with_replay`), 6B per-workflow broadcaster registry (`Arc<DashMap<Uuid, EventBroadcaster>>`), 6C end-to-end crash-resume integration tests (3 test scenarios: crash resume, SSE replay after crash, full stack), 6D wiring state persistence into dispatch loop (`dispatch_manifest_persisted` or extending existing `dispatch_manifest_noop`). 3 findings: R-001 tokio needs `rt-multi-thread` for production HTTP (INFO), R-002 `&mut self` on store needs `Arc<Mutex>` for concurrent access (LOW), R-003 no integration tests directory exists (LOW). Carry-forward: P3-001 epoch timestamps, P4-001/P4-002/P4-003 minor schema gaps. No blockers for Phase 6. Review: `.ai/findings/052-phase6-readiness.md`.
 
