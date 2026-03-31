@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/044-multi-agent-orchestration/spec.md
 
-//! Multi-agent orchestration with file-based artifact passing (Feature 044).
+//! Multi-agent orchestration with file-based artifact passing (Feature 044)
+//! and workflow state persistence primitives (Feature 052).
 //!
 //! Phase 1: manifest parsing, DAG validation, artifact path helpers, effort classification.
 //! Agent dispatch and Tauri wiring are follow-on slices.
@@ -10,10 +11,16 @@
 pub mod artifact;
 pub mod effort;
 pub mod manifest;
+pub mod state;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
 pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
+pub use state::{
+    load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
+    write_workflow_state_atomic, GateInfo, StepExecutionStatus, StepState, WorkflowState,
+    WorkflowStatus,
+};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -39,6 +46,8 @@ pub enum OrchestratorError {
     StepFailed { step_id: String, reason: String },
     #[error("agent not found: {agent_id}")]
     AgentNotFound { agent_id: String },
+    #[error("state persistence error: {reason}")]
+    StatePersistence { reason: String },
 }
 
 /// Per-step status after or during a run (044 FR-006, FR-008).

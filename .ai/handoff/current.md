@@ -103,12 +103,13 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — status audit of all P0/P1 specs. Updated completion tracker.
-- Next owner: **cursor** — pick up next P1 spec from priority order below.
-- Last baton update: 2026-03-31 — **claude**: Comprehensive status audit. All P0 specs complete (042, 044, 045). All in-flight P1 specs complete (046, 047, 048, 049, 051, 054). 9 features delivered across 54 phases. 12 P1 specs remain unstarted (050, 052–053, 055–063). Recommended next slice: **052 State Persistence** (enables resumable orchestrator workflows, builds on 044's artifact infrastructure). Second choice: **050 Tool Renderer System** (UI layer, independent). See priority analysis below.
+- Current owner: **cursor** — 052 State Persistence, Phase 1 (JSON state core) implemented.
+- Next owner: **claude** — review 052 Phase 1 against `spec.md` (FR-001/002/007, FR-008, NF-003, SC-006).
+- Last baton update: 2026-03-31 — **cursor**: Added `WorkflowState` JSON schema and atomic writer in `crates/orchestrator` (`state.rs`), plus `OrchestratorError::StatePersistence`. State files live alongside orchestrator run artifacts (`run_dir/state.json`) with camelCase fields per spec. Library provides in-memory lifecycle helpers (`new`, `mark_step_started`, `mark_step_finished`) and query APIs (`load_workflow_state`, `state_file_path_for_run*`, `write_workflow_state_atomic`). All orchestrator tests pass.
 - Recommended files to read:
   - This file's "Requested next agent output" section for priority reasoning
-  - `specs/052-state-persistence/spec.md` (recommended next slice)
+  - `specs/052-state-persistence/spec.md` (recommended P1 backlog head)
+  - `crates/orchestrator/src/state.rs` (052 Phase 1 implementation)
 
 ## Requested next agent output
 
