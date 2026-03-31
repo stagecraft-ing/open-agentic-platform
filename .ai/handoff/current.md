@@ -101,15 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — **054 Phase 6 review** complete.
-- Next owner: **cursor** or **claude-opus** — next P1 spec slice (048 complete, 054 complete; next candidates: 051 Worktree Agents, 052 State Persistence, or remaining P1s).
-- Last baton update: 2026-03-30 — **claude**: **054 Phase 6 review** approved. All 13 definition files (4 agents + 9 commands) conform to canonical schema. FR-001/FR-003/FR-008 all satisfied. Linter validates 100% compliance (4/4 agents, 9/9 commands). 21/21 tests, `tsc` clean. 6 findings (all LOW/INFO, no blockers). **054 feature-complete — all 6 phases approved.** Review: `.ai/findings/054-phase6-review.md`.
+- Current owner: **cursor** — selected next P1 slice and drafted 051 phased implementation plan.
+- Next owner: **claude** — review 051 phased plan against spec and clear for implementation start.
+- Last baton update: 2026-03-30 — **cursor**: selected **051 Worktree Agents** as next P1 slice and added phased plan at `.ai/plans/051-worktree-agents-phased-plan.md` (W-001..W-006 decisions; Phase 1–6 delivery/validation map aligned to FR/NF/SC).
 - Recommended files to read:
-  - `.ai/findings/054-phase6-review.md`
+  - `specs/051-worktree-agents/spec.md`
+  - `.ai/plans/051-worktree-agents-phased-plan.md`
 
 ## Requested next agent output
 
-**cursor** or **claude-opus**: Pick next P1 spec for implementation. 048 (Hookify Rule Engine) and 054 (Agent Frontmatter Schema) are now both feature-complete. Remaining P1 candidates: 051 Worktree Agents, 052 State Persistence, 049 Permission System, etc.
+**claude**: Review `.ai/plans/051-worktree-agents-phased-plan.md` against `specs/051-worktree-agents/spec.md` and report findings/approval for Phase 1 start (including any required decision corrections before implementation).
 
 Priority order for P0 specs (unchanged):
 
@@ -136,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **051 planning pass** — Responded to baton by selecting `051-worktree-agents` as the next P1 slice and drafting `.ai/plans/051-worktree-agents-phased-plan.md` with W-001..W-006 implementation decisions and six execution phases (worktree manager, concurrency queue, runner/timeout, lifecycle events, diff/merge/discard, Tauri integration + verification). Baton handed to **claude** for plan review before Phase 1 coding.
 - 2026-03-30 (claude): **054 Phase 6 review** — Phase 6 approved. FR-001 (4 required agent fields on all 4 agents), FR-003 (2 required skill fields on all 9 commands), FR-008 (description >= 50 chars, kebab-case names, non-empty tools) all satisfied. `init.md` frontmatter added correctly. `review-branch.md` description expanded from 47 to 136 chars. Tools converted from comma-separated to YAML arrays on all 4 agents. Linter: 4/4 agents, 9/9 commands pass. 21/21 tests, `tsc` clean. 6 findings: P6-001 `cleanup.md` flow syntax inconsistency (LOW), P6-002 P5 LOWs remain open (expected), P6-003–P6-006 (INFO). **054 feature-complete — all 6 phases approved.** Review: `.ai/findings/054-phase6-review.md`.
 - 2026-03-30 (cursor): **054 Phase 6** — migrated `.claude/agents/*.md` from legacy comma-separated `tools` strings to schema-style arrays and added schema-compliant `name` frontmatter across `.claude/commands/*.md` (plus missing frontmatter for `init.md`). Validation from `packages/agent-frontmatter`: `node dist/lint-cli.js ../../.claude/agents --kind agent` (4/4 pass) and `node dist/lint-cli.js ../../.claude/commands --kind skill` (9/9 pass).
 - 2026-03-30 (claude): **054 Phase 5 review** — Phase 5 approved. FR-008 (required fields, description >= 50 chars, kebab-case name, non-empty tools) and SC-004 (catches missing fields, short descriptions, non-kebab names) both satisfied. Linter handles legacy comma-separated `tools` via `normalizeToolsField`. All 4 `.claude/agents/*.md` pass cleanly. Commands correctly fail pre-migration (8 errors, expected). `classifyKind` auto-detection sound. CLI exit codes correct (0/1/2). 6 findings: P5-001 no warning severity (LOW), P5-002 no --json output (LOW), P5-003 path heuristic fragile (LOW), P5-004–P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/054-phase5-review.md`.
