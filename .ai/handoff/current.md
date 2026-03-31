@@ -101,27 +101,23 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — completed 049 Phase 6 implementation.
-- Next owner: **claude** — review 049 Phase 6 non-interactive defaults and verification evidence against spec.
-- Last baton update: 2026-03-31 — **cursor**: Phase 6 implemented. Added non-interactive gate in `createPermissionEvaluator` via `NonInteractivePolicy` (`mode: "deny_all" | "allow_list"`) with default deny-all when `isInteractive === false` and no policy is provided. Extended `evaluator.test.ts` with unit coverage for deny-all and allow-list behaviors, ensuring the non-interactive layer short-circuits before bypass/disallowed/remembered layers and never invokes the prompt handler. Created `specs/049-permission-system/execution/verification.md` documenting SC-001–SC-006 and NF-001–NF-003 evidence plus Phase 6 behavior. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`.
+- Current owner: **claude** — completed 049 Phase 6 review. **049 feature-complete.**
+- Next owner: **cursor** — pick up next P1 spec from priority order below, or continue P0 work.
+- Last baton update: 2026-03-31 — **claude**: Phase 6 approved. FR-009 (non-interactive deny-all / allow-from-list) fully satisfied. `NonInteractivePolicy` with `deny_all` default gates before all other layers when `isInteractive === false`. Allow-list mode normalizes patterns and matches using same infrastructure as interactive path. 26/26 tests, `tsc` clean. 6 findings: P6-001 no empirical NF-001 benchmark (LOW), P6-002 allow-list doesn't cross-check disallowed patterns (LOW), P6-003 no test for omitted policy default (LOW), P6-004–P6-006 (INFO). **All 6 phases approved, all 9 FR / 3 NF / 6 SC satisfied.** No follow-up slices needed. Review: `.ai/findings/049-phase6-review.md`.
 - Recommended files to read:
-  - `specs/049-permission-system/spec.md` (canonical FR/NF/SC — Phase 6 targets FR-009)
-  - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 6 section)
-  - `.ai/findings/049-phase5-review.md` (Phase 5 review and known LOW follow-ups)
-  - `packages/permission-system/src/evaluator.ts` (evaluator pipeline — non-interactive mode hooks into layer 1)
-  - `packages/permission-system/src/defaults.ts` (bypass/disallowed lists — non-interactive allow-list extends this)
+  - `.ai/findings/049-phase6-review.md` (Phase 6 review with feature completion assessment)
+  - `specs/049-permission-system/execution/verification.md` (full SC/NF evidence map)
 
 ## Requested next agent output
 
-**claude**: Perform 049 Phase 6 review — confirm FR-009 is fully satisfied by the non-interactive deny-all / allow-from-list behavior, check verification.md for SC/NF coverage, and decide whether 049 is feature-complete or if any follow-up slices are needed.
-
-Priority order for P0 specs (unchanged):
+**cursor**: Pick up the next implementation slice. Priority order:
 
 1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
 2. **042 — Multi-Provider Agent Registry** — ✅ complete (all phases + Phase 6 review)
-3. **044 — Multi-Agent Orchestration** — Phase 1–5 ✅ (manifest, DAG, prompts, async dispatch, real executor); e2e validation follow
-4. **046 — Context Compaction**
-5. **047 — Governance Control Plane**
+3. **049 — Permission System** — ✅ complete (all 6 phases approved)
+4. **044 — Multi-Agent Orchestration** — Phase 1–5 ✅ (manifest, DAG, prompts, async dispatch, real executor); e2e validation follow
+5. **046 — Context Compaction**
+6. **047 — Governance Control Plane**
 
 After each slice, **claude** reviews against `spec.md`.
 
@@ -139,6 +135,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **049 Phase 6 review** — Phase 6 approved. **049 feature-complete — all 6 phases approved.** FR-009 (non-interactive deny-all / allow-from-list via `NonInteractivePolicy`) fully satisfied. Non-interactive gate at evaluator.ts:87–89 short-circuits before bypass/disallowed/remembered/prompt layers. Default `deny_all` when no policy provided. Allow-list normalizes patterns via `asUniquePatterns()` and uses `findMatchingPattern()` — same infrastructure as interactive path. Verification.md maps all SC-001–SC-006 and NF-001–NF-003 to test evidence. 26/26 tests, `tsc` clean. 6 findings: P6-001 no empirical NF-001 benchmark (LOW), P6-002 allow-list doesn't cross-check disallowed patterns (LOW), P6-003 no test for omitted policy default (LOW), P6-004 `allowListPatterns` type imprecision (INFO), P6-005 prior phase LOWs remain open (INFO), P6-006 `isInteractive` compile-time enforced (INFO). All 9 FR / 3 NF / 6 SC satisfied. No follow-up slices needed. Review: `.ai/findings/049-phase6-review.md`.
 
 - 2026-03-31 (claude): **049 Phase 5 review** — Phase 5 approved. FR-008 (list/revoke/clear CLI subcommands with injectable store, exit codes, flag parsing), SC-005 (list output with pipe-delimited header + data rows containing pattern, tool, decision, scope, createdAt, expiresAt), SC-006 (revoke removes entry by pattern, verified store no longer contains it, re-prompt follows from evaluator fallthrough) all satisfied. `runPermissionsCli` at `cli.ts:66–160` returns exit codes, accepts `PermissionCliOptions` with `store`, `nowIso`, `writeLine`, `writeError` for full testability. 25/25 tests (7 CLI-specific), `tsc` clean. 6 findings: P5-001 CLI not re-exported from index.ts (LOW — intentional separation via subpath export), P5-002 no `--scope` flag for `list` subcommand (LOW), P5-003 no empty store list test (LOW), P5-004 revoke matches pattern-only not tool+pattern (INFO — consistent with P2-001), P5-005 no scoped revoke test (INFO), P5-006 pipe-delimited format not machine-parseable (INFO). No blockers for Phase 6. Review: `.ai/findings/049-phase5-review.md`.
 
