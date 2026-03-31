@@ -101,17 +101,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — **054 Phase 6 migration** complete.
-- Next owner: **claude** — **054 Phase 6 review** — validate migrated `.claude/agents/*.md` and `.claude/commands/*.md` frontmatter against FR-001/FR-003/FR-008 and confirm linter outcomes.
-- Last baton update: 2026-03-30 — **cursor**: **054 Phase 6 migration** — converted all 4 agent definitions to schema-style `tools` arrays and added/normalized `name` + long-form `description` frontmatter across 9 command definitions (including adding frontmatter to `init.md`). Validation: `node dist/lint-cli.js ../../.claude/agents --kind agent` (4/4 pass), `node dist/lint-cli.js ../../.claude/commands --kind skill` (9/9 pass) from `packages/agent-frontmatter`. P5 LOW items were left unchanged in this slice (no linter architecture changes).
+- Current owner: **claude** — **054 Phase 6 review** complete.
+- Next owner: **cursor** or **claude-opus** — next P1 spec slice (048 complete, 054 complete; next candidates: 051 Worktree Agents, 052 State Persistence, or remaining P1s).
+- Last baton update: 2026-03-30 — **claude**: **054 Phase 6 review** approved. All 13 definition files (4 agents + 9 commands) conform to canonical schema. FR-001/FR-003/FR-008 all satisfied. Linter validates 100% compliance (4/4 agents, 9/9 commands). 21/21 tests, `tsc` clean. 6 findings (all LOW/INFO, no blockers). **054 feature-complete — all 6 phases approved.** Review: `.ai/findings/054-phase6-review.md`.
 - Recommended files to read:
-  - `.claude/agents/architect.md`
-  - `.claude/commands/init.md`
-  - `packages/agent-frontmatter/src/linter.ts`
+  - `.ai/findings/054-phase6-review.md`
 
 ## Requested next agent output
 
-**claude**: Perform 054 Phase 6 review of migrated definition files and confirm spec/linter compliance, with any residual findings captured under `.ai/findings/`.
+**cursor** or **claude-opus**: Pick next P1 spec for implementation. 048 (Hookify Rule Engine) and 054 (Agent Frontmatter Schema) are now both feature-complete. Remaining P1 candidates: 051 Worktree Agents, 052 State Persistence, 049 Permission System, etc.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +136,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **054 Phase 6 review** — Phase 6 approved. FR-001 (4 required agent fields on all 4 agents), FR-003 (2 required skill fields on all 9 commands), FR-008 (description >= 50 chars, kebab-case names, non-empty tools) all satisfied. `init.md` frontmatter added correctly. `review-branch.md` description expanded from 47 to 136 chars. Tools converted from comma-separated to YAML arrays on all 4 agents. Linter: 4/4 agents, 9/9 commands pass. 21/21 tests, `tsc` clean. 6 findings: P6-001 `cleanup.md` flow syntax inconsistency (LOW), P6-002 P5 LOWs remain open (expected), P6-003–P6-006 (INFO). **054 feature-complete — all 6 phases approved.** Review: `.ai/findings/054-phase6-review.md`.
 - 2026-03-30 (cursor): **054 Phase 6** — migrated `.claude/agents/*.md` from legacy comma-separated `tools` strings to schema-style arrays and added schema-compliant `name` frontmatter across `.claude/commands/*.md` (plus missing frontmatter for `init.md`). Validation from `packages/agent-frontmatter`: `node dist/lint-cli.js ../../.claude/agents --kind agent` (4/4 pass) and `node dist/lint-cli.js ../../.claude/commands --kind skill` (9/9 pass).
 - 2026-03-30 (claude): **054 Phase 5 review** — Phase 5 approved. FR-008 (required fields, description >= 50 chars, kebab-case name, non-empty tools) and SC-004 (catches missing fields, short descriptions, non-kebab names) both satisfied. Linter handles legacy comma-separated `tools` via `normalizeToolsField`. All 4 `.claude/agents/*.md` pass cleanly. Commands correctly fail pre-migration (8 errors, expected). `classifyKind` auto-detection sound. CLI exit codes correct (0/1/2). 6 findings: P5-001 no warning severity (LOW), P5-002 no --json output (LOW), P5-003 path heuristic fragile (LOW), P5-004–P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/054-phase5-review.md`.
 - 2026-03-30 (cursor): **054 Phase 5** — Added linter module at `packages/agent-frontmatter/src/linter.ts` with FR-008 checks (required fields, `description` >= 50 chars, kebab-case `name`, non-empty `tools` for agents), plus CLI `src/lint-cli.ts` and package wiring (`bin`, `lint:definitions`, exports). Added golden tests in `src/linter.test.ts` for pass/fail/formatting paths. Validation: `pnpm test` (21/21), `pnpm build`.
