@@ -26,6 +26,7 @@ pub use sqlite_state::{
     sqlite_db_path_for_run, sqlite_db_path_for_run_dir, PersistedEvent, SqliteWorkflowStore,
 };
 pub use sse::{EventBroadcaster, EventSubscriber, ReplaySubscription};
+pub use http::HttpState;
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
     write_workflow_state_atomic, GateInfo, StepExecutionStatus, StepState, WorkflowState,
@@ -34,10 +35,12 @@ pub use state::{
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 /// Orchestrator-facing errors (044 contract + load-time validation).
@@ -614,6 +617,329 @@ pub async fn dispatch_manifest(
             }
         }
     }
+
+    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+    summary.write_to_disk(artifact_base)?;
+    Ok(summary)
+}
+
+/// Optional persistence context for wiring state persistence and event
+/// broadcasting into the dispatch loop (052 Phase 6D).
+pub struct PersistenceContext {
+    pub store: Arc<Mutex<SqliteWorkflowStore>>,
+    pub broadcaster: EventBroadcaster,
+}
+
+/// Timestamp helper for event/state recording — mirrors the epoch-based format
+/// used in `sqlite_state` and `gates` modules.
+fn now_ts() -> String {
+    use std::time::SystemTime;
+    let duration = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default();
+    format!("{}.{:03}", duration.as_secs(), duration.subsec_millis())
+}
+
+/// Async orchestrator dispatcher with SQLite state persistence and event broadcasting (052 6D).
+///
+/// This wraps the same dispatch logic as [`dispatch_manifest`] but additionally:
+/// - Creates a `WorkflowState` at workflow start and persists it to SQLite
+/// - Appends `workflow_started`, `step_started`, `step_completed`/`step_failed`,
+///   and `workflow_completed`/`workflow_failed` events
+/// - Broadcasts each event to live SSE subscribers via `EventBroadcaster`
+/// - Persists state after every step transition
+pub async fn dispatch_manifest_persisted(
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    manifest: &WorkflowManifest,
+    registry: Arc<dyn AgentRegistry>,
+    executor: Arc<dyn GovernedExecutor>,
+    persistence: &PersistenceContext,
+) -> Result<RunSummary, OrchestratorError> {
+    let order = manifest.validate_and_order()?;
+    let steps = &manifest.steps;
+
+    // --- Workflow start: create state + persist + emit event ---
+    let step_defs: Vec<(String, String)> = steps
+        .iter()
+        .map(|s| (s.id.clone(), s.agent.clone()))
+        .collect();
+
+    let mut wf_state = WorkflowState::new(
+        run_id,
+        manifest.steps.first().map_or("workflow".to_string(), |s| s.agent.clone()),
+        now_ts(),
+        step_defs,
+        serde_json::Map::new(),
+    );
+    wf_state.attach_gates_from_manifest(manifest);
+
+    {
+        let mut store = persistence.store.lock().await;
+        store.write_workflow_state(&wf_state)?;
+        let event_id = store.append_event(
+            run_id,
+            "workflow_started",
+            &serde_json::json!({ "workflow_id": run_id.to_string() }),
+            None,
+        )?;
+        let event = PersistedEvent {
+            event_id,
+            workflow_id: run_id,
+            timestamp: now_ts(),
+            event_type: "workflow_started".to_string(),
+            payload: serde_json::json!({ "workflow_id": run_id.to_string() }),
+        };
+        persistence.broadcaster.broadcast(event);
+    }
+
+    // --- Pre-compute dependency graph ---
+    let mut dependents: HashMap<&str, Vec<usize>> = HashMap::new();
+    for (idx, step) in steps.iter().enumerate() {
+        for input in &step.inputs {
+            if let Some((producer_id, _file)) = split_input_ref(input) {
+                dependents.entry(producer_id).or_default().push(idx);
+            }
+        }
+    }
+
+    let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
+    let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
+
+    /// Helper: persist state + append event + broadcast in one locked section.
+    async fn persist_and_emit(
+        persistence: &PersistenceContext,
+        wf_state: &WorkflowState,
+        run_id: Uuid,
+        event_type: &str,
+        payload: &JsonValue,
+    ) -> Result<(), OrchestratorError> {
+        let mut store = persistence.store.lock().await;
+        store.write_workflow_state(wf_state)?;
+        let event_id = store.append_event(run_id, event_type, payload, None)?;
+        let event = PersistedEvent {
+            event_id,
+            workflow_id: run_id,
+            timestamp: now_ts(),
+            event_type: event_type.to_string(),
+            payload: payload.clone(),
+        };
+        persistence.broadcaster.broadcast(event);
+        Ok(())
+    }
+
+    for &idx in &order {
+        if matches!(statuses[idx], StepStatus::Skipped | StepStatus::Cancelled) {
+            continue;
+        }
+
+        let step = &steps[idx];
+        let input_paths = resolve_input_paths(artifact_base, run_id, step);
+        if let Some(missing_path) = input_paths.iter().find(|p| !p.exists()).cloned() {
+            statuses[idx] = StepStatus::Failure;
+
+            // Update state for failed step
+            wf_state.mark_step_finished(
+                &step.id,
+                StepExecutionStatus::Failed,
+                now_ts(),
+                None,
+                Some(serde_json::json!({ "error": format!("missing input: {}", missing_path.display()) })),
+            );
+            wf_state.status = WorkflowStatus::Failed;
+
+            persist_and_emit(
+                persistence,
+                &wf_state,
+                run_id,
+                "step_failed",
+                &serde_json::json!({ "step_id": step.id, "reason": format!("missing input: {}", missing_path.display()) }),
+            )
+            .await?;
+
+            if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                for &d in dep_idxs {
+                    if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                        statuses[d] = StepStatus::Skipped;
+                    }
+                }
+            }
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            summary.write_to_disk(artifact_base)?;
+            return Err(OrchestratorError::DependencyMissing {
+                step_id: step.id.clone(),
+                artifact_path: missing_path,
+            });
+        }
+
+        if !registry.has_agent(&step.agent).await {
+            statuses[idx] = StepStatus::Failure;
+
+            wf_state.mark_step_finished(
+                &step.id,
+                StepExecutionStatus::Failed,
+                now_ts(),
+                None,
+                Some(serde_json::json!({ "error": format!("agent not found: {}", step.agent) })),
+            );
+            wf_state.status = WorkflowStatus::Failed;
+
+            persist_and_emit(
+                persistence,
+                &wf_state,
+                run_id,
+                "step_failed",
+                &serde_json::json!({ "step_id": step.id, "reason": format!("agent not found: {}", step.agent) }),
+            )
+            .await?;
+
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            summary.write_to_disk(artifact_base)?;
+            return Err(OrchestratorError::AgentNotFound {
+                agent_id: step.agent.clone(),
+            });
+        }
+
+        // --- Step started ---
+        statuses[idx] = StepStatus::Running;
+        wf_state.mark_step_started(&step.id, now_ts());
+
+        persist_and_emit(
+            persistence,
+            &wf_state,
+            run_id,
+            "step_started",
+            &serde_json::json!({ "step_id": step.id }),
+        )
+        .await?;
+
+        artifact_base
+            .ensure_step_dir(run_id, &step.id)
+            .map_err(|e| OrchestratorError::StepFailed {
+                step_id: step.id.clone(),
+                reason: format!("prepare output dir: {e}"),
+            })?;
+
+        let output_paths: Vec<PathBuf> = step
+            .outputs
+            .iter()
+            .map(|o| artifact_base.output_artifact_path(run_id, &step.id, o))
+            .collect();
+
+        let request = DispatchRequest {
+            step_id: step.id.clone(),
+            agent_id: step.agent.clone(),
+            effort: step.effort,
+            system_prompt: build_step_system_prompt(artifact_base, run_id, step),
+            input_artifacts: input_paths,
+            output_artifacts: output_paths.clone(),
+        };
+
+        match executor.dispatch_step(request).await {
+            Ok(result) => {
+                if let Some(missing_output) = output_paths.iter().find(|p| !p.exists()) {
+                    statuses[idx] = StepStatus::Failure;
+
+                    wf_state.mark_step_finished(
+                        &step.id,
+                        StepExecutionStatus::Failed,
+                        now_ts(),
+                        None,
+                        Some(serde_json::json!({ "error": format!("missing output: {}", missing_output.display()) })),
+                    );
+                    wf_state.status = WorkflowStatus::Failed;
+
+                    persist_and_emit(
+                        persistence,
+                        &wf_state,
+                        run_id,
+                        "step_failed",
+                        &serde_json::json!({ "step_id": step.id, "reason": format!("missing output: {}", missing_output.display()) }),
+                    )
+                    .await?;
+
+                    let summary =
+                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                    summary.write_to_disk(artifact_base)?;
+                    return Err(OrchestratorError::StepFailed {
+                        step_id: step.id.clone(),
+                        reason: format!(
+                            "agent did not produce declared output: {}",
+                            missing_output.display()
+                        ),
+                    });
+                }
+
+                // --- Step completed ---
+                statuses[idx] = StepStatus::Success;
+                tokens_used[idx] = result.tokens_used;
+
+                wf_state.mark_step_finished(
+                    &step.id,
+                    StepExecutionStatus::Completed,
+                    now_ts(),
+                    None,
+                    result.tokens_used.map(|t| serde_json::json!({ "tokens_used": t })),
+                );
+
+                persist_and_emit(
+                    persistence,
+                    &wf_state,
+                    run_id,
+                    "step_completed",
+                    &serde_json::json!({ "step_id": step.id }),
+                )
+                .await?;
+            }
+            Err(reason) => {
+                statuses[idx] = StepStatus::Failure;
+
+                wf_state.mark_step_finished(
+                    &step.id,
+                    StepExecutionStatus::Failed,
+                    now_ts(),
+                    None,
+                    Some(serde_json::json!({ "error": &reason })),
+                );
+                wf_state.status = WorkflowStatus::Failed;
+
+                persist_and_emit(
+                    persistence,
+                    &wf_state,
+                    run_id,
+                    "step_failed",
+                    &serde_json::json!({ "step_id": step.id, "reason": &reason }),
+                )
+                .await?;
+
+                if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                    for &d in dep_idxs {
+                        if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                            statuses[d] = StepStatus::Skipped;
+                        }
+                    }
+                }
+                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                summary.write_to_disk(artifact_base)?;
+                return Err(OrchestratorError::StepFailed {
+                    step_id: step.id.clone(),
+                    reason,
+                });
+            }
+        }
+    }
+
+    // --- Workflow completed ---
+    wf_state.status = WorkflowStatus::Completed;
+
+    persist_and_emit(
+        persistence,
+        &wf_state,
+        run_id,
+        "workflow_completed",
+        &serde_json::json!({ "workflow_id": run_id.to_string() }),
+    )
+    .await?;
 
     let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
     summary.write_to_disk(artifact_base)?;

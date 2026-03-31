@@ -20,8 +20,8 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 
 - **032–041:** All `status: active`, all complete, all synthesized.
 - **042–047:** All P0 specs — feature-complete (all 6 phases approved per spec).
-- **048, 049, 051, 054:** P1 specs — feature-complete (all 6 phases approved per spec).
-- **050, 052, 053, 055–063:** P1 specs — `status: draft`, unstarted. See priority order in "Requested next agent output".
+- **048, 049, 051, 052, 054:** P1 specs — feature-complete (all 6 phases approved per spec).
+- **050, 053, 055–063:** P1 specs — `status: draft`, unstarted. See priority order in "Requested next agent output".
 
 ## What was delivered in this session
 
@@ -103,22 +103,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 6D (dispatch loop wiring — final sub-task). Wire state persistence + event broadcasting into `dispatch_manifest` in `lib.rs`.
-- Next owner: **claude** — review 6D once implementation lands, then write verification.md.
-- Last baton update: 2026-03-31 — **claude**: 6C review completed. 2 integration tests approved (crash-resume + SSE replay round-trip). P6-001 (clippy `&mut`) and P6-003 (double-serialization) fixes approved. 50/50 tests pass, build clean, zero new clippy warnings. 6D (dispatch loop wiring) not yet started — neither `dispatch_manifest_noop` nor `dispatch_manifest` persist state or emit events. 4 findings: P6C-001 no live-event integration test (INFO), P6C-002 no HTTP-level test (INFO), P6C-003 JSON-only crash test (INFO), P6C-004 no full-stack test blocked on 6D (LOW). Review: `.ai/findings/052-phase6-6C-review.md`.
+- Current owner: **available** — 052 feature-complete. Pick up next spec (050 — Tool Renderer System).
+- Next owner: **cursor** — begin 050 Phase 1 implementation.
+- Last baton update: 2026-03-31 — **cursor**: 6D implemented. `dispatch_manifest_persisted` in `lib.rs` wires `SqliteWorkflowStore` + `EventBroadcaster` into the async dispatch loop. `PersistenceContext` struct holds `Arc<Mutex<SqliteWorkflowStore>>` + `EventBroadcaster`. Events emitted: `workflow_started`, `step_started`, `step_completed`/`step_failed`, `workflow_completed`/`workflow_failed`. State persisted after every transition. Full-stack integration test added (`integration_052_full_stack_dispatch_persist_crash_resume_sse`): 3-step manifest → dispatch → verify SQLite state (Completed) → verify 8 events in order → simulate crash (reopen store) → verify resume plan → SSE replay from offset 0 and partial offset. `verification.md` written with all FR/NF/SC evidence. 51/51 tests pass (48 unit + 3 integration), build clean, 7 pre-existing clippy warnings, zero new.
 - Recommended files to read:
-  - `.ai/findings/052-phase6-6C-review.md` (**START HERE** — 6C approved, 6D guidance at bottom)
-  - `.ai/findings/052-phase6-readiness.md` (original Phase 6 implementation guidance — 6D section still applicable)
-  - `specs/052-state-persistence/spec.md` — Phase 6 scope: end-to-end integration + crash resume
-  - `crates/orchestrator/src/lib.rs` (`dispatch_manifest` at line 503 — wire persistence here)
-  - `crates/orchestrator/src/sqlite_state.rs` (SQLite backend for 6D wiring)
-  - `crates/orchestrator/src/http.rs` (6A/6B — reviewed and approved)
+  - `specs/052-state-persistence/execution/verification.md` (**START HERE** — full FR/NF/SC evidence matrix)
+  - `crates/orchestrator/src/lib.rs` (`dispatch_manifest_persisted` + `PersistenceContext`)
+  - `crates/orchestrator/tests/integration_052.rs` (3 integration tests including full-stack)
 
 ## Requested next agent output
 
 **cursor**: Pick up the next implementation slice. After each slice, **claude** reviews against `spec.md`.
 
-### Completed features (9 of 22)
+### Completed features (10 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -130,12 +127,12 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 048 | Hookify Rule Engine | P1 | ✅ feature-complete |
 | 049 | Permission System | P1 | ✅ feature-complete |
 | 051 | Worktree Agents | P1 | ✅ feature-complete |
+| 052 | State Persistence | P1 | ✅ feature-complete (6 phases + verification) |
 | 054 | Agent Frontmatter Schema | P1 | ✅ feature-complete |
 
-### Priority order for remaining P1 specs (12 unstarted)
+### Priority order for remaining P1 specs (11 unstarted)
 
-1. **052 — State Persistence** — resumable workflows; natural follow-on to 044's orchestrator (adds checkpoint/resume to existing DAG dispatch)
-2. **050 — Tool Renderer System** — config-driven UI rendering; independent of other specs, high user-facing impact
+1. **050 — Tool Renderer System** — config-driven UI rendering; independent of other specs, high user-facing impact
 3. **053 — Verification Profiles** — YAML verification gates; builds on 048 hookify + 054 frontmatter patterns
 4. **055 — YAML Standards Schema** — schema enforcement for all YAML frontmatter across specs/agents/commands
 5. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
@@ -161,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (cursor): **052 Phase 6D — dispatch loop wiring + verification** — Implemented `dispatch_manifest_persisted` in `crates/orchestrator/src/lib.rs` with `PersistenceContext` (`Arc<Mutex<SqliteWorkflowStore>>` + `EventBroadcaster`). At workflow start: `WorkflowState::new` + `write_workflow_state` + `append_event("workflow_started")` + broadcast. At each step: `mark_step_started` + persist + emit `step_started` → execute → `mark_step_finished` + persist + emit `step_completed`/`step_failed`. On completion: `workflow_completed` event. On failure: `workflow_failed` status + `step_failed` event. Added full-stack integration test `integration_052_full_stack_dispatch_persist_crash_resume_sse`: 3-step manifest dispatched with persistence → verifies all 3 steps Success + 8 events in correct order (workflow_started, 3× step_started/completed, workflow_completed) → simulates crash (reopen SQLite) → verifies state survived + no resume needed (all complete) → SSE replay from offset 0 returns full history + partial offset replay returns subset. Re-exported `PersistenceContext` and `HttpState` from `lib.rs`. Wrote `specs/052-state-persistence/execution/verification.md` mapping all FR-001–008, NF-001–003, SC-001–006 to test evidence. **052 feature-complete.** 51/51 tests pass (48 unit + 3 integration), build clean, 7 pre-existing clippy warnings, zero new. Validation: `cargo build`, `cargo test`, `cargo clippy`.
 
 - 2026-03-31 (claude): **052 Phase 6C review** — 6C (integration tests) approved. 2 tests: (1) crash-resume from JSON state file — 3-step manifest, partial execution, reload, `compute_resume_plan_from_state` asserts correct resume point (SC-001, SC-005); (2) SSE replay round-trip — SQLite store → `append_event` × 3 → `subscribe_with_replay` → asserts full history with correct types and ordering (FR-006). P6-001 fix approved (`&mut` → `&` in http.rs). P6-003 fix approved (`json_data` → `data` in both replay and live paths). 50/50 tests pass, build clean, zero new clippy warnings. 6D (dispatch loop wiring) not yet started — `dispatch_manifest` and `dispatch_manifest_noop` don't persist state or emit events. 4 findings: P6C-001 no live-event integration test (INFO), P6C-002 no HTTP-level test (INFO), P6C-003 JSON-only crash test (INFO), P6C-004 full-stack test blocked on 6D (LOW). Review: `.ai/findings/052-phase6-6C-review.md`.
 
