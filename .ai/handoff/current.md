@@ -101,19 +101,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — **054 Phase 5** complete. Linter landed in `@opc/agent-frontmatter`.
-- Next owner: **claude** — **054 Phase 5 review** against FR-008 / SC-004.
-- Last baton update: 2026-03-30 — **cursor**: **054 Phase 5 implementation** — Added quality linter in `packages/agent-frontmatter/src/linter.ts` with checks for required fields, description length >= 50, kebab-case `name`, and non-empty `tools` for agent definitions. Added CLI entrypoint `src/lint-cli.ts` (`agent-frontmatter-lint [rootDir] [--kind agent|skill|auto]`), exports in `src/index.ts`, and package wiring (`bin`, `lint:definitions` script, `./linter` export). Added golden pass/fail tests in `src/linter.test.ts`. Validation: `pnpm test` (21/21) and `pnpm build` in `packages/agent-frontmatter`.
+- Current owner: **claude** — **054 Phase 5 review** complete. Phase 5 approved.
+- Next owner: **cursor** — **054 Phase 6 migration** — convert existing agent/skill definitions to new frontmatter schema.
+- Last baton update: 2026-03-30 — **claude**: **054 Phase 5 review** — Phase 5 approved. FR-008 (all four contributing quality criteria: required fields, description >= 50 chars, kebab-case name, non-empty tools) and SC-004 (catches missing fields, short descriptions, non-kebab names) both satisfied. Linter correctly handles legacy comma-separated `tools` strings via `normalizeToolsField`. All 4 existing `.claude/agents/*.md` pass cleanly. CLI/package wiring/exports/tests all sound. 21/21 tests, `tsc` clean. 6 findings: P5-001 LOW (no warning severity level — all issues are errors), P5-002 LOW (no `--json` CLI output), P5-003 LOW (`classifyKind` path heuristic fragile for deeply nested paths), P5-004–P5-006 INFO. No blockers for Phase 6. Review: `.ai/findings/054-phase5-review.md`.
 - Recommended files to read:
+  - `.ai/findings/054-phase5-review.md`
   - `packages/agent-frontmatter/src/linter.ts`
-  - `packages/agent-frontmatter/src/linter.test.ts`
-  - `packages/agent-frontmatter/src/lint-cli.ts`
 
 ## Requested next agent output
 
-**claude**: Review Phase 5 linter implementation against `specs/054-agent-frontmatter-schema/spec.md` FR-008 / SC-004 and validate behavior on existing `.claude/agents/*.md` definitions.
-
-**cursor** (after review): Address findings and proceed to Phase 6 migration if approved.
+**cursor**: Proceed to Phase 6 migration — convert existing agent and skill definitions in `.claude/agents/` and `.claude/commands/` to the new frontmatter schema. Validate all definitions pass the linter. Address any P5 LOW findings if convenient during migration.
 
 Priority order for P0 specs (unchanged):
 
@@ -140,6 +137,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **054 Phase 5 review** — Phase 5 approved. FR-008 (required fields, description >= 50 chars, kebab-case name, non-empty tools) and SC-004 (catches missing fields, short descriptions, non-kebab names) both satisfied. Linter handles legacy comma-separated `tools` via `normalizeToolsField`. All 4 `.claude/agents/*.md` pass cleanly. Commands correctly fail pre-migration (8 errors, expected). `classifyKind` auto-detection sound. CLI exit codes correct (0/1/2). 6 findings: P5-001 no warning severity (LOW), P5-002 no --json output (LOW), P5-003 path heuristic fragile (LOW), P5-004–P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/054-phase5-review.md`.
 - 2026-03-30 (cursor): **054 Phase 5** — Added linter module at `packages/agent-frontmatter/src/linter.ts` with FR-008 checks (required fields, `description` >= 50 chars, kebab-case `name`, non-empty `tools` for agents), plus CLI `src/lint-cli.ts` and package wiring (`bin`, `lint:definitions`, exports). Added golden tests in `src/linter.test.ts` for pass/fail/formatting paths. Validation: `pnpm test` (21/21), `pnpm build`.
 - 2026-03-30 (claude): **054 Phase 4 review** — Phase 4 approved. FR-007 (runtime enforcement of agent `tools` allowlist) and SC-003 (clear error on blocked tool) both satisfied on governed Claude CLI path (`--allowedTools` args) and provider sidecar path (`allowedTools` in bridge options + `canUseTool` gate). `parse_allowed_tools()` handles JSON array and CSV formats. SQLite `tools TEXT` migration idempotent. 6 findings: P4-001 LOW (`runProviderPath()` ignores `allowedTools` — non-Claude providers unprotected), P4-002 LOW (no integration/unit tests), P4-003–P4-006 INFO. No blockers for Phase 5. Review: `.ai/findings/054-phase4-review.md`.
 - 2026-03-30 (cursor): **054 Phase 4** — Tool allowlist enforcement wired on both dispatch paths. `orchestrator.rs`: added `allowed_tools` in `AgentExecutionProfile`, DB query now reads `agents.tools`, parser supports JSON array or comma-separated values, governed path adds `--allowedTools` args, provider path includes `allowedTools` and `agentName` in sidecar request. `agents.rs`: added `tools TEXT` migration column. `node-sidecar.ts`: forwards `allowedTools` to bridge and enforces SC-003 with descriptive allowlist error before broker permission checks.
