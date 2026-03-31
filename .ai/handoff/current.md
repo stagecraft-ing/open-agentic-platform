@@ -101,17 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — completed 049 Phase 1 review (approved).
-- Next owner: **cursor** — implement Phase 2 (JSON permission store: `store.ts` with list/upsert/revoke/clearExpired, project+global scope paths, atomic writes).
-- Last baton update: 2026-03-31 — **claude**: Phase 1 reviewed and approved. FR-003, NF-003, SC-004 satisfied. F-001 (`expiresAt`) and F-002 (colon-segment docs) resolved. 7/7 tests, `tsc` clean. 6 findings: P1-001 regex caching for NF-001 (LOW), P1-002 no tool-wildcard test (LOW), P1-003 escapeRegExpChar completeness (LOW), P1-004–P1-006 (INFO). No blockers. Review: `.ai/findings/049-phase1-review.md`.
+- Current owner: **cursor** — completed 049 Phase 2 implementation (JSON permission store + tests).
+- Next owner: **claude** — review 049 Phase 2 implementation against spec and plan.
+- Last baton update: 2026-03-31 — **cursor**: Implemented Phase 2 in `packages/permission-system`: added `src/store.ts` with `createPermissionStore()` and operations `list`, `upsert`, `revoke`, `clearExpired`; project/global scoped storage paths (`<project>/.claude/permissions.json`, `~/.claude/permissions.json`); schema versioning (`version: 1`); atomic persistence via temp file + rename; pretty JSON output. Added `src/store.test.ts` covering path resolution, create-on-first-write, revoke by exact pattern, expired-entry clearing, and hand-edited JSON round-trip parsing/persistence. Package exports updated in `src/index.ts` and `package.json`.
 - Recommended files to read:
   - `specs/049-permission-system/spec.md` (canonical requirements)
   - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan — Phase 2 section)
   - `.ai/findings/049-phase1-review.md` (Phase 1 review with LOWs to monitor)
+  - `packages/permission-system/src/store.ts`
+  - `packages/permission-system/src/store.test.ts`
 
 ## Requested next agent output
 
-**cursor**: Implement 049 Phase 2 (JSON permission store) per `.ai/plans/049-permission-system-phased-plan.md` Phase 2 section. Deliverables: `src/store.ts` with `list`, `upsert`, `revoke`, `clearExpired`, scoped load/save (project at `.claude/permissions.json`, global at `~/.claude/permissions.json`), schema versioning (`version: 1`), atomic write (temp+rename), pretty JSON. Validation: unit tests for path resolution, create-on-first-write, revoke by pattern, expired-entry clearing, hand-edited JSON round-trip.
+**claude**: Review 049 Phase 2 implementation for spec conformance (FR-005, FR-006, NF-002) and Phase 2 plan coverage. Validate atomic write semantics, scoped path behavior, schema handling (`version: 1`), and test adequacy in `packages/permission-system/src/store.test.ts`. Produce findings report at `.ai/findings/049-phase2-review.md` and confirm baton readiness for Phase 3.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +139,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (cursor): **049 Phase 2** — Implemented JSON-backed permission store in `packages/permission-system/src/store.ts` with schema `version: 1`, scoped paths (`.claude/permissions.json` project + `~/.claude/permissions.json` global), atomic temp+rename writes, and operations `list`, `upsert`, `revoke`, `clearExpired`. Added `packages/permission-system/src/store.test.ts` coverage for path resolution, create-on-first-write, revoke by exact pattern, expired-entry clearing, and hand-edited JSON round-trip parsing/persistence. Updated exports in `src/index.ts` and `package.json`. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`.
 
 - 2026-03-31 (claude): **049 Phase 1 review** — Phase 1 approved. FR-003 (wildcard `*`/`**` matching), NF-003 (deterministic matcher), SC-004 (include/exclude fixture) all satisfied. F-001 resolved (`expiresAt` in types). F-002 resolved (colon-segment mapping documented in tests). `PermissionEntry` has all 7 store schema fields. `PermissionEvaluationResult.source` covers all 5 layers. Parser validates `Tool(argPattern)` format with 4 diagnostic codes. `globToRegExp` anchors `*` → `[^:/]*`, `**` → `.*`. 7/7 tests, `tsc` clean. 6 findings: P1-001 regex caching for NF-001 (LOW), P1-002 no tool-wildcard test (LOW), P1-003 escapeRegExpChar completeness (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/049-phase1-review.md`.
 - 2026-03-30 (cursor): **049 Phase 1** — Created `packages/permission-system` with Phase 1 scaffolding (`package.json`, `tsconfig.json`, `vitest.config.ts`), `src/types.ts` (`PermissionEntry`, `PermissionScope`, `PermissionDecision`, evaluator contracts) including `expiresAt?: string | null` per F-001, and `src/pattern.ts` with `Tool(argPattern)` parser, normalization, wildcard matcher (`*` single segment, `**` recursive), and command segment canonicalization helper. Added `src/pattern.test.ts` covering invalid pattern diagnostics, determinism, SC-004 fixture include/exclude behavior, and F-002 colon-segment mapping documentation for command-like inputs. Validation: `pnpm --filter @opc/permission-system test` (7/7), `pnpm --filter @opc/permission-system build`.
