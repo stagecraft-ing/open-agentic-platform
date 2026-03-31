@@ -103,14 +103,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **available** — 053 readiness review complete. Ready for Phase 1 implementation.
-- Next owner: **cursor** — begin 053 Phase 1 implementation (schema definition + package scaffold).
-- Last baton update: 2026-03-31 — **claude**: 053 pre-implementation readiness review. Spec assessed against dependencies (048, 054, 052 — all feature-complete). Architecture decision: TypeScript package (`@opc/verification-profiles`) following 048/054 patterns. 6 phases scoped. 8 findings (3 LOW, 5 INFO). Key insight: FR-004 "orchestrator blocks delivery" hooks at the TypeScript session layer, not the Rust dispatch loop — `dispatch_manifest_persisted` emits `workflow_completed` but has no "delivery" concept. Network policy enforcement (SC-004) is best-effort on macOS. Skill/profile files are plain YAML per spec (not markdown frontmatter). No blockers.
+- Current owner: **available** — 053 Phase 1 complete. Ready for Phase 2 (skill library & resolution).
+- Next owner: **claude** — review 053 Phase 1 against spec.md, then **cursor** for Phase 2.
+- Last baton update: 2026-03-31 — **cursor**: 053 Phase 1 implemented. Created `packages/verification-profiles` (`@opc/verification-profiles`). `src/types.ts`: 14 types — `VerificationProfile`, `VerificationSkill`, `VerificationStep` (core schema), `Determinism`, `SafetyTier`, `NetworkPolicy` (enums), `StepResult`, `SkillResult`, `ProfileResult` (execution results), `VerificationDiagnostic`, `ParseProfileResult`, `ParseSkillResult` (diagnostics). `src/schema.ts`: `validateProfileObject()` and `validateSkillObject()` with 13 validation rules and VP_-prefixed diagnostic codes. `src/parser.ts`: `parseProfileFile()` and `parseSkillFile()` using `yaml.parseDocument()` for line-number error reporting (NF-001). Plain YAML parsing per spec (R-002). `src/index.ts`: barrel exports. 25/25 tests pass, `tsc` clean.
 - Recommended files to read:
-  - `.ai/findings/053-readiness-review.md` (**START HERE** — full phase-by-phase scope, 8 findings, dependency analysis)
-  - `specs/053-verification-profiles/spec.md` (canonical spec)
-  - `packages/hookify-rule-engine/src/` (pattern template for YAML parsing, evaluation engine, diagnostic format)
-  - `packages/agent-frontmatter/src/` (pattern template for loader, linter, progressive disclosure)
+  - `packages/verification-profiles/src/parser.test.ts` (**START HERE** — 25 tests covering valid parsing, schema violations, YAML errors with line numbers)
+  - `packages/verification-profiles/src/types.ts` (all type definitions)
+  - `packages/verification-profiles/src/schema.ts` (validation rules)
+  - `packages/verification-profiles/src/parser.ts` (YAML parsing with diagnostics)
 
 ## Requested next agent output
 
@@ -159,6 +159,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (cursor): **053 Phase 1 — schema definition & package scaffold.** Created `packages/verification-profiles` (`@opc/verification-profiles`). Package scaffold follows 048/054 patterns: ESM, `tsc` build, vitest, `yaml` dependency. `src/types.ts`: 14 types covering core schema (`VerificationProfile`, `VerificationSkill`, `VerificationStep`), enum unions (`Determinism`, `SafetyTier`, `NetworkPolicy`), execution results (`StepResult`, `SkillResult`, `ProfileResult`), and diagnostics (`VerificationDiagnostic`, `ParseProfileResult`, `ParseSkillResult`). `src/schema.ts`: `validateProfileObject()` validates name/gate/skills with 5 rules; `validateSkillObject()` validates name/description/determinism/safety_tier/steps with 8 rules + per-step validation (command/timeout/read_only/network). 13 VP_-prefixed diagnostic codes total. `src/parser.ts`: `parseProfileFile()` and `parseSkillFile()` — plain YAML parsing via `yaml.parseDocument()` for line-number error reporting (NF-001, R-003). Returns typed results on success, diagnostics on failure. `src/index.ts`: barrel exports all types and functions. Validation: `pnpm build` (`tsc` clean), `pnpm test` (25/25 tests pass). FR-001 (profile schema), FR-002 (skill schema), FR-003 (step properties), NF-001 (line-number errors) satisfied at schema layer.
 
 - 2026-03-31 (claude): **053 Verification Profiles — pre-implementation readiness review.** Assessed spec against dependencies (048 Hookify, 054 Frontmatter, 052 State Persistence — all feature-complete). Architecture decision: new TypeScript package `@opc/verification-profiles` in `packages/`, following 048/054 patterns (YAML parsing via `yaml` package, diagnostic codes, structured results). 6 phases scoped: P1 schema+types, P2 skill library+resolution, P3 execution engine (child_process.spawn with timeout/signal), P4 post-session gates (TypeScript session layer, NOT Rust orchestrator), P5 profile selection (branch pattern matching), P6 bundled skills+profiles. 8 findings: R-001 delivery blocking at TS layer not Rust (INFO), R-002 plain YAML files not markdown frontmatter (LOW), R-003 reuse yaml parseDocument for line numbers (INFO), R-004 local-overrides-default precedence undefined (LOW), R-005 network deny is best-effort on macOS (LOW), R-006 TS integration point needs session lifecycle discovery (INFO), R-007 PR detection via branch names not API (INFO), R-008 bundled skills assume Node.js (INFO). No blockers. Review: `.ai/findings/053-readiness-review.md`.
 
