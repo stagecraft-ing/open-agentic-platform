@@ -103,14 +103,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 052 Phase 3 review.
-- Next owner: **cursor** — 052 Phase 4 (SQLite backend).
-- Last baton update: 2026-03-31 — **cursor**: Phase 3 implemented. `GateHandler` async trait for operator confirmation, `evaluate_gate` entry point with checkpoint pause/resume (FR-004 / SC-002) and approval timeout with escalation (FR-005 / SC-003). Default escalation is `Fail` when none configured. `evaluate_gate_if_present` convenience for steps without gates. Persist callback invoked after every state transition (FR-008). 14 new gate tests, 36/36 total orchestrator tests pass, zero warnings. New file: `crates/orchestrator/src/gates.rs`. Tokio `time` feature added as dependency.
+- Current owner: **cursor** — 052 Phase 4 (SQLite backend per spec Phase 4).
+- Next owner: **claude** — 052 Phase 4 review.
+- Last baton update: 2026-03-31 — **claude**: Phase 3 review approved. FR-004 (checkpoint pause/confirm/resume), FR-005 (approval timeout with escalation), SC-002 (awaiting_checkpoint persisted, resumes only after confirm), SC-003 (timeout → configured escalation outcome) all satisfied. `GateHandler` trait clean and pluggable. `evaluate_gate` uses `tokio::time::timeout` correctly. Persist callback invoked after every state transition. 14 new tests, 36/36 total pass. 6 findings (3 LOW, 3 INFO) — none blocking. P3-001: `chrono_now_iso` not actually ISO-8601 (LOW). P3-002: no unknown step_id guard (LOW). P3-003: handler error doesn't transition state out of AwaitingCheckpoint (LOW). Review: `.ai/findings/052-phase3-review.md`.
 - Recommended files to read:
-  - `specs/052-state-persistence/spec.md` — Phase 4 scope: SQLite backend
-  - `crates/orchestrator/src/gates.rs` (052 Phase 3 — gate execution with GateHandler trait, timeout, escalation)
-  - `crates/orchestrator/src/state.rs` (052 Phase 1 — state schema, checkpoint/approval status transitions)
-  - `crates/orchestrator/src/lib.rs` (052 Phase 2 — resume detection + Phase 3 re-exports)
+  - `specs/052-state-persistence/spec.md` — Phase 4 scope: SQLite backend (WAL mode, events table)
+  - `crates/orchestrator/src/gates.rs` (052 Phase 3 — gate execution)
+  - `crates/orchestrator/src/state.rs` (052 Phase 1 — JSON state schema)
+  - `crates/orchestrator/src/lib.rs` (052 Phases 1-3 — all re-exports)
+  - `.ai/findings/052-phase3-review.md` (Phase 3 review with findings)
 
 ## Requested next agent output
 
@@ -159,6 +160,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 3 review** — Phase 3 approved. FR-004 (checkpoint gates: `mark_awaiting_checkpoint` → persist → `await_checkpoint` → `mark_checkpoint_released` → persist), FR-005 (approval gates: `tokio::time::timeout` wraps handler, escalation policy applied on timeout — `Fail`/`Skip`/`Notify`, default `Fail`), SC-002 (checkpoint persists `"awaiting_checkpoint"`, resumes only after confirmation — verified by status assertions + persist count), SC-003 (all three escalation outcomes tested: `Failed`/`Skipped`/`Pending` step status + `TimedOut` workflow status) all satisfied. `GateHandler` async trait with `Send + Sync` bounds correct for `&dyn` across `.await`. `evaluate_gate_if_present` thin convenience wrapper passes through `None`. 14 new tests with `ImmediateApproveHandler`, `NeverRespondHandler`, `ErrorHandler` stubs + `counting_persist`. 36/36 total pass. 6 findings: P3-001 `chrono_now_iso` not ISO-8601 — outputs epoch seconds not ISO format (LOW), P3-002 no unknown step_id guard in `evaluate_gate` (LOW), P3-003 handler error on approval doesn't transition state out of `AwaitingCheckpoint` (LOW), P3-004 `GateError::HandlerError` covers persist errors too (INFO), P3-005 `timeout_ms` on handler is informational only (INFO), P3-006 no integration test with real persist (INFO — Phase 6). No blockers for Phase 4. Review: `.ai/findings/052-phase3-review.md`.
 
 - 2026-03-31 (cursor): **052 Phase 3** — Implemented gate execution module in `crates/orchestrator/src/gates.rs`. `GateHandler` async trait with `await_checkpoint` and `await_approval` methods for pluggable confirmation (CLI, API, UI, test stubs). `evaluate_gate` handles both gate types: checkpoints pause with `mark_awaiting_checkpoint`, persist state, block for confirmation, then `mark_checkpoint_released`; approval gates wrap confirmation in `tokio::time::timeout`, apply escalation policy (`Fail`/`Skip`/`Notify`) on timeout via `mark_approval_timed_out`, default to `Fail` when no escalation configured. `evaluate_gate_if_present` convenience passes through `None` for ungated steps. Persist callback invoked after every state transition. Module wired into `lib.rs` with re-exports (`GateHandler`, `GateOutcome`, `GateError`, `evaluate_gate`, `evaluate_gate_if_present`). Added `tokio` `time` feature as regular dependency. 14 new tests (3 checkpoint, 7 approval timeout/escalation, 2 convenience, 2 error propagation), 36/36 total orchestrator tests pass, zero warnings. Validation: `cargo build`, `cargo test`.
 
