@@ -6,18 +6,23 @@
 //! and workflow state persistence primitives (Feature 052).
 //!
 //! Phase 1: manifest parsing, DAG validation, artifact path helpers, effort classification.
-//! Agent dispatch and Tauri wiring are follow-on slices.
+//! Phase 2–3: JSON state persistence + checkpoints/approvals (Feature 052).
+//! Phase 4: SQLite state backend (Feature 052).
 
 pub mod artifact;
 pub mod effort;
 pub mod gates;
 pub mod manifest;
+pub mod sqlite_state;
 pub mod state;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
 pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
 pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler, GateOutcome};
+pub use sqlite_state::{
+    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, SqliteWorkflowStore,
+};
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
     write_workflow_state_atomic, GateInfo, StepExecutionStatus, StepState, WorkflowState,
