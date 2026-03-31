@@ -19,7 +19,9 @@ Registry **`status`** in frontmatter must be one of **`draft` | `active` | `supe
 ## Canonical feature authority
 
 - **032–041:** All `status: active`, all complete, all synthesized.
-- **042–063:** All `status: draft`, newly created from stagecraft-ing extraction. See below for details.
+- **042–047:** All P0 specs — feature-complete (all 6 phases approved per spec).
+- **048, 049, 051, 054:** P1 specs — feature-complete (all 6 phases approved per spec).
+- **050, 052, 053, 055–063:** P1 specs — `status: draft`, unstarted. See priority order in "Requested next agent output".
 
 ## What was delivered in this session
 
@@ -101,25 +103,45 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — completed 049 Phase 6 review. **049 feature-complete.**
-- Next owner: **cursor** — pick up next P1 spec from priority order below, or continue P0 work.
-- Last baton update: 2026-03-31 — **claude**: Phase 6 approved. FR-009 (non-interactive deny-all / allow-from-list) fully satisfied. `NonInteractivePolicy` with `deny_all` default gates before all other layers when `isInteractive === false`. Allow-list mode normalizes patterns and matches using same infrastructure as interactive path. 26/26 tests, `tsc` clean. 6 findings: P6-001 no empirical NF-001 benchmark (LOW), P6-002 allow-list doesn't cross-check disallowed patterns (LOW), P6-003 no test for omitted policy default (LOW), P6-004–P6-006 (INFO). **All 6 phases approved, all 9 FR / 3 NF / 6 SC satisfied.** No follow-up slices needed. Review: `.ai/findings/049-phase6-review.md`.
+- Current owner: **claude** — status audit of all P0/P1 specs. Updated completion tracker.
+- Next owner: **cursor** — pick up next P1 spec from priority order below.
+- Last baton update: 2026-03-31 — **claude**: Comprehensive status audit. All P0 specs complete (042, 044, 045). All in-flight P1 specs complete (046, 047, 048, 049, 051, 054). 9 features delivered across 54 phases. 12 P1 specs remain unstarted (050, 052–053, 055–063). Recommended next slice: **052 State Persistence** (enables resumable orchestrator workflows, builds on 044's artifact infrastructure). Second choice: **050 Tool Renderer System** (UI layer, independent). See priority analysis below.
 - Recommended files to read:
-  - `.ai/findings/049-phase6-review.md` (Phase 6 review with feature completion assessment)
-  - `specs/049-permission-system/execution/verification.md` (full SC/NF evidence map)
+  - This file's "Requested next agent output" section for priority reasoning
+  - `specs/052-state-persistence/spec.md` (recommended next slice)
 
 ## Requested next agent output
 
-**cursor**: Pick up the next implementation slice. Priority order:
+**cursor**: Pick up the next implementation slice. After each slice, **claude** reviews against `spec.md`.
 
-1. **045 — Claude Code SDK Bridge** — ✅ `status: active` — end-to-end complete
-2. **042 — Multi-Provider Agent Registry** — ✅ complete (all phases + Phase 6 review)
-3. **049 — Permission System** — ✅ complete (all 6 phases approved)
-4. **044 — Multi-Agent Orchestration** — Phase 1–5 ✅ (manifest, DAG, prompts, async dispatch, real executor); e2e validation follow
-5. **046 — Context Compaction**
-6. **047 — Governance Control Plane**
+### Completed features (9 of 22)
 
-After each slice, **claude** reviews against `spec.md`.
+| # | Spec | Kind | Status |
+|---|------|------|--------|
+| 042 | Multi-Provider Agent Registry | P0 | ✅ feature-complete |
+| 044 | Multi-Agent Orchestration | P0 | ✅ feature-complete (6 phases + e2e validation) |
+| 045 | Claude Code SDK Bridge | P0 | ✅ feature-complete |
+| 046 | Context Compaction | P0 | ✅ feature-complete |
+| 047 | Governance Control Plane | P0 | ✅ feature-complete |
+| 048 | Hookify Rule Engine | P1 | ✅ feature-complete |
+| 049 | Permission System | P1 | ✅ feature-complete |
+| 051 | Worktree Agents | P1 | ✅ feature-complete |
+| 054 | Agent Frontmatter Schema | P1 | ✅ feature-complete |
+
+### Priority order for remaining P1 specs (12 unstarted)
+
+1. **052 — State Persistence** — resumable workflows; natural follow-on to 044's orchestrator (adds checkpoint/resume to existing DAG dispatch)
+2. **050 — Tool Renderer System** — config-driven UI rendering; independent of other specs, high user-facing impact
+3. **053 — Verification Profiles** — YAML verification gates; builds on 048 hookify + 054 frontmatter patterns
+4. **055 — YAML Standards Schema** — schema enforcement for all YAML frontmatter across specs/agents/commands
+5. **056 — Session Memory** — project-object persistence; depends on 046 compaction context
+6. **057 — Notification System** — agent event notifications for desktop app
+7. **058 — File Mention System** — @-mention file references in agent conversations
+8. **059 — Git Panel** — desktop git integration panel
+9. **060 — Panel Event Bus** — cross-panel communication for desktop app
+10. **061 — Conductor Track Lifecycle** — orchestrator track state management
+11. **062 — Multi-Model Chaining** — chain different models in agent workflows
+12. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
 
 ## P2 items captured as ideas only (not yet specs)
 
@@ -135,6 +157,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **Status audit** — Comprehensive completion assessment of all P0/P1 specs. Found handoff was stale: 044 (e2e validation done in Phase 6), 046 (all 6 phases approved), 047 (all 6 phases approved), 048 (all 6 phases approved) were all feature-complete but not reflected in baton. Updated completion tracker: 9/22 specs delivered (042, 044, 045, 046, 047, 048, 049, 051, 054). All 5 P0 specs complete. 4/17 P1 specs complete. 12 P1 specs remain unstarted (050, 052–053, 055–063). Recommended next slice: 052 (State Persistence) — natural follow-on to 044 orchestrator, adds checkpoint/resume to DAG dispatch. Priority-ordered remaining backlog with dependency reasoning.
 
 - 2026-03-31 (claude): **049 Phase 6 review** — Phase 6 approved. **049 feature-complete — all 6 phases approved.** FR-009 (non-interactive deny-all / allow-from-list via `NonInteractivePolicy`) fully satisfied. Non-interactive gate at evaluator.ts:87–89 short-circuits before bypass/disallowed/remembered/prompt layers. Default `deny_all` when no policy provided. Allow-list normalizes patterns via `asUniquePatterns()` and uses `findMatchingPattern()` — same infrastructure as interactive path. Verification.md maps all SC-001–SC-006 and NF-001–NF-003 to test evidence. 26/26 tests, `tsc` clean. 6 findings: P6-001 no empirical NF-001 benchmark (LOW), P6-002 allow-list doesn't cross-check disallowed patterns (LOW), P6-003 no test for omitted policy default (LOW), P6-004 `allowListPatterns` type imprecision (INFO), P6-005 prior phase LOWs remain open (INFO), P6-006 `isInteractive` compile-time enforced (INFO). All 9 FR / 3 NF / 6 SC satisfied. No follow-up slices needed. Review: `.ai/findings/049-phase6-review.md`.
 
