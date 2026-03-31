@@ -103,17 +103,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — implement 055 Phase 4 (contributor pipeline).
-- Next owner: **claude** — implement 055 Phase 4 (finding aggregator & candidate generator).
-- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 3 (official standards library). 10 official standards across 5 categories (error-handling, naming, testing, security, architecture) in `standards/official/`. All 5 rule verbs represented (ALWAYS, NEVER, USE, PREFER, AVOID). Mix of critical/high/medium priorities. Anti-patterns and examples included where appropriate. 63/63 tests pass (55 existing + 8 new official library tests), `tsc` clean.
+- Current owner: **claude** — implement 055 Phase 5 (candidate review workflow).
+- Next owner: **claude** — implement 055 Phase 5 (list/promote/reject candidates).
+- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 4 (contributor pipeline). `src/pipeline.ts`: finding aggregator groups findings by category+ruleId with frequency counting, deduplicates messages (cap 5), collects snippets for anti-pattern derivation (cap 3), sorts by frequency descending (R-002). Candidate generator maps frequency→priority, infers rule verbs from ruleId prefixes and message keywords, derives anti-patterns from snippets with corrections, generates sequential kebab-case IDs per category, serializes to YAML. `runContributorPipeline()` end-to-end function. All candidates have `status: candidate` (FR-007). Generated YAML round-trips through existing parser cleanly (SC-004). 84/84 tests pass (63 existing + 21 new pipeline tests), `tsc` clean.
 - Recommended files to read:
-  - `standards/official/` (Phase 3 — 10 official standards YAML files)
-  - `packages/yaml-standards-schema/src/official.test.ts` (Phase 3 — library validation tests)
+  - `packages/yaml-standards-schema/src/pipeline.ts` (Phase 4 — contributor pipeline)
+  - `packages/yaml-standards-schema/src/pipeline.test.ts` (Phase 4 — 21 tests)
   - `specs/055-yaml-standards-schema/spec.md` (spec to implement)
 
 ## Requested next agent output
 
-**claude**: Pick up the next implementation slice (055 Phase 2). After each slice, review against `spec.md`.
+**claude**: Pick up the next implementation slice (055 Phase 5). After each slice, review against `spec.md`.
 
 ### Completed features (12 of 22)
 
@@ -158,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **055 Phase 4 — contributor pipeline (finding aggregator & candidate generator).** `src/pipeline.ts`: 7 exported types (`FindingSource`, `ExecutionFinding`, `AggregatedFinding`, `AggregateResult`, `GenerateCandidateOptions`, `GeneratedCandidate`, `GenerateCandidatesResult`), 3 exported functions (`aggregateFindings`, `generateCandidates`, `runContributorPipeline`). Finding aggregator groups by resolved `category::ruleId`, counts frequency, deduplicates messages (cap 5), collects snippets for anti-pattern derivation (cap 3), tracks source types, sorts by frequency descending (R-002 mitigation). Category resolution falls back to source-based mapping (security→security, test→testing, lint/review→code-quality). Candidate generator: filters by min frequency (default 2), maps frequency→priority (≥10 critical, ≥5 high, ≥3 medium, else low), infers verb from ruleId prefix ("no-"→NEVER) and message keywords ("must"→ALWAYS, "prefer"→PREFER, "avoid"→AVOID), generates sequential kebab-case IDs per category (e.g., security-001, security-002), derives anti-patterns from snippets that have corrections, serializes to YAML via `yaml.stringify()`. All candidates `status: candidate` (FR-007). End-to-end `runContributorPipeline()` composes both steps. Barrel exports updated (`index.ts`), subpath export added (`./pipeline` in `package.json`). `src/pipeline.test.ts`: 21 tests covering aggregation (grouping, frequency sort, message dedup, snippet collection, multi-source tracking, category fallback, empty input), generation (candidate status, frequency threshold, maxCandidates, priority mapping, verb inference, anti-pattern derivation, YAML round-trip via parser (SC-004), sequential IDs, source tags, fileName), and end-to-end pipeline. Validation: `tsc` clean, 84/84 tests pass (63 existing + 21 new). FR-006, FR-007, SC-004 satisfied.
 
 - 2026-03-31 (claude): **055 Phase 3 — official standards library.** Created `standards/official/` directory with 10 standards across 5 required categories: error-handling (001: async try/catch, typed errors, empty catches; 002: error cause chaining, sensitive data in errors, string throws), naming (001: camelCase/PascalCase conventions, descriptive names; 002: kebab-case files, test suffixes), testing (001: independent tests, behavior-not-implementation, disabled test tracking; 002: cleanup hooks, DI over module mocks), security (001: SQL injection, XSS, command injection, input validation — all critical; 002: hardcoded secrets, token logging, env-based secrets, timing-safe comparison — critical), architecture (001: no circular deps, barrel exports, deep imports, layer violations; 002: pure functions, parameter count, composition over inheritance, co-location). All 5 rule verbs represented (ALWAYS, NEVER, USE, PREFER, AVOID across the library). Standards include anti_patterns and examples where pedagogically valuable. `standards/community/`, `standards/local/`, `standards/candidates/` directories created (empty, per FR-005 directory structure). `src/official.test.ts`: 8 tests validating category coverage, active status, kebab-case ids, rule presence, tag presence, verb coverage, clean parsing, priority diversity. Validation: `tsc` clean, 63/63 tests pass (55 existing + 8 new). Phase 3 spec requirements satisfied.
 

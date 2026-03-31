@@ -25,3 +25,19 @@ export { loadStandardsFromDir, loadAllTiers } from "./loader.js";
 // Resolver (Phase 2)
 export type { StandardsFilter, ResolveResult } from "./resolver.js";
 export { resolveStandards } from "./resolver.js";
+
+// Contributor pipeline (Phase 4)
+export type {
+  FindingSource,
+  ExecutionFinding,
+  AggregatedFinding,
+  AggregateResult,
+  GenerateCandidateOptions,
+  GeneratedCandidate,
+  GenerateCandidatesResult,
+} from "./pipeline.js";
+export {
+  aggregateFindings,
+  generateCandidates,
+  runContributorPipeline,
+} from "./pipeline.js";

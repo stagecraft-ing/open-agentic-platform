@@ -12,7 +12,8 @@
     "./parser": "./src/parser.ts",
     "./schema": "./src/schema.ts",
     "./loader": "./src/loader.ts",
-    "./resolver": "./src/resolver.ts"
+    "./resolver": "./src/resolver.ts",
+    "./pipeline": "./src/pipeline.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
