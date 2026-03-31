@@ -5,6 +5,8 @@ import type {
   ChannelAdapter,
   NotifyResult,
 } from "./types.js";
+import { DedupIndex } from "./deduplication/dedup-index.js";
+import type { DedupIndexOptions } from "./deduplication/dedup-index.js";
 
 /**
  * Options for creating a notification event via {@link NotificationOrchestrator.notify}.
@@ -23,18 +25,28 @@ export interface NotifyOptions {
 }
 
 /**
- * Core notification orchestrator (Phase 1).
+ * Options for constructing a {@link NotificationOrchestrator}.
+ */
+export interface OrchestratorOptions {
+  /** Options forwarded to the internal {@link DedupIndex}. */
+  dedup?: DedupIndexOptions;
+}
+
+/**
+ * Core notification orchestrator.
  *
  * Accepts typed notification events via `notify()`, builds a full
- * {@link NotificationEvent}, and dispatches to all registered
+ * {@link NotificationEvent}, checks the sliding-window deduplication
+ * index (Phase 2, FR-003/FR-004), and dispatches to all registered
  * {@link ChannelAdapter}s that report themselves as available.
- *
- * Phase 1 dispatches to all adapters unconditionally. Deduplication (Phase 2)
- * and preference-gated routing (Phase 3) will be inserted into the dispatch
- * pipeline in subsequent phases.
  */
 export class NotificationOrchestrator {
   private adapters: Map<string, ChannelAdapter> = new Map();
+  private readonly dedup: DedupIndex;
+
+  constructor(options?: OrchestratorOptions) {
+    this.dedup = new DedupIndex(options?.dedup);
+  }
 
   /**
    * Register a channel adapter. Replaces any existing adapter with the
@@ -79,7 +91,24 @@ export class NotificationOrchestrator {
       metadata: options.metadata ?? {},
     };
 
+    // Phase 2: sliding-window deduplication (FR-003, FR-004).
+    if (this.dedup.isDuplicate(event.dedupeKey, event.timestamp)) {
+      return {
+        eventId: event.id,
+        status: "suppressed",
+        deliveredTo: [],
+        failures: [],
+      };
+    }
+
     return this.dispatch(event);
+  }
+
+  /**
+   * Tear down internal resources (cleanup timers).
+   */
+  dispose(): void {
+    this.dedup.dispose();
   }
 
   /**

@@ -10,4 +10,7 @@ export type {
 } from "./types.js";
 
 export { NotificationOrchestrator } from "./orchestrator.js";
-export type { NotifyOptions } from "./orchestrator.js";
+export type { NotifyOptions, OrchestratorOptions } from "./orchestrator.js";
+
+export { DedupIndex, DEFAULT_WINDOW_MS } from "./deduplication/dedup-index.js";
+export type { DedupIndexOptions } from "./deduplication/dedup-index.js";

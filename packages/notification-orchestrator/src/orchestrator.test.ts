@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { NotificationOrchestrator } from "./orchestrator.js";
 import type { ChannelAdapter, NotificationEvent } from "./types.js";
 
@@ -326,5 +326,124 @@ describe("NotificationOrchestrator", () => {
     });
 
     expect(result.failures[0].error).toBe("string error");
+  });
+
+  // --------------- Phase 2: deduplication integration ---------------
+
+  it("suppresses duplicate events with the same dedupeKey (FR-003)", async () => {
+    vi.useFakeTimers({ now: 0 });
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+    });
+    const adapter = makeAdapter("toast");
+    orch.registerAdapter(adapter);
+
+    const opts = {
+      provider: "p",
+      sessionId: "s",
+      kind: "task_complete" as const,
+      severity: "info" as const,
+      dedupeKey: "same-key",
+      title: "T",
+      body: "B",
+    };
+
+    const r1 = await orch.notify(opts);
+    expect(r1.status).toBe("delivered");
+
+    vi.setSystemTime(5_000);
+    const r2 = await orch.notify(opts);
+    expect(r2.status).toBe("suppressed");
+    expect(r2.deliveredTo).toHaveLength(0);
+
+    // Only one delivery
+    expect(adapter.deliveredEvents).toHaveLength(1);
+
+    orch.dispose();
+    vi.useRealTimers();
+  });
+
+  it("allows event after dedup window expires (SC-002)", async () => {
+    vi.useFakeTimers({ now: 0 });
+    const orch = new NotificationOrchestrator({
+      dedup: { windowMs: 10_000, cleanupIntervalMs: 0 },
+    });
+    const adapter = makeAdapter("toast");
+    orch.registerAdapter(adapter);
+
+    const opts = {
+      provider: "p",
+      sessionId: "s",
+      kind: "task_error" as const,
+      severity: "error" as const,
+      dedupeKey: "err-key",
+      title: "Err",
+      body: "Error",
+    };
+
+    await orch.notify(opts);
+    vi.setSystemTime(10_000); // window expired
+    const r2 = await orch.notify(opts);
+    expect(r2.status).toBe("delivered");
+    expect(adapter.deliveredEvents).toHaveLength(2);
+
+    orch.dispose();
+    vi.useRealTimers();
+  });
+
+  it("deduplicates per key — different keys are independent", async () => {
+    const orch = new NotificationOrchestrator({
+      dedup: { cleanupIntervalMs: 0 },
+    });
+    const adapter = makeAdapter("toast");
+    orch.registerAdapter(adapter);
+
+    const base = {
+      provider: "p",
+      sessionId: "s",
+      kind: "progress_update" as const,
+      severity: "info" as const,
+      title: "T",
+      body: "B",
+    };
+
+    const r1 = await orch.notify({ ...base, dedupeKey: "key-a" });
+    const r2 = await orch.notify({ ...base, dedupeKey: "key-b" });
+    const r3 = await orch.notify({ ...base, dedupeKey: "key-a" }); // dup
+
+    expect(r1.status).toBe("delivered");
+    expect(r2.status).toBe("delivered");
+    expect(r3.status).toBe("suppressed");
+    expect(adapter.deliveredEvents).toHaveLength(2);
+
+    orch.dispose();
+  });
+
+  it("configurable window via OrchestratorOptions (FR-004)", async () => {
+    vi.useFakeTimers({ now: 0 });
+    const orch = new NotificationOrchestrator({
+      dedup: { windowMs: 2_000, cleanupIntervalMs: 0 },
+    });
+    const adapter = makeAdapter("toast");
+    orch.registerAdapter(adapter);
+
+    const opts = {
+      provider: "p",
+      sessionId: "s",
+      kind: "system_alert" as const,
+      severity: "critical" as const,
+      dedupeKey: "alert",
+      title: "Alert",
+      body: "A",
+    };
+
+    await orch.notify(opts);
+    vi.setSystemTime(1_999);
+    expect((await orch.notify(opts)).status).toBe("suppressed");
+    vi.setSystemTime(4_000); // 2001ms after last seen (1999) — expired
+    expect((await orch.notify(opts)).status).toBe("delivered");
+
+    orch.dispose();
+    vi.useRealTimers();
   });
 });
