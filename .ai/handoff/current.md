@@ -101,17 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — **054 Phase 3 review** complete.
-- Next owner: **cursor** — **054 Phase 4** tool allowlist enforcement.
-- Last baton update: 2026-03-30 — **claude**: **054 Phase 3 review** — Phase 3 approved. FR-004 Tiers 1–3 all satisfied: Tier 1 `loadTier1MetadataFromDir()` returns metadata-only entries (body structurally absent from type), Tier 2 `loadTier2Instructions()` extends with body on activation, Tier 3 `listResourceRefsFromMetadata()` + `loadResourceFile()` resolve and load resources on demand. P2-001 resolved (CRLF test added). Discovery deterministic via `localeCompare` sort. Error resilience: `AFS_READ_ERROR` diagnostic for unreadable files. 17/17 tests, `tsc` clean. 6 findings: P3-001 loader types not exported from index (LOW), P3-002 no NF-001 benchmark with 500-file fixture (LOW — plan required it), P3-003 full file reads instead of bounded (LOW — acceptable, optimize if needed), P3-004–P3-006 (INFO). No blockers. Review: `.ai/findings/054-phase3-review.md`.
+- Current owner: **cursor** — **054 Phase 4** tool allowlist enforcement.
+- Next owner: **claude** — **054 Phase 4 review** against FR-007 and SC-003.
+- Last baton update: 2026-03-30 — **claude**: **054 Phase 4 pre-implementation analysis** — Traced both dispatch paths (governed Claude CLI and provider registry sidecar). Identified 5 architectural decisions (D-001..D-005): thread `allowed_tools` through `AgentExecutionProfile`, enforce on both paths (`--allowedTools` CLI args for governed path, `allowedTools` in sidecar JSON for provider path), SC-003 error format with agent name + attempted tool + declared list, source from SQLite `tools` column. P3-001 already resolved (commit 4512028). 8-step integration checklist provided. 4 existing agents cataloged (architect/explorer/reviewer: Read-only tools; implementer: adds Write+Edit). Pre-implementation analysis: `.ai/findings/054-phase4-pre-implementation.md`.
 - Recommended files to read:
-  - `.ai/findings/054-phase3-review.md`
+  - `.ai/findings/054-phase4-pre-implementation.md`
   - `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`
-  - `packages/agent-frontmatter/src/loader.ts`
+  - `apps/desktop/src-tauri/src/commands/orchestrator.rs` (lines 38–44, 106–113, 200–236)
+  - `packages/agent-frontmatter/src/parser.ts` (`normalizeToolsField` at line 191)
 
 ## Requested next agent output
 
-**cursor**: Begin **054 Phase 4** — tool allowlist enforcement (FR-007, SC-003). Wire `tools` from parsed agent metadata into runtime/tool dispatch so disallowed tools fail with a clear error. P3-001 (export loader types from index.ts) can be addressed opportunistically.
+**cursor**: Begin **054 Phase 4** — tool allowlist enforcement (FR-007, SC-003). Pre-implementation analysis at `.ai/findings/054-phase4-pre-implementation.md` provides 5 decisions and 8-step integration checklist. Key: add `allowed_tools` to `AgentExecutionProfile`, thread through both dispatch paths (governed Claude CLI via `--allowedTools` args, provider registry sidecar via `allowedTools` JSON field). SC-003 test: agent with `tools: [Read]` attempts `Write` → blocked with descriptive error.
 
 **claude** (after Phase 4): Review Phase 4 implementation against FR-007 and SC-003.
 
@@ -140,6 +141,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **054 Phase 4 pre-implementation analysis** — Traced both dispatch paths for FR-007/SC-003 enforcement. Governed Claude CLI path (`orchestrator.rs:200–270`): can use `--allowedTools` CLI args. Provider registry sidecar path (`orchestrator.rs:76–197`): can add `allowedTools` to sidecar JSON payload; Claude Code SDK adapter already supports it. 5 architectural decisions: D-001 thread `allowed_tools` through `AgentExecutionProfile`, D-002 enforce on both paths, D-003 SC-003 error format (tool name + agent name + declared list), D-004 source from SQLite `tools` column, D-005 command `allowed-tools` out of Phase 4 scope. 8-step integration checklist. 4 risk items (CLI flag verification MEDIUM, others LOW/INFO). 4 existing agents cataloged. Pre-implementation analysis: `.ai/findings/054-phase4-pre-implementation.md`.
 - 2026-03-30 (claude): **054 Phase 3 review** — Phase 3 approved. FR-004 Tiers 1–3 all satisfied: Tier 1 metadata-only scan (body structurally absent), Tier 2 body on activation, Tier 3 resource refs + on-demand load. P2-001 resolved (CRLF test added). Discovery deterministic. `AFS_READ_ERROR` diagnostic for unreadable files. 17/17 tests, `tsc` clean. 6 findings: P3-001 loader types not exported from index (LOW), P3-002 no NF-001 benchmark (LOW), P3-003 full file reads not bounded (LOW), P3-004–P3-006 (INFO). No blockers for Phase 4. Review: `.ai/findings/054-phase3-review.md`.
 - 2026-03-30 (cursor): **054 Phase 3** — `packages/agent-frontmatter/src/loader.ts`: `discoverMarkdownDefinitionFiles` recursive sorted walk, `loadTier1MetadataFromDir` metadata-only scan, `loadTier2Instructions` on-demand body, `listResourceRefsFromMetadata` + `loadResourceFile` for Tier 3 resources. CRLF test added (P2-001). 17/17 tests, `tsc` clean.
 - 2026-03-30 (claude): **054 Phase 2 review** — Phase 2 approved. FR-001–FR-003 structural parsing, NF-002 (filePath + line + column diagnostics via `lineColInFile` translation), NF-003 (`Record<string, unknown>` preserves all keys — tested with `experimentalFlag`), P1-002 (`normalizeToolsField` handles comma-separated strings from existing agents) all satisfied. Delimiter rules match Rust `tools/shared/frontmatter`. Verified against 4 existing agent defs + 9 command files — all parse cleanly. 12/12 tests, `tsc` clean. 6 findings: P2-001 no CRLF delimiter test (LOW), P2-002 non-string array elements silently dropped in `normalizeToolsField` (LOW — Phase 5 linter should flag), P2-003 empty YAML body path untested (INFO), P2-004 end position unused (INFO), P2-005 no schema validation in parser (INFO, by design), P2-006 `missing_newline_after_open` edge case handled (INFO). No blockers for Phase 3. Review: `.ai/findings/054-phase2-review.md`.
