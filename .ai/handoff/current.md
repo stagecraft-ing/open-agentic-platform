@@ -96,32 +96,32 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 057 | Notification System | P1 | outline-spec |
 | 058 | File Mention System | P1 | outline-spec |
 | 059 | Git Panel | P1 | ✅ feature-complete |
-| 060 | Panel Event Bus | P1 | outline-spec |
+| 060 | Panel Event Bus | P1 | ✅ feature-complete |
 | 061 | Conductor Track Lifecycle | P1 | outline-spec |
 | 062 | Multi-Model Chaining | P1 | outline-spec |
 | 063 | Coherence Scoring | P1 | outline-spec |
 
 ## Baton
 
-- Current owner: **claude** — 059 feature-complete (all 8 phases delivered).
-- Next owner: **claude** — implement next spec (060 Panel Event Bus).
-- Last baton update: 2026-03-31 — **claude**: 059 — Git Panel, all 8 phases. New package `packages/git-panel` (`@opc/git-panel`). **Phase 1** — plumbing backend: `src/types.ts` (14 types: GitFileStatus, GitStatus, GitCommit, BranchInfo, HunkRange, DiffLine, DiffHunk, FileDiff, CommitOptions, CommitMessageProvider, GitBackend, GitPanelWatcher, FileStatusCode), `src/backend/plumbing.ts` (execGit, repoRoot, diffFiles, diffIndex, lsFilesUntracked, currentBranch, aheadBehind, upstreamBranch, fileDiff, gitLog with \x01 record separator, commitDiffRaw, forEachRef, stageFile, unstageFile, applyPatch, createCommit, checkoutBranch, createNewBranch, stagedDiff), `src/backend/parser.ts` (parseNameStatus for diff-files/diff-index, parseUntrackedFiles, parseLog with \x01 record splitting, parseBranches), `src/backend/diff-parser.ts` (parseDiff for unified diffs with line numbers, buildHunkPatch for hunk-level staging patches). **Phase 2** — staging operations: `src/operations/staging.ts` — `createStagingOps(cwd)` returns `StagingOperations` with `stage()` (whole file or hunk-level via parseDiff+buildHunkPatch+applyPatch), `unstage()` (whole file or hunk-level with reverse patch), `stageAll()`, `unstageAll()`. **Phase 3** — commit operations: `src/operations/commit.ts` — `createCommitOps(cwd)` with `commit(message, options?)`, validates non-empty message, delegates to createCommit, returns full GitCommit from log. **Phase 4** — branch operations: `src/operations/branch.ts` — `createBranchOps(cwd)` with `list()`, `checkout(branch, {force?})` with dirty-tree warning (R-004), `create(name)`, `isDirty()`. **Phase 5** — AI commit messages: `src/ai/commit-message.ts` — `buildPrompt(diff, recentMessages)` with conventional commit instructions, recent examples for style reference (R-003), MAX_DIFF_SIZE truncation; `generateCommitMessage(cwd, provider, exampleCount?)` fetches staged diff + recent log, delegates to CommitMessageProvider. **Phase 6** — GitBackend facade: `src/git-backend.ts` — `createGitBackend(cwd)` implements full GitBackend interface, parallel status retrieval (FR-011), wires staging/commit/branch operations. **Phase 7** — auto-refresh watcher: `src/watcher.ts` — `createWatcher(repoRoot, options?)` with debounced fs.watch (150ms default), filters .git noise except refs/HEAD/index; `withRefresh()` wrapper for post-operation refresh. **Phase 8** — barrel exports + validation. Validation: `tsc` clean, 88/88 tests pass. FR-001 through FR-012, SC-001 through SC-008 satisfied.
+- Current owner: **claude** — 060 feature-complete (all 5 phases delivered).
+- Next owner: **claude** — implement next spec (061 Conductor Track Lifecycle).
+- Last baton update: 2026-03-31 — **claude**: 060 — Panel Event Bus, all 5 phases. New package `packages/panel-event-bus` (`@opc/panel-event-bus`). **Phase 1** — event type registry and bus core: `src/types.ts` (10 types: EventTypeName, PanelInstanceId, EventTypeSchema, BusEvent, PanelEventContract, EventHandler, SubscribeOptions, RingBufferOptions, EventBusOptions + DEFAULT_RING_BUFFER_SIZE constant), `src/ring-buffer.ts` (RingBuffer class — bounded circular buffer with push/last/size/clear), `src/event-bus.ts` (EventBus class — registerEventType, registerPanel, unregisterPanel, emit with contract enforcement + auto-exclusion + ring buffer storage, subscribe with wildcard matching + replay, history query, reset). **Phase 2** — panel contract enforcement: `src/contracts.ts` (defineContract, mergeContracts, validateContract — helpers for creating and validating PanelEventContract declarations). **Phase 3** — source auto-exclusion and wildcards: `src/wildcards.ts` (isWildcard, patternToRegExp, matchesPattern — glob-style pattern matching for event subscriptions). **Phase 4** — lifecycle integration: `src/lifecycle.ts` (mountPanel returns PanelHandle with scoped emit/subscribe, automatic cleanup on unmount, mounted state tracking). **Phase 5** — core event types: `src/core-events.ts` (11 typed event schemas across 4 namespaces: terminal, files, git, agent; payload types for all; CORE_EVENT_SCHEMAS/CORE_EVENT_NAMES constants; createBusWithCoreEvents factory). Barrel exports + subpath exports (./types, ./bus, ./contracts, ./wildcards, ./lifecycle, ./events). Validation: `tsc` clean, 75/75 tests pass. FR-001 through FR-008, NF-001 through NF-003, SC-001 through SC-005 satisfied.
 - Recommended files to read:
-  - `packages/git-panel/src/index.ts` (barrel exports)
-  - `packages/git-panel/src/types.ts` (all types)
-  - `packages/git-panel/src/git-backend.ts` (GitBackend facade)
-  - `packages/git-panel/src/backend/plumbing.ts` (plumbing commands)
-  - `packages/git-panel/src/backend/parser.ts` (output parsers)
-  - `packages/git-panel/src/backend/diff-parser.ts` (unified diff parser)
-  - `packages/git-panel/src/operations/staging.ts` (hunk-level staging)
-  - `packages/git-panel/src/ai/commit-message.ts` (AI commit messages)
-  - `packages/git-panel/package.json` (subpath exports)
+  - `packages/panel-event-bus/src/index.ts` (barrel exports)
+  - `packages/panel-event-bus/src/types.ts` (all types)
+  - `packages/panel-event-bus/src/event-bus.ts` (EventBus core)
+  - `packages/panel-event-bus/src/ring-buffer.ts` (bounded ring buffer)
+  - `packages/panel-event-bus/src/contracts.ts` (contract helpers)
+  - `packages/panel-event-bus/src/wildcards.ts` (glob matching)
+  - `packages/panel-event-bus/src/lifecycle.ts` (panel mount/unmount)
+  - `packages/panel-event-bus/src/core-events.ts` (11 core event types)
+  - `packages/panel-event-bus/package.json` (subpath exports)
 
 ## Requested next agent output
 
-**claude**: 059 feature-complete. Next: implement 060 — Panel Event Bus.
+**claude**: 060 feature-complete. Next: implement 061 — Conductor Track Lifecycle.
 
-### Completed features (17 of 22)
+### Completed features (18 of 22)
 
 | # | Spec | Kind | Status |
 |---|------|------|--------|
@@ -142,11 +142,11 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 057 | Notification System | P1 | ✅ feature-complete (6 phases) |
 | 058 | File Mention System | P1 | ✅ feature-complete (7 phases) |
 | 059 | Git Panel | P1 | ✅ feature-complete (8 phases) |
+| 060 | Panel Event Bus | P1 | ✅ feature-complete (5 phases) |
 
-### Priority order for remaining P1 specs (4 unstarted)
+### Priority order for remaining P1 specs (3 unstarted)
 
-1. **060 — Panel Event Bus** — cross-panel communication for desktop app
-10. **061 — Conductor Track Lifecycle** — orchestrator track state management
+1. **061 — Conductor Track Lifecycle** — orchestrator track state management
 11. **062 — Multi-Model Chaining** — chain different models in agent workflows
 12. **063 — Coherence Scoring** — behavioral drift scoring (depends on 047 governance)
 
@@ -164,6 +164,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **060 Panel Event Bus — all 5 phases. 060 feature-complete.** New package `packages/panel-event-bus` (`@opc/panel-event-bus`). Phase 1: event type registry and bus core — types.ts (10 types + DEFAULT_RING_BUFFER_SIZE), ring-buffer.ts (RingBuffer class with bounded circular storage), event-bus.ts (EventBus class — registerEventType, registerPanel/unregisterPanel, emit with contract enforcement + source auto-exclusion + ring buffer, subscribe with wildcard glob matching + replay, history query, reset). Phase 2: panel contract enforcement — contracts.ts (defineContract, mergeContracts, validateContract helpers for PanelEventContract declarations). Phase 3: source auto-exclusion and wildcards — wildcards.ts (isWildcard, patternToRegExp, matchesPattern for glob-style event pattern matching). Phase 4: lifecycle integration — lifecycle.ts (mountPanel returns PanelHandle with scoped emit/subscribe, tracked subscription cleanup on unmount, mounted state guard). Phase 5: core event types — core-events.ts (11 typed event schemas across 4 namespaces: terminal (command_executed, output_received), files (changed, opened, saved), git (operation_commit/push/pull/branch), agent (message_received, tool_invoked); typed payload interfaces for all; CORE_EVENT_SCHEMAS/CORE_EVENT_NAMES constants; createBusWithCoreEvents factory). Barrel exports + 6 subpath exports (./types, ./bus, ./contracts, ./wildcards, ./lifecycle, ./events). Validation: `tsc` clean, 75/75 tests pass. FR-001–FR-008, SC-001–SC-005 satisfied.
 
 - 2026-03-31 (claude): **059 Git Panel — all 8 phases. 059 feature-complete.** New package `packages/git-panel` (`@opc/git-panel`). Phase 1: plumbing backend — types (14 types), plumbing.ts (20 git command wrappers using diff-files/diff-index/ls-files/for-each-ref), parser.ts (parseNameStatus, parseUntrackedFiles, parseLog with \x01 record separator, parseBranches), diff-parser.ts (parseDiff with line numbers, buildHunkPatch). Phase 2: staging operations — createStagingOps with file-level and hunk-level stage/unstage via parseDiff+buildHunkPatch+applyPatch, stageAll, unstageAll. Phase 3: commit operations — createCommitOps with empty-message validation, amend/signoff options. Phase 4: branch operations — createBranchOps with list, checkout (dirty-tree warning R-004), create, isDirty. Phase 5: AI commit messages — buildPrompt with conventional commit format and recent examples (R-003), generateCommitMessage with MAX_DIFF_SIZE truncation. Phase 6: GitBackend facade — createGitBackend wiring parallel plumbing status retrieval (FR-011). Phase 7: auto-refresh watcher — createWatcher with debounced fs.watch, .git noise filtering, withRefresh wrapper (FR-012). Phase 8: barrel exports + validation. Validation: `tsc` clean, 88/88 tests pass. FR-001–FR-012, SC-001–SC-008 satisfied.
 
