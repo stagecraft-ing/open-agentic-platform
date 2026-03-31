@@ -103,12 +103,12 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — self-review Phase 2 outputs against `spec.md`.
-- Next owner: **claude** — implement 055 Phase 3 (official standards library).
-- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 2 (three-tier loader & resolver). `src/loader.ts`: `loadStandardsFromDir()` + `loadAllTiers()`. `src/resolver.ts`: `resolveStandards()` with override precedence, candidate exclusion, category/tag filtering. 55/55 tests pass, `tsc` clean.
+- Current owner: **claude** — implement 055 Phase 4 (contributor pipeline).
+- Next owner: **claude** — implement 055 Phase 4 (finding aggregator & candidate generator).
+- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 3 (official standards library). 10 official standards across 5 categories (error-handling, naming, testing, security, architecture) in `standards/official/`. All 5 rule verbs represented (ALWAYS, NEVER, USE, PREFER, AVOID). Mix of critical/high/medium priorities. Anti-patterns and examples included where appropriate. 63/63 tests pass (55 existing + 8 new official library tests), `tsc` clean.
 - Recommended files to read:
-  - `packages/yaml-standards-schema/src/loader.ts` (Phase 2 — directory scanner, three-tier loader)
-  - `packages/yaml-standards-schema/src/resolver.ts` (Phase 2 — merge with override precedence, filtering)
+  - `standards/official/` (Phase 3 — 10 official standards YAML files)
+  - `packages/yaml-standards-schema/src/official.test.ts` (Phase 3 — library validation tests)
   - `specs/055-yaml-standards-schema/spec.md` (spec to implement)
 
 ## Requested next agent output
@@ -158,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **055 Phase 3 — official standards library.** Created `standards/official/` directory with 10 standards across 5 required categories: error-handling (001: async try/catch, typed errors, empty catches; 002: error cause chaining, sensitive data in errors, string throws), naming (001: camelCase/PascalCase conventions, descriptive names; 002: kebab-case files, test suffixes), testing (001: independent tests, behavior-not-implementation, disabled test tracking; 002: cleanup hooks, DI over module mocks), security (001: SQL injection, XSS, command injection, input validation — all critical; 002: hardcoded secrets, token logging, env-based secrets, timing-safe comparison — critical), architecture (001: no circular deps, barrel exports, deep imports, layer violations; 002: pure functions, parameter count, composition over inheritance, co-location). All 5 rule verbs represented (ALWAYS, NEVER, USE, PREFER, AVOID across the library). Standards include anti_patterns and examples where pedagogically valuable. `standards/community/`, `standards/local/`, `standards/candidates/` directories created (empty, per FR-005 directory structure). `src/official.test.ts`: 8 tests validating category coverage, active status, kebab-case ids, rule presence, tag presence, verb coverage, clean parsing, priority diversity. Validation: `tsc` clean, 63/63 tests pass (55 existing + 8 new). Phase 3 spec requirements satisfied.
 
 - 2026-03-31 (claude): **055 Phase 2 — three-tier loader & resolver.** `src/loader.ts`: `loadStandardsFromDir(dirPath, tier)` discovers `*.yaml`/`*.yml` files, parses via `parseStandardFile()`, keys by standard `id`, emits `CS_DUPLICATE_ID` warning on same-id collision within a tier, `CS_FILE_READ_ERROR` on unreadable files, graceful empty return on missing directories. `loadAllTiers(projectRoot, communityPath?)` loads `standards/official/`, `standards/community/`, `standards/local/` in parallel via `Promise.all()` (FR-004, FR-005). Optional `communityPath` override for teams sharing standards across repos (R-007). `src/resolver.ts`: `resolveStandards(tiers, filter?)` merges standards across tiers with later-wins precedence for same `id` (FR-004). Excludes `status: candidate` standards (SC-003) — a candidate in a later tier does NOT override an active standard from an earlier tier. Supports `category` and `tags` filtering (FR-008): category must match exactly, tags require at least one match (OR semantics). `StandardsFilter` and `ResolveResult` types exported. Barrel exports updated (`index.ts`), subpath exports added (`./loader`, `./resolver` in `package.json`). Validation: `tsc` clean, 55/55 tests pass (30 P1 + 12 loader + 13 resolver). FR-004 (three-tier override), FR-005 (well-known directories), FR-008 (resolver with filter), SC-002 (override correctness), SC-003 (candidate exclusion) satisfied.
 
