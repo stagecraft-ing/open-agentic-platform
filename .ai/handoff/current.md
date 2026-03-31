@@ -101,16 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — Phase 6 review complete. 051 feature-complete.
-- Next owner: **cursor** — next P1 spec slice (see priority order below).
-- Last baton update: 2026-03-30 — **claude**: Phase 6 approved. All 5 Tauri commands wired (spawn, list, diff, merge, discard). P5-003 (cherry-pick --abort) and P5-004 (merge→discard chain) both resolved. 6 findings: P6-001 in-memory state lost on restart (LOW), P6-002 dirty-check on main tree only (LOW), P6-003 no integration tests (LOW), P6-004 merge failure stale state (LOW), P6-005/P6-006 (INFO). **051 feature-complete — all 6 phases approved.** Review: `.ai/findings/051-phase6-review.md`.
+- Current owner: **cursor** — selected next P1 slice and drafted phased plan for 049.
+- Next owner: **claude** — review 049 phased plan against spec before Phase 1 coding.
+- Last baton update: 2026-03-30 — **cursor**: Selected **049 Permission System** as the next P1 implementation slice and created `.ai/plans/049-permission-system-phased-plan.md` with P-001..P-006 design decisions and six implementation phases (matcher, store, evaluator, `canUseTool` integration, CLI, non-interactive defaults + verification). Baton handed to **claude** for plan review.
 - Recommended files to read:
-  - `.ai/findings/051-phase6-review.md` (Phase 6 review with findings)
-  - `.ai/findings/next-slice-prioritization-2026-03-30.md` (next slice selection)
+  - `specs/049-permission-system/spec.md` (canonical requirements for 049)
+  - `.ai/plans/049-permission-system-phased-plan.md` (new phased implementation plan)
+  - `.ai/findings/next-slice-prioritization-2026-03-30.md` (prioritization context)
 
 ## Requested next agent output
 
-**cursor**: Select and begin next P1 spec slice from priority order below. Draft phased plan, hand baton to **claude** for plan review before Phase 1 coding.
+**claude**: Review `.ai/plans/049-permission-system-phased-plan.md` against `specs/049-permission-system/spec.md`, report findings in `.ai/findings/049-plan-review.md`, and either approve Phase 1 start or return required plan fixes.
 
 Priority order for P0 specs (unchanged):
 
@@ -137,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **049 planning pass** — Responded to baton by selecting `049-permission-system` as the next P1 slice and drafting `.ai/plans/049-permission-system-phased-plan.md`. Plan includes P-001..P-006 decisions and six execution phases: wildcard matcher/types, JSON permission store, layered evaluator + prompt contract, `canUseTool` integration, CLI permission management, and non-interactive defaults with verification evidence. Baton handed to **claude** for plan review before Phase 1 coding.
 - 2026-03-30 (claude): **051 Phase 6 review** — Phase 6 approved. All 5 Tauri commands wired (spawn, list, diff, merge, discard) with frontend API wrappers and type definitions. P5-003 (cherry-pick --abort) resolved at line 296. P5-004 (merge→discard chain) resolved at line 314. FR-006/FR-007/FR-008/FR-009 satisfied at Tauri layer. 6 findings: P6-001 in-memory state lost on restart (LOW), P6-002 dirty-check on main tree only (LOW), P6-003 no integration tests (LOW), P6-004 merge failure stale state (LOW), P6-005/P6-006 (INFO). **051 feature-complete — all 6 phases approved.** Review: `.ai/findings/051-phase6-review.md`.
 - 2026-03-30 (cursor): **051 Phase 6** — Added Tauri command surface for worktree agents (`spawn_background_agent`, `list_background_agents`, `get_agent_diff`, `merge_agent`, `discard_agent`) in `apps/desktop/src-tauri/src/commands/worktree_agents.rs`, wired into `commands/mod.rs` and `src/lib.rs` invoke handler, and added API wrappers in `apps/desktop/src/lib/api.ts` + endpoint mappings in `apiAdapter.ts`. Implemented merge->discard chaining and `cherry-pick --abort` on cherry-pick failure path. Added `specs/051-worktree-agents/execution/verification.md`. Validation: `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` pass.
 - 2026-03-30 (claude): **051 Phase 5 review** — Phase 5 approved. FR-006 (`getAgentDiff` unified diff via three-dot `git diff` + commit summary via two-dot `git log`, parallel execution), FR-007 (`mergeAgent` with `fast-forward`/`squash`/`cherry-pick`, clean-worktree precondition, branch validation, squash `merge --abort` on failure, `try/finally` branch restore), FR-008 (`discardAgent` delegates to idempotent `removeAgentWorktree`) all satisfied. SC-004 (diff covers all files + 2-commit summary), SC-005 (squash creates 1 non-merge commit, file contents verified), SC-006 (worktree dir + branch ref removed) all tested. 14/14 tests, `tsc` clean. 6 findings: P5-001 API takes branches not agentId (LOW), P5-002 no ff/cherry-pick test (LOW), P5-003 no cherry-pick abort on failure (LOW), P5-004 merge doesn't chain discard (LOW), P5-005/P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/051-phase5-review.md`.
