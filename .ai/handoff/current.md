@@ -103,12 +103,12 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — implement 055 Phase 2 (three-tier loader & resolver).
-- Next owner: **claude** — self-review Phase 2 outputs against `spec.md` after delivery.
-- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 1 (schema definition, parser, JSON Schema). Package `@opc/yaml-standards-schema` scaffolded in `packages/yaml-standards-schema/`. 30/30 tests pass, `tsc` clean.
+- Current owner: **claude** — self-review Phase 2 outputs against `spec.md`.
+- Next owner: **claude** — implement 055 Phase 3 (official standards library).
+- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 2 (three-tier loader & resolver). `src/loader.ts`: `loadStandardsFromDir()` + `loadAllTiers()`. `src/resolver.ts`: `resolveStandards()` with override precedence, candidate exclusion, category/tag filtering. 55/55 tests pass, `tsc` clean.
 - Recommended files to read:
-  - `packages/yaml-standards-schema/` (Phase 1 implementation)
-  - `.ai/findings/055-readiness-review.md` (readiness review — architecture decisions, phase scoping, findings)
+  - `packages/yaml-standards-schema/src/loader.ts` (Phase 2 — directory scanner, three-tier loader)
+  - `packages/yaml-standards-schema/src/resolver.ts` (Phase 2 — merge with override precedence, filtering)
   - `specs/055-yaml-standards-schema/spec.md` (spec to implement)
 
 ## Requested next agent output
@@ -158,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **055 Phase 2 — three-tier loader & resolver.** `src/loader.ts`: `loadStandardsFromDir(dirPath, tier)` discovers `*.yaml`/`*.yml` files, parses via `parseStandardFile()`, keys by standard `id`, emits `CS_DUPLICATE_ID` warning on same-id collision within a tier, `CS_FILE_READ_ERROR` on unreadable files, graceful empty return on missing directories. `loadAllTiers(projectRoot, communityPath?)` loads `standards/official/`, `standards/community/`, `standards/local/` in parallel via `Promise.all()` (FR-004, FR-005). Optional `communityPath` override for teams sharing standards across repos (R-007). `src/resolver.ts`: `resolveStandards(tiers, filter?)` merges standards across tiers with later-wins precedence for same `id` (FR-004). Excludes `status: candidate` standards (SC-003) — a candidate in a later tier does NOT override an active standard from an earlier tier. Supports `category` and `tags` filtering (FR-008): category must match exactly, tags require at least one match (OR semantics). `StandardsFilter` and `ResolveResult` types exported. Barrel exports updated (`index.ts`), subpath exports added (`./loader`, `./resolver` in `package.json`). Validation: `tsc` clean, 55/55 tests pass (30 P1 + 12 loader + 13 resolver). FR-004 (three-tier override), FR-005 (well-known directories), FR-008 (resolver with filter), SC-002 (override correctness), SC-003 (candidate exclusion) satisfied.
 
 - 2026-03-31 (claude): **055 Phase 1 — schema definition & package scaffold.** Created `packages/yaml-standards-schema` (`@opc/yaml-standards-schema`). Package scaffold follows 053/054 patterns: ESM, `tsc` build, vitest, `yaml` dependency. `src/types.ts`: 10 types covering core schema (`CodingStandard`, `StandardRule`, `RuleVerb` union of 5 verbs, `AntiPattern`, `StandardExample`), enums (`StandardPriority`, `StandardStatus`), and diagnostics (`StandardDiagnostic`, `ParseStandardResult`). `src/schema.ts`: `validateStandardObject()` validates id (kebab-case), category, priority, status, rules (verb/subject/rationale), anti_patterns (pattern/correction), examples (good/bad/explanation), tags, context. 18 `CS_*`-prefixed diagnostic codes. `src/parser.ts`: `parseStandardFile(content, filePath)` — plain YAML parsing via `yaml.parseDocument()` for line-number error reporting (NF-002). Unknown fields preserved on parsed output for forward compatibility (NF-003). Status defaults to `"active"` when omitted. `schemas/coding-standard.schema.json`: JSON Schema Draft 7 with `additionalProperties: true` at root (NF-003). Validation: `pnpm build` (`tsc` clean), `pnpm test` (30/30 tests pass). FR-001 (required fields), FR-002 (rule verbs), FR-003 (optional fields), NF-002 (JSON Schema + line-number errors), NF-003 (extensibility), SC-001 (validation), SC-005 (all verbs) satisfied at schema layer.
 

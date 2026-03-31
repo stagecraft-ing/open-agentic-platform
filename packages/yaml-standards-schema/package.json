@@ -10,7 +10,9 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./parser": "./src/parser.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./loader": "./src/loader.ts",
+    "./resolver": "./src/resolver.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
