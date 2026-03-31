@@ -103,13 +103,12 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 053 Phase 5 implemented. Ready for **claude** review.
-- Next owner: **claude** — review 053 Phase 5 (profile selection: explicit `--verify`, branch pattern matching, context precedence) against FR-005. Then hand back to **cursor** for follow-up.
-- Last baton update: 2026-03-31 — **cursor**: 053 Phase 5 implementation completed. Added `src/selector.ts` with `ProfileContext`, `selectProfile(context)`, and `parseVerifyFlag(args)` to satisfy FR-005 profile selection requirements. Selection precedence: explicit override (`--verify`) > explicit context flags (`isRelease`, `isPR`) > branch-pattern auto-detection (`release/*`, `rel/*`, `hotfix/*`, `pull/<n>/(head|merge)`, and common PR-style branches such as `feature/*`, `fix/*`, `chore/*`). Added `src/selector.test.ts` with 10 tests covering explicit override precedence, context detection, branch pattern matching, and flag parsing forms (`--verify=release`, `--verify release`) plus empty/missing values. Updated package exports: `index.ts` barrel now exports selector APIs and `package.json` adds `./selector` subpath. Opportunistic carry-forward fix from Phase 4 review: refactored profile loading in `src/gate.ts` to a shared loader so `.yml` fallback passes the correct `filePath` into parser diagnostics; added `.yml` diagnostics path test in `src/gate.test.ts`. Validation: package tests pass (`78/78`).
+- Current owner: **claude** — 053 Phase 5 reviewed and approved. Ready for **cursor** to pick up Phase 6.
+- Next owner: **cursor** — implement 053 Phase 6 (bundled skills and profiles). Include a `hotfix` profile since Phase 5 selector maps `hotfix/*` branches to it (P5-002). Bundled skills assume Node.js toolchain (R-008).
+- Last baton update: 2026-03-31 — **claude**: 053 Phase 5 review approved. FR-005 (profile selection via explicit `--verify` flag, context booleans, and branch pattern matching) fully satisfied. Three-tier precedence is correct: explicit > context flags > branch patterns. `selectProfile` is pure with no I/O. `parseVerifyFlag` handles both `--verify=val` and `--verify val` forms. Carry-forward fixes from Phase 4 resolved: P4-002 (`.yml` diagnostic path) fixed via shared `loadProfileContent` helper, P4-004 (duplicate loading) eliminated. 6 findings (all INFO, no blockers): P5-001 `--verify --other` edge case, P5-002 no bundled hotfix profile yet, P5-003 no develop/staging detection, P5-004 no `refs/remotes/` stripping, P5-005 no parseVerifyFlag+selectProfile convenience, P5-006 P4-004 resolved. 78/78 tests pass.
 - Recommended files to read:
-  - `.ai/findings/053-phase4-review.md` (Phase 4 review with findings)
-  - `.ai/findings/053-readiness-review.md` (Phase 5 scope: profile selection)
-  - `specs/053-verification-profiles/spec.md` (FR-005: profile selection)
+  - `.ai/findings/053-phase5-review.md` (Phase 5 review with findings)
+  - `specs/053-verification-profiles/spec.md` (Phase 6: bundled skills and profiles)
 
 ## Requested next agent output
 
@@ -158,6 +157,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **053 Phase 5 review — approved.** FR-005 (profile selection: explicit `--verify`, context booleans, branch patterns) satisfied. `selectProfile(context)` implements clean three-tier precedence: explicit override > `isRelease`/`isPR` flags > branch regex matching. `normalizeBranch` strips `refs/heads/` for CI environments. `parseVerifyFlag` handles `--verify=val` and `--verify val` CLI forms. Carry-forward fixes resolved: P4-002 `.yml` diagnostic path fixed via shared `loadProfileContent` helper in `gate.ts`, P4-004 duplicate loading eliminated (P5-006 confirmed). R-007 (PR detection via branch patterns not API) satisfied — regex covers `pull/<n>/(head|merge)`, `pr/*`, and conventional prefixes. 10 tests cover explicit precedence, context flags, branch patterns, CLI parsing, null fallback. 78/78 total pass, `tsc` clean. 6 findings: P5-001 `--verify --other` flag edge case (INFO), P5-002 no bundled `hotfix` profile yet (INFO — Phase 6), P5-003 no `develop`/`staging` detection (INFO), P5-004 no `refs/remotes/` stripping (INFO), P5-005 no convenience wrapper (INFO), P5-006 P4-004 resolved (RESOLVED). No blockers for Phase 6. Carry-forward: P5-002 (bundle hotfix profile), R-008 (bundled skills assume Node.js). Review: `.ai/findings/053-phase5-review.md`.
 
 - 2026-03-31 (cursor): **053 Phase 5 — profile selection.** Implemented `src/selector.ts` with `ProfileContext`, `selectProfile(context)`, and `parseVerifyFlag(args)` for FR-005 profile selection. Precedence: explicit override (`--verify`) > context flags (`isRelease`, `isPR`) > branch-pattern detection (`release/*`, `rel/*`, `hotfix/*`, `pull/<n>/(head|merge)`, `pr/*`, and common PR branches like `feature/*`, `fix/*`, `chore/*`, `refactor/*`, `docs/*`). Added `src/selector.test.ts` with 10 tests for override precedence, context/branch detection, and both CLI flag forms (`--verify=...` and `--verify ...`) including empty/missing-value handling. Updated `src/index.ts` and package subpath exports (`./selector`). Carry-forward fix from Phase 4: refactored `.yaml`/`.yml` profile loading in `src/gate.ts` to preserve correct diagnostic file paths, plus added `.yml` diagnostic-path coverage in `src/gate.test.ts`. Validation: `pnpm --filter @opc/verification-profiles test` passes (`78/78`).
 
