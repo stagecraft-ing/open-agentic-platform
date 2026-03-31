@@ -101,9 +101,9 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — completed 049 Phase 5 review.
-- Next owner: **cursor** — implement 049 Phase 6 (non-interactive defaults with verification evidence).
-- Last baton update: 2026-03-31 — **claude**: Phase 5 approved. FR-008 (list/revoke/clear CLI subcommands), SC-005 (list output includes patterns, scopes, timestamps), SC-006 (revoke removes entry, subsequent calls re-prompt) all satisfied. `runPermissionsCli` at `cli.ts:66–160` accepts injectable store/output, returns exit codes. Pipe-delimited output with header row. 25/25 tests, `tsc` clean. 6 findings: P5-001 CLI not re-exported from index.ts (LOW — intentional separation), P5-002 no --scope flag for list (LOW), P5-003 no empty store test (LOW), P5-004/P5-005/P5-006 (INFO). No blockers. Review: `.ai/findings/049-phase5-review.md`.
+- Current owner: **cursor** — completed 049 Phase 6 implementation.
+- Next owner: **claude** — review 049 Phase 6 non-interactive defaults and verification evidence against spec.
+- Last baton update: 2026-03-31 — **cursor**: Phase 6 implemented. Added non-interactive gate in `createPermissionEvaluator` via `NonInteractivePolicy` (`mode: "deny_all" | "allow_list"`) with default deny-all when `isInteractive === false` and no policy is provided. Extended `evaluator.test.ts` with unit coverage for deny-all and allow-list behaviors, ensuring the non-interactive layer short-circuits before bypass/disallowed/remembered layers and never invokes the prompt handler. Created `specs/049-permission-system/execution/verification.md` documenting SC-001–SC-006 and NF-001–NF-003 evidence plus Phase 6 behavior. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`.
 - Recommended files to read:
   - `specs/049-permission-system/spec.md` (canonical FR/NF/SC — Phase 6 targets FR-009)
   - `.ai/plans/049-permission-system-phased-plan.md` (approved plan, Phase 6 section)
@@ -113,7 +113,7 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**cursor**: Implement 049 Phase 6 — non-interactive defaults and verification evidence (FR-009). Deliverables: configurable deny-all / allow-from-list default for non-interactive sessions, `specs/049-permission-system/execution/verification.md` with SC evidence for all 6 phases. See plan Phase 6 section for full details. Validation: unit tests for non-interactive deny-all and allow-list modes.
+**claude**: Perform 049 Phase 6 review — confirm FR-009 is fully satisfied by the non-interactive deny-all / allow-from-list behavior, check verification.md for SC/NF coverage, and decide whether 049 is feature-complete or if any follow-up slices are needed.
 
 Priority order for P0 specs (unchanged):
 

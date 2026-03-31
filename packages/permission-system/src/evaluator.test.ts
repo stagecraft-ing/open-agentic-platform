@@ -184,4 +184,41 @@ describe("createPermissionEvaluator", () => {
     });
     expect(prompt).not.toHaveBeenCalled();
   });
+
+  test("non-interactive allow-list allows only matching invocations", async () => {
+    const store = new MemoryPermissionStore();
+    store.insert("Bash(git:status)", "allow");
+    const prompt: PermissionPromptHandler = vi.fn(async () => ({ choice: "deny" }));
+    const evaluator = createPermissionEvaluator({
+      store,
+      prompt,
+      bypassPatterns: ["Bash(git:status)"],
+      nonInteractivePolicy: {
+        mode: "allow_list",
+        allowListPatterns: ["Bash(git:status)"],
+      },
+    });
+
+    const allowed = await evaluator.evaluate({
+      toolName: "Bash",
+      argument: "git:status",
+      isInteractive: false,
+    });
+    const denied = await evaluator.evaluate({
+      toolName: "Bash",
+      argument: "git:commit:-m",
+      isInteractive: false,
+    });
+
+    expect(allowed).toMatchObject({
+      decision: "allow",
+      source: "non_interactive",
+      matchedPattern: "Bash(git:status)",
+    });
+    expect(denied).toMatchObject({
+      decision: "deny",
+      source: "non_interactive",
+    });
+    expect(prompt).not.toHaveBeenCalled();
+  });
 });
