@@ -1,0 +1,30 @@
+image:
+  repository: stagecraftdevacr.azurecr.io/stagecraft
+  tag: dev
+
+ingress:
+  host: stagecraft.localdev.online
+
+workloadIdentity:
+  serviceAccountName: stagecraft-api-sa
+  clientId: ""
+
+keyVault:
+  name: ""
+  tenantId: ""
+
+secretsMount:
+  enabled: true
+  mountPath: /mnt/secrets-store
+  objects:
+    - objectName: STAGECRAFT_DB_URL
+      objectType: secret
+    - objectName: LOGTO_M2M_CLIENT_ID
+      objectType: secret
+    - objectName: LOGTO_M2M_CLIENT_SECRET
+      objectType: secret
+
+logto:
+  endpoint: "https://logto.localdev.online"
+  deploydAudience: "https://api.stagecraft.localdev.online"
+  deploydScope: "deployd:deploy"

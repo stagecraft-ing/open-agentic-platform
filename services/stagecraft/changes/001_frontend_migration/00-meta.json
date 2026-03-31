@@ -1,0 +1,5 @@
+{
+  "change_id": "001_frontend_migration",
+  "reason": "Replace Next.js frontend with React Router 7, port Uptime Monitoring UI, align with monorepo structure",
+  "created_at": "2026-02-17T00:00:00Z"
+}

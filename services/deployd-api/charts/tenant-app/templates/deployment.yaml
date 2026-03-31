@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+{{- range $k, $v := .Values.app.labels }}
+    {{ $k }}: {{ $v | quote }}
+{{- end }}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+{{- range $k, $v := .Values.app.labels }}
+        {{ $k }}: {{ $v | quote }}
+{{- end }}
+    spec:
+      containers:
+        - name: {{ .Values.app.name }}
+          {{- if contains "@" .Values.image.tag }}
+          image: "{{ .Values.image.repository }}{{ .Values.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 3
+            periodSeconds: 10

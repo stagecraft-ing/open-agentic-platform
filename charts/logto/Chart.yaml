@@ -1,0 +1,6 @@
+apiVersion: v2
+name: logto
+description: Logto (self-contained) chart for Stagecraft
+type: application
+version: 0.1.0
+appVersion: "1.38.0"

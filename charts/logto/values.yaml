@@ -1,0 +1,56 @@
+image:
+  repository: svhd/logto
+  tag: "1.36.0"
+
+logto:
+  endpoint: "https://logto.localdev.online"
+  adminEndpoint: "https://logto-admin.localdev.online"
+  trustProxyHeader: true
+
+ingress:
+  enabled: true
+  className: nginx
+
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+  tls:
+    - secretName: logto-tls
+      hosts:
+        - logto.localdev.online
+    - secretName: logto-admin-tls
+      hosts:
+        - logto-admin.localdev.online
+
+  hosts:
+    - host: logto.localdev.online
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: logto-admin.localdev.online
+      paths:
+        - path: /
+          pathType: Prefix
+
+postgresql:
+  enabled: true
+  auth:
+    username: postgres
+    password: "CHANGEME"
+    database: logto
+  persistence:
+    enabled: true
+    size: 20Gi
+
+customSetup:
+  enabled: false
+  configMapName: ""
+  configMapHash: "" # set by Terraform so Helm can rerun hook when scripts change
+  env: {}
+  failReleaseOnError: true
+
+customSetupSecrets:
+  enabled: false
+  secretName: ""
+  secretsMountPath: "" # Reserved for future CSI/file mounts

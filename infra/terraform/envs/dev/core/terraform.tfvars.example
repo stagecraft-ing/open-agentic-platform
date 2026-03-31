@@ -1,0 +1,19 @@
+# ------------------------------------------------------------------------------
+# Core platform hosts (DEV)
+# ------------------------------------------------------------------------------
+project_name = "stagecraft-dev"
+location     = "canadacentral"
+
+# ------------------------------------------------------------------------------
+# Logto Custom Setup - Non-sensitive
+# ------------------------------------------------------------------------------
+
+# Logto application IDs (must remain stable)
+logto_m2m_client_id     = "stagecraft-m2m-app"
+
+# ------------------------------------------------------------------------------
+# Logto Custom Setup - Sensitive (DO NOT COMMIT REAL VALUES)
+# ------------------------------------------------------------------------------
+
+logto_m2m_client_secret = "change-me-management-secret"
+
