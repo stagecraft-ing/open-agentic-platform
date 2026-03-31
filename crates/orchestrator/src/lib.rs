@@ -14,6 +14,7 @@ pub mod effort;
 pub mod gates;
 pub mod manifest;
 pub mod sqlite_state;
+pub mod sse;
 pub mod state;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
@@ -23,6 +24,7 @@ pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler,
 pub use sqlite_state::{
     sqlite_db_path_for_run, sqlite_db_path_for_run_dir, PersistedEvent, SqliteWorkflowStore,
 };
+pub use sse::{EventBroadcaster, EventSubscriber, ReplaySubscription};
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
     write_workflow_state_atomic, GateInfo, StepExecutionStatus, StepState, WorkflowState,

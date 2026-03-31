@@ -34,7 +34,7 @@ pub struct SqliteWorkflowStore {
 ///
 /// These rows are append-only (auto-incrementing `event_id`) and can be
 /// consumed by higher-level SSE servers to provide offset-based replay.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct PersistedEvent {
     pub event_id: i64,
     pub workflow_id: Uuid,
@@ -470,107 +470,66 @@ impl SqliteWorkflowStore {
         limit: Option<u32>,
     ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
         let wf_id_str = workflow_id.to_string();
-        let mut sql = String::from(
-            r#"
-            SELECT event_id, workflow_id, timestamp, event_type, payload
-            FROM events
-            WHERE workflow_id = ?1 AND event_id > ?2
-            ORDER BY event_id ASC
-            "#,
-        );
+        // Always use LIMIT — pass i64::MAX as a sentinel when no limit is
+        // specified.  This avoids duplicating the row-mapping closure.
+        let effective_limit: i64 = limit.map_or(i64::MAX, |l| l as i64);
 
-        if limit.is_some() {
-            sql.push_str(" LIMIT ?3");
-        }
-
-        let mut out = Vec::new();
         let mut stmt = self
             .conn
-            .prepare(&sql)
+            .prepare(
+                r#"
+                SELECT event_id, workflow_id, timestamp, event_type, payload
+                FROM events
+                WHERE workflow_id = ?1 AND event_id > ?2
+                ORDER BY event_id ASC
+                LIMIT ?3
+                "#,
+            )
             .map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("prepare events select in sqlite: {e}"),
             })?;
 
-        if let Some(limit) = limit {
-            let rows = stmt
-                .query_map(params![wf_id_str, from_event_id, limit as i64], |row| {
+        let rows = stmt
+            .query_map(
+                params![wf_id_str, from_event_id, effective_limit],
+                |row| {
                     let event_id: i64 = row.get(0)?;
                     let wf_id_text: String = row.get(1)?;
                     let timestamp: String = row.get(2)?;
                     let event_type: String = row.get(3)?;
                     let payload_text: String = row.get(4)?;
                     Ok((event_id, wf_id_text, timestamp, event_type, payload_text))
-                })
-                .map_err(|e| OrchestratorError::StatePersistence {
-                    reason: format!("query events for workflow in sqlite: {e}"),
+                },
+            )
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("query events for workflow in sqlite: {e}"),
+            })?;
+
+        let mut out = Vec::new();
+        for row in rows {
+            let (event_id, wf_id_text, timestamp, event_type, payload_text) =
+                row.map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("iterate event rows for workflow in sqlite: {e}"),
                 })?;
 
-            for row in rows {
-                let (event_id, wf_id_text, timestamp, event_type, payload_text) =
-                    row.map_err(|e| OrchestratorError::StatePersistence {
-                        reason: format!("iterate event rows for workflow in sqlite: {e}"),
-                    })?;
-
-                let parsed_wf_id = Uuid::parse_str(&wf_id_text).map_err(|e| {
-                    OrchestratorError::StatePersistence {
-                        reason: format!("decode workflow_id uuid from sqlite events: {e}"),
-                    }
+            let parsed_wf_id =
+                Uuid::parse_str(&wf_id_text).map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("decode workflow_id uuid from sqlite events: {e}"),
                 })?;
 
-                let payload: JsonValue = serde_json::from_str(&payload_text).map_err(|e| {
-                    OrchestratorError::StatePersistence {
-                        reason: format!("decode event payload json from sqlite: {e}"),
-                    }
-                })?;
+            let payload: JsonValue = serde_json::from_str(&payload_text).map_err(|e| {
+                OrchestratorError::StatePersistence {
+                    reason: format!("decode event payload json from sqlite: {e}"),
+                }
+            })?;
 
-                out.push(PersistedEvent {
-                    event_id,
-                    workflow_id: parsed_wf_id,
-                    timestamp,
-                    event_type,
-                    payload,
-                });
-            }
-        } else {
-            let rows = stmt
-                .query_map(params![wf_id_str, from_event_id], |row| {
-                    let event_id: i64 = row.get(0)?;
-                    let wf_id_text: String = row.get(1)?;
-                    let timestamp: String = row.get(2)?;
-                    let event_type: String = row.get(3)?;
-                    let payload_text: String = row.get(4)?;
-                    Ok((event_id, wf_id_text, timestamp, event_type, payload_text))
-                })
-                .map_err(|e| OrchestratorError::StatePersistence {
-                    reason: format!("query events for workflow in sqlite: {e}"),
-                })?;
-
-            for row in rows {
-                let (event_id, wf_id_text, timestamp, event_type, payload_text) =
-                    row.map_err(|e| OrchestratorError::StatePersistence {
-                        reason: format!("iterate event rows for workflow in sqlite: {e}"),
-                    })?;
-
-                let parsed_wf_id = Uuid::parse_str(&wf_id_text).map_err(|e| {
-                    OrchestratorError::StatePersistence {
-                        reason: format!("decode workflow_id uuid from sqlite events: {e}"),
-                    }
-                })?;
-
-                let payload: JsonValue = serde_json::from_str(&payload_text).map_err(|e| {
-                    OrchestratorError::StatePersistence {
-                        reason: format!("decode event payload json from sqlite: {e}"),
-                    }
-                })?;
-
-                out.push(PersistedEvent {
-                    event_id,
-                    workflow_id: parsed_wf_id,
-                    timestamp,
-                    event_type,
-                    payload,
-                });
-            }
+            out.push(PersistedEvent {
+                event_id,
+                workflow_id: parsed_wf_id,
+                timestamp,
+                event_type,
+                payload,
+            });
         }
 
         Ok(out)

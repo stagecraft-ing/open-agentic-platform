@@ -103,15 +103,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 Phase 5 continuation in progress.
-- Next owner: **claude** — 052 Phase 5/6 review once SSE endpoint/broadcaster are implemented.
-- Last baton update: 2026-03-31 — **cursor**: Exported `PersistedEvent` from the `orchestrator` crate root so external HTTP/SSE servers can depend on the Phase 5 data layer without reaching into private modules. This unblocks SSE/broadcaster implementation against the approved `append_event`/`load_events_since` API. P5-001 resolved; P5-002–P5-006 unchanged. FR-006 data layer remains ready; HTTP SSE endpoint and multi-subscriber broadcaster are still pending. 39/39 tests pass, 0 new clippy warnings.
+- Current owner: **claude** — 052 Phase 5 complete (SSE broadcaster implemented).
+- Next owner: **cursor** — 052 Phase 6 integration (HTTP SSE endpoint, workflow broadcaster registry, end-to-end crash resume verification).
+- Last baton update: 2026-03-31 — **claude**: Implemented `EventBroadcaster` multi-subscriber broadcast layer in `crates/orchestrator/src/sse.rs` with `subscribe_with_replay()` for offset-based replay from SQLite + live streaming (FR-006, NF-002, SC-004 satisfied at library layer). Fixed P5-002 (duplicated row-mapping in `load_events_since` — unified via `LIMIT i64::MAX` sentinel). Added `Serialize` to `PersistedEvent` for SSE JSON output. Re-exported `EventBroadcaster`, `EventSubscriber`, `ReplaySubscription` from `lib.rs`. 9 new tests (50 concurrent subscribers, replay + dedup pattern, cross-workflow isolation, empty history). P5-002 and P5-006 resolved. 3 new INFO findings (P5-007 no HTTP framing — Phase 6, P5-008 lagged subscriber handling, P5-009 per-workflow broadcaster registry needed). 48/48 tests pass, 0 new clippy warnings.
 - Recommended files to read:
-  - `specs/052-state-persistence/spec.md` — Phase 5 scope: SSE streaming / events append
+  - `specs/052-state-persistence/spec.md` — Phase 6 scope: end-to-end integration + crash resume
+  - `crates/orchestrator/src/sse.rs` (052 Phase 5 — SSE broadcaster module)
   - `crates/orchestrator/src/sqlite_state.rs` (052 Phases 4-5 — SQLite backend + events API)
   - `crates/orchestrator/src/lib.rs` (052 Phases 1-5 — all re-exports)
-  - `.ai/findings/052-phase5-review.md` (Phase 5 review with findings)
-  - `.ai/findings/052-phase4-review.md` (Phase 4 review with findings)
+  - `.ai/findings/052-phase5-sse-review.md` (Phase 5 completion review)
+  - `.ai/findings/052-phase5-review.md` (Phase 5 data layer review)
 
 ## Requested next agent output
 
@@ -160,6 +161,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 5 SSE broadcaster** — Implemented `EventBroadcaster` in `crates/orchestrator/src/sse.rs`. Multi-subscriber broadcast via `tokio::sync::broadcast` (NF-002: 50 concurrent subscribers tested). `subscribe_with_replay(store, wf_id, offset)` loads historical events from SQLite then streams live events with dedup via `high_water_mark` (SC-004). Fixed P5-002 (duplicated row-mapping in `load_events_since` — unified via `LIMIT i64::MAX` sentinel). Added `Serialize` derive to `PersistedEvent`. Re-exported `EventBroadcaster`, `EventSubscriber`, `ReplaySubscription` from `lib.rs`. 9 new tests, 48/48 total pass, 0 new clippy warnings. FR-006 satisfied at library layer; HTTP SSE framing and workflow broadcaster registry remain for Phase 6. Findings: P5-007 no HTTP framing (INFO — Phase 6), P5-008 lagged subscriber recovery (INFO), P5-009 per-workflow broadcaster registry needed (INFO). Review: `.ai/findings/052-phase5-sse-review.md`.
 
 - 2026-03-31 (claude): **052 Phase 5 review** — Phase 5 data layer approved. `PersistedEvent` struct (event_id, workflow_id, timestamp, event_type, payload), `append_event()` inserts into events table with auto-increment ID and optional timestamp, `load_events_since()` provides offset-based replay query (`event_id > from_event_id`, ordered ASC, optional LIMIT). FR-006 data layer ready — offset-based replay query is the correct pattern for SSE. SC-004 data path verified in test (`load_events_since(wf_id, 0, None)` returns all events). 1 new test validates FK constraints, monotonic IDs, offset filtering, and limit. 39/39 total pass, 0 new clippy warnings. 6 findings: P5-001 `PersistedEvent` not re-exported from lib.rs (LOW), P5-002 duplicated row-mapping ~50 lines in limit/no-limit branches of `load_events_since` (LOW), P5-003 SSE endpoint/broadcaster not yet implemented (INFO — explicitly pending), P5-004 `&mut self` on `append_event` needs consideration for concurrent SSE access (INFO), P5-005 `sqlite_now_ts` epoch format not ISO-8601 (INFO — carries P3-001), P5-006 no edge-case tests for empty stream, cross-workflow isolation, default timestamp (LOW). Pending for FR-006 completion: HTTP SSE endpoint, multi-subscriber broadcaster, NF-002 (50 concurrent subscribers). Review: `.ai/findings/052-phase5-review.md`.
 
