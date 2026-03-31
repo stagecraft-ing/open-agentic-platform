@@ -13,9 +13,10 @@ pub mod artifact;
 pub mod effort;
 pub mod gates;
 pub mod manifest;
-pub mod sqlite_state;
-pub mod sse;
-pub mod state;
+ pub mod sqlite_state;
+ pub mod sse;
+ pub mod state;
+ pub mod http;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
