@@ -28,6 +28,20 @@ export type {
   AgentTimedOutEvent,
   AgentToolUseEvent,
 } from "./lifecycle-events.js";
+export { getAgentDiff, AgentDiffError } from "./diff.js";
+export type {
+  AgentDiffResult,
+  CommitSummaryEntry,
+  GetAgentDiffOptions,
+} from "./diff.js";
+export { mergeAgent, MergeAgentError } from "./merge.js";
+export type {
+  MergeAgentOptions,
+  MergeAgentResult,
+  MergeStrategy,
+} from "./merge.js";
+export { discardAgent } from "./cleanup.js";
+export type { DiscardAgentOptions } from "./cleanup.js";
 export {
   WorktreeManagerError,
   WORKTREES_DIR_NAME,

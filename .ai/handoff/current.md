@@ -101,17 +101,22 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — Phase 4 review complete, approved.
-- Next owner: **cursor** — Phase 5 implementation (FR-006, FR-007, FR-008, SC-004, SC-005, SC-006: diff + merge + discard workflow).
-- Last baton update: 2026-03-30 — **claude**: Phase 4 approved. FR-005 (all 6 lifecycle event types with typed payloads) and FR-009 (`listAgents()` projection with active-first + recent terminal window) both satisfied. Event/state ordering guarantees sound (synchronous `projectEvent` before dispatch). `AgentLifecycleBus` API clean (`on`, `onAny`, typed `emit`, `listAgents`). 11/11 tests. 6 findings: P4-001 no `onAny` test (LOW), P4-002 no unsubscribe test (LOW), P4-003 agent resurrection path untested (LOW), P4-004–P4-006 (INFO). No blockers for Phase 5. Review: `.ai/findings/051-phase4-review.md`.
+- Current owner: **cursor** — Phase 5 implementation complete.
+- Next owner: **claude** — Phase 5 review against spec requirements/evidence.
+- Last baton update: 2026-03-30 — **cursor**: Implemented FR-006/FR-007/FR-008 in `packages/worktree-agents` via `diff.ts` (`getAgentDiff`), `merge.ts` (`mergeAgent` strategies `fast-forward`/`squash`/`cherry-pick` + clean preconditions), and `cleanup.ts` (`discardAgent` wiring). Added tests for SC-004/SC-005/SC-006. Validation: `pnpm --filter @opc/worktree-agents test` (14/14) and build (`tsc`) pass. Implementation notes: `.ai/findings/051-phase5-implementation.md`.
 - Recommended files to read:
   - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 5 section)
   - `specs/051-worktree-agents/spec.md` (FR-006, FR-007, FR-008, SC-004, SC-005, SC-006)
-  - `packages/worktree-agents/src/` (existing modules for integration)
+  - `packages/worktree-agents/src/diff.ts`
+  - `packages/worktree-agents/src/merge.ts`
+  - `packages/worktree-agents/src/cleanup.ts`
+  - `packages/worktree-agents/src/diff.test.ts`
+  - `packages/worktree-agents/src/merge.test.ts`
+  - `packages/worktree-agents/src/cleanup.test.ts`
 
 ## Requested next agent output
 
-**cursor**: Implement 051 Phase 5 (diff + merge + discard workflow) per `.ai/plans/051-worktree-agents-phased-plan.md`. Covers FR-006 (unified diff + commit summary), FR-007 (fast-forward/squash/cherry-pick merge), FR-008 (discardAgent cleanup), SC-004 (diff output includes all branch changes), SC-005 (squash merge = single parent-branch commit), SC-006 (discard removes worktree + branch artifacts). Produce findings for claude review when complete.
+**claude**: Review 051 Phase 5 implementation against `specs/051-worktree-agents/spec.md` FR-006/FR-007/FR-008 and SC-004/SC-005/SC-006 using `.ai/findings/051-phase5-implementation.md` plus package tests. Approve or return findings/blockers before Phase 6 integration.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +143,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (cursor): **051 Phase 5** — Implemented diff/merge/discard workflow in `packages/worktree-agents`: `src/diff.ts` (`getAgentDiff` unified diff + commit summary), `src/merge.ts` (`mergeAgent` with `fast-forward` / `squash` / `cherry-pick` and clean-worktree precondition), and `src/cleanup.ts` (`discardAgent` cleanup wiring). Added SC tests: `src/diff.test.ts` (SC-004), `src/merge.test.ts` (SC-005), `src/cleanup.test.ts` (SC-006). Export wiring updated in `src/index.ts` and package subpaths. Validation: `pnpm --filter @opc/worktree-agents test` (14/14), `pnpm --filter @opc/worktree-agents build`. Implementation notes: `.ai/findings/051-phase5-implementation.md`.
 - 2026-03-30 (claude): **051 Phase 4 review** — Phase 4 approved. FR-005 (all 6 lifecycle event types with typed payloads: `spawned`, `running`, `tool_use`, `completed`, `failed`, `timed_out`) and FR-009 (`listAgents()` projection returning active agents first + recent terminal agents capped by configurable window) both satisfied. Event payloads complete with appropriate per-status fields. Synchronous `projectEvent` before listener dispatch ensures consistent internal state. `AgentLifecycleBus` API clean with typed `on`/`onAny`/`emit` + unsubscribe closures. 11/11 tests. 6 findings: P4-001 no `onAny` test (LOW), P4-002 no unsubscribe test (LOW), P4-003 agent resurrection untested (LOW), P4-004–P4-006 (INFO). No blockers for Phase 5. Review: `.ai/findings/051-phase4-review.md`.
 - 2026-03-30 (cursor): **051 Phase 4** — Added `packages/worktree-agents/src/lifecycle-events.ts` with typed lifecycle event bus (`spawned`, `running`, `tool_use`, `completed`, `failed`, `timed_out`), typed subscribers, and `listAgents()` projection that returns active plus recent terminal agents including status, branch, elapsed time, and last event. Exported via `src/index.ts` and package subpath `./lifecycle-events`. Added `src/lifecycle-events.test.ts` (event payload/order + projection window behavior). Validation: `pnpm --filter @opc/worktree-agents test` (11/11).
 - 2026-03-30 (claude): **051 Phase 3 review** — Phase 3 approved. FR-003 (pre-approved permissions contract on `AgentRunnerSpawnOptions.permissions`), FR-004 (inactivity timeout with `timed_out` terminal + `SIGTERM`→`SIGKILL` escalation + worktree preservation), NF-002 (separate OS process via `child_process.spawn`), SC-001 (runner writes in worktree, main tree unaffected — test asserts file presence/absence), SC-003 (inactive process times out, worktree persists — test with 100ms timeout) all satisfied. 9/9 tests. 6 findings: P3-001 `tool_use` on all stdout not just tool invocations (LOW), P3-002 no `stop()` test (LOW), P3-003 finalize-before-SIGTERM timing (LOW), P3-004–P3-006 (INFO). No blockers for Phase 4. Review: `.ai/findings/051-phase3-review.md`.
