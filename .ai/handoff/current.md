@@ -101,19 +101,21 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — completed 049 Phase 2 implementation (JSON permission store + tests).
-- Next owner: **claude** — review 049 Phase 2 implementation against spec and plan.
-- Last baton update: 2026-03-31 — **cursor**: Implemented Phase 2 in `packages/permission-system`: added `src/store.ts` with `createPermissionStore()` and operations `list`, `upsert`, `revoke`, `clearExpired`; project/global scoped storage paths (`<project>/.claude/permissions.json`, `~/.claude/permissions.json`); schema versioning (`version: 1`); atomic persistence via temp file + rename; pretty JSON output. Added `src/store.test.ts` covering path resolution, create-on-first-write, revoke by exact pattern, expired-entry clearing, and hand-edited JSON round-trip parsing/persistence. Package exports updated in `src/index.ts` and `package.json`.
+- Current owner: **claude** — completed 049 Phase 2 review (approved, no blockers).
+- Next owner: **cursor** — implement 049 Phase 3 (layered evaluator and prompt contract).
+- Last baton update: 2026-03-31 — **claude**: Phase 2 approved. FR-005 (persist granted patterns), FR-006 (JSON store at `.claude/permissions.json` with full schema), NF-002 (human-readable/hand-editable) all satisfied. Atomic write (temp+rename) sound. Schema versioning correct. 5/5 store tests, 12/12 total tests, `tsc` clean. 6 findings: P2-001 revoke matches pattern only not tool (LOW), P2-002 no list ordering guarantee (LOW), P2-003 no upsert dedup test (LOW), P2-004–P2-006 (INFO). Review: `.ai/findings/049-phase2-review.md`.
 - Recommended files to read:
-  - `specs/049-permission-system/spec.md` (canonical requirements)
-  - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan — Phase 2 section)
-  - `.ai/findings/049-phase1-review.md` (Phase 1 review with LOWs to monitor)
-  - `packages/permission-system/src/store.ts`
-  - `packages/permission-system/src/store.test.ts`
+  - `specs/049-permission-system/spec.md` (canonical requirements — Phase 3 covers FR-001, FR-002, FR-004, FR-007)
+  - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan — Phase 3 section)
+  - `.ai/findings/049-phase2-review.md` (Phase 2 review with LOWs to monitor)
+  - `.ai/findings/049-phase1-review.md` (Phase 1 review — P1-001 regex caching relevant for evaluator)
+  - `packages/permission-system/src/store.ts` (store API consumed by evaluator)
+  - `packages/permission-system/src/pattern.ts` (matcher consumed by evaluator)
+  - `packages/permission-system/src/types.ts` (evaluator I/O contracts already defined)
 
 ## Requested next agent output
 
-**claude**: Review 049 Phase 2 implementation for spec conformance (FR-005, FR-006, NF-002) and Phase 2 plan coverage. Validate atomic write semantics, scoped path behavior, schema handling (`version: 1`), and test adequacy in `packages/permission-system/src/store.test.ts`. Produce findings report at `.ai/findings/049-phase2-review.md` and confirm baton readiness for Phase 3.
+**cursor**: Implement 049 Phase 3 — layered evaluator and prompt contract per plan. Deliverables: `evaluator.ts` (ordered 5-layer evaluation: non-interactive → bypass → disallowed → remembered → prompt, with decision rationale), `defaults.ts` (baseline bypass/disallowed lists), `prompt.ts` (callback interface for Allow once / Allow & remember / Deny). Tests: SC-001 bypass short-circuit, SC-002 disallowed-over-allow, SC-003 remember flow persists grant then suppresses subsequent prompts, ambiguous overlap precedence. Validate: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`.
 
 Priority order for P0 specs (unchanged):
 
@@ -139,6 +141,8 @@ After each slice, **claude** reviews against `spec.md`.
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **049 Phase 2 review** — Phase 2 approved. FR-005 (persist granted patterns via `upsert`), FR-006 (JSON store at `.claude/permissions.json` project + `~/.claude/permissions.json` global, schema with all 7 fields), NF-002 (pretty JSON, tolerant parser for hand-edited files) all satisfied. Atomic write via temp+rename sound. Schema versioning with `PERM_STORE_UNSUPPORTED_VERSION` rejection correct. `upsert` deduplicates by id or (pattern, tool, decision) triple. `revoke` operates across scopes. `clearExpired` retains unparseable dates (safe default). 5/5 store tests, 12/12 total tests, `tsc` clean. 6 findings: P2-001 revoke matches pattern-only not tool+pattern (LOW), P2-002 no list ordering guarantee for evaluator (LOW), P2-003 no upsert dedup test (LOW), P2-004–P2-006 (INFO). No blockers for Phase 3. Review: `.ai/findings/049-phase2-review.md`.
 
 - 2026-03-31 (cursor): **049 Phase 2** — Implemented JSON-backed permission store in `packages/permission-system/src/store.ts` with schema `version: 1`, scoped paths (`.claude/permissions.json` project + `~/.claude/permissions.json` global), atomic temp+rename writes, and operations `list`, `upsert`, `revoke`, `clearExpired`. Added `packages/permission-system/src/store.test.ts` coverage for path resolution, create-on-first-write, revoke by exact pattern, expired-entry clearing, and hand-edited JSON round-trip parsing/persistence. Updated exports in `src/index.ts` and `package.json`. Validation: `pnpm --filter @opc/permission-system test`, `pnpm --filter @opc/permission-system build`.
 
