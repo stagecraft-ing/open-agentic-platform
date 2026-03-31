@@ -101,22 +101,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — Phase 5 implementation complete.
-- Next owner: **claude** — Phase 5 review against spec requirements/evidence.
-- Last baton update: 2026-03-30 — **cursor**: Implemented FR-006/FR-007/FR-008 in `packages/worktree-agents` via `diff.ts` (`getAgentDiff`), `merge.ts` (`mergeAgent` strategies `fast-forward`/`squash`/`cherry-pick` + clean preconditions), and `cleanup.ts` (`discardAgent` wiring). Added tests for SC-004/SC-005/SC-006. Validation: `pnpm --filter @opc/worktree-agents test` (14/14) and build (`tsc`) pass. Implementation notes: `.ai/findings/051-phase5-implementation.md`.
+- Current owner: **claude** — Phase 5 review complete, approved.
+- Next owner: **cursor** — Phase 6 integration (Tauri wiring + verification).
+- Last baton update: 2026-03-30 — **claude**: Phase 5 approved. FR-006 (unified diff + commit summary via three-dot `git diff` and two-dot `git log`), FR-007 (all three merge strategies: fast-forward, squash, cherry-pick with clean-worktree precondition and branch validation), FR-008 (discard delegates to idempotent `removeAgentWorktree`). SC-004/SC-005/SC-006 all directly tested. 14/14 tests, `tsc` clean. 6 findings: P5-001 API takes branches not agentId (LOW — Phase 6 facade), P5-002 no fast-forward/cherry-pick test (LOW), P5-003 no cherry-pick --abort on failure (LOW — recommend fixing in Phase 6), P5-004 merge doesn't chain discard (LOW — by design, Phase 6 must chain), P5-005/P5-006 (INFO). No blockers. Review: `.ai/findings/051-phase5-review.md`.
 - Recommended files to read:
-  - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 5 section)
-  - `specs/051-worktree-agents/spec.md` (FR-006, FR-007, FR-008, SC-004, SC-005, SC-006)
-  - `packages/worktree-agents/src/diff.ts`
-  - `packages/worktree-agents/src/merge.ts`
-  - `packages/worktree-agents/src/cleanup.ts`
-  - `packages/worktree-agents/src/diff.test.ts`
-  - `packages/worktree-agents/src/merge.test.ts`
-  - `packages/worktree-agents/src/cleanup.test.ts`
+  - `.ai/plans/051-worktree-agents-phased-plan.md` (Phase 6 section)
+  - `specs/051-worktree-agents/spec.md` (full spec for integration)
+  - `.ai/findings/051-phase5-review.md` (Phase 5 review with LOWs to address)
+  - `packages/worktree-agents/src/index.ts` (all exports)
 
 ## Requested next agent output
 
-**claude**: Review 051 Phase 5 implementation against `specs/051-worktree-agents/spec.md` FR-006/FR-007/FR-008 and SC-004/SC-005/SC-006 using `.ai/findings/051-phase5-implementation.md` plus package tests. Approve or return findings/blockers before Phase 6 integration.
+**cursor**: Implement 051 Phase 6 — Tauri integration + verification. Wire `spawnBackgroundAgent`, `getAgentDiff`, `mergeAgent`, `discardAgent`, `listAgents` into desktop app Tauri commands. Add `execution/verification.md` with SC evidence. Address P5-003 (cherry-pick --abort on failure) if feasible. Chain merge+discard per spec merge flow diagram.
 
 Priority order for P0 specs (unchanged):
 
@@ -143,6 +139,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **051 Phase 5 review** — Phase 5 approved. FR-006 (`getAgentDiff` unified diff via three-dot `git diff` + commit summary via two-dot `git log`, parallel execution), FR-007 (`mergeAgent` with `fast-forward`/`squash`/`cherry-pick`, clean-worktree precondition, branch validation, squash `merge --abort` on failure, `try/finally` branch restore), FR-008 (`discardAgent` delegates to idempotent `removeAgentWorktree`) all satisfied. SC-004 (diff covers all files + 2-commit summary), SC-005 (squash creates 1 non-merge commit, file contents verified), SC-006 (worktree dir + branch ref removed) all tested. 14/14 tests, `tsc` clean. 6 findings: P5-001 API takes branches not agentId (LOW), P5-002 no ff/cherry-pick test (LOW), P5-003 no cherry-pick abort on failure (LOW), P5-004 merge doesn't chain discard (LOW), P5-005/P5-006 (INFO). No blockers for Phase 6. Review: `.ai/findings/051-phase5-review.md`.
 - 2026-03-30 (cursor): **051 Phase 5** — Implemented diff/merge/discard workflow in `packages/worktree-agents`: `src/diff.ts` (`getAgentDiff` unified diff + commit summary), `src/merge.ts` (`mergeAgent` with `fast-forward` / `squash` / `cherry-pick` and clean-worktree precondition), and `src/cleanup.ts` (`discardAgent` cleanup wiring). Added SC tests: `src/diff.test.ts` (SC-004), `src/merge.test.ts` (SC-005), `src/cleanup.test.ts` (SC-006). Export wiring updated in `src/index.ts` and package subpaths. Validation: `pnpm --filter @opc/worktree-agents test` (14/14), `pnpm --filter @opc/worktree-agents build`. Implementation notes: `.ai/findings/051-phase5-implementation.md`.
 - 2026-03-30 (claude): **051 Phase 4 review** — Phase 4 approved. FR-005 (all 6 lifecycle event types with typed payloads: `spawned`, `running`, `tool_use`, `completed`, `failed`, `timed_out`) and FR-009 (`listAgents()` projection returning active agents first + recent terminal agents capped by configurable window) both satisfied. Event payloads complete with appropriate per-status fields. Synchronous `projectEvent` before listener dispatch ensures consistent internal state. `AgentLifecycleBus` API clean with typed `on`/`onAny`/`emit` + unsubscribe closures. 11/11 tests. 6 findings: P4-001 no `onAny` test (LOW), P4-002 no unsubscribe test (LOW), P4-003 agent resurrection untested (LOW), P4-004–P4-006 (INFO). No blockers for Phase 5. Review: `.ai/findings/051-phase4-review.md`.
 - 2026-03-30 (cursor): **051 Phase 4** — Added `packages/worktree-agents/src/lifecycle-events.ts` with typed lifecycle event bus (`spawned`, `running`, `tool_use`, `completed`, `failed`, `timed_out`), typed subscribers, and `listAgents()` projection that returns active plus recent terminal agents including status, branch, elapsed time, and last event. Exported via `src/index.ts` and package subpath `./lifecycle-events`. Added `src/lifecycle-events.test.ts` (event payload/order + projection window behavior). Validation: `pnpm --filter @opc/worktree-agents test` (11/11).
