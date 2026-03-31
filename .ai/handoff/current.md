@@ -101,17 +101,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — completed 049 Phase 1 implementation (types + wildcard matcher + tests).
-- Next owner: **claude** — review Phase 1 against `specs/049-permission-system/spec.md` and approve Phase 2 start.
-- Last baton update: 2026-03-30 — **cursor**: Implemented Phase 1 at `packages/permission-system/` with `src/types.ts` (`PermissionEntry`, `PermissionScope`, `PermissionDecision`, evaluator contracts) including `expiresAt?: string | null` (F-001), and `src/pattern.ts` parser/matcher with deterministic normalization and wildcard semantics for `*` (single segment) and `**` (recursive). Added tests in `src/pattern.test.ts` covering invalid pattern diagnostics, deterministic repeated matching, SC-004 (`Read(/Users/me/**)` include/exclude), and documented colon-segment mapping for command-like inputs via `canonicalizeArgumentSegments()` (F-002). Validation: `pnpm --filter @opc/permission-system test` (7/7), `pnpm --filter @opc/permission-system build`.
+- Current owner: **claude** — completed 049 Phase 1 review (approved).
+- Next owner: **cursor** — implement Phase 2 (JSON permission store: `store.ts` with list/upsert/revoke/clearExpired, project+global scope paths, atomic writes).
+- Last baton update: 2026-03-31 — **claude**: Phase 1 reviewed and approved. FR-003, NF-003, SC-004 satisfied. F-001 (`expiresAt`) and F-002 (colon-segment docs) resolved. 7/7 tests, `tsc` clean. 6 findings: P1-001 regex caching for NF-001 (LOW), P1-002 no tool-wildcard test (LOW), P1-003 escapeRegExpChar completeness (LOW), P1-004–P1-006 (INFO). No blockers. Review: `.ai/findings/049-phase1-review.md`.
 - Recommended files to read:
   - `specs/049-permission-system/spec.md` (canonical requirements)
-  - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan)
-  - `.ai/findings/049-plan-review.md` (plan review with LOW findings to address in Phase 1)
+  - `.ai/plans/049-permission-system-phased-plan.md` (approved phased plan — Phase 2 section)
+  - `.ai/findings/049-phase1-review.md` (Phase 1 review with LOWs to monitor)
 
 ## Requested next agent output
 
-**claude**: Review 049 Phase 1 implementation in `packages/permission-system/` against `specs/049-permission-system/spec.md` and `.ai/plans/049-permission-system-phased-plan.md`, then write findings in `.ai/findings/049-phase1-review.md` (approve/block Phase 2).
+**cursor**: Implement 049 Phase 2 (JSON permission store) per `.ai/plans/049-permission-system-phased-plan.md` Phase 2 section. Deliverables: `src/store.ts` with `list`, `upsert`, `revoke`, `clearExpired`, scoped load/save (project at `.claude/permissions.json`, global at `~/.claude/permissions.json`), schema versioning (`version: 1`), atomic write (temp+rename), pretty JSON. Validation: unit tests for path resolution, create-on-first-write, revoke by pattern, expired-entry clearing, hand-edited JSON round-trip.
 
 Priority order for P0 specs (unchanged):
 
@@ -138,6 +138,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-31 (claude): **049 Phase 1 review** — Phase 1 approved. FR-003 (wildcard `*`/`**` matching), NF-003 (deterministic matcher), SC-004 (include/exclude fixture) all satisfied. F-001 resolved (`expiresAt` in types). F-002 resolved (colon-segment mapping documented in tests). `PermissionEntry` has all 7 store schema fields. `PermissionEvaluationResult.source` covers all 5 layers. Parser validates `Tool(argPattern)` format with 4 diagnostic codes. `globToRegExp` anchors `*` → `[^:/]*`, `**` → `.*`. 7/7 tests, `tsc` clean. 6 findings: P1-001 regex caching for NF-001 (LOW), P1-002 no tool-wildcard test (LOW), P1-003 escapeRegExpChar completeness (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/049-phase1-review.md`.
 - 2026-03-30 (cursor): **049 Phase 1** — Created `packages/permission-system` with Phase 1 scaffolding (`package.json`, `tsconfig.json`, `vitest.config.ts`), `src/types.ts` (`PermissionEntry`, `PermissionScope`, `PermissionDecision`, evaluator contracts) including `expiresAt?: string | null` per F-001, and `src/pattern.ts` with `Tool(argPattern)` parser, normalization, wildcard matcher (`*` single segment, `**` recursive), and command segment canonicalization helper. Added `src/pattern.test.ts` covering invalid pattern diagnostics, determinism, SC-004 fixture include/exclude behavior, and F-002 colon-segment mapping documentation for command-like inputs. Validation: `pnpm --filter @opc/permission-system test` (7/7), `pnpm --filter @opc/permission-system build`.
 - 2026-03-30 (claude): **049 plan review** — Plan approved for Phase 1 start. All 12 requirements (FR-001–FR-009, NF-001–NF-003) and 6 success criteria (SC-001–SC-006) covered across 6 phases. Phase ordering sound (matcher → store → evaluator → hook → CLI → non-interactive). P-001–P-006 decisions all spec-faithful. 6 findings: F-001 include `expiresAt` in Phase 1 types (LOW), F-002 document colon-segment mapping in matcher tests (LOW), F-003 `edit` subcommand scope clarification (LOW), F-004–F-006 (INFO). No blockers. Baton handed to **cursor** for Phase 1 implementation. Review: `.ai/findings/049-plan-review.md`.
 - 2026-03-30 (cursor): **049 planning pass** — Responded to baton by selecting `049-permission-system` as the next P1 slice and drafting `.ai/plans/049-permission-system-phased-plan.md`. Plan includes P-001..P-006 decisions and six execution phases: wildcard matcher/types, JSON permission store, layered evaluator + prompt contract, `canUseTool` integration, CLI permission management, and non-interactive defaults with verification evidence. Baton handed to **claude** for plan review before Phase 1 coding.
