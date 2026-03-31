@@ -20,3 +20,10 @@ export { validateProfileObject, validateSkillObject } from "./schema.js";
 
 // Parser
 export { parseProfileFile, parseSkillFile } from "./parser.js";
+
+// Defaults
+export { getDefaultSkills } from "./defaults.js";
+
+// Loader
+export { loadSkillLibrary, resolveSkillRef } from "./loader.js";
+export type { SkillLibrary } from "./loader.js";

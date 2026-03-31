@@ -103,14 +103,14 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **available** — 053 Phase 1 reviewed and approved. Ready for Phase 2 (skill library & resolution).
-- Next owner: **cursor** — implement 053 Phase 2 (skill library & resolution per spec Phase 2 scope). Then **claude** reviews.
-- Last baton update: 2026-03-31 — **claude**: 053 Phase 1 review approved. FR-001 (profile schema), FR-002 (skill schema), FR-003 (step properties), NF-001 (line-number errors) all satisfied at schema layer. 25/25 tests pass, `tsc` clean. 6 findings (2 LOW, 4 INFO — none blocking). Carry-forward: R-004 (skill name collision precedence — local overrides platform defaults). Review: `.ai/findings/053-phase1-review.md`.
+- Current owner: **cursor** — 053 Phase 2 implemented. Ready for **claude** review.
+- Next owner: **claude** — review 053 Phase 2 (skill library & resolution) against spec Phase 2 scope.
+- Last baton update: 2026-03-31 — **cursor**: 053 Phase 2 implemented. `src/defaults.ts`: 3 bundled platform default skills (lint, type-check, unit-tests) via `getDefaultSkills()`. `src/loader.ts`: `loadSkillLibrary(projectRoot)` discovers `.verification/skills/*.yaml|yml`, parses via `parseSkillFile`, merges with defaults (local overrides platform defaults per R-004). `resolveSkillRef(name, library)` resolves by name with diagnostic on miss. `SkillLibrary` type: `{ skills: Map<string, VerificationSkill>; diagnostics: VerificationDiagnostic[] }`. New diagnostic codes: `VP_SKILL_READ_ERROR`, `VP_SKILL_DUPLICATE_NAME` (warning), `VP_SKILL_NOT_FOUND`. 13 new tests: defaults content, no-dir fallback, empty-dir fallback, yaml discovery, yml support, non-yaml ignored, local-overrides-default (R-004), invalid file diagnostics, duplicate name warning, resolve hit/miss/available-list/empty-library. 38/38 tests pass, `tsc` clean. Updated `index.ts` barrel exports and `package.json` subpath exports (`./defaults`, `./loader`).
 - Recommended files to read:
-  - `.ai/findings/053-phase1-review.md` (Phase 1 review with findings)
-  - `.ai/findings/053-readiness-review.md` (Phase 2 scope defined in "Phase 2 — Skill Library & Resolution" section)
-  - `packages/verification-profiles/src/types.ts` (type definitions Phase 2 builds on)
-  - `packages/verification-profiles/src/parser.ts` (parsing functions Phase 2 loader will call)
+  - `packages/verification-profiles/src/loader.ts` (skill library discovery & resolution)
+  - `packages/verification-profiles/src/defaults.ts` (bundled platform default skills)
+  - `packages/verification-profiles/src/loader.test.ts` (Phase 2 tests)
+  - `.ai/findings/053-readiness-review.md` (Phase 3 scope defined in "Phase 3 — Execution Engine" section)
 
 ## Requested next agent output
 
@@ -159,6 +159,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (cursor): **053 Phase 2 — skill library & resolution.** Created `src/defaults.ts`: `getDefaultSkills()` returns 3 bundled platform defaults (lint, type-check, unit-tests) as `Map<string, VerificationSkill>`. Created `src/loader.ts`: `loadSkillLibrary(projectRoot)` discovers `.verification/skills/*.yaml|yml` files, parses each via `parseSkillFile()`, warns on duplicate local names (`VP_SKILL_DUPLICATE_NAME`), merges with platform defaults (local overrides per R-004). `resolveSkillRef(name, library)` resolves skill by name with `VP_SKILL_NOT_FOUND` diagnostic listing available skills on miss. `SkillLibrary` interface exported. Updated `index.ts` barrel exports and `package.json` subpath exports (`./defaults`, `./loader`). 13 new tests covering: defaults content, no-dir/empty-dir fallback to defaults only, yaml/yml discovery, non-yaml ignored, local-overrides-default (R-004), invalid file diagnostics without blocking valid files, duplicate name warning, resolve hit/miss/available-list/empty-library. Validation: `tsc` clean, 38/38 tests pass (25 Phase 1 + 13 Phase 2).
 
 - 2026-03-31 (claude): **053 Phase 1 review — approved.** FR-001 (profile schema: name, optional description, gate, skills array), FR-002 (skill schema: name, description, determinism, safety_tier, steps), FR-003 (step properties: command, timeout, read_only, network), NF-001 (line-number errors via `yaml.parseDocument()`) all satisfied at schema layer. Types match spec YAML examples exactly. 13 VP_-prefixed diagnostic codes cover all validation failure modes. Clean separation: `types.ts` (data), `schema.ts` (validation), `parser.ts` (YAML→typed objects). 25/25 tests pass, `tsc` clean. 6 findings: P1-001 `diag()` hardcodes severity "error" (LOW), P1-002 silent name trimming (LOW), P1-003 test tsconfig (INFO), P1-004 `diag` export scope (INFO), P1-005 YAML warnings not surfaced (INFO), P1-006 unknown keys silently ignored (INFO). No blockers for Phase 2. Carry-forward: R-004 skill name collision precedence. Review: `.ai/findings/053-phase1-review.md`.
 
