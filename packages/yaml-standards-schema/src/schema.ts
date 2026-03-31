@@ -23,6 +23,7 @@ const VALID_PRIORITIES: ReadonlySet<StandardPriority> = new Set([
 const VALID_STATUSES: ReadonlySet<StandardStatus> = new Set([
   "active",
   "candidate",
+  "rejected",
 ]);
 
 const KEBAB_CASE = /^[a-z0-9]+(-[a-z0-9]+)*$/;

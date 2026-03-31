@@ -7,7 +7,7 @@ export type RuleVerb = "ALWAYS" | "NEVER" | "USE" | "PREFER" | "AVOID";
 export type StandardPriority = "critical" | "high" | "medium" | "low";
 
 /** Lifecycle status of a coding standard (FR-007). */
-export type StandardStatus = "active" | "candidate";
+export type StandardStatus = "active" | "candidate" | "rejected";
 
 // --- Core schema types ---
 

@@ -13,7 +13,8 @@
     "./schema": "./src/schema.ts",
     "./loader": "./src/loader.ts",
     "./resolver": "./src/resolver.ts",
-    "./pipeline": "./src/pipeline.ts"
+    "./pipeline": "./src/pipeline.ts",
+    "./review": "./src/review.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

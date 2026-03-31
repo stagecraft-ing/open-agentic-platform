@@ -46,7 +46,7 @@ describe("validateStandardObject", () => {
   });
 
   it("rejects invalid status", () => {
-    const diags = validateStandardObject({ ...VALID_STANDARD, status: "rejected" }, "test.yaml");
+    const diags = validateStandardObject({ ...VALID_STANDARD, status: "bogus" }, "test.yaml");
     expect(diags.some((d) => d.code === "CS_BAD_STATUS")).toBe(true);
   });
 

@@ -41,3 +41,16 @@ export {
   generateCandidates,
   runContributorPipeline,
 } from "./pipeline.js";
+
+// Candidate review workflow (Phase 5)
+export type {
+  CandidateEntry,
+  ListCandidatesResult,
+  EditCandidateOptions,
+  ReviewActionResult,
+} from "./review.js";
+export {
+  listCandidates,
+  promoteCandidate,
+  rejectCandidate,
+} from "./review.js";
