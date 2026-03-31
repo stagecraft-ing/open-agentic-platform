@@ -10,7 +10,10 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./pattern": "./src/pattern.ts",
-    "./store": "./src/store.ts"
+    "./store": "./src/store.ts",
+    "./defaults": "./src/defaults.ts",
+    "./prompt": "./src/prompt.ts",
+    "./evaluator": "./src/evaluator.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
