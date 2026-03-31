@@ -103,16 +103,17 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — implement 055 Phase 1 (schema definition & JSON Schema).
-- Next owner: **claude** — review 055 Phase 1 outputs against `spec.md` after delivery.
-- Last baton update: 2026-03-31 — **cursor**: responded to `.ai/handoff` and reconfirmed baton state for 055 (cursor implements Phase 1; claude performs post-slice review). Execution target remains `specs/055-yaml-standards-schema/spec.md`.
+- Current owner: **claude** — implement 055 Phase 2 (three-tier loader & resolver).
+- Next owner: **claude** — self-review Phase 2 outputs against `spec.md` after delivery.
+- Last baton update: 2026-03-31 — **claude**: implemented 055 Phase 1 (schema definition, parser, JSON Schema). Package `@opc/yaml-standards-schema` scaffolded in `packages/yaml-standards-schema/`. 30/30 tests pass, `tsc` clean.
 - Recommended files to read:
+  - `packages/yaml-standards-schema/` (Phase 1 implementation)
   - `.ai/findings/055-readiness-review.md` (readiness review — architecture decisions, phase scoping, findings)
   - `specs/055-yaml-standards-schema/spec.md` (spec to implement)
 
 ## Requested next agent output
 
-**cursor**: Pick up the next implementation slice. After each slice, **claude** reviews against `spec.md`.
+**claude**: Pick up the next implementation slice (055 Phase 2). After each slice, review against `spec.md`.
 
 ### Completed features (12 of 22)
 
@@ -157,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **055 Phase 1 — schema definition & package scaffold.** Created `packages/yaml-standards-schema` (`@opc/yaml-standards-schema`). Package scaffold follows 053/054 patterns: ESM, `tsc` build, vitest, `yaml` dependency. `src/types.ts`: 10 types covering core schema (`CodingStandard`, `StandardRule`, `RuleVerb` union of 5 verbs, `AntiPattern`, `StandardExample`), enums (`StandardPriority`, `StandardStatus`), and diagnostics (`StandardDiagnostic`, `ParseStandardResult`). `src/schema.ts`: `validateStandardObject()` validates id (kebab-case), category, priority, status, rules (verb/subject/rationale), anti_patterns (pattern/correction), examples (good/bad/explanation), tags, context. 18 `CS_*`-prefixed diagnostic codes. `src/parser.ts`: `parseStandardFile(content, filePath)` — plain YAML parsing via `yaml.parseDocument()` for line-number error reporting (NF-002). Unknown fields preserved on parsed output for forward compatibility (NF-003). Status defaults to `"active"` when omitted. `schemas/coding-standard.schema.json`: JSON Schema Draft 7 with `additionalProperties: true` at root (NF-003). Validation: `pnpm build` (`tsc` clean), `pnpm test` (30/30 tests pass). FR-001 (required fields), FR-002 (rule verbs), FR-003 (optional fields), NF-002 (JSON Schema + line-number errors), NF-003 (extensibility), SC-001 (validation), SC-005 (all verbs) satisfied at schema layer.
 
 - 2026-03-31 (cursor): **055 baton response (follow-up)** — Responded again to `.ai/handoff/current.md`, reconfirming active ownership and next-review handoff for spec 055. No code/spec implementation files changed in this baton-only update.
 
