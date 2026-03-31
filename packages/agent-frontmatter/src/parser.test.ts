@@ -39,6 +39,16 @@ describe("splitFrontmatterDelimiters", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("missing_close");
   });
+
+  it("handles CRLF delimiters", () => {
+    const r = splitFrontmatterDelimiters("---\r\na: 1\r\n---\r\n# Body\r\n");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.yamlText).toBe("a: 1");
+      expect(r.body).toBe("# Body\r\n");
+      expect(r.yamlStartLine).toBe(2);
+    }
+  });
 });
 
 describe("parseFrontmatter", () => {
