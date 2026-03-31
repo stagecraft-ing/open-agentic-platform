@@ -101,19 +101,19 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — **054 Phase 2** review (parser landed).
-- Next owner: **cursor** — **054 Phase 3** progressive loader after review (or address review feedback first).
-- Last baton update: 2026-03-30 — **cursor**: **054 Phase 2** — New package `@opc/agent-frontmatter`: `parseFrontmatter()` / `splitFrontmatterDelimiters()` / `parseYamlMapping()`; diagnostics include `filePath` plus line and column on YAML parse errors (NF-002); metadata is a plain object with unknown keys preserved (NF-003); `normalizeToolsField()` accepts comma-separated `tools` strings or arrays (P1-002). Delimiter rules match `tools/shared/frontmatter` (Rust). Tests: `pnpm --filter @opc/agent-frontmatter test` (12), `tsc` clean.
+- Current owner: **cursor** — **054 Phase 3** progressive loader (Tier 1–3 per plan).
+- Next owner: **claude** — **054 Phase 3** review after implementation.
+- Last baton update: 2026-03-30 — **claude**: **054 Phase 2 review** — Phase 2 approved. FR-001–FR-003 (structural parsing, unknown key preservation, body extraction), NF-002 (filePath + line + column diagnostics), NF-003 (`Record<string, unknown>` metadata) all satisfied. `normalizeToolsField()` handles P1-002 comma-separated strings. Delimiter rules match Rust `tools/shared/frontmatter`. Verified compatible with all 4 existing agent definitions + 9 command files. 6 findings: P2-001 no CRLF test (LOW), P2-002 non-string array elements silently dropped (LOW), P2-003–P2-006 (INFO). No blockers. Review: `.ai/findings/054-phase2-review.md`.
 - Recommended files to read:
-  - `packages/agent-frontmatter/src/parser.ts`
+  - `.ai/findings/054-phase2-review.md`
   - `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`
-  - `specs/054-agent-frontmatter-schema/spec.md`
+  - `packages/agent-frontmatter/src/parser.ts`
 
 ## Requested next agent output
 
-**claude**: Review **054 Phase 2** implementation against FR-001–FR-003, NF-002, NF-003 (`packages/agent-frontmatter`).
+**cursor**: Begin **054 Phase 3** — progressive loader (Tier 1–3 per plan). P2-001 (CRLF test) can be addressed opportunistically.
 
-**cursor** (after Phase 2 review): Begin **054 Phase 3** — progressive loader (Tier 1–3 per plan).
+**claude** (after Phase 3): Review Phase 3 implementation against spec progressive disclosure requirements.
 
 Priority order for P0 specs (unchanged):
 
@@ -140,6 +140,7 @@ After each slice, **claude** reviews against `spec.md`.
 
 ## Recent outputs
 
+- 2026-03-30 (claude): **054 Phase 2 review** — Phase 2 approved. FR-001–FR-003 structural parsing, NF-002 (filePath + line + column diagnostics via `lineColInFile` translation), NF-003 (`Record<string, unknown>` preserves all keys — tested with `experimentalFlag`), P1-002 (`normalizeToolsField` handles comma-separated strings from existing agents) all satisfied. Delimiter rules match Rust `tools/shared/frontmatter`. Verified against 4 existing agent defs + 9 command files — all parse cleanly. 12/12 tests, `tsc` clean. 6 findings: P2-001 no CRLF delimiter test (LOW), P2-002 non-string array elements silently dropped in `normalizeToolsField` (LOW — Phase 5 linter should flag), P2-003 empty YAML body path untested (INFO), P2-004 end position unused (INFO), P2-005 no schema validation in parser (INFO, by design), P2-006 `missing_newline_after_open` edge case handled (INFO). No blockers for Phase 3. Review: `.ai/findings/054-phase2-review.md`.
 - 2026-03-30 (cursor): **054 Phase 2** — Package `packages/agent-frontmatter/` (`@opc/agent-frontmatter`): YAML frontmatter split + parse with structured errors (`AFS_*` codes), file-relative line/column for malformed YAML, `normalizeToolsField()` for legacy comma-separated `tools`. Lockfile updated for workspace package.
 - 2026-03-30 (claude): **054 Phase 1 review** — Phase 1 approved. Both schemas spec-faithful: FR-001 (4 required agent fields), FR-002 (7 optional agent fields), FR-003 (2 required skill fields), FR-005 (JSON Schema draft-07), NF-003 (`additionalProperties: true`) all satisfied. Plan phase ordering matches spec implementation approach exactly. A-001..A-004 decisions sound. 6 findings: P1-001 empty tools array allowed (LOW, deferred to Phase 5 linter — correct), P1-002 existing agents use comma-separated tools string not array (LOW, Phase 6 migration tracked), P1-003 description minLength 1 vs FR-008 50 (INFO, linter), P1-004 skill schema extends beyond FR-003 minimum (INFO, reasonable), P1-005 color hex validation (INFO, good), P1-006 `LS` tool name in existing agents (INFO, Phase 6 audit). No blockers for Phase 2. Review: `.ai/findings/054-phase1-review.md`.
 - 2026-03-30 (cursor): **054 Phase 1** — Canonical JSON Schema at `schemas/agent-frontmatter.schema.json` (required: `name`, `description`, `tools`, `model`; optional: `category`, `color`, `displayName`, `version`, `author`, `tags`, `priority`) and `schemas/skill-frontmatter.schema.json` (required: `name`, `description`). Phased plan: `.ai/plans/054-agent-frontmatter-schema-phased-plan.md`. Next: parser (Phase 2), then progressive loader, tool allowlist, linter, migration.
