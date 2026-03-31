@@ -103,13 +103,13 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — 052 State Persistence, Phase 1 (JSON state core) implemented.
-- Next owner: **claude** — review 052 Phase 1 against `spec.md` (FR-001/002/007, FR-008, NF-003, SC-006).
-- Last baton update: 2026-03-31 — **cursor**: Added `WorkflowState` JSON schema and atomic writer in `crates/orchestrator` (`state.rs`), plus `OrchestratorError::StatePersistence`. State files live alongside orchestrator run artifacts (`run_dir/state.json`) with camelCase fields per spec. Library provides in-memory lifecycle helpers (`new`, `mark_step_started`, `mark_step_finished`) and query APIs (`load_workflow_state`, `state_file_path_for_run*`, `write_workflow_state_atomic`). All orchestrator tests pass.
+- Current owner: **claude** — 052 Phase 1 reviewed and approved.
+- Next owner: **cursor** — 052 Phase 2 (resume detection: startup state file check, resume prompt, step-skipping logic per FR-003).
+- Last baton update: 2026-03-31 — **claude**: Phase 1 review approved. All 6 requirements (FR-001, FR-002, FR-007, FR-008, NF-003, SC-006) satisfied. Schema matches spec exactly (15 camelCase fields). Atomic write pattern correct (temp+rename). 3 state tests + 15 existing all pass. 6 findings (3 LOW, 3 INFO) — none blocking. Review: `.ai/findings/052-phase1-review.md`.
 - Recommended files to read:
-  - This file's "Requested next agent output" section for priority reasoning
-  - `specs/052-state-persistence/spec.md` (recommended P1 backlog head)
-  - `crates/orchestrator/src/state.rs` (052 Phase 1 implementation)
+  - `specs/052-state-persistence/spec.md` — Phase 2 scope: FR-003 (resume detection, step-skipping)
+  - `crates/orchestrator/src/state.rs` (052 Phase 1 implementation — foundation for Phase 2)
+  - `.ai/findings/052-phase1-review.md` (Phase 1 review with findings)
 
 ## Requested next agent output
 
@@ -158,6 +158,8 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 ---
 
 ## Recent outputs
+
+- 2026-03-31 (claude): **052 Phase 1 review** — Phase 1 approved. FR-001 (state file created with workflow id, start time, steps, status `"running"`), FR-002 (atomic step update with status/output/duration/timestamp), FR-007 (state query API via `load_workflow_state`), FR-008 (atomic write via temp+rename), NF-003 (pretty JSON), SC-006 (accurate status at any point) all satisfied. `WorkflowState` schema matches spec exactly — 15 fields, all camelCase. `GateInfo` forward-declares Phase 3 gate fields. `OrchestratorError::StatePersistence` variant handles all I/O errors with descriptive messages. 3/3 state tests, 18/18 total orchestrator tests pass. 6 findings: P1-001 Uuid vs spec string format (LOW — stronger type, acceptable), P1-002 silent no-op on unknown step_id (LOW), P1-003 no error-path test (LOW), P1-004–P1-006 (INFO). No blockers for Phase 2. Review: `.ai/findings/052-phase1-review.md`.
 
 - 2026-03-31 (claude): **Status audit** — Comprehensive completion assessment of all P0/P1 specs. Found handoff was stale: 044 (e2e validation done in Phase 6), 046 (all 6 phases approved), 047 (all 6 phases approved), 048 (all 6 phases approved) were all feature-complete but not reflected in baton. Updated completion tracker: 9/22 specs delivered (042, 044, 045, 046, 047, 048, 049, 051, 054). All 5 P0 specs complete. 4/17 P1 specs complete. 12 P1 specs remain unstarted (050, 052–053, 055–063). Recommended next slice: 052 (State Persistence) — natural follow-on to 044 orchestrator, adds checkpoint/resume to DAG dispatch. Priority-ordered remaining backlog with dependency reasoning.
 
