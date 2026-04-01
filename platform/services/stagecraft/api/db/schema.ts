@@ -53,6 +53,20 @@ export const workspaceGrants = pgTable("workspace_grants", {
     .defaultNow(),
 });
 
+export const agentPolicies = pgTable("agent_policies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: text("org_id").notNull().default("default"),
+  slug: text("slug").notNull(),
+  blocked: boolean("blocked").notNull().default(false),
+  reason: text("reason").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").defaultRandom().primaryKey(),
   actorUserId: uuid("actor_user_id").notNull(),
