@@ -5,7 +5,7 @@
 Open Agentic Platform (OAP) is a governed operating system for AI-native software delivery. It combines three layers:
 
 - **OPC** (`apps/desktop/`) — local Tauri + React cockpit for inspect, governance, and git context
-- **Platform** — organisational control plane (identity, policy, approvals, deployments, audit)
+- **Platform** (`platform/`) — organisational control plane (identity, policy, approvals, deployments, audit)
 - **Spec Spine** (`specs/`) — canonical contract system turning intent into traceable, machine-verifiable truth
 
 ## Repository Structure
@@ -21,6 +21,14 @@ crates/          — Rust library crates
   featuregraph/  gitctx/      run/           stackwalk/
   titor/         xray/
 apps/desktop/    — Tauri v2 + React desktop app (TypeScript + Rust)
+platform/        — Organisational control plane (imported from stagecraft-ing/platform)
+  services/
+    stagecraft/  — Encore.ts SaaS (auth, admin, monitoring, Slack)
+    deployd-api/ — Express.js K8s deployment orchestration
+    github-app/  — Probot PR preview deployments
+  infra/         — Terraform modules (Azure AKS, ACR, KeyVault)
+  charts/        — Helm charts (stagecraft, deployd-api, logto)
+  k8s/           — Baseline K8s policies (network deny, resource quotas)
 build/           — Compiler output (registry.json, build-meta.json)
 .specify/        — Contract metadata
 ```
@@ -41,6 +49,7 @@ All multi-step commands and agent workflows MUST follow the six rules defined in
 - **Specs are the source of truth.** Every feature starts as a spec in `specs/NNN-slug/spec.md` with YAML frontmatter.
 - **Rust for tools and crates.** All CLI tools and library crates are Rust. Build with `cargo build --release --manifest-path <path>/Cargo.toml`.
 - **TypeScript for the desktop app.** `apps/desktop/` uses Tauri v2, React, TypeScript.
+- **TypeScript for platform services.** `platform/services/` uses Encore.ts (stagecraft) and Express.js (deployd-api). These use npm, NOT pnpm — they are excluded from the pnpm workspace.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.
 - **Spec compiler is the build system.** Run `./tools/spec-compiler/target/release/spec-compiler compile` from repo root to produce `build/spec-registry/registry.json`.
 
@@ -58,6 +67,14 @@ cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 
 # Lint specs
 cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+
+# Platform services (local dev)
+cd platform/services/stagecraft && npm run start   # Encore.ts on :4000
+cd platform/services/deployd-api && npm run dev    # Express on :8080
+
+# Platform infrastructure
+cd platform && make tf-init    # Init Terraform
+cd platform && make tf-apply   # Full Azure deployment
 ```
 
 ## Claude Code Extension Points

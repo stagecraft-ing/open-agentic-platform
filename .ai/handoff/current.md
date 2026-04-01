@@ -6,7 +6,11 @@
 
 ## Objective
 
-**Stagecraft-ing extraction complete.** 17 projects from `~/Dev2/stagecraft-ing/` analyzed exhaustively and all valuable content integrated into OAP or captured as draft specs. The platform now has a full governance foundation (CLAUDE.md, AGENTS.md, orchestrator rules), 9 slash commands, 4 agent definitions, 3 code modules, ast-grep enforcement rules, a devcontainer, and 22 new spec outlines (042–063) covering the next generation of platform capabilities.
+**Platform layer integrated.** The Stagecraft platform codebase (`stagecraft-ing/platform`, 58 commits) has been imported into the monorepo as `platform/` via git subtree. OAP now has all three architectural layers present in the repo: OPC (`apps/desktop/`), Platform (`platform/`), Spec Spine (`specs/`).
+
+### Prior objective (complete)
+
+Stagecraft-ing extraction complete. 17 projects from `~/Dev2/stagecraft-ing/` analyzed exhaustively and all valuable content integrated into OAP or captured as draft specs.
 
 ## Agent pack
 
@@ -15,6 +19,21 @@
 ## Lifecycle note
 
 Registry **`status`** in frontmatter must be one of **`draft` | `active` | `superseded` | `retired`** (Feature **000** / **003**). Delivery completion is proven by checked tasks + verification artifacts, not by status changes.
+
+## Platform layer (`platform/`)
+
+Imported from `stagecraft-ing/platform` via git subtree (2026-03-31). Uses **npm** (not pnpm), excluded from workspace.
+
+| Service | Stack | Purpose |
+|---------|-------|---------|
+| `services/stagecraft/` | Encore.ts, Drizzle ORM, React Router v7 | SaaS: auth (users/sessions/audit_log in PostgreSQL), admin, monitoring, Slack |
+| `services/deployd-api/` | Express.js, @kubernetes/client-node | K8s deployment orchestration, Logto JWT auth, Helm deployments |
+| `services/github-app/` | Probot | PR preview deployments via GitHub webhooks |
+| `charts/logto/` | Helm | Self-hosted OAuth2/OIDC identity provider |
+| `infra/terraform/` | Terraform | Azure AKS, ACR, Key Vault, cert-manager, CSI secrets |
+| `k8s/` | YAML | Default-deny network policies, resource quotas per tenant namespace |
+
+**Key files:** DB schema `services/stagecraft/api/db/schema.ts`, deployment API `services/deployd-api/src/index.ts`, Makefile at root.
 
 ## Canonical feature authority
 
@@ -105,9 +124,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — 063 feature-complete (all 6 phases delivered).
-- Next owner: **—** — all 22 specs (042–063) delivered.
-- Last baton update: 2026-03-31 — **claude**: 063 — Coherence Scoring with Privilege Degradation, all 6 phases. New package `packages/coherence-scoring` (`@opc/coherence-scoring`). **Phase 1** — score computation: `src/types.ts` (CoherenceInputs, CoherenceWeights, CoherenceResult, PrivilegeLevel, CapabilitySet, ActionOutcome, ActionRecord, ProofRecord, ProofEventType, PipelineOptions, PrivilegeChangedEvent, EnforcementResult, CapabilityName + constants DEFAULT_WEIGHTS, DEFAULT_WINDOW_SIZE, PRIVILEGE_CAPABILITIES, PRIVILEGE_THRESHOLDS, PRIVILEGE_LEVELS), `src/scoring.ts` (computeCoherence weighted sum with [0,1] clamping, SlidingWindow class with record/evict/violationRate/reworkFrequency/getInputs/computeResult). **Phase 2** — privilege mapping: `src/privileges.ts` (scoreToLevel FR-005 boundary mapping, getCapabilities, hasCapability, enabledCapabilities, disabledCapabilities, compareLevels). **Phase 3** — capability enforcement: `src/enforcement.ts` (checkCapability, enforceCapability, checkCapabilities batch, actionToCapability mapping, CapabilityDeniedError class). **Phase 4** — proof chain: `src/proof-chain.ts` (ProofChain class with SHA-256 hash-chained append/verify/records/get, computePayloadHash, computeRecordHash, compaction support via maxLength). **Phase 5** — integration pipeline: `src/pipeline.ts` (CoherencePipeline class — recordAction wires sliding window + score computation + proof chain + privilege transition events, check/enforce capability, onPrivilegeChanged listener with unsubscribe). **Phase 6** — conformance kit: `src/conformance.ts` (runConformanceKit with 14 acceptance tests covering SC-001–SC-005, FR-005–FR-008, FR-011). Barrel exports + 7 subpath exports (./types, ./scoring, ./privileges, ./enforcement, ./proof-chain, ./pipeline, ./conformance). Validation: `tsc` clean, 93/93 tests pass. FR-001–FR-011, NF-001–NF-004, SC-001–SC-006 satisfied.
+- Current owner: **claude-opus** — Platform subtree imported, Phase 1 complete.
+- Next owner: **any** — Phase 2: wire integration seams (audit streaming, policy bundles, permission grants, agent auth).
+- Last baton update: 2026-03-31 — **claude-opus**: Platform integration Phase 1.
+  - Git subtree import of `stagecraft-ing/platform` → `platform/` (squashed)
+  - Updated `CLAUDE.md` with platform layer in repo structure, conventions, and build commands
+  - Created `platform/CLAUDE.md` (path-scoped instructions for services, infra, integration points)
+  - Updated `.gitignore` with platform-specific entries
+  - Added addendum to Manus analysis (`_tmp/open-agentic-platform-deep-analysis.md` §9) correcting platform-blind findings
+  - Verified: spec compiler output identical, pnpm workspace unaffected
+- Previous baton: 2026-03-31 — **claude**: 063 — Coherence Scoring with Privilege Degradation, all 6 phases. New package `packages/coherence-scoring` (`@opc/coherence-scoring`). **Phase 1** — score computation: `src/types.ts` (CoherenceInputs, CoherenceWeights, CoherenceResult, PrivilegeLevel, CapabilitySet, ActionOutcome, ActionRecord, ProofRecord, ProofEventType, PipelineOptions, PrivilegeChangedEvent, EnforcementResult, CapabilityName + constants DEFAULT_WEIGHTS, DEFAULT_WINDOW_SIZE, PRIVILEGE_CAPABILITIES, PRIVILEGE_THRESHOLDS, PRIVILEGE_LEVELS), `src/scoring.ts` (computeCoherence weighted sum with [0,1] clamping, SlidingWindow class with record/evict/violationRate/reworkFrequency/getInputs/computeResult). **Phase 2** — privilege mapping: `src/privileges.ts` (scoreToLevel FR-005 boundary mapping, getCapabilities, hasCapability, enabledCapabilities, disabledCapabilities, compareLevels). **Phase 3** — capability enforcement: `src/enforcement.ts` (checkCapability, enforceCapability, checkCapabilities batch, actionToCapability mapping, CapabilityDeniedError class). **Phase 4** — proof chain: `src/proof-chain.ts` (ProofChain class with SHA-256 hash-chained append/verify/records/get, computePayloadHash, computeRecordHash, compaction support via maxLength). **Phase 5** — integration pipeline: `src/pipeline.ts` (CoherencePipeline class — recordAction wires sliding window + score computation + proof chain + privilege transition events, check/enforce capability, onPrivilegeChanged listener with unsubscribe). **Phase 6** — conformance kit: `src/conformance.ts` (runConformanceKit with 14 acceptance tests covering SC-001–SC-005, FR-005–FR-008, FR-011). Barrel exports + 7 subpath exports (./types, ./scoring, ./privileges, ./enforcement, ./proof-chain, ./pipeline, ./conformance). Validation: `tsc` clean, 93/93 tests pass. FR-001–FR-011, NF-001–NF-004, SC-001–SC-006 satisfied.
 - Recommended files to read:
   - `packages/coherence-scoring/src/index.ts` (barrel exports)
   - `packages/coherence-scoring/src/types.ts` (all types + constants)
@@ -119,6 +145,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
   - `packages/coherence-scoring/src/conformance.ts` (conformance kit)
 
 ## Requested next agent output
+
+**Phase 2: Wire OPC ↔ Platform integration seams** (recommended order):
+
+1. **Seam B — Audit Streaming** (lowest risk, highest value). `crates/axiomregent/src/router/permissions.rs` → fire-and-forget HTTP POST to stagecraft `POST /api/audit-records` → existing `audit_log` PostgreSQL table. Gate on `PLATFORM_AUDIT_URL` env var.
+
+2. **Seam A — Policy Bundle Serving**. `crates/axiomregent/src/router/policy_bundle.rs` → `GET /api/policy-bundle/:workspace_id` on stagecraft. Add `HttpPolicySource` with local-file fallback. Gate on `PLATFORM_POLICY_URL` env var.
+
+3. **Seam C — Platform-Sourced Permission Grants**. `apps/desktop/src-tauri/src/governed_claude.rs` → `GET /api/grants/:user_id/:workspace_id` on stagecraft. Extend stagecraft auth with `workspace_grants` table. Gate on `PLATFORM_API_URL` env var.
+
+4. **Seam D — Agent Identity Validation** (lowest priority). `apps/desktop/src-tauri/src/commands/agents.rs` → optional `GET /api/agents/:slug/authorized` pre-flight check.
+
+### Prior completed features (22 of 22 specs)
 
 **claude**: 063 feature-complete. All 22 specs (042–063) delivered.
 

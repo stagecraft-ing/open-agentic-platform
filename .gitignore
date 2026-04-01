@@ -297,3 +297,8 @@ build/
 
 # OAP background agent worktrees (051-worktree-agents)
 .worktrees/
+
+# Platform layer
+platform/kubeconfig/
+platform/tmp/
+platform/_tmp_test/
