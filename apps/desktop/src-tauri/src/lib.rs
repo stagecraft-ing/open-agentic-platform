@@ -112,6 +112,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init());
 
+    // NSPanel must be registered before setup() so WebviewPanelManager state is available
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_nspanel::init());
+
     #[cfg(all(feature = "mcp-dev", any(target_os = "macos", target_os = "windows")))]
     let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 
