@@ -43,6 +43,7 @@ Imported from `stagecraft-ing/platform` via git subtree (2026-03-31). Uses **npm
 - **055–061:** P1 specs — feature-complete.
 - **062:** P1 spec — feature-complete (6 phases, `status: active`).
 - **063:** P1 spec — `status: draft`, unstarted.
+- **067–071:** Claude Code source-absorbed specs (`status: draft`). Tool Definition Registry, Permission Runtime, Lifecycle Hook Runtime, Prompt Assembly Cache, Skill Command Factory. Dependency chain: 071 → 067 → 068 → 069. See individual specs for details.
 
 ## What was delivered in this session
 
@@ -124,9 +125,10 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **cursor** — Phase 2 implementation: wire OPC ↔ Platform integration seams.
-- Next owner: **claude** — post-implementation review of seam wiring.
-- Last baton update: 2026-03-31 — **claude**: Verified all injection points against current codebase (all line numbers confirmed accurate). Produced implementation brief at `.ai/plans/platform-seams-implementation-brief.md` with phased steps: Foundation (reqwest + env vars + system user migration + bearer auth) → Seam B (audit streaming) → Seam A (policy bundles) → Seam C (permission grants) → Seam D (agent identity). Key files for implementer: `crates/axiomregent/Cargo.toml` (add reqwest), `crates/axiomregent/src/router/permissions.rs:88` (audit dispatch), `crates/axiomregent/src/router/mod.rs:209` (handle_request + 5 audit call sites), `platform/services/stagecraft/api/admin/admin.ts:47` (new POST endpoint), `platform/services/stagecraft/api/db/schema.ts:39` (audit_log schema).
+- Current owner: **claude** — Seam wiring complete, reconciled with specs 067–071 from Claude Code source analysis.
+- Next owner: **cursor** or **claude** — implement first draft spec from the 067–071 chain (recommended: 067 Tool Definition Registry, as 068–071 depend on it).
+- Last baton update: 2026-03-31 — **claude**: Implemented all 4 OPC ↔ Platform integration seams (A–D) per implementation brief. 17 files, +505 lines. Reconciled with 5 new draft specs (067–071) from "Analyze claude-code source" chat — no conflicts; seam B maps to a PostToolUse hook (069), seam C maps to policy tier in 5-tier settings (068). Commit `59b7e73`.
+- Previous baton: 2026-03-31 — **claude**: Verified all injection points against current codebase (all line numbers confirmed accurate). Produced implementation brief at `.ai/plans/platform-seams-implementation-brief.md` with phased steps: Foundation (reqwest + env vars + system user migration + bearer auth) → Seam B (audit streaming) → Seam A (policy bundles) → Seam C (permission grants) → Seam D (agent identity). Key files for implementer: `crates/axiomregent/Cargo.toml` (add reqwest), `crates/axiomregent/src/router/permissions.rs:88` (audit dispatch), `crates/axiomregent/src/router/mod.rs:209` (handle_request + 5 audit call sites), `platform/services/stagecraft/api/admin/admin.ts:47` (new POST endpoint), `platform/services/stagecraft/api/db/schema.ts:39` (audit_log schema).
 - Previous baton: 2026-03-31 — **claude**: Deep source trace of all 4 seam code paths (A–D). Verified all 28 prior findings (B-001–X-005) accurate. New findings X-006 (PolicyBundleCache no invalidation), X-007 (max_tier hardcoded). Deep trace: `.ai/findings/platform-integration-seams-deep-trace.md`.
 - Previous baton: 2026-03-31 — **claude**: Platform integration seams readiness review. Traced all 4 seam code paths (A–D). Review: `.ai/findings/platform-integration-seams-readiness.md`.
 - Previous baton: 2026-03-31 — **claude-opus**: Platform integration Phase 1.
@@ -150,15 +152,18 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Requested next agent output
 
-**Phase 2: Wire OPC ↔ Platform integration seams** (recommended order):
+**Phase 2: Wire OPC ↔ Platform integration seams** — ✅ COMPLETE (commit `59b7e73`).
 
-1. **Seam B — Audit Streaming** (lowest risk, highest value). `crates/axiomregent/src/router/permissions.rs` → fire-and-forget HTTP POST to stagecraft `POST /api/audit-records` → existing `audit_log` PostgreSQL table. Gate on `PLATFORM_AUDIT_URL` env var.
+All 4 seams implemented: Seam B (audit streaming), Seam A (policy bundle serving), Seam C (permission grants), Seam D (agent identity). See commit for details.
 
-2. **Seam A — Policy Bundle Serving**. `crates/axiomregent/src/router/policy_bundle.rs` → `GET /api/policy-bundle/:workspace_id` on stagecraft. Add `HttpPolicySource` with local-file fallback. Gate on `PLATFORM_POLICY_URL` env var.
+**Phase 3: Claude Code source-absorbed specs (067–071)** — draft, not yet started.
 
-3. **Seam C — Platform-Sourced Permission Grants**. `apps/desktop/src-tauri/src/governed_claude.rs` → `GET /api/grants/:user_id/:workspace_id` on stagecraft. Extend stagecraft auth with `workspace_grants` table. Gate on `PLATFORM_API_URL` env var.
-
-4. **Seam D — Agent Identity Validation** (lowest priority). `apps/desktop/src-tauri/src/commands/agents.rs` → optional `GET /api/agents/:slug/authorized` pre-flight check.
+Recommended implementation order (follows dependency chain):
+1. **067 — Tool Definition Registry** — `ToolDef` trait + `ToolRegistry` replacing ad-hoc router dispatch
+2. **068 — Permission Runtime** — 5-tier settings layering, glob-based permission rules
+3. **069 — Lifecycle Hook Runtime** — 6-event lifecycle with bash/agent/prompt handlers
+4. **070 — Prompt Assembly & Cache** — modular system prompt with cache boundaries
+5. **071 — Skill & Command Factory** — formalized slash commands as registered tools
 
 ### Prior completed features (22 of 22 specs)
 
@@ -189,6 +194,16 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 | 061 | Conductor Track Lifecycle | P1 | ✅ feature-complete (7 phases) |
 | 062 | Multi-Model Chaining | P1 | ✅ feature-complete (6 phases) |
 | 063 | Coherence Scoring | P1 | ✅ feature-complete (6 phases) |
+
+### Claude Code source-absorbed specs (5 draft)
+
+| # | Spec | Kind | Status |
+|---|------|------|--------|
+| 067 | Tool Definition Registry | platform | draft — `ToolDef` trait + `ToolRegistry` |
+| 068 | Permission Runtime & Settings Layering | platform | draft — 5-tier settings, glob rules |
+| 069 | Lifecycle Hook Runtime | platform | draft — 6-event lifecycle, 3 handler types |
+| 070 | Prompt Assembly & Cache Boundaries | platform | draft — static/dynamic cache split |
+| 071 | Skill & Command Factory | platform | draft — formalized slash commands |
 
 ## P2 items captured as ideas only (not yet specs)
 
