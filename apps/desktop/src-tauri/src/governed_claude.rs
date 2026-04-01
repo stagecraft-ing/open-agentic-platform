@@ -62,6 +62,48 @@ pub fn grants_json_claude_default() -> String {
     .to_string()
 }
 
+/// Seam C: fetch permission grants from the platform, falling back to local defaults on failure.
+/// Requires PLATFORM_API_URL, PLATFORM_M2M_TOKEN, OPC_USER_ID, and OPC_WORKSPACE_ID env vars.
+pub async fn grants_json_platform_or_default() -> String {
+    match fetch_platform_grants().await {
+        Some(grants) => grants,
+        None => grants_json_claude_default(),
+    }
+}
+
+async fn fetch_platform_grants() -> Option<String> {
+    let api_url = std::env::var("PLATFORM_API_URL").ok().filter(|v| !v.is_empty())?;
+    let token = std::env::var("PLATFORM_M2M_TOKEN").ok().filter(|v| !v.is_empty())?;
+    let user_id = std::env::var("OPC_USER_ID").ok().filter(|v| !v.is_empty())?;
+    let workspace_id = std::env::var("OPC_WORKSPACE_ID").ok().filter(|v| !v.is_empty())?;
+
+    let url = format!(
+        "{}/grants/{}/{}",
+        api_url.trim_end_matches('/'),
+        user_id,
+        workspace_id
+    );
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .ok()?;
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(&token)
+        .send()
+        .await
+        .ok()?;
+
+    if !resp.status().is_success() {
+        eprintln!("[platform] grants fetch returned {}: {url}", resp.status());
+        return None;
+    }
+
+    resp.text().await.ok()
+}
+
 pub fn axiomregent_mcp_config_json(axiom_exe: &std::path::Path, grants_json: &str) -> Result<String, String> {
     let empty_args: Vec<String> = vec![];
     let cfg = json!({

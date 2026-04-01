@@ -894,6 +894,44 @@ pub async fn list_agent_runs_with_metrics(
     Ok(runs_with_metrics)
 }
 
+/// Seam D: optional pre-flight check against platform agent authorization.
+/// Returns Ok(()) if authorized or if the platform is not configured. Returns Err with reason on denial.
+async fn check_agent_authorized(slug: &str) -> Result<(), String> {
+    let api_url = std::env::var("PLATFORM_API_URL")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .ok_or_else(|| "PLATFORM_API_URL not set".to_string())?;
+    let token = std::env::var("PLATFORM_M2M_TOKEN")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .ok_or_else(|| "PLATFORM_M2M_TOKEN not set".to_string())?;
+
+    let url = format!(
+        "{}/agents/{}/authorized",
+        api_url.trim_end_matches('/'),
+        slug
+    );
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(&token)
+        .send()
+        .await
+        .map_err(|e| format!("platform request failed: {e}"))?;
+
+    match resp.status().as_u16() {
+        200 => Ok(()),
+        403 => Err(format!("agent '{slug}' not authorized by platform")),
+        404 => Ok(()), // Unknown agent — allow by default.
+        status => Err(format!("unexpected status {status} from platform")),
+    }
+}
+
 /// Execute a CC agent with streaming output
 #[tauri::command]
 pub async fn execute_agent(
@@ -978,6 +1016,12 @@ pub async fn execute_agent(
             return Err(e);
         }
     };
+
+    // Seam D: optional platform agent identity pre-flight (non-blocking).
+    let slug = agent.name.to_lowercase().replace(' ', "-");
+    if let Err(reason) = check_agent_authorized(&slug).await {
+        warn!("Agent '{}' platform auth check: {}", slug, reason);
+    }
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
     let grants_json = crate::governed_claude::grants_json_for_agent(&agent);

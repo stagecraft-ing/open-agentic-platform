@@ -18,4 +18,5 @@ pub mod workspace;
 pub use featuregraph;
 pub use xray;
 pub mod run_tools;
+pub mod platform_config;
 // pub mod xray_tools;

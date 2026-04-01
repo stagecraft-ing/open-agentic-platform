@@ -19,6 +19,15 @@ impl PolicyBundleCache {
         }
     }
 
+    /// Upsert a policy bundle fetched from the platform (Seam A).
+    pub fn update_bundle(&self, repo_root: &str, bundle: PolicyBundle) {
+        let key = Path::new(repo_root).to_string_lossy().to_string();
+        self.cache
+            .write()
+            .expect("policy bundle cache poisoned")
+            .insert(key, Some(Arc::new(bundle)));
+    }
+
     /// Returns [`None`] when the bundle file is absent or cannot be parsed (fallback path).
     pub fn bundle_for_repo_root(&self, repo_root: &str) -> Option<Arc<PolicyBundle>> {
         let key = Path::new(repo_root)

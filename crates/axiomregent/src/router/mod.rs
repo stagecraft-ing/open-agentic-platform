@@ -14,8 +14,10 @@ use xray::tools::XrayTools;
 
 use crate::snapshot::lease::LeaseStore;
 
+pub mod audit_http;
 pub mod permissions;
 pub mod policy_bundle;
+pub mod policy_http;
 
 use policy_bundle::{build_tool_call_context, evaluate_loaded_policy, PolicyBundleCache};
 
@@ -94,6 +96,11 @@ pub struct Router {
     agent_tools: Arc<AgentTools>,
     run_tools: Arc<RunTools>,
     policy_bundle_cache: Arc<PolicyBundleCache>,
+    /// Seam B: optional fire-and-forget HTTP forwarder for audit records.
+    audit_forwarder: Option<Arc<audit_http::AuditForwarder>>,
+    /// Platform integration config (read from env at startup). Used by Seams C/D.
+    #[allow(dead_code)]
+    platform_config: crate::platform_config::PlatformConfig,
 }
 
 impl Router {
@@ -106,6 +113,32 @@ impl Router {
         agent_tools: Arc<AgentTools>,
         run_tools: Arc<RunTools>,
     ) -> Self {
+        let platform_cfg = crate::platform_config::PlatformConfig::from_env();
+        let audit_forwarder = match (&platform_cfg.audit_url, &platform_cfg.m2m_token) {
+            (Some(url), Some(token)) => {
+                eprintln!("[platform] audit streaming enabled → {url}");
+                Some(Arc::new(audit_http::AuditForwarder::new(
+                    url.clone(),
+                    token.clone(),
+                )))
+            }
+            _ => None,
+        };
+        let policy_bundle_cache = Arc::new(PolicyBundleCache::new());
+
+        // Seam A: spawn background policy bundle refresh when PLATFORM_POLICY_URL is set.
+        if let (Some(url), Some(token)) = (&platform_cfg.policy_url, &platform_cfg.m2m_token) {
+            // Use repo root from OPC_REPO_ROOT env var (or "default" workspace).
+            let repo_root = std::env::var("OPC_REPO_ROOT").unwrap_or_else(|_| "default".into());
+            eprintln!("[platform] policy bundle refresh enabled → {url}");
+            policy_http::spawn_policy_refresh(
+                Arc::clone(&policy_bundle_cache),
+                url.clone(),
+                token.clone(),
+                repo_root,
+            );
+        }
+
         Self {
             lease_store,
             snapshot_tools,
@@ -114,7 +147,16 @@ impl Router {
             xray_tools,
             agent_tools,
             run_tools,
-            policy_bundle_cache: Arc::new(PolicyBundleCache::new()),
+            policy_bundle_cache,
+            audit_forwarder,
+            platform_config: platform_cfg,
+        }
+    }
+
+    /// Forward an audit payload to the platform if the forwarder is configured (Seam B).
+    fn maybe_forward_audit(&self, payload: &serde_json::Value) {
+        if let Some(fwd) = &self.audit_forwarder {
+            fwd.forward(payload.clone());
         }
     }
 
@@ -138,21 +180,23 @@ impl Router {
             Some(l) => {
                 match permissions::check_tool_permission(tool_name, l) {
                     Ok(()) => {
-                        permissions::audit_tool_dispatch(
+                        let audit = permissions::audit_tool_dispatch(
                             tool_name,
                             tier_label,
                             "allowed",
                             lease_id_str,
                         );
+                        self.maybe_forward_audit(&audit);
                         self.policy_preflight_response(id, tool_name, args, lease_id_str)
                     }
                     Err(e) => {
-                        permissions::audit_tool_dispatch(
+                        let audit = permissions::audit_tool_dispatch(
                             tool_name,
                             tier_label,
                             "denied",
                             lease_id_str,
                         );
+                        self.maybe_forward_audit(&audit);
                         Some(json_rpc_permission_denied(id, &e.to_string()))
                     }
                 }
@@ -161,21 +205,23 @@ impl Router {
                 let fallback = self.lease_store.default_grants();
                 match permissions::check_grants(tool_name, &fallback) {
                     Ok(()) => {
-                        permissions::audit_tool_dispatch(
+                        let audit = permissions::audit_tool_dispatch(
                             tool_name,
                             tier_label,
                             "allowed_no_lease",
                             None,
                         );
+                        self.maybe_forward_audit(&audit);
                         self.policy_preflight_response(id, tool_name, args, None)
                     }
                     Err(e) => {
-                        permissions::audit_tool_dispatch(
+                        let audit = permissions::audit_tool_dispatch(
                             tool_name,
                             tier_label,
                             "denied_no_lease",
                             None,
                         );
+                        self.maybe_forward_audit(&audit);
                         Some(json_rpc_permission_denied(id, &e.to_string()))
                     }
                 }
@@ -196,12 +242,13 @@ impl Router {
         let ctx = build_tool_call_context(tool_name, args);
         let decision = evaluate_loaded_policy(&bundle, &ctx)?;
         let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
-        permissions::audit_tool_dispatch(
+        let audit = permissions::audit_tool_dispatch(
             tool_name,
             tier_label,
             "policy_denied",
             lease_id_for_audit,
         );
+        self.maybe_forward_audit(&audit);
         let msg = format!("{} {:?}", decision.reason, decision.rule_ids);
         Some(json_rpc_policy_denied(id, &msg))
     }

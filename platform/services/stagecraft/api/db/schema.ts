@@ -4,6 +4,7 @@ import {
   timestamp,
   uuid,
   boolean,
+  integer,
   pgEnum,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -34,6 +35,22 @@ export const sessions = pgTable("sessions", {
     .notNull()
     .defaultNow(),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
+});
+
+export const workspaceGrants = pgTable("workspace_grants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull(),
+  workspaceId: text("workspace_id").notNull(),
+  enableFileRead: boolean("enable_file_read").notNull().default(true),
+  enableFileWrite: boolean("enable_file_write").notNull().default(true),
+  enableNetwork: boolean("enable_network").notNull().default(true),
+  maxTier: integer("max_tier").notNull().default(2),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const auditLog = pgTable("audit_log", {

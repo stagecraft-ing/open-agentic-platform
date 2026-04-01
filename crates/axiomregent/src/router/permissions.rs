@@ -85,12 +85,13 @@ pub fn check_tool_permission(tool_name: &str, lease: &Lease) -> Result<(), Axiom
 }
 
 /// Structured audit line on stderr (Feature 035 / T010).
+/// Returns the JSON payload so callers can forward it to the platform (Seam B).
 pub fn audit_tool_dispatch(
     tool_name: &str,
     tier: &str,
     decision: &str,
     lease_id: Option<&str>,
-) {
+) -> serde_json::Value {
     let line = json!({
         "op": "axiomregent.tool_audit",
         "tool": tool_name,
@@ -101,6 +102,7 @@ pub fn audit_tool_dispatch(
     });
     let mut stderr = std::io::stderr();
     let _ = writeln!(stderr, "{line}");
+    line
 }
 
 #[cfg(test)]
