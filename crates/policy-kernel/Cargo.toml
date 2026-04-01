@@ -2,7 +2,7 @@
 name = "open_agentic_policy_kernel"
 version = "0.1.0"
 edition = "2021"
-description = "Deterministic policy evaluation kernel (native + wasm32)"
+description = "Deterministic policy evaluation kernel with permission runtime (native + wasm32)"
 rust-version = "1.74"
 
 [lib]
@@ -13,7 +13,11 @@ name = "verify_proof_chain"
 path = "src/bin/verify_proof_chain.rs"
 
 [dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5"
+glob = "0.3"
 hex = "0.4"
+notify = "7"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -22,6 +26,7 @@ sha2 = "0.10"
 [dev-dependencies]
 criterion = "0.5"
 serde_json = "1"
+tempfile = "3"
 
 [[bench]]
 name = "kernel_eval"

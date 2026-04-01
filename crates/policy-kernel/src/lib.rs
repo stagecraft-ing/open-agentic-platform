@@ -1,10 +1,23 @@
 //! FR-006 / FR-007: deterministic policy evaluation for a tool call against a compiled bundle.
 //! FR-008 / SC-007 / SC-008: coherence scheduler (see [`coherence`]).
 //! FR-009 / FR-010 / NF-004 / SC-009: proof-chain records (see [`proof_chain`]).
-//! No I/O, no wall clock — suitable for `wasm32-unknown-unknown`.
+//!
+//! ## Permission Runtime (spec 068)
+//!
+//! The permission runtime adds 5-tier settings layering, glob-based rule matching,
+//! denial tracking with escalation, live settings reload, and audit logging.
+//! See [`permission`], [`settings`], [`merge`], [`denial`], [`watcher`], [`audit`].
 
 pub mod coherence;
 pub mod proof_chain;
+
+// --- spec 068: Permission Runtime and Settings Layering ---
+pub mod audit;
+pub mod denial;
+pub mod merge;
+pub mod permission;
+pub mod settings;
+pub mod watcher;
 
 pub use coherence::{CoherenceScheduler, CoherenceSchedulerConfig, PrivilegeLevel};
 pub use proof_chain::{
