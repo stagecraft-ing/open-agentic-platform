@@ -1,14 +1,18 @@
 resource "helm_release" "ingress_nginx" {
-  count      = var.ingress_nginx_enabled ? 1 : 0
-  name       = "ingress-nginx"
-  repository = "https://kubernetes.github.io/ingress-nginx"
-  chart      = "ingress-nginx"
-  namespace  = "ingress-nginx"
+  count            = var.ingress_nginx_enabled ? 1 : 0
+  name             = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart            = "ingress-nginx"
+  namespace        = "ingress-nginx"
   create_namespace = true
 
-  set {
-    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/azure-load-balancer-health-probe-request-path"
-    value = "/healthz"
+  # Azure-specific: health probe path annotation for Azure Load Balancer
+  dynamic "set" {
+    for_each = var.cloud_provider == "azure" ? [1] : []
+    content {
+      name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/azure-load-balancer-health-probe-request-path"
+      value = "/healthz"
+    }
   }
 }
 
@@ -27,13 +31,18 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# csi-azure-provider chart includes secrets-store-csi-driver as a dependency - install both together
-resource "helm_release" "csi_azure_provider" {
-  count      = var.csi_secrets_enabled ? 1 : 0
-  name       = "csi-azure-provider"
-  repository = "https://azure.github.io/secrets-store-csi-driver-provider-azure/charts"
-  chart      = "csi-secrets-store-provider-azure"
-  namespace  = "kube-system"
+resource "helm_release" "external_secrets" {
+  count            = var.external_secrets_enabled ? 1 : 0
+  name             = "external-secrets"
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  namespace        = "external-secrets"
+  create_namespace = true
+
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
 }
 
 resource "time_sleep" "wait_for_cert_manager_crds" {
@@ -50,8 +59,8 @@ resource "kubernetes_manifest" "letsencrypt_cluster_issuer" {
     metadata   = { name = "letsencrypt-prod" }
     spec = {
       acme = {
-        server = "https://acme-v02.api.letsencrypt.org/directory"
-        email  = var.letsencrypt_email
+        server              = "https://acme-v02.api.letsencrypt.org/directory"
+        email               = var.letsencrypt_email
         privateKeySecretRef = { name = "letsencrypt-prod" }
         solvers = [{
           http01 = { ingress = { class = "nginx" } }

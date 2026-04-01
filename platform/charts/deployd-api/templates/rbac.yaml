@@ -47,5 +47,5 @@ roleRef:
   name: deployd-controller
 subjects:
   - kind: ServiceAccount
-    name: {{ .Values.workloadIdentity.serviceAccountName }}
+    name: {{ .Values.serviceAccount.name }}
     namespace: {{ .Release.Namespace }}

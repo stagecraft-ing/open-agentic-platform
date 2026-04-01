@@ -1,0 +1,14 @@
+image:
+  repository: localhost:5050/stagecraft
+  tag: dev
+
+ingress:
+  host: stagecraft.localhost
+
+secrets:
+  provider: "k8s"
+  create: true
+  data:
+    STAGECRAFT_DB_URL: "postgres://postgres:postgres@host.k3d.internal:5432/stagecraft"
+    LOGTO_M2M_CLIENT_ID: "local-dev-client-id"
+    LOGTO_M2M_CLIENT_SECRET: "local-dev-client-secret"

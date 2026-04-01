@@ -1,5 +1,5 @@
 variable "project_name" { type = string }
-variable "location"     { type = string }
+variable "location" { type = string }
 
 variable "logto_m2m_client_id" {
   type      = string

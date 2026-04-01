@@ -11,9 +11,11 @@ spec:
     metadata:
       labels:
         app: stagecraft-api
-        azure.workload.identity/use: "true"
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
-      serviceAccountName: {{ .Values.workloadIdentity.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         - name: stagecraft-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -23,7 +25,7 @@ spec:
             - name: PORT
               value: "4000"
             - name: SECRETS_DIR
-              value: {{ .Values.secretsMount.mountPath | quote }}
+              value: {{ .Values.secrets.mountPath | quote }}
             - name: LOGTO_ENDPOINT
               value: {{ .Values.logto.endpoint | quote }}
             - name: DEPLOYD_AUDIENCE
@@ -31,17 +33,22 @@ spec:
             - name: DEPLOYD_SCOPE
               value: {{ .Values.logto.deploydScope | quote }}
             - name: LOGTO_M2M_CLIENT_ID_FILE
-              value: "{{ .Values.secretsMount.mountPath }}/LOGTO_M2M_CLIENT_ID"
+              value: "{{ .Values.secrets.mountPath }}/LOGTO_M2M_CLIENT_ID"
             - name: LOGTO_M2M_CLIENT_SECRET_FILE
-              value: "{{ .Values.secretsMount.mountPath }}/LOGTO_M2M_CLIENT_SECRET"
+              value: "{{ .Values.secrets.mountPath }}/LOGTO_M2M_CLIENT_SECRET"
           volumeMounts:
             - name: secrets-store
-              mountPath: {{ .Values.secretsMount.mountPath | quote }}
+              mountPath: {{ .Values.secrets.mountPath | quote }}
               readOnly: true
       volumes:
         - name: secrets-store
+          {{- if eq (default "k8s" .Values.secrets.provider) "csi-azure" }}
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
               secretProviderClass: stagecraft-api-secrets
+          {{- else }}
+          secret:
+            secretName: stagecraft-api-secrets
+          {{- end }}

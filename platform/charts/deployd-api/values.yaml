@@ -1,24 +1,30 @@
 image:
-  repository: stagecraftdevacr.azurecr.io/deployd-api
+  repository: ghcr.io/open-agentic-platform/deployd-api
   tag: dev
 
 ingress:
   host: deployd.localdev.online
 
-workloadIdentity:
-  serviceAccountName: deployd-api-sa
-  clientId: ""
+serviceAccount:
+  name: deployd-api-sa
+  annotations: {}
 
-keyVault:
-  name: ""
-  tenantId: ""
+podLabels: {}
 
-secretsMount:
+secrets:
   enabled: true
+  provider: "k8s"  # "k8s" | "eso" | "csi-azure"
   mountPath: /mnt/secrets-store
-  objects:
-    - objectName: DEPLOYD_DB_URL
-      objectType: secret
+  create: false
+  data: {}
+  # ESO-specific
+  refreshInterval: "1h"
+  storeRef:
+    name: ""
+    kind: ClusterSecretStore
+  keys:
+    - key: DEPLOYD_DB_URL
+      remoteKey: deployd-db-url
 
 logto:
   endpoint: "https://logto.localdev.online"

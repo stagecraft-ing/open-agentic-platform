@@ -9,5 +9,5 @@ resource "azurerm_key_vault_secret" "this" {
   name = lower(replace(each.key, "_", "-"))
 
   # 2. Look up the sensitive value from the original map using the key
-  value        = var.secrets[each.key]
+  value = var.secrets[each.key]
 }

@@ -7,12 +7,22 @@ module "cluster_addons" {
 
   repo_root = "${path.module}/../../../../.."
 
-  ingress_nginx_enabled = true
-  cert_manager_enabled  = true
-  csi_secrets_enabled   = true
+  cloud_provider           = "azure"
+  ingress_nginx_enabled    = true
+  cert_manager_enabled     = true
+  external_secrets_enabled = true
 
   apply_cluster_issuer = var.apply_cluster_issuer
   letsencrypt_email    = var.letsencrypt_email
+}
+
+module "external_secrets_config" {
+  source = "../../../modules/external_secrets"
+
+  cloud_provider    = "azure"
+  secret_store_name = local.core.keyvault_name
+
+  depends_on = [module.cluster_addons]
 }
 
 module "logto_bootstrap" {
@@ -49,21 +59,20 @@ module "logto_bootstrap" {
 module "platform_bootstrap" {
   source = "../../../modules/platform_bootstrap"
 
+  cloud_provider = "azure"
+  registry_url   = local.core.acr_login_server
+
   stagecraft_namespace = "stagecraft-system"
   deployd_namespace    = "deployd-system"
 
   stagecraft_host = var.stagecraft_host
   deployd_host    = var.deployd_host
 
-  stagecraft_sa_name   = local.core.stagecraft_serviceaccount_name
-  deployd_sa_name      = local.core.deployd_serviceaccount_name
-  stagecraft_client_id = local.core.stagecraft_identity_client_id
-  deployd_client_id    = local.core.deployd_identity_client_id
-
-  keyvault_name = local.core.keyvault_name
-  tenant_id     = local.core.tenant_id
+  stagecraft_sa_name = local.core.stagecraft_serviceaccount_name
+  deployd_sa_name    = local.core.deployd_serviceaccount_name
+  cloud_identity_id  = local.core.stagecraft_identity_client_id
 
   charts_root = "${path.module}/../../../../../charts"
 
-  depends_on = [module.cluster_addons]
+  depends_on = [module.cluster_addons, module.external_secrets_config]
 }

@@ -1,0 +1,15 @@
+image:
+  repository: stagecraftdevacr.azurecr.io/stagecraft
+
+serviceAccount:
+  annotations:
+    azure.workload.identity/client-id: ""
+
+podLabels:
+  azure.workload.identity/use: "true"
+
+secrets:
+  provider: "eso"
+  storeRef:
+    name: azure-keyvault
+    kind: ClusterSecretStore

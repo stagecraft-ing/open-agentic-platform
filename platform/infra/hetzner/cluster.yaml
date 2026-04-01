@@ -1,0 +1,43 @@
+# Hetzner K3s cluster configuration for OAP
+# Prerequisites: brew install vitobotta/tap/hetzner_k3s
+# Usage: hetzner-k3s create --config cluster.yaml
+
+cluster_name: oap-hetzner
+kubeconfig_path: ./kubeconfig
+k3s_version: v1.31.4+k3s1
+
+networking:
+  ssh:
+    port: 22
+    use_agent: false
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+  public_network:
+    ipv4: true
+    ipv6: true
+  cni:
+    enabled: true
+
+# Change these to match your Hetzner project
+api_token_from_env: HCLOUD_TOKEN
+
+schedule_workloads_on_masters: false
+
+masters_pool:
+  instance_type: cpx21
+  instance_count: 1
+  location: fsn1
+  image: ubuntu-24.04
+
+worker_pools:
+  - name: worker
+    instance_type: cpx21
+    instance_count: 2
+    location: fsn1
+    image: ubuntu-24.04
+
+post_create_commands:
+  - echo "K3s cluster ready. Run post-create.sh to install addons."

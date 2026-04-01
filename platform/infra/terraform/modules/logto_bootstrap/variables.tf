@@ -1,8 +1,8 @@
 variable "charts_root" { type = string }
 variable "namespace" { type = string }
 
-variable "logto_host" { type = string }          # eg logto.stagecraft.ing
-variable "admin_host" { type = string }          # eg logto-admin.stagecraft.ing
+variable "logto_host" { type = string } # eg logto.stagecraft.ing
+variable "admin_host" { type = string } # eg logto-admin.stagecraft.ing
 
 variable "postgres_password" {
   type      = string
@@ -22,7 +22,7 @@ variable "logto_spa_client_secret" {
   sensitive = true
 }
 variable "logto_spa_api_event_webhook_url" {
-  type      = string
+  type = string
 }
 
 variable "logto_m2m_client_secret" {

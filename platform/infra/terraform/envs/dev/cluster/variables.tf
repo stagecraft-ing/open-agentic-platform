@@ -13,8 +13,8 @@ variable "deployd_host" {
   default = "deployd.localdev.online "
 }
 
-variable "logto_host"           { type = string }
-variable "logto_admin_host"      { type = string }
+variable "logto_host" { type = string }
+variable "logto_admin_host" { type = string }
 variable "logto_postgres_password" { type = string }
 
 variable "letsencrypt_email" { type = string }
@@ -37,7 +37,7 @@ variable "logto_spa_client_secret" {
   sensitive = true
 }
 variable "logto_spa_api_event_webhook_url" {
-  type      = string
+  type = string
 }
 
 variable "logto_m2m_client_secret" {

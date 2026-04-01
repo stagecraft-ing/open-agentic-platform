@@ -1,28 +1,47 @@
 image:
-  repository: stagecraftdevacr.azurecr.io/stagecraft
+  repository: ghcr.io/open-agentic-platform/stagecraft
   tag: dev
 
 ingress:
   host: stagecraft.localdev.online
 
+serviceAccount:
+  name: stagecraft-api-sa
+  annotations: {}
+
+podLabels: {}
+
+secrets:
+  enabled: true
+  provider: "k8s"  # "k8s" | "eso" | "csi-azure"
+  mountPath: /mnt/secrets-store
+  create: false
+  data: {}
+  # ESO-specific
+  refreshInterval: "1h"
+  storeRef:
+    name: ""
+    kind: ClusterSecretStore
+  keys:
+    - key: STAGECRAFT_DB_URL
+      remoteKey: stagecraft-db-url
+    - key: LOGTO_M2M_CLIENT_ID
+      remoteKey: logto-m2m-client-id
+    - key: LOGTO_M2M_CLIENT_SECRET
+      remoteKey: logto-m2m-client-secret
+
+# Legacy Azure CSI driver opt-in (kept for backward compatibility)
+secretsMount:
+  enabled: false
+  objects: []
+
+# Legacy Azure workload identity (kept for backward compatibility)
 workloadIdentity:
-  serviceAccountName: stagecraft-api-sa
   clientId: ""
 
 keyVault:
   name: ""
   tenantId: ""
-
-secretsMount:
-  enabled: true
-  mountPath: /mnt/secrets-store
-  objects:
-    - objectName: STAGECRAFT_DB_URL
-      objectType: secret
-    - objectName: LOGTO_M2M_CLIENT_ID
-      objectType: secret
-    - objectName: LOGTO_M2M_CLIENT_SECRET
-      objectType: secret
 
 logto:
   endpoint: "https://logto.localdev.online"
