@@ -124,9 +124,10 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
 
 ## Baton
 
-- Current owner: **claude** — Deep source trace complete, handing to implementer.
-- Next owner: **cursor** — Phase 2 implementation: start with foundation (reqwest + env vars + M2M auth pattern), then Seam B (audit streaming). See both `.ai/findings/platform-integration-seams-readiness.md` (original review) and `.ai/findings/platform-integration-seams-deep-trace.md` (verified line numbers, injection points, new findings X-006/X-007).
-- Last baton update: 2026-03-31 — **claude**: Deep source trace of all 4 seam code paths (A–D). Verified all 28 prior findings (B-001–X-005) accurate. New findings: (1) X-006 MEDIUM — `PolicyBundleCache` has no invalidation (stale bundles persist until restart, affects Seam A background refresh design); (2) X-007 LOW — `max_tier` hardcoded (3 for agents, 2 for default), no runtime override; (3) desktop Rust backend has zero HTTP auth infrastructure (no JWT, no bearer, no session mgmt — not just "no M2M pattern"); (4) `web_server.rs` CORS set to `Any` origin (line 794) — local-only by design but must not leak platform tokens; (5) stagecraft's only `audit_log` write path is `setRole` in `admin.ts:56` — the POST endpoint is truly new work. Exact line numbers for all injection points documented. Implementation order confirmed: foundation → B → A → C → D. Deep trace: `.ai/findings/platform-integration-seams-deep-trace.md`.
+- Current owner: **cursor** — Phase 2 implementation: wire OPC ↔ Platform integration seams.
+- Next owner: **claude** — post-implementation review of seam wiring.
+- Last baton update: 2026-03-31 — **claude**: Verified all injection points against current codebase (all line numbers confirmed accurate). Produced implementation brief at `.ai/plans/platform-seams-implementation-brief.md` with phased steps: Foundation (reqwest + env vars + system user migration + bearer auth) → Seam B (audit streaming) → Seam A (policy bundles) → Seam C (permission grants) → Seam D (agent identity). Key files for implementer: `crates/axiomregent/Cargo.toml` (add reqwest), `crates/axiomregent/src/router/permissions.rs:88` (audit dispatch), `crates/axiomregent/src/router/mod.rs:209` (handle_request + 5 audit call sites), `platform/services/stagecraft/api/admin/admin.ts:47` (new POST endpoint), `platform/services/stagecraft/api/db/schema.ts:39` (audit_log schema).
+- Previous baton: 2026-03-31 — **claude**: Deep source trace of all 4 seam code paths (A–D). Verified all 28 prior findings (B-001–X-005) accurate. New findings X-006 (PolicyBundleCache no invalidation), X-007 (max_tier hardcoded). Deep trace: `.ai/findings/platform-integration-seams-deep-trace.md`.
 - Previous baton: 2026-03-31 — **claude**: Platform integration seams readiness review. Traced all 4 seam code paths (A–D). Review: `.ai/findings/platform-integration-seams-readiness.md`.
 - Previous baton: 2026-03-31 — **claude-opus**: Platform integration Phase 1.
   - Git subtree import of `stagecraft-ing/platform` → `platform/` (squashed)
@@ -137,14 +138,15 @@ All projects in `~/Dev2/stagecraft-ing/` were analyzed file-by-file. Extraction 
   - Verified: spec compiler output identical, pnpm workspace unaffected
 - Previous baton: 2026-03-31 — **claude**: 063 — Coherence Scoring with Privilege Degradation, all 6 phases. New package `packages/coherence-scoring` (`@opc/coherence-scoring`). **Phase 1** — score computation: `src/types.ts` (CoherenceInputs, CoherenceWeights, CoherenceResult, PrivilegeLevel, CapabilitySet, ActionOutcome, ActionRecord, ProofRecord, ProofEventType, PipelineOptions, PrivilegeChangedEvent, EnforcementResult, CapabilityName + constants DEFAULT_WEIGHTS, DEFAULT_WINDOW_SIZE, PRIVILEGE_CAPABILITIES, PRIVILEGE_THRESHOLDS, PRIVILEGE_LEVELS), `src/scoring.ts` (computeCoherence weighted sum with [0,1] clamping, SlidingWindow class with record/evict/violationRate/reworkFrequency/getInputs/computeResult). **Phase 2** — privilege mapping: `src/privileges.ts` (scoreToLevel FR-005 boundary mapping, getCapabilities, hasCapability, enabledCapabilities, disabledCapabilities, compareLevels). **Phase 3** — capability enforcement: `src/enforcement.ts` (checkCapability, enforceCapability, checkCapabilities batch, actionToCapability mapping, CapabilityDeniedError class). **Phase 4** — proof chain: `src/proof-chain.ts` (ProofChain class with SHA-256 hash-chained append/verify/records/get, computePayloadHash, computeRecordHash, compaction support via maxLength). **Phase 5** — integration pipeline: `src/pipeline.ts` (CoherencePipeline class — recordAction wires sliding window + score computation + proof chain + privilege transition events, check/enforce capability, onPrivilegeChanged listener with unsubscribe). **Phase 6** — conformance kit: `src/conformance.ts` (runConformanceKit with 14 acceptance tests covering SC-001–SC-005, FR-005–FR-008, FR-011). Barrel exports + 7 subpath exports (./types, ./scoring, ./privileges, ./enforcement, ./proof-chain, ./pipeline, ./conformance). Validation: `tsc` clean, 93/93 tests pass. FR-001–FR-011, NF-001–NF-004, SC-001–SC-006 satisfied.
 - Recommended files to read:
-  - `packages/coherence-scoring/src/index.ts` (barrel exports)
-  - `packages/coherence-scoring/src/types.ts` (all types + constants)
-  - `packages/coherence-scoring/src/scoring.ts` (computeCoherence + SlidingWindow)
-  - `packages/coherence-scoring/src/privileges.ts` (scoreToLevel + capability queries)
-  - `packages/coherence-scoring/src/enforcement.ts` (capability enforcement + CapabilityDeniedError)
-  - `packages/coherence-scoring/src/proof-chain.ts` (ProofChain with SHA-256 hash chaining)
-  - `packages/coherence-scoring/src/pipeline.ts` (CoherencePipeline integration)
-  - `packages/coherence-scoring/src/conformance.ts` (conformance kit)
+  - `.ai/plans/platform-seams-implementation-brief.md` (phased implementation plan — START HERE)
+  - `.ai/findings/platform-integration-seams-deep-trace.md` (verified line numbers, all injection points)
+  - `.ai/findings/platform-integration-seams-readiness.md` (original readiness review, 28 findings)
+  - `crates/axiomregent/src/router/permissions.rs` (audit dispatch — Seam B injection point)
+  - `crates/axiomregent/src/router/mod.rs` (Router dispatch — 5 audit call sites)
+  - `crates/axiomregent/src/router/policy_bundle.rs` (policy cache — Seam A injection point)
+  - `apps/desktop/src-tauri/src/governed_claude.rs` (grant construction — Seam C injection point)
+  - `platform/services/stagecraft/api/admin/admin.ts` (existing audit endpoints)
+  - `platform/services/stagecraft/api/deploy/logtoM2m.ts` (M2M auth pattern reference)
 
 ## Requested next agent output
 
