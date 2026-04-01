@@ -14,7 +14,9 @@ const SUPPORTED_EVENTS: ReadonlySet<HookEventType> = new Set([
   "PreToolUse",
   "PostToolUse",
   "UserPromptSubmit",
-  "Stop",
+  "SessionStart",
+  "SessionStop",
+  "FileChanged",
 ]);
 
 const SUPPORTED_ACTIONS = new Set(["block", "warn", "modify"]);

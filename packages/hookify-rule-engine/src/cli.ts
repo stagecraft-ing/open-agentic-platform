@@ -11,7 +11,9 @@ const EVENTS = new Set<HookEventType>([
   "PreToolUse",
   "PostToolUse",
   "UserPromptSubmit",
-  "Stop",
+  "SessionStart",
+  "SessionStop",
+  "FileChanged",
 ]);
 
 function readStdinSync(): string {

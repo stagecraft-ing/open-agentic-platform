@@ -2,12 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 import type { HookEventType } from "./types.js";
 
-/** All lifecycle events registered in the generated manifest (FR-007, SC-006). */
+/** All lifecycle events registered in the generated manifest (FR-001, SC-006). */
 export const HOOKIFY_LIFECYCLE_EVENTS: readonly HookEventType[] = [
+  "SessionStart",
   "PreToolUse",
   "PostToolUse",
   "UserPromptSubmit",
-  "Stop",
+  "FileChanged",
+  "SessionStop",
 ] as const;
 
 export interface HooksManifest {

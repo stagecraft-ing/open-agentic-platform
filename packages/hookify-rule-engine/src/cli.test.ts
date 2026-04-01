@@ -17,10 +17,12 @@ describe("hookify-rule-engine CLI", () => {
       "hookify-rule-engine evaluate --event PreToolUse",
     );
     expect(Object.keys(json.hooks)).toEqual([
+      "SessionStart",
       "PreToolUse",
       "PostToolUse",
       "UserPromptSubmit",
-      "Stop",
+      "FileChanged",
+      "SessionStop",
     ]);
     rmSync(dir, { recursive: true });
   });

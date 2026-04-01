@@ -2,7 +2,9 @@ export type HookEventType =
   | "PreToolUse"
   | "PostToolUse"
   | "UserPromptSubmit"
-  | "Stop";
+  | "SessionStart"
+  | "SessionStop"
+  | "FileChanged";
 
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
@@ -101,4 +103,59 @@ export interface ActionExecutionResult {
 export interface ParseRuleResult {
   rule: Rule | null;
   diagnostics: Diagnostic[];
+}
+
+// --- Spec 069: Lifecycle Hook Runtime types ---
+
+/** Handler types supported by the hook runtime (FR-003). */
+export type HandlerType = "bash" | "agent" | "prompt";
+
+/** Source from which a hook was registered (FR-005). */
+export type HookSource = "settings" | "rule_file" | "manifest" | "programmatic";
+
+/** Behavior when a handler fails (crash/timeout) (FR-009). */
+export type FailMode = "warn" | "block";
+
+/** Result action returned by hook dispatch. */
+export type HookActionResult =
+  | { type: "block"; reason: string }
+  | { type: "warn"; message: string }
+  | { type: "modify"; patch: Record<string, unknown> }
+  | { type: "allow" };
+
+/** Handler definition for a registered hook. */
+export type HookHandler =
+  | { type: "bash"; command: string }
+  | { type: "agent"; promptTemplate: string }
+  | { type: "prompt"; message: string };
+
+/** A hook registered in the HookRegistry. */
+export interface RegisteredHook {
+  name: string;
+  event: HookEventType;
+  condition: ConditionNode | null;
+  matcher: Matcher;
+  handler: HookHandler;
+  action: ActionType;
+  priority: number;
+  failMode: FailMode;
+  timeoutMs: number;
+  source: HookSource;
+}
+
+/** Dispatch result from the hook registry. */
+export type HookDispatchResult =
+  | { outcome: "allowed" }
+  | { outcome: "blocked"; reason: string; hookName: string }
+  | { outcome: "modified"; payload: Record<string, unknown> };
+
+/** Audit entry for a single hook execution (NF-002). */
+export interface HookAuditEntry {
+  eventType: HookEventType;
+  hookName: string;
+  handlerType: HandlerType;
+  durationMs: number;
+  result: "block" | "warn" | "allow" | "modify" | "error";
+  message?: string;
+  timestamp: number;
 }

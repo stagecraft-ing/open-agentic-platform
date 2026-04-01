@@ -19,6 +19,11 @@
     "./engine": "./src/engine.ts",
     "./loader": "./src/loader.ts",
     "./hooks-json": "./src/hooks-json.ts",
+    "./events": "./src/events.ts",
+    "./handlers": "./src/handlers.ts",
+    "./registry": "./src/registry.ts",
+    "./settings-parser": "./src/settings-parser.ts",
+    "./audit": "./src/audit.ts",
     "./cli": "./src/cli.ts"
   },
   "scripts": {

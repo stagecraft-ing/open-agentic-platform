@@ -7,16 +7,18 @@ import {
 import type { HookEventType } from "./types.js";
 
 describe("hooks.json manifest (SC-006)", () => {
-  it("registers all four lifecycle events with hookify evaluate commands", () => {
+  it("registers all six lifecycle events with hookify evaluate commands", () => {
     const manifest = buildHooksManifest();
     const events = Object.keys(manifest.hooks);
     expect(events).toEqual([
+      "SessionStart",
       "PreToolUse",
       "PostToolUse",
       "UserPromptSubmit",
-      "Stop",
+      "FileChanged",
+      "SessionStop",
     ]);
-    expect(HOOKIFY_LIFECYCLE_EVENTS.length).toBe(4);
+    expect(HOOKIFY_LIFECYCLE_EVENTS.length).toBe(6);
 
     for (const event of HOOKIFY_LIFECYCLE_EVENTS) {
       const entries = manifest.hooks[event as HookEventType];
@@ -29,13 +31,15 @@ describe("hooks.json manifest (SC-006)", () => {
   it("stringify preserves stable ordering for diff-friendly output", () => {
     const s = stringifyHooksManifest(buildHooksManifest());
     expect(s).toContain('"PreToolUse"');
-    expect(s).toContain('"Stop"');
+    expect(s).toContain('"SessionStop"');
     const parsed = JSON.parse(s) as { hooks: Record<string, unknown> };
     expect(Object.keys(parsed.hooks)).toEqual([
+      "SessionStart",
       "PreToolUse",
       "PostToolUse",
       "UserPromptSubmit",
-      "Stop",
+      "FileChanged",
+      "SessionStop",
     ]);
   });
 });

@@ -7,10 +7,18 @@ export type {
   Diagnostic,
   DiagnosticSeverity,
   EvaluationResult,
+  FailMode,
+  HandlerType,
+  HookActionResult,
+  HookAuditEntry,
+  HookDispatchResult,
   HookEvent,
   HookEventType,
+  HookHandler,
+  HookSource,
   Matcher,
   ParseRuleResult,
+  RegisteredHook,
   Rule,
   TerminalDecision,
 } from "./types.js";
@@ -38,3 +46,35 @@ export {
   writeHooksManifest,
 } from "./hooks-json.js";
 export type { HooksManifest, BuildHooksManifestOptions, WriteHooksManifestOptions } from "./hooks-json.js";
+
+// --- Spec 069: Lifecycle Hook Runtime ---
+
+export type {
+  EventPayloadMap,
+  FileChangedPayload,
+  PostToolUsePayload,
+  PreToolUsePayload,
+  SessionStartPayload,
+  SessionStopPayload,
+  TypedHookEvent,
+  UserPromptSubmitPayload,
+} from "./events.js";
+export { buildEnvVars } from "./events.js";
+
+export {
+  executeBashHandler,
+  executeAgentHandler,
+  executePromptHandler,
+  executeHandler,
+  defaultAgentDispatch,
+  defaultPromptDisplay,
+} from "./handlers.js";
+export type { AgentDispatchFn, HandlerContext, HandlerExecutionResult, PromptDisplayFn } from "./handlers.js";
+
+export { HookRegistry } from "./registry.js";
+export type { HookRegistryOptions } from "./registry.js";
+
+export { parseSettingsHooks } from "./settings-parser.js";
+
+export { consoleAuditSink, MemoryAuditSink, nullAuditSink } from "./audit.js";
+export type { AuditSink } from "./audit.js";
