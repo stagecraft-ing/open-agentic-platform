@@ -143,6 +143,13 @@ impl XrayTools {
         Ok(serde_json::to_value(&plan)?)
     }
 
+    /// Generate a structural fingerprint for the repository.
+    pub fn xray_fingerprint(&self, repo_root: &Path) -> Result<Value> {
+        let index = scan_target(repo_root, None).context("Failed to scan for fingerprint")?;
+        let fp = crate::fingerprint::generate_fingerprint(&index);
+        Ok(serde_json::to_value(&fp)?)
+    }
+
     /// Evaluate policy rules against the repository.
     pub fn xray_policy(&self, repo_root: &Path) -> Result<Value> {
         let index = scan_target(repo_root, None).context("Failed to scan for policy")?;

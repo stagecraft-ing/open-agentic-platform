@@ -47,6 +47,7 @@ fn make_valid_index() -> XrayIndex {
         changed_files: None,
         call_graph_summary: None,
         dependencies: None,
+        fingerprint: None,
     }
 }
 

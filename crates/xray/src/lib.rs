@@ -12,6 +12,7 @@ pub mod canonical;
 pub mod context;
 pub mod digest;
 pub mod docs;
+pub mod fingerprint;
 pub mod hash;
 pub mod history;
 pub mod language;

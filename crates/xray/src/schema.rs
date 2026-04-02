@@ -65,6 +65,10 @@ pub struct XrayIndex {
     /// Dependency inventory (None if not analyzed).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dependencies: Option<crate::analysis::deps::DependencyInventory>,
+
+    /// Structural fingerprint (None if not computed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fingerprint: Option<crate::fingerprint::Fingerprint>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -123,6 +127,7 @@ impl Default for XrayIndex {
             changed_files: None,
             call_graph_summary: None,
             dependencies: None,
+            fingerprint: None,
         }
     }
 }

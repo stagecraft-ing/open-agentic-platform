@@ -355,6 +355,7 @@ mod tests {
             changed_files: None,
             call_graph_summary: None,
             dependencies: None,
+            fingerprint: None,
         }
     }
 
