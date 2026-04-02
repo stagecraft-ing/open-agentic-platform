@@ -8,3 +8,6 @@ pub mod structure;
 pub mod call_graph;
 
 pub mod deps;
+
+#[cfg(feature = "analysis-embeddings")]
+pub mod embeddings;
