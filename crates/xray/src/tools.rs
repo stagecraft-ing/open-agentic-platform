@@ -3,7 +3,7 @@
 // Feature: XRAY_ANALYSIS
 // Spec: spec/xray/analysis.md
 
-use crate::{scan_target, scan_target_incremental};
+use crate::{history, scan_target, scan_target_incremental};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -70,6 +70,22 @@ impl XrayTools {
             .context("Failed to run incremental scan")?;
 
         Ok(serde_json::to_value(&index)?)
+    }
+    /// Get churn report from scan history
+    pub fn xray_churn(&self, repo_root: &Path, top_n: usize) -> Result<Value> {
+        let history_path = repo_root
+            .join(".axiomregent")
+            .join("data")
+            .join("history.jsonl");
+        let entries = history::load_history(&history_path)?;
+        let churn = history::churn_report(&entries, top_n);
+        let growth = history::growth_report(&entries);
+
+        Ok(serde_json::json!({
+            "churn": churn,
+            "growth": growth,
+            "totalScans": entries.len()
+        }))
     }
 }
 

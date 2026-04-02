@@ -6,7 +6,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use xray::{docs, schema};
+use xray::{docs, history, schema};
 
 #[derive(Parser)]
 #[command(name = "xray")]
@@ -41,6 +41,16 @@ enum Commands {
         /// Output directory (default: docs)
         #[arg(long, default_value = "docs")]
         output: String,
+    },
+    /// Show churn report from scan history
+    History {
+        /// Path to history.jsonl (default: .axiomregent/data/history.jsonl)
+        #[arg(long)]
+        path: Option<String>,
+
+        /// Number of top churning files to show
+        #[arg(long, default_value = "20")]
+        top: usize,
     },
     /// Run scan + docs pipeline
     All,
@@ -89,6 +99,32 @@ fn main() -> Result<()> {
             generator.generate()?;
 
             eprintln!("Docs generated successfully.");
+            Ok(())
+        }
+        Commands::History { path, top } => {
+            let history_path = match path {
+                Some(p) => PathBuf::from(p),
+                None => {
+                    let repo_root = std::env::current_dir()?;
+                    repo_root.join(".axiomregent").join("data").join("history.jsonl")
+                }
+            };
+
+            let entries = history::load_history(&history_path)?;
+            if entries.is_empty() {
+                eprintln!("No history found at {}", history_path.display());
+                return Ok(());
+            }
+
+            let churn = history::churn_report(&entries, *top);
+            let growth = history::growth_report(&entries);
+
+            eprintln!("History: {} scans, {} → {} files (delta: {:+})",
+                growth.entries, growth.first_file_count, growth.latest_file_count, growth.file_count_delta);
+            eprintln!("\nTop {} churning files:", top);
+            for entry in &churn {
+                eprintln!("  {:4} changes  {}", entry.changes, entry.path);
+            }
             Ok(())
         }
         Commands::All => {

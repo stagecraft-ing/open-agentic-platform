@@ -12,6 +12,7 @@ pub mod canonical;
 pub mod digest;
 pub mod docs;
 pub mod hash;
+pub mod history;
 pub mod language;
 pub mod loc;
 pub mod schema;
@@ -101,9 +102,12 @@ pub fn scan_target_incremental(
 
     let bytes = canonical::to_canonical_json(&index)?;
 
-    if let Some(out_dir) = output {
+    if let Some(ref out_dir) = output {
         let out_file = out_dir.join("index.json");
         write::write_atomic(&out_file, &bytes)?;
+        // Append to history
+        let history_file = out_dir.join("history.jsonl");
+        history::append_history(&history_file, &index)?;
         println!("XRAY incremental scan complete. Digest: {}", index.digest);
         println!(
             "Changed files: {}",
@@ -146,9 +150,12 @@ pub fn scan_target(target: &Path, output: Option<PathBuf>) -> Result<XrayIndex> 
     let bytes = canonical::to_canonical_json(&index)?;
 
     // 5. Determine output path and write if requested
-    if let Some(out_dir) = output {
+    if let Some(ref out_dir) = output {
         let out_file = out_dir.join("index.json");
         write::write_atomic(&out_file, &bytes)?;
+        // Append to history
+        let history_file = out_dir.join("history.jsonl");
+        history::append_history(&history_file, &index)?;
         println!("XRAY scan complete. Digest: {}", index.digest);
         println!("Written to: {}", out_file.display());
     }
