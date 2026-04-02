@@ -17,12 +17,12 @@ import { Settings } from "@/components/Settings";
 import { CCAgents } from "@/components/CCAgents";
 import { UsageDashboard } from "@/components/UsageDashboard";
 import { MCPManager } from "@/components/MCPManager";
-import { NFOCredits } from "@/components/NFOCredits";
 import { ClaudeBinaryDialog } from "@/components/ClaudeBinaryDialog";
 import { Toast, ToastContainer } from "@opc/ui/toast";
 import { ProjectSettings } from '@/components/ProjectSettings';
 import { TabManager } from "@/components/TabManager";
 import { TabContent } from "@/components/TabContent";
+import { ProjectToolbar } from "@/components/ProjectToolbar";
 import { useTabState } from "@/hooks/useTabState";
 import { useAppLifecycle, useTrackEvent } from "@/hooks";
 import { StartupIntro } from "@/components/StartupIntro";
@@ -48,18 +48,11 @@ type View =
  */
 function AppContent() {
   const [view, setView] = useState<View>("tabs");
-  const { 
-    createClaudeMdTab, 
-    createSettingsTab, 
-    createUsageTab, 
-    createMCPTab, 
+  const {
+    createSettingsTab,
+    createUsageTab,
+    createMCPTab,
     createAgentsTab,
-    createGovernanceTab,
-    createXrayTab,
-    createSemanticSearchTab,
-    createCallGraphTab,
-    createGitContextTab,
-    createCheckpointTab
   } = useTabState();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -67,7 +60,6 @@ function AppContent() {
   const [editingClaudeFile, setEditingClaudeFile] = useState<ClaudeMdFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [_error, setError] = useState<string | null>(null);
-  const [showNFO, setShowNFO] = useState(false);
   const [showClaudeBinaryDialog, setShowClaudeBinaryDialog] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [homeDirectory, setHomeDirectory] = useState<string>('/');
@@ -370,6 +362,7 @@ function AppContent() {
         return (
           <div className="h-full flex flex-col">
             <TabManager className="flex-shrink-0" />
+            <ProjectToolbar />
             <div className="flex-1 overflow-hidden">
               <TabContent />
             </div>
@@ -411,16 +404,8 @@ function AppContent() {
       <CustomTitlebar
         onAgentsClick={() => createAgentsTab()}
         onUsageClick={() => createUsageTab()}
-        onClaudeClick={() => createClaudeMdTab()}
         onMCPClick={() => createMCPTab()}
         onSettingsClick={() => createSettingsTab()}
-        onInfoClick={() => setShowNFO(true)}
-        onXrayClick={() => createXrayTab()}
-        onGovernanceClick={() => createGovernanceTab()}
-        onSemanticSearchClick={() => createSemanticSearchTab()}
-        onCallGraphClick={() => createCallGraphTab()}
-        onGitContextClick={() => createGitContextTab()}
-        onCheckpointClick={() => createCheckpointTab()}
       />
       
       {/* Topbar - Commented out since navigation moved to titlebar */}
@@ -429,7 +414,6 @@ function AppContent() {
         onSettingsClick={() => createSettingsTab()}
         onUsageClick={() => createUsageTab()}
         onMCPClick={() => createMCPTab()}
-        onInfoClick={() => setShowNFO(true)}
         onAgentsClick={() => setShowAgentsModal(true)}
       /> */}
       
@@ -439,9 +423,6 @@ function AppContent() {
       <div className="flex-1 overflow-hidden">
         {renderContent()}
       </div>
-      
-      {/* NFO Credits Modal */}
-      {showNFO && <NFOCredits onClose={() => setShowNFO(false)} />}
       
       
       {/* Claude Binary Dialog */}

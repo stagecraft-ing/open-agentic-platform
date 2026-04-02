@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { OutputCacheProvider } from "@/lib/outputCache";
 import { TabProvider } from "@/contexts/TabContext";
-import { NFOCredits } from "@/components/NFOCredits";
 import { ClaudeBinaryDialog } from "@/components/ClaudeBinaryDialog";
 import { Toast, ToastContainer } from "@opc/ui/toast";
 import { TabManager } from "@/components/TabManager";
@@ -16,7 +15,6 @@ import { useTabState } from "@/hooks/useTabState";
  */
 function AppContent() {
   const { } = useTabState();
-  const [showNFO, setShowNFO] = useState(false);
   const [showClaudeBinaryDialog, setShowClaudeBinaryDialog] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [showAgentsModal, setShowAgentsModal] = useState(false);
@@ -85,7 +83,6 @@ function AppContent() {
       window.dispatchEvent(new CustomEvent('create-project-tab'));
     };
 
-    const handleShowNFO = () => setShowNFO(true);
     const handleShowAgents = () => setShowAgentsModal(true);
 
     const projectButton = document.getElementById('create-project-tab-btn');
@@ -94,14 +91,12 @@ function AppContent() {
     }
 
     // Listen for custom events to show modals
-    window.addEventListener('show-nfo', handleShowNFO);
     window.addEventListener('show-agents-modal', handleShowAgents);
 
     return () => {
       if (projectButton) {
         projectButton.removeEventListener('click', handleCreateProjectTab);
       }
-      window.removeEventListener('show-nfo', handleShowNFO);
       window.removeEventListener('show-agents-modal', handleShowAgents);
     };
   }, []);
@@ -130,8 +125,6 @@ function AppContent() {
         </div>
 
         {/* Global Modals */}
-        {showNFO && <NFOCredits onClose={() => setShowNFO(false)} />}
-        
         <ClaudeBinaryDialog 
           open={showClaudeBinaryDialog} 
           onOpenChange={setShowClaudeBinaryDialog}

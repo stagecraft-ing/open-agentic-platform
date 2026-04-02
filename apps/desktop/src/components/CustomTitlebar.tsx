@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Minus, Square, X, Bot, BarChart3, FileText, Network, Info, MoreVertical, Scan, Shield, Search, Share2, GitBranch, History } from 'lucide-react';
+import { Settings, Minus, Square, X, Bot, BarChart3, Network } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { TooltipProvider, TooltipSimple } from '@opc/ui/tooltip-modern';
 
@@ -8,45 +8,16 @@ interface CustomTitlebarProps {
   onSettingsClick?: () => void;
   onAgentsClick?: () => void;
   onUsageClick?: () => void;
-  onClaudeClick?: () => void;
   onMCPClick?: () => void;
-  onInfoClick?: () => void;
-  onXrayClick?: () => void;
-  onGovernanceClick?: () => void;
-  onSemanticSearchClick?: () => void;
-  onCallGraphClick?: () => void;
-  onGitContextClick?: () => void;
-  onCheckpointClick?: () => void;
 }
 
 export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
   onSettingsClick,
   onAgentsClick,
   onUsageClick,
-  onClaudeClick,
   onMCPClick,
-  onInfoClick,
-  onXrayClick,
-  onGovernanceClick,
-  onSemanticSearchClick,
-  onCallGraphClick,
-  onGitContextClick,
-  onCheckpointClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleMinimize = async () => {
     try {
@@ -147,192 +118,62 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
         <span className="text-sm font-medium text-foreground/80">{title}</span>
       </div> */}
 
-      {/* Right side - Navigation icons with improved spacing */}
-      <div className="flex items-center pr-5 gap-3 tauri-no-drag">
-        {/* Primary actions group */}
-        <div className="flex items-center gap-1">
-          {onAgentsClick && (
-            <TooltipSimple content="Agents" side="bottom">
-              <motion.button
-                onClick={onAgentsClick}
-                whileTap={{ scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
-              >
-                <Bot size={16} />
-              </motion.button>
-            </TooltipSimple>
-          )}
-          
-          {onUsageClick && (
-            <TooltipSimple content="Usage Dashboard" side="bottom">
-              <motion.button
-                onClick={onUsageClick}
-                whileTap={{ scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
-              >
-                <BarChart3 size={16} />
-              </motion.button>
-            </TooltipSimple>
-          )}
-        </div>
+      {/* Right side - Navigation icons */}
+      <div className="flex items-center pr-5 gap-1 tauri-no-drag">
+        {onAgentsClick && (
+          <TooltipSimple content="Agents" side="bottom">
+            <motion.button
+              onClick={onAgentsClick}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
+            >
+              <Bot size={16} />
+            </motion.button>
+          </TooltipSimple>
+        )}
+
+        {onUsageClick && (
+          <TooltipSimple content="Usage Dashboard" side="bottom">
+            <motion.button
+              onClick={onUsageClick}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
+            >
+              <BarChart3 size={16} />
+            </motion.button>
+          </TooltipSimple>
+        )}
 
         {/* Visual separator */}
-        <div className="w-px h-5 bg-border/50" />
+        <div className="w-px h-5 bg-border/50 mx-1" />
 
-        {/* Secondary actions group */}
-        <div className="flex items-center gap-1">
-          {onSettingsClick && (
-            <TooltipSimple content="Settings" side="bottom">
-              <motion.button
-                onClick={onSettingsClick}
-                whileTap={{ scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
-              >
-                <Settings size={16} />
-              </motion.button>
-            </TooltipSimple>
-          )}
+        {onMCPClick && (
+          <TooltipSimple content="MCP Servers" side="bottom">
+            <motion.button
+              onClick={onMCPClick}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
+            >
+              <Network size={16} />
+            </motion.button>
+          </TooltipSimple>
+        )}
 
-          {/* Dropdown menu for additional options */}
-          <div className="relative" ref={dropdownRef}>
-            <TooltipSimple content="More options" side="bottom">
-              <motion.button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                whileTap={{ scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-1"
-              >
-                <MoreVertical size={16} />
-              </motion.button>
-            </TooltipSimple>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg z-[250]">
-                <div className="py-1">
-                  {onClaudeClick && (
-                    <button
-                      onClick={() => {
-                        onClaudeClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <FileText size={14} />
-                      <span>CLAUDE.md</span>
-                    </button>
-                  )}
-                  
-                  {onMCPClick && (
-                    <button
-                      onClick={() => {
-                        onMCPClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <Network size={14} />
-                      <span>MCP Servers</span>
-                    </button>
-                  )}
-                  
-                  {onXrayClick && (
-                    <button
-                      onClick={() => {
-                        onXrayClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <Scan size={14} />
-                      <span>Xray Analysis</span>
-                    </button>
-                  )}
-
-                  {onGovernanceClick && (
-                    <button
-                      onClick={() => {
-                        onGovernanceClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <Shield size={14} />
-                      <span>Governance</span>
-                    </button>
-                  )}
-
-                  {onSemanticSearchClick && (
-                    <button
-                      onClick={() => {
-                        onSemanticSearchClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <Search size={14} />
-                      <span>Semantic Search</span>
-                    </button>
-                  )}
-
-                  {onCallGraphClick && (
-                    <button
-                      onClick={() => {
-                        onCallGraphClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <Share2 size={14} />
-                      <span>Call Graph</span>
-                    </button>
-                  )}
-
-                  {onGitContextClick && (
-                    <button
-                      onClick={() => {
-                        onGitContextClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <GitBranch size={14} />
-                      <span>Git Context</span>
-                    </button>
-                  )}
-
-                  {onCheckpointClick && (
-                    <button
-                      onClick={() => {
-                        onCheckpointClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
-                    >
-                      <History size={14} />
-                      <span>Checkpoint</span>
-                    </button>
-                  )}
-
-                  {onInfoClick && (
-                    <button
-                      onClick={() => {
-                        onInfoClick();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3 border-t border-border mt-1 pt-1"
-                    >
-                      <Info size={14} />
-                      <span>About</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {onSettingsClick && (
+          <TooltipSimple content="Settings" side="bottom">
+            <motion.button
+              onClick={onSettingsClick}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
+            >
+              <Settings size={16} />
+            </motion.button>
+          </TooltipSimple>
+        )}
       </div>
     </div>
     </TooltipProvider>
