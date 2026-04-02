@@ -97,7 +97,7 @@ fn test_determinism_empty_scan() {
     assert_eq!(content1, content2, "Outputs are not identical!");
 
     // 5. Verify Content (Basic)
-    assert!(content1.contains("\"schemaVersion\":\"1.0.0\""));
+    assert!(content1.contains("\"schemaVersion\":\"1.1.0\""));
     assert!(!content1.contains("indexedAt")); // Forbidden field check
 
     // 6. Verify Traversal and Ignore Logic

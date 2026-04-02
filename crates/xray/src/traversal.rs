@@ -170,13 +170,26 @@ pub fn scan_target(target: &Path) -> Result<ScanResult> {
         // So it won't be in module_files unless I add a special check outside the loop.
         // I'll stick to loop for now.
 
+        // Compute structural analysis if feature enabled
+        #[cfg(feature = "analysis-structure")]
+        let (complexity, functions, max_depth) = {
+            match crate::analysis::structure::analyze_file(path) {
+                Some(m) => (m.complexity, Some(m.functions), Some(m.max_depth)),
+                None => (0, None, None),
+            }
+        };
+        #[cfg(not(feature = "analysis-structure"))]
+        let (complexity, functions, max_depth): (u64, Option<u32>, Option<u32>) = (0, None, None);
+
         files.push(FileNode {
             path: clean_path,
             size: loc_stats.size,
             hash,
             lang,
             loc: loc_stats.loc,
-            complexity: 0, // Placeholder Phase A
+            complexity,
+            functions,
+            max_depth,
         });
     }
 

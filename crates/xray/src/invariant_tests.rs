@@ -21,6 +21,8 @@ fn make_valid_index() -> XrayIndex {
                 lang: "Text".to_string(),
                 loc: 1,
                 complexity: 1,
+                functions: None,
+                max_depth: None,
             },
             FileNode {
                 path: "b.txt".to_string(),
@@ -29,6 +31,8 @@ fn make_valid_index() -> XrayIndex {
                 lang: "Text".to_string(),
                 loc: 2,
                 complexity: 1,
+                functions: None,
+                max_depth: None,
             },
         ],
         languages: BTreeMap::from([("Text".to_string(), 2)]),
@@ -241,6 +245,8 @@ fn test_validate_unknown_exclusion() {
         lang: "Unknown".to_string(),
         loc: 0,
         complexity: 0,
+        functions: None,
+        max_depth: None,
     });
     // 2. Sort
     index.files.sort_by(|a, b| a.path.cmp(&b.path));

@@ -7,6 +7,7 @@ use anyhow::Result;
 use std::path::{Path, PathBuf};
 
 // Export modules so they can be used
+pub mod analysis;
 pub mod canonical;
 pub mod digest;
 pub mod docs;

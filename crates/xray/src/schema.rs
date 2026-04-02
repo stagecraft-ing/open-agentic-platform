@@ -59,6 +59,14 @@ pub struct FileNode {
 
     /// Calculated complexity score.
     pub complexity: u64,
+
+    /// Number of function definitions (None if language not analyzable)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub functions: Option<u32>,
+
+    /// Maximum nesting depth (None if language not analyzable)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -71,7 +79,7 @@ pub struct RepoStats {
 impl Default for XrayIndex {
     fn default() -> Self {
         Self {
-            schema_version: "1.0.0".to_string(),
+            schema_version: "1.1.0".to_string(),
             root: "unknown".to_string(),
             target: ".".to_string(),
             files: vec![],
