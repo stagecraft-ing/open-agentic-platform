@@ -31,6 +31,12 @@ export default function AdminLayout() {
         >
           Audit
         </Link>
+        <Link
+          to="/admin/projects"
+          className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+        >
+          Projects
+        </Link>
       </nav>
       <main>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">

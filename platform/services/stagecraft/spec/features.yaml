@@ -145,3 +145,24 @@ features:
     group: frontend
     tests: []
     depends_on: [USER_APP, ADMIN_APP]
+
+  # --- Project Model & Registry (Phase 1) ---
+  - id: PROJECT_REGISTRY
+    title: "Project model - orgs, projects, repos, environments, members"
+    governance: approved
+    implementation: done
+    spec: ""
+    owner: core-team
+    group: platform
+    tests: []
+    depends_on: [RBAC, AUDIT_LOG]
+
+  - id: PROJECT_ADMIN_UI
+    title: "Admin dashboard for project CRUD, repo linking, env management"
+    governance: approved
+    implementation: done
+    spec: ""
+    owner: core-team
+    group: frontend
+    tests: []
+    depends_on: [PROJECT_REGISTRY, ADMIN_APP]

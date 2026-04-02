@@ -19,5 +19,10 @@ export default [
     index("routes/admin._index.tsx"),
     route("users", "routes/admin.users.tsx"),
     route("audit", "routes/admin.audit.tsx"),
+    route("projects", "routes/admin.projects.tsx", [
+      index("routes/admin.projects._index.tsx"),
+      route("new", "routes/admin.projects.new.tsx"),
+      route(":id", "routes/admin.projects.$id.tsx"),
+    ]),
   ]),
 ] satisfies RouteConfig;
