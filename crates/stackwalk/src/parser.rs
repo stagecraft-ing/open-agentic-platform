@@ -27,11 +27,22 @@ extern "C" {
 ///
 /// A vector of `Block`s representing the code structure of the parsed file.
 pub fn parse_file(file_path: &Path, module_name: &str, config: &Config) -> Vec<Block> {
-    let code = fs::read_to_string(file_path).unwrap();
-    let language = tree_sitter_language(file_path);
+    let code = match fs::read_to_string(file_path) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    let language = match tree_sitter_language(file_path) {
+        Some(lang) => lang,
+        None => return Vec::new(),
+    };
     let mut parser = Parser::new();
-    parser.set_language(language).unwrap();
-    let tree = parser.parse(&code, None).unwrap();
+    if parser.set_language(language).is_err() {
+        return Vec::new();
+    }
+    let tree = match parser.parse(&code, None) {
+        Some(t) => t,
+        None => return Vec::new(),
+    };
 
     let mut blocks = Vec::new();
     let mut non_function_blocks = Vec::new();
@@ -77,18 +88,16 @@ pub fn parse_file(file_path: &Path, module_name: &str, config: &Config) -> Vec<B
 /// # Panics
 ///
 /// Panics if the file's extension is not supported.
-fn tree_sitter_language(file_path: &Path) -> Language {
+fn tree_sitter_language(file_path: &Path) -> Option<Language> {
     let extension = file_path
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
     match extension {
-        "rs" => unsafe { tree_sitter_rust() },
-        "py" => unsafe { tree_sitter_python() },
-        "js" => unsafe { tree_sitter_javascript() },
-        "ts" => unsafe { tree_sitter_javascript() },
-        // Add more mappings for other supported languages
-        _ => panic!("Unsupported language"),
+        "rs" => Some(unsafe { tree_sitter_rust() }),
+        "py" => Some(unsafe { tree_sitter_python() }),
+        "js" | "ts" => Some(unsafe { tree_sitter_javascript() }),
+        _ => None,
     }
 }
 
@@ -260,7 +269,7 @@ fn find_calls(
                     // For global function calls, check if the function name matches an alias from the imports.
                     if let Some(imported_module) = imports.get(&function_name) {
                         let call_key = generate_node_key(
-                            Path::new(&format!("test-code-base/{}.py", imported_module)),
+                            Path::new(imported_module),
                             None,
                             &function_name,
                         );
@@ -432,15 +441,6 @@ fn parse_import_statement(
                     .collect();
             }
 
-            println!(
-                "{}",
-                imports
-                    .iter()
-                    .map(|(key, value)| format!("({}, {})", key, value))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
-
             return imports;
         }
         lang if lang == unsafe { tree_sitter_python() } => {
@@ -477,11 +477,6 @@ fn parse_import_statement(
                         );
                     }
                 }
-
-                println!(
-                    "Module: {}, Object: {}, Alias: {}",
-                    module_name, object_name, alias_name
-                );
 
                 return vec![(module_name, object_name)];
             }
@@ -522,10 +517,6 @@ fn parse_import_statement(
                     }
                 }
 
-                println!(
-                    "Module: {}, Object: {}, Alias: {}",
-                    module_name, object_name, alias_name
-                );
                 return vec![(module_name, object_name)];
             }
             vec![]
@@ -590,10 +581,6 @@ fn get_function_name(code: &str, node: Node, language: Language) -> Option<Strin
             .and_then(|child| Some(child.utf8_text(code.as_bytes()).unwrap()))
             .map(|s| s.to_string()),
         lang if lang == unsafe { tree_sitter_python() } => node             
-            .child_by_field_name("name")
-            .and_then(|child| Some(child.utf8_text(code.as_bytes()).unwrap()))
-            .map(|s| s.to_string()),
-        lang if lang == unsafe { tree_sitter_javascript() } => node
             .child_by_field_name("name")
             .and_then(|child| Some(child.utf8_text(code.as_bytes()).unwrap()))
             .map(|s| s.to_string()),

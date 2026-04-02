@@ -69,7 +69,10 @@ pub fn index_directory(config: &Config, dir_path: &str) -> (Vec<Block>, CallStac
     let mut call_stack = CallStack::new();
 
     for entry in WalkDir::new(dir_path) {
-        let entry = entry.unwrap();
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
         let path = entry.path();
 
         if path.is_file() && is_supported_file(&path) {

@@ -38,7 +38,7 @@ enum Commands {
         #[arg(long, default_value = "docs")]
         output: String,
     },
-    /// Run all steps (placeholder)
+    /// Run scan + docs pipeline
     All,
 }
 
@@ -85,7 +85,17 @@ fn main() -> Result<()> {
             Ok(())
         }
         Commands::All => {
-            println!("All steps not implemented yet");
+            let target_path = PathBuf::from(".");
+            let repo_root = std::env::current_dir()?;
+            let data_dir = repo_root.join(".axiomregent").join("data");
+
+            let index = xray::scan_target(&target_path, Some(data_dir))?;
+
+            let docs_dir = repo_root.join(".axiomregent").join("docs");
+            let generator = docs::DocsGenerator::new(&index, &docs_dir);
+            generator.generate()?;
+
+            eprintln!("All steps complete. Index + docs written to .axiomregent/");
             Ok(())
         }
     }

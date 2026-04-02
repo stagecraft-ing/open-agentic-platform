@@ -26,6 +26,21 @@ const IGNORED_DIRS: &[&str] = &[
     ".axiomregent",
 ];
 
+/// Loads additional ignore patterns from `.xrayignore` file at the target root.
+/// Each non-empty, non-comment line is treated as a directory name to ignore.
+fn load_xrayignore(target: &Path) -> Vec<String> {
+    let ignore_path = target.join(".xrayignore");
+    match std::fs::read_to_string(&ignore_path) {
+        Ok(content) => content
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .map(|l| l.to_string())
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
 /// Known module files to detect at root.
 const MODULE_FILES_LOOKUP: &[&str] = &[
     "go.mod",
@@ -54,6 +69,9 @@ pub fn scan_target(target: &Path) -> Result<ScanResult> {
     let mut top_dirs: BTreeMap<String, usize> = BTreeMap::new();
     let mut module_files: Vec<String> = Vec::new();
 
+    // Load user-defined ignore patterns
+    let extra_ignores = load_xrayignore(target);
+
     // Explicitly check for .git (which is ignored by walker)
     if target.join(".git").exists() {
         module_files.push(".git".to_string());
@@ -66,7 +84,7 @@ pub fn scan_target(target: &Path) -> Result<ScanResult> {
         entry
             .file_name()
             .to_str()
-            .map(|s| IGNORED_DIRS.contains(&s))
+            .map(|s| IGNORED_DIRS.contains(&s) || extra_ignores.iter().any(|i| i == s))
             .unwrap_or(false)
     };
 
