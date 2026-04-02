@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 // Export modules so they can be used
 pub mod analysis;
 pub mod canonical;
+pub mod context;
 pub mod digest;
 pub mod docs;
 pub mod hash;

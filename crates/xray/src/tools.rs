@@ -119,6 +119,29 @@ impl XrayTools {
             .context("Failed to analyze dependencies")?;
         Ok(serde_json::to_value(&inventory)?)
     }
+
+    /// Build a context plan: which files to read for a given task and token budget.
+    pub fn xray_context(
+        &self,
+        repo_root: &Path,
+        task: String,
+        max_tokens: usize,
+    ) -> Result<Value> {
+        let index = scan_target(repo_root, None).context("Failed to scan for context")?;
+        let history_path = repo_root
+            .join(".axiomregent")
+            .join("data")
+            .join("history.jsonl");
+        let hp = if history_path.exists() {
+            Some(history_path.as_path())
+        } else {
+            None
+        };
+
+        let budget = crate::context::ContextBudget { max_tokens, task };
+        let plan = crate::context::build_context_plan(&index, &budget, hp);
+        Ok(serde_json::to_value(&plan)?)
+    }
 }
 
 impl Default for XrayTools {
