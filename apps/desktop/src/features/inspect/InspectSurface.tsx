@@ -6,51 +6,15 @@ import { apiCall } from '@/lib/apiAdapter';
 import type { GovernanceOverview } from '@/features/governance/useGovernanceStatus';
 import { RegistrySpecFollowUp } from './RegistrySpecFollowUp';
 import { useInspectFlow } from './useInspectFlow';
-
-interface XrayFileNode {
-  path?: string;
-  size?: number;
-  lang?: string;
-  loc?: number;
-}
-
-interface XrayViewModel {
-  digest?: string;
-  root?: string;
-  target?: string;
-  fileCount: number;
-  totalSize?: number;
-  files: XrayFileNode[];
-}
-
-function toXrayViewModel(payload: unknown): XrayViewModel | null {
-  if (!payload || typeof payload !== 'object') return null;
-  const record = payload as Record<string, unknown>;
-  const files = Array.isArray(record.files) ? (record.files as XrayFileNode[]) : [];
-  const stats =
-    record.stats && typeof record.stats === 'object'
-      ? (record.stats as Record<string, unknown>)
-      : undefined;
-
-  return {
-    digest: typeof record.digest === 'string' ? record.digest : undefined,
-    root: typeof record.root === 'string' ? record.root : undefined,
-    target: typeof record.target === 'string' ? record.target : undefined,
-    fileCount:
-      typeof stats?.fileCount === 'number'
-        ? stats.fileCount
-        : typeof stats?.file_count === 'number'
-          ? stats.file_count
-          : files.length,
-    totalSize:
-      typeof stats?.totalSize === 'number'
-        ? stats.totalSize
-        : typeof stats?.total_size === 'number'
-          ? stats.total_size
-          : undefined,
-    files,
-  };
-}
+import { toXrayViewModel } from './xrayViewModel';
+import { XrayFingerprintBadge } from './XrayFingerprintBadge';
+import { XrayStatCards } from './XrayStatCards';
+import { XrayLanguages } from './XrayLanguages';
+import { XrayTopDirs } from './XrayTopDirs';
+import { XrayModuleFiles } from './XrayModuleFiles';
+import { XrayDependencies } from './XrayDependencies';
+import { XrayCallGraph } from './XrayCallGraph';
+import { XrayFileTable } from './XrayFileTable';
 
 interface InspectSurfaceProps {
   /** When provided, the panel pre-fills the path and auto-scans on mount. */
@@ -59,6 +23,7 @@ interface InspectSurfaceProps {
 
 /**
  * Feature 032 — T003: inspect shell for xray scan (explicit loading / success / error / degraded).
+ * Updated for xray schema v1.2.0.
  */
 export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) => {
   const [path, setPath] = useState(projectPath ?? '');
@@ -110,7 +75,7 @@ export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) =
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">Inspect — Xray architecture analysis</h1>
         <p className="text-sm text-muted-foreground">
-          Scan a project directory to produce a deterministic architecture index (Feature 032 T003).
+          Scan a project directory to produce a deterministic architecture index.
         </p>
       </header>
 
@@ -180,27 +145,15 @@ export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) =
             <p className="text-sm text-muted-foreground">{state.reason}</p>
             {degradedData ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
-                  <div className="border rounded-md bg-background p-3">
-                    <div className="text-xs text-muted-foreground">Root</div>
-                    <div className="font-mono break-all">{degradedData.root ?? 'n/a'}</div>
-                  </div>
-                  <div className="border rounded-md bg-background p-3">
-                    <div className="text-xs text-muted-foreground">Target</div>
-                    <div className="font-mono break-all">{degradedData.target ?? 'n/a'}</div>
-                  </div>
-                  <div className="border rounded-md bg-background p-3">
-                    <div className="text-xs text-muted-foreground">Files</div>
-                    <div>{degradedData.fileCount}</div>
-                  </div>
-                  <div className="border rounded-md bg-background p-3">
-                    <div className="text-xs text-muted-foreground">Total bytes</div>
-                    <div>{degradedData.totalSize ?? 'n/a'}</div>
-                  </div>
-                </div>
+                <XrayStatCards
+                  root={degradedData.root}
+                  target={degradedData.target}
+                  fileCount={degradedData.fileCount}
+                  totalSize={degradedData.totalSize}
+                />
                 <div className="border rounded-md bg-background p-3">
                   <div className="text-xs text-muted-foreground mb-2">Digest</div>
-                  <div className="font-mono text-xs break-all">{degradedData.digest ?? 'n/a'}</div>
+                  <div className="font-mono text-xs break-all">{degradedData.digest || 'n/a'}</div>
                 </div>
               </>
             ) : (
@@ -214,7 +167,7 @@ export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) =
         )}
 
         {state.status === 'success' && (
-          <div className="flex-1 min-h-0 flex flex-col gap-3 p-4 m-4 bg-background border rounded-md text-foreground">
+          <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-3 p-4 m-4 bg-background border rounded-md text-foreground">
             {!successData ? (
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                 <AlertTriangle className="h-4 w-4" aria-hidden />
@@ -222,28 +175,40 @@ export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) =
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
-                  <div className="border rounded-md bg-muted/40 p-3">
-                    <div className="text-xs text-muted-foreground">Root</div>
-                    <div className="font-mono break-all">{successData.root ?? 'n/a'}</div>
-                  </div>
-                  <div className="border rounded-md bg-muted/40 p-3">
-                    <div className="text-xs text-muted-foreground">Target</div>
-                    <div className="font-mono break-all">{successData.target ?? 'n/a'}</div>
-                  </div>
-                  <div className="border rounded-md bg-muted/40 p-3">
-                    <div className="text-xs text-muted-foreground">Files</div>
-                    <div>{successData.fileCount}</div>
-                  </div>
-                  <div className="border rounded-md bg-muted/40 p-3">
-                    <div className="text-xs text-muted-foreground">Total bytes</div>
-                    <div>{successData.totalSize ?? 'n/a'}</div>
-                  </div>
-                </div>
+                <XrayFingerprintBadge
+                  fingerprint={successData.fingerprint}
+                  schemaVersion={successData.schemaVersion}
+                />
+
+                <XrayStatCards
+                  root={successData.root}
+                  target={successData.target}
+                  fileCount={successData.fileCount}
+                  totalSize={successData.totalSize}
+                />
+
                 <div className="border rounded-md p-3">
                   <div className="text-xs text-muted-foreground mb-2">Digest</div>
-                  <div className="font-mono text-xs break-all">{successData.digest ?? 'n/a'}</div>
+                  <div className="font-mono text-xs break-all">{successData.digest || 'n/a'}</div>
                 </div>
+
+                <XrayLanguages languages={successData.languages} />
+                <XrayTopDirs topDirs={successData.topDirs} />
+                <XrayModuleFiles moduleFiles={successData.moduleFiles} />
+                <XrayDependencies dependencies={successData.dependencies} />
+                <XrayCallGraph callGraphSummary={successData.callGraphSummary} />
+
+                {successData.prevDigest && (
+                  <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-amber-500/5 text-xs text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Incremental scan — previous digest:{' '}
+                    <span className="font-mono">{successData.prevDigest}</span>
+                    {successData.changedFiles && (
+                      <span>, {successData.changedFiles.length} files changed</span>
+                    )}
+                  </div>
+                )}
+
                 {inspectFollowUp && (
                   <RegistrySpecFollowUp
                     repoRoot={inspectFollowUp.repoRoot}
@@ -254,37 +219,10 @@ export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) =
                   />
                 )}
 
-                <div className="flex-1 min-h-0 border rounded-md">
-                  <div className="px-3 py-2 border-b text-xs text-muted-foreground">
-                    Indexed files ({successData.files.length})
-                  </div>
-                  <div className="max-h-[40vh] overflow-auto">
-                    {successData.files.length === 0 ? (
-                      <div className="p-3 text-sm text-muted-foreground">No files indexed.</div>
-                    ) : (
-                      <table className="w-full text-xs">
-                        <thead className="sticky top-0 bg-background">
-                          <tr className="border-b">
-                            <th className="text-left font-medium p-2">Path</th>
-                            <th className="text-left font-medium p-2">Lang</th>
-                            <th className="text-right font-medium p-2">LOC</th>
-                            <th className="text-right font-medium p-2">Bytes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {successData.files.slice(0, 200).map((file, idx) => (
-                            <tr key={`${file.path ?? 'unknown'}-${idx}`} className="border-b last:border-b-0">
-                              <td className="p-2 font-mono break-all">{file.path ?? 'n/a'}</td>
-                              <td className="p-2">{file.lang ?? 'n/a'}</td>
-                              <td className="p-2 text-right">{file.loc ?? '-'}</td>
-                              <td className="p-2 text-right">{file.size ?? '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
+                <XrayFileTable
+                  files={successData.files}
+                  changedFiles={successData.changedFiles}
+                />
               </>
             )}
           </div>
