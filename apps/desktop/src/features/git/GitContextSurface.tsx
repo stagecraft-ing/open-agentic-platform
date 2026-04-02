@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, GitBranch, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { api } from '@/lib/api';
@@ -6,13 +6,28 @@ import { useGitContext } from './useGitContext';
 import { useGitCtxEnrichment } from './useGitCtxEnrichment';
 import type { GitContextViewState } from './types';
 
+interface GitContextSurfaceProps {
+  /** When provided, the panel pre-fills the path and auto-loads git context on mount. */
+  projectPath?: string;
+}
+
 /**
  * Feature 032 — T004/T005: git context panel with explicit loading / success / error / degraded / unavailable.
  */
-export const GitContextSurface: React.FC = () => {
-  const [path, setPath] = useState('');
+export const GitContextSurface: React.FC<GitContextSurfaceProps> = ({ projectPath }) => {
+  const [path, setPath] = useState(projectPath ?? '');
   const { state, refresh, reset } = useGitContext();
   const enrichment = useGitCtxEnrichment(path, state);
+  const autoLoaded = useRef(false);
+
+  // Auto-load when projectPath is provided
+  useEffect(() => {
+    if (projectPath && !autoLoaded.current) {
+      autoLoaded.current = true;
+      setPath(projectPath);
+      void refresh(projectPath);
+    }
+  }, [projectPath, refresh]);
 
   const busy = state.status === 'loading';
 

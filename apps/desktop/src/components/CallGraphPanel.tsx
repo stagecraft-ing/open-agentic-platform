@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@opc/ui/button';
 
-export const CallGraphPanel: React.FC = () => {
-  const [path, setPath] = useState('');
+interface CallGraphPanelProps {
+  /** When provided, pre-fills the project path input. */
+  projectPath?: string;
+}
+
+export const CallGraphPanel: React.FC<CallGraphPanelProps> = ({ projectPath }) => {
+  const [path, setPath] = useState(projectPath ?? '');
   const [configToml, setConfigToml] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -26,7 +31,7 @@ export const CallGraphPanel: React.FC = () => {
     <div className="p-6 h-full flex flex-col gap-4 text-foreground">
       <h1 className="text-2xl font-bold">Stackwalk Call Graph</h1>
       <div className="flex gap-2">
-        <input 
+        <input
           className="flex-1 px-3 py-2 bg-background border border-input rounded-md text-foreground"
           value={path}
           onChange={e => setPath(e.target.value)}
@@ -36,7 +41,7 @@ export const CallGraphPanel: React.FC = () => {
           {loading ? 'Indexing...' : 'Generate Call Graph'}
         </Button>
       </div>
-      <textarea 
+      <textarea
         className="w-full h-32 px-3 py-2 bg-background border border-input rounded-md text-foreground font-mono text-sm"
         value={configToml}
         onChange={e => setConfigToml(e.target.value)}

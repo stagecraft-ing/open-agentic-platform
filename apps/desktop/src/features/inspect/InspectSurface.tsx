@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { useTabState } from '@/hooks/useTabState';
@@ -52,14 +52,29 @@ function toXrayViewModel(payload: unknown): XrayViewModel | null {
   };
 }
 
+interface InspectSurfaceProps {
+  /** When provided, the panel pre-fills the path and auto-scans on mount. */
+  projectPath?: string;
+}
+
 /**
  * Feature 032 — T003: inspect shell for xray scan (explicit loading / success / error / degraded).
  */
-export const InspectSurface: React.FC = () => {
-  const [path, setPath] = useState('');
+export const InspectSurface: React.FC<InspectSurfaceProps> = ({ projectPath }) => {
+  const [path, setPath] = useState(projectPath ?? '');
   const { createSpecMarkdownTab } = useTabState();
   const [inspectFollowUp, setInspectFollowUp] = useState<GovernanceOverview | null>(null);
   const { state, scan, reset } = useInspectFlow();
+  const autoLoaded = useRef(false);
+
+  // Auto-scan when projectPath is provided
+  useEffect(() => {
+    if (projectPath && !autoLoaded.current) {
+      autoLoaded.current = true;
+      setPath(projectPath);
+      void scan(projectPath);
+    }
+  }, [projectPath, scan]);
 
   useEffect(() => {
     if (state.status !== 'success' || !path.trim()) {

@@ -12,25 +12,30 @@ function getProjectPath(tab: Tab | undefined): string | null {
   return null;
 }
 
-const tools = [
-  { key: 'claude-md', icon: FileText, label: 'CLAUDE.md', action: 'createClaudeMdTab' },
-  { key: 'git-context', icon: GitBranch, label: 'Git Context', action: 'createGitContextTab' },
-  { key: 'xray', icon: Scan, label: 'Xray Analysis', action: 'createXrayTab' },
-  { key: 'governance', icon: Shield, label: 'Governance', action: 'createGovernanceTab' },
-  { key: 'semantic-search', icon: Search, label: 'Semantic Search', action: 'createSemanticSearchTab' },
-  { key: 'call-graph', icon: Share2, label: 'Call Graph', action: 'createCallGraphTab' },
-  { key: 'checkpoint', icon: History, label: 'Checkpoint', action: 'createCheckpointTab' },
-] as const;
-
-type TabActions = ReturnType<typeof useTabState>;
-type ToolAction = (typeof tools)[number]['action'];
-
 export const ProjectToolbar: React.FC = () => {
-  const tabState = useTabState();
-  const { activeTab } = tabState;
+  const {
+    activeTab,
+    createClaudeMdTab,
+    createGitContextTab,
+    createXrayTab,
+    createGovernanceTab,
+    createSemanticSearchTab,
+    createCallGraphTab,
+    createCheckpointTab,
+  } = useTabState();
   const projectPath = getProjectPath(activeTab);
 
   if (!projectPath) return null;
+
+  const tools = [
+    { key: 'claude-md', icon: FileText, label: 'CLAUDE.md', onClick: () => createClaudeMdTab() },
+    { key: 'git-context', icon: GitBranch, label: 'Git Context', onClick: () => createGitContextTab(projectPath) },
+    { key: 'xray', icon: Scan, label: 'Xray Analysis', onClick: () => createXrayTab(projectPath) },
+    { key: 'governance', icon: Shield, label: 'Governance', onClick: () => createGovernanceTab(projectPath) },
+    { key: 'semantic-search', icon: Search, label: 'Semantic Search', onClick: () => createSemanticSearchTab(projectPath) },
+    { key: 'call-graph', icon: Share2, label: 'Call Graph', onClick: () => createCallGraphTab(projectPath) },
+    { key: 'checkpoint', icon: History, label: 'Checkpoint', onClick: () => createCheckpointTab(projectPath) },
+  ];
 
   return (
     <TooltipProvider>
@@ -38,10 +43,10 @@ export const ProjectToolbar: React.FC = () => {
         <span className="text-[11px] text-muted-foreground/60 uppercase tracking-wider font-medium mr-2 select-none">
           Tools
         </span>
-        {tools.map(({ key, icon: Icon, label, action }) => (
+        {tools.map(({ key, icon: Icon, label, onClick }) => (
           <TooltipSimple key={key} content={label} side="bottom">
             <motion.button
-              onClick={() => (tabState[action as ToolAction] as TabActions[ToolAction])()}
+              onClick={onClick}
               whileTap={{ scale: 0.95 }}
               transition={{ duration: 0.1 }}
               className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"

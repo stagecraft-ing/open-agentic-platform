@@ -26,12 +26,12 @@ interface UseTabStateReturn {
   createClaudeFileTab: (fileId: string, fileName: string) => string;
   createCreateAgentTab: () => string;
   createImportAgentTab: () => string;
-  createGovernanceTab: () => string | null;
-  createXrayTab: () => string | null;
-  createSemanticSearchTab: () => string | null;
-  createCallGraphTab: () => string | null;
-  createGitContextTab: () => string | null;
-  createCheckpointTab: () => string | null;
+  createGovernanceTab: (projectPath?: string) => string | null;
+  createXrayTab: (projectPath?: string) => string | null;
+  createSemanticSearchTab: (projectPath?: string) => string | null;
+  createCallGraphTab: (projectPath?: string) => string | null;
+  createGitContextTab: (projectPath?: string) => string | null;
+  createCheckpointTab: (projectPath?: string) => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
   closeCurrentTab: () => Promise<boolean>;
   switchToTab: (id: string) => void;
@@ -289,95 +289,107 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab]);
 
-  const createGovernanceTab = useCallback((): string | null => {
+  const createGovernanceTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'governance');
     if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
       type: 'governance',
       title: 'Governance',
+      projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'git-branch'
     });
-  }, [addTab, tabs, setActiveTab]);
+  }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createXrayTab = useCallback((): string | null => {
+  const createXrayTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'xray');
     if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
       type: 'xray',
       title: 'Xray',
+      projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'scan-line'
     });
-  }, [addTab, tabs, setActiveTab]);
+  }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createSemanticSearchTab = useCallback((): string | null => {
+  const createSemanticSearchTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'semantic-search');
     if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
       type: 'semantic-search',
       title: 'Semantic Search',
+      projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'search'
     });
-  }, [addTab, tabs, setActiveTab]);
+  }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createCallGraphTab = useCallback((): string | null => {
+  const createCallGraphTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'call-graph');
     if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
       type: 'call-graph',
       title: 'Call Graph',
+      projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'network'
     });
-  }, [addTab, tabs, setActiveTab]);
+  }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createGitContextTab = useCallback((): string | null => {
+  const createGitContextTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'git-context');
     if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
       type: 'git-context',
       title: 'Git Context',
+      projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'git-commit'
     });
-  }, [addTab, tabs, setActiveTab]);
+  }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createCheckpointTab = useCallback((): string | null => {
+  const createCheckpointTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'checkpoint');
     if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
       type: 'checkpoint',
       title: 'Checkpoint',
+      projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'history'
     });
-  }, [addTab, tabs, setActiveTab]);
+  }, [addTab, tabs, setActiveTab, updateTab]);
 
   const closeTab = useCallback(async (id: string, force: boolean = false): Promise<boolean> => {
     const tab = getTabById(id);

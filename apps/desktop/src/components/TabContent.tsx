@@ -378,42 +378,42 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
       case 'governance':
         return (
           <div className="h-full">
-            <GovernancePanel />
+            <GovernancePanel projectPath={tab.projectPath} />
           </div>
         );
-        
+
       case 'xray':
         return (
           <div className="h-full">
-            <XrayPanel />
+            <XrayPanel projectPath={tab.projectPath} />
           </div>
         );
-        
+
       case 'semantic-search':
         return (
           <div className="h-full">
-            <SemanticSearchPanel />
+            <SemanticSearchPanel projectPath={tab.projectPath} />
           </div>
         );
-        
+
       case 'call-graph':
         return (
           <div className="h-full">
-            <CallGraphPanel />
+            <CallGraphPanel projectPath={tab.projectPath} />
           </div>
         );
-        
+
       case 'git-context':
         return (
           <div className="h-full">
-            <GitContextPanel />
+            <GitContextPanel projectPath={tab.projectPath} />
           </div>
         );
 
       case 'checkpoint':
         return (
           <div className="h-full">
-            <CheckpointPanel />
+            <CheckpointPanel projectPath={tab.projectPath} />
           </div>
         );
 

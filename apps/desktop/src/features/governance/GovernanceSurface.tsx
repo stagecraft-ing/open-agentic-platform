@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { useTabState } from '@/hooks/useTabState';
@@ -7,13 +7,28 @@ import { useGovernanceCtxEnrichment } from './useGovernanceCtxEnrichment';
 import { useGovernanceStatus } from './useGovernanceStatus';
 import { api, type SafetyTierRef, type ToolTierEntry } from '@/lib/api';
 
-export const GovernanceSurface: React.FC = () => {
-  const [repoRoot, setRepoRoot] = useState('');
+interface GovernanceSurfaceProps {
+  /** When provided, the panel pre-fills the repo root and auto-loads governance on mount. */
+  projectPath?: string;
+}
+
+export const GovernanceSurface: React.FC<GovernanceSurfaceProps> = ({ projectPath }) => {
+  const [repoRoot, setRepoRoot] = useState(projectPath ?? '');
   const [safetyTiers, setSafetyTiers] = useState<SafetyTierRef[]>([]);
   const [toolTiers, setToolTiers] = useState<ToolTierEntry[]>([]);
   const [axiomProbePort, setAxiomProbePort] = useState<number | null>(null);
   const { createSpecMarkdownTab } = useTabState();
   const { state, load, reset } = useGovernanceStatus();
+  const autoLoaded = useRef(false);
+
+  // Auto-load when projectPath is provided
+  useEffect(() => {
+    if (projectPath && !autoLoaded.current) {
+      autoLoaded.current = true;
+      setRepoRoot(projectPath);
+      void load(projectPath);
+    }
+  }, [projectPath, load]);
 
   useEffect(() => {
     void (async () => {

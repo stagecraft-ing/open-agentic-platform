@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   Check,
@@ -197,10 +197,25 @@ const CheckpointRow: React.FC<{
   );
 };
 
-export const CheckpointSurface: React.FC = () => {
+interface CheckpointSurfaceProps {
+  /** When provided, the panel pre-fills the root path and auto-initializes on mount. */
+  projectPath?: string;
+}
+
+export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPath }) => {
   const { state, initialize, createCheckpoint, restore, diff, verify, reset } = useCheckpointFlow();
-  const [rootInput, setRootInput] = useState('');
+  const [rootInput, setRootInput] = useState(projectPath ?? '');
   const [messageInput, setMessageInput] = useState('');
+  const autoLoaded = useRef(false);
+
+  // Auto-initialize when projectPath is provided
+  useEffect(() => {
+    if (projectPath && !autoLoaded.current) {
+      autoLoaded.current = true;
+      setRootInput(projectPath);
+      initialize(projectPath);
+    }
+  }, [projectPath, initialize]);
   const [diffSelected, setDiffSelected] = useState<Set<string>>(new Set());
 
   const isBusy = state.status === 'initializing';
