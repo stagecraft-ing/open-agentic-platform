@@ -36,6 +36,8 @@ pub fn calculate_digest(index: &XrayIndex) -> Result<String> {
         // Incremental metadata excluded from digest — they describe the scan, not the repo
         prev_digest: None,
         changed_files: None,
+        // Analysis metadata excluded from digest — computed separately
+        call_graph_summary: None,
     };
 
     // Sorting REMOVED. We rely on validate_invariants to ensure it's already sorted.

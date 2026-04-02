@@ -6,6 +6,18 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+/// Summary of call graph analysis, always available in the schema regardless of feature flags.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CallGraphSummary {
+    /// Total number of functions identified across all scanned files.
+    pub total_functions: usize,
+    /// Total number of directed call edges in the graph.
+    pub total_edges: usize,
+    /// Functions with no incoming edges (potential entry points).
+    pub entry_points: Vec<String>,
+}
+
 /// The authoritative file index.
 /// MUST be Canonical JSON (keys sorted, no whitespace).
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -45,6 +57,10 @@ pub struct XrayIndex {
     /// Files that changed since the previous scan (new, modified, or deleted paths).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub changed_files: Option<Vec<String>>,
+
+    /// Summary of call graph analysis (None if call graph analysis was not performed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_graph_summary: Option<CallGraphSummary>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -101,6 +117,7 @@ impl Default for XrayIndex {
             digest: "".to_string(),
             prev_digest: None,
             changed_files: None,
+            call_graph_summary: None,
         }
     }
 }

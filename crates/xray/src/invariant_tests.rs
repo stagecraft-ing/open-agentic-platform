@@ -45,6 +45,7 @@ fn make_valid_index() -> XrayIndex {
         digest: "".to_string(),
         prev_digest: None,
         changed_files: None,
+        call_graph_summary: None,
     }
 }
 

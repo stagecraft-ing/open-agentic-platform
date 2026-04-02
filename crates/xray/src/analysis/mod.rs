@@ -3,3 +3,6 @@
 
 #[cfg(feature = "analysis-structure")]
 pub mod structure;
+
+#[cfg(feature = "analysis-call-graph")]
+pub mod call_graph;

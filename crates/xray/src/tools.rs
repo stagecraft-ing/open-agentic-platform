@@ -87,6 +87,29 @@ impl XrayTools {
             "totalScans": entries.len()
         }))
     }
+
+    /// Build a call graph for the repository (or a subdirectory) and return a summary.
+    ///
+    /// Requires the `analysis-call-graph` feature to be enabled.
+    #[cfg(feature = "analysis-call-graph")]
+    pub fn xray_call_graph(&self, repo_root: &Path, path: Option<String>) -> Result<Value> {
+        let target_path = if let Some(p) = path {
+            repo_root.join(p)
+        } else {
+            repo_root.to_path_buf()
+        };
+
+        if !target_path.starts_with(repo_root) {
+            return Err(anyhow::anyhow!(
+                "Target path must be within repository root"
+            ));
+        }
+
+        let (_graph, summary) =
+            crate::analysis::call_graph::analyze_directory(&target_path);
+
+        Ok(serde_json::to_value(&summary)?)
+    }
 }
 
 impl Default for XrayTools {
