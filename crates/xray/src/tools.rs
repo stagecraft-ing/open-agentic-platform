@@ -110,6 +110,15 @@ impl XrayTools {
 
         Ok(serde_json::to_value(&summary)?)
     }
+
+    /// Analyze dependencies from module files in the repository.
+    pub fn xray_deps(&self, repo_root: &Path) -> Result<Value> {
+        // First scan to get module_files list
+        let index = scan_target(repo_root, None).context("Failed to scan for deps")?;
+        let inventory = crate::analysis::deps::analyze_dependencies(repo_root, &index.module_files)
+            .context("Failed to analyze dependencies")?;
+        Ok(serde_json::to_value(&inventory)?)
+    }
 }
 
 impl Default for XrayTools {

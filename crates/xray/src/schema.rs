@@ -61,6 +61,10 @@ pub struct XrayIndex {
     /// Summary of call graph analysis (None if call graph analysis was not performed).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_graph_summary: Option<CallGraphSummary>,
+
+    /// Dependency inventory (None if not analyzed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<crate::analysis::deps::DependencyInventory>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -118,6 +122,7 @@ impl Default for XrayIndex {
             prev_digest: None,
             changed_files: None,
             call_graph_summary: None,
+            dependencies: None,
         }
     }
 }

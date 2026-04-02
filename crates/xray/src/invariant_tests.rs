@@ -46,6 +46,7 @@ fn make_valid_index() -> XrayIndex {
         prev_digest: None,
         changed_files: None,
         call_graph_summary: None,
+        dependencies: None,
     }
 }
 
