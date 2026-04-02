@@ -3,7 +3,7 @@
 // Feature: XRAY_ANALYSIS
 // Spec: spec/xray/analysis.md
 
-use crate::scan_target;
+use crate::{scan_target, scan_target_incremental};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -45,6 +45,31 @@ impl XrayTools {
         let index_json = serde_json::to_value(&index)?;
 
         Ok(index_json)
+    }
+
+    /// Run an incremental scan comparing against a previous index
+    pub fn xray_scan_incremental(
+        &self,
+        repo_root: &Path,
+        previous_index: &Path,
+        path: Option<String>,
+    ) -> Result<Value> {
+        let target_path = if let Some(p) = path {
+            repo_root.join(p)
+        } else {
+            repo_root.to_path_buf()
+        };
+
+        if !target_path.starts_with(repo_root) {
+            return Err(anyhow::anyhow!(
+                "Target path must be within repository root"
+            ));
+        }
+
+        let index = scan_target_incremental(&target_path, None, previous_index)
+            .context("Failed to run incremental scan")?;
+
+        Ok(serde_json::to_value(&index)?)
     }
 }
 

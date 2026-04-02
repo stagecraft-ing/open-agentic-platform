@@ -27,6 +27,10 @@ enum Commands {
         /// Output directory override
         #[arg(long)]
         output: Option<String>,
+
+        /// Path to previous index.json for incremental scanning
+        #[arg(long)]
+        previous: Option<String>,
     },
     /// Generate documentation from index
     Docs {
@@ -46,17 +50,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Scan { target, output } => {
+        Commands::Scan {
+            target,
+            output,
+            previous,
+        } => {
             let target_path = PathBuf::from(target);
-            // Default output logic is handled by CLI wrapper if needed,
-            // but for now we pass the Option down or resolve it here.
-            // The lib function handles the None case by NOT writing?
-            // Wait, my lib impl logic for None was "do not write".
-            // But CLI typically WANTS to write to default location if output is None.
-            // Let's handle default path logic here to keep lib pure?
-            // Actually, the previous main.rs had logic:
-            // None => repo_root.join(".axiomregent").join("data")
-
             let final_output = match output {
                 Some(p) => Some(PathBuf::from(p)),
                 None => {
@@ -65,7 +64,15 @@ fn main() -> Result<()> {
                 }
             };
 
-            xray::scan_target(&target_path, final_output)?;
+            if let Some(prev_path) = previous {
+                xray::scan_target_incremental(
+                    &target_path,
+                    final_output,
+                    &PathBuf::from(prev_path),
+                )?;
+            } else {
+                xray::scan_target(&target_path, final_output)?;
+            }
             Ok(())
         }
         Commands::Docs { input, output } => {

@@ -33,6 +33,9 @@ pub fn calculate_digest(index: &XrayIndex) -> Result<String> {
         module_files: index.module_files.clone(),
         stats: index.stats.clone(),
         digest: "".to_string(), // MUST be empty for calculation
+        // Incremental metadata excluded from digest — they describe the scan, not the repo
+        prev_digest: None,
+        changed_files: None,
     };
 
     // Sorting REMOVED. We rely on validate_invariants to ensure it's already sorted.

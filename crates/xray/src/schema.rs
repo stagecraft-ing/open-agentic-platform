@@ -37,6 +37,14 @@ pub struct XrayIndex {
 
     /// SHA-256 digest of the content (excluding this field).
     pub digest: String,
+
+    /// Digest of the previous index used for incremental scanning.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_digest: Option<String>,
+
+    /// Files that changed since the previous scan (new, modified, or deleted paths).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub changed_files: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -79,7 +87,7 @@ pub struct RepoStats {
 impl Default for XrayIndex {
     fn default() -> Self {
         Self {
-            schema_version: "1.1.0".to_string(),
+            schema_version: "1.2.0".to_string(),
             root: "unknown".to_string(),
             target: ".".to_string(),
             files: vec![],
@@ -91,6 +99,8 @@ impl Default for XrayIndex {
                 total_size: 0,
             },
             digest: "".to_string(),
+            prev_digest: None,
+            changed_files: None,
         }
     }
 }

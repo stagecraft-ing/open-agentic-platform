@@ -43,6 +43,8 @@ fn make_valid_index() -> XrayIndex {
             total_size: 30,
         },
         digest: "".to_string(),
+        prev_digest: None,
+        changed_files: None,
     }
 }
 
