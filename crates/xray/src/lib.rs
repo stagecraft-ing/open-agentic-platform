@@ -16,6 +16,7 @@ pub mod hash;
 pub mod history;
 pub mod language;
 pub mod loc;
+pub mod policy;
 pub mod schema;
 pub mod tools;
 pub mod traversal;

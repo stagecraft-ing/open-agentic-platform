@@ -142,6 +142,14 @@ impl XrayTools {
         let plan = crate::context::build_context_plan(&index, &budget, hp);
         Ok(serde_json::to_value(&plan)?)
     }
+
+    /// Evaluate policy rules against the repository.
+    pub fn xray_policy(&self, repo_root: &Path) -> Result<Value> {
+        let index = scan_target(repo_root, None).context("Failed to scan for policy")?;
+        let config = crate::policy::load_policy(repo_root);
+        let report = crate::policy::evaluate(&index, &config);
+        Ok(serde_json::to_value(&report)?)
+    }
 }
 
 impl Default for XrayTools {
