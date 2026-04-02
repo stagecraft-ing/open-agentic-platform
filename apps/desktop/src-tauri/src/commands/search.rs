@@ -9,8 +9,8 @@ use serde_json::json;
 use stackwalk::{config::Config, indexer::index_directory};
 use tauri::command;
 
-/// Embedded copy of `crates/asterisk/asterisk.toml` (Rust + Python matchers).
-const ASTERISK_CONFIG_TOML: &str = r#"[languages]
+/// Embedded copy of `crates/stackwalk/asterisk.toml` (Rust + Python matchers).
+const STACKWALK_CONFIG_TOML: &str = r#"[languages]
   [languages.python]
     [languages.python.matchers]
       import_statement = "import_from_statement"
@@ -88,12 +88,12 @@ pub async fn blockoli_index_project(
         return Err(format!("path is not a directory: {path}"));
     }
 
-    let config = asterisk::config::Config::from_toml(ASTERISK_CONFIG_TOML)
-        .map_err(|e| format!("asterisk config: {e}"))?;
+    let config = stackwalk::config::Config::from_toml(STACKWALK_CONFIG_TOML)
+        .map_err(|e| format!("stackwalk config: {e}"))?;
 
     let path_for_blocking = path.clone();
     let embedded_result = tokio::task::spawn_blocking(move || {
-        let (blocks, _, _) = asterisk::indexer::index_directory(&config, &path_for_blocking);
+        let (blocks, _, _) = stackwalk::indexer::index_directory(&config, &path_for_blocking);
         let code_blocks: Vec<String> = blocks.iter().map(|b| b.content.clone()).collect();
         let vectors = Embeddings::generate_vector_set(code_blocks).map_err(|e| e.to_string())?;
         let mut embedded_blocks = Vec::with_capacity(blocks.len());

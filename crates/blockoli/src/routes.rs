@@ -155,10 +155,10 @@ pub async fn generate_embeddings(
             );
     }
 
-    let toml_str = fs::read_to_string("../asterisk/asterisk.toml").expect("Unable to read file");
-    let asterisk_config = asterisk::config::Config::from_toml(&toml_str).unwrap();
+    let toml_str = fs::read_to_string("../stackwalk/asterisk.toml").expect("Unable to read file");
+    let stackwalk_config = stackwalk::config::Config::from_toml(&toml_str).unwrap();
 
-    let (blocks, _, _) = asterisk::indexer::index_directory(&asterisk_config, &project_path);
+    let (blocks, _, _) = stackwalk::indexer::index_directory(&stackwalk_config, &project_path);
 
     let code_blocks: Vec<String> = blocks.iter().map(|block| block.content.clone()).collect();
     let code_vectors = match Embeddings::generate_vector_set(code_blocks) {

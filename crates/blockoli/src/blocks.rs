@@ -4,7 +4,7 @@ use serde::Serialize;
 #[derive(Debug, Clone)]
 pub struct EmbeddedBlock {
     /// The code block itself.
-    pub block: asterisk::block::Block,
+    pub block: stackwalk::block::Block,
 
     /// The vector embedding of the code block.
     pub vectors: Vec<f32>,

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use asterisk::block::{Block, BlockType};
+use stackwalk::block::{Block, BlockType};
 use rusqlite::{params, Connection};
 use serde::Serialize;
 
@@ -219,7 +219,7 @@ impl SQLite {
     pub fn get_all_function_blocks(
         conn: &Connection,
         project_name: &str,
-    ) -> Result<Vec<asterisk::block::Block>> {
+    ) -> Result<Vec<stackwalk::block::Block>> {
         Self::validate_project_name(project_name);
         let query = format!("SELECT * FROM {} WHERE function_name != ''", project_name);
         let mut stmt = conn.prepare(&query)?;
@@ -236,7 +236,7 @@ impl SQLite {
             let outgoing_calls_string = row.get::<_, String>(6)?;
             let outgoing_calls: Vec<String> = serde_json::from_str(&outgoing_calls_string).unwrap();
 
-            Ok(asterisk::block::Block {
+            Ok(stackwalk::block::Block {
                 node_key: row.get(1)?,
                 block_type,
                 content: row.get(3)?,
@@ -274,7 +274,7 @@ impl SQLite {
         conn: &Connection,
         project_name: &str,
         search_code: &str,
-    ) -> Result<Vec<asterisk::block::Block>> {
+    ) -> Result<Vec<stackwalk::block::Block>> {
         Self::validate_project_name(project_name);
         let query = format!(
             "SELECT * FROM {} WHERE function_name != '' AND code LIKE ?",
@@ -294,7 +294,7 @@ impl SQLite {
             let outgoing_calls_string = row.get::<_, String>(6)?;
             let outgoing_calls: Vec<String> = serde_json::from_str(&outgoing_calls_string).unwrap();
 
-            Ok(asterisk::block::Block {
+            Ok(stackwalk::block::Block {
                 node_key: row.get(1)?,
                 block_type,
                 content: row.get(3)?,
@@ -332,7 +332,7 @@ impl SQLite {
         conn: &Connection,
         project_name: &str,
         function_name: &str,
-    ) -> Result<Vec<asterisk::block::Block>> {
+    ) -> Result<Vec<stackwalk::block::Block>> {
         Self::validate_project_name(project_name);
         let query = format!(
             "SELECT * FROM {} WHERE function_name != '' AND function_name = ?",
@@ -352,7 +352,7 @@ impl SQLite {
             let outgoing_calls_string = row.get::<_, String>(6)?;
             let outgoing_calls: Vec<String> = serde_json::from_str(&outgoing_calls_string).unwrap();
 
-            Ok(asterisk::block::Block {
+            Ok(stackwalk::block::Block {
                 node_key: row.get(1)?,
                 block_type,
                 content: row.get(3)?,

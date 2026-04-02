@@ -134,7 +134,7 @@ impl VectorStore {
     /// # Returns  
     ///
     /// A list of `Block` structs representing the code blocks that are non-empty functions.
-    pub async fn get_all_function_blocks(&self, project_name: &str) -> Vec<asterisk::block::Block> {
+    pub async fn get_all_function_blocks(&self, project_name: &str) -> Vec<stackwalk::block::Block> {
         match self {
             VectorStore::SQLiteStore(conn) => {
                 SQLite::get_all_function_blocks(conn, project_name).unwrap()
@@ -157,7 +157,7 @@ impl VectorStore {
         &self,
         project_name: &str,
         search_code: String,
-    ) -> Vec<asterisk::block::Block> {
+    ) -> Vec<stackwalk::block::Block> {
         match self {
             VectorStore::SQLiteStore(conn) => {
                 SQLite::search_from_function_blocks(conn, project_name, &search_code).unwrap()
@@ -180,7 +180,7 @@ impl VectorStore {
         &self,
         project_name: &str,
         function_name: String,
-    ) -> Vec<asterisk::block::Block> {
+    ) -> Vec<stackwalk::block::Block> {
         match self {
             VectorStore::SQLiteStore(conn) => {
                 SQLite::search_by_function_name(conn, project_name, &function_name).unwrap()

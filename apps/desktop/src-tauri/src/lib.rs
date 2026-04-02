@@ -420,6 +420,7 @@ pub fn run() {
             // Blockoli & Stackwalk Search
             commands::search::blockoli_index_project,
             commands::search::blockoli_search,
+            commands::search::stackwalk_index,
             commands::search::search_codebase,
             // MCP proxy commands
             commands::mcp::mcp_list_tools,

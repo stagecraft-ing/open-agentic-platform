@@ -84,7 +84,6 @@ featuregraph = { path = "../../../crates/featuregraph" }
 agent        = { path = "../../../crates/agent" }
 run          = { path = "../../../crates/run" }
 blockoli     = { path = "../../../crates/blockoli" }
-asterisk     = { path = "../../../crates/asterisk" }
 stackwalk    = { path = "../../../crates/stackwalk" }
 orchestrator = { path = "../../../crates/orchestrator" }
 

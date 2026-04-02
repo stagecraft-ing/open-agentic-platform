@@ -17,7 +17,7 @@ tools/           — Rust CLI tools
   registry-consumer/ — Reads and queries the compiled registry
   spec-lint/     — Conformance linter (W-xxx warnings)
 crates/          — Rust library crates
-  agent/         asterisk/    axiomregent/   blockoli/
+  agent/         axiomregent/ blockoli/
   featuregraph/  gitctx/      run/           stackwalk/
   titor/         xray/
 apps/desktop/    — Tauri v2 + React desktop app (TypeScript + Rust)
