@@ -36,6 +36,10 @@ spec:
               value: "{{ .Values.secrets.mountPath }}/LOGTO_M2M_CLIENT_ID"
             - name: LOGTO_M2M_CLIENT_SECRET_FILE
               value: "{{ .Values.secrets.mountPath }}/LOGTO_M2M_CLIENT_SECRET"
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: secrets-store
               mountPath: {{ .Values.secrets.mountPath | quote }}

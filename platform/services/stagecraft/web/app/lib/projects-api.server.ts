@@ -1,7 +1,10 @@
 /**
  * Projects API helpers using direct fetch.
- * The Encore generated client will eventually include the projects service;
- * until then, these helpers call the API directly.
+ * The Encore generated client now includes the projects service
+ * (see client.ts projects.ServiceClient), but these helpers are kept
+ * because they forward cookies and derive the base URL from the incoming
+ * request — behavior the generated client does not support.
+ * TODO: Evaluate migrating to the generated client with cookie forwarding.
  */
 
 const DEFAULT_API_BASE = "http://localhost:4000";

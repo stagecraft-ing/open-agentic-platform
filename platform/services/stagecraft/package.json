@@ -1,8 +1,8 @@
 {
-  "name": "uptime",
+  "name": "stagecraft",
   "private": true,
   "version": "0.0.1",
-  "description": "Encore Uptime Monitoring Tutorial",
+  "description": "Stagecraft SaaS platform — auth, admin, project management, deployment orchestration",
   "license": "MPL-2.0",
   "type": "module",
   "scripts": {

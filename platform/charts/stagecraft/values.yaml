@@ -47,3 +47,11 @@ logto:
   endpoint: "https://logto.localdev.online"
   deploydAudience: "https://api.stagecraft.localdev.online"
   deploydScope: "deployd:deploy"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
