@@ -9,8 +9,26 @@ use axiomregent::router::Router;
 use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
-use std::path::PathBuf;
 use std::sync::Arc;
+use tempfile::TempDir;
+
+/// Create a self-contained test workspace with a minimal spec registry so the
+/// featuregraph scanner can initialise without requiring `spec-compiler compile`.
+fn create_test_workspace() -> TempDir {
+    let dir = TempDir::new().expect("failed to create temp dir");
+    let registry_dir = dir.path().join("build/spec-registry");
+    std::fs::create_dir_all(&registry_dir).unwrap();
+    std::fs::write(
+        registry_dir.join("registry.json"),
+        r#"{"features":[{"id":"test-feature","title":"Test Feature","specPath":"specs/test/spec.md","status":"active","codeAliases":[]}]}"#,
+    )
+    .unwrap();
+    // Create a dummy source file so features.impact has something to scan
+    let src_dir = dir.path().join("src");
+    std::fs::create_dir_all(&src_dir).unwrap();
+    std::fs::write(src_dir.join("feature_tools.rs"), "// Feature: test-feature\nfn main() {}\n").unwrap();
+    dir
+}
 
 fn create_router() -> Router {
     let lease_store = Arc::new(axiomregent::snapshot::lease::LeaseStore::new());
@@ -44,11 +62,8 @@ fn create_router() -> Router {
 
 #[test]
 fn test_features_impact() {
+    let workspace = create_test_workspace();
     let router = create_router();
-    let repo_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()
-        .unwrap();
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -56,7 +71,7 @@ fn test_features_impact() {
         params: Some(json!({
             "name": "features.impact",
             "arguments": {
-                "repo_root": repo_root.to_string_lossy(),
+                "repo_root": workspace.path().to_string_lossy(),
                 "paths": ["src/feature_tools.rs"]
             }
         })),
@@ -64,7 +79,11 @@ fn test_features_impact() {
     };
 
     let resp = router.handle_request(&req);
-    assert!(resp.error.is_none(), "features.impact should succeed");
+    assert!(
+        resp.error.is_none(),
+        "features.impact should succeed, got error: {:?}",
+        resp.error
+    );
 
     let result = resp.result.unwrap();
     let content = result.get("content").unwrap().as_array().unwrap();
@@ -84,11 +103,8 @@ fn test_features_impact() {
 
 #[test]
 fn test_gov_drift() {
+    let workspace = create_test_workspace();
     let router = create_router();
-    let repo_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()
-        .unwrap();
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -96,14 +112,18 @@ fn test_gov_drift() {
         params: Some(json!({
             "name": "gov.drift",
             "arguments": {
-                "repo_root": repo_root.to_string_lossy()
+                "repo_root": workspace.path().to_string_lossy()
             }
         })),
         id: Some(json!(1)),
     };
 
     let resp = router.handle_request(&req);
-    assert!(resp.error.is_none(), "gov.drift should succeed");
+    assert!(
+        resp.error.is_none(),
+        "gov.drift should succeed, got error: {:?}",
+        resp.error
+    );
 
     let result = resp.result.unwrap();
     let content = result.get("content").unwrap().as_array().unwrap();
