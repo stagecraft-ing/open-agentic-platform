@@ -33,8 +33,14 @@ const BROWSER = typeof globalThis === "object" && ("window" in globalThis);
  */
 export default class Client {
     public readonly admin: admin.ServiceClient
+    public readonly agents: agents.ServiceClient
+    public readonly audit: audit.ServiceClient
     public readonly auth: auth.ServiceClient
+    public readonly deploy: deploy.ServiceClient
+    public readonly grants: grants.ServiceClient
     public readonly monitor: monitor.ServiceClient
+    public readonly policy: policy.ServiceClient
+    public readonly projects: projects.ServiceClient
     public readonly site: site.ServiceClient
     public readonly frontend: frontend.ServiceClient
     private readonly options: ClientOptions
@@ -52,8 +58,14 @@ export default class Client {
         this.options = options ?? {}
         const base = new BaseClient(this.target, this.options)
         this.admin = new admin.ServiceClient(base)
+        this.agents = new agents.ServiceClient(base)
+        this.audit = new audit.ServiceClient(base)
         this.auth = new auth.ServiceClient(base)
+        this.deploy = new deploy.ServiceClient(base)
+        this.grants = new grants.ServiceClient(base)
         this.monitor = new monitor.ServiceClient(base)
+        this.policy = new policy.ServiceClient(base)
+        this.projects = new projects.ServiceClient(base)
         this.site = new site.ServiceClient(base)
         this.frontend = new frontend.ServiceClient(base)
     }
@@ -148,6 +160,117 @@ export namespace admin {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/admin/users/set-role`, JSON.stringify(params))
             return await resp.json() as SetRoleResponse
+        }
+    }
+}
+
+export namespace agents {
+    export interface AgentAuthorizedResponse {
+        authorized: true
+    }
+
+    export interface AgentPolicyRow {
+        id: string
+        orgId: string
+        slug: string
+        blocked: boolean
+        reason: string
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface DeleteAgentPolicyResponse {
+        ok: true
+    }
+
+    export interface ListAgentPoliciesResponse {
+        policies: AgentPolicyRow[]
+    }
+
+    export interface UpsertAgentPolicyRequest {
+        slug: string
+        blocked: boolean
+        reason?: string
+        actorUserId?: string
+    }
+
+    export interface UpsertAgentPolicyResponse {
+        policy: AgentPolicyRow
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.deleteAgentPolicy = this.deleteAgentPolicy.bind(this)
+            this.isAgentAuthorized = this.isAgentAuthorized.bind(this)
+            this.listAgentPolicies = this.listAgentPolicies.bind(this)
+            this.upsertAgentPolicy = this.upsertAgentPolicy.bind(this)
+        }
+
+        public async deleteAgentPolicy(id: string): Promise<DeleteAgentPolicyResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/admin/agent-policies/${encodeURIComponent(id)}`)
+            return await resp.json() as DeleteAgentPolicyResponse
+        }
+
+        /**
+         * Seam D: Validate agent execution against org-level policies.
+         * GET /api/agents/:slug/authorized
+         * 
+         * Returns 200 if the agent is authorized.
+         * Returns 403 with { reason } if the agent is blocked.
+         * Agents with no policy row are allowed by default.
+         */
+        public async isAgentAuthorized(slug: string): Promise<AgentAuthorizedResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/agents/${encodeURIComponent(slug)}/authorized`)
+            return await resp.json() as AgentAuthorizedResponse
+        }
+
+        public async listAgentPolicies(): Promise<ListAgentPoliciesResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/admin/agent-policies`)
+            return await resp.json() as ListAgentPoliciesResponse
+        }
+
+        public async upsertAgentPolicy(params: UpsertAgentPolicyRequest): Promise<UpsertAgentPolicyResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/admin/agent-policies`, JSON.stringify(params))
+            return await resp.json() as UpsertAgentPolicyResponse
+        }
+    }
+}
+
+export namespace audit {
+    export interface IngestAuditRequest {
+        action: string
+        targetType: string
+        targetId: string
+        metadata?: { [key: string]: any }
+    }
+
+    export interface IngestAuditResponse {
+        ok: true
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.ingestAuditRecord = this.ingestAuditRecord.bind(this)
+        }
+
+        /**
+         * Seam B: Ingest audit records from OPC axiomregent.
+         * POST /api/audit-records — M2M bearer token auth.
+         */
+        public async ingestAuditRecord(params: IngestAuditRequest): Promise<IngestAuditResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/audit-records`, JSON.stringify(params))
+            return await resp.json() as IngestAuditResponse
         }
     }
 }
@@ -255,6 +378,57 @@ export namespace auth {
     }
 }
 
+export namespace deploy {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.createDeployment = this.createDeployment.bind(this)
+            this.healthz = this.healthz.bind(this)
+        }
+
+        public async createDeployment(method: "POST", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/v1/deployments`, body, options)
+        }
+
+        public async healthz(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/healthz`, body, options)
+        }
+    }
+}
+
+export namespace grants {
+    export interface GrantsResponse {
+        "enable_file_read": boolean
+        "enable_file_write": boolean
+        "enable_network": boolean
+        "max_tier": number
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.getGrants = this.getGrants.bind(this)
+        }
+
+        /**
+         * Seam C: Serve workspace-scoped permission grants to OPC desktop app.
+         * GET /api/grants/:userId/:workspaceId
+         * 
+         * Returns the grant row if found, otherwise returns sensible defaults (read-only, tier 1).
+         */
+        public async getGrants(userId: string, workspaceId: string): Promise<GrantsResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/grants/${encodeURIComponent(userId)}/${encodeURIComponent(workspaceId)}`)
+            return await resp.json() as GrantsResponse
+        }
+    }
+}
+
 export namespace monitor {
     export interface PingResponse {
         up: boolean
@@ -321,6 +495,323 @@ export namespace monitor {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/status`)
             return await resp.json() as StatusResponse
+        }
+    }
+}
+
+export namespace policy {
+    export interface PolicyBundleResponse {
+        constitution: any[]
+        shards: { [key: string]: any[] }
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.getPolicyBundle = this.getPolicyBundle.bind(this)
+        }
+
+        /**
+         * Seam A: Serve compiled policy bundles to OPC axiomregent.
+         * GET /api/policy-bundle/:workspaceId
+         */
+        public async getPolicyBundle(workspaceId: string): Promise<PolicyBundleResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/policy-bundle/${encodeURIComponent(workspaceId)}`)
+            return await resp.json() as PolicyBundleResponse
+        }
+    }
+}
+
+export namespace projects {
+    export interface AddRepoRequest {
+        githubOrg: string
+        repoName: string
+        defaultBranch?: string
+        isPrimary?: boolean
+        actorUserId: string
+    }
+
+    export interface CreateEnvironmentRequest {
+        name: string
+        kind?: "preview" | "development" | "staging" | "production"
+        autoDeployBranch?: string
+        requiresApproval?: boolean
+        actorUserId: string
+    }
+
+    export interface CreateProjectRequest {
+        name: string
+        slug: string
+        description?: string
+        actorUserId: string
+    }
+
+    export interface EnvironmentRow {
+        id: string
+        projectId: string
+        name: string
+        kind: "preview" | "development" | "staging" | "production"
+        k8sNamespace: string | null
+        autoDeployBranch: string | null
+        requiresApproval: boolean
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface MemberRow {
+        id: string
+        projectId: string
+        userId: string
+        role: "viewer" | "developer" | "deployer" | "admin"
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface OrgRow {
+        id: string
+        name: string
+        slug: string
+        createdBy: string
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface ProjectRow {
+        id: string
+        orgId: string
+        name: string
+        slug: string
+        description: string
+        createdBy: string
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface RepoRow {
+        id: string
+        projectId: string
+        githubOrg: string
+        repoName: string
+        defaultBranch: string
+        isPrimary: boolean
+        githubInstallId: number | null
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface SetMemberRequest {
+        userId: string
+        role: "viewer" | "developer" | "deployer" | "admin"
+        actorUserId: string
+    }
+
+    export interface UpdateProjectRequest {
+        name?: string
+        description?: string
+        actorUserId: string
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.addProjectRepo = this.addProjectRepo.bind(this)
+            this.createEnvironment = this.createEnvironment.bind(this)
+            this.createProject = this.createProject.bind(this)
+            this.deleteEnvironment = this.deleteEnvironment.bind(this)
+            this.deleteProject = this.deleteProject.bind(this)
+            this.getOrg = this.getOrg.bind(this)
+            this.getProject = this.getProject.bind(this)
+            this.listEnvironments = this.listEnvironments.bind(this)
+            this.listProjectMembers = this.listProjectMembers.bind(this)
+            this.listProjectRepos = this.listProjectRepos.bind(this)
+            this.listProjects = this.listProjects.bind(this)
+            this.removeProjectMember = this.removeProjectMember.bind(this)
+            this.removeProjectRepo = this.removeProjectRepo.bind(this)
+            this.setProjectMember = this.setProjectMember.bind(this)
+            this.updateProject = this.updateProject.bind(this)
+        }
+
+        public async addProjectRepo(projectId: string, params: AddRepoRequest): Promise<{
+    repo: RepoRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/repos`, JSON.stringify(params))
+            return await resp.json() as {
+    repo: RepoRow
+}
+        }
+
+        public async createEnvironment(projectId: string, params: CreateEnvironmentRequest): Promise<{
+    environment: EnvironmentRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/envs`, JSON.stringify(params))
+            return await resp.json() as {
+    environment: EnvironmentRow
+}
+        }
+
+        public async createProject(params: CreateProjectRequest): Promise<{
+    project: ProjectRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects`, JSON.stringify(params))
+            return await resp.json() as {
+    project: ProjectRow
+}
+        }
+
+        public async deleteEnvironment(projectId: string, id: string, params: {
+    actorUserId?: string
+}): Promise<{
+    ok: true
+}> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                actorUserId: params.actorUserId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/api/projects/${encodeURIComponent(projectId)}/envs/${encodeURIComponent(id)}`, undefined, {query})
+            return await resp.json() as {
+    ok: true
+}
+        }
+
+        public async deleteProject(id: string, params: {
+    actorUserId?: string
+}): Promise<{
+    ok: true
+}> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                actorUserId: params.actorUserId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/api/projects/${encodeURIComponent(id)}`, undefined, {query})
+            return await resp.json() as {
+    ok: true
+}
+        }
+
+        public async getOrg(): Promise<{
+    org: OrgRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/orgs/current`)
+            return await resp.json() as {
+    org: OrgRow
+}
+        }
+
+        public async getProject(id: string): Promise<{
+    project: ProjectRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(id)}`)
+            return await resp.json() as {
+    project: ProjectRow
+}
+        }
+
+        public async listEnvironments(projectId: string): Promise<{
+    environments: EnvironmentRow[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/envs`)
+            return await resp.json() as {
+    environments: EnvironmentRow[]
+}
+        }
+
+        public async listProjectMembers(projectId: string): Promise<{
+    members: MemberRow[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/members`)
+            return await resp.json() as {
+    members: MemberRow[]
+}
+        }
+
+        public async listProjectRepos(projectId: string): Promise<{
+    repos: RepoRow[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/repos`)
+            return await resp.json() as {
+    repos: RepoRow[]
+}
+        }
+
+        public async listProjects(): Promise<{
+    projects: ProjectRow[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects`)
+            return await resp.json() as {
+    projects: ProjectRow[]
+}
+        }
+
+        public async removeProjectMember(projectId: string, userId: string, params: {
+    actorUserId?: string
+}): Promise<{
+    ok: true
+}> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                actorUserId: params.actorUserId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/api/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(userId)}`, undefined, {query})
+            return await resp.json() as {
+    ok: true
+}
+        }
+
+        public async removeProjectRepo(projectId: string, id: string, params: {
+    actorUserId?: string
+}): Promise<{
+    ok: true
+}> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                actorUserId: params.actorUserId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/api/projects/${encodeURIComponent(projectId)}/repos/${encodeURIComponent(id)}`, undefined, {query})
+            return await resp.json() as {
+    ok: true
+}
+        }
+
+        public async setProjectMember(projectId: string, params: SetMemberRequest): Promise<{
+    member: MemberRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/members`, JSON.stringify(params))
+            return await resp.json() as {
+    member: MemberRow
+}
+        }
+
+        public async updateProject(id: string, params: UpdateProjectRequest): Promise<{
+    project: ProjectRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("PUT", `/api/projects/${encodeURIComponent(id)}`, JSON.stringify(params))
+            return await resp.json() as {
+    project: ProjectRow
+}
         }
     }
 }
