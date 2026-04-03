@@ -441,7 +441,7 @@ export function stableSerializeHistory(history: CompactionHistory): string {
     content:
       typeof message.content === "string"
         ? message.content
-        : message.content.map((block) => stableSortRecord(block as Record<string, unknown>)),
+        : message.content.map((block) => stableSortRecord(block as unknown as Record<string, unknown>)),
     timestamp: message.timestamp ?? null,
     pinned: message.pinned ?? false,
     usage: message.usage
@@ -650,7 +650,7 @@ function minifySessionContextXml(sessionContext: string): string {
 }
 
 function estimateRuntimeHistoryTokens(messages: unknown[]): number {
-  return messages.reduce((total, message) => {
+  return messages.reduce<number>((total, message) => {
     if (!isRecord(message)) return total;
     const usage = extractRuntimeUsage(message);
     if (usage) {

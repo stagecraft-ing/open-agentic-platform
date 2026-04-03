@@ -1,5 +1,5 @@
 use agent::{
-    plan::{AgentRole as OrganizerAgentRole, ComplexityBand, ComplexityBlock, ExecutionPlan},
+    plan::{AgentRole as OrganizerAgentRole, ComplexityBand, ExecutionPlan},
     AgentRegistryEntry, AgentRegistrySnapshot,
 };
 use anyhow::Result;
@@ -327,7 +327,7 @@ fn load_agent_registry_snapshot(conn: &Connection) -> Result<AgentRegistrySnapsh
     let rows = stmt
         .query_map([], |row| {
             let id: i64 = row.get(0)?;
-            let name: String = row.get(1)?;
+            let _name: String = row.get(1)?;
             let system_prompt: String = row.get(2)?;
             let default_task: Option<String> = row.get(3)?;
 

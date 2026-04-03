@@ -32,7 +32,9 @@ fn test_no_stdout_pollution() {
                 continue;
             }
 
-            if line.contains("println!(") || line.contains("print!(") {
+            if (line.contains("println!(") && !line.contains("eprintln!("))
+                || (line.contains("print!(") && !line.contains("eprint!("))
+            {
                 // Allow exceptions?
                 // Currently main.rs uses writeln! to a bound variable, not println!.
                 // So strict strict check is good.

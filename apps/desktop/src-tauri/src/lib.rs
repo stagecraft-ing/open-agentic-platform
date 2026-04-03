@@ -1,5 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Tauri's `generate_handler![]` macro invokes functions opaquely — the compiler
+// cannot see through it, so most exported commands and their supporting types
+// appear "dead" to `cargo check`. This is standard for Tauri apps.
+#![allow(dead_code)]
 
 pub mod bindings;
 pub mod checkpoint;

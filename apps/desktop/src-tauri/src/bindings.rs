@@ -7,7 +7,7 @@
 //!    app start, so the frontend always has up-to-date types.
 //!
 //! ## Adding a command
-//! ```rust
+//! ```text
 //! // In your commands file:
 //! #[tauri::command]
 //! #[specta::specta]

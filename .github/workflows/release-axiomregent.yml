@@ -1,0 +1,173 @@
+# Release axiomregent MCP server as standalone OS-specific binaries.
+# Triggered by pushing an axiomregent version tag (e.g. axiomregent-v0.1.0).
+
+name: Release axiomregent
+
+on:
+  push:
+    tags:
+      - 'axiomregent-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. axiomregent-v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ── Build for macOS, Linux x86_64, Windows ────────────────────────
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.os }}
+    name: build / ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: axiomregent-${{ matrix.target }}
+
+      - name: Build axiomregent
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml
+
+      - name: Stage binary
+        shell: bash
+        run: |
+          EXT=""
+          if [ "${{ matrix.target }}" = "x86_64-pc-windows-msvc" ]; then EXT=".exe"; fi
+          mkdir -p dist
+          cp "crates/axiomregent/target/${{ matrix.target }}/release/axiomregent${EXT}" \
+             "dist/axiomregent-${{ matrix.target }}${EXT}"
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            strip "dist/axiomregent-${{ matrix.target }}${EXT}" || true
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: axiomregent-${{ matrix.target }}
+          path: dist/
+          retention-days: 5
+
+  # ── Linux ARM64 (cross-compiled) ──────────────────────────────────
+  build-linux-arm64:
+    runs-on: ubuntu-22.04
+    name: build / aarch64-unknown-linux-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: axiomregent-aarch64-unknown-linux-gnu
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build axiomregent
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+        run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/axiomregent/Cargo.toml
+
+      - name: Stage binary
+        run: |
+          mkdir -p dist
+          cp crates/axiomregent/target/aarch64-unknown-linux-gnu/release/axiomregent \
+             dist/axiomregent-aarch64-unknown-linux-gnu
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: axiomregent-aarch64-unknown-linux-gnu
+          path: dist/
+          retention-days: 5
+
+  # ── Publish GitHub Release ────────────────────────────────────────
+  publish:
+    needs: [build, build-linux-arm64]
+    runs-on: ubuntu-latest
+    name: publish release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: axiomregent-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: List artifacts
+        run: ls -lh dist/
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          gh release create "$TAG" dist/* \
+            --repo "${{ github.repository }}" \
+            --title "axiomregent $TAG" \
+            --generate-notes \
+            --notes "## axiomregent MCP Server
+
+          Standalone binaries for the axiomregent MCP server.
+
+          ### Downloads
+          | Platform | Binary |
+          |----------|--------|
+          | macOS (Apple Silicon) | \`axiomregent-aarch64-apple-darwin\` |
+          | macOS (Intel) | \`axiomregent-x86_64-apple-darwin\` |
+          | Linux (x86_64) | \`axiomregent-x86_64-unknown-linux-gnu\` |
+          | Linux (ARM64) | \`axiomregent-aarch64-unknown-linux-gnu\` |
+          | Windows (x86_64) | \`axiomregent-x86_64-pc-windows-msvc.exe\` |
+
+          ### Usage
+          \`\`\`bash
+          chmod +x axiomregent-*  # Unix only
+          ./axiomregent-<target>
+          \`\`\`"

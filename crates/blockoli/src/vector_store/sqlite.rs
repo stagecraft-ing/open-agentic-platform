@@ -1,5 +1,4 @@
 use anyhow::Result;
-use stackwalk::block::{Block, BlockType};
 use rusqlite::{params, Connection};
 use serde::Serialize;
 

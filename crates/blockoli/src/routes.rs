@@ -1,10 +1,8 @@
 use crate::embeddings::encoder::Embeddings;
 use crate::AppState;
-use actix_web::http::header::CROSS_ORIGIN_EMBEDDER_POLICY;
 use actix_web::web;
 use actix_web::Responder;
 use actix_web::{HttpRequest, HttpResponse};
-use jwalk::WalkDir;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -32,7 +30,7 @@ pub struct ErrorResponse {
 #[derive(Deserialize)]
 pub struct CreateProject {
     project_name: String,
-    project_path: String,
+    _project_path: String,
 }
 
 /// Creates a new project.

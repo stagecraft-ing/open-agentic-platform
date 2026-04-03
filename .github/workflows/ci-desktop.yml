@@ -1,0 +1,84 @@
+# CI for OPC desktop app: Rust check/clippy/test + TypeScript check + vitest.
+
+name: CI Desktop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'crates/**'
+      - 'packages/**'
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'crates/**'
+      - 'packages/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    runs-on: macos-latest  # macOS deps: cocoa, objc, window-vibrancy, tauri-nspanel
+    name: rust / check + clippy + test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: cargo check
+        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: cargo clippy (advisory)
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml -- -A dead_code
+        continue-on-error: true
+
+      - name: cargo test (lib)
+        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib
+
+      - name: cargo test (doc)
+        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --doc
+
+      - name: Version alignment check
+        shell: bash
+        run: |
+          CARGO_VERSION=$(grep '^version' apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "$CARGO_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Version mismatch: Cargo.toml=$CARGO_VERSION package.json=$PKG_VERSION"
+            exit 1
+          fi
+          echo "Versions aligned: $CARGO_VERSION"
+
+  typescript:
+    runs-on: ubuntu-latest
+    name: typescript / check + test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript type check
+        run: pnpm --filter @opc/desktop exec tsc --noEmit
+
+      - name: Vitest
+        run: pnpm --filter @opc/desktop test

@@ -1,3 +1,8 @@
+// The web binary shares command modules with the Tauri desktop app.
+// Most code is invoked via Tauri's generate_handler![] in the main binary
+// and appears dead here. Suppress these false positives.
+#![allow(dead_code)]
+
 use clap::Parser;
 
 mod checkpoint;
