@@ -95,21 +95,30 @@ jobs:
         run: |
           sudo dpkg --add-architecture arm64
 
-          # Pin ALL existing sources (traditional and DEB822 format) to amd64 only
-          sudo sed -i 's/^deb http/deb [arch=amd64] http/' /etc/apt/sources.list 2>/dev/null || true
-          sudo sed -i 's/^deb http/deb [arch=amd64] http/' /etc/apt/sources.list.d/*.list 2>/dev/null || true
-          # Handle DEB822 .sources files (used on newer Ubuntu runners)
-          for f in /etc/apt/sources.list.d/*.sources; do
-            [ -f "$f" ] && sudo sed -i '/^Architectures:/d; /^Types:/a Architectures: amd64' "$f"
-          done
+          # Extract the current archive mirror URL before clearing sources
+          MIRROR=$(grep -oP 'https?://[^ ]+' /etc/apt/sources.list 2>/dev/null | grep -v security | head -1)
+          if [ -z "$MIRROR" ]; then
+            MIRROR=$(grep -oP '(?<=^URIs:\s)https?://\S+' /etc/apt/sources.list.d/*.sources 2>/dev/null | grep -v security | head -1)
+          fi
+          MIRROR="${MIRROR:-http://archive.ubuntu.com/ubuntu/}"
+          # Normalise: ensure trailing slash
+          MIRROR="${MIRROR%/}/"
 
-          # Add ARM64 sources from ports.ubuntu.com (all suites)
+          # Wipe all existing source definitions (traditional + DEB822)
+          sudo rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list
+          sudo truncate -s0 /etc/apt/sources.list
+
+          # Write clean arch-explicit sources
           printf '%s\n' \
-            "deb [arch=arm64] http://ports.ubuntu.com/ jammy main restricted universe multiverse" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe multiverse" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ jammy-security main restricted universe multiverse" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse" \
-            | sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null
+            "deb [arch=amd64] ${MIRROR} jammy main restricted universe multiverse" \
+            "deb [arch=amd64] ${MIRROR} jammy-updates main restricted universe multiverse" \
+            "deb [arch=amd64] ${MIRROR} jammy-backports main restricted universe multiverse" \
+            "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-security main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-backports main restricted universe multiverse" \
+            | sudo tee /etc/apt/sources.list > /dev/null
 
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu libssl-dev:arm64
