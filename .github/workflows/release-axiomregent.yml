@@ -95,26 +95,16 @@ jobs:
         run: |
           sudo dpkg --add-architecture arm64
 
-          # Extract the current archive mirror URL before clearing sources
-          # Match only actual deb lines (not comments) and exclude security mirrors
-          MIRROR=$(grep -oP '^deb\s+(\[.*?\]\s+)?\Khttps?://\S+' /etc/apt/sources.list 2>/dev/null | grep -v security | head -1)
-          if [ -z "$MIRROR" ]; then
-            MIRROR=$(grep -oP '(?<=^URIs:\s)https?://\S+' /etc/apt/sources.list.d/*.sources 2>/dev/null | grep -v security | head -1)
-          fi
-          MIRROR="${MIRROR:-http://archive.ubuntu.com/ubuntu/}"
-          # Normalise: ensure trailing slash
-          MIRROR="${MIRROR%/}/"
-          echo "Detected archive mirror: $MIRROR"
-
           # Wipe all existing source definitions (traditional + DEB822)
+          # to prevent stale entries from requesting arm64 on mirrors that lack it
           sudo rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list
-          sudo truncate -s0 /etc/apt/sources.list
+          : | sudo tee /etc/apt/sources.list > /dev/null
 
           # Write clean arch-explicit sources
           printf '%s\n' \
-            "deb [arch=amd64] ${MIRROR} jammy main restricted universe multiverse" \
-            "deb [arch=amd64] ${MIRROR} jammy-updates main restricted universe multiverse" \
-            "deb [arch=amd64] ${MIRROR} jammy-backports main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse" \
             "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse" \
             "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted universe multiverse" \
             "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted universe multiverse" \
