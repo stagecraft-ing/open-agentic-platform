@@ -73,6 +73,7 @@ async fn main() -> Result<()> {
     let probe_port = probe_listener.local_addr()?.port();
     let mut stderr = std::io::stderr();
     let _ = writeln!(stderr, "OPC_AXIOMREGENT_PORT={probe_port}");
+    let _ = stderr.flush();
     tokio::spawn(async move {
         loop {
             match probe_listener.accept().await {

@@ -220,14 +220,14 @@ pub async fn mcp_read_resource(server: String, uri: String) -> Result<serde_json
 
 // Stubs for missing mcp functions
 #[command] pub async fn mcp_add() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
-#[command] pub async fn mcp_list() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
+#[command] pub async fn mcp_list() -> Result<serde_json::Value, String> { Ok(json!([])) }
 #[command] pub async fn mcp_get() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
 #[command] pub async fn mcp_remove() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
 #[command] pub async fn mcp_add_json() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
 #[command] pub async fn mcp_add_from_claude_desktop() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
 #[command] pub async fn mcp_serve() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
 #[command] pub async fn mcp_test_connection() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
-#[command] pub async fn mcp_reset_project_choices() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
-#[command] pub async fn mcp_get_server_status() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
-#[command] pub async fn mcp_read_project_config() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
+#[command] pub async fn mcp_reset_project_choices() -> Result<serde_json::Value, String> { Ok(json!("ok")) }
+#[command] pub async fn mcp_get_server_status() -> Result<serde_json::Value, String> { Ok(json!({})) }
+#[command] pub async fn mcp_read_project_config() -> Result<serde_json::Value, String> { Ok(json!({"mcpServers": {}})) }
 #[command] pub async fn mcp_save_project_config() -> Result<serde_json::Value, String> { Err("Not implemented yet".to_string()) }
