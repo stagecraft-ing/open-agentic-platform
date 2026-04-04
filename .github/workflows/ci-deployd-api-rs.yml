@@ -1,0 +1,42 @@
+# CI for deployd-api-rs: check, clippy, and test.
+
+name: CI deployd-api-rs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/services/deployd-api-rs/**'
+  pull_request:
+    paths:
+      - 'platform/services/deployd-api-rs/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    name: check + clippy + test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check
+        run: cargo check --manifest-path platform/services/deployd-api-rs/Cargo.toml
+
+      - name: cargo clippy (advisory)
+        run: cargo clippy --manifest-path platform/services/deployd-api-rs/Cargo.toml
+        continue-on-error: true
+
+      - name: cargo test
+        run: cargo test --manifest-path platform/services/deployd-api-rs/Cargo.toml

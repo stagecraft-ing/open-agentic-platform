@@ -21,17 +21,23 @@ persistence:
   storageClass: ""
 
 raft:
-  # Must be >= 16 characters
-  secret: "rauthy-raft-secret-change-me"
+  # Must be >= 16 characters. Override via --set or external-secrets in production.
+  secret: ""
+  existingSecret: "rauthy-secrets"
+  existingSecretKey: "raft-secret"
 
 api:
-  # Must be >= 16 characters
-  secret: "rauthy-api-secret-change-me"
+  # Must be >= 16 characters. Override via --set or external-secrets in production.
+  secret: ""
+  existingSecret: "rauthy-secrets"
+  existingSecretKey: "api-secret"
 
 bootstrap:
   adminEmail: "admin@example.com"
-  # Initial admin password (plain text — Rauthy hashes it on first boot)
-  adminPassword: "changeme123456"
+  # Override via --set or external-secrets in production.
+  adminPassword: ""
+  existingSecret: "rauthy-secrets"
+  existingSecretKey: "admin-password"
 
 resources:
   requests:

@@ -20,8 +20,10 @@ pub async fn init_db(data_dir: &str) -> Result<Client> {
         }],
         data_dir: Cow::Owned(data_dir.to_string()),
         filename_db: Cow::Borrowed("deployd.db"),
-        secret_raft: "deployd-raft-secret-key".to_string(),
-        secret_api: "deployd-api-secret-key0".to_string(),
+        secret_raft: std::env::var("HIQLITE_SECRET_RAFT")
+            .unwrap_or_else(|_| "deployd-raft-secret-key".to_string()),
+        secret_api: std::env::var("HIQLITE_SECRET_API")
+            .unwrap_or_else(|_| "deployd-api-secret-key0".to_string()),
         log_statements: false,
         ..NodeConfig::default()
     };

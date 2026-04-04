@@ -27,11 +27,17 @@ Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/i
 
 ## Available Commands
 
-Commands live in `.claude/commands/`. Currently none are registered — add commands here as the project grows.
+Commands live in `.claude/commands/`:
 
-<!-- Example entry:
-- `/compile` — Build the spec registry and report any errors
--->
+- `/init` — Initialize a session (load context, recent activity, memory)
+- `/commit` — Create a git commit with impact-focused conventional message
+- `/code-review` — Multi-aspect code review using parallel sub-agents
+- `/review-branch` — Review all changes in the current branch
+- `/implement-plan` — Execute a plan file step-by-step with progress tracking
+- `/research` — Deep research with parallel sub-agents and query classification
+- `/validate-and-fix` — Run quality checks and automatically fix issues
+- `/cleanup` — Dead code and duplicate detection with categorized recommendations
+- `/refactor-claude-md` — Modularize large CLAUDE.md files with path-scoped rules
 
 ## Conventions
 

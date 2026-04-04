@@ -2,7 +2,7 @@
 id: "040-blockoli-semantic-search-wiring"
 title: "Blockoli semantic search — Tauri command wiring"
 feature_branch: "040-blockoli-semantic-search-wiring"
-status: active
+status: superseded
 kind: product
 created: "2026-03-29"
 authors:

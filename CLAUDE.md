@@ -11,22 +11,22 @@ Open Agentic Platform (OAP) is a governed operating system for AI-native softwar
 ## Repository Structure
 
 ```
-specs/           — Feature specifications (000–041+), the authoritative design record
+specs/           — Feature specifications (000–073+), the authoritative design record
 tools/           — Rust CLI tools
   spec-compiler/ — Compiles specs → build/spec-registry/registry.json
   registry-consumer/ — Reads and queries the compiled registry
   spec-lint/     — Conformance linter (W-xxx warnings)
+  policy-compiler/ — Compiles governance policies
 crates/          — Rust library crates
   agent/         axiomregent/ featuregraph/
-  run/           titor/       xray/
+  orchestrator/  policy-kernel/ run/  xray/
+  tool-registry/ — ToolDef trait + registry (spec 067)
   axiomregent contains: github/ (GitHub API tools), search/ (semantic search), checkpoint/ subsystem
-  blockoli, gitctx, stackwalk are absorbed into axiomregent (deleted as standalone crates)
 apps/desktop/    — Tauri v2 + React desktop app (TypeScript + Rust)
 platform/        — Organisational control plane (imported from stagecraft-ing/platform)
   services/
     stagecraft/     — Encore.ts SaaS (auth, admin, monitoring, Slack, GitHub webhook handling)
-    deployd-api/    — Express.js K8s deployment orchestration
-    deployd-api-rs/ — Rust rewrite of deployd-api (new)
+    deployd-api-rs/ — Rust (axum + hiqlite) K8s deployment orchestration
   infra/         — Terraform modules (Azure AKS, ACR, KeyVault)
   charts/        — Helm charts (stagecraft, deployd-api, rauthy)
   k8s/           — Baseline K8s policies (network deny, resource quotas)
@@ -50,7 +50,7 @@ All multi-step commands and agent workflows MUST follow the six rules defined in
 - **Specs are the source of truth.** Every feature starts as a spec in `specs/NNN-slug/spec.md` with YAML frontmatter.
 - **Rust for tools and crates.** All CLI tools and library crates are Rust. Build with `cargo build --release --manifest-path <path>/Cargo.toml`.
 - **TypeScript for the desktop app.** `apps/desktop/` uses Tauri v2, React, TypeScript.
-- **TypeScript for platform services.** `platform/services/` uses Encore.ts (stagecraft) and Express.js (deployd-api). These use npm, NOT pnpm — they are excluded from the pnpm workspace. `deployd-api-rs` is the Rust counterpart and uses Cargo.
+- **TypeScript for platform services.** `platform/services/stagecraft/` uses Encore.ts with npm (NOT pnpm — excluded from the pnpm workspace). `deployd-api-rs` is the Rust deployment orchestrator (axum + hiqlite).
 - **axiomregent is the unified MCP agent crate.** It now contains the `github/`, `search/`, and `checkpoint/` modules, absorbing the former `gitctx`, `blockoli`, and `stackwalk` crates.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.
 - **Spec compiler is the build system.** Run `./tools/spec-compiler/target/release/spec-compiler compile` from repo root to produce `build/spec-registry/registry.json`.
@@ -70,9 +70,11 @@ cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 # Lint specs
 cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 
+# Compile policies
+cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
+
 # Platform services (local dev)
 cd platform/services/stagecraft && npm run start   # Encore.ts on :4000
-cd platform/services/deployd-api && npm run dev    # Express on :8080
 
 # deployd-api (Rust)
 cargo build --release --manifest-path platform/services/deployd-api-rs/Cargo.toml

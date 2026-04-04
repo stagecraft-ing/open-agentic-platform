@@ -11,7 +11,7 @@ on:
       - 'crates/featuregraph/**'
       - 'crates/xray/**'
       - 'crates/run/**'
-      - 'crates/open_agentic_policy_kernel/**'
+      - 'crates/policy-kernel/**'
   pull_request:
     paths:
       - 'crates/axiomregent/**'
@@ -19,7 +19,7 @@ on:
       - 'crates/featuregraph/**'
       - 'crates/xray/**'
       - 'crates/run/**'
-      - 'crates/open_agentic_policy_kernel/**'
+      - 'crates/policy-kernel/**'
   workflow_dispatch:
 
 env:
