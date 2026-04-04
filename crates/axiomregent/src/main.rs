@@ -12,6 +12,7 @@ use axiomregent::search::provider::SearchProvider;
 use axiomregent::search::store::SearchStore;
 use axiomregent::router::legacy_provider::LegacyToolProvider;
 use axiomregent::router::provider::ToolProvider;
+use axiomregent::github::provider::GitHubProvider;
 use env_logger::Target;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
@@ -86,7 +87,14 @@ async fn main() -> Result<()> {
     let search_store = Arc::new(SearchStore::new(db.clone()));
     let search_provider = Arc::new(SearchProvider::new(search_store));
 
-    let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy, checkpoint_provider, search_provider];
+    let github_provider = Arc::new(GitHubProvider::new().await?);
+
+    let providers: Vec<Arc<dyn ToolProvider>> = vec![
+        legacy,
+        checkpoint_provider,
+        search_provider,
+        github_provider,
+    ];
     let router = Router::new(providers, lease_store.clone());
 
     // 3b. OPC desktop sidecar discovery: announce a local probe port on **stderr** only.
