@@ -4,7 +4,6 @@
 use axiomregent::agent_tools::AgentTools;
 use axiomregent::feature_tools::FeatureTools;
 use axiomregent::router::JsonRpcRequest;
-use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::process::Command;
@@ -63,28 +62,19 @@ async fn test_stale_lease_error_structure() {
 
     let db_dir = tempfile::tempdir().unwrap();
     let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
-    let config = axiomregent::config::StorageConfig {
-        data_dir: db_dir.path().to_path_buf(),
-        blob_backend: axiomregent::config::BlobBackend::Fs,
-        compression: axiomregent::config::Compression::None,
-    };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
 
-    let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
-    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
+    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone()));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, repo.path()));
 
     let router = make_router(
-        lease_store,
-        snapshot_tools,
+        lease_store.clone(),
         workspace_tools,
         featuregraph_tools,
         xray_tools,
@@ -92,47 +82,11 @@ async fn test_stale_lease_error_structure() {
         run_tools,
     );
 
-    // 1. Get a lease via snapshot.list (worktree mode)
-    let req = JsonRpcRequest {
-        jsonrpc: "2.0".to_string(),
-        method: "tools/call".to_string(),
-        params: Some(json!({
-            "name": "snapshot.list",
-            "arguments": {
-                "repo_root": repo_path,
-                "path": ".",
-                "mode": "worktree"
-            }
-        })),
-        id: Some(json!(1)),
-    };
-    let resp = router.handle_request(&req).await;
+    // 1. Issue a lease directly via LeaseStore
+    let fp = axiomregent::lease::Fingerprint::compute(repo.path()).await.unwrap();
+    let lease_id = lease_store.issue(fp).await.unwrap();
 
-    // Debug output if fails
-    if let Some(err) = &resp.error {
-        println!("Initial request failed: {:?}", err);
-    }
-
-    assert!(resp.result.is_some(), "Initial request failed");
-    let res = resp.result.unwrap();
-    let content = &res["content"][0]["json"];
-
-    // Worktree mode returns lease_id at top level of result?
-    // Check snapshot.list response schema.
-    // It returns { "entries": [...], "lease_id": "...", "fingerprint": ... }
-
-    let lease_id_val = content.get("lease_id");
-    if lease_id_val.is_none() {
-        println!("Response content: {:?}", content);
-        panic!("lease_id missing from response");
-    }
-    let lease_id = lease_id_val
-        .unwrap()
-        .as_str()
-        .expect("lease_id strings")
-        .to_string();
-
-    // 2. Modify repo (commit a change to change HEAD oid)
+    // 2. Modify repo (commit a change to change HEAD oid) — makes lease stale
     std::fs::write(repo.path().join("new_file.txt"), "modified").unwrap();
     let _ = Command::new("git")
         .args(["add", "."])
@@ -145,16 +99,18 @@ async fn test_stale_lease_error_structure() {
         .output()
         .unwrap();
 
-    // 3. Call snapshot.list with old lease
+    // 3. Try to write a file with the stale lease — should trigger STALE_LEASE error
+    // Write content to a temp file for testing
+    std::fs::write(repo.path().join("test_write.txt"), "content").unwrap();
     let req2 = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
         method: "tools/call".to_string(),
         params: Some(json!({
-            "name": "snapshot.list",
+            "name": "workspace.write_file",
             "arguments": {
                 "repo_root": repo_path,
-                "path": ".",
-                "mode": "worktree",
+                "path": "test_write.txt",
+                "content_base64": "new content",
                 "lease_id": lease_id
             }
         })),

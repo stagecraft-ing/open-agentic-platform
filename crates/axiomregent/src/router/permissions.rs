@@ -5,7 +5,7 @@ use serde_json::json;
 use std::io::Write;
 
 use crate::router::AxiomRegentError;
-use crate::snapshot::lease::{Lease, PermissionGrants};
+use crate::lease::{Lease, PermissionGrants};
 
 fn tier_rank(t: ToolTier) -> u8 {
     match t {
@@ -18,13 +18,12 @@ fn tier_rank(t: ToolTier) -> u8 {
 fn requires_file_read(tool_name: &str) -> bool {
     matches!(
         tool_name,
-        "snapshot.list"
-            | "snapshot.read"
-            | "snapshot.grep"
-            | "snapshot.diff"
-            | "snapshot.changes"
-            | "snapshot.export"
-            | "snapshot.info"
+        "checkpoint.list"
+            | "checkpoint.info"
+            | "checkpoint.diff"
+            | "checkpoint.verify"
+            | "checkpoint.timeline"
+            | "checkpoint.status"
             | "gov.preflight"
             | "gov.drift"
             | "features.impact"
@@ -39,7 +38,10 @@ fn requires_file_write(tool_name: &str) -> bool {
         "workspace.write_file"
             | "workspace.delete"
             | "workspace.apply_patch"
-            | "snapshot.create"
+            | "checkpoint.create"
+            | "checkpoint.restore"
+            | "checkpoint.fork"
+            | "checkpoint.gc"
             | "agent.propose"
             | "agent.execute"
     )
@@ -108,7 +110,7 @@ pub fn audit_tool_dispatch(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::snapshot::lease::{Fingerprint, PermissionGrants};
+    use crate::lease::{Fingerprint, PermissionGrants};
     use std::collections::HashSet;
 
     fn lease_with(grants: PermissionGrants) -> Lease {
@@ -148,13 +150,13 @@ mod tests {
     }
 
     #[test]
-    fn read_disabled_blocks_snapshot_read() {
+    fn read_disabled_blocks_checkpoint_info() {
         let lease = lease_with(PermissionGrants {
             enable_file_read: false,
             enable_file_write: true,
             enable_network: true,
             max_tier: 3,
         });
-        assert!(check_tool_permission("snapshot.read", &lease).is_err());
+        assert!(check_tool_permission("checkpoint.info", &lease).is_err());
     }
 }

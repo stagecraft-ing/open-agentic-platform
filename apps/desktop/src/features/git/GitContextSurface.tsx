@@ -212,12 +212,12 @@ function GitContextSummary(props: {
       </dl>
 
       <div className="border rounded-md p-3 bg-background text-sm">
-        <h2 className="font-semibold mb-2">GitHub context (gitctx via MCP bridge)</h2>
+        <h2 className="font-semibold mb-2">GitHub context (axiomregent GitHub tools)</h2>
         {props.enrichment.status === 'idle' && (
           <p className="text-muted-foreground">Enrichment idle.</p>
         )}
         {props.enrichment.status === 'loading' && (
-          <p className="text-muted-foreground">Loading gitctx enrichment…</p>
+          <p className="text-muted-foreground">Loading GitHub enrichment…</p>
         )}
         {props.enrichment.status === 'degraded' && (
           <p className="text-muted-foreground">{props.enrichment.message}</p>

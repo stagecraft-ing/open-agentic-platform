@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use crate::agent_tools::AgentTools;
 use crate::run_tools::RunTools;
-use crate::snapshot::tools::SnapshotTools;
 use crate::workspace::WorkspaceTools;
 use featuregraph::tools::FeatureGraphTools;
 use xray::tools::XrayTools;
@@ -16,7 +15,6 @@ use xray::tools::XrayTools;
 use super::provider::{ToolPermissions, ToolProvider};
 
 pub struct LegacyToolProvider {
-    pub snapshot_tools: Arc<SnapshotTools>,
     pub workspace_tools: Arc<WorkspaceTools>,
     pub featuregraph_tools: Arc<FeatureGraphTools>,
     pub xray_tools: Arc<XrayTools>,

@@ -197,12 +197,6 @@ pub fn run() {
             }
             app.manage(checkpoint_state);
 
-            app.manage(commands::titor::TitorState::new());
-
-            // Blockoli semantic search state — stub only (Phase 6: blockoli crate removed).
-            // Use axiomregent search.index / search.semantic tools instead.
-            app.manage(commands::search::BlockoliState::default());
-
             // Initialize process registry and Claude process state
             app.manage(ProcessRegistryState::default());
             app.manage(ClaudeProcessState::default());
@@ -388,24 +382,12 @@ pub fn run() {
             // Proxy Settings
             get_proxy_settings,
             save_proxy_settings,
-            // Titor Checkpointing
-            commands::titor::titor_init,
-            commands::titor::titor_checkpoint,
-            commands::titor::titor_list,
-            commands::titor::titor_restore,
-            commands::titor::titor_diff,
-            commands::titor::titor_verify,
             // Xray & Featuregraph Analysis
             commands::analysis::xray_scan_project,
             commands::analysis::featuregraph_overview,
             commands::analysis::featuregraph_impact,
             commands::analysis::get_preflight_safety_tier_reference,
             commands::analysis::get_tool_tier_assignments,
-            // Blockoli & Stackwalk Search
-            commands::search::blockoli_index_project,
-            commands::search::blockoli_search,
-            commands::search::stackwalk_index,
-            commands::search::search_codebase,
             // MCP proxy commands
             commands::mcp::mcp_list_tools,
             commands::mcp::mcp_call_tool,

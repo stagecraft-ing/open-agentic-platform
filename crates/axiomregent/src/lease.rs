@@ -193,6 +193,11 @@ impl LeaseStore {
         self.default_grants.clone()
     }
 
+    /// Access the underlying hiqlite client (e.g. for dlock operations).
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
     pub async fn issue(&self, fingerprint: Fingerprint) -> Result<String> {
         let id = Uuid::new_v4().to_string();
         let fp_json = fingerprint.to_canonical_json()?;
@@ -210,7 +215,7 @@ impl LeaseStore {
                 vec![
                     Param::Text(id.clone()),
                     Param::Text("".to_string()),
-                    Param::Text(fp_json),
+                    Param::Text(fp_json.clone()),
                     Param::Text("[]".to_string()),
                     Param::Text(grants_json),
                     Param::Text(now),
@@ -218,6 +223,16 @@ impl LeaseStore {
                 ],
             )
             .await?;
+
+        // Emit cross-session event (FR-006)
+        crate::events::emit(
+            &self.client,
+            crate::events::EVENT_LEASE_ACQUIRED,
+            serde_json::json!({
+                "lease_id": &id,
+                "fingerprint": &fp_json,
+            }),
+        ).await;
 
         Ok(id)
     }

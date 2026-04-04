@@ -78,12 +78,10 @@ futures-util = "0.3"
 image = "0.25"
 
 # Opc additions
-titor        = { path = "../../../crates/titor" }
 xray         = { path = "../../../crates/xray" }
 featuregraph = { path = "../../../crates/featuregraph" }
 agent        = { path = "../../../crates/agent" }
 run          = { path = "../../../crates/run" }
-# blockoli and stackwalk removed in Phase 6 — use axiomregent search.* tools instead
 orchestrator = { path = "../../../crates/orchestrator" }
 
 

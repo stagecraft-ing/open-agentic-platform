@@ -272,7 +272,7 @@ export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPat
           Checkpoint / Restore
         </h1>
         <p className="text-sm text-muted-foreground">
-          Create, list, restore, diff, and verify project checkpoints via titor temporal safety.
+          Create, list, restore, diff, and verify project checkpoints.
         </p>
       </header>
 
@@ -316,7 +316,7 @@ export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPat
         {state.status === 'initializing' && (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
-            <span className="text-sm">Initializing titor for project...</span>
+            <span className="text-sm">Initializing checkpoint tracking...</span>
           </div>
         )}
 

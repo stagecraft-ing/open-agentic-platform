@@ -5,9 +5,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-use crate::snapshot::lease::{LeaseStore, StaleLeaseError};
+use crate::lease::{LeaseStore, StaleLeaseError};
 
 pub mod audit_http;
+pub mod dlock;
 pub mod legacy_provider;
 pub mod permissions;
 pub mod policy_bundle;
@@ -269,13 +270,44 @@ impl Router {
                     return resp;
                 }
 
-                // Dispatch to first matching provider
-                for p in &self.providers {
-                    if let Some(result) = p.handle(name, args).await {
-                        return handle_tool_result_value(req.id.clone(), result);
+                // Acquire dlock for Tier2/3 tools that mutate the worktree (FR-007).
+                let tool_tier = agent::safety::get_tool_tier(name);
+                let repo_root_for_lock = args.get("repo_root").and_then(|v| v.as_str());
+                let needs_lock = matches!(
+                    tool_tier,
+                    agent::safety::ToolTier::Tier2 | agent::safety::ToolTier::Tier3
+                ) && repo_root_for_lock.is_some();
+
+                let _lock_guard = if needs_lock {
+                    match repo_root_for_lock {
+                        Some(root) => {
+                            match dlock::acquire_repo_lock(self.lease_store.client(), root).await {
+                                Ok(guard) => Some(guard),
+                                Err(e) => return json_rpc_error(req.id.clone(), -32603, &e.to_string()),
+                            }
+                        }
+                        None => None,
                     }
-                }
-                json_rpc_error(req.id.clone(), -32601, &format!("Tool not found: {}", name))
+                } else {
+                    None
+                };
+
+                // Dispatch to first matching provider
+                let result = {
+                    let mut dispatch_result = None;
+                    for p in &self.providers {
+                        if let Some(result) = p.handle(name, args).await {
+                            dispatch_result = Some(handle_tool_result_value(req.id.clone(), result));
+                            break;
+                        }
+                    }
+                    dispatch_result.unwrap_or_else(|| {
+                        json_rpc_error(req.id.clone(), -32601, &format!("Tool not found: {}", name))
+                    })
+                };
+
+                // _lock_guard drops here, releasing the dlock (if held).
+                result
             }
             _ => json_rpc_error(req.id.clone(), -32601, "Method not found"),
         }

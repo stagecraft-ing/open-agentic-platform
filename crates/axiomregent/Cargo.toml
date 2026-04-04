@@ -38,7 +38,7 @@ hiqlite = { version = "~0.13", features = ["sqlite", "dlock", "listen_notify_loc
 async-trait = "0.1"
 
 featuregraph = { path = "../featuregraph" }
-xray        = { path = "../xray" }
+xray        = { path = "../xray", features = ["analysis-call-graph"] }
 agent       = { path = "../agent" }
 run         = { path = "../run" }
 open_agentic_policy_kernel = { path = "../policy-kernel" }

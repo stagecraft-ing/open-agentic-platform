@@ -5,7 +5,6 @@
 
 use crate::feature_tools::FeatureTools;
 use crate::internal_client::InternalClient;
-use crate::snapshot::tools::SnapshotTools;
 use crate::workspace::WorkspaceTools;
 use agent::agent::AgentConfig;
 use agent::executor::Executor;
@@ -16,19 +15,16 @@ use std::sync::Arc;
 
 pub struct AgentTools {
     pub workspace: Arc<WorkspaceTools>,
-    pub snapshot: Arc<SnapshotTools>,
     pub features: Arc<FeatureTools>,
 }
 
 impl AgentTools {
     pub fn new(
         workspace: Arc<WorkspaceTools>,
-        snapshot: Arc<SnapshotTools>,
         features: Arc<FeatureTools>,
     ) -> Self {
         Self {
             workspace,
-            snapshot,
             features,
         }
     }
@@ -60,7 +56,6 @@ impl AgentTools {
         let client = InternalClient {
             repo_root: root.clone(),
             workspace: self.workspace.clone(),
-            snapshot: self.snapshot.clone(),
             features: self.features.clone(),
         };
 
@@ -86,7 +81,6 @@ impl AgentTools {
         let client = InternalClient {
             repo_root: root.clone(),
             workspace: self.workspace.clone(),
-            snapshot: self.snapshot.clone(),
             features: self.features.clone(),
         };
 

@@ -2,8 +2,8 @@
 // Asserts that the governed dispatch overhead (permission check + audit) adds < 50ms per call.
 // This measures the permission enforcement overhead only, NOT tool execution or subprocess startup.
 
+use axiomregent::lease::{Fingerprint, Lease, PermissionGrants};
 use axiomregent::router::permissions;
-use axiomregent::snapshot::lease::{Fingerprint, Lease, PermissionGrants};
 use std::collections::HashSet;
 use std::time::Instant;
 
@@ -34,8 +34,8 @@ fn permission_check_under_50ms() {
         "gov.drift",
         "features.impact",
         "xray.scan",
-        "snapshot.create",
-        "snapshot.read",
+        "checkpoint.create",
+        "checkpoint.info",
         "workspace.write_file",
         "workspace.apply_patch",
         "run.execute",
@@ -85,7 +85,7 @@ fn permission_check_grants_fallback_under_50ms() {
     let tools = [
         "gov.preflight",
         "features.impact",
-        "snapshot.read",
+        "checkpoint.info",
         "workspace.write_file",
     ];
 
@@ -133,5 +133,5 @@ fn permission_denial_works() {
     assert!(permissions::check_grants("run.execute", &grants).is_err());
 
     // Tier 2 tool with max_tier=1: should deny
-    assert!(permissions::check_grants("snapshot.create", &grants).is_err());
+    assert!(permissions::check_grants("checkpoint.create", &grants).is_err());
 }

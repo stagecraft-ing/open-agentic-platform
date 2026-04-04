@@ -1,59 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@opc/ui/button';
 import { Loader2 } from 'lucide-react';
 
 interface SemanticSearchPanelProps {
-  /** When provided, used as the project identifier for blockoli search. */
+  /** When provided, used as the project identifier for semantic search. */
   projectPath?: string;
-}
-
-/** Sanitize a directory name to match Rust's validate_project_name: [a-zA-Z0-9_] only. */
-function sanitizeProjectName(path: string): string {
-  const raw = path.split('/').filter(Boolean).pop() ?? 'default';
-  return raw.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
 export const SemanticSearchPanel: React.FC<SemanticSearchPanelProps> = ({ projectPath }) => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [indexing, setIndexing] = useState(false);
+  const indexing = false;
   const [indexError, setIndexError] = useState<string | null>(null);
-  const [indexed, setIndexed] = useState(false);
+  const indexed = false;
   const autoIndexed = useRef(false);
 
-  const projectName = projectPath ? sanitizeProjectName(projectPath) : 'default';
-
-  // Auto-index on mount when projectPath is provided
+  // Auto-index is not available — blockoli_index_project removed (blockoli absorbed into axiomregent).
   useEffect(() => {
     if (!projectPath || autoIndexed.current) return;
     autoIndexed.current = true;
-
-    let cancelled = false;
-    (async () => {
-      setIndexing(true);
-      setIndexError(null);
-      try {
-        await invoke('blockoli_index_project', { projectName, path: projectPath });
-        if (!cancelled) setIndexed(true);
-      } catch (err) {
-        console.error('Auto-index failed:', err);
-        if (!cancelled) setIndexError(String(err));
-      } finally {
-        if (!cancelled) setIndexing(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [projectPath, projectName]);
+    setIndexError('Semantic indexing is not available in this build.');
+  }, [projectPath]);
 
   const handleSearch = async () => {
     if (!query) return;
     setLoading(true);
     try {
-      const res = await invoke('blockoli_search', { projectName, query });
-      setResult(res);
+      // blockoli_search has been removed (blockoli crate absorbed into axiomregent).
+      throw new Error('Semantic search is not available in this build.');
     } catch (err) {
       console.error(err);
       setResult({ error: String(err) });
@@ -64,7 +39,7 @@ export const SemanticSearchPanel: React.FC<SemanticSearchPanelProps> = ({ projec
 
   return (
     <div className="p-6 h-full flex flex-col gap-4 text-foreground">
-      <h1 className="text-2xl font-bold">Blockoli Semantic Search</h1>
+      <h1 className="text-2xl font-bold">Semantic Search</h1>
       {projectPath && (
         <p className="text-sm text-muted-foreground -mt-2 font-mono truncate">{projectPath}</p>
       )}

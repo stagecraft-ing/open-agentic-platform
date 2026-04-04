@@ -46,12 +46,12 @@ fn test_agent_tools_exist() -> Result<()> {
 
     // Check if tools are present in output
     assert!(
-        stdout.contains("snapshot.list"),
-        "Missing snapshot.list in tools/list"
-    );
-    assert!(
         stdout.contains("workspace.write_file"),
         "Missing workspace.write_file in tools/list"
+    );
+    assert!(
+        stdout.contains("checkpoint.create") || stdout.contains("workspace.apply_patch"),
+        "Missing expected tools in tools/list"
     );
 
     Ok(())

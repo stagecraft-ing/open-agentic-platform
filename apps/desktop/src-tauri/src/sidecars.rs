@@ -4,9 +4,6 @@
 //!   `OPC_AXIOMREGENT_PORT=<port>`
 //! (Stdout is reserved for MCP framing.)
 //!
-//! **gitctx (DEPRECATED, Phase 6):** The gitctx-mcp binary is no longer bundled. Git context
-//! enrichment is now provided by axiomregent's github.* tools.
-//!
 //! `SidecarState` is managed via Tauri and holds discovered ports where applicable.
 //! The frontend queries them via `get_sidecar_ports`.
 

@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Bartek Kus
 
 use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::sync::Arc;
@@ -18,28 +17,18 @@ async fn make_test_router(dir: &std::path::Path) -> Router {
     std::fs::create_dir_all(&db_sub).unwrap();
     let (client, lease_store) = test_helpers::make_client_and_lease_store(&db_sub).await;
 
-    let config = axiomregent::config::StorageConfig {
-        data_dir: dir.to_path_buf(),
-        blob_backend: axiomregent::config::BlobBackend::Fs,
-        compression: axiomregent::config::Compression::None,
-    };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
-
-    let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
-    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
+    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone()));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(axiomregent::feature_tools::FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(axiomregent::agent_tools::AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, dir));
 
     make_router(
         lease_store,
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,
@@ -66,7 +55,7 @@ async fn test_mcp_tools_list() {
     let tools = res["tools"].as_array().expect("tools should be an array");
 
     // Check for core tools that are kept in the trimmed server
-    let required_tools = vec!["agent.propose", "features.impact", "gov.preflight", "snapshot.create"];
+    let required_tools = vec!["agent.propose", "features.impact", "gov.preflight", "workspace.write_file"];
     for req_tool in required_tools {
         let found = tools.iter().any(|t| t["name"] == req_tool);
         assert!(found, "Tool {} not found in tools list", req_tool);

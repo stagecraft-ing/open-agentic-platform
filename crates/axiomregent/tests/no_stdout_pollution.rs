@@ -43,7 +43,7 @@ fn test_no_stdout_pollution() {
                 // For now, strict check.
 
                 // Allow known safe files if checked manually?
-                // snapshot/tools.rs has println! in tests mod.
+                // Allow snapshot/tools.rs if it still exists (legacy module).
                 if path.to_str().unwrap().contains("snapshot/tools.rs") {
                     continue;
                 }

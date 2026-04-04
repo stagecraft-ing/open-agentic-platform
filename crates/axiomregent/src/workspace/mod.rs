@@ -3,22 +3,19 @@
 // Feature: MCP_SNAPSHOT_WORKSPACE
 // Spec: spec/core/snapshot-workspace.md
 
-use crate::snapshot::lease::Fingerprint;
-use crate::snapshot::lease::LeaseStore;
-use crate::snapshot::store::Store;
+use crate::lease::Fingerprint;
+use crate::lease::LeaseStore;
 use anyhow::{Context, Result, anyhow};
-use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub struct WorkspaceTools {
     pub lease_store: Arc<LeaseStore>,
-    pub store: Arc<Store>, // Unused mostly but keeps symmetry
 }
 
 impl WorkspaceTools {
-    pub fn new(lease_store: Arc<LeaseStore>, store: Arc<Store>) -> Self {
-        Self { lease_store, store }
+    pub fn new(lease_store: Arc<LeaseStore>) -> Self {
+        Self { lease_store }
     }
 
     // Safety helper: ensure path is inside repo root and is safe
@@ -187,122 +184,7 @@ impl WorkspaceTools {
                 }))
             }
         } else if mode == "snapshot" {
-            let snap_id = _snapshot_id.ok_or_else(|| anyhow!("snapshot_id required"))?;
-            self.store.validate_snapshot(&snap_id).await?;
-
-            // Retrieve base snapshot metadata for provenance/determinism
-            let base_info = self
-                .store
-                .get_snapshot_info(&snap_id).await?
-                .ok_or_else(|| anyhow::anyhow!("Snapshot metadata not found for {}", snap_id))?;
-
-            // 1. Materialize to temp dir
-            let temp = tempfile::tempdir()?;
-            let temp_path = temp.path();
-            let entries = self.store.list_snapshot_entries(&snap_id).await?;
-
-            for entry in entries {
-                if let Some(content) = self.store.get_blob(&entry.blob)? {
-                    let full_path = temp_path.join(&entry.path);
-                    if let Some(parent) = full_path.parent() {
-                        std::fs::create_dir_all(parent)?;
-                    }
-                    std::fs::write(&full_path, content)?;
-                } else {
-                    return Err(anyhow::anyhow!("Missing blob for {}", entry.path));
-                }
-            }
-
-            // 2. Apply patch
-            // Disable autocrlf so snapshot blobs are always LF-only regardless of platform git config.
-            let mut cmd = tokio::process::Command::new("git");
-            cmd.arg("-c").arg("core.autocrlf=false");
-            cmd.arg("-c").arg("core.eol=lf");
-            cmd.arg("apply");
-            cmd.arg("--verbose");
-            if let Some(n) = strip {
-                cmd.arg(format!("-p{}", n));
-            }
-
-            cmd.current_dir(temp_path);
-            cmd.stdin(std::process::Stdio::piped());
-            cmd.stdout(std::process::Stdio::piped());
-            cmd.stderr(std::process::Stdio::piped());
-
-            let mut child = cmd.spawn()?;
-            if let Some(mut stdin) = child.stdin.take() {
-                use tokio::io::AsyncWriteExt;
-                stdin.write_all(patch.as_bytes()).await?;
-            }
-
-            let output = child.wait_with_output().await?;
-
-            if output.status.success() {
-                // 3. Ingest changes
-                // Walk temp dir to find all current files
-                use walkdir::WalkDir;
-                let mut new_entries = Vec::new();
-                for entry in WalkDir::new(temp_path) {
-                    let entry = entry?;
-                    if entry.file_type().is_file() {
-                        let path = entry.path();
-                        let rel_path = path
-                            .strip_prefix(temp_path)?
-                            .to_str()
-                            .ok_or_else(|| anyhow::anyhow!("Non-UTF-8 path: {}", path.display()))?
-                            .to_string();
-                        // Validate path safety/ignored? Assuming temp dir is controlled.
-
-                        let content = std::fs::read(path)?;
-                        let blob_id = self.store.put_blob(&content)?;
-
-                        new_entries.push(crate::snapshot::store::Entry {
-                            path: rel_path,
-                            blob: blob_id,
-                            size: content.len() as u64,
-                        });
-                    }
-                }
-
-                // Create new snapshot
-                let new_manifest = crate::snapshot::store::Manifest::new(new_entries); // sorts automatically
-                let manifest_json = new_manifest.to_canonical_json()?;
-
-                // Deterministic ID: sha256(fingerprint + manifest)
-                // Use base snapshot's fingerprint to maintain same "context"
-                let new_snap_id = new_manifest.compute_snapshot_id(&base_info.fingerprint_json)?;
-
-                // Compute patch hash for lineage
-                let patch_hash =
-                    format!("sha256:{}", hex::encode(Sha256::digest(patch.as_bytes())));
-
-                self.store.put_snapshot(
-                    &new_snap_id,
-                    &base_info.repo_root,        // Preserve base repo_root
-                    &base_info.head_sha,         // Preserve base head_sha
-                    &base_info.fingerprint_json, // Preserve base fingerprint
-                    manifest_json.as_bytes(),
-                    Some(&snap_id),    // derived_from
-                    Some(&patch_hash), // applied_patch_hash
-                    None,              // label
-                ).await?;
-
-                Ok(serde_json::json!({
-                    "snapshot_id": new_snap_id,
-                    "applied": [], // List touched?
-                    "rejects": [],
-                    "cache_hint": "immutable"
-                }))
-            } else {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                let rejects = parse_git_apply_errors(&stderr, patch);
-                Ok(serde_json::json!({
-                    "snapshot_id": snap_id, // Return original if failed?
-                    "applied": [],
-                    "rejects": rejects,
-                    "cache_hint": "immutable"
-                }))
-            }
+            Err(anyhow!("snapshot mode is deprecated; use checkpoint.create via MCP router"))
         } else {
             Err(anyhow!("Invalid mode"))
         }
@@ -440,106 +322,30 @@ fn parse_git_apply_errors(stderr: &str, patch: &str) -> Vec<serde_json::Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{BlobBackend, Compression, StorageConfig};
-    use crate::snapshot::lease::LeaseStore;
-    use crate::snapshot::store::Store;
+    use crate::lease::LeaseStore;
     use std::sync::Arc;
 
     #[tokio::test]
-    async fn test_snapshot_apply_patch() {
+    async fn test_snapshot_mode_returns_error() {
         let dir = tempfile::tempdir().unwrap();
         let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
-        let config = StorageConfig {
-            data_dir: dir.path().to_path_buf(),
-            blob_backend: BlobBackend::Fs,
-            compression: Compression::None,
-        };
-        let store = Arc::new(Store::new(client.clone(), config).unwrap());
         let lease_store = Arc::new(LeaseStore::new(client));
-        let tools = WorkspaceTools::new(lease_store, store.clone());
+        let tools = WorkspaceTools::new(lease_store);
 
-        // Setup base snapshot containing a.txt
-        let t1 = "original content\n";
-        let h1 = store.put_blob(t1.as_bytes()).unwrap(); // put_blob is sync (filesystem only)
-        let m1 = format!(
-            r#"{{
-            "entries": [
-                {{ "path": "a.txt", "blob": "{}", "size": {} }}
-            ]
-        }}"#,
-            h1,
-            t1.len()
-        );
-        let sid = "snap-base";
-        store
-            .put_snapshot(
-                sid,
-                dir.path().to_str().unwrap(),
-                "h1",
-                "{}",
-                m1.as_bytes(),
-                None,
-                None,
-                None,
-            )
-            .await
-            .unwrap();
-
-        // Patch to modify a.txt and add b.txt
-        let patch = r#"diff --git a/a.txt b/a.txt
-index 7b57bd2..dcd25a4 100644
---- a/a.txt
-+++ b/a.txt
-@@ -1 +1 @@
--original content
-+modified content
-diff --git a/b.txt b/b.txt
-new file mode 100644
-index 0000000..9daeafb
---- /dev/null
-+++ b/b.txt
-@@ -0,0 +1 @@
-+test
-"#;
-
-        // Apply patch
         let res = tools
             .apply_patch(
                 dir.path(),
-                patch,
+                "",
                 "snapshot",
                 None,
-                Some(sid.to_string()),
-                Some(1), // strip 1 (a/ b/)
+                None,
+                None,
                 false,
                 false,
             )
-            .await
-            .unwrap();
+            .await;
 
-        let new_sid = res["snapshot_id"].as_str().unwrap();
-        assert_ne!(new_sid, sid);
-
-        // Verify new snapshot content
-        let entries = store.list_snapshot_entries(new_sid).await.unwrap();
-        assert_eq!(entries.len(), 2); // a.txt, b.txt
-
-        // Check content
-        let mut found_a = false;
-        let mut found_b = false;
-
-        for e in entries {
-            let content = store.get_blob(&e.blob).unwrap().unwrap(); // get_blob is sync (filesystem only)
-            let s = String::from_utf8(content).unwrap();
-            if e.path == "a.txt" {
-                assert_eq!(s, "modified content\n");
-                found_a = true;
-            } else if e.path == "b.txt" {
-                assert_eq!(s, "test\n");
-                found_b = true;
-            }
-        }
-        assert!(found_a);
-        assert!(found_b);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().to_string().contains("deprecated"));
     }
 }

@@ -14,7 +14,6 @@ use test_helpers::make_router;
 #[tokio::test]
 async fn test_router_contract_routing() {
     // Tools
-    use axiomregent::snapshot::tools::SnapshotTools;
     use axiomregent::workspace::WorkspaceTools;
 
     let dir = tempfile::tempdir().unwrap();
@@ -22,27 +21,18 @@ async fn test_router_contract_routing() {
     std::fs::create_dir_all(&db_sub).unwrap();
     let (client, lease_store) = test_helpers::make_client_and_lease_store(&db_sub).await;
 
-    let config = axiomregent::config::StorageConfig {
-        data_dir: dir.path().to_path_buf(),
-        blob_backend: axiomregent::config::BlobBackend::Fs,
-        compression: axiomregent::config::Compression::None,
-    };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
-    let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
-    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
+    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone()));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(axiomregent::feature_tools::FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(axiomregent::agent_tools::AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, dir.path()));
 
     let router: Router = make_router(
         lease_store,
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

@@ -58,8 +58,8 @@ export const GovernanceSurface: React.FC<GovernanceSurfaceProps> = ({ projectPat
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">Featuregraph Governance</h1>
         <p className="text-sm text-muted-foreground">
-          Read governance state from compiled registry and featuregraph outputs. Optional gitctx MCP
-          enrichment (same T006 bridge as the git panel) is additive only.
+          Read governance state from compiled registry and featuregraph outputs. Optional axiomregent
+          GitHub tools enrichment is additive only.
         </p>
       </header>
 
@@ -171,12 +171,12 @@ export const GovernanceSurface: React.FC<GovernanceSurfaceProps> = ({ projectPat
             </div>
 
             <div className="border rounded-md p-3 bg-background text-sm">
-              <h2 className="font-semibold mb-2">GitHub context (gitctx via MCP bridge)</h2>
+              <h2 className="font-semibold mb-2">GitHub context (axiomregent GitHub tools)</h2>
               {enrichment.status === 'idle' && (
                 <p className="text-muted-foreground text-xs">Enrichment idle.</p>
               )}
               {enrichment.status === 'loading' && (
-                <p className="text-muted-foreground text-xs">Loading gitctx enrichment…</p>
+                <p className="text-muted-foreground text-xs">Loading GitHub enrichment…</p>
               )}
               {enrichment.status === 'degraded' && (
                 <p className="text-muted-foreground text-xs">{enrichment.message}</p>

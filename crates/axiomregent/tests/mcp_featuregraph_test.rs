@@ -5,7 +5,6 @@ use axiomregent::agent_tools::AgentTools;
 use axiomregent::feature_tools::FeatureTools;
 
 use axiomregent::router::JsonRpcRequest;
-use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::sync::Arc;
@@ -34,17 +33,13 @@ fn create_test_workspace() -> TempDir {
 
 async fn create_router(db_dir: &std::path::Path) -> axiomregent::router::Router {
     let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir).await;
-    let storage_config = axiomregent::config::StorageConfig::default();
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), storage_config).unwrap());
 
-    let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
-    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
+    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone()));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
 
@@ -53,7 +48,6 @@ async fn create_router(db_dir: &std::path::Path) -> axiomregent::router::Router 
 
     make_router(
         lease_store,
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

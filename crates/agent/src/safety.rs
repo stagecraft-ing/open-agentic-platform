@@ -38,17 +38,38 @@ impl std::str::FromStr for ToolTier {
 pub fn get_tool_tier(tool_name: &str) -> ToolTier {
     match tool_name {
         // Tier 1: Read-only / diagnostic (Feature 036 — all router tools explicitly classified)
-        "gov.preflight" | "gov.drift" | "features.impact" | "snapshot.info" | "snapshot.list"
-        | "snapshot.read" | "snapshot.grep" | "snapshot.diff" | "snapshot.changes"
-        | "snapshot.export" | "xray.scan" | "run.status" | "run.logs" | "agent.verify" => {
-            ToolTier::Tier1
-        }
+        "gov.preflight"
+        | "gov.drift"
+        | "features.impact"
+        // checkpoint read-only tools
+        | "checkpoint.list"
+        | "checkpoint.info"
+        | "checkpoint.diff"
+        | "checkpoint.verify"
+        | "checkpoint.timeline"
+        | "checkpoint.status"
+        // snapshot.* legacy aliases (still registered by checkpoint provider)
+        | "snapshot.info"
+        | "snapshot.list"
+        | "snapshot.read"
+        | "snapshot.grep"
+        | "snapshot.diff"
+        | "snapshot.changes"
+        | "snapshot.export"
+        | "xray.scan"
+        | "run.status"
+        | "run.logs"
+        | "agent.verify" => ToolTier::Tier1,
 
-        // Tier 2: Bounded mutations (writes, proposals, snapshot creation)
+        // Tier 2: Bounded mutations (writes, proposals, checkpoint/snapshot creation)
         "workspace.apply_patch"
         | "workspace.write_file"
         | "workspace.delete"
         | "write_file"
+        | "checkpoint.create"
+        | "checkpoint.restore"
+        | "checkpoint.fork"
+        | "checkpoint.gc"
         | "snapshot.create"
         | "agent.propose" => ToolTier::Tier2,
 
@@ -66,6 +87,14 @@ pub fn explicitly_classified_tools() -> &'static [&'static str] {
         "gov.preflight",
         "gov.drift",
         "features.impact",
+        // checkpoint read-only tools
+        "checkpoint.list",
+        "checkpoint.info",
+        "checkpoint.diff",
+        "checkpoint.verify",
+        "checkpoint.timeline",
+        "checkpoint.status",
+        // snapshot.* legacy aliases (still registered by checkpoint provider)
         "snapshot.info",
         "snapshot.list",
         "snapshot.read",
@@ -82,6 +111,10 @@ pub fn explicitly_classified_tools() -> &'static [&'static str] {
         "workspace.write_file",
         "workspace.delete",
         "write_file",
+        "checkpoint.create",
+        "checkpoint.restore",
+        "checkpoint.fork",
+        "checkpoint.gc",
         "snapshot.create",
         "agent.propose",
         // Tier 3 (explicit)
@@ -144,7 +177,7 @@ mod tests {
         assert_eq!(calculate_plan_tier(&[t3]), ToolTier::Tier3);
 
         // Newly classified Tier 1 tools (Feature 036)
-        let t4 = make_task(vec!["snapshot.read", "xray.scan", "run.logs"]);
+        let t4 = make_task(vec!["checkpoint.info", "xray.scan", "run.logs"]);
         assert_eq!(calculate_plan_tier(&[t4]), ToolTier::Tier1);
 
         // agent.propose is Tier 2

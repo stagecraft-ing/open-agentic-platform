@@ -44,34 +44,29 @@ async fn main() -> Result<()> {
     let db = axiomregent::db::init_hiqlite(&data_dir).await?;
     log::info!("hiqlite initialised at {:?}", data_dir);
 
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(db.clone(), storage_config)?);
-    let default_grants = axiomregent::snapshot::lease::PermissionGrants::from_env_or_default();
-    let lease_store = Arc::new(axiomregent::snapshot::lease::LeaseStore::with_default_grants(
+    // Spawn cross-session event listener (FR-006)
+    axiomregent::events::spawn_event_listener(db.clone());
+
+    let default_grants = axiomregent::lease::PermissionGrants::from_env_or_default();
+    let lease_store = Arc::new(axiomregent::lease::LeaseStore::with_default_grants(
         db.clone(),
         default_grants,
     ));
 
-    let snapshot_tools = Arc::new(axiomregent::snapshot::tools::SnapshotTools::new(
-        lease_store.clone(),
-        store.clone(),
-    ));
     let workspace_tools = Arc::new(axiomregent::workspace::WorkspaceTools::new(
         lease_store.clone(),
-        store.clone(),
     ));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(axiomregent::feature_tools::FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(axiomregent::agent_tools::AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(db.clone(), &run_root));
 
     // 3. Setup Router
     let legacy = Arc::new(LegacyToolProvider {
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

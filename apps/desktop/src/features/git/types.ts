@@ -19,7 +19,7 @@ export interface GitContextData {
   upstreamResolved: boolean;
 }
 
-/** Additive gitctx MCP context from `gitctx://context/current` (never source-of-truth for local git). */
+/** Additive GitHub context from axiomregent GitHub tools (never source-of-truth for local git). */
 export interface GitCtxEnrichment {
   authenticated: boolean;
   status: string;

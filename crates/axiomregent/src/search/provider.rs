@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-// NOTE (Phase 6): The stackwalk crate (tree-sitter-based code parser) has been removed as a
-// dependency. do_index now uses a simplified built-in file walker that treats each source file
-// as a single code block. Tree-sitter-based function-level chunking can be re-added later by
-// integrating tree-sitter grammars directly into axiomregent's build.rs.
 
 use async_trait::async_trait;
 use serde_json::{json, Map, Value};
@@ -115,10 +111,10 @@ impl ToolProvider for SearchProvider {
 
 impl SearchProvider {
     async fn do_index(&self, project_name: &str, path: &str) -> anyhow::Result<Value> {
+        use super::parser;
+
         // Walk the directory and collect (file_path, content) pairs for supported source files.
-        // This is a simplified implementation that treats each file as one block. Tree-sitter-based
-        // function-level chunking can be added back once grammars are compiled in axiomregent.
-        let mut file_pairs: Vec<(String, String)> = Vec::new();
+        let mut file_pairs: Vec<(std::path::PathBuf, String)> = Vec::new();
         for entry in WalkDir::new(path)
             .follow_links(false)
             .into_iter()
@@ -144,7 +140,7 @@ impl SearchProvider {
             }
             if let Ok(content) = std::fs::read_to_string(p) {
                 if !content.trim().is_empty() {
-                    file_pairs.push((p.to_string_lossy().into_owned(), content));
+                    file_pairs.push((p.to_path_buf(), content));
                 }
             }
         }
@@ -157,26 +153,44 @@ impl SearchProvider {
             }));
         }
 
-        // Generate embeddings for all file contents (CPU-bound; run off the async executor)
-        let code_strings: Vec<String> = file_pairs.iter().map(|(_, c)| c.clone()).collect();
+        // Extract code blocks using tree-sitter for supported languages,
+        // falling back to whole-file blocks for others.
+        let mut all_blocks: Vec<parser::CodeBlock> = Vec::new();
+        for (file_path, content) in &file_pairs {
+            let blocks = parser::extract_blocks(file_path, content);
+            all_blocks.extend(blocks);
+        }
+
+        // Generate embeddings for all block contents (CPU-bound; run off the async executor)
+        let code_strings: Vec<String> = all_blocks.iter().map(|b| b.code_content.clone()).collect();
         let vectors = tokio::task::spawn_blocking(move || embeddings::embed_batch(&code_strings))
             .await??;
 
-        // Build index entries pairing each file with its embedding
-        let entries: Vec<IndexEntry> = file_pairs
+        // Build index entries pairing each block with its embedding
+        let entries: Vec<IndexEntry> = all_blocks
             .into_iter()
             .zip(vectors.into_iter())
-            .map(|((file_path, content), vector)| IndexEntry {
-                file_path,
-                block_type: "File".to_string(),
-                function_name: None,
-                code_content: content,
+            .map(|(block, vector)| IndexEntry {
+                file_path: block.file_path,
+                block_type: block.block_type,
+                function_name: block.function_name,
+                code_content: block.code_content,
                 vector,
-                call_edges: None,
+                call_edges: block.call_edges,
             })
             .collect();
 
         let count = self.store.index_project(project_name, entries).await?;
+
+        // Emit cross-session event (FR-006)
+        crate::events::emit(
+            self.store.client(),
+            crate::events::EVENT_INDEX_UPDATED,
+            serde_json::json!({
+                "project_name": project_name,
+                "blocks_indexed": count,
+            }),
+        ).await;
 
         Ok(json!({
             "project_name": project_name,

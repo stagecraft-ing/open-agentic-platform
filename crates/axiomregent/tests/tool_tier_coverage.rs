@@ -16,23 +16,14 @@ async fn create_router() -> Router {
     // Forget TempDir to keep it alive for the router's lifetime
     std::mem::forget(db_dir);
 
-    let storage_config = axiomregent::config::StorageConfig::default();
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), storage_config).unwrap());
-
-    let snapshot_tools = Arc::new(axiomregent::snapshot::tools::SnapshotTools::new(
-        lease_store.clone(),
-        store.clone(),
-    ));
     let workspace_tools = Arc::new(axiomregent::workspace::WorkspaceTools::new(
         lease_store.clone(),
-        store.clone(),
     ));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(axiomregent::feature_tools::FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(axiomregent::agent_tools::AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let root = std::env::current_dir().unwrap();
@@ -40,7 +31,6 @@ async fn create_router() -> Router {
 
     make_router(
         lease_store,
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

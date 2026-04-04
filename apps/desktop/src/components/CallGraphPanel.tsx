@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@opc/ui/button';
 
 interface CallGraphPanelProps {
@@ -17,8 +16,8 @@ export const CallGraphPanel: React.FC<CallGraphPanelProps> = ({ projectPath }) =
     if (!path) return;
     setLoading(true);
     try {
-      const res = await invoke('stackwalk_index', { path, configToml });
-      setResult(res);
+      // stackwalk_index has been removed (stackwalk crate absorbed into axiomregent).
+      throw new Error('Call graph indexing is not available in this build.');
     } catch (err) {
       console.error(err);
       setResult({ error: String(err) });

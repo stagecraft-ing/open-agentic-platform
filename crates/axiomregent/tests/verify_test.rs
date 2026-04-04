@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Bartek Kus
 
 use axiomregent::router::JsonRpcRequest;
-use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::fs;
@@ -26,29 +25,20 @@ async fn test_agent_verify_flow() {
     // Setup Storage
     let db_dir = tempfile::tempdir().unwrap();
     let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
-    let config = axiomregent::config::StorageConfig {
-        data_dir: repo_root.clone(),
-        blob_backend: axiomregent::config::BlobBackend::Fs,
-        compression: axiomregent::config::Compression::None,
-    };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
 
-    let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
-    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
+    let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone()));
 
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let feature_tools = Arc::new(axiomregent::feature_tools::FeatureTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let agent_tools = Arc::new(axiomregent::agent_tools::AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, &repo_root));
 
     let router = make_router(
         lease_store,
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

@@ -4,8 +4,7 @@
 // Spec: spec/agent/automation.md
 
 use crate::feature_tools::{FeatureTools, PreflightMode, PreflightRequest};
-use crate::snapshot::lease::Fingerprint;
-use crate::snapshot::tools::SnapshotTools;
+use crate::lease::Fingerprint;
 use crate::workspace::WorkspaceTools;
 use agent::validator::McpClient;
 use anyhow::{Context, Result, anyhow};
@@ -15,7 +14,6 @@ use std::sync::Arc;
 pub struct InternalClient {
     pub repo_root: PathBuf,
     pub workspace: Arc<WorkspaceTools>,
-    pub snapshot: Arc<SnapshotTools>,
     pub features: Arc<FeatureTools>,
 }
 
@@ -137,20 +135,8 @@ impl McpClient for InternalClient {
                 self.features.invalidate(&self.repo_root);
                 Ok(serde_json::json!({"status": "success"}))
             }
-            "snapshot.create" => {
-                let lease_id = args
-                    .get("lease_id")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
-                let paths = args.get("paths").and_then(|v| v.as_array()).map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                        .collect()
-                });
-
-                handle.block_on(
-                    self.snapshot.snapshot_create(&self.repo_root, lease_id, paths),
-                )
+            "snapshot.create" | "checkpoint.create" => {
+                Err(anyhow!("snapshot.create is deprecated; use checkpoint.create via MCP router"))
             }
             "workspace.apply_patch" => {
                 let patch = args

@@ -437,6 +437,17 @@ impl CheckpointProvider {
 
         self.store.create_checkpoint(&info, &entries).await?;
 
+        // Emit cross-session event (FR-006)
+        crate::events::emit(
+            &self.store.client,
+            crate::events::EVENT_CHECKPOINT_CREATED,
+            serde_json::json!({
+                "checkpoint_id": &cp_id,
+                "repo_root": info.repo_root,
+                "file_count": entries.len(),
+            }),
+        ).await;
+
         Ok(json!({
             "checkpoint_id": cp_id,
             "file_count": entries.len(),

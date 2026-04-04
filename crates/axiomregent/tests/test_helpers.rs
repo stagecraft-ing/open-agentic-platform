@@ -2,10 +2,10 @@
 // Copyright (C) 2026 Bartek Kus
 //! Shared test helpers for axiomregent integration tests.
 
+use axiomregent::lease::LeaseStore;
 use axiomregent::router::legacy_provider::LegacyToolProvider;
 use axiomregent::router::provider::ToolProvider;
 use axiomregent::router::Router;
-use axiomregent::snapshot::lease::LeaseStore;
 use hiqlite::Client;
 use std::sync::Arc;
 
@@ -43,7 +43,6 @@ pub async fn make_lease_store(data_dir: &std::path::Path) -> Arc<LeaseStore> {
 #[allow(dead_code)]
 pub fn make_router(
     lease_store: Arc<LeaseStore>,
-    snapshot_tools: Arc<axiomregent::snapshot::tools::SnapshotTools>,
     workspace_tools: Arc<axiomregent::workspace::WorkspaceTools>,
     featuregraph_tools: Arc<axiomregent::featuregraph::tools::FeatureGraphTools>,
     xray_tools: Arc<axiomregent::xray::tools::XrayTools>,
@@ -51,7 +50,6 @@ pub fn make_router(
     run_tools: Arc<axiomregent::run_tools::RunTools>,
 ) -> Router {
     let legacy = Arc::new(LegacyToolProvider {
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

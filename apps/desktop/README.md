@@ -25,6 +25,6 @@ Typecheck + Rust check: `pnpm -C apps/desktop check`
 
 3. **Governance** — open the **Governance** tab, enter the repository root (or leave empty to use the current working directory), and **Load governance**. The panels show compiled registry summary and featuregraph status (featuregraph may be unavailable if `spec/features.yaml` is missing — a bounded degraded state). When the registry is **ok**, use **View spec** to open a feature’s `spec.md` in the in-app markdown editor tab.
 
-4. **Git context** — open the **Git Context** tab for native branch/status; optional gitctx MCP enrichment is additive only.
+4. **Git context** — open the **Git Context** tab for native branch/status; optional axiomregent GitHub tools enrichment is additive only.
 
 Follow-up actions use registry data only (no separate task system in the UI). Canonical tasks and status remain in `specs/.../tasks.md`.

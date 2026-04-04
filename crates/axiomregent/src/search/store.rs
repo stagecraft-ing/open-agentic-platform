@@ -17,6 +17,11 @@ impl SearchStore {
         Self { client }
     }
 
+    /// Access the underlying hiqlite client for event emission.
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
     /// Store embeddings for a project. Clears existing entries first.
     pub async fn index_project(
         &self,

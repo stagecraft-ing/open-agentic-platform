@@ -2,5 +2,6 @@
 // Copyright (C) 2026 Bartek Kus
 
 pub mod embeddings;
+pub mod parser;
 pub mod store;
 pub mod provider;

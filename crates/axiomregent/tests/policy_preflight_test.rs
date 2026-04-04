@@ -1,7 +1,7 @@
 //! 047 Phase 6: policy kernel runs after permission grants; `POLICY_DENIED` is distinct from `PERMISSION_DENIED`.
 
+use axiomregent::lease::{LeaseStore, PermissionGrants};
 use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::lease::{LeaseStore, PermissionGrants};
 use hiqlite::Client;
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -13,23 +13,14 @@ mod test_helpers;
 use test_helpers::make_router;
 
 fn router_with_lease(client: Client, lease_store: Arc<LeaseStore>) -> Router {
-    let config = axiomregent::config::StorageConfig::default();
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config)
-        .expect("store"));
-    let snapshot_tools = Arc::new(axiomregent::snapshot::tools::SnapshotTools::new(
-        lease_store.clone(),
-        store.clone(),
-    ));
     let workspace_tools = Arc::new(axiomregent::workspace::WorkspaceTools::new(
         lease_store.clone(),
-        store.clone(),
     ));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
     let xray_tools = Arc::new(axiomregent::xray::tools::XrayTools::new());
     let feature_tools = Arc::new(axiomregent::feature_tools::FeatureTools::new());
     let agent_tools = Arc::new(axiomregent::agent_tools::AgentTools::new(
         workspace_tools.clone(),
-        snapshot_tools.clone(),
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(
@@ -38,7 +29,6 @@ fn router_with_lease(client: Client, lease_store: Arc<LeaseStore>) -> Router {
     ));
     make_router(
         lease_store,
-        snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,

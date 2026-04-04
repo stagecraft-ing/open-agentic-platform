@@ -12,7 +12,7 @@ export interface CheckpointFlowState {
   /** Per-operation busy flags so the list remains visible during sub-ops. */
   busy: {
     creating: boolean;
-    restoring: string | null; // checkpoint id being restored
+    restoring: string | null;
     verifying: string | null;
     diffing: boolean;
   };
@@ -34,6 +34,22 @@ const initialState: CheckpointFlowState = {
   verifications: {},
 };
 
+/**
+ * Call an axiomregent checkpoint tool via the MCP sidecar proxy.
+ *
+ * This is the single integration point between the frontend and
+ * axiomregent's checkpoint.* MCP tools.
+ */
+async function callCheckpointTool<T>(toolName: string, args: Record<string, unknown>): Promise<T> {
+  const result = await invoke<{ content: Array<{ json: T }> }>('mcp_call_tool', {
+    server: 'axiomregent',
+    toolName,
+    args,
+  });
+  // MCP tool results are wrapped in content[].json
+  return result.content[0].json;
+}
+
 export function useCheckpointFlow() {
   const [state, setState] = useState<CheckpointFlowState>(initialState);
 
@@ -43,10 +59,12 @@ export function useCheckpointFlow() {
 
   const refreshList = useCallback(async (rootPath: string) => {
     try {
-      const list = await invoke<Checkpoint[]>('titor_list', { rootPath });
-      // Sort most recent first
-      const sorted = [...list].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      const result = await callCheckpointTool<{ checkpoints: Checkpoint[] }>(
+        'checkpoint.list',
+        { repo_root: rootPath },
+      );
+      const sorted = [...result.checkpoints].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setState(prev => ({ ...prev, checkpoints: sorted }));
     } catch (err) {
@@ -57,10 +75,13 @@ export function useCheckpointFlow() {
   const initialize = useCallback(async (rootPath: string) => {
     setState(prev => ({ ...prev, status: 'initializing', projectRoot: rootPath, error: null }));
     try {
-      await invoke<string>('titor_init', { rootPath, storagePath: null });
-      const list = await invoke<Checkpoint[]>('titor_list', { rootPath });
-      const sorted = [...list].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      // axiomregent manages checkpoint storage automatically — just fetch the list
+      const result = await callCheckpointTool<{ checkpoints: Checkpoint[] }>(
+        'checkpoint.list',
+        { repo_root: rootPath },
+      );
+      const sorted = [...result.checkpoints].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setState(prev => ({
         ...prev,
@@ -74,12 +95,12 @@ export function useCheckpointFlow() {
     }
   }, [setError]);
 
-  const createCheckpoint = useCallback(async (message?: string) => {
+  const createCheckpoint = useCallback(async (label?: string) => {
     setState(prev => ({ ...prev, busy: { ...prev.busy, creating: true } }));
     try {
-      await invoke<Checkpoint>('titor_checkpoint', {
-        rootPath: state.projectRoot,
-        message: message || null,
+      await callCheckpointTool('checkpoint.create', {
+        repo_root: state.projectRoot,
+        label: label || null,
       });
       await refreshList(state.projectRoot);
     } catch (err) {
@@ -92,7 +113,10 @@ export function useCheckpointFlow() {
   const restore = useCallback(async (checkpointId: string) => {
     setState(prev => ({ ...prev, busy: { ...prev.busy, restoring: checkpointId } }));
     try {
-      await invoke('titor_restore', { rootPath: state.projectRoot, checkpointId });
+      await callCheckpointTool('checkpoint.restore', {
+        repo_root: state.projectRoot,
+        checkpoint_id: checkpointId,
+      });
       await refreshList(state.projectRoot);
     } catch (err) {
       setError(String(err));
@@ -104,23 +128,21 @@ export function useCheckpointFlow() {
   const diff = useCallback(async (id1: string, id2: string) => {
     setState(prev => ({ ...prev, busy: { ...prev.busy, diffing: true }, diff: null }));
     try {
-      const result = await invoke<CheckpointDiff>('titor_diff', {
-        rootPath: state.projectRoot,
-        id1,
-        id2,
+      const result = await callCheckpointTool<CheckpointDiff>('checkpoint.diff', {
+        from_checkpoint_id: id1,
+        to_checkpoint_id: id2,
       });
       setState(prev => ({ ...prev, diff: result, busy: { ...prev.busy, diffing: false } }));
     } catch (err) {
       setError(String(err));
     }
-  }, [state.projectRoot, setError]);
+  }, [setError]);
 
   const verify = useCallback(async (checkpointId: string) => {
     setState(prev => ({ ...prev, busy: { ...prev.busy, verifying: checkpointId } }));
     try {
-      const report = await invoke<VerificationReport>('titor_verify', {
-        rootPath: state.projectRoot,
-        checkpointId,
+      const report = await callCheckpointTool<VerificationReport>('checkpoint.verify', {
+        checkpoint_id: checkpointId,
       });
       setState(prev => ({
         ...prev,
@@ -130,7 +152,7 @@ export function useCheckpointFlow() {
     } catch (err) {
       setError(String(err));
     }
-  }, [state.projectRoot, setError]);
+  }, [setError]);
 
   const reset = useCallback(() => {
     setState(initialState);
