@@ -21,4 +21,5 @@ pub use xray;
 pub mod run_tools;
 pub mod platform_config;
 pub mod checkpoint;
+pub mod search;
 // pub mod xray_tools;

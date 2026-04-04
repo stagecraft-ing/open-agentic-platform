@@ -8,6 +8,8 @@ use axiomregent::router::{JsonRpcRequest, Router};
 use axiomregent::checkpoint::blobs::BlobStore as CheckpointBlobStore;
 use axiomregent::checkpoint::provider::CheckpointProvider;
 use axiomregent::checkpoint::store::CheckpointStore;
+use axiomregent::search::provider::SearchProvider;
+use axiomregent::search::store::SearchStore;
 use axiomregent::router::legacy_provider::LegacyToolProvider;
 use axiomregent::router::provider::ToolProvider;
 use env_logger::Target;
@@ -81,7 +83,10 @@ async fn main() -> Result<()> {
     let checkpoint_store = Arc::new(CheckpointStore::new(db.clone(), checkpoint_blobs));
     let checkpoint_provider = Arc::new(CheckpointProvider::new(checkpoint_store));
 
-    let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy, checkpoint_provider];
+    let search_store = Arc::new(SearchStore::new(db.clone()));
+    let search_provider = Arc::new(SearchProvider::new(search_store));
+
+    let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy, checkpoint_provider, search_provider];
     let router = Router::new(providers, lease_store.clone());
 
     // 3b. OPC desktop sidecar discovery: announce a local probe port on **stderr** only.

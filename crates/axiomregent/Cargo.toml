@@ -40,6 +40,13 @@ xray        = { path = "../xray" }
 agent       = { path = "../agent" }
 run         = { path = "../run" }
 open_agentic_policy_kernel = { path = "../policy-kernel" }
+stackwalk   = { path = "../stackwalk" }
+fastembed   = "5"
+kd-tree     = { version = "0.5", features = ["rayon", "serde"] }
+typenum     = "1.17"
+once_cell   = "1"
+parking_lot = "0.12"
+rayon       = "1"
 
 [features]
 default = ["transport-stdio", "resolver-local", "skills-core"]
