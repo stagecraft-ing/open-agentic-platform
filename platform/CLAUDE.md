@@ -8,10 +8,12 @@ The platform layer is the organisational control plane for OAP. It provides iden
 
 | Service | Stack | Port | Purpose |
 |---------|-------|------|---------|
-| **stagecraft** | Encore.ts, Drizzle ORM, React Router v7 | 4000 | SaaS platform: auth, admin, uptime monitoring, Slack integration |
+| **stagecraft** | Encore.ts, Drizzle ORM, React Router v7 | 4000 | SaaS platform: auth, admin, uptime monitoring, Slack integration; `api/github/` handles webhook ingestion and token brokering (absorbed from github-app) |
 | **deployd-api** | Express.js, @kubernetes/client-node | 8080 | K8s deployment orchestration with Helm, OIDC JWT auth |
-| **github-app** | Probot | 3000 | PR preview deployments via GitHub webhooks |
+| **deployd-api-rs** | Rust (Axum/Actix) | 8081 | Rust rewrite of deployd-api alongside the Node.js version |
 | **tenant-hello** | Express.js | 8080 | Example tenant service |
+
+> **github-app** (Probot) has been absorbed into stagecraft. Webhook handling and PR preview deployment logic now lives in `services/stagecraft/api/github/`.
 
 ## Package Manager
 
@@ -40,13 +42,12 @@ Authentication is handled by **Rauthy** (self-hosted OIDC/OAuth2 provider, Rust-
 cd services/stagecraft && npm run start
 # → http://localhost:4000 (app), http://localhost:9400 (Encore dashboard)
 
-# Deployd-API
+# Deployd-API (Node.js)
 cd services/deployd-api && npm run dev
 # → http://localhost:8080
 
-# GitHub App
-cd services/github-app && npm start
-# → http://localhost:3000
+# Deployd-API (Rust)
+cargo build --release --manifest-path services/deployd-api-rs/Cargo.toml
 ```
 
 ## Infrastructure

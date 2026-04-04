@@ -1,8 +1,9 @@
 //! MCP proxy commands for the desktop app (Feature 032 / T006).
 //!
-//! **gitctx:** Rust-owned, **per-request** MCP over **stdio** to the bundled `gitctx-mcp`
-//! binary (`src-tauri/binaries/gitctx-mcp-*`). There is no long-lived gitctx process or
-//! port-based readiness for gitctx — enrichment readiness is whatever this bridge returns.
+//! **gitctx (DEPRECATED):** This bridge previously spawned a bundled `gitctx-mcp` binary
+//! over stdio. The gitctx crate has been absorbed into axiomregent (Phase 6 cleanup).
+//! The `gitctx-mcp` binary is no longer bundled; calls to the `gitctx` server will fail with
+//! a clear error. Use axiomregent's `github.*` tools instead.
 //!
 //! **`get_sidecar_ports`** is unrelated to gitctx; it is for sidecars that announce a TCP
 //! port (e.g. axiomregent).
@@ -18,10 +19,17 @@ const MCP_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn ensure_gitctx_server(server: &str) -> Result<(), String> {
     if server == "gitctx" {
+        // DEPRECATED (Phase 6): gitctx-mcp binary is no longer bundled.
+        // The gitctx crate has been absorbed into axiomregent. Use axiomregent's
+        // github.* tools instead. This path will fail when the binary is not found.
+        log::warn!(
+            "mcp bridge: 'gitctx' server is deprecated (Phase 6). \
+             Use axiomregent github.* tools instead."
+        );
         Ok(())
     } else {
         Err(format!(
-            "Unsupported MCP server '{server}'. T006 bridge currently supports only 'gitctx'."
+            "Unsupported MCP server '{server}'. T006 bridge supports 'gitctx' (deprecated)."
         ))
     }
 }

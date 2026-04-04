@@ -1,5 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
+/**
+ * @deprecated 'gitctx' is deprecated (Phase 6). The gitctx-mcp binary is no longer bundled.
+ * Use axiomregent's github.* tools instead (via the axiomregent sidecar).
+ */
 export type McpServerName = 'gitctx';
 
 export interface McpClient {

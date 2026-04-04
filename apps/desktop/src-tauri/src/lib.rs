@@ -16,7 +16,6 @@ pub mod types;
 pub mod utils;
 pub mod web_server;
 
-use blockoli::vector_store::vector_store::VectorStore;
 use checkpoint::state::CheckpointState;
 use commands::agents::{
     cleanup_finished_processes, create_agent, delete_agent, execute_agent, export_agent,
@@ -200,28 +199,9 @@ pub fn run() {
 
             app.manage(commands::titor::TitorState::new());
 
-            // Blockoli semantic search — SQLite vector store in app data dir
-            {
-                let app_data = app.path().app_data_dir().map_err(|e| {
-                    log::error!("failed to resolve app data directory: {e}");
-                    e
-                })?;
-                std::fs::create_dir_all(&app_data).map_err(|e| {
-                    log::error!("failed to create app data directory: {e}");
-                    e
-                })?;
-                let db_path = app_data.join("blockoli.sqlite");
-                let conn = rusqlite::Connection::open(&db_path).map_err(|e| {
-                    log::error!(
-                        "failed to open blockoli database at {}: {e}",
-                        db_path.display()
-                    );
-                    e
-                })?;
-                app.manage(commands::search::BlockoliState::new(
-                    VectorStore::SQLiteStore(conn),
-                ));
-            }
+            // Blockoli semantic search state — stub only (Phase 6: blockoli crate removed).
+            // Use axiomregent search.index / search.semantic tools instead.
+            app.manage(commands::search::BlockoliState::default());
 
             // Initialize process registry and Claude process state
             app.manage(ProcessRegistryState::default());

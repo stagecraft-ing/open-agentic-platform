@@ -59,8 +59,7 @@
     ],
     "resources": [],
     "externalBin": [
-      "binaries/axiomregent",
-      "binaries/gitctx-mcp"
+      "binaries/axiomregent"
     ],
     "copyright": "© 2025 Asterisk. All rights reserved.",
     "category": "DeveloperTool",

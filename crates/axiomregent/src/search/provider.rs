@@ -1,48 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
+// NOTE (Phase 6): The stackwalk crate (tree-sitter-based code parser) has been removed as a
+// dependency. do_index now uses a simplified built-in file walker that treats each source file
+// as a single code block. Tree-sitter-based function-level chunking can be re-added later by
+// integrating tree-sitter grammars directly into axiomregent's build.rs.
+
 use async_trait::async_trait;
 use serde_json::{json, Map, Value};
 use std::sync::Arc;
+use walkdir::WalkDir;
 
 use crate::router::provider::{ToolPermissions, ToolProvider};
 use super::embeddings;
 use super::store::{IndexEntry, SearchStore};
 
-/// Embedded asterisk.toml config — avoids fragile include_str! relative paths
-/// across crate boundaries. Keep in sync with crates/stackwalk/asterisk.toml.
-const ASTERISK_TOML: &str = r#"
-[languages]
-  [languages.python]
-    [languages.python.matchers]
-      import_statement = "import_from_statement"
-      [languages.python.matchers.module_name]
-        field_name = "module_name"
-        kind = "dotted_name"
-
-      [languages.python.matchers.object_name]
-        field_name = "name"
-        kind = "dotted_name"
-
-      [languages.python.matchers.alias]
-        field_name = "alias"
-        kind = "identifier"
-
-  [languages.rust]
-    [languages.rust.matchers]
-      import_statement = "use_declaration"
-      [languages.rust.matchers.module_name]
-        field_name = "path"
-        kind = "identifier"
-
-      [languages.rust.matchers.object_name]
-        field_name = "name"
-        kind = "identifier"
-
-      [languages.rust.matchers.alias]
-        field_name = "alias"
-        kind = "identifier"
-"#;
+/// Source file extensions supported for indexing.
+const SUPPORTED_EXTENSIONS: &[&str] = &["rs", "py", "js", "ts", "go", "java", "tsx", "jsx"];
 
 pub struct SearchProvider {
     store: Arc<SearchStore>,
@@ -141,13 +115,41 @@ impl ToolProvider for SearchProvider {
 
 impl SearchProvider {
     async fn do_index(&self, project_name: &str, path: &str) -> anyhow::Result<Value> {
-        let config = stackwalk::config::Config::from_toml(ASTERISK_TOML)
-            .map_err(|e| anyhow::anyhow!("Config parse error: {}", e))?;
+        // Walk the directory and collect (file_path, content) pairs for supported source files.
+        // This is a simplified implementation that treats each file as one block. Tree-sitter-based
+        // function-level chunking can be added back once grammars are compiled in axiomregent.
+        let mut file_pairs: Vec<(String, String)> = Vec::new();
+        for entry in WalkDir::new(path)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let p = entry.path();
+            if !p.is_file() {
+                continue;
+            }
+            let ext = p
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            if !SUPPORTED_EXTENSIONS.contains(&ext.as_str()) {
+                continue;
+            }
+            // Skip files larger than 512 KiB to avoid embedding noise
+            if let Ok(meta) = p.metadata() {
+                if meta.len() > 512 * 1024 {
+                    continue;
+                }
+            }
+            if let Ok(content) = std::fs::read_to_string(p) {
+                if !content.trim().is_empty() {
+                    file_pairs.push((p.to_string_lossy().into_owned(), content));
+                }
+            }
+        }
 
-        let (blocks, _call_stack, _call_graph) =
-            stackwalk::indexer::index_directory(&config, path);
-
-        if blocks.is_empty() {
+        if file_pairs.is_empty() {
             return Ok(json!({
                 "project_name": project_name,
                 "blocks_indexed": 0,
@@ -155,40 +157,22 @@ impl SearchProvider {
             }));
         }
 
-        // Generate embeddings for all code blocks (CPU-bound; run off the async executor)
-        let code_strings: Vec<String> = blocks.iter().map(|b| b.content.clone()).collect();
+        // Generate embeddings for all file contents (CPU-bound; run off the async executor)
+        let code_strings: Vec<String> = file_pairs.iter().map(|(_, c)| c.clone()).collect();
         let vectors = tokio::task::spawn_blocking(move || embeddings::embed_batch(&code_strings))
             .await??;
 
-        // Build index entries pairing each block with its embedding
-        let entries: Vec<IndexEntry> = blocks
-            .iter()
+        // Build index entries pairing each file with its embedding
+        let entries: Vec<IndexEntry> = file_pairs
+            .into_iter()
             .zip(vectors.into_iter())
-            .map(|(block, vector)| {
-                // node_key is "<file_path>.<class?>.<function>" — the file path is the prefix
-                // before the first dot that is a path separator; use the raw node_key as
-                // file_path so callers can correlate back to the source file.
-                let file_path = block
-                    .node_key
-                    .split('.')
-                    .next()
-                    .unwrap_or(&block.node_key)
-                    .to_string();
-
-                let call_edges = if block.outgoing_calls.is_empty() {
-                    None
-                } else {
-                    serde_json::to_string(&block.outgoing_calls).ok()
-                };
-
-                IndexEntry {
-                    file_path,
-                    block_type: format!("{:?}", block.block_type),
-                    function_name: block.function_name.clone(),
-                    code_content: block.content.clone(),
-                    vector,
-                    call_edges,
-                }
+            .map(|((file_path, content), vector)| IndexEntry {
+                file_path,
+                block_type: "File".to_string(),
+                function_name: None,
+                code_content: content,
+                vector,
+                call_edges: None,
             })
             .collect();
 

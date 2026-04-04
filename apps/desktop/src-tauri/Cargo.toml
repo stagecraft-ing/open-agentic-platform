@@ -83,8 +83,7 @@ xray         = { path = "../../../crates/xray" }
 featuregraph = { path = "../../../crates/featuregraph" }
 agent        = { path = "../../../crates/agent" }
 run          = { path = "../../../crates/run" }
-blockoli     = { path = "../../../crates/blockoli" }
-stackwalk    = { path = "../../../crates/stackwalk" }
+# blockoli and stackwalk removed in Phase 6 — use axiomregent search.* tools instead
 orchestrator = { path = "../../../crates/orchestrator" }
 
 

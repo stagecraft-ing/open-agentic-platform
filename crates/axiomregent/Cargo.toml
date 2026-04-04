@@ -42,7 +42,6 @@ xray        = { path = "../xray" }
 agent       = { path = "../agent" }
 run         = { path = "../run" }
 open_agentic_policy_kernel = { path = "../policy-kernel" }
-stackwalk   = { path = "../stackwalk" }
 fastembed   = "5"
 kd-tree     = { version = "0.5", features = ["rayon", "serde"] }
 typenum     = "1.17"

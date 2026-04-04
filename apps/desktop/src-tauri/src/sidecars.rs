@@ -4,8 +4,8 @@
 //!   `OPC_AXIOMREGENT_PORT=<port>`
 //! (Stdout is reserved for MCP framing.)
 //!
-//! **gitctx** is not sidecar-port-driven in the desktop app: MCP is invoked on demand
-//! via `commands::mcp` (Rust-owned per-request stdio to `gitctx-mcp`). See T006 checklist.
+//! **gitctx (DEPRECATED, Phase 6):** The gitctx-mcp binary is no longer bundled. Git context
+//! enrichment is now provided by axiomregent's github.* tools.
 //!
 //! `SidecarState` is managed via Tauri and holds discovered ports where applicable.
 //! The frontend queries them via `get_sidecar_ports`.
