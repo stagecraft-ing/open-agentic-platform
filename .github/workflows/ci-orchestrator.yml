@@ -1,0 +1,42 @@
+# CI for orchestrator: check, clippy, and test.
+
+name: CI orchestrator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/orchestrator/**'
+  pull_request:
+    paths:
+      - 'crates/orchestrator/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    name: check + clippy + test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check
+        run: cargo check --manifest-path crates/orchestrator/Cargo.toml
+
+      - name: cargo clippy (advisory)
+        run: cargo clippy --manifest-path crates/orchestrator/Cargo.toml
+        continue-on-error: true
+
+      - name: cargo test
+        run: cargo test --manifest-path crates/orchestrator/Cargo.toml

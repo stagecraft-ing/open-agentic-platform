@@ -1,9 +1,9 @@
 [package]
 name = "open_agentic_spec_compiler"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Spec compiler MVP per specs/001-spec-compiler-mvp — emits registry.json + build-meta.json"
-rust-version = "1.74"
+rust-version = "1.85"
 
 [[bin]]
 name = "spec-compiler"

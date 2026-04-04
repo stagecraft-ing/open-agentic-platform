@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "agent",
+    "axiomregent",
+    "featuregraph",
+    "orchestrator",
+    "policy-kernel",
+    "run",
+    "tool-registry",
+    "xray",
+]
+resolver = "2"

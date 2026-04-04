@@ -24,4 +24,5 @@ pub mod checkpoint;
 pub mod search;
 pub mod github;
 pub mod events;
+pub mod registry_bridge;
 // pub mod xray_tools;

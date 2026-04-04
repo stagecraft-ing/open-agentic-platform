@@ -92,6 +92,8 @@ pub struct Router {
     /// Platform integration config (read from env at startup). Used by Seams C/D.
     #[allow(dead_code)]
     platform_config: crate::platform_config::PlatformConfig,
+    /// Unified tool registry (spec 067). Provides schema validation and lifecycle events.
+    tool_registry: crate::registry_bridge::AsyncToolRegistryHandle,
 }
 
 impl Router {
@@ -125,12 +127,16 @@ impl Router {
             );
         }
 
+        // Build unified tool registry (spec 067) from all providers.
+        let tool_registry = Arc::new(crate::registry_bridge::build_registry(&providers, None));
+
         Self {
             providers,
             lease_store,
             policy_bundle_cache,
             audit_forwarder,
             platform_config: platform_cfg,
+            tool_registry,
         }
     }
 
@@ -245,10 +251,7 @@ impl Router {
                 }),
             ),
             "tools/list" => {
-                let mut all_tools = Vec::new();
-                for p in &self.providers {
-                    all_tools.extend(p.tool_schemas());
-                }
+                let all_tools = self.tool_registry.list_schemas();
                 json_rpc_ok(req.id.clone(), json!({ "tools": all_tools }))
             }
             "tools/call" => {

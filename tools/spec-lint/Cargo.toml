@@ -1,9 +1,9 @@
 [package]
 name = "open_agentic_spec_lint"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Conformance lint (Feature 006) — optional W-xxx workflow warnings"
-rust-version = "1.74"
+rust-version = "1.85"
 
 [[bin]]
 name = "spec-lint"

@@ -1,9 +1,9 @@
 [package]
 name = "open_agentic_registry_consumer"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Registry consumer MVP per specs/002-registry-consumer-mvp — read-only CLI over registry.json"
-rust-version = "1.74"
+rust-version = "1.85"
 
 [[bin]]
 name = "registry-consumer"

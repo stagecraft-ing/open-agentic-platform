@@ -1,9 +1,9 @@
 [package]
 name = "open_agentic_frontmatter"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Shared YAML frontmatter parsing helpers"
-rust-version = "1.74"
+rust-version = "1.85"
 
 [lib]
 name = "open_agentic_frontmatter"

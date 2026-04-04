@@ -42,6 +42,7 @@ xray        = { path = "../xray", features = ["analysis-call-graph"] }
 agent       = { path = "../agent" }
 run         = { path = "../run" }
 open_agentic_policy_kernel = { path = "../policy-kernel" }
+tool-registry = { path = "../tool-registry" }
 fastembed   = "5"
 kd-tree     = { version = "0.5", features = ["rayon", "serde"] }
 typenum     = "1.17"

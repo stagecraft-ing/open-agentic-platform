@@ -10,11 +10,13 @@ mod types;
 mod registry;
 mod mcp;
 mod event;
+pub mod async_registry;
 
-pub use types::{ToolDef, ToolContext, ToolResult, PermissionResult};
-pub use registry::ToolRegistry;
+pub use types::{ToolDef, ToolContext, ToolResult, PermissionResult, PolicyEvaluator, PolicyKernelHandle};
+pub use registry::{ToolRegistry, RegistryError};
 pub use mcp::McpToolDef;
 pub use event::{ToolEvent, ToolEventKind};
+pub use async_registry::{AsyncToolDef, AsyncToolRegistry};
 
 #[cfg(test)]
 mod tests;

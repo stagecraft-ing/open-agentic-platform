@@ -1,9 +1,9 @@
 [package]
 name = "open_agentic_policy_compiler"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Policy compiler skeleton for governance control plane"
-rust-version = "1.74"
+rust-version = "1.85"
 
 [[bin]]
 name = "policy-compiler"

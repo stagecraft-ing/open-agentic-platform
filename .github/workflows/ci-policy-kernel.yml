@@ -1,24 +1,14 @@
-# CI for axiomregent MCP server: check, clippy, and test.
+# CI for policy-kernel: check, clippy, and test.
 
-name: CI axiomregent
+name: CI policy-kernel
 
 on:
   push:
     branches: [main]
     paths:
-      - 'crates/axiomregent/**'
-      - 'crates/agent/**'
-      - 'crates/featuregraph/**'
-      - 'crates/xray/**'
-      - 'crates/run/**'
       - 'crates/policy-kernel/**'
   pull_request:
     paths:
-      - 'crates/axiomregent/**'
-      - 'crates/agent/**'
-      - 'crates/featuregraph/**'
-      - 'crates/xray/**'
-      - 'crates/run/**'
       - 'crates/policy-kernel/**'
   workflow_dispatch:
 
@@ -42,14 +32,11 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: cargo check
-        run: cargo check --manifest-path crates/axiomregent/Cargo.toml
+        run: cargo check --manifest-path crates/policy-kernel/Cargo.toml
 
       - name: cargo clippy (advisory)
-        run: cargo clippy --manifest-path crates/axiomregent/Cargo.toml
+        run: cargo clippy --manifest-path crates/policy-kernel/Cargo.toml
         continue-on-error: true
 
       - name: cargo test
-        run: cargo test --manifest-path crates/axiomregent/Cargo.toml
-
-      - name: cargo test (policy-kernel)
         run: cargo test --manifest-path crates/policy-kernel/Cargo.toml

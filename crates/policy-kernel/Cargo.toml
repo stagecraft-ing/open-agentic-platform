@@ -1,9 +1,9 @@
 [package]
 name = "open_agentic_policy_kernel"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Deterministic policy evaluation kernel with permission runtime (native + wasm32)"
-rust-version = "1.74"
+rust-version = "1.85"
 
 [lib]
 crate-type = ["lib", "cdylib"]
