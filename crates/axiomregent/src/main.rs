@@ -5,6 +5,8 @@
 
 use anyhow::{Result, anyhow};
 use axiomregent::router::{JsonRpcRequest, Router};
+use axiomregent::router::legacy_provider::LegacyToolProvider;
+use axiomregent::router::provider::ToolProvider;
 use env_logger::Target;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
@@ -30,11 +32,15 @@ async fn main() -> Result<()> {
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let run_root = axiomregent::util::paths::discover_workspace_root(&cwd);
 
-    // 2. Setup Stores & Tools
+    // 2. Initialise hiqlite and legacy stores
     let storage_config = axiomregent::config::StorageConfig::default();
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(storage_config)?);
+    let db = axiomregent::db::init_hiqlite(&storage_config.data_dir).await?;
+    log::info!("hiqlite initialised at {:?}", storage_config.data_dir);
+
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(db.clone(), storage_config)?);
     let default_grants = axiomregent::snapshot::lease::PermissionGrants::from_env_or_default();
     let lease_store = Arc::new(axiomregent::snapshot::lease::LeaseStore::with_default_grants(
+        db.clone(),
         default_grants,
     ));
 
@@ -54,18 +60,19 @@ async fn main() -> Result<()> {
         snapshot_tools.clone(),
         feature_tools.clone(),
     ));
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(&run_root));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(db.clone(), &run_root));
 
     // 3. Setup Router
-    let router = Router::new(
-        lease_store.clone(),
+    let legacy = Arc::new(LegacyToolProvider {
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,
         agent_tools,
         run_tools,
-    );
+    });
+    let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy];
+    let router = Router::new(providers, lease_store.clone());
 
     // 3b. OPC desktop sidecar discovery: announce a local probe port on **stderr** only.
     // Stdout is reserved for MCP framing; the desktop watches stderr for this line.
@@ -103,7 +110,7 @@ async fn main() -> Result<()> {
 
         match serde_json::from_str::<JsonRpcRequest>(&payload) {
             Ok(req) => {
-                let response = router.handle_request(&req);
+                let response = router.handle_request(&req).await;
                 let resp_str = serde_json::to_string(&response)?;
                 write_mcp_message(&mut stdout, resp_str.as_bytes())?;
             }

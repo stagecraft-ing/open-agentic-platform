@@ -3,13 +3,16 @@
 
 use axiomregent::agent_tools::AgentTools;
 use axiomregent::feature_tools::FeatureTools;
-use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::{lease::LeaseStore, tools::SnapshotTools};
+use axiomregent::router::JsonRpcRequest;
+use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::process::Command;
 use std::sync::Arc;
 use tempfile::TempDir;
+
+mod test_helpers;
+use test_helpers::make_router;
 
 fn setup_repo() -> TempDir {
     let dir = tempfile::tempdir().unwrap();
@@ -53,19 +56,19 @@ fn setup_repo() -> TempDir {
     dir
 }
 
-#[test]
-fn test_stale_lease_error_structure() {
+#[tokio::test]
+async fn test_stale_lease_error_structure() {
     let repo = setup_repo();
     let repo_path = repo.path().to_str().unwrap();
 
     let db_dir = tempfile::tempdir().unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
     let config = axiomregent::config::StorageConfig {
         data_dir: db_dir.path().to_path_buf(),
         blob_backend: axiomregent::config::BlobBackend::Fs,
         compression: axiomregent::config::Compression::None,
     };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(config).unwrap());
-    let lease_store = Arc::new(LeaseStore::new());
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
 
     let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
     let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
@@ -77,10 +80,10 @@ fn test_stale_lease_error_structure() {
         snapshot_tools.clone(),
         feature_tools.clone(),
     ));
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(repo.path()));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, repo.path()));
 
-    let router = Router::new(
-        lease_store.clone(),
+    let router = make_router(
+        lease_store,
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
@@ -103,7 +106,7 @@ fn test_stale_lease_error_structure() {
         })),
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
 
     // Debug output if fails
     if let Some(err) = &resp.error {
@@ -157,7 +160,7 @@ fn test_stale_lease_error_structure() {
         })),
         id: Some(json!(2)),
     };
-    let resp2 = router.handle_request(&req2);
+    let resp2 = router.handle_request(&req2).await;
 
     // 4. Expect Error
     let err = resp2.error.expect("Should return error for stale lease");

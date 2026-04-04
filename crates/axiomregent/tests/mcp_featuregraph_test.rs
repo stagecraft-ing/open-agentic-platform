@@ -5,12 +5,14 @@ use axiomregent::agent_tools::AgentTools;
 use axiomregent::feature_tools::FeatureTools;
 
 use axiomregent::router::JsonRpcRequest;
-use axiomregent::router::Router;
 use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::sync::Arc;
 use tempfile::TempDir;
+
+mod test_helpers;
+use test_helpers::make_router;
 
 /// Create a self-contained test workspace with a minimal spec registry so the
 /// featuregraph scanner can initialise without requiring `spec-compiler compile`.
@@ -30,10 +32,10 @@ fn create_test_workspace() -> TempDir {
     dir
 }
 
-fn create_router() -> Router {
-    let lease_store = Arc::new(axiomregent::snapshot::lease::LeaseStore::new());
+async fn create_router(db_dir: &std::path::Path) -> axiomregent::router::Router {
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir).await;
     let storage_config = axiomregent::config::StorageConfig::default();
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(storage_config).unwrap());
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), storage_config).unwrap());
 
     let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
     let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
@@ -47,10 +49,10 @@ fn create_router() -> Router {
     ));
 
     let root = std::env::current_dir().unwrap();
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(&root));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, &root));
 
-    Router::new(
-        lease_store.clone(),
+    make_router(
+        lease_store,
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
@@ -60,10 +62,11 @@ fn create_router() -> Router {
     )
 }
 
-#[test]
-fn test_features_impact() {
+#[tokio::test]
+async fn test_features_impact() {
     let workspace = create_test_workspace();
-    let router = create_router();
+    let db_dir = tempfile::tempdir().unwrap();
+    let router = create_router(db_dir.path()).await;
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -78,7 +81,7 @@ fn test_features_impact() {
         id: Some(json!(1)),
     };
 
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     assert!(
         resp.error.is_none(),
         "features.impact should succeed, got error: {:?}",
@@ -101,10 +104,11 @@ fn test_features_impact() {
     );
 }
 
-#[test]
-fn test_gov_drift() {
+#[tokio::test]
+async fn test_gov_drift() {
     let workspace = create_test_workspace();
-    let router = create_router();
+    let db_dir = tempfile::tempdir().unwrap();
+    let router = create_router(db_dir.path()).await;
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -118,7 +122,7 @@ fn test_gov_drift() {
         id: Some(json!(1)),
     };
 
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     assert!(
         resp.error.is_none(),
         "gov.drift should succeed, got error: {:?}",

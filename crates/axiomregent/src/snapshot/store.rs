@@ -3,14 +3,14 @@
 // Feature: MCP_SNAPSHOT_WORKSPACE
 // Spec: spec/core/snapshot-workspace.md
 
-use crate::config::{BlobBackend, Compression, StorageConfig};
+use crate::config::{Compression, StorageConfig};
 use anyhow::{Result, anyhow};
-use rusqlite::{Connection, OptionalExtension, params};
+use hiqlite::{Client, Param};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::borrow::Cow;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 
 // Re-export Manifest/Entry for compatibility
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -148,83 +148,20 @@ impl BlobStore for FsBlobStore {
 }
 
 pub struct Store {
-    conn: Arc<Mutex<Connection>>,
-    blob_store: Box<dyn BlobStore>,
+    client: Client,
+    blob_store: FsBlobStore,
     config: StorageConfig,
 }
 
 impl Store {
-    pub fn new(config: StorageConfig) -> Result<Self> {
-        let db_path = config.data_dir.join("store.sqlite");
-        if let Some(p) = db_path.parent() {
-            fs::create_dir_all(p)?;
-        }
-
-        let conn = Connection::open(&db_path)?;
-        Self::migrate(&conn)?;
-
-        let blob_store: Box<dyn BlobStore> = match config.blob_backend {
-            BlobBackend::Fs => {
-                let blobs_dir = config.data_dir.join("blobs");
-                Box::new(FsBlobStore::new(blobs_dir)?)
-            }
-            BlobBackend::Db => {
-                return Err(anyhow!(
-                    "SqliteBlobStore backend is not yet implemented; use the default Fs backend (BlobBackend::Fs)"
-                ));
-            }
-        };
-
+    pub fn new(client: Client, config: StorageConfig) -> Result<Self> {
+        let blob_path = config.data_dir.join("blobs").join("sha256");
+        let blob_store = FsBlobStore::new(blob_path)?;
         Ok(Self {
-            conn: Arc::new(Mutex::new(conn)),
+            client,
             blob_store,
             config,
         })
-    }
-
-    fn migrate(conn: &Connection) -> Result<()> {
-        conn.execute_batch(
-            r#"
-            CREATE TABLE IF NOT EXISTS blobs (
-                hash TEXT PRIMARY KEY,
-                size_bytes INTEGER NOT NULL,
-                compression TEXT NOT NULL,
-                storage TEXT NOT NULL,
-                refcount INTEGER NOT NULL DEFAULT 0,
-                created_at INTEGER
-            );
-
-            CREATE TABLE IF NOT EXISTS snapshots (
-                snapshot_id TEXT PRIMARY KEY,
-                repo_root TEXT NOT NULL,
-                head_sha TEXT NOT NULL,
-                fingerprint_json TEXT NOT NULL,
-                manifest_hash TEXT NOT NULL,
-                manifest_bytes BLOB,
-                created_at INTEGER,
-                derived_from TEXT,
-                applied_patch_hash TEXT,
-                label TEXT
-            );
-            
-            CREATE TABLE IF NOT EXISTS manifest_entries (
-                snapshot_id TEXT NOT NULL,
-                path TEXT NOT NULL,
-                blob_hash TEXT NOT NULL,
-                size_bytes INTEGER NOT NULL,
-                PRIMARY KEY (snapshot_id, path)
-            );
-
-            CREATE TABLE IF NOT EXISTS leases (
-                lease_id TEXT PRIMARY KEY,
-                repo_root TEXT NOT NULL,
-                fingerprint_json TEXT NOT NULL,
-                touched_json TEXT NOT NULL,
-                issued_at INTEGER
-            );
-            "#,
-        )?;
-        Ok(())
     }
 
     // BlobStore Proxy with Compression logic
@@ -243,68 +180,57 @@ impl Store {
 
         // Note: BlobStore::put computes hash of *provided* data.
         // If we pass compressed data, the hash will be of compressed data.
-        // Wait, spec says "hash of raw bytes" usually?
-        // "content-addressed" implies hash is of content.
-        // If we store compressed, we usually want hash of *original* content to look it up?
-        // But FsBlobStore writes to `path_for(hash)`.
-        // If `hash` is sha256(compressed), then we have a CompressedBlobStore.
-        // But if we want `get(original_hash)` to work, we have a problem if we only store compressed.
-
-        // Correct approach for opaque blob store:
-        // 1. Compute hash of ORIGINAL data (ID).
-        // 2. We want to store `compressed` data but indexed by `original_hash`?
-        // FsBlobStore::put computes hash internally.
-
-        // If FsBlobStore computes hash of what it gets, then we get hash(compressed).
-        // That breaks "content-addressed" if we expect hash(original).
-
-        // Solution:
-        // We need explicit `put_with_hash` or `put` returns the hash of what was stored.
-        // If we use hash(compressed), then the Manifest must store hash(compressed).
-        // But `Entry` usually stores hash of content?
-        // The user said: "get() must decompress based on SQLite metadata".
-        // If I request `get(H)`, and H is hash(original), and DB says "H is zstd",
-        // then `FsBlobStore` must have stored it under H?
-        // But `FsBlobStore::put` derives path from data.
-
-        // If `FsBlobStore` enforces "path = hash(content)", then storing compressed data under `hash(original)` violates that if checked.
-        // But `FsBlobStore` *implementation* currently does: `let digest = Sha256::digest(data); ... path_for(hash)`.
-        // So it stores under `hash(compressed)`.
-
-        // This means if we compress, the "blob hash" returned is the hash of the compressed bytes.
-        // The Manifest will contain `hash(compressed)`.
-        // When we read, we get `hash(compressed)`, we read bytes, we see in DB that `hash(compressed)` is zstd, we decompress.
-        // The decompressed data has `hash(original)`.
-        // This is fine! The "blob pointer" in manifest points to the physical blob.
+        // The Manifest will contain hash(compressed).
+        // When we read, we get hash(compressed), we read bytes, we see in DB that
+        // hash(compressed) is zstd, we decompress. This is fine.
 
         let hash = self
             .blob_store
             .put(&stored_data, self.config.compression.clone())?;
 
-        // Update metadata
-        let conn = self.conn.lock().unwrap();
-        let now_epoch = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-        conn.execute(
-            "INSERT OR IGNORE INTO blobs (hash, size_bytes, compression, storage, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![
-                hash,
-                stored_data.len() as i64,
-                alg,
-                match self.config.blob_backend { BlobBackend::Fs => "fs", BlobBackend::Db => "db" },
-                now_epoch
-            ]
-        )?;
+        // blob_refs upsert is done asynchronously — callers that need full consistency
+        // should use put_blob_async. For the sync path we return the hash and the
+        // blob_refs row will be written on the next async put_snapshot call.
+        // Store the alg string for use in put_blob_async.
+        let _ = alg; // used below in put_blob_async
+
+        Ok(hash)
+    }
+
+    /// Write a blob ref entry into hiqlite. Call this after put_blob when in async context.
+    pub async fn put_blob_async(&self, data: &[u8]) -> Result<String> {
+        let (stored_data, alg) = match self.config.compression {
+            Compression::Zstd => {
+                let compressed = zstd::stream::encode_all(data, 3)?;
+                (compressed, "zstd")
+            }
+            Compression::None => (data.to_vec(), "none"),
+        };
+
+        let hash = self
+            .blob_store
+            .put(&stored_data, self.config.compression.clone())?;
+
+        self.client
+            .execute(
+                Cow::Borrowed(
+                    "INSERT OR IGNORE INTO blob_refs (blob_hash, ref_count, size_bytes, compression) \
+                     VALUES ($1, 1, $2, $3)",
+                ),
+                vec![
+                    Param::Text(hash.clone()),
+                    Param::Integer(stored_data.len() as i64),
+                    Param::Text(alg.to_string()),
+                ],
+            )
+            .await?;
 
         Ok(hash)
     }
 
     // Snapshot Metadata & Manifest
-    // Replaces the legacy put_snapshot with a full version
     #[allow(clippy::too_many_arguments)]
-    pub fn put_snapshot(
+    pub async fn put_snapshot(
         &self,
         id: &str,
         repo_root: &str,
@@ -318,173 +244,275 @@ impl Store {
         let manifest: Manifest = serde_json::from_slice(manifest_bytes)?;
         let manifest_hash = format!("sha256:{}", hex::encode(Sha256::digest(manifest_bytes)));
 
-        let mut conn = self.conn.lock().unwrap();
-        let tx = conn.transaction()?;
-
-        // 1. Check for overwrite and decrement refcounts
-        // (If we were smarter we would check diff and only decrement unique removed blobs,
-        // but for now strict "remove old usage, add new usage" is safe and simple)
-        let exists: Option<String> = tx
-            .query_row(
-                "SELECT snapshot_id FROM snapshots WHERE snapshot_id = ?1",
-                params![id],
-                |row| row.get(0),
-            )
-            .optional()?;
-
-        if exists.is_some() {
-            // Decrement contents of old snapshot
-            let mut stmt =
-                tx.prepare("SELECT blob_hash FROM manifest_entries WHERE snapshot_id = ?1")?;
-            let blobs = stmt.query_map(params![id], |row| row.get::<_, String>(0))?;
-
-            // Gather to avoid borrow issues while executing updates
-            let blob_hashes: Vec<String> = blobs.collect::<Result<_, _>>()?;
-            drop(stmt);
-
-            for hash in blob_hashes {
-                tx.execute(
-                    "UPDATE blobs SET refcount = MAX(0, refcount - 1) WHERE hash = ?1",
-                    params![hash],
-                )?;
-            }
-        }
-
-        // 2. Insert/Replace snapshot
         let now_epoch = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs() as i64;
-        tx.execute(
-            "INSERT OR REPLACE INTO snapshots (snapshot_id, repo_root, head_sha, fingerprint_json, manifest_hash, manifest_bytes, created_at, derived_from, applied_patch_hash, label) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            params![
-                id,
-                repo_root,
-                head_sha,
-                fingerprint_json,
-                manifest_hash,
-                manifest_bytes,
-                now_epoch,
-                derived_from,
-                applied_patch_hash,
-                label
-            ]
-        )?;
 
-        // 3. Clear old entries
-        tx.execute(
-            "DELETE FROM manifest_entries WHERE snapshot_id = ?1",
-            params![id],
-        )?;
+        // Serialize manifest to store in the checkpoint row.
+        // The new checkpoints table does not have a manifest_bytes BLOB column,
+        // so we store a subset of fields. The full manifest lives in manifest_entries.
+        let file_count = manifest.entries.len() as i64;
+        let total_bytes: i64 = manifest.entries.iter().map(|e| e.size as i64).sum();
+        let created_at_str = chrono::DateTime::from_timestamp(now_epoch, 0)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_else(|| now_epoch.to_string());
 
-        // 4. Insert new entries
-        let mut stmt = tx.prepare("INSERT INTO manifest_entries (snapshot_id, path, blob_hash, size_bytes) VALUES (?1, ?2, ?3, ?4)")?;
-        for entry in &manifest.entries {
-            stmt.execute(params![id, entry.path, entry.blob, entry.size])?;
-
-            // Refcount increment
-            let row_count = tx.execute(
-                "UPDATE blobs SET refcount = refcount + 1 WHERE hash = ?1",
-                params![entry.blob],
-            )?;
-            if row_count == 0 {
-                // If blob is missing in DB (e.g. corruption or out of sync), we should probably fail?
-                // Or implicitly trust it exists in FS?
-                // Robustness: Fail to ensure we don't have dangling references in manifest.
-                return Err(anyhow!("Referenced blob not found in DB: {}", entry.blob));
-            }
+        // 1. Check for prior manifest_entries and decrement blob_refs
+        #[derive(serde::Deserialize)]
+        struct BlobHashRow {
+            blob_hash: String,
         }
-        drop(stmt);
 
-        tx.commit()?;
+        let existing_entries: Vec<BlobHashRow> = self
+            .client
+            .query_as(
+                "SELECT blob_hash FROM manifest_entries WHERE checkpoint_id = $1",
+                vec![Param::Text(id.to_string())],
+            )
+            .await
+            .unwrap_or_default();
+
+        for row in existing_entries {
+            let _ = self
+                .client
+                .execute(
+                    Cow::Borrowed(
+                        "UPDATE blob_refs SET ref_count = MAX(0, ref_count - 1) \
+                         WHERE blob_hash = $1",
+                    ),
+                    vec![Param::Text(row.blob_hash)],
+                )
+                .await;
+        }
+
+        // 2. Insert/Replace checkpoint row
+        self.client
+            .execute(
+                Cow::Borrowed(
+                    "INSERT OR REPLACE INTO checkpoints \
+                     (checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
+                      state_hash, merkle_root, file_count, total_bytes, created_at, metadata) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                ),
+                vec![
+                    Param::Text(id.to_string()),
+                    Param::Text(repo_root.to_string()),
+                    Param::Text(derived_from.unwrap_or("").to_string()),
+                    Param::Text(label.unwrap_or("").to_string()),
+                    Param::Text(head_sha.to_string()),
+                    Param::Text(fingerprint_json.to_string()),
+                    // state_hash and merkle_root: use manifest_hash for both
+                    Param::Text(manifest_hash.clone()),
+                    Param::Text(manifest_hash.clone()),
+                    Param::Integer(file_count),
+                    Param::Integer(total_bytes),
+                    Param::Text(created_at_str),
+                    // metadata: store applied_patch_hash if present
+                    Param::Text(
+                        applied_patch_hash
+                            .map(|h| format!("{{\"applied_patch_hash\":\"{}\"}}", h))
+                            .unwrap_or_default(),
+                    ),
+                ],
+            )
+            .await?;
+
+        // 3. Clear old manifest_entries
+        self.client
+            .execute(
+                Cow::Borrowed("DELETE FROM manifest_entries WHERE checkpoint_id = $1"),
+                vec![Param::Text(id.to_string())],
+            )
+            .await?;
+
+        // 4. Insert new manifest_entries and upsert blob_refs
+        for entry in &manifest.entries {
+            self.client
+                .execute(
+                    Cow::Borrowed(
+                        "INSERT INTO manifest_entries \
+                         (checkpoint_id, path, blob_hash, size_bytes) \
+                         VALUES ($1, $2, $3, $4)",
+                    ),
+                    vec![
+                        Param::Text(id.to_string()),
+                        Param::Text(entry.path.clone()),
+                        Param::Text(entry.blob.clone()),
+                        Param::Integer(entry.size as i64),
+                    ],
+                )
+                .await?;
+
+            // Increment blob ref_count (insert if missing — blob may have been
+            // written without put_blob_async)
+            self.client
+                .execute(
+                    Cow::Borrowed(
+                        "INSERT INTO blob_refs (blob_hash, ref_count, size_bytes, compression) \
+                         VALUES ($1, 1, $2, 'none') \
+                         ON CONFLICT(blob_hash) DO UPDATE SET ref_count = ref_count + 1",
+                    ),
+                    vec![
+                        Param::Text(entry.blob.clone()),
+                        Param::Integer(entry.size as i64),
+                    ],
+                )
+                .await?;
+        }
 
         Ok(())
     }
 
-    pub fn get_snapshot(&self, id: &str) -> Result<Option<Vec<u8>>> {
-        let conn = self.conn.lock().unwrap();
-        // Try to get manifest_bytes from snapshots table
-        let mut stmt =
-            conn.prepare("SELECT manifest_bytes FROM snapshots WHERE snapshot_id = ?1")?;
-        let mut rows = stmt.query(params![id])?;
-
-        if let Some(row) = rows.next()? {
-            let bytes: Vec<u8> = row.get(0)?;
-            return Ok(Some(bytes));
+    pub async fn get_snapshot(&self, id: &str) -> Result<Option<Vec<u8>>> {
+        // Reconstruct manifest bytes from manifest_entries
+        #[derive(serde::Deserialize)]
+        struct EntryRow {
+            path: String,
+            blob_hash: String,
+            size_bytes: i64,
         }
 
-        Ok(None)
-    }
+        let rows: Vec<EntryRow> = self
+            .client
+            .query_as(
+                "SELECT path, blob_hash, size_bytes FROM manifest_entries \
+                 WHERE checkpoint_id = $1 ORDER BY path ASC",
+                vec![Param::Text(id.to_string())],
+            )
+            .await?;
 
-    pub fn get_snapshot_info(&self, id: &str) -> Result<Option<SnapshotInfo>> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT snapshot_id, repo_root, head_sha, fingerprint_json, manifest_hash, created_at, derived_from, applied_patch_hash, label FROM snapshots WHERE snapshot_id = ?1")?;
-        let mut rows = stmt.query(params![id])?;
-
-        if let Some(row) = rows.next()? {
-            Ok(Some(SnapshotInfo {
-                snapshot_id: row.get(0)?,
-                repo_root: row.get(1)?,
-                head_sha: row.get(2)?,
-                fingerprint_json: row.get(3)?,
-                manifest_hash: row.get(4)?,
-                created_at: row.get(5)?,
-                derived_from: row.get(6)?,
-                applied_patch_hash: row.get(7)?,
-                label: row.get(8)?,
-            }))
-        } else {
-            Ok(None)
+        if rows.is_empty() {
+            // Check if the checkpoint itself exists (empty manifest vs. not found)
+            #[derive(serde::Deserialize)]
+            #[allow(dead_code)]
+            struct ExistsRow {
+                checkpoint_id: String,
+            }
+            let exists: Vec<ExistsRow> = self
+                .client
+                .query_as(
+                    "SELECT checkpoint_id FROM checkpoints WHERE checkpoint_id = $1",
+                    vec![Param::Text(id.to_string())],
+                )
+                .await?;
+            if exists.is_empty() {
+                return Ok(None);
+            }
         }
-    }
 
-    // List entries from DB (faster than parsing manifest JSON)
-    pub fn list_snapshot_entries(&self, id: &str) -> Result<Vec<Entry>> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT path, blob_hash, size_bytes FROM manifest_entries WHERE snapshot_id = ?1 ORDER BY path ASC")?;
-        let rows = stmt.query_map(params![id], |row| {
-            Ok(Entry {
-                path: row.get(0)?,
-                blob: row.get(1)?,
-                size: row.get(2)?,
+        let entries: Vec<Entry> = rows
+            .into_iter()
+            .map(|r| Entry {
+                path: r.path,
+                blob: r.blob_hash,
+                size: r.size_bytes as u64,
             })
-        })?;
+            .collect();
 
-        let mut entries = Vec::new();
-        for r in rows {
-            entries.push(r?);
+        let manifest = Manifest { entries };
+        let bytes = manifest.to_canonical_json()?.into_bytes();
+        Ok(Some(bytes))
+    }
+
+    pub async fn get_snapshot_info(&self, id: &str) -> Result<Option<SnapshotInfo>> {
+        #[derive(serde::Deserialize)]
+        #[allow(dead_code)]
+        struct CheckpointRow {
+            checkpoint_id: String,
+            repo_root: String,
+            head_sha: String,
+            fingerprint: String,
+            state_hash: String,
+            created_at: String,
+            parent_id: String,
+            metadata: String,
+            label: String,
         }
 
-        // If empty, maybe we have the snapshot but not entries? (e.g. legacy or not populated)
-        // Fallback to parsing manifest_bytes?
-        if entries.is_empty()
-            && let Some(bytes) = self.get_snapshot(id)?
-        {
-            let manifest: Manifest = serde_json::from_slice(&bytes)?;
-            return Ok(manifest.entries);
+        let rows: Vec<CheckpointRow> = self
+            .client
+            .query_as(
+                "SELECT checkpoint_id, repo_root, head_sha, fingerprint, state_hash, \
+                 created_at, parent_id, metadata, label \
+                 FROM checkpoints WHERE checkpoint_id = $1",
+                vec![Param::Text(id.to_string())],
+            )
+            .await?;
+
+        let Some(row) = rows.into_iter().next() else {
+            return Ok(None);
+        };
+
+        // Parse applied_patch_hash from metadata JSON
+        let applied_patch_hash = serde_json::from_str::<serde_json::Value>(&row.metadata)
+            .ok()
+            .and_then(|v| v["applied_patch_hash"].as_str().map(String::from));
+
+        Ok(Some(SnapshotInfo {
+            snapshot_id: row.checkpoint_id,
+            repo_root: row.repo_root,
+            head_sha: row.head_sha,
+            fingerprint_json: row.fingerprint,
+            manifest_hash: row.state_hash,
+            created_at: None, // stored as ISO string; omit for now
+            derived_from: if row.parent_id.is_empty() {
+                None
+            } else {
+                Some(row.parent_id)
+            },
+            applied_patch_hash,
+            label: if row.label.is_empty() {
+                None
+            } else {
+                Some(row.label)
+            },
+        }))
+    }
+
+    // List entries from DB
+    pub async fn list_snapshot_entries(&self, id: &str) -> Result<Vec<Entry>> {
+        #[derive(serde::Deserialize)]
+        struct EntryRow {
+            path: String,
+            blob_hash: String,
+            size_bytes: i64,
         }
+
+        let rows: Vec<EntryRow> = self
+            .client
+            .query_as(
+                "SELECT path, blob_hash, size_bytes FROM manifest_entries \
+                 WHERE checkpoint_id = $1 ORDER BY path ASC",
+                vec![Param::Text(id.to_string())],
+            )
+            .await?;
+
+        let entries = rows
+            .into_iter()
+            .map(|r| Entry {
+                path: r.path,
+                blob: r.blob_hash,
+                size: r.size_bytes as u64,
+            })
+            .collect();
 
         Ok(entries)
     }
 
     pub fn get_blob(&self, hash: &str) -> Result<Option<Vec<u8>>> {
-        // Read bytes from backend
+        // Read bytes from backend (synchronous filesystem I/O)
         let maybe_bytes = self.blob_store.get(hash)?;
         if let Some(mut bytes) = maybe_bytes {
-            // Check compression in DB
-            let conn = self.conn.lock().unwrap();
-            let compression: Option<String> = conn
-                .query_row(
-                    "SELECT compression FROM blobs WHERE hash = ?1",
-                    params![hash],
-                    |row| row.get(0),
-                )
-                .optional()?;
-
-            if let Some(s) = compression
-                && s == "zstd"
+            // Check compression: try to detect zstd magic bytes (0xFD2FB528 LE)
+            // rather than consulting the DB to keep this method synchronous.
+            // Zstd frames start with magic number 0x28B52FfD (little-endian: FD 2F B5 28).
+            if bytes.len() >= 4
+                && bytes[0] == 0xFD
+                && bytes[1] == 0x2F
+                && bytes[2] == 0xB5
+                && bytes[3] == 0x28
             {
-                // Decompress
                 bytes = zstd::stream::decode_all(std::io::Cursor::new(bytes))?;
             }
             return Ok(Some(bytes));
@@ -511,35 +539,29 @@ impl Store {
         Ok(())
     }
 
-    pub fn validate_snapshot(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
-
+    pub async fn validate_snapshot(&self, id: &str) -> Result<()> {
         // 1. Check snapshot existence
-        let exists: bool = conn
-            .query_row(
-                "SELECT 1 FROM snapshots WHERE snapshot_id = ?1",
-                params![id],
-                |_| Ok(true),
+        #[derive(serde::Deserialize)]
+        #[allow(dead_code)]
+        struct ExistsRow {
+            checkpoint_id: String,
+        }
+        let exists: Vec<ExistsRow> = self
+            .client
+            .query_as(
+                "SELECT checkpoint_id FROM checkpoints WHERE checkpoint_id = $1",
+                vec![Param::Text(id.to_string())],
             )
-            .optional()?
-            .unwrap_or(false);
+            .await?;
 
-        if !exists {
+        if exists.is_empty() {
             return Err(anyhow!("Snapshot not found: {}", id));
         }
 
         // 2. Load manifest entries
-        // We use list_snapshot_entries logic but inline to avoid lock issues if we were holding it?
-        // Actually list_snapshot_entries takes a lock. We currently hold a lock `conn`.
-        // We should drop lock before calling other methods if they take lock.
-        drop(conn);
-
-        let entries = self.list_snapshot_entries(id)?;
+        let entries = self.list_snapshot_entries(id).await?;
 
         // 3. Verify entries are sorted and unique
-        // list_snapshot_entries sorts by path. We just need to check unicity?
-        // SQLite PK is (snapshot_id, path), so uniqueness of path is enforced by DB.
-        // We just check that paths are valid?
         for (i, entry) in entries.iter().enumerate() {
             Self::validate_path(&entry.path)?;
 
@@ -552,30 +574,8 @@ impl Store {
             }
         }
 
-        // 4. Verify blobs exist
-        // We can do a batched check or one by one.
-        // For now, one by one check "has".
+        // 4. Verify blobs exist in filesystem backend
         for entry in &entries {
-            // Check DB
-            let conn = self.conn.lock().unwrap();
-            let blob_exists: bool = conn
-                .query_row(
-                    "SELECT 1 FROM blobs WHERE hash = ?1",
-                    params![entry.blob],
-                    |_| Ok(true),
-                )
-                .optional()?
-                .unwrap_or(false);
-            drop(conn);
-
-            if !blob_exists {
-                return Err(anyhow!(
-                    "Snapshot corrupt: missing blob DB entry for {}",
-                    entry.blob
-                ));
-            }
-
-            // Check backend
             if !self.blob_store.has(&entry.blob)? {
                 return Err(anyhow!(
                     "Snapshot corrupt: missing blob content for {}",
@@ -602,15 +602,15 @@ mod tests {
         assert!(Store::validate_path("foo\\bar").is_err());
     }
 
-    #[test]
-    fn test_validate_snapshot_missing_blob() {
+    #[tokio::test]
+    async fn test_validate_snapshot_missing_blob() {
         let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let config = StorageConfig {
             data_dir: dir.path().to_path_buf(),
-            blob_backend: BlobBackend::Fs,
-            compression: Compression::None,
+            ..StorageConfig::default()
         };
-        let store = Store::new(config).unwrap();
+        let store = Store::new(client, config).unwrap();
 
         // Create a blob
         let blob_hash = store.put_blob(b"hello").unwrap();
@@ -635,34 +635,27 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // Valid
-        assert!(store.validate_snapshot(sid).is_ok());
+        assert!(store.validate_snapshot(sid).await.is_ok());
 
         // Corrupt backend: delete blob file
-        let blob_path = dir
+        // FsBlobStore::path_for logic: algo/prefix/hash (base_path is data_dir/blobs/sha256)
+        let parts: Vec<&str> = blob_hash.split(':').collect();
+        let path = dir
             .path()
             .join("blobs")
-            .join(blob_hash.split(':').next().unwrap())
-            .join(&blob_hash.split(':').nth(1).unwrap()[..2])
-            .join(blob_hash.split(':').nth(1).unwrap());
-        if blob_path.exists() {
-            std::fs::remove_file(blob_path).unwrap();
-        } else {
-            // It might be nested differently, let's use internal knowledge or just iterate
-            // FsBlobStore::path_for logic: algo/prefix/hash
-            let parts: Vec<&str> = blob_hash.split(':').collect();
-            let path = dir
-                .path()
-                .join("blobs")
-                .join(parts[0])
-                .join(&parts[1][0..2])
-                .join(parts[1]);
+            .join("sha256")
+            .join(parts[0])
+            .join(&parts[1][0..2])
+            .join(parts[1]);
+        if path.exists() {
             std::fs::remove_file(path).unwrap();
         }
 
         // Should fail
-        assert!(store.validate_snapshot(sid).is_err());
+        assert!(store.validate_snapshot(sid).await.is_err());
     }
 }

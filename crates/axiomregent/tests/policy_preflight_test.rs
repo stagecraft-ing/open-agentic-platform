@@ -2,17 +2,20 @@
 
 use axiomregent::router::{JsonRpcRequest, Router};
 use axiomregent::snapshot::lease::{LeaseStore, PermissionGrants};
+use hiqlite::Client;
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use open_agentic_policy_kernel::{PolicyBundle, PolicyRule};
 
-fn router_with_lease(lease_store: Arc<LeaseStore>) -> Router {
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(
-        axiomregent::config::StorageConfig::default(),
-    )
-    .expect("store"));
+mod test_helpers;
+use test_helpers::make_router;
+
+fn router_with_lease(client: Client, lease_store: Arc<LeaseStore>) -> Router {
+    let config = axiomregent::config::StorageConfig::default();
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config)
+        .expect("store"));
     let snapshot_tools = Arc::new(axiomregent::snapshot::tools::SnapshotTools::new(
         lease_store.clone(),
         store.clone(),
@@ -30,9 +33,10 @@ fn router_with_lease(lease_store: Arc<LeaseStore>) -> Router {
         feature_tools.clone(),
     ));
     let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(
+        client,
         std::path::Path::new("."),
     ));
-    Router::new(
+    make_router(
         lease_store,
         snapshot_tools,
         workspace_tools,
@@ -43,12 +47,16 @@ fn router_with_lease(lease_store: Arc<LeaseStore>) -> Router {
     )
 }
 
-fn minimal_router() -> Router {
-    router_with_lease(Arc::new(LeaseStore::new()))
+async fn minimal_router() -> Router {
+    let db_dir = tempfile::tempdir().unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
+    // Keep db_dir alive by leaking it for this test (short-lived)
+    std::mem::forget(db_dir);
+    router_with_lease(client, lease_store)
 }
 
-#[test]
-fn policy_denied_wire_code_when_allowlist_excludes_tool() {
+#[tokio::test]
+async fn policy_denied_wire_code_when_allowlist_excludes_tool() {
     let tmp = tempfile::TempDir::new().expect("tmp");
     let repo = tmp.path();
     std::fs::create_dir_all(repo.join("build/policy-bundles")).expect("dirs");
@@ -78,7 +86,7 @@ fn policy_denied_wire_code_when_allowlist_excludes_tool() {
     )
     .expect("write bundle");
 
-    let router = minimal_router();
+    let router = minimal_router().await;
     let repo_str = repo.to_str().expect("utf8");
     let req = JsonRpcRequest {
         jsonrpc: "2.0".into(),
@@ -92,20 +100,22 @@ fn policy_denied_wire_code_when_allowlist_excludes_tool() {
         })),
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     let err = resp.error.expect("expected policy denial");
     assert_eq!(err.get("code"), Some(&json!("POLICY_DENIED")));
 }
 
-#[test]
-fn permission_denied_still_permission_code() {
-    let lease_store = Arc::new(LeaseStore::with_default_grants(PermissionGrants {
+#[tokio::test]
+async fn permission_denied_still_permission_code() {
+    let db_dir = tempfile::tempdir().unwrap();
+    let client = axiomregent::db::init_hiqlite(db_dir.path()).await.unwrap();
+    let lease_store = Arc::new(LeaseStore::with_default_grants(client.clone(), PermissionGrants {
         enable_file_read: true,
         enable_file_write: false,
         enable_network: false,
         max_tier: 3,
     }));
-    let router = router_with_lease(lease_store);
+    let router = router_with_lease(client, lease_store);
     let req = JsonRpcRequest {
         jsonrpc: "2.0".into(),
         method: "tools/call".into(),
@@ -119,7 +129,7 @@ fn permission_denied_still_permission_code() {
         })),
         id: Some(json!(2)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     let err = resp.error.expect("expected permission error");
     assert_eq!(err.get("code"), Some(&json!("PERMISSION_DENIED")));
 }

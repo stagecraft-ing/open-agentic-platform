@@ -10,7 +10,6 @@ use base64::Engine;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Arc;
 use walkdir;
 
@@ -26,18 +25,18 @@ impl SnapshotTools {
 
     // --- Helpers ---
 
-    fn check_lease(&self, lease_id: Option<&str>, repo_root: &Path) -> Result<String> {
+    async fn check_lease(&self, lease_id: Option<&str>, repo_root: &Path) -> Result<String> {
         // If lease_id provided, check it.
         // If not, spec says "All hybrid read tools ... issue lease when missing".
         // BUT "Validation: Every worktree-mode request with a lease_id validates it".
         // So if missing, we issue new.
         if let Some(lid) = lease_id {
-            self.lease_store.check_lease(lid, repo_root)?;
+            self.lease_store.check_lease(lid, repo_root).await?;
             Ok(lid.to_string())
         } else {
             // Issue new lease
-            let fp = Fingerprint::compute(repo_root)?;
-            Ok(self.lease_store.issue(fp))
+            let fp = Fingerprint::compute(repo_root).await?;
+            Ok(self.lease_store.issue(fp).await?)
         }
     }
 
@@ -75,7 +74,7 @@ impl SnapshotTools {
     // --- Tools ---
 
     #[allow(clippy::too_many_arguments)]
-    pub fn snapshot_list(
+    pub async fn snapshot_list(
         &self,
         repo_root: &Path,
         path: &str,
@@ -92,7 +91,7 @@ impl SnapshotTools {
         let offset = offset.unwrap_or(0);
 
         if mode == "worktree" {
-            let lid = self.check_lease(lease_id.as_deref(), &repo_root)?;
+            let lid = self.check_lease(lease_id.as_deref(), &repo_root).await?;
 
             // Walk dir efficiently
             let mut entries = Vec::new();
@@ -109,7 +108,7 @@ impl SnapshotTools {
                             "path": path,
                             "type": "file",
                         }));
-                        self.lease_store.touch_files(&lid, vec![path.to_string()]);
+                        self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
                     }
                 } else {
                     // Dir
@@ -140,6 +139,9 @@ impl SnapshotTools {
                     // Total count
                     total = raw_entries.len();
 
+                    // Collect touches to batch
+                    let mut files_to_touch = Vec::new();
+
                     // Apply paging
                     let end = std::cmp::min(offset + limit, total);
                     if offset < total {
@@ -151,9 +153,13 @@ impl SnapshotTools {
 
                             // Touch child if file?
                             if type_str == "file" {
-                                self.lease_store.touch_files(&lid, vec![rel.clone()]);
+                                files_to_touch.push(rel.clone());
                             }
                         }
+                    }
+
+                    if !files_to_touch.is_empty() {
+                        self.lease_store.touch_files(&lid, files_to_touch).await?;
                     }
                 }
             } else {
@@ -162,7 +168,7 @@ impl SnapshotTools {
 
             // Re-sort handled above
 
-            let fp = self.lease_store.get_fingerprint(&lid)
+            let fp = self.lease_store.get_fingerprint(&lid).await
                 .ok_or_else(|| anyhow!("Lease expired unexpectedly after validation"))?;
 
             Ok(json!({
@@ -182,8 +188,8 @@ impl SnapshotTools {
             let snap_id =
                 snapshot_id.ok_or_else(|| anyhow!("snapshot_id required for snapshot mode"))?;
 
-            self.store.validate_snapshot(&snap_id)?;
-            let manifest_entries = self.store.list_snapshot_entries(&snap_id)?;
+            self.store.validate_snapshot(&snap_id).await?;
+            let manifest_entries = self.store.list_snapshot_entries(&snap_id).await?;
 
             let mut result_entries = Vec::new();
             let mut dirs_seen = std::collections::HashSet::new();
@@ -259,7 +265,7 @@ impl SnapshotTools {
         }
     }
 
-    pub fn snapshot_create(
+    pub async fn snapshot_create(
         &self,
         repo_root: &Path,
         lease_id: Option<String>,
@@ -275,11 +281,11 @@ impl SnapshotTools {
         // Using "touched" implies we had a session.
         // If lease provided, check it.
         if let Some(ref l) = lid {
-            self.lease_store.check_lease(l, &repo_root)?;
+            self.lease_store.check_lease(l, &repo_root).await?;
         } else {
             // Issue
-            let fp = Fingerprint::compute(&repo_root)?;
-            lid = Some(self.lease_store.issue(fp));
+            let fp = Fingerprint::compute(&repo_root).await?;
+            lid = Some(self.lease_store.issue(fp).await?);
         }
         let lid_str = lid.unwrap();
 
@@ -289,6 +295,7 @@ impl SnapshotTools {
             // Use touched
             self.lease_store
                 .get_touched_files(&lid_str)
+                .await
                 .unwrap_or_default()
         };
 
@@ -310,7 +317,7 @@ impl SnapshotTools {
         }
 
         let manifest = Manifest::new(entries);
-        let fp = self.lease_store.get_fingerprint(&lid_str)
+        let fp = self.lease_store.get_fingerprint(&lid_str).await
             .ok_or_else(|| anyhow!("Lease expired unexpectedly after validation"))?;
         let fp_json = fp.to_canonical_json()?;
         let snap_id = manifest.compute_snapshot_id(&fp_json)?;
@@ -326,7 +333,7 @@ impl SnapshotTools {
             None,
             None,
             None,
-        )?;
+        ).await?;
 
         Ok(json!({
             "snapshot_id": snap_id,
@@ -337,7 +344,7 @@ impl SnapshotTools {
         }))
     }
 
-    pub fn snapshot_file(
+    pub async fn snapshot_file(
         &self,
         repo_root: &Path,
         path: &str,
@@ -348,7 +355,7 @@ impl SnapshotTools {
         let repo_root = repo_root.canonicalize()?;
 
         if mode == "worktree" {
-            let lid = self.check_lease(lease_id.as_deref(), &repo_root)?;
+            let lid = self.check_lease(lease_id.as_deref(), &repo_root).await?;
             let target_path = self.resolve_path(&repo_root, path)?;
 
             if !target_path.exists() || !target_path.is_file() {
@@ -361,8 +368,8 @@ impl SnapshotTools {
             let encoded = general_purpose::STANDARD.encode(&content);
             let blob_hash = format!("sha256:{}", hex::encode(Sha256::digest(&content))); // Optional return?
 
-            self.lease_store.touch_files(&lid, vec![path.to_string()]);
-            let fp = self.lease_store.get_fingerprint(&lid)
+            self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
+            let fp = self.lease_store.get_fingerprint(&lid).await
                 .ok_or_else(|| anyhow!("Lease expired unexpectedly after validation"))?;
 
             // detect kind?
@@ -393,10 +400,10 @@ impl SnapshotTools {
                 snapshot_id.ok_or_else(|| anyhow!("snapshot_id required for snapshot mode"))?;
 
             // Validate snapshot integrity first
-            self.store.validate_snapshot(&snap_id)?;
+            self.store.validate_snapshot(&snap_id).await?;
 
             // retrieve manifest
-            let manifest_entries = self.store.list_snapshot_entries(&snap_id)?;
+            let manifest_entries = self.store.list_snapshot_entries(&snap_id).await?;
 
             // find entry
             let entry = manifest_entries
@@ -436,7 +443,7 @@ impl SnapshotTools {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn snapshot_grep(
+    pub async fn snapshot_grep(
         &self,
         repo_root: &Path,
         pattern: &str, // regex
@@ -457,7 +464,7 @@ impl SnapshotTools {
             .map_err(|e| anyhow!("Invalid regex: {}", e))?;
 
         if mode == "worktree" {
-            let lid = self.check_lease(lease_id.as_deref(), &repo_root)?;
+            let lid = self.check_lease(lease_id.as_deref(), &repo_root).await?;
 
             let roots = if let Some(p) = paths {
                 p.iter()
@@ -525,9 +532,9 @@ impl SnapshotTools {
                     }
                 }
             }
-            self.lease_store.touch_files(&lid, candidates_touched);
+            self.lease_store.touch_files(&lid, candidates_touched).await?;
 
-            let fp = self.lease_store.get_fingerprint(&lid)
+            let fp = self.lease_store.get_fingerprint(&lid).await
                 .ok_or_else(|| anyhow!("Lease expired unexpectedly after validation"))?;
 
             Ok(json!({
@@ -545,9 +552,9 @@ impl SnapshotTools {
             let sid =
                 snapshot_id.ok_or_else(|| anyhow!("snapshot_id required in snapshot mode"))?;
             // Validate snapshot integrity first
-            self.store.validate_snapshot(&sid)?;
+            self.store.validate_snapshot(&sid).await?;
 
-            let manifest_entries = self.store.list_snapshot_entries(&sid)?;
+            let manifest_entries = self.store.list_snapshot_entries(&sid).await?;
 
             let mut matches: Vec<serde_json::Value> = Vec::new();
             let mut truncated = false;
@@ -634,7 +641,7 @@ impl SnapshotTools {
         }
     }
 
-    pub fn snapshot_diff(
+    pub async fn snapshot_diff(
         &self,
         repo_root: &Path,
         path: &str,
@@ -646,21 +653,22 @@ impl SnapshotTools {
         let repo_root = repo_root.canonicalize()?;
 
         if mode == "worktree" {
-            let lid = self.check_lease(lease_id.as_deref(), &repo_root)?;
+            let lid = self.check_lease(lease_id.as_deref(), &repo_root).await?;
             let _target_path = self.resolve_path(&repo_root, path)?;
 
             // `git diff -- path`
             // touches target
-            self.lease_store.touch_files(&lid, vec![path.to_string()]);
+            self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
 
             // run git diff
-            let output = Command::new("git")
+            let output = tokio::process::Command::new("git")
                 .args(["diff", "--", path])
                 .current_dir(&repo_root)
-                .output()?;
+                .output()
+                .await?;
 
             let diff_text = String::from_utf8_lossy(&output.stdout).to_string();
-            let fp = self.lease_store.get_fingerprint(&lid)
+            let fp = self.lease_store.get_fingerprint(&lid).await
                 .ok_or_else(|| anyhow!("Lease expired unexpectedly after validation"))?;
 
             Ok(json!({
@@ -673,14 +681,14 @@ impl SnapshotTools {
         } else if mode == "snapshot" {
             let sid =
                 snapshot_id.ok_or_else(|| anyhow!("snapshot_id required in snapshot mode"))?;
-            self.store.validate_snapshot(&sid)?;
+            self.store.validate_snapshot(&sid).await?;
 
             // Get content from target snapshot
             let mut target_content = String::new();
             let mut target_found = false;
 
             // Find entry in snapshot
-            if let Ok(entries) = self.store.list_snapshot_entries(&sid)
+            if let Ok(entries) = self.store.list_snapshot_entries(&sid).await
                 && let Some(entry) = entries.iter().find(|e| e.path == path)
                 && let Some(blob) = self.store.get_blob(&entry.blob)?
             {
@@ -703,8 +711,8 @@ impl SnapshotTools {
             let mut base_found = false;
 
             if let Some(from_sid) = from_snapshot_id {
-                self.store.validate_snapshot(&from_sid)?;
-                if let Ok(entries) = self.store.list_snapshot_entries(&from_sid)
+                self.store.validate_snapshot(&from_sid).await?;
+                if let Ok(entries) = self.store.list_snapshot_entries(&from_sid).await
                     && let Some(entry) = entries.iter().find(|e| e.path == path)
                     && let Some(blob) = self.store.get_blob(&entry.blob)?
                 {
@@ -782,22 +790,22 @@ impl SnapshotTools {
             Err(anyhow!("Invalid mode"))
         }
     }
-    pub fn snapshot_changes(
+    pub async fn snapshot_changes(
         &self,
         _repo_root: &Path,
         snapshot_id: Option<String>,
         from_snapshot_id: Option<String>,
     ) -> Result<serde_json::Value> {
         let snap_id = snapshot_id.ok_or_else(|| anyhow!("snapshot_id required"))?;
-        self.store.validate_snapshot(&snap_id)?;
+        self.store.validate_snapshot(&snap_id).await?;
 
         let mut changes = Vec::new();
 
         if let Some(from_sid) = from_snapshot_id {
-            self.store.validate_snapshot(&from_sid)?;
+            self.store.validate_snapshot(&from_sid).await?;
 
-            let target_entries = self.store.list_snapshot_entries(&snap_id)?;
-            let base_entries = self.store.list_snapshot_entries(&from_sid)?;
+            let target_entries = self.store.list_snapshot_entries(&snap_id).await?;
+            let base_entries = self.store.list_snapshot_entries(&from_sid).await?;
 
             // Use maps for easier lookup? list_snapshot_entries returns sorted Vec<Entry>.
             // Since sorted, we can iterate in parallel or use map. Map is easier.
@@ -842,16 +850,16 @@ impl SnapshotTools {
         }))
     }
 
-    pub fn snapshot_export(
+    pub async fn snapshot_export(
         &self,
         _repo_root: &Path,
         snapshot_id: Option<String>,
     ) -> Result<serde_json::Value> {
         let snap_id = snapshot_id.ok_or_else(|| anyhow!("snapshot_id required"))?;
         // Validate snapshot integrity first
-        self.store.validate_snapshot(&snap_id)?;
+        self.store.validate_snapshot(&snap_id).await?;
 
-        let entries = self.store.list_snapshot_entries(&snap_id)?;
+        let entries = self.store.list_snapshot_entries(&snap_id).await?;
         let mut tar_builder = tar::Builder::new(Vec::new());
 
         // Sort entries by path for deterministic order (list_snapshot_entries already sorts, but verify?)
@@ -903,7 +911,7 @@ impl SnapshotTools {
         }))
     }
 
-    pub fn snapshot_info(
+    pub async fn snapshot_info(
         &self,
         repo_root: &Path,
         snapshot_id: Option<String>,
@@ -912,7 +920,7 @@ impl SnapshotTools {
         if let Some(sid) = snapshot_id {
             let info = self
                 .store
-                .get_snapshot_info(&sid)?
+                .get_snapshot_info(&sid).await?
                 .ok_or_else(|| anyhow!("Snapshot not found: {}", sid))?;
 
             // Retrieve stats via manifest? Or just computed?
@@ -933,7 +941,8 @@ impl SnapshotTools {
             }))
         } else {
             // Return current worktree fingerprint with actual file stats.
-            let fp = Fingerprint::compute(repo_root)?;
+            let fp = tokio::runtime::Handle::current()
+                .block_on(Fingerprint::compute(repo_root))?;
             let (files, bytes) = compute_worktree_stats(repo_root);
             Ok(json!({
                 "fingerprint": fp,
@@ -975,17 +984,23 @@ mod tests {
     use crate::config::{BlobBackend, Compression, StorageConfig};
     use crate::snapshot::lease::LeaseStore;
 
-    #[test]
-    fn test_snapshot_grep_basics() {
+    async fn make_lease_store(dir: &std::path::Path) -> Arc<LeaseStore> {
+        let client = crate::db::init_hiqlite(dir).await.unwrap();
+        Arc::new(LeaseStore::new(client))
+    }
+
+    #[tokio::test]
+    async fn test_snapshot_grep_basics() {
         let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let config = StorageConfig {
             data_dir: dir.path().to_path_buf(),
             blob_backend: BlobBackend::Fs,
             compression: Compression::None,
         };
-        let store = Arc::new(Store::new(config).unwrap());
+        let store = Arc::new(Store::new(client.clone(), config).unwrap());
         // Lease store needed but not used for snapshot-only mode
-        let lease_store = Arc::new(LeaseStore::new());
+        let lease_store = make_lease_store(dir.path()).await;
         let tools = SnapshotTools::new(lease_store, store.clone());
 
         // Create blobs
@@ -1033,6 +1048,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // 1. Grep all - should find matches in text1, skip binary
@@ -1046,6 +1062,7 @@ mod tests {
                 Some(sid.to_string()),
                 true, // case insensitive
             )
+            .await
             .unwrap();
 
         let matches = res["matches"].as_array().unwrap();
@@ -1064,6 +1081,7 @@ mod tests {
                 Some(sid.to_string()),
                 true,
             )
+            .await
             .unwrap();
         assert!(res2["matches"].as_array().unwrap().is_empty()); // c/text2 has no match
 
@@ -1077,20 +1095,22 @@ mod tests {
                 Some(sid.to_string()),
                 true,
             )
+            .await
             .unwrap();
         assert_eq!(res3["matches"].as_array().unwrap().len(), 1);
     }
 
-    #[test]
-    fn test_snapshot_diff() {
+    #[tokio::test]
+    async fn test_snapshot_diff() {
         let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let config = StorageConfig {
             data_dir: dir.path().to_path_buf(),
             blob_backend: BlobBackend::Fs,
             compression: Compression::None,
         };
-        let store = Arc::new(Store::new(config).unwrap());
-        let lease_store = Arc::new(LeaseStore::new());
+        let store = Arc::new(Store::new(client.clone(), config).unwrap());
+        let lease_store = make_lease_store(dir.path()).await;
         let tools = SnapshotTools::new(lease_store, store.clone());
 
         // Snapshot 1 (Base)
@@ -1126,6 +1146,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // Snapshot 2 (Target)
@@ -1162,6 +1183,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // 1. Diff a.txt (Modified)
@@ -1174,6 +1196,7 @@ mod tests {
                 Some(sid2.to_string()),
                 Some(sid1.to_string()),
             )
+            .await
             .unwrap();
         let diff = res["diff"].as_str().unwrap();
         assert!(diff.contains("--- a/a.txt"));
@@ -1193,6 +1216,7 @@ mod tests {
                 Some(sid2.to_string()),
                 Some(sid1.to_string()),
             )
+            .await
             .unwrap();
         let diff = res["diff"].as_str().unwrap();
         assert!(diff.contains("deleted file"));
@@ -1210,6 +1234,7 @@ mod tests {
                 Some(sid2.to_string()),
                 Some(sid1.to_string()),
             )
+            .await
             .unwrap();
         let diff = res["diff"].as_str().unwrap();
         assert!(diff.contains("new file"));
@@ -1218,16 +1243,17 @@ mod tests {
         assert!(diff.contains("+new file"));
     }
 
-    #[test]
-    fn test_snapshot_export() {
+    #[tokio::test]
+    async fn test_snapshot_export() {
         let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let config = StorageConfig {
             data_dir: dir.path().to_path_buf(),
             blob_backend: BlobBackend::Fs,
             compression: Compression::None,
         };
-        let store = Arc::new(Store::new(config).unwrap());
-        let lease_store = Arc::new(LeaseStore::new());
+        let store = Arc::new(Store::new(client.clone(), config).unwrap());
+        let lease_store = make_lease_store(dir.path()).await;
         let tools = SnapshotTools::new(lease_store, store.clone());
 
         // Create content
@@ -1261,11 +1287,13 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // Export
         let res = tools
             .snapshot_export(dir.path(), Some(sid.to_string()))
+            .await
             .unwrap();
         let bundle_b64 = res["bundle"]
             .as_str()
@@ -1307,20 +1335,22 @@ mod tests {
         // Determinism Check
         let res2 = tools
             .snapshot_export(dir.path(), Some(sid.to_string()))
+            .await
             .unwrap();
         assert_eq!(res["bundle"], res2["bundle"]);
     }
 
-    #[test]
-    fn test_snapshot_changes() {
+    #[tokio::test]
+    async fn test_snapshot_changes() {
         let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let config = StorageConfig {
             data_dir: dir.path().to_path_buf(),
             blob_backend: BlobBackend::Fs,
             compression: Compression::None,
         };
-        let store = Arc::new(Store::new(config).unwrap());
-        let lease_store = Arc::new(LeaseStore::new());
+        let store = Arc::new(Store::new(client.clone(), config).unwrap());
+        let lease_store = make_lease_store(dir.path()).await;
         let tools = SnapshotTools::new(lease_store, store.clone());
 
         // Base Snapshot
@@ -1354,6 +1384,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // Target Snapshot
@@ -1387,11 +1418,13 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // Check changes
         let res = tools
             .snapshot_changes(dir.path(), Some(sid2.to_string()), Some(sid1.to_string()))
+            .await
             .unwrap();
 
         let changes = res["files_changed"].as_array().unwrap();

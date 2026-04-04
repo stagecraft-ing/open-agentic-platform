@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::{lease::LeaseStore, tools::SnapshotTools};
+use axiomregent::router::JsonRpcRequest;
+use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::fs;
 use std::sync::Arc;
 
-#[test]
-fn test_agent_verify_flow() {
+mod test_helpers;
+use test_helpers::make_router;
+
+#[tokio::test]
+async fn test_agent_verify_flow() {
     let dir = tempfile::tempdir().unwrap();
     let repo_root = dir.path().to_path_buf();
 
@@ -21,13 +24,14 @@ fn test_agent_verify_flow() {
         .expect("Failed to init git");
 
     // Setup Storage
+    let db_dir = tempfile::tempdir().unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
     let config = axiomregent::config::StorageConfig {
         data_dir: repo_root.clone(),
         blob_backend: axiomregent::config::BlobBackend::Fs,
         compression: axiomregent::config::Compression::None,
     };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(config).unwrap());
-    let lease_store = Arc::new(LeaseStore::new());
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
 
     let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
     let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
@@ -40,10 +44,10 @@ fn test_agent_verify_flow() {
         snapshot_tools.clone(),
         feature_tools.clone(),
     ));
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(&repo_root));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, &repo_root));
 
-    let router = Router::new(
-        lease_store.clone(),
+    let router = make_router(
+        lease_store,
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
@@ -144,7 +148,7 @@ skills:
         id: Some(json!(1)),
     };
 
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
 
     // Check for error first
     if let Some(err) = &resp.error {

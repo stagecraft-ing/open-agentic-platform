@@ -4,25 +4,27 @@
 use axiomregent::agent_tools::AgentTools;
 use axiomregent::feature_tools::FeatureTools;
 use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::{lease::LeaseStore, tools::SnapshotTools};
+use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::tempdir;
 
-#[test]
-fn test_mcp_tools_list_contract() {
-    // 1. Setup minimal harness
-    let dir = tempdir().unwrap();
+mod test_helpers;
+use test_helpers::make_router;
+
+async fn make_test_router(dir: &std::path::Path) -> Router {
+    let db_sub = dir.join("db");
+    std::fs::create_dir_all(&db_sub).unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(&db_sub).await;
+
     let config = axiomregent::config::StorageConfig {
-        data_dir: dir.path().to_path_buf(),
+        data_dir: dir.to_path_buf(),
         blob_backend: axiomregent::config::BlobBackend::Fs,
         compression: axiomregent::config::Compression::None,
     };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(config).unwrap());
-    let lease_store = Arc::new(LeaseStore::new());
-
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
     let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
     let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
@@ -33,17 +35,24 @@ fn test_mcp_tools_list_contract() {
         snapshot_tools.clone(),
         feature_tools.clone(),
     ));
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(dir.path()));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, dir));
 
-    let router = Router::new(
-        lease_store.clone(),
+    make_router(
+        lease_store,
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
         xray_tools,
         agent_tools,
         run_tools,
-    );
+    )
+}
+
+#[tokio::test]
+async fn test_mcp_tools_list_contract() {
+    // 1. Setup minimal harness
+    let dir = tempdir().unwrap();
+    let router = make_test_router(dir.path()).await;
 
     // 2. Call tools/list
     let req = JsonRpcRequest {
@@ -52,7 +61,7 @@ fn test_mcp_tools_list_contract() {
         params: None,
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
 
     assert!(resp.error.is_none());
     let result = resp.result.unwrap();

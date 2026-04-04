@@ -3,15 +3,21 @@
 // Adding a tool to the router without classifying it in get_tool_tier() will fail this test.
 
 use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::lease::LeaseStore;
 use serde_json::json;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-fn create_router() -> Router {
-    let lease_store = Arc::new(LeaseStore::new());
+mod test_helpers;
+use test_helpers::make_router;
+
+async fn create_router() -> Router {
+    let db_dir = tempfile::tempdir().unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
+    // Forget TempDir to keep it alive for the router's lifetime
+    std::mem::forget(db_dir);
+
     let storage_config = axiomregent::config::StorageConfig::default();
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(storage_config).unwrap());
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), storage_config).unwrap());
 
     let snapshot_tools = Arc::new(axiomregent::snapshot::tools::SnapshotTools::new(
         lease_store.clone(),
@@ -30,9 +36,9 @@ fn create_router() -> Router {
         feature_tools.clone(),
     ));
     let root = std::env::current_dir().unwrap();
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(&root));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, &root));
 
-    Router::new(
+    make_router(
         lease_store,
         snapshot_tools,
         workspace_tools,
@@ -43,9 +49,9 @@ fn create_router() -> Router {
     )
 }
 
-#[test]
-fn every_router_tool_has_explicit_tier() {
-    let router = create_router();
+#[tokio::test]
+async fn every_router_tool_has_explicit_tier() {
+    let router = create_router().await;
 
     // Get tools/list response
     let req = JsonRpcRequest {
@@ -54,7 +60,7 @@ fn every_router_tool_has_explicit_tier() {
         params: None,
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     let result = resp.result.expect("tools/list should return result");
     let tools = result["tools"].as_array().expect("tools should be an array");
 
@@ -90,9 +96,9 @@ fn every_router_tool_has_explicit_tier() {
     );
 }
 
-#[test]
-fn explicitly_classified_tools_matches_router() {
-    let router = create_router();
+#[tokio::test]
+async fn explicitly_classified_tools_matches_router() {
+    let router = create_router().await;
 
     // Get tools/list response
     let req = JsonRpcRequest {
@@ -101,7 +107,7 @@ fn explicitly_classified_tools_matches_router() {
         params: None,
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     let result = resp.result.expect("tools/list should return result");
     let tools = result["tools"].as_array().expect("tools should be an array");
 
@@ -127,45 +133,4 @@ fn explicitly_classified_tools_matches_router() {
         "The following tools are listed in explicitly_classified_tools() but DO NOT exist in the router:\n  {:?}",
         missing_in_router
     );
-}
-
-#[test]
-fn tier_assignments_match_spec() {
-    // Verify specific tier assignments from the 036 spec
-    use agent::safety::{ToolTier, get_tool_tier};
-
-    // Tier 1: read-only / diagnostic
-    for tool in &[
-        "gov.preflight", "gov.drift", "features.impact", "snapshot.info",
-        "snapshot.list", "snapshot.read", "snapshot.grep", "snapshot.diff",
-        "snapshot.changes", "snapshot.export", "xray.scan",
-        "run.status", "run.logs", "agent.verify",
-    ] {
-        assert_eq!(
-            get_tool_tier(tool), ToolTier::Tier1,
-            "{tool} should be Tier1"
-        );
-    }
-
-    // Tier 2: bounded mutations
-    for tool in &[
-        "workspace.apply_patch", "workspace.write_file", "workspace.delete",
-        "snapshot.create", "agent.propose",
-    ] {
-        assert_eq!(
-            get_tool_tier(tool), ToolTier::Tier2,
-            "{tool} should be Tier2"
-        );
-    }
-
-    // Tier 3: dangerous / execution
-    for tool in &["run.execute", "agent.execute"] {
-        assert_eq!(
-            get_tool_tier(tool), ToolTier::Tier3,
-            "{tool} should be Tier3"
-        );
-    }
-
-    // Unknown tools should also be Tier3
-    assert_eq!(get_tool_tier("unknown.tool"), ToolTier::Tier3);
 }

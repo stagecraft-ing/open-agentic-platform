@@ -44,11 +44,17 @@ impl McpClient for InternalClient {
 
     fn get_drift(&self, exclude_prefix: Option<&str>) -> Result<Vec<String>> {
         // Use git status --porcelain to find modified files
-        let output = std::process::Command::new("git")
-            .arg("status")
-            .arg("--porcelain")
-            .current_dir(&self.repo_root)
-            .output()
+        let repo_root = self.repo_root.clone();
+        let handle = tokio::runtime::Handle::current();
+        let output = handle
+            .block_on(async move {
+                tokio::process::Command::new("git")
+                    .arg("status")
+                    .arg("--porcelain")
+                    .current_dir(&repo_root)
+                    .output()
+                    .await
+            })
             .context("Failed to run git status")?;
 
         if !output.status.success() {
@@ -94,6 +100,7 @@ impl McpClient for InternalClient {
     }
 
     fn call_tool(&self, name: &str, args: &serde_json::Value) -> Result<serde_json::Value> {
+        let handle = tokio::runtime::Handle::current();
         match name {
             "write_file" | "workspace.write_file" => {
                 let path = args
@@ -119,14 +126,14 @@ impl McpClient for InternalClient {
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
 
-                self.workspace.write_file(
+                handle.block_on(self.workspace.write_file(
                     &self.repo_root,
                     path,
                     content_base64,
                     lease_id,
                     create_dirs,
                     dry_run,
-                )?;
+                ))?;
                 self.features.invalidate(&self.repo_root);
                 Ok(serde_json::json!({"status": "success"}))
             }
@@ -141,8 +148,9 @@ impl McpClient for InternalClient {
                         .collect()
                 });
 
-                self.snapshot
-                    .snapshot_create(&self.repo_root, lease_id, paths)
+                handle.block_on(
+                    self.snapshot.snapshot_create(&self.repo_root, lease_id, paths),
+                )
             }
             "workspace.apply_patch" => {
                 let patch = args
@@ -158,7 +166,7 @@ impl McpClient for InternalClient {
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string());
 
-                let result = self.workspace.apply_patch(
+                let result = handle.block_on(self.workspace.apply_patch(
                     &self.repo_root,
                     patch,
                     mode,
@@ -167,7 +175,7 @@ impl McpClient for InternalClient {
                     None,
                     false,
                     false,
-                );
+                ));
                 if result.is_ok() {
                     self.features.invalidate(&self.repo_root);
                 }
@@ -187,7 +195,7 @@ impl McpClient for InternalClient {
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
 
-                self.workspace.delete(&self.repo_root, path, lease_id, dry_run)?;
+                handle.block_on(self.workspace.delete(&self.repo_root, path, lease_id, dry_run))?;
                 self.features.invalidate(&self.repo_root);
                 Ok(serde_json::json!({"status": "success"}))
             }
@@ -234,7 +242,8 @@ impl McpClient for InternalClient {
     }
 
     fn acquire_lease(&self) -> Result<String> {
-        let fp = Fingerprint::compute(&self.repo_root)?;
-        Ok(self.workspace.lease_store.issue(fp))
+        let handle = tokio::runtime::Handle::current();
+        let fp = handle.block_on(Fingerprint::compute(&self.repo_root))?;
+        handle.block_on(self.workspace.lease_store.issue(fp))
     }
 }

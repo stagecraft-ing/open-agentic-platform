@@ -3,22 +3,23 @@
 
 use anyhow::Result;
 use axiomregent::config::{BlobBackend, Compression, StorageConfig};
-use axiomregent::snapshot::lease::LeaseStore;
 use axiomregent::snapshot::store::Store;
 use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use std::sync::Arc;
 
-#[test]
-fn test_apply_patch_determinism() -> Result<()> {
+mod test_helpers;
+
+#[tokio::test]
+async fn test_apply_patch_determinism() -> Result<()> {
     let dir = tempfile::tempdir()?;
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(dir.path()).await;
     let config = StorageConfig {
         data_dir: dir.path().to_path_buf(),
         blob_backend: BlobBackend::Fs,
         compression: Compression::None,
     };
-    let store = Arc::new(Store::new(config)?);
-    let lease_store = Arc::new(LeaseStore::new());
+    let store = Arc::new(Store::new(client, config)?);
 
     // Setup tools
     let _snap_tools = SnapshotTools::new(lease_store.clone(), store.clone());
@@ -51,7 +52,7 @@ fn test_apply_patch_determinism() -> Result<()> {
         None,
         None,
         None,
-    )?;
+    ).await?;
 
     // 2. Define Patch
     // Modifies file.txt: "base content" -> "new content"
@@ -74,7 +75,7 @@ index 0000000..1111111 100644
         None,                       // strip
         false,                      // reject
         false,                      // dry
-    )?;
+    ).await?;
 
     let sid1 = res1["snapshot_id"].as_str().unwrap().to_string();
 
@@ -88,7 +89,7 @@ index 0000000..1111111 100644
         None,                       // strip
         false,                      // reject
         false,                      // dry
-    )?;
+    ).await?;
 
     let sid2 = res2["snapshot_id"].as_str().unwrap().to_string();
 
@@ -97,7 +98,7 @@ index 0000000..1111111 100644
 
     // Check metadata of new snapshot
     let info = store
-        .get_snapshot_info(&sid1)?
+        .get_snapshot_info(&sid1).await?
         .expect("Snapshot should exist");
     assert_eq!(info.repo_root, repo_root);
     assert_eq!(info.head_sha, head_sha);

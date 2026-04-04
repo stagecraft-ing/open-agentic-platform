@@ -5,27 +5,29 @@ use axiomregent::router::{JsonRpcRequest, Router};
 use serde_json::json;
 use std::sync::Arc;
 
+mod test_helpers;
+use test_helpers::make_router;
+
 // Feature: MCP_ROUTER_CONTRACT
 // Spec: spec/core/contract.md
 
-#[test]
-fn test_router_contract_routing() {
+#[tokio::test]
+async fn test_router_contract_routing() {
     // Tools
-    use axiomregent::snapshot::{lease::LeaseStore, tools::SnapshotTools};
+    use axiomregent::snapshot::tools::SnapshotTools;
     use axiomregent::workspace::WorkspaceTools;
 
-    // db_path removed
-    // let db_path = std::env::temp_dir().join("axiomregent_test_db_router");
-    use tempfile;
     let dir = tempfile::tempdir().unwrap();
+    let db_sub = dir.path().join("db");
+    std::fs::create_dir_all(&db_sub).unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(&db_sub).await;
+
     let config = axiomregent::config::StorageConfig {
         data_dir: dir.path().to_path_buf(),
         blob_backend: axiomregent::config::BlobBackend::Fs,
         compression: axiomregent::config::Compression::None,
     };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(config).unwrap());
-    let lease_store = Arc::new(LeaseStore::new());
-
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
     let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
     let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
     let featuregraph_tools = Arc::new(axiomregent::featuregraph::tools::FeatureGraphTools::new());
@@ -36,10 +38,10 @@ fn test_router_contract_routing() {
         snapshot_tools.clone(),
         feature_tools.clone(),
     ));
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(dir.path()));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, dir.path()));
 
-    let router = Router::new(
-        lease_store.clone(),
+    let router: Router = make_router(
+        lease_store,
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
@@ -55,7 +57,7 @@ fn test_router_contract_routing() {
         params: None,
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     assert!(resp.error.is_some());
     let err = resp.error.unwrap();
     assert_eq!(err["code"], -32601);
@@ -67,7 +69,7 @@ fn test_router_contract_routing() {
         params: Some(json!({})),
         id: Some(json!(2)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     assert!(resp.result.is_some());
     let res = resp.result.unwrap();
     assert!(res["capabilities"].is_object());

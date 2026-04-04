@@ -6,8 +6,8 @@ use axiomregent::snapshot::store::{Entry, Manifest, Store};
 use std::fs;
 use tempfile::tempdir;
 
-#[test]
-fn test_persistence_survives_restart() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_persistence_survives_restart() -> anyhow::Result<()> {
     // Setup
     let dir = tempdir()?;
     let config = StorageConfig {
@@ -20,7 +20,8 @@ fn test_persistence_survives_restart() -> anyhow::Result<()> {
     let snap_id =
         "sha256:1111111111111111111111111111111111111111111111111111111111111111".to_string();
     let blob_hash_expected = {
-        let store = Store::new(config.clone())?;
+        let client = axiomregent::db::init_hiqlite(dir.path()).await?;
+        let store = Store::new(client, config.clone())?;
         let hash = store.put_blob(content)?;
 
         // create snapshot manually
@@ -40,12 +41,13 @@ fn test_persistence_survives_restart() -> anyhow::Result<()> {
             None,
             None,
             None,
-        )?;
+        ).await?;
         hash
     };
 
-    // "Restart" -> New Store
-    let store2 = Store::new(config.clone())?;
+    // "Restart" -> New Store (reuse same hiqlite data dir)
+    let client2 = axiomregent::db::init_hiqlite(dir.path()).await?;
+    let store2 = Store::new(client2, config.clone())?;
 
     // Verify blob
     let blob = store2.get_blob(&blob_hash_expected)?;
@@ -53,7 +55,7 @@ fn test_persistence_survives_restart() -> anyhow::Result<()> {
     assert_eq!(blob.unwrap(), content);
 
     // Verify snapshot
-    let entries = store2.list_snapshot_entries(&snap_id)?;
+    let entries = store2.list_snapshot_entries(&snap_id).await?;
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].path, "file.txt");
     assert_eq!(entries[0].blob, blob_hash_expected);
@@ -61,8 +63,8 @@ fn test_persistence_survives_restart() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_persistence_corruption_missing_blob_file() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_persistence_corruption_missing_blob_file() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let config = StorageConfig {
         data_dir: dir.path().to_path_buf(),
@@ -70,7 +72,8 @@ fn test_persistence_corruption_missing_blob_file() -> anyhow::Result<()> {
         compression: Compression::None,
     };
 
-    let store = Store::new(config.clone())?;
+    let client = axiomregent::db::init_hiqlite(dir.path()).await?;
+    let store = Store::new(client, config.clone())?;
     let content = b"I will be deleted";
     let hash = store.put_blob(content)?;
 
@@ -93,8 +96,8 @@ fn test_persistence_corruption_missing_blob_file() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_invariant_missing_blob_row() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_invariant_missing_blob_row() -> anyhow::Result<()> {
     // Test that putting a snapshot referring to a non-existent blob hash fails (refcount update check)
     let dir = tempdir()?;
     let config = StorageConfig {
@@ -103,7 +106,8 @@ fn test_invariant_missing_blob_row() -> anyhow::Result<()> {
         compression: Compression::None,
     };
 
-    let store = Store::new(config)?;
+    let client = axiomregent::db::init_hiqlite(dir.path()).await?;
+    let store = Store::new(client, config)?;
     let fake_hash = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 
     let manifest = Manifest::new(vec![Entry {
@@ -122,7 +126,7 @@ fn test_invariant_missing_blob_row() -> anyhow::Result<()> {
         None,
         None,
         None,
-    );
+    ).await;
 
     assert!(
         result.is_err(),

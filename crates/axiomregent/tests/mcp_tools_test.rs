@@ -2,22 +2,28 @@
 // Copyright (C) 2026 Bartek Kus
 
 use axiomregent::router::{JsonRpcRequest, Router};
-use axiomregent::snapshot::{lease::LeaseStore, tools::SnapshotTools};
+use axiomregent::snapshot::tools::SnapshotTools;
 use axiomregent::workspace::WorkspaceTools;
 use serde_json::json;
 use std::sync::Arc;
 
+mod test_helpers;
+use test_helpers::make_router;
+
 // Feature: MCP_TOOLS
 // Spec: spec/core/tools.md
 
-fn make_router(dir: &std::path::Path) -> Router {
+async fn make_test_router(dir: &std::path::Path) -> Router {
+    let db_sub = dir.join("db");
+    std::fs::create_dir_all(&db_sub).unwrap();
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(&db_sub).await;
+
     let config = axiomregent::config::StorageConfig {
         data_dir: dir.to_path_buf(),
         blob_backend: axiomregent::config::BlobBackend::Fs,
         compression: axiomregent::config::Compression::None,
     };
-    let store = Arc::new(axiomregent::snapshot::store::Store::new(config).unwrap());
-    let lease_store = Arc::new(LeaseStore::new());
+    let store = Arc::new(axiomregent::snapshot::store::Store::new(client.clone(), config).unwrap());
 
     let snapshot_tools = Arc::new(SnapshotTools::new(lease_store.clone(), store.clone()));
     let workspace_tools = Arc::new(WorkspaceTools::new(lease_store.clone(), store.clone()));
@@ -29,10 +35,10 @@ fn make_router(dir: &std::path::Path) -> Router {
         snapshot_tools.clone(),
         feature_tools.clone(),
     ));
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(dir));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, dir));
 
-    Router::new(
-        lease_store.clone(),
+    make_router(
+        lease_store,
         snapshot_tools,
         workspace_tools,
         featuregraph_tools,
@@ -42,10 +48,10 @@ fn make_router(dir: &std::path::Path) -> Router {
     )
 }
 
-#[test]
-fn test_mcp_tools_list() {
+#[tokio::test]
+async fn test_mcp_tools_list() {
     let dir = tempfile::tempdir().unwrap();
-    let router = make_router(dir.path());
+    let router = make_test_router(dir.path()).await;
 
     let req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -53,7 +59,7 @@ fn test_mcp_tools_list() {
         params: None,
         id: Some(json!(1)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     assert!(resp.result.is_some());
     let res = resp.result.unwrap();
 
@@ -74,10 +80,10 @@ fn test_mcp_tools_list() {
     }
 }
 
-#[test]
-fn test_mcp_tools_call_validation() {
+#[tokio::test]
+async fn test_mcp_tools_call_validation() {
     let dir = tempfile::tempdir().unwrap();
-    let router = make_router(dir.path());
+    let router = make_test_router(dir.path()).await;
 
     // Call an unknown tool — expect error
     let req = JsonRpcRequest {
@@ -89,7 +95,7 @@ fn test_mcp_tools_call_validation() {
         })),
         id: Some(json!(2)),
     };
-    let resp = router.handle_request(&req);
+    let resp = router.handle_request(&req).await;
     assert!(resp.error.is_some(), "Calling unknown tool should return an error");
 
     // Call features.impact without required repo_root -> error
@@ -102,6 +108,6 @@ fn test_mcp_tools_call_validation() {
         })),
         id: Some(json!(3)),
     };
-    let resp2 = router.handle_request(&req2);
+    let resp2 = router.handle_request(&req2).await;
     assert!(resp2.error.is_some(), "Missing repo_root should return an error");
 }

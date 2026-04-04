@@ -3,14 +3,15 @@
 
 use anyhow::Result;
 use axiomregent::config::{BlobBackend, Compression, StorageConfig};
-use axiomregent::snapshot::lease::LeaseStore;
 use axiomregent::snapshot::store::Store;
 use axiomregent::snapshot::tools::SnapshotTools;
 use std::sync::Arc;
 
-fn setup() -> Result<(
+mod test_helpers;
+
+async fn setup() -> Result<(
     Arc<Store>,
-    Arc<LeaseStore>,
+    Arc<axiomregent::snapshot::lease::LeaseStore>,
     SnapshotTools,
     tempfile::TempDir,
 )> {
@@ -21,12 +22,12 @@ fn setup() -> Result<(
     std::fs::create_dir(&repo_dir)?;
 
     let config = StorageConfig {
-        data_dir,
+        data_dir: data_dir.clone(),
         blob_backend: BlobBackend::Fs,
         compression: Compression::None,
     };
-    let store = Arc::new(Store::new(config)?);
-    let lease_store = Arc::new(LeaseStore::new());
+    let (client, lease_store) = test_helpers::make_client_and_lease_store(&data_dir).await;
+    let store = Arc::new(Store::new(client, config)?);
     let tools = SnapshotTools::new(lease_store.clone(), store.clone());
 
     // Init git repo
@@ -50,9 +51,9 @@ fn setup() -> Result<(
     Ok((store, lease_store, tools, dir))
 }
 
-#[test]
-fn test_worktree_pagination() -> Result<()> {
-    let (_, _, tools, dir) = setup()?;
+#[tokio::test]
+async fn test_worktree_pagination() -> Result<()> {
+    let (_, _, tools, dir) = setup().await?;
     let root = dir.path().join("repo");
 
     // Create 10 files: f0.txt ... f9.txt
@@ -61,14 +62,14 @@ fn test_worktree_pagination() -> Result<()> {
     }
 
     // List all
-    let res = tools.snapshot_list(&root, "", "worktree", None, None, None, None)?;
+    let res = tools.snapshot_list(&root, "", "worktree", None, None, None, None).await?;
     let entries = res["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 10);
     assert_eq!(res["total"], 10);
     assert_eq!(res["truncated"], false);
 
     // Page 1: Limit 4, Offset 0 -> f0..f3
-    let res = tools.snapshot_list(&root, "", "worktree", None, None, Some(4), Some(0))?;
+    let res = tools.snapshot_list(&root, "", "worktree", None, None, Some(4), Some(0)).await?;
     let entries = res["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 4);
     assert_eq!(res["total"], 10);
@@ -77,14 +78,14 @@ fn test_worktree_pagination() -> Result<()> {
     assert_eq!(entries[3]["path"], "f3.txt");
 
     // Page 2: Limit 4, Offset 4 -> f4..f7
-    let res = tools.snapshot_list(&root, "", "worktree", None, None, Some(4), Some(4))?;
+    let res = tools.snapshot_list(&root, "", "worktree", None, None, Some(4), Some(4)).await?;
     let entries = res["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 4);
     assert_eq!(res["truncated"], true); // 4+4 < 10
     assert_eq!(entries[0]["path"], "f4.txt");
 
     // Page 3: Limit 4, Offset 8 -> f8..f9
-    let res = tools.snapshot_list(&root, "", "worktree", None, None, Some(4), Some(8))?;
+    let res = tools.snapshot_list(&root, "", "worktree", None, None, Some(4), Some(8)).await?;
     let entries = res["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 2);
     assert_eq!(res["truncated"], false); // 8+4 >= 10
@@ -93,9 +94,9 @@ fn test_worktree_pagination() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_snapshot_pagination() -> Result<()> {
-    let (_, _, tools, dir) = setup()?;
+#[tokio::test]
+async fn test_snapshot_pagination() -> Result<()> {
+    let (_, _, tools, dir) = setup().await?;
     let root = dir.path().join("repo");
 
     // Create 10 files and snapshot
@@ -106,7 +107,7 @@ fn test_snapshot_pagination() -> Result<()> {
         paths.push(name);
     }
 
-    let snap_res = tools.snapshot_create(&root, None, Some(paths))?;
+    let snap_res = tools.snapshot_create(&root, None, Some(paths)).await?;
     let snap_id = snap_res["snapshot_id"].as_str().unwrap().to_string();
 
     // List all
@@ -118,7 +119,7 @@ fn test_snapshot_pagination() -> Result<()> {
         Some(snap_id.clone()),
         None,
         None,
-    )?;
+    ).await?;
     let entries = res["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 10);
     assert_eq!(res["total"], 10);
@@ -132,7 +133,7 @@ fn test_snapshot_pagination() -> Result<()> {
         Some(snap_id.clone()),
         Some(3),
         Some(2),
-    )?;
+    ).await?;
     let entries = res["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 3);
     assert_eq!(res["total"], 10);

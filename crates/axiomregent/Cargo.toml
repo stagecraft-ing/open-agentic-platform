@@ -22,7 +22,6 @@ hex = "0.4"
 base64 = "0.21"
 regex = "1.10"
 uuid = { version = "1.0", features = ["v4", "serde"] }
-rusqlite = { version = "0.32", features = ["bundled"] }
 zstd = "0.13"
 tempfile = "3.8"
 chrono = { version = "0.4", features = ["serde"] }
@@ -32,6 +31,8 @@ tar = "0.4.44"
 log = "0.4.29"
 env_logger = "0.9"
 reqwest = { version = "0.12", features = ["json"] }
+hiqlite = { version = "~0.13", features = ["sqlite", "dlock", "listen_notify_local", "cache"] }
+async-trait = "0.1"
 
 featuregraph = { path = "../featuregraph" }
 xray        = { path = "../xray" }

@@ -4,89 +4,93 @@
 // Spec: spec/run/skills.md
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
+use hiqlite::{Client, Param};
 use log::error;
 use run::{RunConfig, Runner, StateStore, registry};
+use serde::Deserialize;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
 use std::thread;
 use uuid::Uuid;
 
 pub struct RunTools {
-    runs: Arc<Mutex<HashMap<String, RunContext>>>,
+    client: Client,
     state_dir: PathBuf,
     run_root: PathBuf,
 }
 
-#[derive(Clone)]
-struct RunContext {
-    status: String, // "pending", "running", "pass", "fail"
-    logs_path: PathBuf,
-    start_time: Option<DateTime<Utc>>,
-    end_time: Option<DateTime<Utc>>,
-    exit_code: Option<i32>,
-}
-
 impl RunTools {
-    pub fn new(root: &Path) -> Self {
+    pub fn new(client: Client, root: &Path) -> Self {
         let state_dir = root.join(".axiomregent/run");
         let logs_dir = state_dir.join("logs");
         fs::create_dir_all(&logs_dir).unwrap_or(());
-
         Self {
-            runs: Arc::new(Mutex::new(HashMap::new())),
+            client,
             state_dir,
             run_root: root.to_path_buf(),
         }
     }
 
-    pub fn execute(
+    pub async fn execute(
         &self,
         skill: String,
         env_vars: Option<HashMap<String, String>>,
     ) -> Result<serde_json::Value> {
         let run_id = Uuid::new_v4().to_string();
         let logs_path = self.state_dir.join("logs").join(format!("{}.log", run_id));
+        let logs_path_str = logs_path.to_string_lossy().into_owned();
+        let started_at = Utc::now().to_rfc3339();
+        let run_root_str = self.run_root.to_string_lossy().into_owned();
 
-        let context = RunContext {
-            status: "pending".to_string(),
-            logs_path: logs_path.clone(),
-            start_time: Some(Utc::now()),
-            end_time: None,
-            exit_code: None,
-        };
+        // Insert the initial run record into hiqlite
+        self.client
+            .execute(
+                Cow::Borrowed(
+                    "INSERT INTO runs \
+                     (run_id, skill_name, repo_root, status, exit_code, log_path, started_at, completed_at) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                ),
+                vec![
+                    Param::Text(run_id.clone()),
+                    Param::Text(skill.clone()),
+                    Param::Text(run_root_str.clone()),
+                    Param::Text("running".to_string()),
+                    Param::Null,
+                    Param::Text(logs_path_str.clone()),
+                    Param::Text(started_at),
+                    Param::Null,
+                ],
+            )
+            .await?;
 
-        {
-            let mut runs = self.runs.lock().unwrap();
-            runs.insert(run_id.clone(), context);
-        }
-
-        let runs_handle = self.runs.clone();
+        let client_clone = self.client.clone();
         let run_id_clone = run_id.clone();
         let state_dir_str = self.state_dir.to_string_lossy().into_owned();
-        let run_root_str = self.run_root.to_string_lossy().into_owned();
-        let logs_path_clone = logs_path.clone();
 
         thread::spawn(move || {
-            {
-                let mut runs = runs_handle.lock().unwrap();
-                if let Some(ctx) = runs.get_mut(&run_id_clone) {
-                    ctx.status = "running".to_string();
-                }
-            }
-
-            let log_file = match File::create(&logs_path_clone) {
+            let log_file = match File::create(&logs_path) {
                 Ok(f) => f,
                 Err(e) => {
-                    let mut runs = runs_handle.lock().unwrap();
-                    if let Some(ctx) = runs.get_mut(&run_id_clone) {
-                        ctx.status = "fail".to_string();
-                        ctx.end_time = Some(Utc::now());
-                    }
                     error!("Failed to create log file: {}", e);
+                    let rt = tokio::runtime::Handle::current();
+                    rt.block_on(async {
+                        let _ = client_clone
+                            .execute(
+                                Cow::Borrowed(
+                                    "UPDATE runs SET status = $1, completed_at = $2 WHERE run_id = $3",
+                                ),
+                                vec![
+                                    Param::Text("fail".to_string()),
+                                    Param::Text(Utc::now().to_rfc3339()),
+                                    Param::Text(run_id_clone.clone()),
+                                ],
+                            )
+                            .await;
+                    });
                     return;
                 }
             };
@@ -111,38 +115,59 @@ impl RunTools {
 
             let result = runner.run_specific(&[skill]);
 
-            let mut runs = runs_handle.lock().unwrap();
-            if let Some(ctx) = runs.get_mut(&run_id_clone) {
-                ctx.end_time = Some(Utc::now());
-                match result {
-                    Ok(true) => {
-                        ctx.status = "pass".to_string();
-                        ctx.exit_code = Some(0);
-                    }
-                    Ok(false) => {
-                        ctx.status = "fail".to_string();
-                        ctx.exit_code = Some(1);
-                    }
-                    Err(_) => {
-                        ctx.status = "fail".to_string();
-                        ctx.exit_code = Some(1);
-                    }
-                }
-            }
+            let (status, exit_code) = match result {
+                Ok(true) => ("pass".to_string(), 0i64),
+                Ok(false) => ("fail".to_string(), 1i64),
+                Err(_) => ("fail".to_string(), 1i64),
+            };
+
+            let rt = tokio::runtime::Handle::current();
+            rt.block_on(async {
+                let _ = client_clone
+                    .execute(
+                        Cow::Borrowed(
+                            "UPDATE runs SET status = $1, exit_code = $2, completed_at = $3 \
+                             WHERE run_id = $4",
+                        ),
+                        vec![
+                            Param::Text(status),
+                            Param::Integer(exit_code),
+                            Param::Text(Utc::now().to_rfc3339()),
+                            Param::Text(run_id_clone),
+                        ],
+                    )
+                    .await;
+            });
         });
 
         Ok(serde_json::json!({"run_id": run_id}))
     }
 
-    pub fn status(&self, run_id: &str) -> Result<serde_json::Value> {
-        let runs = self.runs.lock().unwrap();
-        if let Some(ctx) = runs.get(run_id) {
+    pub async fn status(&self, run_id: &str) -> Result<serde_json::Value> {
+        #[derive(Deserialize)]
+        struct RunRow {
+            status: String,
+            exit_code: Option<i64>,
+            started_at: String,
+            completed_at: Option<String>,
+        }
+
+        let rows: Vec<RunRow> = self
+            .client
+            .query_as(
+                "SELECT status, exit_code, started_at, completed_at \
+                 FROM runs WHERE run_id = $1",
+                vec![Param::Text(run_id.to_string())],
+            )
+            .await?;
+
+        if let Some(row) = rows.into_iter().next() {
             Ok(serde_json::json!({
                 "run_id": run_id,
-                "status": ctx.status,
-                "start_time": ctx.start_time,
-                "end_time": ctx.end_time,
-                "exit_code": ctx.exit_code,
+                "status": row.status,
+                "start_time": row.started_at,
+                "end_time": row.completed_at,
+                "exit_code": row.exit_code,
                 "note": null
             }))
         } else {
@@ -150,12 +175,38 @@ impl RunTools {
         }
     }
 
-    pub fn logs(&self, run_id: &str, offset: Option<u64>, limit: Option<u64>) -> Result<serde_json::Value> {
-        let logs_path = {
-            let runs = self.runs.lock().unwrap();
-            if let Some(ctx) = runs.get(run_id) {
-                ctx.logs_path.clone()
-            } else {
+    pub async fn logs(
+        &self,
+        run_id: &str,
+        offset: Option<u64>,
+        limit: Option<u64>,
+    ) -> Result<serde_json::Value> {
+        #[derive(Deserialize)]
+        struct LogPathRow {
+            log_path: Option<String>,
+        }
+
+        let rows: Vec<LogPathRow> = self
+            .client
+            .query_as(
+                "SELECT log_path FROM runs WHERE run_id = $1",
+                vec![Param::Text(run_id.to_string())],
+            )
+            .await?;
+
+        let logs_path = match rows.into_iter().next() {
+            Some(row) => match row.log_path {
+                Some(p) => PathBuf::from(p),
+                None => {
+                    return Ok(serde_json::json!({
+                        "run_id": run_id,
+                        "lines": [],
+                        "total": 0,
+                        "truncated": false
+                    }));
+                }
+            },
+            None => {
                 return Ok(serde_json::json!({
                     "run_id": run_id,
                     "lines": [],

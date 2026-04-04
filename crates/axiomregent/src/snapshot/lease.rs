@@ -4,15 +4,15 @@
 // Spec: spec/core/snapshot-workspace.md
 
 use anyhow::{Result, anyhow};
-use serde::{Deserialize, Serialize}; // Kept because Fingerprint::to_canonical_json still uses it
-use sha2::{Digest, Sha256}; // Kept because Fingerprint::compute still uses it
-use std::collections::{HashMap, HashSet}; // HashMap and HashSet are still used
+use hiqlite::{Client, Param};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::borrow::Cow;
+use std::collections::HashSet;
 use std::path::Path;
-use std::process::Command;
-use std::sync::{Arc, RwLock}; // Kept because LeaseStore uses it
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)] // Added Eq, kept Serialize/Deserialize for to_canonical_json
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Fingerprint {
     pub head_oid: String,
     pub index_oid: String,
@@ -20,12 +20,15 @@ pub struct Fingerprint {
 }
 
 impl Fingerprint {
-    pub fn compute(repo_root: &Path) -> Result<Self> {
+    pub async fn compute(repo_root: &Path) -> Result<Self> {
+        use tokio::process::Command;
+
         // 1. head_oid
         let head_output = Command::new("git")
             .args(["rev-parse", "HEAD"])
             .current_dir(repo_root)
-            .output()?;
+            .output()
+            .await?;
 
         let head_oid = if head_output.status.success() {
             String::from_utf8_lossy(&head_output.stdout)
@@ -45,7 +48,8 @@ impl Fingerprint {
         let write_tree_output = Command::new("git")
             .arg("write-tree")
             .current_dir(repo_root)
-            .output()?;
+            .output()
+            .await?;
 
         let index_oid = if write_tree_output.status.success() {
             String::from_utf8_lossy(&write_tree_output.stdout)
@@ -62,7 +66,8 @@ impl Fingerprint {
         let status_output = Command::new("git")
             .args(["status", "--porcelain=v1", "-z"])
             .current_dir(repo_root)
-            .output()?;
+            .output()
+            .await?;
 
         if !status_output.status.success() {
             return Err(anyhow!("Failed to run git status"));
@@ -168,24 +173,18 @@ pub struct Lease {
 
 #[derive(Clone)]
 pub struct LeaseStore {
-    leases: Arc<RwLock<HashMap<String, Lease>>>,
+    client: Client,
     default_grants: PermissionGrants,
 }
 
-impl Default for LeaseStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl LeaseStore {
-    pub fn new() -> Self {
-        Self::with_default_grants(PermissionGrants::test_permissive())
+    pub fn new(client: Client) -> Self {
+        Self::with_default_grants(client, PermissionGrants::test_permissive())
     }
 
-    pub fn with_default_grants(default_grants: PermissionGrants) -> Self {
+    pub fn with_default_grants(client: Client, default_grants: PermissionGrants) -> Self {
         Self {
-            leases: Arc::new(RwLock::new(HashMap::new())),
+            client,
             default_grants,
         }
     }
@@ -194,47 +193,94 @@ impl LeaseStore {
         self.default_grants.clone()
     }
 
-    pub fn issue(&self, fingerprint: Fingerprint) -> String {
+    pub async fn issue(&self, fingerprint: Fingerprint) -> Result<String> {
         let id = Uuid::new_v4().to_string();
-        let lease = Lease {
-            id: id.clone(),
+        let fp_json = fingerprint.to_canonical_json()?;
+        let grants_json = serde_json::to_string(&self.default_grants)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let expires = (chrono::Utc::now() + chrono::Duration::hours(1)).to_rfc3339();
+
+        self.client
+            .execute(
+                Cow::Borrowed(
+                    "INSERT INTO leases \
+                     (lease_id, repo_root, fingerprint, touched_files, grants, issued_at, expires_at) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                ),
+                vec![
+                    Param::Text(id.clone()),
+                    Param::Text("".to_string()),
+                    Param::Text(fp_json),
+                    Param::Text("[]".to_string()),
+                    Param::Text(grants_json),
+                    Param::Text(now),
+                    Param::Text(expires),
+                ],
+            )
+            .await?;
+
+        Ok(id)
+    }
+
+    pub async fn get_lease(&self, lease_id: &str) -> Option<Lease> {
+        #[derive(serde::Deserialize)]
+        struct LeaseRow {
+            lease_id: String,
+            fingerprint: String,
+            touched_files: String,
+            grants: String,
+        }
+
+        let rows: Vec<LeaseRow> = self
+            .client
+            .query_as(
+                "SELECT lease_id, fingerprint, touched_files, grants \
+                 FROM leases WHERE lease_id = $1",
+                vec![Param::Text(lease_id.to_string())],
+            )
+            .await
+            .ok()?;
+
+        let row = rows.into_iter().next()?;
+        let fingerprint: Fingerprint = serde_json::from_str(&row.fingerprint).ok()?;
+        let touched: HashSet<String> = serde_json::from_str(&row.touched_files).ok()?;
+        let grants: PermissionGrants = serde_json::from_str(&row.grants).ok()?;
+
+        Some(Lease {
+            id: row.lease_id,
             fingerprint,
-            touched_files: HashSet::new(),
-            grants: self.default_grants.clone(),
-        };
-        self.leases.write().unwrap().insert(id.clone(), lease);
-        id
+            touched_files: touched,
+            grants,
+        })
     }
 
-    pub fn get_lease(&self, lease_id: &str) -> Option<Lease> {
-        self.leases
-            .read()
-            .unwrap()
-            .get(lease_id)
-            .cloned()
+    pub async fn get_fingerprint(&self, lease_id: &str) -> Option<Fingerprint> {
+        self.get_lease(lease_id).await.map(|l| l.fingerprint)
     }
 
-    pub fn get_fingerprint(&self, lease_id: &str) -> Option<Fingerprint> {
-        self.leases
-            .read()
-            .unwrap()
-            .get(lease_id)
-            .map(|l| l.fingerprint.clone())
-    }
-
-    pub fn touch_files(&self, lease_id: &str, files: Vec<String>) {
-        let mut leases = self.leases.write().unwrap();
-        if let Some(lease) = leases.get_mut(lease_id) {
+    /// Record that a set of files were touched under this lease.
+    pub async fn touch_files(&self, lease_id: &str, files: Vec<String>) -> Result<()> {
+        if let Some(mut lease) = self.get_lease(lease_id).await {
             for f in files {
                 lease.touched_files.insert(f);
             }
+            let touched_json = serde_json::to_string(&lease.touched_files)?;
+            self.client
+                .execute(
+                    Cow::Borrowed("UPDATE leases SET touched_files = $1 WHERE lease_id = $2"),
+                    vec![
+                        Param::Text(touched_json),
+                        Param::Text(lease_id.to_string()),
+                    ],
+                )
+                .await?;
         }
+        Ok(())
     }
 
-    pub fn get_touched_files(&self, lease_id: &str) -> Option<Vec<String>> {
-        let leases = self.leases.read().unwrap();
-        leases.get(lease_id).map(|l| {
-            let mut v: Vec<String> = l.touched_files.iter().cloned().collect();
+    pub async fn get_touched_files(&self, lease_id: &str) -> Option<Vec<String>> {
+        self.get_lease(lease_id).await.map(|l| {
+            let mut v: Vec<String> = l.touched_files.into_iter().collect();
             v.sort(); // Lexicographic order
             v
         })
@@ -243,27 +289,15 @@ impl LeaseStore {
     /// Verifies lease against current repo state.
     /// Returns Ok(()) if valid.
     /// Returns Err(STALE_LEASE) if mismatch.
-    pub fn check_lease(&self, lease_id: &str, repo_root: &Path) -> Result<()> {
-        let recorded_fp = self
-            .get_fingerprint(lease_id)
-            .ok_or_else(|| anyhow!("Lease not found: {}", lease_id))?; // Or separate error? "Lease not found" is INVALID_ARGUMENT or NOT_FOUND
-        // Spec says "missing lease" logic issues new one, but if *passed* lease is invalid?
-        // "Validation: Every worktree-mode request with a lease_id validates it..."
+    pub async fn check_lease(&self, lease_id: &str, repo_root: &Path) -> Result<()> {
+        let lease = self
+            .get_lease(lease_id)
+            .await
+            .ok_or_else(|| anyhow!("Lease not found: {}", lease_id))?;
 
-        let current_fp = Fingerprint::compute(repo_root)?;
+        let current_fp = Fingerprint::compute(repo_root).await?;
 
-        if recorded_fp != current_fp {
-            // Construct STALE_LEASE error JSON
-            // We use anyhow context or a specific error type?
-            // The tool implementation layer usually handles mapping Result to JSON-RPC error.
-            // But we need to pass the current_fp out.
-            // We'll return a specific error that contains the details.
-
-            // For now, return a formatted error string that the caller can parse or wrap?
-            // Better: use a custom error type or just return serde_json::Value as error?
-            // anyhow::Error is generic.
-            // We can return an error that *downcasts* to a StaleLeaseError.
-
+        if lease.fingerprint != current_fp {
             return Err(StaleLeaseError {
                 lease_id: lease_id.to_string(),
                 current_fingerprint: current_fp,

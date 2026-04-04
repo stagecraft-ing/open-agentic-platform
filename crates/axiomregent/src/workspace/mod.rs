@@ -87,7 +87,7 @@ impl WorkspaceTools {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn apply_patch(
+    pub async fn apply_patch(
         &self,
         repo_root: &Path,
         patch: &str,
@@ -100,9 +100,9 @@ impl WorkspaceTools {
     ) -> Result<serde_json::Value> {
         if mode == "worktree" {
             let lid = lease_id.ok_or_else(|| anyhow!("lease_id required"))?;
-            self.lease_store.check_lease(&lid, repo_root)?;
+            self.lease_store.check_lease(&lid, repo_root).await?;
 
-            let mut cmd = std::process::Command::new("git");
+            let mut cmd = tokio::process::Command::new("git");
             cmd.arg("apply");
             cmd.arg("--verbose"); // To get details?
 
@@ -127,18 +127,18 @@ impl WorkspaceTools {
 
             let mut child = cmd.spawn()?;
             if let Some(mut stdin) = child.stdin.take() {
-                use std::io::Write;
-                stdin.write_all(patch.as_bytes())?;
+                use tokio::io::AsyncWriteExt;
+                stdin.write_all(patch.as_bytes()).await?;
             }
 
-            let output = child.wait_with_output()?;
+            let output = child.wait_with_output().await?;
 
             if output.status.success() {
                 // Touched files
                 let touched = parse_patch_touched_files(patch);
-                self.lease_store.touch_files(&lid, touched.clone());
+                self.lease_store.touch_files(&lid, touched.clone()).await?;
 
-                let new_fingerprint = Fingerprint::compute(repo_root)?;
+                let new_fingerprint = Fingerprint::compute(repo_root).await?;
 
                 let applied_value: Vec<serde_json::Value> = touched
                     .iter()
@@ -181,25 +181,25 @@ impl WorkspaceTools {
                     "applied": [],
                     "rejects": rejects,
                     "lease_id": lid,
-                    "fingerprint": Fingerprint::compute(repo_root)?, // State didn't change ideally
+                    "fingerprint": Fingerprint::compute(repo_root).await?, // State didn't change ideally
                     "cache_key": "conflict",
                     "cache_hint": "until_dirty"
                 }))
             }
         } else if mode == "snapshot" {
             let snap_id = _snapshot_id.ok_or_else(|| anyhow!("snapshot_id required"))?;
-            self.store.validate_snapshot(&snap_id)?;
+            self.store.validate_snapshot(&snap_id).await?;
 
             // Retrieve base snapshot metadata for provenance/determinism
             let base_info = self
                 .store
-                .get_snapshot_info(&snap_id)?
+                .get_snapshot_info(&snap_id).await?
                 .ok_or_else(|| anyhow::anyhow!("Snapshot metadata not found for {}", snap_id))?;
 
             // 1. Materialize to temp dir
             let temp = tempfile::tempdir()?;
             let temp_path = temp.path();
-            let entries = self.store.list_snapshot_entries(&snap_id)?;
+            let entries = self.store.list_snapshot_entries(&snap_id).await?;
 
             for entry in entries {
                 if let Some(content) = self.store.get_blob(&entry.blob)? {
@@ -215,7 +215,7 @@ impl WorkspaceTools {
 
             // 2. Apply patch
             // Disable autocrlf so snapshot blobs are always LF-only regardless of platform git config.
-            let mut cmd = std::process::Command::new("git");
+            let mut cmd = tokio::process::Command::new("git");
             cmd.arg("-c").arg("core.autocrlf=false");
             cmd.arg("-c").arg("core.eol=lf");
             cmd.arg("apply");
@@ -231,11 +231,11 @@ impl WorkspaceTools {
 
             let mut child = cmd.spawn()?;
             if let Some(mut stdin) = child.stdin.take() {
-                use std::io::Write;
-                stdin.write_all(patch.as_bytes())?;
+                use tokio::io::AsyncWriteExt;
+                stdin.write_all(patch.as_bytes()).await?;
             }
 
-            let output = child.wait_with_output()?;
+            let output = child.wait_with_output().await?;
 
             if output.status.success() {
                 // 3. Ingest changes
@@ -285,7 +285,7 @@ impl WorkspaceTools {
                     Some(&snap_id),    // derived_from
                     Some(&patch_hash), // applied_patch_hash
                     None,              // label
-                )?;
+                ).await?;
 
                 Ok(serde_json::json!({
                     "snapshot_id": new_snap_id,
@@ -308,7 +308,7 @@ impl WorkspaceTools {
         }
     }
 
-    pub fn write_file(
+    pub async fn write_file(
         &self,
         repo_root: &Path,
         path: &str,
@@ -318,7 +318,7 @@ impl WorkspaceTools {
         dry_run: bool,
     ) -> Result<bool> {
         let lid = lease_id.ok_or_else(|| anyhow!("lease_id required"))?;
-        self.lease_store.check_lease(&lid, repo_root)?;
+        self.lease_store.check_lease(&lid, repo_root).await?;
 
         let target = self.resolve_target_path(repo_root, path)?;
 
@@ -348,13 +348,13 @@ impl WorkspaceTools {
 
         if !dry_run {
             std::fs::write(&target, content)?;
-            self.lease_store.touch_files(&lid, vec![path.to_string()]);
+            self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
         }
 
         Ok(true)
     }
 
-    pub fn delete(
+    pub async fn delete(
         &self,
         repo_root: &Path,
         path: &str,
@@ -362,7 +362,7 @@ impl WorkspaceTools {
         dry_run: bool,
     ) -> Result<bool> {
         let lid = lease_id.ok_or_else(|| anyhow!("lease_id required"))?;
-        self.lease_store.check_lease(&lid, repo_root)?; // Verify at start
+        self.lease_store.check_lease(&lid, repo_root).await?; // Verify at start
 
         let target = self.resolve_target_path(repo_root, path)?;
 
@@ -376,7 +376,7 @@ impl WorkspaceTools {
             } else {
                 std::fs::remove_file(&target)?;
             }
-            self.lease_store.touch_files(&lid, vec![path.to_string()]);
+            self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
         }
 
         Ok(true)
@@ -445,21 +445,22 @@ mod tests {
     use crate::snapshot::store::Store;
     use std::sync::Arc;
 
-    #[test]
-    fn test_snapshot_apply_patch() {
+    #[tokio::test]
+    async fn test_snapshot_apply_patch() {
         let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let config = StorageConfig {
             data_dir: dir.path().to_path_buf(),
             blob_backend: BlobBackend::Fs,
             compression: Compression::None,
         };
-        let store = Arc::new(Store::new(config).unwrap());
-        let lease_store = Arc::new(LeaseStore::new());
+        let store = Arc::new(Store::new(client.clone(), config).unwrap());
+        let lease_store = Arc::new(LeaseStore::new(client));
         let tools = WorkspaceTools::new(lease_store, store.clone());
 
         // Setup base snapshot containing a.txt
         let t1 = "original content\n";
-        let h1 = store.put_blob(t1.as_bytes()).unwrap();
+        let h1 = store.put_blob(t1.as_bytes()).unwrap(); // put_blob is sync (filesystem only)
         let m1 = format!(
             r#"{{
             "entries": [
@@ -481,6 +482,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
         // Patch to modify a.txt and add b.txt
@@ -512,13 +514,14 @@ index 0000000..9daeafb
                 false,
                 false,
             )
+            .await
             .unwrap();
 
         let new_sid = res["snapshot_id"].as_str().unwrap();
         assert_ne!(new_sid, sid);
 
         // Verify new snapshot content
-        let entries = store.list_snapshot_entries(new_sid).unwrap();
+        let entries = store.list_snapshot_entries(new_sid).await.unwrap();
         assert_eq!(entries.len(), 2); // a.txt, b.txt
 
         // Check content
@@ -526,7 +529,7 @@ index 0000000..9daeafb
         let mut found_b = false;
 
         for e in entries {
-            let content = store.get_blob(&e.blob).unwrap().unwrap();
+            let content = store.get_blob(&e.blob).unwrap().unwrap(); // get_blob is sync (filesystem only)
             let s = String::from_utf8(content).unwrap();
             if e.path == "a.txt" {
                 assert_eq!(s, "modified content\n");

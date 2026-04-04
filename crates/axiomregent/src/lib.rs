@@ -5,6 +5,7 @@
 
 #![recursion_limit = "256"] // Increased for large json! macros in router
 
+pub mod db;
 pub mod agent_tools;
 pub mod config;
 pub mod feature_tools;
