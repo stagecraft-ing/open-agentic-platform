@@ -88,122 +88,6 @@ impl ToolProvider for LegacyToolProvider {
                     "required": ["repo_root"]
                 }
             }),
-            // Snapshot Tools
-            json!({
-                "name": "snapshot.list",
-                "description": "List files in a snapshot or worktree",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "path": { "type": "string" },
-                        "mode": { "type": "string", "enum": ["worktree", "snapshot"] },
-                        "lease_id": { "type": "string" },
-                        "snapshot_id": { "type": "string" },
-                        "limit": { "type": "integer" },
-                        "offset": { "type": "integer" }
-                    },
-                    "required": ["repo_root", "path", "mode"]
-                }
-            }),
-            json!({
-                "name": "snapshot.create",
-                "description": "Create a new snapshot",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "lease_id": { "type": "string" },
-                        "paths": { "type": "array", "items": { "type": "string" } }
-                    },
-                    "required": ["repo_root"]
-                }
-            }),
-            json!({
-                "name": "snapshot.read",
-                "description": "Read file content",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "path": { "type": "string" },
-                        "mode": { "type": "string", "enum": ["worktree", "snapshot"] },
-                        "lease_id": { "type": "string" },
-                        "snapshot_id": { "type": "string" }
-                    },
-                    "required": ["repo_root", "path", "mode"]
-                }
-            }),
-            json!({
-                "name": "snapshot.grep",
-                "description": "Search for patterns",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "pattern": { "type": "string" },
-                        "paths": { "type": "array", "items": { "type": "string" } },
-                        "mode": { "type": "string", "enum": ["worktree", "snapshot"] },
-                        "lease_id": { "type": "string" },
-                        "snapshot_id": { "type": "string" },
-                        "case_insensitive": { "type": "boolean" }
-                    },
-                    "required": ["repo_root", "pattern", "mode"]
-                }
-            }),
-            json!({
-                "name": "snapshot.diff",
-                "description": "Generate unified diff",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "path": { "type": "string" },
-                        "mode": { "type": "string", "enum": ["worktree", "snapshot"] },
-                        "lease_id": { "type": "string" },
-                        "snapshot_id": { "type": "string" },
-                        "from_snapshot_id": { "type": "string" }
-                    },
-                    "required": ["repo_root", "path", "mode"]
-                }
-            }),
-            json!({
-                "name": "snapshot.changes",
-                "description": "List changed files between snapshots",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "snapshot_id": { "type": "string" },
-                        "from_snapshot_id": { "type": "string" }
-                    },
-                    "required": ["repo_root", "snapshot_id"]
-                }
-            }),
-            json!({
-                "name": "snapshot.export",
-                "description": "Export snapshot as tarball",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "snapshot_id": { "type": "string" }
-                    },
-                    "required": ["repo_root", "snapshot_id"]
-                }
-            }),
-            json!({
-                "name": "snapshot.info",
-                "description": "Get snapshot or repository info",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "repo_root": { "type": "string" },
-                        "snapshot_id": { "type": "string" }
-                    },
-                    "required": ["repo_root"]
-                }
-            }),
             // Agent Protocol Tools
             json!({
                 "name": "agent.propose",
@@ -464,219 +348,6 @@ impl ToolProvider for LegacyToolProvider {
                 Some(self.run_tools.logs(run_id, offset, limit).await)
             }
 
-            // --- Snapshot Tools ---
-            "snapshot.list" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                let mode = match args.get("mode").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("mode required"))),
-                };
-                let lease_id = args
-                    .get("lease_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let limit = args
-                    .get("limit")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                let offset = args
-                    .get("offset")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize);
-                Some(self.snapshot_tools.snapshot_list(
-                    repo_root,
-                    path,
-                    mode,
-                    lease_id,
-                    snapshot_id,
-                    limit,
-                    offset,
-                ).await)
-            }
-
-            "snapshot.create" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let lease_id = args
-                    .get("lease_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let paths = args.get("paths").and_then(|v| v.as_array()).map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                });
-                Some(
-                    self.snapshot_tools
-                        .snapshot_create(repo_root, lease_id, paths)
-                        .await,
-                )
-            }
-
-            "snapshot.read" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let path = match args.get("path").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("path required"))),
-                };
-                let mode = match args.get("mode").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("mode required"))),
-                };
-                let lease_id = args
-                    .get("lease_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                Some(self.snapshot_tools.snapshot_file(
-                    repo_root,
-                    path,
-                    mode,
-                    lease_id,
-                    snapshot_id,
-                ).await)
-            }
-
-            "snapshot.grep" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let pattern = match args.get("pattern").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("pattern required"))),
-                };
-                let mode = match args.get("mode").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("mode required"))),
-                };
-                let paths = args.get("paths").and_then(|v| v.as_array()).map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                });
-                let lease_id = args
-                    .get("lease_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let case_insensitive = args
-                    .get("case_insensitive")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                Some(self.snapshot_tools.snapshot_grep(
-                    repo_root,
-                    pattern,
-                    paths,
-                    mode,
-                    lease_id,
-                    snapshot_id,
-                    case_insensitive,
-                ).await)
-            }
-
-            "snapshot.diff" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let path = match args.get("path").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("path required"))),
-                };
-                let mode = match args.get("mode").and_then(|v| v.as_str()) {
-                    Some(v) => v,
-                    None => return Some(Err(anyhow::anyhow!("mode required"))),
-                };
-                let lease_id = args
-                    .get("lease_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let from_snapshot_id = args
-                    .get("from_snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                Some(self.snapshot_tools.snapshot_diff(
-                    repo_root,
-                    path,
-                    mode,
-                    lease_id,
-                    snapshot_id,
-                    from_snapshot_id,
-                ).await)
-            }
-
-            "snapshot.changes" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                let from_snapshot_id = args
-                    .get("from_snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                Some(
-                    self.snapshot_tools
-                        .snapshot_changes(repo_root, snapshot_id, from_snapshot_id)
-                        .await,
-                )
-            }
-
-            "snapshot.export" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                Some(
-                    self.snapshot_tools
-                        .snapshot_export(repo_root, snapshot_id)
-                        .await,
-                )
-            }
-
-            "snapshot.info" => {
-                let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
-                    Some(v) => Path::new(v),
-                    None => return Some(Err(anyhow::anyhow!("repo_root required"))),
-                };
-                let snapshot_id = args
-                    .get("snapshot_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                Some(self.snapshot_tools.snapshot_info(repo_root, snapshot_id).await)
-            }
-
             // --- Workspace Tools ---
             "workspace.write_file" => {
                 let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
@@ -791,20 +462,12 @@ impl ToolProvider for LegacyToolProvider {
             | "gov.preflight"
             | "gov.drift"
             | "xray.scan"
-            | "snapshot.list"
-            | "snapshot.read"
-            | "snapshot.grep"
-            | "snapshot.diff"
-            | "snapshot.changes"
-            | "snapshot.export"
-            | "snapshot.info"
             | "agent.verify"
             | "run.status"
             | "run.logs"
             | "workspace.write_file"
             | "workspace.delete"
             | "workspace.apply_patch"
-            | "snapshot.create"
             | "agent.propose"
             | "agent.execute"
             | "run.execute" => Some(agent::safety::get_tool_tier(name)),
@@ -817,14 +480,7 @@ impl ToolProvider for LegacyToolProvider {
             Some(ToolPermissions {
                 requires_file_read: matches!(
                     name,
-                    "snapshot.list"
-                        | "snapshot.read"
-                        | "snapshot.grep"
-                        | "snapshot.diff"
-                        | "snapshot.changes"
-                        | "snapshot.export"
-                        | "snapshot.info"
-                        | "gov.preflight"
+                    "gov.preflight"
                         | "gov.drift"
                         | "features.impact"
                         | "xray.scan"
@@ -835,7 +491,6 @@ impl ToolProvider for LegacyToolProvider {
                     "workspace.write_file"
                         | "workspace.delete"
                         | "workspace.apply_patch"
-                        | "snapshot.create"
                         | "agent.propose"
                         | "agent.execute"
                 ),
