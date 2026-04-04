@@ -25,10 +25,10 @@ module "keyvault_secrets" {
   keyvault_name = module.azure_core.keyvault_name
 
   secrets = {
-    LOGTO_M2M_CLIENT_ID     = var.logto_m2m_client_id
-    LOGTO_M2M_CLIENT_SECRET = var.logto_m2m_client_secret
-    STAGECRAFT_DB_URL       = var.stagecraft_db_url
-    DEPLOYD_DB_URL          = var.deployd_db_url
+    OIDC_M2M_CLIENT_ID     = var.oidc_m2m_client_id
+    OIDC_M2M_CLIENT_SECRET = var.oidc_m2m_client_secret
+    STAGECRAFT_DB_URL      = var.stagecraft_db_url
+    DEPLOYD_DB_URL         = var.deployd_db_url
   }
 
   depends_on = [time_sleep.wait_for_kv_rbac]

@@ -9,7 +9,7 @@ The platform layer is the organisational control plane for OAP. It provides iden
 | Service | Stack | Port | Purpose |
 |---------|-------|------|---------|
 | **stagecraft** | Encore.ts, Drizzle ORM, React Router v7 | 4000 | SaaS platform: auth, admin, uptime monitoring, Slack integration |
-| **deployd-api** | Express.js, @kubernetes/client-node | 8080 | K8s deployment orchestration with Helm, Logto JWT auth |
+| **deployd-api** | Express.js, @kubernetes/client-node | 8080 | K8s deployment orchestration with Helm, OIDC JWT auth |
 | **github-app** | Probot | 3000 | PR preview deployments via GitHub webhooks |
 | **tenant-hello** | Express.js | 8080 | Example tenant service |
 
@@ -31,7 +31,7 @@ Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/ap
 
 ## Identity
 
-Authentication is handled by **Logto** (self-hosted OAuth2/OIDC). Helm chart in `charts/logto/`. Machine-to-machine auth uses Logto client credentials flow.
+Authentication is handled by **Rauthy** (self-hosted OIDC/OAuth2 provider, Rust-based). Helm chart in `charts/rauthy/`. Uses hiqlite (embedded Raft SQLite) for HA — no external database required. Machine-to-machine auth uses standard OIDC client credentials flow.
 
 ## Local Development
 
@@ -66,7 +66,7 @@ make tf-destroy   # Tear down everything
 
 - `charts/stagecraft/` — Main SaaS service (ingress: stagecraft.localdev.online)
 - `charts/deployd-api/` — Deployment orchestrator
-- `charts/logto/` — Logto identity provider (ingress: logto.localdev.online)
+- `charts/rauthy/` — Rauthy OIDC identity provider (ingress: rauthy.localdev.online)
 
 ## Key Integration Points with OPC
 

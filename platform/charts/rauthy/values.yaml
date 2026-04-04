@@ -1,0 +1,42 @@
+image:
+  repository: ghcr.io/sebadob/rauthy
+  tag: "0.27.2"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+oidc:
+  issuer: "https://rauthy.localdev.online/auth/v1"
+
+ingress:
+  enabled: true
+  className: nginx
+  host: rauthy.localdev.online
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+persistence:
+  size: 2Gi
+  storageClass: ""
+
+raft:
+  # Must be >= 16 characters
+  secret: "rauthy-raft-secret-change-me"
+
+api:
+  # Must be >= 16 characters
+  secret: "rauthy-api-secret-change-me"
+
+bootstrap:
+  adminEmail: "admin@example.com"
+  # Initial admin password (plain text — Rauthy hashes it on first boot)
+  adminPassword: "changeme123456"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

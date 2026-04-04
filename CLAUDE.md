@@ -27,7 +27,7 @@ platform/        — Organisational control plane (imported from stagecraft-ing/
     deployd-api/ — Express.js K8s deployment orchestration
     github-app/  — Probot PR preview deployments
   infra/         — Terraform modules (Azure AKS, ACR, KeyVault)
-  charts/        — Helm charts (stagecraft, deployd-api, logto)
+  charts/        — Helm charts (stagecraft, deployd-api, rauthy)
   k8s/           — Baseline K8s policies (network deny, resource quotas)
 build/           — Compiler output (registry.json, build-meta.json)
 .specify/        — Contract metadata

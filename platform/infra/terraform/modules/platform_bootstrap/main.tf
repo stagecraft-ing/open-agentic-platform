@@ -67,8 +67,8 @@ resource "helm_release" "stagecraft" {
       }
       keys = [
         { key = "STAGECRAFT_DB_URL", remoteKey = "stagecraft-db-url" },
-        { key = "LOGTO_M2M_CLIENT_ID", remoteKey = "logto-m2m-client-id" },
-        { key = "LOGTO_M2M_CLIENT_SECRET", remoteKey = "logto-m2m-client-secret" }
+        { key = "OIDC_M2M_CLIENT_ID", remoteKey = "oidc-m2m-client-id" },
+        { key = "OIDC_M2M_CLIENT_SECRET", remoteKey = "oidc-m2m-client-secret" }
       ]
     }
   })]

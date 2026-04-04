@@ -3,14 +3,14 @@ import { z } from "zod";
 import crypto from "node:crypto";
 import { createFileSecretsReader } from "./secrets.js";
 import { getByKey, getByReleaseId, put, type Lane, type DeploymentRecord } from "./store.js";
-import { verifyLogtoJwt } from "./auth/logtoJwt.js";
+import { verifyOidcJwt } from "./auth/oidcJwt.js";
 import path from "node:path";
 import { ensureNamespaceWithBaseline } from "./k8s/namespaceBaseline.js";
 import { helmUpsertTenantApp } from "./laneA/helmDeploy.js";
 
 const PORT = Number(process.env.PORT ?? "8080");
 const SECRETS_DIR = process.env.SECRETS_DIR ?? "/mnt/secrets-store";
-const LOGTO_ENDPOINT = process.env.LOGTO_ENDPOINT ?? "";
+const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ?? "";
 const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_REQUIRED_SCOPE = process.env.DEPLOYD_REQUIRED_SCOPE ?? "";
 const secrets = createFileSecretsReader(SECRETS_DIR);
@@ -21,7 +21,7 @@ app.use(express.json({ limit: "1mb" }));
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 function assertAuthConfig() {
-    if (!LOGTO_ENDPOINT) throw new Error("LOGTO_ENDPOINT is required");
+    if (!OIDC_ENDPOINT) throw new Error("OIDC_ENDPOINT (or LOGTO_ENDPOINT) is required");
     if (!DEPLOYD_AUDIENCE) throw new Error("DEPLOYD_AUDIENCE is required");
 }
 
@@ -35,9 +35,9 @@ function hasScope(payload: any, required: string): boolean {
 async function requireAuth(req: express.Request, res: express.Response): Promise<boolean> {
     try {
         assertAuthConfig();
-        const payload = await verifyLogtoJwt({
+        const payload = await verifyOidcJwt({
             authorizationHeader: req.header("authorization") ?? undefined,
-            logtoEndpoint: LOGTO_ENDPOINT,
+            oidcEndpoint: OIDC_ENDPOINT,
             audience: DEPLOYD_AUDIENCE,
         });
 

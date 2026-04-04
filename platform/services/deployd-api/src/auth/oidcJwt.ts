@@ -8,8 +8,8 @@ type CachedConfig = {
 
 let cached: CachedConfig | null = null;
 
-async function fetchOidcConfig(logtoEndpoint: string): Promise<CachedConfig> {
-    const url = new URL("/oidc/.well-known/openid-configuration", logtoEndpoint).toString();
+async function fetchOidcConfig(oidcEndpoint: string): Promise<CachedConfig> {
+    const url = new URL("/oidc/.well-known/openid-configuration", oidcEndpoint).toString();
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Failed to fetch OIDC config: ${resp.status}`);
     const json = (await resp.json()) as { issuer: string; jwks_uri: string };
@@ -21,10 +21,10 @@ async function fetchOidcConfig(logtoEndpoint: string): Promise<CachedConfig> {
     };
 }
 
-async function getConfig(logtoEndpoint: string): Promise<CachedConfig> {
+async function getConfig(oidcEndpoint: string): Promise<CachedConfig> {
     // Cache for 10 minutes
     if (cached && Date.now() - cached.fetchedAtMs < 10 * 60 * 1000) return cached;
-    cached = await fetchOidcConfig(logtoEndpoint);
+    cached = await fetchOidcConfig(oidcEndpoint);
     return cached;
 }
 
@@ -35,15 +35,15 @@ function extractBearer(authHeader: string | undefined): string | null {
     return t.length ? t : null;
 }
 
-export async function verifyLogtoJwt(opts: {
+export async function verifyOidcJwt(opts: {
     authorizationHeader?: string;
-    logtoEndpoint: string;
+    oidcEndpoint: string;
     audience: string;
 }): Promise<JWTPayload> {
     const token = extractBearer(opts.authorizationHeader);
     if (!token) throw new Error("Missing bearer token");
 
-    const cfg = await getConfig(opts.logtoEndpoint);
+    const cfg = await getConfig(opts.oidcEndpoint);
 
     const jwks = createRemoteJWKSet(new URL(cfg.jwksUri));
     const { payload } = await jwtVerify(token, jwks, {

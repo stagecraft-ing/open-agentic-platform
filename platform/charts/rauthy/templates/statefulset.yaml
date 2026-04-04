@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "rauthy.fullname" . }}
+  labels:
+    {{- include "rauthy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  serviceName: {{ include "rauthy.headlessName" . }}
+  selector:
+    matchLabels:
+      {{- include "rauthy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "rauthy.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: rauthy
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: raft
+              containerPort: 8100
+              protocol: TCP
+          env:
+            - name: RAUTHY_LOG_LEVEL
+              value: "info"
+            - name: RAUTHY_LISTEN_ADDRESS
+              value: "0.0.0.0"
+            - name: RAUTHY_LISTEN_PORT_HTTP
+              value: "8080"
+            - name: RAUTHY_PUB_URL
+              value: {{ include "rauthy.pubUrl" . | quote }}
+            - name: RAUTHY_DATA_PATH
+              value: "/data"
+            - name: RAUTHY_SECRET_RAFT
+              value: {{ .Values.raft.secret | quote }}
+            - name: RAUTHY_SECRET_API
+              value: {{ .Values.api.secret | quote }}
+            - name: RAUTHY_BOOTSTRAP_ADMIN_EMAIL
+              value: {{ .Values.bootstrap.adminEmail | quote }}
+            - name: RAUTHY_BOOTSTRAP_ADMIN_PASSWORD_ARGON
+              value: {{ .Values.bootstrap.adminPassword | quote }}
+            - name: HQL_NODE_ID_FROM
+              value: "k8s"
+            - name: HQL_NODES
+              value: {{ include "rauthy.hqlNodes" . | quote }}
+            - name: HQL_DATA_DIR
+              value: "/data/hiqlite"
+            - name: HQL_SECRET_RAFT
+              value: {{ .Values.raft.secret | quote }}
+            - name: HQL_SECRET_API
+              value: {{ .Values.api.secret | quote }}
+          livenessProbe:
+            httpGet:
+              path: /auth/v1/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /auth/v1/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

@@ -26,16 +26,16 @@ spec:
               value: "4000"
             - name: SECRETS_DIR
               value: {{ .Values.secrets.mountPath | quote }}
-            - name: LOGTO_ENDPOINT
-              value: {{ .Values.logto.endpoint | quote }}
+            - name: OIDC_ENDPOINT
+              value: {{ .Values.oidc.endpoint | quote }}
             - name: DEPLOYD_AUDIENCE
-              value: {{ .Values.logto.deploydAudience | quote }}
+              value: {{ .Values.oidc.deploydAudience | quote }}
             - name: DEPLOYD_SCOPE
-              value: {{ .Values.logto.deploydScope | quote }}
-            - name: LOGTO_M2M_CLIENT_ID_FILE
-              value: "{{ .Values.secrets.mountPath }}/LOGTO_M2M_CLIENT_ID"
-            - name: LOGTO_M2M_CLIENT_SECRET_FILE
-              value: "{{ .Values.secrets.mountPath }}/LOGTO_M2M_CLIENT_SECRET"
+              value: {{ .Values.oidc.deploydScope | quote }}
+            - name: OIDC_M2M_CLIENT_ID_FILE
+              value: "{{ .Values.secrets.mountPath }}/OIDC_M2M_CLIENT_ID"
+            - name: OIDC_M2M_CLIENT_SECRET_FILE
+              value: "{{ .Values.secrets.mountPath }}/OIDC_M2M_CLIENT_SECRET"
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

@@ -3,13 +3,13 @@
 The Terraform configuration is split into two layers:
 
 - **core/** — Azure resources (AKS, Key Vault, workload identity, secrets)
-- **cluster/** — Kubernetes resources (addons, Logto, platform bootstrap)
+- **cluster/** — Kubernetes resources (addons, platform bootstrap)
 
 ## Fresh install
 
 1. Copy `core/terraform.tfvars.example` → `core/terraform.tfvars`
 2. Copy `cluster/terraform.tfvars.example` → `cluster/terraform.tfvars`
-3. Fill in values (especially `logto_postgres_password`, `letsencrypt_email`)
+3. Fill in values (especially `letsencrypt_email`, OIDC M2M credentials)
 4. Run `make tf-init` then `make tf-apply`
 
 ## Migrating from single-root config
@@ -24,7 +24,7 @@ If you have existing state in `envs/dev/terraform.tfstate`:
    terraform apply -auto-approve -var-file=../terraform.tfvars
    ```
    This will fail because core vars are a subset. Create `core/terraform.tfvars` with:
-   - `project_name`, `location`, `logto_m2m_client_id`, `logto_m2m_client_secret`
+   - `project_name`, `location`, `oidc_m2m_client_id`, `oidc_m2m_client_secret`
 
 3. **Migrate core state** from old config:
    ```bash

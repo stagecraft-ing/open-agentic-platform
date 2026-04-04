@@ -1,7 +1,7 @@
 import { Service } from "encore.dev/service";
 
 /**
- * Deploy service: proxies deployment requests to deployd-api using Logto M2M auth.
+ * Deploy service: proxies deployment requests to deployd-api using OIDC M2M auth.
  * Absorbs the former stagecraft-api functionality.
  */
 export default new Service("deploy");

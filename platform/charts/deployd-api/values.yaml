@@ -26,8 +26,8 @@ secrets:
     - key: DEPLOYD_DB_URL
       remoteKey: deployd-db-url
 
-logto:
-  endpoint: "https://logto.localdev.online"
+oidc:
+  endpoint: "https://rauthy.localdev.online"
   audience: "https://api.stagecraft.localdev.online"
 
 requiredScope: "deployd:deploy"

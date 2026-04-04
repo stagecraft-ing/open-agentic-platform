@@ -5,15 +5,8 @@ project_name = "stagecraft-dev"
 location     = "canadacentral"
 
 # ------------------------------------------------------------------------------
-# Logto Custom Setup - Non-sensitive
+# OIDC (Rauthy) M2M credentials — Sensitive (DO NOT COMMIT REAL VALUES)
 # ------------------------------------------------------------------------------
 
-# Logto application IDs (must remain stable)
-logto_m2m_client_id     = "stagecraft-m2m-app"
-
-# ------------------------------------------------------------------------------
-# Logto Custom Setup - Sensitive (DO NOT COMMIT REAL VALUES)
-# ------------------------------------------------------------------------------
-
-logto_m2m_client_secret = "change-me-management-secret"
-
+oidc_m2m_client_id     = "stagecraft-m2m-app"
+oidc_m2m_client_secret = "change-me-management-secret"

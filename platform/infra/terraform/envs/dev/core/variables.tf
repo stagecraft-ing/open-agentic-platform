@@ -1,13 +1,13 @@
 variable "project_name" { type = string }
 variable "location" { type = string }
 
-variable "logto_m2m_client_id" {
+variable "oidc_m2m_client_id" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "logto_m2m_client_secret" {
+variable "oidc_m2m_client_secret" {
   type      = string
   sensitive = true
   default   = ""

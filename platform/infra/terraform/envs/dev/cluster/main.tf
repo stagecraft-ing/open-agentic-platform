@@ -25,36 +25,10 @@ module "external_secrets_config" {
   depends_on = [module.cluster_addons]
 }
 
-module "logto_bootstrap" {
-  source      = "../../../modules/logto_bootstrap"
-  charts_root = "${path.module}/../../../../../charts"
-  namespace   = "logto"
-
-  logto_host = var.logto_host
-  admin_host = var.logto_admin_host
-
-  postgres_password = var.logto_postgres_password
-
-  domain                                            = var.domain
-  logto_spa_client_id                               = var.logto_spa_client_id
-  logto_spa_api_resource                            = var.logto_spa_api_resource
-  logto_m2m_client_id                               = var.logto_m2m_client_id
-  app_name                                          = var.app_name
-  app_url                                           = var.app_url
-  logto_spa_client_secret                           = var.logto_spa_client_secret
-  logto_spa_api_event_webhook_url                   = var.logto_spa_api_event_webhook_url
-  logto_m2m_client_secret                           = var.logto_m2m_client_secret
-  logto_spa_api_event_webhook_signing_key           = var.logto_spa_api_event_webhook_signing_key
-  logto_google_connector_id                         = var.logto_google_connector_id
-  logto_google_client_id                            = var.logto_google_client_id
-  logto_google_client_secret                        = var.logto_google_client_secret
-  logto_google_workspace_connector_id               = var.logto_google_workspace_connector_id
-  logto_google_workspace_client_id                  = var.logto_google_workspace_client_id
-  logto_google_workspace_client_secret              = var.logto_google_workspace_client_secret
-  logto_google_workspace_connector_approved_domains = var.logto_google_workspace_connector_approved_domains
-
-  depends_on = [module.cluster_addons]
-}
+# Rauthy (OIDC provider) is deployed via platform/charts/rauthy Helm chart.
+# It replaces the former logto_bootstrap module and uses hiqlite (embedded
+# Raft SQLite) instead of a PostgreSQL database.
+# TODO: Add rauthy Terraform module when moving beyond Helm-only deployment.
 
 module "platform_bootstrap" {
   source = "../../../modules/platform_bootstrap"

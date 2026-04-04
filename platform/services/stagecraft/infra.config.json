@@ -2,7 +2,7 @@
   "$schema": "https://encore.dev/schemas/infra.schema.json",
   "secrets": {
     "DOMAIN": { "$env": "DOMAIN" },
-    "LOGTO_SPA_CLIENT_ID": { "$env": "LOGTO_SPA_CLIENT_ID" },
+    "OIDC_SPA_CLIENT_ID": { "$env": "OIDC_SPA_CLIENT_ID" },
     "SLACK_WEBHOOK_URL": { "$env": "SLACK_WEBHOOK_URL" }
   },
   "pubsub": [

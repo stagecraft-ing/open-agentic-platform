@@ -1,11 +1,11 @@
 import { api } from "encore.dev/api";
 import { z } from "zod";
 import { readSecretFromDir } from "./secrets";
-import { getCachedDeploydAuthHeader } from "./logtoM2m";
+import { getCachedDeploydAuthHeader } from "./oidcM2m";
 
 const DEPLOYD_URL =
   process.env.DEPLOYD_URL ?? "http://deployd-api.deployd-system.svc.cluster.local";
-const LOGTO_ENDPOINT = process.env.LOGTO_ENDPOINT ?? "";
+const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ?? "";
 const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
 
@@ -42,25 +42,31 @@ function safeJson(s: string): unknown {
 }
 
 async function getDeploydAuthHeader(): Promise<string> {
-  if (!LOGTO_ENDPOINT || !DEPLOYD_AUDIENCE) {
-    throw new Error("Missing LOGTO_ENDPOINT or DEPLOYD_AUDIENCE");
+  if (!OIDC_ENDPOINT || !DEPLOYD_AUDIENCE) {
+    throw new Error("Missing OIDC_ENDPOINT or DEPLOYD_AUDIENCE");
   }
 
   const clientId =
-    (await readSecretFromDir("LOGTO_M2M_CLIENT_ID")) ?? process.env.LOGTO_M2M_CLIENT_ID ?? "";
+    (await readSecretFromDir("OIDC_M2M_CLIENT_ID")) ??
+    process.env.OIDC_M2M_CLIENT_ID ??
+    (await readSecretFromDir("LOGTO_M2M_CLIENT_ID")) ??
+    process.env.LOGTO_M2M_CLIENT_ID ??
+    "";
   const clientSecret =
+    (await readSecretFromDir("OIDC_M2M_CLIENT_SECRET")) ??
+    process.env.OIDC_M2M_CLIENT_SECRET ??
     (await readSecretFromDir("LOGTO_M2M_CLIENT_SECRET")) ??
     process.env.LOGTO_M2M_CLIENT_SECRET ??
     "";
 
   if (!clientId || !clientSecret) {
     throw new Error(
-      "Missing LOGTO_M2M_CLIENT_ID or LOGTO_M2M_CLIENT_SECRET in secrets mount or env"
+      "Missing OIDC_M2M_CLIENT_ID or OIDC_M2M_CLIENT_SECRET in secrets mount or env"
     );
   }
 
   return getCachedDeploydAuthHeader({
-    logtoEndpoint: LOGTO_ENDPOINT,
+    oidcEndpoint: OIDC_ENDPOINT,
     resource: DEPLOYD_AUDIENCE,
     scope: DEPLOYD_SCOPE || undefined,
     clientId,

@@ -13,13 +13,13 @@ type CacheEntry = {
 let cache: CacheEntry | null = null;
 
 export async function fetchClientCredentialsToken(opts: {
-  logtoEndpoint: string;
+  oidcEndpoint: string;
   clientId: string;
   clientSecret: string;
   resource: string;
   scope?: string;
 }): Promise<TokenResponse> {
-  const url = new URL("/oidc/token", opts.logtoEndpoint).toString();
+  const url = new URL("/oidc/token", opts.oidcEndpoint).toString();
 
   const body = new URLSearchParams();
   body.set("grant_type", "client_credentials");
@@ -36,14 +36,14 @@ export async function fetchClientCredentialsToken(opts: {
 
   if (!resp.ok) {
     const t = await resp.text();
-    throw new Error(`Logto token fetch failed: ${resp.status} ${t}`);
+    throw new Error(`OIDC token fetch failed: ${resp.status} ${t}`);
   }
 
   return (await resp.json()) as TokenResponse;
 }
 
 export async function getCachedDeploydAuthHeader(opts: {
-  logtoEndpoint: string;
+  oidcEndpoint: string;
   resource: string;
   scope?: string;
   clientId: string;
@@ -57,7 +57,7 @@ export async function getCachedDeploydAuthHeader(opts: {
   }
 
   const tok = await fetchClientCredentialsToken({
-    logtoEndpoint: opts.logtoEndpoint,
+    oidcEndpoint: opts.oidcEndpoint,
     clientId: opts.clientId,
     clientSecret: opts.clientSecret,
     resource: opts.resource,
