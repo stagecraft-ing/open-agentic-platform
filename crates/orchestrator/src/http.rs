@@ -5,34 +5,28 @@
 //
 //   GET /workflows/:id/events?offset=0
 //
-// It wraps `EventBroadcaster::subscribe_with_replay` and frames output as
-// `text/event-stream` (SSE) so that clients can replay historical events from
-// any offset and then receive live updates.
+// It uses the `WorkflowStore` and `EventNotifier` traits so the SSE endpoint
+// works with both the local SQLite backend and a future distributed backend.
 
-use crate::sse::{EventBroadcaster, ReplaySubscription};
-use crate::sqlite_state::SqliteWorkflowStore;
-use crate::OrchestratorError;
+use crate::store::{EventNotifier, ReplaySubscription, WorkflowStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::IntoResponse;
 use axum::Router;
-use dashmap::DashMap;
+use crate::OrchestratorError;
 use futures_util::stream::{self, StreamExt};
 use futures_util::Stream;
 use serde::Deserialize;
 use std::convert::Infallible;
 use std::time::Duration;
-use std::{sync::Arc};
-use tokio::sync::Mutex;
-use uuid::Uuid;
+use std::sync::Arc;
 
-/// Shared state for the HTTP server: a SQLite store and a registry mapping
-/// `workflow_id` → `EventBroadcaster`.
+/// Shared state for the HTTP server: a workflow store and an event notifier.
 #[derive(Clone)]
 pub struct HttpState {
-    pub store: Arc<Mutex<SqliteWorkflowStore>>,
-    pub broadcasters: Arc<DashMap<Uuid, EventBroadcaster>>,
+    pub store: Arc<dyn WorkflowStore>,
+    pub notifier: Arc<dyn EventNotifier>,
 }
 
 /// Query parameters for the SSE endpoint.
@@ -55,34 +49,29 @@ pub fn router(state: HttpState) -> Router {
 
 async fn workflow_events_sse(
     State(state): State<HttpState>,
-    Path(workflow_id): Path<Uuid>,
+    Path(workflow_id): Path<uuid::Uuid>,
     Query(query): Query<EventsQuery>,
 ) -> impl IntoResponse {
-    // Look up the broadcaster for this workflow.
-    let broadcaster = match state.broadcasters.get(&workflow_id) {
-        Some(entry) => entry.clone(),
-        None => return (StatusCode::NOT_FOUND, "workflow not found").into_response(),
-    };
-
-    // Load replay + live subscription from SQLite.
-    let replay_subscription = {
-        let guard = state.store.lock().await;
-        match broadcaster.subscribe_with_replay(&guard, workflow_id, query.offset) {
-            Ok(sub) => sub,
-            Err(OrchestratorError::StatePersistence { reason }) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("state persistence error: {reason}"),
-                )
-                    .into_response()
-            }
-            Err(other) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("error subscribing to events: {other}"),
-                )
-                    .into_response()
-            }
+    // Load replay + live subscription via the notifier trait.
+    let replay_subscription = match state
+        .notifier
+        .subscribe_with_replay(state.store.as_ref(), workflow_id, query.offset)
+        .await
+    {
+        Ok(sub) => sub,
+        Err(OrchestratorError::StatePersistence { reason }) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("state persistence error: {reason}"),
+            )
+                .into_response()
+        }
+        Err(other) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("error subscribing to events: {other}"),
+            )
+                .into_response()
         }
     };
 
@@ -139,4 +128,3 @@ fn build_sse_stream(
     let replay_stream = stream::iter(replay_iter);
     replay_stream.chain(live_stream)
 }
-

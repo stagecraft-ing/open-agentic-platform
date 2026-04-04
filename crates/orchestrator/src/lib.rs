@@ -13,19 +13,21 @@ pub mod artifact;
 pub mod effort;
 pub mod gates;
 pub mod manifest;
- pub mod sqlite_state;
- pub mod sse;
- pub mod state;
- pub mod http;
+pub mod sqlite_state;
+pub mod sse;
+pub mod state;
+pub mod store;
+pub mod http;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
 pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
 pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler, GateOutcome};
 pub use sqlite_state::{
-    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, PersistedEvent, SqliteWorkflowStore,
+    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, LocalEventNotifier, PersistedEvent,
+    SqliteWorkflowStore,
 };
-pub use sse::{EventBroadcaster, EventSubscriber, ReplaySubscription};
+pub use store::{EventNotifier, EventReceiver, ReplaySubscription, WorkflowStore};
 pub use http::HttpState;
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
@@ -40,7 +42,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::Mutex;
 use uuid::Uuid;
 
 /// Orchestrator-facing errors (044 contract + load-time validation).
@@ -626,8 +627,8 @@ pub async fn dispatch_manifest(
 /// Optional persistence context for wiring state persistence and event
 /// broadcasting into the dispatch loop (052 Phase 6D).
 pub struct PersistenceContext {
-    pub store: Arc<Mutex<SqliteWorkflowStore>>,
-    pub broadcaster: EventBroadcaster,
+    pub store: Arc<dyn WorkflowStore>,
+    pub notifier: Arc<dyn EventNotifier>,
 }
 
 /// Timestamp helper for event/state recording — mirrors the epoch-based format
@@ -674,24 +675,14 @@ pub async fn dispatch_manifest_persisted(
     );
     wf_state.attach_gates_from_manifest(manifest);
 
-    {
-        let mut store = persistence.store.lock().await;
-        store.write_workflow_state(&wf_state)?;
-        let event_id = store.append_event(
-            run_id,
-            "workflow_started",
-            &serde_json::json!({ "workflow_id": run_id.to_string() }),
-            None,
-        )?;
-        let event = PersistedEvent {
-            event_id,
-            workflow_id: run_id,
-            timestamp: now_ts(),
-            event_type: "workflow_started".to_string(),
-            payload: serde_json::json!({ "workflow_id": run_id.to_string() }),
-        };
-        persistence.broadcaster.broadcast(event);
-    }
+    persist_and_emit(
+        persistence,
+        &wf_state,
+        run_id,
+        "workflow_started",
+        &serde_json::json!({ "workflow_id": run_id.to_string() }),
+    )
+    .await?;
 
     // --- Pre-compute dependency graph ---
     let mut dependents: HashMap<&str, Vec<usize>> = HashMap::new();
@@ -706,7 +697,7 @@ pub async fn dispatch_manifest_persisted(
     let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
     let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
 
-    /// Helper: persist state + append event + broadcast in one locked section.
+    /// Helper: persist state + append event + broadcast.
     async fn persist_and_emit(
         persistence: &PersistenceContext,
         wf_state: &WorkflowState,
@@ -714,9 +705,11 @@ pub async fn dispatch_manifest_persisted(
         event_type: &str,
         payload: &JsonValue,
     ) -> Result<(), OrchestratorError> {
-        let mut store = persistence.store.lock().await;
-        store.write_workflow_state(wf_state)?;
-        let event_id = store.append_event(run_id, event_type, payload, None)?;
+        persistence.store.write_workflow_state(wf_state).await?;
+        let event_id = persistence
+            .store
+            .append_event(run_id, event_type, payload, None)
+            .await?;
         let event = PersistedEvent {
             event_id,
             workflow_id: run_id,
@@ -724,7 +717,7 @@ pub async fn dispatch_manifest_persisted(
             event_type: event_type.to_string(),
             payload: payload.clone(),
         };
-        persistence.broadcaster.broadcast(event);
+        persistence.notifier.notify(run_id, event).await;
         Ok(())
     }
 

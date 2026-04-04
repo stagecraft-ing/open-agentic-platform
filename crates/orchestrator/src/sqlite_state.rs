@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Feature 052 Phase 4: SQLite backend for workflow state and events.
 //
-// This module provides an alternative state backend backed by SQLite in WAL
-// mode. It mirrors the JSON `WorkflowState` schema into relational tables and
-// prepares an `events` table for append-only logging (used by Phase 5 SSE).
+// This module provides the local-SQLite implementation of `WorkflowStore` and
+// `EventNotifier` (defined in `store.rs`).  It wraps a `rusqlite::Connection`
+// in an `Arc<std::sync::Mutex<>>` so the async trait methods can safely call
+// into the synchronous rusqlite API via `tokio::task::spawn_blocking`.
 
 use crate::artifact::ArtifactManager;
 use crate::state::{GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus};
+use crate::store::{EventNotifier, EventReceiver, ReplaySubscription, WorkflowStore};
 use crate::OrchestratorError;
+use async_trait::async_trait;
+use dashmap::DashMap;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::Value as JsonValue;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex as StdMutex};
+use tokio::sync::broadcast;
 use uuid::Uuid;
 
 /// Computes the canonical SQLite database path for a given run directory.
@@ -26,8 +32,12 @@ pub fn sqlite_db_path_for_run(artifact_base: &ArtifactManager, workflow_id: Uuid
 }
 
 /// SQLite-backed store for workflow state and events (052 FR-001, FR-002, FR-007).
+///
+/// The connection is wrapped in `Arc<std::sync::Mutex<>>` so it can be shared
+/// across async tasks via `spawn_blocking`.
+#[derive(Clone)]
 pub struct SqliteWorkflowStore {
-    conn: Connection,
+    conn: Arc<StdMutex<Connection>>,
 }
 
 /// Persisted workflow event row (Phase 5 SSE foundation).
@@ -42,6 +52,10 @@ pub struct PersistedEvent {
     pub event_type: String,
     pub payload: JsonValue,
 }
+
+/// Default broadcast channel capacity — sized for NF-002 (50 concurrent
+/// subscribers) with headroom for burst writes before slow readers catch up.
+const DEFAULT_CHANNEL_CAPACITY: usize = 1024;
 
 /// Returns a timestamp string for events. This mirrors the lightweight epoch-based
 /// format used in `gates::chrono_now_iso` without depending on that private helper.
@@ -66,8 +80,8 @@ impl SqliteWorkflowStore {
         }
 
         let conn = Connection::open(path).map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("open sqlite state db {}: {e}", path.display()),
-            })?;
+            reason: format!("open sqlite state db {}: {e}", path.display()),
+        })?;
 
         // Enable WAL mode for better concurrent read performance (052 NF-001).
         conn.pragma_update(None, "journal_mode", &"WAL")
@@ -75,8 +89,7 @@ impl SqliteWorkflowStore {
                 reason: format!("enable WAL journal mode on {}: {e}", path.display()),
             })?;
 
-        // Initialize schema if it does not exist yet. This mirrors the spec's
-        // `workflows`, `steps`, and `events` tables.
+        // Initialize schema if it does not exist yet.
         conn.execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS workflows (
@@ -115,14 +128,18 @@ impl SqliteWorkflowStore {
             reason: format!("initialize sqlite schema in {}: {e}", path.display()),
         })?;
 
-        Ok(SqliteWorkflowStore { conn })
+        Ok(SqliteWorkflowStore {
+            conn: Arc::new(StdMutex::new(conn)),
+        })
     }
 
-    /// Persists the given workflow state into the SQLite database inside a
-    /// transaction. Existing step rows for the workflow are replaced.
-    pub fn write_workflow_state(&mut self, state: &WorkflowState) -> Result<(), OrchestratorError> {
-        let tx = self
-            .conn
+    // --- Synchronous helpers (called inside spawn_blocking) -----------------
+
+    fn write_workflow_state_sync(
+        conn: &mut Connection,
+        state: &WorkflowState,
+    ) -> Result<(), OrchestratorError> {
+        let tx = conn
             .transaction()
             .map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("begin sqlite transaction: {e}"),
@@ -237,17 +254,13 @@ impl SqliteWorkflowStore {
         Ok(())
     }
 
-    /// Loads workflow state for `workflow_id` from SQLite.
-    ///
-    /// Returns `Ok(None)` if the workflow row does not exist.
-    pub fn load_workflow_state(
-        &self,
+    fn load_workflow_state_sync(
+        conn: &Connection,
         workflow_id: Uuid,
     ) -> Result<Option<WorkflowState>, OrchestratorError> {
         let wf_id_str = workflow_id.to_string();
 
-        let mut stmt = self
-            .conn
+        let mut stmt = conn
             .prepare(
                 r#"
                 SELECT workflow_name, status, started_at, completed_at, metadata
@@ -298,8 +311,7 @@ impl SqliteWorkflowStore {
         };
 
         // Load steps ordered by step_index.
-        let mut stmt_steps = self
-            .conn
+        let mut stmt_steps = conn
             .prepare(
                 r#"
                 SELECT
@@ -420,13 +432,8 @@ impl SqliteWorkflowStore {
         Ok(Some(state))
     }
 
-    /// Appends a workflow event row to the `events` table and returns its id.
-    ///
-    /// This is the primary entry point for 052 Phase 5 append-only logging:
-    /// callers record step start/complete/checkpoint/error events and then a
-    /// higher-level SSE server can stream them to subscribers.
-    pub fn append_event(
-        &mut self,
+    fn append_event_sync(
+        conn: &Connection,
         workflow_id: Uuid,
         event_type: &str,
         payload: &JsonValue,
@@ -439,9 +446,8 @@ impl SqliteWorkflowStore {
                 reason: format!("serialize event payload to json: {e}"),
             })?;
 
-        self.conn
-            .execute(
-                r#"
+        conn.execute(
+            r#"
                 INSERT INTO events (
                   workflow_id,
                   timestamp,
@@ -450,32 +456,25 @@ impl SqliteWorkflowStore {
                 )
                 VALUES (?1, ?2, ?3, ?4)
                 "#,
-                params![wf_id_str, ts, event_type, payload_json],
-            )
-            .map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("insert workflow event row in sqlite: {e}"),
-            })?;
+            params![wf_id_str, ts, event_type, payload_json],
+        )
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("insert workflow event row in sqlite: {e}"),
+        })?;
 
-        Ok(self.conn.last_insert_rowid())
+        Ok(conn.last_insert_rowid())
     }
 
-    /// Loads all workflow events for `workflow_id` with `event_id > from_event_id`.
-    ///
-    /// Results are ordered by ascending `event_id`. Callers can pass a `limit`
-    /// to page through large event streams.
-    pub fn load_events_since(
-        &self,
+    fn load_events_since_sync(
+        conn: &Connection,
         workflow_id: Uuid,
         from_event_id: i64,
         limit: Option<u32>,
     ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
         let wf_id_str = workflow_id.to_string();
-        // Always use LIMIT — pass i64::MAX as a sentinel when no limit is
-        // specified.  This avoids duplicating the row-mapping closure.
         let effective_limit: i64 = limit.map_or(i64::MAX, |l| l as i64);
 
-        let mut stmt = self
-            .conn
+        let mut stmt = conn
             .prepare(
                 r#"
                 SELECT event_id, workflow_id, timestamp, event_type, payload
@@ -535,6 +534,163 @@ impl SqliteWorkflowStore {
         Ok(out)
     }
 }
+
+// ---------------------------------------------------------------------------
+// WorkflowStore trait implementation
+// ---------------------------------------------------------------------------
+
+#[async_trait]
+impl WorkflowStore for SqliteWorkflowStore {
+    async fn write_workflow_state(&self, state: &WorkflowState) -> Result<(), OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let state = state.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("lock sqlite connection: {e}"),
+            })?;
+            Self::write_workflow_state_sync(&mut guard, &state)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking join: {e}"),
+        })?
+    }
+
+    async fn load_workflow_state(
+        &self,
+        workflow_id: Uuid,
+    ) -> Result<Option<WorkflowState>, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        tokio::task::spawn_blocking(move || {
+            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("lock sqlite connection: {e}"),
+            })?;
+            Self::load_workflow_state_sync(&guard, workflow_id)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking join: {e}"),
+        })?
+    }
+
+    async fn append_event(
+        &self,
+        workflow_id: Uuid,
+        event_type: &str,
+        payload: &JsonValue,
+        timestamp: Option<String>,
+    ) -> Result<i64, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let event_type = event_type.to_string();
+        let payload = payload.clone();
+        tokio::task::spawn_blocking(move || {
+            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("lock sqlite connection: {e}"),
+            })?;
+            Self::append_event_sync(&guard, workflow_id, &event_type, &payload, timestamp)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking join: {e}"),
+        })?
+    }
+
+    async fn load_events_since(
+        &self,
+        workflow_id: Uuid,
+        from_event_id: i64,
+        limit: Option<u32>,
+    ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        tokio::task::spawn_blocking(move || {
+            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("lock sqlite connection: {e}"),
+            })?;
+            Self::load_events_since_sync(&guard, workflow_id, from_event_id, limit)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking join: {e}"),
+        })?
+    }
+}
+
+// ---------------------------------------------------------------------------
+// LocalEventNotifier — in-process broadcast via tokio channels
+// ---------------------------------------------------------------------------
+
+/// In-process event notification layer backed by `tokio::broadcast` channels.
+///
+/// Maintains a `DashMap<Uuid, broadcast::Sender>` keyed by workflow ID so each
+/// workflow has an isolated broadcast channel.
+#[derive(Clone)]
+pub struct LocalEventNotifier {
+    channels: Arc<DashMap<Uuid, broadcast::Sender<PersistedEvent>>>,
+}
+
+impl LocalEventNotifier {
+    pub fn new() -> Self {
+        Self {
+            channels: Arc::new(DashMap::new()),
+        }
+    }
+
+    /// Ensures a broadcast channel exists for the given workflow, returning
+    /// the sender.
+    fn ensure_channel(&self, workflow_id: Uuid) -> broadcast::Sender<PersistedEvent> {
+        self.channels
+            .entry(workflow_id)
+            .or_insert_with(|| broadcast::channel(DEFAULT_CHANNEL_CAPACITY).0)
+            .clone()
+    }
+}
+
+impl Default for LocalEventNotifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl EventNotifier for LocalEventNotifier {
+    async fn notify(&self, workflow_id: Uuid, event: PersistedEvent) {
+        let tx = self.ensure_channel(workflow_id);
+        // Returns Err only when there are zero receivers — normal, not an error.
+        let _ = tx.send(event);
+    }
+
+    async fn subscribe_with_replay(
+        &self,
+        store: &dyn WorkflowStore,
+        workflow_id: Uuid,
+        from_event_id: i64,
+    ) -> Result<ReplaySubscription, OrchestratorError> {
+        // Subscribe first so we don't miss events written between the store
+        // read and subscription.
+        let tx = self.ensure_channel(workflow_id);
+        let subscriber = EventReceiver::new(tx.subscribe());
+
+        // Load historical events from the store.
+        let replay = store
+            .load_events_since(workflow_id, from_event_id, None)
+            .await?;
+
+        let high_water_mark = replay
+            .last()
+            .map(|e| e.event_id)
+            .unwrap_or(from_event_id);
+
+        Ok(ReplaySubscription {
+            replay,
+            high_water_mark,
+            subscriber,
+        })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Conversion helpers
+// ---------------------------------------------------------------------------
 
 fn workflow_status_to_str(status: &WorkflowStatus) -> &'static str {
     match status {
@@ -615,9 +771,10 @@ fn sql_columns_to_gate_info(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::WorkflowState;
 
-    #[test]
-    fn sqlite_round_trip_matches_json_state_for_basic_fields() {
+    #[tokio::test]
+    async fn sqlite_round_trip_matches_json_state_for_basic_fields() {
         let tmp = tempfile::tempdir().unwrap();
         let artifact_base = ArtifactManager::new(tmp.path());
         let wf_id = Uuid::new_v4();
@@ -642,13 +799,15 @@ mod tests {
         );
 
         let db_path = sqlite_db_path_for_run(&artifact_base, wf_id);
-        let mut store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
         store
             .write_workflow_state(&state)
+            .await
             .expect("write sqlite state");
 
         let loaded = store
             .load_workflow_state(wf_id)
+            .await
             .expect("load sqlite state")
             .expect("expected workflow row");
 
@@ -674,19 +833,19 @@ mod tests {
         let db_path = tmp.path().join("state.sqlite");
         let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
 
-        let mode: String = store
-            .conn
+        let conn = store.conn.lock().unwrap();
+        let mode: String = conn
             .query_row("PRAGMA journal_mode", [], |row| row.get(0))
             .expect("query journal_mode");
 
         assert_eq!(mode.to_lowercase(), "wal");
     }
 
-    #[test]
-    fn append_and_load_events_since_respects_offset_and_limit() {
+    #[tokio::test]
+    async fn append_and_load_events_since_respects_offset_and_limit() {
         let tmp = tempfile::tempdir().unwrap();
         let db_path = tmp.path().join("state.sqlite");
-        let mut store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
 
         let wf_id = Uuid::new_v4();
 
@@ -700,6 +859,7 @@ mod tests {
         );
         store
             .write_workflow_state(&state)
+            .await
             .expect("seed workflow row for events");
 
         // Append three events with simple payloads.
@@ -710,6 +870,7 @@ mod tests {
                 &JsonValue::from("step-1"),
                 Some("t1".to_string()),
             )
+            .await
             .expect("append event 1");
         let e2 = store
             .append_event(
@@ -718,6 +879,7 @@ mod tests {
                 &JsonValue::from("step-1"),
                 Some("t2".to_string()),
             )
+            .await
             .expect("append event 2");
         let e3 = store
             .append_event(
@@ -726,13 +888,18 @@ mod tests {
                 &JsonValue::from("step-2"),
                 Some("t3".to_string()),
             )
+            .await
             .expect("append event 3");
 
-        assert!(e1 < e2 && e2 < e3, "event ids should be monotonically increasing");
+        assert!(
+            e1 < e2 && e2 < e3,
+            "event ids should be monotonically increasing"
+        );
 
         // Load all events from offset 0.
         let all_events = store
             .load_events_since(wf_id, 0, None)
+            .await
             .expect("load events since 0");
         assert_eq!(all_events.len(), 3);
         assert_eq!(all_events[0].event_id, e1);
@@ -742,6 +909,7 @@ mod tests {
         // Load from the second event id.
         let tail_events = store
             .load_events_since(wf_id, e1, None)
+            .await
             .expect("load events since e1");
         assert_eq!(tail_events.len(), 2);
         assert_eq!(tail_events[0].event_id, e2);
@@ -750,9 +918,9 @@ mod tests {
         // Load with a limit of 1 from the start.
         let limited_events = store
             .load_events_since(wf_id, 0, Some(1))
+            .await
             .expect("load limited events");
         assert_eq!(limited_events.len(), 1);
         assert_eq!(limited_events[0].event_id, e1);
     }
 }
-

@@ -3,8 +3,8 @@
 
 use async_trait::async_trait;
 use orchestrator::{
-    sqlite_db_path_for_run, ArtifactManager, EventBroadcaster, SqliteWorkflowStore,
-    WorkflowManifest, WorkflowStep,
+    sqlite_db_path_for_run, ArtifactManager, LocalEventNotifier, SqliteWorkflowStore,
+    WorkflowManifest, WorkflowStep, WorkflowStore, EventNotifier,
 };
 use orchestrator::{
     compute_resume_plan_from_state, state_file_path_for_run, write_workflow_state_atomic,
@@ -14,7 +14,6 @@ use orchestrator::{
 use serde_json::Value as JsonValue;
 use std::collections::HashSet;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use uuid::Uuid;
 
 /// Integration-style verification that a workflow which has partially
@@ -105,9 +104,9 @@ fn integration_052_crash_resume_from_state_file() {
 }
 
 /// Integration-style verification that events written through the SQLite
-/// backend can be replayed via the EventBroadcaster using the same workflow id.
-#[test]
-fn integration_052_sse_replay_round_trip() {
+/// backend can be replayed via the LocalEventNotifier using the same workflow id.
+#[tokio::test]
+async fn integration_052_sse_replay_round_trip() {
     let tmp = tempfile::tempdir().unwrap();
     let artifact_base = ArtifactManager::new(tmp.path());
     let wf_id = Uuid::new_v4();
@@ -121,12 +120,13 @@ fn integration_052_sse_replay_round_trip() {
         serde_json::Map::new(),
     );
     let db_path = sqlite_db_path_for_run(&artifact_base, wf_id);
-    let mut store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+    let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
     store
         .write_workflow_state(&state)
+        .await
         .expect("write initial workflow state");
 
-    // Append a few events via the SQLite store.
+    // Append a few events via the store.
     let e1 = store
         .append_event(
             wf_id,
@@ -134,6 +134,7 @@ fn integration_052_sse_replay_round_trip() {
             &JsonValue::from("step-1"),
             Some("t1".to_string()),
         )
+        .await
         .expect("append e1");
     let _e2 = store
         .append_event(
@@ -142,6 +143,7 @@ fn integration_052_sse_replay_round_trip() {
             &JsonValue::from("step-1"),
             Some("t2".to_string()),
         )
+        .await
         .expect("append e2");
     let e3 = store
         .append_event(
@@ -150,14 +152,16 @@ fn integration_052_sse_replay_round_trip() {
             &JsonValue::from("step-2"),
             Some("t3".to_string()),
         )
+        .await
         .expect("append e3");
 
     assert!(e1 < e3);
 
     // Subscribe with replay from offset 0 and assert we see the full history.
-    let broadcaster = EventBroadcaster::new();
-    let sub = broadcaster
+    let notifier = LocalEventNotifier::new();
+    let sub = notifier
         .subscribe_with_replay(&store, wf_id, 0)
+        .await
         .expect("subscribe with replay");
 
     assert_eq!(sub.replay.len(), 3);
@@ -195,7 +199,9 @@ impl GovernedExecutor for TestExecutor {
                 std::fs::write(path, "ok").unwrap();
             }
         }
-        Ok(DispatchResult { tokens_used: Some(100) })
+        Ok(DispatchResult {
+            tokens_used: Some(100),
+        })
     }
 }
 
@@ -209,37 +215,41 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
     let wf_id = Uuid::new_v4();
 
     // Materialize run dir so outputs can be written.
-    orchestrator::materialize_run_directory(&artifact_base, wf_id, &WorkflowManifest {
-        steps: vec![
-            WorkflowStep {
-                id: "step-1".into(),
-                agent: "agent-a".into(),
-                effort: orchestrator::EffortLevel::Quick,
-                inputs: vec![],
-                outputs: vec!["out1.md".into()],
-                instruction: "do 1".into(),
-                gate: None,
-            },
-            WorkflowStep {
-                id: "step-2".into(),
-                agent: "agent-a".into(),
-                effort: orchestrator::EffortLevel::Quick,
-                inputs: vec!["step-1/out1.md".into()],
-                outputs: vec!["out2.md".into()],
-                instruction: "do 2".into(),
-                gate: None,
-            },
-            WorkflowStep {
-                id: "step-3".into(),
-                agent: "agent-a".into(),
-                effort: orchestrator::EffortLevel::Quick,
-                inputs: vec!["step-2/out2.md".into()],
-                outputs: vec!["out3.md".into()],
-                instruction: "do 3".into(),
-                gate: None,
-            },
-        ],
-    })
+    orchestrator::materialize_run_directory(
+        &artifact_base,
+        wf_id,
+        &WorkflowManifest {
+            steps: vec![
+                WorkflowStep {
+                    id: "step-1".into(),
+                    agent: "agent-a".into(),
+                    effort: orchestrator::EffortLevel::Quick,
+                    inputs: vec![],
+                    outputs: vec!["out1.md".into()],
+                    instruction: "do 1".into(),
+                    gate: None,
+                },
+                WorkflowStep {
+                    id: "step-2".into(),
+                    agent: "agent-a".into(),
+                    effort: orchestrator::EffortLevel::Quick,
+                    inputs: vec!["step-1/out1.md".into()],
+                    outputs: vec!["out2.md".into()],
+                    instruction: "do 2".into(),
+                    gate: None,
+                },
+                WorkflowStep {
+                    id: "step-3".into(),
+                    agent: "agent-a".into(),
+                    effort: orchestrator::EffortLevel::Quick,
+                    inputs: vec!["step-2/out2.md".into()],
+                    outputs: vec!["out3.md".into()],
+                    instruction: "do 3".into(),
+                    gate: None,
+                },
+            ],
+        },
+    )
     .unwrap();
 
     let manifest = WorkflowManifest {
@@ -277,16 +287,19 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
     let mut agents = HashSet::new();
     agents.insert("agent-a".to_string());
     let registry = Arc::new(TestRegistry { agents });
-    let executor = Arc::new(TestExecutor { writes_outputs: true });
+    let executor = Arc::new(TestExecutor {
+        writes_outputs: true,
+    });
 
-    // Set up persistence
+    // Set up persistence with trait objects
     let db_path = sqlite_db_path_for_run(&artifact_base, wf_id);
-    let store = SqliteWorkflowStore::open(&db_path).unwrap();
-    let broadcaster = EventBroadcaster::new();
+    let store: Arc<dyn WorkflowStore> =
+        Arc::new(SqliteWorkflowStore::open(&db_path).unwrap());
+    let notifier: Arc<dyn EventNotifier> = Arc::new(LocalEventNotifier::new());
 
     let persistence = PersistenceContext {
-        store: Arc::new(Mutex::new(store)),
-        broadcaster: broadcaster.clone(),
+        store: Arc::clone(&store),
+        notifier: Arc::clone(&notifier),
     };
 
     // Dispatch with persistence
@@ -314,56 +327,69 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
     }
 
     // Verify SQLite state: workflow should be completed
-    {
-        let store = persistence.store.lock().await;
-        let loaded = store.load_workflow_state(wf_id).unwrap().expect("state should exist");
-        assert_eq!(loaded.status, orchestrator::WorkflowStatus::Completed);
-        assert_eq!(loaded.steps.len(), 3);
-        for step in &loaded.steps {
-            assert_eq!(step.status, StepExecutionStatus::Completed);
-        }
+    let loaded = store
+        .load_workflow_state(wf_id)
+        .await
+        .unwrap()
+        .expect("state should exist");
+    assert_eq!(loaded.status, orchestrator::WorkflowStatus::Completed);
+    assert_eq!(loaded.steps.len(), 3);
+    for step in &loaded.steps {
+        assert_eq!(step.status, StepExecutionStatus::Completed);
     }
 
     // Verify events in SQLite: workflow_started + (step_started + step_completed) × 3 + workflow_completed = 8
-    {
-        let store = persistence.store.lock().await;
-        let events = store.load_events_since(wf_id, 0, None).unwrap();
-        assert_eq!(events.len(), 8, "expected 8 events (1 wf_started + 3×2 step events + 1 wf_completed)");
-        assert_eq!(events[0].event_type, "workflow_started");
-        assert_eq!(events[1].event_type, "step_started");
-        assert_eq!(events[2].event_type, "step_completed");
-        assert_eq!(events[3].event_type, "step_started");
-        assert_eq!(events[4].event_type, "step_completed");
-        assert_eq!(events[5].event_type, "step_started");
-        assert_eq!(events[6].event_type, "step_completed");
-        assert_eq!(events[7].event_type, "workflow_completed");
-    }
+    let events = store.load_events_since(wf_id, 0, None).await.unwrap();
+    assert_eq!(
+        events.len(),
+        8,
+        "expected 8 events (1 wf_started + 3×2 step events + 1 wf_completed)"
+    );
+    assert_eq!(events[0].event_type, "workflow_started");
+    assert_eq!(events[1].event_type, "step_started");
+    assert_eq!(events[2].event_type, "step_completed");
+    assert_eq!(events[3].event_type, "step_started");
+    assert_eq!(events[4].event_type, "step_completed");
+    assert_eq!(events[5].event_type, "step_started");
+    assert_eq!(events[6].event_type, "step_completed");
+    assert_eq!(events[7].event_type, "workflow_completed");
 
     // Simulate crash: drop all in-memory state, re-open store, replay via SSE
     let db_path2 = sqlite_db_path_for_run(&artifact_base, wf_id);
     let store2 = SqliteWorkflowStore::open(&db_path2).unwrap();
 
     // Verify crash resume: state should show completed
-    let loaded_after_crash = store2.load_workflow_state(wf_id).unwrap().expect("state after crash");
-    assert_eq!(loaded_after_crash.status, orchestrator::WorkflowStatus::Completed);
+    let loaded_after_crash = store2
+        .load_workflow_state(wf_id)
+        .await
+        .unwrap()
+        .expect("state after crash");
+    assert_eq!(
+        loaded_after_crash.status,
+        orchestrator::WorkflowStatus::Completed
+    );
     let plan = compute_resume_plan_from_state(&loaded_after_crash, &manifest);
     // All steps complete → no resume needed
-    assert!(plan.is_none(), "all steps completed, no resume plan expected");
+    assert!(
+        plan.is_none(),
+        "all steps completed, no resume plan expected"
+    );
 
     // SSE replay from offset 0 should return full event history
-    let broadcaster2 = EventBroadcaster::new();
-    let sub = broadcaster2
+    let notifier2 = LocalEventNotifier::new();
+    let sub = notifier2
         .subscribe_with_replay(&store2, wf_id, 0)
+        .await
         .expect("subscribe with replay after crash");
     assert_eq!(sub.replay.len(), 8);
     assert_eq!(sub.replay[0].event_type, "workflow_started");
     assert_eq!(sub.replay[7].event_type, "workflow_completed");
 
     // Partial offset replay
-    let mid_offset = sub.replay[3].event_id; // after step-1 started + completed + step-2 started
-    let sub2 = broadcaster2
+    let mid_offset = sub.replay[3].event_id;
+    let sub2 = notifier2
         .subscribe_with_replay(&store2, wf_id, mid_offset)
+        .await
         .expect("subscribe with partial offset");
-    assert_eq!(sub2.replay.len(), 4); // step-2 completed, step-3 started, step-3 completed, wf completed
+    assert_eq!(sub2.replay.len(), 4);
 }
-

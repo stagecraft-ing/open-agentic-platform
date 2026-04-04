@@ -283,13 +283,18 @@ impl Store {
 
         // Update metadata
         let conn = self.conn.lock().unwrap();
+        let now_epoch = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
         conn.execute(
-            "INSERT OR IGNORE INTO blobs (hash, size_bytes, compression, storage, created_at) VALUES (?1, ?2, ?3, ?4, unixepoch())",
+            "INSERT OR IGNORE INTO blobs (hash, size_bytes, compression, storage, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 hash,
                 stored_data.len() as i64,
                 alg,
-                match self.config.blob_backend { BlobBackend::Fs => "fs", BlobBackend::Db => "db" }
+                match self.config.blob_backend { BlobBackend::Fs => "fs", BlobBackend::Db => "db" },
+                now_epoch
             ]
         )?;
 
@@ -346,8 +351,12 @@ impl Store {
         }
 
         // 2. Insert/Replace snapshot
+        let now_epoch = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
         tx.execute(
-            "INSERT OR REPLACE INTO snapshots (snapshot_id, repo_root, head_sha, fingerprint_json, manifest_hash, manifest_bytes, created_at, derived_from, applied_patch_hash, label) VALUES (?1, ?2, ?3, ?4, ?5, ?6, unixepoch(), ?7, ?8, ?9)",
+            "INSERT OR REPLACE INTO snapshots (snapshot_id, repo_root, head_sha, fingerprint_json, manifest_hash, manifest_bytes, created_at, derived_from, applied_patch_hash, label) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 id,
                 repo_root,
@@ -355,6 +364,7 @@ impl Store {
                 fingerprint_json,
                 manifest_hash,
                 manifest_bytes,
+                now_epoch,
                 derived_from,
                 applied_patch_hash,
                 label
