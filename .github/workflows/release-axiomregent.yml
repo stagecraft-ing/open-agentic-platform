@@ -174,7 +174,7 @@ jobs:
           TAG="${{ steps.tag.outputs.tag }}"
           gh release create "$TAG" dist/* \
             --repo "${{ github.repository }}" \
-            --title "axiomregent $TAG" \
+            --title "$TAG" \
             --generate-notes \
             --notes "## axiomregent MCP Server
 

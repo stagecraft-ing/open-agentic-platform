@@ -245,6 +245,7 @@ export namespace agents {
 
 export namespace audit {
     export interface IngestAuditRequest {
+        authorization: string
         action: string
         targetType: string
         targetId: string
@@ -268,8 +269,21 @@ export namespace audit {
          * POST /api/audit-records — M2M bearer token auth.
          */
         public async ingestAuditRecord(params: IngestAuditRequest): Promise<IngestAuditResponse> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                authorization: params.authorization,
+            })
+
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                action:     params.action,
+                metadata:   params.metadata,
+                targetId:   params.targetId,
+                targetType: params.targetType,
+            }
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI("POST", `/api/audit-records`, JSON.stringify(params))
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/audit-records`, JSON.stringify(body), {headers})
             return await resp.json() as IngestAuditResponse
         }
     }
