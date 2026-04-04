@@ -6,12 +6,24 @@
 // (`SqliteWorkflowStore`); a distributed backend backed by hiqlite can be
 // swapped in via the `distributed` feature flag.
 
-use crate::sqlite_state::PersistedEvent;
 use crate::state::WorkflowState;
 use crate::OrchestratorError;
 use async_trait::async_trait;
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
+
+/// Persisted workflow event row.
+///
+/// These rows are append-only (monotonically increasing `event_id`) and can be
+/// consumed by higher-level SSE servers to provide offset-based replay.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PersistedEvent {
+    pub event_id: i64,
+    pub workflow_id: Uuid,
+    pub timestamp: String,
+    pub event_type: String,
+    pub payload: JsonValue,
+}
 
 // ---------------------------------------------------------------------------
 // WorkflowStore — persistence for workflow state and events

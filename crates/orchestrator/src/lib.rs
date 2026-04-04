@@ -13,21 +13,30 @@ pub mod artifact;
 pub mod effort;
 pub mod gates;
 pub mod manifest;
+#[cfg(feature = "local-sqlite")]
 pub mod sqlite_state;
+#[cfg(feature = "local-sqlite")]
 pub mod sse;
 pub mod state;
 pub mod store;
+#[cfg(feature = "distributed")]
+pub mod hiqlite_store;
+pub mod store_config;
 pub mod http;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
 pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
 pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler, GateOutcome};
+#[cfg(feature = "local-sqlite")]
 pub use sqlite_state::{
-    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, LocalEventNotifier, PersistedEvent,
+    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, LocalEventNotifier,
     SqliteWorkflowStore,
 };
-pub use store::{EventNotifier, EventReceiver, ReplaySubscription, WorkflowStore};
+#[cfg(feature = "distributed")]
+pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
+pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
+pub use store_config::{build_persistence, PersistencePair, StoreBackend};
 pub use http::HttpState;
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,

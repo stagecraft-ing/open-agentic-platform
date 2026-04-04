@@ -8,7 +8,7 @@
 
 use crate::artifact::ArtifactManager;
 use crate::state::{GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus};
-use crate::store::{EventNotifier, EventReceiver, ReplaySubscription, WorkflowStore};
+use crate::store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
 use crate::OrchestratorError;
 use async_trait::async_trait;
 use dashmap::DashMap;
@@ -38,19 +38,6 @@ pub fn sqlite_db_path_for_run(artifact_base: &ArtifactManager, workflow_id: Uuid
 #[derive(Clone)]
 pub struct SqliteWorkflowStore {
     conn: Arc<StdMutex<Connection>>,
-}
-
-/// Persisted workflow event row (Phase 5 SSE foundation).
-///
-/// These rows are append-only (auto-incrementing `event_id`) and can be
-/// consumed by higher-level SSE servers to provide offset-based replay.
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct PersistedEvent {
-    pub event_id: i64,
-    pub workflow_id: Uuid,
-    pub timestamp: String,
-    pub event_type: String,
-    pub payload: JsonValue,
 }
 
 /// Default broadcast channel capacity — sized for NF-002 (50 concurrent

@@ -9,8 +9,8 @@
 //   SC-004  — offset=0 yields all historical events then live
 
 // Re-export the trait-based types for backward compatibility.
-pub use crate::sqlite_state::{LocalEventNotifier, PersistedEvent, SqliteWorkflowStore};
-pub use crate::store::{EventNotifier, EventReceiver, ReplaySubscription, WorkflowStore};
+pub use crate::sqlite_state::{LocalEventNotifier, SqliteWorkflowStore};
+pub use crate::store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
 
 #[cfg(test)]
 mod tests {
