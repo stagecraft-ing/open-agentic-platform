@@ -2011,6 +2011,61 @@ export const api = {
     }
   },
 
+  // Scoped Settings API methods
+
+  /**
+   * Get full settings for a specific scope
+   * @param scope - The configuration scope: 'user', 'project', or 'local'
+   * @param projectPath - Project path (required for project and local scopes)
+   */
+  async getScopedSettings(scope: 'user' | 'project' | 'local', projectPath?: string): Promise<Record<string, unknown>> {
+    try {
+      return await apiCall<Record<string, unknown>>("get_scoped_settings", { scope, projectPath });
+    } catch (error) {
+      console.error("Failed to get scoped settings:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Save full settings for a specific scope
+   * @param scope - The configuration scope: 'user', 'project', or 'local'
+   * @param settings - The settings object to save
+   * @param projectPath - Project path (required for project and local scopes)
+   */
+  async saveScopedSettings(
+    scope: 'user' | 'project' | 'local',
+    settings: Record<string, unknown>,
+    projectPath?: string
+  ): Promise<string> {
+    try {
+      return await apiCall<string>("save_scoped_settings", { scope, settings, projectPath });
+    } catch (error) {
+      console.error("Failed to save scoped settings:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get merged settings across all three scopes (user < project < local)
+   * @param projectPath - The project path
+   */
+  async getMergedSettings(projectPath: string): Promise<Record<string, unknown>> {
+    try {
+      const [userSettings, projectSettings, localSettings] = await Promise.all([
+        this.getScopedSettings('user'),
+        this.getScopedSettings('project', projectPath),
+        this.getScopedSettings('local', projectPath)
+      ]);
+
+      const { SettingsManager } = await import('@/lib/settingsManager');
+      return SettingsManager.mergeSettings(userSettings, projectSettings, localSettings);
+    } catch (error) {
+      console.error("Failed to get merged settings:", error);
+      throw error;
+    }
+  },
+
   // Slash Commands API methods
 
   /**

@@ -40,7 +40,8 @@ use commands::claude::{
     resume_claude_code, save_claude_md_file, save_claude_settings, save_system_prompt,
     search_files,
     track_checkpoint_message, track_session_messages, update_checkpoint_settings,
-    update_hooks_config,     validate_hook_command, ClaudeBridgeIpcState, ClaudeProcessState,
+    update_hooks_config, validate_hook_command, get_scoped_settings, save_scoped_settings,
+    ClaudeBridgeIpcState, ClaudeProcessState,
 };
 use commands::mcp::{
     mcp_add, mcp_add_from_claude_desktop, mcp_add_json, mcp_get, mcp_get_server_status, mcp_list,
@@ -296,6 +297,8 @@ pub fn run() {
             get_hooks_config,
             update_hooks_config,
             validate_hook_command,
+            get_scoped_settings,
+            save_scoped_settings,
             // Checkpoint Management
             create_checkpoint,
             restore_checkpoint,

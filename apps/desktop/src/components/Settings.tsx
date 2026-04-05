@@ -15,9 +15,8 @@ import { Label } from "@opc/ui/label";
 import { Switch } from "@opc/ui/switch";
 import { Card } from "@opc/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@opc/ui/tabs";
-import { 
-  api, 
-  type ClaudeSettings,
+import {
+  api,
   type ClaudeInstallation
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -27,6 +26,9 @@ import { StorageTab } from "./StorageTab";
 import { HooksEditor } from "./HooksEditor";
 import { SlashCommandsManager } from "./SlashCommandsManager";
 import { ProxySettings } from "./ProxySettings";
+import { ScopeSelector, type SettingsScope, scopeKey } from "./ScopeSelector";
+import { useOpenProjects } from "@/hooks/useOpenProjects";
+import { useScopedSettings } from "@/hooks/useScopedSettings";
 import { useTheme, useTrackEvent } from "@/hooks";
 import { analytics } from "@/lib/analytics";
 import { TabPersistenceService } from "@/services/tabPersistence";
@@ -42,17 +44,6 @@ interface SettingsProps {
   className?: string;
 }
 
-interface PermissionRule {
-  id: string;
-  value: string;
-}
-
-interface EnvironmentVariable {
-  id: string;
-  key: string;
-  value: string;
-}
-
 /**
  * Comprehensive Settings UI for managing Claude Code settings
  * Provides a no-code interface for editing the settings.json file
@@ -60,22 +51,27 @@ interface EnvironmentVariable {
 export const Settings: React.FC<SettingsProps> = ({
   className,
 }) => {
-  const [settings, setSettings] = useState<ClaudeSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Scope state
+  const [selectedScope, setSelectedScope] = useState<SettingsScope>({ type: 'user' });
+  const openProjects = useOpenProjects();
+  const isProjectScope = selectedScope.type !== 'user';
+
+  // Scoped settings (permissions, env, etc.) — reloads when scope changes
+  const {
+    settings, loading, saving, error,
+    allowRules, denyRules, envVars,
+    updateSetting,
+    addPermissionRule, updatePermissionRule, removePermissionRule,
+    addEnvVar, updateEnvVar, removeEnvVar,
+    saveSettings: saveScopedSettings,
+    liveSettings, scopeLabel: currentScopeLabel,
+  } = useScopedSettings(selectedScope);
+
   const [activeTab, setActiveTab] = useState("general");
   const [currentBinaryPath, setCurrentBinaryPath] = useState<string | null>(null);
   const [selectedInstallation, setSelectedInstallation] = useState<ClaudeInstallation | null>(null);
   const [binaryPathChanged, setBinaryPathChanged] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  
-  // Permission rules state
-  const [allowRules, setAllowRules] = useState<PermissionRule[]>([]);
-  const [denyRules, setDenyRules] = useState<PermissionRule[]>([]);
-  
-  // Environment variables state
-  const [envVars, setEnvVars] = useState<EnvironmentVariable[]>([]);
   
   // Hooks state
   const [userHooksChanged, setUserHooksChanged] = useState(false);
@@ -97,19 +93,23 @@ export const Settings: React.FC<SettingsProps> = ({
   // Startup intro preference
   const [startupIntroEnabled, setStartupIntroEnabled] = useState(true);
   
-  // Load settings on mount
+  // Load global-only settings on mount (settings data handled by useScopedSettings)
   useEffect(() => {
-    loadSettings();
     loadClaudeBinaryPath();
     loadAnalyticsSettings();
-    // Load tab persistence setting
     setTabPersistenceEnabled(TabPersistenceService.isEnabled());
-    // Load startup intro setting (default to true if not set)
     (async () => {
       const pref = await api.getSetting('startup_intro_enabled');
       setStartupIntroEnabled(pref === null ? true : pref === 'true');
     })();
   }, []);
+
+  // Auto-switch away from global-only tabs when a project scope is selected
+  useEffect(() => {
+    if (isProjectScope && ['advanced', 'storage', 'proxy'].includes(activeTab)) {
+      setActiveTab('general');
+    }
+  }, [isProjectScope]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Loads analytics settings
@@ -133,211 +133,48 @@ export const Settings: React.FC<SettingsProps> = ({
     }
   };
 
-  /**
-   * Loads the current Claude settings
-   */
-  const loadSettings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const loadedSettings = await api.getClaudeSettings();
-      
-      // Ensure loadedSettings is an object
-      if (!loadedSettings || typeof loadedSettings !== 'object') {
-        console.warn("Loaded settings is not an object:", loadedSettings);
-        setSettings({});
-        return;
-      }
-      
-      setSettings(loadedSettings);
-
-      // Parse permissions
-      if (loadedSettings.permissions && typeof loadedSettings.permissions === 'object') {
-        if (Array.isArray(loadedSettings.permissions.allow)) {
-          setAllowRules(
-            loadedSettings.permissions.allow.map((rule: string, index: number) => ({
-              id: `allow-${index}`,
-              value: rule,
-            }))
-          );
-        }
-        if (Array.isArray(loadedSettings.permissions.deny)) {
-          setDenyRules(
-            loadedSettings.permissions.deny.map((rule: string, index: number) => ({
-              id: `deny-${index}`,
-              value: rule,
-            }))
-          );
-        }
-      }
-
-      // Parse environment variables
-      if (loadedSettings.env && typeof loadedSettings.env === 'object' && !Array.isArray(loadedSettings.env)) {
-        setEnvVars(
-          Object.entries(loadedSettings.env).map(([key, value], index) => ({
-            id: `env-${index}`,
-            key,
-            value: value as string,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("Failed to load settings:", err);
-      setError("Failed to load settings. Please ensure ~/.claude directory exists.");
-      setSettings({});
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Settings loading/parsing is now handled by useScopedSettings hook
 
   /**
-   * Saves the current settings
+   * Saves settings for the current scope, plus global-only extras when in user scope
    */
   const saveSettings = async () => {
     try {
-      setSaving(true);
-      setError(null);
       setToast(null);
 
-      // Build the settings object
-      const updatedSettings: ClaudeSettings = {
-        ...settings,
-        permissions: {
-          allow: allowRules.map(rule => rule.value).filter(v => v && String(v).trim()),
-          deny: denyRules.map(rule => rule.value).filter(v => v && String(v).trim()),
-        },
-        env: envVars.reduce((acc, { key, value }) => {
-          if (key && String(key).trim() && value && String(value).trim()) {
-            acc[key] = String(value);
-          }
-          return acc;
-        }, {} as Record<string, string>),
-      };
+      // Save core settings via scoped hook
+      await saveScopedSettings();
 
-      await api.saveClaudeSettings(updatedSettings);
-      setSettings(updatedSettings);
-
-      // Save Claude binary path if changed
-      if (binaryPathChanged && selectedInstallation) {
-        await api.setClaudeBinaryPath(selectedInstallation.path);
-        setCurrentBinaryPath(selectedInstallation.path);
-        setBinaryPathChanged(false);
-      }
-
-      // Save user hooks if changed
+      // Hooks: save via HooksEditor's callback for the active scope
       if (userHooksChanged && getUserHooks.current) {
         const hooks = getUserHooks.current();
-        await api.updateHooksConfig('user', hooks);
+        const hookScope = selectedScope.type === 'local' ? 'local' : selectedScope.type === 'project' ? 'project' : 'user';
+        const hookProjectPath = selectedScope.type !== 'user' ? (selectedScope as any).projectPath : undefined;
+        await api.updateHooksConfig(hookScope, hooks, hookProjectPath);
         setUserHooksChanged(false);
       }
 
-      // Save proxy settings if changed
-      if (proxySettingsChanged && saveProxySettings.current) {
-        await saveProxySettings.current();
-        setProxySettingsChanged(false);
+      // Global-only extras (binary path, proxy) — only when editing user scope
+      if (selectedScope.type === 'user') {
+        if (binaryPathChanged && selectedInstallation) {
+          await api.setClaudeBinaryPath(selectedInstallation.path);
+          setCurrentBinaryPath(selectedInstallation.path);
+          setBinaryPathChanged(false);
+        }
+        if (proxySettingsChanged && saveProxySettings.current) {
+          await saveProxySettings.current();
+          setProxySettingsChanged(false);
+        }
       }
 
       setToast({ message: "Settings saved successfully!", type: "success" });
     } catch (err) {
       console.error("Failed to save settings:", err);
-      setError("Failed to save settings.");
       setToast({ message: "Failed to save settings", type: "error" });
-    } finally {
-      setSaving(false);
     }
   };
 
-  /**
-   * Updates a simple setting value
-   */
-  const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  /**
-   * Adds a new permission rule
-   */
-  const addPermissionRule = (type: "allow" | "deny") => {
-    const newRule: PermissionRule = {
-      id: `${type}-${Date.now()}`,
-      value: "",
-    };
-    
-    if (type === "allow") {
-      setAllowRules(prev => [...prev, newRule]);
-    } else {
-      setDenyRules(prev => [...prev, newRule]);
-    }
-  };
-
-  /**
-   * Updates a permission rule
-   */
-  const updatePermissionRule = (type: "allow" | "deny", id: string, value: string) => {
-    if (type === "allow") {
-      setAllowRules(prev => prev.map(rule => 
-        rule.id === id ? { ...rule, value } : rule
-      ));
-    } else {
-      setDenyRules(prev => prev.map(rule => 
-        rule.id === id ? { ...rule, value } : rule
-      ));
-    }
-  };
-
-  /**
-   * Removes a permission rule
-   */
-  const removePermissionRule = (type: "allow" | "deny", id: string) => {
-    if (type === "allow") {
-      setAllowRules(prev => prev.filter(rule => rule.id !== id));
-    } else {
-      setDenyRules(prev => prev.filter(rule => rule.id !== id));
-    }
-  };
-
-  /**
-   * Adds a new environment variable
-   */
-  const addEnvVar = () => {
-    const newVar: EnvironmentVariable = {
-      id: `env-${Date.now()}`,
-      key: "",
-      value: "",
-    };
-    setEnvVars(prev => [...prev, newVar]);
-  };
-
-  /**
-   * Updates an environment variable
-   */
-  const updateEnvVar = (id: string, field: "key" | "value", value: string) => {
-    setEnvVars(prev => prev.map(envVar => 
-      envVar.id === id ? { ...envVar, [field]: value } : envVar
-    ));
-  };
-
-  /**
-   * Removes an environment variable
-   */
-  const removeEnvVar = (id: string) => {
-    setEnvVars(prev => prev.filter(envVar => envVar.id !== id));
-  };
-
-  // Live preview of the settings object that will be saved to ~/.claude/settings.json
-  const liveSettings = React.useMemo(() => ({
-    ...settings,
-    permissions: {
-      allow: allowRules.map(r => r.value).filter(v => v && String(v).trim()),
-      deny: denyRules.map(r => r.value).filter(v => v && String(v).trim()),
-    },
-    env: envVars.reduce((acc, { key, value }) => {
-      if (key && String(key).trim() && value && String(value).trim()) {
-        acc[key] = String(value);
-      }
-      return acc;
-    }, {} as Record<string, string>),
-  }), [settings, allowRules, denyRules, envVars]);
+  // updateSetting, permission/env helpers, and liveSettings are now provided by useScopedSettings
 
   /**
    * Handle Claude installation selection
@@ -350,7 +187,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const SettingsPreview = () => (
     <div className="sticky top-0 self-start">
       <Card className="p-4 space-y-2">
-        <p className="text-xs font-mono text-muted-foreground">~/.claude/settings.json</p>
+        <p className="text-xs font-mono text-muted-foreground">{currentScopeLabel}</p>
         <div className="rounded bg-muted/50 p-3 overflow-auto max-h-[calc(100vh-240px)]">
           <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all">
             {JSON.stringify(liveSettings, null, 2)}
@@ -396,7 +233,16 @@ export const Settings: React.FC<SettingsProps> = ({
             </motion.div>
           </div>
         </div>
-      
+
+        {/* Scope Selector */}
+        <div className="px-6 pb-2">
+          <ScopeSelector
+            openProjects={openProjects}
+            selectedScope={selectedScope}
+            onScopeChange={setSelectedScope}
+          />
+        </div>
+
       {/* Error message */}
       <AnimatePresence>
         {error && (
@@ -425,11 +271,11 @@ export const Settings: React.FC<SettingsProps> = ({
               <TabsTrigger value="general" className="py-2.5 px-3">General</TabsTrigger>
               <TabsTrigger value="permissions" className="py-2.5 px-3">Permissions</TabsTrigger>
               <TabsTrigger value="environment" className="py-2.5 px-3">Environment</TabsTrigger>
-              <TabsTrigger value="advanced" className="py-2.5 px-3">Advanced</TabsTrigger>
+              <TabsTrigger value="advanced" className="py-2.5 px-3" disabled={isProjectScope}>Advanced</TabsTrigger>
               <TabsTrigger value="hooks" className="py-2.5 px-3">Hooks</TabsTrigger>
               <TabsTrigger value="commands" className="py-2.5 px-3">Commands</TabsTrigger>
-              <TabsTrigger value="storage" className="py-2.5 px-3">Storage</TabsTrigger>
-              <TabsTrigger value="proxy" className="py-2.5 px-3">Proxy</TabsTrigger>
+              <TabsTrigger value="storage" className="py-2.5 px-3" disabled={isProjectScope}>Storage</TabsTrigger>
+              <TabsTrigger value="proxy" className="py-2.5 px-3" disabled={isProjectScope}>Proxy</TabsTrigger>
             </TabsList>
             
             {/* General Settings */}
@@ -1141,16 +987,20 @@ export const Settings: React.FC<SettingsProps> = ({
               <Card className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold mb-2">User Hooks</h3>
+                    <h3 className="text-base font-semibold mb-2">
+                      {isProjectScope ? `${selectedScope.type === 'project' ? 'Project' : 'Personal'} Hooks` : 'User Hooks'}
+                    </h3>
                     <p className="text-body-small text-muted-foreground mb-4">
-                      Configure hooks that apply to all Claude Code sessions for your user account.
-                      These are stored in <code className="mx-1 px-2 py-1 bg-muted rounded text-xs">~/.claude/settings.json</code>
+                      {isProjectScope
+                        ? `These hooks are stored in ${currentScopeLabel}`
+                        : <>Configure hooks that apply to all Claude Code sessions. Stored in <code className="mx-1 px-2 py-1 bg-muted rounded text-xs">~/.claude/settings.json</code></>}
                     </p>
                   </div>
-                  
+
                   <HooksEditor
-                    key={activeTab}
-                    scope="user"
+                    key={`hooks-${scopeKey(selectedScope)}`}
+                    scope={selectedScope.type === 'local' ? 'local' : selectedScope.type === 'project' ? 'project' : 'user'}
+                    projectPath={selectedScope.type !== 'user' ? (selectedScope as any).projectPath : undefined}
                     className="border-0"
                     hideActions={true}
                     onChange={(hasChanges, getHooks) => {
@@ -1167,7 +1017,11 @@ export const Settings: React.FC<SettingsProps> = ({
             {/* Commands Tab */}
             <TabsContent value="commands">
               <Card className="p-6">
-                <SlashCommandsManager className="p-0" />
+                <SlashCommandsManager
+                  className="p-0"
+                  projectPath={selectedScope.type !== 'user' ? (selectedScope as any).projectPath : undefined}
+                  scopeFilter={selectedScope.type === 'user' ? 'user' : 'project'}
+                />
               </Card>
             </TabsContent>
             

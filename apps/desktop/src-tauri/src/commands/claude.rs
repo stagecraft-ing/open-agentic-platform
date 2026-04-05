@@ -2558,6 +2558,102 @@ pub async fn update_hooks_config(
     Ok("Hooks configuration updated successfully".to_string())
 }
 
+/// Gets full settings from the specified scope (user, project, or local)
+#[tauri::command]
+pub async fn get_scoped_settings(
+    scope: String,
+    project_path: Option<String>,
+) -> Result<serde_json::Value, String> {
+    log::info!(
+        "Getting scoped settings for scope: {}, project: {:?}",
+        scope,
+        project_path
+    );
+
+    let settings_path = match scope.as_str() {
+        "user" => get_claude_dir()
+            .map_err(|e| e.to_string())?
+            .join("settings.json"),
+        "project" => {
+            let path = project_path.ok_or("Project path required for project scope")?;
+            PathBuf::from(path).join(".claude").join("settings.json")
+        }
+        "local" => {
+            let path = project_path.ok_or("Project path required for local scope")?;
+            PathBuf::from(path)
+                .join(".claude")
+                .join("settings.local.json")
+        }
+        _ => return Err("Invalid scope".to_string()),
+    };
+
+    if !settings_path.exists() {
+        log::info!(
+            "Settings file does not exist at {:?}, returning empty object",
+            settings_path
+        );
+        return Ok(serde_json::json!({}));
+    }
+
+    let content = fs::read_to_string(&settings_path)
+        .map_err(|e| format!("Failed to read settings: {}", e))?;
+
+    let settings: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))?;
+
+    Ok(settings)
+}
+
+/// Saves full settings to the specified scope (user, project, or local)
+#[tauri::command]
+pub async fn save_scoped_settings(
+    scope: String,
+    settings: serde_json::Value,
+    project_path: Option<String>,
+) -> Result<String, String> {
+    log::info!(
+        "Saving scoped settings for scope: {}, project: {:?}",
+        scope,
+        project_path
+    );
+
+    let settings_path = match scope.as_str() {
+        "user" => get_claude_dir()
+            .map_err(|e| e.to_string())?
+            .join("settings.json"),
+        "project" => {
+            let path = project_path.ok_or("Project path required for project scope")?;
+            let claude_dir = PathBuf::from(path).join(".claude");
+            fs::create_dir_all(&claude_dir)
+                .map_err(|e| format!("Failed to create .claude directory: {}", e))?;
+            claude_dir.join("settings.json")
+        }
+        "local" => {
+            let path = project_path.ok_or("Project path required for local scope")?;
+            let claude_dir = PathBuf::from(path).join(".claude");
+            fs::create_dir_all(&claude_dir)
+                .map_err(|e| format!("Failed to create .claude directory: {}", e))?;
+            claude_dir.join("settings.local.json")
+        }
+        _ => return Err("Invalid scope".to_string()),
+    };
+
+    let json_string = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+
+    {
+        let parent = settings_path.parent().ok_or("settings path has no parent")?;
+        let mut tmp = tempfile::NamedTempFile::new_in(parent)
+            .map_err(|e| format!("Failed to create temp file: {}", e))?;
+        tmp.write_all(json_string.as_bytes())
+            .map_err(|e| format!("Failed to write temp file: {}", e))?;
+        tmp.persist(&settings_path)
+            .map_err(|e| format!("Failed to persist settings: {}", e))?;
+    }
+
+    Ok("Settings saved successfully".to_string())
+}
+
 /// Validates a hook command by dry-running it
 #[tauri::command]
 pub async fn validate_hook_command(command: String) -> Result<serde_json::Value, String> {
