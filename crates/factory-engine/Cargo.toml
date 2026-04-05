@@ -19,6 +19,15 @@ thiserror = "2"
 tokio = { version = "1", features = ["process", "time", "sync"] }
 uuid = { version = "1", features = ["v4"] }
 sha2 = "0.10"
+jsonschema = "0.28"
+regex = "1"
+walkdir = "2"
+clap = { version = "4", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[[bin]]
+name = "factory-harness"
+path = "src/bin/harness.rs"
 
 [dev-dependencies]
 tempfile = "3"

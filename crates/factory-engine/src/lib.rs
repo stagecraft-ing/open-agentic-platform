@@ -3,17 +3,21 @@
 // Spec: specs/075-factory-workflow-engine/spec.md
 
 //! Factory Workflow Engine — two-phase orchestration, manifest generation,
-//! verification harness integration, and policy shard generation (spec 075).
+//! native verification harness, and policy shard generation (spec 075).
 //!
 //! This crate extends the OAP orchestrator to natively support Factory pipeline
 //! workflows: process stages (s0–s5) that produce a Build Spec, followed by
 //! dynamic scaffolding fan-out (s6a–s6g) derived from the Build Spec content.
 
 pub mod agent_bridge;
+pub mod checks;
 pub mod engine;
+pub mod gate;
+pub mod harness_state;
 pub mod manifest_gen;
 pub mod pipeline_state;
 pub mod policy_shard;
+pub mod preflight;
 pub mod topo_sort;
 pub mod verify_harness;
 

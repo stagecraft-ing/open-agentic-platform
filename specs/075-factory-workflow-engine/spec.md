@@ -210,17 +210,17 @@ The orchestrator SHALL integrate Factory's verification checks at stage gates. W
 - Stage gate checks: artifact existence, schema validation, cross-reference integrity
 - Final validation checks: full build, all tests, lint, type check, invariants
 
-The Python harness (`factory/process/harness/`) SHALL be invoked as a subprocess:
+The native Rust verification harness in `crates/factory-engine/` runs checks directly:
 
 ```rust
 pub async fn run_factory_gate_check(
     stage_id: &str,
     project_path: &Path,
     factory_root: &Path,
-) -> Result<GateCheckResult, VerifyError>;
+) -> Result<GateCheckResult, FactoryError>;
 ```
 
-Long-term, gate checks migrate to Rust; short-term, the Python harness is the reference implementation.
+Check runners (artifact existence, schema validation, grep, command execution, file checks, cross-reference) are implemented in `crate::checks`. Gate orchestration routes check configurations to runners in `crate::gate`.
 
 ### Non-Functional Requirements
 
@@ -332,7 +332,7 @@ pub async fn reject_factory_stage(
 
 ### Phase 4: Verification Harness Integration (2 days)
 
-1. Implement `run_factory_gate_check()` — subprocess invocation of Python harness
+1. Implement `run_factory_gate_check()` — native Rust verification harness
 2. Wire gate checks into stage gate evaluation
 3. Integration test: full pipeline with mock agents
 
@@ -365,7 +365,7 @@ pub async fn reject_factory_stage(
 
 | Risk | Mitigation |
 |------|-----------|
-| Python harness subprocess adds latency to gates | Gate checks are infrequent (6 process stages); latency acceptable. Long-term: Rust port |
+| Gate check latency for large check sets | Check runners are native Rust; in-process regex avoids subprocess overhead |
 | Fan-out produces 100+ steps for large Build Specs | Configurable concurrency limit (default 4); token budget cap |
 | Entity circular references | Detect and reject at manifest generation time |
 | Adapter command failure on host (missing Node, etc.) | Pre-flight check validates all adapter commands are available |

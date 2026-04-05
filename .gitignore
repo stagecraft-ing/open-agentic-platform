@@ -302,10 +302,6 @@ crates/xray/tests/outputs/
 # OAP background agent worktrees (051-worktree-agents)
 .worktrees/
 
-# Factory verification harness (Python bytecode)
-factory/process/harness/__pycache__/
-*.pyc
-
 # Platform layer
 platform/kubeconfig/
 platform/tmp/

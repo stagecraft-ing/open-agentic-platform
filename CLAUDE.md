@@ -24,9 +24,9 @@ crates/          — Rust library crates
   tool-registry/ — ToolDef trait + registry (spec 067)
   factory-contracts/ — Rust types for Factory contract schemas (spec 074)
   axiomregent contains: github/ (GitHub API tools), search/ (semantic search), checkpoint/ subsystem
-factory/          — Factory delivery engine (git subtree from analyticus/factory)
+factory/          — Factory delivery engine
   contract/      — Formal schemas: Build Spec, Adapter Manifest, Pipeline State, Verification
-  process/       — 7-stage pipeline: agents, stage definitions, Python verification harness
+  process/       — 7-stage pipeline: agents and stage definitions
   adapters/      — Pluggable tech adapters (aim-vue-node, next-prisma, encore-react, rust-axum)
   docs/          — Architecture, how-to, integration docs
 apps/desktop/    — Tauri v2 + React desktop app (TypeScript + Rust)

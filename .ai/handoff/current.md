@@ -6,7 +6,7 @@
 
 ## Objective
 
-**Platform layer integrated.** The Stagecraft platform codebase (`stagecraft-ing/platform`, 58 commits) has been imported into the monorepo as `platform/` via git subtree. OAP now has all three architectural layers present in the repo: OPC (`apps/desktop/`), Platform (`platform/`), Spec Spine (`specs/`).
+**Platform layer integrated.** The Stagecraft platform codebase (`stagecraft-ing/platform`, 58 commits) has been imported into the monorepo as `platform/`. OAP now has all three architectural layers present in the repo: OPC (`apps/desktop/`), Platform (`platform/`), Spec Spine (`specs/`).
 
 ### Prior objective (complete)
 

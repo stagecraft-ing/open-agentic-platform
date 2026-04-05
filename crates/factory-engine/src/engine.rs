@@ -30,7 +30,7 @@ use uuid::Uuid;
 /// Configuration for the Factory engine.
 #[derive(Clone, Debug)]
 pub struct FactoryEngineConfig {
-    /// Path to the Factory subtree (e.g., `factory/`).
+    /// Path to the Factory root directory (e.g., `factory/`).
     pub factory_root: PathBuf,
     /// Path to the target project directory.
     pub project_path: PathBuf,

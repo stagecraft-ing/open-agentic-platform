@@ -48,7 +48,7 @@ This spec defines how Factory enters the OAP repository, how its contract schema
 ### Functional Requirements
 
 **FR-001: Repository Ingestion**
-Factory source from `analyticus/factory` SHALL be ingested via `git subtree add` into `factory/` at repository root. The subtree prefix preserves Factory's internal structure:
+Factory lives in `factory/` at repository root as first-class OAP code. The directory structure:
 
 ```
 factory/
@@ -58,7 +58,6 @@ factory/
   process/
     stages/            ← Stage definitions (00-06)
     agents/            ← Process agent prompts (7 agents)
-    harness/           ← Python verification harness
   adapters/
     aim-vue-node/      ← Express 5 + Vue 3 adapter
     next-prisma/       ← Next.js 15 + Prisma adapter
@@ -307,15 +306,11 @@ pub struct Commands {
 
 ## Implementation Approach
 
-### Phase 1: Subtree Ingestion (1 day)
+### Phase 1: Factory Integration (completed)
 
-```bash
-git subtree add --prefix=factory \
-  git@github.com:analyticus/factory.git main \
-  --squash -m "feat(074): ingest Factory as first-class delivery engine"
-```
-
-Update `.gitignore`, `CLAUDE.md` repository structure section.
+Factory is integrated as first-class OAP code in `factory/`. The verification
+harness has been rewritten in Rust within `crates/factory-engine/` (checks,
+preflight, gate, state modules) with a `factory-harness` CLI binary.
 
 ### Phase 2: Contract Types Crate (3-4 days)
 

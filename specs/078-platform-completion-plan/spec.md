@@ -54,7 +54,7 @@ This plan sequences all work into 6 phases over ~12 weeks. Each phase delivers i
 
 | Spec | Deliverable |
 |------|------------|
-| **074 Factory Ingestion** | Git subtree, Rust contract types, adapter registry, agent loader |
+| **074 Factory Ingestion** | Rust contract types, adapter registry, agent loader, native verification harness |
 | **075 Factory Workflow Engine** | Two-phase execution, fan-out, verification hooks, policy shards |
 | **076 Factory Desktop Panel** | Pipeline DAG, artifact inspector, gate dialogs, scaffold monitor |
 | **077 Stagecraft Factory API** | Project init, stage confirm/reject, audit trail, deployment handoff |
@@ -69,7 +69,7 @@ This plan sequences all work into 6 phases over ~12 weeks. Each phase delivers i
 
 | ID | Task | Spec | Effort | Dependencies |
 |----|------|------|--------|-------------|
-| 1.1 | Git subtree add Factory into `factory/` | 074 | 0.5d | None |
+| 1.1 | Factory integrated as first-class OAP code in `factory/` | 074 | — | None |
 | 1.2 | Create `crates/factory-contracts/` with Build Spec types | 074 | 2d | 1.1 |
 | 1.3 | Add Adapter Manifest types to contracts crate | 074 | 1d | 1.2 |
 | 1.4 | Add Pipeline State types to contracts crate | 074 | 1d | 1.2 |
@@ -343,7 +343,7 @@ With parallelization across phases, a 2-person team can deliver in ~12 weeks. A 
 
 | # | Risk | Impact | Probability | Mitigation |
 |---|------|--------|-------------|-----------|
-| R1 | Factory contract schemas evolve during integration | High | Medium | Version-pin subtree; contract crate is sole coupling point |
+| R1 | Factory contract schemas evolve during integration | High | Medium | Contract crate is sole coupling point; Rust types enforce schema consistency |
 | R2 | Claude CLI dispatch latency makes fan-out slow | Medium | Low | Configurable concurrency; Sonnet for scaffold (fast); parallelism |
 | R3 | Spec 052 completion harder than estimated | High | Medium | Phase 2 has 2 week buffer; noop dispatch works without SQLite |
 | R4 | Adapter patterns produce inconsistent code | Medium | Medium | Verification hooks catch failures; retry loop auto-fixes |

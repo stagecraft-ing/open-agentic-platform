@@ -2,31 +2,28 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/075-factory-workflow-engine/spec.md — FR-010
 
-//! Integration with Factory's Python verification harness.
+//! Native Rust verification harness for Factory pipeline gates.
 //!
-//! The Python harness (`factory/process/harness/`) is the reference implementation
-//! for stage gate checks. Long-term, these migrate to Rust; short-term we invoke
-//! the harness as a subprocess.
+//! Runs stage gate checks directly using the Rust check runners in
+//! `crate::checks` and `crate::gate`, replacing the former Python
+//! subprocess bridge.
 
+use crate::gate::{self, GateCheckConfig};
 use crate::FactoryError;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::process::Stdio;
-use tokio::process::Command;
 
 /// Result of a gate check invocation.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GateCheckResult {
     pub passed: bool,
     pub stage_id: String,
-    pub checks: Vec<CheckResult>,
-    pub stdout: String,
-    pub stderr: String,
+    pub checks: Vec<HarnessCheckResult>,
 }
 
 /// Individual check result within a gate.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CheckResult {
+pub struct HarnessCheckResult {
     pub id: String,
     pub passed: bool,
     pub message: Option<String>,
@@ -34,110 +31,107 @@ pub struct CheckResult {
 
 /// Run Factory gate checks for a completed stage (FR-010).
 ///
-/// Invokes the Python verification harness as a subprocess:
-/// ```text
-/// python -m factory gate --stage <stage_id> --project <project_path>
-/// ```
+/// Loads the checks configuration for the given stage from the verification
+/// contract, then runs them natively in Rust.
 pub async fn run_factory_gate_check(
     stage_id: &str,
     project_path: &Path,
     factory_root: &Path,
 ) -> Result<GateCheckResult, FactoryError> {
-    let harness_dir = factory_root.join("process").join("harness");
+    let checks = load_stage_checks(stage_id, factory_root)?;
 
-    let result = tokio::time::timeout(
-        std::time::Duration::from_secs(120),
-        Command::new("python3")
-            .arg("-m")
-            .arg("factory")
-            .arg("gate")
-            .arg("--stage")
-            .arg(stage_id)
-            .arg("--project")
-            .arg(project_path)
-            .current_dir(&harness_dir)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output(),
-    )
-    .await;
+    let (passed, results) = gate::run_stage_gate(stage_id, project_path, &checks).await;
 
-    match result {
-        Ok(Ok(output)) => {
-            let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-            // Try to parse structured JSON output from the harness.
-            let checks = parse_harness_output(&stdout);
-            let passed = output.status.success() && checks.iter().all(|c| c.passed);
-
-            Ok(GateCheckResult {
-                passed,
-                stage_id: stage_id.into(),
-                checks,
-                stdout,
-                stderr,
+    Ok(GateCheckResult {
+        passed,
+        stage_id: stage_id.into(),
+        checks: results
+            .into_iter()
+            .map(|r| HarnessCheckResult {
+                id: r.id,
+                passed: r.passed,
+                message: Some(r.message),
             })
-        }
-        Ok(Err(io_err)) => Err(FactoryError::VerificationHarness {
-            reason: format!("failed to execute Python harness: {io_err}"),
-        }),
-        Err(_elapsed) => Err(FactoryError::VerificationHarness {
-            reason: format!("gate check for stage {stage_id} timed out after 120s"),
-        }),
-    }
+            .collect(),
+    })
 }
 
-/// Try to parse JSON check results from harness stdout.
-/// Falls back to a single synthetic check if output isn't parseable.
-fn parse_harness_output(stdout: &str) -> Vec<CheckResult> {
-    // The harness outputs JSON lines, one per check.
-    let mut results = Vec::new();
-    for line in stdout.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with('{') {
-            if let Ok(check) = serde_json::from_str::<CheckResult>(trimmed) {
-                results.push(check);
-            }
+/// Load gate check configs for a stage from the verification contract.
+///
+/// Looks for `factory/contract/schemas/stage-outputs/{stage_id}.checks.yaml`
+/// or falls back to an empty check list (pass-through).
+fn load_stage_checks(
+    stage_id: &str,
+    factory_root: &Path,
+) -> Result<Vec<GateCheckConfig>, FactoryError> {
+    let checks_path = factory_root
+        .join("contract")
+        .join("schemas")
+        .join("stage-outputs")
+        .join(format!("{stage_id}.checks.yaml"));
+
+    if !checks_path.exists() {
+        // No checks file for this stage — pass through.
+        return Ok(vec![]);
+    }
+
+    let content = std::fs::read_to_string(&checks_path).map_err(|e| {
+        FactoryError::VerificationHarness {
+            reason: format!("failed to read checks file {}: {e}", checks_path.display()),
         }
-    }
-    if results.is_empty() && !stdout.trim().is_empty() {
-        // Couldn't parse — create a synthetic result.
-        results.push(CheckResult {
-            id: "harness-output".into(),
-            passed: true, // Assume passed if no structured output; exit code is authoritative.
-            message: Some(stdout.trim().to_string()),
-        });
-    }
-    results
+    })?;
+
+    let checks: Vec<GateCheckConfig> =
+        serde_yaml::from_str(&content).map_err(|e| FactoryError::VerificationHarness {
+            reason: format!("failed to parse checks YAML {}: {e}", checks_path.display()),
+        })?;
+
+    Ok(checks)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn parse_json_check_results() {
-        let stdout = r#"{"id":"check-1","passed":true,"message":"ok"}
-{"id":"check-2","passed":false,"message":"missing artifact"}
-"#;
-        let checks = parse_harness_output(stdout);
-        assert_eq!(checks.len(), 2);
-        assert!(checks[0].passed);
-        assert!(!checks[1].passed);
+    #[tokio::test]
+    async fn gate_check_with_no_checks_file_passes() {
+        let dir = tempfile::TempDir::new().unwrap();
+        // No checks file → empty check list → passes
+        let result = run_factory_gate_check("s1", dir.path(), dir.path()).await.unwrap();
+        assert!(result.passed);
+        assert!(result.checks.is_empty());
     }
 
-    #[test]
-    fn parse_non_json_output() {
-        let stdout = "All checks passed\n";
-        let checks = parse_harness_output(stdout);
-        assert_eq!(checks.len(), 1);
-        assert_eq!(checks[0].id, "harness-output");
-    }
+    #[tokio::test]
+    async fn gate_check_with_artifact_check() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let factory_root = dir.path().join("factory");
+        let stage_dir = factory_root
+            .join("contract")
+            .join("schemas")
+            .join("stage-outputs");
+        std::fs::create_dir_all(&stage_dir).unwrap();
 
-    #[test]
-    fn parse_empty_output() {
-        let checks = parse_harness_output("");
-        assert!(checks.is_empty());
+        // Create a checks file
+        std::fs::write(
+            stage_dir.join("s1.checks.yaml"),
+            r#"- id: S1-001
+  type: artifact-exists
+  artifact: output.json
+"#,
+        )
+        .unwrap();
+
+        // Create the artifact in project_path
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(project.join("output.json"), r#"{"ok": true}"#).unwrap();
+
+        let result = run_factory_gate_check("s1", &project, &factory_root)
+            .await
+            .unwrap();
+        assert!(result.passed);
+        assert_eq!(result.checks.len(), 1);
+        assert!(result.checks[0].passed);
     }
 }
