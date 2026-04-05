@@ -18,7 +18,7 @@ pub mod topo_sort;
 pub mod verify_harness;
 
 pub use agent_bridge::FactoryAgentBridge;
-pub use engine::{FactoryEngine, FactoryEngineConfig};
+pub use engine::{FactoryEngine, FactoryEngineConfig, PhaseTransitionResult, PipelineStartResult};
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};
 pub use policy_shard::generate_factory_policy_shard;

@@ -39,6 +39,7 @@ pub use sqlite_state::{
 pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
 pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
 pub use store_config::{build_persistence, PersistencePair, StoreBackend};
+pub use manifest::ApprovalEscalation;
 pub use http::HttpState;
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
@@ -50,8 +51,9 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -144,6 +146,154 @@ pub trait AgentRegistry: Send + Sync {
 #[async_trait]
 pub trait GovernedExecutor: Send + Sync {
     async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String>;
+}
+
+/// Optional dispatch configuration for gates and verification (052/075).
+pub struct DispatchOptions {
+    /// Gate handler for checkpoint/approval gates. If `None`, gates are skipped.
+    pub gate_handler: Option<Arc<dyn GateHandler>>,
+    /// Project root for verification commands. Required if any step has `post_verify`.
+    pub project_root: Option<PathBuf>,
+}
+
+impl Default for DispatchOptions {
+    fn default() -> Self {
+        Self {
+            gate_handler: None,
+            project_root: None,
+        }
+    }
+}
+
+/// Outcome of gate evaluation in the non-persisted dispatch path.
+enum GateAction {
+    /// Gate cleared — proceed with dispatch.
+    Proceed,
+    /// Approval timed out with Skip escalation — skip this step.
+    Skip,
+}
+
+/// Evaluate a gate in the simple (non-persisted) dispatch path.
+async fn handle_gate_simple(
+    step_id: &str,
+    gate: &manifest::StepGateConfig,
+    handler: &dyn GateHandler,
+) -> Result<GateAction, OrchestratorError> {
+    match gate {
+        manifest::StepGateConfig::Checkpoint { label } => {
+            handler
+                .await_checkpoint(step_id, label.as_deref())
+                .await
+                .map_err(|e| OrchestratorError::StepFailed {
+                    step_id: step_id.to_string(),
+                    reason: format!("gate error: {e}"),
+                })?;
+            Ok(GateAction::Proceed)
+        }
+        manifest::StepGateConfig::Approval {
+            timeout_ms,
+            escalation,
+        } => {
+            let duration = Duration::from_millis(*timeout_ms);
+            match tokio::time::timeout(duration, handler.await_approval(step_id, *timeout_ms)).await
+            {
+                Ok(Ok(())) => Ok(GateAction::Proceed),
+                Ok(Err(e)) => Err(OrchestratorError::StepFailed {
+                    step_id: step_id.to_string(),
+                    reason: format!("gate error: {e}"),
+                }),
+                Err(_elapsed) => {
+                    let esc = escalation
+                        .clone()
+                        .unwrap_or(manifest::ApprovalEscalation::Fail);
+                    match esc {
+                        manifest::ApprovalEscalation::Fail => Err(OrchestratorError::StepFailed {
+                            step_id: step_id.to_string(),
+                            reason: "approval gate timed out".to_string(),
+                        }),
+                        manifest::ApprovalEscalation::Skip => Ok(GateAction::Skip),
+                        manifest::ApprovalEscalation::Notify => Ok(GateAction::Proceed),
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Run the dispatch+verify retry loop for a single step (075 FR-005, FR-006).
+///
+/// Returns `(final_status, total_tokens)` or an error.
+async fn dispatch_with_verify(
+    step: &WorkflowStep,
+    executor: &dyn GovernedExecutor,
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    input_paths: &[PathBuf],
+    output_paths: &[PathBuf],
+    project_root: Option<&Path>,
+) -> Result<(StepStatus, Option<u64>), OrchestratorError> {
+    let max_retries = step.max_retries.unwrap_or(3);
+    let mut attempt = 0u32;
+    let mut total_tokens = 0u64;
+    let mut current_prompt = build_step_system_prompt(artifact_base, run_id, step);
+
+    loop {
+        let request = DispatchRequest {
+            step_id: step.id.clone(),
+            agent_id: step.agent.clone(),
+            effort: step.effort,
+            system_prompt: current_prompt.clone(),
+            input_artifacts: input_paths.to_vec(),
+            output_artifacts: output_paths.to_vec(),
+        };
+
+        let result = executor
+            .dispatch_step(request)
+            .await
+            .map_err(|reason| OrchestratorError::StepFailed {
+                step_id: step.id.clone(),
+                reason,
+            })?;
+
+        total_tokens += result.tokens_used.unwrap_or(0);
+
+        // Check declared outputs exist.
+        if let Some(missing_output) = output_paths.iter().find(|p| !p.exists()) {
+            return Err(OrchestratorError::StepFailed {
+                step_id: step.id.clone(),
+                reason: format!(
+                    "agent did not produce declared output: {}",
+                    missing_output.display()
+                ),
+            });
+        }
+
+        // Run post-step verification if configured (075 FR-005).
+        if let (Some(verify_cmds), Some(root)) = (&step.post_verify, project_root) {
+            match run_verify_commands(verify_cmds, root).await {
+                VerifyOutcome::Passed => {
+                    return Ok((StepStatus::Success, Some(total_tokens)));
+                }
+                VerifyOutcome::Failed { stderr, .. } => {
+                    attempt += 1;
+                    if attempt > max_retries {
+                        return Err(OrchestratorError::VerificationFailed {
+                            step_id: step.id.clone(),
+                            reason: format!(
+                                "verification failed after {max_retries} retries: {stderr}"
+                            ),
+                        });
+                    }
+                    // Rebuild prompt with failure context (075 FR-006).
+                    current_prompt = build_retry_instruction(&current_prompt, &stderr);
+                    continue;
+                }
+            }
+        }
+
+        // No verification configured — success.
+        return Ok((StepStatus::Success, Some(total_tokens)));
+    }
 }
 
 impl RunSummary {
@@ -519,12 +669,15 @@ fn build_summary(
 }
 
 /// Async orchestrator dispatcher wired for agent-registry lookup and governed execution.
+///
+/// Supports optional gate evaluation (052) and post-step verification with retry (075).
 pub async fn dispatch_manifest(
     artifact_base: &ArtifactManager,
     run_id: Uuid,
     manifest: &WorkflowManifest,
     registry: Arc<dyn AgentRegistry>,
     executor: Arc<dyn GovernedExecutor>,
+    options: &DispatchOptions,
 ) -> Result<RunSummary, OrchestratorError> {
     let order = manifest.validate_and_order()?;
     let steps = &manifest.steps;
@@ -574,6 +727,31 @@ pub async fn dispatch_manifest(
             });
         }
 
+        // Gate evaluation (052 FR-004, FR-005).
+        if let (Some(gate), Some(handler)) = (&step.gate, &options.gate_handler) {
+            match handle_gate_simple(&step.id, gate, handler.as_ref()).await {
+                Ok(GateAction::Skip) => {
+                    statuses[idx] = StepStatus::Skipped;
+                    continue;
+                }
+                Ok(GateAction::Proceed) => {}
+                Err(e) => {
+                    statuses[idx] = StepStatus::Failure;
+                    if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                        for &d in dep_idxs {
+                            if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                                statuses[d] = StepStatus::Skipped;
+                            }
+                        }
+                    }
+                    let summary =
+                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                    summary.write_to_disk(artifact_base)?;
+                    return Err(e);
+                }
+            }
+        }
+
         statuses[idx] = StepStatus::Running;
         artifact_base
             .ensure_step_dir(run_id, &step.id)
@@ -588,35 +766,28 @@ pub async fn dispatch_manifest(
             .map(|o| artifact_base.output_artifact_path(run_id, &step.id, o))
             .collect();
 
-        let request = DispatchRequest {
-            step_id: step.id.clone(),
-            agent_id: step.agent.clone(),
-            effort: step.effort,
-            system_prompt: build_step_system_prompt(artifact_base, run_id, step),
-            input_artifacts: input_paths,
-            output_artifacts: output_paths.clone(),
-        };
-
-        match executor.dispatch_step(request).await {
-            Ok(result) => {
-                if let Some(missing_output) = output_paths.iter().find(|p| !p.exists()) {
-                    statuses[idx] = StepStatus::Failure;
-                    let summary =
-                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
-                    summary.write_to_disk(artifact_base)?;
-                    return Err(OrchestratorError::StepFailed {
-                        step_id: step.id.clone(),
-                        reason: format!(
-                            "agent did not produce declared output: {}",
-                            missing_output.display()
-                        ),
-                    });
-                }
-                statuses[idx] = StepStatus::Success;
-                tokens_used[idx] = result.tokens_used;
+        // Dispatch + verify/retry loop (075 FR-005, FR-006).
+        match dispatch_with_verify(
+            step,
+            executor.as_ref(),
+            artifact_base,
+            run_id,
+            &input_paths,
+            &output_paths,
+            options.project_root.as_deref(),
+        )
+        .await
+        {
+            Ok((status, step_tokens)) => {
+                statuses[idx] = status;
+                tokens_used[idx] = step_tokens;
             }
-            Err(reason) => {
-                statuses[idx] = StepStatus::Failure;
+            Err(e) => {
+                statuses[idx] = if matches!(e, OrchestratorError::VerificationFailed { .. }) {
+                    StepStatus::VerificationFailed
+                } else {
+                    StepStatus::Failure
+                };
                 if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
                     for &d in dep_idxs {
                         if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
@@ -626,10 +797,7 @@ pub async fn dispatch_manifest(
                 }
                 let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
                 summary.write_to_disk(artifact_base)?;
-                return Err(OrchestratorError::StepFailed {
-                    step_id: step.id.clone(),
-                    reason,
-                });
+                return Err(e);
             }
         }
     }
@@ -671,6 +839,7 @@ pub async fn dispatch_manifest_persisted(
     registry: Arc<dyn AgentRegistry>,
     executor: Arc<dyn GovernedExecutor>,
     persistence: &PersistenceContext,
+    options: &DispatchOptions,
 ) -> Result<RunSummary, OrchestratorError> {
     let order = manifest.validate_and_order()?;
     let steps = &manifest.steps;
@@ -808,6 +977,118 @@ pub async fn dispatch_manifest_persisted(
             });
         }
 
+        // Gate evaluation with state persistence (052 FR-004, FR-005).
+        if let (Some(gate), Some(handler)) = (&step.gate, &options.gate_handler) {
+            let persist_fn = |s: &WorkflowState| {
+                // Synchronous bridge: we can't await inside the closure so we
+                // rely on the store's blocking write if available. For the async
+                // path the gate evaluation already persists via persist_and_emit
+                // before and after the handler call below.
+                let _ = s; // state is persisted via persist_and_emit calls
+                Ok(())
+            };
+
+            // Emit gate_reached event.
+            persist_and_emit(
+                persistence,
+                &wf_state,
+                run_id,
+                "gate_reached",
+                &serde_json::json!({ "step_id": step.id }),
+            )
+            .await?;
+
+            let gate_outcome = evaluate_gate_if_present(
+                &mut wf_state,
+                &step.id,
+                Some(gate),
+                handler.as_ref(),
+                persist_fn,
+            )
+            .await;
+
+            match gate_outcome {
+                Ok(Some(GateOutcome::Approved)) => {
+                    persist_and_emit(
+                        persistence,
+                        &wf_state,
+                        run_id,
+                        "gate_approved",
+                        &serde_json::json!({ "step_id": step.id }),
+                    )
+                    .await?;
+                }
+                Ok(Some(GateOutcome::TimedOut { escalation })) => {
+                    match escalation {
+                        manifest::ApprovalEscalation::Skip => {
+                            statuses[idx] = StepStatus::Skipped;
+                            wf_state.mark_step_finished(
+                                &step.id,
+                                StepExecutionStatus::Skipped,
+                                now_ts(),
+                                None,
+                                Some(serde_json::json!({ "reason": "approval gate timed out, escalation: skip" })),
+                            );
+                            persist_and_emit(
+                                persistence, &wf_state, run_id,
+                                "step_skipped",
+                                &serde_json::json!({ "step_id": step.id, "reason": "gate timeout skip" }),
+                            ).await?;
+                            continue;
+                        }
+                        manifest::ApprovalEscalation::Fail => {
+                            statuses[idx] = StepStatus::Failure;
+                            wf_state.mark_step_finished(
+                                &step.id,
+                                StepExecutionStatus::Failed,
+                                now_ts(),
+                                None,
+                                Some(serde_json::json!({ "reason": "approval gate timed out" })),
+                            );
+                            wf_state.status = WorkflowStatus::Failed;
+                            persist_and_emit(
+                                persistence, &wf_state, run_id,
+                                "step_failed",
+                                &serde_json::json!({ "step_id": step.id, "reason": "approval gate timed out" }),
+                            ).await?;
+                            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                            summary.write_to_disk(artifact_base)?;
+                            return Err(OrchestratorError::StepFailed {
+                                step_id: step.id.clone(),
+                                reason: "approval gate timed out".into(),
+                            });
+                        }
+                        manifest::ApprovalEscalation::Notify => {
+                            // Continue execution after notification.
+                        }
+                    }
+                }
+                Ok(None) => {} // no gate
+                Err(e) => {
+                    statuses[idx] = StepStatus::Failure;
+                    wf_state.mark_step_finished(
+                        &step.id,
+                        StepExecutionStatus::Failed,
+                        now_ts(),
+                        None,
+                        Some(serde_json::json!({ "error": e.to_string() })),
+                    );
+                    wf_state.status = WorkflowStatus::Failed;
+                    persist_and_emit(
+                        persistence, &wf_state, run_id,
+                        "step_failed",
+                        &serde_json::json!({ "step_id": step.id, "reason": e.to_string() }),
+                    ).await?;
+                    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                    summary.write_to_disk(artifact_base)?;
+                    return Err(OrchestratorError::StepFailed {
+                        step_id: step.id.clone(),
+                        reason: e.to_string(),
+                    });
+                }
+            }
+        }
+
         // --- Step started ---
         statuses[idx] = StepStatus::Running;
         wf_state.mark_step_started(&step.id, now_ts());
@@ -834,60 +1115,28 @@ pub async fn dispatch_manifest_persisted(
             .map(|o| artifact_base.output_artifact_path(run_id, &step.id, o))
             .collect();
 
-        let request = DispatchRequest {
-            step_id: step.id.clone(),
-            agent_id: step.agent.clone(),
-            effort: step.effort,
-            system_prompt: build_step_system_prompt(artifact_base, run_id, step),
-            input_artifacts: input_paths,
-            output_artifacts: output_paths.clone(),
-        };
-
-        match executor.dispatch_step(request).await {
-            Ok(result) => {
-                if let Some(missing_output) = output_paths.iter().find(|p| !p.exists()) {
-                    statuses[idx] = StepStatus::Failure;
-
-                    wf_state.mark_step_finished(
-                        &step.id,
-                        StepExecutionStatus::Failed,
-                        now_ts(),
-                        None,
-                        Some(serde_json::json!({ "error": format!("missing output: {}", missing_output.display()) })),
-                    );
-                    wf_state.status = WorkflowStatus::Failed;
-
-                    persist_and_emit(
-                        persistence,
-                        &wf_state,
-                        run_id,
-                        "step_failed",
-                        &serde_json::json!({ "step_id": step.id, "reason": format!("missing output: {}", missing_output.display()) }),
-                    )
-                    .await?;
-
-                    let summary =
-                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
-                    summary.write_to_disk(artifact_base)?;
-                    return Err(OrchestratorError::StepFailed {
-                        step_id: step.id.clone(),
-                        reason: format!(
-                            "agent did not produce declared output: {}",
-                            missing_output.display()
-                        ),
-                    });
-                }
-
-                // --- Step completed ---
-                statuses[idx] = StepStatus::Success;
-                tokens_used[idx] = result.tokens_used;
+        // Dispatch + verify/retry loop (075 FR-005, FR-006).
+        match dispatch_with_verify(
+            step,
+            executor.as_ref(),
+            artifact_base,
+            run_id,
+            &input_paths,
+            &output_paths,
+            options.project_root.as_deref(),
+        )
+        .await
+        {
+            Ok((status, step_tokens)) => {
+                statuses[idx] = status;
+                tokens_used[idx] = step_tokens;
 
                 wf_state.mark_step_finished(
                     &step.id,
                     StepExecutionStatus::Completed,
                     now_ts(),
                     None,
-                    result.tokens_used.map(|t| serde_json::json!({ "tokens_used": t })),
+                    step_tokens.map(|t| serde_json::json!({ "tokens_used": t })),
                 );
 
                 persist_and_emit(
@@ -899,15 +1148,26 @@ pub async fn dispatch_manifest_persisted(
                 )
                 .await?;
             }
-            Err(reason) => {
-                statuses[idx] = StepStatus::Failure;
+            Err(e) => {
+                let is_verify_fail = matches!(e, OrchestratorError::VerificationFailed { .. });
+                statuses[idx] = if is_verify_fail {
+                    StepStatus::VerificationFailed
+                } else {
+                    StepStatus::Failure
+                };
+
+                let event_type = if is_verify_fail {
+                    "step_verification_failed"
+                } else {
+                    "step_failed"
+                };
 
                 wf_state.mark_step_finished(
                     &step.id,
                     StepExecutionStatus::Failed,
                     now_ts(),
                     None,
-                    Some(serde_json::json!({ "error": &reason })),
+                    Some(serde_json::json!({ "error": e.to_string() })),
                 );
                 wf_state.status = WorkflowStatus::Failed;
 
@@ -915,8 +1175,8 @@ pub async fn dispatch_manifest_persisted(
                     persistence,
                     &wf_state,
                     run_id,
-                    "step_failed",
-                    &serde_json::json!({ "step_id": step.id, "reason": &reason }),
+                    event_type,
+                    &serde_json::json!({ "step_id": step.id, "reason": e.to_string() }),
                 )
                 .await?;
 
@@ -929,10 +1189,7 @@ pub async fn dispatch_manifest_persisted(
                 }
                 let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
                 summary.write_to_disk(artifact_base)?;
-                return Err(OrchestratorError::StepFailed {
-                    step_id: step.id.clone(),
-                    reason,
-                });
+                return Err(e);
             }
         }
     }
@@ -1479,7 +1736,7 @@ mod tests {
             seen_prompts: Mutex::new(vec![]),
         });
 
-        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor).await.unwrap();
+        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor, &DispatchOptions::default()).await.unwrap();
         assert_eq!(summary.steps.len(), 1);
         assert!(matches!(summary.steps[0].status, StepStatus::Success));
         assert_eq!(summary.steps[0].tokens_used, Some(123));
@@ -1513,7 +1770,7 @@ mod tests {
             seen_prompts: Mutex::new(vec![]),
         });
 
-        let err = dispatch_manifest(&am, run_id, &manifest, registry, executor)
+        let err = dispatch_manifest(&am, run_id, &manifest, registry, executor, &DispatchOptions::default())
             .await
             .unwrap_err();
         assert!(matches!(err, OrchestratorError::AgentNotFound { .. }));
@@ -1557,7 +1814,7 @@ steps:
         });
         let executor = Arc::new(E2eArtifactExecutor);
 
-        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor)
+        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor, &DispatchOptions::default())
             .await
             .unwrap();
         assert_eq!(summary.steps.len(), 3);

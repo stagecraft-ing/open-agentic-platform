@@ -8,8 +8,8 @@ use orchestrator::{
 };
 use orchestrator::{
     compute_resume_plan_from_state, state_file_path_for_run, write_workflow_state_atomic,
-    AgentRegistry, DispatchRequest, DispatchResult, GovernedExecutor, PersistenceContext,
-    StepExecutionStatus, WorkflowState,
+    AgentRegistry, DispatchOptions, DispatchRequest, DispatchResult, GovernedExecutor,
+    PersistenceContext, StepExecutionStatus, WorkflowState,
 };
 use serde_json::Value as JsonValue;
 use std::collections::HashSet;
@@ -328,6 +328,7 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
         registry,
         executor,
         &persistence,
+        &DispatchOptions::default(),
     )
     .await
     .expect("dispatch should succeed");

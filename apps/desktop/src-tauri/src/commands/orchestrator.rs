@@ -1,7 +1,8 @@
 use crate::commands::agents::AgentDb;
 use orchestrator::{
-    dispatch_manifest, materialize_run_directory, AgentRegistry, ArtifactManager, DispatchRequest,
-    DispatchResult, EffortLevel, GovernedExecutor, RunSummary, StepStatus, WorkflowManifest,
+    dispatch_manifest, materialize_run_directory, AgentRegistry, ArtifactManager, DispatchOptions,
+    DispatchRequest, DispatchResult, EffortLevel, GovernedExecutor, RunSummary, StepStatus,
+    WorkflowManifest,
 };
 use rusqlite::params;
 use std::collections::HashMap;
@@ -402,6 +403,7 @@ pub async fn orchestrate_manifest(
             agents: agent_profiles,
             working_directory: project_path,
         }),
+        &DispatchOptions::default(),
     )
     .await
     .map_err(|e| e.to_string())?;

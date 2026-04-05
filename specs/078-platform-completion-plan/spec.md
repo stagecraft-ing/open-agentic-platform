@@ -2,7 +2,7 @@
 id: "078-platform-completion-plan"
 title: "Platform Completion Plan — Factory Ingestion + Draft Spec Closure"
 feature_branch: "feat/078-platform-completion"
-status: draft
+status: active
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

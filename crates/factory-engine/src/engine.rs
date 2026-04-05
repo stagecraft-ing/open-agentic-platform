@@ -22,6 +22,7 @@ use crate::FactoryError;
 use factory_contracts::build_spec::BuildSpec;
 use factory_contracts::AdapterRegistry;
 use orchestrator::manifest::WorkflowManifest;
+use policy_kernel::PolicyBundle;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -148,7 +149,7 @@ impl FactoryEngine {
         adapter_name: &str,
         build_spec_path: &Path,
         pipeline_state: &mut FactoryPipelineState,
-    ) -> Result<WorkflowManifest, FactoryError> {
+    ) -> Result<PhaseTransitionResult, FactoryError> {
         let adapter = self
             .adapter_registry
             .get(adapter_name)
@@ -181,7 +182,7 @@ impl FactoryEngine {
         pipeline_state.transition_to_scaffolding(hash);
 
         // Generate policy shard (FR-008).
-        let _policy_bundle = generate_factory_policy_shard(adapter, &build_spec);
+        let policy_bundle = generate_factory_policy_shard(adapter, &build_spec);
 
         // Generate Phase 2 manifest (FR-003).
         let phase2_manifest = generate_scaffold_manifest(
@@ -190,7 +191,10 @@ impl FactoryEngine {
             &self.config.factory_root,
         )?;
 
-        Ok(phase2_manifest)
+        Ok(PhaseTransitionResult {
+            manifest: phase2_manifest,
+            policy_bundle,
+        })
     }
 
     /// Run gate checks for a completed stage (FR-010).
@@ -227,6 +231,15 @@ pub struct PipelineStartResult {
     pub agent_bridge: FactoryAgentBridge,
     /// Initial pipeline state.
     pub pipeline_state: FactoryPipelineState,
+}
+
+/// Result of the Phase 1→2 transition (Build Spec freeze → scaffolding).
+pub struct PhaseTransitionResult {
+    /// Phase 2 (scaffolding) manifest ready for dispatch.
+    pub manifest: WorkflowManifest,
+    /// Policy bundle generated from the adapter manifest and Build Spec (FR-008).
+    /// Callers should apply this to the axiomregent permission runtime.
+    pub policy_bundle: PolicyBundle,
 }
 
 /// Classify a scaffolding step ID to determine what it produced.
