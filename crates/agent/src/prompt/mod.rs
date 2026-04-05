@@ -17,7 +17,40 @@ pub use assembler::{
     AssembledPrompt, AssemblyContext, AssemblyMetadata, CacheLifetime, PromptAssembler,
     PromptSection, SectionSummary, CACHE_BOUNDARY_MARKER,
 };
-pub use compaction::{CompactedResult, CompactionService, Message};
+pub use compaction::{
+    // Original API (backward compatible)
+    CompactedResult,
+    CompactionService,
+    Message,
+    SummarizerFn,
+    // Spec 046 rich types
+    CompactionAuditEntry,
+    CompactionMessage,
+    CompactionTriggerDecision,
+    ContentBlock,
+    DiffStats,
+    FileAction,
+    FileModification,
+    GitSnapshot,
+    InterruptionInfo,
+    MessageContent,
+    ProgrammaticCompactionOutput,
+    ProgrammaticCompactor,
+    SessionContext,
+    TokenBudgetMonitor,
+    TokenUsage,
+    // Extraction functions
+    build_task_summary,
+    detect_interruption,
+    extract_file_modifications,
+    extract_key_decisions,
+    extract_steps,
+    find_latest_unresolved_tool_call_id,
+    // XML rendering
+    collapse_file_modification_section,
+    minify_session_context_xml,
+    render_session_context_xml,
+};
 
 #[cfg(test)]
 mod tests;

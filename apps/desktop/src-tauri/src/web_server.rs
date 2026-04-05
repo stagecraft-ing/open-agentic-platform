@@ -2,7 +2,7 @@ use axum::extract::ws::{Message, WebSocket};
 use axum::http::Method;
 use axum::{
     extract::{Path, State as AxumState, WebSocketUpgrade},
-    response::{Html, Json, Response},
+    response::{Html, IntoResponse, Json, Response},
     routing::get,
     Router,
 };
@@ -10,6 +10,7 @@ use chrono;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::fs;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -19,6 +20,107 @@ use tower_http::services::ServeDir;
 use which;
 
 use crate::commands;
+
+// ---------------------------------------------------------------------------
+// Control API — authentication and lockfile management
+// ---------------------------------------------------------------------------
+
+/// Authentication state for the control API.
+#[derive(Clone)]
+struct ControlAuth {
+    token: String,
+}
+
+/// Writes control lockfiles so external CLIs can discover the control server.
+fn write_control_files(port: u16, token: &str) -> Result<(), String> {
+    let home = std::env::var("HOME").map_err(|_| "HOME env var not set".to_string())?;
+    let oap_dir = std::path::PathBuf::from(home).join(".oap");
+    fs::create_dir_all(&oap_dir).map_err(|e| format!("create ~/.oap: {e}"))?;
+
+    let port_path = oap_dir.join("control.port");
+    let token_path = oap_dir.join("control.token");
+
+    fs::write(&port_path, port.to_string()).map_err(|e| format!("write control.port: {e}"))?;
+    fs::write(&token_path, token).map_err(|e| format!("write control.token: {e}"))?;
+
+    // Restrict permissions to owner only (0600).
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let perms = std::fs::Permissions::from_mode(0o600);
+        let _ = fs::set_permissions(&port_path, perms.clone());
+        let _ = fs::set_permissions(&token_path, perms);
+    }
+
+    Ok(())
+}
+
+/// Removes control lockfiles on shutdown.
+fn cleanup_control_files() {
+    if let Ok(home) = std::env::var("HOME") {
+        let oap_dir = std::path::PathBuf::from(home).join(".oap");
+        let _ = fs::remove_file(oap_dir.join("control.port"));
+        let _ = fs::remove_file(oap_dir.join("control.token"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Control API — route handlers
+// ---------------------------------------------------------------------------
+
+async fn control_status() -> impl IntoResponse {
+    Json(ApiResponse::success(serde_json::json!({
+        "status": "ok",
+        "version": env!("CARGO_PKG_VERSION"),
+    })))
+}
+
+async fn control_list_projects() -> impl IntoResponse {
+    match crate::commands::claude::list_projects().await {
+        Ok(projects) => Json(ApiResponse::success(projects)).into_response(),
+        Err(e) => Json(ApiResponse::<()>::error(e)).into_response(),
+    }
+}
+
+async fn control_get_sessions(Path(project_id): Path<String>) -> impl IntoResponse {
+    match crate::commands::claude::get_project_sessions(project_id).await {
+        Ok(sessions) => Json(ApiResponse::success(sessions)).into_response(),
+        Err(e) => Json(ApiResponse::<()>::error(e)).into_response(),
+    }
+}
+
+async fn control_get_messages(
+    Path((session_id, project_id)): Path<(String, String)>,
+) -> impl IntoResponse {
+    match crate::commands::claude::load_session_history(session_id, project_id).await {
+        Ok(history) => Json(ApiResponse::success(history)).into_response(),
+        Err(e) => Json(ApiResponse::<()>::error(e)).into_response(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Control API — auth middleware
+// ---------------------------------------------------------------------------
+
+async fn control_auth_middleware(
+    axum::extract::State(auth): axum::extract::State<ControlAuth>,
+    req: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> impl IntoResponse {
+    let token = req
+        .headers()
+        .get("X-Control-Token")
+        .and_then(|v| v.to_str().ok());
+
+    match token {
+        Some(t) if t == auth.token => next.run(req).await.into_response(),
+        _ => (
+            axum::http::StatusCode::UNAUTHORIZED,
+            Json(ApiResponse::<()>::error("unauthorized".to_string())),
+        )
+            .into_response(),
+    }
+}
 
 // Find Claude binary for web mode - use bundled binary first
 fn find_claude_binary_web() -> Result<String, String> {
@@ -789,11 +891,33 @@ pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Erro
         active_sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
     };
 
+    // Generate a fresh token for this session.
+    let control_auth = ControlAuth {
+        token: uuid::Uuid::new_v4().to_string(),
+    };
+
     // CORS layer to allow requests from phone browsers
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(Any);
+
+    // Control API routes — protected by token auth middleware.
+    let control_routes = Router::new()
+        .route("/status", get(control_status))
+        .route("/projects", get(control_list_projects))
+        .route(
+            "/projects/{project_id}/sessions",
+            get(control_get_sessions),
+        )
+        .route(
+            "/sessions/{session_id}/messages/{project_id}",
+            get(control_get_messages),
+        )
+        .layer(axum::middleware::from_fn_with_state(
+            control_auth.clone(),
+            control_auth_middleware,
+        ));
 
     // Create router with API endpoints
     let app = Router::new()
@@ -839,6 +963,8 @@ pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Erro
         )
         // WebSocket endpoint for real-time Claude execution
         .route("/ws/claude", get(claude_websocket))
+        // Control API (token-authenticated, for oap-ctl)
+        .nest("/control", control_routes)
         // Serve static assets
         .nest_service("/assets", ServeDir::new("../dist/assets"))
         .nest_service("/vite.svg", ServeDir::new("../dist/vite.svg"))
@@ -846,11 +972,33 @@ pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Erro
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    println!("🌐 Web server running on http://0.0.0.0:{}", port);
-    println!("📱 Access from phone: http://YOUR_PC_IP:{}", port);
+    println!("Web server running on http://0.0.0.0:{}", port);
+    println!("Access from phone: http://YOUR_PC_IP:{}", port);
 
     let listener = TcpListener::bind(addr).await?;
+
+    // Extract the actual bound port (may differ from requested if OS chose one).
+    let bound_port = listener.local_addr()?.port();
+
+    // Write lockfiles so oap-ctl can discover this server.
+    if let Err(e) = write_control_files(bound_port, &control_auth.token) {
+        log::warn!("Could not write control lockfiles: {}", e);
+    } else {
+        log::info!("Control API listening on port {} (token written to ~/.oap/)", bound_port);
+    }
+
+    // Register cleanup on process exit via a simple Drop guard on the current task.
+    // tokio::signal is not available in all build targets so we use a simpler approach:
+    // spawn a background task that waits for Ctrl-C and cleans up.
+    tokio::spawn(async {
+        let _ = tokio::signal::ctrl_c().await;
+        cleanup_control_files();
+    });
+
     axum::serve(listener, app).await?;
+
+    // Clean up on normal exit (e.g. programmatic shutdown).
+    cleanup_control_files();
 
     Ok(())
 }

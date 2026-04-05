@@ -25,6 +25,8 @@ axum = { version = "0.7", features = ["macros"] }
 dashmap = "5"
 futures-util = "0.3"
 async-stream = "0.3"
+cron = "0.13"
+chrono = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

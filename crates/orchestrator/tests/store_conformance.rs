@@ -260,6 +260,7 @@ mod sqlite_conformance {
             timestamp: "t1".into(),
             event_type: "live_event".into(),
             payload: JsonValue::String("hello".into()),
+            scope: None,
         };
         notifier.notify(wf_id, event).await;
 

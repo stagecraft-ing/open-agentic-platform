@@ -76,6 +76,15 @@ impl SqliteWorkflowStore {
                 reason: format!("enable WAL journal mode on {}: {e}", path.display()),
             })?;
 
+        // Disable FK enforcement so conversation-scoped events can be inserted
+        // without a corresponding workflows row.  The events table schema
+        // declares a REFERENCES clause for backward compatibility but the
+        // constraint is logically optional for non-workflow scopes.
+        conn.pragma_update(None, "foreign_keys", "OFF")
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("disable foreign_keys pragma on {}: {e}", path.display()),
+            })?;
+
         // Initialize schema if it does not exist yet.
         conn.execute_batch(
             r#"
@@ -114,6 +123,34 @@ impl SqliteWorkflowStore {
         .map_err(|e| OrchestratorError::StatePersistence {
             reason: format!("initialize sqlite schema in {}: {e}", path.display()),
         })?;
+
+        // Migration: add `scope` column for multi-domain event support (workflow
+        // vs conversation).  Existing rows default to 'workflow'.  The migration
+        // is idempotent — ALTER TABLE ADD COLUMN fails silently if the column
+        // already exists.
+        let has_scope: bool = conn
+            .prepare("PRAGMA table_info(events)")
+            .and_then(|mut stmt| {
+                let rows = stmt.query_map([], |row| {
+                    let name: String = row.get(1)?;
+                    Ok(name)
+                })?;
+                let mut found = false;
+                for name in rows {
+                    if name.map(|n| n == "scope").unwrap_or(false) {
+                        found = true;
+                        break;
+                    }
+                }
+                Ok(found)
+            })
+            .unwrap_or(false);
+
+        if !has_scope {
+            let _ = conn.execute_batch(
+                "ALTER TABLE events ADD COLUMN scope TEXT NOT NULL DEFAULT 'workflow';",
+            );
+        }
 
         Ok(SqliteWorkflowStore {
             conn: Arc::new(StdMutex::new(conn)),
@@ -426,7 +463,18 @@ impl SqliteWorkflowStore {
         payload: &JsonValue,
         timestamp: Option<String>,
     ) -> Result<i64, OrchestratorError> {
-        let wf_id_str = workflow_id.to_string();
+        Self::append_scoped_event_sync(conn, workflow_id, "workflow", event_type, payload, timestamp)
+    }
+
+    fn append_scoped_event_sync(
+        conn: &Connection,
+        entity_id: Uuid,
+        scope: &str,
+        event_type: &str,
+        payload: &JsonValue,
+        timestamp: Option<String>,
+    ) -> Result<i64, OrchestratorError> {
+        let id_str = entity_id.to_string();
         let ts = timestamp.unwrap_or_else(sqlite_now_ts);
         let payload_json =
             serde_json::to_string(payload).map_err(|e| OrchestratorError::StatePersistence {
@@ -439,14 +487,15 @@ impl SqliteWorkflowStore {
                   workflow_id,
                   timestamp,
                   event_type,
-                  payload
+                  payload,
+                  scope
                 )
-                VALUES (?1, ?2, ?3, ?4)
+                VALUES (?1, ?2, ?3, ?4, ?5)
                 "#,
-            params![wf_id_str, ts, event_type, payload_json],
+            params![id_str, ts, event_type, payload_json, scope],
         )
         .map_err(|e| OrchestratorError::StatePersistence {
-            reason: format!("insert workflow event row in sqlite: {e}"),
+            reason: format!("insert {scope} event row in sqlite: {e}"),
         })?;
 
         Ok(conn.last_insert_rowid())
@@ -458,49 +507,86 @@ impl SqliteWorkflowStore {
         from_event_id: i64,
         limit: Option<u32>,
     ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
-        let wf_id_str = workflow_id.to_string();
+        // Backward-compatible: loads all events regardless of scope.
+        Self::load_scoped_events_since_sync(conn, workflow_id, None, from_event_id, limit)
+    }
+
+    fn load_scoped_events_since_sync(
+        conn: &Connection,
+        entity_id: Uuid,
+        scope: Option<&str>,
+        from_event_id: i64,
+        limit: Option<u32>,
+    ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
+        let id_str = entity_id.to_string();
         let effective_limit: i64 = limit.map_or(i64::MAX, |l| l as i64);
 
-        let mut stmt = conn
-            .prepare(
+        let (sql, params_vec): (&str, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(s) =
+            scope
+        {
+            (
                 r#"
-                SELECT event_id, workflow_id, timestamp, event_type, payload
+                SELECT event_id, workflow_id, timestamp, event_type, payload, scope
+                FROM events
+                WHERE workflow_id = ?1 AND event_id > ?2 AND scope = ?3
+                ORDER BY event_id ASC
+                LIMIT ?4
+                "#,
+                vec![
+                    Box::new(id_str) as Box<dyn rusqlite::types::ToSql>,
+                    Box::new(from_event_id),
+                    Box::new(s.to_string()),
+                    Box::new(effective_limit),
+                ],
+            )
+        } else {
+            (
+                r#"
+                SELECT event_id, workflow_id, timestamp, event_type, payload, scope
                 FROM events
                 WHERE workflow_id = ?1 AND event_id > ?2
                 ORDER BY event_id ASC
                 LIMIT ?3
                 "#,
+                vec![
+                    Box::new(id_str) as Box<dyn rusqlite::types::ToSql>,
+                    Box::new(from_event_id),
+                    Box::new(effective_limit),
+                ],
             )
-            .map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("prepare events select in sqlite: {e}"),
-            })?;
+        };
+
+        let mut stmt = conn.prepare(sql).map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("prepare events select in sqlite: {e}"),
+        })?;
+
+        let params_refs: Vec<&dyn rusqlite::types::ToSql> =
+            params_vec.iter().map(|b| b.as_ref()).collect();
 
         let rows = stmt
-            .query_map(
-                params![wf_id_str, from_event_id, effective_limit],
-                |row| {
-                    let event_id: i64 = row.get(0)?;
-                    let wf_id_text: String = row.get(1)?;
-                    let timestamp: String = row.get(2)?;
-                    let event_type: String = row.get(3)?;
-                    let payload_text: String = row.get(4)?;
-                    Ok((event_id, wf_id_text, timestamp, event_type, payload_text))
-                },
-            )
+            .query_map(params_refs.as_slice(), |row| {
+                let event_id: i64 = row.get(0)?;
+                let wf_id_text: String = row.get(1)?;
+                let timestamp: String = row.get(2)?;
+                let event_type: String = row.get(3)?;
+                let payload_text: String = row.get(4)?;
+                let scope: Option<String> = row.get(5).ok();
+                Ok((event_id, wf_id_text, timestamp, event_type, payload_text, scope))
+            })
             .map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("query events for workflow in sqlite: {e}"),
+                reason: format!("query events for entity in sqlite: {e}"),
             })?;
 
         let mut out = Vec::new();
         for row in rows {
-            let (event_id, wf_id_text, timestamp, event_type, payload_text) =
+            let (event_id, wf_id_text, timestamp, event_type, payload_text, scope) =
                 row.map_err(|e| OrchestratorError::StatePersistence {
-                    reason: format!("iterate event rows for workflow in sqlite: {e}"),
+                    reason: format!("iterate event rows in sqlite: {e}"),
                 })?;
 
-            let parsed_wf_id =
+            let parsed_id =
                 Uuid::parse_str(&wf_id_text).map_err(|e| OrchestratorError::StatePersistence {
-                    reason: format!("decode workflow_id uuid from sqlite events: {e}"),
+                    reason: format!("decode entity uuid from sqlite events: {e}"),
                 })?;
 
             let payload: JsonValue = serde_json::from_str(&payload_text).map_err(|e| {
@@ -511,10 +597,11 @@ impl SqliteWorkflowStore {
 
             out.push(PersistedEvent {
                 event_id,
-                workflow_id: parsed_wf_id,
+                workflow_id: parsed_id,
                 timestamp,
                 event_type,
                 payload,
+                scope,
             });
         }
 
@@ -594,6 +681,51 @@ impl WorkflowStore for SqliteWorkflowStore {
                 reason: format!("lock sqlite connection: {e}"),
             })?;
             Self::load_events_since_sync(&guard, workflow_id, from_event_id, limit)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking join: {e}"),
+        })?
+    }
+
+    async fn append_scoped_event(
+        &self,
+        entity_id: Uuid,
+        scope: &str,
+        event_type: &str,
+        payload: &JsonValue,
+        timestamp: Option<String>,
+    ) -> Result<i64, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let scope = scope.to_string();
+        let event_type = event_type.to_string();
+        let payload = payload.clone();
+        tokio::task::spawn_blocking(move || {
+            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("lock sqlite connection: {e}"),
+            })?;
+            Self::append_scoped_event_sync(&guard, entity_id, &scope, &event_type, &payload, timestamp)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking join: {e}"),
+        })?
+    }
+
+    async fn load_scoped_events_since(
+        &self,
+        entity_id: Uuid,
+        scope: &str,
+        from_event_id: i64,
+        limit: Option<u32>,
+    ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let scope = scope.to_string();
+        tokio::task::spawn_blocking(move || {
+            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("lock sqlite connection: {e}"),
+            })?;
+            Self::load_scoped_events_since_sync(&guard, entity_id, Some(&scope), from_event_id, limit)
         })
         .await
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -909,5 +1041,138 @@ mod tests {
             .expect("load limited events");
         assert_eq!(limited_events.len(), 1);
         assert_eq!(limited_events[0].event_id, e1);
+    }
+
+    #[tokio::test]
+    async fn scoped_events_are_isolated_by_scope() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        // Use the same entity_id for both scopes to prove isolation.
+        let entity_id = Uuid::new_v4();
+
+        // Seed a workflow row so the FK on workflow_id is satisfied.
+        let state = WorkflowState::new(
+            entity_id,
+            "scope-test",
+            "2026-04-05T00:00:00Z".to_string(),
+            Vec::<(String, String)>::new(),
+            serde_json::Map::new(),
+        );
+        store
+            .write_workflow_state(&state)
+            .await
+            .expect("seed workflow row");
+
+        // Append one workflow event and one conversation event.
+        let _wf_eid = store
+            .append_scoped_event(
+                entity_id,
+                "workflow",
+                "step_started",
+                &JsonValue::from("step-1"),
+                Some("t1".to_string()),
+            )
+            .await
+            .expect("append workflow event");
+
+        let conv_eid = store
+            .append_scoped_event(
+                entity_id,
+                "conversation",
+                "message",
+                &JsonValue::from("hello"),
+                Some("t2".to_string()),
+            )
+            .await
+            .expect("append conversation event");
+
+        // Loading workflow-scoped events should return only the workflow event.
+        let wf_events = store
+            .load_scoped_events_since(entity_id, "workflow", 0, None)
+            .await
+            .expect("load workflow events");
+        assert_eq!(wf_events.len(), 1);
+        assert_eq!(wf_events[0].event_type, "step_started");
+        assert_eq!(
+            wf_events[0].scope.as_deref(),
+            Some("workflow")
+        );
+
+        // Loading conversation-scoped events should return only the conversation event.
+        let conv_events = store
+            .load_scoped_events_since(entity_id, "conversation", 0, None)
+            .await
+            .expect("load conversation events");
+        assert_eq!(conv_events.len(), 1);
+        assert_eq!(conv_events[0].event_id, conv_eid);
+        assert_eq!(conv_events[0].event_type, "message");
+        assert_eq!(
+            conv_events[0].scope.as_deref(),
+            Some("conversation")
+        );
+
+        // The unscoped load_events_since should return both.
+        let all_events = store
+            .load_events_since(entity_id, 0, None)
+            .await
+            .expect("load all events");
+        assert_eq!(all_events.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn conversation_events_do_not_require_workflow_row() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        // Use a session UUID that has no corresponding workflow row.
+        let session_id = Uuid::new_v4();
+
+        // This should succeed because FK enforcement is off by default in SQLite.
+        let eid = store
+            .append_scoped_event(
+                session_id,
+                "conversation",
+                "user_message",
+                &JsonValue::from("how are you?"),
+                Some("t1".to_string()),
+            )
+            .await
+            .expect("append conversation event without workflow row");
+
+        assert!(eid > 0);
+
+        let events = store
+            .load_scoped_events_since(session_id, "conversation", 0, None)
+            .await
+            .expect("load conversation events");
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].event_type, "user_message");
+    }
+
+    #[tokio::test]
+    async fn scope_migration_is_idempotent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+
+        // Open twice — the migration should be idempotent.
+        let _store1 = SqliteWorkflowStore::open(&db_path).expect("first open");
+        let store2 = SqliteWorkflowStore::open(&db_path).expect("second open");
+
+        // Verify we can still append scoped events after double-open.
+        let session_id = Uuid::new_v4();
+        let eid = store2
+            .append_scoped_event(
+                session_id,
+                "conversation",
+                "test",
+                &JsonValue::from("ok"),
+                None,
+            )
+            .await
+            .expect("append after double open");
+        assert!(eid > 0);
     }
 }

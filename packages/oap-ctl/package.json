@@ -1,0 +1,14 @@
+{
+  "name": "oap-ctl",
+  "version": "0.1.0",
+  "description": "CLI for remote-controlling a running open-agentic-platform instance",
+  "type": "module",
+  "bin": {
+    "oap-ctl": "./src/cli.js"
+  },
+  "files": ["src"],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "AGPL-3.0"
+}

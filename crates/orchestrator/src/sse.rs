@@ -48,6 +48,7 @@ mod tests {
             timestamp: "1".to_string(),
             event_type: "step_started".to_string(),
             payload: JsonValue::String("test".to_string()),
+            scope: None,
         };
         // Should not panic or error with zero subscribers.
         notifier.notify(event.workflow_id, event).await;
@@ -71,6 +72,7 @@ mod tests {
             timestamp: "1".to_string(),
             event_type: "step_completed".to_string(),
             payload: JsonValue::String("done".to_string()),
+            scope: None,
         };
         notifier.notify(wf_id, event.clone()).await;
 
@@ -183,6 +185,7 @@ mod tests {
             timestamp: "t2".to_string(),
             event_type: "old_2".to_string(),
             payload: JsonValue::Null,
+            scope: None,
         };
         notifier.notify(wf_id, dup_event).await;
 
@@ -192,6 +195,7 @@ mod tests {
             timestamp: "t3".to_string(),
             event_type: "new_3".to_string(),
             payload: JsonValue::Null,
+            scope: None,
         };
         notifier.notify(wf_id, new_event).await;
 

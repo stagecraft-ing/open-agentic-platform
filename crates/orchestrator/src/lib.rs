@@ -18,6 +18,7 @@ pub mod sqlite_state;
 #[cfg(feature = "local-sqlite")]
 pub mod sse;
 pub mod state;
+pub mod scheduler;
 pub mod store;
 pub mod verify;
 #[cfg(feature = "distributed")]
@@ -40,6 +41,12 @@ pub use sqlite_state::{
 #[cfg(feature = "distributed")]
 pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
 pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
+pub use scheduler::{
+    CreateScheduleRequest, Schedule, ScheduleTrigger, ScheduledRunExecutor, SchedulerEngine,
+    SchedulerStore, SessionContext as ScheduleSessionContext,
+};
+#[cfg(feature = "local-sqlite")]
+pub use scheduler::SqliteSchedulerStore;
 pub use store_config::{build_persistence, PersistencePair, StoreBackend};
 pub use manifest::ApprovalEscalation;
 pub use http::HttpState;
@@ -906,6 +913,7 @@ pub async fn dispatch_manifest_persisted(
             timestamp: now_ts(),
             event_type: event_type.to_string(),
             payload: payload.clone(),
+            scope: Some("workflow".to_string()),
         };
         persistence.notifier.notify(run_id, event).await;
         Ok(())

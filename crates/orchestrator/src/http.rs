@@ -37,12 +37,16 @@ pub struct EventsQuery {
     pub offset: i64,
 }
 
-/// Builds an Axum router with the workflow events SSE endpoint mounted.
+/// Builds an Axum router with workflow and conversation SSE endpoints.
 pub fn router(state: HttpState) -> Router {
     Router::new()
         .route(
             "/workflows/:id/events",
             axum::routing::get(workflow_events_sse),
+        )
+        .route(
+            "/conversations/:session_id/events",
+            axum::routing::get(conversation_events_sse),
         )
         .with_state(state)
 }
@@ -70,6 +74,50 @@ async fn workflow_events_sse(
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("error subscribing to events: {other}"),
+            )
+                .into_response()
+        }
+    };
+
+    let stream = build_sse_stream(replay_subscription);
+
+    Sse::new(stream)
+        .keep_alive(
+            KeepAlive::new()
+                .interval(Duration::from_secs(15))
+                .text("keep-alive"),
+        )
+        .into_response()
+}
+
+/// SSE endpoint for conversation-scoped durable streams.
+///
+/// Uses the same `build_sse_stream` infrastructure as workflow events but
+/// scoped to conversation events only.  Session IDs and workflow IDs are both
+/// v4 UUIDs so they naturally partition the `LocalEventNotifier` channel space.
+async fn conversation_events_sse(
+    State(state): State<HttpState>,
+    Path(session_id): Path<uuid::Uuid>,
+    Query(query): Query<EventsQuery>,
+) -> impl IntoResponse {
+    // Subscribe to live events first (avoids race with store load).
+    let replay_subscription = match state
+        .notifier
+        .subscribe_with_replay(state.store.as_ref(), session_id, query.offset)
+        .await
+    {
+        Ok(sub) => sub,
+        Err(OrchestratorError::StatePersistence { reason }) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("state persistence error: {reason}"),
+            )
+                .into_response()
+        }
+        Err(other) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("error subscribing to conversation events: {other}"),
             )
                 .into_response()
         }

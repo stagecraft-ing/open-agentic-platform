@@ -16,6 +16,10 @@ use uuid::Uuid;
 ///
 /// These rows are append-only (monotonically increasing `event_id`) and can be
 /// consumed by higher-level SSE servers to provide offset-based replay.
+///
+/// The `scope` field distinguishes between event domains (e.g. `"workflow"` vs
+/// `"conversation"`).  Legacy rows that pre-date the scope column will have
+/// `scope = None` and are treated as `"workflow"` events.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct PersistedEvent {
     pub event_id: i64,
@@ -23,6 +27,9 @@ pub struct PersistedEvent {
     pub timestamp: String,
     pub event_type: String,
     pub payload: JsonValue,
+    /// Event scope: `"workflow"`, `"conversation"`, or `None` for legacy rows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +67,37 @@ pub trait WorkflowStore: Send + Sync {
         from_event_id: i64,
         limit: Option<u32>,
     ) -> Result<Vec<PersistedEvent>, OrchestratorError>;
+
+    /// Appends a scoped event row and returns its monotonically-increasing event ID.
+    ///
+    /// The `scope` parameter distinguishes event domains (e.g. `"workflow"` vs
+    /// `"conversation"`).  The `entity_id` is stored in the `workflow_id` column
+    /// for backward compatibility.
+    async fn append_scoped_event(
+        &self,
+        entity_id: Uuid,
+        _scope: &str,
+        event_type: &str,
+        payload: &JsonValue,
+        timestamp: Option<String>,
+    ) -> Result<i64, OrchestratorError> {
+        // Default implementation delegates to append_event (ignoring scope).
+        self.append_event(entity_id, event_type, payload, timestamp)
+            .await
+    }
+
+    /// Loads scoped events with `event_id > from_event_id`, filtered by scope.
+    async fn load_scoped_events_since(
+        &self,
+        entity_id: Uuid,
+        _scope: &str,
+        from_event_id: i64,
+        limit: Option<u32>,
+    ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
+        // Default implementation delegates to load_events_since (ignoring scope).
+        self.load_events_since(entity_id, from_event_id, limit)
+            .await
+    }
 }
 
 // ---------------------------------------------------------------------------
