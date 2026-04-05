@@ -37,6 +37,7 @@ export default class Client {
     public readonly audit: audit.ServiceClient
     public readonly auth: auth.ServiceClient
     public readonly deploy: deploy.ServiceClient
+    public readonly factory: factory.ServiceClient
     public readonly github: github.ServiceClient
     public readonly grants: grants.ServiceClient
     public readonly monitor: monitor.ServiceClient
@@ -63,6 +64,7 @@ export default class Client {
         this.audit = new audit.ServiceClient(base)
         this.auth = new auth.ServiceClient(base)
         this.deploy = new deploy.ServiceClient(base)
+        this.factory = new factory.ServiceClient(base)
         this.github = new github.ServiceClient(base)
         this.grants = new grants.ServiceClient(base)
         this.monitor = new monitor.ServiceClient(base)
@@ -411,6 +413,182 @@ export namespace deploy {
 
         public async healthz(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
             return this.baseClient.callAPI(method, `/healthz`, body, options)
+        }
+    }
+}
+
+export namespace factory {
+    export interface AuditEntry {
+        id: string
+        pipelineId: string
+        timestamp: string
+        event: string
+        actor: string | null
+        stageId: string | null
+        featureId: string | null
+        details: any
+    }
+
+    export interface AuditRequest {
+        from?: string
+        limit?: number
+    }
+
+    export interface AuditResponse {
+        entries: AuditEntry[]
+        total: number
+    }
+
+    export interface BusinessDocRef {
+        name: string
+        "storage_ref": string
+    }
+
+    export interface ConfirmRequest {
+        notes?: string
+        actorUserId: string
+    }
+
+    export interface ConfirmResponse {
+        stage: string
+        "confirmed_by": string
+        "confirmed_at": string
+        "audit_entry_id": string
+    }
+
+    export interface DeployRequest {
+        environment: string
+        "git_ref": string
+        "registry_image"?: string
+        actorUserId: string
+    }
+
+    export interface DeployResponse {
+        "deployment_id": string
+        target: string
+        status: string
+    }
+
+    export interface InitRequest {
+        adapter: string
+        "business_docs"?: BusinessDocRef[]
+        "policy_overrides"?: PolicyOverrides
+        actorUserId: string
+    }
+
+    export interface InitResponse {
+        "pipeline_id": string
+        adapter: string
+        "policy_bundle_id": string
+        status: string
+        "created_at": string
+    }
+
+    export interface PolicyOverrides {
+        "max_retry_per_feature"?: number
+        "token_budget_total"?: number
+    }
+
+    export interface RejectRequest {
+        feedback: string
+        actorUserId: string
+    }
+
+    export interface RejectResponse {
+        stage: string
+        "rejected_by": string
+        "rejected_at": string
+        feedback: string
+        "audit_entry_id": string
+    }
+
+    export interface StatusResponse {
+        "pipeline_id": string
+        status: string
+        adapter: string
+        "current_stage": string | null
+        stages: { [key: string]: {
+            status: string
+            "started_at"?: string
+            "completed_at"?: string
+            "confirmed_by"?: string
+            "confirmed_at"?: string
+        } }
+        "policy_bundle": any | null
+        "token_spend": {
+            total: number
+            budget: number
+            "by_stage": { [key: string]: number }
+        }
+        "started_at": string | null
+    }
+
+    export interface TokenSpendRequest {
+        "run_id": string
+        "stage_id": string
+        "prompt_tokens": number
+        "completion_tokens": number
+        model: string
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.confirmStage = this.confirmStage.bind(this)
+            this.getAudit = this.getAudit.bind(this)
+            this.getStatus = this.getStatus.bind(this)
+            this.initPipeline = this.initPipeline.bind(this)
+            this.rejectStage = this.rejectStage.bind(this)
+            this.reportTokenSpend = this.reportTokenSpend.bind(this)
+            this.triggerDeploy = this.triggerDeploy.bind(this)
+        }
+
+        public async confirmStage(id: string, stageId: string, params: ConfirmRequest): Promise<ConfirmResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/stage/${encodeURIComponent(stageId)}/confirm`, JSON.stringify(params))
+            return await resp.json() as ConfirmResponse
+        }
+
+        public async getAudit(id: string, params: AuditRequest): Promise<AuditResponse> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                from:  params.from,
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(id)}/factory/audit`, undefined, {query})
+            return await resp.json() as AuditResponse
+        }
+
+        public async getStatus(id: string): Promise<StatusResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(id)}/factory/status`)
+            return await resp.json() as StatusResponse
+        }
+
+        public async initPipeline(id: string, params: InitRequest): Promise<InitResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/init`, JSON.stringify(params))
+            return await resp.json() as InitResponse
+        }
+
+        public async rejectStage(id: string, stageId: string, params: RejectRequest): Promise<RejectResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/stage/${encodeURIComponent(stageId)}/reject`, JSON.stringify(params))
+            return await resp.json() as RejectResponse
+        }
+
+        public async reportTokenSpend(id: string, params: TokenSpendRequest): Promise<void> {
+            await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/token-spend`, JSON.stringify(params))
+        }
+
+        public async triggerDeploy(id: string, params: DeployRequest): Promise<DeployResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/deploy`, JSON.stringify(params))
+            return await resp.json() as DeployResponse
         }
     }
 }

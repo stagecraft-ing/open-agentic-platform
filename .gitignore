@@ -302,6 +302,9 @@ crates/xray/tests/outputs/
 # OAP background agent worktrees (051-worktree-agents)
 .worktrees/
 
+# Claude Code personal settings (machine-specific overrides)
+.claude/settings.local.json
+
 # Platform layer
 platform/kubeconfig/
 platform/tmp/
