@@ -11,7 +11,7 @@ Open Agentic Platform (OAP) is a governed operating system for AI-native softwar
 ## Repository Structure
 
 ```
-specs/           — Feature specifications (000–073+), the authoritative design record
+specs/           — Feature specifications (000–078+), the authoritative design record
 tools/           — Rust CLI tools
   spec-compiler/ — Compiles specs → build/spec-registry/registry.json
   registry-consumer/ — Reads and queries the compiled registry
@@ -22,7 +22,13 @@ crates/          — Rust library crates
   orchestrator/  policy-kernel/ run/  xray/
   skill-factory/ — Skill and Command Factory (spec 071)
   tool-registry/ — ToolDef trait + registry (spec 067)
+  elucid-contracts/ — Rust types for Elucid contract schemas (spec 074)
   axiomregent contains: github/ (GitHub API tools), search/ (semantic search), checkpoint/ subsystem
+elucid/          — Elucid delivery engine (git subtree from analyticus/elucid)
+  contract/      — Formal schemas: Build Spec, Adapter Manifest, Pipeline State, Verification
+  process/       — 7-stage pipeline: agents, stage definitions, Python verification harness
+  adapters/      — Pluggable tech adapters (aim-vue-node, next-prisma, encore-react, rust-axum)
+  docs/          — Architecture, how-to, integration docs
 apps/desktop/    — Tauri v2 + React desktop app (TypeScript + Rust)
 platform/        — Organisational control plane (imported from stagecraft-ing/platform)
   services/
