@@ -27,7 +27,7 @@ const SemanticSearchPanel = lazy(() => import('@/components/SemanticSearchPanel'
 const CallGraphPanel = lazy(() => import('@/components/CallGraphPanel').then(m => ({ default: m.CallGraphPanel })));
 const GitContextPanel = lazy(() => import('@/components/GitContextPanel').then(m => ({ default: m.GitContextPanel })));
 const CheckpointPanel = lazy(() => import('@/components/CheckpointPanel').then(m => ({ default: m.CheckpointPanel })));
-const ElucidPipelinePanel = lazy(() => import('@/components/elucid/ElucidPipelinePanel').then(m => ({ default: m.ElucidPipelinePanel })));
+const FactoryPipelinePanel = lazy(() => import('@/components/factory/FactoryPipelinePanel').then(m => ({ default: m.FactoryPipelinePanel })));
 
 // Import non-lazy components for projects view
 
@@ -418,10 +418,10 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
           </div>
         );
 
-      case 'elucid':
+      case 'factory':
         return (
           <div className="h-full">
-            <ElucidPipelinePanel projectPath={tab.projectPath} />
+            <FactoryPipelinePanel projectPath={tab.projectPath} />
           </div>
         );
 

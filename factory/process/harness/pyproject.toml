@@ -1,0 +1,17 @@
+[project]
+name = "factory-harness"
+version = "0.1.0"
+description = "Factory verification harness — automated pipeline verification"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "jsonschema>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+factory = "factory.__main__:main"

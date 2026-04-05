@@ -1,6 +1,6 @@
 ---
 id: "078-platform-completion-plan"
-title: "Platform Completion Plan — Elucid Ingestion + Draft Spec Closure"
+title: "Platform Completion Plan — Factory Ingestion + Draft Spec Closure"
 feature_branch: "feat/078-platform-completion"
 status: draft
 kind: platform
@@ -8,7 +8,7 @@ created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  Master implementation plan that sequences Elucid ingestion (specs 074-077),
+  Master implementation plan that sequences Factory ingestion (specs 074-077),
   existing draft spec completion (042, 049, 051, 052, 057, 072), and infrastructure
   hardening into a phased roadmap that delivers a complete, functioning AI software
   factory platform.
@@ -19,7 +19,7 @@ code_aliases: ["PLATFORM_COMPLETION", "MASTER_PLAN"]
 
 ## Executive Summary
 
-OAP today is a governed orchestration engine with a mature spec system, policy kernel, desktop app, and platform services — but it lacks a delivery methodology and has 19 draft specs with incomplete implementations. Ingesting Elucid fills the delivery gap and, critically, **forces completion** of the most important draft specs because Elucid's pipeline is the most demanding consumer of those subsystems.
+OAP today is a governed orchestration engine with a mature spec system, policy kernel, desktop app, and platform services — but it lacks a delivery methodology and has 19 draft specs with incomplete implementations. Ingesting Factory fills the delivery gap and, critically, **forces completion** of the most important draft specs because Factory's pipeline is the most demanding consumer of those subsystems.
 
 This plan sequences all work into 6 phases over ~12 weeks. Each phase delivers independently testable value. No phase requires all prior phases to be 100% complete — work items within a phase can overlap.
 
@@ -43,45 +43,45 @@ This plan sequences all work into 6 phases over ~12 weeks. Each phase delivers i
 
 | Spec | Gap | Blocks |
 |------|-----|--------|
-| **052 State Persistence** | Phases 3-6: checkpoint gate execution, SQLite backend, SSE event stream, resume-from-state | Elucid pipeline resume, real-time desktop updates |
+| **052 State Persistence** | Phases 3-6: checkpoint gate execution, SQLite backend, SSE event stream, resume-from-state | Factory pipeline resume, real-time desktop updates |
 | **042 Provider Registry** | Multi-provider adapters (Anthropic, OpenAI, Gemini, Bedrock) | Model flexibility for scaffold agents |
-| **049 Permission System** | Runtime enforcement end-to-end: settings → axiomregent → tool gating | Elucid tier 1/2 agent enforcement |
+| **049 Permission System** | Runtime enforcement end-to-end: settings → axiomregent → tool gating | Factory tier 1/2 agent enforcement |
 | **051 Worktree Agents** | Lifecycle events, merge workflow, concurrency limiting | Parallel scaffold fan-out isolation |
 | **057 Notification System** | Slack + web-push channels | Pipeline status notifications |
-| **072 Multi-Cloud K8s** | AWS EKS, GCP GKE Terraform templates | Deploy Elucid-generated apps to non-Azure |
+| **072 Multi-Cloud K8s** | AWS EKS, GCP GKE Terraform templates | Deploy Factory-generated apps to non-Azure |
 
-### What's New (Elucid Integration)
+### What's New (Factory Integration)
 
 | Spec | Deliverable |
 |------|------------|
-| **074 Elucid Ingestion** | Git subtree, Rust contract types, adapter registry, agent loader |
-| **075 Elucid Workflow Engine** | Two-phase execution, fan-out, verification hooks, policy shards |
-| **076 Elucid Desktop Panel** | Pipeline DAG, artifact inspector, gate dialogs, scaffold monitor |
-| **077 Stagecraft Elucid API** | Project init, stage confirm/reject, audit trail, deployment handoff |
+| **074 Factory Ingestion** | Git subtree, Rust contract types, adapter registry, agent loader |
+| **075 Factory Workflow Engine** | Two-phase execution, fan-out, verification hooks, policy shards |
+| **076 Factory Desktop Panel** | Pipeline DAG, artifact inspector, gate dialogs, scaffold monitor |
+| **077 Stagecraft Factory API** | Project init, stage confirm/reject, audit trail, deployment handoff |
 
 ---
 
 ## Phase 1: Foundation (Weeks 1-2)
 
-**Goal**: Elucid code in the repo, contract types compiling, adapters discoverable.
+**Goal**: Factory code in the repo, contract types compiling, adapters discoverable.
 
 ### Work Items
 
 | ID | Task | Spec | Effort | Dependencies |
 |----|------|------|--------|-------------|
-| 1.1 | Git subtree add Elucid into `elucid/` | 074 | 0.5d | None |
-| 1.2 | Create `crates/elucid-contracts/` with Build Spec types | 074 | 2d | 1.1 |
+| 1.1 | Git subtree add Factory into `factory/` | 074 | 0.5d | None |
+| 1.2 | Create `crates/factory-contracts/` with Build Spec types | 074 | 2d | 1.1 |
 | 1.3 | Add Adapter Manifest types to contracts crate | 074 | 1d | 1.2 |
 | 1.4 | Add Pipeline State types to contracts crate | 074 | 1d | 1.2 |
 | 1.5 | Add Verification Contract types to contracts crate | 074 | 0.5d | 1.2 |
 | 1.6 | Implement AdapterRegistry::discover() | 074 | 1d | 1.3 |
 | 1.7 | Implement ProcessAgentLoader + PatternResolver | 074 | 1d | 1.3 |
-| 1.8 | Round-trip tests against all Elucid examples | 074 | 1d | 1.2-1.5 |
-| 1.9 | Update CLAUDE.md with elucid/ directory documentation | — | 0.5d | 1.1 |
+| 1.8 | Round-trip tests against all Factory examples | 074 | 1d | 1.2-1.5 |
+| 1.9 | Update CLAUDE.md with factory/ directory documentation | — | 0.5d | 1.1 |
 
 ### Deliverable
 
-- `cargo build --release -p elucid-contracts` succeeds
+- `cargo build --release -p factory-contracts` succeeds
 - All 4 adapters discovered and validated
 - `cfs-womens-shelter.build-spec.yaml` parses into `BuildSpec` and round-trips
 
@@ -93,7 +93,7 @@ Demonstrate: parse a real Build Spec, discover adapters, validate capabilities m
 
 ## Phase 2: Orchestrator Integration (Weeks 3-5)
 
-**Goal**: Elucid pipeline can execute end-to-end with mock agents (noop dispatch).
+**Goal**: Factory pipeline can execute end-to-end with mock agents (noop dispatch).
 
 ### Work Items
 
@@ -105,17 +105,17 @@ Demonstrate: parse a real Build Spec, discover adapters, validate capabilities m
 | 2.4 | Implement `generate_process_manifest()` | 075 | 2d | Phase 1 |
 | 2.5 | Implement `generate_scaffold_manifest()` with entity dependency ordering | 075 | 3d | Phase 1 |
 | 2.6 | Implement two-phase execution (auto Phase 2 after stage 5 approval) | 075 | 2d | 2.4, 2.5 |
-| 2.7 | Implement `ElucidAgentBridge` (agent registry adapter) | 075 | 1d | 1.7 |
-| 2.8 | Implement `generate_elucid_policy_shard()` | 075 | 1d | 1.3, 1.6 |
+| 2.7 | Implement `FactoryAgentBridge` (agent registry adapter) | 075 | 1d | 1.7 |
+| 2.8 | Implement `generate_factory_policy_shard()` | 075 | 1d | 1.3, 1.6 |
 | 2.9 | **Complete spec 052 phases 3-4**: checkpoint gate execution + SQLite WorkflowStore | 052 | 4d | None |
 | 2.10 | **Complete spec 052 phase 5**: SSE event stream server | 052 | 3d | 2.9 |
-| 2.11 | **Complete spec 052 phase 6**: resume-from-state for Elucid | 052 | 2d | 2.9, 2.6 |
+| 2.11 | **Complete spec 052 phase 6**: resume-from-state for Factory | 052 | 2d | 2.9, 2.6 |
 | 2.12 | Integrate Python verification harness as subprocess | 075 | 1d | Phase 1 |
 | 2.13 | Noop end-to-end test: full pipeline with mock agents | 075 | 2d | 2.1-2.12 |
 
 ### Deliverable
 
-- `dispatch_manifest_noop()` runs a full Elucid pipeline (process + scaffold fan-out)
+- `dispatch_manifest_noop()` runs a full Factory pipeline (process + scaffold fan-out)
 - State persists to SQLite; resume works after simulated crash
 - Events stream via SSE
 - Post-step verification hooks execute and retry on failure
@@ -128,7 +128,7 @@ Demonstrate: noop pipeline generates correct Phase 1 manifest from `cfs-womens-s
 
 ## Phase 3: Agent Dispatch & Permission Wiring (Weeks 4-6)
 
-**Goal**: Real agent execution with governed permissions. Elucid agents dispatch via Claude CLI.
+**Goal**: Real agent execution with governed permissions. Factory agents dispatch via Claude CLI.
 
 ### Work Items
 
@@ -136,9 +136,9 @@ Demonstrate: noop pipeline generates correct Phase 1 manifest from `cfs-womens-s
 |----|------|------|--------|-------------|
 | 3.1 | **Complete spec 042**: Anthropic provider adapter (Claude CLI dispatch) | 042 | 3d | None |
 | 3.2 | **Complete spec 042**: Provider selection logic (model → provider routing) | 042 | 2d | 3.1 |
-| 3.3 | Replace agent registry stub with real registry rows from ElucidAgentBridge | 042, 075 | 2d | 2.7 |
+| 3.3 | Replace agent registry stub with real registry rows from FactoryAgentBridge | 042, 075 | 2d | 2.7 |
 | 3.4 | **Complete spec 049**: Wire permission runtime → axiomregent → tool gating | 049 | 3d | None |
-| 3.5 | Apply Elucid policy shard to axiomregent at pipeline start | 075, 049 | 1d | 2.8, 3.4 |
+| 3.5 | Apply Factory policy shard to axiomregent at pipeline start | 075, 049 | 1d | 2.8, 3.4 |
 | 3.6 | Implement Tier 1 enforcement: process agents are read-only | 049, 075 | 1d | 3.4, 3.5 |
 | 3.7 | Implement Tier 2 enforcement: scaffold agents write only to allowed paths | 049, 075 | 1d | 3.4, 3.5 |
 | 3.8 | Token budget enforcement (halt on budget exceeded) | 075 | 1d | 3.1 |
@@ -147,26 +147,26 @@ Demonstrate: noop pipeline generates correct Phase 1 manifest from `cfs-womens-s
 
 ### Deliverable
 
-- Claude CLI dispatches Elucid agents with correct system prompts and artifact paths
+- Claude CLI dispatches Factory agents with correct system prompts and artifact paths
 - axiomregent enforces file_write scope per adapter
 - Token budget tracked and enforced
 - Process agent (Tier 1) blocked from file_write; scaffold agent (Tier 2) allowed
 
 ### Checkpoint
 
-Demonstrate: dispatch `elucid-business-analyst` with a real business document, get structured JSON output. Dispatch `elucid-api-scaffolder-next-prisma` with a Build Spec operation, get code files written to correct paths. Verify axiomregent blocks write outside allowed paths.
+Demonstrate: dispatch `factory-business-analyst` with a real business document, get structured JSON output. Dispatch `factory-api-scaffolder-next-prisma` with a Build Spec operation, get code files written to correct paths. Verify axiomregent blocks write outside allowed paths.
 
 ---
 
 ## Phase 4: Desktop Integration (Weeks 5-8)
 
-**Goal**: OPC desktop has full Elucid Pipeline panel with real-time updates.
+**Goal**: OPC desktop has full Factory Pipeline panel with real-time updates.
 
 ### Work Items
 
 | ID | Task | Spec | Effort | Dependencies |
 |----|------|------|--------|-------------|
-| 4.1 | Create `ElucidPipelinePanel` tab with pipeline selector | 076 | 2d | None |
+| 4.1 | Create `FactoryPipelinePanel` tab with pipeline selector | 076 | 2d | None |
 | 4.2 | Implement `PipelineDAG` process stage visualization | 076 | 2d | 4.1 |
 | 4.3 | Implement `ArtifactInspector` (JSON/YAML/Markdown renderers) | 076 | 3d | 4.1 |
 | 4.4 | Implement `BuildSpecStructuredView` (entity cards, API tree, page cards) | 076 | 3d | 4.3 |
@@ -176,13 +176,13 @@ Demonstrate: dispatch `elucid-business-analyst` with a real business document, g
 | 4.8 | Implement `LiveAgentOutput` streaming panel | 076 | 2d | 4.6 |
 | 4.9 | Implement `TokenDashboard` with budget gauge | 076 | 1d | 4.6 |
 | 4.10 | Implement `PipelineHistory` with audit trail | 076 | 2d | 4.1 |
-| 4.11 | Add Tauri commands: `start_elucid_pipeline`, `confirm/reject_stage` | 075, 076 | 2d | Phase 2 |
+| 4.11 | Add Tauri commands: `start_factory_pipeline`, `confirm/reject_stage` | 075, 076 | 2d | Phase 2 |
 | 4.12 | **Complete spec 051**: Worktree agent lifecycle for scaffold fan-out | 051 | 3d | Phase 2 |
 | 4.13 | Integration test: full pipeline via desktop UI with gate interactions | 076 | 2d | 4.1-4.11 |
 
 ### Deliverable
 
-- User can start an Elucid pipeline from OPC desktop
+- User can start an Factory pipeline from OPC desktop
 - DAG updates in real-time as stages progress
 - Artifacts viewable after each stage
 - Build Spec rendered as structured UI for approval
@@ -197,21 +197,21 @@ Demonstrate: start pipeline in OPC, review stage 1 artifacts in inspector, confi
 
 ## Phase 5: Platform Integration (Weeks 6-9)
 
-**Goal**: Stagecraft tracks Elucid pipeline lifecycle with audit trail. Deployment handoff works.
+**Goal**: Stagecraft tracks Factory pipeline lifecycle with audit trail. Deployment handoff works.
 
 ### Work Items
 
 | ID | Task | Spec | Effort | Dependencies |
 |----|------|------|--------|-------------|
-| 5.1 | Create Drizzle schema + migration for Elucid tables | 077 | 1d | None |
-| 5.2 | Implement `POST /elucid/init` endpoint | 077 | 2d | 5.1 |
-| 5.3 | Implement `GET /elucid/status` endpoint | 077 | 1d | 5.1 |
+| 5.1 | Create Drizzle schema + migration for Factory tables | 077 | 1d | None |
+| 5.2 | Implement `POST /factory/init` endpoint | 077 | 2d | 5.1 |
+| 5.3 | Implement `GET /factory/status` endpoint | 077 | 1d | 5.1 |
 | 5.4 | Implement policy bundle compilation logic | 077 | 2d | 5.2 |
 | 5.5 | Implement `POST /stage/:id/confirm` and `/reject` endpoints | 077 | 2d | 5.1 |
-| 5.6 | Implement `GET /elucid/audit` endpoint | 077 | 1d | 5.1 |
-| 5.7 | Implement `POST /elucid/token-spend` reporting endpoint | 077 | 1d | 5.1 |
+| 5.6 | Implement `GET /factory/audit` endpoint | 077 | 1d | 5.1 |
+| 5.7 | Implement `POST /factory/token-spend` reporting endpoint | 077 | 1d | 5.1 |
 | 5.8 | Wire OPC → Stagecraft sync: stage confirmations + token reporting | 076, 077 | 2d | 5.2-5.7, Phase 4 |
-| 5.9 | Implement `POST /elucid/deploy` → deployd-api-rs handoff | 077 | 2d | 5.1 |
+| 5.9 | Implement `POST /factory/deploy` → deployd-api-rs handoff | 077 | 2d | 5.1 |
 | 5.10 | **Complete deployd-api-rs**: Accept deployment requests from Stagecraft | — | 3d | None |
 | 5.11 | Wire audit trail: axiomregent proof chain → Stagecraft audit_log | 077 | 2d | 5.6 |
 | 5.12 | **Complete spec 057**: Slack notification channel for pipeline events | 057 | 2d | 5.6 |
@@ -219,7 +219,7 @@ Demonstrate: start pipeline in OPC, review stage 1 artifacts in inspector, confi
 
 ### Deliverable
 
-- Stagecraft tracks all Elucid pipelines with full audit trail
+- Stagecraft tracks all Factory pipelines with full audit trail
 - Policy bundles compiled and served to OPC
 - Stage confirmations recorded with approver identity
 - Token spend tracked centrally
@@ -248,10 +248,10 @@ Demonstrate: create project in Stagecraft, start pipeline in OPC, confirm stages
 | 6.6 | End-to-end test: same pipeline on local K3s | All, 072 | 1d | 6.3, 6.4 |
 | 6.7 | Performance tuning: fan-out concurrency, token budget optimization | 075 | 2d | Phase 3 |
 | 6.8 | Fix diff generation in claude.rs (line 2227 TODO) | — | 1d | None |
-| 6.9 | Complete spec-compiler Elucid registry integration | 074 | 1d | Phase 1 |
-| 6.10 | Adapter development guide (how to create a new adapter for OAP+Elucid) | — | 2d | Phases 1-5 |
-| 6.11 | Spec-lint rules for Elucid contract schemas | — | 1d | Phase 1 |
-| 6.12 | Security audit: review all Elucid policy shards, file write scopes, command allowlists | — | 2d | Phase 3 |
+| 6.9 | Complete spec-compiler Factory registry integration | 074 | 1d | Phase 1 |
+| 6.10 | Adapter development guide (how to create a new adapter for OAP+Factory) | — | 2d | Phases 1-5 |
+| 6.11 | Spec-lint rules for Factory contract schemas | — | 1d | Phase 1 |
+| 6.12 | Security audit: review all Factory policy shards, file write scopes, command allowlists | — | 2d | Phase 3 |
 | 6.13 | Update all spec statuses: draft → active for completed specs | — | 0.5d | All |
 
 ### Deliverable
@@ -264,7 +264,7 @@ Demonstrate: create project in Stagecraft, start pipeline in OPC, confirm stages
 
 ### Checkpoint
 
-Demonstrate: Upload 3 business documents. Elucid pipeline extracts requirements, designs data model, specifies API + UI, freezes Build Spec. Scaffold fan-out generates ~50 features with build-test-fix loops. Final validation passes. Deploy to staging. Full audit trail shows every decision, every token, every approver.
+Demonstrate: Upload 3 business documents. Factory pipeline extracts requirements, designs data model, specifies API + UI, freezes Build Spec. Scaffold fan-out generates ~50 features with build-test-fix loops. Final validation passes. Deploy to staging. Full audit trail shows every decision, every token, every approver.
 
 ---
 
@@ -294,7 +294,7 @@ Phase 1 (1.1-1.8)
 
 ## Existing Draft Specs: Completion Summary
 
-This plan closes **7 of 19 draft specs** — the 7 that are blocking or accelerated by Elucid integration:
+This plan closes **7 of 19 draft specs** — the 7 that are blocking or accelerated by Factory integration:
 
 | Spec | Completion Work | Phase |
 |------|----------------|-------|
@@ -328,14 +328,14 @@ With parallelization across phases, a 2-person team can deliver in ~12 weeks. A 
 
 ## Success Criteria (Platform-Wide)
 
-- **SC-001**: Business documents → frozen Build Spec via Elucid process stages (s0-s5) with human gates
-- **SC-002**: Build Spec → working, tested codebase via Elucid scaffolding fan-out (s6) with per-feature verification
+- **SC-001**: Business documents → frozen Build Spec via Factory process stages (s0-s5) with human gates
+- **SC-002**: Build Spec → working, tested codebase via Factory scaffolding fan-out (s6) with per-feature verification
 - **SC-003**: Full pipeline visible in OPC desktop with real-time DAG, artifacts, gates, and token tracking
 - **SC-004**: Stagecraft tracks full audit trail: who initiated, who approved, what failed, how many tokens
 - **SC-005**: axiomregent enforces read-only for process agents (Tier 1) and scoped write for scaffold agents (Tier 2)
 - **SC-006**: Pipeline resumes from last checkpoint after crash (no work lost)
 - **SC-007**: Completed application deploys to at least one cloud provider via deployd-api-rs
-- **SC-008**: New adapter can be added by creating `elucid/adapters/{name}/` with manifest — zero OAP code changes
+- **SC-008**: New adapter can be added by creating `factory/adapters/{name}/` with manifest — zero OAP code changes
 
 ---
 
@@ -343,7 +343,7 @@ With parallelization across phases, a 2-person team can deliver in ~12 weeks. A 
 
 | # | Risk | Impact | Probability | Mitigation |
 |---|------|--------|-------------|-----------|
-| R1 | Elucid contract schemas evolve during integration | High | Medium | Version-pin subtree; contract crate is sole coupling point |
+| R1 | Factory contract schemas evolve during integration | High | Medium | Version-pin subtree; contract crate is sole coupling point |
 | R2 | Claude CLI dispatch latency makes fan-out slow | Medium | Low | Configurable concurrency; Sonnet for scaffold (fast); parallelism |
 | R3 | Spec 052 completion harder than estimated | High | Medium | Phase 2 has 2 week buffer; noop dispatch works without SQLite |
 | R4 | Adapter patterns produce inconsistent code | Medium | Medium | Verification hooks catch failures; retry loop auto-fixes |

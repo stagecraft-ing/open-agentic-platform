@@ -2,8 +2,8 @@
 members = [
     "agent",
     "axiomregent",
-    "elucid-contracts",
-    "elucid-engine",
+    "factory-contracts",
+    "factory-engine",
     "featuregraph",
     "orchestrator",
     "policy-kernel",

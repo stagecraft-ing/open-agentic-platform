@@ -1,0 +1,364 @@
+# ============================================================================
+# Factory Verification Contract Schema
+# ============================================================================
+#
+# Defines what must pass at each pipeline gate. Separates factory-owned
+# checks (cross-stage consistency, spec completeness) from adapter-owned
+# checks (compile, test, lint, architecture invariants).
+#
+# The verification harness reads this contract and executes checks
+# automatically — no agent self-assessment.
+#
+# Schema version: 1.0.0
+# ============================================================================
+
+schema_version: "1.0.0"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRE-FLIGHT CHECKS
+# ─────────────────────────────────────────────────────────────────────────────
+# Run before the pipeline starts. All must pass or pipeline aborts.
+#
+pre_flight:
+  owner: process                    # Process layer owns these checks
+
+  checks:
+    - id: "PF-001"
+      name: "Build Specification valid"
+      description: "Build Spec conforms to schema and all required fields present"
+      type: schema-validation
+      target: build-spec
+
+    - id: "PF-002"
+      name: "Adapter manifest valid"
+      description: "Adapter manifest conforms to schema"
+      type: schema-validation
+      target: adapter-manifest
+
+    - id: "PF-003"
+      name: "Adapter capabilities match"
+      description: "Adapter capabilities satisfy Build Spec requirements"
+      type: capability-check
+      rules:
+        - condition: "build_spec.project.variant == 'dual'"
+          requires: "adapter.capabilities.dual_stack == true"
+        - condition: "any auth audience uses 'saml'"
+          requires: "'saml' in adapter.supported_auth[].method"
+        - condition: "any auth audience uses 'oidc'"
+          requires: "'oidc' in adapter.supported_auth[].method"
+        - condition: "build_spec.integrations contains file-storage"
+          requires: "adapter.capabilities.file_uploads == true"
+        - condition: "build_spec.notifications defined"
+          requires: "adapter.capabilities.email_notifications == true"
+        - condition: "build_spec.audit.enabled == true"
+          requires: "adapter.capabilities.audit_logging == true"
+
+    - id: "PF-004"
+      name: "Adapter scaffold exists"
+      description: "Base project scaffold directory exists and is valid"
+      type: file-check
+      target: "adapter.scaffold.source"
+
+    - id: "PF-005"
+      name: "Required agent prompts exist"
+      description: "All required agent prompt files exist"
+      type: file-check
+      targets:
+        - "adapter.agents.api_scaffolder"
+        - "adapter.agents.ui_scaffolder"
+        - "adapter.agents.data_scaffolder"
+        - "adapter.agents.configurer"
+        - "adapter.agents.trimmer"
+
+    - id: "PF-006"
+      name: "Required pattern files exist"
+      description: "All referenced pattern files exist"
+      type: file-check
+      targets: "all values in adapter.patterns"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE GATES
+# ─────────────────────────────────────────────────────────────────────────────
+# Checks run after each process-layer stage completes.
+# All error-severity checks must pass before the next stage begins.
+#
+stage_gates:
+
+  # ── Stage 1: Business Requirements ──
+  - stage: "business-requirements"
+    owner: process
+    checks:
+      - id: "S1-001"
+        name: "BRD produced"
+        description: "Business Requirements Document exists"
+        type: artifact-exists
+        artifact: "requirements/brd.md"
+
+      - id: "S1-002"
+        name: "Entities extracted"
+        description: "At least one entity defined in entity model"
+        type: artifact-content
+        artifact: "requirements/entity-model.json"
+        condition: "entities.length > 0"
+
+      - id: "S1-003"
+        name: "Use cases defined"
+        description: "At least one use case defined"
+        type: artifact-content
+        artifact: "requirements/use-cases.json"
+        condition: "use_cases.length > 0"
+
+      - id: "S1-004"
+        name: "Business rules extracted"
+        description: "Business rules linked to entities"
+        type: artifact-content
+        artifact: "requirements/business-rules.json"
+        condition: "rules.length > 0"
+
+  # ── Stage 2: Service Requirements ──
+  - stage: "service-requirements"
+    owner: process
+    checks:
+      - id: "S2-001"
+        name: "Audiences identified"
+        description: "At least one audience defined with roles"
+        type: artifact-content
+        artifact: "requirements/audiences.json"
+        condition: "audiences.length > 0"
+
+      - id: "S2-002"
+        name: "Sitemap produced"
+        description: "Sitemap with pages and view types"
+        type: artifact-exists
+        artifact: "requirements/sitemap.json"
+
+      - id: "S2-003"
+        name: "Variant determined"
+        description: "Variant derived from audience/sitemap analysis"
+        type: artifact-content
+        artifact: "requirements/sitemap.json"
+        condition: "variant in ['single-public', 'single-internal', 'dual']"
+
+  # ── Stage 3: Data Model ──
+  - stage: "data-model"
+    owner: process
+    checks:
+      - id: "S3-001"
+        name: "Entity model complete"
+        description: "All BRD entities represented in data model"
+        type: cross-reference
+        source: "requirements/brd.md"
+        target: "requirements/entity-model.json"
+        condition: "every BRD entity has a data model entry"
+
+      - id: "S3-002"
+        name: "Relationships defined"
+        description: "All foreign key relationships specified"
+        type: artifact-content
+        artifact: "requirements/entity-model.json"
+        condition: "reference fields have ref_entity and ref_on_delete"
+
+      - id: "S3-003"
+        name: "Business rules mapped"
+        description: "State machine and validation rules linked to entities"
+        type: cross-reference
+        source: "requirements/business-rules.json"
+        target: "requirements/entity-model.json"
+
+  # ── Stage 4: API Specification ──
+  - stage: "api-specification"
+    owner: process
+    checks:
+      - id: "S4-001"
+        name: "Build Specification produced"
+        description: "API section of Build Spec has operations"
+        type: artifact-content
+        artifact: ".factory/build-spec.yaml"
+        condition: "api.resources.length > 0"
+
+      - id: "S4-002"
+        name: "Use case coverage"
+        description: "Every use case has at least one API operation"
+        type: cross-reference
+        source: "requirements/use-cases.json"
+        target: ".factory/build-spec.yaml"
+        condition: "every UC referenced in at least one operation.use_cases"
+
+      - id: "S4-003"
+        name: "Entity CRUD coverage"
+        description: "Every primary entity has at least list and get operations"
+        type: cross-reference
+        source: "requirements/entity-model.json"
+        target: ".factory/build-spec.yaml"
+
+      - id: "S4-004"
+        name: "Auth requirements specified"
+        description: "Every operation has auth and audience defined"
+        type: artifact-content
+        artifact: ".factory/build-spec.yaml"
+        condition: "every operation has auth and audience fields"
+
+      - id: "S4-005"
+        name: "Business rules linked"
+        description: "State machine and validation operations reference their rules"
+        type: artifact-content
+        artifact: ".factory/build-spec.yaml"
+        condition: "operations with state transitions reference state machine rule"
+
+  # ── Stage 5: UI Specification ──
+  - stage: "ui-specification"
+    owner: process
+    checks:
+      - id: "S5-001"
+        name: "UI pages defined"
+        description: "At least one page per audience"
+        type: artifact-content
+        artifact: ".factory/build-spec.yaml"
+        condition: "ui.pages.length > 0"
+
+      - id: "S5-002"
+        name: "API reachability"
+        description: "Every API operation is referenced by at least one page data_source"
+        type: cross-reference
+        source: ".factory/build-spec.yaml (api.resources.operations)"
+        target: ".factory/build-spec.yaml (ui.pages.data_sources)"
+
+      - id: "S5-003"
+        name: "Navigation complete"
+        description: "Every non-error page has nav_section and nav_order"
+        type: artifact-content
+        artifact: ".factory/build-spec.yaml"
+        condition: "pages with page_type not in [error, login] have nav_section"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCAFFOLDING GATES
+# ─────────────────────────────────────────────────────────────────────────────
+# Checks run by the verification harness after each scaffolded feature.
+# These use the adapter's declared build commands.
+#
+scaffolding_gates:
+  owner: adapter                    # Adapter declares the commands; harness runs them
+
+  # After each API feature (one operation scaffolded)
+  per_api_feature:
+    - id: "SF-API-001"
+      name: "Compiles"
+      type: command
+      command: "adapter.commands.compile"
+      must_pass: true
+
+    - id: "SF-API-002"
+      name: "Tests pass"
+      type: command
+      command: "adapter.commands.test"
+      must_pass: true
+
+    - id: "SF-API-003"
+      name: "Files created"
+      type: file-check
+      description: "Expected files exist per adapter directory conventions"
+      files:
+        - "adapter.directory_conventions.api_service (resolved)"
+        - "adapter.directory_conventions.api_controller (resolved)"
+        - "adapter.directory_conventions.api_route (resolved)"
+        - "adapter.directory_conventions.api_test (resolved)"
+
+  # After each UI feature (one page scaffolded)
+  per_ui_feature:
+    - id: "SF-UI-001"
+      name: "Compiles"
+      type: command
+      command: "adapter.commands.compile"
+      must_pass: true
+
+    - id: "SF-UI-002"
+      name: "Tests pass"
+      type: command
+      command: "adapter.commands.test"
+      must_pass: true
+
+    - id: "SF-UI-003"
+      name: "Files created"
+      type: file-check
+      files:
+        - "adapter.directory_conventions.ui_view (resolved)"
+        - "adapter.directory_conventions.ui_test (resolved)"
+
+  # Retry policy
+  retry:
+    max_retries: 3                  # Per feature
+    strategy: "feed-error-back"     # On failure: send compile/test error to agent, retry
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FINAL VALIDATION
+# ─────────────────────────────────────────────────────────────────────────────
+# Comprehensive checks run after all scaffolding, configuration, and
+# trimming are complete. Both process and adapter checks.
+#
+final_validation:
+
+  # Process-owned checks (cross-stage consistency)
+  process_checks:
+    - id: "FV-P-001"
+      name: "Use case to code mapping"
+      description: "Every UC maps to at least one generated API file"
+      type: cross-reference
+
+    - id: "FV-P-002"
+      name: "Test case coverage"
+      description: "Every TC maps to at least one test file"
+      type: cross-reference
+
+    - id: "FV-P-003"
+      name: "Entity to migration mapping"
+      description: "Every data model entity has a corresponding migration"
+      type: cross-reference
+
+    - id: "FV-P-004"
+      name: "Business rule implementation"
+      description: "Every business rule referenced in Build Spec is implemented in code"
+      type: cross-reference
+
+    - id: "FV-P-005"
+      name: "No unfilled placeholders"
+      description: "No {{...}} placeholder patterns remain in source files"
+      type: grep-absent
+      pattern: "\\{\\{[A-Z_]+\\}\\}"
+      scope: "."
+      exclude: ["*.example", "*.schema.*", ".factory/"]
+
+  # Adapter-owned checks (build, test, lint, invariants)
+  adapter_checks:
+    - id: "FV-A-001"
+      name: "Full build"
+      type: command
+      command: "adapter.commands.compile"
+
+    - id: "FV-A-002"
+      name: "All tests pass"
+      type: command
+      command: "adapter.commands.test"
+
+    - id: "FV-A-003"
+      name: "Lint clean"
+      type: command
+      command: "adapter.commands.lint"
+
+    - id: "FV-A-004"
+      name: "Type check"
+      type: command
+      command: "adapter.commands.type_check"
+
+    - id: "FV-A-005"
+      name: "Format check"
+      type: command
+      command: "adapter.commands.format_check"
+
+    - id: "FV-A-006"
+      name: "Architecture invariants"
+      description: "All adapter-declared invariants pass"
+      type: invariant-check
+      source: "adapter.validation.invariants"

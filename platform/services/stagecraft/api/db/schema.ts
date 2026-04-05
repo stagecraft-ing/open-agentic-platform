@@ -197,10 +197,10 @@ export const auditLog = pgTable("audit_log", {
 });
 
 // ---------------------------------------------------------------------------
-// Elucid Pipeline Lifecycle (spec 077)
+// Factory Pipeline Lifecycle (spec 077)
 // ---------------------------------------------------------------------------
 
-export const elucidPipelineStatusEnum = pgEnum("elucid_pipeline_status", [
+export const factoryPipelineStatusEnum = pgEnum("factory_pipeline_status", [
   "initialized",
   "running",
   "paused",
@@ -208,7 +208,7 @@ export const elucidPipelineStatusEnum = pgEnum("elucid_pipeline_status", [
   "failed",
 ]);
 
-export const elucidStageStatusEnum = pgEnum("elucid_stage_status", [
+export const factoryStageStatusEnum = pgEnum("factory_stage_status", [
   "pending",
   "in_progress",
   "completed",
@@ -216,14 +216,14 @@ export const elucidStageStatusEnum = pgEnum("elucid_stage_status", [
   "rejected",
 ]);
 
-export const elucidScaffoldStatusEnum = pgEnum("elucid_scaffold_status", [
+export const factoryScaffoldStatusEnum = pgEnum("factory_scaffold_status", [
   "pending",
   "in_progress",
   "completed",
   "failed",
 ]);
 
-export const elucidScaffoldCategoryEnum = pgEnum("elucid_scaffold_category", [
+export const factoryScaffoldCategoryEnum = pgEnum("factory_scaffold_category", [
   "data",
   "api",
   "ui",
@@ -232,11 +232,11 @@ export const elucidScaffoldCategoryEnum = pgEnum("elucid_scaffold_category", [
   "validate",
 ]);
 
-export const elucidPipelines = pgTable("elucid_pipelines", {
+export const factoryPipelines = pgTable("factory_pipelines", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull(),
   adapterName: text("adapter_name").notNull(),
-  status: elucidPipelineStatusEnum("status").notNull().default("initialized"),
+  status: factoryPipelineStatusEnum("status").notNull().default("initialized"),
   policyBundleId: uuid("policy_bundle_id"),
   buildSpecHash: text("build_spec_hash"),
   startedAt: timestamp("started_at", { withTimezone: true }),
@@ -249,7 +249,7 @@ export const elucidPipelines = pgTable("elucid_pipelines", {
     .defaultNow(),
 });
 
-export const elucidBusinessDocs = pgTable("elucid_business_docs", {
+export const factoryBusinessDocs = pgTable("factory_business_docs", {
   id: uuid("id").defaultRandom().primaryKey(),
   pipelineId: uuid("pipeline_id").notNull(),
   name: text("name").notNull(),
@@ -259,13 +259,13 @@ export const elucidBusinessDocs = pgTable("elucid_business_docs", {
     .defaultNow(),
 });
 
-export const elucidStages = pgTable(
-  "elucid_stages",
+export const factoryStages = pgTable(
+  "factory_stages",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     pipelineId: uuid("pipeline_id").notNull(),
     stageId: text("stage_id").notNull(),
-    status: elucidStageStatusEnum("status").notNull().default("pending"),
+    status: factoryStageStatusEnum("status").notNull().default("pending"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     confirmedBy: text("confirmed_by"),
@@ -280,14 +280,14 @@ export const elucidStages = pgTable(
   (t) => [unique().on(t.pipelineId, t.stageId)]
 );
 
-export const elucidScaffoldFeatures = pgTable(
-  "elucid_scaffold_features",
+export const factoryScaffoldFeatures = pgTable(
+  "factory_scaffold_features",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     pipelineId: uuid("pipeline_id").notNull(),
     featureId: text("feature_id").notNull(),
-    category: elucidScaffoldCategoryEnum("category").notNull(),
-    status: elucidScaffoldStatusEnum("status").notNull().default("pending"),
+    category: factoryScaffoldCategoryEnum("category").notNull(),
+    status: factoryScaffoldStatusEnum("status").notNull().default("pending"),
     retryCount: integer("retry_count").default(0),
     lastError: text("last_error"),
     filesCreated: text("files_created").array(),
@@ -299,7 +299,7 @@ export const elucidScaffoldFeatures = pgTable(
   (t) => [unique().on(t.pipelineId, t.featureId)]
 );
 
-export const elucidAuditLog = pgTable("elucid_audit_log", {
+export const factoryAuditLog = pgTable("factory_audit_log", {
   id: uuid("id").defaultRandom().primaryKey(),
   pipelineId: uuid("pipeline_id").notNull(),
   timestamp: timestamp("timestamp", { withTimezone: true })
@@ -312,7 +312,7 @@ export const elucidAuditLog = pgTable("elucid_audit_log", {
   details: jsonb("details").notNull().default({}),
 });
 
-export const elucidPolicyBundles = pgTable("elucid_policy_bundles", {
+export const factoryPolicyBundles = pgTable("factory_policy_bundles", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull(),
   adapterName: text("adapter_name").notNull(),

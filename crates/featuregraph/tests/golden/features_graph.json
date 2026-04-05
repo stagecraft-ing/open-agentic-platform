@@ -1429,9 +1429,9 @@
       "violations": []
     },
     {
-      "feature_id": "074-elucid-ingestion",
-      "title": "Elucid Ingestion as First-Class Delivery Engine",
-      "spec_path": "specs/074-elucid-ingestion/spec.md",
+      "feature_id": "074-factory-ingestion",
+      "title": "Factory Ingestion as First-Class Delivery Engine",
+      "spec_path": "specs/074-factory-ingestion/spec.md",
       "status": "draft",
       "governance": "",
       "owner": "",
@@ -1442,9 +1442,9 @@
       "violations": []
     },
     {
-      "feature_id": "075-elucid-workflow-engine",
-      "title": "Elucid Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification",
-      "spec_path": "specs/075-elucid-workflow-engine/spec.md",
+      "feature_id": "075-factory-workflow-engine",
+      "title": "Factory Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification",
+      "spec_path": "specs/075-factory-workflow-engine/spec.md",
       "status": "draft",
       "governance": "",
       "owner": "",
@@ -1455,9 +1455,9 @@
       "violations": []
     },
     {
-      "feature_id": "076-elucid-desktop-panel",
-      "title": "Elucid Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs",
-      "spec_path": "specs/076-elucid-desktop-panel/spec.md",
+      "feature_id": "076-factory-desktop-panel",
+      "title": "Factory Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs",
+      "spec_path": "specs/076-factory-desktop-panel/spec.md",
       "status": "draft",
       "governance": "",
       "owner": "",
@@ -1468,9 +1468,9 @@
       "violations": []
     },
     {
-      "feature_id": "077-stagecraft-elucid-api",
-      "title": "Stagecraft Elucid Lifecycle API — Project Init, Stage Confirmation, Audit Trail",
-      "spec_path": "specs/077-stagecraft-elucid-api/spec.md",
+      "feature_id": "077-stagecraft-factory-api",
+      "title": "Stagecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail",
+      "spec_path": "specs/077-stagecraft-factory-api/spec.md",
       "status": "draft",
       "governance": "",
       "owner": "",
@@ -1482,7 +1482,7 @@
     },
     {
       "feature_id": "078-platform-completion-plan",
-      "title": "Platform Completion Plan — Elucid Ingestion + Draft Spec Closure",
+      "title": "Platform Completion Plan — Factory Ingestion + Draft Spec Closure",
       "spec_path": "specs/078-platform-completion-plan/spec.md",
       "status": "draft",
       "governance": "",

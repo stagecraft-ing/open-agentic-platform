@@ -32,7 +32,7 @@ interface UseTabStateReturn {
   createCallGraphTab: (projectPath?: string) => string | null;
   createGitContextTab: (projectPath?: string) => string | null;
   createCheckpointTab: (projectPath?: string) => string | null;
-  createElucidTab: (projectPath?: string) => string | null;
+  createFactoryTab: (projectPath?: string) => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
   closeCurrentTab: () => Promise<boolean>;
   switchToTab: (id: string) => void;
@@ -392,16 +392,16 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createElucidTab = useCallback((projectPath?: string): string | null => {
-    const existingTab = tabs.find(tab => tab.type === 'elucid');
+  const createFactoryTab = useCallback((projectPath?: string): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'factory');
     if (existingTab) {
       if (projectPath) updateTab(existingTab.id, { projectPath });
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
     return addTab({
-      type: 'elucid',
-      title: 'Elucid',
+      type: 'factory',
+      title: 'Factory',
       projectPath,
       status: 'idle',
       hasUnsavedChanges: false,
@@ -508,7 +508,7 @@ export const useTabState = (): UseTabStateReturn => {
     createCallGraphTab,
     createGitContextTab,
     createCheckpointTab,
-    createElucidTab,
+    createFactoryTab,
     closeTab,
     closeCurrentTab,
     switchToTab: setActiveTab,

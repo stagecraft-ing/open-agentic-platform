@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
-// Spec: specs/075-elucid-workflow-engine/spec.md
+// Spec: specs/075-factory-workflow-engine/spec.md
 
 //! Post-step verification hook execution (075 FR-005, FR-006).
 

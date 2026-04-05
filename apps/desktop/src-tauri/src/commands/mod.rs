@@ -1,7 +1,7 @@
 pub mod agents;
 pub mod analysis;
 pub mod claude;
-pub mod elucid;
+pub mod factory;
 pub mod git;
 pub mod mcp;
 pub mod orchestrator;

@@ -22,9 +22,9 @@ crates/          — Rust library crates
   orchestrator/  policy-kernel/ run/  xray/
   skill-factory/ — Skill and Command Factory (spec 071)
   tool-registry/ — ToolDef trait + registry (spec 067)
-  elucid-contracts/ — Rust types for Elucid contract schemas (spec 074)
+  factory-contracts/ — Rust types for Factory contract schemas (spec 074)
   axiomregent contains: github/ (GitHub API tools), search/ (semantic search), checkpoint/ subsystem
-elucid/          — Elucid delivery engine (git subtree from analyticus/elucid)
+factory/          — Factory delivery engine (git subtree from analyticus/factory)
   contract/      — Formal schemas: Build Spec, Adapter Manifest, Pipeline State, Verification
   process/       — 7-stage pipeline: agents, stage definitions, Python verification harness
   adapters/      — Pluggable tech adapters (aim-vue-node, next-prisma, encore-react, rust-axum)
