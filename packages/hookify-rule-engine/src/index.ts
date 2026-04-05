@@ -78,3 +78,6 @@ export { parseSettingsHooks } from "./settings-parser.js";
 
 export { consoleAuditSink, MemoryAuditSink, nullAuditSink } from "./audit.js";
 export type { AuditSink } from "./audit.js";
+
+export { HookRuntime } from "./hook-runtime.js";
+export type { HookRuntimeOptions } from "./hook-runtime.js";
