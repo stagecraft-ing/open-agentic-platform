@@ -204,7 +204,7 @@ impl WorkflowState {
             step.status = match escalation {
                 ApprovalEscalation::Fail => StepExecutionStatus::Failed,
                 ApprovalEscalation::Skip => StepExecutionStatus::Skipped,
-                ApprovalEscalation::Notify => StepExecutionStatus::Pending,
+                ApprovalEscalation::Notify => StepExecutionStatus::Failed,
             };
         }
     }

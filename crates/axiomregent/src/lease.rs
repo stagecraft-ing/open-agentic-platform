@@ -35,13 +35,7 @@ impl Fingerprint {
                 .trim()
                 .to_string()
         } else {
-            // Unborn branch or empty repo?
-            // rev-parse HEAD passes even if unborn? No, usually fails.
-            // Check if symbolic-ref HEAD exists?
-            // Fallback for unborn: empty string.
-            // We can treat failure as unborn for now if verifying it's a git repo.
-            // Assume it is a git repo.
-            "".to_string()
+            return Err(anyhow!("Failed to run git rev-parse HEAD. Git repository must be initialized and populated to grant a lease."));
         };
 
         // 2. index_oid
@@ -56,9 +50,7 @@ impl Fingerprint {
                 .trim()
                 .to_string()
         } else {
-            // "no tree possible" -> e.g. merge conflict state when index is invalid?
-            // Spec: "Empty string only if a tree is provably impossible"
-            "".to_string()
+            return Err(anyhow!("Failed to run git write-tree. Git index must be valid to grant a lease."));
         };
 
         // 3. status_hash

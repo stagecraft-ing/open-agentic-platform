@@ -116,8 +116,9 @@ where
             state.mark_awaiting_checkpoint(step_id);
             persist(state).map_err(GateError::HandlerError)?;
 
-            let duration = Duration::from_millis(*timeout_ms_val);
-            let approval_future = handler.await_approval(step_id, *timeout_ms_val);
+            let clamped_timeout_ms = std::cmp::min(*timeout_ms_val, 3_600_000);
+            let duration = Duration::from_millis(clamped_timeout_ms);
+            let approval_future = handler.await_approval(step_id, clamped_timeout_ms);
 
             match timeout(duration, approval_future).await {
                 Ok(Ok(())) => {
@@ -141,7 +142,7 @@ where
                         step_id,
                         esc.clone(),
                         now,
-                        Some(*timeout_ms_val),
+                        Some(clamped_timeout_ms),
                     );
                     persist(state).map_err(GateError::HandlerError)?;
 
@@ -437,8 +438,8 @@ mod tests {
             }
         );
         assert_eq!(state.status, WorkflowStatus::TimedOut);
-        // Notify escalation keeps step as Pending.
-        assert_eq!(state.steps[0].status, StepExecutionStatus::Pending);
+        // Notify escalation keeps step as Failed to prevent pipeline stall.
+        assert_eq!(state.steps[0].status, StepExecutionStatus::Failed);
     }
 
     #[tokio::test]

@@ -13,8 +13,8 @@ pub struct Claims {
     pub aud: Option<serde_json::Value>,
 }
 
-// Cached JWKS: stores (json_body, fetched_at)
-static JWKS_CACHE: Lazy<Mutex<Option<(String, std::time::Instant)>>> =
+// Cached JWKS: stores (json_body, issuer, fetched_at)
+static JWKS_CACHE: Lazy<Mutex<Option<(String, String, std::time::Instant)>>> =
     Lazy::new(|| Mutex::new(None));
 
 pub async fn verify_jwt(
@@ -31,9 +31,8 @@ pub async fn verify_jwt(
         .strip_prefix("Bearer ")
         .ok_or_else(|| anyhow!("Invalid Authorization header format"))?;
 
-    // Fetch JWKS (with 10-minute cache)
-    let jwks_uri = fetch_jwks_uri(oidc_endpoint).await?;
-    let jwks_json = fetch_jwks(&jwks_uri).await?;
+    // Fetch JWKS and Issuer (with 10-minute cache)
+    let (jwks_json, issuer) = fetch_jwks_and_issuer(oidc_endpoint).await?;
 
     // Decode header to find kid
     let header = decode_header(token)?;
@@ -60,7 +59,8 @@ pub async fn verify_jwt(
     } else {
         validation.validate_aud = false;
     }
-    // Don't validate issuer — Rauthy's issuer URL varies by deployment
+    // Dynamically enforce the fetched issuer
+    validation.issuers = Some(vec![issuer]);
     validation.validate_exp = true;
 
     let decoded = decode::<Claims>(token, &decoding_key, &validation)?;
@@ -78,32 +78,36 @@ pub fn has_scope(claims: &Claims, required: &str) -> bool {
         .unwrap_or(false)
 }
 
-async fn fetch_jwks_uri(oidc_endpoint: &str) -> Result<String> {
+async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> {
+    // Check cache
+    {
+        let cache = JWKS_CACHE.lock().unwrap();
+        if let Some((cached_body, cached_iss, ts)) = cache.as_ref()
+            && ts.elapsed() < std::time::Duration::from_secs(600)
+        {
+            return Ok((cached_body.clone(), cached_iss.clone()));
+        }
+    }
+
     let url = format!(
         "{}/.well-known/openid-configuration",
         oidc_endpoint.trim_end_matches('/')
     );
     let resp: serde_json::Value = reqwest::get(&url).await?.json().await?;
-    resp["jwks_uri"]
+    let jwks_uri = resp["jwks_uri"]
         .as_str()
         .map(String::from)
-        .ok_or_else(|| anyhow!("No jwks_uri in OIDC discovery"))
-}
+        .ok_or_else(|| anyhow!("No jwks_uri in OIDC discovery"))?;
+    let issuer = resp["issuer"]
+        .as_str()
+        .map(String::from)
+        .ok_or_else(|| anyhow!("No issuer in OIDC discovery"))?;
 
-async fn fetch_jwks(uri: &str) -> Result<String> {
-    // Check cache
-    {
-        let cache = JWKS_CACHE.lock().unwrap();
-        if let Some((cached, ts)) = cache.as_ref()
-            && ts.elapsed() < std::time::Duration::from_secs(600)
-        {
-            return Ok(cached.clone());
-        }
-    }
-    let body = reqwest::get(uri).await?.text().await?;
+    let body = reqwest::get(&jwks_uri).await?.text().await?;
+    
     {
         let mut cache = JWKS_CACHE.lock().unwrap();
-        *cache = Some((body.clone(), std::time::Instant::now()));
+        *cache = Some((body.clone(), issuer.clone(), std::time::Instant::now()));
     }
-    Ok(body)
+    Ok((body, issuer))
 }
