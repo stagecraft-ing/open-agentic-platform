@@ -2,7 +2,7 @@
 id: "074-elucid-ingestion"
 title: "Elucid Ingestion as First-Class Delivery Engine"
 feature_branch: "feat/074-elucid-ingestion"
-status: draft
+status: implementing
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

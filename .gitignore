@@ -302,6 +302,10 @@ crates/xray/tests/outputs/
 # OAP background agent worktrees (051-worktree-agents)
 .worktrees/
 
+# Elucid verification harness (Python bytecode)
+elucid/process/harness/__pycache__/
+*.pyc
+
 # Platform layer
 platform/kubeconfig/
 platform/tmp/

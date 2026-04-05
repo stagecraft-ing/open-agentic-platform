@@ -8,6 +8,7 @@ members = [
     "run",
     "skill-factory",
     "tool-registry",
+    "elucid-contracts",
     "xray",
 ]
 resolver = "2"

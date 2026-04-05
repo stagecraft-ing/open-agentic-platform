@@ -1,0 +1,248 @@
+# ============================================================================
+# Adapter Manifest: Next.js 15 + Prisma Full-Stack Template
+# ============================================================================
+
+schema_version: "1.0.0"
+
+adapter:
+  name: "next-prisma"
+  display_name: "Next.js 15 + Prisma Full-Stack"
+  version: "1.0.0"
+  description: "Full-stack Next.js 15 App Router with React Server Components, Server Actions, Prisma ORM, NextAuth.js, Tailwind CSS, and Zod validation."
+
+stack:
+  language: "typescript"
+  runtime: "node-22"
+
+  backend:
+    framework: "next-15"
+    description: "Next.js 15 App Router with Route Handlers for API endpoints, Server Actions for mutations, middleware for auth and security."
+
+  frontend:
+    framework: "next-15"
+    state_management: "react-server-components"
+    design_system: "tailwind-css"
+    description: "React Server Components for data fetching, Client Components for interactivity. Tailwind CSS for styling. Zod for form validation."
+
+  database:
+    supported: ["postgresql"]
+    migration_tool: "prisma-migrate"
+    orm: "prisma"
+
+capabilities:
+  dual_stack: false
+  bff_pattern: false
+  single_stack: true
+  session_auth: true
+  token_auth: false
+  api_key_auth: false
+  module_system: false
+  file_uploads: true
+  background_jobs: false
+  realtime: false
+  email_notifications: true
+  audit_logging: true
+  direct_sql: false
+  orm_based: true
+  api_proxy: false
+
+  # Next.js-specific capabilities
+  server_components: true
+  server_actions: true
+  ssr: true
+  static_generation: true
+
+supported_auth:
+  - method: "session"
+    driver: "next-auth"
+    providers: ["credentials", "oidc", "github", "google"]
+    description: "NextAuth.js v5 with database session strategy. Supports multiple OAuth providers and credentials-based auth via Prisma adapter."
+
+supported_session_stores:
+  - type: "database"
+    description: "Prisma adapter for NextAuth.js. Sessions stored in PostgreSQL via Prisma models (User, Account, Session, VerificationToken)."
+
+commands:
+  install: "npm install"
+  compile: "npx next build"
+  test: "npx vitest run"
+  lint: "npx next lint"
+  dev: "npx next dev"
+  format_check: "npx prettier --check ."
+  type_check: "npx tsc --noEmit"
+  feature_verify:
+    - "npx tsc --noEmit"
+    - "npx vitest run"
+
+directory_conventions:
+  # Backend (API routes)
+  api_route: "src/app/api/{resource}/route.ts"
+  api_route_dynamic: "src/app/api/{resource}/[id]/route.ts"
+  api_service: "src/lib/services/{resource}.service.ts"
+  api_types: "src/lib/types/{entity}.ts"
+  api_test: "src/app/api/{resource}/__tests__/route.test.ts"
+
+  # Frontend (App Router pages)
+  ui_page: "src/app/(app)/{resource}/page.tsx"
+  ui_page_dynamic: "src/app/(app)/{resource}/[id]/page.tsx"
+  ui_layout: "src/app/(app)/layout.tsx"
+  ui_component: "src/components/{Name}.tsx"
+  ui_client_component: "src/components/{Name}.client.tsx"
+  ui_test: "src/app/(app)/{resource}/__tests__/page.test.tsx"
+  ui_action: "src/app/(app)/{resource}/actions.ts"
+
+  # Data layer
+  schema: "prisma/schema.prisma"
+  migration: "prisma/migrations/{timestamp}_{name}/migration.sql"
+  seed: "prisma/seed.ts"
+  schema_types: "src/lib/types/{entity}.ts"
+
+  # Config
+  env_file: ".env"
+
+patterns:
+  api:
+    route_handler: "patterns/api/route-handler.md"
+    service: "patterns/api/service.md"
+    types: "patterns/api/types.md"
+    test: "patterns/api/test.md"
+  ui:
+    page: "patterns/ui/page.md"
+    client_component: "patterns/ui/client-component.md"
+    layout: "patterns/ui/layout.md"
+    test: "patterns/ui/test.md"
+  data:
+    schema: "patterns/data/schema.md"
+    migration: "patterns/data/migration.md"
+    query: "patterns/data/query.md"
+    seed: "patterns/data/seed.md"
+  page_types:
+    landing: "patterns/page-types/landing.md"
+    dashboard: "patterns/page-types/dashboard.md"
+    list: "patterns/page-types/list.md"
+    detail: "patterns/page-types/detail.md"
+    form: "patterns/page-types/form.md"
+    content: "patterns/page-types/content.md"
+    login: "patterns/page-types/login.md"
+    profile: "patterns/page-types/profile.md"
+
+agents:
+  api_scaffolder: "agents/api-scaffolder.md"
+  ui_scaffolder: "agents/ui-scaffolder.md"
+  data_scaffolder: "agents/data-scaffolder.md"
+  configurer: "agents/configurer.md"
+  trimmer: "agents/trimmer.md"
+
+scaffold:
+  source: "scaffold/"
+  description: "Next.js 15 App Router project with Prisma ORM, NextAuth.js, Tailwind CSS, and Vitest pre-configured. Includes authenticated layout shell and auth pages."
+  modules:
+    single-public:
+      - "auth"
+      - "database"
+      - "public-layout"
+    single-internal:
+      - "auth"
+      - "database"
+      - "admin-layout"
+  setup_commands:
+    - "npm install"
+    - "npx prisma generate"
+
+validation:
+  invariants:
+    - id: "INV-001"
+      description: "App Router only — no pages/ directory"
+      check:
+        type: "command-succeeds"
+        pattern: "! test -d pages/"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-002"
+      description: "No Express — Next.js handles HTTP"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]express['\"]|require\\(['\"]express['\"]\\)"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-003"
+      description: "Prisma only — no raw pg, no TypeORM, no Drizzle"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]pg['\"]|import.*typeorm|import.*drizzle|new Pool\\("
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-004"
+      description: "Server Components by default — 'use client' only where needed"
+      check:
+        type: "grep-absent"
+        pattern: "^['\"]use client['\"]"
+        scope: "src/app/(app)/*/page.tsx"
+      severity: "warning"
+
+    - id: "INV-005"
+      description: "Zod for validation — no Joi/Yup/class-validator"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]joi['\"]|from ['\"]yup['\"]|from ['\"]class-validator['\"]"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-006"
+      description: "NextAuth.js for auth — no custom JWT"
+      check:
+        type: "grep-absent"
+        pattern: "jsonwebtoken|jwt\\.sign|jwt\\.verify"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-007"
+      description: "Server Actions for mutations — files use 'use server'"
+      check:
+        type: "grep-present"
+        pattern: "^['\"]use server['\"]"
+        scope: "src/app/(app)/*/actions.ts"
+      severity: "warning"
+
+    - id: "INV-008"
+      description: "Tailwind CSS — no CSS modules or styled-components"
+      check:
+        type: "grep-absent"
+        pattern: "\\.module\\.css|styled-components|@emotion"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-009"
+      description: "No string interpolation in Prisma queries"
+      check:
+        type: "grep-absent"
+        pattern: "\\$queryRaw`[^`]*\\$\\{|\\$executeRaw`[^`]*\\$\\{"
+        scope: "src/lib/services/"
+      severity: "error"
+
+    - id: "INV-010"
+      description: "TypeScript compiles without errors"
+      check:
+        type: "command-succeeds"
+        pattern: "npx tsc --noEmit"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-011"
+      description: "All tests pass"
+      check:
+        type: "command-succeeds"
+        pattern: "npx vitest run"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-012"
+      description: "No unfilled placeholders in source files"
+      check:
+        type: "grep-absent"
+        pattern: "\\{\\{[A-Z_]+\\}\\}"
+        scope: "src/"
+      severity: "error"

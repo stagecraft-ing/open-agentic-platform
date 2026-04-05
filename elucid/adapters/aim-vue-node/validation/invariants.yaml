@@ -1,0 +1,175 @@
+# ============================================================================
+# AIM Vue+Node Adapter — Architecture Invariants
+# ============================================================================
+#
+# Machine-checkable rules extracted from the template's 16 architecture
+# invariants. The verification harness runs these after scaffolding.
+#
+# Each rule: ID, description, check type, pattern/scope, severity.
+# ============================================================================
+
+invariants:
+
+  # ── Language & Framework ────────────────────────────────────────────────
+
+  - id: "INV-001"
+    description: "All code is TypeScript — no .js source files in apps/ or packages/"
+    check:
+      type: "command-succeeds"
+      pattern: "! find apps/ packages/ -name '*.js' -not -path '*/dist/*' -not -path '*/node_modules/*' | grep -q ."
+      scope: "."
+    severity: "error"
+
+  - id: "INV-002"
+    description: "No JWT for user sessions — session-based auth only"
+    check:
+      type: "grep-absent"
+      pattern: "jsonwebtoken|jwt\\.sign|jwt\\.verify|JwtStrategy"
+      scope: "apps/"
+    severity: "error"
+
+  - id: "INV-003"
+    description: "No Vuex — Pinia only for state management"
+    check:
+      type: "grep-absent"
+      pattern: "import.*vuex|from ['\"]vuex['\"]|createStore.*vuex"
+      scope: "apps/web"
+    severity: "error"
+
+  - id: "INV-004"
+    description: "No ORM — direct SQL only (no Prisma, TypeORM, Sequelize, Drizzle)"
+    check:
+      type: "grep-absent"
+      pattern: "import.*prisma|import.*typeorm|import.*sequelize|import.*drizzle|from ['\"]prisma['\"]"
+      scope: "."
+    severity: "error"
+
+  - id: "INV-005"
+    description: "No Tailwind CSS — GoA Design System only"
+    check:
+      type: "grep-absent"
+      pattern: "tailwindcss|@tailwind|tailwind\\.config"
+      scope: "."
+    severity: "error"
+
+  - id: "INV-006"
+    description: "No Joi/Yup/class-validator — Zod only for validation"
+    check:
+      type: "grep-absent"
+      pattern: "from ['\"]joi['\"]|from ['\"]yup['\"]|from ['\"]class-validator['\"]"
+      scope: "."
+    severity: "error"
+
+  # ── Vue Conventions ─────────────────────────────────────────────────────
+
+  - id: "INV-007"
+    description: "Vue SFCs use <script setup> — no Options API"
+    check:
+      type: "grep-absent"
+      pattern: "export default defineComponent|export default \\{.*data\\(\\)"
+      scope: "apps/web"
+    severity: "error"
+
+  - id: "INV-008"
+    description: "All Vue views are lazy-loaded in router (no static imports)"
+    check:
+      type: "grep-absent"
+      pattern: "^import.*View from ['\"]\\.\\./(views|pages)/"
+      scope: "apps/web*/src/router/"
+    severity: "warning"
+
+  # ── Dual-Stack Isolation ────────────────────────────────────────────────
+
+  - id: "INV-009"
+    description: "Public API stack never imports database pool"
+    check:
+      type: "grep-absent"
+      pattern: "getPool|from ['\"].*db['\"]|database\\.config|pool\\.query"
+      scope: "apps/api-public/"
+    severity: "error"
+
+  - id: "INV-010"
+    description: "Internal API stack never imports gateway proxy"
+    check:
+      type: "grep-absent"
+      pattern: "proxyRequest|token-cache\\.service|gateway\\.routes"
+      scope: "apps/api-internal/src/services/"
+    severity: "error"
+
+  # ── Security ────────────────────────────────────────────────────────────
+
+  - id: "INV-011"
+    description: "Mock auth driver blocked in production"
+    check:
+      type: "grep-present"
+      pattern: "NODE_ENV.*production|production.*mock"
+      scope: "packages/auth/src/drivers/mock"
+    severity: "error"
+
+  - id: "INV-012"
+    description: "No string interpolation in SQL queries (must use parameterized queries)"
+    check:
+      type: "grep-absent"
+      pattern: "query\\(`[^`]*\\$\\{|query\\(['\"][^'\"]*\\$\\{"
+      scope: "apps/api-internal/src/services/"
+    severity: "error"
+
+  - id: "INV-013"
+    description: "CORS origin must not be wildcard"
+    check:
+      type: "grep-absent"
+      pattern: "CORS_ORIGIN.*['\"]\\*['\"]|cors\\(\\{.*origin.*['\"]\\*['\"]"
+      scope: "apps/"
+    severity: "error"
+
+  # ── Architecture Pattern ────────────────────────────────────────────────
+
+  - id: "INV-014"
+    description: "Route → Controller → Service pattern — routes do not import pool"
+    check:
+      type: "grep-absent"
+      pattern: "import.*pool|import.*getPool|from ['\"].*db['\"]"
+      scope: "apps/*/src/routes/"
+    severity: "error"
+
+  - id: "INV-015"
+    description: "Controllers do not import pool — they delegate to services"
+    check:
+      type: "grep-absent"
+      pattern: "import.*pool|import.*getPool|pool\\.query"
+      scope: "apps/*/src/controllers/"
+    severity: "error"
+
+  - id: "INV-016"
+    description: "Every service test file mocks the database pool"
+    check:
+      type: "grep-present"
+      pattern: "vi\\.mock.*db|mockQuery"
+      scope: "apps/*/src/services/*.test.ts"
+    severity: "warning"
+
+  # ── Build & Quality ─────────────────────────────────────────────────────
+
+  - id: "INV-017"
+    description: "TypeScript compiles without errors"
+    check:
+      type: "command-succeeds"
+      pattern: "npm run build"
+      scope: "."
+    severity: "error"
+
+  - id: "INV-018"
+    description: "All tests pass"
+    check:
+      type: "command-succeeds"
+      pattern: "npm test"
+      scope: "."
+    severity: "error"
+
+  - id: "INV-019"
+    description: "No unfilled placeholders in source files"
+    check:
+      type: "grep-absent"
+      pattern: "\\{\\{[A-Z_]+\\}\\}"
+      scope: "apps/"
+    severity: "error"
