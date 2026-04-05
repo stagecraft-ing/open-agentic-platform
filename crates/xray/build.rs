@@ -19,10 +19,10 @@ fn main() {
 
         let mut cc_build = cc::Build::new();
         for dir in dirs {
-            cc_build.include(&dir).file(dir.join("parser.c"));
-            if !dir.ends_with("tree-sitter-c/src") {
-                cc_build.file(dir.join("scanner.c"));
-            }
+            cc_build
+                .include(&dir)
+                .file(dir.join("parser.c"))
+                .file(dir.join("scanner.c"));
         }
         cc_build.compile("tree-sitter-languages");
     }

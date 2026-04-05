@@ -215,27 +215,27 @@ pub fn evaluate(index: &XrayIndex, config: &PolicyConfig) -> PolicyReport {
     }
 
     // Rule: dependency_deny_list
-    if !config.dependency_deny_list.is_empty() {
-        if let Some(ref deps) = index.dependencies {
-            for denied in &config.dependency_deny_list {
-                let mut found_in = Vec::new();
-                for (_ecosystem, dep_list) in &deps.ecosystems {
-                    for dep in dep_list {
-                        if dep.name == *denied {
-                            found_in.push(dep.source_file.clone());
-                        }
+    if !config.dependency_deny_list.is_empty()
+        && let Some(ref deps) = index.dependencies
+    {
+        for denied in &config.dependency_deny_list {
+            let mut found_in = Vec::new();
+            for dep_list in deps.ecosystems.values() {
+                for dep in dep_list {
+                    if dep.name == *denied {
+                        found_in.push(dep.source_file.clone());
                     }
                 }
-                if found_in.is_empty() {
-                    passed.push(format!("dependency_deny: {} not present", denied));
-                } else {
-                    violations.push(PolicyViolation {
-                        rule: "dependency_deny_list".to_string(),
-                        message: format!("Denied dependency '{}' found", denied),
-                        files: found_in,
-                        severity: Severity::Error,
-                    });
-                }
+            }
+            if found_in.is_empty() {
+                passed.push(format!("dependency_deny: {} not present", denied));
+            } else {
+                violations.push(PolicyViolation {
+                    rule: "dependency_deny_list".to_string(),
+                    message: format!("Denied dependency '{}' found", denied),
+                    files: found_in,
+                    severity: Severity::Error,
+                });
             }
         }
     }

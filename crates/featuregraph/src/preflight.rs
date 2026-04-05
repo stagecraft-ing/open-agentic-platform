@@ -111,25 +111,23 @@ impl PreflightChecker {
                         } else {
                             // Check SPEC_PATH_MISMATCH
                             if let Some(node) = graph.features.iter().find(|f| &f.feature_id == fid)
+                                && let Some(declared) = &header.spec_path
+                                && declared != &node.spec_path
                             {
-                                if let Some(declared) = &header.spec_path {
-                                    if declared != &node.spec_path {
-                                        violations.push(Violation {
-                                            code: "SPEC_PATH_MISMATCH".to_string(),
-                                            severity: "warning".to_string(),
-                                            path: rel_path.clone(),
-                                            feature_id: Some(fid.clone()),
-                                            message: format!(
-                                                "File declares spec {} but registry says {}",
-                                                declared, node.spec_path
-                                            ),
-                                            suggested_fix: Some(format!(
-                                                "Update header to Spec: {}",
-                                                node.spec_path
-                                            )),
-                                        });
-                                    }
-                                }
+                                violations.push(Violation {
+                                    code: "SPEC_PATH_MISMATCH".to_string(),
+                                    severity: "warning".to_string(),
+                                    path: rel_path.clone(),
+                                    feature_id: Some(fid.clone()),
+                                    message: format!(
+                                        "File declares spec {} but registry says {}",
+                                        declared, node.spec_path
+                                    ),
+                                    suggested_fix: Some(format!(
+                                        "Update header to Spec: {}",
+                                        node.spec_path
+                                    )),
+                                });
                             }
                         }
                     }

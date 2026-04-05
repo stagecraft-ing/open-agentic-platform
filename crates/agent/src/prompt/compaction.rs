@@ -33,6 +33,9 @@ pub struct CompactedResult {
     pub compacted_count: usize,
 }
 
+/// Pluggable summarizer function type.
+pub type SummarizerFn = Box<dyn Fn(&[Message]) -> String + Send + Sync>;
+
 /// Compaction service that monitors context size and triggers summarization (FR-006).
 pub struct CompactionService {
     /// Fraction of the context window that triggers compaction (default 0.8).
@@ -40,7 +43,7 @@ pub struct CompactionService {
     /// Number of recent messages to keep uncompacted (default 10).
     pub keep_recent: usize,
     /// Pluggable summarizer — takes a slice of messages, returns a summary string.
-    pub summarizer: Box<dyn Fn(&[Message]) -> String + Send + Sync>,
+    pub summarizer: SummarizerFn,
 }
 
 impl CompactionService {

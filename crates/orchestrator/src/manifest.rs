@@ -162,7 +162,7 @@ pub fn split_input_ref(input: &str) -> Option<(&str, &str)> {
     if input.starts_with('/') || input.contains(":\\") {
         return None;
     }
-    input.split_once('/').map(|(a, b)| (a, b))
+    input.split_once('/')
 }
 
 fn topological_sort(adj: &[Vec<usize>], indegree: &[u32]) -> Result<Vec<usize>, OrchestratorError> {

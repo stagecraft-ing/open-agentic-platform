@@ -295,8 +295,9 @@ impl Router {
                     None
                 };
 
-                // Dispatch to first matching provider
-                let result = {
+                // Dispatch to first matching provider.
+                // _lock_guard drops here, releasing the dlock (if held).
+                {
                     let mut dispatch_result = None;
                     for p in &self.providers {
                         if let Some(result) = p.handle(name, args).await {
@@ -307,10 +308,7 @@ impl Router {
                     dispatch_result.unwrap_or_else(|| {
                         json_rpc_error(req.id.clone(), -32601, &format!("Tool not found: {}", name))
                     })
-                };
-
-                // _lock_guard drops here, releasing the dlock (if held).
-                result
+                }
             }
             _ => json_rpc_error(req.id.clone(), -32601, "Method not found"),
         }

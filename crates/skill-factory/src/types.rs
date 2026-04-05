@@ -8,21 +8,16 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// Skill execution type (FR-004/005/006).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SkillType {
     /// Render body as system prompt for sub-agent (FR-004).
+    #[default]
     Prompt,
     /// Spawn independent sub-agent via dispatch (FR-005).
     Agent,
     /// Background execution, returns task ID (FR-006).
     Headless,
-}
-
-impl Default for SkillType {
-    fn default() -> Self {
-        Self::Prompt
-    }
 }
 
 /// Which tools a skill is allowed to use.

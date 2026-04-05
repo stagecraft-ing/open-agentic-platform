@@ -5,18 +5,13 @@
 use serde::{Deserialize, Serialize};
 
 /// Effort level controls per-step token budget and agent behavior (044 FR-005).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EffortLevel {
     Quick,
+    #[default]
     Investigate,
     Deep,
-}
-
-impl Default for EffortLevel {
-    fn default() -> Self {
-        EffortLevel::Investigate
-    }
 }
 
 impl EffortLevel {

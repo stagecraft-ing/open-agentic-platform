@@ -55,7 +55,7 @@ pub fn embed_code(code: &str) -> Result<[f32; VECTOR_SIZE]> {
 /// Generate embeddings for multiple code snippets.
 pub fn embed_batch(codes: &[String]) -> Result<Vec<[f32; VECTOR_SIZE]>> {
     let mut model = get_model()?;
-    let embeddings: Vec<Vec<f32>> = model.embed(codes.to_vec(), None)?;
+    let embeddings: Vec<Vec<f32>> = model.embed(codes, None)?;
     embeddings
         .into_iter()
         .map(|v| {

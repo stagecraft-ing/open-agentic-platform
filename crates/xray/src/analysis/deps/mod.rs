@@ -156,29 +156,28 @@ fn toml_to_json(toml_str: &str) -> Result<serde_json::Value> {
         // Key-value pair in a relevant section
         if (current_section == "dependencies" || current_section == "dev-dependencies")
             && trimmed.contains('=')
+            && let Some((key, value)) = trimmed.split_once('=')
         {
-            if let Some((key, value)) = trimmed.split_once('=') {
-                let key = key.trim().to_string();
-                let value = value.trim();
+            let key = key.trim().to_string();
+            let value = value.trim();
 
-                if value.starts_with('"') && value.ends_with('"') {
-                    // Simple string version
-                    let v = value[1..value.len() - 1].to_string();
-                    current_map.insert(key, serde_json::Value::String(v));
-                } else if value.starts_with('{') {
-                    // Inline table — extract version if present
-                    let mut obj = serde_json::Map::new();
-                    if let Some(ver_start) = value.find("version") {
-                        let rest = &value[ver_start..];
-                        if let Some(q1) = rest.find('"') {
-                            if let Some(q2) = rest[q1 + 1..].find('"') {
-                                let ver = rest[q1 + 1..q1 + 1 + q2].to_string();
-                                obj.insert("version".to_string(), serde_json::Value::String(ver));
-                            }
-                        }
+            if value.starts_with('"') && value.ends_with('"') {
+                // Simple string version
+                let v = value[1..value.len() - 1].to_string();
+                current_map.insert(key, serde_json::Value::String(v));
+            } else if value.starts_with('{') {
+                // Inline table — extract version if present
+                let mut obj = serde_json::Map::new();
+                if let Some(ver_start) = value.find("version") {
+                    let rest = &value[ver_start..];
+                    if let Some(q1) = rest.find('"')
+                        && let Some(q2) = rest[q1 + 1..].find('"')
+                    {
+                        let ver = rest[q1 + 1..q1 + 1 + q2].to_string();
+                        obj.insert("version".to_string(), serde_json::Value::String(ver));
                     }
-                    current_map.insert(key, serde_json::Value::Object(obj));
                 }
+                current_map.insert(key, serde_json::Value::Object(obj));
             }
         }
     }

@@ -68,18 +68,13 @@ impl SettingsWatcher {
         }
 
         // Debounce: wait up to 500ms after last event before re-merging.
-        loop {
-            match rx.recv() {
-                Ok(()) => {
-                    // Drain any queued events within the debounce window.
-                    while rx.recv_timeout(Duration::from_millis(500)).is_ok() {}
+        while let Ok(()) = rx.recv() {
+            // Drain any queued events within the debounce window.
+            while rx.recv_timeout(Duration::from_millis(500)).is_ok() {}
 
-                    let new_settings = merge_settings(&paths_for_merge);
-                    if let Ok(mut guard) = settings.write() {
-                        *guard = new_settings;
-                    }
-                }
-                Err(_) => break, // Channel closed — watcher dropped.
+            let new_settings = merge_settings(&paths_for_merge);
+            if let Ok(mut guard) = settings.write() {
+                *guard = new_settings;
             }
         }
 

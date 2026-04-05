@@ -17,6 +17,7 @@ pub mod denial;
 pub mod merge;
 pub mod permission;
 pub mod settings;
+#[cfg(feature = "native")]
 pub mod watcher;
 
 pub use coherence::{CoherenceScheduler, CoherenceSchedulerConfig, PrivilegeLevel};
@@ -206,7 +207,7 @@ fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<P
 
 fn gate_diff_size_limiter(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<PolicyDecision> {
     let applicable = applicable_rules(ctx, bundle);
-    let refs: Vec<&PolicyRule> = applicable.iter().copied().collect();
+    let refs: Vec<&PolicyRule> = applicable.to_vec();
     let (max_lines, max_bytes) = effective_diff_limits(&refs);
 
     if let (Some(dl), Some(limit)) = (ctx.diff_lines, max_lines) {

@@ -363,14 +363,14 @@ pub fn dispatch_manifest_noop(
     let step_depends_on_failed_or_skipped = |idx: usize, statuses: &[StepStatus]| -> bool {
         let step = &steps[idx];
         for input in &step.inputs {
-            if let Some((producer_id, _file)) = split_input_ref(input) {
-                if let Some(prod_idx) = steps.iter().position(|s| s.id == producer_id) {
-                    match statuses[prod_idx] {
-                        StepStatus::Failure | StepStatus::Skipped | StepStatus::Cancelled => {
-                            return true;
-                        }
-                        _ => {}
+            if let Some((producer_id, _file)) = split_input_ref(input)
+                && let Some(prod_idx) = steps.iter().position(|s| s.id == producer_id)
+            {
+                match statuses[prod_idx] {
+                    StepStatus::Failure | StepStatus::Skipped | StepStatus::Cancelled => {
+                        return true;
                     }
+                    _ => {}
                 }
             }
         }

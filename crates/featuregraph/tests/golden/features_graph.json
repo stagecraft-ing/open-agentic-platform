@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:98b8510c460351879a8358faa2be9f61997b803a72f4eebeab695ee66498df72",
+  "graph_fingerprint": "sha256:f0cfd4f85e02d04654f63237b0cabd75eb192169c5a3b3e882d850e3293b0009",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -69,7 +69,6 @@
         "crates/run/src/lib.rs",
         "crates/run/src/registry.rs",
         "crates/run/src/runner.rs",
-        "crates/run/src/skills/mod.rs",
         "crates/run/src/state.rs"
       ],
       "test_files": [],
@@ -110,14 +109,6 @@
           "code": "SPEC_PATH_MISMATCH",
           "severity": "warning",
           "path": "crates/run/src/runner.rs",
-          "feature_id": "004-spec-to-execution-bridge-mvp",
-          "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
-          "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
-        },
-        {
-          "code": "SPEC_PATH_MISMATCH",
-          "severity": "warning",
-          "path": "crates/run/src/skills/mod.rs",
           "feature_id": "004-spec-to-execution-bridge-mvp",
           "message": "File declares spec spec/run/skills.md but registry says specs/004-spec-to-execution-bridge-mvp/spec.md",
           "suggested_fix": "Update header to Spec: specs/004-spec-to-execution-bridge-mvp/spec.md"
@@ -646,13 +637,10 @@
       "impl_files": [
         "crates/axiomregent/src/config/mod.rs",
         "crates/axiomregent/src/io/mod.rs",
+        "crates/axiomregent/src/lease.rs",
         "crates/axiomregent/src/lib.rs",
         "crates/axiomregent/src/main.rs",
         "crates/axiomregent/src/router/mod.rs",
-        "crates/axiomregent/src/snapshot/lease.rs",
-        "crates/axiomregent/src/snapshot/mod.rs",
-        "crates/axiomregent/src/snapshot/store.rs",
-        "crates/axiomregent/src/snapshot/tools.rs",
         "crates/axiomregent/src/util/mod.rs",
         "crates/axiomregent/src/util/paths.rs",
         "crates/axiomregent/src/util/stable.rs",
@@ -679,6 +667,14 @@
         {
           "code": "SPEC_PATH_MISMATCH",
           "severity": "warning",
+          "path": "crates/axiomregent/src/lease.rs",
+          "feature_id": "033-axiomregent-activation",
+          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
+          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
+        },
+        {
+          "code": "SPEC_PATH_MISMATCH",
+          "severity": "warning",
           "path": "crates/axiomregent/src/lib.rs",
           "feature_id": "033-axiomregent-activation",
           "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
@@ -698,38 +694,6 @@
           "path": "crates/axiomregent/src/router/mod.rs",
           "feature_id": "033-axiomregent-activation",
           "message": "File declares spec spec/core/router.md but registry says specs/033-axiomregent-activation/spec.md",
-          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
-        },
-        {
-          "code": "SPEC_PATH_MISMATCH",
-          "severity": "warning",
-          "path": "crates/axiomregent/src/snapshot/lease.rs",
-          "feature_id": "033-axiomregent-activation",
-          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
-          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
-        },
-        {
-          "code": "SPEC_PATH_MISMATCH",
-          "severity": "warning",
-          "path": "crates/axiomregent/src/snapshot/mod.rs",
-          "feature_id": "033-axiomregent-activation",
-          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
-          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
-        },
-        {
-          "code": "SPEC_PATH_MISMATCH",
-          "severity": "warning",
-          "path": "crates/axiomregent/src/snapshot/store.rs",
-          "feature_id": "033-axiomregent-activation",
-          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
-          "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
-        },
-        {
-          "code": "SPEC_PATH_MISMATCH",
-          "severity": "warning",
-          "path": "crates/axiomregent/src/snapshot/tools.rs",
-          "feature_id": "033-axiomregent-activation",
-          "message": "File declares spec spec/core/snapshot-workspace.md but registry says specs/033-axiomregent-activation/spec.md",
           "suggested_fix": "Update header to Spec: specs/033-axiomregent-activation/spec.md"
         },
         {
@@ -1000,7 +964,7 @@
       "feature_id": "038-titor-tauri-command-wiring",
       "title": "titor Tauri command wiring",
       "spec_path": "specs/038-titor-tauri-command-wiring/spec.md",
-      "status": "active",
+      "status": "superseded",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1021,9 +985,572 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "040-blockoli-semantic-search-wiring",
+      "title": "Blockoli semantic search — Tauri command wiring",
+      "spec_path": "specs/040-blockoli-semantic-search-wiring/spec.md",
+      "status": "superseded",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "041-checkpoint-restore-ui",
+      "title": "Checkpoint / Restore UI — desktop panel",
+      "spec_path": "specs/041-checkpoint-restore-ui/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "042-multi-provider-agent-registry",
+      "title": "Multi-Provider Agent Registry",
+      "spec_path": "specs/042-multi-provider-agent-registry/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "043-agent-organizer",
+      "title": "agent organizer and meta-orchestrator",
+      "spec_path": "specs/043-agent-organizer/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "044-multi-agent-orchestration",
+      "title": "multi-agent orchestration with file-based artifact passing",
+      "spec_path": "specs/044-multi-agent-orchestration/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "045-claude-code-sdk-bridge",
+      "title": "Claude Code SDK bridge",
+      "spec_path": "specs/045-claude-code-sdk-bridge/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "046-context-compaction",
+      "title": "Context Compaction for Session Resumption",
+      "spec_path": "specs/046-context-compaction/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "047-governance-control-plane",
+      "title": "governance control plane (policy compiler)",
+      "spec_path": "specs/047-governance-control-plane/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "048-hookify-rule-engine",
+      "title": "Declarative Hook Rule Engine",
+      "spec_path": "specs/048-hookify-rule-engine/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "049-permission-system",
+      "title": "Permission Request System with Memory and Wildcards",
+      "spec_path": "specs/049-permission-system/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "050-tool-renderer-system",
+      "title": "Config-Driven Tool Rendering System",
+      "spec_path": "specs/050-tool-renderer-system/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "051-worktree-agents",
+      "title": "Background Agents with Git Worktree Isolation",
+      "spec_path": "specs/051-worktree-agents/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "052-state-persistence",
+      "title": "State Persistence for Resumable Workflows",
+      "spec_path": "specs/052-state-persistence/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "053-verification-profiles",
+      "title": "Verification Profiles",
+      "spec_path": "specs/053-verification-profiles/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "054-agent-frontmatter-schema",
+      "title": "Agent Frontmatter Schema",
+      "spec_path": "specs/054-agent-frontmatter-schema/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "055-yaml-standards-schema",
+      "title": "YAML Standards Schema",
+      "spec_path": "specs/055-yaml-standards-schema/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "056-session-memory",
+      "title": "Session Memory / Project-Object Persistence",
+      "spec_path": "specs/056-session-memory/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "057-notification-system",
+      "title": "Notification Orchestrator",
+      "spec_path": "specs/057-notification-system/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "058-file-mention-system",
+      "title": "@-Mention Autocomplete for Files and Agents",
+      "spec_path": "specs/058-file-mention-system/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "059-git-panel",
+      "title": "Comprehensive Git Panel",
+      "spec_path": "specs/059-git-panel/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "060-panel-event-bus",
+      "title": "Typed Inter-Panel Event Bus",
+      "spec_path": "specs/060-panel-event-bus/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "061-conductor-track-lifecycle",
+      "title": "Conductor Track Lifecycle",
+      "spec_path": "specs/061-conductor-track-lifecycle/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "062-multi-model-chaining",
+      "title": "Multi-Model Chaining",
+      "spec_path": "specs/062-multi-model-chaining/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "063-coherence-scoring",
+      "title": "Coherence Scoring with Privilege Degradation",
+      "spec_path": "specs/063-coherence-scoring/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "064-websocket-reconnection",
+      "title": "WebSocket Session Reconnection",
+      "spec_path": "specs/064-websocket-reconnection/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "065-encrypted-keychain",
+      "title": "Encrypted Keychain and Credential Storage",
+      "spec_path": "specs/065-encrypted-keychain/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "066-vscode-extension",
+      "title": "VS Code Extension (Sidebar Webview)",
+      "spec_path": "specs/066-vscode-extension/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "067-tool-definition-registry",
+      "title": "Tool Definition Registry",
+      "spec_path": "specs/067-tool-definition-registry/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "068-permission-runtime",
+      "title": "Permission Runtime and Settings Layering",
+      "spec_path": "specs/068-permission-runtime/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "069-lifecycle-hook-runtime",
+      "title": "Lifecycle Hook Runtime",
+      "spec_path": "specs/069-lifecycle-hook-runtime/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "070-prompt-assembly-cache",
+      "title": "Prompt Assembly and Cache Boundaries",
+      "spec_path": "specs/070-prompt-assembly-cache/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "071-skill-command-factory",
+      "title": "Skill and Command Factory",
+      "spec_path": "specs/071-skill-command-factory/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "072-multi-cloud-k8s-portability",
+      "title": "Multi-Cloud Kubernetes Portability",
+      "spec_path": "specs/072-multi-cloud-k8s-portability/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "073-axiomregent-unification",
+      "title": "Axiomregent Unification: Crate Absorption, Hiqlite Storage, and GitHub Org Integration",
+      "spec_path": "specs/073-axiomregent-unification/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "074-elucid-ingestion",
+      "title": "Elucid Ingestion as First-Class Delivery Engine",
+      "spec_path": "specs/074-elucid-ingestion/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "075-elucid-workflow-engine",
+      "title": "Elucid Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification",
+      "spec_path": "specs/075-elucid-workflow-engine/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "076-elucid-desktop-panel",
+      "title": "Elucid Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs",
+      "spec_path": "specs/076-elucid-desktop-panel/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "077-stagecraft-elucid-api",
+      "title": "Stagecraft Elucid Lifecycle API — Project Init, Stage Confirmation, Audit Trail",
+      "spec_path": "specs/077-stagecraft-elucid-api/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "078-platform-completion-plan",
+      "title": "Platform Completion Plan — Elucid Ingestion + Draft Spec Closure",
+      "spec_path": "specs/078-platform-completion-plan/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/complexity.rs",
+      "message": "Malformed Feature directive: // Feature: 043-agent-organizer — deterministic complexity scoring (specs/043-agent-organizer/spec.md § Architecture)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/dispatch.rs",
+      "message": "Malformed Feature directive: // Feature: 043-agent-organizer — dispatch protocol (specs/043-agent-organizer/spec.md § Dispatch protocol)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/plan.rs",
+      "message": "Malformed Feature directive: // Feature: 043-agent-organizer — ExecutionPlan JSON contract (specs/043-agent-organizer/spec.md)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/prompt/assembler.rs",
+      "message": "Malformed Feature directive: // Feature: 070-PROMPT_ASSEMBLY_CACHE",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/prompt/compaction.rs",
+      "message": "Malformed Feature directive: // Feature: 070-PROMPT_ASSEMBLY_CACHE",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/prompt/mod.rs",
+      "message": "Malformed Feature directive: // Feature: 070-PROMPT_ASSEMBLY_CACHE",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/prompt/tests.rs",
+      "message": "Malformed Feature directive: // Feature: 070-PROMPT_ASSEMBLY_CACHE",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/agent/src/registry.rs",
+      "message": "Malformed Feature directive: // Feature: 043-agent-organizer — registry integration (specs/043-agent-organizer/spec.md FR-007, FR-010)",
+      "suggested_fix": "Fix header format"
+    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
@@ -1050,6 +1577,174 @@
       "severity": "error",
       "path": "crates/agent/src/verification/runner.rs",
       "message": "Malformed Spec directive: // Spec: spec/verification.yaml",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/artifact.rs",
+      "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/effort.rs",
+      "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/manifest.rs",
+      "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/assembler.test.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/assembler.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/compaction.test.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/compaction.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/defaults.test.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/defaults.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/index.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/prompt-assembly/src/types.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/factory.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/factory.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/filter.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/filter.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/index.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/parser.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/parser.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/plugin-loader.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/plugin-loader.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/tool-def.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/tool-def.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "packages/skill-command-factory/src/types.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
       "suggested_fix": "Fix header format"
     }
   ]

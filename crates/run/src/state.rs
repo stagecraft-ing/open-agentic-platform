@@ -100,3 +100,57 @@ impl StateStore {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_state_store_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = StateStore::new(dir.path());
+
+        let result = SkillResult {
+            skill: "test-skill".into(),
+            status: SkillStatus::Pass,
+            exit_code: 0,
+            note: None,
+        };
+        store.write_skill_result(&result).unwrap();
+
+        let last = LastRun {
+            status: "pass".into(),
+            skills: vec!["test-skill".into()],
+            failed: vec![],
+        };
+        store.write_last_run(&last).unwrap();
+
+        let loaded = store.read_last_run().unwrap().unwrap();
+        assert_eq!(loaded.status, "pass");
+        assert!(loaded.failed.is_empty());
+    }
+
+    #[test]
+    fn test_read_missing_last_run() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = StateStore::new(dir.path());
+        assert!(store.read_last_run().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_reset_clears_state() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = StateStore::new(dir.path().join("state"));
+
+        let last = LastRun {
+            status: "pass".into(),
+            skills: vec![],
+            failed: vec![],
+        };
+        store.write_last_run(&last).unwrap();
+        assert!(store.read_last_run().unwrap().is_some());
+
+        store.reset().unwrap();
+        assert!(store.read_last_run().unwrap().is_none());
+    }
+}

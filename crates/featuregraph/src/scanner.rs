@@ -263,20 +263,20 @@ impl Scanner {
 
             // Check MISSING_SPEC_FILE
             let spec_abs_path = self.root.join(&entry.spec);
-            if !spec_abs_path.exists() {
-                if let Some(node) = feature_map.get_mut(&entry.id) {
-                    node.violations.push(Violation {
-                        code: "MISSING_SPEC_FILE".to_string(),
-                        severity: "error".to_string(),
-                        path: entry.spec.clone(),
-                        feature_id: Some(entry.id.clone()),
-                        message: format!("Spec file {} does not exist", entry.spec),
-                        suggested_fix: Some(
-                            "Re-run `spec-compiler compile` to regenerate the registry, or create the spec file"
-                                .to_string(),
-                        ),
-                    });
-                }
+            if !spec_abs_path.exists()
+                && let Some(node) = feature_map.get_mut(&entry.id)
+            {
+                node.violations.push(Violation {
+                    code: "MISSING_SPEC_FILE".to_string(),
+                    severity: "error".to_string(),
+                    path: entry.spec.clone(),
+                    feature_id: Some(entry.id.clone()),
+                    message: format!("Spec file {} does not exist", entry.spec),
+                    suggested_fix: Some(
+                        "Re-run `spec-compiler compile` to regenerate the registry, or create the spec file"
+                            .to_string(),
+                    ),
+                });
             }
         }
 
@@ -314,23 +314,23 @@ impl Scanner {
                                         node.impl_files.push(rel_path_norm.clone());
                                     }
 
-                                    if let Some(declared_spec) = header.spec_path {
-                                        if declared_spec != node.spec_path {
-                                            node.violations.push(Violation {
-                                                code: "SPEC_PATH_MISMATCH".to_string(),
-                                                severity: "warning".to_string(),
-                                                path: rel_path_norm.clone(),
-                                                feature_id: Some(canonical_id.clone()),
-                                                message: format!(
-                                                    "File declares spec {} but registry says {}",
-                                                    declared_spec, node.spec_path
-                                                ),
-                                                suggested_fix: Some(format!(
-                                                    "Update header to Spec: {}",
-                                                    node.spec_path
-                                                )),
-                                            });
-                                        }
+                                    if let Some(declared_spec) = header.spec_path
+                                        && declared_spec != node.spec_path
+                                    {
+                                        node.violations.push(Violation {
+                                            code: "SPEC_PATH_MISMATCH".to_string(),
+                                            severity: "warning".to_string(),
+                                            path: rel_path_norm.clone(),
+                                            feature_id: Some(canonical_id.clone()),
+                                            message: format!(
+                                                "File declares spec {} but registry says {}",
+                                                declared_spec, node.spec_path
+                                            ),
+                                            suggested_fix: Some(format!(
+                                                "Update header to Spec: {}",
+                                                node.spec_path
+                                            )),
+                                        });
                                     }
                                 } else {
                                     global_violations.push(Violation {

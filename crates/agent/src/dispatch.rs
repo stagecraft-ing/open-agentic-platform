@@ -18,7 +18,7 @@ pub enum MandatoryOutcome {
 
 /// Spec § Dispatch protocol — ordered substring checks (case-insensitive).
 /// More specific phrases (e.g. `build project`) appear before generic delegate `build`.
-static DIRECT_SUBSTRINGS: &[(&str, &'static str)] = &[
+static DIRECT_SUBSTRINGS: &[(&str, &str)] = &[
     // NEVER — single-command execution (diagram "build" is delegate; narrow first)
     ("build project", "never_single_command"),
     ("run the tests", "never_single_command"),
@@ -64,7 +64,7 @@ static EXPLAIN_DIRECT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\bexplain\b").expect("explain word boundary"));
 
 /// ALWAYS delegate — multi-domain / cross-cutting (prose list).
-static DELEGATE_SUBSTRINGS: &[(&str, &'static str)] = &[
+static DELEGATE_SUBSTRINGS: &[(&str, &str)] = &[
     ("multi-file", "always_multi_file"),
     ("multiple files", "always_multi_file"),
     ("across files", "always_multi_file"),
@@ -88,7 +88,7 @@ static DELEGATE_SUBSTRINGS: &[(&str, &'static str)] = &[
 ];
 
 /// Single-token or short delegate triggers (substring — catches "refactoring", etc.).
-static DELEGATE_SUBSTRINGS_SHORT: &[(&str, &'static str)] = &[
+static DELEGATE_SUBSTRINGS_SHORT: &[(&str, &str)] = &[
     ("refactor", "diagram_refactor"),
     ("migrate", "diagram_migrate"),
 ];

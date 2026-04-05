@@ -5,21 +5,11 @@ use async_trait::async_trait;
 use serde_json::{Map, Value};
 
 /// Permission requirements for a tool.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ToolPermissions {
     pub requires_file_read: bool,
     pub requires_file_write: bool,
     pub requires_network: bool,
-}
-
-impl Default for ToolPermissions {
-    fn default() -> Self {
-        Self {
-            requires_file_read: false,
-            requires_file_write: false,
-            requires_network: false,
-        }
-    }
 }
 
 /// A provider that handles a group of related MCP tools.

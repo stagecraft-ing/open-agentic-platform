@@ -12,10 +12,10 @@ use serde_json::Value;
 /// 4. None (unauthenticated, 60 req/hr)
 pub async fn resolve_token() -> Option<String> {
     // Platform broker (future: call stagecraft POST /api/github/token)
-    if let Ok(url) = std::env::var("PLATFORM_GITHUB_TOKEN_URL") {
-        if let Ok(token) = fetch_platform_token(&url).await {
-            return Some(token);
-        }
+    if let Ok(url) = std::env::var("PLATFORM_GITHUB_TOKEN_URL")
+        && let Ok(token) = fetch_platform_token(&url).await
+    {
+        return Some(token);
     }
     // Env var fallback
     std::env::var("GITHUB_TOKEN").ok()

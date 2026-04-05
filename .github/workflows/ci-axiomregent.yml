@@ -44,9 +44,8 @@ jobs:
       - name: cargo check
         run: cargo check --manifest-path crates/axiomregent/Cargo.toml
 
-      - name: cargo clippy (advisory)
-        run: cargo clippy --manifest-path crates/axiomregent/Cargo.toml
-        continue-on-error: true
+      - name: cargo clippy
+        run: cargo clippy --manifest-path crates/axiomregent/Cargo.toml -- -D warnings
 
       - name: cargo test
         run: cargo test --manifest-path crates/axiomregent/Cargo.toml

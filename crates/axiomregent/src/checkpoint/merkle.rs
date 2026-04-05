@@ -34,7 +34,7 @@ impl MerkleTree {
         hashes.sort();
 
         while hashes.len() > 1 {
-            let mut next: Vec<String> = Vec::with_capacity((hashes.len() + 1) / 2);
+            let mut next: Vec<String> = Vec::with_capacity(hashes.len().div_ceil(2));
             for chunk in hashes.chunks(2) {
                 let mut hasher = Sha256::new();
                 hasher.update(chunk[0].as_bytes());

@@ -6,7 +6,6 @@
 pub mod config;
 pub mod registry;
 pub mod runner;
-pub mod skills;
 pub mod state;
 
 pub use runner::{RunConfig, Runner, Skill};

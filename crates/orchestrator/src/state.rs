@@ -155,10 +155,10 @@ impl WorkflowState {
     /// metadata derived from declarative workflow definitions (052 FR-004/FR-005).
     pub fn attach_gates_from_manifest(&mut self, manifest: &WorkflowManifest) {
         for step_state in &mut self.steps {
-            if let Some(manifest_step) = manifest.steps.iter().find(|s| s.id == step_state.id) {
-                if let Some(ref gate_cfg) = manifest_step.gate {
-                    step_state.gate = Some(gate_info_from_step_gate(gate_cfg));
-                }
+            if let Some(manifest_step) = manifest.steps.iter().find(|s| s.id == step_state.id)
+                && let Some(ref gate_cfg) = manifest_step.gate
+            {
+                step_state.gate = Some(gate_info_from_step_gate(gate_cfg));
             }
         }
     }

@@ -376,7 +376,7 @@ fn plan_inner<P: OrganizerPlanner>(
 
 /// Full organizer plan: mandatory triggers, complexity, registry-backed team/workflow when delegated.
 pub fn plan(prompt: &str, ctx: &PlanContext, snapshot: &AgentRegistrySnapshot) -> ExecutionPlan {
-    let planner = DeterministicOrganizerPlanner::default();
+    let planner = DeterministicOrganizerPlanner;
     plan_inner(prompt, ctx, snapshot, &planner)
 }
 

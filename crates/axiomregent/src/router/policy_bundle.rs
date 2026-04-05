@@ -12,6 +12,12 @@ pub struct PolicyBundleCache {
     cache: RwLock<std::collections::HashMap<String, Option<Arc<PolicyBundle>>>>,
 }
 
+impl Default for PolicyBundleCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PolicyBundleCache {
     pub fn new() -> Self {
         Self {

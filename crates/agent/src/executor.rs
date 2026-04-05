@@ -214,8 +214,8 @@ impl Executor {
 fn contains_lease_template(value: &serde_json::Value) -> bool {
     match value {
         serde_json::Value::String(s) => s.contains("{{lease_id}}"),
-        serde_json::Value::Object(map) => map.values().any(|v| contains_lease_template(v)),
-        serde_json::Value::Array(arr) => arr.iter().any(|v| contains_lease_template(v)),
+        serde_json::Value::Object(map) => map.values().any(contains_lease_template),
+        serde_json::Value::Array(arr) => arr.iter().any(contains_lease_template),
         _ => false,
     }
 }

@@ -71,7 +71,7 @@ impl SqliteWorkflowStore {
         })?;
 
         // Enable WAL mode for better concurrent read performance (052 NF-001).
-        conn.pragma_update(None, "journal_mode", &"WAL")
+        conn.pragma_update(None, "journal_mode", "WAL")
             .map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("enable WAL journal mode on {}: {e}", path.display()),
             })?;
@@ -185,7 +185,7 @@ impl SqliteWorkflowStore {
             let output_json = step
                 .output
                 .as_ref()
-                .map(|v| serde_json::to_string(v))
+                .map(serde_json::to_string)
                 .transpose()
                 .map_err(|e| OrchestratorError::StatePersistence {
                     reason: format!("serialize step output json for {}: {e}", step.id),
@@ -726,7 +726,7 @@ fn gate_info_to_sql_columns(gate: &GateInfo) -> (Option<String>, Option<String>)
     let config_json = gate
         .config
         .as_ref()
-        .map(|v| serde_json::to_string(v))
+        .map(serde_json::to_string)
         .transpose()
         .ok()
         .flatten();

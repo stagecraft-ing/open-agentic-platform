@@ -133,15 +133,15 @@ impl SearchProvider {
                 continue;
             }
             // Skip files larger than 512 KiB to avoid embedding noise
-            if let Ok(meta) = p.metadata() {
-                if meta.len() > 512 * 1024 {
-                    continue;
-                }
+            if let Ok(meta) = p.metadata()
+                && meta.len() > 512 * 1024
+            {
+                continue;
             }
-            if let Ok(content) = std::fs::read_to_string(p) {
-                if !content.trim().is_empty() {
-                    file_pairs.push((p.to_path_buf(), content));
-                }
+            if let Ok(content) = std::fs::read_to_string(p)
+                && !content.trim().is_empty()
+            {
+                file_pairs.push((p.to_path_buf(), content));
             }
         }
 

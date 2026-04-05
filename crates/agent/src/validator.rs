@@ -89,29 +89,28 @@ impl Validator {
         let mut changed_paths = Vec::new();
         for task in &plan.tasks {
             for tool_call in &task.tool_calls {
-                if tool_call.tool_name == "write_file"
-                    || tool_call.tool_name == "workspace.write_file"
+                if (tool_call.tool_name == "write_file"
+                    || tool_call.tool_name == "workspace.write_file")
+                    && let Some(path) = tool_call.arguments.get("path").and_then(|v| v.as_str())
                 {
-                    if let Some(path) = tool_call.arguments.get("path").and_then(|v| v.as_str()) {
-                        changed_paths.push(path.to_string());
-                    }
+                    changed_paths.push(path.to_string());
                 }
-                if tool_call.tool_name == "workspace.delete" {
-                    if let Some(path) = tool_call.arguments.get("path").and_then(|v| v.as_str()) {
-                        changed_paths.push(path.to_string());
-                    }
+                if tool_call.tool_name == "workspace.delete"
+                    && let Some(path) = tool_call.arguments.get("path").and_then(|v| v.as_str())
+                {
+                    changed_paths.push(path.to_string());
                 }
-                if tool_call.tool_name == "workspace.apply_patch" {
-                    if let Some(patch) = tool_call.arguments.get("patch").and_then(|v| v.as_str()) {
-                        for line in patch.lines() {
-                            if let Some(path_part) = line.strip_prefix("+++ ") {
-                                let clean = path_part
-                                    .trim()
-                                    .strip_prefix("b/")
-                                    .unwrap_or(path_part.trim());
-                                if clean != "/dev/null" {
-                                    changed_paths.push(clean.to_string());
-                                }
+                if tool_call.tool_name == "workspace.apply_patch"
+                    && let Some(patch) = tool_call.arguments.get("patch").and_then(|v| v.as_str())
+                {
+                    for line in patch.lines() {
+                        if let Some(path_part) = line.strip_prefix("+++ ") {
+                            let clean = path_part
+                                .trim()
+                                .strip_prefix("b/")
+                                .unwrap_or(path_part.trim());
+                            if clean != "/dev/null" {
+                                changed_paths.push(clean.to_string());
                             }
                         }
                     }
