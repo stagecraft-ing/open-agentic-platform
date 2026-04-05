@@ -8,6 +8,7 @@ import {
   bigint,
   pgEnum,
   jsonb,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["user", "admin"]);
@@ -191,6 +192,132 @@ export const auditLog = pgTable("audit_log", {
   targetId: text("target_id").notNull(),
   metadata: jsonb("metadata").notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Elucid Pipeline Lifecycle (spec 077)
+// ---------------------------------------------------------------------------
+
+export const elucidPipelineStatusEnum = pgEnum("elucid_pipeline_status", [
+  "initialized",
+  "running",
+  "paused",
+  "completed",
+  "failed",
+]);
+
+export const elucidStageStatusEnum = pgEnum("elucid_stage_status", [
+  "pending",
+  "in_progress",
+  "completed",
+  "confirmed",
+  "rejected",
+]);
+
+export const elucidScaffoldStatusEnum = pgEnum("elucid_scaffold_status", [
+  "pending",
+  "in_progress",
+  "completed",
+  "failed",
+]);
+
+export const elucidScaffoldCategoryEnum = pgEnum("elucid_scaffold_category", [
+  "data",
+  "api",
+  "ui",
+  "configure",
+  "trim",
+  "validate",
+]);
+
+export const elucidPipelines = pgTable("elucid_pipelines", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull(),
+  adapterName: text("adapter_name").notNull(),
+  status: elucidPipelineStatusEnum("status").notNull().default("initialized"),
+  policyBundleId: uuid("policy_bundle_id"),
+  buildSpecHash: text("build_spec_hash"),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const elucidBusinessDocs = pgTable("elucid_business_docs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pipelineId: uuid("pipeline_id").notNull(),
+  name: text("name").notNull(),
+  storageRef: text("storage_ref").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const elucidStages = pgTable(
+  "elucid_stages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pipelineId: uuid("pipeline_id").notNull(),
+    stageId: text("stage_id").notNull(),
+    status: elucidStageStatusEnum("status").notNull().default("pending"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    confirmedBy: text("confirmed_by"),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    rejectedBy: text("rejected_by"),
+    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+    rejectionFeedback: text("rejection_feedback"),
+    promptTokens: integer("prompt_tokens").default(0),
+    completionTokens: integer("completion_tokens").default(0),
+    model: text("model"),
+  },
+  (t) => [unique().on(t.pipelineId, t.stageId)]
+);
+
+export const elucidScaffoldFeatures = pgTable(
+  "elucid_scaffold_features",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pipelineId: uuid("pipeline_id").notNull(),
+    featureId: text("feature_id").notNull(),
+    category: elucidScaffoldCategoryEnum("category").notNull(),
+    status: elucidScaffoldStatusEnum("status").notNull().default("pending"),
+    retryCount: integer("retry_count").default(0),
+    lastError: text("last_error"),
+    filesCreated: text("files_created").array(),
+    promptTokens: integer("prompt_tokens").default(0),
+    completionTokens: integer("completion_tokens").default(0),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [unique().on(t.pipelineId, t.featureId)]
+);
+
+export const elucidAuditLog = pgTable("elucid_audit_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pipelineId: uuid("pipeline_id").notNull(),
+  timestamp: timestamp("timestamp", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  event: text("event").notNull(),
+  actor: text("actor"),
+  stageId: text("stage_id"),
+  featureId: text("feature_id"),
+  details: jsonb("details").notNull().default({}),
+});
+
+export const elucidPolicyBundles = pgTable("elucid_policy_bundles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull(),
+  adapterName: text("adapter_name").notNull(),
+  rules: jsonb("rules").notNull(),
+  compiledAt: timestamp("compiled_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });

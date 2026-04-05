@@ -2,7 +2,7 @@
 id: "077-stagecraft-elucid-api"
 title: "Stagecraft Elucid Lifecycle API — Project Init, Stage Confirmation, Audit Trail"
 feature_branch: "feat/077-stagecraft-elucid-api"
-status: draft
+status: active
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]
