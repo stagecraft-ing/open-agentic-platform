@@ -132,16 +132,14 @@ factory/
 │   │   ├── 04-api-specification.md    Resource/operation model
 │   │   ├── 05-ui-specification.md     Pages, data sources, navigation
 │   │   └── 06-adapter-handoff.md      Scaffolding orchestration
-│   ├── agents/
-│   │   ├── pipeline-orchestrator.md       Sequencing and state management
-│   │   ├── scaffolding-orchestrator.md    Adapter handoff and build-test-fix loops
-│   │   ├── business-requirements-analyst.md  Stage 1 agent
-│   │   ├── service-designer.md            Stage 2 agent
-│   │   ├── data-architect.md              Stage 3 agent
-│   │   ├── api-architect.md               Stage 4 agent
-│   │   └── ui-architect.md                Stage 5 agent
-│   └── harness/
-│       └── verification-harness.md        Automated check runner specification
+│   └── agents/
+│       ├── pipeline-orchestrator.md       Sequencing and state management
+│       ├── scaffolding-orchestrator.md    Adapter handoff and build-test-fix loops
+│       ├── business-requirements-analyst.md  Stage 1 agent
+│       ├── service-designer.md            Stage 2 agent
+│       ├── data-architect.md              Stage 3 agent
+│       ├── api-architect.md               Stage 4 agent
+│       └── ui-architect.md                Stage 5 agent
 │
 ├── contract/
 │   ├── schemas/

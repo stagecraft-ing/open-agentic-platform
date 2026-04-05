@@ -2,7 +2,7 @@
 id: "072-multi-cloud-k8s-portability"
 title: "Multi-Cloud Kubernetes Portability"
 feature_branch: "072-multi-cloud-k8s-portability"
-status: draft
+status: active
 kind: platform
 created: "2026-04-01"
 authors: ["open-agentic-platform"]

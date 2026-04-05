@@ -220,3 +220,27 @@ validation:
         pattern: "npx tsc --noEmit"
         scope: "."
       severity: "error"
+
+    - id: "INV-010"
+      description: "All tests pass"
+      check:
+        type: "command-succeeds"
+        pattern: "npm test"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-011"
+      description: "No unfilled template placeholders in source files"
+      check:
+        type: "grep-absent"
+        pattern: "\\{\\{[A-Z_]+\\}\\}"
+        scope: "api/"
+      severity: "error"
+
+    - id: "INV-012"
+      description: "TanStack Query for client data — no SWR or Apollo"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]swr['\"]|from ['\"]@apollo"
+        scope: "web/"
+      severity: "error"

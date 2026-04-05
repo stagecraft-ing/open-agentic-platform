@@ -89,8 +89,7 @@ Adding a new tech stack = creating a new adapter. The process layer and contract
 factory/
 ├── process/
 │   ├── stages/           7 stage definitions (pre-flight through adapter handoff)
-│   ├── agents/           7 agent prompts (pipeline orchestrator + 5 stage agents + scaffolding orchestrator)
-│   └── harness/          Verification harness specification
+│   └── agents/           7 agent prompts (pipeline orchestrator + 5 stage agents + scaffolding orchestrator)
 ├── contract/
 │   ├── schemas/          4 YAML schemas + 5 JSON stage-output schemas
 │   └── examples/         Build Spec example, adapter manifest example, stage output examples
@@ -98,3 +97,7 @@ factory/
 │   └── aim-vue-node/     First adapter: manifest, 6 agents, 11 patterns, 8 page-types, 19 invariants
 └── docs/                 Architecture overview, adapter agent examples
 ```
+
+> **Verification harness:** implemented in `crates/orchestrator/src/verify.rs`
+> (spec 075). Runs adapter-declared commands (compile, test, lint) after each
+> scaffolding step with retry on failure.

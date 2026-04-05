@@ -2,7 +2,7 @@
 id: "070-prompt-assembly-cache"
 title: "Prompt Assembly and Cache Boundaries"
 feature_branch: "070-prompt-assembly-cache"
-status: draft
+status: active
 kind: platform
 created: "2026-03-31"
 authors: ["open-agentic-platform"]
