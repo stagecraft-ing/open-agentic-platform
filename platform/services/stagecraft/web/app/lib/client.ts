@@ -37,6 +37,7 @@ export default class Client {
     public readonly audit: audit.ServiceClient
     public readonly auth: auth.ServiceClient
     public readonly deploy: deploy.ServiceClient
+    public readonly github: github.ServiceClient
     public readonly grants: grants.ServiceClient
     public readonly monitor: monitor.ServiceClient
     public readonly policy: policy.ServiceClient
@@ -62,6 +63,7 @@ export default class Client {
         this.audit = new audit.ServiceClient(base)
         this.auth = new auth.ServiceClient(base)
         this.deploy = new deploy.ServiceClient(base)
+        this.github = new github.ServiceClient(base)
         this.grants = new grants.ServiceClient(base)
         this.monitor = new monitor.ServiceClient(base)
         this.policy = new policy.ServiceClient(base)
@@ -409,6 +411,45 @@ export namespace deploy {
 
         public async healthz(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
             return this.baseClient.callAPI(method, `/healthz`, body, options)
+        }
+    }
+}
+
+export namespace github {
+    export interface TokenRequest {
+        repo: string
+        scope: string
+    }
+
+    export interface TokenResponse {
+        token: string
+        "expires_at": string
+        permissions: { [key: string]: string }
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.getToken = this.getToken.bind(this)
+            this.handleWebhook = this.handleWebhook.bind(this)
+        }
+
+        /**
+         * POST /api/github/token — broker a scoped installation token
+         */
+        public async getToken(params: TokenRequest): Promise<TokenResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/github/token`, JSON.stringify(params))
+            return await resp.json() as TokenResponse
+        }
+
+        /**
+         * POST /api/github/webhook — receive GitHub webhook events
+         */
+        public async handleWebhook(method: "POST", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/api/github/webhook`, body, options)
         }
     }
 }
