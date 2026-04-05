@@ -2,7 +2,7 @@
 id: "076-elucid-desktop-panel"
 title: "Elucid Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs"
 feature_branch: "feat/076-elucid-desktop-panel"
-status: draft
+status: implementing
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

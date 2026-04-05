@@ -2113,4 +2113,34 @@ export const api = {
     return await apiCall<ToolTierEntry[]>("get_tool_tier_assignments");
   },
 
+  // ── Elucid Pipeline (076) ───────────────────────────────────────────
+
+  async startElucidPipeline(projectPath: string, adapterName: string, businessDocPaths: string[]): Promise<{ run_id: string }> {
+    return await apiCall<{ run_id: string }>("start_elucid_pipeline", { projectPath, adapterName, businessDocPaths });
+  },
+
+  async getElucidPipelineStatus(runId: string): Promise<any> {
+    return await apiCall<any>("get_elucid_pipeline_status", { runId });
+  },
+
+  async confirmElucidStage(runId: string, stageId: string): Promise<void> {
+    await apiCall<void>("confirm_elucid_stage", { runId, stageId });
+  },
+
+  async rejectElucidStage(runId: string, stageId: string, feedback: string): Promise<void> {
+    await apiCall<void>("reject_elucid_stage", { runId, stageId, feedback });
+  },
+
+  async listElucidRuns(projectPath: string): Promise<any[]> {
+    return await apiCall<any[]>("list_elucid_runs", { projectPath });
+  },
+
+  async getElucidArtifacts(runId: string, stepId: string): Promise<any[]> {
+    return await apiCall<any[]>("get_elucid_artifacts", { runId, stepId });
+  },
+
+  async skipElucidStep(runId: string, stepId: string): Promise<void> {
+    await apiCall<void>("skip_elucid_step", { runId, stepId });
+  },
+
 };

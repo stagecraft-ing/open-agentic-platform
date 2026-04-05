@@ -32,6 +32,7 @@ interface UseTabStateReturn {
   createCallGraphTab: (projectPath?: string) => string | null;
   createGitContextTab: (projectPath?: string) => string | null;
   createCheckpointTab: (projectPath?: string) => string | null;
+  createElucidTab: (projectPath?: string) => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
   closeCurrentTab: () => Promise<boolean>;
   switchToTab: (id: string) => void;
@@ -391,6 +392,23 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab, updateTab]);
 
+  const createElucidTab = useCallback((projectPath?: string): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'elucid');
+    if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
+      setActiveTab(existingTab.id);
+      return existingTab.id;
+    }
+    return addTab({
+      type: 'elucid',
+      title: 'Elucid',
+      projectPath,
+      status: 'idle',
+      hasUnsavedChanges: false,
+      icon: 'workflow'
+    });
+  }, [addTab, tabs, setActiveTab, updateTab]);
+
   const closeTab = useCallback(async (id: string, force: boolean = false): Promise<boolean> => {
     const tab = getTabById(id);
     if (!tab) return true;
@@ -490,6 +508,7 @@ export const useTabState = (): UseTabStateReturn => {
     createCallGraphTab,
     createGitContextTab,
     createCheckpointTab,
+    createElucidTab,
     closeTab,
     closeCurrentTab,
     switchToTab: setActiveTab,

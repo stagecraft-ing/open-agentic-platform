@@ -49,6 +49,10 @@ use commands::mcp::{
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
 use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, orchestrate_manifest};
+use commands::elucid::{
+    confirm_elucid_stage, get_elucid_artifacts, get_elucid_pipeline_status, list_elucid_runs,
+    reject_elucid_stage, skip_elucid_step, start_elucid_pipeline,
+};
 use commands::worktree_agents::{
     discard_agent, get_agent_diff, list_background_agents, merge_agent, spawn_background_agent,
     WorktreeAgentsState,
@@ -342,6 +346,14 @@ pub fn run() {
             get_run_status,
             cancel_run,
             cleanup_artifacts,
+            // Elucid Pipeline (076)
+            start_elucid_pipeline,
+            get_elucid_pipeline_status,
+            confirm_elucid_stage,
+            reject_elucid_stage,
+            list_elucid_runs,
+            get_elucid_artifacts,
+            skip_elucid_step,
             // Worktree agents (051)
             spawn_background_agent,
             list_background_agents,
