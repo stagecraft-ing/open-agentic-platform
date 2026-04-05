@@ -11,6 +11,7 @@ pub mod registry;
 pub mod executor;
 pub mod id;
 pub mod plan;
+pub mod prompt;
 pub mod safety;
 pub mod schemas;
 pub mod validator;
