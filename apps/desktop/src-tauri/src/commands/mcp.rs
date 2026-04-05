@@ -6,7 +6,7 @@
 //! MCP tool calls are handled by the axiomregent sidecar, which is spawned
 //! by the desktop app and communicates via MCP stdio framing.
 
-use serde_json::{Value, json};
+use serde_json::json;
 use tauri::command;
 
 #[command]

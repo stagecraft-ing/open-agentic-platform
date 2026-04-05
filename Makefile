@@ -78,8 +78,8 @@ dev-stagecraft:
 	cd platform/services/stagecraft && npm install --silent && npm run start
 
 dev-deployd:
-	@echo "==> Starting deployd-api (Express.js, port 8080)..."
-	cd platform/services/deployd-api && npm install --silent && npm run dev
+	@echo "==> Starting deployd-api (Rust/axum, port 8080)..."
+	cargo run --manifest-path platform/services/deployd-api-rs/Cargo.toml
 
 dev-platform:
 	@echo "==> Starting platform services in background..."
