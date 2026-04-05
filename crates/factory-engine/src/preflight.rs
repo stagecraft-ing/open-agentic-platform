@@ -157,25 +157,25 @@ pub fn run_preflight(
     }
 
     // PF-006: Pattern files exist
-    if let Some(patterns) = manifest.get("patterns") {
-        if let Some(map) = patterns.as_mapping() {
-            for (category, entries) in map {
-                if let Some(entry_map) = entries.as_mapping() {
-                    for (name, path_val) in entry_map {
-                        if let Some(path_str) = path_val.as_str() {
-                            let pattern_path = adapter_path.join(path_str);
-                            if !pattern_path.exists() {
-                                let cat = category.as_str().unwrap_or("?");
-                                let n = name.as_str().unwrap_or("?");
-                                results.push(CheckResult::fail(
-                                    "PF-006",
-                                    format!(
-                                        "Pattern not found: {cat}.{n} → {}",
-                                        pattern_path.display()
-                                    ),
-                                    Severity::Warning,
-                                ));
-                            }
+    if let Some(patterns) = manifest.get("patterns")
+        && let Some(map) = patterns.as_mapping()
+    {
+        for (category, entries) in map {
+            if let Some(entry_map) = entries.as_mapping() {
+                for (name, path_val) in entry_map {
+                    if let Some(path_str) = path_val.as_str() {
+                        let pattern_path = adapter_path.join(path_str);
+                        if !pattern_path.exists() {
+                            let cat = category.as_str().unwrap_or("?");
+                            let n = name.as_str().unwrap_or("?");
+                            results.push(CheckResult::fail(
+                                "PF-006",
+                                format!(
+                                    "Pattern not found: {cat}.{n} → {}",
+                                    pattern_path.display()
+                                ),
+                                Severity::Warning,
+                            ));
                         }
                     }
                 }

@@ -2,7 +2,7 @@
 id: "076-factory-desktop-panel"
 title: "Factory Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs"
 feature_branch: "feat/076-factory-desktop-panel"
-status: implementing
+status: active
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

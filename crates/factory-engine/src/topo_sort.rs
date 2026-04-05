@@ -34,11 +34,11 @@ pub fn topological_sort_entities(entities: &[Entity]) -> Result<Vec<String>, Fac
                     // Reference to unknown entity — skip (may be external).
                     continue;
                 }
-                if let Some(&producer_idx) = name_to_idx.get(ref_entity.as_str()) {
-                    if producer_idx != consumer_idx {
-                        adj[producer_idx].push(consumer_idx);
-                        indegree[consumer_idx] += 1;
-                    }
+                if let Some(&producer_idx) = name_to_idx.get(ref_entity.as_str())
+                    && producer_idx != consumer_idx
+                {
+                    adj[producer_idx].push(consumer_idx);
+                    indegree[consumer_idx] += 1;
                 }
             }
         }

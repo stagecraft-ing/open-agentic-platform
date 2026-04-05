@@ -108,14 +108,24 @@ pub fn generate_process_manifest(
     let mut steps = Vec::with_capacity(stages.len());
 
     for (i, stage) in stages.iter().enumerate() {
-        let agent_id = format!("factory-{}", stage.agent_role);
+        // Agent IDs match the frontmatter `id` field in process agent files
+        // (e.g., `pipeline-orchestrator`, not `factory-pipeline-orchestrator`).
+        let agent_id = stage.agent_role.to_string();
 
         // First stage takes business documents as inputs; subsequent stages
         // take outputs from the previous stage.
         let inputs: Vec<String> = if i == 0 {
+            // Canonicalize to absolute paths so the orchestrator's split_input_ref
+            // does not misinterpret relative paths as "producer_step/artifact".
             business_doc_paths
                 .iter()
-                .map(|p| p.as_ref().to_string_lossy().into_owned())
+                .map(|p| {
+                    let path = p.as_ref();
+                    path.canonicalize()
+                        .unwrap_or_else(|_| std::path::absolute(path).unwrap_or(path.to_path_buf()))
+                        .to_string_lossy()
+                        .into_owned()
+                })
                 .collect()
         } else {
             let prev = &stages[i - 1];
@@ -170,7 +180,7 @@ pub fn generate_scaffold_manifest(
     // ── s6a: Scaffold initialization ─────────────────────────────────────
     steps.push(WorkflowStep {
         id: "s6a-scaffold-init".into(),
-        agent: format!("factory-data-scaffolder-{}", adapter.adapter.name),
+        agent: format!("{}-data-scaffolder", adapter.adapter.name),
         effort: EffortLevel::Investigate,
         inputs: vec![],
         instruction: format!(
@@ -228,7 +238,7 @@ pub fn generate_scaffold_manifest(
 
         steps.push(WorkflowStep {
             id: step_id.clone(),
-            agent: format!("factory-data-scaffolder-{}", adapter.adapter.name),
+            agent: format!("{}-data-scaffolder", adapter.adapter.name),
             effort: EffortLevel::Investigate,
             inputs,
             outputs: vec![format!("{entity_name}-entity-report.yaml")],
@@ -267,7 +277,7 @@ pub fn generate_scaffold_manifest(
 
             steps.push(WorkflowStep {
                 id: step_id,
-                agent: format!("factory-api-scaffolder-{}", adapter.adapter.name),
+                agent: format!("{}-api-scaffolder", adapter.adapter.name),
                 effort: EffortLevel::Investigate,
                 inputs: vec![],
                 outputs: vec![format!("{}-{}-report.yaml", resource.name, operation.id)],
@@ -305,7 +315,7 @@ pub fn generate_scaffold_manifest(
 
         steps.push(WorkflowStep {
             id: step_id,
-            agent: format!("factory-ui-scaffolder-{}", adapter.adapter.name),
+            agent: format!("{}-ui-scaffolder", adapter.adapter.name),
             effort: EffortLevel::Investigate,
             inputs: vec![],
             outputs: vec![format!("{}-page-report.yaml", page.id)],
@@ -341,7 +351,7 @@ pub fn generate_scaffold_manifest(
     // ── s6e: Configuration ───────────────────────────────────────────────
     steps.push(WorkflowStep {
         id: "s6e-configure".into(),
-        agent: format!("factory-configurer-{}", adapter.adapter.name),
+        agent: format!("{}-configurer", adapter.adapter.name),
         effort: EffortLevel::Investigate,
         inputs: vec![],
         outputs: vec!["configure-report.yaml".into()],
@@ -362,7 +372,7 @@ pub fn generate_scaffold_manifest(
     // ── s6f: Trim ────────────────────────────────────────────────────────
     steps.push(WorkflowStep {
         id: "s6f-trim".into(),
-        agent: format!("factory-trimmer-{}", adapter.adapter.name),
+        agent: format!("{}-trimmer", adapter.adapter.name),
         effort: EffortLevel::Investigate,
         inputs: vec![],
         outputs: vec!["trim-report.yaml".into()],
@@ -379,7 +389,7 @@ pub fn generate_scaffold_manifest(
     // ── s6g: Final validation ────────────────────────────────────────────
     steps.push(WorkflowStep {
         id: "s6g-final-validation".into(),
-        agent: format!("factory-pipeline-orchestrator-{}", adapter.adapter.name),
+        agent: "pipeline-orchestrator".into(),
         effort: EffortLevel::Investigate,
         inputs: vec![],
         outputs: vec!["final-validation-report.yaml".into()],
@@ -506,7 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn process_manifest_agent_ids_prefixed() {
+    fn process_manifest_agent_ids_match_frontmatter() {
         let adapter = test_adapter();
         let manifest = generate_process_manifest(
             &adapter,
@@ -515,11 +525,21 @@ mod tests {
         )
         .unwrap();
 
-        for step in &manifest.steps {
-            assert!(
-                step.agent.starts_with("factory-"),
-                "agent {} should start with factory-",
-                step.agent
+        // Agent IDs should match the frontmatter `id` field in process agent files
+        // (e.g., "pipeline-orchestrator", "business-requirements-analyst").
+        let expected = [
+            "pipeline-orchestrator",
+            "business-requirements-analyst",
+            "service-designer",
+            "data-architect",
+            "api-architect",
+            "ui-architect",
+        ];
+        for (step, expected_id) in manifest.steps.iter().zip(expected.iter()) {
+            assert_eq!(
+                step.agent, *expected_id,
+                "step {} should have agent {}",
+                step.id, expected_id
             );
         }
     }

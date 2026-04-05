@@ -24,6 +24,8 @@ pub mod verify;
 pub mod hiqlite_store;
 pub mod store_config;
 pub mod http;
+pub mod claude_executor;
+pub mod cli_gate;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
@@ -41,6 +43,8 @@ pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription
 pub use store_config::{build_persistence, PersistencePair, StoreBackend};
 pub use manifest::ApprovalEscalation;
 pub use http::HttpState;
+pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor};
+pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use state::{
     load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
     write_workflow_state_atomic, GateInfo, StepExecutionStatus, StepState, WorkflowState,
@@ -149,21 +153,16 @@ pub trait GovernedExecutor: Send + Sync {
 }
 
 /// Optional dispatch configuration for gates and verification (052/075).
+#[derive(Default)]
 pub struct DispatchOptions {
     /// Gate handler for checkpoint/approval gates. If `None`, gates are skipped.
     pub gate_handler: Option<Arc<dyn GateHandler>>,
     /// Project root for verification commands. Required if any step has `post_verify`.
     pub project_root: Option<PathBuf>,
+    /// Step IDs to skip (mark as Success without dispatch). Used for resume after failure.
+    pub skip_completed_steps: std::collections::HashSet<String>,
 }
 
-impl Default for DispatchOptions {
-    fn default() -> Self {
-        Self {
-            gate_handler: None,
-            project_root: None,
-        }
-    }
-}
 
 /// Outcome of gate evaluation in the non-persisted dispatch path.
 enum GateAction {
@@ -700,6 +699,13 @@ pub async fn dispatch_manifest(
         }
 
         let step = &steps[idx];
+
+        // Resume support: skip steps that were already completed in a prior run.
+        if options.skip_completed_steps.contains(&step.id) {
+            statuses[idx] = StepStatus::Success;
+            continue;
+        }
+
         let input_paths = resolve_input_paths(artifact_base, run_id, step);
         if let Some(missing_path) = input_paths.iter().find(|p| !p.exists()).cloned() {
             statuses[idx] = StepStatus::Failure;

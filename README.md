@@ -1,5 +1,15 @@
 # open-agentic-platform
 
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-2024_edition-orange.svg)](https://www.rust-lang.org/)
+[![Specs](https://img.shields.io/badge/Specs-57_active-green.svg)](specs/)
+
+**The governed operating system for AI-native software delivery.**
+
+> [Getting Started](DEVELOPERS.md) | [Architecture](docs/ARCHITECTURE.md) | [Specs](specs/000-bootstrap-spec-system/spec.md)
+
+---
+
 ## TLDR: Agents
 Authoritative architecture rules: human truth is **markdown** (with optional YAML **frontmatter inside** `.md` files); machine registries are **compiler-emitted JSON** only. See the constitutional bootstrap spec:
 
@@ -273,3 +283,36 @@ It is an attempt to define what a serious AI-native engineering system should lo
 If successful, OAP gives teams a path from individual AI-assisted productivity to governed, organisation-scale agentic delivery.
 
 That is the real idea: **make AI-native engineering operationally trustworthy.**
+
+---
+
+## Claude-native development
+
+This repository ships with first-class [Claude Code](https://docs.anthropic.com/en/docs/claude-code) integration. The `.claude/` directory contains development infrastructure that contributors can use immediately:
+
+- **Agents** (`.claude/agents/`) — architect, explorer, implementer, reviewer: task-focused sub-agents for parallel work
+- **Commands** (`.claude/commands/`) — `/init`, `/commit`, `/code-review`, `/validate-and-fix`, `/research`, `/implement-plan`, `/cleanup`
+- **Rules** (`.claude/rules/`) — Orchestrator behavioral rules enforcing step ordering, file-based artifact passing, and checkpoint discipline
+
+Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (agent protocol), this means every contributor gets AI-assisted development workflows out of the box. This is not optional tooling — it is how the platform was built.
+
+---
+
+## Factory delivery engine
+
+The Factory (`factory/`, `crates/factory-engine/`, `crates/factory-contracts/`) is a two-phase AI pipeline that transforms business requirements into production code:
+
+1. **Phase 1** (s0-s5): Six sequential stages extract requirements, design services, model data, specify APIs and UI, producing a frozen Build Spec
+2. **Phase 2** (s6a-s6g): Dynamic scaffold fan-out generates code per-entity, per-operation, per-page with post-step verification
+
+Four pluggable adapters: `aim-vue-node`, `next-prisma`, `rust-axum`, `encore-react`.
+
+Run a pipeline:
+```bash
+cargo build --release --manifest-path crates/factory-engine/Cargo.toml
+cargo run --manifest-path crates/factory-engine/Cargo.toml --bin factory-run -- \
+  --adapter next-prisma --project /tmp/my-app \
+  --business-docs requirements.md
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full pipeline architecture.

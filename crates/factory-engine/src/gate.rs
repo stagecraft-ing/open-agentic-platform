@@ -164,10 +164,7 @@ pub async fn run_invariants(
     let mut results = Vec::new();
 
     for inv in invariants {
-        let severity = match inv.severity {
-            Severity::Error => Severity::Error,
-            Severity::Warning => Severity::Warning,
-        };
+        let severity = inv.severity.clone();
         let pattern = &inv.check.pattern;
         let scope = &inv.check.scope;
 

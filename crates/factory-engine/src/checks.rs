@@ -138,10 +138,10 @@ pub fn run_grep_absent(
         }
 
         let file_name = entry.file_name().to_string_lossy();
-        if let Some(excl) = excludes {
-            if excl.iter().any(|e| file_name.contains(e.as_str())) {
-                continue;
-            }
+        if let Some(excl) = excludes
+            && excl.iter().any(|e| file_name.contains(e.as_str()))
+        {
+            continue;
         }
 
         let content = match std::fs::read_to_string(entry.path()) {
