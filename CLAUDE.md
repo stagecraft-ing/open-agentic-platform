@@ -20,6 +20,7 @@ tools/           — Rust CLI tools
 crates/          — Rust library crates
   agent/         axiomregent/ featuregraph/
   orchestrator/  policy-kernel/ run/  xray/
+  skill-factory/ — Skill and Command Factory (spec 071)
   tool-registry/ — ToolDef trait + registry (spec 067)
   axiomregent contains: github/ (GitHub API tools), search/ (semantic search), checkpoint/ subsystem
 apps/desktop/    — Tauri v2 + React desktop app (TypeScript + Rust)

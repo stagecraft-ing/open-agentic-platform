@@ -6,6 +6,7 @@ members = [
     "orchestrator",
     "policy-kernel",
     "run",
+    "skill-factory",
     "tool-registry",
     "xray",
 ]
