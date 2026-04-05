@@ -398,23 +398,69 @@ pub fn compute_resume_plan_from_state(
     }
 }
 
-/// Loads `state.json` for this run (if present) and computes a resume plan.
+/// Loads run state (if present) and computes a resume plan.
 ///
 /// This is the main entry point for 052 Phase 2 resume detection:
 /// callers can invoke it at startup to decide whether to offer a resume
 /// prompt and which steps to skip if the user chooses to resume.
+///
+/// Checks `state.json` first (written by [`dispatch_manifest_persisted`]),
+/// then falls back to `summary.json` (written by [`dispatch_manifest`])
+/// so that `factory-run` and other non-persisted callers can resume.
 pub fn detect_resume_plan_for_run(
     artifact_base: &ArtifactManager,
     run_id: Uuid,
     manifest: &WorkflowManifest,
 ) -> Result<Option<ResumePlan>, OrchestratorError> {
-    let path = state_file_path_for_run(artifact_base, run_id);
-    if !path.exists() {
+    // Primary path: state.json written by the persisted dispatcher.
+    let state_path = state_file_path_for_run(artifact_base, run_id);
+    if state_path.exists() {
+        let state = load_workflow_state(&state_path)?;
+        return Ok(compute_resume_plan_from_state(&state, manifest));
+    }
+
+    // Fallback: summary.json written by dispatch_manifest / RunSummary::write_to_disk.
+    let summary_path = artifact_base.run_dir(run_id).join("summary.json");
+    if !summary_path.exists() {
         return Ok(None);
     }
 
-    let state = load_workflow_state(&path)?;
-    Ok(compute_resume_plan_from_state(&state, manifest))
+    let raw = std::fs::read_to_string(&summary_path).map_err(|e| {
+        OrchestratorError::StatePersistence {
+            reason: format!("read summary.json: {e}"),
+        }
+    })?;
+    let summary: RunSummary = serde_json::from_str(&raw).map_err(|e| {
+        OrchestratorError::StatePersistence {
+            reason: format!("parse summary.json: {e}"),
+        }
+    })?;
+
+    // Build completed set from the summary's step statuses.
+    let completed_ids: Vec<String> = manifest
+        .steps
+        .iter()
+        .filter(|step| {
+            summary
+                .steps
+                .iter()
+                .any(|e| e.step_id == step.id && matches!(e.status, StepStatus::Success))
+        })
+        .map(|step| step.id.clone())
+        .collect();
+
+    let first_non_completed_index = manifest
+        .steps
+        .iter()
+        .position(|s| !completed_ids.contains(&s.id));
+
+    match (completed_ids.is_empty(), first_non_completed_index) {
+        (true, _) | (_, None) => Ok(None),
+        (false, Some(first_non_completed_step_index)) => Ok(Some(ResumePlan {
+            completed_step_ids: completed_ids,
+            first_non_completed_step_index,
+        })),
+    }
 }
 
 /// Resolves absolute artifact paths for a step's declared inputs (044).
@@ -1556,6 +1602,73 @@ mod tests {
         let plan = detect_resume_plan_for_run(&artifact_base, run_id, &manifest)
             .unwrap()
             .expect("expected resume plan");
+        assert_eq!(plan.completed_step_ids, vec!["s1".to_string()]);
+        assert_eq!(plan.first_non_completed_step_index, 1);
+    }
+
+    #[test]
+    fn detect_resume_plan_for_run_falls_back_to_summary_json() {
+        let tmp = tempfile::tempdir().unwrap();
+        let artifact_base = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+
+        let manifest = WorkflowManifest {
+            steps: vec![
+                WorkflowStep {
+                    id: "s1".into(),
+                    agent: "agent-a".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec![],
+                    outputs: vec!["out1.md".into()],
+                    instruction: "do 1".into(),
+                    gate: None,
+                    post_verify: None,
+                    max_retries: None,
+                },
+                WorkflowStep {
+                    id: "s2".into(),
+                    agent: "agent-b".into(),
+                    effort: EffortLevel::Quick,
+                    inputs: vec!["s1/out1.md".into()],
+                    outputs: vec!["out2.md".into()],
+                    instruction: "do 2".into(),
+                    gate: None,
+                    post_verify: None,
+                    max_retries: None,
+                },
+            ],
+        };
+
+        // Write summary.json with s1 succeeded, s2 failed — no state.json.
+        let run_dir = artifact_base.run_dir(run_id);
+        std::fs::create_dir_all(&run_dir).unwrap();
+        let summary = RunSummary {
+            run_id,
+            steps: vec![
+                StepSummaryEntry {
+                    step_id: "s1".into(),
+                    agent: "agent-a".into(),
+                    status: StepStatus::Success,
+                    input_artifacts: vec![],
+                    output_artifacts: vec![],
+                    tokens_used: Some(100),
+                },
+                StepSummaryEntry {
+                    step_id: "s2".into(),
+                    agent: "agent-b".into(),
+                    status: StepStatus::Failure,
+                    input_artifacts: vec![],
+                    output_artifacts: vec![],
+                    tokens_used: None,
+                },
+            ],
+        };
+        let json = serde_json::to_string_pretty(&summary).unwrap();
+        std::fs::write(run_dir.join("summary.json"), json).unwrap();
+
+        let plan = detect_resume_plan_for_run(&artifact_base, run_id, &manifest)
+            .unwrap()
+            .expect("expected resume plan from summary.json");
         assert_eq!(plan.completed_step_ids, vec!["s1".to_string()]);
         assert_eq!(plan.first_non_completed_step_index, 1);
     }

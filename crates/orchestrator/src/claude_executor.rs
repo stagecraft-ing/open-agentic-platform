@@ -93,7 +93,11 @@ impl GovernedExecutor for ClaudeCodeExecutor {
     async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
         let system_prompt = self.build_system_prompt(&request);
         let tools_arg = self.allowed_tools.join(",");
-        let max_turns_str = self.max_turns.to_string();
+        let effective_max_turns = match request.effort {
+            crate::EffortLevel::Deep => self.max_turns * 2,
+            _ => self.max_turns,
+        };
+        let max_turns_str = effective_max_turns.to_string();
 
         // The user message is a brief task summary derived from the step ID.
         let user_message = format!("Execute step: {}", request.step_id);
@@ -117,7 +121,16 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             .map_err(|e| format!("failed to spawn claude: {e}"))?;
 
         if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            if stderr.is_empty() {
+                let code = output
+                    .status
+                    .code()
+                    .map_or_else(|| "unknown".to_string(), |c| c.to_string());
+                return Err(format!(
+                    "claude exited with status {code} (no stderr output)"
+                ));
+            }
             return Err(stderr);
         }
 
@@ -211,5 +224,25 @@ mod tests {
             .with_allowed_tools(vec!["Read".into()]);
         assert_eq!(exec.max_turns, 10);
         assert_eq!(exec.allowed_tools, vec!["Read"]);
+    }
+
+    #[test]
+    fn effective_max_turns_doubles_for_deep() {
+        let exec = ClaudeCodeExecutor::new("/tmp".into()).with_max_turns(25);
+        let deep = match crate::EffortLevel::Deep {
+            crate::EffortLevel::Deep => exec.max_turns * 2,
+            _ => exec.max_turns,
+        };
+        assert_eq!(deep, 50);
+        let quick = match crate::EffortLevel::Quick {
+            crate::EffortLevel::Deep => exec.max_turns * 2,
+            _ => exec.max_turns,
+        };
+        assert_eq!(quick, 25);
+        let investigate = match crate::EffortLevel::Investigate {
+            crate::EffortLevel::Deep => exec.max_turns * 2,
+            _ => exec.max_turns,
+        };
+        assert_eq!(investigate, 25);
     }
 }
