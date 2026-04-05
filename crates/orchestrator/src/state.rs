@@ -437,6 +437,8 @@ mod tests {
                     outputs: vec!["lint.md".into()],
                     instruction: "Run lint".into(),
                     gate: Some(StepGateConfig::Checkpoint { label: None }),
+                    post_verify: None,
+                    max_retries: None,
                 },
                 crate::manifest::WorkflowStep {
                     id: "step_002".into(),
@@ -449,6 +451,8 @@ mod tests {
                         timeout_ms: 30_000,
                         escalation: Some(ApprovalEscalation::Fail),
                     }),
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         };

@@ -2,7 +2,7 @@
 id: "075-elucid-workflow-engine"
 title: "Elucid Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification"
 feature_branch: "feat/075-elucid-workflow-engine"
-status: draft
+status: implemented
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

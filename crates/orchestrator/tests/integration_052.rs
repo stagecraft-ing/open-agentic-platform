@@ -36,6 +36,8 @@ fn integration_052_crash_resume_from_state_file() {
                 outputs: vec!["out1.md".into()],
                 instruction: "do 1".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             },
             WorkflowStep {
                 id: "step-2".into(),
@@ -45,6 +47,8 @@ fn integration_052_crash_resume_from_state_file() {
                 outputs: vec!["out2.md".into()],
                 instruction: "do 2".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             },
             WorkflowStep {
                 id: "step-3".into(),
@@ -54,6 +58,8 @@ fn integration_052_crash_resume_from_state_file() {
                 outputs: vec!["out3.md".into()],
                 instruction: "do 3".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             },
         ],
     };
@@ -228,6 +234,8 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-2".into(),
@@ -237,6 +245,8 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-3".into(),
@@ -246,6 +256,8 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                     outputs: vec!["out3.md".into()],
                     instruction: "do 3".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         },
@@ -262,6 +274,8 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                 outputs: vec!["out1.md".into()],
                 instruction: "do 1".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             },
             WorkflowStep {
                 id: "step-2".into(),
@@ -271,6 +285,8 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                 outputs: vec!["out2.md".into()],
                 instruction: "do 2".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             },
             WorkflowStep {
                 id: "step-3".into(),
@@ -280,6 +296,8 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                 outputs: vec!["out3.md".into()],
                 instruction: "do 3".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             },
         ],
     };

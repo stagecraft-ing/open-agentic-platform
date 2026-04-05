@@ -23,12 +23,24 @@ pub struct WorkflowStep {
     pub outputs: Vec<String>,
     pub instruction: String,
     /// Optional gate configuration for this step (052 FR-004, FR-005).
-    ///
-    /// When present, callers can use this to pause execution at a checkpoint
-    /// or require explicit approval with timeout/escalation behavior before
-    /// running the step.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gate: Option<StepGateConfig>,
+    /// Post-step verification commands (075 FR-005).
+    /// After the agent completes, each command runs in sequence.
+    /// If any fails, the step is marked verification-failed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub post_verify: Option<Vec<VerifyCommand>>,
+    /// Maximum retry count for verification failures (075 FR-006). Default: 3.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_retries: Option<u32>,
+}
+
+/// A verification command to run after agent completion (075 FR-005).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct VerifyCommand {
+    pub command: String,
+    pub working_dir: String,
+    pub timeout_ms: u64,
 }
 
 /// Escalation behavior when an approval gate times out (052 FR-005 / SC-003).
@@ -212,6 +224,8 @@ mod tests {
             outputs: outputs.into_iter().map(String::from).collect(),
             instruction: "test".into(),
             gate: None,
+            post_verify: None,
+            max_retries: None,
         }
     }
 

@@ -2,13 +2,14 @@
 members = [
     "agent",
     "axiomregent",
+    "elucid-contracts",
+    "elucid-engine",
     "featuregraph",
     "orchestrator",
     "policy-kernel",
     "run",
     "skill-factory",
     "tool-registry",
-    "elucid-contracts",
     "xray",
 ]
 resolver = "2"

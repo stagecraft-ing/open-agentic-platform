@@ -19,6 +19,7 @@ pub mod sqlite_state;
 pub mod sse;
 pub mod state;
 pub mod store;
+pub mod verify;
 #[cfg(feature = "distributed")]
 pub mod hiqlite_store;
 pub mod store_config;
@@ -26,7 +27,8 @@ pub mod http;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
 pub use effort::{classify_from_task, EffortLevel};
-pub use manifest::{split_input_ref, WorkflowManifest, WorkflowStep};
+pub use manifest::{split_input_ref, VerifyCommand, WorkflowManifest, WorkflowStep};
+pub use verify::{run_verify_commands, build_retry_instruction, VerifyOutcome};
 pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler, GateOutcome};
 #[cfg(feature = "local-sqlite")]
 pub use sqlite_state::{
@@ -71,9 +73,11 @@ pub enum OrchestratorError {
     AgentNotFound { agent_id: String },
     #[error("state persistence error: {reason}")]
     StatePersistence { reason: String },
+    #[error("verification failed at step {step_id}: {reason}")]
+    VerificationFailed { step_id: String, reason: String },
 }
 
-/// Per-step status after or during a run (044 FR-006, FR-008).
+/// Per-step status after or during a run (044 FR-006, FR-008, 075 FR-005).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum StepStatus {
@@ -81,6 +85,8 @@ pub enum StepStatus {
     Running,
     Success,
     Failure,
+    /// Post-step verification failed (075 FR-005).
+    VerificationFailed,
     Skipped,
     Cancelled,
 }
@@ -1065,6 +1071,8 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "do".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             }],
         };
         let rd = materialize_run_directory(&am, run_id, &m).unwrap();
@@ -1089,6 +1097,8 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-2".into(),
@@ -1098,6 +1108,8 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-3".into(),
@@ -1107,6 +1119,8 @@ mod tests {
                     outputs: vec!["out3.md".into()],
                     instruction: "do 3".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         };
@@ -1167,6 +1181,8 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-2".into(),
@@ -1176,6 +1192,8 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         };
@@ -1199,6 +1217,8 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "do".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             }],
         };
 
@@ -1222,6 +1242,8 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "s2".into(),
@@ -1231,6 +1253,8 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         };
@@ -1281,6 +1305,8 @@ mod tests {
                     outputs: vec!["out.md".into()],
                     instruction: "do a".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-02".into(),
@@ -1290,6 +1316,8 @@ mod tests {
                     outputs: vec!["out.md".into()],
                     instruction: "do b".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         };
@@ -1330,6 +1358,8 @@ mod tests {
                     outputs: vec!["out.md".into()],
                     instruction: "do a".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
                 WorkflowStep {
                     id: "step-02".into(),
@@ -1339,6 +1369,8 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do b".into(),
                     gate: None,
+                    post_verify: None,
+                    max_retries: None,
                 },
             ],
         };
@@ -1376,6 +1408,8 @@ mod tests {
             outputs: vec!["out.md".into()],
             instruction: "Summarize the research artifacts.".into(),
             gate: None,
+            post_verify: None,
+            max_retries: None,
         };
 
         // Materialize a fake producer output so the relative ref resolves under the run dir.
@@ -1409,6 +1443,8 @@ mod tests {
             outputs: vec!["out.md".into()],
             instruction: "Do root work.".into(),
             gate: None,
+            post_verify: None,
+            max_retries: None,
         };
         let prompt = build_step_system_prompt(&am, run_id, &step);
         assert!(prompt.contains("This step has no upstream artifact dependencies."));
@@ -1429,6 +1465,8 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "Write output.".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             }],
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
@@ -1461,6 +1499,8 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "Write output.".into(),
                 gate: None,
+                post_verify: None,
+                max_retries: None,
             }],
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
