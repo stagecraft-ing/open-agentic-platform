@@ -23,6 +23,23 @@ From `requirements/`:
 
 Write the `api` section (plus `project`, `auth`, `data_model`, `business_rules`) to `.factory/build-spec.yaml`. Follow the Build Specification schema exactly.
 
+### Schema Reference
+
+You MUST match the structure defined in the contract schema and example files. When in doubt, copy the structure from the example — not from memory.
+
+- **Schema**: `factory/contract/schemas/build-spec.schema.yaml` — authoritative field names, types, and required/optional markers
+- **Example**: `factory/contract/examples/cfs-womens-shelter.build-spec.yaml` — a fully validated, parseable reference
+
+Key structural rules the parser enforces:
+- `schema_version` is a **top-level** field (not inside `project`)
+- `project` must include `org` (organization slug, e.g. `"goa-cfs"`)
+- `auth.audiences` is a **map** keyed by audience name (e.g. `citizen:`, `staff:`), not a list
+- Each audience's `roles` is a list of **objects** with `role_code`, `display_name`, `description`, `permissions` — not flat strings
+- `data_model.entities[].fields` is **required** — each entity must list all its fields with `name`, `type`, `required`, etc.
+- `business_rules[].entities` is **required** — list the entity names each rule applies to
+- `api.resources[].entity` is **required** — the entity name this resource maps to
+- `api.resources[].operations` is a list of **Operation objects** (with `id`, `method`, `path`, `auth`, etc.) — not a list of ID strings
+
 ## Resource Design Process
 
 ### Step 1: Identify Resources

@@ -20,6 +20,24 @@ You define every page the application needs, linking each to its data sources an
 
 Complete the `ui`, `integrations`, `notifications`, `audit`, and `traceability` sections of `.factory/build-spec.yaml`.
 
+### Schema Reference
+
+You MUST match the structure defined in the contract schema and example files. When in doubt, copy the structure from the example — not from memory.
+
+- **Schema**: `factory/contract/schemas/build-spec.schema.yaml` — authoritative field names, types, and required/optional markers
+- **Example**: `factory/contract/examples/cfs-womens-shelter.build-spec.yaml` — a fully validated, parseable reference
+
+Key structural rules the parser enforces:
+- `ui.pages[]` requires `view_type` (one of: `public`, `public-authenticated`, `private-authenticated`) — do not use a `stack` field
+- `ui.pages[].data_sources[]` has `operation_id`, `purpose`, and `trigger` (one of: `on-load`, `on-action`, `on-submit`, `on-interval`)
+- `notifications` is an **object** with an `events` list — not a bare list
+- Each notification event has `trigger`, `recipient` (string), `channel`, `subject_template`
+- `integrations[].type` must be one of: `file-storage`, `data-ingestion`, `email`, `identity-provider`, `external-api`, `message-queue`
+- `integrations[].config_params[]` uses `sensitive` (not `secret`) for credential flags
+- `audit` has `enabled`, `tracked_actions`, `retention`, `business_rules` — not `governing_rules`
+- `traceability.use_cases[]` has `id`, `name`, `description` only — not the full cross-reference map
+- `traceability.test_cases[]` has `id`, `name`, `covers_use_case`, `type` only
+
 ## Page Design Process
 
 ### Step 1: Enrich Sitemap Pages

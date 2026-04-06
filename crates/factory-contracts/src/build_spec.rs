@@ -15,6 +15,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildSpec {
+    #[serde(default)]
     pub schema_version: String,
     pub project: ProjectSpec,
     pub auth: AuthSpec,
@@ -48,6 +49,7 @@ pub struct BuildSpec {
 pub struct ProjectSpec {
     pub name: String,
     pub display_name: String,
+    #[serde(default)]
     pub org: String,
     pub description: String,
     pub variant: Variant,

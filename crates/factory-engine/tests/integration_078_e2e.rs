@@ -136,6 +136,7 @@ fn noop_e2e_full_pipeline_dispatch() {
             "aim-vue-node",
             &build_spec_artifact,
             &mut pipeline_state,
+            None,
         )
         .expect("transition_to_scaffolding should succeed");
 

@@ -47,6 +47,11 @@ struct Cli {
     #[arg(long, default_value_t = 25)]
     max_turns: u32,
 
+    /// Organisation slug (e.g. goa-cfs). Injected into the Build Spec if the
+    /// agent did not produce one.
+    #[arg(long)]
+    org: Option<String>,
+
     /// Resume a previously failed pipeline run by its run ID
     #[arg(long)]
     resume: Option<Uuid>,
@@ -245,6 +250,7 @@ async fn main() -> ExitCode {
         &cli.adapter,
         &build_spec_path,
         &mut pipeline_state,
+        cli.org.as_deref(),
     ) {
         Ok(t) => t,
         Err(e) => {

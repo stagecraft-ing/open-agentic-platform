@@ -144,11 +144,14 @@ impl FactoryEngine {
     ///
     /// Called after stage s5 completes and the Build Spec is frozen.
     /// Reads the Build Spec artifact, hashes it, generates the Phase 2 manifest.
+    ///
+    /// `org_override` injects `project.org` when the agent-produced spec omits it.
     pub fn transition_to_scaffolding(
         &self,
         adapter_name: &str,
         build_spec_path: &Path,
         pipeline_state: &mut FactoryPipelineState,
+        org_override: Option<&str>,
     ) -> Result<PhaseTransitionResult, FactoryError> {
         let adapter = self
             .adapter_registry
@@ -164,12 +167,19 @@ impl FactoryEngine {
             }
         })?;
 
-        let build_spec: BuildSpec =
+        let mut build_spec: BuildSpec =
             serde_yaml::from_str(&build_spec_yaml).map_err(|e| {
                 FactoryError::InvalidBuildSpec {
                     reason: format!("parse: {e}"),
                 }
             })?;
+
+        // Inject org if the agent omitted it and the operator supplied one.
+        if build_spec.project.org.is_empty() {
+            if let Some(org) = org_override {
+                build_spec.project.org = org.to_string();
+            }
+        }
 
         // Hash the frozen Build Spec.
         let hash = {
