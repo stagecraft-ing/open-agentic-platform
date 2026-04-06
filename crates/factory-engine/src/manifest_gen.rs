@@ -381,6 +381,41 @@ pub fn generate_scaffold_manifest(
     }
 
     // ── s6d-*: UI pages ──────────────────────────────────────────────────
+
+    // Resolve all UI pattern files once (view, state, route, test).
+    let ui_patterns_block = {
+        let kinds = ["view", "state", "route", "test"];
+        let lines: Vec<String> = kinds
+            .iter()
+            .filter_map(|k| {
+                resolver
+                    .resolve_ui_pattern(k)
+                    .map(|p| format!("  {k}: {}", p.display()))
+            })
+            .collect();
+        if lines.is_empty() {
+            String::new()
+        } else {
+            format!("\nUI pattern files (read ALL before writing code):\n{}", lines.join("\n"))
+        }
+    };
+
+    // Build UI directory conventions string once.
+    let ui_dir_conventions_block = {
+        let dc = &adapter.directory_conventions;
+        let mut parts = Vec::new();
+        if let Some(ref v) = dc.ui_view { parts.push(format!("  view: {v}")); }
+        if let Some(ref v) = dc.ui_store { parts.push(format!("  store: {v}")); }
+        if let Some(ref v) = dc.ui_route_config { parts.push(format!("  route_config: {v}")); }
+        if let Some(ref v) = dc.ui_test { parts.push(format!("  test: {v}")); }
+        if let Some(ref v) = dc.ui_component { parts.push(format!("  component: {v}")); }
+        if parts.is_empty() {
+            String::new()
+        } else {
+            format!("\nDirectory conventions:\n{}", parts.join("\n"))
+        }
+    };
+
     for page in &build_spec.ui.pages {
         let step_id = format!("s6d-ui-{}", page.id);
 
@@ -389,6 +424,23 @@ pub fn generate_scaffold_manifest(
             .resolve_page_type_pattern(&page_type_str)
             .map(|p| format!("\nPage type pattern: {}", p.display()))
             .unwrap_or_default();
+
+        // Determine the target app (web-public vs web-internal) from view_type + dual_stack.
+        let stack_block = match &adapter.dual_stack {
+            Some(ds) => {
+                let (stack_name, web_app) = match page.view_type {
+                    factory_contracts::build_spec::ViewType::Public
+                    | factory_contracts::build_spec::ViewType::PublicAuthenticated => {
+                        ("public", &ds.stacks.public.web)
+                    }
+                    factory_contracts::build_spec::ViewType::PrivateAuthenticated => {
+                        ("internal", &ds.stacks.internal.web)
+                    }
+                };
+                format!("\nStack: {stack_name} (app: {web_app})")
+            }
+            None => String::new(),
+        };
 
         steps.push(WorkflowStep {
             id: step_id,
@@ -402,7 +454,7 @@ pub fn generate_scaffold_manifest(
                  Type: {:?}, View: {:?}\n\
                  Auth required: {}\n\
                  Data sources: {}\n\
-                 Adapter: {}{page_pattern}",
+                 Adapter: {}{stack_block}{page_pattern}{ui_patterns_block}{ui_dir_conventions_block}",
                 page.title,
                 page.id,
                 page.path,
