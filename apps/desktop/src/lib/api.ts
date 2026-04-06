@@ -2170,8 +2170,8 @@ export const api = {
 
   // ── Factory Pipeline (076) ───────────────────────────────────────────
 
-  async startFactoryPipeline(projectPath: string, adapterName: string, businessDocPaths: string[]): Promise<{ run_id: string }> {
-    return await apiCall<{ run_id: string }>("start_factory_pipeline", { projectPath, adapterName, businessDocPaths });
+  async startFactoryPipeline(projectPath: string, adapterName: string, businessDocPaths: string[], stagecraftProjectId?: string): Promise<{ run_id: string }> {
+    return await apiCall<{ run_id: string }>("start_factory_pipeline", { projectPath, adapterName, businessDocPaths, stagecraftProjectId });
   },
 
   async getFactoryPipelineStatus(runId: string): Promise<any> {
@@ -2200,6 +2200,10 @@ export const api = {
 
   async resumeFactoryPipeline(runId: string, projectPath: string, adapterName: string): Promise<void> {
     await apiCall<void>("resume_factory_pipeline", { runId, projectPath, adapterName });
+  },
+
+  async cancelFactoryPipeline(runId: string, reason: string): Promise<void> {
+    await apiCall<void>("cancel_factory_pipeline", { runId, reason });
   },
 
 };

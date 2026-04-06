@@ -1,13 +1,14 @@
 use anyhow::Result;
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use std::sync::Arc;
 use tracing_subscriber::EnvFilter;
 
 mod auth;
 mod config;
+mod k8s;
 mod routes;
 mod store;
 
@@ -38,6 +39,10 @@ async fn main() -> Result<()> {
             get(routes::get_status),
         )
         .route("/v1/deployments/{releaseId}/logs", get(routes::get_logs))
+        .route(
+            "/v1/deployments/{releaseId}",
+            delete(routes::delete_deployment),
+        )
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", cfg.port)).await?;

@@ -74,10 +74,25 @@ export async function createPreviewDeployment(opts: {
 }
 
 /**
- * Request destruction of a preview deployment.
- * deployd-api does not yet expose a DELETE endpoint — log intent for now.
+ * Destroy a preview deployment via deployd-api DELETE /v1/deployments/:id.
+ * Tears down K8s resources and marks the deployment as DESTROYED.
  */
 export async function destroyPreviewDeployment(releaseId: string): Promise<void> {
-  log.info("Preview destroy requested", { releaseId });
-  // Wire to deployd-api DELETE /v1/deployments/:id when the endpoint ships.
+  if (!isDeploydConfigured()) {
+    log.info("Preview destroy requested (no deployd configured)", { releaseId });
+    return;
+  }
+
+  const authHeader = await getAuthHeader();
+  const resp = await fetch(`${DEPLOYD_URL}/v1/deployments/${releaseId}`, {
+    method: "DELETE",
+    headers: { authorization: authHeader },
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`deployd-api delete failed: ${resp.status} ${text}`);
+  }
+
+  log.info("Preview deployment destroyed", { releaseId });
 }

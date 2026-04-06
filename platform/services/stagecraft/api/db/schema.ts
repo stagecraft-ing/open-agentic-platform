@@ -206,6 +206,7 @@ export const factoryPipelineStatusEnum = pgEnum("factory_pipeline_status", [
   "paused",
   "completed",
   "failed",
+  "cancelled",
 ]);
 
 export const factoryStageStatusEnum = pgEnum("factory_stage_status", [

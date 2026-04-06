@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { db } from "../db/drizzle";
+import { FactoryEventTopic } from "./events";
 import {
   projects,
   factoryPipelines,
@@ -265,6 +266,14 @@ export const initPipeline = api(
       return { pipeline, bundle };
     });
 
+    await FactoryEventTopic.publish({
+      project_id: req.id,
+      pipeline_id: result.pipeline.id,
+      event_type: "pipeline_initialized",
+      actor: req.actorUserId,
+      details: { adapter: req.adapter, doc_count: req.business_docs?.length ?? 0 },
+    });
+
     return {
       pipeline_id: result.pipeline.id,
       adapter: result.pipeline.adapterName,
@@ -464,6 +473,15 @@ export const confirmStage = api(
       details: { notes: req.notes },
     });
 
+    await FactoryEventTopic.publish({
+      project_id: req.id,
+      pipeline_id: pipeline.id,
+      event_type: "stage_confirmed",
+      stage_id: req.stageId,
+      actor: req.actorUserId,
+      details: { notes: req.notes },
+    });
+
     return {
       stage: req.stageId,
       confirmed_by: req.actorUserId,
@@ -552,6 +570,15 @@ export const rejectStage = api(
       event: "stage_rejected",
       actor: req.actorUserId,
       stageId: req.stageId,
+      details: { feedback: req.feedback },
+    });
+
+    await FactoryEventTopic.publish({
+      project_id: req.id,
+      pipeline_id: pipeline.id,
+      event_type: "stage_rejected",
+      stage_id: req.stageId,
+      actor: req.actorUserId,
       details: { feedback: req.feedback },
     });
 
@@ -694,11 +721,283 @@ export const triggerDeploy = api(
       },
     });
 
+    await FactoryEventTopic.publish({
+      project_id: req.id,
+      pipeline_id: pipeline.id,
+      event_type: "deployment_triggered",
+      actor: req.actorUserId,
+      details: { environment: req.environment, deployment_id: deploymentId },
+    });
+
     return {
       deployment_id: deploymentId,
       target: req.environment,
       status: deployStatus,
     };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-009: Pipeline Status Update (lifecycle events from OPC)
+// ---------------------------------------------------------------------------
+
+type StatusUpdateRequest = {
+  id: string; // project ID (path param)
+  pipeline_id: string;
+  status: "running" | "paused" | "completed" | "failed";
+  current_stage?: string;
+  error?: string;
+  phase?: "process" | "scaffold";
+  actorUserId: string;
+};
+
+type StatusUpdateResponse = {
+  pipeline_id: string;
+  status: string;
+  audit_entry_id: string;
+};
+
+export const updatePipelineStatus = api(
+  {
+    expose: true,
+    method: "POST",
+    path: "/api/projects/:id/factory/status-update",
+  },
+  async (req: StatusUpdateRequest): Promise<StatusUpdateResponse> => {
+    const pipeline = await getActivePipeline(req.id);
+
+    // Guard: cannot update a terminal pipeline
+    if (pipeline.status === "completed" || pipeline.status === "failed") {
+      throw APIError.failedPrecondition(
+        `pipeline status is "${pipeline.status}" and cannot be updated`
+      );
+    }
+
+    const now = new Date();
+    const isTerminal = req.status === "completed" || req.status === "failed";
+
+    await db
+      .update(factoryPipelines)
+      .set({
+        status: req.status,
+        ...(req.status === "running" && !pipeline.startedAt ? { startedAt: now } : {}),
+        ...(isTerminal ? { completedAt: now } : {}),
+        updatedAt: now,
+      })
+      .where(eq(factoryPipelines.id, pipeline.id));
+
+    // If a current_stage is provided, mark it as in_progress
+    if (req.current_stage) {
+      await db
+        .update(factoryStages)
+        .set({
+          status: "in_progress",
+          startedAt: now,
+        })
+        .where(
+          and(
+            eq(factoryStages.pipelineId, pipeline.id),
+            eq(factoryStages.stageId, req.current_stage)
+          )
+        );
+    }
+
+    const auditId = await appendAudit({
+      pipelineId: pipeline.id,
+      event: "pipeline_status_changed",
+      actor: req.actorUserId,
+      stageId: req.current_stage,
+      details: {
+        status: req.status,
+        phase: req.phase,
+        ...(req.error ? { error: req.error } : {}),
+      },
+    });
+
+    // Publish events for terminal status changes
+    if (req.status === "completed" || req.status === "failed") {
+      await FactoryEventTopic.publish({
+        project_id: req.id,
+        pipeline_id: pipeline.id,
+        event_type: req.status === "completed" ? "pipeline_completed" : "pipeline_failed",
+        actor: req.actorUserId,
+        details: {
+          phase: req.phase,
+          ...(req.error ? { error: req.error } : {}),
+        },
+      });
+    }
+
+    return {
+      pipeline_id: pipeline.id,
+      status: req.status,
+      audit_entry_id: auditId,
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-010: Scaffold Feature Progress (batch upsert from OPC)
+// ---------------------------------------------------------------------------
+
+type ScaffoldFeatureReport = {
+  feature_id: string;
+  category: "data" | "api" | "ui" | "configure" | "trim" | "validate";
+  status: "pending" | "in_progress" | "completed" | "failed";
+  retry_count?: number;
+  last_error?: string;
+  files_created?: string[];
+  prompt_tokens?: number;
+  completion_tokens?: number;
+};
+
+type ScaffoldProgressRequest = {
+  id: string; // project ID (path param)
+  pipeline_id: string;
+  features: ScaffoldFeatureReport[];
+  actorUserId: string;
+};
+
+type ScaffoldProgressResponse = {
+  upserted: number;
+  audit_entry_id: string;
+};
+
+export const reportScaffoldProgress = api(
+  {
+    expose: true,
+    method: "POST",
+    path: "/api/projects/:id/factory/scaffold-progress",
+  },
+  async (req: ScaffoldProgressRequest): Promise<ScaffoldProgressResponse> => {
+    const pipeline = await getActivePipeline(req.id);
+
+    if (!req.features || req.features.length === 0) {
+      throw APIError.invalidArgument("features array must not be empty");
+    }
+
+    let upserted = 0;
+    for (const feat of req.features) {
+      // Try to find existing row
+      const [existing] = await db
+        .select({ id: factoryScaffoldFeatures.id })
+        .from(factoryScaffoldFeatures)
+        .where(
+          and(
+            eq(factoryScaffoldFeatures.pipelineId, pipeline.id),
+            eq(factoryScaffoldFeatures.featureId, feat.feature_id)
+          )
+        )
+        .limit(1);
+
+      const now = new Date();
+      if (existing) {
+        await db
+          .update(factoryScaffoldFeatures)
+          .set({
+            status: feat.status,
+            ...(feat.retry_count != null ? { retryCount: feat.retry_count } : {}),
+            ...(feat.last_error != null ? { lastError: feat.last_error } : {}),
+            ...(feat.files_created != null ? { filesCreated: feat.files_created } : {}),
+            ...(feat.prompt_tokens != null
+              ? { promptTokens: sql`${factoryScaffoldFeatures.promptTokens} + ${feat.prompt_tokens}` }
+              : {}),
+            ...(feat.completion_tokens != null
+              ? { completionTokens: sql`${factoryScaffoldFeatures.completionTokens} + ${feat.completion_tokens}` }
+              : {}),
+            ...(feat.status === "completed" || feat.status === "failed"
+              ? { completedAt: now }
+              : {}),
+          })
+          .where(eq(factoryScaffoldFeatures.id, existing.id));
+      } else {
+        await db.insert(factoryScaffoldFeatures).values({
+          pipelineId: pipeline.id,
+          featureId: feat.feature_id,
+          category: feat.category,
+          status: feat.status,
+          retryCount: feat.retry_count ?? 0,
+          lastError: feat.last_error ?? null,
+          filesCreated: feat.files_created ?? null,
+          promptTokens: feat.prompt_tokens ?? 0,
+          completionTokens: feat.completion_tokens ?? 0,
+          startedAt: now,
+          ...(feat.status === "completed" || feat.status === "failed"
+            ? { completedAt: now }
+            : {}),
+        });
+      }
+      upserted++;
+    }
+
+    const auditId = await appendAudit({
+      pipelineId: pipeline.id,
+      event: "scaffold_progress_reported",
+      actor: req.actorUserId,
+      details: {
+        feature_count: req.features.length,
+        completed: req.features.filter((f) => f.status === "completed").length,
+        failed: req.features.filter((f) => f.status === "failed").length,
+      },
+    });
+
+    return {
+      upserted,
+      audit_entry_id: auditId,
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-011: Batch Event Ingestion (orchestrator step events from OPC)
+// ---------------------------------------------------------------------------
+
+type OrchestratorEvent = {
+  event_type: string;
+  step_id?: string;
+  timestamp: string;
+  payload?: Record<string, unknown>;
+};
+
+type EventIngestionRequest = {
+  id: string; // project ID (path param)
+  pipeline_id: string;
+  events: OrchestratorEvent[];
+};
+
+type EventIngestionResponse = {
+  ingested: number;
+};
+
+export const ingestEvents = api(
+  {
+    expose: true,
+    method: "POST",
+    path: "/api/projects/:id/factory/events",
+  },
+  async (req: EventIngestionRequest): Promise<EventIngestionResponse> => {
+    const pipeline = await getActivePipeline(req.id);
+
+    if (!req.events || req.events.length === 0) {
+      throw APIError.invalidArgument("events array must not be empty");
+    }
+
+    // Cap batch size to prevent abuse
+    const events = req.events.slice(0, 200);
+
+    for (const evt of events) {
+      await appendAudit({
+        pipelineId: pipeline.id,
+        event: evt.event_type,
+        stageId: evt.step_id,
+        details: {
+          timestamp: evt.timestamp,
+          ...(evt.payload ?? {}),
+        },
+      });
+    }
+
+    return { ingested: events.length };
   }
 );
 
@@ -783,5 +1082,78 @@ export const reportTokenSpend = api(
         model: req.model,
       },
     });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-012: Pipeline Cancellation
+// ---------------------------------------------------------------------------
+
+type CancelRequest = {
+  id: string; // project ID (path param)
+  reason: string;
+  actorUserId: string;
+};
+
+type CancelResponse = {
+  pipeline_id: string;
+  cancelled_at: string;
+  audit_entry_id: string;
+};
+
+export const cancelPipeline = api(
+  {
+    expose: true,
+    method: "POST",
+    path: "/api/projects/:id/factory/cancel",
+  },
+  async (req: CancelRequest): Promise<CancelResponse> => {
+    const pipeline = await getActivePipeline(req.id);
+    const now = new Date();
+
+    if (!req.reason) {
+      throw APIError.invalidArgument("reason is required for cancellation");
+    }
+
+    // Guard: can only cancel active pipelines
+    if (
+      pipeline.status === "completed" ||
+      pipeline.status === "failed" ||
+      pipeline.status === "cancelled"
+    ) {
+      throw APIError.failedPrecondition(
+        `pipeline status is "${pipeline.status}" and cannot be cancelled`
+      );
+    }
+
+    await db
+      .update(factoryPipelines)
+      .set({
+        status: "cancelled",
+        completedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(factoryPipelines.id, pipeline.id));
+
+    const auditId = await appendAudit({
+      pipelineId: pipeline.id,
+      event: "pipeline_cancelled",
+      actor: req.actorUserId,
+      details: { reason: req.reason },
+    });
+
+    await FactoryEventTopic.publish({
+      project_id: req.id,
+      pipeline_id: pipeline.id,
+      event_type: "pipeline_failed", // reuse pipeline_failed for Slack (with cancel context)
+      actor: req.actorUserId,
+      details: { reason: req.reason, cancelled: true },
+    });
+
+    return {
+      pipeline_id: pipeline.id,
+      cancelled_at: now.toISOString(),
+      audit_entry_id: auditId,
+    };
   }
 );

@@ -3,6 +3,10 @@ import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { Subscription } from "encore.dev/pubsub";
 import { TransitionTopic } from "../monitor/check";
+import {
+  FactoryEventTopic,
+  type FactoryPipelineEvent,
+} from "../factory/events";
 
 export interface NotifyParams {
   text: string; // the slack message to send
@@ -37,3 +41,40 @@ const _ = new Subscription(TransitionTopic, "slack-notification", {
     await notify({ text });
   },
 });
+
+// ---------------------------------------------------------------------------
+// Factory Pipeline Notifications
+// ---------------------------------------------------------------------------
+
+function formatFactorySlackMessage(event: FactoryPipelineEvent): string | null {
+  const pid = event.pipeline_id.slice(0, 8);
+  switch (event.event_type) {
+    case "pipeline_initialized":
+      return `*Factory* Pipeline \`${pid}\` started (adapter: ${event.details?.adapter ?? "unknown"})`;
+    case "stage_confirmed":
+      return `*Factory* Stage \`${event.stage_id}\` confirmed by ${event.actor ?? "unknown"}`;
+    case "stage_rejected":
+      return `*Factory* Stage \`${event.stage_id}\` rejected by ${event.actor ?? "unknown"}: ${event.details?.feedback ?? ""}`;
+    case "pipeline_completed":
+      return `*Factory* Pipeline \`${pid}\` completed successfully`;
+    case "pipeline_failed":
+      return `*Factory* Pipeline \`${pid}\` failed: ${event.details?.error ?? "unknown error"}`;
+    case "deployment_triggered":
+      return `*Factory* Deployment triggered for pipeline \`${pid}\` to ${event.details?.environment ?? "unknown"}`;
+    default:
+      return null;
+  }
+}
+
+const _factorySlack = new Subscription(
+  FactoryEventTopic,
+  "slack-factory-notification",
+  {
+    handler: async (event) => {
+      const text = formatFactorySlackMessage(event);
+      if (text) {
+        await notify({ text });
+      }
+    },
+  }
+);

@@ -2,7 +2,7 @@
 // Pipeline selector — start a new pipeline or display the running run ID.
 
 import React, { useState } from 'react';
-import { FolderOpen, Play } from 'lucide-react';
+import { FolderOpen, Play, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -13,7 +13,7 @@ interface PipelineSelectorProps {
 }
 
 export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath }) => {
-  const { state, startPipeline } = useFactoryPipeline();
+  const { state, startPipeline, cancelPipeline } = useFactoryPipeline();
 
   const [adapterName, setAdapterName] = useState('next-prisma');
   const [businessDocs, setBusinessDocs] = useState<string[]>([]);
@@ -47,8 +47,21 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath 
 
   const isIdle = state.phase === 'idle';
 
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    if (cancelling) return;
+    setCancelling(true);
+    try {
+      await cancelPipeline('User cancelled from UI');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (!isIdle) {
-    // Active pipeline — show run metadata.
+    // Active pipeline — show run metadata + cancel button.
+    const isActive = state.phase === 'process' || state.phase === 'scaffolding';
     return (
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
@@ -59,6 +72,18 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath 
             {state.runId ?? '—'}
           </span>
         </div>
+        {isActive && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-6 text-xs gap-1 shrink-0"
+            onClick={handleCancel}
+            disabled={cancelling}
+          >
+            <Square className="h-3 w-3" />
+            {cancelling ? 'Cancelling…' : 'Cancel'}
+          </Button>
+        )}
       </div>
     );
   }

@@ -38,10 +38,12 @@ interface FactoryPipelineContextType {
     projectPath: string,
     adapterName: string,
     businessDocPaths: string[],
+    stagecraftProjectId?: string,
   ) => Promise<string>;
   confirmStage: (stageId: string) => Promise<void>;
   rejectStage: (stageId: string, feedback: string) => Promise<void>;
   skipStep: (stepId: string) => Promise<void>;
+  cancelPipeline: (reason: string) => Promise<void>;
   selectStep: (stepId: string | null) => void;
   loadPipelineStatus: (runId: string) => Promise<void>;
   loadArtifacts: (stepId: string) => Promise<ArtifactEntry[]>;
@@ -364,11 +366,13 @@ export const FactoryPipelineProvider: React.FC<{
       projectPath: string,
       adapterName: string,
       businessDocPaths: string[],
+      stagecraftProjectId?: string,
     ): Promise<string> => {
       const resp = await apiCall<{ run_id: string }>('start_factory_pipeline', {
         projectPath,
         adapterName,
         businessDocPaths,
+        stagecraftProjectId,
       });
       const runId = resp.run_id;
 
@@ -449,6 +453,17 @@ export const FactoryPipelineProvider: React.FC<{
     [state.runId],
   );
 
+  const cancelPipeline = useCallback(
+    async (reason: string): Promise<void> => {
+      const runId = state.runId;
+      if (!runId) return;
+
+      await apiCall<void>('cancel_factory_pipeline', { runId, reason });
+      setState((prev) => ({ ...prev, phase: 'failed' }));
+    },
+    [state.runId],
+  );
+
   const selectStep = useCallback((stepId: string | null): void => {
     setState((prev) => ({ ...prev, selectedStepId: stepId }));
   }, []);
@@ -523,6 +538,7 @@ export const FactoryPipelineProvider: React.FC<{
     confirmStage,
     rejectStage,
     skipStep,
+    cancelPipeline,
     selectStep,
     loadPipelineStatus,
     loadArtifacts,

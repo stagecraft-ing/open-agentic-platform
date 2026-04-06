@@ -9,6 +9,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::auth;
+use crate::k8s;
 use crate::store::{self, AppState, Deployment};
 
 pub async fn healthz() -> &'static str {
@@ -127,23 +128,86 @@ pub async fn create_deployment(
     }
     let _ = store::add_event(&state.client, &deployment_id, "requested", None).await;
 
-    // For Lane A: namespace + helm deploy would go here.
-    // For now, mark as ROLLED_OUT (K8s integration deferred to when kube crate is wired).
-    let _ = store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
-    let _ = store::add_event(
-        &state.client,
-        &deployment_id,
-        "rolled_out",
-        Some("deployment recorded"),
-    )
-    .await;
+    // Parse routes for K8s ingress
+    let route_pairs: Vec<(String, String)> = body
+        .desired_routes
+        .as_ref()
+        .map(|routes| {
+            routes
+                .iter()
+                .map(|r| {
+                    (
+                        r.host.clone().unwrap_or_else(|| "unknown-host".into()),
+                        r.path.clone().unwrap_or_else(|| "/".into()),
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Attempt real K8s deployment; fall back to record-only if no cluster available.
+    let (final_status, final_endpoints) = match k8s::try_connect().await {
+        Ok(k8s_client) => {
+            let _ = store::update_status(&state.client, &deployment_id, "DEPLOYING").await;
+            let _ = store::add_event(
+                &state.client,
+                &deployment_id,
+                "deploying",
+                Some("creating K8s resources"),
+            )
+            .await;
+
+            match k8s::deploy(&k8s_client, &deployment, &route_pairs).await {
+                Ok(k8s_endpoints) => {
+                    let _ =
+                        store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
+                    let _ = store::add_event(
+                        &state.client,
+                        &deployment_id,
+                        "rolled_out",
+                        Some("K8s resources created"),
+                    )
+                    .await;
+                    let ep = if k8s_endpoints.is_empty() {
+                        endpoints.clone()
+                    } else {
+                        k8s_endpoints
+                    };
+                    ("ROLLED_OUT".to_string(), ep)
+                }
+                Err(e) => {
+                    let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
+                    let _ = store::add_event(
+                        &state.client,
+                        &deployment_id,
+                        "failed",
+                        Some(&format!("K8s deploy failed: {e}")),
+                    )
+                    .await;
+                    ("FAILED".to_string(), endpoints.clone())
+                }
+            }
+        }
+        Err(_) => {
+            // No K8s cluster reachable — record-only mode
+            let _ = store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
+            let _ = store::add_event(
+                &state.client,
+                &deployment_id,
+                "rolled_out",
+                Some("deployment recorded (no K8s cluster)"),
+            )
+            .await;
+            ("ROLLED_OUT".to_string(), endpoints.clone())
+        }
+    };
 
     (
         StatusCode::OK,
         Json(json!({
             "release_id": deployment_id,
-            "status": "ROLLED_OUT",
-            "endpoints": endpoints,
+            "status": final_status,
+            "endpoints": final_endpoints,
             "logs_pointer": format!("/v1/deployments/{}/logs", deployment_id),
         })),
     )
@@ -216,4 +280,70 @@ pub async fn get_logs(
             Json(json!({"error": "not_found"})),
         ),
     }
+}
+
+pub async fn delete_deployment(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(release_id): Path<String>,
+) -> impl IntoResponse {
+    // Auth
+    let claims = match auth::verify_jwt(
+        &headers,
+        &state.config.oidc_endpoint,
+        &state.config.audience,
+    )
+    .await
+    {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "unauthorized", "message": e.to_string()})),
+            )
+        }
+    };
+    if !auth::has_scope(&claims, &state.config.required_scope) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "forbidden",
+                "message": format!("missing scope {}", state.config.required_scope)
+            })),
+        );
+    }
+
+    let deployment = match store::get_by_release_id(&state.client, &release_id).await {
+        Ok(Some(d)) => d,
+        _ => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "not_found"})),
+            )
+        }
+    };
+
+    // Attempt K8s resource cleanup
+    if let Ok(k8s_client) = k8s::try_connect().await {
+        if let Err(e) = k8s::destroy(&k8s_client, &deployment.app_id, &deployment.env_id).await {
+            tracing::warn!("K8s cleanup failed for {release_id}: {e}");
+        }
+    }
+
+    let _ = store::update_status(&state.client, &release_id, "DESTROYED").await;
+    let _ = store::add_event(
+        &state.client,
+        &release_id,
+        "destroyed",
+        Some("deployment destroyed"),
+    )
+    .await;
+
+    (
+        StatusCode::OK,
+        Json(json!({
+            "release_id": release_id,
+            "status": "DESTROYED",
+        })),
+    )
 }

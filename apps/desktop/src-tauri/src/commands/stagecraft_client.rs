@@ -157,6 +157,129 @@ impl StagecraftClient {
         resp.json().await.map_err(StagecraftError::Decode)
     }
 
+    // -- FR-009: Pipeline Status Update -----------------------------------------
+
+    pub async fn update_pipeline_status(
+        &self,
+        project_id: &str,
+        pipeline_id: &str,
+        status: &str,
+        current_stage: Option<&str>,
+        error: Option<&str>,
+        phase: Option<&str>,
+    ) -> Result<StatusUpdateResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/factory/status-update",
+            self.base_url, project_id
+        );
+        let body = StatusUpdateRequest {
+            pipeline_id: pipeline_id.into(),
+            status: status.into(),
+            current_stage: current_stage.map(String::from),
+            error: error.map(String::from),
+            phase: phase.map(String::from),
+            actor_user_id: self.actor_user_id.clone(),
+        };
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    // -- FR-010: Scaffold Progress ---------------------------------------------
+
+    pub async fn report_scaffold_progress(
+        &self,
+        project_id: &str,
+        pipeline_id: &str,
+        features: &[ScaffoldFeatureReport],
+    ) -> Result<ScaffoldProgressResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/factory/scaffold-progress",
+            self.base_url, project_id
+        );
+        let body = ScaffoldProgressRequest {
+            pipeline_id: pipeline_id.into(),
+            features: features.to_vec(),
+            actor_user_id: self.actor_user_id.clone(),
+        };
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    // -- FR-012: Cancel Pipeline -------------------------------------------------
+
+    pub async fn cancel_pipeline(
+        &self,
+        project_id: &str,
+        reason: &str,
+    ) -> Result<CancelResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/factory/cancel",
+            self.base_url, project_id
+        );
+        let body = CancelRequest {
+            reason: reason.into(),
+            actor_user_id: self.actor_user_id.clone(),
+        };
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    // -- FR-011: Batch Event Ingestion ------------------------------------------
+
+    pub async fn ingest_events(
+        &self,
+        project_id: &str,
+        pipeline_id: &str,
+        events: &[OrchestratorEventReport],
+    ) -> Result<EventIngestionResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/factory/events",
+            self.base_url, project_id
+        );
+        let body = EventIngestionRequest {
+            pipeline_id: pipeline_id.into(),
+            events: events.to_vec(),
+        };
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
     // -- FR-008: Token Spend --------------------------------------------------
 
     pub async fn report_token_spend(
@@ -260,6 +383,93 @@ pub struct RejectResponse {
     pub rejected_at: String,
     pub feedback: String,
     pub audit_entry_id: String,
+}
+
+#[derive(Serialize)]
+struct StatusUpdateRequest {
+    pipeline_id: String,
+    status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    current_stage: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    phase: Option<String>,
+    #[serde(rename = "actorUserId")]
+    actor_user_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct StatusUpdateResponse {
+    pub pipeline_id: String,
+    pub status: String,
+    pub audit_entry_id: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct ScaffoldFeatureReport {
+    pub feature_id: String,
+    pub category: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files_created: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_tokens: Option<u64>,
+}
+
+#[derive(Serialize)]
+struct ScaffoldProgressRequest {
+    pipeline_id: String,
+    features: Vec<ScaffoldFeatureReport>,
+    #[serde(rename = "actorUserId")]
+    actor_user_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScaffoldProgressResponse {
+    pub upserted: u32,
+    pub audit_entry_id: String,
+}
+
+#[derive(Serialize)]
+struct CancelRequest {
+    reason: String,
+    #[serde(rename = "actorUserId")]
+    actor_user_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CancelResponse {
+    pub pipeline_id: String,
+    pub cancelled_at: String,
+    pub audit_entry_id: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct OrchestratorEventReport {
+    pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_id: Option<String>,
+    pub timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload: Option<serde_json::Value>,
+}
+
+#[derive(Serialize)]
+struct EventIngestionRequest {
+    pipeline_id: String,
+    events: Vec<OrchestratorEventReport>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EventIngestionResponse {
+    pub ingested: u32,
 }
 
 #[derive(Serialize)]
