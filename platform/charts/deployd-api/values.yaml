@@ -3,7 +3,10 @@ image:
   tag: dev
 
 ingress:
+  enabled: true
+  className: nginx
   host: deployd.localdev.online
+  annotations: {}
 
 serviceAccount:
   name: deployd-api-sa

@@ -37,24 +37,64 @@ spec:
               value: {{ include "rauthy.pubUrl" . | quote }}
             - name: RAUTHY_DATA_PATH
               value: "/data"
+            {{- if .Values.raft.existingSecret }}
+            - name: RAUTHY_SECRET_RAFT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.raft.existingSecret }}
+                  key: {{ .Values.raft.existingSecretKey }}
+            {{- else }}
             - name: RAUTHY_SECRET_RAFT
               value: {{ .Values.raft.secret | quote }}
+            {{- end }}
+            {{- if .Values.api.existingSecret }}
+            - name: RAUTHY_SECRET_API
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.existingSecret }}
+                  key: {{ .Values.api.existingSecretKey }}
+            {{- else }}
             - name: RAUTHY_SECRET_API
               value: {{ .Values.api.secret | quote }}
+            {{- end }}
             - name: RAUTHY_BOOTSTRAP_ADMIN_EMAIL
               value: {{ .Values.bootstrap.adminEmail | quote }}
+            {{- if .Values.bootstrap.existingSecret }}
+            - name: RAUTHY_BOOTSTRAP_ADMIN_PASSWORD_ARGON
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.bootstrap.existingSecret }}
+                  key: {{ .Values.bootstrap.existingSecretKey }}
+            {{- else }}
             - name: RAUTHY_BOOTSTRAP_ADMIN_PASSWORD_ARGON
               value: {{ .Values.bootstrap.adminPassword | quote }}
+            {{- end }}
             - name: HQL_NODE_ID_FROM
               value: "k8s"
             - name: HQL_NODES
               value: {{ include "rauthy.hqlNodes" . | quote }}
             - name: HQL_DATA_DIR
               value: "/data/hiqlite"
+            {{- if .Values.raft.existingSecret }}
+            - name: HQL_SECRET_RAFT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.raft.existingSecret }}
+                  key: {{ .Values.raft.existingSecretKey }}
+            {{- else }}
             - name: HQL_SECRET_RAFT
               value: {{ .Values.raft.secret | quote }}
+            {{- end }}
+            {{- if .Values.api.existingSecret }}
+            - name: HQL_SECRET_API
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.existingSecret }}
+                  key: {{ .Values.api.existingSecretKey }}
+            {{- else }}
             - name: HQL_SECRET_API
               value: {{ .Values.api.secret | quote }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /auth/v1/health

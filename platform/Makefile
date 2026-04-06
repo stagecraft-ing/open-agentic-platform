@@ -47,7 +47,7 @@ tf-init:
 
 docker-push-azure:
 	az acr login -n stagecraftdevacr
-	cd services/deployd-api && docker build -t stagecraftdevacr.azurecr.io/deployd-api:dev . && docker push stagecraftdevacr.azurecr.io/deployd-api:dev
+	cd services/deployd-api-rs && docker build -t stagecraftdevacr.azurecr.io/deployd-api:dev . && docker push stagecraftdevacr.azurecr.io/deployd-api:dev
 	cd services/stagecraft && encore build docker --config ./infra.config.json stagecraftdevacr.azurecr.io/stagecraft:dev && docker push stagecraftdevacr.azurecr.io/stagecraft:dev
 
 deploy-azure: tf-init
@@ -122,6 +122,11 @@ bootstrap-hetzner:
 	$(HETZNER_ROOT)/post-create.sh
 
 deploy-hetzner:
+	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install rauthy $(CHARTS_ROOT)/rauthy \
+		--namespace rauthy-system \
+		-f $(CHARTS_ROOT)/rauthy/values.yaml \
+		-f $(CHARTS_ROOT)/rauthy/values-hetzner.yaml \
+		--wait --timeout 300s
 	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install stagecraft $(CHARTS_ROOT)/stagecraft \
 		--namespace stagecraft-system \
 		-f $(CHARTS_ROOT)/stagecraft/values.yaml \
@@ -132,6 +137,14 @@ deploy-hetzner:
 		-f $(CHARTS_ROOT)/deployd-api/values.yaml \
 		-f $(CHARTS_ROOT)/deployd-api/values-hetzner.yaml \
 		--wait --timeout 300s
+
+docker-build-hetzner:
+	cd services/deployd-api-rs && docker build -t ghcr.io/open-agentic-platform/deployd-api:latest .
+	cd services/stagecraft && encore build docker --config ./infra.config.hetzner.json ghcr.io/open-agentic-platform/stagecraft:latest
+
+docker-push-hetzner: docker-build-hetzner
+	docker push ghcr.io/open-agentic-platform/deployd-api:latest
+	docker push ghcr.io/open-agentic-platform/stagecraft:latest
 
 destroy-hetzner:
 	hetzner-k3s delete --config $(HETZNER_ROOT)/cluster.yaml

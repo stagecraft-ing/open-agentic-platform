@@ -1,6 +1,20 @@
 image:
   repository: ghcr.io/open-agentic-platform/deployd-api
+  tag: latest
+
+ingress:
+  enabled: true
+  className: nginx
+  host: deploy.stagecraft.ing
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 
 secrets:
   provider: "k8s"
   create: false
+
+oidc:
+  endpoint: "https://auth.stagecraft.ing"
+  audience: "https://deploy.stagecraft.ing"
+
+requiredScope: "deployd:deploy"

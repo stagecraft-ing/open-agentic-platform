@@ -3,7 +3,10 @@ image:
   tag: dev
 
 ingress:
+  enabled: true
+  className: nginx
   host: stagecraft.localdev.online
+  annotations: {}
 
 serviceAccount:
   name: stagecraft-api-sa

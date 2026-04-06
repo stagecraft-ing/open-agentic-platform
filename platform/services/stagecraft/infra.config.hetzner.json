@@ -1,0 +1,60 @@
+{
+  "$schema": "https://encore.dev/schemas/infra.schema.json",
+  "secrets": {
+    "DOMAIN": { "$env": "DOMAIN" },
+    "OIDC_SPA_CLIENT_ID": { "$env": "OIDC_SPA_CLIENT_ID" },
+    "SLACK_WEBHOOK_URL": { "$env": "SLACK_WEBHOOK_URL" }
+  },
+  "pubsub": [
+    {
+      "type": "nsq",
+      "hosts": "nsqd.stagecraft-system.svc.cluster.local:4150",
+      "topics": {
+        "uptime-transition": {
+          "name": "uptime-transition",
+          "subscriptions": {
+            "slack-notification": {
+              "name": "slack-notification"
+            }
+          }
+        },
+        "site.added": {
+          "name": "site.added",
+          "subscriptions": {
+            "check-site": {
+              "name": "check-site"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "sql_servers": [
+    {
+      "host": "postgresql.stagecraft-system.svc.cluster.local",
+      "databases": {
+        "auth": {
+          "name": "auth",
+          "username": "stagecraft",
+          "password": {
+            "$env": "DB_PASSWORD"
+          }
+        },
+        "monitor": {
+          "name": "monitor",
+          "username": "stagecraft",
+          "password": {
+            "$env": "DB_PASSWORD"
+          }
+        },
+        "site": {
+          "name": "site",
+          "username": "stagecraft",
+          "password": {
+            "$env": "DB_PASSWORD"
+          }
+        }
+      }
+    }
+  ]
+}
