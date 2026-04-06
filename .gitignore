@@ -221,6 +221,8 @@ go.work
 go.work.sum
 
 # env file
+.env*
+!.env.example
 
 ### Windows template
 # Windows thumbnail cache files
