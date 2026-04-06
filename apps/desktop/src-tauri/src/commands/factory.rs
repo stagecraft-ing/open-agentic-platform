@@ -11,8 +11,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, LazyLock, Mutex};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
+
+use super::stagecraft_client::{StagecraftClient, StagecraftState};
 
 // ---------------------------------------------------------------------------
 // Serde types — frontend-facing shapes (preserved for React compatibility)
@@ -208,6 +210,8 @@ struct FactoryRunContext {
     adapter_name: String,
     audit_trail: Mutex<Vec<AuditEntry>>,
     stage_status: Mutex<HashMap<String, StageTracker>>,
+    /// When set, lifecycle events are dual-written to this Stagecraft project.
+    stagecraft_project_id: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -405,6 +409,7 @@ pub async fn start_factory_pipeline(
     project_path: String,
     adapter_name: String,
     business_doc_paths: Vec<String>,
+    stagecraft_project_id: Option<String>,
 ) -> Result<StartPipelineResponse, String> {
     let factory_root = resolve_factory_root()?;
     let project_path = PathBuf::from(&project_path);
@@ -476,12 +481,44 @@ pub async fn start_factory_pipeline(
         adapter_name: adapter_name.clone(),
         audit_trail: Mutex::new(vec![initial_audit]),
         stage_status: Mutex::new(initial_stages),
+        stagecraft_project_id: stagecraft_project_id.clone(),
     });
 
     FACTORY_RUNS
         .lock()
         .map_err(|e| e.to_string())?
         .insert(run_id_str.clone(), ctx.clone());
+
+    // Dual-write: register pipeline with Stagecraft (fire-and-forget).
+    if let Some(sc_project_id) = &stagecraft_project_id {
+        let sc_opt: Option<StagecraftClient> = app
+            .try_state::<StagecraftState>()
+            .and_then(|s| s.0.clone());
+        if let Some(sc) = sc_opt {
+            let pid = sc_project_id.clone();
+            let adapter = adapter_name.clone();
+            let docs: Vec<_> = business_doc_paths
+                .iter()
+                .map(|p| super::stagecraft_client::BusinessDocRef {
+                    name: PathBuf::from(p)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown")
+                        .to_string(),
+                    storage_ref: p.clone(),
+                })
+                .collect();
+            tokio::spawn(async move {
+                match sc.init_pipeline(&pid, &adapter, &docs).await {
+                    Ok(resp) => log::info!(
+                        "Stagecraft pipeline registered: {}",
+                        resp.pipeline_id
+                    ),
+                    Err(e) => log::warn!("Stagecraft init_pipeline failed (local continues): {e}"),
+                }
+            });
+        }
+    }
 
     // Emit start event immediately.
     app.emit(
@@ -500,6 +537,11 @@ pub async fn start_factory_pipeline(
     let manifest = start.manifest;
     let adapter_for_spawn = adapter_name.clone();
     let ctx_for_spawn = ctx.clone();
+    let sc_client: Option<StagecraftClient> = stagecraft_project_id
+        .as_ref()
+        .and_then(|_| app.try_state::<StagecraftState>())
+        .and_then(|s| s.0.clone());
+    let sc_project_for_spawn = stagecraft_project_id.clone();
 
     tokio::spawn(async move {
         // Build executor with agent prompt lookup.
@@ -575,6 +617,25 @@ pub async fn start_factory_pipeline(
                 }),
             )
             .ok();
+
+        // Dual-write: report Phase 1 token spend per stage to Stagecraft.
+        if let (Some(sc), Some(pid)) = (&sc_client, &sc_project_for_spawn) {
+            let rid = run_id.to_string();
+            for step in &summary1.steps {
+                let tokens = step.tokens_used.unwrap_or(0);
+                if tokens > 0 {
+                    // Split evenly between prompt/completion as a rough estimate;
+                    // the orchestrator doesn't track prompt vs completion separately.
+                    let half = tokens / 2;
+                    if let Err(e) = sc
+                        .report_token_spend(pid, &rid, &step.step_id, half, tokens - half, "claude-sonnet-4-20250514")
+                        .await
+                    {
+                        log::warn!("Stagecraft token-spend report failed for {}: {e}", step.step_id);
+                    }
+                }
+            }
+        }
 
         // Phase transition: read frozen Build Spec, generate Phase 2 manifest.
         let build_spec_path =
@@ -738,6 +799,25 @@ pub async fn start_factory_pipeline(
             serde_json::to_string_pretty(&run_summary).unwrap_or_default(),
         );
 
+        // Dual-write: report Phase 2 (scaffolding) token spend to Stagecraft.
+        if let (Some(sc), Some(pid)) = (&sc_client, &sc_project_for_spawn) {
+            let rid = run_id.to_string();
+            let mut scaffold_total: u64 = 0;
+            for step in &summary2.steps {
+                let tokens = step.tokens_used.unwrap_or(0);
+                scaffold_total += tokens;
+            }
+            if scaffold_total > 0 {
+                let half = scaffold_total / 2;
+                if let Err(e) = sc
+                    .report_token_spend(pid, &rid, "s6-scaffolding", half, scaffold_total - half, "claude-sonnet-4-20250514")
+                    .await
+                {
+                    log::warn!("Stagecraft token-spend report failed for s6-scaffolding: {e}");
+                }
+            }
+        }
+
         app_handle
             .emit(
                 "factory:workflow_completed",
@@ -771,25 +851,45 @@ pub async fn get_factory_pipeline_status(
 /// Confirm a gate stage. Resolves the pending oneshot in TauriGateHandler.
 #[tauri::command]
 pub async fn confirm_factory_stage(
-    _app: AppHandle,
+    app: AppHandle,
     run_id: String,
     stage_id: String,
 ) -> Result<(), String> {
-    let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
-    let ctx = runs
-        .get(&run_id)
-        .ok_or_else(|| format!("run not found: {run_id}"))?;
+    let sc_project_id;
+    {
+        let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
+        let ctx = runs
+            .get(&run_id)
+            .ok_or_else(|| format!("run not found: {run_id}"))?;
 
-    ctx.gate_handler.approve(&stage_id)?;
+        ctx.gate_handler.approve(&stage_id)?;
 
-    // Record in audit trail.
-    ctx.audit_trail.lock().unwrap().push(AuditEntry {
-        timestamp: now_iso(),
-        action: "gate_confirmed".into(),
-        stage_id: Some(stage_id),
-        details: None,
-        feedback: None,
-    });
+        // Record in audit trail.
+        ctx.audit_trail.lock().unwrap().push(AuditEntry {
+            timestamp: now_iso(),
+            action: "gate_confirmed".into(),
+            stage_id: Some(stage_id.clone()),
+            details: None,
+            feedback: None,
+        });
+
+        sc_project_id = ctx.stagecraft_project_id.clone();
+    }
+
+    // Dual-write: confirm stage in Stagecraft (fire-and-forget).
+    if let Some(pid) = sc_project_id {
+        let sc_opt: Option<StagecraftClient> = app
+            .try_state::<StagecraftState>()
+            .and_then(|s| s.0.clone());
+        if let Some(sc) = sc_opt {
+            let sid = stage_id;
+            tokio::spawn(async move {
+                if let Err(e) = sc.confirm_stage(&pid, &sid, None).await {
+                    log::warn!("Stagecraft confirm_stage failed for {sid}: {e}");
+                }
+            });
+        }
+    }
 
     Ok(())
 }
@@ -802,20 +902,25 @@ pub async fn reject_factory_stage(
     stage_id: String,
     feedback: String,
 ) -> Result<(), String> {
-    let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
-    let ctx = runs
-        .get(&run_id)
-        .ok_or_else(|| format!("run not found: {run_id}"))?;
+    let sc_project_id;
+    {
+        let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
+        let ctx = runs
+            .get(&run_id)
+            .ok_or_else(|| format!("run not found: {run_id}"))?;
 
-    ctx.gate_handler.reject(&stage_id, &feedback)?;
+        ctx.gate_handler.reject(&stage_id, &feedback)?;
 
-    ctx.audit_trail.lock().unwrap().push(AuditEntry {
-        timestamp: now_iso(),
-        action: "stage_rejected".into(),
-        stage_id: Some(stage_id.clone()),
-        details: None,
-        feedback: Some(feedback.clone()),
-    });
+        ctx.audit_trail.lock().unwrap().push(AuditEntry {
+            timestamp: now_iso(),
+            action: "stage_rejected".into(),
+            stage_id: Some(stage_id.clone()),
+            details: None,
+            feedback: Some(feedback.clone()),
+        });
+
+        sc_project_id = ctx.stagecraft_project_id.clone();
+    }
 
     app.emit(
         "factory:stage_rejected",
@@ -826,6 +931,22 @@ pub async fn reject_factory_stage(
         }),
     )
     .map_err(|e| format!("emit factory:stage_rejected failed: {e}"))?;
+
+    // Dual-write: reject stage in Stagecraft (fire-and-forget).
+    if let Some(pid) = sc_project_id {
+        let sc_opt: Option<StagecraftClient> = app
+            .try_state::<StagecraftState>()
+            .and_then(|s| s.0.clone());
+        if let Some(sc) = sc_opt {
+            let sid = stage_id;
+            let fb = feedback;
+            tokio::spawn(async move {
+                if let Err(e) = sc.reject_stage(&pid, &sid, &fb).await {
+                    log::warn!("Stagecraft reject_stage failed for {sid}: {e}");
+                }
+            });
+        }
+    }
 
     Ok(())
 }

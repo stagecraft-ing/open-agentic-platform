@@ -65,6 +65,7 @@ use commands::storage::{
 use commands::usage::{
     get_session_stats, get_usage_by_date_range, get_usage_details, get_usage_stats,
 };
+use commands::stagecraft_client::StagecraftState;
 use process::ProcessRegistryState;
 use sidecars::SidecarState;
 use std::sync::Mutex;
@@ -210,6 +211,21 @@ pub fn run() {
             // Initialize sidecar state (ports populated when sidecars announce them)
             app.manage(SidecarState::default());
             sidecars::spawn_axiomregent(app.handle());
+
+            // Initialize Stagecraft Factory API client (dual-write governance).
+            // Reads STAGECRAFT_BASE_URL and OPC_USER_ID from env; if either is
+            // absent the client is None and factory commands run local-only.
+            {
+                let base_url = std::env::var("STAGECRAFT_BASE_URL").unwrap_or_default();
+                let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
+                let sc = commands::stagecraft_client::StagecraftClient::new(&base_url, &user_id);
+                if sc.is_some() {
+                    log::info!("Stagecraft client enabled → {base_url}");
+                } else {
+                    log::info!("Stagecraft client disabled (STAGECRAFT_BASE_URL not set)");
+                }
+                app.manage(StagecraftState(sc));
+            }
 
             // Initialize zoom state (Tauri 2 has no zoom getter; we track it here)
             app.manage(commands::window_ctrl::ZoomState::default());

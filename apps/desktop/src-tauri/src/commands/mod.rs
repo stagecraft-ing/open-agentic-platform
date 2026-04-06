@@ -11,6 +11,7 @@ pub mod recovery;
 pub mod result;
 pub mod sandbox;
 pub mod slash_commands;
+pub mod stagecraft_client;
 pub mod storage;
 pub mod updater;
 pub mod usage;
