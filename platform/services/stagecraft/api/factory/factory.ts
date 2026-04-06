@@ -53,10 +53,35 @@ const CONFIRMABLE_STATUSES = ["completed", "in_progress"] as const;
 // Default policy rules (merged with org overrides)
 // ---------------------------------------------------------------------------
 
+// Adapter-specific scopes derived from factory/adapters/<name>/manifest.yaml.
+// Kept as a static map because the stagecraft service runs independently from
+// the factory directory and cannot read manifests at runtime.
+const ADAPTER_SCOPES: Record<string, { file_write_scope: string[]; allowed_commands: string[] }> = {
+  "next-prisma": {
+    file_write_scope: ["src/", "prisma/", "public/", "tests/"],
+    allowed_commands: ["npm", "npx", "node", "tsc"],
+  },
+  "aim-vue-node": {
+    file_write_scope: ["src/", "public/", "tests/"],
+    allowed_commands: ["npm", "npx", "node", "tsc", "vue-tsc"],
+  },
+  "encore-react": {
+    file_write_scope: ["src/", "api/", "web/", "tests/"],
+    allowed_commands: ["npm", "npx", "node", "tsc", "encore"],
+  },
+  "rust-axum": {
+    file_write_scope: ["src/", "templates/", "migrations/", "tests/"],
+    allowed_commands: ["cargo", "sqlx"],
+  },
+};
+
+const DEFAULT_SCOPE = {
+  file_write_scope: ["src/"],
+  allowed_commands: ["npm", "npx", "node"],
+};
+
 function compileDefaultRules(adapter: string, overrides?: PolicyOverrides) {
-  // TODO (Phase 3): Load adapter-specific file_write_scope and allowed_commands
-  // from the adapter manifest in factory/adapters/<adapter>/adapter-manifest.md
-  // instead of using hard-coded defaults.
+  const scope = ADAPTER_SCOPES[adapter] ?? DEFAULT_SCOPE;
   return {
     allowed_adapters: [adapter],
     max_retry_per_feature: overrides?.max_retry_per_feature ?? 3,
@@ -69,8 +94,8 @@ function compileDefaultRules(adapter: string, overrides?: PolicyOverrides) {
       per_feature_agent: 50000,
       total_pipeline: overrides?.token_budget_total ?? 2000000,
     },
-    file_write_scope: ["src/", "prisma/", "public/", "app/"],
-    allowed_commands: ["npm", "npx", "node", "tsc"],
+    file_write_scope: scope.file_write_scope,
+    allowed_commands: scope.allowed_commands,
     blocked_patterns: ["rm -rf", "sudo", "curl | sh"],
   };
 }

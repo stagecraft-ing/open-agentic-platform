@@ -10,6 +10,7 @@ export type GitCtxEnrichmentState =
  * Gracefully-degraded stub: the gitctx-mcp binary has been removed (Phase 6).
  * GitHub enrichment is now provided via axiomregent GitHub tools.
  * Both hooks return `idle` immediately so callers continue to render without errors.
+ * @see spec 073-axiomregent-unification
  */
 export function useGitCtxResourceEnrichment(_repoPath: string, _shouldFetch: boolean): GitCtxEnrichmentState {
   return { status: 'idle' };

@@ -2,7 +2,7 @@
 id: "003-feature-lifecycle-mvp"
 title: "Feature lifecycle & status semantics (registry status model)"
 feature_branch: "003-feature-lifecycle-mvp"
-status: draft
+status: active
 kind: platform
 created: "2026-03-22"
 authors:

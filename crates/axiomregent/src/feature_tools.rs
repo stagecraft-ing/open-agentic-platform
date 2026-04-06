@@ -75,9 +75,11 @@ impl FeatureTools {
                 scanner.scan().context("Failed to scan feature graph")?
             }
             GraphMode::Snapshot(_id) => {
-                // Snapshot-mode feature graph scanning requires the featuregraph scanner to read
-                // file contents from the blob store instead of the filesystem. Not yet implemented.
-                // Use mode="worktree" for gov.preflight and gov.drift.
+                // Snapshot-mode scanning requires reading file contents from the checkpoint
+                // blob store (apps/desktop/src-tauri/src/checkpoint/storage.rs) rather than
+                // the filesystem. This needs a cross-crate blob store trait that the desktop
+                // checkpoint storage can implement. Deferred until the checkpoint storage API
+                // is extracted into a shared crate. Use mode="worktree" for now.
                 return Err(anyhow!(
                     "Snapshot mode feature graph scanning is not yet implemented. \
                      Use mode=\"worktree\" for gov.preflight and gov.drift."

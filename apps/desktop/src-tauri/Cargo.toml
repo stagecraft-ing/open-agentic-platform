@@ -76,6 +76,8 @@ tower-http = { version = "0.6", features = ["fs", "cors"] }
 clap = { version = "4.0", features = ["derive"] }
 futures-util = "0.3"
 image = "0.25"
+similar = { version = "2", features = ["unicode", "text"] }
+sysinfo = "0.34"
 
 # Opc additions
 xray         = { path = "../../../crates/xray" }

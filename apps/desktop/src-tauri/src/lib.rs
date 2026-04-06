@@ -29,7 +29,7 @@ use commands::agents::{
 };
 use commands::claude::{
     cancel_claude_execution, check_auto_checkpoint, check_claude_version, cleanup_old_checkpoints,
-    clear_checkpoint_manager, continue_claude_code, create_checkpoint, create_project,
+    clear_checkpoint_manager, continue_claude_code, create_checkpoint, create_project, delete_checkpoint, delete_session, get_cpu_usage,
     execute_claude_bridge, execute_claude_code, find_claude_md_files, fork_from_checkpoint,
     get_checkpoint_diff,
     get_checkpoint_settings, get_checkpoint_state_stats, get_claude_session_output,
@@ -331,6 +331,9 @@ pub fn run() {
             get_checkpoint_settings,
             clear_checkpoint_manager,
             get_checkpoint_state_stats,
+            delete_checkpoint,
+            delete_session,
+            get_cpu_usage,
             // Agent Management
             list_agents,
             create_agent,

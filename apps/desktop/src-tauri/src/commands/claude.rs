@@ -335,6 +335,19 @@ pub async fn get_home_directory() -> Result<String, String> {
         .ok_or_else(|| "Could not determine home directory".to_string())
 }
 
+/// Gets the current system CPU usage percentage
+#[tauri::command]
+pub async fn get_cpu_usage() -> Result<f32, String> {
+    use sysinfo::System;
+    let mut sys = System::new();
+    sys.refresh_cpu_usage();
+    // sysinfo requires a brief pause before re-reading for meaningful values
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    sys.refresh_cpu_usage();
+    let usage = sys.global_cpu_usage();
+    Ok(usage)
+}
+
 /// Lists all projects in the ~/.claude/projects directory
 #[tauri::command]
 pub async fn list_projects() -> Result<Vec<Project>, String> {
@@ -575,6 +588,57 @@ pub async fn get_project_sessions(project_id: String) -> Result<Vec<Session>, St
         project_id
     );
     Ok(sessions)
+}
+
+/// Deletes a session by removing its JSONL file
+#[tauri::command]
+pub async fn delete_session(project_id: String, session_id: String) -> Result<(), String> {
+    log::info!("Deleting session {} from project {}", session_id, project_id);
+
+    let claude_dir = get_claude_dir().map_err(|e| e.to_string())?;
+    let session_file = claude_dir
+        .join("projects")
+        .join(&project_id)
+        .join(format!("{}.jsonl", session_id));
+
+    if !session_file.exists() {
+        return Err(format!("Session file not found: {}", session_id));
+    }
+
+    fs::remove_file(&session_file)
+        .map_err(|e| format!("Failed to delete session file: {}", e))?;
+
+    log::info!("Deleted session {} from project {}", session_id, project_id);
+    Ok(())
+}
+
+/// Deletes a single checkpoint by ID
+#[tauri::command]
+pub async fn delete_checkpoint(
+    app: tauri::State<'_, crate::checkpoint::state::CheckpointState>,
+    session_id: String,
+    project_id: String,
+    project_path: String,
+    checkpoint_id: String,
+) -> Result<(), String> {
+    log::info!("Deleting checkpoint {} for session {}", checkpoint_id, session_id);
+
+    let manager = app
+        .get_or_create_manager(
+            session_id.clone(),
+            project_id.clone(),
+            PathBuf::from(project_path),
+        )
+        .await
+        .map_err(|e| format!("Failed to get checkpoint manager: {}", e))?;
+
+    manager
+        .storage
+        .delete_checkpoint(&project_id, &session_id, &checkpoint_id)
+        .map_err(|e| format!("Failed to delete checkpoint: {}", e))?;
+
+    log::info!("Deleted checkpoint {}", checkpoint_id);
+    Ok(())
 }
 
 /// Reads the Claude settings file
@@ -2217,14 +2281,26 @@ pub async fn get_checkpoint_diff(
         if let Some(to_file) = to_map.get(path) {
             if from_file.hash != to_file.hash {
                 // File was modified
-                let additions = to_file.content.lines().count();
-                let deletions = from_file.content.lines().count();
+                let diff = similar::TextDiff::from_lines(&from_file.content, &to_file.content);
+                let mut additions = 0usize;
+                let mut deletions = 0usize;
+                for change in diff.iter_all_changes() {
+                    match change.tag() {
+                        similar::ChangeTag::Insert => additions += 1,
+                        similar::ChangeTag::Delete => deletions += 1,
+                        similar::ChangeTag::Equal => {}
+                    }
+                }
+                let unified = diff
+                    .unified_diff()
+                    .header(&format!("a/{}", path.display()), &format!("b/{}", path.display()))
+                    .to_string();
 
                 modified_files.push(crate::checkpoint::FileDiff {
                     path: path.clone(),
                     additions,
                     deletions,
-                    diff_content: None, // TODO: Generate actual diff
+                    diff_content: Some(unified),
                 });
             }
         } else {

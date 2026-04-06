@@ -1533,6 +1533,20 @@ export const api = {
   },
 
   /**
+   * Deletes a session JSONL file
+   */
+  async deleteSession(sessionId: string, projectId: string): Promise<void> {
+    await apiCall("delete_session", { projectId, sessionId });
+  },
+
+  /**
+   * Deletes a single checkpoint by ID
+   */
+  async deleteCheckpoint(sessionId: string, projectId: string, projectPath: string, checkpointId: string): Promise<void> {
+    await apiCall("delete_checkpoint", { sessionId, projectId, projectPath, checkpointId });
+  },
+
+  /**
    * Tracks a batch of messages for a session for checkpointing
    */
   trackSessionMessages: (

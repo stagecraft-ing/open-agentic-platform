@@ -1,7 +1,7 @@
 ---
 id: "046-context-compaction"
 title: "Context Compaction for Session Resumption"
-feature_branch: "044-context-compaction"
+feature_branch: "046-context-compaction"
 status: active
 kind: product
 created: "2026-03-29"

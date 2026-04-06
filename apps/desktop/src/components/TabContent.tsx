@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTabState } from '@/hooks/useTabState';
 import { useScreenTracking } from '@/hooks/useAnalytics';
 import { Tab } from '@/contexts/TabContext';
-import { Loader2, Plus, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, FileText, Upload } from 'lucide-react';
 import { api, type Project, type Session, type ClaudeMdFile } from '@/lib/api';
 import { ProjectList } from '@/components/ProjectList';
 import { SessionList } from '@/components/SessionList';
@@ -337,9 +337,15 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
         if (!tab.claudeFileId) {
           return <div className="p-4">No Claude file ID specified</div>;
         }
-        // Note: We need to get the actual file object for ClaudeFileEditor
-        // For now, returning a placeholder
-        return <div className="p-4">Claude file editor not yet implemented in tabs</div>;
+        return (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center text-muted-foreground">
+              <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <h3 className="text-lg font-medium">Claude File Editor</h3>
+              <p className="text-sm mt-2">This feature is under development.</p>
+            </div>
+          </div>
+        );
       
       case 'agent-execution':
         if (!tab.agentData) {
@@ -369,10 +375,13 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
         );
       
       case 'import-agent':
-        // TODO: Implement import agent component
         return (
-          <div className="h-full">
-            <div className="p-4">Import agent functionality coming soon...</div>
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center text-muted-foreground">
+              <Upload className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <h3 className="text-lg font-medium">Import Agent</h3>
+              <p className="text-sm mt-2">This feature is under development.</p>
+            </div>
           </div>
         );
         

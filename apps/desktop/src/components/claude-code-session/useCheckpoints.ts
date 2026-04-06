@@ -81,19 +81,18 @@ export function useCheckpoints({ sessionId, projectId, projectPath, onToast }: U
     }
   }, [sessionId, projectId, projectPath, showToast]);
 
-  const deleteCheckpoint = useCallback(async (_checkpointId: string) => {
+  const deleteCheckpoint = useCallback(async (checkpointId: string) => {
     if (!sessionId) return;
-    
+
     try {
-      // API doesn't have deleteCheckpoint, using a placeholder
-      console.warn('deleteCheckpoint not implemented in API');
+      await api.deleteCheckpoint(sessionId, projectId, projectPath, checkpointId);
       await loadCheckpoints();
       showToast("Checkpoint deleted successfully", 'success');
     } catch (error) {
       console.error("Failed to delete checkpoint:", error);
       showToast("Failed to delete checkpoint", 'error');
     }
-  }, [sessionId, loadCheckpoints, showToast]);
+  }, [sessionId, projectId, projectPath, loadCheckpoints, showToast]);
 
   const forkCheckpoint = useCallback(async (checkpointId: string, newSessionName: string) => {
     if (!sessionId) return null;

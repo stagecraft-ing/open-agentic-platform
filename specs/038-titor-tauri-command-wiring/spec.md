@@ -112,3 +112,7 @@ titor_checkpoint(root_path, message)
 
 - **R-001**: `Titor` may not be `Send + Sync` due to internal SQLite connection. Mitigation: wrap in `Mutex` (same pattern as `CheckpointManager`). If `Titor` is not `Send`, use `std::sync::Mutex` and `spawn_blocking` for operations.
 - **R-002**: Large project directories may cause slow checkpoints. Mitigation: NF-001 sets 5-second target; titor's compression and parallel workers are configurable via `TitorBuilder`.
+
+## Supersession
+
+This feature has been superseded by `073-axiomregent-unification`, which absorbs titor's checkpoint/restore capabilities directly into axiomregent's unified MCP tool surface.

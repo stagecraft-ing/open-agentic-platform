@@ -2,7 +2,7 @@
 id: "005-verification-reconciliation-mvp"
 title: "Verification and reconciliation (repository state)"
 feature_branch: "005-verification-reconciliation-mvp"
-status: draft
+status: active
 kind: platform
 created: "2026-03-22"
 authors:

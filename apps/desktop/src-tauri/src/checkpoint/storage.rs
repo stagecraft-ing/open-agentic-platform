@@ -377,6 +377,26 @@ impl CheckpointStorage {
         Ok(removed_count)
     }
 
+    /// Delete a single checkpoint by ID and run garbage collection
+    pub fn delete_checkpoint(&self, project_id: &str, session_id: &str, checkpoint_id: &str) -> Result<()> {
+        let paths = CheckpointPaths::new(&self.claude_dir, project_id, session_id);
+        self.remove_checkpoint(&paths, checkpoint_id)?;
+
+        // Run garbage collection to clean up orphaned content
+        match self.garbage_collect_content(project_id, session_id) {
+            Ok(gc_count) => {
+                if gc_count > 0 {
+                    log::info!("Garbage collected {} orphaned content files", gc_count);
+                }
+            }
+            Err(e) => {
+                log::warn!("Failed to garbage collect content after checkpoint deletion: {}", e);
+            }
+        }
+
+        Ok(())
+    }
+
     /// Collect all checkpoints from the tree in order
     fn collect_checkpoints(node: &TimelineNode, checkpoints: &mut Vec<Checkpoint>) {
         checkpoints.push(node.checkpoint.clone());

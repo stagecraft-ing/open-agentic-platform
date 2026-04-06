@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@opc/ui/button";
 import { Badge } from "@opc/ui/badge";
+import { Toast, ToastContainer } from "@opc/ui/toast";
 import { api, type MCPServer } from "@/lib/api";
 import { useTrackEvent } from "@/hooks";
 
@@ -55,7 +56,8 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set());
   const [copiedServer, setCopiedServer] = useState<string | null>(null);
   const [connectedServers] = useState<string[]>([]);
-  
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
   // Analytics tracking
   const trackEvent = useTrackEvent();
 
@@ -133,11 +135,10 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
       // Track connection result - result is a string message
       trackEvent.mcpServerConnected(name, true, server?.transport || 'unknown');
       
-      // TODO: Show result in a toast or modal
-      console.log("Test result:", result);
+      setToastMessage({ text: `Connection to "${name}" succeeded`, type: 'success' });
     } catch (error) {
-      console.error("Failed to test connection:", error);
-      
+      setToastMessage({ text: `Connection to "${name}" failed`, type: 'error' });
+
       trackEvent.mcpConnectionError({
         server_name: name,
         error_type: 'test_failed',
@@ -429,6 +430,15 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
           ))}
         </div>
       )}
+      <ToastContainer>
+        {toastMessage && (
+          <Toast
+            message={toastMessage.text}
+            type={toastMessage.type}
+            onDismiss={() => setToastMessage(null)}
+          />
+        )}
+      </ToastContainer>
     </div>
   );
-}; 
+};

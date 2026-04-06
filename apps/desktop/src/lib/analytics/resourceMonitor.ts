@@ -91,6 +91,8 @@ export class ResourceMonitor {
    */
   private collectAndReportMetrics(): void {
     try {
+      // Kick off async CPU refresh for next read
+      this.refreshCpuUsage();
       const metrics = this.collectResourceMetrics();
       this.sampleCount++;
       
@@ -131,9 +133,23 @@ export class ResourceMonitor {
    * Get CPU usage percentage (if available)
    */
   private getCPUUsage(): number | null {
-    // This is a placeholder - actual CPU usage would require native APIs
-    // In a Tauri app, you could call a Rust function to get real CPU usage
+    // CPU usage is fetched asynchronously via Tauri command (get_cpu_usage).
+    // Return the cached value; the async refresh updates it for next read.
+    if (this.cachedCpuUsage !== null) return this.cachedCpuUsage;
+    this.refreshCpuUsage();
     return null;
+  }
+
+  private cachedCpuUsage: number | null = null;
+
+  private async refreshCpuUsage(): Promise<void> {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const usage = await invoke<number>('get_cpu_usage');
+      this.cachedCpuUsage = usage;
+    } catch {
+      this.cachedCpuUsage = null;
+    }
   }
   
   /**

@@ -42,7 +42,7 @@ interface FloatingPromptInputProps {
   /**
    * Callback when prompt is sent
    */
-  onSend: (prompt: string, model: "sonnet" | "opus") => void;
+  onSend: (prompt: string, model: "sonnet" | "opus", source?: 'keyboard' | 'button') => void;
   /**
    * Whether the input is loading
    */
@@ -694,7 +694,7 @@ const FloatingPromptInputInner = (
     return false;
   };
 
-  const handleSend = () => {
+  const handleSend = (source: 'keyboard' | 'button' = 'button') => {
     if (isIMEInteraction()) {
       return;
     }
@@ -708,7 +708,7 @@ const FloatingPromptInputInner = (
         finalPrompt = `${finalPrompt}.\n\n${thinkingMode.phrase}.`;
       }
 
-      onSend(finalPrompt, selectedModel);
+      onSend(finalPrompt, selectedModel, source);
       setPrompt("");
       setEmbeddedImages([]);
       setTextareaHeight(48); // Reset height after sending
@@ -748,7 +748,7 @@ const FloatingPromptInputInner = (
         return;
       }
       e.preventDefault();
-      handleSend();
+      handleSend('keyboard');
     }
   };
 

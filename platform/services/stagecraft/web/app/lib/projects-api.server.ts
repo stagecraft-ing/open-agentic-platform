@@ -4,7 +4,9 @@
  * (see client.ts projects.ServiceClient), but these helpers are kept
  * because they forward cookies and derive the base URL from the incoming
  * request — behavior the generated client does not support.
- * TODO: Evaluate migrating to the generated client with cookie forwarding.
+ * Decision: Keep manual fetch. The Encore generated client does not support
+ * forwarding cookies from incoming SSR requests, which is required for
+ * server-side loaders in React Router v7 to proxy the user's session cookie.
  */
 
 const DEFAULT_API_BASE = "http://localhost:4000";

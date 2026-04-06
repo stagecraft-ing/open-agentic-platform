@@ -486,7 +486,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
 
   // Project path selection handled by parent tab controls
 
-  const handleSendPrompt = async (prompt: string, model: "sonnet" | "opus") => {
+  const handleSendPrompt = async (prompt: string, model: "sonnet" | "opus", source: 'keyboard' | 'button' = 'keyboard') => {
     console.log('[ClaudeCodeSession] handleSendPrompt called with:', { prompt, model, projectPath, claudeSessionId, effectiveSession });
     
     if (!projectPath) {
@@ -857,8 +857,8 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
         trackEvent.enhancedPromptSubmitted({
           prompt_length: prompt.length,
           model: model,
-          has_attachments: false, // TODO: Add attachment support when implemented
-          source: 'keyboard', // TODO: Track actual source (keyboard vs button)
+          has_attachments: false, // Attachments not yet supported
+          source,
           word_count: wordCount,
           conversation_depth: conversationDepth,
           prompt_complexity: wordCount < 20 ? 'simple' : wordCount < 100 ? 'moderate' : 'complex',
@@ -1188,25 +1188,33 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
         const sessionDuration = sessionStartTime.current ? Date.now() - sessionStartTime.current : 0;
         const messageCount = messages.filter(m => m.user_message).length;
         const toolsUsed = new Set<string>();
+        let filesModified = 0;
+        const modifiedPaths = new Set<string>();
         messages.forEach(msg => {
           if (msg.type === 'assistant' && msg.message?.content) {
             const tools = msg.message.content.filter((c: any) => c.type === 'tool_use');
-            tools.forEach((tool: any) => toolsUsed.add(tool.name));
+            tools.forEach((tool: any) => {
+              toolsUsed.add(tool.name);
+              if ((tool.name === 'Write' || tool.name === 'Edit') && tool.input?.file_path) {
+                modifiedPaths.add(tool.input.file_path);
+              }
+            });
           }
         });
-        
+        filesModified = modifiedPaths.size;
+
         // Calculate engagement score (0-100)
-        const engagementScore = Math.min(100, 
-          (messageCount * 10) + 
-          (toolsUsed.size * 5) + 
+        const engagementScore = Math.min(100,
+          (messageCount * 10) +
+          (toolsUsed.size * 5) +
           (sessionDuration > 300000 ? 20 : sessionDuration / 15000) // 5+ min session gets 20 points
         );
-        
+
         trackEvent.sessionEngagement({
           session_duration_ms: sessionDuration,
           messages_sent: messageCount,
           tools_used: Array.from(toolsUsed),
-          files_modified: 0, // TODO: Track file modifications
+          files_modified: filesModified,
           engagement_score: Math.round(engagementScore)
         });
       }

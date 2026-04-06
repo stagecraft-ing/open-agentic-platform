@@ -56,7 +56,24 @@ pub struct AgentRegistrySnapshot {
 }
 
 impl AgentRegistrySnapshot {
-    /// Six placeholder agents so `build_execution_plan` (legacy stub catalog) keeps deterministic ids.
+    /// Load agent registry from a JSON config file.
+    ///
+    /// Expected format: `{ "agents": [{ "id": "...", "description": "..." }, ...] }`
+    pub fn from_config(path: &std::path::Path) -> Result<Self, String> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read agent registry config at {}: {}", path.display(), e))?;
+        serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse agent registry config: {}", e))
+    }
+
+    /// Load from config file, falling back to `legacy_stub` on failure.
+    #[allow(deprecated)]
+    pub fn from_config_or_stub(path: &std::path::Path) -> Self {
+        Self::from_config(path).unwrap_or_else(|_| Self::legacy_stub())
+    }
+
+    /// Six placeholder agents for backward compatibility and test determinism.
+    #[deprecated(note = "Use from_config() or from_config_or_stub() with a real agent registry")]
     pub fn legacy_stub() -> Self {
         Self {
             agents: (1..=6)
@@ -391,6 +408,7 @@ pub fn plan_with_planner<P: OrganizerPlanner>(
 }
 
 /// Backward-compatible entrypoint: uses a fixed stub catalog so existing callers keep stable agent ids.
+#[allow(deprecated)]
 pub fn build_execution_plan(prompt: &str, ctx: &PlanContext) -> ExecutionPlan {
     plan(prompt, ctx, &AgentRegistrySnapshot::legacy_stub())
 }

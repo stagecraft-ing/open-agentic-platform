@@ -104,8 +104,8 @@ const WebviewPreviewComponent: React.FC<WebviewPreviewProps> = ({
     }
   }, [isMaximized]);
 
-  // For now, we'll use an iframe as a placeholder
-  // In the full implementation, this would create a Tauri webview window
+  // Using iframe for web preview. Native Tauri webview integration (for better
+  // performance, security, and DevTools access) is deferred to a future phase.
   useEffect(() => {
     if (currentUrl) {
       // This is where we'd create the actual webview
@@ -351,7 +351,7 @@ const WebviewPreviewComponent: React.FC<WebviewPreviewProps> = ({
             </Button>
           </div>
         ) : currentUrl ? (
-          // Placeholder iframe - in real implementation, this would be a Tauri webview
+          // iframe placeholder — native Tauri webview integration deferred to future phase
           <iframe
             ref={iframeRef}
             src={currentUrl}

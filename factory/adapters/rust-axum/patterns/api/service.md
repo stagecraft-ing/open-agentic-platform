@@ -62,7 +62,7 @@ pub async fn create(pool: &PgPool, input: Create{Entity}Input) -> Result<{Entity
     // Audit trail
     sqlx::query!(
         "INSERT INTO audit_entry (user_id, action_code, entity_type, entity_id) VALUES ($1, $2, $3, $4)",
-        Uuid::nil(), // TODO: from session
+        auth_user.id, // extracted from JWT claims via AuthUser extractor
         "create_{entity_snake}",
         "{Entity}",
         item.id

@@ -7,6 +7,7 @@ kind: product
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"
+language: en
 summary: >
   Wire the existing blockoli semantic code search library into the desktop app
   by implementing the two stubbed Tauri commands (index + search), adding managed
@@ -124,3 +125,7 @@ Option (c) is simplest — `VectorStore` is an enum with a single variant holdin
 - **R-001**: fastembed model download may fail on air-gapped machines or slow connections. Mitigation: FR-004 requires graceful error handling. Future: bundle model with app binary.
 - **R-002**: Large projects may cause high memory usage during embedding generation (all blocks loaded at once). Mitigation: NF-001 sets a practical size bound. Future: batch embedding generation.
 - **R-003**: `VectorStore::init_sqlite()` hardcodes the DB path. Mitigation: construct `VectorStore::SQLiteStore(Connection::open(path))` directly.
+
+## Supersession
+
+This feature has been superseded by `073-axiomregent-unification`, which absorbs blockoli's semantic search capabilities directly into axiomregent as `search.*` tools.

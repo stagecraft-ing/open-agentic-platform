@@ -25,10 +25,15 @@ module "external_secrets_config" {
   depends_on = [module.cluster_addons]
 }
 
-# Rauthy (OIDC provider) is deployed via platform/charts/rauthy Helm chart.
-# It replaces the former logto_bootstrap module and uses hiqlite (embedded
-# Raft SQLite) instead of a PostgreSQL database.
-# TODO: Add rauthy Terraform module when moving beyond Helm-only deployment.
+module "rauthy" {
+  source = "../../../modules/rauthy"
+
+  charts_root = "${path.module}/../../../../../charts"
+  rauthy_host = var.rauthy_host
+  replicas    = 1 # Single replica for dev; use 3 for prod HA
+
+  depends_on = [module.cluster_addons]
+}
 
 module "platform_bootstrap" {
   source = "../../../modules/platform_bootstrap"

@@ -13,6 +13,11 @@ variable "deployd_host" {
   default = "deployd.localdev.online "
 }
 
+variable "rauthy_host" {
+  type    = string
+  default = "rauthy.localdev.online"
+}
+
 variable "letsencrypt_email" { type = string }
 
 variable "apply_cluster_issuer" {
