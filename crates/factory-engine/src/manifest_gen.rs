@@ -281,27 +281,89 @@ pub fn generate_scaffold_manifest(
     }
 
     // ── s6c-*: API operations (grouped by resource) ──────────────────────
+
+    // Resolve all API pattern files once (service, controller, route, test + data/query).
+    let api_patterns_block = {
+        let kinds = ["service", "controller", "route", "test"];
+        let mut lines: Vec<String> = kinds
+            .iter()
+            .filter_map(|k| {
+                resolver
+                    .resolve_api_pattern(k)
+                    .map(|p| format!("  {k}: {}", p.display()))
+            })
+            .collect();
+        if let Some(p) = resolver.resolve_data_pattern("query") {
+            lines.push(format!("  query: {}", p.display()));
+        }
+        if lines.is_empty() {
+            String::new()
+        } else {
+            format!("\nPattern files (read ALL before writing code):\n{}", lines.join("\n"))
+        }
+    };
+
+    // Build directory conventions string once.
+    let dir_conventions_block = {
+        let dc = &adapter.directory_conventions;
+        let mut parts = Vec::new();
+        if let Some(ref v) = dc.api_service { parts.push(format!("  service: {v}")); }
+        if let Some(ref v) = dc.api_controller { parts.push(format!("  controller: {v}")); }
+        if let Some(ref v) = dc.api_route { parts.push(format!("  route: {v}")); }
+        if let Some(ref v) = dc.api_test { parts.push(format!("  test: {v}")); }
+        if parts.is_empty() {
+            String::new()
+        } else {
+            format!("\nDirectory conventions:\n{}", parts.join("\n"))
+        }
+    };
+
     for resource in &build_spec.api.resources {
+        // Look up the entity's fields from the data model for context.
+        let entity_fields_block = build_spec
+            .data_model
+            .entities
+            .iter()
+            .find(|e| e.name == resource.entity)
+            .map(|e| {
+                let fields: Vec<String> = e
+                    .fields
+                    .iter()
+                    .map(|f| format!("{}: {:?}", f.name, f.field_type))
+                    .collect();
+                format!("\nEntity fields: {}", fields.join(", "))
+            })
+            .unwrap_or_default();
+
+        // The data-entity step for this resource (if it exists) is an input dependency.
+        let data_step_id = format!("s6b-data-{}", resource.entity);
+        let data_step_input = if steps.iter().any(|s| s.id == data_step_id) {
+            vec![format!("{data_step_id}/{}-entity-report.yaml", resource.entity)]
+        } else {
+            vec![]
+        };
+
         for operation in &resource.operations {
             let step_id = format!("s6c-api-{}-{}", resource.name, operation.id);
 
-            let api_pattern = resolver
-                .resolve_api_pattern("service")
-                .map(|p| format!("\nAPI pattern: {}", p.display()))
+            let stack_line = operation
+                .stack
+                .as_ref()
+                .map(|s| format!("\nStack: {:?}", s))
                 .unwrap_or_default();
 
             steps.push(WorkflowStep {
                 id: step_id,
                 agent: format!("{}-api-scaffolder", adapter.adapter.name),
                 effort: EffortLevel::Investigate,
-                inputs: vec![],
+                inputs: data_step_input.clone(),
                 outputs: vec![format!("{}-{}-report.yaml", resource.name, operation.id)],
                 instruction: format!(
                     "Generate API operation: {} {}\n\
                      Resource: {} (entity: {})\n\
                      Operation: {} — {}\n\
-                     Auth: {:?}\n\
-                     Adapter: {}{api_pattern}",
+                     Auth: {:?}{stack_line}\n\
+                     Adapter: {}{entity_fields_block}{api_patterns_block}{dir_conventions_block}",
                     operation.method.as_str(),
                     operation.path,
                     resource.name,
