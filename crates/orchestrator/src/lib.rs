@@ -334,20 +334,25 @@ pub fn materialize_run_directory(
             reason: format!("write manifest.yaml: {e}"),
         }
     })?;
-    let summary = RunSummary {
-        run_id,
-        steps: vec![],
-    };
-    let sj = serde_json::to_string_pretty(&summary).map_err(|e| {
-        OrchestratorError::InvalidManifest {
-            reason: format!("serialize summary: {e}"),
-        }
-    })?;
-    std::fs::write(run_dir.join("summary.json"), sj).map_err(|e| {
-        OrchestratorError::InvalidManifest {
-            reason: format!("write summary.json: {e}"),
-        }
-    })?;
+    // Only write a placeholder summary.json if one does not already exist,
+    // so that resume state from a prior run is preserved.
+    let summary_path = run_dir.join("summary.json");
+    if !summary_path.exists() {
+        let summary = RunSummary {
+            run_id,
+            steps: vec![],
+        };
+        let sj = serde_json::to_string_pretty(&summary).map_err(|e| {
+            OrchestratorError::InvalidManifest {
+                reason: format!("serialize summary: {e}"),
+            }
+        })?;
+        std::fs::write(&summary_path, sj).map_err(|e| {
+            OrchestratorError::InvalidManifest {
+                reason: format!("write summary.json: {e}"),
+            }
+        })?;
+    }
     Ok(run_dir)
 }
 
@@ -388,13 +393,17 @@ pub fn compute_resume_plan_from_state(
         }
     }
 
-    match (completed_ids.is_empty(), first_non_completed_index) {
-        // Nothing to resume: either no completed steps, or everything completed.
-        (true, _) | (_, None) => None,
-        (false, Some(first_non_completed_step_index)) => Some(ResumePlan {
+    if completed_ids.is_empty() {
+        // No completed steps at all — nothing to resume.
+        None
+    } else {
+        Some(ResumePlan {
             completed_step_ids: completed_ids,
-            first_non_completed_step_index,
-        }),
+            // If all steps completed, point past the end so the dispatcher
+            // skips everything and the caller can proceed to the next phase.
+            first_non_completed_step_index: first_non_completed_index
+                .unwrap_or(manifest.steps.len()),
+        })
     }
 }
 
@@ -454,12 +463,42 @@ pub fn detect_resume_plan_for_run(
         .iter()
         .position(|s| !completed_ids.contains(&s.id));
 
-    match (completed_ids.is_empty(), first_non_completed_index) {
-        (true, _) | (_, None) => Ok(None),
-        (false, Some(first_non_completed_step_index)) => Ok(Some(ResumePlan {
+    if !completed_ids.is_empty() {
+        return Ok(Some(ResumePlan {
             completed_step_ids: completed_ids,
-            first_non_completed_step_index,
-        })),
+            first_non_completed_step_index: first_non_completed_index
+                .unwrap_or(manifest.steps.len()),
+        }));
+    }
+
+    // Last-resort fallback: summary.json may have been corrupted (e.g. overwritten
+    // with empty steps by a prior bug). Probe the filesystem — if all declared
+    // output artifacts for a step exist on disk, consider that step completed.
+    let fs_completed: Vec<String> = manifest
+        .steps
+        .iter()
+        .filter(|step| {
+            !step.outputs.is_empty()
+                && step.outputs.iter().all(|o| {
+                    artifact_base
+                        .output_artifact_path(run_id, &step.id, o)
+                        .exists()
+                })
+        })
+        .map(|step| step.id.clone())
+        .collect();
+
+    if fs_completed.is_empty() {
+        Ok(None)
+    } else {
+        let first_non = manifest
+            .steps
+            .iter()
+            .position(|s| !fs_completed.contains(&s.id));
+        Ok(Some(ResumePlan {
+            completed_step_ids: fs_completed,
+            first_non_completed_step_index: first_non.unwrap_or(manifest.steps.len()),
+        }))
     }
 }
 

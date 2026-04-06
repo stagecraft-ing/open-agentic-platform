@@ -388,11 +388,10 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
         orchestrator::WorkflowStatus::Completed
     );
     let plan = compute_resume_plan_from_state(&loaded_after_crash, &manifest);
-    // All steps complete → no resume needed
-    assert!(
-        plan.is_none(),
-        "all steps completed, no resume plan expected"
-    );
+    // All steps complete → resume plan skips everything (index past end).
+    let plan = plan.expect("all steps completed should still yield a resume plan");
+    assert_eq!(plan.completed_step_ids.len(), manifest.steps.len());
+    assert_eq!(plan.first_non_completed_step_index, manifest.steps.len());
 
     // SSE replay from offset 0 should return full event history
     let notifier2 = LocalEventNotifier::new();
