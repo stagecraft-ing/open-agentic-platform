@@ -749,8 +749,8 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
               was_resumed: metrics.wasResumed,
               
               // Agent context (if applicable)
-              agent_type: undefined, // TODO: Pass from agent execution
-              agent_name: undefined, // TODO: Pass from agent execution
+              agent_type: 'claude_session',
+              agent_name: 'Claude',
               agent_success: success,
               
               // Stop context
@@ -1039,9 +1039,9 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
         was_resumed: metrics.wasResumed,
         
         // Agent context (if applicable)
-        agent_type: undefined, // TODO: Pass from agent execution
-        agent_name: undefined, // TODO: Pass from agent execution
-        agent_success: undefined, // TODO: Pass from agent execution
+        agent_type: 'claude_session',
+        agent_name: 'Claude',
+        agent_success: false,
         
         // Stop context
         stop_source: 'user_button',

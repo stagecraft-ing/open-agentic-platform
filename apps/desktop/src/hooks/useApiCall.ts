@@ -7,6 +7,7 @@ interface ApiCallOptions {
   showSuccessToast?: boolean;
   successMessage?: string;
   errorMessage?: string;
+  setToast?: (toast: { message: string; type: 'success' | 'error' } | null) => void;
 }
 
 interface ApiCallState<T> {
@@ -37,7 +38,8 @@ export function useApiCall<T>(
     showErrorToast = true,
     showSuccessToast = false,
     successMessage = 'Operation completed successfully',
-    errorMessage
+    errorMessage,
+    setToast
   } = options;
 
   const call = useCallback(
@@ -61,8 +63,9 @@ export function useApiCall<T>(
 
         setData(result);
         
-        if (showSuccessToast) {
-          // TODO: Implement toast notification
+        if (showSuccessToast && setToast) {
+          setToast({ message: successMessage, type: "success" });
+        } else if (showSuccessToast) {
           console.log('Success:', successMessage);
         }
 
@@ -80,8 +83,9 @@ export function useApiCall<T>(
         const error = err instanceof Error ? err : new Error('An error occurred');
         setError(error);
 
-        if (showErrorToast) {
-          // TODO: Implement toast notification
+        if (showErrorToast && setToast) {
+          setToast({ message: errorMessage || error.message, type: "error" });
+        } else if (showErrorToast) {
           console.error('Error:', errorMessage || error.message);
         }
 

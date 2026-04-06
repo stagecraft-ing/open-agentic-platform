@@ -140,11 +140,68 @@ export const MCPImportExport: React.FC<MCPImportExportProps> = ({
   };
 
   /**
-   * Handles exporting servers (placeholder)
+   * Handles exporting servers
    */
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    onError("Export functionality coming soon!");
+  const handleExport = async () => {
+    try {
+      // First try to load the dialog plugin dynamically
+      let saveFn;
+      try {
+        const dialogPlugin = await import('@tauri-apps/plugin-dialog' as any);
+        saveFn = dialogPlugin.save;
+      } catch (err) {
+        console.warn("Tauri dialog plugin not available, falling back to browser download:", err);
+      }
+
+      // Fetch current MCP servers via API
+      const servers = await api.mcpList();
+      if (!servers || servers.length === 0) {
+        onError("No servers available to export.");
+        return;
+      }
+
+      // Transform into .mcp.json expected format
+      const mcpServersConfig: Record<string, any> = {};
+      servers.forEach((server) => {
+        mcpServersConfig[server.name] = {
+          command: server.command || server.transport,
+          args: server.args || [],
+          env: server.env || {}
+        };
+      });
+
+      const exportConfig = { mcpServers: mcpServersConfig };
+      const serializedData = JSON.stringify(exportConfig, null, 2);
+
+      if (saveFn) {
+        // Use Tauri dialog
+        const filePath = await saveFn({
+          filters: [{ name: 'JSON Document', extensions: ['json'] }],
+          defaultPath: 'mcp-servers-export.json'
+        });
+
+        if (filePath) {
+          const fsPlugin = await import('@tauri-apps/plugin-fs' as any);
+          await fsPlugin.writeTextFile(filePath, serializedData);
+          onError(`Export successful. Configuration saved to ${filePath}`);
+        }
+      } else {
+        // Fallback browser download
+        const blob = new Blob([serializedData], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "mcp-servers-export.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        onError("Export successful. Configuration downloaded.");
+      }
+    } catch (error: any) {
+      console.error("Failed to export MCP configuration:", error);
+      onError(error.toString() || "Failed to export configuration.");
+    }
   };
 
   /**
@@ -271,8 +328,8 @@ export const MCPImportExport: React.FC<MCPImportExportProps> = ({
           </div>
         </Card>
 
-        {/* Export (Coming Soon) */}
-        <Card className="p-4 opacity-60">
+        {/* Export */}
+        <Card className="p-4 hover:bg-accent/5 transition-colors">
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <div className="p-2.5 bg-muted rounded-lg">
@@ -287,12 +344,11 @@ export const MCPImportExport: React.FC<MCPImportExportProps> = ({
             </div>
             <Button
               onClick={handleExport}
-              disabled={true}
               variant="secondary"
               className="w-full gap-2"
             >
               <Upload className="h-4 w-4" />
-              Export (Coming Soon)
+              Export Configuration
             </Button>
           </div>
         </Card>
