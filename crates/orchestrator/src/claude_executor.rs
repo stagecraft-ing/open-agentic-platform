@@ -121,17 +121,31 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             .map_err(|e| format!("failed to spawn claude: {e}"))?;
 
         if !output.status.success() {
+            let code = output
+                .status
+                .code()
+                .map_or_else(|| "unknown".to_string(), |c| c.to_string());
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            if stderr.is_empty() {
-                let code = output
-                    .status
-                    .code()
-                    .map_or_else(|| "unknown".to_string(), |c| c.to_string());
-                return Err(format!(
-                    "claude exited with status {code} (no stderr output)"
-                ));
-            }
-            return Err(stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+            // claude --print --output-format json writes its response to stdout,
+            // not stderr. Include a stdout excerpt so the failure reason is visible.
+            let detail = if !stderr.is_empty() {
+                stderr
+            } else if !stdout.is_empty() {
+                // Truncate to avoid flooding logs with full JSON responses.
+                let max = 1024;
+                if stdout.len() > max {
+                    format!("{}… (truncated)", &stdout[..max])
+                } else {
+                    stdout
+                }
+            } else {
+                "(no output)".to_string()
+            };
+            return Err(format!(
+                "claude exited with status {code} — {detail}"
+            ));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);

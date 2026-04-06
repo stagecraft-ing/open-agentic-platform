@@ -178,18 +178,33 @@ pub fn generate_scaffold_manifest(
     let mut steps: Vec<WorkflowStep> = Vec::new();
 
     // ── s6a: Scaffold initialization ─────────────────────────────────────
+    // The project directory already contains the adapter template. This step
+    // runs setup commands (install deps, configure workspace) and verifies
+    // the project compiles before any feature scaffolding begins.
+    let scaffold_source = adapter_root.join(&adapter.scaffold.source);
     steps.push(WorkflowStep {
         id: "s6a-scaffold-init".into(),
-        agent: format!("{}-data-scaffolder", adapter.adapter.name),
+        agent: format!("{}-configurer", adapter.adapter.name),
         effort: EffortLevel::Investigate,
         inputs: vec![],
         instruction: format!(
-            "Initialize scaffold: copy adapter base project from {}, install dependencies, verify compilation.\n\
-             Adapter: {}\n\
-             Setup commands: {}",
-            adapter.scaffold.source,
+            "Initialize the project for scaffolding.\n\
+             The project directory is the working directory (already contains the adapter template).\n\
+             Adapter scaffold template: {}\n\
+             Adapter: {}\n\n\
+             Run these setup commands in order:\n{}\n\n\
+             After setup completes, verify the project compiles with: {}\n\n\
+             Write a scaffold-init-report.yaml summarizing what was done.",
+            scaffold_source.display(),
             adapter.adapter.name,
-            adapter.scaffold.setup_commands.join("; "),
+            adapter
+                .scaffold
+                .setup_commands
+                .iter()
+                .map(|c| format!("  - {c}"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            adapter.commands.compile,
         ),
         outputs: vec!["scaffold-init-report.yaml".into()],
         gate: None,
