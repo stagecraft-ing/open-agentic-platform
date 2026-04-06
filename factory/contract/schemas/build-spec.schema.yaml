@@ -553,4 +553,4 @@ traceability:
       name: string
       covers_use_case: string       # UC reference
       type:
-        enum: [unit, integration, e2e, manual]
+        enum: [unit, integration, e2e, smoke, manual]

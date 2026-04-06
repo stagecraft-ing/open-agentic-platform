@@ -996,5 +996,6 @@ pub enum TestCaseType {
     Unit,
     Integration,
     E2e,
+    Smoke,
     Manual,
 }
