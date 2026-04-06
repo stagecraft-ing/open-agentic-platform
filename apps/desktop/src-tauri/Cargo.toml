@@ -83,6 +83,7 @@ featuregraph = { path = "../../../crates/featuregraph" }
 agent        = { path = "../../../crates/agent" }
 run          = { path = "../../../crates/run" }
 orchestrator = { path = "../../../crates/orchestrator" }
+factory-engine = { path = "../../../crates/factory-engine" }
 
 
 git2 = { version = "0.19", default-features = false }

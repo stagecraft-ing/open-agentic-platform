@@ -259,7 +259,7 @@ export const initPipeline = api(
             policy_bundle_id: bundle.id,
           },
         },
-        tx,
+        tx as unknown as typeof db,
       );
 
       return { pipeline, bundle };

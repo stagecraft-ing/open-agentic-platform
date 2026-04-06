@@ -27,5 +27,6 @@
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["node_modules", "web/app", "web/build", "web/react-router.config.ts", "web/vite.config.ts"]
 }

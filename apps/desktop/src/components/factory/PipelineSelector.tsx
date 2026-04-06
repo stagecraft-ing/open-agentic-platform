@@ -8,7 +8,11 @@ import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useFactoryPipeline } from './FactoryPipelineContext';
 
-export const PipelineSelector: React.FC = () => {
+interface PipelineSelectorProps {
+  projectPath?: string;
+}
+
+export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath }) => {
   const { state, startPipeline } = useFactoryPipeline();
 
   const [adapterName, setAdapterName] = useState('next-prisma');
@@ -18,6 +22,7 @@ export const PipelineSelector: React.FC = () => {
   const handlePickDocs = async () => {
     const selected = await open({
       multiple: true,
+      defaultPath: projectPath || undefined,
       filters: [
         {
           name: 'Business Documents',
@@ -34,9 +39,7 @@ export const PipelineSelector: React.FC = () => {
     if (starting) return;
     setStarting(true);
     try {
-      // projectPath comes from parent via context — use empty string as default
-      // when no path is available; the Tauri command resolves CWD if blank.
-      await startPipeline('', adapterName.trim() || 'next-prisma', businessDocs);
+      await startPipeline(projectPath ?? '', adapterName.trim() || 'next-prisma', businessDocs);
     } finally {
       setStarting(false);
     }

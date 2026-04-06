@@ -1,9 +1,10 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
 // Gate dialog for stage checkpoint and approval gates (FR-004).
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, XCircle, AlertTriangle, Lock } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Lock, Clock } from 'lucide-react';
+import * as yaml from 'js-yaml';
 import { Button } from '@opc/ui/button';
 import { cn } from '@/lib/utils';
 import { useFactoryPipeline } from './FactoryPipelineContext';
@@ -149,13 +150,18 @@ const BuildSpecViewer: React.FC<{ stageId: string }> = ({ stageId }) => {
           try {
             const mod = await import('@tauri-apps/plugin-fs' as any);
             const content = await mod.readTextFile(specArtifact.path);
-            // Try JSON first, then YAML (yaml-js not bundled, so just try JSON parse)
+            // Try JSON first, then fall back to YAML
+            let parsed: unknown = null;
             try {
-              setBuildSpec(JSON.parse(content));
+              parsed = JSON.parse(content);
             } catch {
-              // If not JSON, pass raw content as-is — structured view will handle gracefully
-              setBuildSpec(null);
+              try {
+                parsed = yaml.load(content);
+              } catch {
+                parsed = null;
+              }
             }
+            if (!cancelled) setBuildSpec(parsed);
           } catch {
             // fs plugin unavailable (web mode)
           }
@@ -193,6 +199,76 @@ const BuildSpecViewer: React.FC<{ stageId: string }> = ({ stageId }) => {
   return (
     <div className="max-h-[400px] overflow-y-auto rounded-lg border border-border">
       <BuildSpecStructuredView buildSpec={buildSpec} />
+    </div>
+  );
+};
+
+// ── Approval countdown timer ──────────────────────────────────────────────────
+
+interface ApprovalCountdownProps {
+  timeoutMs: number;
+  openedAt: string;
+}
+
+const ApprovalCountdown: React.FC<ApprovalCountdownProps> = ({
+  timeoutMs,
+  openedAt,
+}) => {
+  const [remainingMs, setRemainingMs] = useState<number>(() => {
+    const elapsed = Date.now() - new Date(openedAt).getTime();
+    return Math.max(0, timeoutMs - elapsed);
+  });
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - new Date(openedAt).getTime();
+      const remaining = Math.max(0, timeoutMs - elapsed);
+      setRemainingMs(remaining);
+      if (remaining === 0 && intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    };
+  }, [timeoutMs, openedAt]);
+
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const isUrgent = remainingMs < 5 * 60 * 1000; // < 5 minutes
+  const isExpired = remainingMs === 0;
+
+  const formatted = isExpired
+    ? 'Timed out'
+    : hours > 0
+      ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium tabular-nums',
+        isExpired
+          ? 'border-destructive/40 bg-destructive/10 text-destructive'
+          : isUrgent
+            ? 'border-red-500/40 bg-red-500/10 text-red-500'
+            : 'border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400',
+      )}
+    >
+      <Clock
+        className={cn(
+          'h-4 w-4 shrink-0',
+          isUrgent || isExpired ? 'animate-pulse' : '',
+        )}
+      />
+      <span>
+        {isExpired ? 'Approval window expired' : `Auto-timeout in ${formatted}`}
+      </span>
     </div>
   );
 };
@@ -298,6 +374,14 @@ const ApprovalGateBody: React.FC<ApprovalGateBodyProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Countdown timer */}
+      {gate.timeoutMs !== undefined && gate.openedAt !== undefined && (
+        <ApprovalCountdown
+          timeoutMs={gate.timeoutMs}
+          openedAt={gate.openedAt}
+        />
+      )}
 
       {/* Stats */}
       {gate.summary && (

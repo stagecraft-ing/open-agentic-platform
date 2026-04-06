@@ -15,18 +15,25 @@ import {
   ArtifactEntry,
   GateAction,
   AuditEntry,
+  AgentOutputLine,
   FactoryStepStartedEvent,
   FactoryStepCompletedEvent,
   FactoryStepFailedEvent,
   FactoryGateReachedEvent,
   FactoryScaffoldProgressEvent,
+  FactoryAgentOutputEvent,
   createInitialPipelineState,
 } from './types';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const MAX_AGENT_OUTPUT_LINES = 500;
 
 // ── Context shape ────────────────────────────────────────────────────────────
 
 interface FactoryPipelineContextType {
   state: FactoryPipelineState;
+  agentOutput: AgentOutputLine[];
   startPipeline: (
     projectPath: string,
     adapterName: string,
@@ -61,6 +68,7 @@ export const FactoryPipelineProvider: React.FC<{
   const [state, setState] = useState<FactoryPipelineState>(
     createInitialPipelineState,
   );
+  const [agentOutput, setAgentOutput] = useState<AgentOutputLine[]>([]);
 
   // ── Tauri event listeners ──────────────────────────────────────────────────
 
@@ -72,6 +80,8 @@ export const FactoryPipelineProvider: React.FC<{
       unlisteners.push(
         await listen<FactoryStepStartedEvent>('factory:step_started', (event) => {
           const { stepId } = event.payload;
+          // Clear output when a new step starts
+          setAgentOutput([]);
           setState((prev) => ({
             ...prev,
             stages: prev.stages.map((s) =>
@@ -125,7 +135,7 @@ export const FactoryPipelineProvider: React.FC<{
         await listen<FactoryGateReachedEvent>(
           'factory:gate_reached',
           (event) => {
-            const { runId, stageId, stageName, gateType, summary } =
+            const { runId, stageId, stageName, gateType, summary, timeoutMs } =
               event.payload;
             const gateAction: GateAction = {
               runId,
@@ -133,6 +143,8 @@ export const FactoryPipelineProvider: React.FC<{
               stageName,
               gateType,
               summary,
+              timeoutMs,
+              openedAt: new Date().toISOString(),
             };
             setState((prev) => ({
               ...prev,
@@ -158,6 +170,11 @@ export const FactoryPipelineProvider: React.FC<{
               error,
               retryCount,
             } = event.payload;
+
+            // Clear output when a new scaffold step starts
+            if (status === 'started') {
+              setAgentOutput([]);
+            }
 
             setState((prev) => {
               if (!prev.scaffolding) return prev;
@@ -297,10 +314,22 @@ export const FactoryPipelineProvider: React.FC<{
         ),
       );
 
-      // factory:agent_output — reserved for future LiveAgentOutput component
+      // factory:agent_output — stream lines into agentOutput state
       unlisteners.push(
-        await listen('factory:agent_output', () => {
-          // Intentionally left as a stub; consumers subscribe directly when needed.
+        await listen<FactoryAgentOutputEvent>('factory:agent_output', (event) => {
+          const { stepId, line } = event.payload;
+          const entry: AgentOutputLine = {
+            stepId,
+            line,
+            timestamp: nowIso(),
+          };
+          setAgentOutput((prev) => {
+            const next = [...prev, entry];
+            // Keep last MAX_AGENT_OUTPUT_LINES lines to avoid memory growth
+            return next.length > MAX_AGENT_OUTPUT_LINES
+              ? next.slice(next.length - MAX_AGENT_OUTPUT_LINES)
+              : next;
+          });
         }),
       );
 
@@ -308,6 +337,7 @@ export const FactoryPipelineProvider: React.FC<{
       unlisteners.push(
         await listen<{ runId: string }>('factory:workflow_started', (event) => {
           const { runId } = event.payload;
+          setAgentOutput([]);
           setState((prev) => ({
             ...createInitialPipelineState(),
             runId,
@@ -342,6 +372,7 @@ export const FactoryPipelineProvider: React.FC<{
       });
       const runId = resp.run_id;
 
+      setAgentOutput([]);
       setState((_prev) => {
         const auditEntry: AuditEntry = {
           timestamp: nowIso(),
@@ -487,6 +518,7 @@ export const FactoryPipelineProvider: React.FC<{
 
   const value: FactoryPipelineContextType = {
     state,
+    agentOutput,
     startPipeline,
     confirmStage,
     rejectStage,

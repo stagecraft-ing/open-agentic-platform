@@ -73,6 +73,11 @@ export const listAudit = api(
       .from(auditLog)
       .orderBy(desc(auditLog.createdAt))
       .limit(200);
-    return { events: rows };
+    return {
+      events: rows.map((r) => ({
+        ...r,
+        metadata: (r.metadata ?? {}) as Record<string, unknown>,
+      })),
+    };
   }
 );

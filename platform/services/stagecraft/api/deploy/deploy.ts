@@ -30,7 +30,7 @@ const CreateDeployment = z.object({
     .optional()
     .default([]),
 
-  config_refs: z.record(z.string()).optional().default({}),
+  config_refs: z.record(z.string(), z.string()).optional().default({}),
 });
 
 function safeJson(s: string): unknown {

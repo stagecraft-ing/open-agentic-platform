@@ -2,7 +2,7 @@
 // Scaffold monitor — Phase 2 fan-out progress view (FR-006).
 
 import React from 'react';
-import { ChevronDown, ChevronRight, SkipForward } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, Wrench, SkipForward } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { cn } from '@/lib/utils';
 import { useFactoryPipeline } from './FactoryPipelineContext';
@@ -11,6 +11,7 @@ import {
   ScaffoldCategory,
   ScaffoldCategoryProgress,
   ScaffoldStep,
+  AgentOutputLine,
 } from './types';
 
 // ── Category order ────────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ const FailedStepExpander: React.FC<FailedStepExpanderProps> = ({
   onSkip,
 }) => {
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
+  const [errorVisible, setErrorVisible] = React.useState<Set<string>>(new Set());
 
   const failedSteps: ScaffoldStep[] = categories.flatMap((c) =>
     c.steps.filter((s) => s.status === 'failed'),
@@ -130,6 +132,24 @@ const FailedStepExpander: React.FC<FailedStepExpanderProps> = ({
     });
   };
 
+  const toggleError = (id: string) => {
+    setErrorVisible((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleManualFix = (step: ScaffoldStep) => {
+    alert(
+      `Manual fix mode: edit files in your editor for step "${step.id}", then click Retry.`,
+    );
+  };
+
   return (
     <div className="space-y-1">
       <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">
@@ -137,6 +157,7 @@ const FailedStepExpander: React.FC<FailedStepExpanderProps> = ({
       </p>
       {failedSteps.map((step) => {
         const isOpen = expanded.has(step.id);
+        const isErrorOpen = errorVisible.has(step.id);
         return (
           <div
             key={step.id}
@@ -170,12 +191,36 @@ const FailedStepExpander: React.FC<FailedStepExpanderProps> = ({
             {/* Expanded details */}
             {isOpen && (
               <div className="px-3 pb-3 space-y-2 border-t border-red-500/20">
-                {step.lastError && (
+                {/* Error detail — toggled by View Error */}
+                {step.lastError && isErrorOpen && (
                   <pre className="mt-2 rounded bg-muted px-2 py-1.5 text-xs font-mono text-red-400 whitespace-pre-wrap break-all">
                     {step.lastError}
                   </pre>
                 )}
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-1.5 mt-2">
+                  {/* View Error */}
+                  {step.lastError && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs px-2 gap-1"
+                      onClick={() => toggleError(step.id)}
+                    >
+                      <Eye className="h-3 w-3" />
+                      {isErrorOpen ? 'Hide Error' : 'View Error'}
+                    </Button>
+                  )}
+                  {/* Manual Fix → Retry */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1"
+                    onClick={() => handleManualFix(step)}
+                  >
+                    <Wrench className="h-3 w-3" />
+                    Manual Fix
+                  </Button>
+                  {/* Skip */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -197,26 +242,55 @@ const FailedStepExpander: React.FC<FailedStepExpanderProps> = ({
 
 // ── LiveAgentOutput ───────────────────────────────────────────────────────────
 
-const LiveAgentOutput: React.FC = () => (
-  <div className="space-y-1">
-    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-      Live Agent Output
-    </p>
-    <div
-      className={cn(
-        'bg-background border border-border rounded font-mono text-xs p-2',
-        'h-32 overflow-y-auto text-muted-foreground',
-      )}
-    >
-      Waiting for agent output...
+interface LiveAgentOutputProps {
+  lines: AgentOutputLine[];
+}
+
+const LiveAgentOutput: React.FC<LiveAgentOutputProps> = ({ lines }) => {
+  const bottomRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new lines arrive
+  React.useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [lines]);
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        Live Agent Output
+      </p>
+      <div
+        className={cn(
+          'rounded font-mono text-xs p-2 overflow-y-auto',
+          'bg-zinc-950 border border-zinc-800',
+          'h-[200px]',
+        )}
+      >
+        {lines.length === 0 ? (
+          <span className="text-zinc-500">Waiting for agent output...</span>
+        ) : (
+          lines.map((entry, i) => {
+            const time = entry.timestamp.slice(11, 19); // HH:MM:SS
+            return (
+              <div key={i} className="flex gap-2 leading-5">
+                <span className="text-zinc-600 shrink-0 select-none">
+                  {time}
+                </span>
+                <span className="text-green-400 break-all">{entry.line}</span>
+              </div>
+            );
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ── ScaffoldMonitor ───────────────────────────────────────────────────────────
 
 export const ScaffoldMonitor: React.FC = () => {
-  const { state, skipStep } = useFactoryPipeline();
+  const { state, agentOutput, skipStep } = useFactoryPipeline();
   const { scaffolding } = state;
 
   if (!scaffolding) {
@@ -244,7 +318,7 @@ export const ScaffoldMonitor: React.FC = () => {
       />
 
       {/* Live agent output terminal */}
-      <LiveAgentOutput />
+      <LiveAgentOutput lines={agentOutput} />
     </div>
   );
 };

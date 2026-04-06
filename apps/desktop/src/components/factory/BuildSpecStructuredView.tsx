@@ -342,7 +342,148 @@ const PageCards: React.FC<{ pages: any[] }> = ({ pages }) => (
   </div>
 );
 
-// ── 6. TraceabilityMatrix ─────────────────────────────────────────────────────
+// ── 6. BusinessRulesSection ───────────────────────────────────────────────────
+
+const RULE_TYPE_COLORS: Record<string, string> = {
+  'state-machine':  'bg-violet-900/40 text-violet-300 border border-violet-800',
+  validation:       'bg-amber-900/40 text-amber-300 border border-amber-800',
+  computation:      'bg-blue-900/40 text-blue-300 border border-blue-800',
+  authorization:    'bg-emerald-900/40 text-emerald-300 border border-emerald-800',
+  constraint:       'bg-rose-900/40 text-rose-300 border border-rose-800',
+  privacy:          'bg-fuchsia-900/40 text-fuchsia-300 border border-fuchsia-800',
+  retention:        'bg-slate-700/60 text-slate-300 border border-slate-600',
+};
+
+const RULE_TYPE_ORDER = [
+  'state-machine',
+  'validation',
+  'computation',
+  'authorization',
+  'constraint',
+  'privacy',
+  'retention',
+];
+
+const BusinessRuleCard: React.FC<{ rule: any }> = ({ rule }) => {
+  const typeColor =
+    RULE_TYPE_COLORS[rule.type ?? ''] ??
+    'bg-muted text-muted-foreground border border-border';
+
+  const transitions: any[] = Array.isArray(rule.transitions) ? rule.transitions : [];
+
+  return (
+    <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
+      <div className="flex items-start gap-2 flex-wrap">
+        <span className="text-xs font-mono font-semibold text-muted-foreground shrink-0">
+          {rule.id ?? '—'}
+        </span>
+        {rule.type && (
+          <span
+            className={cn(
+              'text-xs rounded px-1.5 py-0.5 font-medium shrink-0',
+              typeColor,
+            )}
+          >
+            {rule.type}
+          </span>
+        )}
+        {rule.enforced_at && (
+          <ConstraintBadge label={`@${rule.enforced_at}`} />
+        )}
+      </div>
+      <div className="text-sm font-medium text-foreground">
+        {rule.name ?? '—'}
+      </div>
+      {rule.description && (
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {rule.description}
+        </p>
+      )}
+      {Array.isArray(rule.entities) && rule.entities.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {rule.entities.map((e: string, ei: number) => (
+            <ConstraintBadge key={ei} label={e} />
+          ))}
+        </div>
+      )}
+      {/* State-machine: show transitions */}
+      {transitions.length > 0 && (
+        <div className="pt-1">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">
+            Transitions
+          </span>
+          <div className="mt-1 space-y-1">
+            {transitions.map((t: any, ti: number) => (
+              <div key={ti} className="flex items-center gap-1.5 text-xs">
+                <span className="font-mono text-foreground">{t.from ?? '?'}</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="font-mono text-foreground">
+                  {Array.isArray(t.to) ? t.to.join(', ') : (t.to ?? '?')}
+                </span>
+                {Array.isArray(t.requires_role) && t.requires_role.length > 0 && (
+                  <span className="text-muted-foreground">
+                    [{t.requires_role.join(', ')}]
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Validation: show condition and message */}
+      {rule.condition && (
+        <div className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">When: </span>
+          {rule.condition}
+        </div>
+      )}
+      {rule.message && (
+        <div className="text-xs text-amber-400/80">
+          <span className="font-medium">Error: </span>
+          {rule.message}
+        </div>
+      )}
+      {/* Computation: show formula */}
+      {rule.formula && (
+        <div className="text-xs font-mono text-muted-foreground bg-muted/40 rounded px-2 py-1">
+          {rule.formula}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const BusinessRulesSection: React.FC<{ rules: any[] }> = ({ rules }) => {
+  // Group by type in canonical order; rules with unknown types go last.
+  const grouped = new Map<string, any[]>();
+  for (const rule of rules) {
+    const key: string = rule.type ?? 'unknown';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(rule);
+  }
+
+  const orderedKeys = [
+    ...RULE_TYPE_ORDER.filter((k) => grouped.has(k)),
+    ...[...grouped.keys()].filter((k) => !RULE_TYPE_ORDER.includes(k)),
+  ];
+
+  return (
+    <div className="pt-3 space-y-4">
+      {orderedKeys.map((type) => (
+        <div key={type} className="space-y-2">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-0.5">
+            {type}
+          </h4>
+          {grouped.get(type)!.map((rule: any, i: number) => (
+            <BusinessRuleCard key={rule.id ?? i} rule={rule} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── 7. TraceabilityMatrix ─────────────────────────────────────────────────────
 
 const TraceabilityMatrix: React.FC<{ rows: any[] }> = ({ rows }) => (
   <div className="pt-3 overflow-x-auto">
@@ -401,6 +542,7 @@ export const BuildSpecStructuredView: React.FC<BuildSpecStructuredViewProps> = (
   const entities: any[] = buildSpec.data_model?.entities ?? [];
   const resources: any[] = buildSpec.api?.resources ?? [];
   const pages: any[] = buildSpec.ui?.pages ?? [];
+  const businessRules: any[] = buildSpec.business_rules ?? [];
   const traceability: any[] = buildSpec.traceability ?? [];
 
   return (
@@ -452,7 +594,17 @@ export const BuildSpecStructuredView: React.FC<BuildSpecStructuredViewProps> = (
         </CollapsibleSection>
       )}
 
-      {/* 6. Traceability */}
+      {/* 6. Business Rules */}
+      {businessRules.length > 0 && (
+        <CollapsibleSection
+          title="Business Rules"
+          badge={`${businessRules.length} rule${businessRules.length !== 1 ? 's' : ''}`}
+        >
+          <BusinessRulesSection rules={businessRules} />
+        </CollapsibleSection>
+      )}
+
+      {/* 7. Traceability */}
       {traceability.length > 0 && (
         <CollapsibleSection
           title="Traceability"

@@ -35,47 +35,47 @@ function formatBytes(bytes: number): string {
 }
 
 /** Inline diff summary. */
-const DiffSummary: React.FC<{ diff: CheckpointDiff }> = ({ diff }) => (
-  <div className="border rounded-md p-3 bg-background text-sm space-y-2">
-    <div className="font-medium flex items-center gap-2">
-      <GitCompareArrows className="h-4 w-4" />
-      Diff: {diff.from_id.slice(0, 8)} &rarr; {diff.to_id.slice(0, 8)}
+const DiffSummary: React.FC<{ diff: CheckpointDiff }> = ({ diff }) => {
+  const changedFiles = [...diff.added, ...diff.modified, ...diff.deleted];
+  return (
+    <div className="border rounded-md p-3 bg-background text-sm space-y-2">
+      <div className="font-medium flex items-center gap-2">
+        <GitCompareArrows className="h-4 w-4" />
+        Diff: {diff.from_checkpoint_id.slice(0, 8)} &rarr; {diff.to_checkpoint_id.slice(0, 8)}
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="border rounded px-2 py-1">
+          <span className="text-green-600 dark:text-green-400 font-medium">+{diff.added.length}</span> added
+        </div>
+        <div className="border rounded px-2 py-1">
+          <span className="text-amber-600 dark:text-amber-400 font-medium">~{diff.modified.length}</span> modified
+        </div>
+        <div className="border rounded px-2 py-1">
+          <span className="text-red-600 dark:text-red-400 font-medium">-{diff.deleted.length}</span> deleted
+        </div>
+      </div>
+      {changedFiles.length > 0 && (
+        <details>
+          <summary className="text-xs font-medium cursor-pointer text-muted-foreground">
+            Changed files ({changedFiles.length})
+          </summary>
+          <ul className="text-xs font-mono mt-1 max-h-40 overflow-auto space-y-0.5">
+            {changedFiles.map((f) => (
+              <li key={f} className="px-1 py-0.5 rounded hover:bg-muted/50 truncate" title={f}>
+                {f}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
-    <div className="grid grid-cols-3 gap-2 text-xs">
-      <div className="border rounded px-2 py-1">
-        <span className="text-green-600 dark:text-green-400 font-medium">+{diff.stats.files_added}</span> added
-      </div>
-      <div className="border rounded px-2 py-1">
-        <span className="text-amber-600 dark:text-amber-400 font-medium">~{diff.stats.files_modified}</span> modified
-      </div>
-      <div className="border rounded px-2 py-1">
-        <span className="text-red-600 dark:text-red-400 font-medium">-{diff.stats.files_deleted}</span> deleted
-      </div>
-    </div>
-    {diff.stats.changed_files.length > 0 && (
-      <details>
-        <summary className="text-xs font-medium cursor-pointer text-muted-foreground">
-          Changed files ({diff.stats.changed_files.length})
-        </summary>
-        <ul className="text-xs font-mono mt-1 max-h-40 overflow-auto space-y-0.5">
-          {diff.stats.changed_files.map((f) => (
-            <li key={f} className="px-1 py-0.5 rounded hover:bg-muted/50 truncate" title={f}>
-              {f}
-            </li>
-          ))}
-        </ul>
-      </details>
-    )}
-  </div>
-);
+  );
+};
 
 /** Inline verification badge. */
 const VerifyBadge: React.FC<{ report: VerificationReport }> = ({ report }) => {
-  const valid =
-    report.metadata_valid &&
-    report.state_hash_valid &&
-    report.merkle_root_valid &&
-    report.errors.length === 0;
+  const errors = [...report.corrupted_files, ...report.missing_blobs];
+  const valid = report.merkle_root_valid && errors.length === 0;
   return (
     <details className="text-xs">
       <summary
@@ -87,15 +87,10 @@ const VerifyBadge: React.FC<{ report: VerificationReport }> = ({ report }) => {
         {valid ? 'Valid' : 'Invalid'}
       </summary>
       <div className="mt-1 pl-4 space-y-0.5 text-muted-foreground">
-        <div>Files checked: {report.total_files_checked}</div>
-        <div>Files valid: {report.files_valid}</div>
-        <div>Metadata: {report.metadata_valid ? 'ok' : 'fail'}</div>
-        <div>State hash: {report.state_hash_valid ? 'ok' : 'fail'}</div>
         <div>Merkle root: {report.merkle_root_valid ? 'ok' : 'fail'}</div>
-        <div>Time: {report.verification_time_ms}ms</div>
-        {report.errors.length > 0 && (
+        {errors.length > 0 && (
           <div className="text-red-600 dark:text-red-400">
-            Errors: {report.errors.join('; ')}
+            Errors: {errors.join('; ')}
           </div>
         )}
       </div>
@@ -114,9 +109,9 @@ const CheckpointRow: React.FC<{
   onToggleDiffSelect: (id: string) => void;
 }> = ({ cp, busy, verification, diffSelected, onRestore, onVerify, onToggleDiffSelect }) => {
   const [expanded, setExpanded] = useState(false);
-  const isRestoring = busy.restoring === cp.id;
-  const isVerifying = busy.verifying === cp.id;
-  const selected = diffSelected.has(cp.id);
+  const isRestoring = busy.restoring === cp.checkpoint_id;
+  const isVerifying = busy.verifying === cp.checkpoint_id;
+  const selected = diffSelected.has(cp.checkpoint_id);
 
   return (
     <div className={`border rounded-md bg-background ${selected ? 'ring-2 ring-primary/50' : ''}`}>
@@ -129,12 +124,12 @@ const CheckpointRow: React.FC<{
         </button>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium truncate">
-            {cp.description || <span className="text-muted-foreground italic">unnamed</span>}
+            {cp.label || <span className="text-muted-foreground italic">unnamed</span>}
           </div>
           <div className="text-xs text-muted-foreground flex gap-3">
-            <span>{relativeTime(cp.timestamp)}</span>
-            <span>{cp.metadata.file_count} files</span>
-            <span>{formatBytes(cp.metadata.total_size)}</span>
+            <span>{relativeTime(cp.created_at)}</span>
+            <span>{cp.file_count} files</span>
+            <span>{formatBytes(cp.total_bytes)}</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -142,7 +137,7 @@ const CheckpointRow: React.FC<{
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={() => onToggleDiffSelect(cp.id)}
+            onClick={() => onToggleDiffSelect(cp.checkpoint_id)}
             title="Select for diff"
           >
             <GitCompareArrows className="h-3 w-3" />
@@ -151,7 +146,7 @@ const CheckpointRow: React.FC<{
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={() => onVerify(cp.id)}
+            onClick={() => onVerify(cp.checkpoint_id)}
             disabled={isVerifying}
             title="Verify integrity"
           >
@@ -166,8 +161,8 @@ const CheckpointRow: React.FC<{
             size="sm"
             className="h-7 px-2 text-xs text-amber-600 dark:text-amber-400"
             onClick={() => {
-              if (window.confirm(`Restore to "${cp.description || cp.id.slice(0, 8)}"? This will overwrite current files.`)) {
-                onRestore(cp.id);
+              if (window.confirm(`Restore to "${cp.label || cp.checkpoint_id.slice(0, 8)}"? This will overwrite current files.`)) {
+                onRestore(cp.checkpoint_id);
               }
             }}
             disabled={isRestoring}
@@ -183,13 +178,9 @@ const CheckpointRow: React.FC<{
       </div>
       {expanded && (
         <div className="px-3 pb-2 pt-1 border-t text-xs space-y-1 text-muted-foreground">
-          <div>ID: <span className="font-mono">{cp.id}</span></div>
-          <div>Timestamp: {new Date(cp.timestamp).toLocaleString()}</div>
+          <div>ID: <span className="font-mono">{cp.checkpoint_id}</span></div>
+          <div>Timestamp: {new Date(cp.created_at).toLocaleString()}</div>
           <div>State hash: <span className="font-mono truncate">{cp.state_hash.slice(0, 16)}...</span></div>
-          <div>Compressed: {formatBytes(cp.metadata.compressed_size)}</div>
-          {cp.metadata.files_changed > 0 && (
-            <div>Files changed from parent: {cp.metadata.files_changed}</div>
-          )}
           {verification && <VerifyBadge report={verification} />}
         </div>
       )}
@@ -252,13 +243,13 @@ export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPat
     const ids = Array.from(diffSelected);
     if (ids.length === 2) {
       // Order chronologically: older first
-      const cp0 = state.checkpoints.find((c) => c.id === ids[0]);
-      const cp1 = state.checkpoints.find((c) => c.id === ids[1]);
+      const cp0 = state.checkpoints.find((c) => c.checkpoint_id === ids[0]);
+      const cp1 = state.checkpoints.find((c) => c.checkpoint_id === ids[1]);
       if (cp0 && cp1) {
         const [older, newer] =
-          new Date(cp0.timestamp).getTime() <= new Date(cp1.timestamp).getTime()
-            ? [cp0.id, cp1.id]
-            : [cp1.id, cp0.id];
+          new Date(cp0.created_at).getTime() <= new Date(cp1.created_at).getTime()
+            ? [cp0.checkpoint_id, cp1.checkpoint_id]
+            : [cp1.checkpoint_id, cp0.checkpoint_id];
         diff(older, newer);
       }
     }
@@ -415,10 +406,10 @@ export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPat
                 </div>
                 {state.checkpoints.map((cp) => (
                   <CheckpointRow
-                    key={cp.id}
+                    key={cp.checkpoint_id}
                     cp={cp}
                     busy={state.busy}
-                    verification={state.verifications[cp.id]}
+                    verification={state.verifications[cp.checkpoint_id]}
                     diffSelected={diffSelected}
                     onRestore={restore}
                     onVerify={verify}

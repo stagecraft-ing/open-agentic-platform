@@ -269,6 +269,16 @@ function mapCommandToEndpoint(command: string, _params?: any): string {
     'xray_scan_project': '/api/analysis/xray-scan',
     'featuregraph_overview': '/api/analysis/featuregraph-overview',
     'featuregraph_impact': '/api/analysis/featuregraph-impact',
+
+    // Factory Pipeline commands (076)
+    'start_factory_pipeline': '/api/factory/pipelines',
+    'get_factory_pipeline_status': '/api/factory/pipelines/{runId}/status',
+    'confirm_factory_stage': '/api/factory/pipelines/{runId}/stages/{stageId}/confirm',
+    'reject_factory_stage': '/api/factory/pipelines/{runId}/stages/{stageId}/reject',
+    'list_factory_runs': '/api/factory/runs',
+    'get_factory_artifacts': '/api/factory/pipelines/{runId}/steps/{stepId}/artifacts',
+    'skip_factory_step': '/api/factory/pipelines/{runId}/steps/{stepId}/skip',
+    'resume_factory_pipeline': '/api/factory/pipelines/{runId}/resume',
   };
 
   const endpoint = commandToEndpoint[command];

@@ -73,6 +73,10 @@ export interface GateAction {
   stageName: string;
   gateType: 'checkpoint' | 'approval';
   summary?: GateSummary;
+  /** Milliseconds until this gate times out (approval gates only). */
+  timeoutMs?: number;
+  /** ISO timestamp when the gate was opened, used with timeoutMs for countdown. */
+  openedAt?: string;
 }
 
 /** Summary statistics shown in gate dialogs. */
@@ -154,6 +158,8 @@ export interface FactoryGateReachedEvent {
   stageName: string;
   gateType: 'checkpoint' | 'approval';
   summary?: GateSummary;
+  /** Milliseconds until this gate times out (approval gates only). */
+  timeoutMs?: number;
 }
 
 export interface FactoryScaffoldProgressEvent {
@@ -177,6 +183,13 @@ export interface FactoryAgentOutputEvent {
   runId: string;
   stepId: string;
   line: string;
+}
+
+/** A single line of streamed agent output. */
+export interface AgentOutputLine {
+  stepId: string;
+  line: string;
+  timestamp: string;
 }
 
 // ── Process stage constants ──────────────────────────────────────────

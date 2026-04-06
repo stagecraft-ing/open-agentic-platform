@@ -60,7 +60,7 @@ pub async fn verify_jwt(
         validation.validate_aud = false;
     }
     // Dynamically enforce the fetched issuer
-    validation.issuers = Some(vec![issuer]);
+    validation.set_issuer(&[&issuer]);
     validation.validate_exp = true;
 
     let decoded = decode::<Claims>(token, &decoding_key, &validation)?;

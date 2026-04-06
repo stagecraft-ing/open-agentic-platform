@@ -34,7 +34,7 @@ env_logger = "0.9"
 reqwest = { version = "0.12", features = ["json"] }
 octocrab = "0.41"
 urlencoding = "2"
-hiqlite = { version = "~0.13", features = ["sqlite", "dlock", "listen_notify_local", "cache"] }
+hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "dlock", "listen_notify_local", "cache"] }
 async-trait = "0.1"
 
 featuregraph = { path = "../featuregraph" }

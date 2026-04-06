@@ -95,7 +95,7 @@ function FactoryPipelinePanelInner({ projectPath }: { projectPath?: string }) {
             )}
           >
             {/* Selector at top */}
-            <PipelineSelector />
+            <PipelineSelector projectPath={projectPath} />
 
             {/* DAG fills remaining height */}
             <PipelineDAG />

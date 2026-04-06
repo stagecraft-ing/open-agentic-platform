@@ -52,7 +52,7 @@ use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_setti
 use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, orchestrate_manifest};
 use commands::factory::{
     confirm_factory_stage, get_factory_artifacts, get_factory_pipeline_status, list_factory_runs,
-    reject_factory_stage, skip_factory_step, start_factory_pipeline,
+    reject_factory_stage, resume_factory_pipeline, skip_factory_step, start_factory_pipeline,
 };
 use commands::worktree_agents::{
     discard_agent, get_agent_diff, list_background_agents, merge_agent, spawn_background_agent,
@@ -357,6 +357,7 @@ pub fn run() {
             list_factory_runs,
             get_factory_artifacts,
             skip_factory_step,
+            resume_factory_pipeline,
             // Worktree agents (051)
             spawn_background_agent,
             list_background_agents,
