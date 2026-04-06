@@ -39,7 +39,7 @@ pub struct ClaudeCodeExecutor {
 impl ClaudeCodeExecutor {
     /// Create a new executor anchored at `project_path`.
     ///
-    /// Defaults: `max_turns = 25`, `allowed_tools = ["Read", "Write", "Bash", "Glob", "Grep"]`.
+    /// Defaults: `max_turns = 25`, `allowed_tools = ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]`.
     pub fn new(project_path: PathBuf) -> Self {
         Self {
             project_path,
@@ -48,6 +48,7 @@ impl ClaudeCodeExecutor {
             allowed_tools: vec![
                 "Read".into(),
                 "Write".into(),
+                "Edit".into(),
                 "Bash".into(),
                 "Glob".into(),
                 "Grep".into(),
