@@ -13,22 +13,18 @@ summary: >
   Rauthy issues platform sessions and claims. Enables self-service project
   creation for authenticated org members.
 code_aliases: ["GITHUB_IDENTITY", "ORG_ONBOARDING"]
-phases:
-  - id: phase-1
-    title: "GitHub App + OAuth Login + Rauthy Sessions"
-    status: draft
-  - id: phase-2
-    title: "Self-Service Project Creation"
-    status: draft
-  - id: phase-3
-    title: "Team Role Mapping + Sync"
-    status: draft
-  - id: phase-4
-    title: "Enterprise OIDC Federation"
-    status: draft
 ---
 
 # Feature Specification: GitHub Identity and Org Onboarding
+
+## Phases
+
+| Phase | Title | Status |
+|-------|-------|--------|
+| phase-1 | GitHub App + OAuth Login + Rauthy Sessions | draft |
+| phase-2 | Self-Service Project Creation | draft |
+| phase-3 | Team Role Mapping + Sync | draft |
+| phase-4 | Enterprise OIDC Federation | draft |
 
 ## Purpose
 

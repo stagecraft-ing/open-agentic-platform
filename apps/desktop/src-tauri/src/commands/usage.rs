@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -129,12 +129,12 @@ fn calculate_cost(model: &str, usage: &UsageData) -> f64 {
         };
 
     // Calculate cost (prices are per million tokens)
-    let cost = (input_tokens * input_price / 1_000_000.0)
+    
+
+    (input_tokens * input_price / 1_000_000.0)
         + (output_tokens * output_price / 1_000_000.0)
         + (cache_creation_tokens * cache_write_price / 1_000_000.0)
-        + (cache_read_tokens * cache_read_price / 1_000_000.0);
-
-    cost
+        + (cache_read_tokens * cache_read_price / 1_000_000.0)
 }
 
 fn parse_jsonl_file(
@@ -161,15 +161,14 @@ fn parse_jsonl_file(
 
             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(line) {
                 // Extract the actual project path from cwd if we haven't already
-                if actual_project_path.is_none() {
-                    if let Some(cwd) = json_value.get("cwd").and_then(|v| v.as_str()) {
+                if actual_project_path.is_none()
+                    && let Some(cwd) = json_value.get("cwd").and_then(|v| v.as_str()) {
                         actual_project_path = Some(cwd.to_string());
                     }
-                }
 
                 // Try to parse as JsonlEntry for usage data
-                if let Ok(entry) = serde_json::from_value::<JsonlEntry>(json_value) {
-                    if let Some(message) = &entry.message {
+                if let Ok(entry) = serde_json::from_value::<JsonlEntry>(json_value)
+                    && let Some(message) = &entry.message {
                         // Deduplication based on message ID and request ID
                         if let (Some(msg_id), Some(req_id)) = (&message.id, &entry.request_id) {
                             let unique_hash = format!("{}:{}", msg_id, req_id);
@@ -220,7 +219,6 @@ fn parse_jsonl_file(
                             });
                         }
                     }
-                }
             }
         }
     }
@@ -232,8 +230,8 @@ fn get_earliest_timestamp(path: &PathBuf) -> Option<String> {
     if let Ok(content) = fs::read_to_string(path) {
         let mut earliest_timestamp: Option<String> = None;
         for line in content.lines() {
-            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(line) {
-                if let Some(timestamp_str) = json_value.get("timestamp").and_then(|v| v.as_str()) {
+            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(line)
+                && let Some(timestamp_str) = json_value.get("timestamp").and_then(|v| v.as_str()) {
                     if let Some(current_earliest) = &earliest_timestamp {
                         if timestamp_str < current_earliest.as_str() {
                             earliest_timestamp = Some(timestamp_str.to_string());
@@ -242,14 +240,13 @@ fn get_earliest_timestamp(path: &PathBuf) -> Option<String> {
                         earliest_timestamp = Some(timestamp_str.to_string());
                     }
                 }
-            }
         }
         return earliest_timestamp;
     }
     None
 }
 
-fn get_all_usage_entries(claude_path: &PathBuf) -> Vec<UsageEntry> {
+fn get_all_usage_entries(claude_path: &Path) -> Vec<UsageEntry> {
     let mut all_entries = Vec::new();
     let mut processed_hashes = HashSet::new();
     let projects_dir = claude_path.join("projects");
@@ -399,7 +396,7 @@ pub fn get_usage_stats(days: Option<u32>) -> Result<UsageStats, String> {
                     project_name: entry
                         .project_path
                         .split('/')
-                        .last()
+                        .next_back()
                         .unwrap_or(&entry.project_path)
                         .to_string(),
                     total_cost: 0.0,
@@ -569,7 +566,7 @@ pub fn get_usage_by_date_range(start_date: String, end_date: String) -> Result<U
                     project_name: entry
                         .project_path
                         .split('/')
-                        .last()
+                        .next_back()
                         .unwrap_or(&entry.project_path)
                         .to_string(),
                     total_cost: 0.0,
@@ -662,8 +659,8 @@ pub fn get_session_stats(
         .filter(|e| {
             if let Ok(dt) = DateTime::parse_from_rfc3339(&e.timestamp) {
                 let date = dt.date_naive();
-                let is_after_since = since_date.map_or(true, |s| date >= s);
-                let is_before_until = until_date.map_or(true, |u| date <= u);
+                let is_after_since = since_date.is_none_or(|s| date >= s);
+                let is_before_until = until_date.is_none_or(|u| date <= u);
                 is_after_since && is_before_until
             } else {
                 false

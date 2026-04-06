@@ -243,7 +243,7 @@ pub async fn merge_agent(
     let agent_branch = agent.agent_branch.clone();
     let worktree_path = agent.worktree_path.clone();
 
-    if run_git(&repo_root, &["status", "--porcelain"])?.trim().is_empty() == false {
+    if !run_git(&repo_root, &["status", "--porcelain"])?.trim().is_empty() {
         return Err("refusing merge: repository has uncommitted changes".to_string());
     }
     if !branch_exists(&repo_root, &parent_branch) {

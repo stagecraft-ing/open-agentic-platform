@@ -170,6 +170,7 @@ export const signin = api(
 
     const u = found[0];
     if (!u || u.disabled) return { ok: false, error: "Invalid credentials" };
+    if (!u.passwordHash) return { ok: false, error: "Invalid credentials" };
 
     const ok = await verifyPassword(u.passwordHash, req.password);
     if (!ok) return { ok: false, error: "Invalid credentials" };
@@ -212,6 +213,7 @@ export const adminSignin = api(
     const u = found[0];
     if (!u || u.disabled || u.role !== "admin")
       return { ok: false, error: "Invalid credentials" };
+    if (!u.passwordHash) return { ok: false, error: "Invalid credentials" };
 
     const ok = await verifyPassword(u.passwordHash, req.password);
     if (!ok) return { ok: false, error: "Invalid credentials" };

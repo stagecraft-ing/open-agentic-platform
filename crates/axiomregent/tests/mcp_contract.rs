@@ -57,7 +57,18 @@ async fn test_mcp_tools_list_contract() {
     let result = resp.result.unwrap();
 
     // 3. Serialize and save/compare (Golden test)
-    let actual_json = serde_json::to_string_pretty(&result).unwrap();
+    // Sort tools by name for deterministic comparison (HashMap iteration order varies).
+    let mut result_sorted = result.clone();
+    if let Some(tools) = result_sorted.as_object_mut().and_then(|o| o.get_mut("tools")) {
+        if let Some(arr) = tools.as_array_mut() {
+            arr.sort_by(|a, b| {
+                let a_name = a.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                let b_name = b.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                a_name.cmp(b_name)
+            });
+        }
+    }
+    let actual_json = serde_json::to_string_pretty(&result_sorted).unwrap();
 
     let golden_path = PathBuf::from("tests/golden/tools_list.json");
 
@@ -69,15 +80,8 @@ async fn test_mcp_tools_list_contract() {
     // If golden file exists, compare
     if golden_path.exists() {
         let expected = std::fs::read_to_string(&golden_path).unwrap();
-        // Normalize line endings and whitespace if needed, but pretty print should be consistent.
         let expected = expected.replace("\r\n", "\n");
         let actual = actual_json.replace("\r\n", "\n");
-
-        // Simple string comparison for now.
-        // If this is flaky due to JSON object key ordering (serde preserves order for maps if "preserve_order" feature is on, but `json!` macro behavior varies),
-        // we might rely on the fact that `tools` is a list and individual tool props are small.
-        // `tools` array order might differ if not sorted?
-        // The router implementation hardcodes the list in order, so it should be deterministic.
 
         assert_eq!(
             expected, actual,

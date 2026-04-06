@@ -177,21 +177,18 @@ fn find_markdown_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
         let path = entry.path();
 
         // Skip hidden files/directories
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            if name.starts_with('.') {
+        if let Some(name) = path.file_name().and_then(|n| n.to_str())
+            && name.starts_with('.') {
                 continue;
             }
-        }
 
         if path.is_dir() {
             find_markdown_files(&path, files)?;
-        } else if path.is_file() {
-            if let Some(ext) = path.extension() {
-                if ext == "md" {
+        } else if path.is_file()
+            && let Some(ext) = path.extension()
+                && ext == "md" {
                     files.push(path);
                 }
-            }
-        }
     }
 
     Ok(())

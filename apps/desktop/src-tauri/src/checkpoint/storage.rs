@@ -133,8 +133,7 @@ impl CheckpointStorage {
         let safe_filename = snapshot
             .file_path
             .to_string_lossy()
-            .replace('/', "_")
-            .replace('\\', "_");
+            .replace(['/', '\\'], "_");
         let ref_path = checkpoint_refs_dir.join(format!("{}.json", safe_filename));
 
         fs::write(&ref_path, serde_json::to_string_pretty(&ref_metadata)?)
@@ -444,17 +443,13 @@ impl CheckpointStorage {
                 if checkpoint_dir.is_dir() {
                     for ref_entry in fs::read_dir(&checkpoint_dir)? {
                         let ref_path = ref_entry?.path();
-                        if ref_path.extension().and_then(|e| e.to_str()) == Some("json") {
-                            if let Ok(ref_json) = fs::read_to_string(&ref_path) {
-                                if let Ok(ref_metadata) =
+                        if ref_path.extension().and_then(|e| e.to_str()) == Some("json")
+                            && let Ok(ref_json) = fs::read_to_string(&ref_path)
+                                && let Ok(ref_metadata) =
                                     serde_json::from_str::<serde_json::Value>(&ref_json)
-                                {
-                                    if let Some(hash) = ref_metadata["hash"].as_str() {
+                                    && let Some(hash) = ref_metadata["hash"].as_str() {
                                         referenced_hashes.insert(hash.to_string());
                                     }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -464,15 +459,12 @@ impl CheckpointStorage {
         let mut removed_count = 0;
         for entry in fs::read_dir(&content_pool_dir)? {
             let content_file = entry?.path();
-            if content_file.is_file() {
-                if let Some(hash) = content_file.file_name().and_then(|n| n.to_str()) {
-                    if !referenced_hashes.contains(hash) {
-                        if fs::remove_file(&content_file).is_ok() {
+            if content_file.is_file()
+                && let Some(hash) = content_file.file_name().and_then(|n| n.to_str())
+                    && !referenced_hashes.contains(hash)
+                        && fs::remove_file(&content_file).is_ok() {
                             removed_count += 1;
                         }
-                    }
-                }
-            }
         }
 
         Ok(removed_count)

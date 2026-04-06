@@ -30,6 +30,12 @@ jobs:
         run: npm ci
         working-directory: platform/services/stagecraft
 
+      - name: Create Encore client stubs
+        run: |
+          mkdir -p encore.gen/clients
+          echo 'export declare const site: any;' > encore.gen/clients/index.d.ts
+        working-directory: platform/services/stagecraft
+
       - name: TypeScript type check
         run: npx tsc --noEmit
         working-directory: platform/services/stagecraft

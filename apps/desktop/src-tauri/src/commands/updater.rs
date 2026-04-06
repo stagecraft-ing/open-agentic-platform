@@ -203,7 +203,7 @@ pub async fn download_and_install_update(
             message: format!("{e}"),
         })?;
 
-    let filename = url.split('/').last().unwrap_or("opc_update");
+    let filename = url.split('/').next_back().unwrap_or("opc_update");
     let temp_path = std::env::temp_dir().join(filename);
 
     let bytes = response.bytes().await.map_err(|e| UpdateError::NetworkError {

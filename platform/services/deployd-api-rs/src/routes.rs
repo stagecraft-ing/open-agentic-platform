@@ -324,10 +324,10 @@ pub async fn delete_deployment(
     };
 
     // Attempt K8s resource cleanup
-    if let Ok(k8s_client) = k8s::try_connect().await {
-        if let Err(e) = k8s::destroy(&k8s_client, &deployment.app_id, &deployment.env_id).await {
-            tracing::warn!("K8s cleanup failed for {release_id}: {e}");
-        }
+    if let Ok(k8s_client) = k8s::try_connect().await
+        && let Err(e) = k8s::destroy(&k8s_client, &deployment.app_id, &deployment.env_id).await
+    {
+        tracing::warn!("K8s cleanup failed for {release_id}: {e}");
     }
 
     let _ = store::update_status(&state.client, &release_id, "DESTROYED").await;

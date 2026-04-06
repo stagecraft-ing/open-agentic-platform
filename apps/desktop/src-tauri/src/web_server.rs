@@ -6,7 +6,6 @@ use axum::{
     routing::get,
     Router,
 };
-use chrono;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -17,7 +16,6 @@ use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
-use which;
 
 use crate::commands;
 

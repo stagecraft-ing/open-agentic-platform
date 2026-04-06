@@ -95,20 +95,20 @@ impl SchedulerEngine {
         };
         let now = now_epoch();
         for schedule in schedules {
-            if let ScheduleTrigger::Cron { ref expr } = schedule.trigger {
-                if should_fire(expr, schedule.last_run_at, now) {
-                    let _ = self.store.update_last_run(&schedule.id, now).await;
-                    let executor = Arc::clone(&self.executor);
-                    let schedule_clone = schedule.clone();
-                    tokio::spawn(async move {
-                        if let Err(e) = executor.execute_scheduled_run(&schedule_clone).await {
-                            eprintln!(
-                                "[scheduler] error executing cron schedule '{}': {e}",
-                                schedule_clone.name
-                            );
-                        }
-                    });
-                }
+            if let ScheduleTrigger::Cron { ref expr } = schedule.trigger
+                && should_fire(expr, schedule.last_run_at, now)
+            {
+                let _ = self.store.update_last_run(&schedule.id, now).await;
+                let executor = Arc::clone(&self.executor);
+                let schedule_clone = schedule.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = executor.execute_scheduled_run(&schedule_clone).await {
+                        eprintln!(
+                            "[scheduler] error executing cron schedule '{}': {e}",
+                            schedule_clone.name
+                        );
+                    }
+                });
             }
         }
     }

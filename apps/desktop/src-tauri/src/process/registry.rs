@@ -54,6 +54,7 @@ impl ProcessRegistry {
     }
 
     /// Register a new running agent process
+    #[allow(clippy::too_many_arguments)]
     pub fn register_process(
         &self,
         run_id: i64,
@@ -82,6 +83,7 @@ impl ProcessRegistry {
     }
 
     /// Register a new running agent process using sidecar (similar to register_process but for sidecar children)
+    #[allow(clippy::too_many_arguments)]
     pub fn register_sidecar_process(
         &self,
         run_id: i64,
@@ -492,6 +494,7 @@ impl ProcessRegistry {
 
     /// Cleanup finished processes
     #[allow(dead_code)]
+    #[allow(clippy::await_holding_lock)]
     pub async fn cleanup_finished_processes(&self) -> Result<Vec<i64>, String> {
         let mut finished_runs = Vec::new();
         let processes_lock = self.processes.clone();

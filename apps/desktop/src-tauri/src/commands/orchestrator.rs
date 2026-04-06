@@ -224,12 +224,11 @@ impl RealGovernedExecutor {
             "stream-json".to_string(),
             "--verbose".to_string(),
         ];
-        if let Some(allowed_tools) = &profile.allowed_tools {
-            if !allowed_tools.is_empty() {
+        if let Some(allowed_tools) = &profile.allowed_tools
+            && !allowed_tools.is_empty() {
                 args.push("--allowedTools".to_string());
                 args.extend(allowed_tools.iter().cloned());
             }
-        }
         if let Ok(axiom) = crate::governed_claude::bundled_axiomregent_binary_path() {
             if let Ok(mcp_config) =
                 crate::governed_claude::axiomregent_mcp_config_json(&axiom, &grants_json)
@@ -417,16 +416,14 @@ pub async fn orchestrate_manifest(
 }
 
 fn parse_allowed_tools(raw: Option<&str>) -> Option<Vec<String>> {
-    let Some(raw) = raw else {
-        return None;
-    };
+    let raw = raw?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return None;
     }
 
-    if trimmed.starts_with('[') {
-        if let Ok(parsed) = serde_json::from_str::<Vec<String>>(trimmed) {
+    if trimmed.starts_with('[')
+        && let Ok(parsed) = serde_json::from_str::<Vec<String>>(trimmed) {
             let normalized: Vec<String> = parsed
                 .into_iter()
                 .map(|tool| tool.trim().to_string())
@@ -438,7 +435,6 @@ fn parse_allowed_tools(raw: Option<&str>) -> Option<Vec<String>> {
                 Some(normalized)
             };
         }
-    }
 
     let normalized: Vec<String> = trimmed
         .split(',')

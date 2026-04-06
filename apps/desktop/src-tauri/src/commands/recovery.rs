@@ -125,11 +125,10 @@ pub async fn cleanup_old_recovery_files(app: AppHandle) -> Result<u32, RecoveryE
         let Ok(modified_dur) = modified.duration_since(UNIX_EPOCH) else {
             continue;
         };
-        if modified_dur.as_secs() < seven_days_ago {
-            if std::fs::remove_file(&path).is_ok() {
+        if modified_dur.as_secs() < seven_days_ago
+            && std::fs::remove_file(&path).is_ok() {
                 removed_count += 1;
             }
-        }
     }
 
     log::info!("Recovery cleanup: removed {removed_count} old files");

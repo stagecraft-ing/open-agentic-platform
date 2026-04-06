@@ -1,66 +1,21 @@
 {
   "tools": [
     {
-      "name": "workspace.delete",
-      "description": "Delete a file or directory",
+      "name": "agent.execute",
+      "description": "Execute a proposed changeset by replaying its tool_calls against the allowlisted tools",
       "inputSchema": {
         "type": "object",
         "properties": {
           "repo_root": {
             "type": "string"
           },
-          "path": {
-            "type": "string"
-          },
-          "lease_id": {
-            "type": "string"
-          },
-          "dry_run": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "repo_root",
-          "path",
-          "lease_id"
-        ]
-      }
-    },
-    {
-      "name": "gov.preflight",
-      "description": "Check governance policy for proposed changes",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "repo_root": {
-            "type": "string"
-          },
-          "intent": {
-            "type": "string",
-            "description": "Natural-language description of planned change"
-          },
-          "mode": {
-            "type": "string",
-            "enum": [
-              "worktree",
-              "snapshot"
-            ]
-          },
-          "changed_paths": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "snapshot_id": {
+          "changeset_id": {
             "type": "string"
           }
         },
         "required": [
           "repo_root",
-          "intent",
-          "mode",
-          "changed_paths"
+          "changeset_id"
         ]
       }
     },
@@ -114,8 +69,8 @@
       }
     },
     {
-      "name": "agent.execute",
-      "description": "Execute a proposed changeset by replaying its tool_calls against the allowlisted tools",
+      "name": "agent.verify",
+      "description": "Validate a changeset's artifacts and post-execution state",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -124,44 +79,14 @@
           },
           "changeset_id": {
             "type": "string"
+          },
+          "profile": {
+            "type": "string"
           }
         },
         "required": [
           "repo_root",
           "changeset_id"
-        ]
-      }
-    },
-    {
-      "name": "run.execute",
-      "description": "Execute a run skill",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "skill": {
-            "type": "string"
-          },
-          "env": {
-            "type": "object"
-          }
-        },
-        "required": [
-          "skill"
-        ]
-      }
-    },
-    {
-      "name": "run.status",
-      "description": "Get run status",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "run_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "run_id"
         ]
       }
     },
@@ -186,6 +111,113 @@
         "required": [
           "repo_root",
           "paths"
+        ]
+      }
+    },
+    {
+      "name": "gov.drift",
+      "description": "Check for drift and violations",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo_root": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo_root"
+        ]
+      }
+    },
+    {
+      "name": "gov.preflight",
+      "description": "Check governance policy for proposed changes",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo_root": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string",
+            "description": "Natural-language description of planned change"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "worktree",
+              "snapshot"
+            ]
+          },
+          "changed_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "snapshot_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo_root",
+          "intent",
+          "mode",
+          "changed_paths"
+        ]
+      }
+    },
+    {
+      "name": "run.execute",
+      "description": "Execute a run skill",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "string"
+          },
+          "env": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "skill"
+        ]
+      }
+    },
+    {
+      "name": "run.logs",
+      "description": "Get run logs",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id"
+        ]
+      }
+    },
+    {
+      "name": "run.status",
+      "description": "Get run status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
         ]
       }
     },
@@ -232,6 +264,32 @@
       }
     },
     {
+      "name": "workspace.delete",
+      "description": "Delete a file or directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo_root": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "repo_root",
+          "path",
+          "lease_id"
+        ]
+      }
+    },
+    {
       "name": "workspace.write_file",
       "description": "Write file content",
       "inputSchema": {
@@ -265,28 +323,6 @@
       }
     },
     {
-      "name": "agent.verify",
-      "description": "Validate a changeset's artifacts and post-execution state",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "repo_root": {
-            "type": "string"
-          },
-          "changeset_id": {
-            "type": "string"
-          },
-          "profile": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "repo_root",
-          "changeset_id"
-        ]
-      }
-    },
-    {
       "name": "xray.scan",
       "description": "Scan repository to build index",
       "inputSchema": {
@@ -296,42 +332,6 @@
             "type": "string"
           },
           "path": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "repo_root"
-        ]
-      }
-    },
-    {
-      "name": "run.logs",
-      "description": "Get run logs",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "run_id": {
-            "type": "string"
-          },
-          "offset": {
-            "type": "integer"
-          },
-          "limit": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "run_id"
-        ]
-      }
-    },
-    {
-      "name": "gov.drift",
-      "description": "Check for drift and violations",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "repo_root": {
             "type": "string"
           }
         },

@@ -411,6 +411,7 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
                 | // Consolidated OPC / monorepo trees (not spec authoring surface)
                 "apps"
                 | "crates"
+                | "factory"
                 | "grammars"
                 | "packages"
                 | "platform"

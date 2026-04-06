@@ -22,7 +22,7 @@ interface AuthParams {
 }
 
 export interface AuthData {
-  userId: string;
+  userID: string;
   orgId: string;
   orgSlug: string;
   githubLogin: string;
@@ -61,7 +61,7 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
     const claims = await validateJwt(token);
     if (claims) {
       return {
-        userId: claims.oap_user_id,
+        userID: claims.oap_user_id,
         orgId: claims.oap_org_id,
         orgSlug: claims.oap_org_slug,
         githubLogin: claims.github_login,
@@ -86,7 +86,7 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
       throw new Error("Session expired");
     }
     return {
-      userId: session.userId,
+      userID: session.userId,
       orgId: session.orgId,
       orgSlug: session.orgSlug,
       githubLogin: session.githubLogin,

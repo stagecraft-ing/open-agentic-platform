@@ -70,13 +70,14 @@ impl RunTools {
         let client_clone = self.client.clone();
         let run_id_clone = run_id.clone();
         let state_dir_str = self.state_dir.to_string_lossy().into_owned();
+        let rt_handle = tokio::runtime::Handle::current();
 
         thread::spawn(move || {
             let log_file = match File::create(&logs_path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("Failed to create log file: {}", e);
-                    let rt = tokio::runtime::Handle::current();
+                    let rt = rt_handle.clone();
                     rt.block_on(async {
                         let _ = client_clone
                             .execute(
@@ -121,8 +122,7 @@ impl RunTools {
                 Err(_) => ("fail".to_string(), 1i64),
             };
 
-            let rt = tokio::runtime::Handle::current();
-            rt.block_on(async {
+            rt_handle.block_on(async {
                 let _ = client_clone
                     .execute(
                         Cow::Borrowed(

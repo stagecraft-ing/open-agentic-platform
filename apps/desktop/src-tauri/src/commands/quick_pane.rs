@@ -140,11 +140,10 @@ fn get_centered_position_on_cursor_monitor(
 }
 
 fn position_on_cursor_monitor(app: &AppHandle) {
-    if let Some(position) = get_centered_position_on_cursor_monitor(app) {
-        if let Some(window) = app.get_webview_window(QUICK_PANE_LABEL) {
+    if let Some(position) = get_centered_position_on_cursor_monitor(app)
+        && let Some(window) = app.get_webview_window(QUICK_PANE_LABEL) {
             let _ = window.set_position(position);
         }
-    }
 }
 
 // ============================================================================
@@ -309,21 +308,19 @@ pub fn register_quick_pane_shortcut(app: &AppHandle, shortcut: &str) -> Result<(
         .map_err(|e| format!("Failed to lock shortcut mutex: {e}"))?;
 
     // Unregister the old shortcut first
-    if let Some(old_str) = current.take() {
-        if let Ok(old) = old_str.parse::<Shortcut>() {
+    if let Some(old_str) = current.take()
+        && let Ok(old) = old_str.parse::<Shortcut>() {
             let _ = global_shortcut.unregister(old);
         }
-    }
 
     let app_handle = app.clone();
     global_shortcut
         .on_shortcut(shortcut, move |_app, _shortcut, event| {
             use tauri_plugin_global_shortcut::ShortcutState;
-            if event.state == ShortcutState::Pressed {
-                if let Err(e) = toggle_quick_pane(app_handle.clone()) {
+            if event.state == ShortcutState::Pressed
+                && let Err(e) = toggle_quick_pane(app_handle.clone()) {
                     log::error!("Failed to toggle quick pane: {e}");
                 }
-            }
         })
         .map_err(|e| format!("Failed to register shortcut '{shortcut}': {e}"))?;
 

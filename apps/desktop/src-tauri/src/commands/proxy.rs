@@ -5,6 +5,7 @@ use tauri::State;
 use crate::commands::agents::AgentDb;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Default)]
 pub struct ProxySettings {
     pub http_proxy: Option<String>,
     pub https_proxy: Option<String>,
@@ -13,17 +14,6 @@ pub struct ProxySettings {
     pub enabled: bool,
 }
 
-impl Default for ProxySettings {
-    fn default() -> Self {
-        Self {
-            http_proxy: None,
-            https_proxy: None,
-            no_proxy: None,
-            all_proxy: None,
-            enabled: false,
-        }
-    }
-}
 
 /// Get proxy settings from the database
 #[tauri::command]
@@ -122,40 +112,36 @@ pub fn apply_proxy_settings(settings: &ProxySettings) {
 
     // Ensure NO_PROXY includes localhost by default
     let mut no_proxy_list = vec!["localhost", "127.0.0.1", "::1", "0.0.0.0"];
-    if let Some(user_no_proxy) = &settings.no_proxy {
-        if !user_no_proxy.is_empty() {
+    if let Some(user_no_proxy) = &settings.no_proxy
+        && !user_no_proxy.is_empty() {
             no_proxy_list.push(user_no_proxy.as_str());
         }
-    }
     let no_proxy_value = no_proxy_list.join(",");
 
     // SAFETY: No other threads read these env vars concurrently at this point.
     unsafe {
         // Set proxy environment variables (uppercase is standard)
-        if let Some(http_proxy) = &settings.http_proxy {
-            if !http_proxy.is_empty() {
+        if let Some(http_proxy) = &settings.http_proxy
+            && !http_proxy.is_empty() {
                 log::info!("Setting HTTP_PROXY={}", http_proxy);
                 std::env::set_var("HTTP_PROXY", http_proxy);
             }
-        }
 
-        if let Some(https_proxy) = &settings.https_proxy {
-            if !https_proxy.is_empty() {
+        if let Some(https_proxy) = &settings.https_proxy
+            && !https_proxy.is_empty() {
                 log::info!("Setting HTTPS_PROXY={}", https_proxy);
                 std::env::set_var("HTTPS_PROXY", https_proxy);
             }
-        }
 
         // Always set NO_PROXY to include localhost
         log::info!("Setting NO_PROXY={}", no_proxy_value);
         std::env::set_var("NO_PROXY", &no_proxy_value);
 
-        if let Some(all_proxy) = &settings.all_proxy {
-            if !all_proxy.is_empty() {
+        if let Some(all_proxy) = &settings.all_proxy
+            && !all_proxy.is_empty() {
                 log::info!("Setting ALL_PROXY={}", all_proxy);
                 std::env::set_var("ALL_PROXY", all_proxy);
             }
-        }
     }
 
     // Log current proxy environment variables for debugging

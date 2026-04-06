@@ -1039,7 +1039,7 @@ const FloatingPromptInputInner = (
                     transition={{ duration: 0.15 }}
                   >
                     <Button
-                      onClick={handleSend}
+                      onClick={() => handleSend('button')}
                       disabled={!prompt.trim() || disabled}
                       size="default"
                       className="min-w-[60px]"
@@ -1271,7 +1271,7 @@ const FloatingPromptInputInner = (
                       transition={{ duration: 0.15 }}
                     >
                       <Button
-                        onClick={isLoading ? onCancel : handleSend}
+                        onClick={isLoading ? onCancel : () => handleSend('button')}
                         disabled={isLoading ? false : (!prompt.trim() || disabled)}
                         variant={isLoading ? "destructive" : prompt.trim() ? "default" : "ghost"}
                         size="icon"

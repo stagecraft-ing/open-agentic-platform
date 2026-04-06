@@ -66,21 +66,17 @@ impl CheckpointManager {
         messages.push(jsonl_message.clone());
 
         // Parse message to check for tool usage
-        if let Ok(msg) = serde_json::from_str::<serde_json::Value>(&jsonl_message) {
-            if let Some(content) = msg.get("message").and_then(|m| m.get("content")) {
-                if let Some(content_array) = content.as_array() {
+        if let Ok(msg) = serde_json::from_str::<serde_json::Value>(&jsonl_message)
+            && let Some(content) = msg.get("message").and_then(|m| m.get("content"))
+                && let Some(content_array) = content.as_array() {
                     for item in content_array {
-                        if item.get("type").and_then(|t| t.as_str()) == Some("tool_use") {
-                            if let Some(tool_name) = item.get("name").and_then(|n| n.as_str()) {
-                                if let Some(input) = item.get("input") {
+                        if item.get("type").and_then(|t| t.as_str()) == Some("tool_use")
+                            && let Some(tool_name) = item.get("name").and_then(|n| n.as_str())
+                                && let Some(input) = item.get("input") {
                                     self.track_tool_operation(tool_name, input).await?;
                                 }
-                            }
-                        }
                     }
                 }
-            }
-        }
 
         Ok(())
     }
@@ -209,11 +205,10 @@ impl CheckpointManager {
                 let path = entry.path();
                 if path.is_dir() {
                     // Skip hidden directories like .git
-                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                        if name.starts_with('.') {
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                        && name.starts_with('.') {
                             continue;
                         }
-                    }
                     collect_files(&path, base, files)?;
                 } else if path.is_file() {
                     // Compute relative path from project root
@@ -314,22 +309,20 @@ impl CheckpointManager {
         for msg_str in messages.iter().rev() {
             if let Ok(msg) = serde_json::from_str::<serde_json::Value>(msg_str) {
                 // Check for user message
-                if msg.get("type").and_then(|t| t.as_str()) == Some("user") {
-                    if let Some(content) = msg
+                if msg.get("type").and_then(|t| t.as_str()) == Some("user")
+                    && let Some(content) = msg
                         .get("message")
                         .and_then(|m| m.get("content"))
                         .and_then(|c| c.as_array())
                     {
                         for item in content {
-                            if item.get("type").and_then(|t| t.as_str()) == Some("text") {
-                                if let Some(text) = item.get("text").and_then(|t| t.as_str()) {
+                            if item.get("type").and_then(|t| t.as_str()) == Some("text")
+                                && let Some(text) = item.get("text").and_then(|t| t.as_str()) {
                                     user_prompt = text.to_string();
                                     break;
                                 }
-                            }
                         }
                     }
-                }
 
                 // Extract model info
                 if let Some(model) = msg.get("model").and_then(|m| m.as_str()) {
@@ -337,16 +330,15 @@ impl CheckpointManager {
                 }
 
                 // Also check for model in message.model (assistant messages)
-                if let Some(message) = msg.get("message") {
-                    if let Some(model) = message.get("model").and_then(|m| m.as_str()) {
+                if let Some(message) = msg.get("message")
+                    && let Some(model) = message.get("model").and_then(|m| m.as_str()) {
                         model_used = model.to_string();
                     }
-                }
 
                 // Count tokens - check both top-level and nested usage
                 // First check for usage in message.usage (assistant messages)
-                if let Some(message) = msg.get("message") {
-                    if let Some(usage) = message.get("usage") {
+                if let Some(message) = msg.get("message")
+                    && let Some(usage) = message.get("usage") {
                         if let Some(input) = usage.get("input_tokens").and_then(|t| t.as_u64()) {
                             total_tokens += input;
                         }
@@ -367,7 +359,6 @@ impl CheckpointManager {
                             total_tokens += cache_read;
                         }
                     }
-                }
 
                 // Then check for top-level usage (result messages)
                 if let Some(usage) = msg.get("usage") {
@@ -466,11 +457,10 @@ impl CheckpointManager {
                 let path = entry.path();
                 if path.is_dir() {
                     // Skip hidden directories like .git
-                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                        if name.starts_with('.') {
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                        && name.starts_with('.') {
                             continue;
                         }
-                    }
                     collect_all_project_files(&path, base, files)?;
                 } else if path.is_file() {
                     // Compute relative path from project root

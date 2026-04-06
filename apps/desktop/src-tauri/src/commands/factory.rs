@@ -378,11 +378,10 @@ fn resolve_factory_root() -> Result<PathBuf, String> {
         PathBuf::from("factory"),
     ];
     for candidate in &candidates {
-        if let Ok(p) = candidate.canonicalize() {
-            if p.join("adapters").is_dir() {
+        if let Ok(p) = candidate.canonicalize()
+            && p.join("adapters").is_dir() {
                 return Ok(p);
             }
-        }
     }
     Err("factory/ directory not found. Ensure the repository contains a factory/ directory with adapters/".into())
 }
@@ -422,73 +421,74 @@ fn build_status_response(ctx: &FactoryRunContext) -> PipelineStatusResponse {
 
     // Build scaffolding info from pipeline state if in scaffolding phase.
     let scaffolding = pipeline_state.scaffolding.as_ref().map(|sp| {
-        let mut categories = Vec::new();
         // Entities
-        categories.push(CategoryInfo {
-            category: "data".into(),
-            total: sp.entities_completed.len() + sp.entities_failed.len(),
-            completed: sp.entities_completed.len(),
-            failed: sp.entities_failed.len(),
-            in_progress: 0,
-            steps: sp
-                .entities_failed
-                .iter()
-                .map(|f| StepInfo {
-                    id: f.step_id.clone(),
-                    category: "data".into(),
-                    feature_name: f.name.clone(),
-                    status: "failed".into(),
-                    retry_count: f.retries,
-                    max_retries: 3,
-                    last_error: Some(f.last_error.clone()),
-                    token_spend: 0,
-                })
-                .collect(),
-        });
-        // Operations
-        categories.push(CategoryInfo {
-            category: "api".into(),
-            total: sp.operations_completed.len() + sp.operations_failed.len(),
-            completed: sp.operations_completed.len(),
-            failed: sp.operations_failed.len(),
-            in_progress: 0,
-            steps: sp
-                .operations_failed
-                .iter()
-                .map(|f| StepInfo {
-                    id: f.step_id.clone(),
-                    category: "api".into(),
-                    feature_name: f.name.clone(),
-                    status: "failed".into(),
-                    retry_count: f.retries,
-                    max_retries: 3,
-                    last_error: Some(f.last_error.clone()),
-                    token_spend: 0,
-                })
-                .collect(),
-        });
-        // Pages
-        categories.push(CategoryInfo {
-            category: "ui".into(),
-            total: sp.pages_completed.len() + sp.pages_failed.len(),
-            completed: sp.pages_completed.len(),
-            failed: sp.pages_failed.len(),
-            in_progress: 0,
-            steps: sp
-                .pages_failed
-                .iter()
-                .map(|f| StepInfo {
-                    id: f.step_id.clone(),
-                    category: "ui".into(),
-                    feature_name: f.name.clone(),
-                    status: "failed".into(),
-                    retry_count: f.retries,
-                    max_retries: 3,
-                    last_error: Some(f.last_error.clone()),
-                    token_spend: 0,
-                })
-                .collect(),
-        });
+        let categories = vec![
+            CategoryInfo {
+                category: "data".into(),
+                total: sp.entities_completed.len() + sp.entities_failed.len(),
+                completed: sp.entities_completed.len(),
+                failed: sp.entities_failed.len(),
+                in_progress: 0,
+                steps: sp
+                    .entities_failed
+                    .iter()
+                    .map(|f| StepInfo {
+                        id: f.step_id.clone(),
+                        category: "data".into(),
+                        feature_name: f.name.clone(),
+                        status: "failed".into(),
+                        retry_count: f.retries,
+                        max_retries: 3,
+                        last_error: Some(f.last_error.clone()),
+                        token_spend: 0,
+                    })
+                    .collect(),
+            },
+            // Operations
+            CategoryInfo {
+                category: "api".into(),
+                total: sp.operations_completed.len() + sp.operations_failed.len(),
+                completed: sp.operations_completed.len(),
+                failed: sp.operations_failed.len(),
+                in_progress: 0,
+                steps: sp
+                    .operations_failed
+                    .iter()
+                    .map(|f| StepInfo {
+                        id: f.step_id.clone(),
+                        category: "api".into(),
+                        feature_name: f.name.clone(),
+                        status: "failed".into(),
+                        retry_count: f.retries,
+                        max_retries: 3,
+                        last_error: Some(f.last_error.clone()),
+                        token_spend: 0,
+                    })
+                    .collect(),
+            },
+            // Pages
+            CategoryInfo {
+                category: "ui".into(),
+                total: sp.pages_completed.len() + sp.pages_failed.len(),
+                completed: sp.pages_completed.len(),
+                failed: sp.pages_failed.len(),
+                in_progress: 0,
+                steps: sp
+                    .pages_failed
+                    .iter()
+                    .map(|f| StepInfo {
+                        id: f.step_id.clone(),
+                        category: "ui".into(),
+                        feature_name: f.name.clone(),
+                        status: "failed".into(),
+                        retry_count: f.retries,
+                        max_retries: 3,
+                        last_error: Some(f.last_error.clone()),
+                        token_spend: 0,
+                    })
+                    .collect(),
+            },
+        ];
         ScaffoldingInfo {
             categories,
             active_step_id: None,
@@ -984,11 +984,10 @@ pub async fn start_factory_pipeline(
                     }
                 })
                 .collect();
-            if !features.is_empty() {
-                if let Err(e) = sc.report_scaffold_progress(&pid, &plid, &features).await {
+            if !features.is_empty()
+                && let Err(e) = sc.report_scaffold_progress(&pid, &plid, &features).await {
                     log::warn!("Stagecraft scaffold-progress report failed: {e}");
                 }
-            }
 
             // Ingest step-level events for audit trail.
             sc_ingest_step_events(&sc, &pid, &plid, &summary2, "scaffold");

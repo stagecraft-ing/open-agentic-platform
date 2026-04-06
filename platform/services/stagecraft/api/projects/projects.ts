@@ -24,7 +24,7 @@ export type OrgRow = {
   id: string;
   name: string;
   slug: string;
-  createdBy: string;
+  createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -35,7 +35,7 @@ export type ProjectRow = {
   name: string;
   slug: string;
   description: string;
-  createdBy: string;
+  createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

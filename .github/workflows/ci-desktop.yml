@@ -37,6 +37,11 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri
 
+      - name: Create dist stub for web_server include_str!
+        run: |
+          mkdir -p apps/desktop/dist
+          echo '<!doctype html><html><body>stub</body></html>' > apps/desktop/dist/index.html
+
       - name: cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 
@@ -68,6 +73,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22

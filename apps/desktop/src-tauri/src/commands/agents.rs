@@ -261,8 +261,8 @@ impl AgentRunMetrics {
                 message_count += 1;
 
                 // Track timestamps
-                if let Some(timestamp_str) = json.get("timestamp").and_then(|t| t.as_str()) {
-                    if let Ok(timestamp) = chrono::DateTime::parse_from_rfc3339(timestamp_str) {
+                if let Some(timestamp_str) = json.get("timestamp").and_then(|t| t.as_str())
+                    && let Ok(timestamp) = chrono::DateTime::parse_from_rfc3339(timestamp_str) {
                         let utc_time = timestamp.with_timezone(&chrono::Utc);
                         if start_time.is_none() || utc_time < start_time.unwrap() {
                             start_time = Some(utc_time);
@@ -271,7 +271,6 @@ impl AgentRunMetrics {
                             end_time = Some(utc_time);
                         }
                     }
-                }
 
                 // Extract token usage - check both top-level and nested message.usage
                 let usage = json
@@ -600,6 +599,7 @@ pub async fn list_agents(db: State<'_, AgentDb>) -> Result<Vec<Agent>, String> {
 
 /// Create a new agent
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn create_agent(
     db: State<'_, AgentDb>,
     name: String,
@@ -655,6 +655,7 @@ pub async fn create_agent(
 
 /// Update an existing agent
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn update_agent(
     db: State<'_, AgentDb>,
     id: i64,
@@ -959,6 +960,7 @@ async fn check_agent_authorized(slug: &str) -> AgentAuthOutcome {
 
 /// Execute a CC agent with streaming output
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn execute_agent(
     app: AppHandle,
     agent_id: i64,
@@ -1124,6 +1126,7 @@ fn create_agent_system_command(
 }
 
 /// Spawn agent using system binary command
+#[allow(clippy::too_many_arguments)]
 async fn spawn_agent_system(
     app: AppHandle,
     run_id: i64,
@@ -1231,10 +1234,9 @@ async fn spawn_agent_system(
                 // Claude Code uses "session_id" (underscore), not "sessionId"
                 if json.get("type").and_then(|t| t.as_str()) == Some("system")
                     && json.get("subtype").and_then(|s| s.as_str()) == Some("init")
-                {
-                    if let Some(sid) = json.get("session_id").and_then(|s| s.as_str()) {
-                        if let Ok(mut current_session_id) = session_id_clone.lock() {
-                            if current_session_id.is_empty() {
+                    && let Some(sid) = json.get("session_id").and_then(|s| s.as_str())
+                        && let Ok(mut current_session_id) = session_id_clone.lock()
+                            && current_session_id.is_empty() {
                                 *current_session_id = sid.to_string();
                                 info!("🔑 Extracted session ID: {}", sid);
 
@@ -1258,9 +1260,6 @@ async fn spawn_agent_system(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
             }
 
             // Emit the line to the frontend with run_id for isolation
@@ -1998,16 +1997,15 @@ fn create_command_with_env(program: &str) -> Command {
     }
 
     // Add NVM support if the program is in an NVM directory
-    if program.contains("/.nvm/versions/node/") {
-        if let Some(node_bin_dir) = std::path::Path::new(program).parent() {
+    if program.contains("/.nvm/versions/node/")
+        && let Some(node_bin_dir) = std::path::Path::new(program).parent() {
             let current_path = std::env::var("PATH").unwrap_or_default();
             let node_bin_str = node_bin_dir.to_string_lossy();
-            if !current_path.contains(&node_bin_str.as_ref()) {
+            if !current_path.contains(node_bin_str.as_ref()) {
                 let new_path = format!("{}:{}", node_bin_str, current_path);
                 tokio_cmd.env("PATH", new_path);
             }
         }
-    }
 
     // Ensure PATH contains common Homebrew locations
     if let Ok(existing_path) = std::env::var("PATH") {
@@ -2309,11 +2307,10 @@ pub async fn load_agent_session_history(
         let mut messages = Vec::new();
 
         for line in reader.lines() {
-            if let Ok(line) = line {
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
+            if let Ok(line) = line
+                && let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
                     messages.push(json);
                 }
-            }
         }
 
         Ok(messages)
