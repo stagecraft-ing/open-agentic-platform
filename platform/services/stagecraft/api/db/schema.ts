@@ -14,14 +14,49 @@ import {
 export const roleEnum = pgEnum("role", ["user", "admin"]);
 export const sessionKindEnum = pgEnum("session_kind", ["user", "admin"]);
 
+// ---------------------------------------------------------------------------
+// GitHub Identity Onboarding enums (spec 080)
+// ---------------------------------------------------------------------------
+
+export const installationStateEnum = pgEnum("installation_state", [
+  "active",
+  "suspended",
+  "deleted",
+]);
+
+export const membershipSourceEnum = pgEnum("membership_source", [
+  "github",
+  "manual",
+  "rauthy",
+]);
+
+export const orgMembershipStatusEnum = pgEnum("org_membership_status", [
+  "active",
+  "suspended",
+  "removed",
+]);
+
+export const platformRoleEnum = pgEnum("platform_role", [
+  "owner",
+  "admin",
+  "member",
+]);
+
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),  // nullable: OAuth users have no password
   role: roleEnum("role").notNull().default("user"),
   disabled: boolean("disabled").notNull().default(false),
+  githubUserId: bigint("github_user_id", { mode: "number" }).unique(),
+  githubLogin: text("github_login"),
+  avatarUrl: text("avatar_url"),
+  rauthyUserId: text("rauthy_user_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
@@ -95,7 +130,10 @@ export const organizations = pgTable("organizations", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  createdBy: uuid("created_by").notNull(),
+  createdBy: uuid("created_by"),  // nullable: orgs auto-created from GitHub App install
+  githubOrgId: bigint("github_org_id", { mode: "number" }).unique(),
+  githubOrgLogin: text("github_org_login"),
+  githubInstallationId: bigint("github_installation_id", { mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -195,6 +233,85 @@ export const auditLog = pgTable("audit_log", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// GitHub App Installations (spec 080)
+// ---------------------------------------------------------------------------
+
+export const githubInstallations = pgTable("github_installations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  githubOrgId: bigint("github_org_id", { mode: "number" }).notNull().unique(),
+  githubOrgLogin: text("github_org_login").notNull(),
+  installationId: bigint("installation_id", { mode: "number" })
+    .notNull()
+    .unique(),
+  installationState: installationStateEnum("installation_state")
+    .notNull()
+    .default("active"),
+  allowedRepos: text("allowed_repos"),
+  orgId: uuid("org_id"),
+  installedBy: text("installed_by"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// User Identity Linkage (spec 080)
+// ---------------------------------------------------------------------------
+
+export const userIdentities = pgTable(
+  "user_identities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull(),
+    provider: text("provider").notNull().default("github"),
+    providerUserId: text("provider_user_id").notNull(),
+    providerLogin: text("provider_login").notNull(),
+    providerEmail: text("provider_email"),
+    avatarUrl: text("avatar_url"),
+    accessTokenEnc: text("access_token_enc"),
+    refreshTokenEnc: text("refresh_token_enc"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.provider, t.providerUserId)]
+);
+
+// ---------------------------------------------------------------------------
+// Org Membership Linkage (spec 080)
+// ---------------------------------------------------------------------------
+
+export const orgMemberships = pgTable(
+  "org_memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull(),
+    orgId: uuid("org_id").notNull(),
+    source: membershipSourceEnum("source").notNull().default("github"),
+    githubRole: text("github_role"),
+    platformRole: platformRoleEnum("platform_role").notNull().default("member"),
+    status: orgMembershipStatusEnum("status").notNull().default("active"),
+    syncedAt: timestamp("synced_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.orgId)]
+);
 
 // ---------------------------------------------------------------------------
 // Factory Pipeline Lifecycle (spec 077)

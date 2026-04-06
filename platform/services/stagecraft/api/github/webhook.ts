@@ -3,7 +3,14 @@ import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "../db/drizzle";
-import { projectRepos, organizations, projects, environments } from "../db/schema";
+import {
+  projectRepos,
+  organizations,
+  projects,
+  environments,
+  githubInstallations,
+  auditLog,
+} from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import {
   createPreviewDeployment,
@@ -90,40 +97,7 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
 
   switch (event) {
     case "installation":
-      if (p.action === "created") {
-        const installId: number = p.installation.id;
-        const account: string = p.installation.account.login;
-        log.info("GitHub App installed", {
-          installation_id: installId,
-          account,
-        });
-
-        // Persist installation_id to all repos in projectRepos that belong
-        // to this account and have no installation ID yet
-        if (Array.isArray(p.repositories)) {
-          for (const r of p.repositories as Array<{ name: string }>) {
-            await db
-              .update(projectRepos)
-              .set({ githubInstallId: installId })
-              .where(
-                and(
-                  eq(projectRepos.githubOrg, account),
-                  eq(projectRepos.repoName, r.name)
-                )
-              );
-          }
-        }
-      } else if (p.action === "deleted") {
-        log.info("GitHub App uninstalled", {
-          installation_id: p.installation.id,
-          account: p.installation.account.login,
-        });
-        // Clear installation IDs for all repos owned by this account
-        await db
-          .update(projectRepos)
-          .set({ githubInstallId: null })
-          .where(eq(projectRepos.githubOrg, p.installation.account.login));
-      }
+      await handleInstallationEvent(p);
       break;
 
     case "repository":
@@ -227,6 +201,190 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
 
     default:
       log.debug("Unhandled webhook event", { event });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FR-001: GitHub App Installation Handling (spec 080)
+// ---------------------------------------------------------------------------
+
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleInstallationEvent(p: any): Promise<void> {
+  const installId: number = p.installation.id;
+  const githubOrgId: number = p.installation.account.id;
+  const githubOrgLogin: string = p.installation.account.login;
+  const installedBy: string | undefined = p.sender?.login;
+
+  if (p.action === "created") {
+    log.info("GitHub App installed", {
+      installation_id: installId,
+      account: githubOrgLogin,
+    });
+
+    // Determine allowed repos
+    const allowedRepos = Array.isArray(p.repositories)
+      ? (p.repositories as Array<{ name: string }>).map((r) => r.name).join(",")
+      : "all";
+
+    // Create or link OAP org
+    let orgId: string;
+    const [existingOrg] = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.githubOrgId, githubOrgId))
+      .limit(1);
+
+    if (existingOrg) {
+      orgId = existingOrg.id;
+      await db
+        .update(organizations)
+        .set({
+          githubOrgLogin,
+          githubInstallationId: installId,
+          updatedAt: new Date(),
+        })
+        .where(eq(organizations.id, orgId));
+    } else {
+      const [created] = await db
+        .insert(organizations)
+        .values({
+          name: githubOrgLogin,
+          slug: githubOrgLogin.toLowerCase(),
+          githubOrgId,
+          githubOrgLogin,
+          githubInstallationId: installId,
+        })
+        .onConflictDoNothing()
+        .returning({ id: organizations.id });
+
+      if (created) {
+        orgId = created.id;
+      } else {
+        // Slug conflict — find by slug
+        const [bySlug] = await db
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.slug, githubOrgLogin.toLowerCase()))
+          .limit(1);
+        orgId = bySlug!.id;
+        await db
+          .update(organizations)
+          .set({
+            githubOrgId,
+            githubOrgLogin,
+            githubInstallationId: installId,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.id, orgId));
+      }
+    }
+
+    // Upsert github_installations row
+    await db
+      .insert(githubInstallations)
+      .values({
+        githubOrgId,
+        githubOrgLogin,
+        installationId: installId,
+        installationState: "active",
+        allowedRepos,
+        orgId,
+        installedBy,
+      })
+      .onConflictDoUpdate({
+        target: githubInstallations.installationId,
+        set: {
+          installationState: "active",
+          allowedRepos,
+          orgId,
+          installedBy,
+          updatedAt: new Date(),
+        },
+      });
+
+    // Also persist installation_id to matching repos (preserve existing behavior)
+    if (Array.isArray(p.repositories)) {
+      for (const r of p.repositories as Array<{ name: string }>) {
+        await db
+          .update(projectRepos)
+          .set({ githubInstallId: installId })
+          .where(
+            and(
+              eq(projectRepos.githubOrg, githubOrgLogin),
+              eq(projectRepos.repoName, r.name)
+            )
+          );
+      }
+    }
+
+    // Audit log
+    await db.insert(auditLog).values({
+      actorUserId: SYSTEM_USER_ID,
+      action: "org.github_app_installed",
+      targetType: "organization",
+      targetId: orgId,
+      metadata: {
+        installation_id: installId,
+        github_org_login: githubOrgLogin,
+        installed_by: installedBy,
+      },
+    });
+  } else if (p.action === "deleted") {
+    log.info("GitHub App uninstalled", {
+      installation_id: installId,
+      account: githubOrgLogin,
+    });
+
+    // Read org linkage BEFORE updating state
+    const [inst] = await db
+      .select({ orgId: githubInstallations.orgId })
+      .from(githubInstallations)
+      .where(eq(githubInstallations.installationId, installId))
+      .limit(1);
+
+    // Soft-transition: mark as deleted, don't remove data
+    await db
+      .update(githubInstallations)
+      .set({ installationState: "deleted", updatedAt: new Date() })
+      .where(eq(githubInstallations.installationId, installId));
+
+    // Clear installation IDs for all repos owned by this account
+    await db
+      .update(projectRepos)
+      .set({ githubInstallId: null })
+      .where(eq(projectRepos.githubOrg, githubOrgLogin));
+
+    // Audit log (only if we found the installation row)
+    if (inst?.orgId) {
+      await db.insert(auditLog).values({
+        actorUserId: SYSTEM_USER_ID,
+        action: "org.github_app_uninstalled",
+        targetType: "organization",
+        targetId: inst.orgId,
+        metadata: {
+          installation_id: installId,
+          github_org_login: githubOrgLogin,
+        },
+      });
+    } else {
+      log.warn("Uninstall webhook for unknown installation", {
+        installation_id: installId,
+      });
+    }
+  } else if (p.action === "suspend") {
+    log.info("GitHub App suspended", { installation_id: installId });
+    await db
+      .update(githubInstallations)
+      .set({ installationState: "suspended", updatedAt: new Date() })
+      .where(eq(githubInstallations.installationId, installId));
+  } else if (p.action === "unsuspend") {
+    log.info("GitHub App unsuspended", { installation_id: installId });
+    await db
+      .update(githubInstallations)
+      .set({ installationState: "active", updatedAt: new Date() })
+      .where(eq(githubInstallations.installationId, installId));
   }
 }
 
