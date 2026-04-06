@@ -444,6 +444,17 @@ export namespace factory {
         "storage_ref": string
     }
 
+    export interface CancelRequest {
+        reason: string
+        actorUserId: string
+    }
+
+    export interface CancelResponse {
+        "pipeline_id": string
+        "cancelled_at": string
+        "audit_entry_id": string
+    }
+
     export interface ConfirmRequest {
         notes?: string
         actorUserId: string
@@ -469,6 +480,15 @@ export namespace factory {
         status: string
     }
 
+    export interface EventIngestionRequest {
+        "pipeline_id": string
+        events: OrchestratorEvent[]
+    }
+
+    export interface EventIngestionResponse {
+        ingested: number
+    }
+
     export interface InitRequest {
         adapter: string
         "business_docs"?: BusinessDocRef[]
@@ -482,6 +502,13 @@ export namespace factory {
         "policy_bundle_id": string
         status: string
         "created_at": string
+    }
+
+    export interface OrchestratorEvent {
+        "event_type": string
+        "step_id"?: string
+        timestamp: string
+        payload?: { [key: string]: any }
     }
 
     export interface PolicyOverrides {
@@ -499,6 +526,28 @@ export namespace factory {
         "rejected_by": string
         "rejected_at": string
         feedback: string
+        "audit_entry_id": string
+    }
+
+    export interface ScaffoldFeatureReport {
+        "feature_id": string
+        category: "data" | "api" | "ui" | "configure" | "trim" | "validate"
+        status: "pending" | "in_progress" | "completed" | "failed"
+        "retry_count"?: number
+        "last_error"?: string
+        "files_created"?: string[]
+        "prompt_tokens"?: number
+        "completion_tokens"?: number
+    }
+
+    export interface ScaffoldProgressRequest {
+        "pipeline_id": string
+        features: ScaffoldFeatureReport[]
+        actorUserId: string
+    }
+
+    export interface ScaffoldProgressResponse {
+        upserted: number
         "audit_entry_id": string
     }
 
@@ -523,6 +572,21 @@ export namespace factory {
         "started_at": string | null
     }
 
+    export interface StatusUpdateRequest {
+        "pipeline_id": string
+        status: "running" | "paused" | "completed" | "failed"
+        "current_stage"?: string
+        error?: string
+        phase?: "process" | "scaffold"
+        actorUserId: string
+    }
+
+    export interface StatusUpdateResponse {
+        "pipeline_id": string
+        status: string
+        "audit_entry_id": string
+    }
+
     export interface TokenSpendRequest {
         "run_id": string
         "stage_id": string
@@ -536,13 +600,23 @@ export namespace factory {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.cancelPipeline = this.cancelPipeline.bind(this)
             this.confirmStage = this.confirmStage.bind(this)
             this.getAudit = this.getAudit.bind(this)
             this.getStatus = this.getStatus.bind(this)
+            this.ingestEvents = this.ingestEvents.bind(this)
             this.initPipeline = this.initPipeline.bind(this)
             this.rejectStage = this.rejectStage.bind(this)
+            this.reportScaffoldProgress = this.reportScaffoldProgress.bind(this)
             this.reportTokenSpend = this.reportTokenSpend.bind(this)
             this.triggerDeploy = this.triggerDeploy.bind(this)
+            this.updatePipelineStatus = this.updatePipelineStatus.bind(this)
+        }
+
+        public async cancelPipeline(id: string, params: CancelRequest): Promise<CancelResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/cancel`, JSON.stringify(params))
+            return await resp.json() as CancelResponse
         }
 
         public async confirmStage(id: string, stageId: string, params: ConfirmRequest): Promise<ConfirmResponse> {
@@ -569,6 +643,12 @@ export namespace factory {
             return await resp.json() as StatusResponse
         }
 
+        public async ingestEvents(id: string, params: EventIngestionRequest): Promise<EventIngestionResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/events`, JSON.stringify(params))
+            return await resp.json() as EventIngestionResponse
+        }
+
         public async initPipeline(id: string, params: InitRequest): Promise<InitResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/init`, JSON.stringify(params))
@@ -581,6 +661,12 @@ export namespace factory {
             return await resp.json() as RejectResponse
         }
 
+        public async reportScaffoldProgress(id: string, params: ScaffoldProgressRequest): Promise<ScaffoldProgressResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/scaffold-progress`, JSON.stringify(params))
+            return await resp.json() as ScaffoldProgressResponse
+        }
+
         public async reportTokenSpend(id: string, params: TokenSpendRequest): Promise<void> {
             await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/token-spend`, JSON.stringify(params))
         }
@@ -589,6 +675,12 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/deploy`, JSON.stringify(params))
             return await resp.json() as DeployResponse
+        }
+
+        public async updatePipelineStatus(id: string, params: StatusUpdateRequest): Promise<StatusUpdateResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/status-update`, JSON.stringify(params))
+            return await resp.json() as StatusUpdateResponse
         }
     }
 }
