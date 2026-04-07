@@ -233,18 +233,62 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Build and release with Tauri
+      # Detect whether Apple code signing secrets are configured.
+      # Secrets can't be used directly in step `if:` conditionals.
+      - name: Detect code signing
+        id: codesign
+        shell: bash
+        run: |
+          if [ -n "$CERT" ]; then
+            echo "apple=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apple=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::APPLE_CERTIFICATE not set — macOS build will be unsigned"
+          fi
+        env:
+          CERT: ${{ secrets.APPLE_CERTIFICATE }}
+
+      # Signed build — APPLE_CERTIFICATE env var MUST be completely absent
+      # (not empty) to prevent Tauri from calling `security import` with
+      # invalid data.
+      - name: Build and release with Tauri (signed)
+        if: steps.codesign.outputs.apple == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS code signing (optional — set these secrets to enable)
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Tauri updater signing (optional)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          tagName: ${{ steps.tag.outputs.tag }}
+          releaseName: 'OPC ${{ steps.tag.outputs.tag }}'
+          releaseBody: |
+            See the [changelog](https://github.com/stagecraft-ing/open-agentic-platform/commits/${{ steps.tag.outputs.tag }}) for details.
+
+            ## Downloads
+            | Platform | File |
+            |----------|------|
+            | macOS (Apple Silicon) | `.dmg` (aarch64) |
+            | Linux | `.AppImage`, `.deb`, `.rpm` |
+            | Windows | `.msi`, `.exe` (NSIS) |
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+          configPath: ${{ matrix.config }}
+
+      # Unsigned build — no Apple env vars in scope at all.
+      - name: Build and release with Tauri (unsigned)
+        if: steps.codesign.outputs.apple != 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
