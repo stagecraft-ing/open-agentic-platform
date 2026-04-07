@@ -38,9 +38,10 @@ Compute the HQL_NODES value: space-separated list of
 {{- $fullname := include "rauthy.fullname" . -}}
 {{- $nodes := list -}}
 {{- range $i, $_ := until $replicas -}}
-  {{- $nodes = append $nodes (printf "%s-%d.%s:8100" $fullname $i $headless) -}}
+  {{- $nodeId := add1 $i -}}
+  {{- $nodes = append $nodes (printf "%d %s-%d.%s:8100" $nodeId $fullname $i $headless) -}}
 {{- end -}}
-{{ join " " $nodes }}
+{{ join ", " $nodes }}
 {{- end -}}
 
 {{/*
