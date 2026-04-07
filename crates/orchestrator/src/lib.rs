@@ -845,24 +845,23 @@ pub async fn dispatch_manifest(
 
         // Verify input artifact integrity (082 FR-004).
         for input in &step.inputs {
-            if let Some((producer_id, file)) = split_input_ref(input) {
-                if let Some(producer_hashes) = completed_hashes.get(producer_id) {
-                    if let Some(expected_hash) = producer_hashes.get(file) {
-                        let input_path = artifact_base.output_artifact_path(run_id, producer_id, file);
-                        match ArtifactManager::verify_artifact(&input_path, expected_hash) {
-                            Ok(true) => {} // Hash matches
-                            Ok(false) => {
-                                statuses[idx] = StepStatus::Failure;
-                                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
-                                summary.write_to_disk(artifact_base)?;
-                                return Err(OrchestratorError::DependencyMissing {
-                                    step_id: step.id.clone(),
-                                    artifact_path: input_path,
-                                });
-                            }
-                            Err(_) => {} // File read error already caught by existence check above
-                        }
+            if let Some((producer_id, file)) = split_input_ref(input)
+                && let Some(producer_hashes) = completed_hashes.get(producer_id)
+                && let Some(expected_hash) = producer_hashes.get(file)
+            {
+                let input_path = artifact_base.output_artifact_path(run_id, producer_id, file);
+                match ArtifactManager::verify_artifact(&input_path, expected_hash) {
+                    Ok(true) => {} // Hash matches
+                    Ok(false) => {
+                        statuses[idx] = StepStatus::Failure;
+                        let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                        summary.write_to_disk(artifact_base)?;
+                        return Err(OrchestratorError::DependencyMissing {
+                            step_id: step.id.clone(),
+                            artifact_path: input_path,
+                        });
                     }
+                    Err(_) => {} // File read error already caught by existence check above
                 }
             }
         }
