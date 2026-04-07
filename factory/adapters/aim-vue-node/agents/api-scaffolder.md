@@ -23,17 +23,19 @@ You generate the backend code for ONE API operation in the AIM Vue+Node stack.
 
 ## You Produce
 
-For the FIRST operation of a resource, create 4 files:
+For the FIRST operation of a resource, create 4 files AND update modules.ts:
 - `{service_path}` — service with the operation's business logic
 - `{controller_path}` — controller class with the HTTP handler method
 - `{route_path}` — Express router + route plugin file
 - `{test_path}` — Vitest test for the service method
+- `modules.ts` — import the route plugin and call it inside `registerAllModules()`
 
 For SUBSEQUENT operations on the same resource, ADD to existing files:
 - Add a method to the existing service
 - Add a method to the existing controller
 - Add a route to the existing router
 - Add a describe block to the existing test
+- (modules.ts already has this resource's plugin registered from the first operation)
 
 ## Dual-Stack Rule
 
@@ -55,4 +57,5 @@ Getting this wrong is the most common dual-stack bug.
 7. Every mutation (create, update, delete, transition) must write an audit entry
 8. Use `buildErrorResponse(req, {...})` for all error responses
 9. Use `buildPaginatedResponse()` for list endpoints
-10. Do NOT modify files outside this resource's scope
+10. Do NOT modify files outside this resource's scope (except modules.ts for route registration)
+11. **Route registration is mandatory.** Every route plugin MUST be imported and called in `modules.ts` inside `registerAllModules()`. A plugin file that exists but is not registered is a build-breaking defect — the endpoint will 404 at runtime.

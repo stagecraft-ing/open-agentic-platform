@@ -27,6 +27,7 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] Every mutation route has `requireUserContext`
 - [ ] api-public services never import pool/getPool
 - [ ] api-internal services never import proxyRequest
+- [ ] Every `*.routes.plugin.ts` file has a matching import and call in the stack's `modules.ts` `registerAllModules()`
 
 ### UI Layer
 - [ ] Every Vue file uses `<script setup lang="ts">`

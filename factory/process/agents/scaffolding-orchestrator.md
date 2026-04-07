@@ -36,6 +36,15 @@ After completion:
 - Run `adapter.commands.compile`
 - Update pipeline state: mark each entity completed
 
+### Phase B.5: Cross-Validate Build Spec
+
+Before scaffolding begins, validate the Build Spec for inter-section consistency:
+
+1. **data_sources → operations**: Walk every `ui.pages[].data_sources[].operation_id`. Each must resolve to an entry in `api.resources[].operations[].id`. If any operation_id is missing, HALT and report.
+2. **stack vs audience**: For each operation referenced by a citizen/public page, verify the operation has `stack: both` or `stack: public`. If an operation has `stack: internal` but is referenced by a public page, HALT and report — the public BFF will not have this endpoint.
+
+These checks catch spec drift between the API architect (stage 4) and UI architect (stage 5). Halting here prevents generating a frontend that calls non-existent backend endpoints.
+
 ### Phase C: API Scaffolding (per operation)
 
 For each resource in `build_spec.api.resources`, for each operation:

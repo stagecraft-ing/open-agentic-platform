@@ -38,12 +38,27 @@ Create `.env.internal.example` (internal stack) with auth provider placeholders.
 
 ### 2b. Configure Docker Compose Networking
 
-In `docker-compose.yml`, each web service needs **two** API URL environment variables:
+In `docker-compose.yml`, each **web** service needs **two** API URL environment variables:
 
 | Variable | Purpose | Value |
 |---|---|---|
 | `VITE_API_URL` | Client-side (browser on host machine) | `http://localhost:{port_api}/api/v1` |
 | `API_URL` | Vite dev-server proxy (container-to-container) | `http://{api_service_name}:{internal_port}` |
+
+Each **API** service needs a `WEB_URL` environment variable for auth callback redirects:
+
+| Service | Variable | Value |
+|---|---|---|
+| api-public | `WEB_URL` | `http://localhost:{port_web_public}` |
+| api-internal | `WEB_URL` | `http://localhost:{port_web_internal}` |
+
+The auth controller uses `process.env.WEB_URL` to redirect after login/callback. Without it, the fallback hardcodes port 5173, which breaks the internal portal on a different port. `WEB_URL` must use the **host-accessible** URL (not the Docker service name) because the browser follows the redirect.
+
+For dual stack with a public BFF that proxies to internal, add to the api-public service:
+
+| Service | Variable | Value |
+|---|---|---|
+| api-public | `INTERNAL_API_URL` | `http://api-internal:{internal_port}` |
 
 The Vite config reads `API_URL` to set the proxy target. Inside Docker, `localhost` resolves to the web container itself — **not** the API container. `API_URL` must use the Docker Compose service name (e.g. `api-public`, `api-internal`) which Docker DNS resolves to the correct container on the shared network.
 
