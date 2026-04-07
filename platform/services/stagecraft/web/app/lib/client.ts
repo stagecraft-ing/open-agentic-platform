@@ -100,6 +100,13 @@ export interface ClientOptions {
 
     /** Default RequestInit to be used for the client */
     requestInit?: Omit<RequestInit, "headers"> & { headers?: Record<string, string> }
+
+    /**
+     * Allows you to set the authentication data to be used for each
+     * request either by passing in a static object or by passing in
+     * a function which returns a new object for each request.
+     */
+    auth?: auth.AuthParams | AuthDataGenerator
 }
 
 export namespace admin {
@@ -270,7 +277,7 @@ export namespace audit {
 
         /**
          * Seam B: Ingest audit records from OPC axiomregent.
-         * POST /api/audit-records — M2M bearer token auth.
+         * POST /api/audit-records — M2M bearer token auth (OIDC JWT or static fallback).
          */
         public async ingestAuditRecord(params: IngestAuditRequest): Promise<IngestAuditResponse> {
             // Convert our params into the objects we need for the request
@@ -294,6 +301,11 @@ export namespace audit {
 }
 
 export namespace auth {
+    export interface AuthParams {
+        authorization: string
+        cookie: string
+    }
+
     export interface AuthSigninResponse {
         ok: boolean
         setCookie?: string
@@ -342,6 +354,9 @@ export namespace auth {
             this.adminSession = this.adminSession.bind(this)
             this.adminSignin = this.adminSignin.bind(this)
             this.adminSignout = this.adminSignout.bind(this)
+            this.githubCallback = this.githubCallback.bind(this)
+            this.githubLogin = this.githubLogin.bind(this)
+            this.orgSelectComplete = this.orgSelectComplete.bind(this)
             this.session = this.session.bind(this)
             this.signin = this.signin.bind(this)
             this.signout = this.signout.bind(this)
@@ -366,6 +381,18 @@ export namespace auth {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/admin/auth/signout`)
             return await resp.json() as AuthSignoutResponse
+        }
+
+        public async githubCallback(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/auth/github/callback`, body, options)
+        }
+
+        public async githubLogin(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/auth/github`, body, options)
+        }
+
+        public async orgSelectComplete(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/auth/org-select/complete`, body, options)
         }
 
         public async session(params: {
@@ -725,6 +752,10 @@ export namespace github {
 }
 
 export namespace grants {
+    export interface GrantsRequest {
+        authorization: string
+    }
+
     export interface GrantsResponse {
         "enable_file_read": boolean
         "enable_file_write": boolean
@@ -742,13 +773,18 @@ export namespace grants {
 
         /**
          * Seam C: Serve workspace-scoped permission grants to OPC desktop app.
-         * GET /api/grants/:userId/:workspaceId
+         * GET /api/grants/:userId/:workspaceId — M2M bearer token auth (OIDC JWT or static fallback).
          * 
          * Returns the grant row if found, otherwise returns sensible defaults (read-only, tier 1).
          */
-        public async getGrants(userId: string, workspaceId: string): Promise<GrantsResponse> {
+        public async getGrants(userId: string, workspaceId: string, params: GrantsRequest): Promise<GrantsResponse> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                authorization: params.authorization,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI("GET", `/api/grants/${encodeURIComponent(userId)}/${encodeURIComponent(workspaceId)}`)
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/grants/${encodeURIComponent(userId)}/${encodeURIComponent(workspaceId)}`, undefined, {headers})
             return await resp.json() as GrantsResponse
         }
     }
@@ -825,6 +861,10 @@ export namespace monitor {
 }
 
 export namespace policy {
+    export interface PolicyBundleRequest {
+        authorization: string
+    }
+
     export interface PolicyBundleResponse {
         constitution: any[]
         shards: { [key: string]: any[] }
@@ -840,11 +880,16 @@ export namespace policy {
 
         /**
          * Seam A: Serve compiled policy bundles to OPC axiomregent.
-         * GET /api/policy-bundle/:workspaceId
+         * GET /api/policy-bundle/:workspaceId — M2M bearer token auth (OIDC JWT or static fallback).
          */
-        public async getPolicyBundle(workspaceId: string): Promise<PolicyBundleResponse> {
+        public async getPolicyBundle(workspaceId: string, params: PolicyBundleRequest): Promise<PolicyBundleResponse> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                authorization: params.authorization,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI("GET", `/api/policy-bundle/${encodeURIComponent(workspaceId)}`)
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/policy-bundle/${encodeURIComponent(workspaceId)}`, undefined, {headers})
             return await resp.json() as PolicyBundleResponse
         }
     }
@@ -899,7 +944,7 @@ export namespace projects {
         id: string
         name: string
         slug: string
-        createdBy: string
+        createdBy: string | null
         createdAt: string
         updatedAt: string
     }
@@ -910,7 +955,7 @@ export namespace projects {
         name: string
         slug: string
         description: string
-        createdBy: string
+        createdBy: string | null
         createdAt: string
         updatedAt: string
     }
@@ -1434,6 +1479,11 @@ type CallParameters = Omit<RequestInit, "method" | "body" | "headers"> & {
     query?: Record<string, string | string[]>
 }
 
+// AuthDataGenerator is a function that returns a new instance of the authentication data required by this API
+export type AuthDataGenerator = () =>
+  | auth.AuthParams
+  | Promise<auth.AuthParams | undefined>
+  | undefined;
 
 // A fetcher is the prototype for the inbuilt Fetch function
 export type Fetcher = typeof fetch;
@@ -1445,6 +1495,7 @@ class BaseClient {
     readonly fetcher: Fetcher
     readonly headers: Record<string, string>
     readonly requestInit: Omit<RequestInit, "headers"> & { headers?: Record<string, string> }
+    readonly authGenerator?: AuthDataGenerator
 
     constructor(baseURL: string, options: ClientOptions) {
         this.baseURL = baseURL
@@ -1464,9 +1515,42 @@ class BaseClient {
         } else {
             this.fetcher = boundFetch
         }
+
+        // Setup an authentication data generator using the auth data token option
+        if (options.auth !== undefined) {
+            const auth = options.auth
+            if (typeof auth === "function") {
+                this.authGenerator = auth
+            } else {
+                this.authGenerator = () => auth
+            }
+        }
     }
 
     async getAuthData(): Promise<CallParameters | undefined> {
+        let authData: auth.AuthParams | undefined;
+
+        // If authorization data generator is present, call it and add the returned data to the request
+        if (this.authGenerator) {
+            const mayBePromise = this.authGenerator();
+            if (mayBePromise instanceof Promise) {
+                authData = await mayBePromise;
+            } else {
+                authData = mayBePromise;
+            }
+        }
+
+        if (authData) {
+            const data: CallParameters = {};
+
+            data.headers = makeRecord<string, string>({
+                authorization: authData.authorization,
+                cookie:        authData.cookie,
+            });
+
+            return data;
+        }
+
         return undefined;
     }
 

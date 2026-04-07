@@ -116,10 +116,8 @@ destroy-do:
 .PHONY: deploy-hetzner destroy-hetzner bootstrap-hetzner
 
 bootstrap-hetzner:
-	@echo "==> Creating Hetzner K3s cluster..."
-	hetzner-k3s create --config $(HETZNER_ROOT)/cluster.yaml
-	@echo "==> Running post-create bootstrap..."
-	$(HETZNER_ROOT)/post-create.sh
+	@echo "==> Running Hetzner setup..."
+	$(HETZNER_ROOT)/setup.sh
 
 deploy-hetzner:
 	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install rauthy $(CHARTS_ROOT)/rauthy \
