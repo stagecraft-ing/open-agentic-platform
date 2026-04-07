@@ -36,6 +36,8 @@ vi.mock("next-auth", () => ({
   })),
 }));
 
+import { createSample{Entity} } from "@/lib/fixtures";
+
 describe("{Resource} API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,7 +45,7 @@ describe("{Resource} API", () => {
 
   describe("GET /api/{resource}", () => {
     it("returns list of {items}", async () => {
-      const mockItems = [{ id: "1", {field}: "test" }];
+      const mockItems = [createSample{Entity}()];
       vi.mocked(prisma.{entity}.findMany).mockResolvedValue(mockItems);
 
       const response = await GET();
@@ -95,3 +97,4 @@ describe("{Resource} API", () => {
 4. Test both success and validation-failure paths.
 5. Use `vi.clearAllMocks()` in `beforeEach` to prevent test pollution.
 6. Test auth by mocking `getServerSession` to return `null` for unauthorized tests.
+7. **Import sample data from fixture module.** Use `createSample{Entity}()` from `@/lib/fixtures`. Override fields per test with `createSample{Entity}({ field: 'value' })`.

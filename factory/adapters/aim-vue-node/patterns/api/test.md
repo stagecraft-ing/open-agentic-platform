@@ -16,8 +16,10 @@ vi.mock('../db.js', () => ({ pool: { query: mockQuery } }))
 
 import { {entity}Service } from './{entity}.service.js'
 
+import { createSample{Entity} } from '@shared/fixtures/index.js'
+
 const ctx = { userId: 'user-1', email: 'test@example.com', roles: ['admin'], organizationId: null }
-const sample{Entity} = { {entity}_id: '{entity}-1', /* fields */ created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+const sample{Entity} = createSample{Entity}()
 
 describe('{entity}Service.findById', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -68,12 +70,10 @@ const { mockQuery } = vi.hoisted(() => ({ mockQuery: vi.fn() }))
 vi.mock('../db.js', () => ({ pool: { query: mockQuery } }))
 import { organizationService } from './organization.service.js'
 
+import { createSampleOrganization } from '@shared/fixtures/index.js'
+
 const ctx = { userId: 'user-1', email: 'a@b.com', roles: ['applicant'], organizationId: null }
-const sampleOrg = {
-  organization_id: 'org-1', organization_name: 'Test Shelter Society',
-  legal_entity_type: 'Registered Society', year_established: 2010,
-  registration_number: 'RS-12345', created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-}
+const sampleOrg = createSampleOrganization()
 
 describe('organizationService.findById', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -115,5 +115,5 @@ describe('organizationService.create', () => {
 6. **Mock shape: `{ rows: [...] }`.** Matches `pg` QueryResult.
 7. **Assert SQL with stringContaining.** Never match full SQL literally.
 8. **Assert audit writes.** Verify `mockQuery` called N+1 times; last call contains `'audit_entry'`.
-9. **Shared sample data at module scope.** `sampleEntity` and `ctx` reused across tests.
+9. **Import sample data from fixture module.** Use `createSample{Entity}()` from `@shared/fixtures/index.js`. Override fields per test with `createSample{Entity}({ field: 'value' })`.
 10. **Unit tests only.** No database; integration tests live separately.

@@ -286,6 +286,35 @@ scaffolding_gates:
         - "adapter.directory_conventions.ui_view (resolved)"
         - "adapter.directory_conventions.ui_test (resolved)"
 
+  # After seed/fixture generation (6b-seed sub-step)
+  per_data_seed:
+    - id: "SF-SEED-001"
+      name: "Seed file exists"
+      type: file-check
+      description: "Reference data seed file exists per adapter conventions"
+      files:
+        - "adapter.directory_conventions.seed (resolved for 'reference-data')"
+
+    - id: "SF-SEED-002"
+      name: "Fixture file exists"
+      type: file-check
+      description: "Development fixture file exists"
+      files:
+        - "adapter.directory_conventions.seed (resolved for 'dev-fixtures')"
+
+    - id: "SF-SEED-003"
+      name: "Fixture module exists"
+      type: file-check
+      description: "Shared test fixture factory module exists"
+      files:
+        - "adapter.directory_conventions.fixture_module"
+
+    - id: "SF-SEED-004"
+      name: "Seed SQL is valid"
+      type: command
+      command: "adapter.commands.seed"
+      description: "Seed SQL executes without errors against the migrated schema"
+
   # Retry policy
   retry:
     max_retries: 3                  # Per feature
@@ -329,6 +358,16 @@ final_validation:
       pattern: "\\{\\{[A-Z_]+\\}\\}"
       scope: "."
       exclude: ["*.example", "*.schema.*", ".factory/"]
+
+    - id: "FV-P-006"
+      name: "Reference entities have seed data"
+      description: "Every entity with hydration.type=reference has INSERT entries in seed file"
+      type: cross-reference
+
+    - id: "FV-P-007"
+      name: "State machine fixture coverage"
+      description: "Every entity with a state-machine business rule has fixtures covering all states"
+      type: cross-reference
 
   # Adapter-owned checks (build, test, lint, invariants)
   adapter_checks:

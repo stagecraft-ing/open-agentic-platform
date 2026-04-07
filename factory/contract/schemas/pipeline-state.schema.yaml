@@ -90,6 +90,17 @@ scaffolding:
         error: string
         retries: integer
 
+  seed:
+    status:
+      enum: [pending, in_progress, completed, failed, skipped]
+    files_created: [string]         # Paths of generated seed/fixture/module files
+    reference_entities_seeded: [string]
+    fixture_entities_generated: [string]
+    fixture_profiles_generated:
+      - entity: string
+        profiles: [string]          # Profile names
+    verified_at: datetime
+
   api:
     status:
       enum: [pending, in_progress, completed, failed]

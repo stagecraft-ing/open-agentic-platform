@@ -42,6 +42,34 @@ For each entity in `build_spec.data_model.entities`:
 
 Update pipeline state: mark each entity as completed.
 
+### 6b-seed. Seed & Fixture Generation
+
+After all entity DDL and types are scaffolded:
+
+1. Invoke adapter's `seed_generator` agent with:
+   - Full `data_model` from Build Spec (all entities — needed for FK resolution)
+   - `business_rules` from Build Spec (for state machine profile generation)
+   - `auth` section from Build Spec (for mock user alignment)
+   - The adapter's `patterns.data.seed` pattern file
+   - The adapter's `patterns.data.fixture_factory` pattern file
+   - The adapter's directory conventions
+   - Generated type file paths (from 6b pipeline state)
+2. Agent generates:
+   - `database/seeds/reference-data.sql`
+   - `database/seeds/dev-fixtures.sql`
+   - `scripts/run-seeds.js`
+   - `packages/shared/src/fixtures/index.ts`
+3. Verification harness runs `per_data_seed` checks:
+   - SF-SEED-001: Seed file exists
+   - SF-SEED-002: Fixture file exists
+   - SF-SEED-003: Fixture module exists
+   - SF-SEED-004: Seed SQL executes against migrated schema
+
+If `seed_generator` agent is not declared in the adapter manifest, skip this step
+and mark `scaffolding.seed.status = "skipped"` in pipeline state.
+
+Update pipeline state: record files created, entities seeded, profiles generated.
+
 ### 6c. API Scaffolding
 
 For each operation in `build_spec.api.resources[].operations`:

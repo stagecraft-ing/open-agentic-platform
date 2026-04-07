@@ -70,6 +70,7 @@ commands:
   dev: "npx next dev"
   format_check: "npx prettier --check ."
   type_check: "npx tsc --noEmit"
+  seed: "npx prisma db seed"
   feature_verify:
     - "npx tsc --noEmit"
     - "npx vitest run"
@@ -96,6 +97,7 @@ directory_conventions:
   migration: "prisma/migrations/{timestamp}_{name}/migration.sql"
   seed: "prisma/seed.ts"
   schema_types: "src/lib/types/{entity}.ts"
+  fixture_module: "src/lib/fixtures/index.ts"
 
   # Config
   env_file: ".env"
@@ -116,6 +118,7 @@ patterns:
     migration: "patterns/data/migration.md"
     query: "patterns/data/query.md"
     seed: "patterns/data/seed.md"
+    fixture_factory: "patterns/data/fixture-factory.md"
   page_types:
     landing: "patterns/page-types/landing.md"
     dashboard: "patterns/page-types/dashboard.md"
@@ -130,6 +133,7 @@ agents:
   api_scaffolder: "agents/api-scaffolder.md"
   ui_scaffolder: "agents/ui-scaffolder.md"
   data_scaffolder: "agents/data-scaffolder.md"
+  seed_generator: "agents/seed-generator.md"
   configurer: "agents/configurer.md"
   trimmer: "agents/trimmer.md"
 

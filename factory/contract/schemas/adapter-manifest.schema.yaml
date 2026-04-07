@@ -117,6 +117,9 @@ commands:
   format_check: string              # e.g., "npx prettier --check .", "cargo fmt --check"
   type_check: string                # e.g., "npx tsc --noEmit", "mypy .", "cargo check"
 
+  # Seed / fixture runner
+  seed: string                      # e.g., "node scripts/run-seeds.js", "npx prisma db seed"
+
   # Per-feature verification (run after each scaffolded feature)
   # Subset of above — only fast checks, not full build
   feature_verify:
@@ -160,6 +163,7 @@ directory_conventions:
   migration: string                 # e.g., "database/migrations/{timestamp}_{name}.sql"
   seed: string                      # e.g., "database/seeds/{name}.sql"
   schema_types: string              # e.g., "packages/shared/src/schemas/{entity}.schema.ts"
+  fixture_module: string            # e.g., "packages/shared/src/fixtures/index.ts"
 
   # Shared
   env_file: string                  # e.g., ".env.example"
@@ -197,6 +201,7 @@ patterns:
     query: string
     seed: string
     validation_schema: string
+    fixture_factory: string         # e.g., "patterns/data/fixture-factory.md"
 
   # Page-type specific patterns (keyed by page_type from Build Spec)
   page_types:
@@ -226,6 +231,7 @@ agents:
   trimmer: string                   # Removes unused scaffold artifacts
 
   # Optional agents
+  seed_generator: string            # Generates seed SQL, fixture SQL, fixture factory module
   reviewer: string                  # Reviews generated code for quality/consistency
   security_auditor: string          # Checks for security issues
 

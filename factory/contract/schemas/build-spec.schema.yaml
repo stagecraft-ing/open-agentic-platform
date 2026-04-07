@@ -140,6 +140,18 @@ data_model:
       # Business rules that govern this entity
       business_rules: [string]      # References to rules in business_rules section (e.g., "BR-007")
 
+      # Hydration hints for seed/fixture generation (spec 081)
+      hydration:
+        type:
+          enum: [reference, transactional, junction]
+        seed_count: integer           # Rows for reference seed (0 = derive from enum_values)
+        fixture_count: integer        # Dev fixture rows (default: 3)
+        fixture_profiles:
+          - name: string              # e.g., "draft-request"
+            description: string       # e.g., "A funding request in draft status"
+            field_overrides:
+              <field_name>: any       # e.g., status: "draft"
+
   # Relationships that don't fit as simple references
   # (e.g., many-to-many junction tables, polymorphic associations)
   relationships:

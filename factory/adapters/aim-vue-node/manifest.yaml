@@ -79,6 +79,7 @@ commands:
   dev: "npm run dev"
   format_check: "npx prettier --check ."
   type_check: "npx tsc --noEmit"
+  seed: "node scripts/run-seeds.js"
   feature_verify:
     - "npm run build"
     - "npm test"
@@ -98,6 +99,7 @@ directory_conventions:
   migration: "database/migrations/{timestamp}_{name}.sql"
   seed: "database/seeds/{name}.sql"
   schema_types: "packages/shared/src/schemas/{entity}.schema.ts"
+  fixture_module: "packages/shared/src/fixtures/index.ts"
   env_file: ".env.example"
   env_file_per_stack:
     public: ".env.external.example"
@@ -122,6 +124,7 @@ patterns:
     migration: "patterns/data/migration.md"
     query: "patterns/data/query.md"
     seed: "patterns/data/seed.md"
+    fixture_factory: "patterns/data/fixture-factory.md"
     validation_schema: "patterns/data/validation-schema.md"
   page_types:
     landing: "patterns/page-types/landing.md"
@@ -138,6 +141,7 @@ agents:
   api_scaffolder: "agents/api-scaffolder.md"
   ui_scaffolder: "agents/ui-scaffolder.md"
   data_scaffolder: "agents/data-scaffolder.md"
+  seed_generator: "agents/seed-generator.md"
   configurer: "agents/configurer.md"
   trimmer: "agents/trimmer.md"
   reviewer: "agents/reviewer.md"

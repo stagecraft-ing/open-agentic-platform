@@ -45,6 +45,18 @@ Before scaffolding begins, validate the Build Spec for inter-section consistency
 
 These checks catch spec drift between the API architect (stage 4) and UI architect (stage 5). Halting here prevents generating a frontend that calls non-existent backend endpoints.
 
+### Phase B-seed: Seed & Fixture Generation
+
+If adapter declares a `seed_generator` agent:
+
+1. Load agent prompt from `adapter.agents.seed_generator`
+2. Load patterns: `adapter.patterns.data.seed`, `adapter.patterns.data.fixture_factory`
+3. Pass to agent: full `data_model`, `business_rules`, `auth`, directory conventions, data scaffolding file list from Phase B
+4. Verify: run `per_data_seed` checks (SF-SEED-001 through SF-SEED-004)
+5. Update pipeline state: `scaffolding.seed` with files created, entities seeded, profiles generated
+
+If adapter does not declare `seed_generator`, mark `scaffolding.seed.status = "skipped"`.
+
 ### Phase C: API Scaffolding (per operation)
 
 For each resource in `build_spec.api.resources`, for each operation:
