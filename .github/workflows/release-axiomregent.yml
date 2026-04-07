@@ -28,9 +28,7 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -60,7 +58,7 @@ jobs:
           EXT=""
           if [ "${{ matrix.target }}" = "x86_64-pc-windows-msvc" ]; then EXT=".exe"; fi
           mkdir -p dist
-          cp "crates/axiomregent/target/${{ matrix.target }}/release/axiomregent${EXT}" \
+          cp "crates/target/${{ matrix.target }}/release/axiomregent${EXT}" \
              "dist/axiomregent-${{ matrix.target }}${EXT}"
           if [ "${{ runner.os }}" != "Windows" ]; then
             strip "dist/axiomregent-${{ matrix.target }}${EXT}" || true
@@ -120,15 +118,15 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           PKG_CONFIG_ALLOW_CROSS: '1'
-          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
-          OPENSSL_LIB_DIR: /usr/lib/aarch64-linux-gnu
-          OPENSSL_INCLUDE_DIR: /usr/include
+          PKG_CONFIG_PATH_aarch64_unknown_linux_gnu: /usr/lib/aarch64-linux-gnu/pkgconfig
+          AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR: /usr/lib/aarch64-linux-gnu
+          AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR: /usr/include
         run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/axiomregent/Cargo.toml
 
       - name: Stage binary
         run: |
           mkdir -p dist
-          cp crates/axiomregent/target/aarch64-unknown-linux-gnu/release/axiomregent \
+          cp crates/target/aarch64-unknown-linux-gnu/release/axiomregent \
              dist/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload artifact
@@ -184,7 +182,6 @@ jobs:
           | Platform | Binary |
           |----------|--------|
           | macOS (Apple Silicon) | \`axiomregent-aarch64-apple-darwin\` |
-          | macOS (Intel) | \`axiomregent-x86_64-apple-darwin\` |
           | Linux (x86_64) | \`axiomregent-x86_64-unknown-linux-gnu\` |
           | Linux (ARM64) | \`axiomregent-aarch64-unknown-linux-gnu\` |
           | Windows (x86_64) | \`axiomregent-x86_64-pc-windows-msvc.exe\` |

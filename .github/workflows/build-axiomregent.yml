@@ -30,10 +30,7 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: axiomregent-aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            binary: axiomregent-x86_64-apple-darwin
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             binary: axiomregent-x86_64-unknown-linux-gnu
           - os: windows-latest
@@ -60,14 +57,14 @@ jobs:
       - name: Copy binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          cp crates/axiomregent/target/${{ matrix.target }}/release/axiomregent apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          cp crates/target/${{ matrix.target }}/release/axiomregent apps/desktop/src-tauri/binaries/${{ matrix.binary }}
           strip apps/desktop/src-tauri/binaries/${{ matrix.binary }} || true
           ls -lh apps/desktop/src-tauri/binaries/${{ matrix.binary }}
 
       - name: Copy binary (Windows)
         if: runner.os == 'Windows'
         run: |
-          copy crates\axiomregent\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\${{ matrix.binary }}
+          copy crates\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\${{ matrix.binary }}
           dir apps\desktop\src-tauri\binaries\${{ matrix.binary }}
         shell: cmd
 
@@ -86,7 +83,7 @@ jobs:
 
   # aarch64-linux requires cross-compilation (no native GitHub runner)
   build-linux-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: aarch64-unknown-linux-gnu
 
     steps:
@@ -100,20 +97,43 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Install cross-compilation tools
+      - name: Install cross-compilation tools and OpenSSL
         run: |
+          sudo dpkg --add-architecture arm64
+
+          # Wipe all existing source definitions (traditional + DEB822)
+          sudo rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list
+          : | sudo tee /etc/apt/sources.list > /dev/null
+
+          # Write clean arch-explicit sources
+          . /etc/os-release   # sets $VERSION_CODENAME (jammy, noble, …)
+          printf '%s\n' \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${VERSION_CODENAME} main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${VERSION_CODENAME}-updates main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${VERSION_CODENAME}-backports main restricted universe multiverse" \
+            "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ ${VERSION_CODENAME}-security main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${VERSION_CODENAME} main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${VERSION_CODENAME}-updates main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${VERSION_CODENAME}-security main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${VERSION_CODENAME}-backports main restricted universe multiverse" \
+            | sudo tee /etc/apt/sources.list > /dev/null
+
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt-get install -y gcc-aarch64-linux-gnu libssl-dev:arm64
 
       - name: Build axiomregent
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          PKG_CONFIG_ALLOW_CROSS: '1'
+          PKG_CONFIG_PATH_aarch64_unknown_linux_gnu: /usr/lib/aarch64-linux-gnu/pkgconfig
+          AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR: /usr/lib/aarch64-linux-gnu
+          AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR: /usr/include
         run: cargo build --release --target aarch64-unknown-linux-gnu --manifest-path crates/axiomregent/Cargo.toml
 
       - name: Copy binary
         run: |
-          cp crates/axiomregent/target/aarch64-unknown-linux-gnu/release/axiomregent apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          cp crates/target/aarch64-unknown-linux-gnu/release/axiomregent apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
           ls -lh apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload binary
