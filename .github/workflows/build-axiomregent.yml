@@ -119,7 +119,7 @@ jobs:
             | sudo tee /etc/apt/sources.list > /dev/null
 
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu libssl-dev:arm64
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libssl-dev:arm64
 
       - name: Build axiomregent
         env:
