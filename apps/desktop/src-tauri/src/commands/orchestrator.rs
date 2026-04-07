@@ -198,7 +198,7 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used })
+        Ok(DispatchResult { tokens_used, output_hashes: Default::default() })
     }
 
     async fn dispatch_via_governed_claude(
@@ -325,7 +325,7 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used })
+        Ok(DispatchResult { tokens_used, output_hashes: Default::default() })
     }
 }
 
