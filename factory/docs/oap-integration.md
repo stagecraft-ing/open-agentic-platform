@@ -299,14 +299,23 @@ steps:
       - "trim-done.json"
     instruction: "Remove unused scaffold artifacts."
 
-  - id: "s6g-final-validation"
-    agent: "factory-validator"
-    effort: investigate
+  - id: "s6g-review"
+    agent: "factory-reviewer"
+    effort: deep
     inputs:
       - "s6f-trim/trim-done.json"
     outputs:
+      - "review-report.yaml"
+    instruction: "Run full build, tests, lint, type check. Fix ALL failures."
+
+  - id: "s6h-final-validation"
+    agent: "factory-validator"
+    effort: investigate
+    inputs:
+      - "s6g-review/review-report.yaml"
+    outputs:
       - "validation-report.json"
-    instruction: "Run full build, all tests, lint, type check, invariants."
+    instruction: "Run full build, all tests, lint, type check. Read-only — do NOT fix."
     gate:
       type: checkpoint
       label: "Review final validation results"

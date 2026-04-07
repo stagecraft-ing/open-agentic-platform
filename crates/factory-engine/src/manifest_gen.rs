@@ -6,7 +6,7 @@
 //!
 //! Two functions:
 //! - `generate_process_manifest()` — Build Spec derivation (stages s0–s5)
-//! - `generate_scaffold_manifest()` — Dynamic fan-out from Build Spec (s6a–s6g)
+//! - `generate_scaffold_manifest()` — Dynamic fan-out from Build Spec (s6a–s6h)
 
 use crate::topo_sort::topological_sort_entities;
 use crate::FactoryError;
@@ -163,7 +163,8 @@ pub fn generate_process_manifest(
 /// - s6d-*: One per UI page
 /// - s6e: Configuration
 /// - s6f: Trim
-/// - s6g: Final validation
+/// - s6g: Review / repair (Deep effort — fixes test, lint, type errors)
+/// - s6h: Final validation (read-only assertion)
 pub fn generate_scaffold_manifest(
     build_spec: &BuildSpec,
     adapter: &AdapterManifest,
@@ -173,7 +174,7 @@ pub fn generate_scaffold_manifest(
     let resolver = PatternResolver::new(&adapter_root, adapter.clone());
 
     let verify_commands = build_verify_commands(adapter);
-    let compile_only = compile_verify_commands(adapter);
+    let compile_and_lint = compile_and_lint_verify_commands(adapter);
 
     let mut steps: Vec<WorkflowStep> = Vec::new();
 
@@ -273,7 +274,7 @@ pub fn generate_scaffold_manifest(
                 adapter.adapter.name,
             ),
             gate: None,
-            post_verify: Some(compile_only.clone()),
+            post_verify: Some(compile_and_lint.clone()),
             max_retries: Some(3),
         });
 
@@ -472,7 +473,7 @@ pub fn generate_scaffold_manifest(
                 adapter.adapter.name,
             ),
             gate: None,
-            post_verify: Some(compile_only.clone()),
+            post_verify: Some(compile_and_lint.clone()),
             max_retries: Some(3),
         });
     }
@@ -494,7 +495,7 @@ pub fn generate_scaffold_manifest(
             adapter.adapter.name,
         ),
         gate: None,
-        post_verify: Some(compile_only.clone()),
+        post_verify: Some(compile_and_lint.clone()),
         max_retries: Some(3),
     });
 
@@ -511,20 +512,76 @@ pub fn generate_scaffold_manifest(
             adapter.adapter.name,
         ),
         gate: None,
-        post_verify: Some(compile_only.clone()),
+        post_verify: Some(compile_and_lint.clone()),
         max_retries: Some(3),
     });
 
-    // ── s6g: Final validation ────────────────────────────────────────────
+    // ── s6g: Review / repair ────────────────────────────────────────────
+    // Dedicated repair step that runs the full suite, fixes all failures,
+    // and absorbs the iterative fix-rerun loop that previously overloaded
+    // the final-validation step. Uses Deep effort (2× max_turns).
+    {
+        let reviewer_agent = if adapter.agents.reviewer.is_some() {
+            format!("{}-reviewer", adapter.adapter.name)
+        } else {
+            "pipeline-orchestrator".into()
+        };
+        steps.push(WorkflowStep {
+            id: "s6g-review".into(),
+            agent: reviewer_agent,
+            effort: EffortLevel::Deep,
+            inputs: vec![],
+            outputs: vec!["review-report.yaml".into()],
+            instruction: format!(
+                "Run the full project quality suite and fix every failure:\n\
+                 1. Run build: {}\n\
+                 2. Run tests: {}\n\
+                 3. Run lint: {}\n\
+                 {}\
+                 Fix ALL errors and warnings — broken tests, lint violations, type errors, \
+                 unused imports, selector mismatches, mock drift.\n\
+                 Write review-report.yaml summarizing every file changed and why.\n\
+                 Adapter: {}",
+                adapter.commands.compile,
+                adapter.commands.test,
+                adapter.commands.lint,
+                adapter.commands.type_check.as_ref()
+                    .map(|tc| format!("4. Run type check: {tc}\n"))
+                    .unwrap_or_default(),
+                adapter.adapter.name,
+            ),
+            gate: None,
+            post_verify: Some(build_full_verify_commands(adapter)),
+            max_retries: Some(3),
+        });
+    }
+
+    // ── s6h: Final validation (read-only assertion) ─────────────────────
+    // This step ONLY runs commands and reports results. It must NOT fix
+    // anything — if the review step did its job, this is a 3-5 turn pass.
     steps.push(WorkflowStep {
-        id: "s6g-final-validation".into(),
+        id: "s6h-final-validation".into(),
         agent: "pipeline-orchestrator".into(),
         effort: EffortLevel::Investigate,
         inputs: vec![],
         outputs: vec!["final-validation-report.yaml".into()],
         instruction: format!(
-            "Run full project validation: build, all tests, lint, type check, invariants.\n\
+            "Run the full project validation suite and report results.\n\
+             IMPORTANT: This is a READ-ONLY assertion step. Do NOT edit any source files.\n\
+             Run each command, record its exit code and output summary:\n\
+             1. Build: {}\n\
+             2. Tests: {}\n\
+             3. Lint: {}\n\
+             {}\
+             Write final-validation-report.yaml with pass/fail status for each check.\n\
+             If any check fails, report the failure details — do NOT attempt to fix them.\n\
              Adapter: {}",
+            adapter.commands.compile,
+            adapter.commands.test,
+            adapter.commands.lint,
+            adapter.commands.type_check.as_ref()
+                .map(|tc| format!("4. Type check: {tc}\n"))
+                .unwrap_or_default(),
             adapter.adapter.name,
         ),
         gate: Some(StepGateConfig::Checkpoint {
@@ -557,13 +614,23 @@ fn build_verify_commands(adapter: &AdapterManifest) -> Vec<VerifyCommand> {
     cmds
 }
 
-/// Compile-only verification (for data/UI/config steps).
-fn compile_verify_commands(adapter: &AdapterManifest) -> Vec<VerifyCommand> {
-    vec![VerifyCommand {
-        command: adapter.commands.compile.clone(),
-        working_dir: ".".into(),
-        timeout_ms: 60_000,
-    }]
+/// Compile + lint verification (for data/UI/config/trim steps).
+///
+/// Catches both compile errors and lint violations incrementally so they
+/// don't accumulate until final validation.
+fn compile_and_lint_verify_commands(adapter: &AdapterManifest) -> Vec<VerifyCommand> {
+    vec![
+        VerifyCommand {
+            command: adapter.commands.compile.clone(),
+            working_dir: ".".into(),
+            timeout_ms: 60_000,
+        },
+        VerifyCommand {
+            command: adapter.commands.lint.clone(),
+            working_dir: ".".into(),
+            timeout_ms: 60_000,
+        },
+    ]
 }
 
 /// Full verification for final validation step.

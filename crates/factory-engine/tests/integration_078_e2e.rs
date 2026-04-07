@@ -158,11 +158,11 @@ fn noop_e2e_full_pipeline_dispatch() {
         phase2.steps.len()
     );
 
-    // Verify s6a is first and s6g is last.
+    // Verify s6a is first and s6h is last.
     assert_eq!(phase2.steps[0].id, "s6a-scaffold-init");
     assert_eq!(
         phase2.steps.last().unwrap().id,
-        "s6g-final-validation"
+        "s6h-final-validation"
     );
 
     // Validate DAG ordering.

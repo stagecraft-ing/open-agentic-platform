@@ -266,7 +266,9 @@ pub fn classify_scaffold_step(step_id: &str) -> ScaffoldStepKind {
         ScaffoldStepKind::Configure
     } else if step_id == "s6f-trim" {
         ScaffoldStepKind::Trim
-    } else if step_id == "s6g-final-validation" {
+    } else if step_id == "s6g-review" {
+        ScaffoldStepKind::Review
+    } else if step_id == "s6h-final-validation" {
         ScaffoldStepKind::FinalValidation
     } else {
         ScaffoldStepKind::Unknown(step_id.into())
@@ -282,6 +284,7 @@ pub enum ScaffoldStepKind {
     Page(String),
     Configure,
     Trim,
+    Review,
     FinalValidation,
     Unknown(String),
 }
@@ -345,7 +348,11 @@ mod tests {
             ScaffoldStepKind::Init
         );
         assert_eq!(
-            classify_scaffold_step("s6g-final-validation"),
+            classify_scaffold_step("s6g-review"),
+            ScaffoldStepKind::Review
+        );
+        assert_eq!(
+            classify_scaffold_step("s6h-final-validation"),
             ScaffoldStepKind::FinalValidation
         );
     }
