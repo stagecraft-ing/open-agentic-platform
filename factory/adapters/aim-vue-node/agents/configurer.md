@@ -53,6 +53,8 @@ For dual stack, using `adapter.dual_stack.stacks`:
 
 Note: the internal API container listens on port 3000 internally even though docker-compose maps it to host port 3001.
 
+**Port mapping rule:** Each web service's `vite.config.ts` sets `server.port` to its stack's `port_web` value from the manifest. The docker-compose port mapping must match: `{port_web}:{port_web}` (e.g. `5173:5173` for public, `5174:5174` for internal). Do NOT assume all Vite containers listen on 5173 — each uses its own `port_web`.
+
 ### 3. Configure Auth Drivers
 
 Based on `build_spec.auth.audiences`:
