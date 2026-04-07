@@ -280,18 +280,22 @@ async fn dispatch_with_verify(
                 VerifyOutcome::Passed => {
                     return Ok((StepStatus::Success, Some(total_tokens)));
                 }
-                VerifyOutcome::Failed { stderr, .. } => {
+                VerifyOutcome::Failed { command, output, exit_code, .. } => {
                     attempt += 1;
+                    let detail = format!(
+                        "verify command `{command}` failed (exit {:?}):\n{output}",
+                        exit_code
+                    );
                     if attempt > max_retries {
                         return Err(OrchestratorError::VerificationFailed {
                             step_id: step.id.clone(),
                             reason: format!(
-                                "verification failed after {max_retries} retries: {stderr}"
+                                "verification failed after {max_retries} retries:\n{detail}"
                             ),
                         });
                     }
                     // Rebuild prompt with failure context (075 FR-006).
-                    current_prompt = build_retry_instruction(&current_prompt, &stderr);
+                    current_prompt = build_retry_instruction(&current_prompt, &detail);
                     continue;
                 }
             }

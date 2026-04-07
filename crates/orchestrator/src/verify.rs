@@ -14,12 +14,13 @@ use tokio::process::Command;
 pub enum VerifyOutcome {
     /// All commands passed.
     Passed,
-    /// A command failed. Includes the command index, command string, and stderr.
+    /// A command failed. Includes the command index, command string, and combined output.
     Failed {
         command_index: usize,
         command: String,
         exit_code: Option<i32>,
-        stderr: String,
+        /// Combined stdout + stderr so tools that write errors to stdout (tsc, eslint) are captured.
+        output: String,
     },
 }
 
@@ -50,12 +51,20 @@ pub async fn run_verify_commands(
             Ok(Ok(output)) if output.status.success() => {
                 // Command passed, continue to next.
             }
-            Ok(Ok(output)) => {
+            Ok(Ok(cmd_output)) => {
+                let stdout = String::from_utf8_lossy(&cmd_output.stdout);
+                let stderr = String::from_utf8_lossy(&cmd_output.stderr);
+                let combined = match (stdout.is_empty(), stderr.is_empty()) {
+                    (true, true) => "(no output)".to_string(),
+                    (false, true) => stdout.into_owned(),
+                    (true, false) => stderr.into_owned(),
+                    (false, false) => format!("{stdout}\n{stderr}"),
+                };
                 return VerifyOutcome::Failed {
                     command_index: i,
                     command: vc.command.clone(),
-                    exit_code: output.status.code(),
-                    stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+                    exit_code: cmd_output.status.code(),
+                    output: combined,
                 };
             }
             Ok(Err(io_err)) => {
@@ -63,7 +72,7 @@ pub async fn run_verify_commands(
                     command_index: i,
                     command: vc.command.clone(),
                     exit_code: None,
-                    stderr: format!("failed to execute: {io_err}"),
+                    output: format!("failed to execute: {io_err}"),
                 };
             }
             Err(_elapsed) => {
@@ -71,7 +80,7 @@ pub async fn run_verify_commands(
                     command_index: i,
                     command: vc.command.clone(),
                     exit_code: None,
-                    stderr: format!("timed out after {}ms", vc.timeout_ms),
+                    output: format!("timed out after {}ms", vc.timeout_ms),
                 };
             }
         }
@@ -130,11 +139,11 @@ mod tests {
         match result {
             VerifyOutcome::Failed {
                 command_index,
-                stderr,
+                output,
                 ..
             } => {
                 assert_eq!(command_index, 1);
-                assert!(stderr.contains("boom"));
+                assert!(output.contains("boom"));
             }
             _ => panic!("expected failure"),
         }
