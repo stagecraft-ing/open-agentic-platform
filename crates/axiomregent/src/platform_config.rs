@@ -10,8 +10,14 @@ pub struct PlatformConfig {
     pub policy_url: Option<String>,
     /// Seams C, D: Base URL for platform API (e.g., `http://localhost:4000/api`).
     pub api_url: Option<String>,
-    /// Bearer token for all platform calls (M2M auth).
+    /// Bearer token for all platform calls (M2M auth). Used when OIDC is not configured.
     pub m2m_token: Option<String>,
+    /// OIDC issuer/base URL (e.g., `https://rauthy.localdev.online/auth/v1`). PLATFORM_OIDC_ENDPOINT.
+    pub oidc_endpoint: Option<String>,
+    /// OIDC client ID for M2M client_credentials flow. PLATFORM_OIDC_CLIENT_ID.
+    pub oidc_client_id: Option<String>,
+    /// OIDC client secret for M2M client_credentials flow. PLATFORM_OIDC_CLIENT_SECRET.
+    pub oidc_client_secret: Option<String>,
 }
 
 impl PlatformConfig {
@@ -22,12 +28,22 @@ impl PlatformConfig {
             policy_url: non_empty_env("PLATFORM_POLICY_URL"),
             api_url: non_empty_env("PLATFORM_API_URL"),
             m2m_token: non_empty_env("PLATFORM_M2M_TOKEN"),
+            oidc_endpoint: non_empty_env("PLATFORM_OIDC_ENDPOINT"),
+            oidc_client_id: non_empty_env("PLATFORM_OIDC_CLIENT_ID"),
+            oidc_client_secret: non_empty_env("PLATFORM_OIDC_CLIENT_SECRET"),
         }
     }
 
     /// Returns `true` when at least one platform URL is configured.
     pub fn is_connected(&self) -> bool {
         self.audit_url.is_some() || self.policy_url.is_some() || self.api_url.is_some()
+    }
+
+    /// Returns `true` when all three OIDC fields are set, enabling OIDC M2M auth.
+    pub fn oidc_configured(&self) -> bool {
+        self.oidc_endpoint.is_some()
+            && self.oidc_client_id.is_some()
+            && self.oidc_client_secret.is_some()
     }
 }
 

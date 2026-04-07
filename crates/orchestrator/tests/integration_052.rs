@@ -207,6 +207,7 @@ impl GovernedExecutor for TestExecutor {
         }
         Ok(DispatchResult {
             tokens_used: Some(100),
+            output_hashes: std::collections::HashMap::new(),
         })
     }
 }

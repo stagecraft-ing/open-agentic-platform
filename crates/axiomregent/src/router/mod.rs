@@ -10,10 +10,13 @@ use crate::lease::{LeaseStore, StaleLeaseError};
 pub mod audit_http;
 pub mod dlock;
 pub mod legacy_provider;
+pub mod oidc_client;
 pub mod permissions;
 pub mod policy_bundle;
 pub mod policy_http;
 pub mod provider;
+
+pub use oidc_client::{AuthProvider, OidcM2mClient};
 
 use policy_bundle::{build_tool_call_context, evaluate_loaded_policy, PolicyBundleCache};
 
@@ -97,17 +100,45 @@ pub struct Router {
 }
 
 impl Router {
-    pub fn new(
+    pub async fn new(
         providers: Vec<Arc<dyn provider::ToolProvider>>,
         lease_store: Arc<LeaseStore>,
     ) -> Self {
         let platform_cfg = crate::platform_config::PlatformConfig::from_env();
-        let audit_forwarder = match (&platform_cfg.audit_url, &platform_cfg.m2m_token) {
-            (Some(url), Some(token)) => {
+
+        // Build the AuthProvider: prefer OIDC when all three env vars are set,
+        // otherwise fall back to the static M2M token.
+        let auth_provider: Option<AuthProvider> = if platform_cfg.oidc_configured() {
+            let endpoint = platform_cfg.oidc_endpoint.as_deref().unwrap();
+            let client_id = platform_cfg.oidc_client_id.clone().unwrap();
+            let client_secret = platform_cfg.oidc_client_secret.clone().unwrap();
+            match OidcM2mClient::new(endpoint, client_id, client_secret).await {
+                Ok(client) => {
+                    eprintln!("[platform] OIDC M2M auth configured (endpoint={endpoint})");
+                    Some(AuthProvider::Oidc(Arc::new(client)))
+                }
+                Err(e) => {
+                    if platform_cfg.m2m_token.is_some() {
+                        eprintln!("[platform] OIDC discovery failed: {e}; falling back to static token");
+                    } else {
+                        eprintln!("[platform] OIDC discovery failed: {e}; no static token configured — platform seams disabled");
+                    }
+                    platform_cfg
+                        .m2m_token
+                        .clone()
+                        .map(AuthProvider::Static)
+                }
+            }
+        } else {
+            platform_cfg.m2m_token.clone().map(AuthProvider::Static)
+        };
+
+        let audit_forwarder = match (&platform_cfg.audit_url, &auth_provider) {
+            (Some(url), Some(auth)) => {
                 eprintln!("[platform] audit streaming enabled → {url}");
                 Some(Arc::new(audit_http::AuditForwarder::new(
                     url.clone(),
-                    token.clone(),
+                    auth.clone(),
                 )))
             }
             _ => None,
@@ -115,14 +146,14 @@ impl Router {
         let policy_bundle_cache = Arc::new(PolicyBundleCache::new());
 
         // Seam A: spawn background policy bundle refresh when PLATFORM_POLICY_URL is set.
-        if let (Some(url), Some(token)) = (&platform_cfg.policy_url, &platform_cfg.m2m_token) {
+        if let (Some(url), Some(auth)) = (&platform_cfg.policy_url, &auth_provider) {
             // Use repo root from OPC_REPO_ROOT env var (or "default" workspace).
             let repo_root = std::env::var("OPC_REPO_ROOT").unwrap_or_else(|_| "default".into());
             eprintln!("[platform] policy bundle refresh enabled → {url}");
             policy_http::spawn_policy_refresh(
                 Arc::clone(&policy_bundle_cache),
                 url.clone(),
-                token.clone(),
+                auth.clone(),
                 repo_root,
             );
         }

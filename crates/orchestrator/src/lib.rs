@@ -119,11 +119,16 @@ pub struct StepSummaryEntry {
     pub input_artifacts: Vec<PathBuf>,
     pub output_artifacts: Vec<PathBuf>,
     pub tokens_used: Option<u64>,
+    /// SHA-256 hex hashes of output artifacts, keyed by filename (082 FR-002).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub output_hashes: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct DispatchResult {
     pub tokens_used: Option<u64>,
+    /// SHA-256 hex hashes of output artifacts, keyed by filename (082 FR-002).
+    pub output_hashes: HashMap<String, String>,
 }
 
 /// Plan for resuming a workflow from a previously persisted `state.json` (052 FR-003).
@@ -684,6 +689,7 @@ pub fn dispatch_manifest_noop(
                     input_artifacts: resolved_inputs,
                     output_artifacts: output_paths,
                     tokens_used: None,
+                    output_hashes: HashMap::new(),
                 });
             }
 
@@ -722,6 +728,7 @@ pub fn dispatch_manifest_noop(
             input_artifacts: input_paths,
             output_artifacts: output_paths,
             tokens_used: None,
+            output_hashes: HashMap::new(),
         });
     }
 
@@ -739,6 +746,7 @@ fn build_summary(
     steps: &[WorkflowStep],
     statuses: &[StepStatus],
     tokens_used: &[Option<u64>],
+    output_hashes: &[HashMap<String, String>],
 ) -> RunSummary {
     let mut summary_entries = Vec::with_capacity(steps.len());
     for (i, step) in steps.iter().enumerate() {
@@ -755,6 +763,7 @@ fn build_summary(
             input_artifacts: input_paths,
             output_artifacts: output_paths,
             tokens_used: tokens_used[i],
+            output_hashes: output_hashes.get(i).cloned().unwrap_or_default(),
         });
     }
     RunSummary {
@@ -788,6 +797,10 @@ pub async fn dispatch_manifest(
 
     let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
     let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
+    let mut step_output_hashes: Vec<HashMap<String, String>> = vec![HashMap::new(); steps.len()];
+
+    // Accumulated hashes from completed steps for input verification (082 FR-004).
+    let mut completed_hashes: HashMap<String, HashMap<String, String>> = HashMap::new();
 
     let total_steps = order.len();
     let phase_start = std::time::Instant::now();
@@ -822,7 +835,7 @@ pub async fn dispatch_manifest(
                     }
                 }
             }
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::DependencyMissing {
                 step_id: step.id.clone(),
@@ -830,9 +843,33 @@ pub async fn dispatch_manifest(
             });
         }
 
+        // Verify input artifact integrity (082 FR-004).
+        for input in &step.inputs {
+            if let Some((producer_id, file)) = split_input_ref(input) {
+                if let Some(producer_hashes) = completed_hashes.get(producer_id) {
+                    if let Some(expected_hash) = producer_hashes.get(file) {
+                        let input_path = artifact_base.output_artifact_path(run_id, producer_id, file);
+                        match ArtifactManager::verify_artifact(&input_path, expected_hash) {
+                            Ok(true) => {} // Hash matches
+                            Ok(false) => {
+                                statuses[idx] = StepStatus::Failure;
+                                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                                summary.write_to_disk(artifact_base)?;
+                                return Err(OrchestratorError::DependencyMissing {
+                                    step_id: step.id.clone(),
+                                    artifact_path: input_path,
+                                });
+                            }
+                            Err(_) => {} // File read error already caught by existence check above
+                        }
+                    }
+                }
+            }
+        }
+
         if !registry.has_agent(&step.agent).await {
             statuses[idx] = StepStatus::Failure;
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::AgentNotFound {
                 agent_id: step.agent.clone(),
@@ -857,7 +894,7 @@ pub async fn dispatch_manifest(
                         }
                     }
                     let summary =
-                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
                     summary.write_to_disk(artifact_base)?;
                     return Err(e);
                 }
@@ -900,8 +937,22 @@ pub async fn dispatch_manifest(
         .await
         {
             Ok((status, step_tokens)) => {
+                let is_success = status == StepStatus::Success;
                 statuses[idx] = status;
                 tokens_used[idx] = step_tokens;
+
+                // Hash output artifacts (082 FR-003).
+                if is_success {
+                    let mut hashes = HashMap::new();
+                    for (output_name, output_path) in step.outputs.iter().zip(output_paths.iter()) {
+                        if let Ok(hash) = ArtifactManager::hash_artifact(output_path) {
+                            hashes.insert(output_name.clone(), hash);
+                        }
+                    }
+                    step_output_hashes[idx] = hashes.clone();
+                    completed_hashes.insert(step.id.clone(), hashes);
+                }
+
                 let elapsed = step_start.elapsed();
                 eprintln!(
                     "  [{}/{}] {} — {:?} ({:.1}s)",
@@ -934,7 +985,7 @@ pub async fn dispatch_manifest(
                         }
                     }
                 }
-                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
                 summary.write_to_disk(artifact_base)?;
                 return Err(e);
             }
@@ -944,7 +995,7 @@ pub async fn dispatch_manifest(
     let phase_elapsed = phase_start.elapsed();
     eprintln!("  Total phase duration: {:.1}s", phase_elapsed.as_secs_f64());
 
-    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
     summary.write_to_disk(artifact_base)?;
     Ok(summary)
 }
@@ -1022,6 +1073,7 @@ pub async fn dispatch_manifest_persisted(
 
     let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
     let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
+    let mut step_output_hashes: Vec<HashMap<String, String>> = vec![HashMap::new(); steps.len()];
 
     /// Helper: persist state + append event + broadcast.
     async fn persist_and_emit(
@@ -1084,7 +1136,7 @@ pub async fn dispatch_manifest_persisted(
                     }
                 }
             }
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::DependencyMissing {
                 step_id: step.id.clone(),
@@ -1113,7 +1165,7 @@ pub async fn dispatch_manifest_persisted(
             )
             .await?;
 
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::AgentNotFound {
                 agent_id: step.agent.clone(),
@@ -1194,7 +1246,7 @@ pub async fn dispatch_manifest_persisted(
                                 "step_failed",
                                 &serde_json::json!({ "step_id": step.id, "reason": "approval gate timed out" }),
                             ).await?;
-                            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
                             summary.write_to_disk(artifact_base)?;
                             return Err(OrchestratorError::StepFailed {
                                 step_id: step.id.clone(),
@@ -1222,7 +1274,7 @@ pub async fn dispatch_manifest_persisted(
                         "step_failed",
                         &serde_json::json!({ "step_id": step.id, "reason": e.to_string() }),
                     ).await?;
-                    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
                     summary.write_to_disk(artifact_base)?;
                     return Err(OrchestratorError::StepFailed {
                         step_id: step.id.clone(),
@@ -1271,8 +1323,20 @@ pub async fn dispatch_manifest_persisted(
         .await
         {
             Ok((status, step_tokens)) => {
+                let is_success = status == StepStatus::Success;
                 statuses[idx] = status;
                 tokens_used[idx] = step_tokens;
+
+                // Hash output artifacts (082 FR-003).
+                if is_success {
+                    let mut hashes = HashMap::new();
+                    for (output_name, output_path) in step.outputs.iter().zip(output_paths.iter()) {
+                        if let Ok(hash) = ArtifactManager::hash_artifact(output_path) {
+                            hashes.insert(output_name.clone(), hash);
+                        }
+                    }
+                    step_output_hashes[idx] = hashes;
+                }
 
                 wf_state.mark_step_finished(
                     &step.id,
@@ -1330,7 +1394,7 @@ pub async fn dispatch_manifest_persisted(
                         }
                     }
                 }
-                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
                 summary.write_to_disk(artifact_base)?;
                 return Err(e);
             }
@@ -1349,7 +1413,7 @@ pub async fn dispatch_manifest_persisted(
     )
     .await?;
 
-    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
+    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
     summary.write_to_disk(artifact_base)?;
     Ok(summary)
 }
@@ -1395,6 +1459,7 @@ mod tests {
             }
             Ok(DispatchResult {
                 tokens_used: Some(123),
+                output_hashes: HashMap::new(),
             })
         }
     }
@@ -1440,6 +1505,7 @@ mod tests {
             };
             Ok(DispatchResult {
                 tokens_used: Some(tokens_used),
+                output_hashes: HashMap::new(),
             })
         }
     }
@@ -1735,6 +1801,7 @@ mod tests {
                     input_artifacts: vec![],
                     output_artifacts: vec![],
                     tokens_used: Some(100),
+                    output_hashes: HashMap::new(),
                 },
                 StepSummaryEntry {
                     step_id: "s2".into(),
@@ -1743,6 +1810,7 @@ mod tests {
                     input_artifacts: vec![],
                     output_artifacts: vec![],
                     tokens_used: None,
+                    output_hashes: HashMap::new(),
                 },
             ],
         };

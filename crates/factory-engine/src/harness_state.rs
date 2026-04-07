@@ -281,6 +281,22 @@ pub fn record_audit(
     });
 }
 
+/// Construct a `StageArtifact` with a SHA-256 hash of the file content (082 FR-005).
+///
+/// This ensures that the `hash` field in `StageArtifact` is always populated
+/// with the artifact's content hash, enabling downstream integrity verification.
+pub fn make_hashed_artifact(
+    path: &std::path::Path,
+    artifact_type: &str,
+) -> std::io::Result<factory_contracts::pipeline_state::StageArtifact> {
+    let hash = crate::preflight::hash_file(path)?;
+    Ok(factory_contracts::pipeline_state::StageArtifact {
+        path: path.display().to_string(),
+        artifact_type: artifact_type.into(),
+        hash,
+    })
+}
+
 /// Mark the pipeline as completed or failed.
 pub fn complete_pipeline(state: &mut PipelineState, success: bool) {
     state.pipeline.status = if success {

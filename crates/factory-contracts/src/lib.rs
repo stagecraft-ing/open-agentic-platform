@@ -16,6 +16,7 @@ pub mod validation;
 pub mod adapter_registry;
 pub mod agent_loader;
 pub mod pattern_resolver;
+pub mod namespace;
 
 pub use build_spec::BuildSpec;
 pub use adapter_manifest::AdapterManifest;

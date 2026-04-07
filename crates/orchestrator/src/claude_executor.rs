@@ -4,6 +4,7 @@
 
 use crate::{DispatchRequest, DispatchResult, GovernedExecutor};
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -152,7 +153,7 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let tokens_used = parse_tokens(&stdout);
 
-        Ok(DispatchResult { tokens_used })
+        Ok(DispatchResult { tokens_used, output_hashes: HashMap::new() })
     }
 }
 

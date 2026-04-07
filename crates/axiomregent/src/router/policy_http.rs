@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::oidc_client::AuthProvider;
 use super::policy_bundle::PolicyBundleCache;
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
@@ -15,7 +16,7 @@ const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 pub fn spawn_policy_refresh(
     cache: Arc<PolicyBundleCache>,
     base_url: String,
-    token: String,
+    auth: AuthProvider,
     repo_root: String,
 ) {
     tokio::spawn(async move {
@@ -28,7 +29,7 @@ pub fn spawn_policy_refresh(
             tokio::time::sleep(REFRESH_INTERVAL).await;
 
             let url = format!("{}/{}", base_url.trim_end_matches('/'), &repo_root);
-            match fetch_bundle(&client, &url, &token).await {
+            match fetch_bundle(&client, &url, &auth).await {
                 Ok(bundle) => {
                     cache.update_bundle(&repo_root, bundle);
                 }
@@ -43,11 +44,16 @@ pub fn spawn_policy_refresh(
 async fn fetch_bundle(
     client: &reqwest::Client,
     url: &str,
-    token: &str,
+    auth: &AuthProvider,
 ) -> Result<PolicyBundle, String> {
+    let token = auth
+        .get_bearer_token("platform:policy:read")
+        .await
+        .map_err(|e| format!("failed to get bearer token: {e}"))?;
+
     let resp = client
         .get(url)
-        .bearer_auth(token)
+        .bearer_auth(&token)
         .send()
         .await
         .map_err(|e| format!("HTTP request failed: {e}"))?;
