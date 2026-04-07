@@ -785,7 +785,10 @@ pub async fn dispatch_manifest(
     let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
     let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
 
-    for &idx in &order {
+    let total_steps = order.len();
+    let phase_start = std::time::Instant::now();
+
+    for (step_num, &idx) in order.iter().enumerate() {
         if matches!(statuses[idx], StepStatus::Skipped | StepStatus::Cancelled) {
             continue;
         }
@@ -795,6 +798,13 @@ pub async fn dispatch_manifest(
         // Resume support: skip steps that were already completed in a prior run.
         if options.skip_completed_steps.contains(&step.id) {
             statuses[idx] = StepStatus::Success;
+            eprintln!(
+                "  [{}/{}] {} (agent: {}) — skipped (resumed)",
+                step_num + 1,
+                total_steps,
+                step.id,
+                step.agent,
+            );
             continue;
         }
 
@@ -851,6 +861,15 @@ pub async fn dispatch_manifest(
         }
 
         statuses[idx] = StepStatus::Running;
+        eprintln!(
+            "  [{}/{}] {} (agent: {}) — running...",
+            step_num + 1,
+            total_steps,
+            step.id,
+            step.agent,
+        );
+        let step_start = std::time::Instant::now();
+
         artifact_base
             .ensure_step_dir(run_id, &step.id)
             .map_err(|e| OrchestratorError::StepFailed {
@@ -879,13 +898,31 @@ pub async fn dispatch_manifest(
             Ok((status, step_tokens)) => {
                 statuses[idx] = status;
                 tokens_used[idx] = step_tokens;
+                let elapsed = step_start.elapsed();
+                eprintln!(
+                    "  [{}/{}] {} — {:?} ({:.1}s)",
+                    step_num + 1,
+                    total_steps,
+                    step.id,
+                    statuses[idx],
+                    elapsed.as_secs_f64(),
+                );
             }
             Err(e) => {
+                let elapsed = step_start.elapsed();
                 statuses[idx] = if matches!(e, OrchestratorError::VerificationFailed { .. }) {
                     StepStatus::VerificationFailed
                 } else {
                     StepStatus::Failure
                 };
+                eprintln!(
+                    "  [{}/{}] {} — {:?} ({:.1}s)",
+                    step_num + 1,
+                    total_steps,
+                    step.id,
+                    statuses[idx],
+                    elapsed.as_secs_f64(),
+                );
                 if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
                     for &d in dep_idxs {
                         if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
@@ -899,6 +936,9 @@ pub async fn dispatch_manifest(
             }
         }
     }
+
+    let phase_elapsed = phase_start.elapsed();
+    eprintln!("  Total phase duration: {:.1}s", phase_elapsed.as_secs_f64());
 
     let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used);
     summary.write_to_disk(artifact_base)?;

@@ -277,10 +277,34 @@ async fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
+    // Detect Phase 2 resume plan if resuming an existing run.
+    let phase2_skip: HashSet<String> = if cli.resume.is_some() {
+        match detect_resume_plan_for_run(&am, run_id, &transition.manifest) {
+            Ok(Some(plan)) => {
+                eprintln!(
+                    "  Resuming Phase 2: skipping {} completed steps, starting from step {}",
+                    plan.completed_step_ids.len(),
+                    plan.first_non_completed_step_index
+                );
+                plan.completed_step_ids.into_iter().collect()
+            }
+            Ok(None) => {
+                eprintln!("  No prior Phase 2 state found, starting fresh");
+                HashSet::new()
+            }
+            Err(e) => {
+                eprintln!("  Warning: failed to load Phase 2 resume state: {e}, starting fresh");
+                HashSet::new()
+            }
+        }
+    } else {
+        HashSet::new()
+    };
+
     let phase2_options = DispatchOptions {
         gate_handler: Some(gate_handler),
         project_root: Some(project_path.clone()),
-        skip_completed_steps: HashSet::new(),
+        skip_completed_steps: phase2_skip,
     };
 
     let summary2 = match dispatch_manifest(
