@@ -36,6 +36,23 @@ Create `.env` from `.env.example` with:
 Create `.env.external.example` (public stack) with auth provider placeholders.
 Create `.env.internal.example` (internal stack) with auth provider placeholders.
 
+### 2b. Configure Docker Compose Networking
+
+In `docker-compose.yml`, each web service needs **two** API URL environment variables:
+
+| Variable | Purpose | Value |
+|---|---|---|
+| `VITE_API_URL` | Client-side (browser on host machine) | `http://localhost:{port_api}/api/v1` |
+| `API_URL` | Vite dev-server proxy (container-to-container) | `http://{api_service_name}:{internal_port}` |
+
+The Vite config reads `API_URL` to set the proxy target. Inside Docker, `localhost` resolves to the web container itself — **not** the API container. `API_URL` must use the Docker Compose service name (e.g. `api-public`, `api-internal`) which Docker DNS resolves to the correct container on the shared network.
+
+For dual stack, using `adapter.dual_stack.stacks`:
+- web-public: `API_URL: http://api-public:3000`
+- web-internal: `API_URL: http://api-internal:3000`
+
+Note: the internal API container listens on port 3000 internally even though docker-compose maps it to host port 3001.
+
 ### 3. Configure Auth Drivers
 
 Based on `build_spec.auth.audiences`:
