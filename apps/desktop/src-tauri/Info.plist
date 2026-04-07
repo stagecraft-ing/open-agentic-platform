@@ -13,7 +13,7 @@
   <key>CFBundleDisplayName</key>
   <string>opc</string>
   <key>CFBundleIdentifier</key>
-  <string>opc.asterisk.so</string>
+  <string>opc.stagecraft.ing</string>
   <key>CFBundleDocumentTypes</key>
   <array>
     <dict>
