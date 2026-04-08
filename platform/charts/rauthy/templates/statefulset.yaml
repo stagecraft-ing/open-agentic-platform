@@ -42,6 +42,12 @@ spec:
               value: "8080"
             - name: LISTEN_SCHEME
               value: "http"
+            {{- if .Values.proxyMode }}
+            - name: PROXY_MODE
+              value: "true"
+            - name: TRUSTED_PROXIES
+              value: {{ .Values.trustedProxies | quote }}
+            {{- end }}
             - name: PUB_URL
               value: {{ include "rauthy.pubUrl" . | quote }}
             - name: RP_ID
@@ -81,13 +87,13 @@ spec:
                   name: {{ .Values.encryption.existingSecret }}
                   key: {{ .Values.encryption.existingSecretKeyActive }}
             {{- if .Values.bootstrap.existingSecret }}
-            - name: BOOTSTRAP_ADMIN_PASSWORD_ARGON2ID
+            - name: BOOTSTRAP_ADMIN_PASSWORD_PLAIN
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.bootstrap.existingSecret }}
                   key: {{ .Values.bootstrap.existingSecretKey }}
             {{- else }}
-            - name: BOOTSTRAP_ADMIN_PASSWORD_ARGON2ID
+            - name: BOOTSTRAP_ADMIN_PASSWORD_PLAIN
               value: {{ .Values.bootstrap.adminPassword | quote }}
             {{- end }}
             - name: HQL_NODE_ID_FROM

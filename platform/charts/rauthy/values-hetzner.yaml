@@ -1,5 +1,8 @@
 replicas: 1
 
+proxyMode: true
+trustedProxies: "10.244.0.0/16"
+
 oidc:
   issuer: "https://auth.stagecraft.ing/auth/v1/"
 
