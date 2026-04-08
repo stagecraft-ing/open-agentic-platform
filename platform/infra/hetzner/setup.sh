@@ -65,6 +65,7 @@ if [ "${1:-}" = "--clean" ]; then
   AUTO_SECRETS=(
     POSTGRES_PASSWORD SESSION_SECRET
     RAUTHY_RAFT_SECRET RAUTHY_API_SECRET RAUTHY_ADMIN_PASSWORD
+    RAUTHY_ENC_KEY_ID RAUTHY_ENC_KEY
     HIQLITE_SECRET_RAFT HIQLITE_SECRET_API
     GITHUB_WEBHOOK_SECRET
   )
@@ -108,6 +109,8 @@ auto_fill SESSION_SECRET      generate_secret
 auto_fill RAUTHY_RAFT_SECRET  generate_secret
 auto_fill RAUTHY_API_SECRET   generate_secret
 auto_fill RAUTHY_ADMIN_PASSWORD generate_b64url
+auto_fill RAUTHY_ENC_KEY_ID    generate_secret
+auto_fill RAUTHY_ENC_KEY       generate_secret
 auto_fill HIQLITE_SECRET_RAFT generate_secret
 auto_fill HIQLITE_SECRET_API  generate_secret
 auto_fill GITHUB_WEBHOOK_SECRET generate_secret
@@ -160,11 +163,15 @@ info "Bootstrapping infrastructure..."
 CHARTS_ROOT="$PLATFORM_ROOT/charts"
 
 info "Creating rauthy-secrets..."
+# ENC_KEYS format: key_id/base64_of_32_random_bytes
+RAUTHY_ENC_KEYS="${RAUTHY_ENC_KEY_ID}/$(printf '%s' "$RAUTHY_ENC_KEY" | openssl base64 -A)"
 kubectl create secret generic rauthy-secrets \
   --namespace rauthy-system \
   --from-literal=raft-secret="$RAUTHY_RAFT_SECRET" \
   --from-literal=api-secret="$RAUTHY_API_SECRET" \
   --from-literal=admin-password="$RAUTHY_ADMIN_PASSWORD" \
+  --from-literal=enc-keys="$RAUTHY_ENC_KEYS" \
+  --from-literal=enc-key-active="$RAUTHY_ENC_KEY_ID" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 info "Creating deployd-api-secrets..."
