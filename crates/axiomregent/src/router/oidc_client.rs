@@ -114,10 +114,10 @@ impl OidcM2mClient {
 
         {
             let cache = self.cache.lock().await;
-            if let Some(ref cached) = *cache {
-                if Instant::now() + safety_margin < cached.expires_at {
-                    return Ok(cached.access_token.clone());
-                }
+            if let Some(ref cached) = *cache
+                && Instant::now() + safety_margin < cached.expires_at
+            {
+                return Ok(cached.access_token.clone());
             }
         }
 
