@@ -31,7 +31,7 @@ else
     --namespace ingress-nginx --create-namespace \
     --set controller.kind=DaemonSet \
     --set controller.hostPort.enabled=true \
-    --set controller.service.type=LoadBalancer \
+    --set controller.service.type=ClusterIP \
     --wait --timeout 180s
 fi
 

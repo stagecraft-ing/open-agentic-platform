@@ -22,13 +22,13 @@ networking:
     ipv6: true
 
 masters_pool:
-  instance_type: cax21
+  instance_type: cx23
   instance_count: 1
   locations:
     - nbg1
 
 worker_node_pools:
   - name: worker
-    instance_type: cax21
-    instance_count: 2
+    instance_type: cx43
+    instance_count: 1
     location: nbg1

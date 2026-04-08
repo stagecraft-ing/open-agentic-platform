@@ -7,6 +7,10 @@
 #   2. ./setup.sh                              # Phase 1: cluster + rauthy
 #   3. Fill in GitHub + OIDC values in .env
 #   4. ./setup.sh                              # Phase 2: full platform
+#
+# Flags:
+#   --clean   Destroy existing cluster, remove kubeconfig and auto-generated
+#             secrets from .env, then start fresh from Phase 1.
 # =============================================================================
 set -euo pipefail
 
@@ -40,6 +44,39 @@ set +a
 
 [ -n "${HCLOUD_TOKEN:-}" ] || err "HCLOUD_TOKEN is empty in .env"
 [ -n "${DOMAIN:-}" ]       || err "DOMAIN is empty in .env"
+
+# ---------------------------------------------------------------------------
+# --clean: destroy cluster and reset local state
+# ---------------------------------------------------------------------------
+if [ "${1:-}" = "--clean" ]; then
+  info "Clean start requested"
+
+  # Destroy Hetzner cluster if kubeconfig exists
+  if [ -f "$SCRIPT_DIR/kubeconfig" ]; then
+    warn "Destroying existing cluster..."
+    hetzner-k3s delete --config "$SCRIPT_DIR/cluster.yaml" || true
+    rm -f "$SCRIPT_DIR/kubeconfig"
+    ok "Cluster destroyed and kubeconfig removed"
+  else
+    ok "No kubeconfig found, nothing to destroy"
+  fi
+
+  # Clear auto-generated secrets from .env (preserve manual values)
+  AUTO_SECRETS=(
+    POSTGRES_PASSWORD SESSION_SECRET
+    RAUTHY_RAFT_SECRET RAUTHY_API_SECRET RAUTHY_ADMIN_PASSWORD
+    HIQLITE_SECRET_RAFT HIQLITE_SECRET_API
+    GITHUB_WEBHOOK_SECRET
+  )
+  for var in "${AUTO_SECRETS[@]}"; do
+    sed -i.bak "s|^${var}=.*|${var}=|" "$ENV_FILE"
+  done
+  rm -f "$ENV_FILE.bak"
+  ok "Auto-generated secrets cleared from .env"
+
+  info "Clean complete — re-run ./setup.sh to start fresh"
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # Auto-generate secrets (fill blanks, write back to .env)
@@ -145,18 +182,20 @@ helm upgrade --install rauthy "$CHARTS_ROOT/rauthy" \
   --wait --timeout 300s
 
 # ---------------------------------------------------------------------------
-# Show LB IP + DNS instructions
+# Show Node IP + DNS instructions
 # ---------------------------------------------------------------------------
 echo ""
-LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+NODE_IP=$(kubectl get nodes -l '!node-role.kubernetes.io/master' \
+  -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' 2>/dev/null \
+  || kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' 2>/dev/null \
+  || echo "pending")
 
-info "Load Balancer IP: $LB_IP"
+info "Worker Node IP: $NODE_IP"
 echo ""
 echo "  DNS A records needed (if not already set):"
-echo "    ${DOMAIN}            -> $LB_IP"
-echo "    deploy.${DOMAIN}     -> $LB_IP"
-echo "    auth.${DOMAIN}       -> $LB_IP"
+echo "    ${DOMAIN}            -> $NODE_IP"
+echo "    deploy.${DOMAIN}     -> $NODE_IP"
+echo "    auth.${DOMAIN}       -> $NODE_IP"
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -186,7 +225,7 @@ if [ "$PHASE2_READY" = false ]; then
   echo "  Password: $RAUTHY_ADMIN_PASSWORD"
   echo ""
   echo "Next steps:"
-  echo "  1. Point DNS A records to $LB_IP (see above)"
+  echo "  1. Point DNS A records to $NODE_IP (see above)"
   echo "  2. Log into Rauthy and create OIDC clients:"
   echo "     - SPA client (public, authorization_code, redirect: https://${DOMAIN}/auth/callback)"
   echo "     - M2M client (confidential, client_credentials, scope: deployd:deploy)"
