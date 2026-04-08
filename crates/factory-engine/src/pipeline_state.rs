@@ -35,6 +35,9 @@ pub struct FactoryPipelineState {
     pub scaffolding: Option<ScaffoldingProgress>,
     /// Cumulative token usage across the pipeline.
     pub total_tokens: u64,
+    /// ID of the most recent completed pipeline for the same project/adapter (082 FR-022).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_pipeline_id: Option<String>,
 }
 
 /// Detailed scaffolding progress tracking.
@@ -67,6 +70,7 @@ impl FactoryPipelineState {
             phase: FactoryPhase::Process,
             scaffolding: None,
             total_tokens: 0,
+            previous_pipeline_id: None,
         }
     }
 

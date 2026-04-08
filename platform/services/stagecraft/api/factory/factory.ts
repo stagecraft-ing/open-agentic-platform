@@ -9,6 +9,7 @@ import {
   factoryScaffoldFeatures,
   factoryAuditLog,
   factoryPolicyBundles,
+  factoryArtifacts,
 } from "../db/schema";
 import { and, eq, desc, gte, asc, sql } from "drizzle-orm";
 
@@ -244,6 +245,22 @@ export const initPipeline = api(
         })
         .returning();
 
+      // Find most recent completed pipeline for same project+adapter (082 FR-022)
+      const prevRows = await tx
+        .select({ id: factoryPipelines.id })
+        .from(factoryPipelines)
+        .where(
+          and(
+            eq(factoryPipelines.projectId, req.id),
+            eq(factoryPipelines.adapterName, req.adapter),
+            eq(factoryPipelines.status, "completed")
+          )
+        )
+        .orderBy(desc(factoryPipelines.createdAt))
+        .limit(1);
+
+      const previousPipelineId = prevRows.length > 0 ? prevRows[0].id : null;
+
       // Create pipeline
       const [pipeline] = await tx
         .insert(factoryPipelines)
@@ -251,6 +268,7 @@ export const initPipeline = api(
           projectId: req.id,
           adapterName: req.adapter,
           policyBundleId: bundle.id,
+          previousPipelineId,
         })
         .returning();
 
@@ -1179,6 +1197,116 @@ export const cancelPipeline = api(
       pipeline_id: pipeline.id,
       cancelled_at: now.toISOString(),
       audit_entry_id: auditId,
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-023: Record Stage Artifacts (082 Phase 3)
+// ---------------------------------------------------------------------------
+
+type RecordArtifactsRequest = {
+  id: string; // project ID (path param)
+  pipeline_id: string;
+  stage_id: string;
+  artifacts: Array<{
+    artifact_type: string;
+    content_hash: string;
+    storage_path: string;
+    size_bytes: number;
+  }>;
+};
+
+type RecordArtifactsResponse = {
+  recorded: number;
+};
+
+export const recordArtifacts = api(
+  { expose: true, method: "POST", path: "/api/projects/:id/factory/artifacts" },
+  async (req: RecordArtifactsRequest): Promise<RecordArtifactsResponse> => {
+    await verifyProjectInOrg(req.id);
+
+    if (!req.artifacts || req.artifacts.length === 0) {
+      return { recorded: 0 };
+    }
+
+    const rows = req.artifacts.map((a) => ({
+      pipelineId: req.pipeline_id,
+      stageId: req.stage_id,
+      artifactType: a.artifact_type,
+      contentHash: a.content_hash,
+      storagePath: a.storage_path,
+      sizeBytes: a.size_bytes,
+    }));
+
+    await db.insert(factoryArtifacts).values(rows);
+
+    return { recorded: req.artifacts.length };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-025: Lookup Artifacts from Previous Runs (082 Phase 3)
+// ---------------------------------------------------------------------------
+
+type LookupArtifactsRequest = {
+  id: string; // project ID (path param)
+  content_hash: string;
+  stage_id: string;
+};
+
+type LookupArtifactsResponse = {
+  found: boolean;
+  artifact: {
+    pipeline_id: string;
+    stage_id: string;
+    artifact_type: string;
+    content_hash: string;
+    storage_path: string;
+    size_bytes: number;
+    created_at: string;
+  } | null;
+};
+
+export const lookupArtifact = api(
+  { expose: true, method: "GET", path: "/api/projects/:id/factory/artifacts/lookup" },
+  async (req: LookupArtifactsRequest): Promise<LookupArtifactsResponse> => {
+    await verifyProjectInOrg(req.id);
+
+    const rows = await db
+      .select()
+      .from(factoryArtifacts)
+      .innerJoin(
+        factoryPipelines,
+        eq(factoryArtifacts.pipelineId, factoryPipelines.id)
+      )
+      .where(
+        and(
+          eq(factoryPipelines.projectId, req.id),
+          eq(factoryArtifacts.contentHash, req.content_hash),
+          eq(factoryArtifacts.stageId, req.stage_id),
+          eq(factoryPipelines.status, "completed")
+        )
+      )
+      .orderBy(desc(factoryArtifacts.createdAt))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return { found: false, artifact: null };
+    }
+
+    const a = rows[0].factory_artifacts;
+    return {
+      found: true,
+      artifact: {
+        pipeline_id: a.pipelineId,
+        stage_id: a.stageId,
+        artifact_type: a.artifactType,
+        content_hash: a.contentHash,
+        storage_path: a.storagePath,
+        size_bytes: a.sizeBytes,
+        created_at: a.createdAt.toISOString(),
+      },
     };
   }
 );

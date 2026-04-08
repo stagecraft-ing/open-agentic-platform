@@ -280,6 +280,61 @@ impl StagecraftClient {
         resp.json().await.map_err(StagecraftError::Decode)
     }
 
+    // -- 082 FR-023: Record Artifacts ------------------------------------------
+
+    pub async fn record_artifacts(
+        &self,
+        project_id: &str,
+        pipeline_id: &str,
+        stage_id: &str,
+        artifacts: &[ArtifactRecord],
+    ) -> Result<RecordArtifactsResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/factory/artifacts",
+            self.base_url, project_id
+        );
+        let body = RecordArtifactsRequest {
+            pipeline_id: pipeline_id.into(),
+            stage_id: stage_id.into(),
+            artifacts: artifacts.to_vec(),
+        };
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    // -- 082 FR-025: Lookup Artifacts ------------------------------------------
+
+    pub async fn lookup_artifact(
+        &self,
+        project_id: &str,
+        content_hash: &str,
+        stage_id: &str,
+    ) -> Result<LookupArtifactResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}",
+            self.base_url, project_id, content_hash, stage_id
+        );
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
     // -- FR-008: Token Spend --------------------------------------------------
 
     pub async fn report_token_spend(
@@ -479,6 +534,47 @@ struct TokenSpendRequest {
     prompt_tokens: u64,
     completion_tokens: u64,
     model: String,
+}
+
+// ---------------------------------------------------------------------------
+// Artifact types (082 Phase 3)
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Serialize)]
+pub struct ArtifactRecord {
+    pub artifact_type: String,
+    pub content_hash: String,
+    pub storage_path: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Serialize)]
+struct RecordArtifactsRequest {
+    pipeline_id: String,
+    stage_id: String,
+    artifacts: Vec<ArtifactRecord>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RecordArtifactsResponse {
+    pub recorded: u32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LookupArtifactResponse {
+    pub found: bool,
+    pub artifact: Option<ArtifactInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ArtifactInfo {
+    pub pipeline_id: String,
+    pub stage_id: String,
+    pub artifact_type: String,
+    pub content_hash: String,
+    pub storage_path: String,
+    pub size_bytes: u64,
+    pub created_at: String,
 }
 
 // ---------------------------------------------------------------------------

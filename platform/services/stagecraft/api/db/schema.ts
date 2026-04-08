@@ -357,6 +357,7 @@ export const factoryPipelines = pgTable("factory_pipelines", {
   status: factoryPipelineStatusEnum("status").notNull().default("initialized"),
   policyBundleId: uuid("policy_bundle_id"),
   buildSpecHash: text("build_spec_hash"),
+  previousPipelineId: uuid("previous_pipeline_id"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -436,6 +437,23 @@ export const factoryPolicyBundles = pgTable("factory_policy_bundles", {
   adapterName: text("adapter_name").notNull(),
   rules: jsonb("rules").notNull(),
   compiledAt: timestamp("compiled_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Factory Artifact Registry (spec 082 Phase 3)
+// ---------------------------------------------------------------------------
+
+export const factoryArtifacts = pgTable("factory_artifacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pipelineId: uuid("pipeline_id").notNull(),
+  stageId: text("stage_id").notNull(),
+  artifactType: text("artifact_type").notNull(),
+  contentHash: text("content_hash").notNull(),
+  storagePath: text("storage_path").notNull(),
+  sizeBytes: integer("size_bytes").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });

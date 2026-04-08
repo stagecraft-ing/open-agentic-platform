@@ -24,6 +24,7 @@ regex = "1"
 walkdir = "2"
 clap = { version = "4", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
+dirs = "5"
 
 [[bin]]
 name = "factory-harness"
