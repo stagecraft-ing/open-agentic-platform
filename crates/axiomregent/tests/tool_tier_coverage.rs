@@ -2,19 +2,21 @@
 // Asserts that every tool in the router's tools/list has an explicit tier assignment.
 // Adding a tool to the router without classifying it in get_tool_tier() will fail this test.
 
+use axiomregent::checkpoint::blobs::BlobStore as CheckpointBlobStore;
+use axiomregent::checkpoint::provider::CheckpointProvider;
+use axiomregent::checkpoint::store::CheckpointStore;
+use axiomregent::router::legacy_provider::LegacyToolProvider;
+use axiomregent::router::provider::ToolProvider;
 use axiomregent::router::{JsonRpcRequest, Router};
 use serde_json::json;
 use std::collections::HashSet;
 use std::sync::Arc;
 
 mod test_helpers;
-use test_helpers::make_router;
 
 async fn create_router() -> Router {
     let db_dir = tempfile::tempdir().unwrap();
     let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
-    // Forget TempDir to keep it alive for the router's lifetime
-    std::mem::forget(db_dir);
 
     let workspace_tools = Arc::new(axiomregent::workspace::WorkspaceTools::new(
         lease_store.clone(),
@@ -27,16 +29,30 @@ async fn create_router() -> Router {
         feature_tools.clone(),
     ));
     let root = std::env::current_dir().unwrap();
-    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client, &root));
+    let run_tools = Arc::new(axiomregent::run_tools::RunTools::new(client.clone(), &root));
 
-    make_router(
-        lease_store,
+    let legacy: Arc<dyn ToolProvider> = Arc::new(LegacyToolProvider {
         workspace_tools,
         featuregraph_tools,
         xray_tools,
         agent_tools,
         run_tools,
+    });
+
+    let checkpoint_blobs = CheckpointBlobStore::new(
+        db_dir.path().join("blobs").join("checkpoints"),
     )
+    .expect("CheckpointBlobStore init");
+    let checkpoint_store = Arc::new(CheckpointStore::new(client, checkpoint_blobs));
+    let checkpoint_provider: Arc<dyn ToolProvider> =
+        Arc::new(CheckpointProvider::new(checkpoint_store));
+
+    let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy, checkpoint_provider];
+
+    // Forget TempDir to keep it alive for the router's lifetime
+    std::mem::forget(db_dir);
+
+    Router::new(providers, lease_store).await
 }
 
 #[tokio::test]

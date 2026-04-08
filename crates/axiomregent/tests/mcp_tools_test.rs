@@ -35,6 +35,7 @@ async fn make_test_router(dir: &std::path::Path) -> Router {
         agent_tools,
         run_tools,
     )
+    .await
 }
 
 #[tokio::test]

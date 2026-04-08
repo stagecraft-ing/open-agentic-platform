@@ -80,7 +80,8 @@ async fn test_stale_lease_error_structure() {
         xray_tools,
         agent_tools,
         run_tools,
-    );
+    )
+    .await;
 
     // 1. Issue a lease directly via LeaseStore
     let fp = axiomregent::lease::Fingerprint::compute(repo.path()).await.unwrap();

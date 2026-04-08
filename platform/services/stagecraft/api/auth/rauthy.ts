@@ -10,7 +10,7 @@ import log from "encore.dev/log";
 import { createVerify } from "crypto";
 
 // Rauthy configuration secrets
-const rauthyUrl = secret("RAUTHY_URL");                     // e.g. https://rauthy.localdev.online
+export const rauthyUrl = secret("RAUTHY_URL");                     // e.g. https://rauthy.localdev.online
 const rauthyClientId = secret("RAUTHY_CLIENT_ID");          // Stagecraft OIDC client ID
 const rauthyClientSecret = secret("RAUTHY_CLIENT_SECRET");  // Stagecraft OIDC client secret
 const rauthyAdminToken = secret("RAUTHY_ADMIN_TOKEN");      // Rauthy admin API bearer token
@@ -62,7 +62,7 @@ interface JwkKey {
 let jwksCache: { keys: JwkKey[]; fetchedAt: number } | null = null;
 const JWKS_CACHE_TTL_MS = 3600_000; // 1 hour
 
-async function getJwks(): Promise<JwkKey[]> {
+export async function getJwks(): Promise<JwkKey[]> {
   if (jwksCache && Date.now() - jwksCache.fetchedAt < JWKS_CACHE_TTL_MS) {
     return jwksCache.keys;
   }

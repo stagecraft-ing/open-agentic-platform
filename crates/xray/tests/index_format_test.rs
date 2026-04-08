@@ -6,7 +6,6 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 
 use serde_json::Value;
 
@@ -33,50 +32,9 @@ fn test_index_format() {
     // Clean output
     let _ = fs::remove_dir_all(&output_dir);
 
-    // Use CARGO_BIN_EXE_axiomregent provided by Cargo for integration tests
-    // Utilize CARGO_BIN_EXE_axiomregent if set (integration tests), or fallback to searching target dir (unit tests/workspace)
-    let axiomregent_bin = env::var("CARGO_BIN_EXE_axiomregent").unwrap_or_else(|_| {
-        let mut path = PathBuf::from(&manifest_dir);
-        path.pop(); // crates
-        path.pop(); // axiomregent root
-        path.push("target");
-        if cfg!(debug_assertions) {
-            path.push("debug");
-        } else {
-            path.push("release");
-        }
-        path.push("axiomregent");
-
-        // Final fallback try: check the other profile if not found (e.g. running test in debug but binary built in release)
-        if !path.exists() {
-            let mut alt_path = PathBuf::from(&manifest_dir);
-            alt_path.pop();
-            alt_path.pop();
-            alt_path.push("target");
-            if cfg!(debug_assertions) {
-                alt_path.push("release");
-            } else {
-                alt_path.push("debug");
-            }
-            alt_path.push("axiomregent");
-            if alt_path.exists() {
-                return alt_path.to_string_lossy().to_string();
-            }
-        }
-
-        path.to_string_lossy().to_string()
-    });
-
-    // Run Scan
-    let status = Command::new(axiomregent_bin)
-        .arg("scan")
-        .arg(&fixture_dst)
-        .arg("--output")
-        .arg(&output_dir)
-        .current_dir(&manifest_dir)
-        .status()
+    // Run scan using the library API directly
+    let _index = xray::scan_target(&fixture_dst, Some(output_dir.clone()))
         .expect("Failed to run scan");
-    assert!(status.success());
 
     let index_path = output_dir.join("index.json");
     let content = fs::read_to_string(&index_path).expect("Failed to read index.json");
@@ -87,8 +45,8 @@ fn test_index_format() {
     // 1. Root fields
     assert_eq!(
         v.get("schemaVersion").and_then(Value::as_str),
-        Some("1.0.0"),
-        "schemaVersion must be 1.0.0"
+        Some("1.2.0"),
+        "schemaVersion must be 1.2.0"
     );
 
     assert!(
@@ -106,7 +64,6 @@ fn test_index_format() {
         "Missing target"
     );
 
-    // These were in the old test but are not in the provided index.json structure
     assert!(
         v.get("scanId").is_none(),
         "scanId must not be present in index.json"

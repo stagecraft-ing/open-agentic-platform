@@ -18,38 +18,15 @@ impl Drop for ChildGuard {
 
 #[test]
 fn test_stdio_integrity() {
-    // 1. Locate the binary using Cargo's environment variable
-    // This is set when running integration tests under `cargo test`
-    let bin_path = match std::env::var("CARGO_BIN_EXE_axiomregent") {
-        Ok(path) => path,
-        Err(_) => {
-            let bin_name = format!("axiomregent{}", std::env::consts::EXE_SUFFIX);
-            let mut path = std::env::current_dir().expect("Failed to get current dir");
-            path.push("target");
-            path.push("debug");
-            path.push(&bin_name);
-            if path.exists() {
-                path.to_string_lossy().to_string()
-            } else {
-                // Try release?
-                path.pop();
-                path.push("release");
-                path.push(&bin_name);
-                if path.exists() {
-                    path.to_string_lossy().to_string()
-                } else {
-                    panic!(
-                        "CARGO_BIN_EXE_axiomregent not set and binary not found in target/debug or target/release"
-                    );
-                }
-            }
-        }
-    };
-
+    // 1. Locate the binary — CARGO_BIN_EXE_axiomregent is set at compile time
+    //    by cargo for integration tests in a package that defines a [[bin]] target.
+    let bin_path = env!("CARGO_BIN_EXE_axiomregent");
+    let tmp_dir = tempfile::tempdir().expect("Failed to create temp dir");
     // 2. Spawn the process
     let mut child = ChildGuard(
         Command::new(bin_path)
             .env("RUST_LOG", "info") // Force info logging
+            .env("AXIOMREGENT_DATA_DIR", tmp_dir.path())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

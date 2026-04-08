@@ -41,7 +41,7 @@ pub async fn make_lease_store(data_dir: &std::path::Path) -> Arc<LeaseStore> {
 /// Build a `Router` from a `LeaseStore` and a set of pre-constructed tools.
 /// Uses the current `LegacyToolProvider` structure.
 #[allow(dead_code)]
-pub fn make_router(
+pub async fn make_router(
     lease_store: Arc<LeaseStore>,
     workspace_tools: Arc<axiomregent::workspace::WorkspaceTools>,
     featuregraph_tools: Arc<axiomregent::featuregraph::tools::FeatureGraphTools>,
@@ -57,5 +57,5 @@ pub fn make_router(
         run_tools,
     });
     let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy];
-    Router::new(providers, lease_store)
+    Router::new(providers, lease_store).await
 }

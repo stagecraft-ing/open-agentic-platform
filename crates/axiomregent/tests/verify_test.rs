@@ -44,7 +44,8 @@ async fn test_agent_verify_flow() {
         xray_tools,
         agent_tools,
         run_tools,
-    );
+    )
+    .await;
 
     // 1. Setup Repo State
     // Create spec/verification.yaml

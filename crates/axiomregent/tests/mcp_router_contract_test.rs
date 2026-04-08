@@ -38,7 +38,8 @@ async fn test_router_contract_routing() {
         xray_tools,
         agent_tools,
         run_tools,
-    );
+    )
+    .await;
 
     // 1. Unknown Method -> Error -32601
     let req = JsonRpcRequest {

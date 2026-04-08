@@ -48,14 +48,10 @@ pub fn get_tool_tier(tool_name: &str) -> ToolTier {
         | "checkpoint.verify"
         | "checkpoint.timeline"
         | "checkpoint.status"
-        // snapshot.* legacy aliases (still registered by checkpoint provider)
+        // snapshot.* legacy aliases (registered by checkpoint provider)
         | "snapshot.info"
         | "snapshot.list"
-        | "snapshot.read"
-        | "snapshot.grep"
         | "snapshot.diff"
-        | "snapshot.changes"
-        | "snapshot.export"
         | "xray.scan"
         | "run.status"
         | "run.logs"
@@ -94,14 +90,10 @@ pub fn explicitly_classified_tools() -> &'static [&'static str] {
         "checkpoint.verify",
         "checkpoint.timeline",
         "checkpoint.status",
-        // snapshot.* legacy aliases (still registered by checkpoint provider)
+        // snapshot.* legacy aliases (registered by checkpoint provider)
         "snapshot.info",
         "snapshot.list",
-        "snapshot.read",
-        "snapshot.grep",
         "snapshot.diff",
-        "snapshot.changes",
-        "snapshot.export",
         "xray.scan",
         "run.status",
         "run.logs",

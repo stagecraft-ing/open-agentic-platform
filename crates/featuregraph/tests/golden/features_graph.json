@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f0cfd4f85e02d04654f63237b0cabd75eb192169c5a3b3e882d850e3293b0009",
+  "graph_fingerprint": "sha256:f273e5d3c6684e2f6973a4122f41f278279bf2302776b0a7fc0ceeef725fb47f",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -32,7 +32,7 @@
       "feature_id": "002-registry-consumer-mvp",
       "title": "Registry consumer MVP (read-only spec runtime surface)",
       "spec_path": "specs/002-registry-consumer-mvp/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -45,7 +45,7 @@
       "feature_id": "003-feature-lifecycle-mvp",
       "title": "Feature lifecycle & status semantics (registry status model)",
       "spec_path": "specs/003-feature-lifecycle-mvp/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -58,7 +58,7 @@
       "feature_id": "004-spec-to-execution-bridge-mvp",
       "title": "Spec-to-execution bridge (changeset / task execution protocol)",
       "spec_path": "specs/004-spec-to-execution-bridge-mvp/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -127,7 +127,7 @@
       "feature_id": "005-verification-reconciliation-mvp",
       "title": "Verification and reconciliation (repository state)",
       "spec_path": "specs/005-verification-reconciliation-mvp/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -140,7 +140,7 @@
       "feature_id": "006-conformance-lint-mvp",
       "title": "Conformance lint (optional workflow warnings)",
       "spec_path": "specs/006-conformance-lint-mvp/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1380,7 +1380,7 @@
       "feature_id": "070-prompt-assembly-cache",
       "title": "Prompt Assembly and Cache Boundaries",
       "spec_path": "specs/070-prompt-assembly-cache/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1406,7 +1406,7 @@
       "feature_id": "072-multi-cloud-k8s-portability",
       "title": "Multi-Cloud Kubernetes Portability",
       "spec_path": "specs/072-multi-cloud-k8s-portability/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1432,7 +1432,7 @@
       "feature_id": "074-factory-ingestion",
       "title": "Factory Ingestion as First-Class Delivery Engine",
       "spec_path": "specs/074-factory-ingestion/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1445,7 +1445,7 @@
       "feature_id": "075-factory-workflow-engine",
       "title": "Factory Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification",
       "spec_path": "specs/075-factory-workflow-engine/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1458,7 +1458,7 @@
       "feature_id": "076-factory-desktop-panel",
       "title": "Factory Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs",
       "spec_path": "specs/076-factory-desktop-panel/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1471,7 +1471,7 @@
       "feature_id": "077-stagecraft-factory-api",
       "title": "Stagecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail",
       "spec_path": "specs/077-stagecraft-factory-api/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1484,6 +1484,110 @@
       "feature_id": "078-platform-completion-plan",
       "title": "Platform Completion Plan — Factory Ingestion + Draft Spec Closure",
       "spec_path": "specs/078-platform-completion-plan/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "079-scheduling",
+      "title": "Scheduled Agent Execution",
+      "spec_path": "specs/079-scheduling/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "080-github-identity-onboarding",
+      "title": "GitHub Identity and Org Onboarding — App Installation, OAuth Login, Rauthy Sessions",
+      "spec_path": "specs/080-github-identity-onboarding/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "081-factory-test-hydration",
+      "title": "Factory Test Data Hydration",
+      "spec_path": "specs/081-factory-test-hydration/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "082-artifact-integrity-platform-hardening",
+      "title": "Artifact Integrity, Cross-Run Persistence, and Seam Auth Hardening",
+      "spec_path": "specs/082-artifact-integrity-platform-hardening/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "083-xray-ui-upgrade",
+      "title": "Xray v1.2.0 UI Surface",
+      "spec_path": "specs/083-xray-ui-upgrade/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "084-opc-settings-reconciliation",
+      "title": "OPC Scoped Settings Reconciliation",
+      "spec_path": "specs/084-opc-settings-reconciliation/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "085-remote-control-cli",
+      "title": "Remote Control CLI (oap-ctl)",
+      "spec_path": "specs/085-remote-control-cli/spec.md",
+      "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "086-open-source-launch",
+      "title": "Open Source Launch Readiness",
+      "spec_path": "specs/086-open-source-launch/spec.md",
       "status": "draft",
       "governance": "",
       "owner": "",
@@ -1495,6 +1599,83 @@
     }
   ],
   "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/ArtifactInspector.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/BuildSpecStructuredView.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/FactoryPipelineContext.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/FactoryPipelinePanel.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/GateDialog.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/PipelineDAG.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/PipelineHistory.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/PipelineSelector.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/ScaffoldMonitor.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/TokenDashboard.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/types.ts",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
@@ -1582,6 +1763,104 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-contracts/src/namespace.rs",
+      "message": "Malformed Spec directive: // Spec: specs/082-artifact-integrity-platform-hardening/spec.md — FR-030, FR-031",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/agent_bridge.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-007",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/artifact_store.rs",
+      "message": "Malformed Spec directive: // Spec: specs/082-artifact-integrity-platform-hardening/spec.md — FR-020, FR-021",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/checks.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/engine.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/gate.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/harness_state.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/manifest_gen.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-002, FR-003",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/pipeline_state.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/policy_shard.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-008",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/preflight.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/topo_sort.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-004",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/verify_harness.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/orchestrator/src/artifact.rs",
       "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
       "suggested_fix": "Fix header format"
@@ -1605,6 +1884,13 @@
       "severity": "error",
       "path": "crates/orchestrator/src/manifest.rs",
       "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/verify.rs",
+      "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

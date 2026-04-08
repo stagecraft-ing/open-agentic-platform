@@ -54,6 +54,7 @@ async fn create_router(db_dir: &std::path::Path) -> axiomregent::router::Router 
         agent_tools,
         run_tools,
     )
+    .await
 }
 
 #[tokio::test]

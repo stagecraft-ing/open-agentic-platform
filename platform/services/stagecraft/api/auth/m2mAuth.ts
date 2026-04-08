@@ -106,8 +106,8 @@ async function validateM2mJwt(token: string): Promise<M2mClaims | null> {
       return null;
     }
 
-    // Construct PEM from JWK components
-    const pubKey = jwkToPem(key);
+    // Construct PEM from JWK components (n and e guaranteed by guard above)
+    const pubKey = jwkToPem({ n: key.n!, e: key.e! });
     const signatureInput = `${parts[0]}.${parts[1]}`;
     const signature = Buffer.from(parts[2], "base64url");
 

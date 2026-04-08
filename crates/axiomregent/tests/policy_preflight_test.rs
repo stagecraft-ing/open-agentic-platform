@@ -12,7 +12,7 @@ use open_agentic_policy_kernel::{PolicyBundle, PolicyRule};
 mod test_helpers;
 use test_helpers::make_router;
 
-fn router_with_lease(client: Client, lease_store: Arc<LeaseStore>) -> Router {
+async fn router_with_lease(client: Client, lease_store: Arc<LeaseStore>) -> Router {
     let workspace_tools = Arc::new(axiomregent::workspace::WorkspaceTools::new(
         lease_store.clone(),
     ));
@@ -35,6 +35,7 @@ fn router_with_lease(client: Client, lease_store: Arc<LeaseStore>) -> Router {
         agent_tools,
         run_tools,
     )
+    .await
 }
 
 async fn minimal_router() -> Router {
@@ -42,7 +43,7 @@ async fn minimal_router() -> Router {
     let (client, lease_store) = test_helpers::make_client_and_lease_store(db_dir.path()).await;
     // Keep db_dir alive by leaking it for this test (short-lived)
     std::mem::forget(db_dir);
-    router_with_lease(client, lease_store)
+    router_with_lease(client, lease_store).await
 }
 
 #[tokio::test]
@@ -105,7 +106,7 @@ async fn permission_denied_still_permission_code() {
         enable_network: false,
         max_tier: 3,
     }));
-    let router = router_with_lease(client, lease_store);
+    let router = router_with_lease(client, lease_store).await;
     let req = JsonRpcRequest {
         jsonrpc: "2.0".into(),
         method: "tools/call".into(),
