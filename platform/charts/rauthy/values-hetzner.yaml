@@ -1,7 +1,7 @@
 replicas: 1
 
 oidc:
-  issuer: "https://auth.stagecraft.ing/auth/v1"
+  issuer: "https://auth.stagecraft.ing/auth/v1/"
 
 ingress:
   enabled: true
