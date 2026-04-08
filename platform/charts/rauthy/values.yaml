@@ -32,6 +32,13 @@ api:
   existingSecret: "rauthy-secrets"
   existingSecretKey: "api-secret"
 
+encryption:
+  # ENC_KEYS format: key_id/base64_encoded_32_byte_key
+  # ENC_KEY_ACTIVE: just the key_id
+  existingSecret: "rauthy-secrets"
+  existingSecretKeyEnc: "enc-keys"
+  existingSecretKeyActive: "enc-key-active"
+
 bootstrap:
   adminEmail: "admin@example.com"
   # Override via --set or external-secrets in production.

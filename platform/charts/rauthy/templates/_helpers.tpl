@@ -39,7 +39,7 @@ Compute the HQL_NODES value: space-separated list of
 {{- $nodes := list -}}
 {{- range $i, $_ := until $replicas -}}
   {{- $nodeId := add1 $i -}}
-  {{- $nodes = append $nodes (printf "%d %s-%d.%s:8100" $nodeId $fullname $i $headless) -}}
+  {{- $nodes = append $nodes (printf "%d %s-%d.%s:8100 %s-%d.%s:8200" $nodeId $fullname $i $headless $fullname $i $headless) -}}
 {{- end -}}
 {{ join ", " $nodes }}
 {{- end -}}
@@ -49,5 +49,5 @@ Strip a trailing /auth/v1 (or /auth/v1/) from the issuer URL to produce the
 bare public URL that Rauthy expects in RAUTHY_PUB_URL.
 */}}
 {{- define "rauthy.pubUrl" -}}
-{{- .Values.oidc.issuer | trimSuffix "/auth/v1/" | trimSuffix "/auth/v1" -}}
+{{- .Values.oidc.issuer | trimSuffix "/auth/v1/" | trimSuffix "/auth/v1" | trimPrefix "https://" | trimPrefix "http://" -}}
 {{- end -}}
