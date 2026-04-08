@@ -28,6 +28,10 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 generate_secret()  { bash "$GENERATORS/generate-secret.sh"; }
 generate_b64url()  { bash "$GENERATORS/generate-base64url-password.sh"; }
+# Rauthy ENC_KEY_ID must match ^[a-zA-Z0-9:_-]{2,20}$
+generate_enc_key_id() { openssl rand -hex 8; }
+# Rauthy ENC_KEY must be exactly 32 random bytes, base64-encoded
+generate_enc_key()    { openssl rand -base64 32 | tr -d '\n'; echo; }
 
 # ---------------------------------------------------------------------------
 # Load .env
@@ -109,8 +113,8 @@ auto_fill SESSION_SECRET      generate_secret
 auto_fill RAUTHY_RAFT_SECRET  generate_secret
 auto_fill RAUTHY_API_SECRET   generate_secret
 auto_fill RAUTHY_ADMIN_PASSWORD generate_b64url
-auto_fill RAUTHY_ENC_KEY_ID    generate_secret
-auto_fill RAUTHY_ENC_KEY       generate_secret
+auto_fill RAUTHY_ENC_KEY_ID    generate_enc_key_id
+auto_fill RAUTHY_ENC_KEY       generate_enc_key
 auto_fill HIQLITE_SECRET_RAFT generate_secret
 auto_fill HIQLITE_SECRET_API  generate_secret
 auto_fill GITHUB_WEBHOOK_SECRET generate_secret
@@ -164,7 +168,7 @@ CHARTS_ROOT="$PLATFORM_ROOT/charts"
 
 info "Creating rauthy-secrets..."
 # ENC_KEYS format: key_id/base64_of_32_random_bytes
-RAUTHY_ENC_KEYS="${RAUTHY_ENC_KEY_ID}/$(printf '%s' "$RAUTHY_ENC_KEY" | openssl base64 -A)"
+RAUTHY_ENC_KEYS="${RAUTHY_ENC_KEY_ID}/${RAUTHY_ENC_KEY}"
 kubectl create secret generic rauthy-secrets \
   --namespace rauthy-system \
   --from-literal=raft-secret="$RAUTHY_RAFT_SECRET" \
