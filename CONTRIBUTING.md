@@ -25,10 +25,11 @@ Specs are the source of truth. They drive the registry, the compiler, and the ag
 
 ```yaml
 # Minimal spec frontmatter
-id: "NNN"
-slug: "short-feature-name"
+id: "NNN-short-feature-name"
 title: "Human-readable feature title"
-status: "draft"          # draft | accepted | implemented | deprecated
+status: "draft"          # draft | active | superseded | retired
+created: "YYYY-MM-DD"
+summary: "One-line description of the feature"
 ```
 
 Run the spec compiler after any spec change:

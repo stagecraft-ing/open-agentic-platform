@@ -58,7 +58,7 @@
         "title": { "type": "string", "minLength": 1 },
         "status": {
           "type": "string",
-          "enum": ["draft", "active", "implemented", "superseded", "retired"]
+          "enum": ["draft", "active", "superseded", "retired"]
         },
         "created": { "type": "string", "format": "date" },
         "summary": { "type": "string", "minLength": 1 },

@@ -2,7 +2,7 @@
 id: "075-factory-workflow-engine"
 title: "Factory Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification"
 feature_branch: "feat/075-factory-workflow-engine"
-status: implemented
+status: active
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

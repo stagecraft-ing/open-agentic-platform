@@ -54,3 +54,62 @@ Superseded by `010-other-feature`.
     let w = lint_feature_dir(root, &feat);
     assert!(!w.iter().any(|x| x.code == "W-002"));
 }
+
+#[test]
+fn w006_non_canonical_status() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-w6-test");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-w6-test"
+title: "t"
+status: implemented
+created: "2026-03-22"
+summary: "x"
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(w.iter().any(|x| x.code == "W-006"));
+}
+
+#[test]
+fn w006_canonical_status_ok() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    for status in &["draft", "active", "superseded", "retired"] {
+        let slug = format!("099-w6-{}", status);
+        let feat = root.join(format!("specs/{}", slug));
+        fs::create_dir_all(&feat).unwrap();
+        fs::write(
+            feat.join("spec.md"),
+            format!(
+                r#"---
+id: "{slug}"
+title: "t"
+status: {status}
+created: "2026-03-22"
+summary: "x"
+---
+# Body
+
+Superseded by `000-bootstrap-spec-system`. Retirement rationale noted.
+"#
+            ),
+        )
+        .unwrap();
+
+        let w = lint_feature_dir(root, &feat);
+        assert!(
+            !w.iter().any(|x| x.code == "W-006"),
+            "canonical status '{}' should not trigger W-006",
+            status
+        );
+    }
+}

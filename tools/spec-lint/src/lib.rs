@@ -85,8 +85,20 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
         Err(_) => return w,
     };
 
+    const VALID_STATUSES: &[&str] = &["draft", "active", "superseded", "retired"];
+
     if let Some((fm, body)) = split_frontmatter_optional(&spec_raw) {
         if let Some(status) = fm.get("status").and_then(|v| v.as_str()) {
+            if !VALID_STATUSES.contains(&status) {
+                w.push(Warning {
+                    code: "W-006",
+                    path: rel(repo_root, &spec_path),
+                    message: format!(
+                        "status '{}' is not in the canonical enum (draft | active | superseded | retired) per Feature 000",
+                        status
+                    ),
+                });
+            }
             if status == "superseded" && !superseded_pointer_ok(&body) {
                 w.push(Warning {
                     code: "W-002",
