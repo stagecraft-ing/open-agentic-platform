@@ -90,7 +90,7 @@ async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> 
     }
 
     let url = format!(
-        "{}/.well-known/openid-configuration",
+        "{}/auth/v1/.well-known/openid-configuration",
         oidc_endpoint.trim_end_matches('/')
     );
     let resp: serde_json::Value = reqwest::get(&url).await?.json().await?;

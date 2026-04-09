@@ -19,7 +19,7 @@ export async function fetchClientCredentialsToken(opts: {
   resource: string;
   scope?: string;
 }): Promise<TokenResponse> {
-  const url = new URL("/oidc/token", opts.oidcEndpoint).toString();
+  const url = `${opts.oidcEndpoint.replace(/\/+$/, "")}/auth/v1/oidc/token`;
 
   const body = new URLSearchParams();
   body.set("grant_type", "client_credentials");
