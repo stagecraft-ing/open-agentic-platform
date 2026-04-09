@@ -113,6 +113,14 @@ jobs:
           echo "${{ secrets.KUBECONFIG_HETZNER }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Ensure GHCR image-pull secret
+        run: |
+          kubectl -n stagecraft-system create secret docker-registry ghcr-credentials \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GHCR_PAT }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Deploy stagecraft via Helm
         run: |
           helm upgrade --install stagecraft platform/charts/stagecraft \

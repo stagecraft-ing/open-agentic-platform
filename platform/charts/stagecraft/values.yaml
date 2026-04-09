@@ -2,6 +2,8 @@ image:
   repository: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
   tag: dev
 
+imagePullSecrets: []
+
 ingress:
   enabled: true
   className: nginx
