@@ -48,6 +48,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/services/stagecraft/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: platform/services/stagecraft
+
+      - name: Build frontend
+        run: cd web && npx react-router build
+        working-directory: platform/services/stagecraft
+
       - name: Install Encore CLI
         run: curl -L https://encore.dev/install.sh | bash
 
