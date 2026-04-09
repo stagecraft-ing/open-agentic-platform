@@ -1,0 +1,116 @@
+# CD for stagecraft: build Docker image, push to GHCR, deploy to Hetzner K3s.
+#
+# Required GitHub secrets:
+#   HETZNER_KUBECONFIG  — contents of platform/infra/hetzner/kubeconfig (base64-encoded)
+#
+# Required GitHub environment:
+#   "production"         — create with protection rules for manual approval on deploy
+
+name: CD stagecraft
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/services/stagecraft/**'
+      - 'platform/charts/stagecraft/**'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy after build (true/false)'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+concurrency:
+  group: cd-stagecraft-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
+
+jobs:
+  # ── CI gate ────────────────────────────────────────────────
+  ci:
+    uses: ./.github/workflows/ci-stagecraft.yml
+
+  # ── Build & push Docker image ─────────────────────────────
+  build-and-push:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.sha-tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Encore CLI
+        run: curl -L https://encore.dev/install.sh | bash
+        env:
+          ENCORE_INSTALL_DIR: /usr/local/bin
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "sha-tag=sha-${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "Building tags: sha-${SHA_SHORT}, latest"
+
+      - name: Build Docker image (Encore)
+        working-directory: platform/services/stagecraft
+        run: |
+          encore build docker \
+            --config ./infra.config.hetzner.json \
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
+
+      - name: Tag as latest
+        run: docker tag ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }} ${{ env.IMAGE }}:latest
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GHCR
+        run: |
+          docker push ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
+          docker push ${{ env.IMAGE }}:latest
+
+  # ── Deploy to Hetzner K3s ─────────────────────────────────
+  deploy-hetzner:
+    needs: build-and-push
+    if: github.event_name == 'push' || github.event.inputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy stagecraft via Helm
+        run: |
+          helm upgrade --install stagecraft platform/charts/stagecraft \
+            --namespace stagecraft-system \
+            -f platform/charts/stagecraft/values.yaml \
+            -f platform/charts/stagecraft/values-hetzner.yaml \
+            --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
+            --wait --timeout 300s
+
+      - name: Verify rollout
+        run: |
+          kubectl -n stagecraft-system rollout status deployment/stagecraft-api --timeout=120s
+          kubectl -n stagecraft-system get pods -l app=stagecraft-api

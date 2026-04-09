@@ -36,6 +36,14 @@
               "name": "check-site"
             }
           }
+        },
+        "factory-event": {
+          "name": "factory-event",
+          "subscriptions": {
+            "slack-factory-notification": {
+              "name": "slack-factory-notification"
+            }
+          }
         }
       }
     }
