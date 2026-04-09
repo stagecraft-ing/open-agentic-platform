@@ -120,9 +120,24 @@ jobs:
             -f platform/charts/stagecraft/values.yaml \
             -f platform/charts/stagecraft/values-hetzner.yaml \
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
-            --wait --timeout 300s
+            --wait --timeout 600s
 
       - name: Verify rollout
         run: |
           kubectl -n stagecraft-system rollout status deployment/stagecraft-api --timeout=120s
           kubectl -n stagecraft-system get pods -l app=stagecraft-api
+
+      - name: Debug failed deploy
+        if: failure()
+        run: |
+          echo "=== Pod status ==="
+          kubectl -n stagecraft-system get pods -l app=stagecraft-api -o wide
+          echo ""
+          echo "=== Pod describe ==="
+          kubectl -n stagecraft-system describe pods -l app=stagecraft-api
+          echo ""
+          echo "=== Pod logs (latest) ==="
+          kubectl -n stagecraft-system logs -l app=stagecraft-api --tail=100 --all-containers
+          echo ""
+          echo "=== Events ==="
+          kubectl -n stagecraft-system get events --sort-by='.lastTimestamp' | tail -30
