@@ -2,7 +2,18 @@
   "$schema": "https://encore.dev/schemas/infra.schema.json",
   "secrets": {
     "DOMAIN": { "$env": "DOMAIN" },
+    "APP_BASE_URL": { "$env": "APP_BASE_URL" },
+    "SESSION_SECRET": { "$env": "SESSION_SECRET" },
     "OIDC_SPA_CLIENT_ID": { "$env": "OIDC_SPA_CLIENT_ID" },
+    "RAUTHY_URL": { "$env": "RAUTHY_URL" },
+    "RAUTHY_CLIENT_ID": { "$env": "RAUTHY_CLIENT_ID" },
+    "RAUTHY_CLIENT_SECRET": { "$env": "RAUTHY_CLIENT_SECRET" },
+    "RAUTHY_ADMIN_TOKEN": { "$env": "RAUTHY_ADMIN_TOKEN" },
+    "GITHUB_OAUTH_CLIENT_ID": { "$env": "GITHUB_OAUTH_CLIENT_ID" },
+    "GITHUB_OAUTH_CLIENT_SECRET": { "$env": "GITHUB_OAUTH_CLIENT_SECRET" },
+    "GITHUB_APP_ID": { "$env": "GITHUB_APP_ID" },
+    "GITHUB_APP_PRIVATE_KEY": { "$env": "GITHUB_APP_PRIVATE_KEY" },
+    "GITHUB_WEBHOOK_SECRET": { "$env": "GITHUB_WEBHOOK_SECRET" },
     "SLACK_WEBHOOK_URL": { "$env": "SLACK_WEBHOOK_URL" }
   },
   "pubsub": [
