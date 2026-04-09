@@ -10,6 +10,8 @@ export default [
   route("pricing", "routes/pricing.tsx"),
   route("signin", "routes/signin.tsx"),
   route("signup", "routes/signup.tsx"),
+  route("auth/no-org", "routes/auth.no-org.tsx"),
+  route("auth/org-select", "routes/auth.org-select.tsx"),
   route("admin/signin", "routes/admin.signin.tsx"),
   route("app", "routes/app.tsx", [
     index("routes/app._index.tsx"),

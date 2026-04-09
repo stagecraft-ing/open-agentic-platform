@@ -115,8 +115,9 @@ export const githubCallback = api.raw(
     }
     pendingStates.delete(state);
 
+    // Stage 1: Exchange code for access token
+    let tokenData: GitHubAccessTokenResponse;
     try {
-      // Step 1: Exchange code for access token
       const tokenResp = await fetch(
         "https://github.com/login/oauth/access_token",
         {
@@ -134,33 +135,47 @@ export const githubCallback = api.raw(
       );
 
       if (!tokenResp.ok) {
-        throw new Error(`Token exchange failed: ${tokenResp.status}`);
+        throw new Error(`Token exchange HTTP ${tokenResp.status}`);
       }
 
-      const tokenData =
-        (await tokenResp.json()) as GitHubAccessTokenResponse;
+      tokenData = (await tokenResp.json()) as GitHubAccessTokenResponse;
       if (!tokenData.access_token) {
         throw new Error("No access_token in GitHub response");
       }
+    } catch (err) {
+      log.error("GitHub OAuth token exchange failed", { error: String(err) });
+      resp.writeHead(302, { Location: "/signin?error=token_failed" });
+      resp.end();
+      return;
+    }
 
-      // Step 2: Get GitHub user identity
-      const ghUser = await fetchGitHubUser(tokenData.access_token);
+    // Stage 2: Get GitHub user identity and email
+    let ghUser: GitHubUser;
+    let email: string;
+    try {
+      ghUser = await fetchGitHubUser(tokenData.access_token);
 
-      // Step 3: Get user's email if not in profile
-      let email = ghUser.email;
-      if (!email) {
-        email = await fetchGitHubPrimaryEmail(tokenData.access_token);
+      let resolvedEmail = ghUser.email;
+      if (!resolvedEmail) {
+        resolvedEmail = await fetchGitHubPrimaryEmail(tokenData.access_token);
       }
-      if (!email) {
-        resp.writeHead(302, {
-          Location: "/signin?error=no_email",
-        });
+      if (!resolvedEmail) {
+        resp.writeHead(302, { Location: "/signin?error=no_email" });
         resp.end();
         return;
       }
+      email = resolvedEmail;
+    } catch (err) {
+      log.error("GitHub API call failed", { error: String(err) });
+      resp.writeHead(302, { Location: "/signin?error=github_api_failed" });
+      resp.end();
+      return;
+    }
 
-      // Step 4: Find or create OAP user
-      const user = await findOrCreateUser({
+    // Stage 3: Find or create OAP user and upsert identity
+    let user: { id: string; rauthyUserId: string | null };
+    try {
+      user = await findOrCreateUser({
         githubUserId: ghUser.id,
         githubLogin: ghUser.login,
         email,
@@ -168,7 +183,6 @@ export const githubCallback = api.raw(
         avatarUrl: ghUser.avatar_url,
       });
 
-      // Step 5: Upsert user_identities row
       await db
         .insert(userIdentities)
         .values({
@@ -198,15 +212,30 @@ export const githubCallback = api.raw(
             updatedAt: new Date(),
           },
         });
+    } catch (err) {
+      log.error("Account creation/linking failed", { error: String(err) });
+      resp.writeHead(302, { Location: "/signin?error=account_error" });
+      resp.end();
+      return;
+    }
 
-      // Step 6: Resolve org memberships
-      const matchedOrgs = await resolveOrgMemberships(
+    // Stage 4: Resolve org memberships
+    let matchedOrgs: ResolvedOrg[];
+    try {
+      matchedOrgs = await resolveOrgMemberships(
         tokenData.access_token,
         user.id
       );
+    } catch (err) {
+      log.error("Org membership resolution failed", { error: String(err) });
+      resp.writeHead(302, { Location: "/signin?error=membership_failed" });
+      resp.end();
+      return;
+    }
 
-      // Step 7: Provision Rauthy user
-      let rauthyUserId = user.rauthyUserId;
+    // Stage 5: Provision Rauthy user
+    let rauthyUserId = user.rauthyUserId;
+    try {
       if (!rauthyUserId) {
         rauthyUserId = await provisionRauthyUser({
           email,
@@ -218,14 +247,20 @@ export const githubCallback = api.raw(
           .set({ rauthyUserId })
           .where(eq(users.id, user.id));
       }
+    } catch (err) {
+      log.error("Rauthy user provisioning failed", { error: String(err) });
+      resp.writeHead(302, { Location: "/signin?error=rauthy_unavailable" });
+      resp.end();
+      return;
+    }
 
-      // Step 8: Update last login
+    // Stage 6: Finalize — update last login, audit, route by org count
+    try {
       await db
         .update(users)
         .set({ lastLoginAt: new Date() })
         .where(eq(users.id, user.id));
 
-      // Audit
       await db.insert(auditLog).values({
         actorUserId: user.id,
         action: "user.github_login",
@@ -236,8 +271,13 @@ export const githubCallback = api.raw(
           orgs_matched: matchedOrgs.length,
         },
       });
+    } catch (err) {
+      // Audit/login-timestamp failures are non-fatal — log and continue
+      log.warn("Post-login bookkeeping failed (non-fatal)", { error: String(err) });
+    }
 
-      // Step 9: Route based on matched orgs
+    // Route based on matched orgs
+    try {
       if (matchedOrgs.length === 0) {
         resp.writeHead(302, {
           Location: "/auth/no-org?login=" + encodeURIComponent(ghUser.login),
@@ -247,7 +287,6 @@ export const githubCallback = api.raw(
       }
 
       if (matchedOrgs.length === 1) {
-        // Auto-select the single org — issue session cookie and redirect
         const org = matchedOrgs[0];
         const sessionCookie = buildSessionCookie(
           {
@@ -285,7 +324,7 @@ export const githubCallback = api.raw(
       });
       resp.end();
     } catch (err) {
-      log.error("GitHub OAuth callback failed", { error: String(err) });
+      log.error("Session creation failed", { error: String(err) });
       resp.writeHead(302, { Location: "/signin?error=oauth_failed" });
       resp.end();
     }

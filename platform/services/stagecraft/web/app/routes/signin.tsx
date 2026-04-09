@@ -6,6 +6,11 @@ import { getFormValues } from "../lib/form-data.server";
 const ERROR_MESSAGES: Record<string, string> = {
   github_denied: "GitHub login was denied. Please try again.",
   no_email: "Could not retrieve your email from GitHub. Please ensure your GitHub email is verified.",
+  token_failed: "GitHub authentication failed. Please try again.",
+  github_api_failed: "Could not reach GitHub. Please try again in a moment.",
+  account_error: "Failed to create or link your account. Please try again or contact support.",
+  membership_failed: "Could not resolve your organization memberships. Please try again.",
+  rauthy_unavailable: "Identity service is temporarily unavailable. Please try again later.",
   oauth_failed: "GitHub login failed. Please try again.",
   session_expired: "Session expired. Please sign in again.",
 };

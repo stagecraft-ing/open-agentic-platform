@@ -268,7 +268,33 @@ Browser                  Stagecraft              GitHub              Rauthy
    - `platform_role`: org-level role
 9. If exactly one org match: auto-select
 10. If multiple matches: redirect to org picker (`/auth/org-select`)
-11. If zero matches: show "no connected org" error page
+11. If zero matches: show "no connected org" error page (`/auth/no-org`)
+
+**Error handling:**
+
+Each stage of the callback produces a specific error code on failure, redirecting to `/signin?error=<code>`. This replaces a single catch-all so users see actionable messages:
+
+| Error code | Stage | User-facing message | Cause |
+|------------|-------|---------------------|-------|
+| `github_denied` | OAuth authorize | "GitHub login was denied." | User cancelled or GitHub returned `?error` |
+| `no_email` | GitHub identity | "Could not retrieve your email." | No verified email on GitHub account |
+| `token_failed` | Token exchange | "GitHub authentication failed." | Code expired, secret misconfigured |
+| `github_api_failed` | GitHub API | "Could not reach GitHub." | GitHub API unreachable or returned error |
+| `account_error` | User upsert | "Failed to create or link your account." | Database error during user/identity creation |
+| `membership_failed` | Org resolution | "Could not resolve your organization memberships." | DB or GitHub API error during membership resolution |
+| `rauthy_unavailable` | Rauthy provision | "Identity service is temporarily unavailable." | Rauthy unreachable or admin API error |
+| `session_expired` | Org select | "Session expired." | `__pending_org` cookie missing or invalid |
+| `oauth_failed` | Session creation | "GitHub login failed." | Final catch-all for session/cookie failures |
+
+**Frontend auth routes:**
+
+The OAuth callback redirects to these frontend pages (React Router, registered in `web/app/routes.ts`):
+
+| Path | Component | Purpose |
+|------|-----------|---------|
+| `/signin` | `routes/signin.tsx` | Login page; displays `?error=<code>` messages |
+| `/auth/no-org` | `routes/auth.no-org.tsx` | Zero org matches — prompts user to request app installation |
+| `/auth/org-select` | `routes/auth.org-select.tsx` | Multi-org picker; reads `__pending_org` cookie |
 
 ### FR-003: Rauthy Integration
 
@@ -576,9 +602,14 @@ This phase is intentionally light on detail. It depends on Rauthy's upstream pro
 - [ ] GitHub App installation creates `github_installations` + `organizations` row
 - [ ] GitHub App uninstall sets `installation_state = 'deleted'`, preserves data
 - [ ] GitHub OAuth login creates user, resolves org membership, issues Rauthy session
-- [ ] Login with zero matching orgs shows clear error
-- [ ] Login with one matching org auto-selects
-- [ ] Login with multiple matching orgs shows org picker
+- [ ] Login with zero matching orgs redirects to `/auth/no-org` with login handle
+- [ ] Login with one matching org auto-selects and redirects to `/app`
+- [ ] Login with multiple matching orgs redirects to `/auth/org-select`
+- [ ] Token exchange failure shows "GitHub authentication failed" (`token_failed`)
+- [ ] GitHub API failure shows "Could not reach GitHub" (`github_api_failed`)
+- [ ] Account DB error shows "Failed to create or link your account" (`account_error`)
+- [ ] Rauthy unavailable shows "Identity service is temporarily unavailable" (`rauthy_unavailable`)
+- [ ] Membership resolution failure shows actionable error (`membership_failed`)
 - [ ] Rauthy JWT carries correct OAP claims (`oap_org_id`, `platform_role`)
 - [ ] Encore auth handler rejects expired/invalid JWTs
 - [ ] All existing API endpoints enforce auth via Encore auth handler
