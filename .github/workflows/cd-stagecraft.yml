@@ -1,7 +1,7 @@
 # CD for stagecraft: build Docker image, push to GHCR, deploy to Hetzner K3s.
 #
 # Required GitHub secrets:
-#   HETZNER_KUBECONFIG  — contents of platform/infra/hetzner/kubeconfig (base64-encoded)
+#   KUBECONFIG_HETZNER  — contents of platform/infra/hetzner/kubeconfig (base64-encoded)
 #
 # Required GitHub environment:
 #   "production"         — create with protection rules for manual approval on deploy
@@ -98,7 +98,7 @@ jobs:
       - name: Set up kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          echo "${{ secrets.KUBECONFIG_HETZNER }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Deploy stagecraft via Helm
