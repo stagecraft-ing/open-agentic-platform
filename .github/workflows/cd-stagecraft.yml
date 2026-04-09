@@ -50,8 +50,6 @@ jobs:
 
       - name: Install Encore CLI
         run: curl -L https://encore.dev/install.sh | bash
-        env:
-          ENCORE_INSTALL_DIR: /usr/local/bin
 
       - name: Compute image tags
         id: meta
@@ -63,7 +61,7 @@ jobs:
       - name: Build Docker image (Encore)
         working-directory: platform/services/stagecraft
         run: |
-          encore build docker \
+          ~/.encore/bin/encore build docker \
             --config ./infra.config.hetzner.json \
             ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
 
