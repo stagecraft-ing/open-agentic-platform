@@ -15,6 +15,11 @@ export default [
   route("admin/signin", "routes/admin.signin.tsx"),
   route("app", "routes/app.tsx", [
     index("routes/app._index.tsx"),
+    route("knowledge", "routes/app.knowledge.tsx"),
+    route("knowledge/:id", "routes/app.knowledge.$id.tsx"),
+    route("pipelines", "routes/app.pipelines.tsx"),
+    route("pipelines/:projectId", "routes/app.pipelines.$projectId.tsx"),
+    route("deploys", "routes/app.deploys.tsx"),
     route("settings", "routes/app.settings.tsx"),
   ]),
   route("admin", "routes/admin.tsx", [
