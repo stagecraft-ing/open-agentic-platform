@@ -282,7 +282,7 @@ pub fn discover_policy_sources(repo_root: &Path) -> Result<Vec<PolicySource>, Co
         .filter_entry(|e| !should_prune_walk_entry(e))
     {
         let entry = entry.map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::Other, format!("walkdir: {e}"))
+            std::io::Error::other(format!("walkdir: {e}"))
         })?;
         if !entry.file_type().is_file() {
             continue;

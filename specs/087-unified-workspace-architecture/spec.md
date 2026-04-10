@@ -1,10 +1,13 @@
 ---
-id: "087"
+id: "087-unified-workspace-architecture"
 slug: unified-workspace-architecture
 title: Unified Workspace Architecture
 status: active
 owner: bart
 created: 2026-04-09
+summary: >
+  Unified architecture connecting web and desktop planes into one system with
+  a first-class knowledge intake domain and workspace-scoped entity hierarchy.
 depends_on:
   - "074"  # factory-ingestion
   - "075"  # factory-workflow-engine

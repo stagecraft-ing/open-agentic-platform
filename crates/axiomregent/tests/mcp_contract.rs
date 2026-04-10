@@ -60,14 +60,14 @@ async fn test_mcp_tools_list_contract() {
     // 3. Serialize and save/compare (Golden test)
     // Sort tools by name for deterministic comparison (HashMap iteration order varies).
     let mut result_sorted = result.clone();
-    if let Some(tools) = result_sorted.as_object_mut().and_then(|o| o.get_mut("tools")) {
-        if let Some(arr) = tools.as_array_mut() {
-            arr.sort_by(|a, b| {
-                let a_name = a.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                let b_name = b.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                a_name.cmp(b_name)
-            });
-        }
+    if let Some(tools) = result_sorted.as_object_mut().and_then(|o| o.get_mut("tools"))
+        && let Some(arr) = tools.as_array_mut()
+    {
+        arr.sort_by(|a, b| {
+            let a_name = a.get("name").and_then(|n| n.as_str()).unwrap_or("");
+            let b_name = b.get("name").and_then(|n| n.as_str()).unwrap_or("");
+            a_name.cmp(b_name)
+        });
     }
     let actual_json = serde_json::to_string_pretty(&result_sorted).unwrap();
 

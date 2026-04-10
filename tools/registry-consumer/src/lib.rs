@@ -8,6 +8,9 @@ use std::path::Path;
 pub const DEFAULT_REGISTRY_REL_PATH: &str = "build/spec-registry/registry.json";
 pub const KNOWN_STATUSES: [&str; 4] = ["draft", "active", "superseded", "retired"];
 
+/// `(status_name, count, sorted_feature_ids)` — one entry per known status.
+pub type StatusRow = (String, usize, Vec<String>);
+
 #[derive(Debug)]
 pub enum LoadError {
     Io(std::io::Error),
@@ -63,7 +66,7 @@ pub fn features_sorted(v: &Value) -> Result<Vec<Value>, &'static str> {
         .pointer("/features")
         .and_then(|x| x.as_array())
         .ok_or("missing features array")?;
-    let mut out: Vec<Value> = arr.iter().cloned().collect();
+    let mut out: Vec<Value> = arr.to_vec();
     out.sort_by(|a, b| {
         let id_a = a.get("id").and_then(|x| x.as_str()).unwrap_or("");
         let id_b = b.get("id").and_then(|x| x.as_str()).unwrap_or("");
@@ -110,9 +113,9 @@ pub fn find_feature_by_id(v: &Value, feature_id: &str) -> Option<Value> {
 ///
 /// Returns one tuple per known status in fixed order:
 /// `(status, count, sorted_feature_ids)`.
-pub fn status_report(v: &Value) -> Result<Vec<(String, usize, Vec<String>)>, &'static str> {
+pub fn status_report(v: &Value) -> Result<Vec<StatusRow>, &'static str> {
     let features = features_sorted(v)?;
-    let mut out: Vec<(String, usize, Vec<String>)> = KNOWN_STATUSES
+    let mut out: Vec<StatusRow> = KNOWN_STATUSES
         .iter()
         .map(|s| (s.to_string(), 0usize, Vec::<String>::new()))
         .collect();

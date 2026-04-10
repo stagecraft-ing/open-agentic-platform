@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f273e5d3c6684e2f6973a4122f41f278279bf2302776b0a7fc0ceeef725fb47f",
+  "graph_fingerprint": "sha256:8aac2611673afefccc195a75db7bbb5a6fb6dfe527d6b70aeb6cf9c5352e863a",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1589,6 +1589,19 @@
       "title": "Open Source Launch Readiness",
       "spec_path": "specs/086-open-source-launch/spec.md",
       "status": "draft",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "087-unified-workspace-architecture",
+      "title": "Unified Workspace Architecture",
+      "spec_path": "specs/087-unified-workspace-architecture/spec.md",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",

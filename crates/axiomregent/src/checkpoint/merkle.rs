@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn single_entry_has_root() {
         let entry = make_entry("foo.txt", "hello");
-        let tree = MerkleTree::from_entries(&[entry.clone()]);
+        let tree = MerkleTree::from_entries(std::slice::from_ref(&entry));
         // A single-entry tree must have a root hash of the correct length.
         let root = tree.root_hash().expect("single entry must produce a root");
         assert_eq!(root.len(), 64, "root hash should be a 64-char SHA-256 hex");

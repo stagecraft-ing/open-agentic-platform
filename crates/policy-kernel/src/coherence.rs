@@ -185,10 +185,11 @@ mod tests {
 
     #[test]
     fn sc007_violations_force_at_least_restricted() {
-        let mut cfg = CoherenceSchedulerConfig::default();
-        cfg.violation_count_for_restricted = 2;
-        cfg.window_size = 10;
-        cfg.decay_lambda = 1.0;
+        let cfg = CoherenceSchedulerConfig {
+            violation_count_for_restricted: 2,
+            window_size: 10,
+            decay_lambda: 1.0,
+        };
         let mut s = CoherenceScheduler::new(cfg);
         // Score alone would be Full (8/10 aligned), but SC-007 forces at least Restricted.
         for _ in 0..8 {
@@ -202,10 +203,11 @@ mod tests {
 
     #[test]
     fn sc008_monotonic_no_self_promotion() {
-        let mut cfg = CoherenceSchedulerConfig::default();
-        cfg.window_size = 20;
-        cfg.violation_count_for_restricted = 100;
-        cfg.decay_lambda = 1.0;
+        let cfg = CoherenceSchedulerConfig {
+            window_size: 20,
+            violation_count_for_restricted: 100,
+            decay_lambda: 1.0,
+        };
         let mut s = CoherenceScheduler::new(cfg);
         // Uniform window: 10/20 aligned → 0.5 → Restricted (FR-008 band)
         for _ in 0..10 {
@@ -233,9 +235,11 @@ mod tests {
 
     #[test]
     fn threshold_crossing_read_only_and_suspended() {
-        let mut cfg = CoherenceSchedulerConfig::default();
-        cfg.window_size = 10;
-        cfg.violation_count_for_restricted = 100; // disable SC-007 floor for this test
+        let cfg = CoherenceSchedulerConfig {
+            window_size: 10,
+            violation_count_for_restricted: 100, // disable SC-007 floor for this test
+            ..CoherenceSchedulerConfig::default()
+        };
         let mut s = CoherenceScheduler::new(cfg.clone());
         // 30% aligned → between 0.2 and 0.5 → ReadOnly
         for _ in 0..3 {
@@ -254,9 +258,11 @@ mod tests {
 
     #[test]
     fn weighted_window_favors_recent() {
-        let mut cfg = CoherenceSchedulerConfig::default();
-        cfg.window_size = 4;
-        cfg.decay_lambda = 0.5;
+        let cfg = CoherenceSchedulerConfig {
+            window_size: 4,
+            decay_lambda: 0.5,
+            ..CoherenceSchedulerConfig::default()
+        };
         let mut s = CoherenceScheduler::new(cfg);
         s.record_action(true);
         s.record_action(true);

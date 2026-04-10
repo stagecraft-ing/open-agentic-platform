@@ -197,7 +197,7 @@ fn main() -> ExitCode {
 
 fn print_list_table(features: &[serde_json::Value]) {
     // id (max ~40), status (8), title — simple fixed layout
-    println!("{:<44} {:<10} {}", "id", "status", "title");
+    println!("{:<44} {:<10} title", "id", "status");
     for f in features {
         let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
         let status = f.get("status").and_then(|x| x.as_str()).unwrap_or("?");

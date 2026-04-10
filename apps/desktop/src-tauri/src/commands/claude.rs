@@ -2734,11 +2734,12 @@ pub async fn validate_hook_command(command: String) -> Result<serde_json::Value,
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::path::Path;
     use tempfile::TempDir;
 
     /// Helper function to create a test session file
     fn create_test_session_file(
-        dir: &PathBuf,
+        dir: &Path,
         filename: &str,
         content: &str,
     ) -> Result<(), std::io::Error> {

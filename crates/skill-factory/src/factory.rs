@@ -169,9 +169,10 @@ body
 
         let result = load_skills_from_dir(dir.path());
         assert_eq!(result.hooks.len(), 2);
-        assert_eq!(result.hooks[0].skill_name, "hooked");
-        assert_eq!(result.hooks[0].event, "PreToolUse");
-        assert_eq!(result.hooks[1].event, "PostToolUse");
+        let events: Vec<&str> = result.hooks.iter().map(|h| h.event.as_str()).collect();
+        assert!(events.contains(&"PreToolUse"), "missing PreToolUse");
+        assert!(events.contains(&"PostToolUse"), "missing PostToolUse");
+        assert!(result.hooks.iter().all(|h| h.skill_name == "hooked"));
     }
 
     #[test]

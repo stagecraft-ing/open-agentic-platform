@@ -456,8 +456,9 @@ mod tests {
     #[test]
     fn sc004_mandatory_direct_overrides_high_score() {
         let p = format!(
-            "what is {}",
-            format!("{}{}", "x".repeat(1900), " create ".repeat(16))
+            "what is {}{}",
+            "x".repeat(1900),
+            " create ".repeat(16)
         );
         let plan = build_execution_plan(&p, &PlanContext::default());
         assert_eq!(plan.mode, PlanMode::Direct);
@@ -529,7 +530,7 @@ mod tests {
         let team = pl.team.as_ref().unwrap();
         let n = team.agents.len();
         assert!((1..=5).contains(&n));
-        assert!(n >= 2 && n <= 3, "complex band expects 2–3 agents when available: {n}");
+        assert!((2..=3).contains(&n), "complex band expects 2–3 agents when available: {n}");
     }
 
     #[test]

@@ -36,7 +36,7 @@ pub fn keychain_retrieve(user: Option<String>) -> AppResult<Option<String>> {
     match entry.get_password() {
         Ok(pw) => Ok(Some(pw)),
         Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(format!("keychain retrieve error: {e}").into()),
+        Err(e) => Err(format!("keychain retrieve error: {e}")),
     }
 }
 
@@ -50,6 +50,6 @@ pub fn keychain_clear(user: Option<String>) -> AppResult<()> {
     match entry.delete_credential() {
         Ok(()) => Ok(()),
         Err(keyring::Error::NoEntry) => Ok(()), // already cleared
-        Err(e) => Err(format!("keychain clear error: {e}").into()),
+        Err(e) => Err(format!("keychain clear error: {e}")),
     }
 }

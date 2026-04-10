@@ -111,11 +111,11 @@ impl StagecraftClient {
 
     /// Load the auth token from the OS keychain (called on startup).
     pub fn load_token_from_keychain(&self) -> bool {
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
-            if let Ok(token) = entry.get_password() {
-                *self.auth_token.write().unwrap() = Some(token);
-                return true;
-            }
+        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session")
+            && let Ok(token) = entry.get_password()
+        {
+            *self.auth_token.write().unwrap() = Some(token);
+            return true;
         }
         false
     }

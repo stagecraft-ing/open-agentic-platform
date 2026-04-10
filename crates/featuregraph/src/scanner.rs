@@ -445,7 +445,7 @@ mod tests {
         let mut file = NamedTempFile::new().unwrap();
         writeln!(file, "// Feature: MY_FEATURE").unwrap();
         writeln!(file, "// Spec: spec/my_feature.md").unwrap();
-        writeln!(file, "").unwrap();
+        writeln!(file).unwrap();
         writeln!(file, "func main() {{}}").unwrap();
 
         let header = parser.parse_file(file.path()).unwrap();

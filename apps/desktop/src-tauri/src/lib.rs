@@ -227,10 +227,10 @@ pub fn run() {
                     log::info!("Stagecraft client disabled (STAGECRAFT_BASE_URL not set)");
                 }
                 // Load auth token from OS keychain (spec 087 Phase 5)
-                if let Some(ref client) = sc {
-                    if client.load_token_from_keychain() {
-                        log::info!("Restored Stagecraft auth token from OS keychain");
-                    }
+                if let Some(ref client) = sc
+                    && client.load_token_from_keychain()
+                {
+                    log::info!("Restored Stagecraft auth token from OS keychain");
                 }
                 app.manage(StagecraftState(sc));
             }
