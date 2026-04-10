@@ -469,6 +469,85 @@ export const factoryPolicyBundles = pgTable("factory_policy_bundles", {
 });
 
 // ---------------------------------------------------------------------------
+// Knowledge Intake Domain (spec 087 Phase 2)
+// ---------------------------------------------------------------------------
+
+export const connectorTypeEnum = pgEnum("connector_type", [
+  "upload",
+  "sharepoint",
+  "s3",
+  "azure-blob",
+  "gcs",
+]);
+
+export const connectorStatusEnum = pgEnum("connector_status", [
+  "active",
+  "paused",
+  "error",
+  "disabled",
+]);
+
+export const knowledgeObjectStateEnum = pgEnum("knowledge_object_state", [
+  "imported",
+  "extracting",
+  "extracted",
+  "classified",
+  "available",
+]);
+
+export const sourceConnectors = pgTable("source_connectors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  type: connectorTypeEnum("type").notNull(),
+  name: text("name").notNull(),
+  configEncrypted: jsonb("config_encrypted"),
+  syncSchedule: text("sync_schedule"),
+  status: connectorStatusEnum("status").notNull().default("active"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const knowledgeObjects = pgTable("knowledge_objects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  connectorId: uuid("connector_id"),
+  storageKey: text("storage_key").notNull(),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
+  contentHash: text("content_hash").notNull(),
+  state: knowledgeObjectStateEnum("state").notNull().default("imported"),
+  extractionOutput: jsonb("extraction_output"),
+  classification: jsonb("classification"),
+  provenance: jsonb("provenance").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const documentBindings = pgTable(
+  "document_bindings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    knowledgeObjectId: uuid("knowledge_object_id").notNull(),
+    boundBy: uuid("bound_by").notNull(),
+    boundAt: timestamp("bound_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.projectId, t.knowledgeObjectId)]
+);
+
+// ---------------------------------------------------------------------------
 // Factory Artifact Registry (spec 082 Phase 3)
 // ---------------------------------------------------------------------------
 

@@ -12,6 +12,7 @@ import {
   factoryArtifacts,
 } from "../db/schema";
 import { and, eq, desc, gte, asc, sql } from "drizzle-orm";
+import { resolveKnowledgeForFactory } from "../knowledge/knowledge";
 
 // ---------------------------------------------------------------------------
 // Known adapters (from factory/adapters/)
@@ -211,6 +212,7 @@ type InitRequest = {
   id: string; // project ID (path param)
   adapter: string;
   business_docs?: BusinessDocRef[];
+  knowledge_object_ids?: string[]; // spec 087: resolve workspace knowledge objects
   policy_overrides?: PolicyOverrides;
   actorUserId: string;
   workspaceId: string;
@@ -235,6 +237,18 @@ export const initPipeline = api(
         `unknown adapter "${req.adapter}". Known adapters: ${KNOWN_ADAPTERS.join(", ")}`
       );
     }
+
+    // Resolve knowledge objects into business doc refs (spec 087 Phase 2)
+    let knowledgeDocs: BusinessDocRef[] = [];
+    if (req.knowledge_object_ids && req.knowledge_object_ids.length > 0) {
+      knowledgeDocs = await resolveKnowledgeForFactory(
+        req.workspaceId,
+        req.knowledge_object_ids
+      );
+    }
+
+    // Merge explicit business_docs with resolved knowledge objects
+    const allDocs = [...(req.business_docs ?? []), ...knowledgeDocs];
 
     // All inserts in a single transaction to prevent orphaned rows
     const result = await db.transaction(async (tx) => {
@@ -276,10 +290,10 @@ export const initPipeline = api(
         })
         .returning();
 
-      // Store business document references
-      if (req.business_docs && req.business_docs.length > 0) {
+      // Store business document references (explicit + knowledge-resolved)
+      if (allDocs.length > 0) {
         await tx.insert(factoryBusinessDocs).values(
-          req.business_docs.map((doc) => ({
+          allDocs.map((doc) => ({
             pipelineId: pipeline.id,
             name: doc.name,
             storageRef: doc.storage_ref,
@@ -303,7 +317,8 @@ export const initPipeline = api(
           actor: req.actorUserId,
           details: {
             adapter: req.adapter,
-            doc_count: req.business_docs?.length ?? 0,
+            doc_count: allDocs.length,
+            knowledge_object_ids: req.knowledge_object_ids ?? [],
             policy_bundle_id: bundle.id,
           },
         },
@@ -318,7 +333,7 @@ export const initPipeline = api(
       pipeline_id: result.pipeline.id,
       event_type: "pipeline_initialized",
       actor: req.actorUserId,
-      details: { adapter: req.adapter, doc_count: req.business_docs?.length ?? 0 },
+      details: { adapter: req.adapter, doc_count: allDocs.length },
     });
 
     return {
