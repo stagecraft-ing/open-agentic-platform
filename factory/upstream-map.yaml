@@ -1,0 +1,376 @@
+# ============================================================================
+# Factory Upstream Mapping Manifest
+# ============================================================================
+#
+# Declares the structural correspondence between upstream repositories and
+# OAP factory/ targets. Used by the /factory-sync command to detect, map,
+# and translate upstream changes.
+#
+# See: specs/088-factory-upstream-sync/spec.md
+#
+# Schema version: 1.0.0
+# ============================================================================
+
+schema_version: "1.0.0"
+
+upstreams:
+
+  # ────────────────────────────────────────────────────────────────────────
+  # the_factory — GoA production factory (pipeline skills + security agents)
+  # ────────────────────────────────────────────────────────────────────────
+  the_factory:
+    path: "~/Dev2/the_factory"
+    remote: "GovAlta-EMU/the_factory"
+    last_synced_sha: "420ab9c2e20334d410d472cf7febe3fd076b065a"
+    last_synced_date: "2026-04-10"
+
+    exclude_patterns:
+      # GoA-specific content
+      - "Factory Agent/Orchestrator/factory-orchestration-cd.md"  # Client doc generation
+      - "Factory Agent/Orchestrator/scripts/"                      # docx/ppt generators
+      - "Factory Agent/Requirements/Client/"                       # GoA client documents
+      - "Factory Agent/Controllers/api-web-standards.md"           # GoA web standards
+      - "Factory Agent/Controllers/api-standards-compliance.md"    # GoA compliance
+      - "Factory Agent/Requirements/Service/sitemap-template-*.json"  # GoA sitemap templates
+      # Security agents (separate concern)
+      - "Security Agent/"
+      - "eval_framework/"
+      # Project metadata
+      - ".github/"
+      - ".claude/"
+      - ".env.github"
+      - ".project"
+      - "README.md"
+
+    mappings:
+
+      # ── Main Orchestrator ──────────────────────────────────────────────
+
+      - source: "Factory Agent/factory-orchestration.md"
+        targets:
+          - process/stages/00-pre-flight.md
+          - process/stages/01-business-requirements.md
+          - process/stages/02-service-requirements.md
+          - process/stages/03-data-model.md
+          - process/stages/04-api-specification.md
+          - process/stages/05-ui-specification.md
+          - process/stages/06-adapter-handoff.md
+          - process/agents/pipeline-orchestrator.md
+        relationship: restructured
+        layer: process
+        notes: >
+          44KB monolithic orchestrator. OAP decomposes into 7 stage files + 1
+          agent. Extract execution rules, gate conditions, and dispatch table.
+          Ignore GoA-specific validation codes (FAC-*) — translate concepts into
+          OAP's verification contract checks. The 12 orchestrator rules map to
+          OAP's .claude/rules/orchestrator-rules.md.
+
+      # ── Stage Sub-Skills ───────────────────────────────────────────────
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-s1.md"
+        targets:
+          - process/stages/01-business-requirements.md
+          - process/agents/business-requirements-analyst.md
+          - contract/schemas/stage-outputs/business-rules.schema.json
+          - contract/schemas/stage-outputs/use-cases.schema.json
+        relationship: restructured
+        layer: process
+        notes: >
+          Extract BRD extraction protocol, entity identification rules, and
+          quality gates. Ignore GoA QG-1 through QG-11 specific codes — translate
+          gate concepts into verification contract checks.
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-s2.md"
+        targets:
+          - process/stages/02-service-requirements.md
+          - process/agents/service-designer.md
+          - contract/schemas/stage-outputs/audiences.schema.json
+          - contract/schemas/stage-outputs/sitemap.schema.json
+        relationship: restructured
+        layer: process
+        notes: >
+          Extract audience identification, journey mapping, sitemap derivation,
+          and variant determination logic. The_factory's 5-step sub-pipeline
+          maps to OAP's single service-designer agent.
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-s3.md"
+        targets:
+          - process/stages/03-data-model.md
+          - process/agents/data-architect.md
+          - contract/schemas/stage-outputs/entity-model.schema.json
+        relationship: restructured
+        layer: process
+        notes: >
+          Extract entity normalization rules and constraint definitions.
+          IMPORTANT: OAP deliberately produces abstract data-model.json, NOT SQL.
+          DDL generation is the adapter's job. Do not translate SQL-specific rules
+          into the process layer — they belong in adapter patterns.
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-s4.md"
+        targets:
+          - process/stages/04-api-specification.md
+          - process/agents/api-architect.md
+          - contract/schemas/verification.schema.yaml
+        relationship: restructured
+        layer: process
+        notes: >
+          Extract cross-stage consistency checks (FAC-S4-* rules). The_factory
+          generates code in Stage 4; OAP produces only the Build Spec api section.
+          Code generation rules go to adapter agents, not process stages. Gate
+          blocker rules translate to S4-* checks in verification.schema.yaml.
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-s5.md"
+        targets:
+          - process/stages/05-ui-specification.md
+          - process/agents/ui-architect.md
+        relationship: restructured
+        layer: process
+        notes: >
+          Same pattern as S4 — the_factory generates Vue components, OAP produces
+          only the UI specification in the Build Spec.
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-tm.md"
+        targets:
+          - adapters/aim-vue-node/manifest.yaml
+          - process/stages/06-adapter-handoff.md
+        relationship: restructured
+        layer: adapter
+        notes: >
+          Template Mode detection and delegation. OAP replaces this with the
+          adapter manifest capability system and pre-flight validation. Extract
+          Critical Overrides Reconciliation patterns — they inform the adapter
+          handoff verification.
+
+      - source: "Factory Agent/Orchestrator/factory-orchestration-xf.md"
+        targets:
+          - process/stages/06-adapter-handoff.md
+        relationship: restructured
+        layer: process
+        notes: >
+          Pipeline completion and factory-manifest.json creation. OAP uses
+          verification contract final_validation section instead.
+
+      # ── Controller Agents ──────────────────────────────────────────────
+
+      - source: "Factory Agent/Controllers/api-builder.md"
+        targets:
+          - adapters/aim-vue-node/agents/api-scaffolder.md
+          - adapters/aim-vue-node/patterns/api/service.md
+          - adapters/aim-vue-node/patterns/api/controller.md
+          - adapters/aim-vue-node/patterns/api/route.md
+          - adapters/aim-vue-node/patterns/api/test.md
+          - adapters/aim-vue-node/patterns/api/ddl-validation.md
+          - adapters/aim-vue-node/patterns/api/types.md
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          55KB builder with 3 modes. Extract: DDL alignment rules, shared type
+          enforcement, SQL column verification protocol, response shape rules.
+          Ignore: GoA-specific compliance, mode detection logic (OAP uses adapter
+          manifest), inline OpenAPI generation (OAP adapter handles this).
+
+      - source: "Factory Agent/Controllers/api-reviewer.md"
+        targets:
+          - adapters/aim-vue-node/agents/reviewer.md
+          - adapters/aim-vue-node/validation/invariants.yaml
+          - contract/schemas/verification.schema.yaml
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          44KB reviewer. Extract: deficiency codes and categories, structured
+          evidence requirements, cross-layer consistency checks. Ignore: GoA
+          compliance report section numbers, inline GoA standards references.
+
+      - source: "Factory Agent/Controllers/api-orchestrator.md"
+        targets:
+          - process/agents/scaffolding-orchestrator.md
+        relationship: restructured
+        layer: process
+        notes: >
+          Build-review coordination cycle. OAP's scaffolding-orchestrator serves
+          a similar role but uses the verification contract for gating instead
+          of the_factory's inline review loop.
+
+      - source: "Factory Agent/Controllers/api-security.md"
+        targets:
+          - adapters/aim-vue-node/validation/invariants.yaml
+          - adapters/aim-vue-node/patterns/api/authorization.md
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          33KB security skill. Extract: authorization patterns, RBAC rules,
+          session security checks. Ignore: GoA Protected B classification,
+          ASVS references, ministry-specific compliance.
+
+      # ── Client Interface ───────────────────────────────────────────────
+
+      - source: "Factory Agent/Client_Interface/client-interface-orchestration.md"
+        targets:
+          - process/agents/ui-architect.md
+          - adapters/aim-vue-node/agents/ui-scaffolder.md
+        relationship: restructured
+        layer: adapter
+        notes: >
+          4-phase UI generation pipeline. OAP splits: specification → ui-architect
+          (process), implementation → ui-scaffolder (adapter).
+
+      - source: "Factory Agent/Client_Interface/design-system.md"
+        targets:
+          - adapters/aim-vue-node/patterns/ui/component.md
+          - adapters/aim-vue-node/patterns/ui/layout.md
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          32KB GoA design system skill. Extract: component usage patterns,
+          layout conventions, accessibility rules. Ignore: GoA brand guidelines,
+          ministry-specific theming.
+
+      - source: "Factory Agent/Client_Interface/page-types/authenticated/"
+        targets:
+          - adapters/aim-vue-node/patterns/page-types/
+        relationship: diffable
+        layer: adapter
+        notes: >
+          12 authenticated page types. Closest match in the mapping — both repos
+          define page type patterns with similar structure. Diff and merge.
+
+      - source: "Factory Agent/Client_Interface/page-types/public/"
+        targets:
+          - adapters/aim-vue-node/patterns/page-types/
+        relationship: diffable
+        layer: adapter
+        notes: >
+          8 public page types. Partially covered by OAP adapter. Check for new
+          page types that should be added.
+
+      # ── Service Requirements Sub-Agents ────────────────────────────────
+
+      - source: "Factory Agent/Requirements/Service/service-requirements-orchestrator.md"
+        targets:
+          - process/stages/02-service-requirements.md
+          - process/agents/service-designer.md
+        relationship: restructured
+        layer: process
+        notes: >
+          36KB orchestrator managing 5 sub-agents. OAP compresses this into a
+          single stage + agent pair. Extract: audience derivation rules, journey
+          map structure, sitemap derivation logic.
+
+      - source: "Factory Agent/Requirements/Service/page-type-catalog.md"
+        targets:
+          - contract/schemas/stage-outputs/sitemap.schema.json
+          - adapters/aim-vue-node/patterns/page-types/
+        relationship: extract-only
+        layer: contract
+        notes: >
+          36KB reference document defining canonical page types. OAP encodes
+          valid page_type values in the sitemap JSON schema. Extract new page
+          type definitions when they're added upstream.
+
+      # ── Database Agent ─────────────────────────────────────────────────
+
+      - source: "Factory Agent/Database/database_architect.md"
+        targets:
+          - process/stages/03-data-model.md
+          - process/agents/data-architect.md
+          - adapters/aim-vue-node/patterns/data/migration.md
+        relationship: restructured
+        layer: process
+        notes: >
+          24KB database architect producing DDL/SQL/ERD. Extract: entity
+          normalization rules, constraint naming conventions, relationship
+          patterns. Route DDL generation rules to adapter patterns, not process.
+
+      # ── System Requirements ────────────────────────────────────────────
+
+      - source: "Factory Agent/Requirements/System/business-requirements.md"
+        targets:
+          - process/agents/business-requirements-analyst.md
+        relationship: restructured
+        layer: process
+        notes: >
+          46KB BRD extraction skill. Extract: document analysis protocol,
+          entity extraction rules, use case derivation. Ignore: GoA QG codes,
+          phase-specific validation (OAP uses verification contract).
+
+      - source: "Factory Agent/Requirements/System/admin-interface-base-requirements.json"
+        targets:
+          - adapters/aim-vue-node/patterns/api/authorization.md
+          - adapters/aim-vue-node/patterns/page-types/admin-users.md
+          - adapters/aim-vue-node/patterns/page-types/admin-roles.md
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          GoA admin interface requirements JSON. Extract: RBAC architecture
+          patterns (IdP-as-identity, DB-authoritative roles), permission
+          management model, session invalidation protocol, admin UI structure.
+          Ignore: Entra ID-specific references, GoA section numbering.
+
+
+  # ────────────────────────────────────────────────────────────────────────
+  # AIM-vue-node-template — GoA enterprise application scaffold
+  # ────────────────────────────────────────────────────────────────────────
+  aim-vue-node-template:
+    path: "~/Dev2/AIM-vue-node-template"
+    remote: "GovAlta-EMU/AIM-vue-node-template"
+    last_synced_sha: "9b83c1095013fd460b18745ef35987bd8d2de1b1"
+    last_synced_date: "2026-04-10"
+
+    exclude_patterns:
+      # Application code (the scaffold itself, not adapter metadata)
+      - "apps/"
+      - "packages/"
+      - "scripts/"
+      - "docker/"
+      - "node_modules/"
+      - "*.lock"
+      - "package-lock.json"
+      - "dist/"
+      - ".env*"
+      # Template orchestration (superseded by factory adapter)
+      - ".claude/orchestration/"
+      - "orchestration/skills/"
+
+    mappings:
+
+      - source: "orchestration/template-orchestrator.md"
+        targets:
+          - adapters/aim-vue-node/manifest.yaml
+        relationship: diffable
+        layer: adapter
+        notes: >
+          The template orchestrator declares capabilities, directory conventions,
+          and module system structure. Changes here may require updates to the
+          adapter manifest's capabilities, directory_conventions, and scaffold
+          sections.
+
+      - source: "template.json"
+        targets:
+          - adapters/aim-vue-node/manifest.yaml
+        relationship: diffable
+        layer: adapter
+        notes: >
+          Template metadata (name, version, supported features). Changes to
+          capability flags or version should propagate to the adapter manifest.
+
+      - source: "CODEMAP.md"
+        targets:
+          - adapters/aim-vue-node/manifest.yaml
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          Code map of the template's directory structure and conventions.
+          Extract: directory convention changes, new pattern locations, module
+          system changes. These affect the adapter manifest's
+          directory_conventions and scaffold.modules sections.
+
+      - source: "PLACEHOLDERS.md"
+        targets:
+          - adapters/aim-vue-node/agents/configurer.md
+          - adapters/aim-vue-node/agents/trimmer.md
+        relationship: diffable
+        layer: adapter
+        notes: >
+          Placeholder definitions that the configurer agent must fill and the
+          trimmer agent must verify are gone. Changes here directly affect
+          those two agents.
