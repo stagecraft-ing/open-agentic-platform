@@ -224,3 +224,32 @@ invariants:
       PostgreSQL column names are snake_case. camelCase in SQL strings
       (e.g., 'applicationStatus' instead of 'application_status') compiles
       but fails at runtime with 'column does not exist'.
+
+  # ── Authorization ──────────────────────────────────────────────────────
+
+  - id: "INV-024"
+    description: "No IdP token claims used for authorization decisions"
+    check:
+      type: "grep-absent"
+      pattern: "token\\.roles|claims\\.roles|idToken\\.groups|req\\.oidc\\..*role"
+      scope: "apps/"
+    severity: "error"
+    rationale: >
+      Authorization must come from the application database, not IdP tokens.
+      Reading roles from tokens means role changes require token re-issuance.
+
+  - id: "INV-025"
+    description: "Admin routes are guarded with requireRole('admin')"
+    check:
+      type: "grep-present"
+      pattern: "requireRole.*admin"
+      scope: "apps/api-internal/src/routes/admin*"
+    severity: "error"
+
+  - id: "INV-026"
+    description: "Destructive admin actions have audit entries"
+    check:
+      type: "grep-present"
+      pattern: "audit"
+      scope: "apps/api-internal/src/services/role.service.ts"
+    severity: "warning"

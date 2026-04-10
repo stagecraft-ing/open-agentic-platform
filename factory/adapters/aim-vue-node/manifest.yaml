@@ -115,6 +115,7 @@ patterns:
     middleware: "patterns/api/middleware.md"
     types: "patterns/api/types.md"
     ddl_validation: "patterns/api/ddl-validation.md"
+    authorization: "patterns/api/authorization.md"
   ui:
     view: "patterns/ui/view.md"
     state: "patterns/ui/state.md"
@@ -138,6 +139,8 @@ patterns:
     help: "patterns/page-types/help.md"
     profile: "patterns/page-types/profile.md"
     login: "patterns/page-types/login.md"
+    admin_users: "patterns/page-types/admin-users.md"
+    admin_roles: "patterns/page-types/admin-roles.md"
 
 agents:
   api_scaffolder: "agents/api-scaffolder.md"

@@ -29,6 +29,18 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] api-internal services never import proxyRequest
 - [ ] Every `*.routes.plugin.ts` file has a matching import and call in the stack's `modules.ts` `registerAllModules()`
 
+### Authorization
+- [ ] Roles resolved from application database, not from IdP token claims
+- [ ] `requireAuth` middleware checks `role_version` for session invalidation
+- [ ] Routes with `requireRole` or `requirePermission` middleware match Build Spec audience definitions
+- [ ] Admin-only routes are guarded with `requireRole('admin')`
+- [ ] Navigation items for admin pages are hidden from non-admin users
+- [ ] Last-admin protection: cannot remove the last user from the admin role
+- [ ] Protected roles (e.g., admin) cannot be deleted — `is_protected` flag enforced
+- [ ] Role deletion warns when role has active users and requires confirmation
+- [ ] All role/permission changes write audit entries
+- [ ] Admin lookup table pages provide full CRUD — read-only views are not acceptable
+
 ### UI Layer
 - [ ] Every Vue file uses `<script setup lang="ts">`
 - [ ] Every view handles loading, error, and empty states
@@ -36,6 +48,7 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] No Vuex imports (only Pinia)
 - [ ] No Tailwind classes (only GoA Design System)
 - [ ] Forms validate before submit
+- [ ] Destructive actions (delete, revoke) require a confirmation modal
 
 ### Data Layer
 - [ ] Every migration has proper constraint naming
