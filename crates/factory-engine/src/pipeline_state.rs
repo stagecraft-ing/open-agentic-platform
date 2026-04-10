@@ -45,6 +45,10 @@ pub struct FactoryPipelineState {
 pub struct ScaffoldingProgress {
     pub entities_completed: Vec<String>,
     pub entities_failed: Vec<FailedFeature>,
+    #[serde(default)]
+    pub seed_completed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed_failed: Option<FailedFeature>,
     pub operations_completed: Vec<String>,
     pub operations_failed: Vec<FailedFeature>,
     pub pages_completed: Vec<String>,
@@ -102,6 +106,20 @@ impl FactoryPipelineState {
     pub fn entity_failed(&mut self, feature: FailedFeature) {
         if let Some(ref mut sp) = self.scaffolding {
             sp.entities_failed.push(feature);
+        }
+    }
+
+    /// Record seed step completion.
+    pub fn seed_completed(&mut self) {
+        if let Some(ref mut sp) = self.scaffolding {
+            sp.seed_completed = true;
+        }
+    }
+
+    /// Record seed step failure.
+    pub fn seed_failed(&mut self, feature: FailedFeature) {
+        if let Some(ref mut sp) = self.scaffolding {
+            sp.seed_failed = Some(feature);
         }
     }
 

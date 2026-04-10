@@ -329,7 +329,7 @@ pub fn generate_scaffold_manifest(
             outputs: vec![
                 "reference-data.sql".into(),
                 "dev-fixtures.sql".into(),
-                "run-seeds.js".into(),
+                "run-seeds.ts".into(),
                 "fixture-factory.ts".into(),
             ],
             instruction: format!(

@@ -252,7 +252,9 @@ pub struct PhaseTransitionResult {
 
 /// Classify a scaffolding step ID to determine what it produced.
 pub fn classify_scaffold_step(step_id: &str) -> ScaffoldStepKind {
-    if step_id.starts_with("s6b-data-") {
+    if step_id == "s6b-seed" {
+        ScaffoldStepKind::Seed
+    } else if step_id.starts_with("s6b-data-") {
         ScaffoldStepKind::Entity(step_id.strip_prefix("s6b-data-").unwrap().into())
     } else if step_id.starts_with("s6c-api-") {
         ScaffoldStepKind::Operation(step_id.strip_prefix("s6c-api-").unwrap().into())
@@ -278,6 +280,7 @@ pub fn classify_scaffold_step(step_id: &str) -> ScaffoldStepKind {
 pub enum ScaffoldStepKind {
     Init,
     Entity(String),
+    Seed,
     Operation(String),
     Page(String),
     Configure,
@@ -296,6 +299,7 @@ pub fn record_scaffold_completion(
     state.add_tokens(tokens);
     match classify_scaffold_step(step_id) {
         ScaffoldStepKind::Entity(name) => state.entity_completed(name),
+        ScaffoldStepKind::Seed => state.seed_completed(),
         ScaffoldStepKind::Operation(name) => state.operation_completed(name),
         ScaffoldStepKind::Page(name) => state.page_completed(name),
         _ => {}
@@ -317,6 +321,7 @@ pub fn record_scaffold_failure(
     };
     match classify_scaffold_step(step_id) {
         ScaffoldStepKind::Entity(_) => state.entity_failed(feature),
+        ScaffoldStepKind::Seed => state.seed_failed(feature),
         ScaffoldStepKind::Operation(_) => state.operation_failed(feature),
         ScaffoldStepKind::Page(_) => state.page_failed(feature),
         _ => {}
@@ -332,6 +337,10 @@ mod tests {
         assert_eq!(
             classify_scaffold_step("s6b-data-Organization"),
             ScaffoldStepKind::Entity("Organization".into())
+        );
+        assert_eq!(
+            classify_scaffold_step("s6b-seed"),
+            ScaffoldStepKind::Seed
         );
         assert_eq!(
             classify_scaffold_step("s6c-api-orgs-list"),

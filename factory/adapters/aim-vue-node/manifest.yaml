@@ -15,7 +15,7 @@ adapter:
 
 stack:
   language: "typescript"
-  runtime: "node-22"
+  runtime: "node-24"
 
   backend:
     framework: "express-5"
@@ -79,7 +79,7 @@ commands:
   dev: "npm run dev"
   format_check: "npx prettier --check ."
   type_check: "npx tsc --noEmit"
-  seed: "node scripts/run-seeds.js"
+  seed: "npx tsx scripts/run-seeds.ts"
   migrate: "npx tsx scripts/migrate.ts"
   feature_verify:
     - "npm run build"
@@ -97,8 +97,8 @@ directory_conventions:
   ui_route_config: "apps/{stack}/src/router/index.ts"
   ui_test: "apps/{stack}/src/views/{PageName}View.test.ts"
   ui_component: "apps/{stack}/src/components/{Name}.vue"
-  migration: "database/migrations/{timestamp}_{name}.sql"
-  seed: "database/seeds/{name}.sql"
+  migration: "scripts/migrations/{timestamp}_{name}.sql"
+  seed: "scripts/seeds/{name}.sql"
   schema_types: "packages/shared/src/schemas/{entity}.schema.ts"
   fixture_module: "packages/shared/src/fixtures/index.ts"
   env_file: ".env.example"

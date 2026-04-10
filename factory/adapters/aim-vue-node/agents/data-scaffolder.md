@@ -20,7 +20,7 @@ You generate database migrations and TypeScript type definitions from the Build 
 
 For each entity in the data model:
 
-1. **Migration** (`database/migrations/{timestamp}_{entity_name}.sql`)
+1. **Migration** (`scripts/migrations/{timestamp}_{entity_name}.sql`)
    - CREATE TABLE with all fields
    - Primary key, foreign keys, check constraints, indexes
    - PostgreSQL dialect
@@ -36,8 +36,8 @@ For each entity in the data model:
    - Update schema (.partial() of create)
 
 Plus shared files:
-- `database/migrations/000_extensions.sql` — Required PostgreSQL extensions
-- `database/seeds/reference-data.sql` — Seed data for enums/lookups (if any)
+- `scripts/migrations/000_extensions.sql` — Required PostgreSQL extensions
+- `scripts/seeds/reference-data.sql` — Seed data for enums/lookups (if any)
 
 ## Type Mapping
 

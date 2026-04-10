@@ -5,9 +5,9 @@ Two separate files, run in order after migrations.
 
 ## Convention
 
-- Reference data: `database/seeds/reference-data.sql`
-- Dev fixtures: `database/seeds/dev-fixtures.sql`
-- Runner script: `scripts/run-seeds.js` (checks NODE_ENV)
+- Reference data: `scripts/seeds/reference-data.sql`
+- Dev fixtures: `scripts/seeds/dev-fixtures.sql`
+- Runner script: `scripts/run-seeds.ts` (checks NODE_ENV)
 - Idempotent — use `INSERT ... ON CONFLICT DO NOTHING`
 - Wrap each entity block in a transaction
 
@@ -45,8 +45,8 @@ COMMIT;
 
 ## Template — Seed Runner Script
 
-```js
-// scripts/run-seeds.js
+```ts
+// scripts/run-seeds.ts
 import { execSync } from 'node:child_process';
 
 if (process.env.NODE_ENV === 'production') {
@@ -58,10 +58,10 @@ const dbUrl = process.env.DATABASE_URL;
 if (!dbUrl) { console.error('DATABASE_URL not set'); process.exit(1); }
 
 // Migrations first, then seeds
-execSync(`psql "${dbUrl}" --set ON_ERROR_STOP=1 -f database/seeds/reference-data.sql`, { stdio: 'inherit' });
+execSync(`psql "${dbUrl}" --set ON_ERROR_STOP=1 -f scripts/seeds/reference-data.sql`, { stdio: 'inherit' });
 
 if (process.env.LOAD_FIXTURES !== 'false') {
-  execSync(`psql "${dbUrl}" --set ON_ERROR_STOP=1 -f database/seeds/dev-fixtures.sql`, { stdio: 'inherit' });
+  execSync(`psql "${dbUrl}" --set ON_ERROR_STOP=1 -f scripts/seeds/dev-fixtures.sql`, { stdio: 'inherit' });
 }
 
 console.log('Seed complete.');

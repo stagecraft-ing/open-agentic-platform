@@ -2,7 +2,7 @@
 # AIM Vue+Node Adapter — Architecture Invariants
 # ============================================================================
 #
-# Machine-checkable rules extracted from the template's 16 architecture
+# Machine-checkable rules extracted from the template's 19 architecture
 # invariants. The verification harness runs these after scaffolding.
 #
 # Each rule: ID, description, check type, pattern/scope, severity.
@@ -33,7 +33,7 @@ invariants:
     check:
       type: "grep-absent"
       pattern: "import.*vuex|from ['\"]vuex['\"]|createStore.*vuex"
-      scope: "apps/web"
+      scope: "apps/web*"
     severity: "error"
 
   - id: "INV-004"
@@ -67,7 +67,7 @@ invariants:
     check:
       type: "grep-absent"
       pattern: "export default defineComponent|export default \\{.*data\\(\\)"
-      scope: "apps/web"
+      scope: "apps/web*"
     severity: "error"
 
   - id: "INV-008"

@@ -2,7 +2,7 @@
 
 ## Convention
 
-One SQL migration file per entity: `database/migrations/{timestamp}_{entity_name}.sql`.
+One SQL migration file per entity: `scripts/migrations/{timestamp}_{entity_name}.sql`.
 Raw DDL, no ORM. Idempotent where possible. All tables live in the `public` schema.
 
 ## Template

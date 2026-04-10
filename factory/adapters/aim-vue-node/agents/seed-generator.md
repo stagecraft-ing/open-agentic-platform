@@ -22,14 +22,14 @@ from the Build Specification.
 
 ## You Produce
 
-1. **Reference data seed** (`database/seeds/reference-data.sql`)
+1. **Reference data seed** (`scripts/seeds/reference-data.sql`)
    - INSERT statements for every entity with `hydration.type = reference`
    - Derive values from `enum_values` fields when available
    - Generate 3+ representative rows when enum values insufficient
    - FK dependency order (parent tables first)
    - `ON CONFLICT DO NOTHING` for idempotency
 
-2. **Development fixtures** (`database/seeds/dev-fixtures.sql`)
+2. **Development fixtures** (`scripts/seeds/dev-fixtures.sql`)
    - INSERT statements for every entity with `hydration.type = transactional`
    - Generate `fixture_count` rows per entity (default: 3)
    - For entities with state-machine business rules:
@@ -38,7 +38,7 @@ from the Build Specification.
    - FK fields reference seed data or other fixtures
    - Guarded by runner script (NODE_ENV check)
 
-3. **Seed runner script** (`scripts/run-seeds.js`)
+3. **Seed runner script** (`scripts/run-seeds.ts`)
    - Checks NODE_ENV !== 'production'
    - Runs reference-data.sql then dev-fixtures.sql via psql
 
