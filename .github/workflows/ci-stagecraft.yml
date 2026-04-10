@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir -p encore.gen/clients
           echo 'export declare const site: any;' > encore.gen/clients/index.d.ts
+          echo 'export declare function getAuthData(): any;' > encore.gen/auth.d.ts
         working-directory: platform/services/stagecraft
 
       - name: TypeScript type check
