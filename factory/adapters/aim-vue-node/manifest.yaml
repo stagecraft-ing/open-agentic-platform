@@ -80,6 +80,7 @@ commands:
   format_check: "npx prettier --check ."
   type_check: "npx tsc --noEmit"
   seed: "node scripts/run-seeds.js"
+  migrate: "npx tsx scripts/migrate.ts"
   feature_verify:
     - "npm run build"
     - "npm test"
@@ -181,78 +182,7 @@ scaffold:
     - "npx tsx scripts/setup-dual-app.ts --yes --clean"
 
 validation:
-  invariants:
-    - id: "INV-001"
-      description: "No JWT for user sessions — session-based auth only"
-      check:
-        type: "grep-absent"
-        pattern: "jsonwebtoken|jwt\\.sign|jwt\\.verify"
-        scope: "apps/"
-      severity: "error"
-
-    - id: "INV-002"
-      description: "No Vuex — Pinia only for state management"
-      check:
-        type: "grep-absent"
-        pattern: "import.*vuex|from.*vuex"
-        scope: "apps/"
-      severity: "error"
-
-    - id: "INV-003"
-      description: "No ORM — direct SQL only"
-      check:
-        type: "grep-absent"
-        pattern: "import.*prisma|import.*typeorm|import.*sequelize|import.*drizzle"
-        scope: "apps/"
-      severity: "error"
-
-    - id: "INV-004"
-      description: "No Tailwind CSS — GoA Design System only"
-      check:
-        type: "grep-absent"
-        pattern: "tailwindcss|@tailwind"
-        scope: "."
-      severity: "error"
-
-    - id: "INV-005"
-      description: "Vue SFCs use <script setup> — no Options API"
-      check:
-        type: "grep-absent"
-        pattern: "export default defineComponent|export default \\{"
-        scope: "apps/web*/src/"
-      severity: "error"
-
-    - id: "INV-006"
-      description: "Zod for validation — no joi/yup/class-validator"
-      check:
-        type: "grep-absent"
-        pattern: "import.*\\bjoi\\b|import.*\\byup\\b|import.*class-validator"
-        scope: "."
-      severity: "error"
-
-    - id: "INV-007"
-      description: "Public API stack never imports database pool"
-      check:
-        type: "grep-absent"
-        pattern: "getPool|pg\\.Pool|database\\.config"
-        scope: "apps/api-public/"
-      severity: "error"
-
-    - id: "INV-008"
-      description: "All Vue views are lazy-loaded in router"
-      check:
-        type: "grep-absent"
-        pattern: "import.*View from.*views/"
-        scope: "apps/web*/src/router/"
-      severity: "warning"
-
-    - id: "INV-009"
-      description: "Mock auth driver blocked in production"
-      check:
-        type: "grep-present"
-        pattern: "NODE_ENV.*production.*mock|mock.*production.*throw"
-        scope: "packages/auth/"
-      severity: "error"
+  invariants_file: "validation/invariants.yaml"
 
 dual_stack:
   audience_to_stack:

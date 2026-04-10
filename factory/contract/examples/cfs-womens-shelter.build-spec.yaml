@@ -682,6 +682,292 @@ data_model:
         - "BR-015"
         - "BR-016"
 
+    # ── Program ───────────────────────────────────────────────────────────
+    - name: "Program"
+      description: "A shelter program within a funding request (e.g., emergency housing, counselling, outreach)"
+      fields:
+        - name: "programId"
+          type: uuid
+          primary: true
+          required: true
+          default: "uuid"
+        - name: "requestId"
+          type: reference
+          required: true
+          ref_entity: "FundingRequest"
+          ref_field: "requestId"
+          ref_on_delete: cascade
+        - name: "programType"
+          type: string
+          required: true
+          max_length: 100
+        - name: "fundedBeds"
+          type: integer
+          required: false
+        - name: "unfundedBeds"
+          type: integer
+          required: false
+        - name: "fundedUnits"
+          type: integer
+          required: false
+        - name: "unfundedUnits"
+          type: integer
+          required: false
+        - name: "createdAt"
+          type: timestamp
+          required: true
+          default: "now"
+        - name: "updatedAt"
+          type: timestamp
+          required: true
+          default: "now"
+      business_rules:
+        - "BR-009"
+
+    # ── Budget ────────────────────────────────────────────────────────────
+    - name: "Budget"
+      description: "Startup and annual cost budget for a funding request, with line-item categories"
+      fields:
+        - name: "budgetId"
+          type: uuid
+          primary: true
+          required: true
+          default: "uuid"
+        - name: "requestId"
+          type: reference
+          required: true
+          ref_entity: "FundingRequest"
+          ref_field: "requestId"
+          ref_on_delete: cascade
+        - name: "startupSalaries"
+          type: decimal
+          required: false
+        - name: "startupBenefits"
+          type: decimal
+          required: false
+        - name: "startupTravel"
+          type: decimal
+          required: false
+        - name: "startupEquipment"
+          type: decimal
+          required: false
+        - name: "startupSupplies"
+          type: decimal
+          required: false
+        - name: "startupContracts"
+          type: decimal
+          required: false
+        - name: "startupOther"
+          type: decimal
+          required: false
+        - name: "startupOtherDescription"
+          type: string
+          required: false
+          max_length: 500
+        - name: "annualSalaries"
+          type: decimal
+          required: false
+        - name: "annualBenefits"
+          type: decimal
+          required: false
+        - name: "annualTravel"
+          type: decimal
+          required: false
+        - name: "annualEquipment"
+          type: decimal
+          required: false
+        - name: "annualSupplies"
+          type: decimal
+          required: false
+        - name: "annualContracts"
+          type: decimal
+          required: false
+        - name: "annualOther"
+          type: decimal
+          required: false
+        - name: "annualOtherDescription"
+          type: string
+          required: false
+          max_length: 500
+        - name: "createdAt"
+          type: timestamp
+          required: true
+          default: "now"
+        - name: "updatedAt"
+          type: timestamp
+          required: true
+          default: "now"
+      business_rules:
+        - "BR-010"
+
+    # ── FilterAnalysisResponse ────────────────────────────────────────────
+    - name: "FilterAnalysisResponse"
+      description: "An analyst's response to a filter analysis question during assessment"
+      fields:
+        - name: "responseId"
+          type: uuid
+          primary: true
+          required: true
+          default: "uuid"
+        - name: "assessmentId"
+          type: reference
+          required: true
+          ref_entity: "Assessment"
+          ref_field: "assessmentId"
+          ref_on_delete: cascade
+        - name: "questionId"
+          type: string
+          required: true
+          max_length: 100
+        - name: "answer"
+          type: string
+          required: true
+          max_length: 20
+          enum_values:
+            - "yes"
+            - "no"
+            - "more-info"
+        - name: "notes"
+          type: text
+          required: false
+        - name: "createdAt"
+          type: timestamp
+          required: true
+          default: "now"
+        - name: "updatedAt"
+          type: timestamp
+          required: true
+          default: "now"
+      business_rules:
+        - "BR-012"
+
+    # ── LgaIndicatorValue ─────────────────────────────────────────────────
+    - name: "LgaIndicatorValue"
+      description: "A community needs indicator value for a Local Geographic Area"
+      fields:
+        - name: "indicatorValueId"
+          type: integer
+          primary: true
+          required: true
+        - name: "lgaCode"
+          type: string
+          required: true
+          max_length: 20
+        - name: "indicatorDefinitionId"
+          type: string
+          required: true
+          max_length: 30
+        - name: "dataYear"
+          type: integer
+          required: false
+        - name: "dataSource"
+          type: string
+          required: false
+          max_length: 200
+        - name: "rawValue"
+          type: decimal
+          required: false
+        - name: "scoreValue"
+          type: decimal
+          required: false
+        - name: "scoreColour"
+          type: string
+          required: false
+          max_length: 10
+          enum_values:
+            - "green"
+            - "amber"
+            - "red"
+            - "ignore"
+        - name: "isSuppressed"
+          type: boolean
+          required: true
+          default: "false"
+        - name: "isMissingData"
+          type: boolean
+          required: true
+          default: "false"
+      business_rules:
+        - "BR-015"
+        - "BR-016"
+
+    # ── LgaCompositeScore ─────────────────────────────────────────────────
+    - name: "LgaCompositeScore"
+      description: "Composite community needs score for a Local Geographic Area"
+      fields:
+        - name: "scoreId"
+          type: integer
+          primary: true
+          required: true
+        - name: "lgaCode"
+          type: string
+          required: true
+          max_length: 20
+        - name: "scoreDimension"
+          type: string
+          required: true
+          max_length: 50
+        - name: "numericValue"
+          type: decimal
+          required: true
+        - name: "letterGrade"
+          type: string
+          required: true
+          max_length: 5
+        - name: "scoreDate"
+          type: date
+          required: true
+
+    # ── ApprovalChainEntry ────────────────────────────────────────────────
+    - name: "ApprovalChainEntry"
+      description: "An entry in the approval chain recording who approved a funding request at each stage"
+      fields:
+        - name: "chainId"
+          type: uuid
+          primary: true
+          required: true
+          default: "uuid"
+        - name: "requestId"
+          type: reference
+          required: true
+          ref_entity: "FundingRequest"
+          ref_field: "requestId"
+          ref_on_delete: cascade
+        - name: "approverUserId"
+          type: reference
+          required: true
+          ref_entity: "PortalUser"
+          ref_field: "userId"
+        - name: "decisionType"
+          type: string
+          required: true
+          max_length: 30
+          enum_values:
+            - "preliminary"
+            - "ministerial_review"
+            - "final"
+        - name: "approvedAt"
+          type: timestamp
+          required: true
+          default: "now"
+      business_rules:
+        - "BR-011"
+
+    # ── SystemConfiguration ───────────────────────────────────────────────
+    - name: "SystemConfiguration"
+      description: "Key-value system configuration store for runtime settings like submission windows"
+      fields:
+        - name: "configKey"
+          type: string
+          primary: true
+          required: true
+          max_length: 100
+        - name: "configValue"
+          type: text
+          required: true
+      business_rules:
+        - "BR-002"
+
   relationships:
     - type: one-to-many
       from: "Organization"
@@ -1701,7 +1987,7 @@ ui:
       page_type: landing
       audience: "staff"
       view_type: private-authenticated
-      requires_auth: false
+      requires_auth: true
       required_roles: []
       guest_only: false
       nav_section: "main"

@@ -319,6 +319,7 @@ mod tests {
             },
             validation: Validation {
                 invariants: vec![],
+                invariants_file: None,
             },
             dual_stack: None,
         }

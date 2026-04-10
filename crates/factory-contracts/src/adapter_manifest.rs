@@ -386,7 +386,11 @@ pub struct Scaffold {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Validation {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub invariants: Vec<Invariant>,
+    /// Optional path to an external invariants file (resolved relative to adapter root).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invariants_file: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

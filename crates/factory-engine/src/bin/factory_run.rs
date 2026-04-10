@@ -55,6 +55,10 @@ struct Cli {
     /// Resume a previously failed pipeline run by its run ID
     #[arg(long)]
     resume: Option<Uuid>,
+
+    /// Path to the scaffold source template directory to copy into the project
+    #[arg(long)]
+    scaffold_source: Option<PathBuf>,
 }
 
 /// Adapts FactoryAgentBridge to the orchestrator's AgentPromptLookup trait.
@@ -92,6 +96,29 @@ async fn main() -> ExitCode {
         }
     };
 
+    // Copy scaffold source into project directory if provided.
+    if let Some(ref scaffold_src) = cli.scaffold_source {
+        if !scaffold_src.exists() {
+            eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
+            return ExitCode::FAILURE;
+        }
+        eprintln!("Copying scaffold from {} into project...", scaffold_src.display());
+        let status = std::process::Command::new("cp")
+            .args(["-a", &format!("{}/.", scaffold_src.display()), &format!("{}/", project_path.display())])
+            .status();
+        match status {
+            Ok(s) if s.success() => eprintln!("  Scaffold copied successfully"),
+            Ok(s) => {
+                eprintln!("  Scaffold copy failed with exit code: {}", s.code().unwrap_or(-1));
+                return ExitCode::FAILURE;
+            }
+            Err(e) => {
+                eprintln!("  Scaffold copy failed: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+
     eprintln!("Factory pipeline starting");
     eprintln!("  Adapter:      {}", cli.adapter);
     eprintln!("  Project:      {}", project_path.display());
@@ -100,6 +127,9 @@ async fn main() -> ExitCode {
     eprintln!("  Auto-approve: {}", cli.auto_approve);
     if let Some(resume_id) = &cli.resume {
         eprintln!("  Resuming:     {resume_id}");
+    }
+    if let Some(ref src) = cli.scaffold_source {
+        eprintln!("  Scaffold src: {}", src.display());
     }
     eprintln!();
 

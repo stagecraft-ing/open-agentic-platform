@@ -240,12 +240,21 @@ pub fn generate_scaffold_manifest(
 
         let step_id = format!("s6b-data-{}", entity_name);
 
-        // Inputs: depend on the previous entity steps (to respect ordering).
+        // Inputs: chain to the last entity step to enforce topological ordering.
+        // Each entity step depends on the previous one so the orchestrator
+        // cannot parallelise them out of FK dependency order.
         let inputs: Vec<String> = prev_entity_ids
-            .iter()
-            .map(|prev| format!("{prev}/scaffold-init-report.yaml"))
-            .take(1) // Only depend on scaffold init (topo order handles the rest)
-            .collect();
+            .last()
+            .map(|prev| {
+                let artifact = if prev == "s6a-scaffold-init" {
+                    "scaffold-init-report.yaml".to_string()
+                } else {
+                    let prev_entity = prev.strip_prefix("s6b-data-").unwrap_or(prev);
+                    format!("{prev_entity}-entity-report.yaml")
+                };
+                vec![format!("{prev}/{artifact}")]
+            })
+            .unwrap_or_default();
 
         let data_pattern = resolver
             .resolve_data_pattern("migration")
@@ -407,7 +416,14 @@ pub fn generate_scaffold_manifest(
             let stack_line = operation
                 .stack
                 .as_ref()
-                .map(|s| format!("\nStack: {:?}", s))
+                .map(|s| {
+                    let name = match s {
+                        factory_contracts::build_spec::StackTarget::Public => "public",
+                        factory_contracts::build_spec::StackTarget::Internal => "internal",
+                        factory_contracts::build_spec::StackTarget::Both => "both",
+                    };
+                    format!("\nStack: {name}")
+                })
                 .unwrap_or_default();
 
             steps.push(WorkflowStep {
@@ -500,6 +516,15 @@ pub fn generate_scaffold_manifest(
             None => String::new(),
         };
 
+        // Resolve the audience's auth method so the scaffolding agent knows
+        // which driver (SAML, OIDC, etc.) to wire into route guards.
+        let audience_method = build_spec
+            .auth
+            .audiences
+            .get(&page.audience)
+            .map(|aud| format!("\nAudience: {} (auth: {:?})", page.audience, aud.method))
+            .unwrap_or_else(|| format!("\nAudience: {}", page.audience));
+
         steps.push(WorkflowStep {
             id: step_id,
             agent: format!("{}-ui-scaffolder", adapter.adapter.name),
@@ -510,7 +535,7 @@ pub fn generate_scaffold_manifest(
                 "Generate UI page: {} ({})\n\
                  Path: {}\n\
                  Type: {:?}, View: {:?}\n\
-                 Auth required: {}\n\
+                 Auth required: {}{audience_method}\n\
                  Data sources: {}\n\
                  Adapter: {}{stack_block}{page_pattern}{ui_patterns_block}{ui_dir_conventions_block}",
                 page.title,
@@ -536,6 +561,14 @@ pub fn generate_scaffold_manifest(
     }
 
     // ── s6e: Configuration ───────────────────────────────────────────────
+    let audience_lines: String = build_spec
+        .auth
+        .audiences
+        .iter()
+        .map(|(name, aud)| format!("  - {name}: {:?}", aud.method))
+        .collect::<Vec<_>>()
+        .join("\n");
+
     steps.push(WorkflowStep {
         id: "s6e-configure".into(),
         agent: format!("{}-configurer", adapter.adapter.name),
@@ -543,11 +576,11 @@ pub fn generate_scaffold_manifest(
         inputs: vec![],
         outputs: vec!["configure-report.yaml".into()],
         instruction: format!(
-            "Apply project configuration: set project identity ({}), wire auth ({} audiences), \
+            "Apply project configuration: set project identity ({}), wire auth, \
              configure environment variables, apply deployment variant ({:?}).\n\
+             Audiences:\n{audience_lines}\n\
              Adapter: {}",
             build_spec.project.name,
-            build_spec.auth.audiences.len(),
             build_spec.project.variant,
             adapter.adapter.name,
         ),
@@ -880,6 +913,7 @@ mod tests {
             },
             validation: Validation {
                 invariants: vec![],
+                invariants_file: None,
             },
             dual_stack: None,
         }

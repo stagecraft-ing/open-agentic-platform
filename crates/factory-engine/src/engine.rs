@@ -175,10 +175,8 @@ impl FactoryEngine {
             })?;
 
         // Inject org if the agent omitted it and the operator supplied one.
-        if build_spec.project.org.is_empty() {
-            if let Some(org) = org_override {
-                build_spec.project.org = org.to_string();
-            }
+        if build_spec.project.org.is_empty() && let Some(org) = org_override {
+            build_spec.project.org = org.to_string();
         }
 
         // Hash the frozen Build Spec.

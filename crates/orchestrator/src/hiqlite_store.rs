@@ -382,6 +382,7 @@ impl WorkflowStore for HiqliteWorkflowStore {
                 timestamp: row.timestamp,
                 event_type: row.event_type,
                 payload,
+                scope: None,
             });
         }
 

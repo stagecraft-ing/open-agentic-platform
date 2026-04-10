@@ -1105,6 +1105,14 @@ pub async fn dispatch_manifest_persisted(
         }
 
         let step = &steps[idx];
+
+        // Skip completed steps on resume.
+        if options.skip_completed_steps.contains(&step.id) {
+            eprintln!("  Skipping completed step: {}", step.id);
+            statuses[idx] = StepStatus::Success;
+            continue;
+        }
+
         let input_paths = resolve_input_paths(artifact_base, run_id, step);
         if let Some(missing_path) = input_paths.iter().find(|p| !p.exists()).cloned() {
             statuses[idx] = StepStatus::Failure;

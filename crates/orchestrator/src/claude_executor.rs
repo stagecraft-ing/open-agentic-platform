@@ -104,7 +104,11 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         // The user message is a brief task summary derived from the step ID.
         let user_message = format!("Execute step: {}", request.step_id);
 
-        let output = tokio::process::Command::new("claude")
+        // Per-step safety timeout. Future improvement: derive from effort level
+        // (Quick → 5 min, Investigate → 30 min, Deep → 90 min).
+        let step_timeout = tokio::time::Duration::from_secs(3600); // 60 min safety net
+
+        let child = tokio::process::Command::new("claude")
             .args([
                 "--print",
                 "--output-format",
@@ -118,9 +122,35 @@ impl GovernedExecutor for ClaudeCodeExecutor {
                 &user_message,
             ])
             .current_dir(&self.project_path)
-            .output()
-            .await
+            .spawn()
             .map_err(|e| format!("failed to spawn claude: {e}"))?;
+
+        let output = {
+            // Wrap the child in an Option so we can either extract the output or
+            // kill the process on timeout without a borrow-after-move issue.
+            let mut child_opt = Some(child);
+            let sleep = tokio::time::sleep(step_timeout);
+            tokio::pin!(sleep);
+            tokio::select! {
+                result = async {
+                    // Safety: child_opt is Some here; we move it out exactly once.
+                    child_opt.take().unwrap().wait_with_output().await
+                } => {
+                    result.map_err(|e| format!("failed to wait for claude process: {e}"))?
+                }
+                _ = &mut sleep => {
+                    // Kill the remaining child if it wasn't already consumed.
+                    if let Some(mut c) = child_opt.take() {
+                        let _ = c.kill().await;
+                    }
+                    return Err(format!(
+                        "claude process timed out after {} seconds for step '{}'",
+                        step_timeout.as_secs(),
+                        request.step_id,
+                    ));
+                }
+            }
+        };
 
         if !output.status.success() {
             let code = output

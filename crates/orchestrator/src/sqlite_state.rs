@@ -98,7 +98,7 @@ impl SqliteWorkflowStore {
             );
 
             CREATE TABLE IF NOT EXISTS steps (
-              step_id       TEXT PRIMARY KEY,
+              step_id       TEXT NOT NULL,
               workflow_id   TEXT NOT NULL REFERENCES workflows(workflow_id),
               step_index    INTEGER NOT NULL,
               name          TEXT NOT NULL,
@@ -108,7 +108,8 @@ impl SqliteWorkflowStore {
               duration_ms   INTEGER,
               output        TEXT,
               gate_type     TEXT,
-              gate_config   TEXT
+              gate_config   TEXT,
+              PRIMARY KEY (workflow_id, step_id)
             );
 
             CREATE TABLE IF NOT EXISTS events (
@@ -208,15 +209,6 @@ impl SqliteWorkflowStore {
             reason: format!("upsert workflow row in sqlite: {e}"),
         })?;
 
-        // Replace all step rows for this workflow.
-        tx.execute(
-            "DELETE FROM steps WHERE workflow_id = ?1",
-            params![wf_id_str],
-        )
-        .map_err(|e| OrchestratorError::StatePersistence {
-            reason: format!("delete prior steps for workflow in sqlite: {e}"),
-        })?;
-
         for (idx, step) in state.steps.iter().enumerate() {
             let status_str = step_status_to_str(&step.status);
             let output_json = step
@@ -250,6 +242,14 @@ impl SqliteWorkflowStore {
                   gate_config
                 )
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                ON CONFLICT(workflow_id, step_id) DO UPDATE SET
+                  status       = excluded.status,
+                  started_at   = excluded.started_at,
+                  completed_at = excluded.completed_at,
+                  duration_ms  = excluded.duration_ms,
+                  output       = excluded.output,
+                  gate_type    = excluded.gate_type,
+                  gate_config  = excluded.gate_config
                 "#,
                 params![
                     step.id,
@@ -266,7 +266,7 @@ impl SqliteWorkflowStore {
                 ],
             )
             .map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("insert step row {} in sqlite: {e}", step.id),
+                reason: format!("upsert step row {} in sqlite: {e}", step.id),
             })?;
         }
 
