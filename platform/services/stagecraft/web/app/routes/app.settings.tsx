@@ -1,27 +1,37 @@
-import { Form, redirect } from "react-router";
-import { authSignout } from "../lib/auth-api.server";
+import { Outlet, NavLink } from "react-router";
 
-export async function action({ request }: { request: Request }) {
-  const res = await authSignout(request);
-  return redirect("/", {
-    headers: { "Set-Cookie": res.setCookie ?? "" },
-  });
-}
+const SETTINGS_NAV = [
+  { to: "/app/settings", label: "General", end: true },
+  { to: "/app/settings/connectors", label: "Connectors", end: false },
+];
 
-export default function Settings() {
+export default function SettingsLayout() {
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Settings
-      </h3>
-      <Form method="post" encType="application/x-www-form-urlencoded">
-        <button
-          type="submit"
-          className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          Sign out
-        </button>
-      </Form>
+      </h2>
+
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-6">
+        {SETTINGS_NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              `px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                isActive
+                  ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`
+            }
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+
+      <Outlet />
     </div>
   );
 }

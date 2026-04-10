@@ -548,6 +548,32 @@ export const documentBindings = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Sync Runs (spec 087 Phase 4)
+// ---------------------------------------------------------------------------
+
+export const syncRunStatusEnum = pgEnum("sync_run_status", [
+  "running",
+  "completed",
+  "failed",
+]);
+
+export const syncRuns = pgTable("sync_runs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  connectorId: uuid("connector_id").notNull(),
+  workspaceId: uuid("workspace_id").notNull(),
+  status: syncRunStatusEnum("status").notNull().default("running"),
+  objectsCreated: integer("objects_created").notNull().default(0),
+  objectsUpdated: integer("objects_updated").notNull().default(0),
+  objectsSkipped: integer("objects_skipped").notNull().default(0),
+  error: text("error"),
+  deltaToken: text("delta_token"),
+  startedAt: timestamp("started_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
+
+// ---------------------------------------------------------------------------
 // Factory Artifact Registry (spec 082 Phase 3)
 // ---------------------------------------------------------------------------
 

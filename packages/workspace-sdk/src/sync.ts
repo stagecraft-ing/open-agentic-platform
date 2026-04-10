@@ -15,6 +15,7 @@ export type WorkspaceEventType =
   | "gate_rejected"
   | "deploy_status"
   | "knowledge_object_ready"
+  | "connector_sync_complete"
   | "member_added"
   | "member_removed"
   | "workspace_updated";

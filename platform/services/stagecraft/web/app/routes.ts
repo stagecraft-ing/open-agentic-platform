@@ -20,7 +20,12 @@ export default [
     route("pipelines", "routes/app.pipelines.tsx"),
     route("pipelines/:projectId", "routes/app.pipelines.$projectId.tsx"),
     route("deploys", "routes/app.deploys.tsx"),
-    route("settings", "routes/app.settings.tsx"),
+    route("settings", "routes/app.settings.tsx", [
+      index("routes/app.settings._index.tsx"),
+      route("connectors", "routes/app.settings.connectors.tsx"),
+      route("connectors/new", "routes/app.settings.connectors.new.tsx"),
+      route("connectors/:id", "routes/app.settings.connectors.$id.tsx"),
+    ]),
   ]),
   route("admin", "routes/admin.tsx", [
     index("routes/admin._index.tsx"),

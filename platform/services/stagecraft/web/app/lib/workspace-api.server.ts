@@ -158,6 +158,50 @@ export async function createConnector(
   }) as Promise<{ connector: SourceConnectorRow }>;
 }
 
+export async function getConnector(request: Request, id: string) {
+  return apiFetch(request, `/api/knowledge/connectors/${id}`) as Promise<{
+    connector: SourceConnectorRow;
+  }>;
+}
+
+export async function updateConnector(
+  request: Request,
+  id: string,
+  data: { name?: string; config?: Record<string, unknown>; syncSchedule?: string | null; status?: string }
+) {
+  return apiFetch(request, `/api/knowledge/connectors/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  }) as Promise<{ connector: SourceConnectorRow }>;
+}
+
+export async function deleteConnector(request: Request, id: string) {
+  return apiFetch(request, `/api/knowledge/connectors/${id}`, {
+    method: "DELETE",
+  }) as Promise<{ deleted: boolean }>;
+}
+
+export async function testConnectorConnection(request: Request, id: string) {
+  return apiFetch(request, `/api/knowledge/connectors/${id}/test`, {
+    method: "POST",
+    body: "{}",
+  }) as Promise<{ success: boolean; error?: string }>;
+}
+
+export async function triggerSync(request: Request, id: string) {
+  return apiFetch(request, `/api/knowledge/connectors/${id}/sync`, {
+    method: "POST",
+    body: "{}",
+  }) as Promise<{ syncRunId: string }>;
+}
+
+export async function listSyncRuns(request: Request, connectorId: string) {
+  return apiFetch(
+    request,
+    `/api/knowledge/connectors/${connectorId}/sync-runs`
+  ) as Promise<{ runs: SyncRunRow[] }>;
+}
+
 // =========================================================================
 // Document Bindings
 // =========================================================================
@@ -304,6 +348,20 @@ export type DocumentBindingRow = {
   knowledgeObjectId: string;
   boundBy: string;
   boundAt: string;
+};
+
+export type SyncRunRow = {
+  id: string;
+  connectorId: string;
+  workspaceId: string;
+  status: string;
+  objectsCreated: number;
+  objectsUpdated: number;
+  objectsSkipped: number;
+  error: string | null;
+  deltaToken: string | null;
+  startedAt: string;
+  completedAt: string | null;
 };
 
 export type PipelineStatusRow = {

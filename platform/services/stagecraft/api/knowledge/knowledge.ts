@@ -16,6 +16,7 @@ import {
   workspaces,
   projects,
   auditLog,
+  syncRuns,
 } from "../db/schema";
 import { and, eq, desc, inArray } from "drizzle-orm";
 import {
@@ -25,6 +26,9 @@ import {
   deleteObject,
 } from "./storage";
 import { randomUUID } from "crypto";
+import { getConnectorImpl } from "./connectors";
+import type { SyncContext, SyncedObject } from "./connectors";
+import { broadcastToWorkspace } from "../sync/sync";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,6 +69,20 @@ type DocumentBindingRow = {
   knowledgeObjectId: string;
   boundBy: string;
   boundAt: Date;
+};
+
+type SyncRunRow = {
+  id: string;
+  connectorId: string;
+  workspaceId: string;
+  status: string;
+  objectsCreated: number;
+  objectsUpdated: number;
+  objectsSkipped: number;
+  error: string | null;
+  deltaToken: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -583,6 +601,19 @@ export const createConnector = api(
       throw APIError.invalidArgument(`invalid connector type: ${req.type}`);
     }
 
+    // Validate config via connector implementation
+    if (req.config) {
+      const impl = getConnectorImpl(req.type);
+      if (impl) {
+        const validation = impl.validateConfig(req.config);
+        if (!validation.valid) {
+          throw APIError.invalidArgument(
+            `invalid config: ${validation.errors.join(", ")}`
+          );
+        }
+      }
+    }
+
     const [connector] = await db
       .insert(sourceConnectors)
       .values({
@@ -675,6 +706,479 @@ export const deleteConnector = api(
     return { deleted: true };
   }
 );
+
+// ---------------------------------------------------------------------------
+// Get a single connector
+// ---------------------------------------------------------------------------
+
+export const getConnector = api(
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/knowledge/connectors/:id",
+  },
+  async (req: { id: string }): Promise<{ connector: SourceConnectorRow }> => {
+    const auth = getAuthData()!;
+
+    const [row] = await db
+      .select({
+        id: sourceConnectors.id,
+        workspaceId: sourceConnectors.workspaceId,
+        type: sourceConnectors.type,
+        name: sourceConnectors.name,
+        syncSchedule: sourceConnectors.syncSchedule,
+        status: sourceConnectors.status,
+        lastSyncedAt: sourceConnectors.lastSyncedAt,
+        createdAt: sourceConnectors.createdAt,
+        updatedAt: sourceConnectors.updatedAt,
+      })
+      .from(sourceConnectors)
+      .where(
+        and(
+          eq(sourceConnectors.id, req.id),
+          eq(sourceConnectors.workspaceId, auth.workspaceId)
+        )
+      )
+      .limit(1);
+
+    if (!row) {
+      throw APIError.notFound("connector not found");
+    }
+
+    return { connector: row };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Update connector
+// ---------------------------------------------------------------------------
+
+type UpdateConnectorRequest = {
+  id: string;
+  name?: string;
+  config?: Record<string, unknown>;
+  syncSchedule?: string | null;
+  status?: string;
+};
+
+export const updateConnector = api(
+  {
+    expose: true,
+    auth: true,
+    method: "PATCH",
+    path: "/api/knowledge/connectors/:id",
+  },
+  async (
+    req: UpdateConnectorRequest
+  ): Promise<{ connector: SourceConnectorRow }> => {
+    const auth = getAuthData()!;
+
+    const [existing] = await db
+      .select()
+      .from(sourceConnectors)
+      .where(
+        and(
+          eq(sourceConnectors.id, req.id),
+          eq(sourceConnectors.workspaceId, auth.workspaceId)
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      throw APIError.notFound("connector not found");
+    }
+
+    // Validate config if provided
+    if (req.config) {
+      const impl = getConnectorImpl(existing.type);
+      if (impl) {
+        const validation = impl.validateConfig(req.config);
+        if (!validation.valid) {
+          throw APIError.invalidArgument(
+            `invalid config: ${validation.errors.join(", ")}`
+          );
+        }
+      }
+    }
+
+    if (req.status) {
+      const validStatuses = ["active", "paused", "error", "disabled"];
+      if (!validStatuses.includes(req.status)) {
+        throw APIError.invalidArgument(`invalid status: ${req.status}`);
+      }
+    }
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (req.name !== undefined) updates.name = req.name;
+    if (req.config !== undefined) updates.configEncrypted = req.config;
+    if (req.syncSchedule !== undefined) updates.syncSchedule = req.syncSchedule;
+    if (req.status !== undefined) updates.status = req.status;
+
+    const [updated] = await db
+      .update(sourceConnectors)
+      .set(updates)
+      .where(eq(sourceConnectors.id, req.id))
+      .returning();
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "knowledge.connector_updated",
+      targetType: "source_connector",
+      targetId: req.id,
+      metadata: { fields: Object.keys(updates).filter((k) => k !== "updatedAt") },
+    });
+
+    return {
+      connector: {
+        id: updated.id,
+        workspaceId: updated.workspaceId,
+        type: updated.type,
+        name: updated.name,
+        syncSchedule: updated.syncSchedule,
+        status: updated.status,
+        lastSyncedAt: updated.lastSyncedAt,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      },
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Test connector connection
+// ---------------------------------------------------------------------------
+
+export const testConnectorConnection = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/knowledge/connectors/:id/test",
+  },
+  async (req: { id: string }): Promise<{ success: boolean; error?: string }> => {
+    const auth = getAuthData()!;
+
+    const [conn] = await db
+      .select()
+      .from(sourceConnectors)
+      .where(
+        and(
+          eq(sourceConnectors.id, req.id),
+          eq(sourceConnectors.workspaceId, auth.workspaceId)
+        )
+      )
+      .limit(1);
+
+    if (!conn) {
+      throw APIError.notFound("connector not found");
+    }
+
+    const impl = getConnectorImpl(conn.type);
+    if (!impl) {
+      throw APIError.invalidArgument(`no implementation for connector type: ${conn.type}`);
+    }
+
+    try {
+      await impl.testConnection(
+        (conn.configEncrypted as Record<string, unknown>) ?? {}
+      );
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Trigger sync for a connector
+// ---------------------------------------------------------------------------
+
+export const triggerSync = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/knowledge/connectors/:id/sync",
+  },
+  async (req: { id: string }): Promise<{ syncRunId: string }> => {
+    const auth = getAuthData()!;
+
+    const [conn] = await db
+      .select()
+      .from(sourceConnectors)
+      .where(
+        and(
+          eq(sourceConnectors.id, req.id),
+          eq(sourceConnectors.workspaceId, auth.workspaceId)
+        )
+      )
+      .limit(1);
+
+    if (!conn) {
+      throw APIError.notFound("connector not found");
+    }
+
+    if (conn.status !== "active") {
+      throw APIError.invalidArgument(
+        `connector is ${conn.status} — only active connectors can be synced`
+      );
+    }
+
+    if (conn.type === "upload") {
+      throw APIError.invalidArgument(
+        "upload connectors do not support sync — use the upload endpoint"
+      );
+    }
+
+    const bucket = await getWorkspaceBucket(auth.workspaceId);
+
+    // Get the last successful delta token
+    const [lastRun] = await db
+      .select({ deltaToken: syncRuns.deltaToken })
+      .from(syncRuns)
+      .where(
+        and(
+          eq(syncRuns.connectorId, conn.id),
+          eq(syncRuns.status, "completed")
+        )
+      )
+      .orderBy(desc(syncRuns.completedAt))
+      .limit(1);
+
+    const syncRunId = await executeSyncRun(
+      conn.id,
+      auth.workspaceId,
+      bucket,
+      conn.type,
+      (conn.configEncrypted as Record<string, unknown>) ?? {},
+      lastRun?.deltaToken ?? null,
+      auth.userID
+    );
+
+    return { syncRunId };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// List sync runs for a connector
+// ---------------------------------------------------------------------------
+
+export const listSyncRuns = api(
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/knowledge/connectors/:id/sync-runs",
+  },
+  async (req: { id: string }): Promise<{ runs: SyncRunRow[] }> => {
+    const auth = getAuthData()!;
+
+    // Verify the connector belongs to this workspace
+    const [conn] = await db
+      .select({ id: sourceConnectors.id })
+      .from(sourceConnectors)
+      .where(
+        and(
+          eq(sourceConnectors.id, req.id),
+          eq(sourceConnectors.workspaceId, auth.workspaceId)
+        )
+      )
+      .limit(1);
+
+    if (!conn) {
+      throw APIError.notFound("connector not found");
+    }
+
+    const rows = await db
+      .select()
+      .from(syncRuns)
+      .where(eq(syncRuns.connectorId, req.id))
+      .orderBy(desc(syncRuns.startedAt))
+      .limit(50);
+
+    return { runs: rows };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Sync execution orchestrator (used by both on-demand and scheduled sync)
+// ---------------------------------------------------------------------------
+
+export async function executeSyncRun(
+  connectorId: string,
+  workspaceId: string,
+  bucket: string,
+  connectorType: string,
+  config: Record<string, unknown>,
+  previousDeltaToken: string | null,
+  actorUserId: string
+): Promise<string> {
+  const impl = getConnectorImpl(connectorType);
+  if (!impl) {
+    throw new Error(`no implementation for connector type: ${connectorType}`);
+  }
+
+  // Create sync run record
+  const [run] = await db
+    .insert(syncRuns)
+    .values({
+      connectorId,
+      workspaceId,
+      status: "running",
+    })
+    .returning();
+
+  const ctx: SyncContext = {
+    connectorId,
+    workspaceId,
+    bucket,
+    config,
+    previousDeltaToken,
+  };
+
+  // Execute the sync asynchronously (don't block the request)
+  setImmediate(async () => {
+    try {
+      const result = await impl.sync(ctx);
+
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+
+      // Create/update knowledge objects for each synced file
+      for (const obj of result.objects) {
+        if (obj.action === "skipped") {
+          skipped++;
+          continue;
+        }
+
+        // Check if a knowledge object with this content hash already exists
+        const [existing] = await db
+          .select({ id: knowledgeObjects.id, contentHash: knowledgeObjects.contentHash })
+          .from(knowledgeObjects)
+          .where(
+            and(
+              eq(knowledgeObjects.workspaceId, workspaceId),
+              eq(knowledgeObjects.connectorId, connectorId),
+              eq(knowledgeObjects.storageKey, obj.storageKey)
+            )
+          )
+          .limit(1);
+
+        if (existing) {
+          if (existing.contentHash === obj.contentHash) {
+            skipped++;
+            continue;
+          }
+          // Update existing object (content changed)
+          await db
+            .update(knowledgeObjects)
+            .set({
+              contentHash: obj.contentHash,
+              sizeBytes: obj.sizeBytes,
+              mimeType: obj.mimeType,
+              provenance: obj.provenance,
+              state: "imported",
+              updatedAt: new Date(),
+            })
+            .where(eq(knowledgeObjects.id, existing.id));
+          updated++;
+        } else {
+          // Create new knowledge object
+          await db.insert(knowledgeObjects).values({
+            workspaceId,
+            connectorId,
+            storageKey: obj.storageKey,
+            filename: obj.filename,
+            mimeType: obj.mimeType,
+            sizeBytes: obj.sizeBytes,
+            contentHash: obj.contentHash,
+            state: "imported",
+            provenance: obj.provenance,
+          });
+          created++;
+        }
+      }
+
+      // Mark sync run as completed
+      await db
+        .update(syncRuns)
+        .set({
+          status: "completed",
+          objectsCreated: created,
+          objectsUpdated: updated,
+          objectsSkipped: skipped,
+          deltaToken: result.deltaToken,
+          completedAt: new Date(),
+        })
+        .where(eq(syncRuns.id, run.id));
+
+      // Update connector's last_synced_at
+      await db
+        .update(sourceConnectors)
+        .set({ lastSyncedAt: new Date(), updatedAt: new Date() })
+        .where(eq(sourceConnectors.id, connectorId));
+
+      // Audit
+      await db.insert(auditLog).values({
+        actorUserId,
+        action: "knowledge.sync_completed",
+        targetType: "source_connector",
+        targetId: connectorId,
+        metadata: { syncRunId: run.id, created, updated, skipped },
+      });
+
+      // Broadcast sync completion to connected clients
+      broadcastToWorkspace(workspaceId, {
+        type: "connector_sync_complete",
+        workspaceId,
+        timestamp: new Date().toISOString(),
+        payload: {
+          connectorId,
+          syncRunId: run.id,
+          objectsCreated: created,
+          objectsUpdated: updated,
+          objectsSkipped: skipped,
+        },
+      });
+
+      log.info("sync run completed", {
+        syncRunId: run.id,
+        connectorId,
+        created,
+        updated,
+        skipped,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+
+      await db
+        .update(syncRuns)
+        .set({
+          status: "failed",
+          error: message,
+          completedAt: new Date(),
+        })
+        .where(eq(syncRuns.id, run.id));
+
+      // Set connector to error status
+      await db
+        .update(sourceConnectors)
+        .set({ status: "error" as any, updatedAt: new Date() })
+        .where(eq(sourceConnectors.id, connectorId));
+
+      log.error("sync run failed", {
+        syncRunId: run.id,
+        connectorId,
+        error: message,
+      });
+    }
+  });
+
+  return run.id;
+}
 
 // =========================================================================
 // DOCUMENT BINDINGS

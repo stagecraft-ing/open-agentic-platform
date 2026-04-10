@@ -82,3 +82,66 @@ export interface DocumentBinding {
   boundBy: string;
   boundAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Sync runs (spec 087 Phase 4)
+// ---------------------------------------------------------------------------
+
+export type SyncRunStatus = "running" | "completed" | "failed";
+
+export interface SyncRun {
+  id: string;
+  connectorId: string;
+  workspaceId: string;
+  status: SyncRunStatus;
+  objectsCreated: number;
+  objectsUpdated: number;
+  objectsSkipped: number;
+  error: string | null;
+  deltaToken: string | null;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Connector config shapes (spec 087 Phase 4)
+// ---------------------------------------------------------------------------
+
+export interface SharePointConnectorConfig {
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
+  siteUrl: string;
+  driveId?: string;
+  folderPath?: string;
+}
+
+export interface S3ConnectorConfig {
+  bucket: string;
+  prefix?: string;
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
+export interface AzureBlobConnectorConfig {
+  connectionString: string;
+  container: string;
+  prefix?: string;
+}
+
+export interface GcsConnectorConfig {
+  bucket: string;
+  prefix?: string;
+  serviceAccountKey: string;
+}
+
+export type ConnectorConfig =
+  | SharePointConnectorConfig
+  | S3ConnectorConfig
+  | AzureBlobConnectorConfig
+  | GcsConnectorConfig
+  | Record<string, never>; // upload — no config
+
+/** Valid sync schedule intervals. */
+export type SyncSchedule = "15m" | "30m" | "1h" | "6h" | "12h" | "24h";

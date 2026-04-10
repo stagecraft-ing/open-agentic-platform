@@ -33,6 +33,7 @@ Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/ap
 - `source_connectors` — external knowledge sources (workspace_id, type: upload/sharepoint/s3/azure-blob/gcs, config, sync schedule) (spec 087 Phase 2)
 - `knowledge_objects` — canonical normalised documents in workspace object store (workspace_id, storage_key, filename, mime_type, content_hash, state lifecycle: imported→extracting→extracted→classified→available, provenance JSONB) (spec 087 Phase 2)
 - `document_bindings` — links knowledge objects to projects (project_id, knowledge_object_id, bound_by) (spec 087 Phase 2)
+- `sync_runs` — connector sync execution history (connector_id, workspace_id, status: running/completed/failed, objects_created/updated/skipped, delta_token for incremental sync) (spec 087 Phase 4)
 
 ## Identity
 
