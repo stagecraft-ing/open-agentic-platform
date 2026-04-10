@@ -233,7 +233,7 @@ export const githubCallback = api.raw(
       return;
     }
 
-    // Stage 5: Provision Rauthy user
+    // Stage 5: Provision Rauthy user (non-fatal — HMAC session works without it)
     let rauthyUserId = user.rauthyUserId;
     try {
       if (!rauthyUserId) {
@@ -248,10 +248,8 @@ export const githubCallback = api.raw(
           .where(eq(users.id, user.id));
       }
     } catch (err) {
-      log.error("Rauthy user provisioning failed", { error: String(err) });
-      resp.writeHead(302, { Location: "/signin?error=rauthy_unavailable" });
-      resp.end();
-      return;
+      // Rauthy not deployed yet — degrade gracefully (spec 080 FR-003 transitional)
+      log.warn("Rauthy provisioning skipped (non-fatal)", { error: String(err) });
     }
 
     // Stage 6: Finalize — update last login, audit, route by org count
