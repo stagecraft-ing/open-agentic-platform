@@ -17,8 +17,8 @@ import { verifyPayload } from "./session-crypto";
 // ---------------------------------------------------------------------------
 
 interface AuthParams {
-  authorization: Header<"Authorization">;
-  cookie: Header<"Cookie">;
+  authorization?: Header<"Authorization">;
+  cookie?: Header<"Cookie">;
 }
 
 export interface AuthData {
