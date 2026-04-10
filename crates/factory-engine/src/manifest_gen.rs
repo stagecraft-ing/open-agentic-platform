@@ -281,6 +281,63 @@ pub fn generate_scaffold_manifest(
         prev_entity_ids.push(step_id);
     }
 
+    // ── s6b-seed: Seed data & fixture generation ────────────────────────
+    // Runs after ALL entity data steps complete, producing reference data
+    // seeds, dev fixtures, a runner script, and a fixture factory module.
+    if adapter.agents.seed_generator.is_some() {
+        let seed_inputs: Vec<String> = prev_entity_ids
+            .iter()
+            .filter(|id| id.starts_with("s6b-data-"))
+            .map(|id| {
+                let entity = id.strip_prefix("s6b-data-").unwrap_or(id);
+                format!("{id}/{entity}-entity-report.yaml")
+            })
+            .collect();
+
+        let seed_pattern = resolver
+            .resolve_data_pattern("seed")
+            .map(|p| format!("\nSeed pattern: {}", p.display()))
+            .unwrap_or_default();
+
+        let fixture_pattern = resolver
+            .resolve_data_pattern("fixture_factory")
+            .map(|p| format!("\nFixture factory pattern: {}", p.display()))
+            .unwrap_or_default();
+
+        let seed_command = adapter
+            .commands
+            .extra
+            .get("seed")
+            .and_then(|v| v.as_str())
+            .map(|c| format!("\nSeed command: {c}"))
+            .unwrap_or_default();
+
+        steps.push(WorkflowStep {
+            id: "s6b-seed".into(),
+            agent: format!("{}-seed-generator", adapter.adapter.name),
+            effort: EffortLevel::Investigate,
+            inputs: seed_inputs,
+            outputs: vec![
+                "reference-data.sql".into(),
+                "dev-fixtures.sql".into(),
+                "run-seeds.js".into(),
+                "fixture-factory.ts".into(),
+            ],
+            instruction: format!(
+                "Generate seed data, development fixtures, seed runner, and fixture factory module.\n\
+                 Entities: {}\n\
+                 Auth audiences: {}\n\
+                 Adapter: {}{seed_pattern}{fixture_pattern}{seed_command}",
+                entity_order.join(", "),
+                build_spec.auth.audiences.keys().cloned().collect::<Vec<_>>().join(", "),
+                adapter.adapter.name,
+            ),
+            gate: None,
+            post_verify: Some(compile_and_lint.clone()),
+            max_retries: Some(3),
+        });
+    }
+
     // ── s6c-*: API operations (grouped by resource) ──────────────────────
 
     // Resolve all API pattern files once (service, controller, route, test + data/query).
@@ -811,6 +868,7 @@ mod tests {
                 data_scaffolder: "agents/data-scaffolder.md".into(),
                 configurer: "agents/configurer.md".into(),
                 trimmer: "agents/trimmer.md".into(),
+                seed_generator: None,
                 reviewer: None,
                 security_auditor: None,
             },

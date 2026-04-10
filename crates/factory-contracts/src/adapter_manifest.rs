@@ -306,6 +306,8 @@ pub struct DataPatterns {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seed: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fixture_factory: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub validation_schema: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, String>,
@@ -353,6 +355,9 @@ pub struct Agents {
     pub trimmer: String,
 
     // Optional agents
+    /// Generates seed data and fixture factories after data scaffolding
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed_generator: Option<String>,
     /// Reviews generated code for quality/consistency
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reviewer: Option<String>,

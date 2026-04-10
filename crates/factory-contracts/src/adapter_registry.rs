@@ -307,6 +307,7 @@ mod tests {
                 data_scaffolder: "agents/data-scaffolder.md".into(),
                 configurer: "agents/configurer.md".into(),
                 trimmer: "agents/trimmer.md".into(),
+                seed_generator: None,
                 reviewer: None,
                 security_auditor: None,
             },

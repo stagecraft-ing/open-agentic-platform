@@ -63,6 +63,7 @@ impl PatternResolver {
             "migration" => data.migration.as_deref(),
             "query" => data.query.as_deref(),
             "seed" => data.seed.as_deref(),
+            "fixture_factory" => data.fixture_factory.as_deref(),
             "validation_schema" => data.validation_schema.as_deref(),
             _ => None,
         }?;
@@ -135,11 +136,12 @@ impl PatternResolver {
         }
 
         if let Some(data) = &self.manifest.patterns.data {
-            for kind in ["migration", "query", "seed", "validation_schema"] {
+            for kind in ["migration", "query", "seed", "fixture_factory", "validation_schema"] {
                 let has = match kind {
                     "migration" => data.migration.is_some(),
                     "query" => data.query.is_some(),
                     "seed" => data.seed.is_some(),
+                    "fixture_factory" => data.fixture_factory.is_some(),
                     "validation_schema" => data.validation_schema.is_some(),
                     _ => false,
                 };
@@ -259,6 +261,7 @@ mod tests {
                 data_scaffolder: "agents/data-scaffolder.md".into(),
                 configurer: "agents/configurer.md".into(),
                 trimmer: "agents/trimmer.md".into(),
+                seed_generator: None,
                 reviewer: None,
                 security_auditor: None,
             },
