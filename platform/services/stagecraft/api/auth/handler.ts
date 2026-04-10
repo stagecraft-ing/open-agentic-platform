@@ -1,16 +1,14 @@
 /**
  * Encore auth handler — validates Rauthy JWTs on all authenticated API calls.
- * Spec 080 FR-003: Rauthy session integration.
+ * Spec 087 Phase 5: OIDC JWT enforcement — HMAC session fallback removed.
  *
- * This wires Encore's built-in auth system to validate Rauthy-issued JWTs.
- * Once this handler exists, any API endpoint with `auth: true` will require
- * a valid Rauthy JWT in the Authorization header or __session cookie.
+ * All authenticated requests must present a valid Rauthy-issued JWT
+ * in the Authorization header (Bearer) or __session cookie.
  */
 
 import { Header, Gateway } from "encore.dev/api";
 import { authHandler } from "encore.dev/auth";
 import { validateJwt } from "./rauthy";
-import { verifyPayload } from "./session-crypto";
 
 // ---------------------------------------------------------------------------
 // Auth types
@@ -57,48 +55,20 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
     throw new Error("No authentication token provided");
   }
 
-  // Try Rauthy JWT first (production path)
-  if (token.split(".").length === 3) {
-    const claims = await validateJwt(token);
-    if (claims) {
-      return {
-        userID: claims.oap_user_id,
-        orgId: claims.oap_org_id,
-        orgSlug: claims.oap_org_slug,
-        workspaceId: claims.oap_workspace_id ?? "",
-        githubLogin: claims.github_login,
-        platformRole: claims.platform_role as AuthData["platformRole"],
-      };
-    }
+  // Validate Rauthy JWT — the only accepted auth mechanism
+  const claims = await validateJwt(token);
+  if (!claims) {
+    throw new Error("Invalid or expired JWT");
   }
 
-  // Try HMAC-signed session cookie (transitional path)
-  const session = verifyPayload<{
-    userId: string;
-    orgId: string;
-    orgSlug: string;
-    workspaceId?: string;
-    githubLogin: string;
-    platformRole: string;
-    iat?: number;
-  }>(token);
-
-  if (session) {
-    // Check cookie age (14 days max)
-    if (session.iat && session.iat < Math.floor(Date.now() / 1000) - 14 * 86400) {
-      throw new Error("Session expired");
-    }
-    return {
-      userID: session.userId,
-      orgId: session.orgId,
-      orgSlug: session.orgSlug,
-      workspaceId: session.workspaceId ?? "",
-      githubLogin: session.githubLogin,
-      platformRole: session.platformRole as AuthData["platformRole"],
-    };
-  }
-
-  throw new Error("Invalid or expired token");
+  return {
+    userID: claims.oap_user_id,
+    orgId: claims.oap_org_id,
+    orgSlug: claims.oap_org_slug,
+    workspaceId: claims.oap_workspace_id ?? "",
+    githubLogin: claims.github_login,
+    platformRole: claims.platform_role as AuthData["platformRole"],
+  };
 });
 
 // ---------------------------------------------------------------------------

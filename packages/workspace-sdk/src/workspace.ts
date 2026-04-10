@@ -5,6 +5,8 @@
  * knowledge intake, and factory execution.
  */
 
+import type { PlatformRole } from "./auth";
+
 // ---------------------------------------------------------------------------
 // Core entities
 // ---------------------------------------------------------------------------
@@ -88,8 +90,6 @@ export interface WorkspaceMember {
   githubLogin: string;
   avatarUrl?: string;
 }
-
-export type PlatformRole = "owner" | "admin" | "member";
 
 // ---------------------------------------------------------------------------
 // Request / Response types for workspace CRUD

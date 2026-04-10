@@ -1,8 +1,9 @@
 /**
- * Shared M2M authentication middleware for platform seams (spec 082 Phase 2).
+ * Shared M2M authentication middleware for platform seams (spec 082 Phase 2, spec 087 Phase 5).
  *
- * Validates machine-to-machine requests using OIDC JWT first, with a static
- * token fallback for backward compatibility.
+ * Validates machine-to-machine requests using OIDC JWT exclusively.
+ * Static token fallback removed in Phase 5 — all M2M callers must present
+ * a valid client_credentials JWT with the required scope.
  *
  * M2M JWTs use client_credentials grant and carry a `scope` claim, which
  * differs from user JWTs that carry `OapClaims` (oap_user_id, github_login,
@@ -13,8 +14,6 @@ import { APIError } from "encore.dev/api";
 import { getJwks, rauthyUrl } from "./rauthy.js";
 import { createVerify } from "node:crypto";
 import log from "encore.dev/log";
-
-const M2M_TOKEN = process.env.PLATFORM_M2M_TOKEN;
 
 /** Minimal claims expected in an M2M client_credentials JWT. */
 interface M2mClaims {
@@ -48,22 +47,16 @@ export async function validateM2mRequest(
     throw APIError.unauthenticated("empty bearer token");
   }
 
-  // Try M2M JWT validation first.
+  // Validate M2M JWT — the only accepted auth mechanism (Phase 5).
   const claims = await validateM2mJwt(token);
-  if (claims) {
-    const scopes = claims.scope?.split(" ") ?? [];
-    if (scopes.includes(requiredScope)) {
-      return; // Valid JWT with required scope.
-    }
+  if (!claims) {
+    throw APIError.unauthenticated("invalid or expired M2M JWT");
+  }
+
+  const scopes = claims.scope?.split(" ") ?? [];
+  if (!scopes.includes(requiredScope)) {
     throw APIError.permissionDenied(`missing required scope: ${requiredScope}`);
   }
-
-  // Fallback: static M2M token comparison.
-  if (M2M_TOKEN && token === M2M_TOKEN) {
-    return; // Static token match.
-  }
-
-  throw APIError.unauthenticated("invalid or missing bearer token");
 }
 
 /**

@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { Form, Link, redirect, useActionData, useSearchParams } from "react-router";
-import { authSignin } from "../lib/auth-api.server";
-import { getFormValues } from "../lib/form-data.server";
+import { useSearchParams } from "react-router";
 
 const ERROR_MESSAGES: Record<string, string> = {
   github_denied: "GitHub login was denied. Please try again.",
@@ -15,27 +12,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   session_expired: "Session expired. Please sign in again.",
 };
 
-export async function action({ request }: { request: Request }) {
-  const data = await getFormValues(request);
-  const email = String(data.email || "");
-  const password = String(data.password || "");
-
-  const res = await authSignin(request, email, password);
-  if (!res.ok) return { error: res.error || "Sign-in failed" };
-
-  return redirect("/app", {
-    headers: { "Set-Cookie": res.setCookie! },
-  });
-}
-
 export default function Signin() {
-  const data = useActionData() as { error?: string } | undefined;
   const [searchParams] = useSearchParams();
   const oauthError = searchParams.get("error");
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
-
-  const errorMessage =
-    data?.error || (oauthError ? ERROR_MESSAGES[oauthError] ?? oauthError : null);
+  const errorMessage = oauthError
+    ? ERROR_MESSAGES[oauthError] ?? oauthError
+    : null;
 
   return (
     <div className="min-h-full container px-4 mx-auto my-16 max-w-sm">
@@ -51,7 +33,6 @@ export default function Signin() {
         </p>
       ) : null}
 
-      {/* GitHub OAuth — primary login */}
       <a
         href="/auth/github"
         className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900"
@@ -65,64 +46,6 @@ export default function Signin() {
         </svg>
         Continue with GitHub
       </a>
-
-      {/* Email/password fallback (hidden by default per NFR-004) */}
-      {!showEmailLogin ? (
-        <button
-          type="button"
-          onClick={() => setShowEmailLogin(true)}
-          className="mt-6 w-full text-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-        >
-          Sign in with email instead
-        </button>
-      ) : (
-        <>
-          <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Email sign-in is available for legacy accounts during the transition period.
-            </p>
-          </div>
-          <Form method="post" encType="application/x-www-form-urlencoded" className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 p-2 border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 p-2 border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            >
-              Sign in
-            </button>
-          </Form>
-        </>
-      )}
     </div>
   );
 }

@@ -1,10 +1,12 @@
 /**
- * Org picker for multi-org users (spec 080 FR-012).
+ * Org picker for multi-org users (spec 080 FR-012, updated Phase 5).
+ *
  * Shown after GitHub login when the user belongs to multiple installed orgs.
+ * Org data is stored server-side; the loader fetches it via the pending-orgs
+ * API endpoint (Phase 5 removed HMAC-signed cookies).
  */
 
 import { useLoaderData, redirect } from "react-router";
-import { createHmac, timingSafeEqual } from "crypto";
 
 interface OrgOption {
   orgId: string;
@@ -13,45 +15,30 @@ interface OrgOption {
   platformRole: string;
 }
 
-// See auth.server.ts for SESSION_SECRET access pattern documentation.
-function verifyPendingCookie(signed: string): { githubLogin: string; orgs: OrgOption[] } | null {
-  const sessionSecret = process.env.SESSION_SECRET;
-  if (!sessionSecret) return null;
-
-  const dotIdx = signed.lastIndexOf(".");
-  if (dotIdx === -1) return null;
-
-  const payload = signed.substring(0, dotIdx);
-  const sig = signed.substring(dotIdx + 1);
-
-  const expected = createHmac("sha256", sessionSecret).update(payload).digest("base64url");
-  try {
-    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-  } catch {
-    return null;
-  }
-
-  try {
-    return JSON.parse(Buffer.from(payload, "base64url").toString());
-  } catch {
-    return null;
-  }
+interface LoaderData {
+  githubLogin: string;
+  orgs: OrgOption[];
 }
 
 export async function loader({ request }: { request: Request }) {
   const cookieHeader = request.headers.get("Cookie") || "";
-  const match = cookieHeader.match(/(?:^|;\s*)__pending_org=([^\s;]+)/);
+  const apiBase = process.env.ENCORE_API_BASE_URL ?? "http://localhost:4000";
 
-  if (!match) {
+  // Forward the cookie to the API endpoint to resolve pending org data
+  const resp = await fetch(`${apiBase}/auth/pending-orgs`, {
+    headers: { Cookie: cookieHeader },
+  });
+
+  if (!resp.ok) {
     return redirect("/signin?error=session_expired");
   }
 
-  const data = verifyPendingCookie(match[1]);
-  if (!data || !data.githubLogin || !data.orgs) {
+  const data = (await resp.json()) as LoaderData;
+  if (!data.githubLogin || !data.orgs?.length) {
     return redirect("/signin?error=session_expired");
   }
 
-  return { githubLogin: data.githubLogin, orgs: data.orgs };
+  return data;
 }
 
 export default function OrgSelect() {

@@ -3,6 +3,7 @@ pub mod analysis;
 pub mod claude;
 pub mod factory;
 pub mod git;
+pub mod keychain;
 pub mod mcp;
 pub mod orchestrator;
 pub mod proxy;

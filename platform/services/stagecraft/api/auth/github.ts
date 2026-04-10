@@ -1,8 +1,11 @@
 /**
- * GitHub OAuth login flow (spec 080 FR-002).
+ * GitHub OAuth login flow (spec 080 FR-002, hardened in spec 087 Phase 5).
  *
  * GET  /auth/github          — redirect to GitHub OAuth authorize
- * GET  /auth/github/callback  — exchange code, resolve membership, issue session
+ * GET  /auth/github/callback  — exchange code, resolve membership, issue Rauthy JWT
+ *
+ * Phase 5: HMAC-signed session cookies replaced by Rauthy-issued JWTs.
+ * Rauthy provisioning is now required (not best-effort).
  */
 
 import { api } from "encore.dev/api";
@@ -13,8 +16,7 @@ import { db } from "../db/drizzle";
 import { users, userIdentities, auditLog } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { resolveOrgMemberships, type ResolvedOrg } from "./membership";
-import { provisionRauthyUser } from "./rauthy";
-import { signPayload, verifyPayload } from "./session-crypto";
+import { provisionRauthyUser, issueRauthySession } from "./rauthy";
 
 // GitHub OAuth App credentials (separate from the GitHub App)
 const githubOAuthClientId = secret("GITHUB_OAUTH_CLIENT_ID");
@@ -55,6 +57,68 @@ function cleanupStaleStates() {
     if (val.createdAt < cutoff) pendingStates.delete(key);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Pending org data store (replaces HMAC-signed __pending_org cookie)
+// ---------------------------------------------------------------------------
+
+interface PendingOrgData {
+  userId: string;
+  rauthyUserId: string;
+  email: string;
+  name: string;
+  githubLogin: string;
+  orgs: ResolvedOrg[];
+  createdAt: number;
+}
+
+const pendingOrgSelections = new Map<string, PendingOrgData>();
+const PENDING_ORG_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function cleanupStalePending() {
+  const cutoff = Date.now() - PENDING_ORG_TTL_MS;
+  for (const [key, val] of pendingOrgSelections) {
+    if (val.createdAt < cutoff) pendingOrgSelections.delete(key);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /auth/pending-orgs — resolve pending org data for org-select page
+// ---------------------------------------------------------------------------
+
+export const getPendingOrgs = api.raw(
+  { expose: true, method: "GET", path: "/auth/pending-orgs", auth: false },
+  async (req, resp) => {
+    const cookieHeader = req.headers.cookie || "";
+    const match = cookieHeader.match(/(?:^|;\s*)__pending_org=([^\s;]+)/);
+
+    if (!match) {
+      resp.writeHead(404, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "no pending org selection" }));
+      return;
+    }
+
+    const data = pendingOrgSelections.get(match[1]);
+    if (!data) {
+      resp.writeHead(404, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "pending org selection expired" }));
+      return;
+    }
+
+    resp.writeHead(200, { "Content-Type": "application/json" });
+    resp.end(
+      JSON.stringify({
+        githubLogin: data.githubLogin,
+        orgs: data.orgs.map((o) => ({
+          orgId: o.orgId,
+          orgSlug: o.orgSlug,
+          githubOrgLogin: o.githubOrgLogin,
+          platformRole: o.platformRole,
+        })),
+      })
+    );
+  }
+);
 
 // ---------------------------------------------------------------------------
 // GET /auth/github — initiate GitHub OAuth flow
@@ -233,7 +297,7 @@ export const githubCallback = api.raw(
       return;
     }
 
-    // Stage 5: Provision Rauthy user (non-fatal — HMAC session works without it)
+    // Stage 5: Provision Rauthy user (required — Phase 5)
     let rauthyUserId = user.rauthyUserId;
     try {
       if (!rauthyUserId) {
@@ -248,8 +312,10 @@ export const githubCallback = api.raw(
           .where(eq(users.id, user.id));
       }
     } catch (err) {
-      // Rauthy not deployed yet — degrade gracefully (spec 080 FR-003 transitional)
-      log.warn("Rauthy provisioning skipped (non-fatal)", { error: String(err) });
+      log.error("Rauthy provisioning failed", { error: String(err) });
+      resp.writeHead(302, { Location: "/signin?error=rauthy_unavailable" });
+      resp.end();
+      return;
     }
 
     // Stage 6: Finalize — update last login, audit, route by org count
@@ -286,10 +352,10 @@ export const githubCallback = api.raw(
 
       if (matchedOrgs.length === 1) {
         const org = matchedOrgs[0];
-        const sessionCookie = buildSessionCookie(
+        const sessionCookie = await buildRauthySessionCookie(
           {
             id: user.id,
-            rauthyUserId: user.rauthyUserId ?? rauthyUserId,
+            rauthyUserId: rauthyUserId!,
             email,
             name: ghUser.name || ghUser.login,
           },
@@ -303,22 +369,24 @@ export const githubCallback = api.raw(
         return;
       }
 
-      // Multiple orgs — redirect to org picker with HMAC-signed cookie
-      const pendingSigned = signPayload({
+      // Multiple orgs — store pending data server-side and redirect to picker
+      cleanupStalePending();
+      const pendingId = crypto.randomBytes(32).toString("base64url");
+      pendingOrgSelections.set(pendingId, {
         userId: user.id,
-        rauthyUserId,
+        rauthyUserId: rauthyUserId!,
         email,
         name: ghUser.name || ghUser.login,
         githubLogin: ghUser.login,
         orgs: matchedOrgs,
-        iat: Math.floor(Date.now() / 1000),
+        createdAt: Date.now(),
       });
 
       const secure =
         process.env.NODE_ENV === "production" ? " Secure;" : "";
       resp.writeHead(302, {
         Location: "/auth/org-select",
-        "Set-Cookie": `__pending_org=${pendingSigned}; Path=/auth; HttpOnly; SameSite=Lax; Max-Age=300;${secure}`,
+        "Set-Cookie": `__pending_org=${pendingId}; Path=/auth; HttpOnly; SameSite=Lax; Max-Age=300;${secure}`,
       });
       resp.end();
     } catch (err) {
@@ -350,7 +418,7 @@ export const orgSelectComplete = api.raw(
       return;
     }
 
-    // Parse pending org data from cookie
+    // Parse pending org ID from cookie
     const cookieHeader = req.headers.cookie || "";
     const match = cookieHeader.match(/(?:^|;\s*)__pending_org=([^\s;]+)/);
     if (!match) {
@@ -360,21 +428,17 @@ export const orgSelectComplete = api.raw(
     }
 
     try {
-      // Verify HMAC signature on the pending org cookie
-      const pendingData = verifyPayload<{
-        userId: string;
-        rauthyUserId: string;
-        email: string;
-        name: string;
-        githubLogin: string;
-        orgs: ResolvedOrg[];
-      }>(match[1]);
+      const pendingId = match[1];
+      const pendingData = pendingOrgSelections.get(pendingId);
 
       if (!pendingData) {
         resp.writeHead(302, { Location: "/signin?error=session_expired" });
         resp.end();
         return;
       }
+
+      // Clean up the pending data
+      pendingOrgSelections.delete(pendingId);
 
       const selectedOrg = pendingData.orgs.find(
         (o) => o.orgId === selectedOrgId
@@ -385,7 +449,7 @@ export const orgSelectComplete = api.raw(
         return;
       }
 
-      const sessionCookie = buildSessionCookie(
+      const sessionCookie = await buildRauthySessionCookie(
         {
           id: pendingData.userId,
           rauthyUserId: pendingData.rauthyUserId,
@@ -521,28 +585,26 @@ async function findOrCreateUser(opts: {
 }
 
 /**
- * Build the __session cookie value as HMAC-signed payload.
- * Transitional mechanism — once Rauthy is fully wired, this will be replaced
- * by Rauthy-issued JWTs. The HMAC signature prevents cookie forgery.
+ * Issue a Rauthy JWT and build the __session cookie (spec 087 Phase 5).
+ *
+ * Replaces the transitional HMAC-signed session cookie with a proper
+ * Rauthy-issued JWT that can be validated by the auth handler.
  */
-function buildSessionCookie(
-  user: { id: string; rauthyUserId: string | null; email: string; name: string },
+async function buildRauthySessionCookie(
+  user: { id: string; rauthyUserId: string; email: string; name: string },
   org: ResolvedOrg
-): string {
-  const signed = signPayload({
-    userId: user.id,
+): Promise<string> {
+  const { accessToken, expiresIn } = await issueRauthySession({
     rauthyUserId: user.rauthyUserId,
+    oapUserId: user.id,
     orgId: org.orgId,
     orgSlug: org.orgSlug,
     workspaceId: org.workspaceId,
     githubLogin: org.githubOrgLogin,
     platformRole: org.platformRole,
-    email: user.email,
-    name: user.name,
-    iat: Math.floor(Date.now() / 1000),
   });
 
-  const maxAge = 14 * 24 * 60 * 60; // 14 days
+  const maxAge = Math.min(expiresIn, 14 * 24 * 60 * 60); // cap at 14 days
   const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
-  return `__session=${signed}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge};${secure}`;
+  return `__session=${accessToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge};${secure}`;
 }

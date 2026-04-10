@@ -34,7 +34,7 @@ export interface TokenClaims {
   oap_user_id: string;
   oap_org_id: string;
   oap_org_slug: string;
-  oap_workspace_id: string;
+  oap_workspace_id?: string;
   github_login: string;
   platform_role: PlatformRole;
   exp: number;

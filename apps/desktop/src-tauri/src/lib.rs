@@ -66,6 +66,7 @@ use commands::storage::{
 use commands::usage::{
     get_session_stats, get_usage_by_date_range, get_usage_details, get_usage_stats,
 };
+use commands::keychain::{keychain_store, keychain_retrieve, keychain_clear};
 use commands::stagecraft_client::StagecraftState;
 use process::ProcessRegistryState;
 use sidecars::SidecarState;
@@ -224,6 +225,12 @@ pub fn run() {
                     log::info!("Stagecraft client enabled → {base_url}");
                 } else {
                     log::info!("Stagecraft client disabled (STAGECRAFT_BASE_URL not set)");
+                }
+                // Load auth token from OS keychain (spec 087 Phase 5)
+                if let Some(ref client) = sc {
+                    if client.load_token_from_keychain() {
+                        log::info!("Restored Stagecraft auth token from OS keychain");
+                    }
                 }
                 app.manage(StagecraftState(sc));
             }
@@ -465,6 +472,10 @@ pub fn run() {
             commands::sandbox::sandbox_status,
             // Sidecar port discovery
             sidecars::get_sidecar_ports,
+            // OS keychain (spec 087 Phase 5)
+            keychain_store,
+            keychain_retrieve,
+            keychain_clear,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

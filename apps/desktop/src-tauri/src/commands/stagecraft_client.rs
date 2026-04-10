@@ -4,9 +4,8 @@
 //! while this client mirrors lifecycle events to the Stagecraft control plane
 //! for centralized audit, token tracking, and governance.
 //!
-//! Spec 087 adds workspace awareness: the client carries a workspace_id and
-//! optionally an auth_token (JWT or HMAC cookie value) for authenticated
-//! workspace endpoints.
+//! Spec 087 Phase 5: auth_token is a Rauthy JWT (stored in OS keychain).
+//! All authenticated requests use `Authorization: Bearer <jwt>`.
 //!
 //! All methods are best-effort — callers log warnings on failure but never
 //! block local pipeline execution.
@@ -42,8 +41,9 @@ pub fn to_stagecraft_stage_id(local_id: &str) -> &str {
 /// Thin HTTP wrapper around the Stagecraft Platform API.
 ///
 /// Held as Tauri managed state so all commands share one connection pool.
-/// Workspace-aware: carries workspace_id and optional auth_token for
-/// authenticated workspace endpoints (spec 087).
+/// Workspace-aware: carries workspace_id and a Rauthy JWT for authenticated
+/// workspace endpoints (spec 087 Phase 5). The JWT is stored in the OS
+/// keychain via the `keychain` module.
 pub struct StagecraftClient {
     client: Client,
     base_url: String,
@@ -51,7 +51,7 @@ pub struct StagecraftClient {
     actor_user_id: String,
     /// Active workspace ID (set at runtime after auth).
     workspace_id: RwLock<String>,
-    /// Auth token (JWT or HMAC cookie value) for authenticated endpoints.
+    /// Rauthy JWT for authenticated endpoints (loaded from OS keychain).
     auth_token: RwLock<Option<String>>,
 }
 
@@ -100,16 +100,31 @@ impl StagecraftClient {
         self.workspace_id.read().unwrap().clone()
     }
 
-    /// Set the auth token (JWT or HMAC cookie value).
+    /// Set the auth token (Rauthy JWT) and persist to OS keychain.
     pub fn set_auth_token(&self, token: &str) {
         *self.auth_token.write().unwrap() = Some(token.to_string());
+        // Best-effort persist to keychain
+        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
+            let _ = entry.set_password(token);
+        }
     }
 
-    /// Build a request with optional auth header.
+    /// Load the auth token from the OS keychain (called on startup).
+    pub fn load_token_from_keychain(&self) -> bool {
+        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
+            if let Ok(token) = entry.get_password() {
+                *self.auth_token.write().unwrap() = Some(token);
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Build a request with Bearer auth header.
     fn authed_get(&self, url: &str) -> reqwest::RequestBuilder {
         let mut req = self.client.get(url);
         if let Some(token) = self.auth_token.read().unwrap().as_ref() {
-            req = req.header("Cookie", format!("__session={}", token));
+            req = req.bearer_auth(token);
         }
         req
     }
@@ -117,7 +132,7 @@ impl StagecraftClient {
     fn authed_post(&self, url: &str) -> reqwest::RequestBuilder {
         let mut req = self.client.post(url);
         if let Some(token) = self.auth_token.read().unwrap().as_ref() {
-            req = req.header("Cookie", format!("__session={}", token));
+            req = req.bearer_auth(token);
         }
         req
     }

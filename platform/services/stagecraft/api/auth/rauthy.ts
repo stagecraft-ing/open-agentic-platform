@@ -28,12 +28,13 @@ export interface RauthyUser {
 }
 
 export interface OapClaims {
-  sub: string;            // Rauthy user ID
-  oap_user_id: string;    // internal OAP user ID
-  oap_org_id: string;     // selected org ID
-  oap_org_slug: string;   // org slug
-  github_login: string;   // GitHub handle
-  platform_role: string;  // owner | admin | member
+  sub: string;              // Rauthy user ID
+  oap_user_id: string;      // internal OAP user ID
+  oap_org_id: string;        // selected org ID
+  oap_org_slug: string;      // org slug
+  oap_workspace_id?: string; // active workspace ID
+  github_login: string;      // GitHub handle
+  platform_role: string;     // owner | admin | member
   exp: number;
   iat: number;
 }
@@ -346,6 +347,66 @@ export async function refreshTokens(
   }
 
   return (await resp.json()) as RauthyTokens;
+}
+
+/**
+ * Issue a Rauthy session for a provisioned user (spec 087 Phase 5).
+ *
+ * After GitHub OAuth completes and the user is provisioned in Rauthy, we call
+ * Rauthy's admin API to create a session and obtain an access token (JWT).
+ * This replaces the transitional HMAC-signed session cookie.
+ *
+ * The Rauthy admin API's /auth/v1/admin/users/:id/sessions endpoint creates
+ * a session and returns tokens. The access_token is a signed JWT that our
+ * auth handler can validate via JWKS.
+ */
+export async function issueRauthySession(opts: {
+  rauthyUserId: string;
+  oapUserId: string;
+  orgId: string;
+  orgSlug: string;
+  workspaceId: string;
+  githubLogin: string;
+  platformRole: string;
+}): Promise<{ accessToken: string; expiresIn: number }> {
+  const baseUrl = rauthyUrl();
+  const adminAuth = `Bearer ${rauthyAdminToken()}`;
+
+  const resp = await fetch(
+    `${baseUrl}/auth/v1/admin/users/${opts.rauthyUserId}/sessions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: adminAuth,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: rauthyClientId(),
+        scope: "openid profile email",
+        custom_claims: {
+          oap_user_id: opts.oapUserId,
+          oap_org_id: opts.orgId,
+          oap_org_slug: opts.orgSlug,
+          oap_workspace_id: opts.workspaceId,
+          github_login: opts.githubLogin,
+          platform_role: opts.platformRole,
+        },
+      }),
+    }
+  );
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Rauthy session issuance failed: ${resp.status} ${body}`);
+  }
+
+  const data = (await resp.json()) as {
+    access_token: string;
+    expires_in: number;
+    token_type: string;
+  };
+
+  return { accessToken: data.access_token, expiresIn: data.expires_in };
 }
 
 /**

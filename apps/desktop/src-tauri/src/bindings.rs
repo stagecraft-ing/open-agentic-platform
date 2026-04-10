@@ -63,6 +63,10 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         // Preflight / governance reference
         crate::commands::analysis::get_preflight_safety_tier_reference,
         crate::commands::analysis::get_tool_tier_assignments,
+        // OS keychain (spec 087 Phase 5)
+        crate::commands::keychain::keychain_store,
+        crate::commands::keychain::keychain_retrieve,
+        crate::commands::keychain::keychain_clear,
     ])
 }
 

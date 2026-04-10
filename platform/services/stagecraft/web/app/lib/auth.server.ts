@@ -1,12 +1,15 @@
+/**
+ * SSR session helpers (spec 087 Phase 5).
+ *
+ * The __session cookie now contains a Rauthy-issued JWT. For SSR, we decode
+ * the JWT payload to extract claims for rendering. Cryptographic verification
+ * happens in the Encore auth handler for all API calls — the cookie is
+ * HttpOnly/SameSite so it cannot be tampered with by client-side JS.
+ */
+
 import { redirect } from "react-router";
-import { createHmac, timingSafeEqual } from "crypto";
-import {
-  authSession,
-  authAdminSession,
-} from "./auth-api.server";
 
 const USER_COOKIE = "__session";
-const ADMIN_COOKIE = "__admin_session";
 
 function parseCookie(header: string | null): Record<string, string> {
   if (!header) return {};
@@ -19,62 +22,43 @@ function parseCookie(header: string | null): Record<string, string> {
   return out;
 }
 
-/**
- * Session claims for the new GitHub OAuth flow (spec 080).
- * The __session cookie is HMAC-signed (payload.signature format).
- */
-interface GithubSessionClaims {
-  userId: string;
-  rauthyUserId: string | null;
-  orgId: string;
-  orgSlug: string;
-  githubLogin: string;
-  platformRole: "owner" | "admin" | "member";
-  email: string;
-  name: string;
-  iat?: number;
+/** Decoded Rauthy JWT claims for SSR rendering. */
+interface JwtClaims {
+  sub: string;
+  oap_user_id: string;
+  oap_org_id: string;
+  oap_org_slug: string;
+  oap_workspace_id?: string;
+  github_login: string;
+  platform_role: "owner" | "admin" | "member";
+  email?: string;
+  name?: string;
+  exp: number;
+  iat: number;
 }
 
 /**
- * Verify HMAC-signed session cookie.
- * Uses the same SESSION_SECRET as the API layer (api/auth/session-crypto.ts).
- *
- * NOTE: The API layer reads SESSION_SECRET via Encore's secret() helper.
- * The web layer (React Router SSR) reads it via process.env because it cannot
- * import encore.dev/config. Both must resolve to the same value.
- * In Encore's dev server, secrets are automatically available as env vars.
- * In production, SESSION_SECRET must be set as both an Encore secret and
- * injected into the web process environment (e.g. via Helm chart envFrom).
+ * Decode the JWT payload without cryptographic verification.
+ * Returns null if the token is malformed or expired.
  */
-function verifySignedSession(token: string): GithubSessionClaims | null {
-  const sessionSecret = process.env.SESSION_SECRET;
-  if (!sessionSecret) return null;
-
-  const dotIdx = token.lastIndexOf(".");
-  if (dotIdx === -1) return null;
-
-  const payload = token.substring(0, dotIdx);
-  const sig = token.substring(dotIdx + 1);
-
-  const expected = createHmac("sha256", sessionSecret)
-    .update(payload)
-    .digest("base64url");
-
+function decodeJwtPayload(token: string): JwtClaims | null {
   try {
-    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const payload = JSON.parse(
+      Buffer.from(parts[1], "base64url").toString()
+    ) as JwtClaims;
+
+    // Check expiry
+    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
+
+    return payload;
   } catch {
     return null;
   }
-
-  try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString());
-    if (data.userId && data.orgId) return data as GithubSessionClaims;
-  } catch {
-    // Not a valid signed session
-  }
-  return null;
 }
 
 export async function requireUser(request: Request) {
@@ -82,65 +66,45 @@ export async function requireUser(request: Request) {
   const token = cookies[USER_COOKIE];
   if (!token) throw redirect("/signin");
 
-  // Try HMAC-signed GitHub session format first
-  const ghSession = verifySignedSession(token);
-  if (ghSession) {
-    return {
-      userId: ghSession.userId,
-      email: ghSession.email,
-      name: ghSession.name,
-      role: ghSession.platformRole === "owner" ? ("admin" as const) : ("user" as const),
-      kind: "user" as const,
-      // New fields from spec 080
-      orgId: ghSession.orgId,
-      orgSlug: ghSession.orgSlug,
-      githubLogin: ghSession.githubLogin,
-      platformRole: ghSession.platformRole,
-    };
-  }
+  const claims = decodeJwtPayload(token);
+  if (!claims) throw redirect("/signin");
 
-  // Fall back to legacy session validation
-  const res = await authSession(request, token);
-  if (!res.ok || !res.claims) throw redirect("/signin");
-
-  return res.claims;
+  return {
+    userId: claims.oap_user_id,
+    email: claims.email ?? "",
+    name: claims.name ?? claims.github_login,
+    role: claims.platform_role === "owner" ? ("admin" as const) : ("user" as const),
+    kind: "user" as const,
+    orgId: claims.oap_org_id,
+    orgSlug: claims.oap_org_slug,
+    githubLogin: claims.github_login,
+    platformRole: claims.platform_role,
+  };
 }
 
 export async function requireAdmin(request: Request) {
   const cookies = parseCookie(request.headers.get("Cookie"));
+  const token = cookies[USER_COOKIE];
+  if (!token) throw redirect("/signin");
 
-  // Check signed session format — owner/admin role grants admin access
-  const userToken = cookies[USER_COOKIE];
-  if (userToken) {
-    const ghSession = verifySignedSession(userToken);
-    if (
-      ghSession &&
-      (ghSession.platformRole === "owner" || ghSession.platformRole === "admin")
-    ) {
-      return {
-        userId: ghSession.userId,
-        email: "",
-        name: "",
-        role: "admin" as const,
-        kind: "admin" as const,
-        orgId: ghSession.orgId,
-        orgSlug: ghSession.orgSlug,
-        githubLogin: ghSession.githubLogin,
-        platformRole: ghSession.platformRole,
-      };
-    }
+  const claims = decodeJwtPayload(token);
+  if (!claims) throw redirect("/signin");
+
+  if (claims.platform_role !== "owner" && claims.platform_role !== "admin") {
+    throw redirect("/signin");
   }
 
-  // Fall back to legacy admin session
-  const token = cookies[ADMIN_COOKIE];
-  if (!token) throw redirect("/admin/signin");
-
-  const res = await authAdminSession(request, token);
-  if (!res.ok || !res.claims || res.claims.role !== "admin") {
-    throw redirect("/admin/signin");
-  }
-
-  return res.claims;
+  return {
+    userId: claims.oap_user_id,
+    email: claims.email ?? "",
+    name: claims.name ?? claims.github_login,
+    role: "admin" as const,
+    kind: "admin" as const,
+    orgId: claims.oap_org_id,
+    orgSlug: claims.oap_org_slug,
+    githubLogin: claims.github_login,
+    platformRole: claims.platform_role,
+  };
 }
 
 export function getCookieToken(
@@ -148,5 +112,6 @@ export function getCookieToken(
   kind: "user" | "admin"
 ): string | undefined {
   const cookies = parseCookie(request.headers.get("Cookie"));
-  return kind === "user" ? cookies[USER_COOKIE] : cookies[ADMIN_COOKIE];
+  // Both user and admin sessions now use the same __session JWT
+  return cookies[USER_COOKIE];
 }

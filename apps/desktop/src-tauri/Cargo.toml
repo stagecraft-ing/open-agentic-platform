@@ -88,6 +88,7 @@ orchestrator = { path = "../../../crates/orchestrator" }
 factory-engine = { path = "../../../crates/factory-engine" }
 
 
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 git2 = { version = "0.19", default-features = false }
 tauri-plugin-deep-link = "2"
 tauri-plugin-persisted-scope = "2"
