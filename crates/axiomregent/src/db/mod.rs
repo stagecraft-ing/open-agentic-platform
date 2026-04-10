@@ -128,9 +128,7 @@ pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
 /// Run all DDL migrations. Every statement is idempotent (`IF NOT EXISTS`).
 async fn migrate(client: &Client) -> Result<()> {
     for ddl in SCHEMA_SQL {
-        client
-            .execute(Cow::Borrowed(*ddl), vec![])
-            .await?;
+        client.execute(Cow::Borrowed(*ddl), vec![]).await?;
     }
     Ok(())
 }

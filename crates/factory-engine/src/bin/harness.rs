@@ -214,7 +214,10 @@ async fn main() -> ExitCode {
                     Some(s) => {
                         println!("Pipeline: {}", s.pipeline.id);
                         println!("Status:   {:?}", s.pipeline.status);
-                        println!("Adapter:  {} v{}", s.pipeline.adapter.name, s.pipeline.adapter.version);
+                        println!(
+                            "Adapter:  {} v{}",
+                            s.pipeline.adapter.name, s.pipeline.adapter.version
+                        );
                         println!("Started:  {}", s.pipeline.started_at);
                         println!("Updated:  {}", s.pipeline.updated_at);
                         if let Some(completed) = s.pipeline.completed_at {
@@ -225,7 +228,13 @@ async fn main() -> ExitCode {
                             let gate_str = stage
                                 .gate
                                 .as_ref()
-                                .map(|g| if g.passed { " [GATE PASS]" } else { " [GATE FAIL]" })
+                                .map(|g| {
+                                    if g.passed {
+                                        " [GATE PASS]"
+                                    } else {
+                                        " [GATE FAIL]"
+                                    }
+                                })
                                 .unwrap_or("");
                             println!("  {id}: {:?}{gate_str}", stage.status);
                         }
@@ -252,7 +261,12 @@ async fn main() -> ExitCode {
                         if !s.errors.is_empty() {
                             println!("\nLast errors:");
                             for err in s.errors.iter().rev().take(3) {
-                                println!("  [{:?}] {}: {}", err.error_type, err.stage.as_deref().unwrap_or("?"), err.message);
+                                println!(
+                                    "  [{:?}] {}: {}",
+                                    err.error_type,
+                                    err.stage.as_deref().unwrap_or("?"),
+                                    err.message
+                                );
                             }
                         }
                         ExitCode::SUCCESS

@@ -27,11 +27,7 @@ pub trait ToolProvider: Send + Sync {
     /// Attempt to handle a tool call. Returns `None` if this provider does not
     /// recognize the tool name. Returns `Some(Ok(value))` on success or
     /// `Some(Err(e))` on failure.
-    async fn handle(
-        &self,
-        name: &str,
-        args: &Map<String, Value>,
-    ) -> Option<anyhow::Result<Value>>;
+    async fn handle(&self, name: &str, args: &Map<String, Value>) -> Option<anyhow::Result<Value>>;
 
     /// Return the tool tier for the given name, or None if not handled.
     /// Used by the router for permission enforcement before dispatch.

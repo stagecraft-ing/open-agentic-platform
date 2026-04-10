@@ -29,10 +29,7 @@ impl EffortLevel {
 pub fn classify_from_task(text: &str) -> EffortLevel {
     let t = text.to_lowercase();
 
-    if t.contains("deep dive")
-        || t.contains("exhaustive")
-        || t.contains("comprehensive")
-    {
+    if t.contains("deep dive") || t.contains("exhaustive") || t.contains("comprehensive") {
         return EffortLevel::Deep;
     }
 

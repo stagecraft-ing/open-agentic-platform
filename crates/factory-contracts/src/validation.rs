@@ -136,11 +136,7 @@ fn parse_yaml_or_json<T: serde::de::DeserializeOwned>(
     }
 }
 
-fn validate_build_spec_semantics(
-    path: &str,
-    spec: &BuildSpec,
-    errors: &mut Vec<ValidationError>,
-) {
+fn validate_build_spec_semantics(path: &str, spec: &BuildSpec, errors: &mut Vec<ValidationError>) {
     // Check entity names are non-empty
     for entity in &spec.data_model.entities {
         if entity.name.is_empty() {
@@ -379,7 +375,10 @@ ui:
         let result = validate_build_spec(file.path());
         assert!(result.is_err());
         let errs = result.unwrap_err();
-        assert!(errs.iter().any(|e| e.to_string().contains("Duplicate business rule ID")));
+        assert!(
+            errs.iter()
+                .any(|e| e.to_string().contains("Duplicate business rule ID"))
+        );
     }
 
     #[test]
@@ -416,7 +415,10 @@ ui:
         let result = validate_build_spec(file.path());
         assert!(result.is_err());
         let errs = result.unwrap_err();
-        assert!(errs.iter().any(|e| e.to_string().contains("enum but has no enum_values")));
+        assert!(
+            errs.iter()
+                .any(|e| e.to_string().contains("enum but has no enum_values"))
+        );
     }
 
     #[test]
@@ -485,7 +487,10 @@ ui:
         // Verify key fields survive round-trip
         assert_eq!(spec.project.name, reparsed.project.name);
         assert_eq!(spec.project.variant, reparsed.project.variant);
-        assert_eq!(spec.data_model.entities.len(), reparsed.data_model.entities.len());
+        assert_eq!(
+            spec.data_model.entities.len(),
+            reparsed.data_model.entities.len()
+        );
         assert_eq!(spec.business_rules.len(), reparsed.business_rules.len());
         assert_eq!(spec.api.resources.len(), reparsed.api.resources.len());
         assert_eq!(spec.ui.pages.len(), reparsed.ui.pages.len());
@@ -493,19 +498,31 @@ ui:
 
     #[test]
     fn test_parse_real_build_spec_example() {
-        let path = std::path::Path::new("../../factory/contract/examples/cfs-womens-shelter.build-spec.yaml");
+        let path = std::path::Path::new(
+            "../../factory/contract/examples/cfs-womens-shelter.build-spec.yaml",
+        );
         if path.exists() {
             let result = validate_build_spec(path);
-            assert!(result.is_ok(), "Failed to parse real example: {:?}", result.err());
+            assert!(
+                result.is_ok(),
+                "Failed to parse real example: {:?}",
+                result.err()
+            );
         }
     }
 
     #[test]
     fn test_parse_real_adapter_manifest_example() {
-        let path = std::path::Path::new("../../factory/contract/examples/aim-vue-node.adapter-manifest.yaml");
+        let path = std::path::Path::new(
+            "../../factory/contract/examples/aim-vue-node.adapter-manifest.yaml",
+        );
         if path.exists() {
             let result = validate_adapter_manifest(path);
-            assert!(result.is_ok(), "Failed to parse real manifest: {:?}", result.err());
+            assert!(
+                result.is_ok(),
+                "Failed to parse real manifest: {:?}",
+                result.err()
+            );
         }
     }
 }

@@ -18,7 +18,7 @@ pub mod provider;
 
 pub use oidc_client::{AuthProvider, OidcM2mClient};
 
-use policy_bundle::{build_tool_call_context, evaluate_loaded_policy, PolicyBundleCache};
+use policy_bundle::{PolicyBundleCache, build_tool_call_context, evaluate_loaded_policy};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonRpcRequest {
@@ -119,14 +119,15 @@ impl Router {
                 }
                 Err(e) => {
                     if platform_cfg.m2m_token.is_some() {
-                        eprintln!("[platform] OIDC discovery failed: {e}; falling back to static token");
+                        eprintln!(
+                            "[platform] OIDC discovery failed: {e}; falling back to static token"
+                        );
                     } else {
-                        eprintln!("[platform] OIDC discovery failed: {e}; no static token configured — platform seams disabled");
+                        eprintln!(
+                            "[platform] OIDC discovery failed: {e}; no static token configured — platform seams disabled"
+                        );
                     }
-                    platform_cfg
-                        .m2m_token
-                        .clone()
-                        .map(AuthProvider::Static)
+                    platform_cfg.m2m_token.clone().map(AuthProvider::Static)
                 }
             }
         } else {
@@ -195,30 +196,28 @@ impl Router {
         // rather than silently bypassing enforcement (Risk 1 fix — post-035 hardening).
         let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
         match &lease {
-            Some(l) => {
-                match permissions::check_tool_permission(tool_name, l) {
-                    Ok(()) => {
-                        let audit = permissions::audit_tool_dispatch(
-                            tool_name,
-                            tier_label,
-                            "allowed",
-                            lease_id_str,
-                        );
-                        self.maybe_forward_audit(&audit);
-                        self.policy_preflight_response(id, tool_name, args, lease_id_str)
-                    }
-                    Err(e) => {
-                        let audit = permissions::audit_tool_dispatch(
-                            tool_name,
-                            tier_label,
-                            "denied",
-                            lease_id_str,
-                        );
-                        self.maybe_forward_audit(&audit);
-                        Some(json_rpc_permission_denied(id, &e.to_string()))
-                    }
+            Some(l) => match permissions::check_tool_permission(tool_name, l) {
+                Ok(()) => {
+                    let audit = permissions::audit_tool_dispatch(
+                        tool_name,
+                        tier_label,
+                        "allowed",
+                        lease_id_str,
+                    );
+                    self.maybe_forward_audit(&audit);
+                    self.policy_preflight_response(id, tool_name, args, lease_id_str)
                 }
-            }
+                Err(e) => {
+                    let audit = permissions::audit_tool_dispatch(
+                        tool_name,
+                        tier_label,
+                        "denied",
+                        lease_id_str,
+                    );
+                    self.maybe_forward_audit(&audit);
+                    Some(json_rpc_permission_denied(id, &e.to_string()))
+                }
+            },
             None => {
                 let fallback = self.lease_store.default_grants();
                 match permissions::check_grants(tool_name, &fallback) {
@@ -300,7 +299,10 @@ impl Router {
                 };
 
                 // Preflight permission check
-                if let Some(resp) = self.preflight_tool_permission(req.id.clone(), name, args).await {
+                if let Some(resp) = self
+                    .preflight_tool_permission(req.id.clone(), name, args)
+                    .await
+                {
                     return resp;
                 }
 
@@ -317,7 +319,9 @@ impl Router {
                         Some(root) => {
                             match dlock::acquire_repo_lock(self.lease_store.client(), root).await {
                                 Ok(guard) => Some(guard),
-                                Err(e) => return json_rpc_error(req.id.clone(), -32603, &e.to_string()),
+                                Err(e) => {
+                                    return json_rpc_error(req.id.clone(), -32603, &e.to_string());
+                                }
                             }
                         }
                         None => None,
@@ -332,7 +336,8 @@ impl Router {
                     let mut dispatch_result = None;
                     for p in &self.providers {
                         if let Some(result) = p.handle(name, args).await {
-                            dispatch_result = Some(handle_tool_result_value(req.id.clone(), result));
+                            dispatch_result =
+                                Some(handle_tool_result_value(req.id.clone(), result));
                             break;
                         }
                     }

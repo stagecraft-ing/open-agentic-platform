@@ -126,8 +126,7 @@ impl OidcM2mClient {
 
         {
             let mut cache = self.cache.lock().await;
-            let expires_at =
-                Instant::now() + std::time::Duration::from_secs(token.expires_in);
+            let expires_at = Instant::now() + std::time::Duration::from_secs(token.expires_in);
             *cache = Some(CachedToken {
                 access_token: token.access_token.clone(),
                 expires_at,

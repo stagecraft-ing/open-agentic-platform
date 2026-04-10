@@ -7,8 +7,8 @@ use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::core::v1 as core;
 use k8s_openapi::api::networking::v1 as networking;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use kube::api::{Api, PostParams};
 use kube::Client;
+use kube::api::{Api, PostParams};
 use serde_json::json;
 use std::collections::BTreeMap;
 
@@ -102,7 +102,12 @@ async fn ensure_namespace(client: &Client, name: &str) -> Result<(), K8sError> {
     let ns_api: Api<core::Namespace> = Api::all(client.clone());
 
     // Check if exists
-    if ns_api.get_opt(name).await.map_err(|e| K8sError::Api(e.to_string()))?.is_some() {
+    if ns_api
+        .get_opt(name)
+        .await
+        .map_err(|e| K8sError::Api(e.to_string()))?
+        .is_some()
+    {
         return Ok(());
     }
 

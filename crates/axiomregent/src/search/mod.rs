@@ -3,5 +3,5 @@
 
 pub mod embeddings;
 pub mod parser;
-pub mod store;
 pub mod provider;
+pub mod store;

@@ -1,7 +1,7 @@
 //! Seam B — fire-and-forget HTTP forwarding of audit records to the platform.
 
-use serde_json::Value;
 use super::oidc_client::AuthProvider;
+use serde_json::Value;
 
 /// Forwards audit payloads to the platform's `POST /api/audit-records` endpoint.
 /// Failures are logged to stderr but never block MCP dispatch.

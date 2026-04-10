@@ -15,9 +15,7 @@ pub enum GateOutcome {
     Approved,
     /// The approval gate timed out and the escalation policy was applied.
     /// The caller should inspect `state` for the updated step/workflow status.
-    TimedOut {
-        escalation: ApprovalEscalation,
-    },
+    TimedOut { escalation: ApprovalEscalation },
 }
 
 /// Errors that can occur during gate evaluation.
@@ -133,9 +131,7 @@ where
                 }
                 Err(_elapsed) => {
                     // Timeout elapsed — apply escalation policy (FR-005 / SC-003).
-                    let esc = escalation
-                        .clone()
-                        .unwrap_or(ApprovalEscalation::Fail);
+                    let esc = escalation.clone().unwrap_or(ApprovalEscalation::Fail);
 
                     let now = chrono_now_iso();
                     state.mark_approval_timed_out(
@@ -197,8 +193,8 @@ mod tests {
     use super::*;
     use crate::manifest::ApprovalEscalation;
     use crate::state::{StepExecutionStatus, WorkflowState, WorkflowStatus};
-    use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicU32, Ordering};
     use uuid::Uuid;
 
     /// Test handler that immediately confirms any gate.
@@ -206,7 +202,11 @@ mod tests {
 
     #[async_trait]
     impl GateHandler for ImmediateApproveHandler {
-        async fn await_checkpoint(&self, _step_id: &str, _label: Option<&str>) -> Result<(), String> {
+        async fn await_checkpoint(
+            &self,
+            _step_id: &str,
+            _label: Option<&str>,
+        ) -> Result<(), String> {
             Ok(())
         }
         async fn await_approval(&self, _step_id: &str, _timeout_ms: u64) -> Result<(), String> {
@@ -219,7 +219,11 @@ mod tests {
 
     #[async_trait]
     impl GateHandler for NeverRespondHandler {
-        async fn await_checkpoint(&self, _step_id: &str, _label: Option<&str>) -> Result<(), String> {
+        async fn await_checkpoint(
+            &self,
+            _step_id: &str,
+            _label: Option<&str>,
+        ) -> Result<(), String> {
             std::future::pending().await
         }
         async fn await_approval(&self, _step_id: &str, _timeout_ms: u64) -> Result<(), String> {
@@ -232,7 +236,11 @@ mod tests {
 
     #[async_trait]
     impl GateHandler for ErrorHandler {
-        async fn await_checkpoint(&self, _step_id: &str, _label: Option<&str>) -> Result<(), String> {
+        async fn await_checkpoint(
+            &self,
+            _step_id: &str,
+            _label: Option<&str>,
+        ) -> Result<(), String> {
             Err(self.0.clone())
         }
         async fn await_approval(&self, _step_id: &str, _timeout_ms: u64) -> Result<(), String> {
@@ -291,15 +299,9 @@ mod tests {
         let handler = ImmediateApproveHandler;
         let gate = StepGateConfig::Checkpoint { label: None };
 
-        let outcome = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
+            .await
+            .unwrap();
 
         assert_eq!(outcome, GateOutcome::Approved);
         assert_eq!(state.status, WorkflowStatus::Running);
@@ -311,14 +313,7 @@ mod tests {
         let handler = ErrorHandler("operator declined".into());
         let gate = StepGateConfig::Checkpoint { label: None };
 
-        let result = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await;
+        let result = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(())).await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -362,15 +357,9 @@ mod tests {
             escalation: Some(ApprovalEscalation::Fail),
         };
 
-        let outcome = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
+            .await
+            .unwrap();
 
         assert_eq!(
             outcome,
@@ -392,15 +381,9 @@ mod tests {
             escalation: Some(ApprovalEscalation::Skip),
         };
 
-        let outcome = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
+            .await
+            .unwrap();
 
         assert_eq!(
             outcome,
@@ -421,15 +404,9 @@ mod tests {
             escalation: Some(ApprovalEscalation::Notify),
         };
 
-        let outcome = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
+            .await
+            .unwrap();
 
         assert_eq!(
             outcome,
@@ -451,15 +428,9 @@ mod tests {
             escalation: None, // No escalation configured — should default to Fail.
         };
 
-        let outcome = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
+            .await
+            .unwrap();
 
         assert_eq!(
             outcome,
@@ -480,14 +451,7 @@ mod tests {
             escalation: Some(ApprovalEscalation::Fail),
         };
 
-        let result = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Ok(()),
-        )
-        .await;
+        let result = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(())).await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -502,15 +466,9 @@ mod tests {
         let mut state = make_state("step_001");
         let handler = ImmediateApproveHandler;
 
-        let outcome = evaluate_gate_if_present(
-            &mut state,
-            "step_001",
-            None,
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome = evaluate_gate_if_present(&mut state, "step_001", None, &handler, |_| Ok(()))
+            .await
+            .unwrap();
 
         assert_eq!(outcome, None);
         // Status unchanged.
@@ -523,15 +481,10 @@ mod tests {
         let handler = ImmediateApproveHandler;
         let gate = StepGateConfig::Checkpoint { label: None };
 
-        let outcome = evaluate_gate_if_present(
-            &mut state,
-            "step_001",
-            Some(&gate),
-            &handler,
-            |_| Ok(()),
-        )
-        .await
-        .unwrap();
+        let outcome =
+            evaluate_gate_if_present(&mut state, "step_001", Some(&gate), &handler, |_| Ok(()))
+                .await
+                .unwrap();
 
         assert_eq!(outcome, Some(GateOutcome::Approved));
     }
@@ -544,13 +497,9 @@ mod tests {
         let handler = ImmediateApproveHandler;
         let gate = StepGateConfig::Checkpoint { label: None };
 
-        let result = evaluate_gate(
-            &mut state,
-            "step_001",
-            &gate,
-            &handler,
-            |_| Err("disk full".to_string()),
-        )
+        let result = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| {
+            Err("disk full".to_string())
+        })
         .await;
 
         assert!(result.is_err());

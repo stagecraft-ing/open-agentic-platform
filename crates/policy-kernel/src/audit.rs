@@ -53,10 +53,7 @@ impl AuditLogger {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&path)?;
+        let file = OpenOptions::new().create(true).append(true).open(&path)?;
         Ok(Self {
             path,
             writer: Mutex::new(Some(BufWriter::new(file))),
@@ -93,9 +90,7 @@ impl AuditLogger {
     }
 
     fn maybe_rotate(&self) {
-        let size = fs::metadata(&self.path)
-            .map(|m| m.len())
-            .unwrap_or(0);
+        let size = fs::metadata(&self.path).map(|m| m.len()).unwrap_or(0);
 
         if size < MAX_SIZE_BYTES {
             return;

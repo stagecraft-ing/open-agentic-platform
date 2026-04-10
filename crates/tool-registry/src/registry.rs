@@ -181,11 +181,9 @@ impl ToolRegistry {
         input: &Value,
         schema: &Value,
     ) -> Result<(), RegistryError> {
-        jsonschema::validate(schema, input).map_err(|e| {
-            RegistryError::InputValidation {
-                tool: tool_name.to_owned(),
-                message: e.to_string(),
-            }
+        jsonschema::validate(schema, input).map_err(|e| RegistryError::InputValidation {
+            tool: tool_name.to_owned(),
+            message: e.to_string(),
         })
     }
 

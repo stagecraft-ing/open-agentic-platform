@@ -8,19 +8,19 @@
 // It uses the `WorkflowStore` and `EventNotifier` traits so the SSE endpoint
 // works with both the local SQLite backend and a future distributed backend.
 
+use crate::OrchestratorError;
 use crate::store::{EventNotifier, ReplaySubscription, WorkflowStore};
+use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::IntoResponse;
-use axum::Router;
-use crate::OrchestratorError;
-use futures_util::stream::{self, StreamExt};
+use axum::response::sse::{Event, KeepAlive, Sse};
 use futures_util::Stream;
+use futures_util::stream::{self, StreamExt};
 use serde::Deserialize;
 use std::convert::Infallible;
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 
 /// Shared state for the HTTP server: a workflow store and an event notifier.
 #[derive(Clone)]
@@ -68,14 +68,14 @@ async fn workflow_events_sse(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("state persistence error: {reason}"),
             )
-                .into_response()
+                .into_response();
         }
         Err(other) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("error subscribing to events: {other}"),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -112,14 +112,14 @@ async fn conversation_events_sse(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("state persistence error: {reason}"),
             )
-                .into_response()
+                .into_response();
         }
         Err(other) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("error subscribing to conversation events: {other}"),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -146,9 +146,7 @@ fn build_sse_stream(
     // First, send all replay events in order.
     let replay_iter = replay.into_iter().map(|event| {
         let json = serde_json::to_string(&event).unwrap_or_else(|_| "{}".to_string());
-        Ok(Event::default()
-            .id(event.event_id.to_string())
-            .data(json))
+        Ok(Event::default().id(event.event_id.to_string()).data(json))
     });
 
     // Then, stream live events, skipping those with event_id <= high_water_mark.

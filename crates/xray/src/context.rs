@@ -113,12 +113,7 @@ pub fn build_context_plan(
             // 6. Config/module file boost
             if matches!(
                 f.path.as_str(),
-                "Cargo.toml"
-                    | "package.json"
-                    | "go.mod"
-                    | "Makefile"
-                    | "Dockerfile"
-                    | "README.md"
+                "Cargo.toml" | "package.json" | "go.mod" | "Makefile" | "Dockerfile" | "README.md"
             ) {
                 relevance += 0.1;
                 reasons.push("config file".to_string());
@@ -243,10 +238,7 @@ mod tests {
                     max_depth: None,
                 },
             ],
-            languages: BTreeMap::from([
-                ("Rust".to_string(), 3),
-                ("Markdown".to_string(), 1),
-            ]),
+            languages: BTreeMap::from([("Rust".to_string(), 3), ("Markdown".to_string(), 1)]),
             top_dirs: BTreeMap::from([
                 ("src".to_string(), 2),
                 ("tests".to_string(), 1),

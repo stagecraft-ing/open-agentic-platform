@@ -39,10 +39,9 @@ async fn create_router() -> Router {
         run_tools,
     });
 
-    let checkpoint_blobs = CheckpointBlobStore::new(
-        db_dir.path().join("blobs").join("checkpoints"),
-    )
-    .expect("CheckpointBlobStore init");
+    let checkpoint_blobs =
+        CheckpointBlobStore::new(db_dir.path().join("blobs").join("checkpoints"))
+            .expect("CheckpointBlobStore init");
     let checkpoint_store = Arc::new(CheckpointStore::new(client, checkpoint_blobs));
     let checkpoint_provider: Arc<dyn ToolProvider> =
         Arc::new(CheckpointProvider::new(checkpoint_store));
@@ -68,7 +67,9 @@ async fn every_router_tool_has_explicit_tier() {
     };
     let resp = router.handle_request(&req).await;
     let result = resp.result.expect("tools/list should return result");
-    let tools = result["tools"].as_array().expect("tools should be an array");
+    let tools = result["tools"]
+        .as_array()
+        .expect("tools should be an array");
 
     let router_tool_names: HashSet<&str> = tools
         .iter()
@@ -115,7 +116,9 @@ async fn explicitly_classified_tools_matches_router() {
     };
     let resp = router.handle_request(&req).await;
     let result = resp.result.expect("tools/list should return result");
-    let tools = result["tools"].as_array().expect("tools should be an array");
+    let tools = result["tools"]
+        .as_array()
+        .expect("tools should be an array");
 
     let router_tool_names: HashSet<&str> = tools
         .iter()

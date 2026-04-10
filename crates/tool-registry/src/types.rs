@@ -59,7 +59,11 @@ pub struct ToolResult {
 
 impl ToolResult {
     pub fn success(content: Value) -> Self {
-        Self { content, is_error: false, metadata: None }
+        Self {
+            content,
+            is_error: false,
+            metadata: None,
+        }
     }
 
     pub fn error(message: impl Into<String>) -> Self {
@@ -90,9 +94,10 @@ pub trait ToolDef: Send + Sync {
     fn can_use(&self, ctx: &ToolContext) -> anyhow::Result<PermissionResult> {
         match &ctx.policy {
             Some(handle) => Ok(handle.0.evaluate(self.name(), "")),
-            None => Ok(PermissionResult::Ask(
-                format!("No policy kernel — confirm use of tool '{}'", self.name()),
-            )),
+            None => Ok(PermissionResult::Ask(format!(
+                "No policy kernel — confirm use of tool '{}'",
+                self.name()
+            ))),
         }
     }
 

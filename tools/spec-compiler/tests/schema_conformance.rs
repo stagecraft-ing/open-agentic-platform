@@ -77,8 +77,11 @@ summary: "Minimal spec for fixture-based schema test."
     let reg_inst: Value = serde_json::from_slice(&out.registry_json).expect("registry");
     reg_val.validate(&reg_inst).expect("fixture registry.json");
 
-    let meta_schema = load_schema("specs/000-bootstrap-spec-system/contracts/build-meta.schema.json");
+    let meta_schema =
+        load_schema("specs/000-bootstrap-spec-system/contracts/build-meta.schema.json");
     let meta_val = validator_for(&meta_schema).expect("build-meta schema");
     let meta_inst: Value = serde_json::from_slice(&out.build_meta_json).expect("build-meta");
-    meta_val.validate(&meta_inst).expect("fixture build-meta.json");
+    meta_val
+        .validate(&meta_inst)
+        .expect("fixture build-meta.json");
 }

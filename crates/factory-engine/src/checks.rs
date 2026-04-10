@@ -47,21 +47,23 @@ impl CheckResult {
 // ── Check Runner 1: Artifact Exists ──────────────────────────────────
 
 /// Check that a file exists and is non-empty.
-pub fn run_artifact_exists(
-    check_id: &str,
-    path: &Path,
-    severity: Severity,
-) -> CheckResult {
+pub fn run_artifact_exists(check_id: &str, path: &Path, severity: Severity) -> CheckResult {
     match std::fs::metadata(path) {
-        Ok(meta) if meta.len() == 0 => {
-            CheckResult::fail(check_id, format!("File is empty: {}", path.display()), severity)
-        }
-        Ok(_) => {
-            CheckResult::pass(check_id, format!("File exists: {}", path.display()), severity)
-        }
-        Err(_) => {
-            CheckResult::fail(check_id, format!("File not found: {}", path.display()), severity)
-        }
+        Ok(meta) if meta.len() == 0 => CheckResult::fail(
+            check_id,
+            format!("File is empty: {}", path.display()),
+            severity,
+        ),
+        Ok(_) => CheckResult::pass(
+            check_id,
+            format!("File exists: {}", path.display()),
+            severity,
+        ),
+        Err(_) => CheckResult::fail(
+            check_id,
+            format!("File not found: {}", path.display()),
+            severity,
+        ),
     }
 }
 
@@ -121,11 +123,7 @@ pub fn run_grep_absent(
     let re = match Regex::new(pattern) {
         Ok(r) => r,
         Err(e) => {
-            return CheckResult::fail(
-                check_id,
-                format!("Invalid regex pattern: {e}"),
-                severity,
-            );
+            return CheckResult::fail(check_id, format!("Invalid regex pattern: {e}"), severity);
         }
     };
 
@@ -194,11 +192,7 @@ pub fn run_grep_present(
     let re = match Regex::new(pattern) {
         Ok(r) => r,
         Err(e) => {
-            return CheckResult::fail(
-                check_id,
-                format!("Invalid regex pattern: {e}"),
-                severity,
-            );
+            return CheckResult::fail(check_id, format!("Invalid regex pattern: {e}"), severity);
         }
     };
 
@@ -274,9 +268,7 @@ pub async fn run_command(
                 severity,
             )
         }
-        Ok(Err(e)) => {
-            CheckResult::fail(check_id, format!("Command error: {e}"), severity)
-        }
+        Ok(Err(e)) => CheckResult::fail(check_id, format!("Command error: {e}"), severity),
         Err(_) => CheckResult::fail(
             check_id,
             format!("Command timed out after {timeout_secs}s: {command}"),
@@ -288,11 +280,7 @@ pub async fn run_command(
 // ── Check Runner 6: File Check ───────────────────────────────────────
 
 /// Check that all expected files exist.
-pub fn run_file_check(
-    check_id: &str,
-    paths: &[&Path],
-    severity: Severity,
-) -> CheckResult {
+pub fn run_file_check(check_id: &str, paths: &[&Path], severity: Severity) -> CheckResult {
     let missing: Vec<_> = paths.iter().filter(|p| !p.exists()).collect();
     if missing.is_empty() {
         CheckResult::pass(
@@ -431,7 +419,11 @@ mod tests {
     #[test]
     fn grep_absent_fail() {
         let dir = TempDir::new().unwrap();
-        tmp_file(&dir, "code.rs", "// TODO: fix this\nlet x = 1;\n// TODO: and this\n");
+        tmp_file(
+            &dir,
+            "code.rs",
+            "// TODO: fix this\nlet x = 1;\n// TODO: and this\n",
+        );
         let r = run_grep_absent("GA-002", "TODO", dir.path(), Severity::Error, None);
         assert!(!r.passed);
         assert!(r.message.contains("2 matches"));

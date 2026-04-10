@@ -130,9 +130,9 @@ impl McpClient for InternalClient {
                 self.features.invalidate(&self.repo_root);
                 Ok(serde_json::json!({"status": "success"}))
             }
-            "snapshot.create" | "checkpoint.create" => {
-                Err(anyhow!("snapshot.create is deprecated; use checkpoint.create via MCP router"))
-            }
+            "snapshot.create" | "checkpoint.create" => Err(anyhow!(
+                "snapshot.create is deprecated; use checkpoint.create via MCP router"
+            )),
             "workspace.apply_patch" => {
                 let patch = args
                     .get("patch")
@@ -179,9 +179,12 @@ impl McpClient for InternalClient {
                     .unwrap_or(false);
 
                 tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(
-                        self.workspace.delete(&self.repo_root, path, lease_id, dry_run),
-                    )
+                    tokio::runtime::Handle::current().block_on(self.workspace.delete(
+                        &self.repo_root,
+                        path,
+                        lease_id,
+                        dry_run,
+                    ))
                 })?;
                 self.features.invalidate(&self.repo_root);
                 Ok(serde_json::json!({"status": "success"}))

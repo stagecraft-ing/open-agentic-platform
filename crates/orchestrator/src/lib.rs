@@ -10,53 +10,51 @@
 //! Phase 4: SQLite state backend (Feature 052).
 
 pub mod artifact;
+pub mod claude_executor;
+pub mod cli_gate;
 pub mod effort;
 pub mod gates;
+#[cfg(feature = "distributed")]
+pub mod hiqlite_store;
+pub mod http;
 pub mod manifest;
+pub mod scheduler;
 #[cfg(feature = "local-sqlite")]
 pub mod sqlite_state;
 #[cfg(feature = "local-sqlite")]
 pub mod sse;
 pub mod state;
-pub mod scheduler;
 pub mod store;
-pub mod verify;
-#[cfg(feature = "distributed")]
-pub mod hiqlite_store;
 pub mod store_config;
-pub mod http;
-pub mod claude_executor;
-pub mod cli_gate;
+pub mod verify;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
-pub use effort::{classify_from_task, EffortLevel};
-pub use manifest::{split_input_ref, VerifyCommand, WorkflowManifest, WorkflowStep};
-pub use verify::{run_verify_commands, build_retry_instruction, VerifyOutcome};
-pub use gates::{evaluate_gate, evaluate_gate_if_present, GateError, GateHandler, GateOutcome};
-#[cfg(feature = "local-sqlite")]
-pub use sqlite_state::{
-    sqlite_db_path_for_run, sqlite_db_path_for_run_dir, LocalEventNotifier,
-    SqliteWorkflowStore,
-};
+pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor};
+pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
+pub use effort::{EffortLevel, classify_from_task};
+pub use gates::{GateError, GateHandler, GateOutcome, evaluate_gate, evaluate_gate_if_present};
 #[cfg(feature = "distributed")]
 pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
-pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
+pub use http::HttpState;
+pub use manifest::ApprovalEscalation;
+pub use manifest::{VerifyCommand, WorkflowManifest, WorkflowStep, split_input_ref};
+#[cfg(feature = "local-sqlite")]
+pub use scheduler::SqliteSchedulerStore;
 pub use scheduler::{
     CreateScheduleRequest, Schedule, ScheduleTrigger, ScheduledRunExecutor, SchedulerEngine,
     SchedulerStore, SessionContext as ScheduleSessionContext,
 };
 #[cfg(feature = "local-sqlite")]
-pub use scheduler::SqliteSchedulerStore;
-pub use store_config::{build_persistence, PersistencePair, StoreBackend};
-pub use manifest::ApprovalEscalation;
-pub use http::HttpState;
-pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor};
-pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
-pub use state::{
-    load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
-    write_workflow_state_atomic, GateInfo, StepExecutionStatus, StepState, WorkflowState,
-    WorkflowStatus,
+pub use sqlite_state::{
+    LocalEventNotifier, SqliteWorkflowStore, sqlite_db_path_for_run, sqlite_db_path_for_run_dir,
 };
+pub use state::{
+    GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus, load_workflow_state,
+    state_file_path_for_run, state_file_path_for_run_dir, write_workflow_state_atomic,
+};
+pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
+pub use store_config::{PersistencePair, StoreBackend, build_persistence};
+pub use verify::{VerifyOutcome, build_retry_instruction, run_verify_commands};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -175,7 +173,6 @@ pub struct DispatchOptions {
     pub skip_completed_steps: std::collections::HashSet<String>,
 }
 
-
 /// Outcome of gate evaluation in the non-persisted dispatch path.
 enum GateAction {
     /// Gate cleared — proceed with dispatch.
@@ -258,13 +255,12 @@ async fn dispatch_with_verify(
             output_artifacts: output_paths.to_vec(),
         };
 
-        let result = executor
-            .dispatch_step(request)
-            .await
-            .map_err(|reason| OrchestratorError::StepFailed {
+        let result = executor.dispatch_step(request).await.map_err(|reason| {
+            OrchestratorError::StepFailed {
                 step_id: step.id.clone(),
                 reason,
-            })?;
+            }
+        })?;
 
         total_tokens += result.tokens_used.unwrap_or(0);
 
@@ -285,7 +281,12 @@ async fn dispatch_with_verify(
                 VerifyOutcome::Passed => {
                     return Ok((StepStatus::Success, Some(total_tokens)));
                 }
-                VerifyOutcome::Failed { command, output, exit_code, .. } => {
+                VerifyOutcome::Failed {
+                    command,
+                    output,
+                    exit_code,
+                    ..
+                } => {
                     attempt += 1;
                     let detail = format!(
                         "verify command `{command}` failed (exit {:?}):\n{output}",
@@ -315,11 +316,14 @@ impl RunSummary {
     /// Persist `summary.json` under the run directory for this summary's `run_id`.
     pub fn write_to_disk(&self, artifact_base: &ArtifactManager) -> Result<(), OrchestratorError> {
         let run_dir = artifact_base.run_dir(self.run_id);
-        let sj = serde_json::to_string_pretty(self).map_err(|e| OrchestratorError::InvalidManifest {
-            reason: format!("serialize summary: {e}"),
-        })?;
-        std::fs::write(run_dir.join("summary.json"), sj).map_err(|e| OrchestratorError::InvalidManifest {
-            reason: format!("write summary.json: {e}"),
+        let sj =
+            serde_json::to_string_pretty(self).map_err(|e| OrchestratorError::InvalidManifest {
+                reason: format!("serialize summary: {e}"),
+            })?;
+        std::fs::write(run_dir.join("summary.json"), sj).map_err(|e| {
+            OrchestratorError::InvalidManifest {
+                reason: format!("write summary.json: {e}"),
+            }
         })?;
         Ok(())
     }
@@ -356,10 +360,8 @@ pub fn materialize_run_directory(
                 reason: format!("serialize summary: {e}"),
             }
         })?;
-        std::fs::write(&summary_path, sj).map_err(|e| {
-            OrchestratorError::InvalidManifest {
-                reason: format!("write summary.json: {e}"),
-            }
+        std::fs::write(&summary_path, sj).map_err(|e| OrchestratorError::InvalidManifest {
+            reason: format!("write summary.json: {e}"),
         })?;
     }
     Ok(run_dir)
@@ -375,8 +377,11 @@ pub fn compute_resume_plan_from_state(
     manifest: &WorkflowManifest,
 ) -> Option<ResumePlan> {
     // Map step id → status for quick lookup.
-    let status_by_id: HashMap<&str, &StepExecutionStatus> =
-        state.steps.iter().map(|s| (s.id.as_str(), &s.status)).collect();
+    let status_by_id: HashMap<&str, &StepExecutionStatus> = state
+        .steps
+        .iter()
+        .map(|s| (s.id.as_str(), &s.status))
+        .collect();
 
     // Collect all completed step ids that still exist in the manifest.
     let mut completed_ids = Vec::new();
@@ -448,11 +453,10 @@ pub fn detect_resume_plan_for_run(
             reason: format!("read summary.json: {e}"),
         }
     })?;
-    let summary: RunSummary = serde_json::from_str(&raw).map_err(|e| {
-        OrchestratorError::StatePersistence {
+    let summary: RunSummary =
+        serde_json::from_str(&raw).map_err(|e| OrchestratorError::StatePersistence {
             reason: format!("parse summary.json: {e}"),
-        }
-    })?;
+        })?;
 
     // Build completed set from the summary's step statuses.
     let completed_ids: Vec<String> = manifest
@@ -540,9 +544,7 @@ pub fn build_step_system_prompt(
 
     let effort_text = match step.effort {
         EffortLevel::Quick => "quick — single-pass, very concise (< 2k tokens), no sub-agent calls",
-        EffortLevel::Investigate => {
-            "investigate — thorough analysis with tools (< 10k tokens)"
-        }
+        EffortLevel::Investigate => "investigate — thorough analysis with tools (< 10k tokens)",
         EffortLevel::Deep => {
             "deep — exhaustive exploration, unrestricted depth (no hard token cap)"
         }
@@ -835,7 +837,14 @@ pub async fn dispatch_manifest(
                     }
                 }
             }
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+            let summary = build_summary(
+                artifact_base,
+                run_id,
+                steps,
+                &statuses,
+                &tokens_used,
+                &step_output_hashes,
+            );
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::DependencyMissing {
                 step_id: step.id.clone(),
@@ -854,7 +863,14 @@ pub async fn dispatch_manifest(
                     Ok(true) => {} // Hash matches
                     Ok(false) => {
                         statuses[idx] = StepStatus::Failure;
-                        let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                        let summary = build_summary(
+                            artifact_base,
+                            run_id,
+                            steps,
+                            &statuses,
+                            &tokens_used,
+                            &step_output_hashes,
+                        );
                         summary.write_to_disk(artifact_base)?;
                         return Err(OrchestratorError::DependencyMissing {
                             step_id: step.id.clone(),
@@ -868,7 +884,14 @@ pub async fn dispatch_manifest(
 
         if !registry.has_agent(&step.agent).await {
             statuses[idx] = StepStatus::Failure;
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+            let summary = build_summary(
+                artifact_base,
+                run_id,
+                steps,
+                &statuses,
+                &tokens_used,
+                &step_output_hashes,
+            );
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::AgentNotFound {
                 agent_id: step.agent.clone(),
@@ -892,8 +915,14 @@ pub async fn dispatch_manifest(
                             }
                         }
                     }
-                    let summary =
-                        build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                    let summary = build_summary(
+                        artifact_base,
+                        run_id,
+                        steps,
+                        &statuses,
+                        &tokens_used,
+                        &step_output_hashes,
+                    );
                     summary.write_to_disk(artifact_base)?;
                     return Err(e);
                 }
@@ -984,7 +1013,14 @@ pub async fn dispatch_manifest(
                         }
                     }
                 }
-                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                let summary = build_summary(
+                    artifact_base,
+                    run_id,
+                    steps,
+                    &statuses,
+                    &tokens_used,
+                    &step_output_hashes,
+                );
                 summary.write_to_disk(artifact_base)?;
                 return Err(e);
             }
@@ -992,9 +1028,19 @@ pub async fn dispatch_manifest(
     }
 
     let phase_elapsed = phase_start.elapsed();
-    eprintln!("  Total phase duration: {:.1}s", phase_elapsed.as_secs_f64());
+    eprintln!(
+        "  Total phase duration: {:.1}s",
+        phase_elapsed.as_secs_f64()
+    );
 
-    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+    let summary = build_summary(
+        artifact_base,
+        run_id,
+        steps,
+        &statuses,
+        &tokens_used,
+        &step_output_hashes,
+    );
     summary.write_to_disk(artifact_base)?;
     Ok(summary)
 }
@@ -1044,7 +1090,10 @@ pub async fn dispatch_manifest_persisted(
 
     let mut wf_state = WorkflowState::new(
         run_id,
-        manifest.steps.first().map_or("workflow".to_string(), |s| s.agent.clone()),
+        manifest
+            .steps
+            .first()
+            .map_or("workflow".to_string(), |s| s.agent.clone()),
         now_ts(),
         step_defs,
         serde_json::Map::new(),
@@ -1143,7 +1192,14 @@ pub async fn dispatch_manifest_persisted(
                     }
                 }
             }
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+            let summary = build_summary(
+                artifact_base,
+                run_id,
+                steps,
+                &statuses,
+                &tokens_used,
+                &step_output_hashes,
+            );
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::DependencyMissing {
                 step_id: step.id.clone(),
@@ -1172,7 +1228,14 @@ pub async fn dispatch_manifest_persisted(
             )
             .await?;
 
-            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+            let summary = build_summary(
+                artifact_base,
+                run_id,
+                steps,
+                &statuses,
+                &tokens_used,
+                &step_output_hashes,
+            );
             summary.write_to_disk(artifact_base)?;
             return Err(OrchestratorError::AgentNotFound {
                 agent_id: step.agent.clone(),
@@ -1253,7 +1316,14 @@ pub async fn dispatch_manifest_persisted(
                                 "step_failed",
                                 &serde_json::json!({ "step_id": step.id, "reason": "approval gate timed out" }),
                             ).await?;
-                            let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                            let summary = build_summary(
+                                artifact_base,
+                                run_id,
+                                steps,
+                                &statuses,
+                                &tokens_used,
+                                &step_output_hashes,
+                            );
                             summary.write_to_disk(artifact_base)?;
                             return Err(OrchestratorError::StepFailed {
                                 step_id: step.id.clone(),
@@ -1277,11 +1347,21 @@ pub async fn dispatch_manifest_persisted(
                     );
                     wf_state.status = WorkflowStatus::Failed;
                     persist_and_emit(
-                        persistence, &wf_state, run_id,
+                        persistence,
+                        &wf_state,
+                        run_id,
                         "step_failed",
                         &serde_json::json!({ "step_id": step.id, "reason": e.to_string() }),
-                    ).await?;
-                    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                    )
+                    .await?;
+                    let summary = build_summary(
+                        artifact_base,
+                        run_id,
+                        steps,
+                        &statuses,
+                        &tokens_used,
+                        &step_output_hashes,
+                    );
                     summary.write_to_disk(artifact_base)?;
                     return Err(OrchestratorError::StepFailed {
                         step_id: step.id.clone(),
@@ -1401,7 +1481,14 @@ pub async fn dispatch_manifest_persisted(
                         }
                     }
                 }
-                let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+                let summary = build_summary(
+                    artifact_base,
+                    run_id,
+                    steps,
+                    &statuses,
+                    &tokens_used,
+                    &step_output_hashes,
+                );
                 summary.write_to_disk(artifact_base)?;
                 return Err(e);
             }
@@ -1420,7 +1507,14 @@ pub async fn dispatch_manifest_persisted(
     )
     .await?;
 
-    let summary = build_summary(artifact_base, run_id, steps, &statuses, &tokens_used, &step_output_hashes);
+    let summary = build_summary(
+        artifact_base,
+        run_id,
+        steps,
+        &statuses,
+        &tokens_used,
+        &step_output_hashes,
+    );
     summary.write_to_disk(artifact_base)?;
     Ok(summary)
 }
@@ -1627,7 +1721,10 @@ mod tests {
         );
 
         let plan = compute_resume_plan_from_state(&state, &manifest).expect("expected resume plan");
-        assert_eq!(plan.completed_step_ids, vec!["step-1".to_string(), "step-2".to_string()]);
+        assert_eq!(
+            plan.completed_step_ids,
+            vec!["step-1".to_string(), "step-2".to_string()]
+        );
         assert_eq!(plan.first_non_completed_step_index, 2);
     }
 
@@ -1872,10 +1969,12 @@ mod tests {
 
         let summary = dispatch_manifest_noop(&am, run_id, &manifest).unwrap();
         assert_eq!(summary.steps.len(), 2);
-        assert!(summary
-            .steps
-            .iter()
-            .all(|s| matches!(s.status, StepStatus::Success)));
+        assert!(
+            summary
+                .steps
+                .iter()
+                .all(|s| matches!(s.status, StepStatus::Success))
+        );
 
         // Summary.json should have been updated.
         let summary_path = run_dir.join("summary.json");
@@ -1921,11 +2020,12 @@ mod tests {
 
         let err = dispatch_manifest_noop(&am, run_id, &manifest).unwrap_err();
         match err {
-            OrchestratorError::DependencyMissing { step_id, artifact_path } => {
+            OrchestratorError::DependencyMissing {
+                step_id,
+                artifact_path,
+            } => {
                 assert_eq!(step_id, "step-02");
-                assert!(artifact_path
-                    .to_string_lossy()
-                    .contains("step-01"));
+                assert!(artifact_path.to_string_lossy().contains("step-01"));
             }
             other => panic!("expected DependencyMissing, got {other:?}"),
         }
@@ -1967,9 +2067,12 @@ mod tests {
         assert!(prompt.contains("investigate — thorough analysis"));
         assert!(prompt.contains("filesystem paths instead of expecting their contents"));
         assert!(prompt.contains("Output artifact paths (write your results here):"));
-        assert!(prompt.contains(&*am
-            .output_artifact_path(run_id, "s1", "out.md")
-            .to_string_lossy()));
+        assert!(
+            prompt.contains(
+                &*am.output_artifact_path(run_id, "s1", "out.md")
+                    .to_string_lossy()
+            )
+        );
     }
 
     #[test]
@@ -2021,7 +2124,16 @@ mod tests {
             seen_prompts: Mutex::new(vec![]),
         });
 
-        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor, &DispatchOptions::default()).await.unwrap();
+        let summary = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            registry,
+            executor,
+            &DispatchOptions::default(),
+        )
+        .await
+        .unwrap();
         assert_eq!(summary.steps.len(), 1);
         assert!(matches!(summary.steps[0].status, StepStatus::Success));
         assert_eq!(summary.steps[0].tokens_used, Some(123));
@@ -2055,9 +2167,16 @@ mod tests {
             seen_prompts: Mutex::new(vec![]),
         });
 
-        let err = dispatch_manifest(&am, run_id, &manifest, registry, executor, &DispatchOptions::default())
-            .await
-            .unwrap_err();
+        let err = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            registry,
+            executor,
+            &DispatchOptions::default(),
+        )
+        .await
+        .unwrap_err();
         assert!(matches!(err, OrchestratorError::AgentNotFound { .. }));
     }
 
@@ -2099,14 +2218,23 @@ steps:
         });
         let executor = Arc::new(E2eArtifactExecutor);
 
-        let summary = dispatch_manifest(&am, run_id, &manifest, registry, executor, &DispatchOptions::default())
-            .await
-            .unwrap();
+        let summary = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            registry,
+            executor,
+            &DispatchOptions::default(),
+        )
+        .await
+        .unwrap();
         assert_eq!(summary.steps.len(), 3);
-        assert!(summary
-            .steps
-            .iter()
-            .all(|s| matches!(s.status, StepStatus::Success)));
+        assert!(
+            summary
+                .steps
+                .iter()
+                .all(|s| matches!(s.status, StepStatus::Success))
+        );
 
         // SC-001: downstream steps consume upstream artifact content from filesystem.
         let step1_out = am.output_artifact_path(run_id, "step-01-research", "research.md");
@@ -2119,7 +2247,11 @@ steps:
         assert!(step3_text.contains(&step2_text));
 
         // SC-002: token counters are present and lower than a plausible single-context baseline.
-        let total_tokens: u64 = summary.steps.iter().map(|s| s.tokens_used.unwrap_or(0)).sum();
+        let total_tokens: u64 = summary
+            .steps
+            .iter()
+            .map(|s| s.tokens_used.unwrap_or(0))
+            .sum();
         let single_context_baseline = 4000u64;
         assert!(total_tokens < (single_context_baseline / 5));
 

@@ -143,11 +143,14 @@ pub fn record_operation_completed(
     files_created: Vec<String>,
 ) {
     if let Some(ref mut scaffolding) = state.scaffolding {
-        scaffolding.api.operations_completed.push(OperationCompleted {
-            operation_id: operation_id.into(),
-            files_created,
-            verified_at: Some(Utc::now()),
-        });
+        scaffolding
+            .api
+            .operations_completed
+            .push(OperationCompleted {
+                operation_id: operation_id.into(),
+                files_created,
+                verified_at: Some(Utc::now()),
+            });
         scaffolding
             .api
             .operations_remaining
@@ -178,21 +181,14 @@ pub fn record_operation_failed(
 }
 
 /// Mark a UI page as successfully scaffolded.
-pub fn record_page_completed(
-    state: &mut PipelineState,
-    page_id: &str,
-    files_created: Vec<String>,
-) {
+pub fn record_page_completed(state: &mut PipelineState, page_id: &str, files_created: Vec<String>) {
     if let Some(ref mut scaffolding) = state.scaffolding {
         scaffolding.ui.pages_completed.push(PageCompleted {
             page_id: page_id.into(),
             files_created,
             verified_at: Some(Utc::now()),
         });
-        scaffolding
-            .ui
-            .pages_remaining
-            .retain(|id| id != page_id);
+        scaffolding.ui.pages_remaining.retain(|id| id != page_id);
     }
 }
 
@@ -211,10 +207,7 @@ pub fn record_page_failed(
             retries,
             max_retries,
         });
-        scaffolding
-            .ui
-            .pages_remaining
-            .retain(|id| id != page_id);
+        scaffolding.ui.pages_remaining.retain(|id| id != page_id);
     }
 }
 
@@ -237,12 +230,7 @@ pub fn is_page_done(state: &PipelineState, page_id: &str) -> bool {
     state
         .scaffolding
         .as_ref()
-        .map(|s| {
-            s.ui
-                .pages_completed
-                .iter()
-                .any(|p| p.page_id == page_id)
-        })
+        .map(|s| s.ui.pages_completed.iter().any(|p| p.page_id == page_id))
         .unwrap_or(false)
 }
 

@@ -158,16 +158,14 @@ impl FactoryPipelineState {
 
     /// Persist state as JSON to a file path.
     pub fn save_to_file(&self, path: &std::path::Path) -> std::io::Result<()> {
-        let json = serde_json::to_string_pretty(self)
-            .map_err(std::io::Error::other)?;
+        let json = serde_json::to_string_pretty(self).map_err(std::io::Error::other)?;
         std::fs::write(path, json)
     }
 
     /// Load state from a JSON file.
     pub fn load_from_file(path: &std::path::Path) -> std::io::Result<Self> {
         let json = std::fs::read_to_string(path)?;
-        serde_json::from_str(&json)
-            .map_err(std::io::Error::other)
+        serde_json::from_str(&json).map_err(std::io::Error::other)
     }
 }
 
@@ -184,16 +182,12 @@ impl ScaffoldingProgress {
 
     /// Total features that succeeded.
     pub fn total_succeeded(&self) -> usize {
-        self.entities_completed.len()
-            + self.operations_completed.len()
-            + self.pages_completed.len()
+        self.entities_completed.len() + self.operations_completed.len() + self.pages_completed.len()
     }
 
     /// Total features that failed.
     pub fn total_failed(&self) -> usize {
-        self.entities_failed.len()
-            + self.operations_failed.len()
-            + self.pages_failed.len()
+        self.entities_failed.len() + self.operations_failed.len() + self.pages_failed.len()
     }
 }
 
@@ -220,7 +214,10 @@ mod tests {
 
         state.entity_completed("Organization");
         state.entity_completed("Site");
-        assert_eq!(state.scaffolding.as_ref().unwrap().entities_completed.len(), 2);
+        assert_eq!(
+            state.scaffolding.as_ref().unwrap().entities_completed.len(),
+            2
+        );
 
         state.mark_complete();
         assert_eq!(state.phase, FactoryPhase::Complete);

@@ -13,14 +13,14 @@
 //! and artifact management. Adds Factory-specific verification, retry logic,
 //! and pipeline state tracking.
 
+use crate::FactoryError;
 use crate::agent_bridge::FactoryAgentBridge;
 use crate::manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 use crate::pipeline_state::{FactoryPipelineState, FailedFeature};
 use crate::policy_shard::generate_factory_policy_shard;
 use crate::verify_harness::run_factory_gate_check;
-use crate::FactoryError;
-use factory_contracts::build_spec::BuildSpec;
 use factory_contracts::AdapterRegistry;
+use factory_contracts::build_spec::BuildSpec;
 use orchestrator::manifest::WorkflowManifest;
 use policy_kernel::PolicyBundle;
 use sha2::{Digest, Sha256};
@@ -63,12 +63,11 @@ pub struct FactoryEngine {
 impl FactoryEngine {
     /// Create a new engine with adapter discovery.
     pub fn new(config: FactoryEngineConfig) -> Result<Self, FactoryError> {
-        let adapter_registry =
-            AdapterRegistry::discover(&config.factory_root).map_err(|e| {
-                FactoryError::AdapterNotFound {
-                    name: format!("discovery failed: {e}"),
-                }
-            })?;
+        let adapter_registry = AdapterRegistry::discover(&config.factory_root).map_err(|e| {
+            FactoryError::AdapterNotFound {
+                name: format!("discovery failed: {e}"),
+            }
+        })?;
 
         Ok(Self {
             config,
@@ -77,10 +76,7 @@ impl FactoryEngine {
     }
 
     /// Create an engine with pre-loaded adapters (for testing).
-    pub fn with_adapters(
-        config: FactoryEngineConfig,
-        adapter_registry: AdapterRegistry,
-    ) -> Self {
+    pub fn with_adapters(config: FactoryEngineConfig, adapter_registry: AdapterRegistry) -> Self {
         Self {
             config,
             adapter_registry,
@@ -98,35 +94,25 @@ impl FactoryEngine {
         adapter_name: &str,
         business_doc_paths: &[PathBuf],
     ) -> Result<PipelineStartResult, FactoryError> {
-        let adapter = self
-            .adapter_registry
-            .get(adapter_name)
-            .ok_or_else(|| FactoryError::AdapterNotFound {
+        let adapter = self.adapter_registry.get(adapter_name).ok_or_else(|| {
+            FactoryError::AdapterNotFound {
                 name: adapter_name.into(),
-            })?;
+            }
+        })?;
 
         let run_id = Uuid::new_v4();
 
         // Generate Phase 1 manifest.
-        let phase1_manifest = generate_process_manifest(
-            adapter,
-            business_doc_paths,
-            &self.config.factory_root,
-        )?;
+        let phase1_manifest =
+            generate_process_manifest(adapter, business_doc_paths, &self.config.factory_root)?;
 
         // Create agent bridge.
-        let process_agents = factory_contracts::agent_loader::load_process_agents(
-            &self.config.factory_root,
-        )
-        .unwrap_or_default();
-        let adapter_path = self
-            .config
-            .factory_root
-            .join("adapters")
-            .join(adapter_name);
-        let adapter_agents =
-            factory_contracts::agent_loader::load_adapter_agents(&adapter_path)
+        let process_agents =
+            factory_contracts::agent_loader::load_process_agents(&self.config.factory_root)
                 .unwrap_or_default();
+        let adapter_path = self.config.factory_root.join("adapters").join(adapter_name);
+        let adapter_agents =
+            factory_contracts::agent_loader::load_adapter_agents(&adapter_path).unwrap_or_default();
         let agent_bridge = FactoryAgentBridge::new(process_agents, adapter_agents);
 
         // Create initial pipeline state.
@@ -153,12 +139,11 @@ impl FactoryEngine {
         pipeline_state: &mut FactoryPipelineState,
         org_override: Option<&str>,
     ) -> Result<PhaseTransitionResult, FactoryError> {
-        let adapter = self
-            .adapter_registry
-            .get(adapter_name)
-            .ok_or_else(|| FactoryError::AdapterNotFound {
+        let adapter = self.adapter_registry.get(adapter_name).ok_or_else(|| {
+            FactoryError::AdapterNotFound {
                 name: adapter_name.into(),
-            })?;
+            }
+        })?;
 
         // Read and parse the Build Spec.
         let build_spec_yaml = std::fs::read_to_string(build_spec_path).map_err(|e| {
@@ -168,14 +153,14 @@ impl FactoryEngine {
         })?;
 
         let mut build_spec: BuildSpec =
-            serde_yaml::from_str(&build_spec_yaml).map_err(|e| {
-                FactoryError::InvalidBuildSpec {
-                    reason: format!("parse: {e}"),
-                }
+            serde_yaml::from_str(&build_spec_yaml).map_err(|e| FactoryError::InvalidBuildSpec {
+                reason: format!("parse: {e}"),
             })?;
 
         // Inject org if the agent omitted it and the operator supplied one.
-        if build_spec.project.org.is_empty() && let Some(org) = org_override {
+        if build_spec.project.org.is_empty()
+            && let Some(org) = org_override
+        {
             build_spec.project.org = org.to_string();
         }
 
@@ -193,11 +178,8 @@ impl FactoryEngine {
         let policy_bundle = generate_factory_policy_shard(adapter, &build_spec);
 
         // Generate Phase 2 manifest (FR-003).
-        let phase2_manifest = generate_scaffold_manifest(
-            &build_spec,
-            adapter,
-            &self.config.factory_root,
-        )?;
+        let phase2_manifest =
+            generate_scaffold_manifest(&build_spec, adapter, &self.config.factory_root)?;
 
         Ok(PhaseTransitionResult {
             manifest: phase2_manifest,
@@ -291,11 +273,7 @@ pub enum ScaffoldStepKind {
 }
 
 /// Update pipeline state from a completed scaffolding step.
-pub fn record_scaffold_completion(
-    state: &mut FactoryPipelineState,
-    step_id: &str,
-    tokens: u64,
-) {
+pub fn record_scaffold_completion(state: &mut FactoryPipelineState, step_id: &str, tokens: u64) {
     state.add_tokens(tokens);
     match classify_scaffold_step(step_id) {
         ScaffoldStepKind::Entity(name) => state.entity_completed(name),
@@ -338,10 +316,7 @@ mod tests {
             classify_scaffold_step("s6b-data-Organization"),
             ScaffoldStepKind::Entity("Organization".into())
         );
-        assert_eq!(
-            classify_scaffold_step("s6b-seed"),
-            ScaffoldStepKind::Seed
-        );
+        assert_eq!(classify_scaffold_step("s6b-seed"), ScaffoldStepKind::Seed);
         assert_eq!(
             classify_scaffold_step("s6c-api-orgs-list"),
             ScaffoldStepKind::Operation("orgs-list".into())

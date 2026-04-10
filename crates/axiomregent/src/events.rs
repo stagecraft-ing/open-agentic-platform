@@ -70,36 +70,21 @@ pub fn spawn_event_listener(client: Client) {
 fn handle_event(payload: &EventPayload) {
     match payload.event_type.as_str() {
         EVENT_CHECKPOINT_CREATED => {
-            log::info!(
-                "cross-session: checkpoint created — {}",
-                payload.data
-            );
+            log::info!("cross-session: checkpoint created — {}", payload.data);
             // Future: invalidate lease fingerprint for affected repo
         }
         EVENT_INDEX_UPDATED => {
-            log::info!(
-                "cross-session: search index updated — {}",
-                payload.data
-            );
+            log::info!("cross-session: search index updated — {}", payload.data);
             // Future: invalidate kd-tree cache for the project
         }
         EVENT_LEASE_ACQUIRED => {
-            log::info!(
-                "cross-session: lease acquired — {}",
-                payload.data
-            );
+            log::info!("cross-session: lease acquired — {}", payload.data);
         }
         EVENT_LEASE_RELEASED => {
-            log::info!(
-                "cross-session: lease released — {}",
-                payload.data
-            );
+            log::info!("cross-session: lease released — {}", payload.data);
         }
         EVENT_POLICY_UPDATED => {
-            log::info!(
-                "cross-session: policy updated — {}",
-                payload.data
-            );
+            log::info!("cross-session: policy updated — {}", payload.data);
             // Future: reload policy bundle from KV cache
         }
         other => {

@@ -88,7 +88,12 @@ fn exit_code_zero_list_and_show() {
         .arg("list")
         .output()
         .expect("spawn");
-    assert_eq!(out.status.code(), Some(0), "stderr={}", String::from_utf8_lossy(&out.stderr));
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("001-a"));
     assert!(stdout.contains("002-b"));
@@ -106,8 +111,7 @@ fn exit_code_zero_list_and_show() {
         .output()
         .expect("spawn");
     assert_eq!(out.status.code(), Some(0));
-    let shown: serde_json::Value =
-        serde_json::from_slice(&out.stdout).expect("show emits JSON");
+    let shown: serde_json::Value = serde_json::from_slice(&out.stdout).expect("show emits JSON");
     assert_eq!(shown["id"], "001-a");
     assert_eq!(shown["title"], "First");
 }
@@ -157,7 +161,10 @@ fn show_json_stdout_matches_show_without_json_flag() {
         .expect("spawn");
     assert_eq!(without.status.code(), Some(0));
     assert_eq!(with_json.status.code(), Some(0));
-    assert_eq!(without.stdout, with_json.stdout, "default show must match show --json");
+    assert_eq!(
+        without.stdout, with_json.stdout,
+        "default show must match show --json"
+    );
 }
 
 #[test]
@@ -235,7 +242,10 @@ fn show_compact_emits_valid_json_equal_to_pretty_when_parsed() {
 
     let vp: serde_json::Value = serde_json::from_slice(&pretty.stdout).unwrap();
     let vc: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
-    assert_eq!(vp, vc, "compact and pretty must parse to the same feature object");
+    assert_eq!(
+        vp, vc,
+        "compact and pretty must parse to the same feature object"
+    );
 }
 
 #[test]
@@ -887,7 +897,12 @@ fn status_report_has_deterministic_status_order() {
         .collect();
     assert_eq!(
         status_lines,
-        vec!["draft      1", "active     1", "superseded 1", "retired    1"]
+        vec![
+            "draft      1",
+            "active     1",
+            "superseded 1",
+            "retired    1"
+        ]
     );
 }
 
@@ -1009,7 +1024,10 @@ fn status_report_nonzero_only_omits_zero_rows_in_text_mode() {
     assert!(!stdout.contains("retired"));
     let draft_idx = stdout.find("draft").expect("draft row present");
     let active_idx = stdout.find("active").expect("active row present");
-    assert!(draft_idx < active_idx, "remaining rows keep deterministic order");
+    assert!(
+        draft_idx < active_idx,
+        "remaining rows keep deterministic order"
+    );
 }
 
 #[test]
@@ -1418,9 +1436,7 @@ fn first_markdown_fence_inner(section: &str) -> &str {
         None => s,
         Some(nl) => {
             let first = s[..nl].trim();
-            if !first.is_empty()
-                && first.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
-            {
+            if !first.is_empty() && first.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
                 &s[nl + 1..]
             } else {
                 s
@@ -1867,7 +1883,9 @@ fn shape_contract_status_report_json_row_keys_are_exact_and_ordered() {
         .expect("spawn");
     assert_eq!(out.status.code(), Some(0));
     let rows: serde_json::Value = serde_json::from_slice(&out.stdout).expect("status-report json");
-    let arr = rows.as_array().expect("status-report --json must return array");
+    let arr = rows
+        .as_array()
+        .expect("status-report --json must return array");
     for row in arr {
         let keys = object_keys_in_order(row);
         assert_eq!(keys, vec!["count", "ids", "status"]);
@@ -2032,7 +2050,9 @@ fn arg_contract_status_report_json_compact_conflict_stderr_and_exit() {
     assert_eq!(out.stdout, b"");
     assert_bytes_eq_stderr(
         &out.stderr,
-        include_str!("fixtures/arg_contract/expected/status_report_json_compact_conflict.stderr.txt"),
+        include_str!(
+            "fixtures/arg_contract/expected/status_report_json_compact_conflict.stderr.txt"
+        ),
         "status-report --json --compact conflict",
     );
 }
@@ -2070,10 +2090,7 @@ fn arg_contract_status_report_invalid_status_stderr_and_exit() {
 #[test]
 fn version_contract_top_level_stdout_exit_and_stderr() {
     let exe = registry_consumer_exe();
-    let out = Command::new(&exe)
-        .arg("--version")
-        .output()
-        .expect("spawn");
+    let out = Command::new(&exe).arg("--version").output().expect("spawn");
     assert_eq!(out.status.code(), Some(0));
     assert_eq!(out.stderr, b"");
     assert_bytes_eq_stdout(
@@ -2120,7 +2137,9 @@ fn default_path_contract_list_missing_default_path_stderr_and_exit() {
     assert_eq!(out.stdout, b"");
     assert_bytes_eq_stderr(
         &out.stderr,
-        include_str!("fixtures/default_path_contract/expected/list_missing_default_path.stderr.txt"),
+        include_str!(
+            "fixtures/default_path_contract/expected/list_missing_default_path.stderr.txt"
+        ),
         "default path list missing file",
     );
 }
@@ -2144,7 +2163,9 @@ fn allow_invalid_contract_without_flag_remains_authority_failure() {
     assert_eq!(out.stdout, b"");
     assert_bytes_eq_stderr(
         &out.stderr,
-        include_str!("fixtures/allow_invalid_contract/expected/list_without_allow_invalid.stderr.txt"),
+        include_str!(
+            "fixtures/allow_invalid_contract/expected/list_without_allow_invalid.stderr.txt"
+        ),
         "without --allow-invalid",
     );
 }
@@ -2204,7 +2225,9 @@ fn allow_invalid_contract_status_report_succeeds_with_exact_stdout() {
     assert_eq!(out.stderr, b"");
     assert_bytes_eq_stdout(
         &out.stdout,
-        include_str!("fixtures/allow_invalid_contract/expected/status_report_allow_invalid.stdout.txt"),
+        include_str!(
+            "fixtures/allow_invalid_contract/expected/status_report_allow_invalid.stdout.txt"
+        ),
         "allow-invalid status-report",
     );
 }
@@ -2224,7 +2247,9 @@ fn allow_invalid_contract_malformed_registry_still_fails_with_flag() {
     assert_eq!(out.stdout, b"");
     assert_bytes_eq_stderr(
         &out.stderr,
-        include_str!("fixtures/allow_invalid_contract/expected/list_allow_invalid_malformed.stderr.txt"),
+        include_str!(
+            "fixtures/allow_invalid_contract/expected/list_allow_invalid_malformed.stderr.txt"
+        ),
         "allow-invalid malformed registry",
     );
 }
@@ -2443,7 +2468,14 @@ fn ids_only_contract_list_respects_existing_filters() {
     let out = Command::new(&exe)
         .args(["--registry-path"])
         .arg(&reg)
-        .args(["list", "--ids-only", "--status", "draft", "--id-prefix", "002"])
+        .args([
+            "list",
+            "--ids-only",
+            "--status",
+            "draft",
+            "--id-prefix",
+            "002",
+        ])
         .output()
         .expect("spawn");
     assert_eq!(out.status.code(), Some(0));

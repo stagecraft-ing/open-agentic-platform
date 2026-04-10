@@ -5,9 +5,7 @@
 //! Stage gate orchestration — routes check configurations to check runners
 //! and evaluates pass/fail for stage gates, feature gates, and invariants.
 
-use crate::checks::{
-    self, CheckResult,
-};
+use crate::checks::{self, CheckResult};
 use factory_contracts::adapter_manifest::{CheckType, Invariant, Severity};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
@@ -81,12 +79,7 @@ pub async fn run_stage_gate(
             "grep-present" => {
                 let pattern = check.pattern.as_deref().unwrap_or("");
                 let scope = check.scope.as_deref().unwrap_or(".");
-                checks::run_grep_present(
-                    &check.id,
-                    pattern,
-                    &project_root.join(scope),
-                    severity,
-                )
+                checks::run_grep_present(&check.id, pattern, &project_root.join(scope), severity)
             }
             "command-succeeds" => {
                 let command = check
@@ -139,8 +132,7 @@ pub async fn run_feature_gate(
 
     for (i, cmd) in commands.iter().enumerate() {
         let check_id = format!("SF-{type_upper}-{:03}", i + 1);
-        let result =
-            checks::run_command(&check_id, cmd, project_root, Severity::Error, 120).await;
+        let result = checks::run_command(&check_id, cmd, project_root, Severity::Error, 120).await;
         results.push(result);
     }
 
@@ -169,27 +161,18 @@ pub async fn run_invariants(
         let scope = &inv.check.scope;
 
         let result = match inv.check.check_type {
-            CheckType::GrepAbsent => checks::run_grep_absent(
-                &inv.id,
-                pattern,
-                &project_root.join(scope),
-                severity,
-                None,
-            ),
-            CheckType::GrepPresent => checks::run_grep_present(
-                &inv.id,
-                pattern,
-                &project_root.join(scope),
-                severity,
-            ),
+            CheckType::GrepAbsent => {
+                checks::run_grep_absent(&inv.id, pattern, &project_root.join(scope), severity, None)
+            }
+            CheckType::GrepPresent => {
+                checks::run_grep_present(&inv.id, pattern, &project_root.join(scope), severity)
+            }
             CheckType::CommandSucceeds => {
                 checks::run_command(&inv.id, pattern, project_root, severity, 120).await
             }
-            CheckType::FileExists => checks::run_artifact_exists(
-                &inv.id,
-                &project_root.join(pattern),
-                severity,
-            ),
+            CheckType::FileExists => {
+                checks::run_artifact_exists(&inv.id, &project_root.join(pattern), severity)
+            }
             CheckType::FileAbsent => {
                 let path = project_root.join(pattern);
                 if path.exists() {

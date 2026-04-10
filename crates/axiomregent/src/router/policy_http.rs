@@ -74,12 +74,9 @@ async fn fetch_bundle(
     )
     .map_err(|e| format!("constitution parse: {e}"))?;
 
-    let shards: BTreeMap<String, Vec<PolicyRule>> = serde_json::from_value(
-        v.get("shards")
-            .ok_or("missing 'shards' key")?
-            .clone(),
-    )
-    .map_err(|e| format!("shards parse: {e}"))?;
+    let shards: BTreeMap<String, Vec<PolicyRule>> =
+        serde_json::from_value(v.get("shards").ok_or("missing 'shards' key")?.clone())
+            .map_err(|e| format!("shards parse: {e}"))?;
 
     Ok(PolicyBundle {
         constitution,

@@ -8,11 +8,11 @@
 //! - `generate_process_manifest()` — Build Spec derivation (stages s0–s5)
 //! - `generate_scaffold_manifest()` — Dynamic fan-out from Build Spec (s6a–s6h)
 
-use crate::topo_sort::topological_sort_entities;
 use crate::FactoryError;
+use crate::topo_sort::topological_sort_entities;
+use factory_contracts::PatternResolver;
 use factory_contracts::adapter_manifest::AdapterManifest;
 use factory_contracts::build_spec::BuildSpec;
-use factory_contracts::PatternResolver;
 use orchestrator::effort::EffortLevel;
 use orchestrator::manifest::{StepGateConfig, VerifyCommand, WorkflowManifest, WorkflowStep};
 use std::path::Path;
@@ -57,16 +57,30 @@ fn process_stages() -> Vec<StageDefinition> {
             agent_role: "business-requirements-analyst",
             instruction: "Analyze business documents and produce the business requirements deliverables: entity models, use cases, audiences, and sitemap.",
             effort: EffortLevel::Deep,
-            outputs: vec!["entity-model.yaml", "use-cases.yaml", "audiences.yaml", "sitemap.yaml"],
-            gate: Some(StepGateConfig::Checkpoint { label: Some("Review business requirements".into()) }),
+            outputs: vec![
+                "entity-model.yaml",
+                "use-cases.yaml",
+                "audiences.yaml",
+                "sitemap.yaml",
+            ],
+            gate: Some(StepGateConfig::Checkpoint {
+                label: Some("Review business requirements".into()),
+            }),
         },
         StageDefinition {
             id: "s2-service-requirements",
             agent_role: "service-designer",
             instruction: "Design service requirements from business requirements: business rules, integrations, audit requirements, and security requirements.",
             effort: EffortLevel::Deep,
-            outputs: vec!["business-rules.yaml", "integrations.yaml", "audit-spec.yaml", "security-spec.yaml"],
-            gate: Some(StepGateConfig::Checkpoint { label: Some("Review service requirements".into()) }),
+            outputs: vec![
+                "business-rules.yaml",
+                "integrations.yaml",
+                "audit-spec.yaml",
+                "security-spec.yaml",
+            ],
+            gate: Some(StepGateConfig::Checkpoint {
+                label: Some("Review service requirements".into()),
+            }),
         },
         StageDefinition {
             id: "s3-data-model",
@@ -74,7 +88,9 @@ fn process_stages() -> Vec<StageDefinition> {
             instruction: "Generate the data model from entity models and business rules: entity definitions with fields, constraints, relationships, and lifecycle states.",
             effort: EffortLevel::Deep,
             outputs: vec!["data-model.yaml"],
-            gate: Some(StepGateConfig::Checkpoint { label: Some("Review data model".into()) }),
+            gate: Some(StepGateConfig::Checkpoint {
+                label: Some("Review data model".into()),
+            }),
         },
         StageDefinition {
             id: "s4-api-specification",
@@ -82,7 +98,9 @@ fn process_stages() -> Vec<StageDefinition> {
             instruction: "Generate the API specification from the data model and use cases: resources, operations, request/response schemas, auth requirements.",
             effort: EffortLevel::Deep,
             outputs: vec!["api-spec.yaml"],
-            gate: Some(StepGateConfig::Checkpoint { label: Some("Review API specification".into()) }),
+            gate: Some(StepGateConfig::Checkpoint {
+                label: Some("Review API specification".into()),
+            }),
         },
         StageDefinition {
             id: "s5-ui-specification",
@@ -366,7 +384,10 @@ pub fn generate_scaffold_manifest(
         if lines.is_empty() {
             String::new()
         } else {
-            format!("\nPattern files (read ALL before writing code):\n{}", lines.join("\n"))
+            format!(
+                "\nPattern files (read ALL before writing code):\n{}",
+                lines.join("\n")
+            )
         }
     };
 
@@ -374,10 +395,18 @@ pub fn generate_scaffold_manifest(
     let dir_conventions_block = {
         let dc = &adapter.directory_conventions;
         let mut parts = Vec::new();
-        if let Some(ref v) = dc.api_service { parts.push(format!("  service: {v}")); }
-        if let Some(ref v) = dc.api_controller { parts.push(format!("  controller: {v}")); }
-        if let Some(ref v) = dc.api_route { parts.push(format!("  route: {v}")); }
-        if let Some(ref v) = dc.api_test { parts.push(format!("  test: {v}")); }
+        if let Some(ref v) = dc.api_service {
+            parts.push(format!("  service: {v}"));
+        }
+        if let Some(ref v) = dc.api_controller {
+            parts.push(format!("  controller: {v}"));
+        }
+        if let Some(ref v) = dc.api_route {
+            parts.push(format!("  route: {v}"));
+        }
+        if let Some(ref v) = dc.api_test {
+            parts.push(format!("  test: {v}"));
+        }
         if parts.is_empty() {
             String::new()
         } else {
@@ -405,7 +434,10 @@ pub fn generate_scaffold_manifest(
         // The data-entity step for this resource (if it exists) is an input dependency.
         let data_step_id = format!("s6b-data-{}", resource.entity);
         let data_step_input = if steps.iter().any(|s| s.id == data_step_id) {
-            vec![format!("{data_step_id}/{}-entity-report.yaml", resource.entity)]
+            vec![format!(
+                "{data_step_id}/{}-entity-report.yaml",
+                resource.entity
+            )]
         } else {
             vec![]
         };
@@ -470,7 +502,10 @@ pub fn generate_scaffold_manifest(
         if lines.is_empty() {
             String::new()
         } else {
-            format!("\nUI pattern files (read ALL before writing code):\n{}", lines.join("\n"))
+            format!(
+                "\nUI pattern files (read ALL before writing code):\n{}",
+                lines.join("\n")
+            )
         }
     };
 
@@ -478,11 +513,21 @@ pub fn generate_scaffold_manifest(
     let ui_dir_conventions_block = {
         let dc = &adapter.directory_conventions;
         let mut parts = Vec::new();
-        if let Some(ref v) = dc.ui_view { parts.push(format!("  view: {v}")); }
-        if let Some(ref v) = dc.ui_store { parts.push(format!("  store: {v}")); }
-        if let Some(ref v) = dc.ui_route_config { parts.push(format!("  route_config: {v}")); }
-        if let Some(ref v) = dc.ui_test { parts.push(format!("  test: {v}")); }
-        if let Some(ref v) = dc.ui_component { parts.push(format!("  component: {v}")); }
+        if let Some(ref v) = dc.ui_view {
+            parts.push(format!("  view: {v}"));
+        }
+        if let Some(ref v) = dc.ui_store {
+            parts.push(format!("  store: {v}"));
+        }
+        if let Some(ref v) = dc.ui_route_config {
+            parts.push(format!("  route_config: {v}"));
+        }
+        if let Some(ref v) = dc.ui_test {
+            parts.push(format!("  test: {v}"));
+        }
+        if let Some(ref v) = dc.ui_component {
+            parts.push(format!("  component: {v}"));
+        }
         if parts.is_empty() {
             String::new()
         } else {
@@ -580,9 +625,7 @@ pub fn generate_scaffold_manifest(
              configure environment variables, apply deployment variant ({:?}).\n\
              Audiences:\n{audience_lines}\n\
              Adapter: {}",
-            build_spec.project.name,
-            build_spec.project.variant,
-            adapter.adapter.name,
+            build_spec.project.name, build_spec.project.variant, adapter.adapter.name,
         ),
         gate: None,
         post_verify: Some(compile_and_lint.clone()),
@@ -635,7 +678,10 @@ pub fn generate_scaffold_manifest(
                 adapter.commands.compile,
                 adapter.commands.test,
                 adapter.commands.lint,
-                adapter.commands.type_check.as_ref()
+                adapter
+                    .commands
+                    .type_check
+                    .as_ref()
                     .map(|tc| format!("4. Run type check: {tc}\n"))
                     .unwrap_or_default(),
                 adapter.adapter.name,
@@ -669,7 +715,10 @@ pub fn generate_scaffold_manifest(
             adapter.commands.compile,
             adapter.commands.test,
             adapter.commands.lint,
-            adapter.commands.type_check.as_ref()
+            adapter
+                .commands
+                .type_check
+                .as_ref()
                 .map(|tc| format!("4. Type check: {tc}\n"))
                 .unwrap_or_default(),
             adapter.adapter.name,
@@ -804,12 +853,9 @@ mod tests {
     #[test]
     fn process_manifest_agent_ids_match_frontmatter() {
         let adapter = test_adapter();
-        let manifest = generate_process_manifest(
-            &adapter,
-            &["/docs/input.md"],
-            Path::new("/tmp/factory"),
-        )
-        .unwrap();
+        let manifest =
+            generate_process_manifest(&adapter, &["/docs/input.md"], Path::new("/tmp/factory"))
+                .unwrap();
 
         // Agent IDs should match the frontmatter `id` field in process agent files
         // (e.g., "pipeline-orchestrator", "business-requirements-analyst").

@@ -8,8 +8,8 @@
 //! `crate::checks` and `crate::gate`, replacing the former Python
 //! subprocess bridge.
 
-use crate::gate::{self, GateCheckConfig};
 use crate::FactoryError;
+use crate::gate::{self, GateCheckConfig};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -75,11 +75,10 @@ fn load_stage_checks(
         return Ok(vec![]);
     }
 
-    let content = std::fs::read_to_string(&checks_path).map_err(|e| {
-        FactoryError::VerificationHarness {
+    let content =
+        std::fs::read_to_string(&checks_path).map_err(|e| FactoryError::VerificationHarness {
             reason: format!("failed to read checks file {}: {e}", checks_path.display()),
-        }
-    })?;
+        })?;
 
     let checks: Vec<GateCheckConfig> =
         serde_yaml::from_str(&content).map_err(|e| FactoryError::VerificationHarness {
@@ -97,7 +96,9 @@ mod tests {
     async fn gate_check_with_no_checks_file_passes() {
         let dir = tempfile::TempDir::new().unwrap();
         // No checks file → empty check list → passes
-        let result = run_factory_gate_check("s1", dir.path(), dir.path()).await.unwrap();
+        let result = run_factory_gate_check("s1", dir.path(), dir.path())
+            .await
+            .unwrap();
         assert!(result.passed);
         assert!(result.checks.is_empty());
     }

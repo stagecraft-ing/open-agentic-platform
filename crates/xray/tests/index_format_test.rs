@@ -33,8 +33,8 @@ fn test_index_format() {
     let _ = fs::remove_dir_all(&output_dir);
 
     // Run scan using the library API directly
-    let _index = xray::scan_target(&fixture_dst, Some(output_dir.clone()))
-        .expect("Failed to run scan");
+    let _index =
+        xray::scan_target(&fixture_dst, Some(output_dir.clone())).expect("Failed to run scan");
 
     let index_path = output_dir.join("index.json");
     let content = fs::read_to_string(&index_path).expect("Failed to read index.json");

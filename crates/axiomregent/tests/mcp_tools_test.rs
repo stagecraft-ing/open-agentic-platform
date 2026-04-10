@@ -56,14 +56,25 @@ async fn test_mcp_tools_list() {
     let tools = res["tools"].as_array().expect("tools should be an array");
 
     // Check for core tools that are kept in the trimmed server
-    let required_tools = vec!["agent.propose", "features.impact", "gov.preflight", "workspace.write_file"];
+    let required_tools = vec![
+        "agent.propose",
+        "features.impact",
+        "gov.preflight",
+        "workspace.write_file",
+    ];
     for req_tool in required_tools {
         let found = tools.iter().any(|t| t["name"] == req_tool);
         assert!(found, "Tool {} not found in tools list", req_tool);
     }
 
     // Verify removed tools are absent
-    let removed_tools = vec!["resolve_mcp", "list_mounts", "get_capabilities", "features.overview", "features.locate"];
+    let removed_tools = vec![
+        "resolve_mcp",
+        "list_mounts",
+        "get_capabilities",
+        "features.overview",
+        "features.locate",
+    ];
     for removed in removed_tools {
         let found = tools.iter().any(|t| t["name"] == removed);
         assert!(!found, "Tool {} should have been removed", removed);
@@ -86,7 +97,10 @@ async fn test_mcp_tools_call_validation() {
         id: Some(json!(2)),
     };
     let resp = router.handle_request(&req).await;
-    assert!(resp.error.is_some(), "Calling unknown tool should return an error");
+    assert!(
+        resp.error.is_some(),
+        "Calling unknown tool should return an error"
+    );
 
     // Call features.impact without required repo_root -> error
     let req2 = JsonRpcRequest {
@@ -99,5 +113,8 @@ async fn test_mcp_tools_call_validation() {
         id: Some(json!(3)),
     };
     let resp2 = router.handle_request(&req2).await;
-    assert!(resp2.error.is_some(), "Missing repo_root should return an error");
+    assert!(
+        resp2.error.is_some(),
+        "Missing repo_root should return an error"
+    );
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Feature 052: State persistence for resumable workflows (JSON backend, Phase 1).
 
+use crate::OrchestratorError;
 use crate::artifact::ArtifactManager;
 use crate::manifest::{ApprovalEscalation, StepGateConfig, WorkflowManifest};
-use crate::OrchestratorError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fs;
@@ -273,9 +273,10 @@ pub fn write_workflow_state_atomic(
     }
 
     let tmp_path = path.with_extension("json.tmp");
-    let json = serde_json::to_vec_pretty(state).map_err(|e| OrchestratorError::StatePersistence {
-        reason: format!("serialize workflow state: {e}"),
-    })?;
+    let json =
+        serde_json::to_vec_pretty(state).map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("serialize workflow state: {e}"),
+        })?;
 
     fs::write(&tmp_path, &json).map_err(|e| OrchestratorError::StatePersistence {
         reason: format!("write temp state file {}: {e}", tmp_path.display()),
@@ -329,9 +330,17 @@ mod tests {
         assert_eq!(state.workflow_name, "deploy-staging");
         assert_eq!(state.status, WorkflowStatus::Running);
         assert_eq!(state.steps.len(), 2);
-        assert!(state.steps.iter().all(|s| s.status == StepExecutionStatus::Pending));
+        assert!(
+            state
+                .steps
+                .iter()
+                .all(|s| s.status == StepExecutionStatus::Pending)
+        );
         assert!(state.current_step_index.is_none());
-        assert_eq!(state.metadata.get("branch").and_then(|v| v.as_str()), Some("main"));
+        assert_eq!(
+            state.metadata.get("branch").and_then(|v| v.as_str()),
+            Some("main")
+        );
     }
 
     #[test]
@@ -363,13 +372,13 @@ mod tests {
 
         let step = &state.steps[0];
         assert_eq!(step.status, StepExecutionStatus::Completed);
-        assert_eq!(
-            step.completed_at.as_deref(),
-            Some("2026-03-29T10:00:05Z")
-        );
+        assert_eq!(step.completed_at.as_deref(), Some("2026-03-29T10:00:05Z"));
         assert_eq!(step.duration_ms, Some(4000));
         assert_eq!(
-            step.output.as_ref().and_then(|v| v.get("summary")).and_then(|v| v.as_str()),
+            step.output
+                .as_ref()
+                .and_then(|v| v.get("summary"))
+                .and_then(|v| v.as_str()),
             Some("ok")
         );
     }
@@ -381,7 +390,10 @@ mod tests {
         let wf_id = Uuid::new_v4();
 
         let mut meta = serde_json::Map::new();
-        meta.insert("triggeredBy".to_string(), JsonValue::from("user@example.com"));
+        meta.insert(
+            "triggeredBy".to_string(),
+            JsonValue::from("user@example.com"),
+        );
 
         let mut state = WorkflowState::new(
             wf_id,
@@ -459,11 +471,17 @@ mod tests {
 
         state.attach_gates_from_manifest(&manifest);
 
-        let gate1 = state.steps[0].gate.as_ref().expect("expected gate on step_001");
+        let gate1 = state.steps[0]
+            .gate
+            .as_ref()
+            .expect("expected gate on step_001");
         assert_eq!(gate1.gate_type, "checkpoint");
         assert!(gate1.timeout_ms.is_none());
 
-        let gate2 = state.steps[1].gate.as_ref().expect("expected gate on step_002");
+        let gate2 = state.steps[1]
+            .gate
+            .as_ref()
+            .expect("expected gate on step_002");
         assert_eq!(gate2.gate_type, "approval");
         assert_eq!(gate2.timeout_ms, Some(30_000));
         let escalation = gate2
@@ -506,10 +524,6 @@ mod tests {
         assert_eq!(state.status, WorkflowStatus::TimedOut);
         let step = &state.steps[0];
         assert_eq!(step.status, StepExecutionStatus::Failed);
-        assert_eq!(
-            step.completed_at.as_deref(),
-            Some("2026-03-29T10:05:00Z")
-        );
+        assert_eq!(step.completed_at.as_deref(), Some("2026-03-29T10:05:00Z"));
     }
 }
-

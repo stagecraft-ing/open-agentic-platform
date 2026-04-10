@@ -3,9 +3,9 @@
 //! Shared test helpers for axiomregent integration tests.
 
 use axiomregent::lease::LeaseStore;
+use axiomregent::router::Router;
 use axiomregent::router::legacy_provider::LegacyToolProvider;
 use axiomregent::router::provider::ToolProvider;
-use axiomregent::router::Router;
 use hiqlite::Client;
 use std::sync::Arc;
 
@@ -17,9 +17,7 @@ use std::sync::Arc;
 /// same directory can cause Raft port conflicts, so always obtain the client
 /// from this helper and clone it as needed.
 #[allow(dead_code)]
-pub async fn make_client_and_lease_store(
-    data_dir: &std::path::Path,
-) -> (Client, Arc<LeaseStore>) {
+pub async fn make_client_and_lease_store(data_dir: &std::path::Path) -> (Client, Arc<LeaseStore>) {
     let client = axiomregent::db::init_hiqlite(data_dir)
         .await
         .expect("init_hiqlite failed");

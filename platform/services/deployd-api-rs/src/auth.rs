@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use axum::http::HeaderMap;
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -104,7 +104,7 @@ async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> 
         .ok_or_else(|| anyhow!("No issuer in OIDC discovery"))?;
 
     let body = reqwest::get(&jwks_uri).await?.text().await?;
-    
+
     {
         let mut cache = JWKS_CACHE.lock().unwrap();
         *cache = Some((body.clone(), issuer.clone(), std::time::Instant::now()));

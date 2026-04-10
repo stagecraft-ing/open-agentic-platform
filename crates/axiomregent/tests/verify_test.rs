@@ -100,7 +100,11 @@ skills:
 
     // Gitignore all data store files so snapshot operations don't pollute drift detection.
     // Store::new with data_dir=repo_root creates store.sqlite and blobs/ directly in the repo root.
-    fs::write(repo_root.join(".gitignore"), ".axiomregent/\nstore.sqlite\nblobs/\n").unwrap();
+    fs::write(
+        repo_root.join(".gitignore"),
+        ".axiomregent/\nstore.sqlite\nblobs/\n",
+    )
+    .unwrap();
 
     // Commit all files to make repo clean
     std::process::Command::new("git")

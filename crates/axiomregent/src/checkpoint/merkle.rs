@@ -25,10 +25,7 @@ impl MerkleTree {
             return Self { root_hash: None };
         }
 
-        let mut hashes: Vec<String> = entries
-            .iter()
-            .map(|e| e.combined_hash.clone())
-            .collect();
+        let mut hashes: Vec<String> = entries.iter().map(|e| e.combined_hash.clone()).collect();
 
         // Sort for deterministic ordering regardless of entry order.
         hashes.sort();

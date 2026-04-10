@@ -102,10 +102,9 @@ impl PermissionRuntime {
         // Step 1: deny rules (FR-004).
         for (tier, rule) in &settings.deny_rules {
             if rule_matches(rule, ctx) {
-                let reason = rule
-                    .reason
-                    .clone()
-                    .unwrap_or_else(|| format!("denied by {} rule for '{}'", tier_name(*tier), rule.tool));
+                let reason = rule.reason.clone().unwrap_or_else(|| {
+                    format!("denied by {} rule for '{}'", tier_name(*tier), rule.tool)
+                });
                 let decision = PermissionDecision::Deny(reason.clone());
 
                 // Track denial for escalation (FR-005).
@@ -113,11 +112,15 @@ impl PermissionRuntime {
                     tracker.record_denial(&ctx.tool_name);
                 }
 
-                self.log_decision(ctx, &decision, Some(MatchedRule {
-                    tier: tier_name(*tier),
-                    action: "deny".into(),
-                    tool_pattern: rule.tool.clone(),
-                }));
+                self.log_decision(
+                    ctx,
+                    &decision,
+                    Some(MatchedRule {
+                        tier: tier_name(*tier),
+                        action: "deny".into(),
+                        tool_pattern: rule.tool.clone(),
+                    }),
+                );
                 return decision;
             }
         }
@@ -132,11 +135,15 @@ impl PermissionRuntime {
                     tracker.record_approval(&ctx.tool_name);
                 }
 
-                self.log_decision(ctx, &decision, Some(MatchedRule {
-                    tier: tier_name(*tier),
-                    action: "allow".into(),
-                    tool_pattern: rule.tool.clone(),
-                }));
+                self.log_decision(
+                    ctx,
+                    &decision,
+                    Some(MatchedRule {
+                        tier: tier_name(*tier),
+                        action: "allow".into(),
+                        tool_pattern: rule.tool.clone(),
+                    }),
+                );
                 return decision;
             }
         }
@@ -147,23 +154,25 @@ impl PermissionRuntime {
                 // Check escalation before asking (FR-005).
                 let escalation = self.check_escalation(ctx);
                 let decision = match escalation {
-                    EscalationAction::Block => {
-                        PermissionDecision::Deny(format!(
-                            "blocked after repeated denials of '{}'",
-                            ctx.tool_name
-                        ))
-                    }
+                    EscalationAction::Block => PermissionDecision::Deny(format!(
+                        "blocked after repeated denials of '{}'",
+                        ctx.tool_name
+                    )),
                     _ => PermissionDecision::Ask(format!(
                         "confirm use of '{}' (matched {} ask rule)",
                         ctx.tool_name,
                         tier_name(*tier),
                     )),
                 };
-                self.log_decision(ctx, &decision, Some(MatchedRule {
-                    tier: tier_name(*tier),
-                    action: "ask".into(),
-                    tool_pattern: rule.tool.clone(),
-                }));
+                self.log_decision(
+                    ctx,
+                    &decision,
+                    Some(MatchedRule {
+                        tier: tier_name(*tier),
+                        action: "ask".into(),
+                        tool_pattern: rule.tool.clone(),
+                    }),
+                );
                 return decision;
             }
         }
@@ -375,7 +384,10 @@ mod tests {
             ask_rules: vec![(SettingsTier::Project, rule("FileRead"))],
         };
         let runtime = PermissionRuntime::new(settings);
-        assert_eq!(runtime.evaluate(&ctx("FileRead")), PermissionDecision::Allow);
+        assert_eq!(
+            runtime.evaluate(&ctx("FileRead")),
+            PermissionDecision::Allow
+        );
     }
 
     #[test]
@@ -387,7 +399,10 @@ mod tests {
             ask_rules: vec![],
         };
         let runtime = PermissionRuntime::new(settings);
-        assert_eq!(runtime.evaluate(&ctx("anything")), PermissionDecision::Allow);
+        assert_eq!(
+            runtime.evaluate(&ctx("anything")),
+            PermissionDecision::Allow
+        );
     }
 
     #[test]
@@ -399,7 +414,10 @@ mod tests {
             ask_rules: vec![],
         };
         let runtime = PermissionRuntime::new(settings);
-        assert!(matches!(runtime.evaluate(&ctx("FileWrite")), PermissionDecision::Deny(_)));
+        assert!(matches!(
+            runtime.evaluate(&ctx("FileWrite")),
+            PermissionDecision::Deny(_)
+        ));
     }
 
     #[test]
@@ -412,7 +430,10 @@ mod tests {
             ask_rules: vec![],
         };
         let runtime = PermissionRuntime::new(settings);
-        assert!(matches!(runtime.evaluate(&ctx("Bash")), PermissionDecision::Deny(_)));
+        assert!(matches!(
+            runtime.evaluate(&ctx("Bash")),
+            PermissionDecision::Deny(_)
+        ));
     }
 
     #[test]

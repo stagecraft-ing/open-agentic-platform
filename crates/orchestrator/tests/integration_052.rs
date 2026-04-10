@@ -3,13 +3,13 @@
 
 use async_trait::async_trait;
 use orchestrator::{
-    sqlite_db_path_for_run, ArtifactManager, LocalEventNotifier, SqliteWorkflowStore,
-    WorkflowManifest, WorkflowStep, WorkflowStore, EventNotifier,
+    AgentRegistry, DispatchOptions, DispatchRequest, DispatchResult, GovernedExecutor,
+    PersistenceContext, StepExecutionStatus, WorkflowState, compute_resume_plan_from_state,
+    state_file_path_for_run, write_workflow_state_atomic,
 };
 use orchestrator::{
-    compute_resume_plan_from_state, state_file_path_for_run, write_workflow_state_atomic,
-    AgentRegistry, DispatchOptions, DispatchRequest, DispatchResult, GovernedExecutor,
-    PersistenceContext, StepExecutionStatus, WorkflowState,
+    ArtifactManager, EventNotifier, LocalEventNotifier, SqliteWorkflowStore, WorkflowManifest,
+    WorkflowStep, WorkflowStore, sqlite_db_path_for_run,
 };
 use serde_json::Value as JsonValue;
 use std::collections::HashSet;
@@ -312,8 +312,7 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
 
     // Set up persistence with trait objects
     let db_path = sqlite_db_path_for_run(&artifact_base, wf_id);
-    let store: Arc<dyn WorkflowStore> =
-        Arc::new(SqliteWorkflowStore::open(&db_path).unwrap());
+    let store: Arc<dyn WorkflowStore> = Arc::new(SqliteWorkflowStore::open(&db_path).unwrap());
     let notifier: Arc<dyn EventNotifier> = Arc::new(LocalEventNotifier::new());
 
     let persistence = PersistenceContext {

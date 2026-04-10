@@ -15,16 +15,13 @@ mod store;
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env().add_directive("deployd_api=info".parse()?),
-        )
+        .with_env_filter(EnvFilter::from_default_env().add_directive("deployd_api=info".parse()?))
         .init();
 
     let cfg = config::Config::from_env();
     tracing::info!("deployd-api starting on :{}", cfg.port);
 
-    let data_dir =
-        std::env::var("DEPLOYD_DATA_DIR").unwrap_or_else(|_| "/tmp/deployd-data".into());
+    let data_dir = std::env::var("DEPLOYD_DATA_DIR").unwrap_or_else(|_| "/tmp/deployd-data".into());
     let client = store::init_db(&data_dir).await?;
     let state = Arc::new(store::AppState {
         client,

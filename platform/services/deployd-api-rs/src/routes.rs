@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -53,7 +53,7 @@ pub async fn create_deployment(
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({"error": "unauthorized", "message": e.to_string()})),
-            )
+            );
         }
     };
     if !auth::has_scope(&claims, &state.config.required_scope) {
@@ -159,8 +159,7 @@ pub async fn create_deployment(
 
             match k8s::deploy(&k8s_client, &deployment, &route_pairs).await {
                 Ok(k8s_endpoints) => {
-                    let _ =
-                        store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
+                    let _ = store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
                     let _ = store::add_event(
                         &state.client,
                         &deployment_id,
@@ -218,8 +217,12 @@ pub async fn get_status(
     headers: HeaderMap,
     Path(release_id): Path<String>,
 ) -> impl IntoResponse {
-    if let Err(e) =
-        auth::verify_jwt(&headers, &state.config.oidc_endpoint, &state.config.audience).await
+    if let Err(e) = auth::verify_jwt(
+        &headers,
+        &state.config.oidc_endpoint,
+        &state.config.audience,
+    )
+    .await
     {
         return (
             StatusCode::UNAUTHORIZED,
@@ -241,10 +244,7 @@ pub async fn get_status(
                 })),
             )
         }
-        _ => (
-            StatusCode::NOT_FOUND,
-            Json(json!({"error": "not_found"})),
-        ),
+        _ => (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))),
     }
 }
 
@@ -253,8 +253,12 @@ pub async fn get_logs(
     headers: HeaderMap,
     Path(release_id): Path<String>,
 ) -> impl IntoResponse {
-    if let Err(e) =
-        auth::verify_jwt(&headers, &state.config.oidc_endpoint, &state.config.audience).await
+    if let Err(e) = auth::verify_jwt(
+        &headers,
+        &state.config.oidc_endpoint,
+        &state.config.audience,
+    )
+    .await
     {
         return (
             StatusCode::UNAUTHORIZED,
@@ -275,10 +279,7 @@ pub async fn get_logs(
                 })),
             )
         }
-        _ => (
-            StatusCode::NOT_FOUND,
-            Json(json!({"error": "not_found"})),
-        ),
+        _ => (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))),
     }
 }
 
@@ -300,7 +301,7 @@ pub async fn delete_deployment(
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({"error": "unauthorized", "message": e.to_string()})),
-            )
+            );
         }
     };
     if !auth::has_scope(&claims, &state.config.required_scope) {
@@ -315,12 +316,7 @@ pub async fn delete_deployment(
 
     let deployment = match store::get_by_release_id(&state.client, &release_id).await {
         Ok(Some(d)) => d,
-        _ => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({"error": "not_found"})),
-            )
-        }
+        _ => return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))),
     };
 
     // Attempt K8s resource cleanup

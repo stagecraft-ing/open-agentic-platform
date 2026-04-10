@@ -4,7 +4,7 @@
 // Spec: spec/core/featuregraph.md
 
 use crate::scanner::Scanner;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -115,11 +115,7 @@ impl FeatureGraphTools {
         }))
     }
 
-    pub fn features_impact(
-        &self,
-        repo_root: &str,
-        paths: &[String],
-    ) -> Result<serde_json::Value> {
+    pub fn features_impact(&self, repo_root: &str, paths: &[String]) -> Result<serde_json::Value> {
         let scanner = Scanner::new(repo_root);
         let graph = scanner.scan()?;
 

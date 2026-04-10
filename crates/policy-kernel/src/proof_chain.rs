@@ -63,10 +63,15 @@ impl std::fmt::Display for ProofChainError {
             Self::PolicyBundleHashMismatch { index } => {
                 write!(f, "policy_bundle_hash mismatch at index {index}")
             }
-            Self::RecordHashMismatch { index } => write!(f, "record_hash mismatch at index {index}"),
+            Self::RecordHashMismatch { index } => {
+                write!(f, "record_hash mismatch at index {index}")
+            }
             Self::BrokenLink { index } => write!(f, "broken chain link at index {index}"),
             Self::Nf004Exceeded { index, bytes } => {
-                write!(f, "NF-004 size budget exceeded at index {index} ({bytes} bytes)")
+                write!(
+                    f,
+                    "NF-004 size budget exceeded at index {index} ({bytes} bytes)"
+                )
             }
         }
     }
@@ -142,7 +147,10 @@ impl ProofChainWriter {
 }
 
 /// FR-010 / SC-009: verify chain integrity given the expected policy bundle content hash.
-pub fn verify_proof_chain(records: &[ProofRecord], expected_bundle_hash: &str) -> Result<(), ProofChainError> {
+pub fn verify_proof_chain(
+    records: &[ProofRecord],
+    expected_bundle_hash: &str,
+) -> Result<(), ProofChainError> {
     if records.is_empty() {
         return Err(ProofChainError::EmptyChain);
     }

@@ -16,16 +16,18 @@ async fn test_snapshot_mode_deprecated() -> Result<()> {
     let (_, lease_store) = test_helpers::make_client_and_lease_store(dir.path()).await;
     let workspace_tools = WorkspaceTools::new(lease_store);
 
-    let res = workspace_tools.apply_patch(
-        std::path::Path::new("/tmp"),
-        "",
-        "snapshot",
-        None,
-        None,
-        None,
-        false,
-        false,
-    ).await;
+    let res = workspace_tools
+        .apply_patch(
+            std::path::Path::new("/tmp"),
+            "",
+            "snapshot",
+            None,
+            None,
+            None,
+            false,
+            false,
+        )
+        .await;
 
     assert!(res.is_err());
     assert!(res.unwrap_err().to_string().contains("deprecated"));

@@ -10,7 +10,9 @@
 
 // Re-export the trait-based types for backward compatibility.
 pub use crate::sqlite_state::{LocalEventNotifier, SqliteWorkflowStore};
-pub use crate::store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
+pub use crate::store::{
+    EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore,
+};
 
 #[cfg(test)]
 mod tests {

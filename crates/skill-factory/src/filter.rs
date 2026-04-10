@@ -75,11 +75,7 @@ mod tests {
 
     #[test]
     fn empty_available_returns_empty() {
-        let effective = compute_effective_tools(
-            &AllowedTools::list(tools(&["Bash"])),
-            &[],
-            &[],
-        );
+        let effective = compute_effective_tools(&AllowedTools::list(tools(&["Bash"])), &[], &[]);
         assert!(effective.is_empty());
     }
 

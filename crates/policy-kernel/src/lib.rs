@@ -22,8 +22,8 @@ pub mod watcher;
 
 pub use coherence::{CoherenceScheduler, CoherenceSchedulerConfig, PrivilegeLevel};
 pub use proof_chain::{
-    compute_record_hash, nf004_payload_bytes, verify_proof_chain, ProofChainError, ProofChainWriter,
-    ProofPrivilege, ProofRecord, ProofRecordDecision, NF004_MAX_BYTES_EXCLUDING_CONTEXT,
+    NF004_MAX_BYTES_EXCLUDING_CONTEXT, ProofChainError, ProofChainWriter, ProofPrivilege,
+    ProofRecord, ProofRecordDecision, compute_record_hash, nf004_payload_bytes, verify_proof_chain,
 };
 
 use regex::Regex;
@@ -129,10 +129,7 @@ fn gate_secrets_scanner(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<
     let rule_id = bundle
         .constitution
         .iter()
-        .find(|r| {
-            r.mode == "enforce"
-                && r.gate.as_deref() == Some("secrets_scanner")
-        })
+        .find(|r| r.mode == "enforce" && r.gate.as_deref() == Some("secrets_scanner"))
         .map(|r| r.id.clone())
         .unwrap_or_else(|| "KERNEL:BUILTIN-SECRETS".into());
     Some(PolicyDecision {
@@ -142,13 +139,15 @@ fn gate_secrets_scanner(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<
     })
 }
 
-fn gate_destructive_operation(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<PolicyDecision> {
+fn gate_destructive_operation(
+    ctx: &ToolCallContext,
+    bundle: &PolicyBundle,
+) -> Option<PolicyDecision> {
     if !destructive_match(&ctx.tool_name, &ctx.arguments_summary) {
         return None;
     }
     let permitted = bundle.constitution.iter().any(|r| {
-        r.gate.as_deref() == Some("destructive_operation")
-            && r.allow_destructive == Some(true)
+        r.gate.as_deref() == Some("destructive_operation") && r.allow_destructive == Some(true)
     });
     if permitted {
         return None;
@@ -306,9 +305,7 @@ fn secret_regexes() -> &'static [Regex] {
 fn destructive_match(tool_name: &str, args: &str) -> bool {
     let combined = format!("{tool_name}\n{args}");
     let lower = combined.to_lowercase();
-    DESTRUCTIVE_SUBSTRINGS
-        .iter()
-        .any(|s| lower.contains(s))
+    DESTRUCTIVE_SUBSTRINGS.iter().any(|s| lower.contains(s))
 }
 
 static DESTRUCTIVE_SUBSTRINGS: &[&str] = &[

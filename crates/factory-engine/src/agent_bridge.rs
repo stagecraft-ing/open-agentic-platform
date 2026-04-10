@@ -89,9 +89,10 @@ mod tests {
             make_agent("factory-business-analyst", "business-analyst"),
             make_agent("factory-data-architect", "data-architect"),
         ];
-        let adapter = vec![
-            make_agent("factory-api-scaffolder-next-prisma", "api-scaffolder"),
-        ];
+        let adapter = vec![make_agent(
+            "factory-api-scaffolder-next-prisma",
+            "api-scaffolder",
+        )];
 
         let bridge = FactoryAgentBridge::new(process, adapter);
         assert_eq!(bridge.len(), 3);
@@ -104,7 +105,12 @@ mod tests {
     fn get_prompt_returns_text() {
         let agents = vec![make_agent("factory-test", "tester")];
         let bridge = FactoryAgentBridge::new(agents, vec![]);
-        assert!(bridge.get_prompt("factory-test").unwrap().contains("tester"));
+        assert!(
+            bridge
+                .get_prompt("factory-test")
+                .unwrap()
+                .contains("tester")
+        );
         assert!(bridge.get_prompt("missing").is_none());
     }
 }

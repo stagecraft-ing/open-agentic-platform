@@ -4,15 +4,15 @@
 // Spec: spec/core/router.md
 
 use anyhow::{Result, anyhow};
-use axiomregent::router::{JsonRpcRequest, Router};
 use axiomregent::checkpoint::blobs::BlobStore as CheckpointBlobStore;
 use axiomregent::checkpoint::provider::CheckpointProvider;
 use axiomregent::checkpoint::store::CheckpointStore;
-use axiomregent::search::provider::SearchProvider;
-use axiomregent::search::store::SearchStore;
+use axiomregent::github::provider::GitHubProvider;
 use axiomregent::router::legacy_provider::LegacyToolProvider;
 use axiomregent::router::provider::ToolProvider;
-use axiomregent::github::provider::GitHubProvider;
+use axiomregent::router::{JsonRpcRequest, Router};
+use axiomregent::search::provider::SearchProvider;
+use axiomregent::search::store::SearchStore;
 use env_logger::Target;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
@@ -74,8 +74,7 @@ async fn main() -> Result<()> {
         run_tools,
     });
 
-    let checkpoint_blobs =
-        CheckpointBlobStore::new(data_dir.join("blobs").join("checkpoints"))?;
+    let checkpoint_blobs = CheckpointBlobStore::new(data_dir.join("blobs").join("checkpoints"))?;
     let checkpoint_store = Arc::new(CheckpointStore::new(db.clone(), checkpoint_blobs));
     let checkpoint_provider = Arc::new(CheckpointProvider::new(checkpoint_store));
 

@@ -2,12 +2,12 @@
 // Copyright (C) 2026 Bartek Kus
 
 use async_trait::async_trait;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::router::provider::{ToolPermissions, ToolProvider};
 use super::client::GitHubClient;
+use crate::router::provider::{ToolPermissions, ToolProvider};
 
 pub struct GitHubProvider {
     client: Arc<RwLock<GitHubClient>>,
@@ -181,7 +181,9 @@ impl ToolProvider for GitHubProvider {
                 match client.get_repo_info(owner, name_str).await {
                     Ok(info) => {
                         client.set_repo(owner.to_string(), name_str.to_string());
-                        Some(Ok(json!({ "repo": repo, "info": info, "status": "selected" })))
+                        Some(Ok(
+                            json!({ "repo": repo, "info": info, "status": "selected" }),
+                        ))
                     }
                     Err(e) => Some(Err(e)),
                 }

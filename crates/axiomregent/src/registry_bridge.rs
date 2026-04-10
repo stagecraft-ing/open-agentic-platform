@@ -120,9 +120,6 @@ pub fn build_registry(
         }
     }
 
-    log::info!(
-        "AsyncToolRegistry built with {} tools",
-        registry.len()
-    );
+    log::info!("AsyncToolRegistry built with {} tools", registry.len());
     registry
 }

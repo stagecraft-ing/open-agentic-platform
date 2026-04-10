@@ -8,9 +8,11 @@
 //
 // Gated behind `#[cfg(feature = "distributed")]`.
 
-use crate::state::{GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus};
-use crate::store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
 use crate::OrchestratorError;
+use crate::state::{GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus};
+use crate::store::{
+    EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore,
+};
 use async_trait::async_trait;
 use hiqlite::{Client, Param, Params};
 use serde_json::Value as JsonValue;
@@ -184,15 +186,9 @@ impl WorkflowStore for HiqliteWorkflowStore {
                     step.duration_ms
                         .map(|d| Param::Integer(d as i64))
                         .unwrap_or(Param::Null),
-                    output_json
-                        .map(Param::Text)
-                        .unwrap_or(Param::Null),
-                    gate_type
-                        .map(Param::Text)
-                        .unwrap_or(Param::Null),
-                    gate_config
-                        .map(Param::Text)
-                        .unwrap_or(Param::Null),
+                    output_json.map(Param::Text).unwrap_or(Param::Null),
+                    gate_type.map(Param::Text).unwrap_or(Param::Null),
+                    gate_config.map(Param::Text).unwrap_or(Param::Null),
                 ],
             ));
         }
@@ -267,13 +263,16 @@ impl WorkflowStore for HiqliteWorkflowStore {
                 }
             })?;
 
-            let output = row.output.as_ref().and_then(|text| {
-                serde_json::from_str::<JsonValue>(text).ok()
-            });
+            let output = row
+                .output
+                .as_ref()
+                .and_then(|text| serde_json::from_str::<JsonValue>(text).ok());
 
-            let gate = row.gate_type.as_ref().map(|gt| {
-                sql_columns_to_gate_info(gt, row.gate_config.as_deref())
-            }).transpose()?;
+            let gate = row
+                .gate_type
+                .as_ref()
+                .map(|gt| sql_columns_to_gate_info(gt, row.gate_config.as_deref()))
+                .transpose()?;
 
             steps.push(StepState {
                 id: row.step_id,
@@ -308,11 +307,10 @@ impl WorkflowStore for HiqliteWorkflowStore {
     ) -> Result<i64, OrchestratorError> {
         let wf_id_str = workflow_id.to_string();
         let ts = timestamp.unwrap_or_else(now_ts);
-        let payload_json = serde_json::to_string(payload).map_err(|e| {
-            OrchestratorError::StatePersistence {
+        let payload_json =
+            serde_json::to_string(payload).map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("serialize event payload: {e}"),
-            }
-        })?;
+            })?;
 
         // Use RETURNING to get the auto-generated event_id back from Raft leader.
         let row: EventIdRow = self
@@ -439,10 +437,7 @@ impl EventNotifier for HiqliteEventNotifier {
             .load_events_since(workflow_id, from_event_id, None)
             .await?;
 
-        let high_water_mark = replay
-            .last()
-            .map(|e| e.event_id)
-            .unwrap_or(from_event_id);
+        let high_water_mark = replay.last().map(|e| e.event_id).unwrap_or(from_event_id);
 
         Ok(ReplaySubscription {
             replay,
@@ -566,11 +561,10 @@ fn sql_columns_to_gate_info(
     gate_config_json: Option<&str>,
 ) -> Result<GateInfo, OrchestratorError> {
     let config = if let Some(text) = gate_config_json {
-        let value: JsonValue = serde_json::from_str(text).map_err(|e| {
-            OrchestratorError::StatePersistence {
+        let value: JsonValue =
+            serde_json::from_str(text).map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("decode gate_config json: {e}"),
-            }
-        })?;
+            })?;
         Some(value)
     } else {
         None

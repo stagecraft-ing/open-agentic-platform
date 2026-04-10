@@ -120,7 +120,10 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
         let has_pending_tag = tasks_raw.contains("(pending)");
         for line in tasks_raw.lines() {
             let l = line.trim();
-            if l.starts_with("- [x]") && l.to_lowercase().contains("(complete)") && !verification_path.is_file() {
+            if l.starts_with("- [x]")
+                && l.to_lowercase().contains("(complete)")
+                && !verification_path.is_file()
+            {
                 w.push(Warning {
                     code: "W-001",
                     path: rel(repo_root, &tasks_path),

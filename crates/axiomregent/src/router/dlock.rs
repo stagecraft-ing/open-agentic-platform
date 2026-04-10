@@ -28,18 +28,10 @@ fn lock_key(repo_root: &str) -> String {
 ///
 /// The call awaits until the lock becomes available. If the hiqlite node is
 /// unreachable, an `Internal` error is returned.
-pub async fn acquire_repo_lock(
-    client: &Client,
-    repo_root: &str,
-) -> Result<Lock, AxiomRegentError> {
+pub async fn acquire_repo_lock(client: &Client, repo_root: &str) -> Result<Lock, AxiomRegentError> {
     let key = lock_key(repo_root);
 
-    client
-        .lock(key)
-        .await
-        .map_err(|e| {
-            AxiomRegentError::Internal(format!(
-                "failed to acquire repo lock for {repo_root}: {e}"
-            ))
-        })
+    client.lock(key).await.map_err(|e| {
+        AxiomRegentError::Internal(format!("failed to acquire repo lock for {repo_root}: {e}"))
+    })
 }

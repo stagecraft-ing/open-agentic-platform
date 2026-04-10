@@ -210,21 +210,27 @@ impl CheckpointStore {
     // -----------------------------------------------------------------------
 
     /// Compute a path-level diff between two checkpoints.
-    pub async fn diff_checkpoints(
-        &self,
-        from_id: &str,
-        to_id: &str,
-    ) -> Result<CheckpointDiff> {
+    pub async fn diff_checkpoints(&self, from_id: &str, to_id: &str) -> Result<CheckpointDiff> {
         let from_entries = self.get_entries(from_id).await?;
         let to_entries = self.get_entries(to_id).await?;
 
         let from_map: HashMap<String, &str> = from_entries
             .iter()
-            .map(|e| (e.path.to_string_lossy().to_string(), e.content_hash.as_str()))
+            .map(|e| {
+                (
+                    e.path.to_string_lossy().to_string(),
+                    e.content_hash.as_str(),
+                )
+            })
             .collect();
         let to_map: HashMap<String, &str> = to_entries
             .iter()
-            .map(|e| (e.path.to_string_lossy().to_string(), e.content_hash.as_str()))
+            .map(|e| {
+                (
+                    e.path.to_string_lossy().to_string(),
+                    e.content_hash.as_str(),
+                )
+            })
             .collect();
 
         let mut added = Vec::new();

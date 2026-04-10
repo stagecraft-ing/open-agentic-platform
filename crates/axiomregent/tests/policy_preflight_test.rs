@@ -100,12 +100,15 @@ async fn policy_denied_wire_code_when_allowlist_excludes_tool() {
 async fn permission_denied_still_permission_code() {
     let db_dir = tempfile::tempdir().unwrap();
     let client = axiomregent::db::init_hiqlite(db_dir.path()).await.unwrap();
-    let lease_store = Arc::new(LeaseStore::with_default_grants(client.clone(), PermissionGrants {
-        enable_file_read: true,
-        enable_file_write: false,
-        enable_network: false,
-        max_tier: 3,
-    }));
+    let lease_store = Arc::new(LeaseStore::with_default_grants(
+        client.clone(),
+        PermissionGrants {
+            enable_file_read: true,
+            enable_file_write: false,
+            enable_network: false,
+            max_tier: 3,
+        },
+    ));
     let router = router_with_lease(client, lease_store).await;
     let req = JsonRpcRequest {
         jsonrpc: "2.0".into(),

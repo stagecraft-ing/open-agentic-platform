@@ -95,7 +95,9 @@ mod tests {
     #[test]
     fn valid_namespaces() {
         assert!(is_valid_namespace("dev.oap.tool.core.file_read"));
-        assert!(is_valid_namespace("dev.oap.factory.stage.s1-business-requirements"));
+        assert!(is_valid_namespace(
+            "dev.oap.factory.stage.s1-business-requirements"
+        ));
         assert!(is_valid_namespace("dev.oap.policy.gate.secrets_scanner"));
         assert!(is_valid_namespace("dev.oap.event.workflow.step_completed"));
         assert!(is_valid_namespace("com.example.adapter.stack.custom-stack"));

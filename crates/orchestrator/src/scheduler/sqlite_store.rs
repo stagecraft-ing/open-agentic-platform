@@ -6,7 +6,7 @@ use super::store::{
 };
 use crate::OrchestratorError;
 use async_trait::async_trait;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -20,9 +20,11 @@ impl SqliteSchedulerStore {
     /// Opens (or creates) the scheduler tables in an existing SQLite connection.
     pub fn new(conn: Arc<StdMutex<Connection>>) -> Result<Self, OrchestratorError> {
         {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection for scheduler init: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection for scheduler init: {e}"),
+                })?;
             guard
                 .execute_batch(
                     r#"
@@ -85,9 +87,11 @@ impl SchedulerStore for SqliteSchedulerStore {
     ) -> Result<Schedule, OrchestratorError> {
         let conn = Arc::clone(&self.conn);
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             let id = uuid::Uuid::new_v4().to_string();
             let created_at = SqliteSchedulerStore::now_epoch();
             let (cron_expr, event_type) = match &req.trigger {
@@ -143,9 +147,11 @@ impl SchedulerStore for SqliteSchedulerStore {
         let conn = Arc::clone(&self.conn);
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             row_to_schedule_opt(&guard, &id)
         })
         .await
@@ -157,10 +163,16 @@ impl SchedulerStore for SqliteSchedulerStore {
     async fn list_schedules(&self) -> Result<Vec<Schedule>, OrchestratorError> {
         let conn = Arc::clone(&self.conn);
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
-            query_schedules(&guard, "SELECT * FROM schedules ORDER BY created_at DESC", &[])
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
+            query_schedules(
+                &guard,
+                "SELECT * FROM schedules ORDER BY created_at DESC",
+                &[],
+            )
         })
         .await
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -172,9 +184,11 @@ impl SchedulerStore for SqliteSchedulerStore {
         let conn = Arc::clone(&self.conn);
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             let affected = guard
                 .execute("DELETE FROM schedules WHERE id = ?1", params![id])
                 .map_err(|e| OrchestratorError::StatePersistence {
@@ -192,9 +206,11 @@ impl SchedulerStore for SqliteSchedulerStore {
         let conn = Arc::clone(&self.conn);
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             guard
                 .execute(
                     "UPDATE schedules SET enabled = ?1 WHERE id = ?2",
@@ -215,9 +231,11 @@ impl SchedulerStore for SqliteSchedulerStore {
         let conn = Arc::clone(&self.conn);
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             guard
                 .execute(
                     "UPDATE schedules SET last_run_at = ?1 WHERE id = ?2",
@@ -331,10 +349,7 @@ fn row_to_schedule(row: &rusqlite::Row<'_>) -> rusqlite::Result<Schedule> {
     })
 }
 
-fn row_to_schedule_opt(
-    conn: &Connection,
-    id: &str,
-) -> Result<Option<Schedule>, OrchestratorError> {
+fn row_to_schedule_opt(conn: &Connection, id: &str) -> Result<Option<Schedule>, OrchestratorError> {
     use rusqlite::OptionalExtension;
     let mut stmt = conn
         .prepare("SELECT * FROM schedules WHERE id = ?1")
@@ -353,14 +368,16 @@ fn query_schedules(
     sql: &str,
     params: &[&dyn rusqlite::types::ToSql],
 ) -> Result<Vec<Schedule>, OrchestratorError> {
-    let mut stmt = conn.prepare(sql).map_err(|e| OrchestratorError::StatePersistence {
-        reason: format!("prepare schedules query: {e}"),
-    })?;
-    let rows = stmt
-        .query_map(params, row_to_schedule)
+    let mut stmt = conn
+        .prepare(sql)
         .map_err(|e| OrchestratorError::StatePersistence {
-            reason: format!("query schedules: {e}"),
+            reason: format!("prepare schedules query: {e}"),
         })?;
+    let rows = stmt.query_map(params, row_to_schedule).map_err(|e| {
+        OrchestratorError::StatePersistence {
+            reason: format!("query schedules: {e}"),
+        }
+    })?;
     let mut out = Vec::new();
     for row in rows {
         out.push(row.map_err(|e| OrchestratorError::StatePersistence {
@@ -464,7 +481,10 @@ mod tests {
             .expect("create");
 
         assert!(s.enabled);
-        store.toggle_schedule(&s.id, false).await.expect("toggle off");
+        store
+            .toggle_schedule(&s.id, false)
+            .await
+            .expect("toggle off");
         let loaded = store.get_schedule(&s.id).await.expect("get").unwrap();
         assert!(!loaded.enabled);
 
@@ -518,7 +538,10 @@ mod tests {
             .await
             .expect("create");
 
-        let cron_schedules = store.list_enabled_cron_schedules().await.expect("list cron");
+        let cron_schedules = store
+            .list_enabled_cron_schedules()
+            .await
+            .expect("list cron");
         assert_eq!(cron_schedules.len(), 1);
         assert_eq!(cron_schedules[0].id, cron_enabled.id);
     }
@@ -589,7 +612,10 @@ mod tests {
 
         assert!(s.last_run_at.is_none());
 
-        store.update_last_run(&s.id, 1712345678).await.expect("update");
+        store
+            .update_last_run(&s.id, 1712345678)
+            .await
+            .expect("update");
         let loaded = store.get_schedule(&s.id).await.expect("get").unwrap();
         assert_eq!(loaded.last_run_at, Some(1712345678));
     }

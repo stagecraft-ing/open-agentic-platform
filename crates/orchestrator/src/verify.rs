@@ -28,10 +28,7 @@ pub enum VerifyOutcome {
 ///
 /// Commands run in the given `project_root` directory with `working_dir` resolved
 /// relative to it. Returns on first failure.
-pub async fn run_verify_commands(
-    commands: &[VerifyCommand],
-    project_root: &Path,
-) -> VerifyOutcome {
+pub async fn run_verify_commands(commands: &[VerifyCommand], project_root: &Path) -> VerifyOutcome {
     for (i, vc) in commands.iter().enumerate() {
         let work_dir = project_root.join(&vc.working_dir);
 

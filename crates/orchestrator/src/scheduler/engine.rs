@@ -220,9 +220,8 @@ mod tests {
         // Set up an in-memory store.
         let tmp = tempfile::tempdir().unwrap();
         let db_path = tmp.path().join("sched.sqlite");
-        let store = Arc::new(
-            super::super::sqlite_store::SqliteSchedulerStore::open(&db_path).unwrap(),
-        );
+        let store =
+            Arc::new(super::super::sqlite_store::SqliteSchedulerStore::open(&db_path).unwrap());
 
         // Create a SessionStop event schedule.
         store

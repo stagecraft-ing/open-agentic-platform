@@ -27,7 +27,11 @@ fn create_test_workspace() -> TempDir {
     // Create a dummy source file so features.impact has something to scan
     let src_dir = dir.path().join("src");
     std::fs::create_dir_all(&src_dir).unwrap();
-    std::fs::write(src_dir.join("feature_tools.rs"), "// Feature: test-feature\nfn main() {}\n").unwrap();
+    std::fs::write(
+        src_dir.join("feature_tools.rs"),
+        "// Feature: test-feature\nfn main() {}\n",
+    )
+    .unwrap();
     dir
 }
 

@@ -24,8 +24,8 @@ pub mod verify_harness;
 
 pub use agent_bridge::FactoryAgentBridge;
 pub use engine::{
-    classify_scaffold_step, record_scaffold_completion, record_scaffold_failure, FactoryEngine,
-    FactoryEngineConfig, PhaseTransitionResult, PipelineStartResult, ScaffoldStepKind,
+    FactoryEngine, FactoryEngineConfig, PhaseTransitionResult, PipelineStartResult,
+    ScaffoldStepKind, classify_scaffold_step, record_scaffold_completion, record_scaffold_failure,
 };
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};

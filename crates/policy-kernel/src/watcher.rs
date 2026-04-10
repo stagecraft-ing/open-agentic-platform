@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::merge::{merge_settings, SettingsPaths};
+use crate::merge::{SettingsPaths, merge_settings};
 use crate::settings::MergedSettings;
 
 /// Watches settings files and hot-reloads merged settings (FR-006).

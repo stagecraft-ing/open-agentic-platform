@@ -207,7 +207,11 @@ pub fn evaluate(index: &XrayIndex, config: &PolicyConfig) -> PolicyReport {
                 .collect();
             violations.push(PolicyViolation {
                 rule: "forbid_language".to_string(),
-                message: format!("Forbidden language '{}' found in {} file(s)", lang, offenders.len()),
+                message: format!(
+                    "Forbidden language '{}' found in {} file(s)",
+                    lang,
+                    offenders.len()
+                ),
                 files: offenders,
                 severity: Severity::Error,
             });
@@ -340,10 +344,7 @@ mod tests {
                     max_depth: None,
                 },
             ],
-            languages: BTreeMap::from([
-                ("Rust".to_string(), 1),
-                ("Python".to_string(), 1),
-            ]),
+            languages: BTreeMap::from([("Rust".to_string(), 1), ("Python".to_string(), 1)]),
             top_dirs: BTreeMap::from([(".".to_string(), 2)]),
             module_files: vec![],
             stats: RepoStats {

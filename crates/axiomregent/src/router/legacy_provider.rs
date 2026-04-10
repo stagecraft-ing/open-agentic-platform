@@ -374,7 +374,14 @@ impl ToolProvider for LegacyToolProvider {
                     .unwrap_or(false);
                 Some(
                     self.workspace_tools
-                        .write_file(repo_root, path, content_base64, lease_id, create_dirs, dry_run)
+                        .write_file(
+                            repo_root,
+                            path,
+                            content_base64,
+                            lease_id,
+                            create_dirs,
+                            dry_run,
+                        )
                         .await
                         .map(|_| json!({"status": "ok"})),
                 )
@@ -438,16 +445,20 @@ impl ToolProvider for LegacyToolProvider {
                     .get("dry_run")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
-                Some(self.workspace_tools.apply_patch(
-                    repo_root,
-                    patch,
-                    mode,
-                    lease_id,
-                    snapshot_id,
-                    strip,
-                    reject_on_conflict,
-                    dry_run,
-                ).await)
+                Some(
+                    self.workspace_tools
+                        .apply_patch(
+                            repo_root,
+                            patch,
+                            mode,
+                            lease_id,
+                            snapshot_id,
+                            strip,
+                            reject_on_conflict,
+                            dry_run,
+                        )
+                        .await,
+                )
             }
 
             _ => None,

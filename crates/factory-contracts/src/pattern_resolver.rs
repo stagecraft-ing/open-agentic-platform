@@ -102,7 +102,14 @@ impl PatternResolver {
         let mut result = Vec::new();
 
         if let Some(api) = &self.manifest.patterns.api {
-            for kind in ["service", "controller", "route", "test", "middleware", "types"] {
+            for kind in [
+                "service",
+                "controller",
+                "route",
+                "test",
+                "middleware",
+                "types",
+            ] {
                 let has = match kind {
                     "service" => api.service.is_some(),
                     "controller" => api.controller.is_some(),
@@ -136,7 +143,13 @@ impl PatternResolver {
         }
 
         if let Some(data) = &self.manifest.patterns.data {
-            for kind in ["migration", "query", "seed", "fixture_factory", "validation_schema"] {
+            for kind in [
+                "migration",
+                "query",
+                "seed",
+                "fixture_factory",
+                "validation_schema",
+            ] {
                 let has = match kind {
                     "migration" => data.migration.is_some(),
                     "query" => data.query.is_some(),
@@ -153,7 +166,14 @@ impl PatternResolver {
 
         if let Some(pt) = &self.manifest.patterns.page_types {
             for kind in [
-                "landing", "dashboard", "list", "detail", "form", "content", "help", "profile",
+                "landing",
+                "dashboard",
+                "list",
+                "detail",
+                "form",
+                "content",
+                "help",
+                "profile",
                 "login",
             ] {
                 let has = match kind {
@@ -283,7 +303,10 @@ mod tests {
     fn test_resolve_api_pattern() {
         let resolver = PatternResolver::new(Path::new("/adapters/test"), test_manifest());
         let path = resolver.resolve_api_pattern("service").unwrap();
-        assert_eq!(path, PathBuf::from("/adapters/test/patterns/api/service.ts"));
+        assert_eq!(
+            path,
+            PathBuf::from("/adapters/test/patterns/api/service.ts")
+        );
     }
 
     #[test]

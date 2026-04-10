@@ -46,7 +46,11 @@ pub fn run_preflight(
         .and_then(|s| serde_yaml::from_str(&s).map_err(|e| e.to_string()))
     {
         Ok(v) => {
-            results.push(CheckResult::pass("PF-001", "Build Spec is valid YAML", Severity::Error));
+            results.push(CheckResult::pass(
+                "PF-001",
+                "Build Spec is valid YAML",
+                Severity::Error,
+            ));
             v
         }
         Err(e) => {
@@ -259,7 +263,10 @@ fn check_capabilities(
         })
         .unwrap_or_default();
 
-    if let Some(audiences) = auth.and_then(|a| a.get("audiences")).and_then(|a| a.as_mapping()) {
+    if let Some(audiences) = auth
+        .and_then(|a| a.get("audiences"))
+        .and_then(|a| a.as_mapping())
+    {
         for (audience_name, audience_cfg) in audiences {
             let method = audience_cfg
                 .get("method")
@@ -354,11 +361,7 @@ mod tests {
     #[test]
     fn preflight_missing_build_spec() {
         let dir = TempDir::new().unwrap();
-        let results = run_preflight(
-            &dir.path().join("nope.yaml"),
-            dir.path(),
-            None,
-        );
+        let results = run_preflight(&dir.path().join("nope.yaml"), dir.path(), None);
         assert_eq!(results.len(), 1);
         assert!(!results[0].passed);
         assert!(results[0].message.contains("not found"));
@@ -381,11 +384,7 @@ mod tests {
     #[test]
     fn preflight_capability_mismatch() {
         let dir = TempDir::new().unwrap();
-        write_file(
-            &dir,
-            "spec.yaml",
-            "project:\n  variant: dual\n",
-        );
+        write_file(&dir, "spec.yaml", "project:\n  variant: dual\n");
         let adapter_dir = dir.path().join("adapter");
         std::fs::create_dir_all(&adapter_dir).unwrap();
         write_file(
@@ -393,22 +392,20 @@ mod tests {
             "adapter/manifest.yaml",
             "schema_version: '1.0'\ncapabilities:\n  single_stack: true\n  dual_stack: false\n",
         );
-        let results = run_preflight(
-            &dir.path().join("spec.yaml"),
-            &adapter_dir,
-            None,
+        let results = run_preflight(&dir.path().join("spec.yaml"), &adapter_dir, None);
+        let cap_fail = results.iter().find(|r| r.id == "PF-003" && !r.passed);
+        assert!(
+            cap_fail.is_some(),
+            "Expected PF-003 failure for dual variant"
         );
-        let cap_fail = results
-            .iter()
-            .find(|r| r.id == "PF-003" && !r.passed);
-        assert!(cap_fail.is_some(), "Expected PF-003 failure for dual variant");
         assert!(cap_fail.unwrap().message.contains("dual"));
     }
 
     #[test]
     fn preflight_real_examples() {
         // Uses real adapter fixtures if available
-        let spec_path = std::path::Path::new("../factory/contract/examples/cfs-womens-shelter.build-spec.yaml");
+        let spec_path =
+            std::path::Path::new("../factory/contract/examples/cfs-womens-shelter.build-spec.yaml");
         let adapter_path = std::path::Path::new("../factory/adapters/aim-vue-node");
         if !spec_path.exists() || !adapter_path.exists() {
             eprintln!("Skipping real example test — factory fixtures not found");

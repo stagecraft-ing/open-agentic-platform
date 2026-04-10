@@ -42,12 +42,18 @@ pub fn analyze_dependencies(root: &Path, module_files: &[String]) -> Result<Depe
         match mf.as_str() {
             "Cargo.toml" => {
                 if let Ok(deps) = parse_cargo_toml(&path) {
-                    ecosystems.entry("cargo".to_string()).or_default().extend(deps);
+                    ecosystems
+                        .entry("cargo".to_string())
+                        .or_default()
+                        .extend(deps);
                 }
             }
             "package.json" => {
                 if let Ok(deps) = parse_package_json(&path) {
-                    ecosystems.entry("npm".to_string()).or_default().extend(deps);
+                    ecosystems
+                        .entry("npm".to_string())
+                        .or_default()
+                        .extend(deps);
                 }
             }
             "go.mod" => {
@@ -372,8 +378,7 @@ require (
         )
         .unwrap();
 
-        let inv =
-            analyze_dependencies(dir.path(), &["package.json".to_string()]).unwrap();
+        let inv = analyze_dependencies(dir.path(), &["package.json".to_string()]).unwrap();
         assert_eq!(inv.ecosystems.len(), 1);
         assert!(inv.ecosystems.contains_key("npm"));
         assert_eq!(inv.total_direct, 1);

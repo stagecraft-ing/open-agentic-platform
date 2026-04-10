@@ -84,7 +84,10 @@ impl Skill for ConfiguredSkill {
             if cancel_rx.recv_timeout(timeout).is_err() {
                 // Timeout expired — kill the child process.
                 #[cfg(unix)]
-                let _ = Command::new("kill").arg("-9").arg(child_id.to_string()).output();
+                let _ = Command::new("kill")
+                    .arg("-9")
+                    .arg(child_id.to_string())
+                    .output();
                 #[cfg(not(unix))]
                 let _ = Command::new("taskkill")
                     .args(["/F", "/PID", &child_id.to_string()])
@@ -123,7 +126,10 @@ impl Skill for ConfiguredSkill {
         let combined = format!("{}\n{}", stdout, stderr);
         let lines: Vec<&str> = combined.lines().collect();
         let note = if lines.len() > 20 {
-            format!("...(truncated)...\n{}", lines[lines.len() - 20..].join("\n"))
+            format!(
+                "...(truncated)...\n{}",
+                lines[lines.len() - 20..].join("\n")
+            )
         } else {
             combined.trim().to_string()
         };
@@ -141,7 +147,11 @@ impl Skill for ConfiguredSkill {
 #[cfg(test)]
 impl ConfiguredSkill {
     pub(crate) fn new_for_test(id: &str, def: TaskDef, base_cwd: PathBuf) -> Self {
-        Self { id: id.to_string(), def, base_cwd }
+        Self {
+            id: id.to_string(),
+            def,
+            base_cwd,
+        }
     }
 }
 
@@ -191,10 +201,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let yaml = "skills:\n  echo-test:\n    command: [\"echo\", \"hello\"]\n    description: \"Echo hello\"\n";
         std::fs::write(dir.path().join("axiomregent.tasks.yaml"), yaml).unwrap();
-        let skills = load_from_file(
-            &dir.path().join("axiomregent.tasks.yaml"),
-            dir.path(),
-        ).unwrap();
+        let skills =
+            load_from_file(&dir.path().join("axiomregent.tasks.yaml"), dir.path()).unwrap();
         assert_eq!(skills.len(), 1);
         assert_eq!(skills[0].id(), "echo-test");
     }
@@ -204,10 +212,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let yaml = "skills:\n  empty:\n    command: []\n";
         std::fs::write(dir.path().join("axiomregent.tasks.yaml"), yaml).unwrap();
-        let skills = load_from_file(
-            &dir.path().join("axiomregent.tasks.yaml"),
-            dir.path(),
-        ).unwrap();
+        let skills =
+            load_from_file(&dir.path().join("axiomregent.tasks.yaml"), dir.path()).unwrap();
         assert!(skills.is_empty());
     }
 
@@ -267,7 +273,11 @@ mod tests {
         let elapsed = start.elapsed();
         assert_eq!(result.status, SkillStatus::Fail);
         assert!(result.note.as_ref().unwrap().contains("Timed out"));
-        assert!(elapsed.as_millis() < 5000, "Should have timed out quickly, took {}ms", elapsed.as_millis());
+        assert!(
+            elapsed.as_millis() < 5000,
+            "Should have timed out quickly, took {}ms",
+            elapsed.as_millis()
+        );
     }
 
     #[test]

@@ -132,15 +132,9 @@ pub enum SkillLoadResult {
     /// Parsed and ready to register.
     Ok(ParsedSkill),
     /// Loaded with warnings (e.g. deprecated field).
-    Warning {
-        skill: ParsedSkill,
-        message: String,
-    },
+    Warning { skill: ParsedSkill, message: String },
     /// Failed to parse — non-fatal, other skills still load.
-    Error {
-        path: PathBuf,
-        message: String,
-    },
+    Error { path: PathBuf, message: String },
 }
 
 impl SkillLoadResult {

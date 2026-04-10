@@ -42,12 +42,15 @@ pub fn scan_target_incremental(
     // Load previous index
     let prev_bytes = std::fs::read(previous)
         .with_context(|| format!("Failed to read previous index: {}", previous.display()))?;
-    let prev_index: XrayIndex = serde_json::from_slice(&prev_bytes)
-        .context("Failed to parse previous index JSON")?;
+    let prev_index: XrayIndex =
+        serde_json::from_slice(&prev_bytes).context("Failed to parse previous index JSON")?;
 
     // Build lookup: path → FileNode from previous scan
-    let prev_map: HashMap<String, &schema::FileNode> =
-        prev_index.files.iter().map(|f| (f.path.clone(), f)).collect();
+    let prev_map: HashMap<String, &schema::FileNode> = prev_index
+        .files
+        .iter()
+        .map(|f| (f.path.clone(), f))
+        .collect();
 
     // Run current scan (gets fresh hashes for all files)
     let scan_result = traversal::scan_target(target)?;

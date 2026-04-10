@@ -1,8 +1,8 @@
 //! Library for compiling `specs/*/spec.md` into Feature 000 registry JSON.
 
-use open_agentic_frontmatter::{split_frontmatter_required, FrontmatterError};
+use open_agentic_frontmatter::{FrontmatterError, split_frontmatter_required};
 use serde::Serialize;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -110,8 +110,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     for spec_path in &spec_paths {
         let raw = fs::read_to_string(spec_path)?;
-        let (yaml_val, body): (serde_yaml::Value, String) =
-            split_frontmatter(&raw, spec_path)?;
+        let (yaml_val, body): (serde_yaml::Value, String) = split_frontmatter(&raw, spec_path)?;
 
         let fm = yaml_val
             .as_mapping()

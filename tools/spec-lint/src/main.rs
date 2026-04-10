@@ -4,7 +4,11 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 #[derive(Parser, Debug)]
-#[command(name = "spec-lint", version, about = "Conformance warnings W-001+ (specs/006-conformance-lint-mvp)")]
+#[command(
+    name = "spec-lint",
+    version,
+    about = "Conformance warnings W-001+ (specs/006-conformance-lint-mvp)"
+)]
 struct Cli {
     /// Repository root (default: current directory)
     #[arg(long)]

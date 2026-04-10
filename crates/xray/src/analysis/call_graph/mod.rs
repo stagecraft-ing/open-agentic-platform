@@ -210,8 +210,7 @@ impl CallGraph {
             .map(|(from, to)| json!({ "from": from, "to": to }))
             .collect();
 
-        serde_json::to_string_pretty(&json!({ "nodes": nodes, "edges": edges }))
-            .unwrap_or_default()
+        serde_json::to_string_pretty(&json!({ "nodes": nodes, "edges": edges })).unwrap_or_default()
     }
 }
 
@@ -437,10 +436,7 @@ pub fn parse_file(path: &Path) -> Vec<Block> {
     };
 
     // Use the file stem as the module identifier (e.g. "src/main" from "src/main.rs").
-    let file_stem = path
-        .with_extension("")
-        .to_string_lossy()
-        .to_string();
+    let file_stem = path.with_extension("").to_string_lossy().to_string();
 
     let mut blocks = Vec::new();
     let mut cursor = tree.root_node().walk();
@@ -585,7 +581,8 @@ fn main() {
         let blocks = parse_file(&path);
 
         // Should find both functions.
-        let fn_names: Vec<Option<String>> = blocks.iter().map(|b| b.function_name.clone()).collect();
+        let fn_names: Vec<Option<String>> =
+            blocks.iter().map(|b| b.function_name.clone()).collect();
         assert!(
             fn_names.contains(&Some("main".to_string())),
             "Expected 'main' in blocks, got: {:?}",

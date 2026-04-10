@@ -117,10 +117,7 @@ impl LocalArtifactStore {
     /// Resolve the storage path for an artifact.
     fn artifact_path(&self, content_hash: &str, filename: &str) -> PathBuf {
         let prefix = &content_hash[..2.min(content_hash.len())];
-        self.base_dir
-            .join(prefix)
-            .join(content_hash)
-            .join(filename)
+        self.base_dir.join(prefix).join(content_hash).join(filename)
     }
 
     /// Return the base directory for inspection/testing.
@@ -153,7 +150,11 @@ mod tests {
         // Retrieve to a new location
         let dst_dir = TempDir::new().unwrap();
         let dst_path = dst_dir.path().join("retrieved.md");
-        assert!(store.retrieve(&stored.content_hash, "output.md", &dst_path).unwrap());
+        assert!(
+            store
+                .retrieve(&stored.content_hash, "output.md", &dst_path)
+                .unwrap()
+        );
         assert_eq!(
             std::fs::read_to_string(&dst_path).unwrap(),
             "# Business Requirements\n\nTest content."
@@ -185,7 +186,15 @@ mod tests {
         assert!(!store.exists("0000000000000000000000000000000000000000000000000000000000000000"));
 
         let dst = store_dir.path().join("nope.txt");
-        assert!(!store.retrieve("0000000000000000000000000000000000000000000000000000000000000000", "nope.txt", &dst).unwrap());
+        assert!(
+            !store
+                .retrieve(
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                    "nope.txt",
+                    &dst
+                )
+                .unwrap()
+        );
     }
 
     #[test]
@@ -202,6 +211,12 @@ mod tests {
 
         // Verify the 2-char prefix directory exists
         assert!(store_dir.path().join(prefix).exists());
-        assert!(store_dir.path().join(prefix).join(&stored.content_hash).exists());
+        assert!(
+            store_dir
+                .path()
+                .join(prefix)
+                .join(&stored.content_hash)
+                .exists()
+        );
     }
 }

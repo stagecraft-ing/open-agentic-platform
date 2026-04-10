@@ -6,17 +6,19 @@
 //! Every tool in the platform — Rust crate tools, OPC Tauri commands, and
 //! MCP-bridged tools — registers through a single schema-driven interface.
 
-mod types;
-mod registry;
-mod mcp;
-mod event;
 pub mod async_registry;
+mod event;
+mod mcp;
+mod registry;
+mod types;
 
-pub use types::{ToolDef, ToolContext, ToolResult, PermissionResult, PolicyEvaluator, PolicyKernelHandle};
-pub use registry::{ToolRegistry, RegistryError};
-pub use mcp::McpToolDef;
-pub use event::{ToolEvent, ToolEventKind};
 pub use async_registry::{AsyncToolDef, AsyncToolRegistry};
+pub use event::{ToolEvent, ToolEventKind};
+pub use mcp::McpToolDef;
+pub use registry::{RegistryError, ToolRegistry};
+pub use types::{
+    PermissionResult, PolicyEvaluator, PolicyKernelHandle, ToolContext, ToolDef, ToolResult,
+};
 
 #[cfg(test)]
 mod tests;

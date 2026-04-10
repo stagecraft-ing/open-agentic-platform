@@ -4,8 +4,8 @@ use agent::safety::{ToolTier, get_tool_tier};
 use serde_json::json;
 use std::io::Write;
 
-use crate::router::AxiomRegentError;
 use crate::lease::{Lease, PermissionGrants};
+use crate::router::AxiomRegentError;
 
 fn tier_rank(t: ToolTier) -> u8 {
     match t {

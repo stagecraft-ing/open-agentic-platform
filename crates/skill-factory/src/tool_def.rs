@@ -5,7 +5,7 @@
 
 use crate::filter::compute_effective_tools;
 use crate::types::{ParsedSkill, SkillType};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tool_registry::{ToolContext, ToolDef, ToolResult};
 
@@ -35,7 +35,11 @@ pub struct SkillToolDef {
 impl SkillToolDef {
     /// Compute effective tools given the set of all available tool names.
     pub fn effective_tools(&self, available: &[String]) -> Vec<String> {
-        compute_effective_tools(&self.skill.frontmatter.allowed_tools, available, &self.denied_tools)
+        compute_effective_tools(
+            &self.skill.frontmatter.allowed_tools,
+            available,
+            &self.denied_tools,
+        )
     }
 }
 
@@ -68,10 +72,7 @@ impl ToolDef for SkillToolDef {
     }
 
     fn execute(&self, input: Value, _ctx: &mut ToolContext) -> anyhow::Result<ToolResult> {
-        let args = input
-            .get("args")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let args = input.get("args").and_then(|v| v.as_str()).unwrap_or("");
 
         let rendered = self.skill.render_prompt(args);
 
@@ -147,14 +148,9 @@ mod tests {
 
     #[test]
     fn execute_prompt_without_dispatch_returns_rendered() {
-        let def = make_skill_def(
-            "---\nname: greet\n---\nHello $ARGS!",
-            "greet.md",
-        );
+        let def = make_skill_def("---\nname: greet\n---\nHello $ARGS!", "greet.md");
         let mut ctx = ToolContext::empty();
-        let result = def
-            .execute(json!({"args": "world"}), &mut ctx)
-            .unwrap();
+        let result = def.execute(json!({"args": "world"}), &mut ctx).unwrap();
         assert!(!result.is_error);
         assert_eq!(result.content.as_str().unwrap(), "Hello world!");
     }
@@ -200,10 +196,7 @@ mod tests {
 
     #[test]
     fn execute_headless_without_spawn_returns_error() {
-        let def = make_skill_def(
-            "---\nname: bg\ntype: headless\n---\nbg task",
-            "bg.md",
-        );
+        let def = make_skill_def("---\nname: bg\ntype: headless\n---\nbg task", "bg.md");
         let mut ctx = ToolContext::empty();
         let res = def.execute(json!({}), &mut ctx).unwrap();
         assert!(res.is_error);
@@ -211,7 +204,8 @@ mod tests {
 
     #[test]
     fn effective_tools_respects_denied() {
-        let content = "---\nname: restricted\nallowed_tools:\n  - Bash\n  - FileRead\n  - Grep\n---\nbody";
+        let content =
+            "---\nname: restricted\nallowed_tools:\n  - Bash\n  - FileRead\n  - Grep\n---\nbody";
         let result = parse_skill_file(content, Path::new("r.md"));
         let skill = result.skill().unwrap().clone();
         let def = SkillToolDef {
@@ -220,7 +214,12 @@ mod tests {
             dispatch: None,
             headless_spawn: None,
         };
-        let available = vec!["Bash".into(), "FileRead".into(), "Grep".into(), "Write".into()];
+        let available = vec![
+            "Bash".into(),
+            "FileRead".into(),
+            "Grep".into(),
+            "Write".into(),
+        ];
         let effective = def.effective_tools(&available);
         assert_eq!(effective, vec!["Bash".to_string(), "Grep".to_string()]);
     }

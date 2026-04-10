@@ -35,7 +35,9 @@ impl Fingerprint {
                 .trim()
                 .to_string()
         } else {
-            return Err(anyhow!("Failed to run git rev-parse HEAD. Git repository must be initialized and populated to grant a lease."));
+            return Err(anyhow!(
+                "Failed to run git rev-parse HEAD. Git repository must be initialized and populated to grant a lease."
+            ));
         };
 
         // 2. index_oid
@@ -50,7 +52,9 @@ impl Fingerprint {
                 .trim()
                 .to_string()
         } else {
-            return Err(anyhow!("Failed to run git write-tree. Git index must be valid to grant a lease."));
+            return Err(anyhow!(
+                "Failed to run git write-tree. Git index must be valid to grant a lease."
+            ));
         };
 
         // 3. status_hash
@@ -224,7 +228,8 @@ impl LeaseStore {
                 "lease_id": &id,
                 "fingerprint": &fp_json,
             }),
-        ).await;
+        )
+        .await;
 
         Ok(id)
     }
@@ -275,10 +280,7 @@ impl LeaseStore {
             self.client
                 .execute(
                     Cow::Borrowed("UPDATE leases SET touched_files = $1 WHERE lease_id = $2"),
-                    vec![
-                        Param::Text(touched_json),
-                        Param::Text(lease_id.to_string()),
-                    ],
+                    vec![Param::Text(touched_json), Param::Text(lease_id.to_string())],
                 )
                 .await?;
         }

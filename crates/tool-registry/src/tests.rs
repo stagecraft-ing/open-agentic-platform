@@ -3,13 +3,13 @@
 
 use std::sync::{Arc, Mutex};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
+use crate::ToolRegistry;
 use crate::event::ToolEventKind;
 use crate::mcp::McpToolDef;
 use crate::registry::RegistryError;
 use crate::types::*;
-use crate::ToolRegistry;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,9 +171,15 @@ fn no_policy_kernel_returns_ask() {
     // Use default can_use which checks ctx.policy.
     struct DefaultGateTool;
     impl ToolDef for DefaultGateTool {
-        fn name(&self) -> &str { "default_gate" }
-        fn description(&self) -> &str { "Uses default can_use" }
-        fn input_schema(&self) -> Value { json!({ "type": "object" }) }
+        fn name(&self) -> &str {
+            "default_gate"
+        }
+        fn description(&self) -> &str {
+            "Uses default can_use"
+        }
+        fn input_schema(&self) -> Value {
+            json!({ "type": "object" })
+        }
         fn execute(&self, _input: Value, _ctx: &mut ToolContext) -> anyhow::Result<ToolResult> {
             Ok(ToolResult::success(json!("ok")))
         }
@@ -211,7 +217,10 @@ fn mcp_tool_registration_and_execution() {
     let mut reg = ToolRegistry::new();
     reg.register(Box::new(mcp_tool)).unwrap();
 
-    assert_eq!(reg.get("mcp__server__greet").unwrap().name(), "mcp__server__greet");
+    assert_eq!(
+        reg.get("mcp__server__greet").unwrap().name(),
+        "mcp__server__greet"
+    );
 
     // Execute (need Allow permission — override via explicit can_use in McpToolDef
     // which uses the default trait method; supply a policy kernel that allows).
@@ -252,7 +261,8 @@ fn events_emitted_on_execute() {
     });
 
     let mut ctx = ToolContext::empty();
-    reg.execute("echo", json!({"message": "hi"}), &mut ctx).unwrap();
+    reg.execute("echo", json!({"message": "hi"}), &mut ctx)
+        .unwrap();
 
     let events = events.lock().unwrap();
     assert_eq!(events.len(), 2);
@@ -284,9 +294,15 @@ fn execute_unknown_tool_returns_not_found() {
 fn bad_schema_rejected_at_registration() {
     struct BadSchemaTool;
     impl ToolDef for BadSchemaTool {
-        fn name(&self) -> &str { "bad" }
-        fn description(&self) -> &str { "bad schema" }
-        fn input_schema(&self) -> Value { json!({ "type": "array" }) }
+        fn name(&self) -> &str {
+            "bad"
+        }
+        fn description(&self) -> &str {
+            "bad schema"
+        }
+        fn input_schema(&self) -> Value {
+            json!({ "type": "array" })
+        }
         fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
             unreachable!()
         }
@@ -311,8 +327,12 @@ fn register_200_tools_under_50ms() {
             // Leak a string so we get &str — acceptable in tests.
             Box::leak(format!("tool_{}", self.0).into_boxed_str())
         }
-        fn description(&self) -> &str { "bench tool" }
-        fn input_schema(&self) -> Value { json!({ "type": "object" }) }
+        fn description(&self) -> &str {
+            "bench tool"
+        }
+        fn input_schema(&self) -> Value {
+            json!({ "type": "object" })
+        }
         fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
             Ok(ToolResult::success(json!(null)))
         }

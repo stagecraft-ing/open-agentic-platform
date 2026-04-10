@@ -84,7 +84,9 @@ async fn test_stale_lease_error_structure() {
     .await;
 
     // 1. Issue a lease directly via LeaseStore
-    let fp = axiomregent::lease::Fingerprint::compute(repo.path()).await.unwrap();
+    let fp = axiomregent::lease::Fingerprint::compute(repo.path())
+        .await
+        .unwrap();
     let lease_id = lease_store.issue(fp).await.unwrap();
 
     // 2. Modify repo (commit a change to change HEAD oid) — makes lease stale

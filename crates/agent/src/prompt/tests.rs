@@ -48,7 +48,10 @@ fn static_sections_are_deterministic_across_turns() {
     let first = asm.assemble(&ctx);
     let second = asm.assemble(&ctx);
 
-    assert_eq!(first.static_prefix, second.static_prefix, "static prefix must be byte-identical across turns");
+    assert_eq!(
+        first.static_prefix, second.static_prefix,
+        "static prefix must be byte-identical across turns"
+    );
 }
 
 #[test]
@@ -120,7 +123,12 @@ fn total_budget_drops_lowest_priority_sections() {
     assert!(result.static_prefix.contains(&"A".repeat(30)));
     assert!(!result.dynamic_suffix.contains("B"));
     assert!(result.metadata.budget_exceeded);
-    assert!(result.metadata.truncated_sections.contains(&"optional".to_string()));
+    assert!(
+        result
+            .metadata
+            .truncated_sections
+            .contains(&"optional".to_string())
+    );
 }
 
 #[test]
@@ -181,8 +189,8 @@ fn no_boundary_when_no_dynamic_sections() {
 
 #[test]
 fn invalidate_forces_regeneration() {
-    use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicU32, Ordering};
 
     let counter = Arc::new(AtomicU32::new(0));
     let counter_clone = counter.clone();
@@ -240,8 +248,8 @@ fn metadata_reports_section_details() {
 
 #[test]
 fn dynamic_sections_rebuild_each_turn() {
-    use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicU32, Ordering};
 
     let counter = Arc::new(AtomicU32::new(0));
     let counter_clone = counter.clone();
@@ -270,8 +278,8 @@ fn dynamic_sections_rebuild_each_turn() {
 
 #[test]
 fn per_session_sections_cached_within_session() {
-    use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicU32, Ordering};
 
     let counter = Arc::new(AtomicU32::new(0));
     let counter_clone = counter.clone();
@@ -382,7 +390,10 @@ fn context_values_available_to_content_fn() {
     asm.register_section(PromptSection {
         name: "ctx_reader".to_string(),
         content_fn: Box::new(|ctx| {
-            ctx.values.get("model").cloned().unwrap_or_else(|| "unknown".to_string())
+            ctx.values
+                .get("model")
+                .cloned()
+                .unwrap_or_else(|| "unknown".to_string())
         }),
         cache_lifetime: CacheLifetime::Dynamic,
         priority: 100,

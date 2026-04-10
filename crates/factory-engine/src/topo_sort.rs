@@ -165,7 +165,10 @@ mod tests {
             entity("B", vec![ref_field("a_id", "A")]),
         ];
         let result = topological_sort_entities(&entities);
-        assert!(matches!(result, Err(FactoryError::CircularReference { .. })));
+        assert!(matches!(
+            result,
+            Err(FactoryError::CircularReference { .. })
+        ));
     }
 
     #[test]

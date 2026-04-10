@@ -184,7 +184,9 @@ impl WorkspaceTools {
                 }))
             }
         } else if mode == "snapshot" {
-            Err(anyhow!("snapshot mode is deprecated; use checkpoint.create via MCP router"))
+            Err(anyhow!(
+                "snapshot mode is deprecated; use checkpoint.create via MCP router"
+            ))
         } else {
             Err(anyhow!("Invalid mode"))
         }
@@ -230,7 +232,9 @@ impl WorkspaceTools {
 
         if !dry_run {
             std::fs::write(&target, content)?;
-            self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
+            self.lease_store
+                .touch_files(&lid, vec![path.to_string()])
+                .await?;
         }
 
         Ok(true)
@@ -258,7 +262,9 @@ impl WorkspaceTools {
             } else {
                 std::fs::remove_file(&target)?;
             }
-            self.lease_store.touch_files(&lid, vec![path.to_string()]).await?;
+            self.lease_store
+                .touch_files(&lid, vec![path.to_string()])
+                .await?;
         }
 
         Ok(true)
@@ -333,16 +339,7 @@ mod tests {
         let tools = WorkspaceTools::new(lease_store);
 
         let res = tools
-            .apply_patch(
-                dir.path(),
-                "",
-                "snapshot",
-                None,
-                None,
-                None,
-                false,
-                false,
-            )
+            .apply_patch(dir.path(), "", "snapshot", None, None, None, false, false)
             .await;
 
         assert!(res.is_err());

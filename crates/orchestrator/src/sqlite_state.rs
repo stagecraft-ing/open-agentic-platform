@@ -6,13 +6,15 @@
 // in an `Arc<std::sync::Mutex<>>` so the async trait methods can safely call
 // into the synchronous rusqlite API via `tokio::task::spawn_blocking`.
 
+use crate::OrchestratorError;
 use crate::artifact::ArtifactManager;
 use crate::state::{GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus};
-use crate::store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
-use crate::OrchestratorError;
+use crate::store::{
+    EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore,
+};
 use async_trait::async_trait;
 use dashmap::DashMap;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::Value as JsonValue;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -175,13 +177,11 @@ impl SqliteWorkflowStore {
         let metadata_json = if state.metadata.is_empty() {
             None
         } else {
-            Some(
-                serde_json::to_string(&state.metadata).map_err(|e| {
-                    OrchestratorError::StatePersistence {
-                        reason: format!("serialize workflow metadata to json: {e}"),
-                    }
-                })?,
-            )
+            Some(serde_json::to_string(&state.metadata).map_err(|e| {
+                OrchestratorError::StatePersistence {
+                    reason: format!("serialize workflow metadata to json: {e}"),
+                }
+            })?)
         };
 
         tx.execute(
@@ -321,11 +321,10 @@ impl SqliteWorkflowStore {
         })?;
 
         let metadata = if let Some(text) = metadata_text {
-            let value: JsonValue = serde_json::from_str(&text).map_err(|e| {
-                OrchestratorError::StatePersistence {
+            let value: JsonValue =
+                serde_json::from_str(&text).map_err(|e| OrchestratorError::StatePersistence {
                     reason: format!("decode workflow metadata json from sqlite: {e}"),
-                }
-            })?;
+                })?;
             match value {
                 JsonValue::Object(map) => map,
                 _ => serde_json::Map::new(),
@@ -463,7 +462,14 @@ impl SqliteWorkflowStore {
         payload: &JsonValue,
         timestamp: Option<String>,
     ) -> Result<i64, OrchestratorError> {
-        Self::append_scoped_event_sync(conn, workflow_id, "workflow", event_type, payload, timestamp)
+        Self::append_scoped_event_sync(
+            conn,
+            workflow_id,
+            "workflow",
+            event_type,
+            payload,
+            timestamp,
+        )
     }
 
     fn append_scoped_event_sync(
@@ -521,8 +527,7 @@ impl SqliteWorkflowStore {
         let id_str = entity_id.to_string();
         let effective_limit: i64 = limit.map_or(i64::MAX, |l| l as i64);
 
-        let (sql, params_vec): (&str, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(s) =
-            scope
+        let (sql, params_vec): (&str, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(s) = scope
         {
             (
                 r#"
@@ -556,9 +561,11 @@ impl SqliteWorkflowStore {
             )
         };
 
-        let mut stmt = conn.prepare(sql).map_err(|e| OrchestratorError::StatePersistence {
-            reason: format!("prepare events select in sqlite: {e}"),
-        })?;
+        let mut stmt = conn
+            .prepare(sql)
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("prepare events select in sqlite: {e}"),
+            })?;
 
         let params_refs: Vec<&dyn rusqlite::types::ToSql> =
             params_vec.iter().map(|b| b.as_ref()).collect();
@@ -571,7 +578,14 @@ impl SqliteWorkflowStore {
                 let event_type: String = row.get(3)?;
                 let payload_text: String = row.get(4)?;
                 let scope: Option<String> = row.get(5).ok();
-                Ok((event_id, wf_id_text, timestamp, event_type, payload_text, scope))
+                Ok((
+                    event_id,
+                    wf_id_text,
+                    timestamp,
+                    event_type,
+                    payload_text,
+                    scope,
+                ))
             })
             .map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("query events for entity in sqlite: {e}"),
@@ -619,9 +633,11 @@ impl WorkflowStore for SqliteWorkflowStore {
         let conn = Arc::clone(&self.conn);
         let state = state.clone();
         tokio::task::spawn_blocking(move || {
-            let mut guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let mut guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             Self::write_workflow_state_sync(&mut guard, &state)
         })
         .await
@@ -636,9 +652,11 @@ impl WorkflowStore for SqliteWorkflowStore {
     ) -> Result<Option<WorkflowState>, OrchestratorError> {
         let conn = Arc::clone(&self.conn);
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             Self::load_workflow_state_sync(&guard, workflow_id)
         })
         .await
@@ -658,9 +676,11 @@ impl WorkflowStore for SqliteWorkflowStore {
         let event_type = event_type.to_string();
         let payload = payload.clone();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             Self::append_event_sync(&guard, workflow_id, &event_type, &payload, timestamp)
         })
         .await
@@ -677,9 +697,11 @@ impl WorkflowStore for SqliteWorkflowStore {
     ) -> Result<Vec<PersistedEvent>, OrchestratorError> {
         let conn = Arc::clone(&self.conn);
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
             Self::load_events_since_sync(&guard, workflow_id, from_event_id, limit)
         })
         .await
@@ -701,10 +723,19 @@ impl WorkflowStore for SqliteWorkflowStore {
         let event_type = event_type.to_string();
         let payload = payload.clone();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
-            Self::append_scoped_event_sync(&guard, entity_id, &scope, &event_type, &payload, timestamp)
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
+            Self::append_scoped_event_sync(
+                &guard,
+                entity_id,
+                &scope,
+                &event_type,
+                &payload,
+                timestamp,
+            )
         })
         .await
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -722,10 +753,18 @@ impl WorkflowStore for SqliteWorkflowStore {
         let conn = Arc::clone(&self.conn);
         let scope = scope.to_string();
         tokio::task::spawn_blocking(move || {
-            let guard = conn.lock().map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("lock sqlite connection: {e}"),
-            })?;
-            Self::load_scoped_events_since_sync(&guard, entity_id, Some(&scope), from_event_id, limit)
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite connection: {e}"),
+                })?;
+            Self::load_scoped_events_since_sync(
+                &guard,
+                entity_id,
+                Some(&scope),
+                from_event_id,
+                limit,
+            )
         })
         .await
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -794,10 +833,7 @@ impl EventNotifier for LocalEventNotifier {
             .load_events_since(workflow_id, from_event_id, None)
             .await?;
 
-        let high_water_mark = replay
-            .last()
-            .map(|e| e.event_id)
-            .unwrap_or(from_event_id);
+        let high_water_mark = replay.last().map(|e| e.event_id).unwrap_or(from_event_id);
 
         Ok(ReplaySubscription {
             replay,
@@ -870,11 +906,10 @@ fn sql_columns_to_gate_info(
     gate_config_json: Option<&str>,
 ) -> Result<GateInfo, OrchestratorError> {
     let config = if let Some(text) = gate_config_json {
-        let value: JsonValue = serde_json::from_str(text).map_err(|e| {
-            OrchestratorError::StatePersistence {
+        let value: JsonValue =
+            serde_json::from_str(text).map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("decode gate_config json from sqlite: {e}"),
-            }
-        })?;
+            })?;
         Some(value)
     } else {
         None
@@ -1095,10 +1130,7 @@ mod tests {
             .expect("load workflow events");
         assert_eq!(wf_events.len(), 1);
         assert_eq!(wf_events[0].event_type, "step_started");
-        assert_eq!(
-            wf_events[0].scope.as_deref(),
-            Some("workflow")
-        );
+        assert_eq!(wf_events[0].scope.as_deref(), Some("workflow"));
 
         // Loading conversation-scoped events should return only the conversation event.
         let conv_events = store
@@ -1108,10 +1140,7 @@ mod tests {
         assert_eq!(conv_events.len(), 1);
         assert_eq!(conv_events[0].event_id, conv_eid);
         assert_eq!(conv_events[0].event_type, "message");
-        assert_eq!(
-            conv_events[0].scope.as_deref(),
-            Some("conversation")
-        );
+        assert_eq!(conv_events[0].scope.as_deref(), Some("conversation"));
 
         // The unscoped load_events_since should return both.
         let all_events = store

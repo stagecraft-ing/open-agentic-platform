@@ -43,12 +43,7 @@ impl ArtifactManager {
     }
 
     /// Absolute path for an output artifact file name within a step (044).
-    pub fn output_artifact_path(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-        filename: &str,
-    ) -> PathBuf {
+    pub fn output_artifact_path(&self, run_id: Uuid, step_id: &str, filename: &str) -> PathBuf {
         self.step_dir(run_id, step_id).join(filename)
     }
 
@@ -96,7 +91,10 @@ mod tests {
         let am = ArtifactManager::new("/tmp/oap-artifacts");
         let run = Uuid::nil();
         let p = am.output_artifact_path(run, "step-01", "out.md");
-        assert!(p.to_string_lossy().contains("00000000-0000-0000-0000-000000000000"));
+        assert!(
+            p.to_string_lossy()
+                .contains("00000000-0000-0000-0000-000000000000")
+        );
         assert!(p.to_string_lossy().ends_with("step-01/out.md"));
     }
 
@@ -118,7 +116,13 @@ mod tests {
 
         let hash = ArtifactManager::hash_artifact(&path).unwrap();
         assert!(ArtifactManager::verify_artifact(&path, &hash).unwrap());
-        assert!(!ArtifactManager::verify_artifact(&path, "0000000000000000000000000000000000000000000000000000000000000000").unwrap());
+        assert!(
+            !ArtifactManager::verify_artifact(
+                &path,
+                "0000000000000000000000000000000000000000000000000000000000000000"
+            )
+            .unwrap()
+        );
     }
 
     #[test]

@@ -106,7 +106,10 @@ fn main() -> Result<()> {
                 Some(p) => PathBuf::from(p),
                 None => {
                     let repo_root = std::env::current_dir()?;
-                    repo_root.join(".axiomregent").join("data").join("history.jsonl")
+                    repo_root
+                        .join(".axiomregent")
+                        .join("data")
+                        .join("history.jsonl")
                 }
             };
 
@@ -119,8 +122,13 @@ fn main() -> Result<()> {
             let churn = history::churn_report(&entries, *top);
             let growth = history::growth_report(&entries);
 
-            eprintln!("History: {} scans, {} → {} files (delta: {:+})",
-                growth.entries, growth.first_file_count, growth.latest_file_count, growth.file_count_delta);
+            eprintln!(
+                "History: {} scans, {} → {} files (delta: {:+})",
+                growth.entries,
+                growth.first_file_count,
+                growth.latest_file_count,
+                growth.file_count_delta
+            );
             eprintln!("\nTop {} churning files:", top);
             for entry in &churn {
                 eprintln!("  {:4} changes  {}", entry.changes, entry.path);

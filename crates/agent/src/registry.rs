@@ -3,7 +3,7 @@
 // Feature: 043-agent-organizer — registry integration (specs/043-agent-organizer/spec.md FR-007, FR-010)
 
 use crate::complexity::score_complexity;
-use crate::dispatch::{evaluate_mandatory_triggers, MandatoryOutcome};
+use crate::dispatch::{MandatoryOutcome, evaluate_mandatory_triggers};
 use crate::plan::{
     AgentRole, ComplexityBand, ComplexityBlock, ComplexityBreakdown, ExecutionPlan, ModelTier,
     PlanContext, PlanMode, TeamAgent, TeamBlock, WorkflowBlock, WorkflowPhase,
@@ -60,8 +60,13 @@ impl AgentRegistrySnapshot {
     ///
     /// Expected format: `{ "agents": [{ "id": "...", "description": "..." }, ...] }`
     pub fn from_config(path: &std::path::Path) -> Result<Self, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read agent registry config at {}: {}", path.display(), e))?;
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            format!(
+                "Failed to read agent registry config at {}: {}",
+                path.display(),
+                e
+            )
+        })?;
         serde_json::from_str(&content)
             .map_err(|e| format!("Failed to parse agent registry config: {}", e))
     }
@@ -352,8 +357,7 @@ fn plan_inner<P: OrganizerPlanner>(
             if snapshot.agents.is_empty() {
                 return fr010_plan(request_id, breakdown, Some(label));
             }
-            let (team, workflow, w) =
-                planner.plan_delegated(prompt, &breakdown, snapshot);
+            let (team, workflow, w) = planner.plan_delegated(prompt, &breakdown, snapshot);
             ExecutionPlan {
                 request_id,
                 mode: PlanMode::Delegated,
@@ -376,8 +380,7 @@ fn plan_inner<P: OrganizerPlanner>(
             } else if snapshot.agents.is_empty() {
                 fr010_plan(request_id, breakdown, None)
             } else {
-                let (team, workflow, w) =
-                    planner.plan_delegated(prompt, &breakdown, snapshot);
+                let (team, workflow, w) = planner.plan_delegated(prompt, &breakdown, snapshot);
                 ExecutionPlan {
                     request_id,
                     mode: PlanMode::Delegated,
@@ -455,11 +458,7 @@ mod tests {
 
     #[test]
     fn sc004_mandatory_direct_overrides_high_score() {
-        let p = format!(
-            "what is {}{}",
-            "x".repeat(1900),
-            " create ".repeat(16)
-        );
+        let p = format!("what is {}{}", "x".repeat(1900), " create ".repeat(16));
         let plan = build_execution_plan(&p, &PlanContext::default());
         assert_eq!(plan.mode, PlanMode::Direct);
         assert!(plan.complexity.score > 25, "expected inflated score");
@@ -498,7 +497,8 @@ mod tests {
         assert_eq!(plan.mode, PlanMode::Direct);
         let w = plan.warnings.as_ref().expect("warnings");
         assert!(
-            w.iter().any(|x| x.contains("FR-010") || x.contains("per FR-010")),
+            w.iter()
+                .any(|x| x.contains("FR-010") || x.contains("per FR-010")),
             "{w:?}"
         );
         assert!(plan.team.is_none());
@@ -530,7 +530,10 @@ mod tests {
         let team = pl.team.as_ref().unwrap();
         let n = team.agents.len();
         assert!((1..=5).contains(&n));
-        assert!((2..=3).contains(&n), "complex band expects 2–3 agents when available: {n}");
+        assert!(
+            (2..=3).contains(&n),
+            "complex band expects 2–3 agents when available: {n}"
+        );
     }
 
     #[test]
@@ -547,8 +550,7 @@ mod tests {
             signals: Default::default(),
         };
 
-        let (team, workflow, _warnings) =
-            assemble_delegated_plan(&snap, breakdown.band, &prompt);
+        let (team, workflow, _warnings) = assemble_delegated_plan(&snap, breakdown.band, &prompt);
 
         assert!(!team.agents.is_empty());
         let justification = &team.agents[0].justification;

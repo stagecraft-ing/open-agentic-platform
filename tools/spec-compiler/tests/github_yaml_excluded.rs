@@ -37,7 +37,9 @@ fn github_workflow_yaml_does_not_trigger_v004() {
 
     let out = open_agentic_spec_compiler::compile(root).expect("compile");
     let v: Value = serde_json::from_slice(&out.registry_json).expect("registry JSON");
-    let violations = v["validation"]["violations"].as_array().expect("violations array");
+    let violations = v["validation"]["violations"]
+        .as_array()
+        .expect("violations array");
     let v004_under_github: Vec<_> = violations
         .iter()
         .filter(|x| x["code"].as_str() == Some("V-004"))

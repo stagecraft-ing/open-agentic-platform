@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
-    authoritative_or_allow_invalid, filter_features, find_feature_by_id, features_sorted,
-    load_registry, serialize_json_compact_or_pretty, status_report, DEFAULT_REGISTRY_REL_PATH,
-    KNOWN_STATUSES,
+    DEFAULT_REGISTRY_REL_PATH, KNOWN_STATUSES, authoritative_or_allow_invalid, features_sorted,
+    filter_features, find_feature_by_id, load_registry, serialize_json_compact_or_pretty,
+    status_report,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -136,17 +136,17 @@ fn main() -> ExitCode {
             feature_id,
             json: _json,
             compact,
-        } => {
-            match find_feature_by_id(&registry, &feature_id) {
-                Some(rec) => {
-                    if let Err(code) = print_json_or_exit(&rec, compact) {
-                        return code;
-                    }
-                    ExitCode::SUCCESS
+        } => match find_feature_by_id(&registry, &feature_id) {
+            Some(rec) => {
+                if let Err(code) = print_json_or_exit(&rec, compact) {
+                    return code;
                 }
-                None => exit_with_prefixed_message(1, format_args!("feature id not found: {feature_id}")),
+                ExitCode::SUCCESS
             }
-        }
+            None => {
+                exit_with_prefixed_message(1, format_args!("feature id not found: {feature_id}"))
+            }
+        },
         Command::StatusReport {
             show_ids,
             json,

@@ -18,13 +18,14 @@ pub async fn resolve_token() -> Option<String> {
         return Some(token);
     }
     // Env var fallback
-    std::env::var("GITHUB_TOKEN").ok()
+    std::env::var("GITHUB_TOKEN")
+        .ok()
         .or_else(|| std::env::var("GH_TOKEN").ok())
 }
 
 async fn fetch_platform_token(url: &str) -> Result<String> {
-    let m2m_token = std::env::var("PLATFORM_M2M_TOKEN")
-        .map_err(|_| anyhow!("PLATFORM_M2M_TOKEN not set"))?;
+    let m2m_token =
+        std::env::var("PLATFORM_M2M_TOKEN").map_err(|_| anyhow!("PLATFORM_M2M_TOKEN not set"))?;
     let resp = reqwest::Client::new()
         .post(url)
         .bearer_auth(&m2m_token)
@@ -43,7 +44,9 @@ pub async fn create_client() -> Result<Octocrab> {
     if let Some(token) = resolve_token().await {
         builder = builder.personal_token(token);
     }
-    builder.build().map_err(|e| anyhow!("Failed to create GitHub client: {}", e))
+    builder
+        .build()
+        .map_err(|e| anyhow!("Failed to create GitHub client: {}", e))
 }
 
 /// Shared GitHub client state.
@@ -56,7 +59,11 @@ pub struct GitHubClient {
 impl GitHubClient {
     pub async fn new() -> Result<Self> {
         let octocrab = create_client().await?;
-        Ok(Self { octocrab, owner: None, repo: None })
+        Ok(Self {
+            octocrab,
+            owner: None,
+            repo: None,
+        })
     }
 
     pub fn set_repo(&mut self, owner: String, repo: String) {

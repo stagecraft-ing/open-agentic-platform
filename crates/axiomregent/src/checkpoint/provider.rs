@@ -11,19 +11,19 @@ use serde_json::{Map, Value, json};
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::router::provider::{ToolPermissions, ToolProvider};
 use super::diff::create_file_diff;
 use super::merkle;
 use super::store::CheckpointStore;
 use super::types::{CheckpointInfo, FileEntry};
 use super::verify;
+use crate::router::provider::{ToolPermissions, ToolProvider};
 
 /// Map legacy snapshot.* tool names to checkpoint.* equivalents.
 fn normalize_tool_name(name: &str) -> &str {
     match name {
         "snapshot.create" => "checkpoint.create",
         "snapshot.list" => "checkpoint.list",
-        "snapshot.read" => "checkpoint.info",   // closest equivalent
+        "snapshot.read" => "checkpoint.info", // closest equivalent
         "snapshot.diff" => "checkpoint.diff",
         "snapshot.info" => "checkpoint.info",
         "snapshot.export" => "checkpoint.info", // no direct equivalent yet
@@ -239,7 +239,10 @@ impl ToolProvider for CheckpointProvider {
                     Some(v) => v,
                     None => return Some(Err(anyhow::anyhow!("checkpoint_id required"))),
                 };
-                let dry_run = args.get("dry_run").and_then(|v| v.as_bool()).unwrap_or(false);
+                let dry_run = args
+                    .get("dry_run")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
                 Some(self.do_restore(repo_root, checkpoint_id, dry_run).await)
             }
 
@@ -277,7 +280,10 @@ impl ToolProvider for CheckpointProvider {
                     Some(v) => v,
                     None => return Some(Err(anyhow::anyhow!("to_checkpoint_id required"))),
                 };
-                let detailed = args.get("detailed").and_then(|v| v.as_bool()).unwrap_or(false);
+                let detailed = args
+                    .get("detailed")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
                 Some(self.do_diff(from_id, to_id, detailed).await)
             }
 
@@ -412,9 +418,8 @@ impl CheckpointProvider {
         let existing = self.store.list_checkpoints(&root_str).await?;
         let parent_id = existing.first().map(|c| c.checkpoint_id.clone());
 
-        let state_hash = merkle::hash_content(
-            format!("{}:{}", merkle_root, entries.len()).as_bytes(),
-        );
+        let state_hash =
+            merkle::hash_content(format!("{}:{}", merkle_root, entries.len()).as_bytes());
 
         let now = chrono::Utc::now().to_rfc3339();
         let cp_id = uuid::Uuid::new_v4().to_string();
@@ -446,7 +451,8 @@ impl CheckpointProvider {
                 "repo_root": info.repo_root,
                 "file_count": entries.len(),
             }),
-        ).await;
+        )
+        .await;
 
         Ok(json!({
             "checkpoint_id": cp_id,
@@ -499,11 +505,7 @@ impl CheckpointProvider {
         Ok(json!({ "timeline": timeline }))
     }
 
-    async fn do_fork(
-        &self,
-        checkpoint_id: &str,
-        label: Option<String>,
-    ) -> anyhow::Result<Value> {
+    async fn do_fork(&self, checkpoint_id: &str, label: Option<String>) -> anyhow::Result<Value> {
         let forked = self.store.fork_checkpoint(checkpoint_id, label).await?;
         Ok(json!({
             "checkpoint_id": forked.checkpoint_id,
@@ -513,12 +515,7 @@ impl CheckpointProvider {
         }))
     }
 
-    async fn do_diff(
-        &self,
-        from_id: &str,
-        to_id: &str,
-        detailed: bool,
-    ) -> anyhow::Result<Value> {
+    async fn do_diff(&self, from_id: &str, to_id: &str, detailed: bool) -> anyhow::Result<Value> {
         let diff = self.store.diff_checkpoints(from_id, to_id).await?;
 
         if !detailed {

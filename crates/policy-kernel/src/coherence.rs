@@ -33,11 +33,7 @@ impl PrivilegeLevel {
     /// Worst (most restrictive) of two levels.
     #[inline]
     pub fn max_severity(a: Self, b: Self) -> Self {
-        if a.severity() >= b.severity() {
-            a
-        } else {
-            b
-        }
+        if a.severity() >= b.severity() { a } else { b }
     }
 }
 

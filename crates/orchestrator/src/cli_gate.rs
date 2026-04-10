@@ -23,9 +23,7 @@ pub struct CliGateHandler;
 impl GateHandler for CliGateHandler {
     async fn await_checkpoint(&self, step_id: &str, label: Option<&str>) -> Result<(), String> {
         let display = label.unwrap_or(step_id);
-        eprint!(
-            "\n[CHECKPOINT] {display}\nPress Enter to continue, or type 'reject' to halt: "
-        );
+        eprint!("\n[CHECKPOINT] {display}\nPress Enter to continue, or type 'reject' to halt: ");
 
         let line = read_stdin_line().await?;
         if line.trim().starts_with("reject") {
@@ -96,7 +94,12 @@ mod tests {
     #[tokio::test]
     async fn auto_approve_checkpoint_always_ok() {
         let handler = AutoApproveGateHandler;
-        assert!(handler.await_checkpoint("step_001", Some("Deploy")).await.is_ok());
+        assert!(
+            handler
+                .await_checkpoint("step_001", Some("Deploy"))
+                .await
+                .is_ok()
+        );
         assert!(handler.await_checkpoint("step_002", None).await.is_ok());
     }
 

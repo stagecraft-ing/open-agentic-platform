@@ -275,12 +275,18 @@ pub fn find_latest_unresolved_tool_call_id(messages: &[CompactionMessage]) -> Op
     let mut seen_results: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     for msg in messages {
-        if msg.role == "tool" && let Some(id) = &msg.tool_call_id {
+        if msg.role == "tool"
+            && let Some(id) = &msg.tool_call_id
+        {
             seen_results.insert(id.clone());
         }
         if let MessageContent::Blocks(blocks) = &msg.content {
             for block in blocks {
-                if let ContentBlock::ToolResult { tool_use_id: Some(id), .. } = block {
+                if let ContentBlock::ToolResult {
+                    tool_use_id: Some(id),
+                    ..
+                } = block
+                {
                     seen_results.insert(id.clone());
                 }
             }
@@ -444,8 +450,7 @@ pub fn extract_steps(messages: &[CompactionMessage], completed: bool) -> Vec<Str
 /// `decision:`, `constraint:`, `must `, `should `, `do not `.
 /// Results are deduped and capped at 10.
 pub fn extract_key_decisions(messages: &[CompactionMessage]) -> Vec<String> {
-    let keyword_re =
-        Regex::new(r"(?i)^(decision|constraint|must|should|do not)\b").unwrap();
+    let keyword_re = Regex::new(r"(?i)^(decision|constraint|must|should|do not)\b").unwrap();
     let mut values: Vec<String> = Vec::new();
 
     for msg in messages {
@@ -494,10 +499,8 @@ pub fn extract_file_modifications(messages: &[CompactionMessage]) -> Vec<FileMod
         }
     }
 
-    let mut result: Vec<FileModification> = order
-        .into_iter()
-        .filter_map(|p| map.remove(&p))
-        .collect();
+    let mut result: Vec<FileModification> =
+        order.into_iter().filter_map(|p| map.remove(&p)).collect();
     result.sort_by(|a, b| a.path.cmp(&b.path));
     result.truncate(20);
     result
@@ -651,8 +654,7 @@ pub fn render_session_context_xml(ctx: &SessionContext) -> String {
 /// Collapse the `<file_modifications>` section to a count summary when the XML
 /// budget is exceeded.
 pub fn collapse_file_modification_section(xml: &str) -> String {
-    let file_re =
-        Regex::new(r#"<file path="[^"]+" action="([^"]+)">"#).unwrap();
+    let file_re = Regex::new(r#"<file path="[^"]+" action="([^"]+)">"#).unwrap();
     let matches: Vec<_> = file_re.captures_iter(xml).collect();
     if matches.is_empty() {
         return xml.to_string();
@@ -767,11 +769,7 @@ impl ProgrammaticCompactor {
             compacted_at: compacted_at.to_string(),
             turn_count_original: messages.len(),
             token_count_original,
-            task_summary: build_task_summary(
-                messages,
-                completed_steps.len(),
-                pending_steps.len(),
-            ),
+            task_summary: build_task_summary(messages, completed_steps.len(), pending_steps.len()),
             completed_steps,
             pending_steps,
             file_modifications,
@@ -1050,7 +1048,13 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    fn msg_with_usage(id: &str, role: &str, content: &str, inp: usize, out: usize) -> CompactionMessage {
+    fn msg_with_usage(
+        id: &str,
+        role: &str,
+        content: &str,
+        inp: usize,
+        out: usize,
+    ) -> CompactionMessage {
         let mut m = text_msg(id, role, content);
         m.usage = Some(TokenUsage {
             input_tokens: inp,
@@ -1132,7 +1136,10 @@ mod tests {
         // Only one signal: uncommitted changes — should NOT trigger.
         let messages = vec![text_msg("u1", "user", "do something")];
         let result = detect_interruption(&messages, &git_dirty(2, 0), 0);
-        assert!(result.is_none(), "single signal should not trigger interruption");
+        assert!(
+            result.is_none(),
+            "single signal should not trigger interruption"
+        );
 
         // Two signals: uncommitted changes + pending steps — should trigger.
         let result2 = detect_interruption(&messages, &git_dirty(2, 0), 3);
@@ -1233,8 +1240,14 @@ mod tests {
             "decision: use Rust\nmust follow spec\nshould add tests\ndo not break API",
         )];
         let decisions = extract_key_decisions(&messages);
-        assert!(decisions.iter().any(|d| d.starts_with("decision:")), "decision prefix");
-        assert!(decisions.iter().any(|d| d.starts_with("must")), "must prefix");
+        assert!(
+            decisions.iter().any(|d| d.starts_with("decision:")),
+            "decision prefix"
+        );
+        assert!(
+            decisions.iter().any(|d| d.starts_with("must")),
+            "must prefix"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1304,19 +1317,37 @@ mod tests {
 
         let xml = render_session_context_xml(&ctx);
 
-        assert!(xml.starts_with("<session_context version=\"1\""), "root element");
-        assert!(xml.contains("compacted_at=\"2026-04-05T12:00:00Z\""), "timestamp");
+        assert!(
+            xml.starts_with("<session_context version=\"1\""),
+            "root element"
+        );
+        assert!(
+            xml.contains("compacted_at=\"2026-04-05T12:00:00Z\""),
+            "timestamp"
+        );
         assert!(xml.contains("turn_count_original=\"10\""), "turn count");
         assert!(xml.contains("<task_summary>"), "task summary element");
         assert!(xml.contains("Build the feature."), "task summary text");
-        assert!(xml.contains("<step index=\"1\">Step one</step>"), "completed step");
-        assert!(xml.contains("<step index=\"1\">Step two</step>"), "pending step");
+        assert!(
+            xml.contains("<step index=\"1\">Step one</step>"),
+            "completed step"
+        );
+        assert!(
+            xml.contains("<step index=\"1\">Step two</step>"),
+            "pending step"
+        );
         assert!(xml.contains("src/lib.rs"), "file path");
         assert!(xml.contains("action=\"modified\""), "file action");
         assert!(xml.contains("<branch>main</branch>"), "branch");
-        assert!(xml.contains("<decision>decision: use async</decision>"), "decision");
+        assert!(
+            xml.contains("<decision>decision: use async</decision>"),
+            "decision"
+        );
         assert!(xml.ends_with("</session_context>"), "closing tag");
-        assert!(!xml.contains("<interruption"), "no interruption block when None");
+        assert!(
+            !xml.contains("<interruption"),
+            "no interruption block when None"
+        );
     }
 
     #[test]
@@ -1340,9 +1371,15 @@ mod tests {
             }),
         };
         let xml = render_session_context_xml(&ctx);
-        assert!(xml.contains("<interruption detected=\"true\">"), "interruption block");
+        assert!(
+            xml.contains("<interruption detected=\"true\">"),
+            "interruption block"
+        );
         assert!(xml.contains("<operation>op</operation>"), "operation");
-        assert!(xml.contains("<resumption_hint>hint</resumption_hint>"), "hint");
+        assert!(
+            xml.contains("<resumption_hint>hint</resumption_hint>"),
+            "hint"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1363,14 +1400,23 @@ mod tests {
 
         // With preserve_recent_turns=2 and messages alternating user/assistant,
         // we should preserve the last 2 user turns and everything after them.
-        let preserved_ids: std::collections::HashSet<&str> =
-            output.preserved_messages.iter().map(|m| m.id.as_str()).collect();
+        let preserved_ids: std::collections::HashSet<&str> = output
+            .preserved_messages
+            .iter()
+            .map(|m| m.id.as_str())
+            .collect();
 
         // The last 2 user messages are m8 (index 8) and m6 (index 6).
         // Everything from m6 onward should be preserved: m6, m7, m8, m9.
-        assert!(preserved_ids.contains("m6"), "m6 (2nd-from-last user turn) preserved");
+        assert!(
+            preserved_ids.contains("m6"),
+            "m6 (2nd-from-last user turn) preserved"
+        );
         assert!(preserved_ids.contains("m7"), "m7 preserved");
-        assert!(preserved_ids.contains("m8"), "m8 (last user turn) preserved");
+        assert!(
+            preserved_ids.contains("m8"),
+            "m8 (last user turn) preserved"
+        );
         assert!(preserved_ids.contains("m9"), "m9 preserved");
 
         assert!(output.compacted_count > 0, "some messages compacted");
@@ -1392,8 +1438,11 @@ mod tests {
         let compactor = ProgrammaticCompactor::new(1);
         let output = compactor.compact(&messages, &git_clean(), "2026-04-05T12:00:00Z");
 
-        let preserved_ids: std::collections::HashSet<&str> =
-            output.preserved_messages.iter().map(|m| m.id.as_str()).collect();
+        let preserved_ids: std::collections::HashSet<&str> = output
+            .preserved_messages
+            .iter()
+            .map(|m| m.id.as_str())
+            .collect();
 
         assert!(
             preserved_ids.contains("pinned1"),

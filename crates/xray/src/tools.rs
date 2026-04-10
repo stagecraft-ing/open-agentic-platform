@@ -105,8 +105,7 @@ impl XrayTools {
             ));
         }
 
-        let (_graph, summary) =
-            crate::analysis::call_graph::analyze_directory(&target_path);
+        let (_graph, summary) = crate::analysis::call_graph::analyze_directory(&target_path);
 
         Ok(serde_json::to_value(&summary)?)
     }
@@ -121,12 +120,7 @@ impl XrayTools {
     }
 
     /// Build a context plan: which files to read for a given task and token budget.
-    pub fn xray_context(
-        &self,
-        repo_root: &Path,
-        task: String,
-        max_tokens: usize,
-    ) -> Result<Value> {
+    pub fn xray_context(&self, repo_root: &Path, task: String, max_tokens: usize) -> Result<Value> {
         let index = scan_target(repo_root, None).context("Failed to scan for context")?;
         let history_path = repo_root
             .join(".axiomregent")
@@ -211,7 +205,7 @@ mod tests {
         let files = result["files"].as_array().unwrap();
         assert_eq!(files.len(), 1);
         assert_eq!(files[0]["path"], "foo.txt"); // Scanner returns relative to scan root
-                                                 // xray::scan_target uses to_string_lossy of the path relative to scan target or something.
-                                                 // Let's check xray implementation if needed, but for now assuming it works.
+        // xray::scan_target uses to_string_lossy of the path relative to scan target or something.
+        // Let's check xray implementation if needed, but for now assuming it works.
     }
 }

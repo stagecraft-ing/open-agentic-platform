@@ -7,9 +7,9 @@
 use clap::Parser;
 use factory_engine::{FactoryAgentBridge, FactoryEngine, FactoryEngineConfig};
 use orchestrator::{
-    detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory,
-    AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, CliGateHandler,
-    ClaudeCodeExecutor, DispatchOptions, GateHandler,
+    AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
+    DispatchOptions, GateHandler, detect_resume_plan_for_run, dispatch_manifest,
+    materialize_run_directory,
 };
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -102,14 +102,24 @@ async fn main() -> ExitCode {
             eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
             return ExitCode::FAILURE;
         }
-        eprintln!("Copying scaffold from {} into project...", scaffold_src.display());
+        eprintln!(
+            "Copying scaffold from {} into project...",
+            scaffold_src.display()
+        );
         let status = std::process::Command::new("cp")
-            .args(["-a", &format!("{}/.", scaffold_src.display()), &format!("{}/", project_path.display())])
+            .args([
+                "-a",
+                &format!("{}/.", scaffold_src.display()),
+                &format!("{}/", project_path.display()),
+            ])
             .status();
         match status {
             Ok(s) if s.success() => eprintln!("  Scaffold copied successfully"),
             Ok(s) => {
-                eprintln!("  Scaffold copy failed with exit code: {}", s.code().unwrap_or(-1));
+                eprintln!(
+                    "  Scaffold copy failed with exit code: {}",
+                    s.code().unwrap_or(-1)
+                );
                 return ExitCode::FAILURE;
             }
             Err(e) => {
@@ -245,11 +255,7 @@ async fn main() -> ExitCode {
         }
     };
 
-    let phase1_tokens: u64 = summary1
-        .steps
-        .iter()
-        .filter_map(|s| s.tokens_used)
-        .sum();
+    let phase1_tokens: u64 = summary1.steps.iter().filter_map(|s| s.tokens_used).sum();
     eprintln!(
         "\nPhase 1 complete: {} steps, {} tokens",
         summary1.steps.len(),
@@ -263,13 +269,9 @@ async fn main() -> ExitCode {
     // ── Phase transition ────────────────────────────────────────────────
     eprintln!("\nPhase transition: reading frozen Build Spec...");
 
-    let build_spec_path =
-        am.output_artifact_path(run_id, "s5-ui-specification", "build-spec.yaml");
+    let build_spec_path = am.output_artifact_path(run_id, "s5-ui-specification", "build-spec.yaml");
     if !build_spec_path.exists() {
-        eprintln!(
-            "Build Spec not found at {}",
-            build_spec_path.display()
-        );
+        eprintln!("Build Spec not found at {}", build_spec_path.display());
         return ExitCode::FAILURE;
     }
 
@@ -293,10 +295,7 @@ async fn main() -> ExitCode {
         "  Phase 2 manifest: {} steps",
         transition.manifest.steps.len()
     );
-    eprintln!(
-        "  Policy shards: {}",
-        transition.policy_bundle.shards.len()
-    );
+    eprintln!("  Policy shards: {}", transition.policy_bundle.shards.len());
 
     // ── Phase 2: Scaffolding ────────────────────────────────────────────
     eprintln!("\nDispatching Phase 2...\n");
@@ -355,11 +354,7 @@ async fn main() -> ExitCode {
         }
     };
 
-    let phase2_tokens: u64 = summary2
-        .steps
-        .iter()
-        .filter_map(|s| s.tokens_used)
-        .sum();
+    let phase2_tokens: u64 = summary2.steps.iter().filter_map(|s| s.tokens_used).sum();
     eprintln!(
         "\nPhase 2 complete: {} steps, {} tokens",
         summary2.steps.len(),

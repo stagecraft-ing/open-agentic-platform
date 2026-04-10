@@ -24,10 +24,7 @@ mod sqlite_conformance {
     }
 
     /// Helper: seed a workflow with the given steps.
-    fn make_workflow(
-        wf_id: Uuid,
-        step_ids: &[(&str, &str)],
-    ) -> WorkflowState {
+    fn make_workflow(wf_id: Uuid, step_ids: &[(&str, &str)]) -> WorkflowState {
         WorkflowState::new(
             wf_id,
             "conformance-test",
@@ -222,7 +219,12 @@ mod sqlite_conformance {
         // Append events to the store.
         for i in 1..=3 {
             store
-                .append_event(wf_id, &format!("evt_{i}"), &JsonValue::from(i as i64), Some(format!("t{i}")))
+                .append_event(
+                    wf_id,
+                    &format!("evt_{i}"),
+                    &JsonValue::from(i as i64),
+                    Some(format!("t{i}")),
+                )
                 .await
                 .unwrap();
         }

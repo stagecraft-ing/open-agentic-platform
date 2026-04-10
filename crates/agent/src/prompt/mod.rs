@@ -14,18 +14,16 @@ mod assembler;
 mod compaction;
 
 pub use assembler::{
-    AssembledPrompt, AssemblyContext, AssemblyMetadata, CacheLifetime, PromptAssembler,
-    PromptSection, SectionSummary, CACHE_BOUNDARY_MARKER,
+    AssembledPrompt, AssemblyContext, AssemblyMetadata, CACHE_BOUNDARY_MARKER, CacheLifetime,
+    PromptAssembler, PromptSection, SectionSummary,
 };
 pub use compaction::{
     // Original API (backward compatible)
     CompactedResult,
-    CompactionService,
-    Message,
-    SummarizerFn,
     // Spec 046 rich types
     CompactionAuditEntry,
     CompactionMessage,
+    CompactionService,
     CompactionTriggerDecision,
     ContentBlock,
     DiffStats,
@@ -33,21 +31,23 @@ pub use compaction::{
     FileModification,
     GitSnapshot,
     InterruptionInfo,
+    Message,
     MessageContent,
     ProgrammaticCompactionOutput,
     ProgrammaticCompactor,
     SessionContext,
+    SummarizerFn,
     TokenBudgetMonitor,
     TokenUsage,
     // Extraction functions
     build_task_summary,
+    // XML rendering
+    collapse_file_modification_section,
     detect_interruption,
     extract_file_modifications,
     extract_key_decisions,
     extract_steps,
     find_latest_unresolved_tool_call_id,
-    // XML rendering
-    collapse_file_modification_section,
     minify_session_context_xml,
     render_session_context_xml,
 };

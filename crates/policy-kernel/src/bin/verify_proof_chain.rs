@@ -1,6 +1,6 @@
 //! Standalone verifier (FR-010): `verify_proof_chain <policy_bundle_hash> <chain.json>`
 
-use open_agentic_policy_kernel::{verify_proof_chain, ProofRecord};
+use open_agentic_policy_kernel::{ProofRecord, verify_proof_chain};
 use std::fs;
 use std::process;
 

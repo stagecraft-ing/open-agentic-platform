@@ -2,7 +2,11 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "spec-compiler", version, about = "Emit registry.json + build-meta.json per specs/001-spec-compiler-mvp")]
+#[command(
+    name = "spec-compiler",
+    version,
+    about = "Emit registry.json + build-meta.json per specs/001-spec-compiler-mvp"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

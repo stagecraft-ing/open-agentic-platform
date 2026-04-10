@@ -2,8 +2,8 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/044-multi-agent-orchestration/spec.md
 
-use crate::effort::EffortLevel;
 use crate::OrchestratorError;
+use crate::effort::EffortLevel;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -80,9 +80,10 @@ pub enum StepGateConfig {
 
 impl WorkflowManifest {
     pub fn load_from_file(path: &Path) -> Result<Self, OrchestratorError> {
-        let raw = std::fs::read_to_string(path).map_err(|e| OrchestratorError::InvalidManifest {
-            reason: format!("read {}: {e}", path.display()),
-        })?;
+        let raw =
+            std::fs::read_to_string(path).map_err(|e| OrchestratorError::InvalidManifest {
+                reason: format!("read {}: {e}", path.display()),
+            })?;
         serde_yaml::from_str(&raw).map_err(|e| OrchestratorError::InvalidManifest {
             reason: format!("parse YAML: {e}"),
         })
@@ -210,12 +211,7 @@ mod tests {
     use super::*;
     use crate::effort::EffortLevel;
 
-    fn sample_step(
-        id: &str,
-        agent: &str,
-        inputs: Vec<&str>,
-        outputs: Vec<&str>,
-    ) -> WorkflowStep {
+    fn sample_step(id: &str, agent: &str, inputs: Vec<&str>, outputs: Vec<&str>) -> WorkflowStep {
         WorkflowStep {
             id: id.into(),
             agent: agent.into(),

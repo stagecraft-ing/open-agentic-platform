@@ -8,20 +8,20 @@
 //! Contract. It also provides adapter discovery, agent prompt loading, pattern
 //! resolution, and schema validation.
 
-pub mod build_spec;
 pub mod adapter_manifest;
-pub mod pipeline_state;
-pub mod verification;
-pub mod validation;
 pub mod adapter_registry;
 pub mod agent_loader;
-pub mod pattern_resolver;
+pub mod build_spec;
 pub mod namespace;
+pub mod pattern_resolver;
+pub mod pipeline_state;
+pub mod validation;
+pub mod verification;
 
-pub use build_spec::BuildSpec;
 pub use adapter_manifest::AdapterManifest;
-pub use pipeline_state::PipelineState;
-pub use verification::VerificationContract;
 pub use adapter_registry::AdapterRegistry;
 pub use agent_loader::AgentPrompt;
+pub use build_spec::BuildSpec;
 pub use pattern_resolver::PatternResolver;
+pub use pipeline_state::PipelineState;
+pub use verification::VerificationContract;

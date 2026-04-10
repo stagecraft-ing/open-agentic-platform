@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use fastembed::TextEmbedding;
 use kd_tree::{KdPoint, KdTree};
 use once_cell::sync::Lazy;
@@ -18,7 +18,10 @@ static MODEL: Lazy<Result<Mutex<TextEmbedding>, String>> = Lazy::new(|| {
 });
 
 fn get_model() -> Result<parking_lot::MutexGuard<'static, TextEmbedding>> {
-    MODEL.as_ref().map(|m| m.lock()).map_err(|e| anyhow!("{}", e))
+    MODEL
+        .as_ref()
+        .map(|m| m.lock())
+        .map_err(|e| anyhow!("{}", e))
 }
 
 /// A single embedded code vector with its source content.

@@ -152,11 +152,7 @@ Do the commit with $ARGS
         assert_eq!(skill.frontmatter.skill_type, SkillType::Prompt);
         assert_eq!(
             skill.frontmatter.allowed_tools,
-            AllowedTools::list(vec![
-                "Bash".into(),
-                "FileRead".into(),
-                "Grep".into()
-            ])
+            AllowedTools::list(vec!["Bash".into(), "FileRead".into(), "Grep".into()])
         );
         assert_eq!(skill.frontmatter.model.as_deref(), Some("sonnet"));
         assert!(skill.frontmatter.hooks.contains_key("PostToolUse"));

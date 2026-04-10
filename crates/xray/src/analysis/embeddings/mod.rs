@@ -10,11 +10,12 @@ use serde::{Deserialize, Serialize};
 pub const VECTOR_SIZE: usize = 384;
 
 /// Lazily initialized fastembed model.
-static MODEL: Lazy<Result<parking_lot::Mutex<fastembed::TextEmbedding>, String>> = Lazy::new(|| {
-    fastembed::TextEmbedding::try_new(Default::default())
-        .map(parking_lot::Mutex::new)
-        .map_err(|e| format!("fastembed model initialization failed: {e}"))
-});
+static MODEL: Lazy<Result<parking_lot::Mutex<fastembed::TextEmbedding>, String>> =
+    Lazy::new(|| {
+        fastembed::TextEmbedding::try_new(Default::default())
+            .map(parking_lot::Mutex::new)
+            .map_err(|e| format!("fastembed model initialization failed: {e}"))
+    });
 
 /// A code block paired with its vector embedding.
 #[derive(Debug, Clone)]
@@ -125,13 +126,7 @@ pub fn index_directory(dir: &std::path::Path) -> Result<Vec<Vector>> {
                 .map(|s| {
                     !matches!(
                         s,
-                        ".git"
-                            | "node_modules"
-                            | "target"
-                            | "dist"
-                            | "build"
-                            | "vendor"
-                            | ".cache"
+                        ".git" | "node_modules" | "target" | "dist" | "build" | "vendor" | ".cache"
                     )
                 })
                 .unwrap_or(true)

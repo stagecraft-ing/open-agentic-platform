@@ -19,10 +19,7 @@ pub struct AgentTools {
 }
 
 impl AgentTools {
-    pub fn new(
-        workspace: Arc<WorkspaceTools>,
-        features: Arc<FeatureTools>,
-    ) -> Self {
+    pub fn new(workspace: Arc<WorkspaceTools>, features: Arc<FeatureTools>) -> Self {
         Self {
             workspace,
             features,
@@ -84,12 +81,8 @@ impl AgentTools {
             features: self.features.clone(),
         };
 
-        let valid = agent::verification::engine::VerifyEngine::run(
-            &root,
-            changeset_id,
-            profile,
-            &client,
-        )?;
+        let valid =
+            agent::verification::engine::VerifyEngine::run(&root, changeset_id, profile, &client)?;
 
         Ok(json!({
             "changeset_id": changeset_id,

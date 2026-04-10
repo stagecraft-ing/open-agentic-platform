@@ -60,7 +60,9 @@ async fn test_mcp_tools_list_contract() {
     // 3. Serialize and save/compare (Golden test)
     // Sort tools by name for deterministic comparison (HashMap iteration order varies).
     let mut result_sorted = result.clone();
-    if let Some(tools) = result_sorted.as_object_mut().and_then(|o| o.get_mut("tools"))
+    if let Some(tools) = result_sorted
+        .as_object_mut()
+        .and_then(|o| o.get_mut("tools"))
         && let Some(arr) = tools.as_array_mut()
     {
         arr.sort_by(|a, b| {

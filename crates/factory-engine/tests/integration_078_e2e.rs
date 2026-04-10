@@ -9,7 +9,9 @@
 // - Policy bundle is returned (not discarded)
 
 use factory_engine::{FactoryEngine, FactoryEngineConfig};
-use orchestrator::{dispatch_manifest_noop, materialize_run_directory, ArtifactManager, StepStatus};
+use orchestrator::{
+    ArtifactManager, StepStatus, dispatch_manifest_noop, materialize_run_directory,
+};
 use std::path::PathBuf;
 
 /// Resolve the factory root relative to the crate directory.
@@ -24,7 +26,11 @@ fn build_spec_example() -> PathBuf {
 }
 
 /// Pre-populate all output artifacts for a manifest's steps so dispatch_manifest_noop succeeds.
-fn populate_artifacts(am: &ArtifactManager, run_id: uuid::Uuid, manifest: &orchestrator::WorkflowManifest) {
+fn populate_artifacts(
+    am: &ArtifactManager,
+    run_id: uuid::Uuid,
+    manifest: &orchestrator::WorkflowManifest,
+) {
     for step in &manifest.steps {
         for output in &step.outputs {
             let path = am.output_artifact_path(run_id, &step.id, output);
@@ -60,7 +66,11 @@ fn noop_e2e_phase1_generates_six_process_stages() {
         .expect("start_pipeline should succeed");
 
     // Phase 1 manifest has 6 stages (s0–s5).
-    assert_eq!(result.manifest.steps.len(), 6, "Phase 1 should have 6 stages");
+    assert_eq!(
+        result.manifest.steps.len(),
+        6,
+        "Phase 1 should have 6 stages"
+    );
     assert_eq!(result.manifest.steps[0].id, "s0-preflight");
     assert_eq!(result.manifest.steps[5].id, "s5-ui-specification");
 
@@ -69,7 +79,11 @@ fn noop_e2e_phase1_generates_six_process_stages() {
         .manifest
         .validate_and_order()
         .expect("Phase 1 manifest should validate");
-    assert_eq!(order, vec![0, 1, 2, 3, 4, 5], "Phase 1 stages should be linear");
+    assert_eq!(
+        order,
+        vec![0, 1, 2, 3, 4, 5],
+        "Phase 1 stages should be linear"
+    );
 
     // Agent bridge should have registered agents from the factory directory.
     assert!(
@@ -126,7 +140,8 @@ fn noop_e2e_full_pipeline_dispatch() {
 
     // ── Phase transition ─────────────────────────────────────────────────
     // Write a real build spec as the s5 output artifact (simulating the frozen Build Spec).
-    let build_spec_artifact = am.output_artifact_path(run_id, "s5-ui-specification", "build-spec.yaml");
+    let build_spec_artifact =
+        am.output_artifact_path(run_id, "s5-ui-specification", "build-spec.yaml");
     let real_build_spec = std::fs::read_to_string(build_spec_example()).unwrap();
     std::fs::write(&build_spec_artifact, &real_build_spec).unwrap();
 
@@ -146,7 +161,10 @@ fn noop_e2e_full_pipeline_dispatch() {
         "policy bundle should have at least one shard"
     );
     assert!(
-        transition.policy_bundle.shards.contains_key("factory:aim-vue-node"),
+        transition
+            .policy_bundle
+            .shards
+            .contains_key("factory:aim-vue-node"),
         "policy bundle should have adapter-scoped shard"
     );
 
@@ -160,10 +178,7 @@ fn noop_e2e_full_pipeline_dispatch() {
 
     // Verify s6a is first and s6h is last.
     assert_eq!(phase2.steps[0].id, "s6a-scaffold-init");
-    assert_eq!(
-        phase2.steps.last().unwrap().id,
-        "s6h-final-validation"
-    );
+    assert_eq!(phase2.steps.last().unwrap().id, "s6h-final-validation");
 
     // Validate DAG ordering.
     let order2 = phase2
@@ -175,8 +190,8 @@ fn noop_e2e_full_pipeline_dispatch() {
     // Pre-populate all Phase 2 artifacts.
     populate_artifacts(&am, run_id, phase2);
 
-    let summary2 = dispatch_manifest_noop(&am, run_id, phase2)
-        .expect("Phase 2 noop dispatch should succeed");
+    let summary2 =
+        dispatch_manifest_noop(&am, run_id, phase2).expect("Phase 2 noop dispatch should succeed");
 
     assert_eq!(summary2.steps.len(), phase2.steps.len());
     for step in &summary2.steps {
@@ -198,7 +213,11 @@ fn noop_e2e_full_pipeline_dispatch() {
         "Full pipeline noop e2e: Phase 1 = {} stages, Phase 2 = {} scaffold steps, policy rules = {}",
         summary1.steps.len(),
         summary2.steps.len(),
-        transition.policy_bundle.shards.values().map(|r| r.len()).sum::<usize>()
+        transition
+            .policy_bundle
+            .shards
+            .values()
+            .map(|r| r.len())
+            .sum::<usize>()
     );
 }
-

@@ -2,7 +2,7 @@ use chrono::{SecondsFormat, Utc};
 use open_agentic_frontmatter::split_frontmatter_optional;
 pub use open_agentic_policy_kernel::PolicyRule;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
@@ -168,7 +168,9 @@ fn sort_json_value(v: Value) -> Value {
 }
 
 /// FR-003: `scope == global` and `mode == enforce` → constitution; all other rules → shards by scope tag.
-pub fn classify_rules(rules: &[PolicyRule]) -> (Vec<PolicyRule>, BTreeMap<String, Vec<PolicyRule>>) {
+pub fn classify_rules(
+    rules: &[PolicyRule],
+) -> (Vec<PolicyRule>, BTreeMap<String, Vec<PolicyRule>>) {
     let mut constitution = Vec::new();
     let mut shards: BTreeMap<String, Vec<PolicyRule>> = BTreeMap::new();
     for r in rules {
@@ -281,9 +283,7 @@ pub fn discover_policy_sources(repo_root: &Path) -> Result<Vec<PolicySource>, Co
         .into_iter()
         .filter_entry(|e| !should_prune_walk_entry(e))
     {
-        let entry = entry.map_err(|e| {
-            std::io::Error::other(format!("walkdir: {e}"))
-        })?;
+        let entry = entry.map_err(|e| std::io::Error::other(format!("walkdir: {e}")))?;
         if !entry.file_type().is_file() {
             continue;
         }
@@ -322,12 +322,7 @@ fn should_prune_walk_entry(e: &walkdir::DirEntry) -> bool {
     }
     e.file_name()
         .to_str()
-        .map(|n| {
-            matches!(
-                n,
-                ".git" | ".claude" | "node_modules" | "target" | "build"
-            )
-        })
+        .map(|n| matches!(n, ".git" | ".claude" | "node_modules" | "target" | "build"))
         .unwrap_or(false)
 }
 
@@ -344,7 +339,11 @@ struct RawRuleBlock {
     max_diff_bytes: Option<u64>,
 }
 
-fn parse_policy_blocks(raw: &str, source_path: &str, violations: &mut Vec<Violation>) -> Vec<PolicyRule> {
+fn parse_policy_blocks(
+    raw: &str,
+    source_path: &str,
+    violations: &mut Vec<Violation>,
+) -> Vec<PolicyRule> {
     let mut rules = Vec::new();
     let mut in_block = false;
     let mut block = String::new();
@@ -392,7 +391,7 @@ fn parse_rule_block(block: &str, source_path: &str) -> Result<PolicyRule, Vec<Vi
                 severity: "error".into(),
                 message: format!("invalid policy block YAML: {e}"),
                 path: Some(source_path.into()),
-            }])
+            }]);
         }
     };
 
@@ -481,7 +480,11 @@ fn required_field(
     source_path: &str,
     violations: &mut Vec<Violation>,
 ) -> Option<String> {
-    if value.as_deref().map(|v| v.trim().is_empty()).unwrap_or(true) {
+    if value
+        .as_deref()
+        .map(|v| v.trim().is_empty())
+        .unwrap_or(true)
+    {
         violations.push(Violation {
             code: "V-102".into(),
             severity: "error".into(),
@@ -659,8 +662,7 @@ scope: domain:payments
         let a = compile(tmp.path()).expect("compile");
         let b = compile(tmp.path()).expect("compile");
         assert_eq!(
-            a.policy_bundle_hash,
-            b.policy_bundle_hash,
+            a.policy_bundle_hash, b.policy_bundle_hash,
             "hash must not depend on compilation timestamp"
         );
         let va = build_bundle_json_value(&a);

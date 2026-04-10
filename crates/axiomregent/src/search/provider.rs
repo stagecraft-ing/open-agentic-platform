@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-
 use async_trait::async_trait;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::sync::Arc;
 use walkdir::WalkDir;
 
-use crate::router::provider::{ToolPermissions, ToolProvider};
 use super::embeddings;
 use super::store::{IndexEntry, SearchStore};
+use crate::router::provider::{ToolPermissions, ToolProvider};
 
 /// Source file extensions supported for indexing.
 const SUPPORTED_EXTENSIONS: &[&str] = &["rs", "py", "js", "ts", "go", "java", "tsx", "jsx"];
@@ -163,8 +162,8 @@ impl SearchProvider {
 
         // Generate embeddings for all block contents (CPU-bound; run off the async executor)
         let code_strings: Vec<String> = all_blocks.iter().map(|b| b.code_content.clone()).collect();
-        let vectors = tokio::task::spawn_blocking(move || embeddings::embed_batch(&code_strings))
-            .await??;
+        let vectors =
+            tokio::task::spawn_blocking(move || embeddings::embed_batch(&code_strings)).await??;
 
         // Build index entries pairing each block with its embedding
         let entries: Vec<IndexEntry> = all_blocks
@@ -190,7 +189,8 @@ impl SearchProvider {
                 "project_name": project_name,
                 "blocks_indexed": count,
             }),
-        ).await;
+        )
+        .await;
 
         Ok(json!({
             "project_name": project_name,
@@ -215,9 +215,10 @@ impl SearchProvider {
         }
 
         let query_str = query.to_string();
-        let results =
-            tokio::task::spawn_blocking(move || embeddings::search_vectors(vectors, &query_str, top_k))
-                .await??;
+        let results = tokio::task::spawn_blocking(move || {
+            embeddings::search_vectors(vectors, &query_str, top_k)
+        })
+        .await??;
 
         let count = results.len();
         Ok(json!({

@@ -1,7 +1,9 @@
 //! Load `build/policy-bundles/policy-bundle.json` per repo root (047 Phase 6).
 //! Missing or invalid bundles fall back to tier+permission-only enforcement (spec R-002).
 
-use open_agentic_policy_kernel::{PolicyBundle, PolicyDecision, PolicyRule, ToolCallContext, evaluate, PolicyOutcome};
+use open_agentic_policy_kernel::{
+    PolicyBundle, PolicyDecision, PolicyOutcome, PolicyRule, ToolCallContext, evaluate,
+};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -36,9 +38,7 @@ impl PolicyBundleCache {
 
     /// Returns [`None`] when the bundle file is absent or cannot be parsed (fallback path).
     pub fn bundle_for_repo_root(&self, repo_root: &str) -> Option<Arc<PolicyBundle>> {
-        let key = Path::new(repo_root)
-            .to_string_lossy()
-            .to_string();
+        let key = Path::new(repo_root).to_string_lossy().to_string();
         {
             let guard = self.cache.read().expect("policy bundle cache poisoned");
             if let Some(hit) = guard.get(&key) {

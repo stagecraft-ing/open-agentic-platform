@@ -5,8 +5,8 @@
 // constructing the appropriate `WorkflowStore` + `EventNotifier` pair
 // based on the selected backend.
 
-use crate::store::{EventNotifier, WorkflowStore};
 use crate::OrchestratorError;
+use crate::store::{EventNotifier, WorkflowStore};
 use std::sync::Arc;
 
 /// Selects which storage backend to use for workflow persistence.
@@ -33,7 +33,9 @@ pub struct PersistencePair {
 }
 
 /// Constructs the appropriate `WorkflowStore` + `EventNotifier` pair.
-pub async fn build_persistence(backend: StoreBackend) -> Result<PersistencePair, OrchestratorError> {
+pub async fn build_persistence(
+    backend: StoreBackend,
+) -> Result<PersistencePair, OrchestratorError> {
     match backend {
         #[cfg(feature = "local-sqlite")]
         StoreBackend::Local { db_path } => {

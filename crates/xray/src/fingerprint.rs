@@ -122,7 +122,9 @@ fn classify(
 
     match primary_lang {
         "Rust" => {
-            if index.languages.contains_key("TypeScript") || index.languages.contains_key("JavaScript") {
+            if index.languages.contains_key("TypeScript")
+                || index.languages.contains_key("JavaScript")
+            {
                 "rust-fullstack".to_string()
             } else if size_bucket == "tiny" || size_bucket == "small" {
                 "rust-cli".to_string()

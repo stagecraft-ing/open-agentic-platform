@@ -40,11 +40,7 @@ impl SearchStore {
         let count = entries.len();
 
         for entry in entries {
-            let vector_blob: Vec<u8> = entry
-                .vector
-                .iter()
-                .flat_map(|f| f.to_le_bytes())
-                .collect();
+            let vector_blob: Vec<u8> = entry.vector.iter().flat_map(|f| f.to_le_bytes()).collect();
 
             self.client
                 .execute(
@@ -58,10 +54,7 @@ impl SearchStore {
                         Param::Text(project_name.to_string()),
                         Param::Text(entry.file_path),
                         Param::Text(entry.block_type),
-                        entry
-                            .function_name
-                            .map(Param::Text)
-                            .unwrap_or(Param::Null),
+                        entry.function_name.map(Param::Text).unwrap_or(Param::Null),
                         Param::Text(entry.code_content),
                         Param::Blob(vector_blob),
                         entry.call_edges.map(Param::Text).unwrap_or(Param::Null),

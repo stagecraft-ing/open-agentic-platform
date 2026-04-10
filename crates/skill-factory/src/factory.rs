@@ -124,7 +124,11 @@ mod tests {
         let dir = TempDir::new().unwrap();
         write_skill(dir.path(), "good.md", "---\nname: good\n---\nbody");
         write_skill(dir.path(), "bad.md", "---\n[invalid yaml\n---\nbody");
-        write_skill(dir.path(), "also-good.md", "---\nname: also-good\n---\nbody");
+        write_skill(
+            dir.path(),
+            "also-good.md",
+            "---\nname: also-good\n---\nbody",
+        );
 
         let result = load_skills_from_dir(dir.path());
         // 2 valid + 0 from bad

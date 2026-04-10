@@ -68,10 +68,7 @@ impl AdapterRegistry {
             return Err(DiscoveryError::NoAdaptersDir(adapters_dir));
         }
 
-        let pattern = adapters_dir
-            .join("*/manifest.yaml")
-            .display()
-            .to_string();
+        let pattern = adapters_dir.join("*/manifest.yaml").display().to_string();
 
         let mut adapters = HashMap::new();
 
@@ -151,7 +148,9 @@ fn check_variant_support(spec: &BuildSpec, caps: &Capabilities, gaps: &mut Vec<C
                 gaps.push(CapabilityGap {
                     capability: "dual_stack".to_string(),
                     required: true,
-                    message: "Build Spec requires dual variant but adapter does not support dual_stack".to_string(),
+                    message:
+                        "Build Spec requires dual variant but adapter does not support dual_stack"
+                            .to_string(),
                 });
             }
         }
@@ -184,7 +183,8 @@ fn check_auth_support(spec: &BuildSpec, caps: &Capabilities, gaps: &mut Vec<Capa
                     gaps.push(CapabilityGap {
                         capability: "api_key_auth".to_string(),
                         required: true,
-                        message: "Build Spec uses API key auth but adapter does not support it".to_string(),
+                        message: "Build Spec uses API key auth but adapter does not support it"
+                            .to_string(),
                     });
                 }
             }
@@ -198,7 +198,9 @@ fn check_feature_support(spec: &BuildSpec, caps: &Capabilities, gaps: &mut Vec<C
         gaps.push(CapabilityGap {
             capability: "email_notifications".to_string(),
             required: false,
-            message: "Build Spec has notifications but adapter does not support email_notifications".to_string(),
+            message:
+                "Build Spec has notifications but adapter does not support email_notifications"
+                    .to_string(),
         });
     }
 
@@ -206,7 +208,8 @@ fn check_feature_support(spec: &BuildSpec, caps: &Capabilities, gaps: &mut Vec<C
         gaps.push(CapabilityGap {
             capability: "audit_logging".to_string(),
             required: false,
-            message: "Build Spec has audit spec but adapter does not support audit_logging".to_string(),
+            message: "Build Spec has audit spec but adapter does not support audit_logging"
+                .to_string(),
         });
     }
 }
@@ -278,7 +281,9 @@ mod tests {
             },
             directory_conventions: DirectoryConventions {
                 api_service: Some("apps/{stack}/src/services/{resource}.service.ts".into()),
-                api_controller: Some("apps/{stack}/src/controllers/{resource}.controller.ts".into()),
+                api_controller: Some(
+                    "apps/{stack}/src/controllers/{resource}.controller.ts".into(),
+                ),
                 api_route: Some("apps/{stack}/src/routes/{resource}.routes.ts".into()),
                 api_test: Some("apps/{stack}/src/services/{resource}.service.test.ts".into()),
                 api_types: Some("packages/shared/src/types/{entity}.types.ts".into()),
@@ -424,11 +429,14 @@ mod tests {
         if !factory_root.exists() {
             return;
         }
-        let registry = AdapterRegistry::discover(factory_root)
-            .expect("Failed to discover adapters");
+        let registry =
+            AdapterRegistry::discover(factory_root).expect("Failed to discover adapters");
         let mut names = registry.list();
         names.sort();
-        assert_eq!(names, vec!["aim-vue-node", "encore-react", "next-prisma", "rust-axum"]);
+        assert_eq!(
+            names,
+            vec!["aim-vue-node", "encore-react", "next-prisma", "rust-axum"]
+        );
     }
 
     #[test]
@@ -438,17 +446,24 @@ mod tests {
         if !spec_path.exists() {
             return;
         }
-        let registry = AdapterRegistry::discover(factory_root)
-            .expect("Failed to discover adapters");
-        let spec = crate::validation::validate_build_spec(&spec_path)
-            .expect("Failed to parse build spec");
+        let registry =
+            AdapterRegistry::discover(factory_root).expect("Failed to discover adapters");
+        let spec =
+            crate::validation::validate_build_spec(&spec_path).expect("Failed to parse build spec");
 
         // aim-vue-node should be compatible with CFS (dual, saml+oidc)
         let report = registry.capabilities_match("aim-vue-node", &spec);
-        assert!(report.compatible, "aim-vue-node should be compatible. Gaps: {:?}", report.gaps);
+        assert!(
+            report.compatible,
+            "aim-vue-node should be compatible. Gaps: {:?}",
+            report.gaps
+        );
 
         // next-prisma should NOT be compatible (no dual_stack)
         let report = registry.capabilities_match("next-prisma", &spec);
-        assert!(!report.compatible, "next-prisma should not be compatible with dual variant");
+        assert!(
+            !report.compatible,
+            "next-prisma should not be compatible with dual variant"
+        );
     }
 }

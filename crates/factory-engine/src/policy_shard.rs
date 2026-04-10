@@ -32,10 +32,7 @@ pub fn generate_factory_policy_shard(
     let allowed_commands = collect_allowed_commands(adapter);
     rules.push(PolicyRule {
         id: format!("{scope}/allow-adapter-commands"),
-        description: format!(
-            "Allow adapter commands for {}",
-            adapter.adapter.name
-        ),
+        description: format!("Allow adapter commands for {}", adapter.adapter.name),
         mode: "enforce".into(),
         scope: scope.clone(),
         gate: None,

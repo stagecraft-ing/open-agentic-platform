@@ -175,15 +175,16 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             } else {
                 "(no output)".to_string()
             };
-            return Err(format!(
-                "claude exited with status {code} — {detail}"
-            ));
+            return Err(format!("claude exited with status {code} — {detail}"));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let tokens_used = parse_tokens(&stdout);
 
-        Ok(DispatchResult { tokens_used, output_hashes: HashMap::new() })
+        Ok(DispatchResult {
+            tokens_used,
+            output_hashes: HashMap::new(),
+        })
     }
 }
 
@@ -230,8 +231,8 @@ mod tests {
             }
         }
 
-        let executor = ClaudeCodeExecutor::new("/tmp".into())
-            .with_prompt_lookup(Arc::new(StaticLookup));
+        let executor =
+            ClaudeCodeExecutor::new("/tmp".into()).with_prompt_lookup(Arc::new(StaticLookup));
 
         let req = DispatchRequest {
             step_id: "s1".into(),

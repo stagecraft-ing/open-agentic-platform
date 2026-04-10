@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Feature 079: Schedule data model and store trait.
 
+use crate::OrchestratorError;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use crate::OrchestratorError;
 
 /// Session context for scheduled agent runs.
 #[derive(Clone, Debug, Serialize, Deserialize)]

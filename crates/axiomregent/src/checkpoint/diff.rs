@@ -30,14 +30,8 @@ pub fn create_file_diff(path: &str, old_content: &[u8], new_content: &[u8]) -> F
     for hunk in diff.unified_diff().context_radius(3).iter_hunks() {
         // Derive start lines from the first DiffOp in the hunk (0-based → 1-based).
         let ops = hunk.ops();
-        let from_line = ops
-            .first()
-            .map(|op| op.old_range().start + 1)
-            .unwrap_or(1);
-        let to_line = ops
-            .first()
-            .map(|op| op.new_range().start + 1)
-            .unwrap_or(1);
+        let from_line = ops.first().map(|op| op.old_range().start + 1).unwrap_or(1);
+        let to_line = ops.first().map(|op| op.new_range().start + 1).unwrap_or(1);
 
         let mut lines: Vec<String> = Vec::new();
         for change in hunk.iter_changes() {

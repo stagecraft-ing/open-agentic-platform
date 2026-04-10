@@ -6,8 +6,8 @@
 // (`SqliteWorkflowStore`); a distributed backend backed by hiqlite can be
 // swapped in via the `distributed` feature flag.
 
-use crate::state::WorkflowState;
 use crate::OrchestratorError;
+use crate::state::WorkflowState;
 use async_trait::async_trait;
 use serde_json::Value as JsonValue;
 use uuid::Uuid;

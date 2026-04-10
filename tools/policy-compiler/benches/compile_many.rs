@@ -1,14 +1,12 @@
 //! NF-002: compile latency for a 50-file policy source tree (root + `.claude/policies/*.md`).
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use open_agentic_policy_compiler::compile;
 use std::fs;
 use tempfile::TempDir;
 
 fn write_rule(id: &str) -> String {
-    format!(
-        "```policy\nid: {id}\ndescription: bench\nmode: enforce\nscope: global\n```\n"
-    )
+    format!("```policy\nid: {id}\ndescription: bench\nmode: enforce\nscope: global\n```\n")
 }
 
 fn setup_50_sources(tmp: &TempDir) {
@@ -16,8 +14,11 @@ fn setup_50_sources(tmp: &TempDir) {
     let policies = tmp.path().join(".claude/policies");
     fs::create_dir_all(&policies).expect("policies");
     for i in 0..49 {
-        fs::write(policies.join(format!("p{i}.md")), write_rule(&format!("P{i}")))
-            .expect("policy file");
+        fs::write(
+            policies.join(format!("p{i}.md")),
+            write_rule(&format!("P{i}")),
+        )
+        .expect("policy file");
     }
 }
 
