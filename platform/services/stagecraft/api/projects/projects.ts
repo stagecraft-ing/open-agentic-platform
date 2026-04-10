@@ -1,7 +1,9 @@
 import { api, APIError } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import { db } from "../db/drizzle";
 import {
   organizations,
+  workspaces,
   projects,
   projectRepos,
   environments,
@@ -9,12 +11,6 @@ import {
   auditLog,
 } from "../db/schema";
 import { and, eq, desc } from "drizzle-orm";
-
-// ---------------------------------------------------------------------------
-// Default org (seeded in migration 5)
-// ---------------------------------------------------------------------------
-
-const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +28,7 @@ export type OrgRow = {
 export type ProjectRow = {
   id: string;
   orgId: string;
+  workspaceId: string;
   name: string;
   slug: string;
   description: string;
@@ -78,12 +75,14 @@ export type MemberRow = {
 // ---------------------------------------------------------------------------
 
 export const getOrg = api(
-  { expose: true, method: "GET", path: "/api/orgs/current" },
+  { expose: true, auth: true, method: "GET", path: "/api/orgs/current" },
   async (): Promise<{ org: OrgRow }> => {
+    const auth = getAuthData()!;
+
     const rows = await db
       .select()
       .from(organizations)
-      .where(eq(organizations.id, DEFAULT_ORG_ID))
+      .where(eq(organizations.id, auth.orgId))
       .limit(1);
 
     if (rows.length === 0) {
@@ -98,24 +97,30 @@ export const getOrg = api(
 // ---------------------------------------------------------------------------
 
 export const listProjects = api(
-  { expose: true, method: "GET", path: "/api/projects" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects" },
   async (): Promise<{ projects: ProjectRow[] }> => {
+    const auth = getAuthData()!;
+
     const rows = await db
       .select()
       .from(projects)
-      .where(eq(projects.orgId, DEFAULT_ORG_ID))
+      .where(eq(projects.workspaceId, auth.workspaceId))
       .orderBy(desc(projects.createdAt));
     return { projects: rows };
   }
 );
 
 export const getProject = api(
-  { expose: true, method: "GET", path: "/api/projects/:id" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:id" },
   async (req: { id: string }): Promise<{ project: ProjectRow }> => {
+    const auth = getAuthData()!;
+
     const rows = await db
       .select()
       .from(projects)
-      .where(eq(projects.id, req.id))
+      .where(
+        and(eq(projects.id, req.id), eq(projects.workspaceId, auth.workspaceId))
+      )
       .limit(1);
 
     if (rows.length === 0) {
@@ -129,12 +134,13 @@ type CreateProjectRequest = {
   name: string;
   slug: string;
   description?: string;
-  actorUserId: string;
 };
 
 export const createProject = api(
-  { expose: true, method: "POST", path: "/api/projects" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects" },
   async (req: CreateProjectRequest): Promise<{ project: ProjectRow }> => {
+    const auth = getAuthData()!;
+
     if (!req.name || !req.slug) {
       throw APIError.invalidArgument("name and slug are required");
     }
@@ -142,26 +148,27 @@ export const createProject = api(
     const [project] = await db
       .insert(projects)
       .values({
-        orgId: DEFAULT_ORG_ID,
+        orgId: auth.orgId,
+        workspaceId: auth.workspaceId,
         name: req.name,
         slug: req.slug,
         description: req.description ?? "",
-        createdBy: req.actorUserId,
+        createdBy: auth.userID,
       })
       .returning();
 
     await db.insert(auditLog).values({
-      actorUserId: req.actorUserId,
+      actorUserId: auth.userID,
       action: "project.create",
       targetType: "project",
       targetId: project.id,
-      metadata: { name: req.name, slug: req.slug },
+      metadata: { name: req.name, slug: req.slug, workspaceId: auth.workspaceId },
     });
 
     // Auto-add creator as project admin
     await db.insert(projectMembers).values({
       projectId: project.id,
-      userId: req.actorUserId,
+      userId: auth.userID,
       role: "admin",
     });
 
@@ -173,16 +180,19 @@ type UpdateProjectRequest = {
   id: string;
   name?: string;
   description?: string;
-  actorUserId: string;
 };
 
 export const updateProject = api(
-  { expose: true, method: "PUT", path: "/api/projects/:id" },
+  { expose: true, auth: true, method: "PUT", path: "/api/projects/:id" },
   async (req: UpdateProjectRequest): Promise<{ project: ProjectRow }> => {
+    const auth = getAuthData()!;
+
     const existing = await db
       .select()
       .from(projects)
-      .where(eq(projects.id, req.id))
+      .where(
+        and(eq(projects.id, req.id), eq(projects.workspaceId, auth.workspaceId))
+      )
       .limit(1);
 
     if (existing.length === 0) {
@@ -200,7 +210,7 @@ export const updateProject = api(
       .returning();
 
     await db.insert(auditLog).values({
-      actorUserId: req.actorUserId,
+      actorUserId: auth.userID,
       action: "project.update",
       targetType: "project",
       targetId: req.id,
@@ -212,15 +222,16 @@ export const updateProject = api(
 );
 
 export const deleteProject = api(
-  { expose: true, method: "DELETE", path: "/api/projects/:id" },
-  async (req: {
-    id: string;
-    actorUserId?: string;
-  }): Promise<{ ok: true }> => {
+  { expose: true, auth: true, method: "DELETE", path: "/api/projects/:id" },
+  async (req: { id: string }): Promise<{ ok: true }> => {
+    const auth = getAuthData()!;
+
     const existing = await db
       .select()
       .from(projects)
-      .where(eq(projects.id, req.id))
+      .where(
+        and(eq(projects.id, req.id), eq(projects.workspaceId, auth.workspaceId))
+      )
       .limit(1);
 
     if (existing.length === 0) {
@@ -230,8 +241,7 @@ export const deleteProject = api(
     await db.delete(projects).where(eq(projects.id, req.id));
 
     await db.insert(auditLog).values({
-      actorUserId:
-        req.actorUserId ?? "00000000-0000-0000-0000-000000000000",
+      actorUserId: auth.userID,
       action: "project.delete",
       targetType: "project",
       targetId: req.id,
@@ -243,12 +253,36 @@ export const deleteProject = api(
 );
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function verifyProjectOwnership(
+  projectId: string,
+  workspaceId: string
+): Promise<void> {
+  const [row] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId))
+    )
+    .limit(1);
+
+  if (!row) {
+    throw APIError.notFound("project not found");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Project Repos
 // ---------------------------------------------------------------------------
 
 export const listProjectRepos = api(
-  { expose: true, method: "GET", path: "/api/projects/:projectId/repos" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:projectId/repos" },
   async (req: { projectId: string }): Promise<{ repos: RepoRow[] }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     const rows = await db
       .select()
       .from(projectRepos)
@@ -264,12 +298,14 @@ type AddRepoRequest = {
   repoName: string;
   defaultBranch?: string;
   isPrimary?: boolean;
-  actorUserId: string;
 };
 
 export const addProjectRepo = api(
-  { expose: true, method: "POST", path: "/api/projects/:projectId/repos" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/repos" },
   async (req: AddRepoRequest): Promise<{ repo: RepoRow }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     if (!req.githubOrg || !req.repoName) {
       throw APIError.invalidArgument("githubOrg and repoName are required");
     }
@@ -286,7 +322,7 @@ export const addProjectRepo = api(
       .returning();
 
     await db.insert(auditLog).values({
-      actorUserId: req.actorUserId,
+      actorUserId: auth.userID,
       action: "project_repo.add",
       targetType: "project_repo",
       targetId: repo.id,
@@ -304,14 +340,17 @@ export const addProjectRepo = api(
 export const removeProjectRepo = api(
   {
     expose: true,
+    auth: true,
     method: "DELETE",
     path: "/api/projects/:projectId/repos/:id",
   },
   async (req: {
     projectId: string;
     id: string;
-    actorUserId?: string;
   }): Promise<{ ok: true }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     const existing = await db
       .select()
       .from(projectRepos)
@@ -330,8 +369,7 @@ export const removeProjectRepo = api(
     await db.delete(projectRepos).where(eq(projectRepos.id, req.id));
 
     await db.insert(auditLog).values({
-      actorUserId:
-        req.actorUserId ?? "00000000-0000-0000-0000-000000000000",
+      actorUserId: auth.userID,
       action: "project_repo.remove",
       targetType: "project_repo",
       targetId: req.id,
@@ -351,10 +389,13 @@ export const removeProjectRepo = api(
 // ---------------------------------------------------------------------------
 
 export const listEnvironments = api(
-  { expose: true, method: "GET", path: "/api/projects/:projectId/envs" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:projectId/envs" },
   async (req: {
     projectId: string;
   }): Promise<{ environments: EnvironmentRow[] }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     const rows = await db
       .select()
       .from(environments)
@@ -370,14 +411,16 @@ type CreateEnvironmentRequest = {
   kind?: "preview" | "development" | "staging" | "production";
   autoDeployBranch?: string;
   requiresApproval?: boolean;
-  actorUserId: string;
 };
 
 export const createEnvironment = api(
-  { expose: true, method: "POST", path: "/api/projects/:projectId/envs" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/envs" },
   async (
     req: CreateEnvironmentRequest
   ): Promise<{ environment: EnvironmentRow }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     if (!req.name) {
       throw APIError.invalidArgument("name is required");
     }
@@ -408,7 +451,7 @@ export const createEnvironment = api(
       .returning();
 
     await db.insert(auditLog).values({
-      actorUserId: req.actorUserId,
+      actorUserId: auth.userID,
       action: "environment.create",
       targetType: "environment",
       targetId: env.id,
@@ -426,14 +469,17 @@ export const createEnvironment = api(
 export const deleteEnvironment = api(
   {
     expose: true,
+    auth: true,
     method: "DELETE",
     path: "/api/projects/:projectId/envs/:id",
   },
   async (req: {
     projectId: string;
     id: string;
-    actorUserId?: string;
   }): Promise<{ ok: true }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     const existing = await db
       .select()
       .from(environments)
@@ -452,8 +498,7 @@ export const deleteEnvironment = api(
     await db.delete(environments).where(eq(environments.id, req.id));
 
     await db.insert(auditLog).values({
-      actorUserId:
-        req.actorUserId ?? "00000000-0000-0000-0000-000000000000",
+      actorUserId: auth.userID,
       action: "environment.delete",
       targetType: "environment",
       targetId: req.id,
@@ -472,8 +517,11 @@ export const deleteEnvironment = api(
 // ---------------------------------------------------------------------------
 
 export const listProjectMembers = api(
-  { expose: true, method: "GET", path: "/api/projects/:projectId/members" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:projectId/members" },
   async (req: { projectId: string }): Promise<{ members: MemberRow[] }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     const rows = await db
       .select()
       .from(projectMembers)
@@ -487,12 +535,14 @@ type SetMemberRequest = {
   projectId: string;
   userId: string;
   role: "viewer" | "developer" | "deployer" | "admin";
-  actorUserId: string;
 };
 
 export const setProjectMember = api(
-  { expose: true, method: "POST", path: "/api/projects/:projectId/members" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/members" },
   async (req: SetMemberRequest): Promise<{ member: MemberRow }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     if (!req.userId || !req.role) {
       throw APIError.invalidArgument("userId and role are required");
     }
@@ -531,7 +581,7 @@ export const setProjectMember = api(
     }
 
     await db.insert(auditLog).values({
-      actorUserId: req.actorUserId,
+      actorUserId: auth.userID,
       action: "project_member.set",
       targetType: "project_member",
       targetId: member.id,
@@ -549,14 +599,17 @@ export const setProjectMember = api(
 export const removeProjectMember = api(
   {
     expose: true,
+    auth: true,
     method: "DELETE",
     path: "/api/projects/:projectId/members/:userId",
   },
   async (req: {
     projectId: string;
     userId: string;
-    actorUserId?: string;
   }): Promise<{ ok: true }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
     const existing = await db
       .select()
       .from(projectMembers)
@@ -577,8 +630,7 @@ export const removeProjectMember = api(
       .where(eq(projectMembers.id, existing[0].id));
 
     await db.insert(auditLog).values({
-      actorUserId:
-        req.actorUserId ?? "00000000-0000-0000-0000-000000000000",
+      actorUserId: auth.userID,
       action: "project_member.remove",
       targetType: "project_member",
       targetId: existing[0].id,

@@ -25,6 +25,7 @@ export interface AuthData {
   userID: string;
   orgId: string;
   orgSlug: string;
+  workspaceId: string;
   githubLogin: string;
   platformRole: "owner" | "admin" | "member";
 }
@@ -64,6 +65,7 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
         userID: claims.oap_user_id,
         orgId: claims.oap_org_id,
         orgSlug: claims.oap_org_slug,
+        workspaceId: claims.oap_workspace_id ?? "",
         githubLogin: claims.github_login,
         platformRole: claims.platform_role as AuthData["platformRole"],
       };
@@ -75,6 +77,7 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
     userId: string;
     orgId: string;
     orgSlug: string;
+    workspaceId?: string;
     githubLogin: string;
     platformRole: string;
     iat?: number;
@@ -89,6 +92,7 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
       userID: session.userId,
       orgId: session.orgId,
       orgSlug: session.orgSlug,
+      workspaceId: session.workspaceId ?? "",
       githubLogin: session.githubLogin,
       platformRole: session.platformRole as AuthData["platformRole"],
     };

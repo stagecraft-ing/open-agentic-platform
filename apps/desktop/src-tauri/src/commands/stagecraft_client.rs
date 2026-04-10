@@ -1,14 +1,19 @@
-//! HTTP client for Stagecraft Factory Lifecycle API (Spec 077).
+//! HTTP client for Stagecraft Platform API (Specs 077, 087).
 //!
 //! Provides dual-write capability: the local Factory engine executes pipelines
 //! while this client mirrors lifecycle events to the Stagecraft control plane
 //! for centralized audit, token tracking, and governance.
+//!
+//! Spec 087 adds workspace awareness: the client carries a workspace_id and
+//! optionally an auth_token (JWT or HMAC cookie value) for authenticated
+//! workspace endpoints.
 //!
 //! All methods are best-effort — callers log warnings on failure but never
 //! block local pipeline execution.
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::sync::RwLock;
 use std::time::Duration;
 
 /// Tauri-managed wrapper for the optional Stagecraft HTTP client.
@@ -34,15 +39,36 @@ pub fn to_stagecraft_stage_id(local_id: &str) -> &str {
 // Client
 // ---------------------------------------------------------------------------
 
-/// Thin HTTP wrapper around the Stagecraft Factory API.
+/// Thin HTTP wrapper around the Stagecraft Platform API.
 ///
 /// Held as Tauri managed state so all commands share one connection pool.
-#[derive(Clone)]
+/// Workspace-aware: carries workspace_id and optional auth_token for
+/// authenticated workspace endpoints (spec 087).
 pub struct StagecraftClient {
     client: Client,
     base_url: String,
     /// Default actor identity sent on mutating requests.
     actor_user_id: String,
+    /// Active workspace ID (set at runtime after auth).
+    workspace_id: RwLock<String>,
+    /// Auth token (JWT or HMAC cookie value) for authenticated endpoints.
+    auth_token: RwLock<Option<String>>,
+}
+
+impl Clone for StagecraftClient {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            base_url: self.base_url.clone(),
+            actor_user_id: self.actor_user_id.clone(),
+            workspace_id: RwLock::new(
+                self.workspace_id.read().unwrap().clone(),
+            ),
+            auth_token: RwLock::new(
+                self.auth_token.read().unwrap().clone(),
+            ),
+        }
+    }
 }
 
 impl StagecraftClient {
@@ -59,7 +85,85 @@ impl StagecraftClient {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
             actor_user_id: actor_user_id.to_string(),
+            workspace_id: RwLock::new(String::new()),
+            auth_token: RwLock::new(None),
         })
+    }
+
+    /// Set the active workspace ID (called after workspace selection).
+    pub fn set_workspace_id(&self, id: &str) {
+        *self.workspace_id.write().unwrap() = id.to_string();
+    }
+
+    /// Get the active workspace ID.
+    pub fn workspace_id(&self) -> String {
+        self.workspace_id.read().unwrap().clone()
+    }
+
+    /// Set the auth token (JWT or HMAC cookie value).
+    pub fn set_auth_token(&self, token: &str) {
+        *self.auth_token.write().unwrap() = Some(token.to_string());
+    }
+
+    /// Build a request with optional auth header.
+    fn authed_get(&self, url: &str) -> reqwest::RequestBuilder {
+        let mut req = self.client.get(url);
+        if let Some(token) = self.auth_token.read().unwrap().as_ref() {
+            req = req.header("Cookie", format!("__session={}", token));
+        }
+        req
+    }
+
+    fn authed_post(&self, url: &str) -> reqwest::RequestBuilder {
+        let mut req = self.client.post(url);
+        if let Some(token) = self.auth_token.read().unwrap().as_ref() {
+            req = req.header("Cookie", format!("__session={}", token));
+        }
+        req
+    }
+
+    // -- Workspace CRUD (spec 087) -------------------------------------------
+
+    /// List workspaces for the authenticated user's org.
+    pub async fn list_workspaces(&self) -> Result<ListWorkspacesResponse, StagecraftError> {
+        let url = format!("{}/api/workspaces", self.base_url);
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    /// Get a single workspace by ID.
+    pub async fn get_workspace(&self, workspace_id: &str) -> Result<GetWorkspaceResponse, StagecraftError> {
+        let url = format!("{}/api/workspaces/{}", self.base_url, workspace_id);
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    /// Get or create the default workspace for the current org.
+    pub async fn get_default_workspace(&self) -> Result<GetWorkspaceResponse, StagecraftError> {
+        let url = format!("{}/api/workspaces/by-org/default", self.base_url);
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
     }
 
     // -- FR-001: Init Pipeline ------------------------------------------------
@@ -83,6 +187,7 @@ impl StagecraftClient {
             },
             policy_overrides: None,
             actor_user_id: self.actor_user_id.clone(),
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -110,9 +215,11 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/stage/{}/confirm",
             self.base_url, project_id, sc_stage
         );
+        let ws_id = self.workspace_id();
         let body = ConfirmRequest {
             notes: notes.map(String::from),
             actor_user_id: self.actor_user_id.clone(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -140,9 +247,11 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/stage/{}/reject",
             self.base_url, project_id, sc_stage
         );
+        let ws_id = self.workspace_id();
         let body = RejectRequest {
             feedback: feedback.into(),
             actor_user_id: self.actor_user_id.clone(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -172,6 +281,7 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/status-update",
             self.base_url, project_id
         );
+        let ws_id = self.workspace_id();
         let body = StatusUpdateRequest {
             pipeline_id: pipeline_id.into(),
             status: status.into(),
@@ -179,6 +289,7 @@ impl StagecraftClient {
             error: error.map(String::from),
             phase: phase.map(String::from),
             actor_user_id: self.actor_user_id.clone(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -205,10 +316,12 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/scaffold-progress",
             self.base_url, project_id
         );
+        let ws_id = self.workspace_id();
         let body = ScaffoldProgressRequest {
             pipeline_id: pipeline_id.into(),
             features: features.to_vec(),
             actor_user_id: self.actor_user_id.clone(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -234,9 +347,11 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/cancel",
             self.base_url, project_id
         );
+        let ws_id = self.workspace_id();
         let body = CancelRequest {
             reason: reason.into(),
             actor_user_id: self.actor_user_id.clone(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -263,9 +378,11 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/events",
             self.base_url, project_id
         );
+        let ws_id = self.workspace_id();
         let body = EventIngestionRequest {
             pipeline_id: pipeline_id.into(),
             events: events.to_vec(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -293,10 +410,12 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/artifacts",
             self.base_url, project_id
         );
+        let ws_id = self.workspace_id();
         let body = RecordArtifactsRequest {
             pipeline_id: pipeline_id.into(),
             stage_id: stage_id.into(),
             artifacts: artifacts.to_vec(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -319,9 +438,15 @@ impl StagecraftClient {
         content_hash: &str,
         stage_id: &str,
     ) -> Result<LookupArtifactResponse, StagecraftError> {
+        let ws_id = self.workspace_id();
+        let ws_param = if ws_id.is_empty() {
+            String::new()
+        } else {
+            format!("&workspaceId={}", ws_id)
+        };
         let url = format!(
-            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}",
-            self.base_url, project_id, content_hash, stage_id
+            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}{}",
+            self.base_url, project_id, content_hash, stage_id, ws_param
         );
         let resp = self
             .client
@@ -351,12 +476,14 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/token-spend",
             self.base_url, project_id
         );
+        let ws_id = self.workspace_id();
         let body = TokenSpendRequest {
             run_id: run_id.into(),
             stage_id: sc_stage.into(),
             prompt_tokens,
             completion_tokens,
             model: model.into(),
+            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
         };
         let resp = self
             .client
@@ -373,6 +500,35 @@ impl StagecraftClient {
 }
 
 // ---------------------------------------------------------------------------
+// Workspace types (spec 087)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize)]
+pub struct WorkspaceInfo {
+    pub id: String,
+    #[serde(rename = "orgId")]
+    pub org_id: String,
+    pub name: String,
+    pub slug: String,
+    #[serde(rename = "objectStoreBucket")]
+    pub object_store_bucket: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListWorkspacesResponse {
+    pub workspaces: Vec<WorkspaceInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetWorkspaceResponse {
+    pub workspace: WorkspaceInfo,
+}
+
+// ---------------------------------------------------------------------------
 // Request / Response types (mirror Stagecraft's TypeScript shapes)
 // ---------------------------------------------------------------------------
 
@@ -385,6 +541,8 @@ struct InitRequest {
     policy_overrides: Option<PolicyOverrides>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -414,6 +572,8 @@ struct ConfirmRequest {
     notes: Option<String>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -429,6 +589,8 @@ struct RejectRequest {
     feedback: String,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -452,6 +614,8 @@ struct StatusUpdateRequest {
     phase: Option<String>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -484,6 +648,8 @@ struct ScaffoldProgressRequest {
     features: Vec<ScaffoldFeatureReport>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -497,6 +663,8 @@ struct CancelRequest {
     reason: String,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -520,6 +688,8 @@ pub struct OrchestratorEventReport {
 struct EventIngestionRequest {
     pipeline_id: String,
     events: Vec<OrchestratorEventReport>,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -534,6 +704,8 @@ struct TokenSpendRequest {
     prompt_tokens: u64,
     completion_tokens: u64,
     model: String,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -553,6 +725,8 @@ struct RecordArtifactsRequest {
     pipeline_id: String,
     stage_id: String,
     artifacts: Vec<ArtifactRecord>,
+    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -24,8 +24,9 @@ Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/ap
 - `users` — accounts with roles (user/admin), email, password hash
 - `sessions` — session tokens with 14-day TTL, user/admin kinds
 - `audit_log` — append-only audit trail (actor, action, target, metadata JSONB)
-- `organizations` — top-level org (name, slug)
-- `projects` — unit of work linking repos, environments, teams (org_id, name, slug)
+- `organizations` — top-level org (name, slug, GitHub identity)
+- `workspaces` — operational container scoped to a GitHub org (org_id, name, slug, object_store_bucket). The workspace is the unit of identity, governance, collaboration, knowledge intake, and factory execution (spec 087).
+- `projects` — unit of work within a workspace (workspace_id, org_id, name, slug)
 - `project_repos` — GitHub repo links (project_id, github_org, repo_name, default_branch)
 - `environments` — deployment targets (project_id, name, kind, k8s_namespace, auto_deploy_branch)
 - `project_members` — team access (project_id, user_id, role: viewer/developer/deployer/admin)

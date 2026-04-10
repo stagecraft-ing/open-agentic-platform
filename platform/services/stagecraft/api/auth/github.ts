@@ -534,6 +534,7 @@ function buildSessionCookie(
     rauthyUserId: user.rauthyUserId,
     orgId: org.orgId,
     orgSlug: org.orgSlug,
+    workspaceId: org.workspaceId,
     githubLogin: org.githubOrgLogin,
     platformRole: org.platformRole,
     email: user.email,

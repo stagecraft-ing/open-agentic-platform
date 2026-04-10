@@ -143,23 +143,50 @@ export const organizations = pgTable("organizations", {
 });
 
 // ---------------------------------------------------------------------------
+// Workspaces (spec 087)
+// ---------------------------------------------------------------------------
+
+export const workspaces = pgTable(
+  "workspaces",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    objectStoreBucket: text("object_store_bucket").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.slug)]
+);
+
+// ---------------------------------------------------------------------------
 // Projects
 // ---------------------------------------------------------------------------
 
-export const projects = pgTable("projects", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orgId: uuid("org_id").notNull(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull(),
-  description: text("description").notNull().default(""),
-  createdBy: uuid("created_by").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const projects = pgTable(
+  "projects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    workspaceId: uuid("workspace_id").notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description").notNull().default(""),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.workspaceId, t.slug)]
+);
 
 // ---------------------------------------------------------------------------
 // Project Repos

@@ -11,6 +11,7 @@ import {
   githubInstallations,
   orgMemberships,
   organizations,
+  workspaces,
 } from "../db/schema";
 import { eq, and, notInArray, inArray } from "drizzle-orm";
 
@@ -27,6 +28,7 @@ interface GitHubOrg {
 export interface ResolvedOrg {
   orgId: string;
   orgSlug: string;
+  workspaceId: string;
   githubOrgLogin: string;
   platformRole: "owner" | "admin" | "member";
 }
@@ -137,7 +139,7 @@ export async function resolveOrgMemberships(
   const matchedOrgs: ResolvedOrg[] = [];
   const matchedOrgIds: string[] = [];
 
-  // 3. Upsert org_memberships for each match
+  // 3. Upsert org_memberships for each match and resolve default workspace
   for (const row of matchedRows) {
     const ghOrg = ghOrgs.find((o) => o.id === row.installGithubOrgId);
     if (!ghOrg) continue;
@@ -163,9 +165,19 @@ export async function resolveOrgMemberships(
         },
       });
 
+    // Resolve the default workspace for this org
+    const [ws] = await db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(
+        and(eq(workspaces.orgId, row.orgId), eq(workspaces.slug, "default"))
+      )
+      .limit(1);
+
     matchedOrgs.push({
       orgId: row.orgId,
       orgSlug: row.orgSlug,
+      workspaceId: ws?.id ?? "",
       githubOrgLogin: ghOrg.login,
       platformRole: "member",
     });

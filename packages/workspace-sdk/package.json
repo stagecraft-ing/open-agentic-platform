@@ -1,0 +1,14 @@
+{
+  "name": "@opc/workspace-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./workspace": "./src/workspace.ts",
+    "./knowledge": "./src/knowledge.ts",
+    "./factory": "./src/factory.ts",
+    "./sync": "./src/sync.ts",
+    "./auth": "./src/auth.ts"
+  }
+}
