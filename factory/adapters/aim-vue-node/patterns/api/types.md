@@ -55,8 +55,11 @@ export interface {Entity}Row {
 ## Rules
 
 1. API response interfaces use camelCase field names.
-2. Database row interfaces use snake_case field names.
+2. Database row interfaces use snake_case field names matching DDL columns exactly.
 3. Service layer maps between Row and API types.
 4. All types re-exported from `packages/shared/src/index.ts`.
 5. No runtime validation in type files — that belongs in schemas.
 6. Reference fields become `string` (the UUID/ID value), not the full related object.
+7. **No local type divergence.** Service files MUST import types from `packages/shared` — they MUST NOT define local interfaces with property names that differ from the shared type. A service-local `status` field when the shared type defines `application_status` causes SQL column name mismatches that compile but fail at runtime.
+8. **Row type field names MUST match DDL column names.** If the DDL defines `application_status VARCHAR(50)`, the Row type must use `application_status` — not `status`, not `appStatus`. This is the single most common source of runtime errors.
+9. **Enum/union values MUST match DDL CHECK constraints.** If the DDL defines `CHECK (status IN ('draft', 'submitted'))`, the corresponding TypeScript union or Zod enum must contain exactly `'draft' | 'submitted'` — no more, no less.

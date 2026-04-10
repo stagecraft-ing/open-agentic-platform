@@ -114,6 +114,7 @@ patterns:
     test: "patterns/api/test.md"
     middleware: "patterns/api/middleware.md"
     types: "patterns/api/types.md"
+    ddl_validation: "patterns/api/ddl-validation.md"
   ui:
     view: "patterns/ui/view.md"
     state: "patterns/ui/state.md"

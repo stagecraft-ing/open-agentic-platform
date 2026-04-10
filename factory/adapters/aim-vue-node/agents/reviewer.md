@@ -43,12 +43,57 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] TypeScript types match SQL columns
 - [ ] Zod schemas match TypeScript types
 
+### DDL Alignment (Critical — most common source of runtime failures)
+
+These checks catch the class of bug that compiles and passes mocked tests but fails against a real database. Every finding requires structured evidence, not prose summaries.
+
+**SQL Column Name Alignment [DBA-COL]:**
+- [ ] Extract SQL string literals from every service file
+- [ ] Parse column references from all clause types: SELECT, WHERE, ORDER BY, INSERT INTO, UPDATE SET, GROUP BY, RETURNING, ON CONFLICT
+- [ ] Verify each column exists in the corresponding DDL migration table
+- [ ] Common mismatch patterns to check: camelCase in SQL (`applicationStatus` vs `application_status`), shortened names (`status` vs `application_status`), generic names (`name` vs `applicant_name`)
+- [ ] Evidence: produce a JSON artifact listing each service file, table, columns referenced, columns in DDL, and any mismatches — prose summaries are NOT acceptable
+
+**Enum/Union Value Alignment [DBA-ENUM]:**
+- [ ] For every DDL CHECK constraint with enumerated values (`CHECK (col IN ('a','b','c'))` or `= ANY(ARRAY[...])` forms), find the corresponding TypeScript union type or `z.enum()` in the shared types module
+- [ ] Find the corresponding field definition in the Build Spec
+- [ ] Verify **exact set equality** across all three layers (DDL, shared type, spec)
+- [ ] Values in DDL but not in type = Critical. Values in type but not in DDL = Critical. Zero overlap = Critical.
+- [ ] Evidence: structured JSON per enum with DDL values, type values, and diff
+
+**Response Shape Alignment [DBA-SHAPE]:**
+- [ ] A canonical pagination wrapper exists in shared types
+- [ ] Every service returning paginated results uses it with identical field names
+- [ ] Controllers do not reshape or rename fields from service returns
+- [ ] Shared types consumed by the frontend match API response structures
+
+**Shared Type Usage [DBA-LOCAL]:**
+- [ ] Every service file imports entity types from the shared types module
+- [ ] No service defines local types with property names different from shared types
+- [ ] Local types that diverge from shared types cause wrong SQL column names when services use local property names in query construction
+
+**DDL Column Validation Test Coverage:**
+- [ ] At least one DDL column validation test per service file
+- [ ] Shared DDL parsing utility exists at `tests/utils/ddl-column-validator.ts`
+- [ ] Tests assert against DDL column names read at test time (not hardcoded values)
+
+## Deficiency Tags
+
+| Tag | Category | Description |
+|---|---|---|
+| DBA-COL | SQL Column Alignment | Service SQL references a column not in DDL — most common runtime error |
+| DBA-ENUM | Enum Value Alignment | Shared type enum values don't match DDL CHECK constraint values |
+| DBA-SHAPE | Response Shape | Pagination/response wrapper field name divergence across layers |
+| DBA-LOCAL | Local Type Divergence | Service defines local types that rename shared type properties |
+
 ## Output
 
 Report issues as a list:
 ```
+- [CRITICAL] {file}:{line} — [DBA-COL-001] SQL references column '{col}' but DDL table '{table}' has no such column (did you mean '{actual_col}'?)
+- [CRITICAL] {file}:{line} — [DBA-ENUM-001] Type '{type}' allows '{values}' but DDL CHECK allows '{ddl_values}'
 - [ERROR] {file}:{line} — {description}
 - [WARN] {file}:{line} — {description}
 ```
 
-Errors must be fixed before final validation. Warnings are advisory.
+Critical and Error issues must be fixed before final validation. Warnings are advisory.

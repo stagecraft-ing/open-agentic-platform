@@ -13,10 +13,10 @@ mapped to snake_case columns via `fieldMap`.
 import { randomUUID } from 'crypto'
 import { pool } from '../db.js'
 import type { UserContext } from '../middleware/user-context.middleware.js'
+import type { {Entity}Row, Create{Entity}Input, Update{Entity}Input } from '@shared/types/{entity}.types.js'
 
-export interface {Entity}Row { {entity}_id: string; /* snake_case cols */ created_at: string; updated_at: string }
-export interface Create{Entity}Input { {fieldName}: string; /* camelCase fields */ }
-export type Update{Entity}Input = Partial<Create{Entity}Input>
+// Types imported from shared — DO NOT define local Row/Input types here.
+// Local types that rename shared type properties cause SQL column name mismatches.
 
 export const {entity}Service = {
   async findById({entity}Id: string): Promise<{Entity}Row | null> {
@@ -26,7 +26,7 @@ export const {entity}Service = {
 
   async findAll(filters: Record<string, unknown>, page: number, limit: number) {
     const where: string[] = []; const params: unknown[] = []; let idx = 1
-    if (filters.status) { where.push(`status = $${idx++}`); params.push(filters.status) }
+    if (filters.{filterField}) { where.push(`{column_name} = $${idx++}`); params.push(filters.{filterField}) }
     const clause = where.length ? `WHERE ${where.join(' AND ')}` : ''
     const offset = (page - 1) * limit
     const [data, count] = await Promise.all([
@@ -77,6 +77,8 @@ async function audit{Entity}(entityId: string, action: string, ctx: UserContext)
 
 ```ts
 // apps/api-internal/src/services/organization.service.ts
+import type { OrganizationRow, CreateOrganizationInput } from '@shared/types/organization.types.js'
+
 export const organizationService = {
   async findById(organizationId: string): Promise<OrganizationRow | null> {
     const r = await pool.query<OrganizationRow>(
@@ -115,3 +117,5 @@ export const organizationService = {
 8. **fieldMap for updates.** camelCase keys to snake_case columns; dynamic `$${idx++}` counter.
 9. **Parallel COUNT.** `findAll` runs data + COUNT queries via `Promise.all`.
 10. **Dual-stack rule.** Direct pool access is `api-internal` only. `api-public` uses `proxyRequest()`.
+11. **Import shared types.** Import `{Entity}Row`, `Create{Entity}Input`, `Update{Entity}Input` from `@shared/types/`. Never define local entity types in service files.
+12. **SQL column names = DDL column names.** Every column name in SQL strings must exist in the DDL migration. Verify before completing the file.

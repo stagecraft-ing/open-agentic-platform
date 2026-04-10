@@ -206,6 +206,39 @@ stage_gates:
         artifact: ".factory/build-spec.yaml"
         condition: "operations with state transitions reference state machine rule"
 
+      - id: "S4-006"
+        name: "Field-to-column traceability"
+        description: >
+          Every field name in API request/response shapes traces to a column
+          in the data model. Shortened or renamed fields (e.g., 'status' for
+          'application_status') are rejected — they cause SQL column name
+          mismatches that compile but fail at runtime.
+        type: cross-reference
+        source: ".factory/build-spec.yaml (api.resources.operations.*.request + response)"
+        target: "requirements/entity-model.json"
+        condition: "every field maps to a data model column under the declared naming convention"
+        severity: error
+
+      - id: "S4-007"
+        name: "Enum value alignment"
+        description: >
+          Every enumerated field in the API spec has values exactly matching the
+          data model constraints. If the data model defines CHECK (col IN ('a','b','c')),
+          the spec's allowed values must be exactly ['a','b','c'].
+        type: cross-reference
+        source: ".factory/build-spec.yaml (fields with allowed_values)"
+        target: "requirements/entity-model.json (constraint definitions)"
+        condition: "exact set equality between spec enum values and data model constraints"
+        severity: error
+
+      - id: "S4-008"
+        name: "Response shape consistency"
+        description: "All paginated list operations use the same envelope shape"
+        type: artifact-content
+        artifact: ".factory/build-spec.yaml"
+        condition: "all operations with response_type=paginated use identical envelope field names"
+        severity: warning
+
   # ── Stage 5: UI Specification ──
   - stage: "ui-specification"
     owner: process
@@ -264,6 +297,31 @@ scaffolding_gates:
         - "adapter.directory_conventions.api_controller (resolved)"
         - "adapter.directory_conventions.api_route (resolved)"
         - "adapter.directory_conventions.api_test (resolved)"
+
+    - id: "SF-API-004"
+      name: "SQL column names match DDL"
+      description: >
+        Extract SQL string literals from the generated service file. Parse
+        column references from SELECT, WHERE, ORDER BY, INSERT INTO, UPDATE SET,
+        GROUP BY, RETURNING, ON CONFLICT clauses. Verify each referenced column
+        exists in the corresponding DDL migration. Common failures: camelCase in
+        SQL ('applicationStatus' vs 'application_status'), shortened names
+        ('status' vs 'application_status').
+      type: cross-reference
+      source: "adapter.directory_conventions.api_service (resolved for current feature)"
+      target: "adapter.directory_conventions.migration (DDL column definitions)"
+      must_pass: true
+
+    - id: "SF-API-005"
+      name: "Shared types used — no local type divergence"
+      description: >
+        The generated service file imports entity types from the shared types
+        module. It does not define local types with property names that differ
+        from the shared type or the DDL columns.
+      type: grep-absent
+      pattern: "^export (interface|type) \\w+Row "
+      scope: "adapter.directory_conventions.api_service (resolved for current feature)"
+      must_pass: true
 
   # After each UI feature (one page scaffolded)
   per_ui_feature:
@@ -368,6 +426,41 @@ final_validation:
       name: "State machine fixture coverage"
       description: "Every entity with a state-machine business rule has fixtures covering all states"
       type: cross-reference
+
+    - id: "FV-P-008"
+      name: "SQL column name alignment"
+      description: >
+        Across all generated service files: every column name referenced in SQL
+        exists in the corresponding DDL migration table. Produces a structured
+        JSON evidence artifact with per-service verification results.
+      type: cross-reference
+      evidence_artifact: ".factory/verification/sql-column-alignment.json"
+
+    - id: "FV-P-009"
+      name: "Enum/union value alignment"
+      description: >
+        Every TypeScript union type or Zod enum that corresponds to a DDL CHECK
+        constraint has an identical value set. Values present in DDL but absent
+        in the type (or vice versa) are failures. Produces structured evidence.
+      type: cross-reference
+      evidence_artifact: ".factory/verification/enum-value-alignment.json"
+
+    - id: "FV-P-010"
+      name: "Response shape alignment"
+      description: >
+        Pagination wrappers are consistent across shared types, service return
+        types, and controller response serialization. A service returning
+        { data, total } while the controller sends { items, count } is a failure.
+      type: cross-reference
+      evidence_artifact: ".factory/verification/response-shape-alignment.json"
+
+    - id: "FV-P-011"
+      name: "DDL column validation test coverage"
+      description: >
+        At least one DDL column validation test exists per generated service
+        file. A shared DDL parsing utility exists. Tests assert against DDL
+        column names read at test time, not hardcoded values.
+      type: file-check
 
   # Adapter-owned checks (build, test, lint, invariants)
   adapter_checks:

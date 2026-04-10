@@ -173,3 +173,54 @@ invariants:
       pattern: "\\{\\{[A-Z_]+\\}\\}"
       scope: "apps/"
     severity: "error"
+
+  # ── DDL Alignment ──────────────────────────────────────────────────────
+  #
+  # These catch the most common class of runtime failure: code that compiles
+  # and passes mocked unit tests but fails against a real database.
+
+  - id: "INV-020"
+    description: "Service files import from shared types — no local entity type declarations"
+    check:
+      type: "grep-absent"
+      pattern: "^export (interface|type) \\w+Row "
+      scope: "apps/api-internal/src/services/"
+    severity: "error"
+    rationale: >
+      Service-local Row types diverge from shared types over time, causing
+      SQL column name mismatches. All entity types must live in packages/shared.
+
+  - id: "INV-021"
+    description: "DDL column validation test utility exists"
+    check:
+      type: "command-succeeds"
+      pattern: "test -f tests/utils/ddl-column-validator.ts || test -f packages/shared/src/test-utils/ddl-column-validator.ts"
+      scope: "."
+    severity: "warning"
+
+  - id: "INV-022"
+    description: "Every service file has a DDL column validation test"
+    check:
+      type: "command-succeeds"
+      pattern: >
+        ls apps/api-internal/src/services/*.service.ts 2>/dev/null | grep -q . || exit 0;
+        for svc in apps/api-internal/src/services/*.service.ts; do
+          base=$(basename "$svc" .service.ts);
+          test -f "apps/api-internal/src/services/${base}.columns.test.ts" ||
+          test -f "tests/ddl/${base}.columns.test.ts" ||
+          { echo "Missing DDL test for $svc"; exit 1; };
+        done
+      scope: "."
+    severity: "warning"
+
+  - id: "INV-023"
+    description: "No camelCase column names in SQL query strings"
+    check:
+      type: "grep-absent"
+      pattern: "query.*['\"`][^'\"]*[a-z][A-Z][a-z].*['\"`]"
+      scope: "apps/api-internal/src/services/"
+    severity: "error"
+    rationale: >
+      PostgreSQL column names are snake_case. camelCase in SQL strings
+      (e.g., 'applicationStatus' instead of 'application_status') compiles
+      but fails at runtime with 'column does not exist'.

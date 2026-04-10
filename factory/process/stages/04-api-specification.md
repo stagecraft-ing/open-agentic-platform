@@ -11,7 +11,7 @@ inputs:
   - requirements/variant.json
 outputs:
   - .factory/build-spec.yaml (api section populated)
-gate: S4-001 through S4-005 (from verification contract)
+gate: S4-001 through S4-008 (from verification contract)
 agent_role: API Architect
 ---
 
@@ -49,6 +49,30 @@ You are an API Architect. Using the data model, use cases, and audiences from pr
 
 Populate the `api` section of `.factory/build-spec.yaml`. Also populate `auth`, `project` (with variant), and `business_rules` sections at this stage since we now have all the information.
 
+## Cross-Stage Consistency Checks
+
+Before completing this stage, verify the Build Specification is consistent with the data model produced in Stage 3:
+
+### Field-to-Column Traceability
+
+Every field name referenced in the API specification (request shapes, response shapes, filter parameters) MUST trace to a column in the data model's entity definitions. Specifically:
+
+- **Entity field names** in operation request/response shapes must correspond to columns defined in `requirements/entity-model.json`. A field called `status` when the data model defines `application_status` is a defect — the adapter will generate SQL with the wrong column name.
+- **Naming convention compliance** — if camelCase is used in the API spec, there must be an unambiguous mapping to the snake_case data model columns (e.g., `applicationStatus` → `application_status`). Shortened or renamed fields (`status` for `application_status`) are not acceptable.
+
+### Enum Value Alignment
+
+Every enumerated field in the API specification (fields with a fixed set of allowed values) must have values that exactly match the constraint definitions in the data model:
+
+- If the data model defines `CHECK (status IN ('draft', 'submitted', 'approved'))`, the Build Spec's allowed values for that field must be exactly `['draft', 'submitted', 'approved']` — no more, no less.
+- Enum values derived from Stage 1 business requirements must be reconciled against Stage 3's data model constraints. The data model is authoritative when they conflict.
+
+### Response Shape Consistency
+
+Pagination and response envelope patterns must be consistent:
+
+- If the spec defines paginated responses, every list operation must use the same envelope shape (e.g., `{ data: T[], total: number }` — not some using `items` and others using `data`).
+
 ## What NOT to do
 
 - Do not generate code, OpenAPI specs, or framework-specific route definitions. The adapter does that.
@@ -57,4 +81,9 @@ Populate the `api` section of `.factory/build-spec.yaml`. Also populate `auth`, 
 
 ## Gate
 
-S4-001 through S4-005 must pass before Stage 5 begins.
+S4-001 through S4-008 must pass before Stage 5 begins.
+
+- S4-001 through S4-005: existing specification completeness checks
+- **S4-006**: Field-to-column traceability — every API field traces to a data model column
+- **S4-007**: Enum value alignment — every enumerated API field matches data model constraints exactly
+- **S4-008**: Response shape consistency — pagination envelopes are uniform across operations
