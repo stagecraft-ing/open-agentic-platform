@@ -10,6 +10,7 @@ on:
   pull_request:
     paths:
       - 'platform/services/deployd-api-rs/**'
+  workflow_call:
   workflow_dispatch:
 
 env:
