@@ -265,7 +265,7 @@ api:
           # Response shape
           response:
             type:
-              enum: [single, list, paginated, empty, custom]
+              enum: [single, list, paginated, empty, binary, custom]
             entity: string          # Entity name for response
             fields: [string]        # Subset of entity fields returned (empty = all)
             schema: object          # Override: inline schema if not entity-derived

@@ -74,7 +74,7 @@ For dual variant, determine which stack handles each operation:
 
 For each operation:
 - Request: params, query, body (referencing entity fields)
-- Response: single, list, paginated, empty
+- Response: single, list, paginated, empty, binary (file downloads)
 
 ### Step 6: Link Business Rules and Traceability
 

@@ -497,6 +497,7 @@ pub enum ResponseType {
     List,
     Paginated,
     Empty,
+    Binary,
     Custom,
 }
 

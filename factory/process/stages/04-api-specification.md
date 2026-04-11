@@ -34,7 +34,7 @@ You are an API Architect. Using the data model, use cases, and audiences from pr
    - Required roles (empty = any authenticated user)
    - Stack assignment (for dual variant: public, internal, or both)
    - Request shape (params, query, body with entity field references)
-   - Response shape (single, list, paginated, empty)
+   - Response shape (single, list, paginated, empty, binary)
    - Business rules enforced
    - Use case and test case traceability
 
