@@ -29,6 +29,17 @@ secrets:
     - key: DEPLOYD_DB_URL
       remoteKey: deployd-db-url
 
+secretsMount:
+  enabled: false
+  objects: []
+
+workloadIdentity:
+  clientId: ""
+
+keyVault:
+  name: ""
+  tenantId: ""
+
 oidc:
   endpoint: "https://rauthy.localdev.online"
   audience: "https://api.stagecraft.localdev.online"
