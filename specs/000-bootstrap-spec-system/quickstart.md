@@ -33,6 +33,6 @@ Adjust command after the compiler implementation chooses its validation stack.
 
 ## Clarify → Plan → Tasks workflow
 
-This repo uses Spec Kit commands under `.cursor/commands/`. After editing `spec.md`, run checklist validation in `checklists/requirements.md`, then proceed `/speckit.clarify` (if needed) and `/speckit.plan` for downstream features.
+After editing `spec.md`, run checklist validation in `checklists/requirements.md`, then create `plan.md` and `tasks.md` using the templates in `.specify/templates/`.
 
 Feature 000 is **constitutional**: changes that weaken markdown-only or JSON-only rules require explicit supersession in spec text.

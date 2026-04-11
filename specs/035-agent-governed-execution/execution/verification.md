@@ -20,7 +20,7 @@ cd apps/desktop && pnpm run check
 | axiomregent unit + integration tests | `cargo test` in `crates/axiomregent` — green (2026-03-29) |
 | agent crate | `cargo test` in `crates/agent` — green |
 | Desktop typecheck | `pnpm run check` in `apps/desktop` — green |
-| T001 spike | `.ai/findings/035-mcp-spike.md` — MCP via `--mcp-config` + stdio binary; probe port not MCP transport |
+| T001 spike | MCP via `--mcp-config` + stdio binary; probe port not MCP transport (findings file removed with .ai/ cleanup) |
 
 ### NF-001 (latency)
 

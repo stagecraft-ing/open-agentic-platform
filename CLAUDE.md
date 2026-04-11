@@ -45,7 +45,6 @@ platform/           — Organisational control plane (imported from stagecraft-i
 build/              — Compiler output (registry.json, build-meta.json)
 .claude/            — Claude Code agents, commands, rules (AI development infrastructure)
 .specify/           — Spec Kit contract metadata and templates
-.cursor/            — Cursor IDE speckit commands
 ```
 
 ## Orchestrator Behavioral Rules

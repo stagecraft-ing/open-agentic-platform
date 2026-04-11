@@ -12,7 +12,7 @@ Governed agent execution through axiomregent — permission enforcement, safety 
 
 | Area | Path |
 |------|------|
-| Spike / findings | `.ai/findings/035-mcp-spike.md` |
+| Spike / findings | `.ai/findings/035-mcp-spike.md` (removed — was pre-OSS handoff artifact) |
 | Lease + grants | `crates/axiomregent/src/snapshot/lease.rs` |
 | Router preflight + audit | `crates/axiomregent/src/router/mod.rs`, `crates/axiomregent/src/router/permissions.rs` |
 | MCP binary env | `crates/axiomregent/src/main.rs` |

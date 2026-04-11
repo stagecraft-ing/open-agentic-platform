@@ -4,7 +4,7 @@
 |-------|--------|
 | Status | **Accepted** — implemented under Feature 039 |
 | Date | 2026-03-29 |
-| Context | Slice E — `.ai/plans/next-slice.md` |
+| Context | Slice E (pre-OSS planning) |
 
 ## Context
 
@@ -70,4 +70,4 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 - `specs/000-bootstrap-spec-system/contracts/registry.schema.json` — `featureRecord.id` pattern.
 - `crates/featuregraph/src/scanner.rs` — `FEATURE_REGEX`, attribution model.
-- `.ai/plans/next-slice.md` — Slice E scope and options (a)–(c).
+- Slice E scope and options (a)–(c) (formerly in `.ai/plans/next-slice.md`, removed with .ai/ cleanup).
