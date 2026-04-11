@@ -39,7 +39,7 @@ jobs:
     name: sidecar / ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -78,7 +78,7 @@ jobs:
           copy crates\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\axiomregent-${{ matrix.target }}.exe
 
       - name: Upload sidecar artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sidecar-${{ matrix.target }}
           path: apps/desktop/src-tauri/binaries/
@@ -90,7 +90,7 @@ jobs:
     name: sidecar / aarch64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -142,7 +142,7 @@ jobs:
              apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload sidecar artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sidecar-aarch64-unknown-linux-gnu
           path: apps/desktop/src-tauri/binaries/
@@ -172,7 +172,7 @@ jobs:
     name: release / ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -184,10 +184,10 @@ jobs:
         with:
           shared-key: release-${{ matrix.target }}
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -209,7 +209,7 @@ jobs:
 
       # Download pre-built sidecar binaries from Stage 1
       - name: Download sidecar binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sidecar-${{ matrix.target }}
           path: apps/desktop/src-tauri/binaries/

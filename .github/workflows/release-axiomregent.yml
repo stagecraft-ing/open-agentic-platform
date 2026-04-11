@@ -37,7 +37,7 @@ jobs:
     name: build / ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -65,7 +65,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: axiomregent-${{ matrix.target }}
           path: dist/
@@ -77,7 +77,7 @@ jobs:
     name: build / aarch64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -130,7 +130,7 @@ jobs:
              dist/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: axiomregent-aarch64-unknown-linux-gnu
           path: dist/
@@ -143,10 +143,10 @@ jobs:
     name: publish release
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: axiomregent-*
           merge-multiple: true

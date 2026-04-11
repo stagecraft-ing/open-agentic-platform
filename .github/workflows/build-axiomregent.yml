@@ -41,7 +41,7 @@ jobs:
     name: ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -75,7 +75,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary }}
           path: apps/desktop/src-tauri/binaries/${{ matrix.binary }}
@@ -87,7 +87,7 @@ jobs:
     name: aarch64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -137,7 +137,7 @@ jobs:
           ls -lh apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: axiomregent-aarch64-unknown-linux-gnu
           path: apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
