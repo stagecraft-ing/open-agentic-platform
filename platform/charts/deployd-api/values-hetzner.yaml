@@ -2,6 +2,9 @@ image:
   repository: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
   tag: latest
 
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
 ingress:
   enabled: true
   className: nginx

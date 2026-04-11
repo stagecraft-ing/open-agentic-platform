@@ -2,6 +2,7 @@
 #
 # Required GitHub secrets:
 #   KUBECONFIG_HETZNER  -- contents of platform/infra/hetzner/kubeconfig (base64-encoded)
+#   GHCR_PAT            -- PAT with read:packages scope for pulling images from GHCR
 #
 # Required GitHub environment:
 #   "production"         -- create with protection rules for manual approval on deploy
@@ -94,6 +95,14 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG_HETZNER }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
+
+      - name: Ensure GHCR pull secret
+        run: |
+          kubectl -n deployd-system create secret docker-registry ghcr-pull-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GHCR_PAT }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy deployd-api via Helm
         run: |
