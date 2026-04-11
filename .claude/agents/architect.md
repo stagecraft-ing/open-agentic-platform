@@ -28,8 +28,11 @@ This is a governed monorepo with three layers:
 | Layer | Path | Tech |
 |-------|------|------|
 | Spec Spine | `specs/` | Markdown + YAML frontmatter, compiled to `build/spec-registry/registry.json` |
-| Rust Crates & Tools | `crates/`, `tools/` | Rust (agent, asterisk, axiomregent, blockoli, featuregraph, gitctx, run, stackwalk, titor, xray; spec-compiler, registry-consumer, spec-lint) |
+| Rust Crates | `crates/` | agent, axiomregent, factory-engine, factory-contracts, featuregraph, orchestrator, policy-kernel, run, skill-factory, tool-registry, xray |
+| Rust Tools | `tools/` | spec-compiler, registry-consumer, spec-lint, policy-compiler |
 | Desktop App (OPC) | `apps/desktop/` | Tauri v2 + React + TypeScript |
+| Factory | `factory/` | Process stages, contract schemas, adapters (aim-vue-node, next-prisma, encore-react, rust-axum) |
+| Platform | `platform/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
 
 Orchestrator rules are in `.claude/rules/orchestrator-rules.md`. Specs are the source of truth — every feature starts as a spec.
 

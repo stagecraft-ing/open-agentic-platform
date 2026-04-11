@@ -18,12 +18,13 @@ If any file is missing: log "not found" and continue.
 
 ## Available Agents
 
-Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/implement/review cycle:
+Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/implement/review cycle, plus a domain specialist:
 
 - `architect` — Plans and decomposes tasks, validates approaches against specs. Read-only.
 - `explorer` — Searches the codebase, traces dependencies, gathers context. Read-only.
 - `implementer` — Executes focused code changes from an existing plan. Produces minimal diffs.
 - `reviewer` — Post-change review for bugs, security, performance, and spec compliance. Read-only.
+- `encore-expert` — Encore.ts framework specialist for stagecraft service development. Read-only.
 
 ## Available Commands
 
@@ -38,6 +39,7 @@ Commands live in `.claude/commands/`:
 - `/validate-and-fix` — Run quality checks and automatically fix issues
 - `/cleanup` — Dead code and duplicate detection with categorized recommendations
 - `/refactor-claude-md` — Modularize large CLAUDE.md files with path-scoped rules
+- `/factory-sync` — Detect and translate upstream factory changes into OAP
 
 ## Conventions
 

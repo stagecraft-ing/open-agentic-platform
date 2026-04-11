@@ -27,11 +27,12 @@ model: sonnet
 | Layer | Path | Tech |
 |-------|------|------|
 | Spec Spine | `specs/` | Markdown + YAML frontmatter |
-| Rust Crates | `crates/{agent,asterisk,axiomregent,blockoli,featuregraph,gitctx,run,stackwalk,titor,xray}/` | Rust libraries |
-| Rust Tools | `tools/{spec-compiler,registry-consumer,spec-lint}/` | Rust binaries |
+| Rust Crates | `crates/{agent,axiomregent,factory-engine,factory-contracts,featuregraph,orchestrator,policy-kernel,run,skill-factory,tool-registry,xray}/` | Rust libraries |
+| Rust Tools | `tools/{spec-compiler,registry-consumer,spec-lint,policy-compiler}/` | Rust binaries |
+| Factory | `factory/{contract,process,adapters,docs}/` | Pipeline stages, schemas, tech adapters |
 | Desktop App | `apps/desktop/` | Tauri v2 + React + TypeScript |
+| Platform | `platform/{services,infra,charts}/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
 | Build Output | `build/` | `registry.json`, `build-meta.json` |
-| Scripts | `scripts/` | Build and CI helpers |
 
 Key files: `CLAUDE.md` (conventions), `AGENTS.md` (session protocol), `.claude/rules/orchestrator-rules.md` (behavioral rules).
 

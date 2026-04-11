@@ -15,7 +15,7 @@ Open Agentic Platform is pre-1.0. Only the latest commit on the `main` branch re
 
 Use GitHub's private security advisory feature for this repository:
 
-**GitHub Security Advisories:** https://github.com/[owner]/open-agentic-platform/security/advisories/new
+**GitHub Security Advisories:** Use the "Report a vulnerability" button on the Security tab of this repository.
 
 Do NOT open a public issue. Public disclosure of an unpatched vulnerability puts all users at risk.
 

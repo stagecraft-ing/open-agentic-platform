@@ -39,7 +39,8 @@ Repositories used for reverse engineering (for example `opc`, `platform`) are **
 
 ## Development Workflow
 
-- Use Spec Kit commands (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, etc.) with feature branches named `NNN-short-name`.
+- Create feature specs via `.cursor/commands/speckit.*.md` (Cursor) or manually in `specs/NNN-slug/spec.md`.
+- Use feature branches named `NNN-short-name`.
 - Read `.specify/contract.md` and Feature 000 before adding new authoring formats or tooling outputs.
 
 ## Governance

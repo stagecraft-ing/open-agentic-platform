@@ -8,8 +8,8 @@ This guide walks you through the entire process, starting from your business art
 
 ## Prerequisites
 
-- Python 3.10+ (for the verification harness)
-- An AI agent runtime (Claude, GPT, etc.) that can follow the Factory agent prompts
+- Rust (for `factory-run` CLI and the native verification harness)
+- An AI agent runtime (Claude CLI) for executing agent prompts
 - A target adapter installed (e.g., `aim-vue-node`, `encore-react`, `next-prisma`, `rust-axum`)
 - Your business documents (PDFs, Word docs, spreadsheets, meeting notes, etc.)
 

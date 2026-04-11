@@ -94,7 +94,10 @@ factory/
 │   ├── schemas/          4 YAML schemas + 5 JSON stage-output schemas
 │   └── examples/         Build Spec example, adapter manifest example, stage output examples
 ├── adapters/
-│   └── aim-vue-node/     First adapter: manifest, 6 agents, 11 patterns, 8 page-types, 19 invariants
+│   ├── aim-vue-node/     Express 5 + Vue 3 (manifest, agents, patterns, invariants)
+│   ├── next-prisma/      Next.js 15 + Prisma 5
+│   ├── rust-axum/        Axum + HTMX
+│   └── encore-react/     Encore.ts + React
 └── docs/                 Architecture overview, adapter agent examples
 ```
 

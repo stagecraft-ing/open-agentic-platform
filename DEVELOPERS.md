@@ -54,8 +54,9 @@ See [`platform/services/stagecraft/api/auth/auth.ts:120-122`](platform/services/
 | Service | Stack | Port | URL |
 |---------|-------|------|-----|
 | stagecraft | Encore.ts, Drizzle ORM | 4000 | http://localhost:4000 |
-| deployd-api | Express.js | 8080 | http://localhost:8080 |
-| github-app | Probot | 3000 | http://localhost:3000 |
+| deployd-api-rs | Rust (axum + hiqlite) | 8080 | http://localhost:8080 |
+
+> **Note:** GitHub webhook handling and token brokering were absorbed into stagecraft (in `api/github/`). The former standalone github-app (Probot) service no longer exists.
 
 Stagecraft also exposes the Encore development dashboard at http://localhost:9400.
 

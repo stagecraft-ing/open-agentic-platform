@@ -2,7 +2,7 @@
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-2024_edition-orange.svg)](https://www.rust-lang.org/)
-[![Specs](https://img.shields.io/badge/Specs-57_active-green.svg)](specs/)
+[![Specs](https://img.shields.io/badge/Specs-89_features-green.svg)](specs/)
 
 **The governed operating system for AI-native software delivery.**
 
@@ -10,40 +10,23 @@
 
 ---
 
-## TLDR: Agents
-Authoritative architecture rules: human truth is **markdown** (with optional YAML **frontmatter inside** `.md` files); machine registries are **compiler-emitted JSON** only. See the constitutional bootstrap spec:
+## Spec-first foundation
 
-- [`specs/000-bootstrap-spec-system/spec.md`](specs/000-bootstrap-spec-system/spec.md)
-- [`.specify/contract.md`](.specify/contract.md)
+Human truth is **markdown** (with optional YAML frontmatter); machine registries are **compiler-emitted JSON** only. The constitutional bootstrap spec defines the system’s own design contract:
 
-The **spec compiler MVP** (implements Feature 000’s contracts) is specified in [`specs/001-spec-compiler-mvp/spec.md`](specs/001-spec-compiler-mvp/spec.md). Build and run from the repo root:
+- [`specs/000-bootstrap-spec-system/spec.md`](specs/000-bootstrap-spec-system/spec.md) — the spec that defines how specs work
+- [`specs/001-spec-compiler-mvp/spec.md`](specs/001-spec-compiler-mvp/spec.md) — compiles specs to `build/spec-registry/registry.json`
+- [`specs/003-feature-lifecycle-mvp/spec.md`](specs/003-feature-lifecycle-mvp/spec.md) — status lifecycle (draft / active / superseded / retired)
+- [`specs/004-spec-to-execution-bridge-mvp/spec.md`](specs/004-spec-to-execution-bridge-mvp/spec.md) — spec → plan → tasks → changeset
 
 ```bash
+# Compile specs and query the registry
 cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
 ./tools/spec-compiler/target/release/spec-compiler compile
-```
-
-Outputs: `build/spec-registry/registry.json` and `build-meta.json`. Details: [`tools/spec-compiler/README.md`](tools/spec-compiler/README.md).
-
-The **registry consumer** (Feature 002) reads `build/spec-registry/registry.json` after a successful compile:
-
-```bash
-cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 ./tools/registry-consumer/target/release/registry-consumer list
-./tools/registry-consumer/target/release/registry-consumer show 000-bootstrap-spec-system
 ```
 
-Details: [`tools/registry-consumer/README.md`](tools/registry-consumer/README.md). Lifecycle semantics for feature **`status`** (draft / active / superseded / retired): [`specs/003-feature-lifecycle-mvp/spec.md`](specs/003-feature-lifecycle-mvp/spec.md).
-
-**Execution protocol** (spec → plan → tasks → changeset / verification, task lifecycle vs feature lifecycle): [`specs/004-spec-to-execution-bridge-mvp/spec.md`](specs/004-spec-to-execution-bridge-mvp/spec.md).
-
-**Verification & reconciliation** (evidence, changeset states, drift, `execution/verification.md`): [`specs/005-verification-reconciliation-mvp/spec.md`](specs/005-verification-reconciliation-mvp/spec.md).
-
-**Conformance lint** (optional **`W-xxx`** workflow warnings; non-blocking vs **`spec-compiler`**): [`specs/006-conformance-lint-mvp/spec.md`](specs/006-conformance-lint-mvp/spec.md), tool: [`tools/spec-lint/README.md`](tools/spec-lint/README.md).
-
-**OPC desktop** (inspect / governance / git context — operator notes): [`apps/desktop/README.md`](apps/desktop/README.md).
-
-**Registry-consumer governance** (controlled extension mode, change-class rubric, release gate checklist, contract baseline): [`docs/registry-consumer-contract-governance.md`](docs/registry-consumer-contract-governance.md).
+For the full technical architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 

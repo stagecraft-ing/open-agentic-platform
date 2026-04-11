@@ -1,87 +1,42 @@
-# Welcome to React Router!
+# Stagecraft Web Frontend
 
-A modern, production-ready template for building full-stack React applications using React Router.
+React Router v7 frontend for the Stagecraft control plane, served by the Encore.ts backend.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+## Stack
 
-## Features
+- React Router v7 (SSR + HMR)
+- TailwindCSS
+- TypeScript
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+## Routes
 
-## Getting Started
+| Path | Access | Purpose |
+|------|--------|---------|
+| `/` | Public | Landing page |
+| `/pricing` | Public | Pricing info |
+| `/signin`, `/signup` | Public | Authentication |
+| `/app` | Authenticated | User dashboard (uptime monitoring) |
+| `/app/settings` | Authenticated | User settings |
+| `/admin` | Admin only | Admin panel |
+| `/admin/users` | Admin only | User management |
+| `/admin/audit` | Admin only | Audit log viewer |
+| `/admin/signin` | Public | Admin sign-in |
 
-### Installation
+## Development
 
-Install the dependencies:
-
-```bash
-npm install
-```
-
-### Development
-
-Start the development server with HMR:
+The frontend is served by Encore.ts in development mode. Run from the stagecraft root:
 
 ```bash
-npm run dev
+npm run start
+# → http://localhost:4000
 ```
 
-Your application will be available at `http://localhost:5173`.
+Hot module replacement is active during development. No separate frontend dev server is needed.
 
-## Building for Production
-
-Create a production build:
+## Build
 
 ```bash
-npm run build
+npm run build:frontend
 ```
 
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+The built assets are served by the Encore.ts backend.
