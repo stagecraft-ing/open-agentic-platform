@@ -8,7 +8,7 @@
 //! notifications, audit, security, health checks, error handling, data
 //! ingestion, file storage, and traceability.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
 // ── Top-level Build Spec ──────────────────────────────────────────────────────
@@ -462,6 +462,9 @@ pub struct RequestBody {
     /// Inline schema override when not entity-derived.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schema: Option<serde_yaml::Value>,
+    /// MIME type for the request body (e.g. `multipart/form-data`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -488,6 +491,15 @@ pub struct ResponseSpec {
     /// Inline schema override when not entity-derived.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schema: Option<serde_yaml::Value>,
+    /// MIME type for the response (e.g. `application/octet-stream` for binary).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    /// Human-readable description of the response.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Related entities to eager-load with the response.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub includes: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -509,6 +521,8 @@ pub struct SystemEndpoint {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub auth: AuthRequirement,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_roles: Option<Vec<String>>,
 }
 
 // ── UI ────────────────────────────────────────────────────────────────────────
@@ -768,12 +782,52 @@ pub enum CorsOriginPolicy {
     Wildcard,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct HostValidation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub policy: Option<HostValidationPolicy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+/// Accept either a bare string (`host_validation: required`) as shorthand for
+/// the policy, or the full struct form (`host_validation: { policy: required }`).
+impl<'de> Deserialize<'de> for HostValidation {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StringOrStruct {
+            String(String),
+            Struct {
+                #[serde(default)]
+                policy: Option<HostValidationPolicy>,
+                #[serde(default)]
+                description: Option<String>,
+            },
+        }
+
+        match StringOrStruct::deserialize(deserializer)? {
+            StringOrStruct::String(s) => {
+                let policy =
+                    serde_yaml::from_str::<HostValidationPolicy>(&format!("\"{s}\""))
+                        .map_err(serde::de::Error::custom)?;
+                Ok(HostValidation {
+                    policy: Some(policy),
+                    description: None,
+                })
+            }
+            StringOrStruct::Struct {
+                policy,
+                description,
+            } => Ok(HostValidation {
+                policy,
+                description,
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

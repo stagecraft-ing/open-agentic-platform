@@ -96,35 +96,39 @@ async fn main() -> ExitCode {
         }
     };
 
-    // Copy scaffold source into project directory if provided.
-    if let Some(ref scaffold_src) = cli.scaffold_source {
-        if !scaffold_src.exists() {
-            eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
-            return ExitCode::FAILURE;
-        }
-        eprintln!(
-            "Copying scaffold from {} into project...",
-            scaffold_src.display()
-        );
-        let status = std::process::Command::new("cp")
-            .args([
-                "-a",
-                &format!("{}/.", scaffold_src.display()),
-                &format!("{}/", project_path.display()),
-            ])
-            .status();
-        match status {
-            Ok(s) if s.success() => eprintln!("  Scaffold copied successfully"),
-            Ok(s) => {
-                eprintln!(
-                    "  Scaffold copy failed with exit code: {}",
-                    s.code().unwrap_or(-1)
-                );
+    // Copy scaffold source into project directory if provided (skip on --resume).
+    if cli.resume.is_none() {
+        if let Some(ref scaffold_src) = cli.scaffold_source {
+            if !scaffold_src.exists() {
+                eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
                 return ExitCode::FAILURE;
             }
-            Err(e) => {
-                eprintln!("  Scaffold copy failed: {e}");
-                return ExitCode::FAILURE;
+            eprintln!(
+                "Copying scaffold from {} into project...",
+                scaffold_src.display()
+            );
+            let status = std::process::Command::new("rsync")
+                .args([
+                    "-a",
+                    "--exclude",
+                    ".git",
+                    &format!("{}/", scaffold_src.display()),
+                    &format!("{}/", project_path.display()),
+                ])
+                .status();
+            match status {
+                Ok(s) if s.success() => eprintln!("  Scaffold copied successfully"),
+                Ok(s) => {
+                    eprintln!(
+                        "  Scaffold copy failed with exit code: {}",
+                        s.code().unwrap_or(-1)
+                    );
+                    return ExitCode::FAILURE;
+                }
+                Err(e) => {
+                    eprintln!("  Scaffold copy failed: {e}");
+                    return ExitCode::FAILURE;
+                }
             }
         }
     }
