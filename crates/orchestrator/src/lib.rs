@@ -127,6 +127,8 @@ pub struct DispatchResult {
     pub tokens_used: Option<u64>,
     /// SHA-256 hex hashes of output artifacts, keyed by filename (082 FR-002).
     pub output_hashes: HashMap<String, String>,
+    /// Session ID from the claude CLI, used for `--resume` on retries.
+    pub session_id: Option<String>,
 }
 
 /// Plan for resuming a workflow from a previously persisted `state.json` (052 FR-003).
@@ -150,6 +152,8 @@ pub struct DispatchRequest {
     pub system_prompt: String,
     pub input_artifacts: Vec<PathBuf>,
     pub output_artifacts: Vec<PathBuf>,
+    /// If set, resume this claude session instead of starting fresh.
+    pub resume_session_id: Option<String>,
 }
 
 #[async_trait]
@@ -243,7 +247,9 @@ async fn dispatch_with_verify(
     let max_retries = step.max_retries.unwrap_or(3);
     let mut attempt = 0u32;
     let mut total_tokens = 0u64;
-    let mut current_prompt = build_step_system_prompt(artifact_base, run_id, step);
+    let original_prompt = build_step_system_prompt(artifact_base, run_id, step);
+    let mut current_prompt = original_prompt.clone();
+    let mut resume_session_id: Option<String> = None;
 
     loop {
         let request = DispatchRequest {
@@ -253,6 +259,7 @@ async fn dispatch_with_verify(
             system_prompt: current_prompt.clone(),
             input_artifacts: input_paths.to_vec(),
             output_artifacts: output_paths.to_vec(),
+            resume_session_id: resume_session_id.clone(),
         };
 
         let result = executor.dispatch_step(request).await.map_err(|reason| {
@@ -263,6 +270,10 @@ async fn dispatch_with_verify(
         })?;
 
         total_tokens += result.tokens_used.unwrap_or(0);
+        // Capture session ID for potential retry continuation.
+        if result.session_id.is_some() {
+            resume_session_id = result.session_id.clone();
+        }
 
         // Check declared outputs exist.
         if let Some(missing_output) = output_paths.iter().find(|p| !p.exists()) {
@@ -273,6 +284,38 @@ async fn dispatch_with_verify(
                     missing_output.display()
                 ),
             });
+        }
+
+        // Run fast pre-verification if configured — catches quick errors
+        // (e.g., type errors) without running the full build+test suite.
+        if let (Some(pre_cmds), Some(root)) = (&step.pre_verify, project_root) {
+            match run_verify_commands(pre_cmds, root).await {
+                VerifyOutcome::Passed => {
+                    // Pre-check passed, continue to full post_verify below.
+                }
+                VerifyOutcome::Failed {
+                    command,
+                    output,
+                    exit_code,
+                    ..
+                } => {
+                    attempt += 1;
+                    let detail = format!(
+                        "pre-verify command `{command}` failed (exit {:?}):\n{output}",
+                        exit_code
+                    );
+                    if attempt > max_retries {
+                        return Err(OrchestratorError::VerificationFailed {
+                            step_id: step.id.clone(),
+                            reason: format!(
+                                "pre-verification failed after {max_retries} retries:\n{detail}"
+                            ),
+                        });
+                    }
+                    current_prompt = build_retry_instruction(&original_prompt, &detail, attempt, max_retries);
+                    continue;
+                }
+            }
         }
 
         // Run post-step verification if configured (075 FR-005).
@@ -301,7 +344,8 @@ async fn dispatch_with_verify(
                         });
                     }
                     // Rebuild prompt with failure context (075 FR-006).
-                    current_prompt = build_retry_instruction(&current_prompt, &detail);
+                    // When resuming a session, use a focused retry message as the user prompt.
+                    current_prompt = build_retry_instruction(&original_prompt, &detail, attempt, max_retries);
                     continue;
                 }
             }
@@ -1561,6 +1605,7 @@ mod tests {
             Ok(DispatchResult {
                 tokens_used: Some(123),
                 output_hashes: HashMap::new(),
+                session_id: None,
             })
         }
     }
@@ -1607,6 +1652,7 @@ mod tests {
             Ok(DispatchResult {
                 tokens_used: Some(tokens_used),
                 output_hashes: HashMap::new(),
+                session_id: None,
             })
         }
     }
@@ -1638,6 +1684,7 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "do".into(),
                 gate: None,
+                pre_verify: None,
                 post_verify: None,
                 max_retries: None,
             }],
@@ -1664,6 +1711,7 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1675,6 +1723,7 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1686,6 +1735,7 @@ mod tests {
                     outputs: vec!["out3.md".into()],
                     instruction: "do 3".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1751,6 +1801,7 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1762,6 +1813,7 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1787,6 +1839,7 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "do".into(),
                 gate: None,
+                pre_verify: None,
                 post_verify: None,
                 max_retries: None,
             }],
@@ -1812,6 +1865,7 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1823,6 +1877,7 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1875,6 +1930,7 @@ mod tests {
                     outputs: vec!["out1.md".into()],
                     instruction: "do 1".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1886,6 +1942,7 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do 2".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1944,6 +2001,7 @@ mod tests {
                     outputs: vec!["out.md".into()],
                     instruction: "do a".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1955,6 +2013,7 @@ mod tests {
                     outputs: vec!["out.md".into()],
                     instruction: "do b".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -1999,6 +2058,7 @@ mod tests {
                     outputs: vec!["out.md".into()],
                     instruction: "do a".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -2010,6 +2070,7 @@ mod tests {
                     outputs: vec!["out2.md".into()],
                     instruction: "do b".into(),
                     gate: None,
+                    pre_verify: None,
                     post_verify: None,
                     max_retries: None,
                 },
@@ -2050,6 +2111,7 @@ mod tests {
             outputs: vec!["out.md".into()],
             instruction: "Summarize the research artifacts.".into(),
             gate: None,
+            pre_verify: None,
             post_verify: None,
             max_retries: None,
         };
@@ -2088,6 +2150,7 @@ mod tests {
             outputs: vec!["out.md".into()],
             instruction: "Do root work.".into(),
             gate: None,
+            pre_verify: None,
             post_verify: None,
             max_retries: None,
         };
@@ -2110,6 +2173,7 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "Write output.".into(),
                 gate: None,
+                pre_verify: None,
                 post_verify: None,
                 max_retries: None,
             }],
@@ -2153,6 +2217,7 @@ mod tests {
                 outputs: vec!["out.md".into()],
                 instruction: "Write output.".into(),
                 gate: None,
+                pre_verify: None,
                 post_verify: None,
                 max_retries: None,
             }],

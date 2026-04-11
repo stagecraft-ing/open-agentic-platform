@@ -59,6 +59,14 @@ struct Cli {
     /// Path to the scaffold source template directory to copy into the project
     #[arg(long)]
     scaffold_source: Option<PathBuf>,
+
+    /// Model to use for all agent dispatches (e.g., claude-opus-4-6)
+    #[arg(long)]
+    model: Option<String>,
+
+    /// Base timeout in seconds for Deep-effort steps (Investigate = half, Quick = quarter)
+    #[arg(long, default_value_t = 300)]
+    step_timeout: u64,
 }
 
 /// Adapts FactoryAgentBridge to the orchestrator's AgentPromptLookup trait.
@@ -145,6 +153,15 @@ async fn main() -> ExitCode {
     if let Some(ref src) = cli.scaffold_source {
         eprintln!("  Scaffold src: {}", src.display());
     }
+    if let Some(ref model) = cli.model {
+        eprintln!("  Model:        {model}");
+    }
+    eprintln!(
+        "  Timeouts:     deep={}s / investigate={}s / quick={}s",
+        cli.step_timeout,
+        cli.step_timeout / 2,
+        cli.step_timeout / 4,
+    );
     eprintln!();
 
     // ── Initialize engine ───────────────────────────────────────────────
@@ -223,7 +240,9 @@ async fn main() -> ExitCode {
     let executor = Arc::new(
         ClaudeCodeExecutor::new(project_path.clone())
             .with_prompt_lookup(lookup)
-            .with_max_turns(cli.max_turns),
+            .with_max_turns(cli.max_turns)
+            .with_model(cli.model.clone())
+            .with_step_timeout(cli.step_timeout),
     );
 
     // Create gate handler.

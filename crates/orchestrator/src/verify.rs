@@ -85,15 +85,37 @@ pub async fn run_verify_commands(commands: &[VerifyCommand], project_root: &Path
     VerifyOutcome::Passed
 }
 
-/// Build a retry instruction by prepending verification failure context (075 FR-006).
-pub fn build_retry_instruction(original_instruction: &str, stderr: &str) -> String {
+/// Build a retry instruction by appending verification failure context (075 FR-006).
+///
+/// Uses the *original* instruction (not a previously retried one) to avoid
+/// nested "PREVIOUS ATTEMPT FAILED" wrappers that waste tokens.
+pub fn build_retry_instruction(
+    original_instruction: &str,
+    verify_output: &str,
+    attempt: u32,
+    max_retries: u32,
+) -> String {
+    let truncated = truncate_verify_output(verify_output, 4000);
     format!(
-        "PREVIOUS ATTEMPT FAILED. Fix the following errors:\n\n\
-         --- Verification Output ---\n\
-         {stderr}\n\
-         ---\n\n\
-         Original instruction: {original_instruction}"
+        "{original_instruction}\n\n\
+         --- RETRY {attempt}/{max_retries} ---\n\
+         Your previous attempt failed verification. Fix the following errors, \
+         then ensure the project builds and tests pass.\n\n\
+         {truncated}\n\
+         ---"
     )
+}
+
+/// Truncate verification output to roughly `max_chars`, keeping the head and
+/// tail so both the first error and final summary are visible.
+fn truncate_verify_output(output: &str, max_chars: usize) -> String {
+    if output.len() <= max_chars {
+        return output.to_string();
+    }
+    let half = max_chars / 2;
+    let head = &output[..half];
+    let tail = &output[output.len() - half..];
+    format!("{head}\n\n... ({} chars truncated) ...\n\n{tail}", output.len() - max_chars)
 }
 
 #[cfg(test)]
@@ -148,9 +170,17 @@ mod tests {
 
     #[test]
     fn retry_instruction_format() {
-        let retry = build_retry_instruction("write the code", "type error on line 5");
-        assert!(retry.contains("PREVIOUS ATTEMPT FAILED"));
+        let retry = build_retry_instruction("write the code", "type error on line 5", 1, 3);
+        assert!(retry.contains("RETRY 1/3"));
         assert!(retry.contains("type error on line 5"));
         assert!(retry.contains("write the code"));
+    }
+
+    #[test]
+    fn truncate_verify_output_truncates_long_output() {
+        let long_output = "x".repeat(5000);
+        let truncated = truncate_verify_output(&long_output, 4000);
+        assert!(truncated.len() < 5000);
+        assert!(truncated.contains("truncated"));
     }
 }

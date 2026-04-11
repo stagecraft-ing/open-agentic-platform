@@ -25,6 +25,11 @@ pub struct WorkflowStep {
     /// Optional gate configuration for this step (052 FR-004, FR-005).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gate: Option<StepGateConfig>,
+    /// Fast pre-verification commands (e.g., typecheck only).
+    /// Run before `post_verify`. If any fails, skip `post_verify` and trigger retry immediately.
+    /// This avoids running slow full-suite verification when a quick check catches the error.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_verify: Option<Vec<VerifyCommand>>,
     /// Post-step verification commands (075 FR-005).
     /// After the agent completes, each command runs in sequence.
     /// If any fails, the step is marked verification-failed.
@@ -220,6 +225,7 @@ mod tests {
             outputs: outputs.into_iter().map(String::from).collect(),
             instruction: "test".into(),
             gate: None,
+            pre_verify: None,
             post_verify: None,
             max_retries: None,
         }

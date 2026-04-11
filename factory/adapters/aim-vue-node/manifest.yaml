@@ -81,9 +81,20 @@ commands:
   type_check: "npx tsc --noEmit"
   seed: "npx tsx scripts/run-seeds.ts"
   migrate: "npx tsx scripts/migrate.ts"
+  pre_verify:
+    - command: "npx tsc --noEmit"
+      working_dir: "."
+      timeout_ms: 30000
   feature_verify:
     - "npm run build"
     - "npm test"
+  post_verify:
+    - command: "npm run build"
+      working_dir: "."
+      timeout_ms: 120000
+    - command: "npm test"
+      working_dir: "."
+      timeout_ms: 120000
 
 directory_conventions:
   api_service: "apps/{stack}/src/services/{resource}.service.ts"

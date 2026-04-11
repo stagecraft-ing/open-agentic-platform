@@ -28,19 +28,24 @@ pub trait AgentPromptLookup: Send + Sync {
 ///        "<step_id>"
 /// ```
 ///
-/// Token usage is extracted from the JSON response and returned in
-/// `DispatchResult::tokens_used`.
+/// Token usage and session ID are extracted from the JSON response and returned in
+/// `DispatchResult`. On retries, `--resume <session_id>` is used when available.
 pub struct ClaudeCodeExecutor {
     project_path: PathBuf,
     prompt_lookup: Option<Arc<dyn AgentPromptLookup>>,
     max_turns: u32,
     allowed_tools: Vec<String>,
+    model: Option<String>,
+    /// Base timeout in seconds for Deep-effort steps.
+    /// Investigate = base/2, Quick = base/4.
+    pub step_timeout_base_secs: u64,
 }
 
 impl ClaudeCodeExecutor {
     /// Create a new executor anchored at `project_path`.
     ///
-    /// Defaults: `max_turns = 25`, `allowed_tools = ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]`.
+    /// Defaults: `max_turns = 25`, `allowed_tools = ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]`,
+    /// `step_timeout_base_secs = 300`.
     pub fn new(project_path: PathBuf) -> Self {
         Self {
             project_path,
@@ -54,6 +59,8 @@ impl ClaudeCodeExecutor {
                 "Glob".into(),
                 "Grep".into(),
             ],
+            model: None,
+            step_timeout_base_secs: 300,
         }
     }
 
@@ -73,6 +80,19 @@ impl ClaudeCodeExecutor {
     /// Override the list of tools the `claude` process is allowed to use.
     pub fn with_allowed_tools(mut self, tools: Vec<String>) -> Self {
         self.allowed_tools = tools;
+        self
+    }
+
+    /// Override the model for all spawned `claude` processes.
+    pub fn with_model(mut self, model: Option<String>) -> Self {
+        self.model = model;
+        self
+    }
+
+    /// Override the base timeout (seconds) for Deep-effort steps.
+    /// Investigate = base/2, Quick = base/4.
+    pub fn with_step_timeout(mut self, base_secs: u64) -> Self {
+        self.step_timeout_base_secs = base_secs;
         self
     }
 
@@ -105,23 +125,43 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         // The user message is a brief task summary derived from the step ID.
         let user_message = format!("Execute step: {}", request.step_id);
 
-        // Per-step safety timeout. Future improvement: derive from effort level
-        // (Quick → 5 min, Investigate → 30 min, Deep → 90 min).
-        let step_timeout = tokio::time::Duration::from_secs(3600); // 60 min safety net
+        // Effort-scaled per-step timeout: Deep = base, Investigate = base/2, Quick = base/4.
+        let timeout_secs = match request.effort {
+            crate::EffortLevel::Deep => self.step_timeout_base_secs,
+            crate::EffortLevel::Investigate => self.step_timeout_base_secs / 2,
+            crate::EffortLevel::Quick => self.step_timeout_base_secs / 4,
+        };
+        let step_timeout = tokio::time::Duration::from_secs(timeout_secs);
+
+        let mut args = vec![
+            "--print".to_string(),
+            "--output-format".to_string(),
+            "json".to_string(),
+            "--max-turns".to_string(),
+            max_turns_str.clone(),
+            "--allowedTools".to_string(),
+            tools_arg.clone(),
+        ];
+
+        if let Some(ref model) = self.model {
+            args.push("--model".to_string());
+            args.push(model.clone());
+        }
+
+        if let Some(ref session_id) = request.resume_session_id {
+            // Resume the previous session — the system prompt is already loaded,
+            // and the agent has full context of what it tried before.
+            args.push("--resume".to_string());
+            args.push(session_id.clone());
+            args.push(user_message.clone());
+        } else {
+            args.push("--system-prompt".to_string());
+            args.push(system_prompt.clone());
+            args.push(user_message.clone());
+        }
 
         let child = tokio::process::Command::new("claude")
-            .args([
-                "--print",
-                "--output-format",
-                "json",
-                "--max-turns",
-                &max_turns_str,
-                "--allowedTools",
-                &tools_arg,
-                "--system-prompt",
-                &system_prompt,
-                &user_message,
-            ])
+            .args(&args)
             .current_dir(&self.project_path)
             .spawn()
             .map_err(|e| format!("failed to spawn claude: {e}"))?;
@@ -180,26 +220,45 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let tokens_used = parse_tokens(&stdout);
+        let parsed = parse_claude_output(&stdout);
 
         Ok(DispatchResult {
-            tokens_used,
+            tokens_used: parsed.tokens_used,
             output_hashes: HashMap::new(),
+            session_id: parsed.session_id,
         })
     }
 }
 
-/// Extract token counts from the claude JSON output.
+/// Parsed fields extracted from the claude CLI JSON output.
+struct ClaudeOutput {
+    tokens_used: Option<u64>,
+    session_id: Option<String>,
+}
+
+/// Extract token counts and session ID from the claude JSON output.
 ///
 /// Expects the top-level `usage` object with `input_tokens` and
-/// `output_tokens` fields. Returns `None` if the structure is absent or
-/// cannot be parsed, so the executor remains resilient to format changes.
-fn parse_tokens(json_str: &str) -> Option<u64> {
-    let v: serde_json::Value = serde_json::from_str(json_str).ok()?;
-    let usage = v.get("usage")?;
-    let input = usage.get("input_tokens")?.as_u64().unwrap_or(0);
-    let output = usage.get("output_tokens")?.as_u64().unwrap_or(0);
-    Some(input + output)
+/// `output_tokens` fields, and an optional `session_id` string.
+/// Returns `None` fields if the structure is absent or cannot be parsed,
+/// so the executor remains resilient to format changes.
+fn parse_claude_output(json_str: &str) -> ClaudeOutput {
+    let v: serde_json::Value = match serde_json::from_str(json_str) {
+        Ok(v) => v,
+        Err(_) => return ClaudeOutput { tokens_used: None, session_id: None },
+    };
+
+    let tokens_used = v.get("usage").and_then(|u| {
+        let input = u.get("input_tokens")?.as_u64().unwrap_or(0);
+        let output = u.get("output_tokens")?.as_u64().unwrap_or(0);
+        Some(input + output)
+    });
+
+    let session_id = v.get("session_id")
+        .and_then(|s| s.as_str())
+        .map(String::from);
+
+    ClaudeOutput { tokens_used, session_id }
 }
 
 #[cfg(test)]
@@ -207,20 +266,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_tokens_extracts_sum() {
-        let json = r#"{"result":"done","usage":{"input_tokens":100,"output_tokens":50}}"#;
-        assert_eq!(parse_tokens(json), Some(150));
+    fn parse_claude_output_extracts_tokens_and_session() {
+        let json = r#"{"result":"done","usage":{"input_tokens":100,"output_tokens":50},"session_id":"abc-123"}"#;
+        let out = parse_claude_output(json);
+        assert_eq!(out.tokens_used, Some(150));
+        assert_eq!(out.session_id.as_deref(), Some("abc-123"));
     }
 
     #[test]
-    fn parse_tokens_returns_none_on_missing_usage() {
+    fn parse_claude_output_returns_none_on_missing_usage() {
         let json = r#"{"result":"done"}"#;
-        assert_eq!(parse_tokens(json), None);
+        let out = parse_claude_output(json);
+        assert_eq!(out.tokens_used, None);
+        assert_eq!(out.session_id, None);
     }
 
     #[test]
-    fn parse_tokens_returns_none_on_invalid_json() {
-        assert_eq!(parse_tokens("not json"), None);
+    fn parse_claude_output_returns_none_on_invalid_json() {
+        let out = parse_claude_output("not json");
+        assert_eq!(out.tokens_used, None);
+        assert_eq!(out.session_id, None);
     }
 
     #[test]
@@ -242,6 +307,7 @@ mod tests {
             system_prompt: "Task instructions.".into(),
             input_artifacts: vec![],
             output_artifacts: vec![],
+            resume_session_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);
@@ -259,6 +325,7 @@ mod tests {
             system_prompt: "Task instructions.".into(),
             input_artifacts: vec![],
             output_artifacts: vec![],
+            resume_session_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);
@@ -269,9 +336,20 @@ mod tests {
     fn builder_setters_work() {
         let exec = ClaudeCodeExecutor::new("/workspace".into())
             .with_max_turns(10)
-            .with_allowed_tools(vec!["Read".into()]);
+            .with_allowed_tools(vec!["Read".into()])
+            .with_model(Some("opus".into()))
+            .with_step_timeout(600);
         assert_eq!(exec.max_turns, 10);
         assert_eq!(exec.allowed_tools, vec!["Read"]);
+        assert_eq!(exec.model, Some("opus".into()));
+        assert_eq!(exec.step_timeout_base_secs, 600);
+    }
+
+    #[test]
+    fn effort_timeout_scales_correctly() {
+        let exec = ClaudeCodeExecutor::new("/tmp".into()).with_step_timeout(1200);
+        assert_eq!(exec.step_timeout_base_secs, 1200);
+        // Deep=1200, Investigate=600, Quick=300
     }
 
     #[test]

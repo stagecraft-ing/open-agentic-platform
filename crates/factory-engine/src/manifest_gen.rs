@@ -164,6 +164,7 @@ pub fn generate_process_manifest(
             outputs: stage.outputs.iter().map(|s| (*s).to_string()).collect(),
             instruction,
             gate: stage.gate.clone(),
+            pre_verify: None,
             post_verify: None,
             max_retries: None,
         });
@@ -227,6 +228,7 @@ pub fn generate_scaffold_manifest(
         ),
         outputs: vec!["scaffold-init-report.yaml".into()],
         gate: None,
+        pre_verify: None,
         post_verify: Some(vec![
             VerifyCommand {
                 command: adapter.commands.install.clone(),
@@ -301,6 +303,7 @@ pub fn generate_scaffold_manifest(
                 adapter.adapter.name,
             ),
             gate: None,
+            pre_verify: None,
             post_verify: Some(compile_and_lint.clone()),
             max_retries: Some(3),
         });
@@ -360,6 +363,7 @@ pub fn generate_scaffold_manifest(
                 adapter.adapter.name,
             ),
             gate: None,
+            pre_verify: None,
             post_verify: Some(compile_and_lint.clone()),
             max_retries: Some(3),
         });
@@ -480,6 +484,7 @@ pub fn generate_scaffold_manifest(
                     adapter.adapter.name,
                 ),
                 gate: None,
+                pre_verify: None,
                 post_verify: Some(verify_commands.clone()),
                 max_retries: Some(3),
             });
@@ -600,6 +605,7 @@ pub fn generate_scaffold_manifest(
                 adapter.adapter.name,
             ),
             gate: None,
+            pre_verify: None,
             post_verify: Some(compile_and_lint.clone()),
             max_retries: Some(3),
         });
@@ -628,6 +634,7 @@ pub fn generate_scaffold_manifest(
             build_spec.project.name, build_spec.project.variant, adapter.adapter.name,
         ),
         gate: None,
+        pre_verify: None,
         post_verify: Some(compile_and_lint.clone()),
         max_retries: Some(3),
     });
@@ -645,6 +652,7 @@ pub fn generate_scaffold_manifest(
             adapter.adapter.name,
         ),
         gate: None,
+        pre_verify: None,
         post_verify: Some(compile_and_lint.clone()),
         max_retries: Some(3),
     });
@@ -687,6 +695,7 @@ pub fn generate_scaffold_manifest(
                 adapter.adapter.name,
             ),
             gate: None,
+            pre_verify: None,
             post_verify: Some(build_full_verify_commands(adapter)),
             max_retries: Some(3),
         });
@@ -726,6 +735,7 @@ pub fn generate_scaffold_manifest(
         gate: Some(StepGateConfig::Checkpoint {
             label: Some("Review final validation results".into()),
         }),
+        pre_verify: None,
         post_verify: Some(build_full_verify_commands(adapter)),
         max_retries: Some(3),
     });
