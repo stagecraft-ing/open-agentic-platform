@@ -1,0 +1,125 @@
+# CD for deployd-api-rs: build Docker image, push to GHCR, deploy to Hetzner K3s.
+#
+# Required GitHub secrets:
+#   KUBECONFIG_HETZNER  -- contents of platform/infra/hetzner/kubeconfig (base64-encoded)
+#
+# Required GitHub environment:
+#   "production"         -- create with protection rules for manual approval on deploy
+
+name: CD deployd-api-rs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/services/deployd-api-rs/**'
+      - 'platform/charts/deployd-api/**'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy after build (true/false)'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+concurrency:
+  group: cd-deployd-api-rs-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
+
+jobs:
+  # -- CI gate ---------------------------------------------------------------
+  ci:
+    uses: ./.github/workflows/ci-deployd-api-rs.yml
+
+  # -- Build & push Docker image ---------------------------------------------
+  build-and-push:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.sha-tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "sha-tag=sha-${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "Building tags: sha-${SHA_SHORT}, latest"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: platform/services/deployd-api-rs
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -- Deploy to Hetzner K3s -------------------------------------------------
+  deploy-hetzner:
+    needs: build-and-push
+    if: github.event_name == 'push' || github.event.inputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_HETZNER }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy deployd-api via Helm
+        run: |
+          helm upgrade --install deployd-api platform/charts/deployd-api \
+            --namespace deployd-system \
+            -f platform/charts/deployd-api/values.yaml \
+            -f platform/charts/deployd-api/values-hetzner.yaml \
+            --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
+            --wait --timeout 300s
+
+      - name: Verify rollout
+        run: |
+          kubectl -n deployd-system rollout status deployment/deployd-api --timeout=120s
+          kubectl -n deployd-system get pods -l app=deployd-api
+
+      - name: Debug failed deploy
+        if: failure()
+        run: |
+          echo "=== Pod status ==="
+          kubectl -n deployd-system get pods -l app=deployd-api -o wide
+          echo ""
+          echo "=== Pod describe ==="
+          kubectl -n deployd-system describe pods -l app=deployd-api
+          echo ""
+          echo "=== Pod logs (latest) ==="
+          kubectl -n deployd-system logs -l app=deployd-api --tail=100 --all-containers
+          echo ""
+          echo "=== Events ==="
+          kubectl -n deployd-system get events --sort-by='.lastTimestamp' | tail -30

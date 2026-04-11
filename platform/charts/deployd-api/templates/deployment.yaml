@@ -16,6 +16,10 @@ spec:
         {{- end }}
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: deployd-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -32,6 +36,30 @@ spec:
               value: {{ .Values.oidc.audience | quote }}
             - name: DEPLOYD_REQUIRED_SCOPE
               value: {{ .Values.requiredScope | quote }}
+          envFrom:
+            - secretRef:
+                name: deployd-api-secrets
+                optional: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: secrets-store
               mountPath: {{ .Values.secrets.mountPath | quote }}

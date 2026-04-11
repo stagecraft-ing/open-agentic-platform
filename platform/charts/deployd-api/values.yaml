@@ -1,6 +1,8 @@
 image:
-  repository: ghcr.io/open-agentic-platform/deployd-api
+  repository: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
   tag: dev
+
+imagePullSecrets: []
 
 ingress:
   enabled: true
@@ -13,6 +15,8 @@ serviceAccount:
   annotations: {}
 
 podLabels: {}
+
+resources: {}
 
 secrets:
   enabled: true
