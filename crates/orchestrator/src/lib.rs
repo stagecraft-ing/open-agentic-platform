@@ -29,7 +29,7 @@ pub mod store_config;
 pub mod verify;
 
 pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
-pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor};
+pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor, ThinkingLevel};
 pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use effort::{EffortLevel, classify_from_task};
 pub use gates::{GateError, GateHandler, GateOutcome, evaluate_gate, evaluate_gate_if_present};

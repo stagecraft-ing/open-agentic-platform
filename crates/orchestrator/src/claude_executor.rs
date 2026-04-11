@@ -8,6 +8,41 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+/// Thinking effort level for the `claude` CLI `--effort` flag.
+/// Controls extended thinking budget (independent of the orchestrator's
+/// `EffortLevel` which scales turns and timeouts).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ThinkingLevel {
+    Low,
+    Medium,
+    High,
+    Max,
+}
+
+impl ThinkingLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ThinkingLevel::Low => "low",
+            ThinkingLevel::Medium => "medium",
+            ThinkingLevel::High => "high",
+            ThinkingLevel::Max => "max",
+        }
+    }
+}
+
+impl std::str::FromStr for ThinkingLevel {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "low" => Ok(ThinkingLevel::Low),
+            "medium" | "med" => Ok(ThinkingLevel::Medium),
+            "high" => Ok(ThinkingLevel::High),
+            "max" => Ok(ThinkingLevel::Max),
+            other => Err(format!("unknown thinking level: {other} (expected low, medium, high, max)")),
+        }
+    }
+}
+
 /// Callback trait for looking up agent domain prompts by ID.
 ///
 /// This indirection avoids a circular dependency on factory-engine from the
@@ -36,6 +71,12 @@ pub struct ClaudeCodeExecutor {
     max_turns: u32,
     allowed_tools: Vec<String>,
     model: Option<String>,
+    /// When true, append `[1m]` to the model to request the extended
+    /// 1 million-token context window.
+    extended_context: bool,
+    /// Thinking effort level passed as `--effort` to the `claude` CLI
+    /// (controls extended thinking budget). `None` uses the CLI default.
+    thinking: Option<ThinkingLevel>,
     /// Base timeout in seconds for Deep-effort steps.
     /// Investigate = base/2, Quick = base/4.
     pub step_timeout_base_secs: u64,
@@ -44,13 +85,13 @@ pub struct ClaudeCodeExecutor {
 impl ClaudeCodeExecutor {
     /// Create a new executor anchored at `project_path`.
     ///
-    /// Defaults: `max_turns = 25`, `allowed_tools = ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]`,
+    /// Defaults: `max_turns = 100`, `allowed_tools = ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]`,
     /// `step_timeout_base_secs = 300`.
     pub fn new(project_path: PathBuf) -> Self {
         Self {
             project_path,
             prompt_lookup: None,
-            max_turns: 25,
+            max_turns: 100,
             allowed_tools: vec![
                 "Read".into(),
                 "Write".into(),
@@ -60,6 +101,8 @@ impl ClaudeCodeExecutor {
                 "Grep".into(),
             ],
             model: None,
+            extended_context: false,
+            thinking: None,
             step_timeout_base_secs: 300,
         }
     }
@@ -86,6 +129,19 @@ impl ClaudeCodeExecutor {
     /// Override the model for all spawned `claude` processes.
     pub fn with_model(mut self, model: Option<String>) -> Self {
         self.model = model;
+        self
+    }
+
+    /// Request the extended 1M-token context window by appending `[1m]`
+    /// to the model identifier passed to the `claude` CLI.
+    pub fn with_extended_context(mut self, enabled: bool) -> Self {
+        self.extended_context = enabled;
+        self
+    }
+
+    /// Set the thinking effort level (`--effort` on the `claude` CLI).
+    pub fn with_thinking(mut self, level: Option<ThinkingLevel>) -> Self {
+        self.thinking = level;
         self
     }
 
@@ -145,7 +201,20 @@ impl GovernedExecutor for ClaudeCodeExecutor {
 
         if let Some(ref model) = self.model {
             args.push("--model".to_string());
-            args.push(model.clone());
+            if self.extended_context {
+                args.push(format!("{model}[1m]"));
+            } else {
+                args.push(model.clone());
+            }
+        } else if self.extended_context {
+            // No explicit model — use the default alias with extended context.
+            args.push("--model".to_string());
+            args.push("opus[1m]".to_string());
+        }
+
+        if let Some(ref level) = self.thinking {
+            args.push("--effort".to_string());
+            args.push(level.as_str().to_string());
         }
 
         if let Some(ref session_id) = request.resume_session_id {
@@ -338,11 +407,24 @@ mod tests {
             .with_max_turns(10)
             .with_allowed_tools(vec!["Read".into()])
             .with_model(Some("opus".into()))
+            .with_extended_context(true)
+            .with_thinking(Some(ThinkingLevel::Max))
             .with_step_timeout(600);
         assert_eq!(exec.max_turns, 10);
         assert_eq!(exec.allowed_tools, vec!["Read"]);
         assert_eq!(exec.model, Some("opus".into()));
+        assert!(exec.extended_context);
+        assert_eq!(exec.thinking, Some(ThinkingLevel::Max));
         assert_eq!(exec.step_timeout_base_secs, 600);
+    }
+
+    #[test]
+    fn thinking_level_round_trips() {
+        assert_eq!("low".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Low);
+        assert_eq!("med".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Medium);
+        assert_eq!("high".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::High);
+        assert_eq!("max".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Max);
+        assert_eq!(ThinkingLevel::High.as_str(), "high");
     }
 
     #[test]
@@ -354,14 +436,14 @@ mod tests {
 
     #[test]
     fn effective_max_turns_scales_by_effort() {
-        let exec = ClaudeCodeExecutor::new("/tmp".into()).with_max_turns(25);
+        let exec = ClaudeCodeExecutor::new("/tmp".into());
         let compute = |level: crate::EffortLevel| match level {
             crate::EffortLevel::Quick => exec.max_turns,
             crate::EffortLevel::Investigate => exec.max_turns * 2,
             crate::EffortLevel::Deep => exec.max_turns * 3,
         };
-        assert_eq!(compute(crate::EffortLevel::Quick), 25);
-        assert_eq!(compute(crate::EffortLevel::Investigate), 50);
-        assert_eq!(compute(crate::EffortLevel::Deep), 75);
+        assert_eq!(compute(crate::EffortLevel::Quick), 100);
+        assert_eq!(compute(crate::EffortLevel::Investigate), 200);
+        assert_eq!(compute(crate::EffortLevel::Deep), 300);
     }
 }

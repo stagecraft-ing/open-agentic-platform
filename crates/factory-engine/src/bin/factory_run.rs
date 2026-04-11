@@ -8,7 +8,7 @@ use clap::Parser;
 use factory_engine::{FactoryAgentBridge, FactoryEngine, FactoryEngineConfig};
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
-    DispatchOptions, GateHandler, detect_resume_plan_for_run, dispatch_manifest,
+    DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
     materialize_run_directory,
 };
 use std::collections::HashSet;
@@ -44,7 +44,7 @@ struct Cli {
     auto_approve: bool,
 
     /// Maximum agentic turns per step
-    #[arg(long, default_value_t = 25)]
+    #[arg(long, default_value_t = 100)]
     max_turns: u32,
 
     /// Organisation slug (e.g. goa-cfs). Injected into the Build Spec if the
@@ -60,9 +60,17 @@ struct Cli {
     #[arg(long)]
     scaffold_source: Option<PathBuf>,
 
-    /// Model to use for all agent dispatches (e.g., claude-opus-4-6)
+    /// Model to use for all agent dispatches (e.g., opus, sonnet, claude-opus-4-6)
     #[arg(long)]
     model: Option<String>,
+
+    /// Use the extended 1M-token context window (appends [1m] to the model)
+    #[arg(long, default_value_t = false)]
+    extended_context: bool,
+
+    /// Thinking effort level for extended thinking (low, medium, high, max)
+    #[arg(long)]
+    thinking: Option<ThinkingLevel>,
 
     /// Base timeout in seconds for Deep-effort steps (Investigate = half, Quick = quarter)
     #[arg(long, default_value_t = 300)]
@@ -105,8 +113,9 @@ async fn main() -> ExitCode {
     };
 
     // Copy scaffold source into project directory if provided (skip on --resume).
-    if cli.resume.is_none() {
-        if let Some(ref scaffold_src) = cli.scaffold_source {
+    if cli.resume.is_none()
+        && let Some(ref scaffold_src) = cli.scaffold_source
+    {
             if !scaffold_src.exists() {
                 eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
                 return ExitCode::FAILURE;
@@ -138,7 +147,6 @@ async fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
-        }
     }
 
     eprintln!("Factory pipeline starting");
@@ -155,6 +163,12 @@ async fn main() -> ExitCode {
     }
     if let Some(ref model) = cli.model {
         eprintln!("  Model:        {model}");
+    }
+    if cli.extended_context {
+        eprintln!("  Context:      extended (1M)");
+    }
+    if let Some(ref thinking) = cli.thinking {
+        eprintln!("  Thinking:     {}", thinking.as_str());
     }
     eprintln!(
         "  Timeouts:     deep={}s / investigate={}s / quick={}s",
@@ -242,6 +256,8 @@ async fn main() -> ExitCode {
             .with_prompt_lookup(lookup)
             .with_max_turns(cli.max_turns)
             .with_model(cli.model.clone())
+            .with_extended_context(cli.extended_context)
+            .with_thinking(cli.thinking)
             .with_step_timeout(cli.step_timeout),
     );
 
