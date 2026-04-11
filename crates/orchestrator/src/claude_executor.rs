@@ -96,8 +96,9 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         let system_prompt = self.build_system_prompt(&request);
         let tools_arg = self.allowed_tools.join(",");
         let effective_max_turns = match request.effort {
-            crate::EffortLevel::Deep => self.max_turns * 2,
-            _ => self.max_turns,
+            crate::EffortLevel::Quick => self.max_turns,
+            crate::EffortLevel::Investigate => self.max_turns * 2,
+            crate::EffortLevel::Deep => self.max_turns * 3,
         };
         let max_turns_str = effective_max_turns.to_string();
 
@@ -274,22 +275,15 @@ mod tests {
     }
 
     #[test]
-    fn effective_max_turns_doubles_for_deep() {
+    fn effective_max_turns_scales_by_effort() {
         let exec = ClaudeCodeExecutor::new("/tmp".into()).with_max_turns(25);
-        let deep = match crate::EffortLevel::Deep {
-            crate::EffortLevel::Deep => exec.max_turns * 2,
-            _ => exec.max_turns,
+        let compute = |level: crate::EffortLevel| match level {
+            crate::EffortLevel::Quick => exec.max_turns,
+            crate::EffortLevel::Investigate => exec.max_turns * 2,
+            crate::EffortLevel::Deep => exec.max_turns * 3,
         };
-        assert_eq!(deep, 50);
-        let quick = match crate::EffortLevel::Quick {
-            crate::EffortLevel::Deep => exec.max_turns * 2,
-            _ => exec.max_turns,
-        };
-        assert_eq!(quick, 25);
-        let investigate = match crate::EffortLevel::Investigate {
-            crate::EffortLevel::Deep => exec.max_turns * 2,
-            _ => exec.max_turns,
-        };
-        assert_eq!(investigate, 25);
+        assert_eq!(compute(crate::EffortLevel::Quick), 25);
+        assert_eq!(compute(crate::EffortLevel::Investigate), 50);
+        assert_eq!(compute(crate::EffortLevel::Deep), 75);
     }
 }
