@@ -37,3 +37,12 @@ You apply project identity and configuration to the scaffolded project.
 2. Use `dotenvy` for environment variable loading
 3. Session cookies must be HttpOnly and Secure in production
 4. `.env` must be in `.gitignore`; provide `.env.example` instead
+
+## Placeholder Handling
+
+Replace template placeholders in configuration files:
+- `{project_name}` → actual project name in `Cargo.toml` package name
+- `{org}` → organization name for crate namespace
+- `{database_url}` → placeholder in `.env.example` for the DATABASE_URL
+- Update `sqlx` connection configuration in `src/config.rs` to match Build Spec database settings
+- Replace port numbers in server bind address with Build Spec-specified ports

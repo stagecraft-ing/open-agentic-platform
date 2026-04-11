@@ -374,3 +374,14 @@ upstreams:
           Placeholder definitions that the configurer agent must fill and the
           trimmer agent must verify are gone. Changes here directly affect
           those two agents.
+
+# ---------------------------------------------------------------------------
+# OAP-native adapters — no external upstream, developed in-tree
+# ---------------------------------------------------------------------------
+oap_native:
+  encore-react:
+    notes: "OAP-native adapter, no upstream sync needed"
+  next-prisma:
+    notes: "OAP-native adapter, no upstream sync needed"
+  rust-axum:
+    notes: "OAP-native adapter, no upstream sync needed"

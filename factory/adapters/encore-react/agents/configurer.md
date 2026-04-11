@@ -34,3 +34,12 @@ You apply project identity and configuration to the scaffolded project.
 1. Never hardcode secrets in source files
 2. Use Encore's secret management for sensitive values
 3. Session cookies must be HttpOnly and Secure in production
+
+## Placeholder Handling
+
+Replace template placeholders in configuration files:
+- `{project_name}` → actual project name from Build Spec
+- `{org}` → organization name from Build Spec
+- Service names in `encore.app` must match the Build Spec service identifiers
+- Database connection strings use Encore's built-in `SQLDatabase` — no manual placeholder needed
+- Environment-specific values go in Encore secrets, not `.env` files

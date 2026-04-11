@@ -15,6 +15,7 @@ summary: >
   secrets scanning, tool allowlist, diff size), coherence scheduler with privilege degradation
   (full/restricted/read-only/suspended based on drift), and cryptographic proof chains for
   audit trails.
+code_aliases: ["GOVERNANCE_CONTROL_PLANE", "POLICY_COMPILER"]
 ---
 
 # Feature Specification: governance control plane (policy compiler)

@@ -24,3 +24,4 @@ pub mod platform_config;
 pub mod registry_bridge;
 pub mod run_tools;
 pub mod search;
+pub mod skill_provider;

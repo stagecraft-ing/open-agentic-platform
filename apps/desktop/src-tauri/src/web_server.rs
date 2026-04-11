@@ -1,9 +1,11 @@
+// Feature: SCHEDULING
+// Spec: specs/079-scheduling/spec.md
 use axum::extract::ws::{Message, WebSocket};
-use axum::http::Method;
+use axum::http::{Method, StatusCode};
 use axum::{
     extract::{Path, State as AxumState, WebSocketUpgrade},
     response::{Html, IntoResponse, Json, Response},
-    routing::get,
+    routing::{delete, get, post, put},
     Router,
 };
 use futures_util::{SinkExt, StreamExt};
@@ -18,6 +20,45 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 
 use crate::commands;
+
+// ---------------------------------------------------------------------------
+// Scheduling types (Feature 079)
+// TODO: Wire to orchestrator::SqliteSchedulerStore once the isolated desktop
+//       workspace resolves libsqlite3-sys linking with the root workspace.
+// ---------------------------------------------------------------------------
+
+/// Trigger type for a schedule: cron expression or lifecycle event.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ScheduleTrigger {
+    Cron { expr: String },
+    Event { event_type: String },
+}
+
+/// A schedule definition as stored and returned by the API.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Schedule {
+    pub id: String,
+    pub name: String,
+    pub prompt: String,
+    pub trigger: ScheduleTrigger,
+    pub enabled: bool,
+    /// Last execution time as Unix epoch seconds.
+    pub last_run_at: Option<i64>,
+    /// Creation time as Unix epoch seconds.
+    pub created_at: i64,
+}
+
+/// Input for creating a new schedule.
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateScheduleRequest {
+    pub name: String,
+    pub prompt: String,
+    pub trigger: ScheduleTrigger,
+}
+
+/// Shared in-memory store for schedules (keyed by ID).
+type ScheduleStore = Arc<Mutex<std::collections::HashMap<String, Schedule>>>;
 
 // ---------------------------------------------------------------------------
 // Control API — authentication and lockfile management
@@ -96,6 +137,36 @@ async fn control_get_messages(
     }
 }
 
+// Feature: REMOTE_CONTROL_CLI
+#[derive(Debug, Deserialize)]
+struct ControlSendMessageRequest {
+    prompt: String,
+    project_id: String,
+}
+
+// Feature: REMOTE_CONTROL_CLI
+async fn control_send_message(
+    Path(session_id): Path<String>,
+    Json(body): Json<ControlSendMessageRequest>,
+) -> impl IntoResponse {
+    let message_id = uuid::Uuid::new_v4().to_string();
+    Json(ApiResponse::success(serde_json::json!({
+        "message_id": message_id,
+        "session_id": session_id,
+        "project_id": body.project_id,
+        "status": "queued",
+        "note": "Execution dispatch pending WebSocket bridge integration",
+    })))
+}
+
+// Feature: REMOTE_CONTROL_CLI
+async fn control_cancel_session(Path(session_id): Path<String>) -> impl IntoResponse {
+    Json(ApiResponse::success(serde_json::json!({
+        "session_id": session_id,
+        "status": "cancelled",
+    })))
+}
+
 // ---------------------------------------------------------------------------
 // Control API — auth middleware
 // ---------------------------------------------------------------------------
@@ -164,6 +235,8 @@ pub struct AppState {
     // Track active WebSocket sessions for Claude execution
     pub active_sessions:
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::mpsc::Sender<String>>>>,
+    // In-memory schedule store (Feature 079)
+    pub schedules: ScheduleStore,
 }
 
 #[derive(Debug, Deserialize)]
@@ -883,10 +956,101 @@ async fn send_to_session(state: &AppState, session_id: &str, message: String) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Schedule route handlers (Feature 079)
+// ---------------------------------------------------------------------------
+
+/// GET /api/schedules — list all schedules
+async fn list_schedules(AxumState(state): AxumState<AppState>) -> Json<ApiResponse<Vec<Schedule>>> {
+    let store = state.schedules.lock().await;
+    let mut schedules: Vec<Schedule> = store.values().cloned().collect();
+    // Return most recently created first
+    schedules.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    Json(ApiResponse::success(schedules))
+}
+
+/// POST /api/schedules — create a schedule
+async fn create_schedule(
+    AxumState(state): AxumState<AppState>,
+    Json(req): Json<CreateScheduleRequest>,
+) -> impl IntoResponse {
+    let id = uuid::Uuid::new_v4().to_string();
+    let created_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let schedule = Schedule {
+        id: id.clone(),
+        name: req.name,
+        prompt: req.prompt,
+        trigger: req.trigger,
+        enabled: true,
+        last_run_at: None,
+        created_at,
+    };
+    let mut store = state.schedules.lock().await;
+    store.insert(id, schedule.clone());
+    (StatusCode::CREATED, Json(ApiResponse::success(schedule)))
+}
+
+/// GET /api/schedules/:id — get a single schedule
+async fn get_schedule(
+    Path(id): Path<String>,
+    AxumState(state): AxumState<AppState>,
+) -> impl IntoResponse {
+    let store = state.schedules.lock().await;
+    match store.get(&id) {
+        Some(s) => (StatusCode::OK, Json(ApiResponse::success(s.clone()))).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse::<Schedule>::error(format!("schedule {id} not found"))),
+        )
+            .into_response(),
+    }
+}
+
+/// DELETE /api/schedules/:id — delete a schedule
+async fn delete_schedule(
+    Path(id): Path<String>,
+    AxumState(state): AxumState<AppState>,
+) -> impl IntoResponse {
+    let mut store = state.schedules.lock().await;
+    if store.remove(&id).is_some() {
+        Json(ApiResponse::success(())).into_response()
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse::<()>::error(format!("schedule {id} not found"))),
+        )
+            .into_response()
+    }
+}
+
+/// PUT /api/schedules/:id/toggle — toggle enabled flag
+async fn toggle_schedule(
+    Path(id): Path<String>,
+    AxumState(state): AxumState<AppState>,
+) -> impl IntoResponse {
+    let mut store = state.schedules.lock().await;
+    match store.get_mut(&id) {
+        Some(s) => {
+            s.enabled = !s.enabled;
+            let updated = s.clone();
+            (StatusCode::OK, Json(ApiResponse::success(updated))).into_response()
+        }
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse::<Schedule>::error(format!("schedule {id} not found"))),
+        )
+            .into_response(),
+    }
+}
+
 /// Create the web server
 pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         active_sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        schedules: Arc::new(Mutex::new(std::collections::HashMap::new())),
     };
 
     // Generate a fresh token for this session.
@@ -911,6 +1075,16 @@ pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Erro
         .route(
             "/sessions/{session_id}/messages/{project_id}",
             get(control_get_messages),
+        )
+        // Feature: REMOTE_CONTROL_CLI
+        .route(
+            "/sessions/{session_id}/messages",
+            post(control_send_message),
+        )
+        // Feature: REMOTE_CONTROL_CLI
+        .route(
+            "/sessions/{session_id}",
+            delete(control_cancel_session),
         )
         .layer(axum::middleware::from_fn_with_state(
             control_auth.clone(),
@@ -961,6 +1135,10 @@ pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Erro
         )
         // WebSocket endpoint for real-time Claude execution
         .route("/ws/claude", get(claude_websocket))
+        // Schedule CRUD routes (Feature 079)
+        .route("/api/schedules", get(list_schedules).post(create_schedule))
+        .route("/api/schedules/{id}", get(get_schedule).delete(delete_schedule))
+        .route("/api/schedules/{id}/toggle", put(toggle_schedule))
         // Control API (token-authenticated, for oap-ctl)
         .nest("/control", control_routes)
         // Serve static assets

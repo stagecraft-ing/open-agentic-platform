@@ -1,6 +1,6 @@
 // Feature 035 — governed tool dispatch
 
-use agent::safety::{ToolTier, get_tool_tier};
+use agent::safety::{ToolTier, get_tool_metadata};
 use serde_json::json;
 use std::io::Write;
 
@@ -15,65 +15,26 @@ fn tier_rank(t: ToolTier) -> u8 {
     }
 }
 
-fn requires_file_read(tool_name: &str) -> bool {
-    matches!(
-        tool_name,
-        "checkpoint.list"
-            | "checkpoint.info"
-            | "checkpoint.diff"
-            | "checkpoint.verify"
-            | "checkpoint.timeline"
-            | "checkpoint.status"
-            | "gov.preflight"
-            | "gov.drift"
-            | "features.impact"
-            | "xray.scan"
-            | "agent.verify"
-    )
-}
-
-fn requires_file_write(tool_name: &str) -> bool {
-    matches!(
-        tool_name,
-        "workspace.write_file"
-            | "workspace.delete"
-            | "workspace.apply_patch"
-            | "checkpoint.create"
-            | "checkpoint.restore"
-            | "checkpoint.fork"
-            | "checkpoint.gc"
-            | "agent.propose"
-            | "agent.execute"
-    )
-}
-
-fn requires_network(tool_name: &str) -> bool {
-    matches!(
-        tool_name,
-        "run.execute" | "run.status" | "run.logs" | "agent.execute"
-    )
-}
-
 /// Enforces tier ceiling and coarse permission flags against a set of grants.
 pub fn check_grants(tool_name: &str, grants: &PermissionGrants) -> Result<(), AxiomRegentError> {
-    let tool_tier = get_tool_tier(tool_name);
+    let meta = get_tool_metadata(tool_name);
     let max_allowed = grants.max_tier.clamp(1, 3);
-    if tier_rank(tool_tier) > max_allowed {
+    if tier_rank(meta.tier) > max_allowed {
         return Err(AxiomRegentError::PermissionDenied(format!(
             "tool {tool_name} exceeds session max tier ({max_allowed})"
         )));
     }
-    if requires_file_read(tool_name) && !grants.enable_file_read {
+    if meta.requires_file_read && !grants.enable_file_read {
         return Err(AxiomRegentError::PermissionDenied(format!(
             "file read disabled for {tool_name}"
         )));
     }
-    if requires_file_write(tool_name) && !grants.enable_file_write {
+    if meta.requires_file_write && !grants.enable_file_write {
         return Err(AxiomRegentError::PermissionDenied(format!(
             "file write disabled for {tool_name}"
         )));
     }
-    if requires_network(tool_name) && !grants.enable_network {
+    if meta.requires_network && !grants.enable_network {
         return Err(AxiomRegentError::PermissionDenied(format!(
             "network disabled for {tool_name}"
         )));

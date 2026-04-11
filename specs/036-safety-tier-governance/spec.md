@@ -12,6 +12,7 @@ summary: >
   Formalize the safety tier model (Tier1=Autonomous, Tier2=Gated, Tier3=Manual) in a
   spec-governed definition, fix 13 tools that incorrectly default to Tier3, reconcile the
   dual SafetyTier enums, and surface per-tool tier assignments in the governance UI.
+code_aliases: ["SAFETY_TIER_GOVERNANCE"]
 ---
 
 # Feature Specification: safety tier governance

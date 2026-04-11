@@ -1,0 +1,76 @@
+# AI-Powered PR Review
+# Backing spec: 085 (remote-control-cli)
+# Uses Claude CLI to review diffs for bugs, security issues, and spec compliance.
+
+name: AI PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    # Only run if diff is manageable (< 2000 lines)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute diff size
+        id: diff
+        run: |
+          DIFF_LINES=$(git diff origin/main...HEAD --stat | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo "0")
+          echo "lines=$DIFF_LINES" >> $GITHUB_OUTPUT
+          if [ "$DIFF_LINES" -gt "2000" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate diff
+        if: steps.diff.outputs.skip != 'true'
+        run: |
+          git diff origin/main...HEAD > /tmp/pr-diff.txt
+
+      - name: Install Claude CLI
+        if: steps.diff.outputs.skip != 'true'
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run AI Review
+        if: steps.diff.outputs.skip != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "You are reviewing a pull request for the Open Agentic Platform. Review this diff for:
+          1. Bugs and logic errors
+          2. Security vulnerabilities (OWASP top 10)
+          3. Spec compliance (check Feature: annotations match code_aliases in specs/)
+          4. Performance concerns
+
+          Be concise. Focus on issues, not praise. Format as markdown with ## sections.
+
+          $(cat /tmp/pr-diff.txt)" --output-format text > /tmp/review.md 2>/dev/null || echo "Review generation failed" > /tmp/review.md
+
+      - name: Post review comment
+        if: steps.diff.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## AI Code Review" > /tmp/comment.md
+          echo "" >> /tmp/comment.md
+          cat /tmp/review.md >> /tmp/comment.md
+          echo "" >> /tmp/comment.md
+          echo "---" >> /tmp/comment.md
+          echo "_Automated review by Claude. Diff size: ${{ steps.diff.outputs.lines }} lines._" >> /tmp/comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment.md
+
+      - name: Skip notice
+        if: steps.diff.outputs.skip == 'true'
+        run: echo "::notice::Skipping AI review — diff exceeds 2000 lines (${{ steps.diff.outputs.lines }})"

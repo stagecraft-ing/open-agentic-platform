@@ -13,6 +13,7 @@ use axiomregent::router::provider::ToolProvider;
 use axiomregent::router::{JsonRpcRequest, Router};
 use axiomregent::search::provider::SearchProvider;
 use axiomregent::search::store::SearchStore;
+use axiomregent::skill_provider::SkillProvider;
 use env_logger::Target;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
@@ -83,11 +84,16 @@ async fn main() -> Result<()> {
 
     let github_provider = Arc::new(GitHubProvider::new().await?);
 
+    // 3a. Load skill commands from .claude/commands/ (spec 071)
+    let commands_dir = run_root.join(".claude").join("commands");
+    let skill_provider = Arc::new(SkillProvider::load(&commands_dir));
+
     let providers: Vec<Arc<dyn ToolProvider>> = vec![
         legacy,
         checkpoint_provider,
         search_provider,
         github_provider,
+        skill_provider,
     ];
     let router = Router::new(providers, lease_store.clone()).await;
 

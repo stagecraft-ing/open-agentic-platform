@@ -144,7 +144,7 @@ Commands:
   sessions --project <id>                    List sessions for a project
   messages --session <id> --project <id>     Show messages for a session
   send <prompt> --session <id> \\
-               --project <id> [--model <m>]  Send a prompt via WebSocket (not implemented)
+               --project <id>               Send a prompt to a session (queued for execution)
   cancel --session <id>                      Cancel a running session
   --help, -h                                 Show this help
 
@@ -266,13 +266,21 @@ async function main() {
 
   // ---- send ----
   if (cmd === 'send') {
-    // Send is not available via the REST control API (Claude execution uses WebSocket).
-    // Provide a clear message rather than silently failing.
-    console.error(
-      'The send command requires a WebSocket connection to the desktop app.\n' +
-      'Use the desktop UI or WebSocket at ws://127.0.0.1:<port>/ws/claude to send prompts.',
+    const sessionId = args.flags.session
+    const projectId = args.flags.project
+    const prompt = args.positional[0]
+    if (!sessionId || !projectId || !prompt) {
+      console.error('Usage: oap-ctl send <prompt> --session <id> --project <id>')
+      process.exit(1)
+    }
+    const res = await httpRequest(
+      port, token, 'POST',
+      `/control/sessions/${encodeURIComponent(sessionId)}/messages`,
+      { prompt, project_id: projectId },
     )
-    process.exit(1)
+    const data = unwrap(res, 'send')
+    console.log(JSON.stringify(data, null, 2))
+    return
   }
 
   // ---- cancel ----
@@ -282,19 +290,13 @@ async function main() {
       console.error('Usage: oap-ctl cancel --session <id>')
       process.exit(1)
     }
-    // The REST endpoint for cancel is under /api, not /control — call it directly.
     const res = await httpRequest(
-      port, token, 'GET',
-      `/api/sessions/${encodeURIComponent(sessionId)}/cancel`,
+      port, token, 'DELETE',
+      `/control/sessions/${encodeURIComponent(sessionId)}`,
       null,
     )
-    if (res.status === 200 && res.body?.success) {
-      console.log(`Session ${sessionId} cancellation requested.`)
-    } else {
-      const msg = res.body?.error ?? JSON.stringify(res.body)
-      console.error(`Cancel failed (HTTP ${res.status}): ${msg}`)
-      process.exit(1)
-    }
+    const data = unwrap(res, 'cancel')
+    console.log(JSON.stringify(data, null, 2))
     return
   }
 

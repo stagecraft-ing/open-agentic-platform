@@ -76,3 +76,13 @@ make tf-destroy   # Tear down everything
 - **Audit streaming** — axiomregent can POST audit records to stagecraft's `audit_log` table
 - **Permission grants** — stagecraft auth can provide workspace-scoped grants to the desktop app
 - **Agent authorization** — stagecraft can validate agent execution against org-level policies
+
+## Policy Rules
+
+```policy
+id: SHARD-PLATFORM-infra-guard
+description: "Block terraform destroy in platform layer without confirmation"
+mode: enforce
+scope: domain:platform
+gate: destructive_operation
+```

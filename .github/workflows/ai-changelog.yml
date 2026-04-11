@@ -1,0 +1,64 @@
+# AI-Powered Changelog Generation
+# Backing spec: 085 (remote-control-cli)
+# Uses Claude CLI to generate structured changelogs from commit history.
+
+name: AI Changelog
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV=$(git tag --sort=-creatordate | head -2 | tail -1)
+          echo "tag=$PREV" >> $GITHUB_OUTPUT
+
+      - name: Get commit log
+        run: |
+          git log ${{ steps.prev_tag.outputs.tag }}..HEAD --oneline --no-merges > /tmp/commits.txt
+
+      - name: Install Claude CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Generate changelog
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "Generate a changelog from these commits. Group into sections:
+          ## Features
+          ## Fixes
+          ## Infrastructure
+          ## Documentation
+
+          Each entry should be a bullet point with a concise description.
+          Skip merge commits and trivial changes.
+
+          Commits:
+          $(cat /tmp/commits.txt)" --output-format text > /tmp/changelog.md 2>/dev/null || echo "Changelog generation failed" > /tmp/changelog.md
+
+      - name: Update release body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh release view ${{ github.event.release.tag_name }} --json body -q .body)
+          echo "$EXISTING" > /tmp/release-body.md
+          echo "" >> /tmp/release-body.md
+          echo "---" >> /tmp/release-body.md
+          echo "" >> /tmp/release-body.md
+          echo "## Auto-Generated Changelog" >> /tmp/release-body.md
+          echo "" >> /tmp/release-body.md
+          cat /tmp/changelog.md >> /tmp/release-body.md
+          gh release edit ${{ github.event.release.tag_name }} --notes-file /tmp/release-body.md

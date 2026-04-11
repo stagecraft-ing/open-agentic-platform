@@ -2,7 +2,7 @@
 id: "051-worktree-agents"
 title: "Background Agents with Git Worktree Isolation"
 feature_branch: "051-worktree-agents"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:

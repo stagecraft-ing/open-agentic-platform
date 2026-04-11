@@ -2,7 +2,7 @@
 id: "053-verification-profiles"
 title: "Verification Profiles"
 feature_branch: "053-verification-profiles"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:

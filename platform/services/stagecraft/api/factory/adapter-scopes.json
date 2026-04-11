@@ -1,0 +1,48 @@
+{
+  "compiled_at": "2026-04-11T22:25:58.792Z",
+  "adapters": {
+    "aim-vue-node": {
+      "file_write_scope": [
+        "apps/",
+        "packages/",
+        "scripts/"
+      ],
+      "allowed_commands": [
+        "npm",
+        "npx"
+      ]
+    },
+    "encore-react": {
+      "file_write_scope": [
+        "api/",
+        "web/"
+      ],
+      "allowed_commands": [
+        "encore",
+        "npm",
+        "npx"
+      ]
+    },
+    "next-prisma": {
+      "file_write_scope": [
+        "prisma/",
+        "src/"
+      ],
+      "allowed_commands": [
+        "npm",
+        "npx"
+      ]
+    },
+    "rust-axum": {
+      "file_write_scope": [
+        "migrations/",
+        "src/",
+        "templates/",
+        "tests/"
+      ],
+      "allowed_commands": [
+        "cargo"
+      ]
+    }
+  }
+}

@@ -2,7 +2,7 @@
 id: "049-permission-system"
 title: "Permission Request System with Memory and Wildcards"
 feature_branch: "049-permission-system"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:

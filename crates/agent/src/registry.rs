@@ -77,6 +77,15 @@ impl AgentRegistrySnapshot {
         Self::from_config(path).unwrap_or_else(|_| Self::legacy_stub())
     }
 
+    /// Default path for the agent registry config file relative to the workspace root.
+    pub const DEFAULT_REGISTRY_PATH: &'static str = "build/agent-registry.json";
+
+    /// Loads the agent registry from the default path within a workspace root,
+    /// falling back to the legacy stub if the file is missing.
+    pub fn from_workspace_root(root: &std::path::Path) -> Self {
+        Self::from_config_or_stub(&root.join(Self::DEFAULT_REGISTRY_PATH))
+    }
+
     /// Six placeholder agents for backward compatibility and test determinism.
     #[deprecated(note = "Use from_config() or from_config_or_stub() with a real agent registry")]
     pub fn legacy_stub() -> Self {

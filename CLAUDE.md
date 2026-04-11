@@ -104,3 +104,37 @@ cd platform && make tf-apply   # Full Azure deployment
 - **`.claude/rules/`** — Reusable rule files (loaded automatically)
 - **`AGENTS.md`** — Self-extending agent protocol and session init
 - **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/stagecraft/`
+
+## Policy Rules
+
+```policy
+id: CONST-001-destructive-ops
+description: "Block destructive file/git operations without explicit confirmation"
+mode: enforce
+scope: global
+gate: destructive_operation
+```
+
+```policy
+id: CONST-002-secrets-scanner
+description: "Prevent committing API keys, tokens, private keys, .env files"
+mode: enforce
+scope: global
+gate: secrets_scanner
+```
+
+```policy
+id: CONST-003-tool-allowlist
+description: "Warn when Tier3 (unclassified/dangerous) tools are invoked without approval"
+mode: warn
+scope: global
+gate: tool_allowlist
+```
+
+```policy
+id: CONST-004-diff-size
+description: "Warn when a single patch exceeds 500 lines"
+mode: warn
+scope: global
+gate: diff_size_limiter
+```

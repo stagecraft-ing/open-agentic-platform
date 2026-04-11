@@ -8,6 +8,7 @@ created: 2026-04-09
 summary: >
   Unified architecture connecting web and desktop planes into one system with
   a first-class knowledge intake domain and workspace-scoped entity hierarchy.
+code_aliases: ["UNIFIED_WORKSPACE"]
 depends_on:
   - "074"  # factory-ingestion
   - "075"  # factory-workflow-engine
