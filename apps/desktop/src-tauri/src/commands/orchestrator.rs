@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, LazyLock, Mutex};
-use tauri::State;
+use tauri::{Emitter, State};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use uuid::Uuid;
@@ -348,6 +348,7 @@ fn build_user_prompt_with_requirements(request: &DispatchRequest) -> String {
 
 #[tauri::command]
 pub async fn orchestrate_manifest(
+    app: tauri::AppHandle,
     manifest_path: String,
     project_path: String,
     db: State<'_, AgentDb>,
@@ -406,6 +407,10 @@ pub async fn orchestrate_manifest(
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",
     };
+    let _ = app.emit(
+        "governance-mode",
+        serde_json::json!({ "mode": governance_mode, "context": "orchestrate_manifest", "governance_bypass_reason": bypass_reason }),
+    );
 
     let summary = dispatch_manifest(
         &artifact_base,

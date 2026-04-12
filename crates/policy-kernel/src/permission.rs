@@ -178,8 +178,26 @@ impl PermissionRuntime {
         }
 
         // Step 4: default mode (FR-004 fallthrough).
+        // SC-090-5 defense-in-depth: Bypass is only valid from the Policy tier.
+        // The merge layer already guards this, but we double-check here in case
+        // MergedSettings was constructed directly without going through merge_settings().
         let decision = match settings.default_mode {
-            DefaultMode::Bypass => PermissionDecision::Allow,
+            DefaultMode::Bypass
+                if settings
+                    .default_mode_tier
+                    .map_or(false, |t| t.is_immutable()) =>
+            {
+                PermissionDecision::Allow
+            }
+            DefaultMode::Bypass => {
+                eprintln!(
+                    "[policy-kernel] DefaultMode::Bypass without Policy tier provenance \
+                     — downgrading to Ask (SC-090-5)"
+                );
+                PermissionDecision::Ask(
+                    "bypass mode not authorized by policy tier — confirmation required".into(),
+                )
+            }
             DefaultMode::ReadOnly => PermissionDecision::Deny(
                 "read-only mode — write/execute operations denied by default".into(),
             ),
@@ -365,10 +383,9 @@ mod tests {
     #[test]
     fn deny_before_allow() {
         let settings = MergedSettings {
-            default_mode: DefaultMode::Default,
             deny_rules: vec![(SettingsTier::Policy, rule("Bash"))],
             allow_rules: vec![(SettingsTier::User, rule("Bash"))],
-            ask_rules: vec![],
+            ..Default::default()
         };
         let runtime = PermissionRuntime::new(settings);
         let result = runtime.evaluate(&ctx("Bash"));
@@ -378,10 +395,9 @@ mod tests {
     #[test]
     fn allow_before_ask() {
         let settings = MergedSettings {
-            default_mode: DefaultMode::Default,
-            deny_rules: vec![],
             allow_rules: vec![(SettingsTier::User, rule("FileRead"))],
             ask_rules: vec![(SettingsTier::Project, rule("FileRead"))],
+            ..Default::default()
         };
         let runtime = PermissionRuntime::new(settings);
         assert_eq!(
@@ -391,12 +407,12 @@ mod tests {
     }
 
     #[test]
-    fn default_mode_bypass() {
+    fn policy_tier_bypass_allows() {
+        // SC-090-5: Bypass with Policy tier provenance → Allow.
         let settings = MergedSettings {
             default_mode: DefaultMode::Bypass,
-            deny_rules: vec![],
-            allow_rules: vec![],
-            ask_rules: vec![],
+            default_mode_tier: Some(SettingsTier::Policy),
+            ..Default::default()
         };
         let runtime = PermissionRuntime::new(settings);
         assert_eq!(
@@ -406,12 +422,39 @@ mod tests {
     }
 
     #[test]
+    fn non_policy_bypass_downgrades_to_ask() {
+        // SC-090-5: Bypass without Policy provenance → Ask.
+        let settings = MergedSettings {
+            default_mode: DefaultMode::Bypass,
+            default_mode_tier: Some(SettingsTier::User),
+            ..Default::default()
+        };
+        let runtime = PermissionRuntime::new(settings);
+        assert!(matches!(
+            runtime.evaluate(&ctx("anything")),
+            PermissionDecision::Ask(_)
+        ));
+    }
+
+    #[test]
+    fn bypass_without_tier_downgrades_to_ask() {
+        // SC-090-5: Bypass with no tier info (direct construction) → Ask.
+        let settings = MergedSettings {
+            default_mode: DefaultMode::Bypass,
+            ..Default::default()
+        };
+        let runtime = PermissionRuntime::new(settings);
+        assert!(matches!(
+            runtime.evaluate(&ctx("anything")),
+            PermissionDecision::Ask(_)
+        ));
+    }
+
+    #[test]
     fn default_mode_readonly_denies() {
         let settings = MergedSettings {
             default_mode: DefaultMode::ReadOnly,
-            deny_rules: vec![],
-            allow_rules: vec![],
-            ask_rules: vec![],
+            ..Default::default()
         };
         let runtime = PermissionRuntime::new(settings);
         assert!(matches!(
@@ -424,10 +467,9 @@ mod tests {
     fn policy_deny_cannot_be_overridden_by_user_allow() {
         // FR-008: policy deny + user allow → deny wins.
         let settings = MergedSettings {
-            default_mode: DefaultMode::Default,
             deny_rules: vec![(SettingsTier::Policy, rule("Bash"))],
             allow_rules: vec![(SettingsTier::User, rule("Bash"))],
-            ask_rules: vec![],
+            ..Default::default()
         };
         let runtime = PermissionRuntime::new(settings);
         assert!(matches!(
@@ -439,10 +481,8 @@ mod tests {
     #[test]
     fn escalation_after_threshold() {
         let settings = MergedSettings {
-            default_mode: DefaultMode::Default,
-            deny_rules: vec![],
-            allow_rules: vec![],
             ask_rules: vec![(SettingsTier::User, rule("Bash"))],
+            ..Default::default()
         };
         let runtime = PermissionRuntime::with_denial_threshold(settings, 2);
 

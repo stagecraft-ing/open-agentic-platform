@@ -89,6 +89,8 @@ pub struct TierSettings {
 pub struct MergedSettings {
     /// Effective default mode (highest-priority tier wins).
     pub default_mode: DefaultMode,
+    /// Which tier set `default_mode` (SC-090-5 defense-in-depth: only Policy may set Bypass).
+    pub default_mode_tier: Option<SettingsTier>,
     /// All allow rules aggregated across tiers, tagged with their source tier.
     pub allow_rules: Vec<(SettingsTier, PermissionRule)>,
     /// All deny rules aggregated across tiers, tagged with their source tier.
@@ -101,6 +103,7 @@ impl Default for MergedSettings {
     fn default() -> Self {
         Self {
             default_mode: DefaultMode::Default,
+            default_mode_tier: None,
             allow_rules: Vec::new(),
             deny_rules: Vec::new(),
             ask_rules: Vec::new(),

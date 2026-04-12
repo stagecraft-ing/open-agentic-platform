@@ -1070,16 +1070,19 @@ async fn toggle_schedule(
     }
 }
 
-/// Create the web server
-pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
-    // Read initial axiomregent port from env if available, then share for live updates.
-    let initial_port: Option<u16> = std::env::var("OPC_AXIOMREGENT_PORT")
-        .ok()
-        .and_then(|s| s.parse().ok());
+/// Create the web server.
+///
+/// `axiomregent_port` is a shared slot that sidecars update when they discover
+/// the live port (spec 090-2). Passing the same Arc that `SidecarState` holds
+/// ensures the web server always sees the latest value.
+pub async fn create_web_server(
+    port: u16,
+    axiomregent_port: Arc<std::sync::Mutex<Option<u16>>>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         active_sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
         schedules: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        axiomregent_port: Arc::new(std::sync::Mutex::new(initial_port)),
+        axiomregent_port,
     };
 
     // Generate a fresh token for this session.
@@ -1208,10 +1211,17 @@ pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-/// Start web server mode (alternative to Tauri GUI)
+/// Start web server mode (alternative to Tauri GUI).
+///
+/// In standalone web mode there is no Tauri SidecarState, so we create a fresh
+/// port slot seeded from the environment variable (if set).
 pub async fn start_web_mode(port: Option<u16>) -> Result<(), Box<dyn std::error::Error>> {
     let port = port.unwrap_or(8080);
+    let initial_port: Option<u16> = std::env::var("OPC_AXIOMREGENT_PORT")
+        .ok()
+        .and_then(|s| s.parse().ok());
+    let axiomregent_port = Arc::new(std::sync::Mutex::new(initial_port));
 
     println!("🚀 Starting Opcode in web server mode...");
-    create_web_server(port).await
+    create_web_server(port, axiomregent_port).await
 }

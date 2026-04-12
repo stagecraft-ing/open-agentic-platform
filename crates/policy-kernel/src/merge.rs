@@ -119,25 +119,25 @@ pub fn merge_settings(paths: &SettingsPaths) -> MergedSettings {
     // Scalar: highest-tier non-default value wins.
     // Spec 090-6: only the Policy tier (Tier 1) may set DefaultMode::Bypass.
     // Non-policy bypass is overridden to Default with a warning.
-    let default_mode = match tiers
+    let (default_mode, default_mode_tier) = match tiers
         .iter()
         .rev()
         .find(|(_, s)| s.default_mode != DefaultMode::Default)
     {
         Some((tier, settings)) if settings.default_mode == DefaultMode::Bypass => {
             if tier.is_immutable() {
-                DefaultMode::Bypass
+                (DefaultMode::Bypass, Some(*tier))
             } else {
                 eprintln!(
                     "[policy-kernel] DefaultMode::Bypass set at {} tier — overriding to Default \
                      (only Policy tier may enable bypass)",
                     tier_name(*tier)
                 );
-                DefaultMode::Default
+                (DefaultMode::Default, Some(*tier))
             }
         }
-        Some((_, settings)) => settings.default_mode,
-        None => DefaultMode::Default,
+        Some((tier, settings)) => (settings.default_mode, Some(*tier)),
+        None => (DefaultMode::Default, None),
     };
 
     // Rules: aggregate across all tiers, tagged with source.
@@ -159,6 +159,7 @@ pub fn merge_settings(paths: &SettingsPaths) -> MergedSettings {
 
     MergedSettings {
         default_mode,
+        default_mode_tier,
         allow_rules,
         deny_rules,
         ask_rules,
