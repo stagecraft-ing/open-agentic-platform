@@ -4,7 +4,7 @@ use agent::safety::{ToolTier, get_tool_metadata};
 use serde_json::json;
 use std::io::Write;
 
-use crate::lease::{Lease, PermissionGrants};
+use crate::lease::PermissionGrants;
 use crate::router::AxiomRegentError;
 
 fn tier_rank(t: ToolTier) -> u8 {
@@ -52,11 +52,6 @@ pub fn check_grants(
     Ok(())
 }
 
-/// Enforces tier ceiling and coarse permission flags for a tool call when a lease is present.
-pub fn check_tool_permission(tool_name: &str, lease: &Lease) -> Result<(), AxiomRegentError> {
-    check_grants(tool_name, &lease.grants, None)
-}
-
 /// Structured audit line on stderr (Feature 035 / T010).
 /// Returns the JSON payload so callers can forward it to the platform (Seam B).
 pub fn audit_tool_dispatch(
@@ -81,7 +76,7 @@ pub fn audit_tool_dispatch(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lease::{Fingerprint, PermissionGrants};
+    use crate::lease::{Fingerprint, Lease, PermissionGrants};
     use std::collections::HashSet;
 
     fn lease_with(grants: PermissionGrants) -> Lease {
@@ -105,8 +100,8 @@ mod tests {
             enable_network: true,
             max_tier: 1,
         });
-        assert!(check_tool_permission("workspace.write_file", &lease).is_err());
-        assert!(check_tool_permission("gov.preflight", &lease).is_ok());
+        assert!(check_grants("workspace.write_file", &lease.grants, None).is_err());
+        assert!(check_grants("gov.preflight", &lease.grants, None).is_ok());
     }
 
     #[test]
@@ -135,7 +130,7 @@ mod tests {
             enable_network: true,
             max_tier: 3,
         });
-        assert!(check_tool_permission("workspace.write_file", &lease).is_err());
+        assert!(check_grants("workspace.write_file", &lease.grants, None).is_err());
     }
 
     #[test]
@@ -146,6 +141,6 @@ mod tests {
             enable_network: true,
             max_tier: 3,
         });
-        assert!(check_tool_permission("checkpoint.info", &lease).is_err());
+        assert!(check_grants("checkpoint.info", &lease.grants, None).is_err());
     }
 }

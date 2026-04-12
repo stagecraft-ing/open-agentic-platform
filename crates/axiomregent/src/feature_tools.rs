@@ -11,7 +11,7 @@ use featuregraph::preflight::{PreflightChecker, PreflightResponse};
 use featuregraph::scanner::Scanner;
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -236,6 +236,64 @@ impl FeatureTools {
     }
 }
 
+/// Spec 093: feature context for policy evaluation — IDs, max risk, statuses.
+#[derive(Debug, Clone, Default)]
+pub struct FeatureContext {
+    pub feature_ids: Vec<String>,
+    pub max_risk: Option<String>,
+    pub statuses: Vec<String>,
+}
+
+impl FeatureTools {
+    /// Spec 093: lookup feature context (IDs, max risk, statuses) for a set of file paths.
+    /// Used by the MCP router to populate ToolCallContext before policy evaluation.
+    pub fn feature_context_for_paths(
+        &self,
+        root: &Path,
+        changed_paths: &[String],
+    ) -> Result<FeatureContext> {
+        let graph = self.get_graph(root, GraphMode::Worktree)?;
+        let mut feature_ids = Vec::new();
+        let mut risk_levels = Vec::new();
+        let mut statuses = HashSet::new();
+
+        for node in &graph.features {
+            let hit = changed_paths.iter().any(|path| {
+                &node.spec_path == path
+                    || node.impl_files.contains(path)
+                    || node.test_files.contains(path)
+            });
+            if hit {
+                feature_ids.push(node.feature_id.clone());
+                if !node.governance.is_empty() {
+                    risk_levels.push(node.governance.clone());
+                }
+                if !node.status.is_empty() {
+                    statuses.insert(node.status.clone());
+                }
+            }
+        }
+
+        feature_ids.sort();
+        feature_ids.dedup();
+
+        // Determine max risk: critical > high > medium > low
+        let max_risk = risk_levels.into_iter().max_by_key(|r| match r.as_str() {
+            "critical" => 4,
+            "high" => 3,
+            "medium" => 2,
+            "low" => 1,
+            _ => 0,
+        });
+
+        Ok(FeatureContext {
+            feature_ids,
+            max_risk,
+            statuses: statuses.into_iter().collect(),
+        })
+    }
+}
+
 // 098 Slice 4: implement MutationPreflight for FeatureTools so the router can auto-run
 // featuregraph preflight before dispatching mutation tools.
 #[async_trait]
@@ -266,5 +324,151 @@ impl crate::router::MutationPreflight for FeatureTools {
             Ok(response) => Ok(response.allowed),
             Err(e) => Err(e.to_string()),
         }
+    }
+
+    /// Spec 093: sync feature context lookup for policy enrichment.
+    fn feature_context_sync(
+        &self,
+        repo_root: &str,
+        paths: &[String],
+    ) -> Result<crate::router::FeatureContextInfo, String> {
+        let ctx = self
+            .feature_context_for_paths(std::path::Path::new(repo_root), paths)
+            .map_err(|e| e.to_string())?;
+        Ok(crate::router::FeatureContextInfo {
+            feature_ids: ctx.feature_ids,
+            max_risk: ctx.max_risk,
+            statuses: ctx.statuses,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use featuregraph::graph::{FeatureGraph, FeatureNode};
+
+    /// Insert a pre-built graph into the cache so tests don't need a real repo.
+    fn tools_with_graph(root: &Path, graph: FeatureGraph) -> FeatureTools {
+        let tools = FeatureTools::new();
+        let key = CacheKey {
+            repo_root: root.to_path_buf(),
+            mode: GraphMode::Worktree,
+        };
+        tools.cache.lock().unwrap().insert(key, Arc::new(graph));
+        tools
+    }
+
+    fn test_graph() -> FeatureGraph {
+        FeatureGraph {
+            schema_version: "1.0".to_string(),
+            graph_fingerprint: "test".to_string(),
+            features: vec![
+                FeatureNode {
+                    feature_id: "FEAT_A".to_string(),
+                    title: "Feature A".to_string(),
+                    spec_path: "specs/001/spec.md".to_string(),
+                    status: "active".to_string(),
+                    governance: "high".to_string(),
+                    owner: "team-a".to_string(),
+                    group: "core".to_string(),
+                    depends_on: vec![],
+                    impl_files: vec!["src/feat_a.rs".to_string()],
+                    test_files: vec!["tests/feat_a.rs".to_string()],
+                    violations: vec![],
+                },
+                FeatureNode {
+                    feature_id: "FEAT_B".to_string(),
+                    title: "Feature B".to_string(),
+                    spec_path: "specs/002/spec.md".to_string(),
+                    status: "draft".to_string(),
+                    governance: "critical".to_string(),
+                    owner: "team-b".to_string(),
+                    group: "core".to_string(),
+                    depends_on: vec!["FEAT_A".to_string()],
+                    impl_files: vec!["src/feat_b.rs".to_string()],
+                    test_files: vec![],
+                    violations: vec![],
+                },
+                FeatureNode {
+                    feature_id: "FEAT_C".to_string(),
+                    title: "Feature C".to_string(),
+                    spec_path: "specs/003/spec.md".to_string(),
+                    status: "active".to_string(),
+                    governance: "low".to_string(),
+                    owner: "team-c".to_string(),
+                    group: "infra".to_string(),
+                    depends_on: vec![],
+                    impl_files: vec!["src/feat_c.rs".to_string()],
+                    test_files: vec![],
+                    violations: vec![],
+                },
+            ],
+            violations: vec![],
+        }
+    }
+
+    #[test]
+    fn feature_context_single_file_hit() {
+        let root = Path::new("/test/repo");
+        let tools = tools_with_graph(root, test_graph());
+        let ctx = tools
+            .feature_context_for_paths(root, &["src/feat_a.rs".to_string()])
+            .unwrap();
+        assert_eq!(ctx.feature_ids, vec!["FEAT_A"]);
+        assert_eq!(ctx.max_risk.as_deref(), Some("high"));
+        assert!(ctx.statuses.contains(&"active".to_string()));
+    }
+
+    #[test]
+    fn feature_context_multiple_features() {
+        let root = Path::new("/test/repo");
+        let tools = tools_with_graph(root, test_graph());
+        let ctx = tools
+            .feature_context_for_paths(
+                root,
+                &["src/feat_a.rs".to_string(), "src/feat_b.rs".to_string()],
+            )
+            .unwrap();
+        assert_eq!(ctx.feature_ids, vec!["FEAT_A", "FEAT_B"]);
+        // critical > high → max should be critical
+        assert_eq!(ctx.max_risk.as_deref(), Some("critical"));
+        assert!(ctx.statuses.contains(&"active".to_string()));
+        assert!(ctx.statuses.contains(&"draft".to_string()));
+    }
+
+    #[test]
+    fn feature_context_no_hits() {
+        let root = Path::new("/test/repo");
+        let tools = tools_with_graph(root, test_graph());
+        let ctx = tools
+            .feature_context_for_paths(root, &["src/unknown.rs".to_string()])
+            .unwrap();
+        assert!(ctx.feature_ids.is_empty());
+        assert!(ctx.max_risk.is_none());
+        assert!(ctx.statuses.is_empty());
+    }
+
+    #[test]
+    fn feature_context_spec_path_hit() {
+        let root = Path::new("/test/repo");
+        let tools = tools_with_graph(root, test_graph());
+        let ctx = tools
+            .feature_context_for_paths(root, &["specs/002/spec.md".to_string()])
+            .unwrap();
+        assert_eq!(ctx.feature_ids, vec!["FEAT_B"]);
+        assert_eq!(ctx.max_risk.as_deref(), Some("critical"));
+        assert!(ctx.statuses.contains(&"draft".to_string()));
+    }
+
+    #[test]
+    fn feature_context_test_file_hit() {
+        let root = Path::new("/test/repo");
+        let tools = tools_with_graph(root, test_graph());
+        let ctx = tools
+            .feature_context_for_paths(root, &["tests/feat_a.rs".to_string()])
+            .unwrap();
+        assert_eq!(ctx.feature_ids, vec!["FEAT_A"]);
+        assert_eq!(ctx.max_risk.as_deref(), Some("high"));
     }
 }

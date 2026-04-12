@@ -87,6 +87,14 @@ impl std::fmt::Display for AxiomRegentError {
 
 impl std::error::Error for AxiomRegentError {}
 
+/// Spec 093: lightweight struct for feature context in router (avoids depending on featuregraph types).
+#[derive(Default, Clone, Debug)]
+pub struct FeatureContextInfo {
+    pub feature_ids: Vec<String>,
+    pub max_risk: Option<String>,
+    pub statuses: Vec<String>,
+}
+
 /// 098 Slice 4: trait for featuregraph mutation preflight.
 /// Implemented by [`crate::feature_tools::FeatureTools`].
 #[async_trait]
@@ -95,6 +103,16 @@ pub trait MutationPreflight: Send + Sync {
     /// Returns Ok(true) if allowed, Ok(false) if blocked, Err on infrastructure failure.
     async fn check_mutation(&self, repo_root: &str, paths: &[String], intent: &str)
         -> Result<bool, String>;
+
+    /// Spec 093: sync feature context lookup (IDs, max risk, statuses) for affected paths.
+    /// Default returns empty context (no featuregraph available).
+    fn feature_context_sync(
+        &self,
+        _repo_root: &str,
+        _paths: &[String],
+    ) -> Result<FeatureContextInfo, String> {
+        Ok(FeatureContextInfo::default())
+    }
 }
 
 pub struct Router {
@@ -110,6 +128,32 @@ pub struct Router {
     tool_registry: crate::registry_bridge::AsyncToolRegistryHandle,
     /// 098 Slice 4: optional featuregraph mutation preflight checker.
     preflight_checker: Option<Arc<dyn MutationPreflight>>,
+}
+
+/// Spec 093: extract file paths that will be affected by a tool call.
+fn extract_file_paths_from_args(tool_name: &str, args: &serde_json::Map<String, Value>) -> Vec<String> {
+    match tool_name {
+        "repo.write_file" | "workspace.write_file" | "write_file" => {
+            args.get("path")
+                .and_then(|v| v.as_str())
+                .map(|p| vec![p.to_string()])
+                .unwrap_or_default()
+        }
+        "repo.delete" | "workspace.delete" => {
+            args.get("path")
+                .and_then(|v| v.as_str())
+                .map(|p| vec![p.to_string()])
+                .unwrap_or_default()
+        }
+        "repo.apply_patch" | "workspace.apply_patch" => {
+            let patch = args.get("patch").and_then(|v| v.as_str()).unwrap_or("");
+            patch
+                .lines()
+                .filter_map(|line| line.strip_prefix("+++ b/").map(|r| r.to_string()))
+                .collect()
+        }
+        _ => vec![],
+    }
 }
 
 impl Router {
@@ -192,6 +236,21 @@ impl Router {
         self.preflight_checker = Some(checker);
     }
 
+    /// Spec 093: sync lookup of feature context for a tool call's affected paths.
+    fn lookup_feature_context(
+        &self,
+        tool_name: &str,
+        args: &serde_json::Map<String, Value>,
+    ) -> Option<FeatureContextInfo> {
+        let checker = self.preflight_checker.as_ref()?;
+        let repo_root = args.get("repo_root").and_then(|v| v.as_str())?;
+        let paths = extract_file_paths_from_args(tool_name, args);
+        if paths.is_empty() {
+            return None;
+        }
+        checker.feature_context_sync(repo_root, &paths).ok()
+    }
+
     /// Forward an audit payload to the platform if the forwarder is configured (Seam B).
     fn maybe_forward_audit(&self, payload: &serde_json::Value) {
         if let Some(fwd) = &self.audit_forwarder {
@@ -269,6 +328,10 @@ impl Router {
         tool_name: &str,
         args: &serde_json::Map<String, Value>,
     ) -> Option<JsonRpcResponse> {
+        // Spec 093: lookup feature context for risk ceiling.
+        let feature_ctx = self.lookup_feature_context(tool_name, args);
+        let spec_risk = feature_ctx.as_ref().and_then(|fc| fc.max_risk.as_deref());
+
         let lease_id_str = args.get("lease_id").and_then(|v| v.as_str());
         let lease = match lease_id_str {
             Some(lid) => self.lease_store.get_lease(lid).await,
@@ -280,7 +343,7 @@ impl Router {
         // rather than silently bypassing enforcement (Risk 1 fix — post-035 hardening).
         let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
         match &lease {
-            Some(l) => match permissions::check_tool_permission(tool_name, l) {
+            Some(l) => match permissions::check_grants(tool_name, &l.grants, spec_risk) {
                 Ok(()) => {
                     let audit = permissions::audit_tool_dispatch(
                         tool_name,
@@ -304,7 +367,7 @@ impl Router {
             },
             None => {
                 let fallback = self.lease_store.default_grants();
-                match permissions::check_grants(tool_name, &fallback, None) {
+                match permissions::check_grants(tool_name, &fallback, spec_risk) {
                     Ok(()) => {
                         let audit = permissions::audit_tool_dispatch(
                             tool_name,
@@ -340,7 +403,15 @@ impl Router {
     ) -> Option<JsonRpcResponse> {
         let repo_root = args.get("repo_root").and_then(|v| v.as_str())?;
         let bundle = self.policy_bundle_cache.bundle_for_repo_root(repo_root)?;
-        let ctx = build_tool_call_context(tool_name, args);
+        let mut ctx = build_tool_call_context(tool_name, args);
+
+        // Spec 093: enrich ToolCallContext with featuregraph data when available.
+        if let Some(fc) = self.lookup_feature_context(tool_name, args) {
+            ctx.feature_ids = fc.feature_ids;
+            ctx.max_spec_risk = fc.max_risk;
+            ctx.spec_statuses = fc.statuses;
+        }
+
         let decision = evaluate_loaded_policy(&bundle, &ctx)?;
         let tier_label = agent::safety::get_tool_tier(tool_name).as_str();
         let audit = permissions::audit_tool_dispatch(

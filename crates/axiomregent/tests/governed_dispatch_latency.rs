@@ -44,14 +44,14 @@ fn permission_check_under_50ms() {
 
     // Warm up
     for tool in &tools {
-        let _ = permissions::check_tool_permission(tool, &lease);
+        let _ = permissions::check_grants(tool, &lease.grants, None);
     }
 
     let iterations = 1000;
     let start = Instant::now();
     for _ in 0..iterations {
         for tool in &tools {
-            let _ = permissions::check_tool_permission(tool, &lease);
+            let _ = permissions::check_grants(tool, &lease.grants, None);
         }
     }
     let elapsed = start.elapsed();
