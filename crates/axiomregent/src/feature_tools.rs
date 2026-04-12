@@ -4,6 +4,7 @@
 // Spec: spec/core/featuregraph.md
 
 use anyhow::{Context, Result, anyhow};
+use async_trait::async_trait;
 use featuregraph::graph::{FeatureGraph, Violation};
 use featuregraph::locate::{Selector, SelectorType, locate};
 use featuregraph::preflight::{PreflightChecker, PreflightResponse};
@@ -232,5 +233,38 @@ impl FeatureTools {
 
         all_violations.sort_by(|a, b| a.code.cmp(&b.code).then(a.path.cmp(&b.path)));
         Ok(all_violations)
+    }
+}
+
+// 098 Slice 4: implement MutationPreflight for FeatureTools so the router can auto-run
+// featuregraph preflight before dispatching mutation tools.
+#[async_trait]
+impl crate::router::MutationPreflight for FeatureTools {
+    async fn check_mutation(
+        &self,
+        repo_root: &str,
+        paths: &[String],
+        intent: &str,
+    ) -> Result<bool, String> {
+        use featuregraph::preflight::{PreflightIntent, PreflightMode, PreflightRequest};
+
+        let preflight_intent = match intent {
+            "delete" => PreflightIntent::Delete,
+            "refactor" => PreflightIntent::Refactor,
+            "create" => PreflightIntent::Create,
+            _ => PreflightIntent::Edit,
+        };
+
+        let request = PreflightRequest {
+            intent: preflight_intent,
+            mode: PreflightMode::Worktree,
+            changed_paths: paths.to_vec(),
+            snapshot_id: None,
+        };
+
+        match self.preflight(std::path::Path::new(repo_root), request) {
+            Ok(response) => Ok(response.allowed),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }

@@ -77,6 +77,23 @@ Track B (097): [1] Promotion eligibility → [2] OIDC seam auth → [3] Mandator
                → [4] Promotion API → [5] Desktop indicator
 ```
 
+**Gate**: Both tracks complete before Phase 5 begins.
+
+### Phase 5 — Convergence Stitching (098 + 099)
+
+Closes four wiring defects that prevent Phases 0–4 subsystems from composing into the
+governed execution model. Parallel tracks.
+
+```
+Track A (098): [1] DispatchResult/Options fields → [2] GovernedPlan capture + metadata
+               → [3] Positive-assertion promotion gate → [4] Mutation preflight in router
+               → [5] E2E integration test
+
+Track B (099): [1] SyncTracker struct → [2] SyncStatus plumbing
+               [3] SQLite workspace_id migration ─┬─ [5] list_workflows_by_workspace
+               [4] Hiqlite workspace_id migration ─┘
+```
+
 ## Effort Estimates (Implementation Slices)
 
 | Phase | Spec | Slices | Estimated Days |
@@ -89,14 +106,16 @@ Track B (097): [1] Promotion eligibility → [2] OIDC seam auth → [3] Mandator
 | 3 | 095 Checkpoint Branch-of-Thought | 6 | 6 |
 | 4 | 096 Portfolio Intelligence | 4 | 5.5 |
 | 4 | 097 Promotion-Grade Mirror | 5 | 7 |
-| | **Total** | **43 slices** | **~49.5 days** |
+| 5 | 098 Governance Enforcement Stitching | 5 | 4 |
+| 5 | 099 Workspace-Scoped Persistence | 5 | 4 |
+| | **Total** | **53 slices** | **~57.5 days** |
 
 With Phase 0 tracks parallel (~7 days), Phase 2+3 parallel (~7 days), and Phase 4
 tracks parallel (~7 days), the critical path compresses to approximately:
 
 ```
-Phase 0: ~7 days → Phase 1: ~6.5 days → Phase 2+3: ~7 days → Phase 4: ~7 days
-Critical path: ~27.5 days
+Phase 0: ~7 days → Phase 1: ~6.5 days → Phase 2+3: ~7 days → Phase 4: ~7 days → Phase 5: ~4 days
+Critical path: ~31.5 days
 ```
 
 ## Key Technical Decisions

@@ -95,7 +95,7 @@ async fn main() -> Result<()> {
         github_provider,
         skill_provider,
     ];
-    let router = Router::new(providers, lease_store.clone()).await;
+    let router = Router::new(providers, lease_store.clone(), None).await;
 
     // 3b. OPC desktop sidecar discovery: announce a local probe port on **stderr** only.
     // Stdout is reserved for MCP framing; the desktop watches stderr for this line.

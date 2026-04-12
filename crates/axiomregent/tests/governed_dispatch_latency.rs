@@ -93,7 +93,7 @@ fn permission_check_grants_fallback_under_50ms() {
     let start = Instant::now();
     for _ in 0..iterations {
         for tool in &tools {
-            let _ = permissions::check_grants(tool, &grants);
+            let _ = permissions::check_grants(tool, &grants, None);
         }
     }
     let elapsed = start.elapsed();
@@ -124,14 +124,14 @@ fn permission_denial_works() {
     };
 
     // Tier 1 read tool: should pass
-    assert!(permissions::check_grants("gov.preflight", &grants).is_ok());
+    assert!(permissions::check_grants("gov.preflight", &grants, None).is_ok());
 
     // Write tool with write disabled: should deny
-    assert!(permissions::check_grants("workspace.write_file", &grants).is_err());
+    assert!(permissions::check_grants("workspace.write_file", &grants, None).is_err());
 
     // Network tool with network disabled: should deny
-    assert!(permissions::check_grants("run.execute", &grants).is_err());
+    assert!(permissions::check_grants("run.execute", &grants, None).is_err());
 
     // Tier 2 tool with max_tier=1: should deny
-    assert!(permissions::check_grants("checkpoint.create", &grants).is_err());
+    assert!(permissions::check_grants("checkpoint.create", &grants, None).is_err());
 }

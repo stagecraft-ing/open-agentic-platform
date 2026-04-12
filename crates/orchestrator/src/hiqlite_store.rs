@@ -97,7 +97,52 @@ impl HiqliteWorkflowStore {
                     reason: format!("hiqlite schema migration: {e}"),
                 })?;
         }
+
+        // Migration: add workspace_id column to workflows (099 Slice 4).
+        // Idempotent — ALTER TABLE ADD COLUMN fails if column already exists;
+        // we ignore the error.
+        let _ = self
+            .client
+            .execute(
+                Cow::Borrowed("ALTER TABLE workflows ADD COLUMN workspace_id TEXT"),
+                vec![],
+            )
+            .await;
+
         Ok(())
+    }
+
+    /// List workflow summaries for a given workspace_id (099 Slice 5).
+    pub async fn list_workflows_by_workspace(
+        &self,
+        workspace_id: &str,
+        limit: Option<u32>,
+    ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
+        let lim = limit.unwrap_or(50) as i64;
+        let rows: Vec<WorkspaceSummaryRow> = self
+            .client
+            .query_as(
+                "SELECT workflow_id, workflow_name, status, started_at, workspace_id
+                 FROM workflows
+                 WHERE workspace_id = $1
+                 ORDER BY started_at DESC
+                 LIMIT $2",
+                vec![Param::Text(workspace_id.to_string()), Param::Integer(lim)],
+            )
+            .await
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("list_workflows_by_workspace: {e}"),
+            })?;
+        Ok(rows
+            .into_iter()
+            .map(|r| crate::state::WorkflowStateSummary {
+                workflow_id: r.workflow_id,
+                workflow_name: r.workflow_name,
+                status: r.status,
+                started_at: r.started_at,
+                workspace_id: r.workspace_id,
+            })
+            .collect())
     }
 }
 
@@ -119,16 +164,24 @@ impl WorkflowStore for HiqliteWorkflowStore {
         // Build transaction: upsert workflow + delete old steps + insert new steps
         let mut queries: Vec<(Cow<'static, str>, Params)> = Vec::new();
 
+        // Extract workspace_id from metadata for the dedicated column (099 Slice 4).
+        let workspace_id = state
+            .metadata
+            .get("workspace_id")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+
         queries.push((
             Cow::Borrowed(
-                r#"INSERT INTO workflows (workflow_id, workflow_name, status, started_at, completed_at, metadata)
-                   VALUES ($1, $2, $3, $4, NULL, $5)
+                r#"INSERT INTO workflows (workflow_id, workflow_name, status, started_at, completed_at, metadata, workspace_id)
+                   VALUES ($1, $2, $3, $4, NULL, $5, $6)
                    ON CONFLICT(workflow_id) DO UPDATE SET
                      workflow_name = excluded.workflow_name,
                      status        = excluded.status,
                      started_at    = excluded.started_at,
                      completed_at  = excluded.completed_at,
-                     metadata      = excluded.metadata"#,
+                     metadata      = excluded.metadata,
+                     workspace_id  = excluded.workspace_id"#,
             ),
             vec![
                 Param::Text(wf_id_str.clone()),
@@ -136,6 +189,9 @@ impl WorkflowStore for HiqliteWorkflowStore {
                 Param::Text(status_str),
                 Param::Text(state.started_at.clone()),
                 metadata_json
+                    .map(Param::Text)
+                    .unwrap_or(Param::Null),
+                workspace_id
                     .map(Param::Text)
                     .unwrap_or(Param::Null),
             ],
@@ -450,6 +506,15 @@ impl EventNotifier for HiqliteEventNotifier {
 // ---------------------------------------------------------------------------
 // Serde row types for query_as deserialization
 // ---------------------------------------------------------------------------
+
+#[derive(serde::Deserialize)]
+struct WorkspaceSummaryRow {
+    workflow_id: String,
+    workflow_name: String,
+    status: String,
+    started_at: String,
+    workspace_id: Option<String>,
+}
 
 #[derive(serde::Deserialize)]
 struct WorkflowRow {

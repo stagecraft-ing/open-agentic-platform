@@ -677,6 +677,8 @@ pub async fn start_factory_pipeline(
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
             cas: None,
+            governance_mode: None,
+            sync_tracker: None,
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -856,6 +858,8 @@ pub async fn start_factory_pipeline(
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
             cas: None,
+            governance_mode: None,
+            sync_tracker: None,
         };
 
         let summary2 = match dispatch_manifest(
@@ -1360,6 +1364,8 @@ pub async fn resume_factory_pipeline(
         project_root: Some(project_path),
         skip_completed_steps: skip_steps,
         cas: None,
+        governance_mode: None,
+        sync_tracker: None,
     };
 
     let app_handle = app.clone();

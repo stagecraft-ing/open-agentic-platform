@@ -5,6 +5,7 @@
 
 use crate::state::{StepExecutionStatus, WorkflowState};
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 
 /// Whether a completed run is eligible for platform promotion (097 Slice 1).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -23,6 +24,83 @@ pub struct SyncStatus {
     pub artifacts_recorded: bool,
     /// Last sync error, if any.
     pub last_sync_error: Option<String>,
+}
+
+/// Tracks acknowledgements from fire-and-forget Stagecraft calls (099 Slice 1).
+///
+/// Created per pipeline run. Cloneable (inner state is `Arc<Mutex>`).
+/// Spawned tasks capture a clone and record ack/nack after each HTTP call completes.
+#[derive(Debug, Clone)]
+pub struct SyncTracker {
+    inner: Arc<Mutex<SyncTrackerInner>>,
+}
+
+#[derive(Debug, Default)]
+struct SyncTrackerInner {
+    events_acked: u32,
+    events_failed: u32,
+    artifacts_acked: u32,
+    artifacts_failed: u32,
+    last_error: Option<String>,
+}
+
+impl Default for SyncTracker {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(SyncTrackerInner::default())),
+        }
+    }
+}
+
+impl SyncTracker {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn record_events_ack(&self, count: u32) {
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.events_acked += count;
+        }
+    }
+
+    pub fn record_events_fail(&self, err: String) {
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.events_failed += 1;
+            inner.last_error = Some(err);
+        }
+    }
+
+    pub fn record_artifacts_ack(&self, count: u32) {
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.artifacts_acked += count;
+        }
+    }
+
+    pub fn record_artifacts_fail(&self, err: String) {
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.artifacts_failed += 1;
+            inner.last_error = Some(err);
+        }
+    }
+
+    /// Convert accumulated tracking data into a `SyncStatus` for promotion checks.
+    pub fn to_sync_status(&self) -> SyncStatus {
+        let inner = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return SyncStatus {
+                    events_synced: false,
+                    artifacts_recorded: false,
+                    last_sync_error: Some("sync tracker lock poisoned".into()),
+                };
+            }
+        };
+        SyncStatus {
+            events_synced: inner.events_failed == 0 && inner.events_acked > 0,
+            artifacts_recorded: inner.artifacts_failed == 0 && inner.artifacts_acked > 0,
+            last_sync_error: inner.last_error.clone(),
+        }
+    }
 }
 
 /// Full promotion check result with all individual criteria (097 Slice 1).
@@ -60,7 +138,9 @@ pub fn check_promotion_eligibility(
         .get("governance_mode")
         .and_then(|v| v.as_str())
         .unwrap_or("unknown");
-    let governance_active = governance_mode != "bypass";
+    // Positive assertion (098 Slice 3): only explicitly governed runs qualify.
+    // Previously `!= "bypass"` which let "unknown" (absent key) pass silently.
+    let governance_active = governance_mode == "governed";
 
     let all_steps_completed = state
         .steps
@@ -263,5 +343,81 @@ mod tests {
             }
             PromotionEligibility::Eligible => panic!("expected ineligible"),
         }
+    }
+
+    // --- 098 Slice 3: Positive-assertion governance gate ---
+
+    #[test]
+    fn sc098_3_ineligible_when_governance_mode_missing() {
+        // Simulate a workflow where governance_mode was never written to metadata.
+        let mut meta = serde_json::Map::new();
+        meta.insert(
+            "workspace_id".into(),
+            JsonValue::String("ws-001".into()),
+        );
+        // Note: no "governance_mode" key — previously this would pass as "unknown" != "bypass"
+
+        let mut state = WorkflowState::new(
+            Uuid::new_v4(),
+            "test-workflow",
+            "2026-04-11T00:00:00Z".into(),
+            vec![("step-01".into(), "lint".into())],
+            meta,
+        );
+        for step in &mut state.steps {
+            step.status = crate::state::StepExecutionStatus::Completed;
+            step.completed_at = Some("2026-04-11T00:01:00Z".into());
+        }
+
+        let sync = SyncStatus {
+            events_synced: true,
+            artifacts_recorded: true,
+            last_sync_error: None,
+        };
+
+        let check = check_promotion_eligibility(&state, &sync);
+        assert!(!check.governance_active, "absent governance_mode must not pass");
+        match &check.eligibility {
+            PromotionEligibility::Ineligible { reasons } => {
+                assert!(reasons.iter().any(|r| r.contains("governance")));
+            }
+            PromotionEligibility::Eligible => panic!("expected ineligible"),
+        }
+    }
+
+    // --- SyncTracker tests (099 Slice 1) ---
+
+    #[test]
+    fn sc099_1_sync_tracker_all_acked() {
+        let tracker = SyncTracker::new();
+        tracker.record_events_ack(3);
+        tracker.record_artifacts_ack(5);
+
+        let status = tracker.to_sync_status();
+        assert!(status.events_synced);
+        assert!(status.artifacts_recorded);
+        assert!(status.last_sync_error.is_none());
+    }
+
+    #[test]
+    fn sc099_1_sync_tracker_events_failed() {
+        let tracker = SyncTracker::new();
+        tracker.record_events_ack(2);
+        tracker.record_events_fail("connection refused".into());
+        tracker.record_artifacts_ack(1);
+
+        let status = tracker.to_sync_status();
+        assert!(!status.events_synced);
+        assert!(status.artifacts_recorded);
+        assert_eq!(status.last_sync_error, Some("connection refused".into()));
+    }
+
+    #[test]
+    fn sc099_1_sync_tracker_no_activity() {
+        let tracker = SyncTracker::new();
+        let status = tracker.to_sync_status();
+        // No acks at all means not synced
+        assert!(!status.events_synced);
+        assert!(!status.artifacts_recorded);
     }
 }

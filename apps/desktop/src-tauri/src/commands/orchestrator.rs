@@ -201,7 +201,7 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None })
+        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None, governance_mode: None })
     }
 
     async fn dispatch_via_governed_claude(
@@ -233,6 +233,10 @@ impl RealGovernedExecutor {
                 args.extend(allowed_tools.iter().cloned());
             }
         let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json);
+        let governance_mode_str = match &plan {
+            crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+            crate::governed_claude::GovernedPlan::Bypass => "bypass",
+        };
         crate::governed_claude::append_claude_governance_args(&mut args, &plan);
         if let Some(reason) = &bypass_reason {
             eprintln!(
@@ -325,7 +329,7 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None })
+        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None, governance_mode: Some(governance_mode_str.to_string()) })
     }
 }
 
@@ -391,6 +395,14 @@ pub async fn orchestrate_manifest(
     materialize_run_directory(&artifact_base, run_id, &manifest)
         .map_err(|e| format!("materialize run dir failed: {e}"))?;
 
+    // Determine governance mode at launch time (098 Slice 2).
+    let grants_json = crate::governed_claude::grants_json_claude_default();
+    let (plan, _bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json);
+    let governance_mode = match &plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
+        crate::governed_claude::GovernedPlan::Bypass => "bypass",
+    };
+
     let summary = dispatch_manifest(
         &artifact_base,
         run_id,
@@ -402,7 +414,10 @@ pub async fn orchestrate_manifest(
             agents: agent_profiles,
             working_directory: project_path,
         }),
-        &DispatchOptions::default(),
+        &DispatchOptions {
+            governance_mode: Some(governance_mode.to_string()),
+            ..Default::default()
+        },
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -413,6 +428,33 @@ pub async fn orchestrate_manifest(
         .summaries
         .insert(run_id, summary.clone());
     Ok(summary)
+}
+
+/// List workflow summaries for a given workspace (099 Slice 5).
+#[tauri::command]
+pub async fn list_workspace_workflows(
+    workspace_id: String,
+    limit: Option<u32>,
+) -> Result<Vec<orchestrator::WorkflowStateSummary>, String> {
+    // Use the default SQLite store location
+    let store_path = std::env::var("OPC_WORKFLOW_DB")
+        .unwrap_or_else(|_| {
+            let data_dir = dirs::data_local_dir()
+                .unwrap_or_else(|| std::path::PathBuf::from("."));
+            data_dir
+                .join("opc")
+                .join("workflows.db")
+                .to_string_lossy()
+                .to_string()
+        });
+    let store = orchestrator::sqlite_state::SqliteWorkflowStore::open(
+        std::path::Path::new(&store_path),
+    )
+    .map_err(|e| format!("open workflow store: {e}"))?;
+    store
+        .list_workflows_by_workspace(&workspace_id, limit)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 fn parse_allowed_tools(raw: Option<&str>) -> Option<Vec<String>> {

@@ -55,5 +55,5 @@ pub async fn make_router(
         run_tools,
     });
     let providers: Vec<Arc<dyn ToolProvider>> = vec![legacy];
-    Router::new(providers, lease_store).await
+    Router::new(providers, lease_store, None).await
 }

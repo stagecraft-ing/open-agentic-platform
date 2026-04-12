@@ -216,6 +216,7 @@ impl GovernedExecutor for TestExecutor {
             cost_usd: None,
             duration_ms: None,
             num_turns: None,
+            governance_mode: None,
         })
     }
 }

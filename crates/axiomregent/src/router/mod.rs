@@ -1,6 +1,7 @@
 // Feature: MCP_ROUTER
 // Spec: spec/core/router.md
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -86,6 +87,16 @@ impl std::fmt::Display for AxiomRegentError {
 
 impl std::error::Error for AxiomRegentError {}
 
+/// 098 Slice 4: trait for featuregraph mutation preflight.
+/// Implemented by [`crate::feature_tools::FeatureTools`].
+#[async_trait]
+pub trait MutationPreflight: Send + Sync {
+    /// Check whether a mutation to the given paths is allowed by featuregraph preflight.
+    /// Returns Ok(true) if allowed, Ok(false) if blocked, Err on infrastructure failure.
+    async fn check_mutation(&self, repo_root: &str, paths: &[String], intent: &str)
+        -> Result<bool, String>;
+}
+
 pub struct Router {
     providers: Vec<Arc<dyn provider::ToolProvider>>,
     lease_store: Arc<LeaseStore>,
@@ -97,12 +108,15 @@ pub struct Router {
     platform_config: crate::platform_config::PlatformConfig,
     /// Unified tool registry (spec 067). Provides schema validation and lifecycle events.
     tool_registry: crate::registry_bridge::AsyncToolRegistryHandle,
+    /// 098 Slice 4: optional featuregraph mutation preflight checker.
+    preflight_checker: Option<Arc<dyn MutationPreflight>>,
 }
 
 impl Router {
     pub async fn new(
         providers: Vec<Arc<dyn provider::ToolProvider>>,
         lease_store: Arc<LeaseStore>,
+        preflight_checker: Option<Arc<dyn MutationPreflight>>,
     ) -> Self {
         let platform_cfg = crate::platform_config::PlatformConfig::from_env();
 
@@ -169,13 +183,83 @@ impl Router {
             audit_forwarder,
             platform_config: platform_cfg,
             tool_registry,
+            preflight_checker,
         }
+    }
+
+    /// 098 Slice 4: setter to configure the mutation preflight checker after construction.
+    pub fn set_preflight_checker(&mut self, checker: Arc<dyn MutationPreflight>) {
+        self.preflight_checker = Some(checker);
     }
 
     /// Forward an audit payload to the platform if the forwarder is configured (Seam B).
     fn maybe_forward_audit(&self, payload: &serde_json::Value) {
         if let Some(fwd) = &self.audit_forwarder {
             fwd.forward(payload.clone());
+        }
+    }
+
+    /// 098 Slice 4: auto-run featuregraph preflight before mutation tools.
+    /// Returns Some(error response) if mutation is blocked; None if allowed or not applicable.
+    async fn run_mutation_preflight(
+        &self,
+        id: Option<Value>,
+        tool_name: &str,
+        args: &serde_json::Map<String, Value>,
+    ) -> Option<JsonRpcResponse> {
+        let checker = self.preflight_checker.as_ref()?;
+
+        // Only run preflight for file-writing tools.
+        let meta = agent::safety::get_tool_metadata(tool_name);
+        if !meta.requires_file_write {
+            return None;
+        }
+
+        let repo_root = args.get("repo_root").and_then(|v| v.as_str())?;
+
+        // Extract the paths that will be mutated and infer intent from the tool name.
+        let (changed_paths, intent) = match tool_name {
+            "repo.write_file" | "workspace.write_file" | "write_file" => {
+                let path = args.get("path").and_then(|v| v.as_str())?;
+                (vec![path.to_string()], "edit")
+            }
+            "repo.delete" | "workspace.delete" => {
+                let path = args.get("path").and_then(|v| v.as_str())?;
+                (vec![path.to_string()], "delete")
+            }
+            "repo.apply_patch" | "workspace.apply_patch" => {
+                let patch = args.get("patch").and_then(|v| v.as_str()).unwrap_or("");
+                let paths: Vec<String> = patch
+                    .lines()
+                    .filter_map(|line| {
+                        if let Some(rest) = line.strip_prefix("+++ b/") {
+                            Some(rest.to_string())
+                        } else {
+                            // Only include "--- a/" paths when there's no "+++ b/" counterpart —
+                            // in practice we prefer "+++ b/" (the target); deduplicate later.
+                            line.strip_prefix("--- a/").map(|rest| rest.to_string())
+                        }
+                    })
+                    .collect::<std::collections::HashSet<_>>()
+                    .into_iter()
+                    .collect();
+                if paths.is_empty() {
+                    return None;
+                }
+                (paths, "refactor")
+            }
+            _ => return None,
+        };
+
+        match checker.check_mutation(repo_root, &changed_paths, intent).await {
+            Ok(true) => None,
+            Ok(false) => Some(json_rpc_error(
+                id,
+                -32603,
+                "Mutation blocked by governance preflight: affected features have violations",
+            )),
+            // Fail-open on infrastructure errors — do not block the tool call.
+            Err(_) => None,
         }
     }
 
@@ -220,7 +304,7 @@ impl Router {
             },
             None => {
                 let fallback = self.lease_store.default_grants();
-                match permissions::check_grants(tool_name, &fallback) {
+                match permissions::check_grants(tool_name, &fallback, None) {
                     Ok(()) => {
                         let audit = permissions::audit_tool_dispatch(
                             tool_name,
@@ -301,6 +385,14 @@ impl Router {
                 // Preflight permission check
                 if let Some(resp) = self
                     .preflight_tool_permission(req.id.clone(), name, args)
+                    .await
+                {
+                    return resp;
+                }
+
+                // Mutation preflight enforcement (098 Slice 4).
+                if let Some(resp) = self
+                    .run_mutation_preflight(req.id.clone(), name, args)
                     .await
                 {
                     return resp;

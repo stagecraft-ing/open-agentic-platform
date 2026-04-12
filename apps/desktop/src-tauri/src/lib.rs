@@ -49,7 +49,7 @@ use commands::mcp::{
     mcp_serve, mcp_test_connection,
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
-use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, orchestrate_manifest};
+use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, list_workspace_workflows, orchestrate_manifest};
 use commands::factory::{
     cancel_factory_pipeline, confirm_factory_stage, get_factory_artifacts,
     get_factory_pipeline_status, list_factory_runs, reject_factory_stage,
@@ -379,6 +379,7 @@ pub fn run() {
             get_run_status,
             cancel_run,
             cleanup_artifacts,
+            list_workspace_workflows,
             // Factory Pipeline (076)
             start_factory_pipeline,
             get_factory_pipeline_status,

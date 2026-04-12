@@ -44,7 +44,7 @@ pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
 pub use http::HttpState;
 pub use manifest::ApprovalEscalation;
 pub use manifest::{VerifyCommand, WorkflowManifest, WorkflowStep, split_input_ref};
-pub use promotion::{PromotionCheck, PromotionEligibility, SyncStatus, check_promotion_eligibility};
+pub use promotion::{PromotionCheck, PromotionEligibility, SyncStatus, SyncTracker, check_promotion_eligibility};
 #[cfg(feature = "local-sqlite")]
 pub use scheduler::SqliteSchedulerStore;
 pub use scheduler::{
@@ -56,8 +56,9 @@ pub use sqlite_state::{
     LocalEventNotifier, SqliteWorkflowStore, sqlite_db_path_for_run, sqlite_db_path_for_run_dir,
 };
 pub use state::{
-    GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStatus, load_workflow_state,
-    state_file_path_for_run, state_file_path_for_run_dir, write_workflow_state_atomic,
+    GateInfo, StepExecutionStatus, StepState, WorkflowState, WorkflowStateSummary, WorkflowStatus,
+    load_workflow_state, state_file_path_for_run, state_file_path_for_run_dir,
+    write_workflow_state_atomic,
 };
 pub use store::{EventNotifier, EventReceiver, PersistedEvent, ReplaySubscription, WorkflowStore};
 pub use store_config::{PersistencePair, StoreBackend, build_persistence};
@@ -158,6 +159,8 @@ pub struct DispatchResult {
     pub duration_ms: Option<u64>,
     /// Number of agentic turns.
     pub num_turns: Option<u32>,
+    /// Whether the run was governed or bypassed (098 Slice 1).
+    pub governance_mode: Option<String>,
 }
 
 /// Plan for resuming a workflow from a previously persisted `state.json` (052 FR-003).
@@ -209,6 +212,10 @@ pub struct DispatchOptions {
     /// Content-addressed store for artifact promotion (094 Slice 2).
     /// If `Some`, completed step artifacts are promoted to CAS for cross-run persistence.
     pub cas: Option<Arc<ContentAddressedStore>>,
+    /// Governance mode for this dispatch: `"governed"` or `"bypass"` (098 Slice 1).
+    pub governance_mode: Option<String>,
+    /// Platform sync tracker for promotion eligibility (099 Slice 2).
+    pub sync_tracker: Option<promotion::SyncTracker>,
 }
 
 /// Outcome of gate evaluation in the non-persisted dispatch path.
@@ -1285,6 +1292,10 @@ pub async fn dispatch_manifest_persisted(
     if let Some(ref ws_id) = manifest.workspace_id {
         wf_metadata.insert("workspace_id".to_string(), JsonValue::String(ws_id.clone()));
     }
+    // Thread governance_mode from DispatchOptions into persisted metadata (098 Slice 2).
+    if let Some(ref gm) = options.governance_mode {
+        wf_metadata.insert("governance_mode".to_string(), JsonValue::String(gm.clone()));
+    }
     let mut wf_state = WorkflowState::new(
         run_id,
         manifest
@@ -1798,10 +1809,12 @@ pub async fn dispatch_manifest_persisted(
     }
 
     // --- Workflow completed: check promotion eligibility (spec 097 Slice 4) ---
-    // TODO(097): replace with real platform sync tracking once StagecraftClient
-    //   returns acknowledgement for events and artifacts. For now we default to
-    //   SyncStatus::default() (not synced), so all runs start as CompletedLocal.
-    let sync_status = promotion::SyncStatus::default();
+    // Use real SyncTracker data when provided (099 Slice 2), otherwise default
+    // to not-synced (all runs start as CompletedLocal without a tracker).
+    let sync_status = match &options.sync_tracker {
+        Some(tracker) => tracker.to_sync_status(),
+        None => promotion::SyncStatus::default(),
+    };
     let promo_check = promotion::check_promotion_eligibility(&wf_state, &sync_status);
 
     wf_state.status = match &promo_check.eligibility {
@@ -1888,6 +1901,7 @@ mod tests {
                 cost_usd: None,
                 duration_ms: None,
                 num_turns: None,
+                governance_mode: None,
             })
         }
     }
@@ -1938,6 +1952,7 @@ mod tests {
                 cost_usd: None,
                 duration_ms: None,
                 num_turns: None,
+                governance_mode: None,
             })
         }
     }
@@ -2626,5 +2641,123 @@ steps:
         // SC-005: effort levels generate measurably different output sizes.
         assert!(step1_text.len() < step2_text.len());
         assert!(step2_text.len() < step3_text.len());
+    }
+
+    // --- SC-098-6: E2E bypass run → ineligible promotion → CompletedLocal ---
+
+    struct AlwaysPresentRegistry2;
+
+    #[async_trait]
+    impl AgentRegistry for AlwaysPresentRegistry2 {
+        async fn has_agent(&self, _id: &str) -> bool {
+            true
+        }
+    }
+
+    struct FileWritingExecutor2;
+
+    #[async_trait]
+    impl GovernedExecutor for FileWritingExecutor2 {
+        async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
+            // Write output artifacts so verification passes.
+            for path in &request.output_artifacts {
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent).unwrap();
+                }
+                std::fs::write(path, "ok").unwrap();
+            }
+            Ok(DispatchResult {
+                tokens_used: Some(50),
+                output_hashes: HashMap::new(),
+                session_id: None,
+                cost_usd: None,
+                duration_ms: None,
+                num_turns: None,
+                governance_mode: None,
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn sc098_6_bypass_run_produces_completed_local() {
+        use crate::sqlite_state::{LocalEventNotifier, SqliteWorkflowStore};
+        use crate::state::WorkflowStatus;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+
+        // Manifest with one step, scoped to a workspace
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "s1".into(),
+                agent: "test-agent".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out.md".into()],
+                instruction: "do something".into(),
+                gate: None,
+                pre_verify: None,
+                post_verify: None,
+                max_retries: None,
+            }],
+            workspace_id: Some("ws-test-098".into()),
+        };
+
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        let db_path = tmp.path().join("test.db");
+        let store = Arc::new(SqliteWorkflowStore::open(&db_path).unwrap());
+        let notifier = Arc::new(LocalEventNotifier::new());
+
+        let persistence = PersistenceContext {
+            store: store.clone(),
+            notifier,
+        };
+
+        // Options with governance_mode = "bypass" (098 Slice 2 flow)
+        let options = DispatchOptions {
+            governance_mode: Some("bypass".to_string()),
+            ..Default::default()
+        };
+
+        let _summary = dispatch_manifest_persisted(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistry2),
+            Arc::new(FileWritingExecutor2),
+            &persistence,
+            &options,
+        )
+        .await
+        .unwrap();
+
+        // Load persisted state and verify governance metadata
+        let state = store.load_workflow_state(run_id).await.unwrap().unwrap();
+
+        // SC-098-2: governance_mode is persisted in metadata
+        let gov_mode = state
+            .metadata
+            .get("governance_mode")
+            .and_then(|v| v.as_str());
+        assert_eq!(gov_mode, Some("bypass"));
+
+        // SC-098-3: promotion check flags bypass as ineligible
+        let promo = state
+            .metadata
+            .get("promotion")
+            .expect("promotion metadata missing");
+        assert_eq!(
+            promo.get("governance_active").and_then(|v| v.as_bool()),
+            Some(false)
+        );
+
+        // SC-098-6: status is CompletedLocal (not Completed)
+        assert!(
+            matches!(state.status, WorkflowStatus::CompletedLocal),
+            "expected CompletedLocal, got {:?}",
+            state.status
+        );
     }
 }

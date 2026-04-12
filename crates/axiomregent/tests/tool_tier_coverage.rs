@@ -51,7 +51,7 @@ async fn create_router() -> Router {
     // Forget TempDir to keep it alive for the router's lifetime
     std::mem::forget(db_dir);
 
-    Router::new(providers, lease_store).await
+    Router::new(providers, lease_store, None).await
 }
 
 #[tokio::test]

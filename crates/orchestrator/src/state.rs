@@ -69,6 +69,18 @@ pub struct StepState {
     pub gate: Option<GateInfo>,
 }
 
+/// Lightweight summary for workspace-scoped listing (099 Slice 5).
+/// Avoids loading all steps per workflow.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowStateSummary {
+    pub workflow_id: String,
+    pub workflow_name: String,
+    pub status: String,
+    pub started_at: String,
+    pub workspace_id: Option<String>,
+}
+
 /// JSON state file schema (FR-001, FR-002, FR-007, SC-006).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

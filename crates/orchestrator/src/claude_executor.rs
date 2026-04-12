@@ -298,6 +298,7 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             cost_usd: parsed.cost_usd,
             duration_ms: parsed.duration_ms,
             num_turns: parsed.num_turns,
+            governance_mode: None,
         })
     }
 }
