@@ -28,3 +28,6 @@ pub use types::{
     AllowedTools, CollectedHook, ParsedSkill, SkillFactoryLoadResult, SkillFrontmatter,
     SkillHookDeclaration, SkillLoadResult, SkillType,
 };
+
+// Re-export additional agent-frontmatter types for downstream consumers.
+pub use agent_frontmatter::HookHandlerType;

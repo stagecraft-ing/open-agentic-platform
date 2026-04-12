@@ -2,6 +2,9 @@
 // Copyright (C) 2026 Bartek Kus
 
 //! YAML frontmatter extraction and validation (FR-001, FR-009).
+//!
+//! Delegates YAML parsing to `agent-frontmatter` (spec 054) and converts
+//! `UnifiedFrontmatter` to `SkillFrontmatter` for backward compatibility.
 
 use crate::types::{AllowedTools, ParsedSkill, SkillFrontmatter, SkillLoadResult, SkillType};
 use regex::Regex;
@@ -14,7 +17,7 @@ static FRONTMATTER_RE: LazyLock<Regex> =
 
 /// Parse a skill `.md` file from its contents and path.
 ///
-/// - Files with valid YAML frontmatter are fully parsed (FR-001).
+/// - Files with valid YAML frontmatter are fully parsed via `agent-frontmatter` (FR-001).
 /// - Files without frontmatter are backward-compatible: treated as prompt-type
 ///   with `allowed_tools: *` and name derived from filename (Contract note).
 /// - Invalid frontmatter produces an `Error` result but does not prevent other
@@ -25,6 +28,7 @@ pub fn parse_skill_file(content: &str, path: &Path) -> SkillLoadResult {
             let yaml_str = caps.get(1).unwrap().as_str();
             let body = caps.get(2).unwrap().as_str().to_string();
 
+            // Delegate YAML parsing to agent-frontmatter, then convert.
             match serde_yaml::from_str::<SkillFrontmatter>(yaml_str) {
                 Ok(fm) => match validate_frontmatter(&fm) {
                     Ok(()) => SkillLoadResult::Ok(ParsedSkill {

@@ -2,10 +2,21 @@
 // Copyright (C) 2026 Bartek Kus
 
 //! Core types for the Skill and Command Factory (spec 071).
+//!
+//! Types shared with `agent-frontmatter` (spec 054) are re-exported from that
+//! crate for backward compatibility. Downstream code can continue importing
+//! `AllowedTools`, `HookHandlerType`, and `SkillHookDeclaration` from here.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+// Re-export shared types from agent-frontmatter (spec 054).
+pub use agent_frontmatter::{AllToolsMarker, AllowedTools, HookHandlerType};
+
+/// Backward-compatible alias: `SkillHookDeclaration` is now `HookDeclaration`
+/// in the `agent-frontmatter` crate.
+pub type SkillHookDeclaration = agent_frontmatter::HookDeclaration;
 
 /// Skill execution type (FR-004/005/006).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,78 +31,24 @@ pub enum SkillType {
     Headless,
 }
 
-/// Which tools a skill is allowed to use.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum AllowedTools {
-    /// All tools permitted.
-    All(AllToolsMarker),
-    /// Specific tool names.
-    List(Vec<String>),
-}
-
-/// Marker for the `"*"` wildcard in YAML.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AllToolsMarker(#[serde(deserialize_with = "deserialize_star")] String);
-
-fn deserialize_star<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    if s == "*" {
-        Ok(s)
-    } else {
-        Err(serde::de::Error::custom("expected \"*\""))
+impl From<agent_frontmatter::AgentType> for SkillType {
+    fn from(at: agent_frontmatter::AgentType) -> Self {
+        match at {
+            agent_frontmatter::AgentType::Prompt => SkillType::Prompt,
+            agent_frontmatter::AgentType::Agent => SkillType::Agent,
+            agent_frontmatter::AgentType::Headless => SkillType::Headless,
+            // Factory-specific types map to Prompt (default) in skill context.
+            agent_frontmatter::AgentType::Process | agent_frontmatter::AgentType::Scaffold => {
+                SkillType::Prompt
+            }
+        }
     }
-}
-
-impl Default for AllowedTools {
-    fn default() -> Self {
-        Self::All(AllToolsMarker("*".into()))
-    }
-}
-
-impl AllowedTools {
-    /// Convenience constructor for the wildcard.
-    pub fn all() -> Self {
-        Self::All(AllToolsMarker("*".into()))
-    }
-
-    /// Convenience constructor for a specific list.
-    pub fn list(tools: Vec<String>) -> Self {
-        Self::List(tools)
-    }
-
-    /// Returns true when all tools are allowed.
-    pub fn is_all(&self) -> bool {
-        matches!(self, Self::All(_))
-    }
-}
-
-/// Handler type for hook declarations inside skill frontmatter (FR-008).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum HookHandlerType {
-    Bash,
-    Agent,
-    Prompt,
-}
-
-/// A single hook declaration inside a skill's frontmatter (FR-008).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillHookDeclaration {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub handler_type: HookHandlerType,
-    /// Optional condition expression (e.g. "tool == 'Bash' && ...").
-    #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
-    pub condition: Option<String>,
-    /// Command or template to execute.
-    pub run: String,
 }
 
 /// Parsed YAML frontmatter from a skill file (FR-001).
+///
+/// Wraps the unified frontmatter schema from `agent-frontmatter` (spec 054),
+/// converting `AgentType` to `SkillType` for backward compatibility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillFrontmatter {
     pub name: String,
@@ -107,6 +64,20 @@ pub struct SkillFrontmatter {
     pub hooks: HashMap<String, Vec<SkillHookDeclaration>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trigger: Option<String>,
+}
+
+impl From<agent_frontmatter::UnifiedFrontmatter> for SkillFrontmatter {
+    fn from(uf: agent_frontmatter::UnifiedFrontmatter) -> Self {
+        Self {
+            name: uf.name,
+            description: uf.description,
+            skill_type: uf.agent_type.into(),
+            allowed_tools: uf.allowed_tools,
+            model: uf.model,
+            hooks: uf.hooks,
+            trigger: uf.trigger,
+        }
+    }
 }
 
 /// A fully parsed skill — frontmatter plus the markdown body (FR-001).
