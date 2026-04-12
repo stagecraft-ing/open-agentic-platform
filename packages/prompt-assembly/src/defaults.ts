@@ -2,7 +2,9 @@
 // Feature: 070-prompt-assembly-cache
 
 import { PromptAssembler } from "./assembler.js";
-import type { PromptSection } from "./types.js";
+import type { AssemblyContext, PromptSection } from "./types.js";
+import type { StandardsFilter, IntegrationResult } from "@opc/yaml-standards-schema";
+import { resolveAndFormat } from "@opc/yaml-standards-schema";
 
 /**
  * Default section definitions matching the spec architecture diagram.
@@ -41,6 +43,55 @@ export const behavioralRulesSection: PromptSection = {
   priority: 900,
   maxBytes: 16_384,
 };
+
+/**
+ * Coding standards section (spec 055, priority 850).
+ *
+ * Reads pre-resolved standards text from `ctx.vars["codingStandards"]`.
+ * Because `resolveAndFormat()` is async and `contentFn` is sync, callers
+ * must pre-resolve standards before assembly using `preloadCodingStandards()`.
+ *
+ * Priority 850 places this between behavioral rules (900) and tool schemas (800).
+ */
+export const codingStandardsSection: PromptSection = {
+  name: "coding-standards",
+  contentFn: (ctx: AssemblyContext) => {
+    const standards = ctx.vars["codingStandards"];
+    return typeof standards === "string" ? standards : "";
+  },
+  cacheLifetime: "static",
+  priority: 850,
+  maxBytes: 16_384,
+};
+
+/**
+ * Pre-resolve coding standards for injection into the assembler context.
+ *
+ * Call this before assembly and pass the result as `ctx.vars["codingStandards"]`.
+ * Returns the formatted prompt text, or an empty string if no standards match.
+ *
+ * @example
+ * ```ts
+ * const standardsText = await preloadCodingStandards("/path/to/project", {
+ *   tags: ["typescript"],
+ * });
+ * const ctx = { sessionId: "s1", modelContextWindow: 200_000, vars: {
+ *   codingStandards: standardsText,
+ * }};
+ * const prompt = assembler.assemble(ctx);
+ * ```
+ */
+export async function preloadCodingStandards(
+  projectRoot: string,
+  filter?: StandardsFilter,
+): Promise<string> {
+  const result: IntegrationResult = await resolveAndFormat({
+    projectRoot,
+    filter,
+    format: { includeExamples: false },
+  });
+  return result.promptText;
+}
 
 export const toolRegistrySchemasSection: PromptSection = {
   name: "tool-registry-schemas",
@@ -158,6 +209,7 @@ export const environmentContextSection: PromptSection = {
 export const DEFAULT_SECTIONS: readonly PromptSection[] = [
   identitySection,
   behavioralRulesSection,
+  codingStandardsSection,
   toolRegistrySchemasSection,
   claudeMdSection,
   orchestratorRulesSection,

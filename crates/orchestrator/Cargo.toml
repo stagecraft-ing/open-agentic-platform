@@ -12,6 +12,7 @@ local-sqlite = ["dep:rusqlite"]
 distributed = ["dep:hiqlite"]
 
 [dependencies]
+standards-loader = { path = "../standards-loader" }
 async-trait = "0.1"
 rusqlite = { version = "0.39", features = ["bundled"], optional = true }
 hiqlite = { version = "~0.13", features = ["sqlite", "dlock", "listen_notify_local"], optional = true }

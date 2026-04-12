@@ -19,6 +19,7 @@ pub mod manifest_gen;
 pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;
+pub mod standards_resolver;
 pub mod topo_sort;
 pub mod verify_harness;
 
@@ -30,6 +31,7 @@ pub use engine::{
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};
 pub use policy_shard::generate_factory_policy_shard;
+pub use standards_resolver::FactoryStandardsResolver;
 pub use verify_harness::run_factory_gate_check;
 
 use thiserror::Error;

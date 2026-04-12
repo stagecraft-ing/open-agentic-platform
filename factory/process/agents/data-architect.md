@@ -3,6 +3,9 @@ id: data-architect
 role: Data Architect
 stage: 3
 context_budget: "~30K tokens (entity model + business rules + output)"
+standards_tags:
+  - architecture
+  - naming
 ---
 
 # Data Architect

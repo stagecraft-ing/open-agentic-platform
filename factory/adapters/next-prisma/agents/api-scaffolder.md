@@ -2,6 +2,10 @@
 id: next-prisma-api-scaffolder
 role: API Feature Scaffolder
 context_budget: "~15K tokens"
+standards_tags:
+  - typescript
+  - security
+  - error-handling
 ---
 
 # API Feature Scaffolder (Next.js 15)

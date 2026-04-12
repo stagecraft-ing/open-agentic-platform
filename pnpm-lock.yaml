@@ -367,6 +367,10 @@ importers:
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.0.1)(lightningcss@1.32.0)(yaml@2.8.3)
 
   packages/prompt-assembly:
+    dependencies:
+      '@opc/yaml-standards-schema':
+        specifier: workspace:*
+        version: link:../yaml-standards-schema
     devDependencies:
       '@types/node':
         specifier: ^24.5.0

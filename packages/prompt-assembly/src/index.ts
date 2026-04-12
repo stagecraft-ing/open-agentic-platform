@@ -24,9 +24,11 @@ export { CompactionService } from "./compaction.js";
 
 export {
   createDefaultAssembler,
+  preloadCodingStandards,
   DEFAULT_SECTIONS,
   identitySection,
   behavioralRulesSection,
+  codingStandardsSection,
   toolRegistrySchemasSection,
   claudeMdSection,
   orchestratorRulesSection,

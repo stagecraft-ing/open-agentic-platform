@@ -3,6 +3,10 @@ id: api-architect
 role: API Architect
 stage: 4
 context_budget: "~40K tokens (data model + use cases + audiences + output)"
+standards_tags:
+  - security
+  - error-handling
+  - naming
 ---
 
 # API Architect

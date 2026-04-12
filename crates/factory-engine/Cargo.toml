@@ -10,6 +10,7 @@ description = "Factory workflow engine — two-phase orchestration, manifest gen
 [dependencies]
 orchestrator = { path = "../orchestrator" }
 factory-contracts = { path = "../factory-contracts" }
+standards-loader = { path = "../standards-loader" }
 policy-kernel = { package = "open_agentic_policy_kernel", path = "../policy-kernel" }
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }

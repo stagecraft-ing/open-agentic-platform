@@ -52,6 +52,15 @@ pub trait AgentPromptLookup: Send + Sync {
     fn get_prompt(&self, agent_id: &str) -> Option<String>;
 }
 
+/// Callback trait for resolving coding standards per agent (spec 055).
+///
+/// Implementations look up per-agent filter metadata (category/tags) and
+/// return pre-formatted standards markdown for prompt injection. Returns
+/// `None` when no standards are available (prompt remains unchanged).
+pub trait StandardsResolver: Send + Sync {
+    fn resolve_for_agent(&self, agent_id: &str) -> Option<String>;
+}
+
 /// Executes workflow steps by spawning the `claude` CLI process.
 ///
 /// Builds a system prompt from the registered agent domain prompt (if any)
@@ -68,6 +77,7 @@ pub trait AgentPromptLookup: Send + Sync {
 pub struct ClaudeCodeExecutor {
     project_path: PathBuf,
     prompt_lookup: Option<Arc<dyn AgentPromptLookup>>,
+    standards_resolver: Option<Arc<dyn StandardsResolver>>,
     max_turns: u32,
     allowed_tools: Vec<String>,
     model: Option<String>,
@@ -91,6 +101,7 @@ impl ClaudeCodeExecutor {
         Self {
             project_path,
             prompt_lookup: None,
+            standards_resolver: None,
             max_turns: 100,
             allowed_tools: vec![
                 "Read".into(),
@@ -111,6 +122,16 @@ impl ClaudeCodeExecutor {
     /// domain prompts to each request.
     pub fn with_prompt_lookup(mut self, lookup: Arc<dyn AgentPromptLookup>) -> Self {
         self.prompt_lookup = Some(lookup);
+        self
+    }
+
+    /// Attach a standards resolver for per-agent coding standards injection (spec 055).
+    ///
+    /// The resolver is called for each dispatch request with the agent ID.
+    /// If it returns formatted standards text, that text is injected between
+    /// the domain prompt and the step system prompt.
+    pub fn with_standards_resolver(mut self, resolver: Arc<dyn StandardsResolver>) -> Self {
+        self.standards_resolver = Some(resolver);
         self
     }
 
@@ -153,16 +174,32 @@ impl ClaudeCodeExecutor {
     }
 
     /// Build the combined system prompt for a request.
+    ///
+    /// Composition order: [domain prompt] \n\n [standards] \n\n [step prompt]
     fn build_system_prompt(&self, request: &DispatchRequest) -> String {
         let domain = self
             .prompt_lookup
             .as_ref()
             .and_then(|lk| lk.get_prompt(&request.agent_id));
 
-        match domain {
-            Some(d) if !d.is_empty() => format!("{}\n\n{}", d, request.system_prompt),
-            _ => request.system_prompt.clone(),
+        let standards = self
+            .standards_resolver
+            .as_ref()
+            .and_then(|sr| sr.resolve_for_agent(&request.agent_id));
+
+        let mut parts: Vec<&str> = Vec::new();
+        if let Some(ref d) = domain {
+            if !d.is_empty() {
+                parts.push(d);
+            }
         }
+        if let Some(ref s) = standards {
+            if !s.is_empty() {
+                parts.push(s);
+            }
+        }
+        parts.push(&request.system_prompt);
+        parts.join("\n\n")
     }
 }
 
@@ -485,6 +522,71 @@ mod tests {
 
         let prompt = executor.build_system_prompt(&req);
         assert_eq!(prompt, "Domain context.\n\nTask instructions.");
+    }
+
+    #[test]
+    fn build_system_prompt_with_standards_resolver() {
+        struct StaticLookup;
+        impl AgentPromptLookup for StaticLookup {
+            fn get_prompt(&self, _agent_id: &str) -> Option<String> {
+                Some("Domain context.".into())
+            }
+        }
+
+        struct StaticStandards;
+        impl StandardsResolver for StaticStandards {
+            fn resolve_for_agent(&self, _agent_id: &str) -> Option<String> {
+                Some("## Applicable Coding Standards\n\nSecurity rules.".into())
+            }
+        }
+
+        let executor = ClaudeCodeExecutor::new("/tmp".into())
+            .with_prompt_lookup(Arc::new(StaticLookup))
+            .with_standards_resolver(Arc::new(StaticStandards));
+
+        let req = DispatchRequest {
+            step_id: "s1".into(),
+            agent_id: "agent-a".into(),
+            effort: crate::EffortLevel::Investigate,
+            system_prompt: "Task instructions.".into(),
+            input_artifacts: vec![],
+            output_artifacts: vec![],
+            resume_session_id: None,
+            workspace_id: None,
+        };
+
+        let prompt = executor.build_system_prompt(&req);
+        assert_eq!(
+            prompt,
+            "Domain context.\n\n## Applicable Coding Standards\n\nSecurity rules.\n\nTask instructions."
+        );
+    }
+
+    #[test]
+    fn build_system_prompt_standards_only_no_domain() {
+        struct StaticStandards;
+        impl StandardsResolver for StaticStandards {
+            fn resolve_for_agent(&self, _agent_id: &str) -> Option<String> {
+                Some("Standards text.".into())
+            }
+        }
+
+        let executor = ClaudeCodeExecutor::new("/tmp".into())
+            .with_standards_resolver(Arc::new(StaticStandards));
+
+        let req = DispatchRequest {
+            step_id: "s1".into(),
+            agent_id: "agent-a".into(),
+            effort: crate::EffortLevel::Investigate,
+            system_prompt: "Task.".into(),
+            input_artifacts: vec![],
+            output_artifacts: vec![],
+            resume_session_id: None,
+            workspace_id: None,
+        };
+
+        let prompt = executor.build_system_prompt(&req);
+        assert_eq!(prompt, "Standards text.\n\nTask.");
     }
 
     #[test]

@@ -18,6 +18,9 @@
     "test": "vitest run",
     "lint": "eslint src/"
   },
+  "dependencies": {
+    "@opc/yaml-standards-schema": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^24.5.0",
     "typescript": "^5.9.2",

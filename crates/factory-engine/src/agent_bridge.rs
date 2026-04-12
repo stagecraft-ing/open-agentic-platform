@@ -59,6 +59,25 @@ impl FactoryAgentBridge {
     pub fn is_empty(&self) -> bool {
         self.agent_ids.is_empty()
     }
+
+    /// Get the standards filter for a given agent ID (spec 055).
+    ///
+    /// Returns `None` if the agent has no `standards_category` and no
+    /// `standards_tags` set (meaning all standards apply). Returns
+    /// `Some(filter)` when per-agent filtering is configured.
+    pub fn get_standards_filter(
+        &self,
+        agent_id: &str,
+    ) -> Option<standards_loader::StandardsFilter> {
+        let agent = self.prompts.iter().find(|a| a.id == agent_id)?;
+        if agent.standards_category.is_none() && agent.standards_tags.is_empty() {
+            return None;
+        }
+        Some(standards_loader::StandardsFilter {
+            category: agent.standards_category.clone(),
+            tags: agent.standards_tags.clone(),
+        })
+    }
 }
 
 #[async_trait]
@@ -80,6 +99,8 @@ mod tests {
             prompt_text: format!("You are the {role} agent."),
             model_hint: None,
             source_path: std::path::PathBuf::from(format!("agents/{id}.md")),
+            standards_category: None,
+            standards_tags: vec![],
         }
     }
 
@@ -112,5 +133,31 @@ mod tests {
                 .contains("tester")
         );
         assert!(bridge.get_prompt("missing").is_none());
+    }
+
+    #[test]
+    fn get_standards_filter_returns_none_when_no_metadata() {
+        let agents = vec![make_agent("factory-test", "tester")];
+        let bridge = FactoryAgentBridge::new(agents, vec![]);
+        assert!(bridge.get_standards_filter("factory-test").is_none());
+    }
+
+    #[test]
+    fn get_standards_filter_returns_filter_when_tags_set() {
+        let mut agent = make_agent("factory-test", "tester");
+        agent.standards_tags = vec!["typescript".into(), "security".into()];
+        let bridge = FactoryAgentBridge::new(vec![agent], vec![]);
+        let filter = bridge.get_standards_filter("factory-test").unwrap();
+        assert!(filter.category.is_none());
+        assert_eq!(filter.tags, vec!["typescript", "security"]);
+    }
+
+    #[test]
+    fn get_standards_filter_returns_filter_when_category_set() {
+        let mut agent = make_agent("factory-test", "tester");
+        agent.standards_category = Some("error-handling".into());
+        let bridge = FactoryAgentBridge::new(vec![agent], vec![]);
+        let filter = bridge.get_standards_filter("factory-test").unwrap();
+        assert_eq!(filter.category.as_deref(), Some("error-handling"));
     }
 }

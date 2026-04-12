@@ -27,8 +27,8 @@ const CTX: AssemblyContext = {
 };
 
 describe("DEFAULT_SECTIONS", () => {
-  it("contains exactly 12 sections", () => {
-    expect(DEFAULT_SECTIONS).toHaveLength(12);
+  it("contains exactly 13 sections", () => {
+    expect(DEFAULT_SECTIONS).toHaveLength(13);
   });
 
   it("is sorted by priority descending", () => {
@@ -39,14 +39,14 @@ describe("DEFAULT_SECTIONS", () => {
     }
   });
 
-  it("has 6 static and 6 dynamic sections", () => {
+  it("has 7 static and 6 dynamic sections", () => {
     const staticSections = DEFAULT_SECTIONS.filter(
       (s) => s.cacheLifetime === "static",
     );
     const dynamicSections = DEFAULT_SECTIONS.filter(
       (s) => s.cacheLifetime === "dynamic",
     );
-    expect(staticSections).toHaveLength(6);
+    expect(staticSections).toHaveLength(7);
     expect(dynamicSections).toHaveLength(6);
   });
 
@@ -85,7 +85,7 @@ describe("identitySection", () => {
 describe("createDefaultAssembler", () => {
   it("creates assembler with all 12 default sections", () => {
     const asm = createDefaultAssembler();
-    expect(asm.sectionNames).toHaveLength(12);
+    expect(asm.sectionNames).toHaveLength(13);
   });
 
   it("produces a prompt with static prefix, boundary, and dynamic suffix", () => {
@@ -114,8 +114,8 @@ describe("createDefaultAssembler", () => {
 
     // Identity section always has content
     expect(result.staticPrefix).toContain("Open Agentic Platform");
-    // Metadata shows all 12 sections
-    expect(result.metadata.sections).toHaveLength(12);
+    // Metadata shows all 13 sections
+    expect(result.metadata.sections).toHaveLength(13);
   });
 
   it("allows adding custom sections after creation (SC-002)", () => {
@@ -128,7 +128,7 @@ describe("createDefaultAssembler", () => {
       maxBytes: 4_096,
     });
 
-    expect(asm.sectionNames).toHaveLength(13);
+    expect(asm.sectionNames).toHaveLength(14);
     const result = asm.assemble(CTX);
     expect(result.dynamicSuffix).toContain("Plugin content");
   });

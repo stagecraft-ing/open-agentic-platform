@@ -9,6 +9,7 @@ members = [
     "policy-kernel",
     "run",
     "skill-factory",
+    "standards-loader",
     "tool-registry",
     "xray",
 ]

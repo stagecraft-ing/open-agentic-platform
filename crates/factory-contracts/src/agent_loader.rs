@@ -21,6 +21,12 @@ pub struct AgentPrompt {
     /// "opus" for process agents, "sonnet" for scaffold agents
     pub model_hint: Option<String>,
     pub source_path: PathBuf,
+    /// Optional standards category filter (spec 055). When set, only standards
+    /// matching this category are injected into the agent's system prompt.
+    pub standards_category: Option<String>,
+    /// Optional standards tag filter (spec 055). When set, only standards
+    /// matching at least one of these tags are injected.
+    pub standards_tags: Vec<String>,
 }
 
 #[derive(Debug, Error)]
@@ -52,6 +58,12 @@ struct AgentFrontmatter {
     #[serde(default)]
     tier: Option<u8>,
     model_hint: Option<String>,
+    /// Standards category filter (spec 055).
+    #[serde(default)]
+    standards_category: Option<String>,
+    /// Standards tag filter (spec 055).
+    #[serde(default)]
+    standards_tags: Vec<String>,
 }
 
 /// Load all process agents from `factory_root/process/agents/`.
@@ -144,6 +156,8 @@ fn parse_agent_file(
             .model_hint
             .or_else(|| default_model_hint.map(String::from)),
         source_path: path.to_path_buf(),
+        standards_category: fm.standards_category,
+        standards_tags: fm.standards_tags,
     })
 }
 

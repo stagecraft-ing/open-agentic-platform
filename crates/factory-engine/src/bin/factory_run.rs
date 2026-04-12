@@ -5,7 +5,7 @@
 //! Supports `--resume <run-id>` to continue a previously failed pipeline.
 
 use clap::Parser;
-use factory_engine::{FactoryAgentBridge, FactoryEngine, FactoryEngineConfig};
+use factory_engine::{FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryStandardsResolver};
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
     DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
@@ -247,19 +247,40 @@ async fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    // Create executor with agent prompt lookup.
+    // Create executor with agent prompt lookup and standards resolver (spec 055).
     let bridge = Arc::new(start.agent_bridge);
     let lookup = Arc::new(BridgeLookup(bridge.clone()));
 
-    let executor = Arc::new(
-        ClaudeCodeExecutor::new(project_path.clone())
-            .with_prompt_lookup(lookup)
-            .with_max_turns(cli.max_turns)
-            .with_model(cli.model.clone())
-            .with_extended_context(cli.extended_context)
-            .with_thinking(cli.thinking)
-            .with_step_timeout(cli.step_timeout),
-    );
+    // Load coding standards for prompt injection (spec 055).
+    // Standards are pre-loaded once and resolved per-agent using bridge metadata.
+    let standards_resolver = match standards_loader::load_all_tiers(&project_path) {
+        Ok(tiers) => {
+            let resolver = FactoryStandardsResolver::new(
+                bridge.clone(),
+                tiers,
+                standards_loader::FormatOptions::default(),
+            );
+            Some(Arc::new(resolver))
+        }
+        Err(e) => {
+            eprintln!("  Warning: failed to load coding standards: {e}");
+            None
+        }
+    };
+
+    let mut executor_builder = ClaudeCodeExecutor::new(project_path.clone())
+        .with_prompt_lookup(lookup)
+        .with_max_turns(cli.max_turns)
+        .with_model(cli.model.clone())
+        .with_extended_context(cli.extended_context)
+        .with_thinking(cli.thinking)
+        .with_step_timeout(cli.step_timeout);
+
+    if let Some(resolver) = standards_resolver {
+        executor_builder = executor_builder.with_standards_resolver(resolver);
+    }
+
+    let executor = Arc::new(executor_builder);
 
     // Create gate handler.
     let gate_handler: Arc<dyn GateHandler> = if cli.auto_approve {
