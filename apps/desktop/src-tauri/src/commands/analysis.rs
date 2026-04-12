@@ -1,6 +1,7 @@
 use tauri::command;
 use xray::scan_target;
 use featuregraph::tools::FeatureGraphTools;
+use featuregraph::preflight::compute_blast_radius;
 use serde::Serialize;
 use serde_json::{json, Value};
 use specta::Type;
@@ -150,10 +151,35 @@ pub async fn governance_preflight(
         .features_impact(&root.to_string_lossy(), &changed_files)
         .map_err(|e| e.to_string())?;
 
+    // Spec 096 Slice 4: enrich with blast radius when xray scan available
+    let blast_radius = match scan_target(&root, None) {
+        Ok(index) => {
+            let scanner = featuregraph::scanner::Scanner::new(&root);
+            match scanner.scan() {
+                Ok(graph) => {
+                    let br = compute_blast_radius(&graph, &index, &changed_files);
+                    Some(serde_json::to_value(&br).unwrap_or(Value::Null))
+                }
+                Err(_) => None,
+            }
+        }
+        Err(_) => None,
+    };
+
     Ok(json!({
         "preflight": preflight,
         "impact": impact,
+        "blastRadius": blast_radius,
     }))
+}
+
+/// Spec 096 Slice 3: Governance drift detection — returns features with violations
+/// (e.g., `// Feature:` headers that don't match any registry entry).
+#[command]
+pub async fn governance_drift(repo_root: String) -> Result<serde_json::Value, String> {
+    let root = resolve_repo_root(&repo_root);
+    let fg_tools = FeatureGraphTools::new();
+    fg_tools.governance_drift(&root).map_err(|e| e.to_string())
 }
 
 #[command]

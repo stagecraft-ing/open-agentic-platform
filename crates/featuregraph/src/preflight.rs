@@ -6,8 +6,9 @@
 use crate::graph::{FeatureGraph, FeatureNode, Violation};
 use crate::scanner::HeaderParser;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
+use xray::schema::XrayIndex;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -276,6 +277,128 @@ impl PreflightChecker {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Blast radius analysis (096 Slice 2)
+// ---------------------------------------------------------------------------
+
+/// Blast radius of a set of changed files across the feature graph.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlastRadius {
+    /// Features directly affected by changed files.
+    pub affected_features: Vec<String>,
+    /// Features that transitively depend on affected features.
+    pub downstream_features: Vec<String>,
+    /// Total LOC across all files owned by affected + downstream features.
+    pub total_loc_at_risk: u64,
+    /// Maximum complexity across all files owned by affected + downstream features.
+    pub max_complexity_at_risk: u64,
+    /// Number of files owned by affected + downstream features.
+    pub affected_file_count: usize,
+    /// Maximum dependency depth reached in the downstream walk.
+    pub dependency_depth: usize,
+}
+
+/// Compute the blast radius for a set of changed paths.
+///
+/// 1. Map changed paths to directly affected features.
+/// 2. Walk the dependency graph in reverse (find all features that transitively
+///    depend on affected ones).
+/// 3. Accumulate LOC and complexity from xray index for all files owned by
+///    affected + downstream features.
+pub fn compute_blast_radius(
+    graph: &FeatureGraph,
+    index: &XrayIndex,
+    changed_paths: &[String],
+) -> BlastRadius {
+    let file_map: HashMap<&str, &xray::schema::FileNode> =
+        index.files.iter().map(|f| (f.path.as_str(), f)).collect();
+
+    // Step 1: find directly affected features
+    let mut affected: HashSet<&str> = HashSet::new();
+    for path in changed_paths {
+        for node in &graph.features {
+            if node.impl_files.contains(path) || node.test_files.contains(path) {
+                affected.insert(&node.feature_id);
+            }
+        }
+    }
+
+    // Build reverse dependency map: for each feature, which features depend on it?
+    let mut reverse_deps: HashMap<&str, Vec<&str>> = HashMap::new();
+    for node in &graph.features {
+        for dep_id in &node.depends_on {
+            reverse_deps
+                .entry(dep_id.as_str())
+                .or_default()
+                .push(&node.feature_id);
+        }
+    }
+
+    // Step 2: BFS to find all downstream features (those that transitively depend on affected)
+    let mut downstream: HashSet<&str> = HashSet::new();
+    let mut queue: VecDeque<(&str, usize)> = VecDeque::new();
+    let mut max_depth: usize = 0;
+
+    for &fid in &affected {
+        queue.push_back((fid, 0));
+    }
+
+    while let Some((fid, depth)) = queue.pop_front() {
+        if let Some(dependents) = reverse_deps.get(fid) {
+            for &dep in dependents {
+                if !affected.contains(dep) && downstream.insert(dep) {
+                    let next_depth = depth + 1;
+                    if next_depth > max_depth {
+                        max_depth = next_depth;
+                    }
+                    queue.push_back((dep, next_depth));
+                }
+            }
+        }
+    }
+
+    // Step 3: accumulate metrics from xray for all files in affected + downstream
+    let all_features: HashSet<&str> = affected.iter().copied().chain(downstream.iter().copied()).collect();
+    let feature_map: HashMap<&str, &FeatureNode> = graph
+        .features
+        .iter()
+        .map(|f| (f.feature_id.as_str(), f))
+        .collect();
+
+    let mut total_loc: u64 = 0;
+    let mut max_complexity: u64 = 0;
+    let mut seen_files: HashSet<&str> = HashSet::new();
+
+    for &fid in &all_features {
+        if let Some(node) = feature_map.get(fid) {
+            for path in node.impl_files.iter().chain(node.test_files.iter()) {
+                if seen_files.insert(path.as_str())
+                    && let Some(fnode) = file_map.get(path.as_str())
+                {
+                    total_loc += fnode.loc;
+                    if fnode.complexity > max_complexity {
+                        max_complexity = fnode.complexity;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut affected_vec: Vec<String> = affected.iter().map(|s| s.to_string()).collect();
+    affected_vec.sort();
+    let mut downstream_vec: Vec<String> = downstream.iter().map(|s| s.to_string()).collect();
+    downstream_vec.sort();
+
+    BlastRadius {
+        affected_features: affected_vec,
+        downstream_features: downstream_vec,
+        total_loc_at_risk: total_loc,
+        max_complexity_at_risk: max_complexity,
+        affected_file_count: seen_files.len(),
+        dependency_depth: max_depth,
+    }
+}
+
 fn is_eligible_file(path: &str) -> bool {
     let allowed_exts = [
         ".go", ".rs", ".ts", ".tsx", ".js", ".jsx", ".c", ".cc", ".cpp", ".h", ".hpp", ".java",
@@ -293,8 +416,10 @@ fn is_eligible_file(path: &str) -> bool {
 mod tests {
     use super::*;
     use crate::graph::{FeatureGraph, FeatureNode};
+    use std::collections::BTreeMap;
     use std::fs::File;
     use std::io::Write;
+    use xray::schema::{FileNode as XrayFileNode, RepoStats};
 
     fn make_node(id: &str, status: &str, deps: Vec<&str>, impl_files: Vec<&str>) -> FeatureNode {
         FeatureNode {
@@ -443,5 +568,95 @@ mod tests {
         let res = checker.check(&graph, &req).unwrap();
         assert!(!res.allowed);
         assert_eq!(res.violations[0].code, "DANGLING_FEATURE_ID");
+    }
+
+    // -- Blast radius tests (096 Slice 2) --
+
+    fn make_xray_file(path: &str, loc: u64, complexity: u64) -> XrayFileNode {
+        XrayFileNode {
+            path: path.into(),
+            size: loc * 30,
+            hash: "abc".into(),
+            lang: "Rust".into(),
+            loc,
+            complexity,
+            functions: Some(1),
+            max_depth: None,
+        }
+    }
+
+    fn make_xray_index(files: Vec<XrayFileNode>) -> XrayIndex {
+        XrayIndex {
+            schema_version: "1.2.0".into(),
+            root: "test".into(),
+            target: ".".into(),
+            files,
+            languages: BTreeMap::new(),
+            top_dirs: BTreeMap::new(),
+            module_files: vec![],
+            stats: RepoStats { file_count: 0, total_size: 0 },
+            digest: String::new(),
+            prev_digest: None,
+            changed_files: None,
+            call_graph_summary: None,
+            dependencies: None,
+            fingerprint: None,
+        }
+    }
+
+    #[test]
+    fn sc096_2_blast_radius_direct_and_downstream() {
+        let mut graph = FeatureGraph::new();
+        // A is the root, B depends on A, C depends on B (chain: A -> B -> C)
+        graph.features.push(make_node("A", "active", vec![], vec!["src/a.rs"]));
+        graph.features.push(make_node("B", "active", vec!["A"], vec!["src/b.rs"]));
+        graph.features.push(make_node("C", "active", vec!["B"], vec!["src/c.rs"]));
+        // D is independent
+        graph.features.push(make_node("D", "active", vec![], vec!["src/d.rs"]));
+
+        let index = make_xray_index(vec![
+            make_xray_file("src/a.rs", 100, 5),
+            make_xray_file("src/b.rs", 200, 10),
+            make_xray_file("src/c.rs", 150, 8),
+            make_xray_file("src/d.rs", 50, 2),
+        ]);
+
+        // Change a.rs → affects A directly, B and C are downstream
+        let br = compute_blast_radius(&graph, &index, &["src/a.rs".into()]);
+
+        assert_eq!(br.affected_features, vec!["A"]);
+        assert_eq!(br.downstream_features, vec!["B", "C"]);
+        assert_eq!(br.total_loc_at_risk, 450); // 100 + 200 + 150
+        assert_eq!(br.max_complexity_at_risk, 10);
+        assert_eq!(br.affected_file_count, 3);
+        assert_eq!(br.dependency_depth, 2); // A -> B -> C
+    }
+
+    #[test]
+    fn sc096_2_blast_radius_no_downstream() {
+        let mut graph = FeatureGraph::new();
+        graph.features.push(make_node("A", "active", vec![], vec!["src/a.rs"]));
+
+        let index = make_xray_index(vec![
+            make_xray_file("src/a.rs", 100, 5),
+        ]);
+
+        let br = compute_blast_radius(&graph, &index, &["src/a.rs".into()]);
+        assert_eq!(br.affected_features, vec!["A"]);
+        assert!(br.downstream_features.is_empty());
+        assert_eq!(br.dependency_depth, 0);
+    }
+
+    #[test]
+    fn sc096_2_blast_radius_unattributed_file() {
+        let graph = FeatureGraph::new(); // no features
+        let index = make_xray_index(vec![
+            make_xray_file("src/orphan.rs", 100, 5),
+        ]);
+
+        let br = compute_blast_radius(&graph, &index, &["src/orphan.rs".into()]);
+        assert!(br.affected_features.is_empty());
+        assert!(br.downstream_features.is_empty());
+        assert_eq!(br.total_loc_at_risk, 0);
     }
 }

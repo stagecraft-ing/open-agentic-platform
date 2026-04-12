@@ -593,3 +593,25 @@ export const factoryArtifacts = pgTable("factory_artifacts", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Promotions (spec 097 — Promotion-Grade Platform Mirror)
+// ---------------------------------------------------------------------------
+
+export const promotionStatusEnum = pgEnum("promotion_status", [
+  "promoted",
+  "revoked",
+]);
+
+export const promotions = pgTable("promotions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  pipelineId: uuid("pipeline_id").notNull(),
+  workflowId: text("workflow_id").notNull(),
+  status: promotionStatusEnum("status").notNull().default("promoted"),
+  promotedBy: text("promoted_by"),
+  evidence: jsonb("evidence").notNull().default({}),
+  promotedAt: timestamp("promoted_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

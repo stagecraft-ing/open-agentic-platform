@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:7842dfd8347f65e0b9e01372d0813108cce05b79863158510754559d8efba241",
+  "graph_fingerprint": "sha256:f9ecf500e51df17453ddfcad90e44fc3ee5fb1d8e702fb9df1cbd9875250f0d5",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2029,6 +2029,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/featuregraph/src/enrichment.rs",
+      "message": "Malformed Spec directive: // Spec: specs/096-portfolio-intelligence/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/featuregraph/src/scanner.rs",
       "message": "Malformed Spec directive: // Spec: specs/034-featuregraph-registry-scanner-fix/spec.md",
       "suggested_fix": "Fix header format"
@@ -2037,7 +2044,7 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "crates/orchestrator/src/artifact.rs",
-      "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md, specs/094-unified-artifact-store/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2059,6 +2066,13 @@
       "severity": "error",
       "path": "crates/orchestrator/src/manifest.rs",
       "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/promotion.rs",
+      "message": "Malformed Spec directive: // Spec: specs/097-promotion-grade-mirror/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

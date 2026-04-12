@@ -506,6 +506,7 @@ fn workflow_status_to_str(status: &WorkflowStatus) -> &'static str {
     match status {
         WorkflowStatus::Running => "running",
         WorkflowStatus::Completed => "completed",
+        WorkflowStatus::CompletedLocal => "completed_local",
         WorkflowStatus::Failed => "failed",
         WorkflowStatus::TimedOut => "timed_out",
         WorkflowStatus::AwaitingCheckpoint => "awaiting_checkpoint",
@@ -516,6 +517,7 @@ fn workflow_status_from_str(s: &str) -> Result<WorkflowStatus, &'static str> {
     match s {
         "running" => Ok(WorkflowStatus::Running),
         "completed" => Ok(WorkflowStatus::Completed),
+        "completed_local" => Ok(WorkflowStatus::CompletedLocal),
         "failed" => Ok(WorkflowStatus::Failed),
         "timed_out" => Ok(WorkflowStatus::TimedOut),
         "awaiting_checkpoint" => Ok(WorkflowStatus::AwaitingCheckpoint),

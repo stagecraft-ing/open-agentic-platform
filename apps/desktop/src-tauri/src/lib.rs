@@ -434,6 +434,7 @@ pub fn run() {
             commands::analysis::featuregraph_overview,
             commands::analysis::featuregraph_impact,
             commands::analysis::governance_preflight,
+            commands::analysis::governance_drift,
             commands::analysis::get_preflight_safety_tier_reference,
             commands::analysis::get_tool_tier_assignments,
             // MCP proxy commands

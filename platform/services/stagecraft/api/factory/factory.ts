@@ -13,6 +13,7 @@ import {
   factoryAuditLog,
   factoryPolicyBundles,
   factoryArtifacts,
+  promotions,
 } from "../db/schema";
 import { and, eq, desc, gte, asc, sql } from "drizzle-orm";
 import { resolveKnowledgeForFactory } from "../knowledge/knowledge";
@@ -1418,6 +1419,133 @@ export const workspaceLookupArtifact = api(
         producer_agent: a.producerAgent,
         created_at: a.createdAt.toISOString(),
       })),
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Promotion API (spec 097 — Promotion-Grade Platform Mirror)
+// ---------------------------------------------------------------------------
+
+interface PromotionRequest {
+  workspace_id: string;
+  workflowId: string;
+  pipelineId: string;
+  promotedBy?: string;
+}
+
+interface PromotionResult {
+  eligible: boolean;
+  promotionId?: string;
+  missingRecords: string[];
+}
+
+/**
+ * Validate a completed pipeline run for promotion eligibility.
+ *
+ * Checks that the pipeline belongs to the workspace, all stages have records,
+ * artifacts are present, and the audit log has a completion event. If all checks
+ * pass, creates a promotion record.
+ *
+ * Spec 097 Slice 3.
+ */
+export const createPromotion = api(
+  { expose: true, method: "POST", path: "/api/workspaces/:workspace_id/promotions" },
+  async (req: PromotionRequest): Promise<PromotionResult> => {
+    const missingRecords: string[] = [];
+
+    // 1. Check pipeline exists and belongs to workspace (via project)
+    const [pipeline] = await db
+      .select()
+      .from(factoryPipelines)
+      .where(eq(factoryPipelines.id, req.pipelineId))
+      .limit(1);
+
+    if (!pipeline) {
+      throw APIError.notFound(`Pipeline ${req.pipelineId} not found`);
+    }
+
+    // Verify project belongs to workspace
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, pipeline.projectId))
+      .limit(1);
+
+    if (!project || project.workspaceId !== req.workspace_id) {
+      throw APIError.permissionDenied("Pipeline does not belong to this workspace");
+    }
+
+    // 2. Check all expected stages have records
+    const stages = await db
+      .select()
+      .from(factoryStages)
+      .where(eq(factoryStages.pipelineId, req.pipelineId));
+
+    const completedStages = stages.filter(
+      (s) => s.status === "completed" || s.status === "confirmed"
+    );
+    if (completedStages.length < PIPELINE_STAGES.length) {
+      missingRecords.push(
+        `stages: ${completedStages.length}/${PIPELINE_STAGES.length} completed`
+      );
+    }
+
+    // 3. Check artifacts exist for this pipeline
+    const artifacts = await db
+      .select()
+      .from(factoryArtifacts)
+      .where(eq(factoryArtifacts.pipelineId, req.pipelineId));
+
+    if (artifacts.length === 0) {
+      missingRecords.push("no artifacts recorded for pipeline");
+    }
+
+    // 4. Check audit log has completion event
+    const completionEvents = await db
+      .select()
+      .from(factoryAuditLog)
+      .where(
+        and(
+          eq(factoryAuditLog.pipelineId, req.pipelineId),
+          eq(factoryAuditLog.event, "pipeline_completed")
+        )
+      )
+      .limit(1);
+
+    if (completionEvents.length === 0) {
+      missingRecords.push("no pipeline_completed event in audit log");
+    }
+
+    // 5. Check pipeline status is completed
+    if (pipeline.status !== "completed") {
+      missingRecords.push(`pipeline status is '${pipeline.status}', expected 'completed'`);
+    }
+
+    if (missingRecords.length > 0) {
+      return { eligible: false, missingRecords };
+    }
+
+    // All checks passed — create promotion record
+    const [promotion] = await db
+      .insert(promotions)
+      .values({
+        workspaceId: req.workspace_id,
+        pipelineId: req.pipelineId,
+        workflowId: req.workflowId,
+        promotedBy: req.promotedBy ?? null,
+        evidence: {
+          stageCount: stages.length,
+          artifactCount: artifacts.length,
+          completedAt: pipeline.completedAt?.toISOString(),
+        },
+      })
+      .returning({ id: promotions.id });
+
+    return {
+      eligible: true,
+      promotionId: promotion.id,
+      missingRecords: [],
     };
   }
 );

@@ -15,7 +15,10 @@ use uuid::Uuid;
 #[serde(rename_all = "lowercase")]
 pub enum WorkflowStatus {
     Running,
+    /// Fully synced — all events and artifacts recorded to platform. Promotion-eligible.
     Completed,
+    /// Finished locally but platform sync incomplete. Not promotion-eligible (spec 097).
+    CompletedLocal,
     Failed,
     TimedOut,
     AwaitingCheckpoint,

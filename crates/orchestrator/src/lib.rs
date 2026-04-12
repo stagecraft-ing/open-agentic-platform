@@ -18,6 +18,7 @@ pub mod gates;
 pub mod hiqlite_store;
 pub mod http;
 pub mod manifest;
+pub mod promotion;
 pub mod scheduler;
 #[cfg(feature = "local-sqlite")]
 pub mod sqlite_state;
@@ -43,6 +44,7 @@ pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
 pub use http::HttpState;
 pub use manifest::ApprovalEscalation;
 pub use manifest::{VerifyCommand, WorkflowManifest, WorkflowStep, split_input_ref};
+pub use promotion::{PromotionCheck, PromotionEligibility, SyncStatus, check_promotion_eligibility};
 #[cfg(feature = "local-sqlite")]
 pub use scheduler::SqliteSchedulerStore;
 pub use scheduler::{
@@ -1797,15 +1799,32 @@ pub async fn dispatch_manifest_persisted(
         }
     }
 
-    // --- Workflow completed ---
-    wf_state.status = WorkflowStatus::Completed;
+    // --- Workflow completed: check promotion eligibility (spec 097 Slice 4) ---
+    // TODO(097): replace with real platform sync tracking once StagecraftClient
+    //   returns acknowledgement for events and artifacts. For now we default to
+    //   SyncStatus::default() (not synced), so all runs start as CompletedLocal.
+    let sync_status = promotion::SyncStatus::default();
+    let promo_check = promotion::check_promotion_eligibility(&wf_state, &sync_status);
+
+    wf_state.status = match &promo_check.eligibility {
+        promotion::PromotionEligibility::Eligible => WorkflowStatus::Completed,
+        promotion::PromotionEligibility::Ineligible { .. } => WorkflowStatus::CompletedLocal,
+    };
+
+    // Persist promotion metadata in workflow state
+    if let Ok(promo_json) = serde_json::to_value(&promo_check) {
+        wf_state.metadata.insert("promotion".to_string(), promo_json);
+    }
 
     persist_and_emit(
         persistence,
         &wf_state,
         run_id,
         "workflow_completed",
-        &serde_json::json!({ "workflow_id": run_id.to_string() }),
+        &serde_json::json!({
+            "workflow_id": run_id.to_string(),
+            "promotion_eligible": matches!(promo_check.eligibility, promotion::PromotionEligibility::Eligible),
+        }),
     )
     .await?;
 

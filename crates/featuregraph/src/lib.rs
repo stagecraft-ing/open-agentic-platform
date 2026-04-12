@@ -3,6 +3,7 @@
 // Feature: FEATUREGRAPH_REGISTRY
 // Spec: spec/core/featuregraph.md
 
+pub mod enrichment;
 pub mod graph;
 pub mod locate;
 pub mod preflight;

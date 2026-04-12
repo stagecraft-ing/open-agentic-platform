@@ -361,13 +361,14 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
         assert_eq!(step.tokens_used, Some(100));
     }
 
-    // Verify SQLite state: workflow should be completed
+    // Verify SQLite state: workflow should be CompletedLocal (spec 097)
+    // because no platform sync was performed — promotion requires events_synced + artifacts_recorded.
     let loaded = store
         .load_workflow_state(wf_id)
         .await
         .unwrap()
         .expect("state should exist");
-    assert_eq!(loaded.status, orchestrator::WorkflowStatus::Completed);
+    assert_eq!(loaded.status, orchestrator::WorkflowStatus::CompletedLocal);
     assert_eq!(loaded.steps.len(), 3);
     for step in &loaded.steps {
         assert_eq!(step.status, StepExecutionStatus::Completed);
@@ -393,7 +394,7 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
     let db_path2 = sqlite_db_path_for_run(&artifact_base, wf_id);
     let store2 = SqliteWorkflowStore::open(&db_path2).unwrap();
 
-    // Verify crash resume: state should show completed
+    // Verify crash resume: state should show CompletedLocal (spec 097 — no platform sync)
     let loaded_after_crash = store2
         .load_workflow_state(wf_id)
         .await
@@ -401,7 +402,7 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
         .expect("state after crash");
     assert_eq!(
         loaded_after_crash.status,
-        orchestrator::WorkflowStatus::Completed
+        orchestrator::WorkflowStatus::CompletedLocal
     );
     let plan = compute_resume_plan_from_state(&loaded_after_crash, &manifest);
     // All steps complete → resume plan skips everything (index past end).
