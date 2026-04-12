@@ -82,7 +82,8 @@ impl ToolProvider for CheckpointProvider {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "repo_root": { "type": "string" }
+                        "repo_root": { "type": "string" },
+                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" }
                     },
                     "required": ["repo_root"]
                 }
@@ -93,7 +94,8 @@ impl ToolProvider for CheckpointProvider {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "repo_root": { "type": "string" }
+                        "repo_root": { "type": "string" },
+                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" }
                     },
                     "required": ["repo_root"]
                 }
@@ -251,7 +253,8 @@ impl ToolProvider for CheckpointProvider {
                     Some(v) => v,
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
                 };
-                Some(self.do_list(repo_root).await)
+                let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
+                Some(self.do_list(repo_root, workspace_id).await)
             }
 
             "checkpoint.timeline" => {
@@ -259,7 +262,8 @@ impl ToolProvider for CheckpointProvider {
                     Some(v) => v,
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
                 };
-                Some(self.do_timeline(repo_root).await)
+                let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
+                Some(self.do_timeline(repo_root, workspace_id).await)
             }
 
             "checkpoint.fork" => {
@@ -415,7 +419,7 @@ impl CheckpointProvider {
         let merkle_root = tree.root_hash().unwrap_or("empty").to_string();
 
         let root_str = root.to_string_lossy().to_string();
-        let existing = self.store.list_checkpoints(&root_str).await?;
+        let existing = self.store.list_checkpoints(&root_str, None).await?;
         let parent_id = existing.first().map(|c| c.checkpoint_id.clone());
 
         let state_hash =
@@ -438,6 +442,7 @@ impl CheckpointProvider {
             total_bytes: total_bytes as i64,
             created_at: now,
             metadata: None,
+            workspace_id: std::env::var("OPC_WORKSPACE_ID").ok().filter(|v| !v.is_empty()),
         };
 
         self.store.create_checkpoint(&info, &entries).await?;
@@ -495,13 +500,13 @@ impl CheckpointProvider {
         }))
     }
 
-    async fn do_list(&self, repo_root: &str) -> anyhow::Result<Value> {
-        let checkpoints = self.store.list_checkpoints(repo_root).await?;
+    async fn do_list(&self, repo_root: &str, workspace_id: Option<&str>) -> anyhow::Result<Value> {
+        let checkpoints = self.store.list_checkpoints(repo_root, workspace_id).await?;
         Ok(json!({ "checkpoints": checkpoints }))
     }
 
-    async fn do_timeline(&self, repo_root: &str) -> anyhow::Result<Value> {
-        let timeline = self.store.get_timeline(repo_root).await?;
+    async fn do_timeline(&self, repo_root: &str, workspace_id: Option<&str>) -> anyhow::Result<Value> {
+        let timeline = self.store.get_timeline(repo_root, workspace_id).await?;
         Ok(json!({ "timeline": timeline }))
     }
 
@@ -620,7 +625,7 @@ impl CheckpointProvider {
     }
 
     async fn do_status(&self, repo_root: &str) -> anyhow::Result<Value> {
-        let checkpoints = self.store.list_checkpoints(repo_root).await?;
+        let checkpoints = self.store.list_checkpoints(repo_root, None).await?;
         let latest = checkpoints.first();
         Ok(json!({
             "repo_root": repo_root,

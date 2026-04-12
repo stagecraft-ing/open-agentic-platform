@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::commands::stagecraft_client::{StagecraftState, WorkspaceInfo};
 use crate::sidecars::SidecarState;
 // Sidecar support removed; using system binary execution only
 use tokio::io::{AsyncBufReadExt, BufReader as TokioBufReader};
@@ -2320,4 +2321,64 @@ pub async fn load_agent_session_history(
     } else {
         Err(format!("Session file not found: {}", session_id))
     }
+}
+
+// ---------------------------------------------------------------------------
+// Workspace threading (spec 092)
+// ---------------------------------------------------------------------------
+
+/// Set the active workspace for governed execution.
+///
+/// Propagates the workspace ID to:
+/// 1. The in-process `StagecraftClient` (for API calls)
+/// 2. The `OPC_WORKSPACE_ID` process env var (picked up by child Claude processes)
+/// 3. A `workspace-changed` frontend event
+/// 4. A refreshed platform grants fetch (so the next execution uses the correct policy)
+#[tauri::command]
+pub async fn set_active_workspace(
+    app: AppHandle,
+    workspace_id: String,
+    stagecraft: State<'_, StagecraftState>,
+) -> Result<String, String> {
+    info!("set_active_workspace: {}", workspace_id);
+
+    // Propagate to StagecraftClient if present.
+    if let Some(client) = stagecraft.0.as_ref() {
+        client.set_workspace_id(&workspace_id);
+    }
+
+    // Set process-level env var so all child Claude processes inherit it.
+    // SAFETY: This is intentionally a process-wide setting. No other thread reads
+    // OPC_WORKSPACE_ID between this set and the next Claude process spawn.
+    #[allow(unsafe_code)]
+    unsafe {
+        std::env::set_var("OPC_WORKSPACE_ID", &workspace_id);
+    }
+
+    // Eagerly refresh grants so the new workspace policy is cached.
+    let _grants = crate::governed_claude::grants_json_platform_or_default().await;
+
+    // Notify the frontend.
+    app.emit("workspace-changed", &workspace_id)
+        .map_err(|e| format!("Failed to emit workspace-changed event: {}", e))?;
+
+    Ok(workspace_id)
+}
+
+/// List all workspaces available to the authenticated user.
+#[tauri::command]
+pub async fn list_workspaces(
+    stagecraft: State<'_, StagecraftState>,
+) -> Result<Vec<WorkspaceInfo>, String> {
+    let client = stagecraft
+        .0
+        .as_ref()
+        .ok_or_else(|| "Stagecraft client not initialised".to_string())?;
+
+    let response = client
+        .list_workspaces()
+        .await
+        .map_err(|e| format!("Failed to list workspaces: {}", e))?;
+
+    Ok(response.workspaces)
 }

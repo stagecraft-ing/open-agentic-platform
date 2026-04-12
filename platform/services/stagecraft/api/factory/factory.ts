@@ -132,17 +132,12 @@ type AuditEntry = {
 
 async function verifyProjectInWorkspace(
   projectId: string,
-  workspaceId?: string
+  workspaceId: string
 ): Promise<void> {
-  const conditions = [eq(projects.id, projectId)];
-  if (workspaceId) {
-    conditions.push(eq(projects.workspaceId, workspaceId));
-  }
-
   const rows = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(and(...conditions))
+    .where(and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId)))
     .limit(1);
 
   if (rows.length === 0) {
@@ -152,7 +147,7 @@ async function verifyProjectInWorkspace(
 
 async function getActivePipeline(
   projectId: string,
-  workspaceId?: string
+  workspaceId: string
 ): Promise<PipelineRow> {
   // Workspace-scoped: verify project belongs to workspace
   await verifyProjectInWorkspace(projectId, workspaceId);
@@ -368,8 +363,8 @@ type StatusResponse = {
 
 export const getStatus = api(
   { expose: true, method: "GET", path: "/api/projects/:id/factory/status" },
-  async (req: { id: string; workspaceId?: string }): Promise<StatusResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId ?? "");
+  async (req: { id: string; workspaceId: string }): Promise<StatusResponse> => {
+    const pipeline = await getActivePipeline(req.id, req.workspaceId);
 
     // Stages
     const stageRows = await db
@@ -460,7 +455,7 @@ type ConfirmRequest = {
   stageId: string;
   notes?: string;
   actorUserId: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type ConfirmResponse = {
@@ -555,7 +550,7 @@ type RejectRequest = {
   stageId: string;
   feedback: string;
   actorUserId: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type RejectResponse = {
@@ -710,7 +705,7 @@ type DeployRequest = {
   git_ref: string;
   registry_image?: string;
   actorUserId: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type DeployResponse = {
@@ -806,7 +801,7 @@ type StatusUpdateRequest = {
   error?: string;
   phase?: "process" | "scaffold";
   actorUserId: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type StatusUpdateResponse = {
@@ -914,7 +909,7 @@ type ScaffoldProgressRequest = {
   pipeline_id: string;
   features: ScaffoldFeatureReport[];
   actorUserId: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type ScaffoldProgressResponse = {
@@ -1022,7 +1017,7 @@ type EventIngestionRequest = {
   id: string; // project ID (path param)
   pipeline_id: string;
   events: OrchestratorEvent[];
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type EventIngestionResponse = {
@@ -1072,7 +1067,7 @@ type TokenSpendRequest = {
   prompt_tokens: number;
   completion_tokens: number;
   model: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 export const reportTokenSpend = api(
@@ -1154,7 +1149,7 @@ type CancelRequest = {
   id: string; // project ID (path param)
   reason: string;
   actorUserId: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type CancelResponse = {
@@ -1234,7 +1229,7 @@ type RecordArtifactsRequest = {
     storage_path: string;
     size_bytes: number;
   }>;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type RecordArtifactsResponse = {
@@ -1273,7 +1268,7 @@ type LookupArtifactsRequest = {
   id: string; // project ID (path param)
   content_hash: string;
   stage_id: string;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 type LookupArtifactsResponse = {

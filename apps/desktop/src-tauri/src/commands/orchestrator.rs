@@ -97,6 +97,9 @@ impl RealGovernedExecutor {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        if let Some(ref ws_id) = request.workspace_id {
+            cmd.env("OPC_WORKSPACE_ID", ws_id);
+        }
 
         let mut child = cmd
             .spawn()
@@ -246,6 +249,9 @@ impl RealGovernedExecutor {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        if let Some(ref ws_id) = request.workspace_id {
+            cmd.env("OPC_WORKSPACE_ID", ws_id);
+        }
 
         let mut child = cmd
             .spawn()

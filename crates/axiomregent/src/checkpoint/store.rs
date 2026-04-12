@@ -45,8 +45,9 @@ impl CheckpointStore {
                 Cow::Borrowed(
                     "INSERT INTO checkpoints \
                      (checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
-                      state_hash, merkle_root, file_count, total_bytes, created_at, metadata) \
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                      state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
+                      workspace_id) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                 ),
                 vec![
                     Param::Text(info.checkpoint_id.clone()),
@@ -67,6 +68,10 @@ impl CheckpointStore {
                     Param::Integer(info.total_bytes),
                     Param::Text(info.created_at.clone()),
                     info.metadata
+                        .clone()
+                        .map(Param::Text)
+                        .unwrap_or(Param::Null),
+                    info.workspace_id
                         .clone()
                         .map(Param::Text)
                         .unwrap_or(Param::Null),
@@ -151,7 +156,8 @@ impl CheckpointStore {
             .client
             .query_as(
                 "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
-                 state_hash, merkle_root, file_count, total_bytes, created_at, metadata \
+                 state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
+                 workspace_id \
                  FROM checkpoints WHERE checkpoint_id = $1",
                 vec![Param::Text(checkpoint_id.to_string())],
             )
@@ -160,16 +166,44 @@ impl CheckpointStore {
     }
 
     /// List all checkpoints for a repository root, newest first.
-    pub async fn list_checkpoints(&self, repo_root: &str) -> Result<Vec<CheckpointInfo>> {
-        self.client
-            .query_as(
-                "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
-                 state_hash, merkle_root, file_count, total_bytes, created_at, metadata \
-                 FROM checkpoints WHERE repo_root = $1 ORDER BY created_at DESC",
-                vec![Param::Text(repo_root.to_string())],
-            )
-            .await
-            .map_err(Into::into)
+    ///
+    /// When `workspace_id` is `Some`, only checkpoints with a matching
+    /// `workspace_id` are returned. `None` returns all checkpoints for the repo.
+    pub async fn list_checkpoints(
+        &self,
+        repo_root: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<CheckpointInfo>> {
+        match workspace_id {
+            Some(wid) => {
+                self.client
+                    .query_as(
+                        "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
+                         state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
+                         workspace_id \
+                         FROM checkpoints WHERE repo_root = $1 AND workspace_id = $2 \
+                         ORDER BY created_at DESC",
+                        vec![
+                            Param::Text(repo_root.to_string()),
+                            Param::Text(wid.to_string()),
+                        ],
+                    )
+                    .await
+                    .map_err(Into::into)
+            }
+            None => {
+                self.client
+                    .query_as(
+                        "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
+                         state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
+                         workspace_id \
+                         FROM checkpoints WHERE repo_root = $1 ORDER BY created_at DESC",
+                        vec![Param::Text(repo_root.to_string())],
+                    )
+                    .await
+                    .map_err(Into::into)
+            }
+        }
     }
 
     /// Return all manifest entries for a checkpoint, sorted by path.
@@ -263,8 +297,14 @@ impl CheckpointStore {
     ///
     /// The "current" checkpoint is the most-recently-created one (first in the
     /// list returned by [`list_checkpoints`], which orders by `created_at DESC`).
-    pub async fn get_timeline(&self, repo_root: &str) -> Result<Vec<TimelineNode>> {
-        let checkpoints = self.list_checkpoints(repo_root).await?;
+    /// When `workspace_id` is `Some`, the graph is restricted to checkpoints
+    /// belonging to that workspace.
+    pub async fn get_timeline(
+        &self,
+        repo_root: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<TimelineNode>> {
+        let checkpoints = self.list_checkpoints(repo_root, workspace_id).await?;
 
         let mut children_map: HashMap<String, Vec<String>> = HashMap::new();
         for cp in &checkpoints {
@@ -331,6 +371,7 @@ impl CheckpointStore {
             total_bytes: source.total_bytes,
             created_at: now,
             metadata: source.metadata,
+            workspace_id: source.workspace_id,
         };
 
         self.create_checkpoint(&fork, &entries).await?;

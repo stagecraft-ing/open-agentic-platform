@@ -176,6 +176,8 @@ pub struct DispatchRequest {
     pub output_artifacts: Vec<PathBuf>,
     /// If set, resume this claude session instead of starting fresh.
     pub resume_session_id: Option<String>,
+    /// Active workspace ID for this execution (spec 092).
+    pub workspace_id: Option<String>,
 }
 
 #[async_trait]
@@ -276,6 +278,7 @@ async fn dispatch_with_verify(
     input_paths: &[PathBuf],
     output_paths: &[PathBuf],
     project_root: Option<&Path>,
+    workspace_id: Option<&str>,
 ) -> Result<StepMetrics, OrchestratorError> {
     let max_retries = step.max_retries.unwrap_or(3);
     let mut attempt = 0u32;
@@ -296,6 +299,7 @@ async fn dispatch_with_verify(
             input_artifacts: input_paths.to_vec(),
             output_artifacts: output_paths.to_vec(),
             resume_session_id: resume_session_id.clone(),
+            workspace_id: workspace_id.map(str::to_owned),
         };
 
         let result = executor.dispatch_step(request).await.map_err(|reason| {
@@ -1120,6 +1124,7 @@ pub async fn dispatch_manifest(
             &input_paths,
             &output_paths,
             options.project_root.as_deref(),
+            manifest.workspace_id.as_deref(),
         )
         .await
         {
@@ -1259,6 +1264,10 @@ pub async fn dispatch_manifest_persisted(
         .map(|s| (s.id.clone(), s.agent.clone()))
         .collect();
 
+    let mut wf_metadata = serde_json::Map::new();
+    if let Some(ref ws_id) = manifest.workspace_id {
+        wf_metadata.insert("workspace_id".to_string(), JsonValue::String(ws_id.clone()));
+    }
     let mut wf_state = WorkflowState::new(
         run_id,
         manifest
@@ -1267,7 +1276,7 @@ pub async fn dispatch_manifest_persisted(
             .map_or("workflow".to_string(), |s| s.agent.clone()),
         now_ts(),
         step_defs,
-        serde_json::Map::new(),
+        wf_metadata,
     );
     wf_state.attach_gates_from_manifest(manifest);
 
@@ -1597,6 +1606,7 @@ pub async fn dispatch_manifest_persisted(
             &input_paths,
             &output_paths,
             options.project_root.as_deref(),
+            manifest.workspace_id.as_deref(),
         )
         .await
         {
@@ -1853,6 +1863,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
+            workspace_id: None,
         };
         let rd = materialize_run_directory(&am, run_id, &m).unwrap();
         assert!(rd.join("manifest.yaml").exists());
@@ -1905,6 +1916,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         // Persisted state with first two steps completed, third still pending.
@@ -1983,6 +1995,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         // No steps are marked completed in the state, so there is no resume plan yet.
@@ -2008,6 +2021,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
+            workspace_id: None,
         };
 
         let plan = detect_resume_plan_for_run(&artifact_base, run_id, &manifest).unwrap();
@@ -2047,6 +2061,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         let path = state_file_path_for_run(&artifact_base, run_id);
@@ -2112,6 +2127,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         // Write summary.json with s1 succeeded, s2 failed — no state.json.
@@ -2191,6 +2207,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         // Materialize run dir and create the expected artifact for step-01.
@@ -2248,6 +2265,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         let run_dir = materialize_run_directory(&am, run_id, &manifest).unwrap();
@@ -2350,6 +2368,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
+            workspace_id: None,
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
 
@@ -2394,6 +2413,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
+            workspace_id: None,
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
 

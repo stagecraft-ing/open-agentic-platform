@@ -479,6 +479,7 @@ mod tests {
             input_artifacts: vec![],
             output_artifacts: vec![],
             resume_session_id: None,
+            workspace_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);
@@ -497,6 +498,7 @@ mod tests {
             input_artifacts: vec![],
             output_artifacts: vec![],
             resume_session_id: None,
+            workspace_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);

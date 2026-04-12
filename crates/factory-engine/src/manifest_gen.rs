@@ -170,7 +170,7 @@ pub fn generate_process_manifest(
         });
     }
 
-    Ok(WorkflowManifest { steps })
+    Ok(WorkflowManifest { steps, workspace_id: None })
 }
 
 /// Generate Phase 2 (scaffolding) manifest from a frozen Build Spec (FR-003).
@@ -740,7 +740,7 @@ pub fn generate_scaffold_manifest(
         max_retries: Some(3),
     });
 
-    Ok(WorkflowManifest { steps })
+    Ok(WorkflowManifest { steps, workspace_id: None })
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

@@ -9,11 +9,14 @@ use anyhow::{Context, Result, anyhow};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-pub struct WorkspaceTools {
+pub struct RepoMutationTools {
     pub lease_store: Arc<LeaseStore>,
 }
 
-impl WorkspaceTools {
+/// Backward-compatible type alias so existing call-sites compile unchanged during migration.
+pub type WorkspaceTools = RepoMutationTools;
+
+impl RepoMutationTools {
     pub fn new(lease_store: Arc<LeaseStore>) -> Self {
         Self { lease_store }
     }
@@ -336,7 +339,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
         let lease_store = Arc::new(LeaseStore::new(client));
-        let tools = WorkspaceTools::new(lease_store);
+        let tools = RepoMutationTools::new(lease_store);
 
         let res = tools
             .apply_patch(dir.path(), "", "snapshot", None, None, None, false, false)

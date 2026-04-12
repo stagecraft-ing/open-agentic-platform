@@ -93,7 +93,7 @@ impl McpClient for InternalClient {
 
     fn call_tool(&self, name: &str, args: &serde_json::Value) -> Result<serde_json::Value> {
         match name {
-            "write_file" | "workspace.write_file" => {
+            "write_file" | "workspace.write_file" | "repo.write_file" => {
                 let path = args
                     .get("path")
                     .and_then(|v| v.as_str())
@@ -133,7 +133,7 @@ impl McpClient for InternalClient {
             "snapshot.create" | "checkpoint.create" => Err(anyhow!(
                 "snapshot.create is deprecated; use checkpoint.create via MCP router"
             )),
-            "workspace.apply_patch" => {
+            "workspace.apply_patch" | "repo.apply_patch" => {
                 let patch = args
                     .get("patch")
                     .and_then(|v| v.as_str())
@@ -164,7 +164,7 @@ impl McpClient for InternalClient {
                 }
                 result
             }
-            "workspace.delete" => {
+            "workspace.delete" | "repo.delete" => {
                 let path = args
                     .get("path")
                     .and_then(|v| v.as_str())

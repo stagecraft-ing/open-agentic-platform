@@ -94,7 +94,13 @@ pub fn get_tool_metadata(tool_name: &str) -> ToolMetadata {
         },
 
         // Tier 2 — bounded mutations
-        "workspace.apply_patch" | "workspace.write_file" | "workspace.delete" => ToolMetadata {
+        // repo.* are the canonical names; workspace.* are backward-compat aliases
+        "repo.apply_patch"
+        | "repo.write_file"
+        | "repo.delete"
+        | "workspace.apply_patch"
+        | "workspace.write_file"
+        | "workspace.delete" => ToolMetadata {
             tier: ToolTier::Tier2,
             requires_file_read: false,
             requires_file_write: true,
@@ -189,7 +195,11 @@ pub fn explicitly_classified_tools() -> &'static [&'static str] {
         "run.status",
         "run.logs",
         "agent.verify",
-        // Tier 2
+        // Tier 2 — canonical repo.* names
+        "repo.apply_patch",
+        "repo.write_file",
+        "repo.delete",
+        // workspace.* backward-compat aliases
         "workspace.apply_patch",
         "workspace.write_file",
         "workspace.delete",

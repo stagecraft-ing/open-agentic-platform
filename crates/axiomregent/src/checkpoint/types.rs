@@ -36,6 +36,9 @@ pub struct CheckpointInfo {
     pub total_bytes: i64,
     pub created_at: String,
     pub metadata: Option<String>,
+    /// Workspace context for this checkpoint (spec 092).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
 }
 
 /// Path-level diff between two checkpoints (no line-level detail).

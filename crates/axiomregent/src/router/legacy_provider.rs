@@ -8,14 +8,26 @@ use std::sync::Arc;
 
 use crate::agent_tools::AgentTools;
 use crate::run_tools::RunTools;
-use crate::workspace::WorkspaceTools;
+use crate::workspace::RepoMutationTools;
 use featuregraph::tools::FeatureGraphTools;
 use xray::tools::XrayTools;
 
 use super::provider::{ToolPermissions, ToolProvider};
 
+/// Maps legacy `workspace.*` tool names to the canonical `repo.*` names.
+/// Called at the top of `handle`, `tier`, and `permissions` so old names are
+/// transparently forwarded without duplicating dispatch logic.
+fn normalize_repo_tool_name(name: &str) -> &str {
+    match name {
+        "workspace.write_file" => "repo.write_file",
+        "workspace.delete" => "repo.delete",
+        "workspace.apply_patch" => "repo.apply_patch",
+        _ => name,
+    }
+}
+
 pub struct LegacyToolProvider {
-    pub workspace_tools: Arc<WorkspaceTools>,
+    pub workspace_tools: Arc<RepoMutationTools>,
     pub featuregraph_tools: Arc<FeatureGraphTools>,
     pub xray_tools: Arc<XrayTools>,
     pub agent_tools: Arc<AgentTools>,
@@ -174,10 +186,59 @@ impl ToolProvider for LegacyToolProvider {
                     "required": ["run_id"]
                 }
             }),
-            // Workspace Tools
+            // Repo Mutation Tools (canonical repo.* names)
+            json!({
+                "name": "repo.write_file",
+                "description": "Write file content inside the repository worktree",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "repo_root": { "type": "string" },
+                        "path": { "type": "string" },
+                        "content_base64": { "type": "string" },
+                        "lease_id": { "type": "string" },
+                        "create_dirs": { "type": "boolean" },
+                        "dry_run": { "type": "boolean" }
+                    },
+                    "required": ["repo_root", "path", "content_base64", "lease_id"]
+                }
+            }),
+            json!({
+                "name": "repo.delete",
+                "description": "Delete a file or directory inside the repository worktree",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "repo_root": { "type": "string" },
+                        "path": { "type": "string" },
+                        "lease_id": { "type": "string" },
+                        "dry_run": { "type": "boolean" }
+                    },
+                    "required": ["repo_root", "path", "lease_id"]
+                }
+            }),
+            json!({
+                "name": "repo.apply_patch",
+                "description": "Apply a unified diff patch to the repository worktree",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "repo_root": { "type": "string" },
+                        "patch": { "type": "string" },
+                        "mode": { "type": "string", "enum": ["worktree", "snapshot"] },
+                        "lease_id": { "type": "string" },
+                        "snapshot_id": { "type": "string" },
+                        "strip": { "type": "integer" },
+                        "reject_on_conflict": { "type": "boolean" },
+                        "dry_run": { "type": "boolean" }
+                    },
+                    "required": ["repo_root", "patch", "mode"]
+                }
+            }),
+            // Backward-compatible workspace.* aliases
             json!({
                 "name": "workspace.write_file",
-                "description": "Write file content",
+                "description": "[Alias for repo.write_file] Write file content inside the repository worktree",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -193,7 +254,7 @@ impl ToolProvider for LegacyToolProvider {
             }),
             json!({
                 "name": "workspace.delete",
-                "description": "Delete a file or directory",
+                "description": "[Alias for repo.delete] Delete a file or directory inside the repository worktree",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -207,7 +268,7 @@ impl ToolProvider for LegacyToolProvider {
             }),
             json!({
                 "name": "workspace.apply_patch",
-                "description": "Apply a patch",
+                "description": "[Alias for repo.apply_patch] Apply a unified diff patch to the repository worktree",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -227,6 +288,7 @@ impl ToolProvider for LegacyToolProvider {
     }
 
     async fn handle(&self, name: &str, args: &Map<String, Value>) -> Option<anyhow::Result<Value>> {
+        let name = normalize_repo_tool_name(name);
         match name {
             // --- FeatureGraph Tools ---
             "features.impact" => {
@@ -346,8 +408,8 @@ impl ToolProvider for LegacyToolProvider {
                 Some(self.run_tools.logs(run_id, offset, limit).await)
             }
 
-            // --- Workspace Tools ---
-            "workspace.write_file" => {
+            // --- Repo Mutation Tools ---
+            "repo.write_file" => {
                 let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
                     Some(v) => Path::new(v),
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
@@ -387,7 +449,7 @@ impl ToolProvider for LegacyToolProvider {
                 )
             }
 
-            "workspace.delete" => {
+            "repo.delete" => {
                 let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
                     Some(v) => Path::new(v),
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
@@ -412,7 +474,7 @@ impl ToolProvider for LegacyToolProvider {
                 )
             }
 
-            "workspace.apply_patch" => {
+            "repo.apply_patch" => {
                 let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
                     Some(v) => Path::new(v),
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
@@ -466,6 +528,7 @@ impl ToolProvider for LegacyToolProvider {
     }
 
     fn tier(&self, name: &str) -> Option<agent::safety::ToolTier> {
+        let name = normalize_repo_tool_name(name);
         match name {
             "features.impact"
             | "gov.preflight"
@@ -474,9 +537,9 @@ impl ToolProvider for LegacyToolProvider {
             | "agent.verify"
             | "run.status"
             | "run.logs"
-            | "workspace.write_file"
-            | "workspace.delete"
-            | "workspace.apply_patch"
+            | "repo.write_file"
+            | "repo.delete"
+            | "repo.apply_patch"
             | "agent.propose"
             | "agent.execute"
             | "run.execute" => Some(agent::safety::get_tool_tier(name)),
@@ -485,6 +548,7 @@ impl ToolProvider for LegacyToolProvider {
     }
 
     fn permissions(&self, name: &str) -> Option<ToolPermissions> {
+        let name = normalize_repo_tool_name(name);
         if self.tier(name).is_some() {
             Some(ToolPermissions {
                 requires_file_read: matches!(
@@ -497,9 +561,9 @@ impl ToolProvider for LegacyToolProvider {
                 ),
                 requires_file_write: matches!(
                     name,
-                    "workspace.write_file"
-                        | "workspace.delete"
-                        | "workspace.apply_patch"
+                    "repo.write_file"
+                        | "repo.delete"
+                        | "repo.apply_patch"
                         | "agent.propose"
                         | "agent.execute"
                 ),

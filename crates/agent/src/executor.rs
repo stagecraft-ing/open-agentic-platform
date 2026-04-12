@@ -12,9 +12,13 @@ use std::path::Path;
 pub struct Executor;
 
 // Allowlist of tools
+// repo.* are the canonical names; workspace.* are backward-compat aliases kept for existing changesets
 const ALLOWLIST: &[&str] = &[
     "gov.preflight",
     "gov.drift",
+    "repo.apply_patch",
+    "repo.write_file",
+    "repo.delete",
     "workspace.apply_patch",
     "snapshot.create",
     "snapshot.info",

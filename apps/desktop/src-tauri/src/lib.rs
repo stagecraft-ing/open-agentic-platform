@@ -24,8 +24,8 @@ use commands::agents::{
     get_live_session_output, get_session_output, get_session_status, import_agent,
     import_agent_from_file, import_agent_from_github, init_database, kill_agent_session,
     list_agent_runs, list_agent_runs_with_metrics, list_agents, list_claude_installations,
-    list_running_sessions, load_agent_session_history, plan_request, set_claude_binary_path,
-    stream_session_output, update_agent, AgentDb,
+    list_running_sessions, list_workspaces, load_agent_session_history, plan_request,
+    set_active_workspace, set_claude_binary_path, stream_session_output, update_agent, AgentDb,
 };
 use commands::claude::{
     cancel_claude_execution, check_auto_checkpoint, check_claude_version, cleanup_old_checkpoints,
@@ -371,6 +371,9 @@ pub fn run() {
             fetch_github_agents,
             fetch_github_agent_content,
             import_agent_from_github,
+            // Workspace threading (spec 092)
+            set_active_workspace,
+            list_workspaces,
             // Orchestrator (044)
             orchestrate_manifest,
             get_run_status,

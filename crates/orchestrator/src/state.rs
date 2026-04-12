@@ -469,6 +469,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
+            workspace_id: None,
         };
 
         state.attach_gates_from_manifest(&manifest);

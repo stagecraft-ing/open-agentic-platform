@@ -230,11 +230,10 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/stage/{}/confirm",
             self.base_url, project_id, sc_stage
         );
-        let ws_id = self.workspace_id();
         let body = ConfirmRequest {
             notes: notes.map(String::from),
             actor_user_id: self.actor_user_id.clone(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -262,11 +261,10 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/stage/{}/reject",
             self.base_url, project_id, sc_stage
         );
-        let ws_id = self.workspace_id();
         let body = RejectRequest {
             feedback: feedback.into(),
             actor_user_id: self.actor_user_id.clone(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -296,7 +294,6 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/status-update",
             self.base_url, project_id
         );
-        let ws_id = self.workspace_id();
         let body = StatusUpdateRequest {
             pipeline_id: pipeline_id.into(),
             status: status.into(),
@@ -304,7 +301,7 @@ impl StagecraftClient {
             error: error.map(String::from),
             phase: phase.map(String::from),
             actor_user_id: self.actor_user_id.clone(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -331,12 +328,11 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/scaffold-progress",
             self.base_url, project_id
         );
-        let ws_id = self.workspace_id();
         let body = ScaffoldProgressRequest {
             pipeline_id: pipeline_id.into(),
             features: features.to_vec(),
             actor_user_id: self.actor_user_id.clone(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -362,11 +358,10 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/cancel",
             self.base_url, project_id
         );
-        let ws_id = self.workspace_id();
         let body = CancelRequest {
             reason: reason.into(),
             actor_user_id: self.actor_user_id.clone(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -393,11 +388,10 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/events",
             self.base_url, project_id
         );
-        let ws_id = self.workspace_id();
         let body = EventIngestionRequest {
             pipeline_id: pipeline_id.into(),
             events: events.to_vec(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -425,12 +419,11 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/artifacts",
             self.base_url, project_id
         );
-        let ws_id = self.workspace_id();
         let body = RecordArtifactsRequest {
             pipeline_id: pipeline_id.into(),
             stage_id: stage_id.into(),
             artifacts: artifacts.to_vec(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -453,15 +446,9 @@ impl StagecraftClient {
         content_hash: &str,
         stage_id: &str,
     ) -> Result<LookupArtifactResponse, StagecraftError> {
-        let ws_id = self.workspace_id();
-        let ws_param = if ws_id.is_empty() {
-            String::new()
-        } else {
-            format!("&workspaceId={}", ws_id)
-        };
         let url = format!(
-            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}{}",
-            self.base_url, project_id, content_hash, stage_id, ws_param
+            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}&workspaceId={}",
+            self.base_url, project_id, content_hash, stage_id, self.workspace_id()
         );
         let resp = self
             .client
@@ -491,14 +478,13 @@ impl StagecraftClient {
             "{}/api/projects/{}/factory/token-spend",
             self.base_url, project_id
         );
-        let ws_id = self.workspace_id();
         let body = TokenSpendRequest {
             run_id: run_id.into(),
             stage_id: sc_stage.into(),
             prompt_tokens,
             completion_tokens,
             model: model.into(),
-            workspace_id: if ws_id.is_empty() { None } else { Some(ws_id) },
+            workspace_id: self.workspace_id(),
         };
         let resp = self
             .client
@@ -518,7 +504,7 @@ impl StagecraftClient {
 // Workspace types (spec 087)
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WorkspaceInfo {
     pub id: String,
     #[serde(rename = "orgId")]
@@ -587,8 +573,8 @@ struct ConfirmRequest {
     notes: Option<String>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -604,8 +590,8 @@ struct RejectRequest {
     feedback: String,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -629,8 +615,8 @@ struct StatusUpdateRequest {
     phase: Option<String>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -663,8 +649,8 @@ struct ScaffoldProgressRequest {
     features: Vec<ScaffoldFeatureReport>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -678,8 +664,8 @@ struct CancelRequest {
     reason: String,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -703,8 +689,8 @@ pub struct OrchestratorEventReport {
 struct EventIngestionRequest {
     pipeline_id: String,
     events: Vec<OrchestratorEventReport>,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -719,8 +705,8 @@ struct TokenSpendRequest {
     prompt_tokens: u64,
     completion_tokens: u64,
     model: String,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -740,8 +726,8 @@ struct RecordArtifactsRequest {
     pipeline_id: String,
     stage_id: String,
     artifacts: Vec<ArtifactRecord>,
-    #[serde(rename = "workspaceId", skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[serde(rename = "workspaceId")]
+    workspace_id: String,
 }
 
 #[derive(Debug, Deserialize)]

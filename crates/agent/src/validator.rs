@@ -90,17 +90,20 @@ impl Validator {
         for task in &plan.tasks {
             for tool_call in &task.tool_calls {
                 if (tool_call.tool_name == "write_file"
-                    || tool_call.tool_name == "workspace.write_file")
+                    || tool_call.tool_name == "workspace.write_file"
+                    || tool_call.tool_name == "repo.write_file")
                     && let Some(path) = tool_call.arguments.get("path").and_then(|v| v.as_str())
                 {
                     changed_paths.push(path.to_string());
                 }
-                if tool_call.tool_name == "workspace.delete"
+                if (tool_call.tool_name == "workspace.delete"
+                    || tool_call.tool_name == "repo.delete")
                     && let Some(path) = tool_call.arguments.get("path").and_then(|v| v.as_str())
                 {
                     changed_paths.push(path.to_string());
                 }
-                if tool_call.tool_name == "workspace.apply_patch"
+                if (tool_call.tool_name == "workspace.apply_patch"
+                    || tool_call.tool_name == "repo.apply_patch")
                     && let Some(patch) = tool_call.arguments.get("patch").and_then(|v| v.as_str())
                 {
                     for line in patch.lines() {
