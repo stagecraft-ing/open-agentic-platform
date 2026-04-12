@@ -2,7 +2,8 @@
 id: "044-multi-agent-orchestration"
 title: "multi-agent orchestration with file-based artifact passing"
 feature_branch: "044-multi-agent-orchestration"
-status: draft
+status: superseded
+superseded_by: "089"
 kind: platform
 created: "2026-03-29"
 authors:
@@ -18,6 +19,10 @@ code_aliases:
 ---
 
 # Feature Specification: multi-agent orchestration with file-based artifact passing
+
+## Supersession
+
+This feature has been superseded by `089-governed-convergence-plan`, which drove the implementation of all core concepts from this spec — DAG dispatch, file-based artifact passing, effort levels, and workflow manifests — in `crates/orchestrator/`. The convergence phases (specs 094-099) then extended well beyond this spec's scope with artifact memory, checkpoint branching, promotion-grade mirroring, governance gates, and workspace-scoped persistence. The living implementation truth is `crates/orchestrator/src/` plus specs 089-099.
 
 ## Purpose
 

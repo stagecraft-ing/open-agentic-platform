@@ -19,6 +19,15 @@ code_aliases:
 
 # Feature Specification: Multi-Provider Agent Registry
 
+## Deferred
+
+This spec is intentionally deferred until the governed execution path (specs 089-099) stabilizes. Multi-provider expansion adds governance surface area — every additional backend is a new bypass surface — which conflicts with the convergence plan's focus on tightening a single governed path first.
+
+When revisited, this spec needs rewriting to:
+- Target Rust (not TypeScript) — the agent execution stack is `crates/agent/`, `crates/orchestrator/`
+- Require governance coverage per provider — each adapter must integrate with `PolicyEvaluator` and `ToolCallContext`
+- Align with the `ToolDef` trait (`crates/tool-registry/src/types.rs`) and the unified frontmatter schema (spec 054)
+
 ## Purpose
 
 The platform currently couples agent execution to a single LLM backend (Claude Code CLI). Multiple consolidation sources — claude-code-by-agents (ProviderRegistry), claudecodeui, claudepal, crystal (CLI tool registry), ruflo, equilateral-agents (BYOL provider) — each implement their own provider abstraction with incompatible interfaces, event formats, and lifecycle management. There is no shared contract for spawning, querying, aborting, or streaming agent interactions across backends.
