@@ -1059,7 +1059,10 @@ pub async fn execute_agent(
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
     let grants_json = crate::governed_claude::grants_json_for_agent(&agent);
-    let plan = crate::governed_claude::plan_governed(announce_port, grants_json);
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(announce_port, grants_json);
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] execute_agent falling back to bypass: {}", reason);
+    }
     let mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",

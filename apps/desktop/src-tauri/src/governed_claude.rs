@@ -120,18 +120,25 @@ pub fn axiomregent_mcp_config_json(axiom_exe: &std::path::Path, grants_json: &st
     serde_json::to_string(&cfg).map_err(|e| e.to_string())
 }
 
-/// `announce_port`: `SidecarState` probe port when Some (axiomregent announced readiness).
-pub fn plan_governed(announce_port: Option<u16>, grants_json: String) -> GovernedPlan {
-    if announce_port.is_none() {
-        return GovernedPlan::Bypass;
-    }
+/// Attempt governance via bundled axiomregent binary + MCP config generation.
+/// Returns `GovernedPlan::Bypass` with a reason if governance is unavailable.
+pub fn plan_governed_from_binary(grants_json: &str) -> (GovernedPlan, Option<String>) {
     let Ok(binary) = bundled_axiomregent_binary_path() else {
-        return GovernedPlan::Bypass;
+        return (GovernedPlan::Bypass, Some("axiomregent binary not found".into()));
     };
-    match axiomregent_mcp_config_json(&binary, &grants_json) {
-        Ok(mcp_config_json) => GovernedPlan::Governed { mcp_config_json },
-        Err(_) => GovernedPlan::Bypass,
+    match axiomregent_mcp_config_json(&binary, grants_json) {
+        Ok(mcp_config_json) => (GovernedPlan::Governed { mcp_config_json }, None),
+        Err(e) => (GovernedPlan::Bypass, Some(format!("MCP config generation failed: {e}"))),
     }
+}
+
+/// `announce_port`: `SidecarState` probe port when Some (axiomregent announced readiness).
+/// Returns the plan and an optional bypass reason for logging.
+pub fn plan_governed(announce_port: Option<u16>, grants_json: String) -> (GovernedPlan, Option<String>) {
+    if announce_port.is_none() {
+        return (GovernedPlan::Bypass, Some("axiomregent sidecar not running (no announce port)".into()));
+    }
+    plan_governed_from_binary(&grants_json)
 }
 
 pub fn append_claude_governance_args(args: &mut Vec<String>, plan: &GovernedPlan) {

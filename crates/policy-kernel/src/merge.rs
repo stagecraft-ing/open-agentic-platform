@@ -71,6 +71,16 @@ fn builtin_defaults() -> PermissionSettings {
     }
 }
 
+fn tier_name(tier: SettingsTier) -> &'static str {
+    match tier {
+        SettingsTier::Policy => "policy",
+        SettingsTier::Environment => "environment",
+        SettingsTier::User => "user",
+        SettingsTier::Project => "project",
+        SettingsTier::Defaults => "defaults",
+    }
+}
+
 /// Merge all 5 tiers into a single [`MergedSettings`] (FR-001, NF-002).
 ///
 /// This function is idempotent: calling it twice with the same inputs produces
@@ -107,12 +117,28 @@ pub fn merge_settings(paths: &SettingsPaths) -> MergedSettings {
     ];
 
     // Scalar: highest-tier non-default value wins.
-    let default_mode = tiers
+    // Spec 090-6: only the Policy tier (Tier 1) may set DefaultMode::Bypass.
+    // Non-policy bypass is overridden to Default with a warning.
+    let default_mode = match tiers
         .iter()
         .rev()
         .find(|(_, s)| s.default_mode != DefaultMode::Default)
-        .map(|(_, s)| s.default_mode)
-        .unwrap_or(DefaultMode::Default);
+    {
+        Some((tier, settings)) if settings.default_mode == DefaultMode::Bypass => {
+            if tier.is_immutable() {
+                DefaultMode::Bypass
+            } else {
+                eprintln!(
+                    "[policy-kernel] DefaultMode::Bypass set at {} tier — overriding to Default \
+                     (only Policy tier may enable bypass)",
+                    tier_name(*tier)
+                );
+                DefaultMode::Default
+            }
+        }
+        Some((_, settings)) => settings.default_mode,
+        None => DefaultMode::Default,
+    };
 
     // Rules: aggregate across all tiers, tagged with source.
     let mut allow_rules = Vec::new();
@@ -243,5 +269,50 @@ mod tests {
         assert_eq!(a.allow_rules.len(), b.allow_rules.len());
         assert_eq!(a.deny_rules.len(), b.deny_rules.len());
         assert_eq!(a.ask_rules.len(), b.ask_rules.len());
+    }
+
+    #[test]
+    fn non_policy_bypass_overridden_to_default() {
+        // Spec 090-6: only the Policy tier may set DefaultMode::Bypass.
+        let user_settings = TierSettings {
+            permissions: PermissionSettings {
+                default_mode: DefaultMode::Bypass,
+                ..Default::default()
+            },
+        };
+        let user_file = write_settings_file(&user_settings);
+        let paths = SettingsPaths {
+            policy: None,
+            user: Some(user_file.path().to_path_buf()),
+            project: None,
+        };
+        let merged = merge_settings(&paths);
+        assert_eq!(
+            merged.default_mode,
+            DefaultMode::Default,
+            "user-tier bypass must be overridden to Default"
+        );
+    }
+
+    #[test]
+    fn policy_tier_bypass_is_allowed() {
+        let policy_settings = TierSettings {
+            permissions: PermissionSettings {
+                default_mode: DefaultMode::Bypass,
+                ..Default::default()
+            },
+        };
+        let policy_file = write_settings_file(&policy_settings);
+        let paths = SettingsPaths {
+            policy: Some(policy_file.path().to_path_buf()),
+            user: None,
+            project: None,
+        };
+        let merged = merge_settings(&paths);
+        assert_eq!(
+            merged.default_mode,
+            DefaultMode::Bypass,
+            "policy-tier bypass must be honored"
+        );
     }
 }

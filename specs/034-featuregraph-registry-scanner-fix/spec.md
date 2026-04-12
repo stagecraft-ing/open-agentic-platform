@@ -15,6 +15,8 @@ summary: >
 code_aliases:
   - FEATUREGRAPH_REGISTRY
   - GOVERNANCE_ENGINE
+owner: bart
+risk: low
 ---
 
 # Feature Specification: featuregraph registry scanner fix

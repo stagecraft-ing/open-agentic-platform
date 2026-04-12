@@ -198,7 +198,7 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None })
+        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None })
     }
 
     async fn dispatch_via_governed_claude(
@@ -229,19 +229,13 @@ impl RealGovernedExecutor {
                 args.push("--allowedTools".to_string());
                 args.extend(allowed_tools.iter().cloned());
             }
-        if let Ok(axiom) = crate::governed_claude::bundled_axiomregent_binary_path() {
-            if let Ok(mcp_config) =
-                crate::governed_claude::axiomregent_mcp_config_json(&axiom, &grants_json)
-            {
-                args.push("--mcp-config".to_string());
-                args.push(mcp_config);
-                args.push("--permission-mode".to_string());
-                args.push("default".to_string());
-            } else {
-                args.push("--dangerously-skip-permissions".to_string());
-            }
-        } else {
-            args.push("--dangerously-skip-permissions".to_string());
+        let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json);
+        crate::governed_claude::append_claude_governance_args(&mut args, &plan);
+        if let Some(reason) = &bypass_reason {
+            eprintln!(
+                "[governance] orchestrator step {} falling back to bypass: {}",
+                request.step_id, reason
+            );
         }
 
         let mut cmd = Command::new("claude");
@@ -325,7 +319,7 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None })
+        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None })
     }
 }
 

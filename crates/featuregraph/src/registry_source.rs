@@ -24,6 +24,12 @@ pub struct RegistryFeatureRecord {
     pub status: String,
     #[serde(rename = "codeAliases", default)]
     pub code_aliases: Vec<String>,
+    #[serde(rename = "dependsOn", default)]
+    pub depends_on: Vec<String>,
+    #[serde(default)]
+    pub owner: Option<String>,
+    #[serde(default)]
+    pub risk: Option<String>,
 }
 
 /// Parse `registry.json` and return feature records (sorted by id for determinism).

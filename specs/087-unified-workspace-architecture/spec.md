@@ -17,6 +17,7 @@ depends_on:
   - "078"  # platform-completion-plan
   - "080"  # github-identity-onboarding
   - "082"  # artifact-integrity-platform-hardening
+risk: high
 ---
 
 # 087 — Unified Workspace Architecture

@@ -17,6 +17,8 @@ code_aliases:
   - MCP_ROUTER_CONTRACT
   - MCP_SNAPSHOT_WORKSPACE
   - MCP_TOOLS
+owner: bart
+risk: medium
 ---
 
 # Feature Specification: axiomregent activation

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:8aac2611673afefccc195a75db7bbb5a6fb6dfe527d6b70aeb6cf9c5352e863a",
+  "graph_fingerprint": "sha256:7de54152129aa278489cf7fa8ea0db42c8026bf9341a452acaafc5c1b89c1601",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -630,8 +630,8 @@
       "title": "axiomregent sidecar activation and governance surface",
       "spec_path": "specs/033-axiomregent-activation/spec.md",
       "status": "active",
-      "governance": "",
-      "owner": "",
+      "governance": "medium",
+      "owner": "bart",
       "group": "",
       "depends_on": [],
       "impl_files": [
@@ -735,8 +735,8 @@
       "title": "featuregraph scanner reads compiled registry",
       "spec_path": "specs/034-featuregraph-registry-scanner-fix/spec.md",
       "status": "active",
-      "governance": "",
-      "owner": "",
+      "governance": "low",
+      "owner": "bart",
       "group": "",
       "depends_on": [],
       "impl_files": [
@@ -746,7 +746,6 @@
         "crates/featuregraph/src/locate.rs",
         "crates/featuregraph/src/preflight.rs",
         "crates/featuregraph/src/registry_source.rs",
-        "crates/featuregraph/src/scanner.rs",
         "crates/featuregraph/src/tools.rs"
       ],
       "test_files": [
@@ -791,14 +790,6 @@
           "path": "crates/featuregraph/src/preflight.rs",
           "feature_id": "034-featuregraph-registry-scanner-fix",
           "message": "File declares spec spec/core/governance.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
-          "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
-        },
-        {
-          "code": "SPEC_PATH_MISMATCH",
-          "severity": "warning",
-          "path": "crates/featuregraph/src/scanner.rs",
-          "feature_id": "034-featuregraph-registry-scanner-fix",
-          "message": "File declares spec spec/core/featuregraph.md but registry says specs/034-featuregraph-registry-scanner-fix/spec.md",
           "suggested_fix": "Update header to Spec: specs/034-featuregraph-registry-scanner-fix/spec.md"
         },
         {
@@ -1094,7 +1085,7 @@
       "feature_id": "048-hookify-rule-engine",
       "title": "Declarative Hook Rule Engine",
       "spec_path": "specs/048-hookify-rule-engine/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1107,7 +1098,7 @@
       "feature_id": "049-permission-system",
       "title": "Permission Request System with Memory and Wildcards",
       "spec_path": "specs/049-permission-system/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1133,7 +1124,7 @@
       "feature_id": "051-worktree-agents",
       "title": "Background Agents with Git Worktree Isolation",
       "spec_path": "specs/051-worktree-agents/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1146,7 +1137,7 @@
       "feature_id": "052-state-persistence",
       "title": "State Persistence for Resumable Workflows",
       "spec_path": "specs/052-state-persistence/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1159,7 +1150,7 @@
       "feature_id": "053-verification-profiles",
       "title": "Verification Profiles",
       "spec_path": "specs/053-verification-profiles/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1511,8 +1502,8 @@
       "title": "GitHub Identity and Org Onboarding — App Installation, OAuth Login, Rauthy Sessions",
       "spec_path": "specs/080-github-identity-onboarding/spec.md",
       "status": "draft",
-      "governance": "",
-      "owner": "",
+      "governance": "medium",
+      "owner": "bart",
       "group": "",
       "depends_on": [],
       "impl_files": [],
@@ -1537,8 +1528,8 @@
       "title": "Artifact Integrity, Cross-Run Persistence, and Seam Auth Hardening",
       "spec_path": "specs/082-artifact-integrity-platform-hardening/spec.md",
       "status": "draft",
-      "governance": "",
-      "owner": "",
+      "governance": "high",
+      "owner": "bart",
       "group": "",
       "depends_on": [],
       "impl_files": [],
@@ -1602,16 +1593,109 @@
       "title": "Unified Workspace Architecture",
       "spec_path": "specs/087-unified-workspace-architecture/spec.md",
       "status": "active",
-      "governance": "",
-      "owner": "",
+      "governance": "high",
+      "owner": "bart",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "074",
+        "075",
+        "076",
+        "077",
+        "078",
+        "080",
+        "082"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "088-factory-upstream-sync",
+      "title": "Factory Upstream Sync Protocol",
+      "spec_path": "specs/088-factory-upstream-sync/spec.md",
+      "status": "active",
+      "governance": "",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "074",
+        "075"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "089-governed-convergence-plan",
+      "title": "Governed Convergence Plan — Binding Primitives into Default Product Truth",
+      "spec_path": "specs/089-governed-convergence-plan/spec.md",
+      "status": "active",
+      "governance": "critical",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "082",
+        "087",
+        "080"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "090-governance-non-optionality",
+      "title": "Governance Non-Optionality",
+      "spec_path": "specs/090-governance-non-optionality/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "033",
+        "068"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "091-registry-enrichment",
+      "title": "Spec Registry Enrichment",
+      "spec_path": "specs/091-registry-enrichment/spec.md",
+      "status": "active",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "039"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
     }
   ],
   "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src-tauri/src/web_server.rs",
+      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/ScheduleDialog.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/SchedulePanel.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
+      "suggested_fix": "Fix header format"
+    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
@@ -1776,6 +1860,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/axiomregent/src/skill_provider.rs",
+      "message": "Malformed Spec directive: // Spec: specs/071-skill-command-factory/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-contracts/src/namespace.rs",
       "message": "Malformed Spec directive: // Spec: specs/082-artifact-integrity-platform-hardening/spec.md — FR-030, FR-031",
       "suggested_fix": "Fix header format"
@@ -1869,6 +1960,13 @@
       "severity": "error",
       "path": "crates/factory-engine/src/verify_harness.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/featuregraph/src/scanner.rs",
+      "message": "Malformed Spec directive: // Spec: specs/034-featuregraph-registry-scanner-fix/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

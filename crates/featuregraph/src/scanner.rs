@@ -156,10 +156,10 @@ impl FeatureEntry {
             id: r.id.clone(),
             title: r.title.clone(),
             spec: r.spec_path.clone(),
-            governance: String::new(),
-            owner: String::new(),
+            governance: r.risk.clone().unwrap_or_default(),
+            owner: r.owner.clone().unwrap_or_default(),
             group: String::new(),
-            depends_on: Vec::new(),
+            depends_on: r.depends_on.clone(),
             implementation: Some(r.status.clone()),
             aliases: r.code_aliases.clone(),
         }
@@ -474,8 +474,29 @@ mod tests {
             spec_path: "specs/034-featuregraph-registry-scanner-fix/spec.md".into(),
             status: "active".into(),
             code_aliases: vec!["FEATUREGRAPH_REGISTRY".into()],
+            depends_on: vec![],
+            owner: None,
+            risk: None,
         };
         let e = FeatureEntry::from_registry_record(&r);
         assert_eq!(e.aliases, vec!["FEATUREGRAPH_REGISTRY"]);
+    }
+
+    #[test]
+    fn registry_enriched_fields_populate_feature_entry() {
+        let r = crate::registry_source::RegistryFeatureRecord {
+            id: "087-unified-workspace-architecture".into(),
+            title: "Unified Workspace Architecture".into(),
+            spec_path: "specs/087-unified-workspace-architecture/spec.md".into(),
+            status: "active".into(),
+            code_aliases: vec![],
+            depends_on: vec!["033".into(), "068".into()],
+            owner: Some("bart".into()),
+            risk: Some("high".into()),
+        };
+        let e = FeatureEntry::from_registry_record(&r);
+        assert_eq!(e.depends_on, vec!["033", "068"]);
+        assert_eq!(e.owner, "bart");
+        assert_eq!(e.governance, "high");
     }
 }

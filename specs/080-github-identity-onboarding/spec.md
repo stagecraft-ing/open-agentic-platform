@@ -13,6 +13,8 @@ summary: >
   Rauthy issues platform sessions and claims. Enables self-service project
   creation for authenticated org members.
 code_aliases: ["GITHUB_IDENTITY", "ORG_ONBOARDING"]
+owner: bart
+risk: medium
 ---
 
 # Feature Specification: GitHub Identity and Org Onboarding

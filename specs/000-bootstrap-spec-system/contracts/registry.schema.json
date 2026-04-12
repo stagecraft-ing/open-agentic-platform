@@ -85,6 +85,15 @@
             "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
           },
           "uniqueItems": true
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "owner": { "type": "string", "minLength": 1 },
+        "risk": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
         }
       }
     },

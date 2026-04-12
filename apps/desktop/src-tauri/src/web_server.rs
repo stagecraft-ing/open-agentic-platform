@@ -237,6 +237,8 @@ pub struct AppState {
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::mpsc::Sender<String>>>>,
     // In-memory schedule store (Feature 079)
     pub schedules: ScheduleStore,
+    /// Shared axiomregent announce port (spec 090-2: replaces env var read to fix race).
+    pub axiomregent_port: Arc<std::sync::Mutex<Option<u16>>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -656,12 +658,14 @@ async fn execute_claude_command(
     // Create Claude command
     println!("[TRACE] Creating Claude command...");
     let mut cmd = Command::new(&claude_path);
-    let announce_port =
-        std::env::var("OPC_AXIOMREGENT_PORT").ok().and_then(|s| s.parse().ok());
-    let plan = crate::governed_claude::plan_governed(
+    let announce_port = *state.axiomregent_port.lock().unwrap();
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] new_claude_command falling back to bypass: {}", reason);
+    }
     let mut args: Vec<String> = vec![
         "-p".into(),
         prompt.clone(),
@@ -773,12 +777,14 @@ async fn continue_claude_command(
 
     // Create continue command
     let mut cmd = Command::new(&claude_path);
-    let announce_port =
-        std::env::var("OPC_AXIOMREGENT_PORT").ok().and_then(|s| s.parse().ok());
-    let plan = crate::governed_claude::plan_governed(
+    let announce_port = *state.axiomregent_port.lock().unwrap();
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] continue_claude_command falling back to bypass: {}", reason);
+    }
     let mut args: Vec<String> = vec![
         "-c".into(),
         "-p".into(),
@@ -867,12 +873,14 @@ async fn resume_claude_command(
     // Create resume command
     println!("[resume_claude_command] Creating command...");
     let mut cmd = Command::new(&claude_path);
-    let announce_port =
-        std::env::var("OPC_AXIOMREGENT_PORT").ok().and_then(|s| s.parse().ok());
-    let plan = crate::governed_claude::plan_governed(
+    let announce_port = *state.axiomregent_port.lock().unwrap();
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] resume_claude_command falling back to bypass: {}", reason);
+    }
     let mut args: Vec<String> = vec![
         "--resume".into(),
         claude_session_id.clone(),
@@ -1048,9 +1056,14 @@ async fn toggle_schedule(
 
 /// Create the web server
 pub async fn create_web_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+    // Read initial axiomregent port from env if available, then share for live updates.
+    let initial_port: Option<u16> = std::env::var("OPC_AXIOMREGENT_PORT")
+        .ok()
+        .and_then(|s| s.parse().ok());
     let state = AppState {
         active_sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
         schedules: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        axiomregent_port: Arc::new(std::sync::Mutex::new(initial_port)),
     };
 
     // Generate a fresh token for this session.

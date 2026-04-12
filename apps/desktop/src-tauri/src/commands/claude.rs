@@ -1027,10 +1027,13 @@ pub async fn execute_claude_code(
     let claude_path = find_claude_binary(&app)?;
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
-    let plan = crate::governed_claude::plan_governed(
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] execute_claude_code falling back to bypass: {}", reason);
+    }
     let mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",
@@ -1074,10 +1077,13 @@ pub async fn continue_claude_code(
     let claude_path = find_claude_binary(&app)?;
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
-    let plan = crate::governed_claude::plan_governed(
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] continue_claude_code falling back to bypass: {}", reason);
+    }
     let mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",
@@ -1124,10 +1130,13 @@ pub async fn resume_claude_code(
     let claude_path = find_claude_binary(&app)?;
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
-    let plan = crate::governed_claude::plan_governed(
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] resume_claude_code falling back to bypass: {}", reason);
+    }
     let mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",
@@ -1174,10 +1183,13 @@ pub async fn execute_claude_bridge(
     let sidecar_js = bridge_sidecar_js_path()?;
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
-    let plan = crate::governed_claude::plan_governed(
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     );
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] execute_claude_bridge falling back to bypass: {}", reason);
+    }
     let mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",

@@ -112,12 +112,13 @@ fn default_max_tier_three() -> u8 {
 
 impl Default for PermissionGrants {
     fn default() -> Self {
-        Self::test_permissive()
+        Self::claude_default()
     }
 }
 
 impl PermissionGrants {
-    /// Permissive defaults for unit tests and legacy callers.
+    /// Permissive defaults for unit tests only.
+    #[cfg(test)]
     pub fn test_permissive() -> Self {
         Self {
             enable_file_read: true,
@@ -175,7 +176,7 @@ pub struct LeaseStore {
 
 impl LeaseStore {
     pub fn new(client: Client) -> Self {
-        Self::with_default_grants(client, PermissionGrants::test_permissive())
+        Self::with_default_grants(client, PermissionGrants::claude_default())
     }
 
     pub fn with_default_grants(client: Client, default_grants: PermissionGrants) -> Self {

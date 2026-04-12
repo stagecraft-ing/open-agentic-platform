@@ -14,6 +14,8 @@ summary: >
   on all platform seams, and a namespaced contract ID convention for future
   extensibility.
 code_aliases: ["ARTIFACT_INTEGRITY", "SEAM_OIDC", "CROSS_RUN"]
+owner: bart
+risk: high
 ---
 
 # Feature Specification: Artifact Integrity and Platform Hardening

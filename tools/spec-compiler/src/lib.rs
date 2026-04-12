@@ -23,7 +23,13 @@ const KNOWN_KEYS: &[&str] = &[
     "kind",
     "feature_branch",
     "code_aliases",
+    "depends_on",
+    "owner",
+    "risk",
 ];
+
+/// Valid values for the `risk` frontmatter field.
+const VALID_RISK_LEVELS: &[&str] = &["low", "medium", "high", "critical"];
 
 #[derive(Debug)]
 pub enum CompileError {
@@ -146,6 +152,21 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let authors = optional_string_list(fm, "authors");
         let kind = optional_str(fm, "kind");
         let feature_branch = optional_str(fm, "feature_branch");
+        let depends_on = optional_string_list(fm, "depends_on");
+        let owner = optional_str(fm, "owner");
+        let risk = optional_str(fm, "risk");
+        if let Some(ref r) = risk {
+            if !VALID_RISK_LEVELS.contains(&r.as_str()) {
+                violations.push(Violation {
+                    code: "V-007".to_string(),
+                    severity: "error".to_string(),
+                    message: format!(
+                        "invalid risk value {r:?}; must be one of: low, medium, high, critical"
+                    ),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+            }
+        }
         let extra = extra_frontmatter(repo_root, fm, spec_path, &mut violations)?;
 
         let code_aliases = parse_code_aliases(
@@ -171,6 +192,9 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             kind,
             feature_branch,
             code_aliases,
+            depends_on,
+            owner,
+            risk,
             extra_frontmatter: extra,
         });
     }
@@ -227,6 +251,12 @@ struct FeatureRecord {
     feature_branch: Option<String>,
     #[serde(rename = "codeAliases", skip_serializing_if = "Option::is_none")]
     code_aliases: Option<Vec<String>>,
+    #[serde(rename = "dependsOn", skip_serializing_if = "Option::is_none")]
+    depends_on: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    owner: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    risk: Option<String>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }
