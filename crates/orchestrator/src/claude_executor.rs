@@ -266,9 +266,12 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             args.push(user_message.clone());
         }
 
-        let child = tokio::process::Command::new("claude")
-            .args(&args)
-            .current_dir(&self.project_path)
+        let mut cmd = tokio::process::Command::new("claude");
+        cmd.args(&args).current_dir(&self.project_path);
+        if let Some(ref ws_id) = request.workspace_id {
+            cmd.env("OPC_WORKSPACE_ID", ws_id);
+        }
+        let child = cmd
             .spawn()
             .map_err(|e| format!("failed to spawn claude: {e}"))?;
 

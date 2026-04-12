@@ -93,6 +93,7 @@ impl FactoryEngine {
         &self,
         adapter_name: &str,
         business_doc_paths: &[PathBuf],
+        workspace_id: Option<String>,
     ) -> Result<PipelineStartResult, FactoryError> {
         let adapter = self.adapter_registry.get(adapter_name).ok_or_else(|| {
             FactoryError::AdapterNotFound {
@@ -104,7 +105,7 @@ impl FactoryEngine {
 
         // Generate Phase 1 manifest.
         let phase1_manifest =
-            generate_process_manifest(adapter, business_doc_paths, &self.config.factory_root)?;
+            generate_process_manifest(adapter, business_doc_paths, &self.config.factory_root, workspace_id)?;
 
         // Create agent bridge.
         let process_agents =
@@ -138,6 +139,7 @@ impl FactoryEngine {
         build_spec_path: &Path,
         pipeline_state: &mut FactoryPipelineState,
         org_override: Option<&str>,
+        workspace_id: Option<String>,
     ) -> Result<PhaseTransitionResult, FactoryError> {
         let adapter = self.adapter_registry.get(adapter_name).ok_or_else(|| {
             FactoryError::AdapterNotFound {
@@ -179,7 +181,7 @@ impl FactoryEngine {
 
         // Generate Phase 2 manifest (FR-003).
         let phase2_manifest =
-            generate_scaffold_manifest(&build_spec, adapter, &self.config.factory_root)?;
+            generate_scaffold_manifest(&build_spec, adapter, &self.config.factory_root, workspace_id)?;
 
         Ok(PhaseTransitionResult {
             manifest: phase2_manifest,

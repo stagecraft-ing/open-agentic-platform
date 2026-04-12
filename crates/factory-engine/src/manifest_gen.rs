@@ -122,6 +122,7 @@ pub fn generate_process_manifest(
     adapter: &AdapterManifest,
     business_doc_paths: &[impl AsRef<Path>],
     _factory_root: &Path,
+    workspace_id: Option<String>,
 ) -> Result<WorkflowManifest, FactoryError> {
     let stages = process_stages();
     let mut steps = Vec::with_capacity(stages.len());
@@ -171,7 +172,7 @@ pub fn generate_process_manifest(
         });
     }
 
-    Ok(WorkflowManifest { steps, workspace_id: None })
+    Ok(WorkflowManifest { steps, workspace_id })
 }
 
 /// Generate Phase 2 (scaffolding) manifest from a frozen Build Spec (FR-003).
@@ -189,6 +190,7 @@ pub fn generate_scaffold_manifest(
     build_spec: &BuildSpec,
     adapter: &AdapterManifest,
     factory_root: &Path,
+    workspace_id: Option<String>,
 ) -> Result<WorkflowManifest, FactoryError> {
     let adapter_root = factory_root.join("adapters").join(&adapter.adapter.name);
     let resolver = PatternResolver::new(&adapter_root, adapter.clone());
@@ -741,7 +743,7 @@ pub fn generate_scaffold_manifest(
         max_retries: Some(3),
     });
 
-    Ok(WorkflowManifest { steps, workspace_id: None })
+    Ok(WorkflowManifest { steps, workspace_id })
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -894,6 +896,7 @@ mod tests {
             &adapter,
             &["/docs/business-doc.md"],
             Path::new("/tmp/factory"),
+            None,
         )
         .unwrap();
 
@@ -917,7 +920,7 @@ mod tests {
     fn process_manifest_agent_ids_match_frontmatter() {
         let adapter = test_adapter();
         let manifest =
-            generate_process_manifest(&adapter, &["/docs/input.md"], Path::new("/tmp/factory"))
+            generate_process_manifest(&adapter, &["/docs/input.md"], Path::new("/tmp/factory"), None)
                 .unwrap();
 
         // Agent IDs should match the frontmatter `id` field in process agent files
@@ -937,6 +940,32 @@ mod tests {
                 step.id, expected_id
             );
         }
+    }
+
+    #[test]
+    fn workspace_id_threads_through_process_manifest() {
+        let adapter = test_adapter();
+        let manifest = generate_process_manifest(
+            &adapter,
+            &["/docs/input.md"],
+            Path::new("/tmp/factory"),
+            Some("ws-test-092".into()),
+        )
+        .unwrap();
+        assert_eq!(manifest.workspace_id, Some("ws-test-092".into()));
+    }
+
+    #[test]
+    fn workspace_id_none_when_omitted() {
+        let adapter = test_adapter();
+        let manifest = generate_process_manifest(
+            &adapter,
+            &["/docs/input.md"],
+            Path::new("/tmp/factory"),
+            None,
+        )
+        .unwrap();
+        assert_eq!(manifest.workspace_id, None);
     }
 
     fn test_adapter() -> AdapterManifest {

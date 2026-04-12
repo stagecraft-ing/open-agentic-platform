@@ -556,8 +556,15 @@ pub async fn start_factory_pipeline(
         max_total_tokens: None,
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
+
+    // Get workspace_id from StagecraftClient (set by set_active_workspace) — spec 092.
+    let workspace_id: Option<String> = app
+        .try_state::<StagecraftState>()
+        .and_then(|s| s.0.as_ref().map(|c| c.workspace_id()))
+        .filter(|s| !s.is_empty());
+
     let start = engine
-        .start_pipeline(&adapter_name, &doc_paths)
+        .start_pipeline(&adapter_name, &doc_paths, workspace_id.clone())
         .map_err(|e| e.to_string())?;
 
     let run_id = start.run_id;
@@ -819,6 +826,7 @@ pub async fn start_factory_pipeline(
                 &build_spec_path,
                 &mut ps,
                 None, // org_override
+                workspace_id.clone(),
             ) {
                 Ok(t) => t,
                 Err(e) => {
@@ -1361,8 +1369,15 @@ pub async fn resume_factory_pipeline(
         max_total_tokens: None,
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
+
+    // Get workspace_id from StagecraftClient for resumed pipelines (spec 092).
+    let workspace_id: Option<String> = app
+        .try_state::<StagecraftState>()
+        .and_then(|s| s.0.as_ref().map(|c| c.workspace_id()))
+        .filter(|s| !s.is_empty());
+
     let start = engine
-        .start_pipeline(&adapter_name, &[])
+        .start_pipeline(&adapter_name, &[], workspace_id)
         .map_err(|e| e.to_string())?;
 
     let artifact_dir = project_path.join(".factory").join("runs");

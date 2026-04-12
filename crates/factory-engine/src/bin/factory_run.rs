@@ -75,6 +75,10 @@ struct Cli {
     /// Base timeout in seconds for Deep-effort steps (Investigate = half, Quick = quarter)
     #[arg(long, default_value_t = 300)]
     step_timeout: u64,
+
+    /// Workspace ID for governed execution context (spec 092)
+    #[arg(long)]
+    workspace: Option<String>,
 }
 
 /// Adapts FactoryAgentBridge to the orchestrator's AgentPromptLookup trait.
@@ -149,6 +153,12 @@ async fn main() -> ExitCode {
             }
     }
 
+    // Set OPC_WORKSPACE_ID env var early so all child processes inherit it (spec 092).
+    // SAFETY: This runs at the start of main before any threads are spawned.
+    if let Some(ref ws_id) = cli.workspace {
+        unsafe { std::env::set_var("OPC_WORKSPACE_ID", ws_id) };
+    }
+
     eprintln!("Factory pipeline starting");
     eprintln!("  Adapter:      {}", cli.adapter);
     eprintln!("  Project:      {}", project_path.display());
@@ -169,6 +179,9 @@ async fn main() -> ExitCode {
     }
     if let Some(ref thinking) = cli.thinking {
         eprintln!("  Thinking:     {}", thinking.as_str());
+    }
+    if let Some(ref ws) = cli.workspace {
+        eprintln!("  Workspace:    {ws}");
     }
     eprintln!(
         "  Timeouts:     deep={}s / investigate={}s / quick={}s",
@@ -197,7 +210,7 @@ async fn main() -> ExitCode {
     // ── Phase 1: Process stages ─────────────────────────────────────────
     eprintln!("Phase 1: Generating process manifest (s0-s5)...");
 
-    let start = match engine.start_pipeline(&cli.adapter, &cli.business_docs) {
+    let start = match engine.start_pipeline(&cli.adapter, &cli.business_docs, cli.workspace.clone()) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Pipeline start failed: {e}");
@@ -346,6 +359,7 @@ async fn main() -> ExitCode {
         &build_spec_path,
         &mut pipeline_state,
         cli.org.as_deref(),
+        cli.workspace.clone(),
     ) {
         Ok(t) => t,
         Err(e) => {

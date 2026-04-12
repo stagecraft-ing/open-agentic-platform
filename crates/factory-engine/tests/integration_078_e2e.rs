@@ -62,7 +62,7 @@ fn noop_e2e_phase1_generates_six_process_stages() {
     // Use the cfs-womens-shelter example business doc path as input.
     let biz_doc = build_spec_example();
     let result = engine
-        .start_pipeline("aim-vue-node", &[biz_doc])
+        .start_pipeline("aim-vue-node", &[biz_doc], None)
         .expect("start_pipeline should succeed");
 
     // Phase 1 manifest has 6 stages (s0–s5).
@@ -115,7 +115,7 @@ fn noop_e2e_full_pipeline_dispatch() {
     // ── Phase 1: Process stages ──────────────────────────────────────────
     let biz_doc = build_spec_example();
     let start = engine
-        .start_pipeline("aim-vue-node", &[biz_doc])
+        .start_pipeline("aim-vue-node", &[biz_doc], None)
         .expect("start_pipeline should succeed");
 
     let run_id = start.run_id;
@@ -151,6 +151,7 @@ fn noop_e2e_full_pipeline_dispatch() {
             "aim-vue-node",
             &build_spec_artifact,
             &mut pipeline_state,
+            None,
             None,
         )
         .expect("transition_to_scaffolding should succeed");
