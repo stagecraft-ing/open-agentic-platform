@@ -14,10 +14,12 @@
 //! Intentionally minimal: `serde`, `serde_yaml`, `serde_json` only.
 //! Must NOT depend on `agent`, `skill-factory`, or `factory-contracts`.
 
+pub mod lint;
 pub mod parser;
 pub mod types;
 
 // Re-export primary types for ergonomic imports.
+pub use lint::{LintDiagnostic, Severity, lint_frontmatter};
 pub use parser::{ParseError, parse_frontmatter, parse_frontmatter_yaml};
 pub use types::{
     AgentType, AllToolsMarker, AllowedTools, GovernanceRequirement, HookDeclaration,
