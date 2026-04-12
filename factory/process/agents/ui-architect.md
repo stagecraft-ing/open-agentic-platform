@@ -3,6 +3,8 @@ id: ui-architect
 role: UI Architect
 stage: 5
 context_budget: "~30K tokens (sitemap + API spec + audiences + output)"
+safety_tier: tier1
+mutation: read-only
 ---
 
 # UI Architect

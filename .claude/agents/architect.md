@@ -8,6 +8,8 @@ tools:
   - Bash
   - LS
 model: sonnet
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Architect — Plan & Decompose

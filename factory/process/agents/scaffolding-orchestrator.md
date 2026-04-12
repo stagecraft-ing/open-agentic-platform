@@ -3,6 +3,8 @@ id: scaffolding-orchestrator
 role: Scaffolding Orchestrator
 stage: 6
 context_budget: "~20K tokens (build spec summary + adapter manifest + pipeline state)"
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Scaffolding Orchestrator

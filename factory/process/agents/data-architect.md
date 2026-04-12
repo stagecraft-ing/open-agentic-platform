@@ -6,6 +6,8 @@ context_budget: "~30K tokens (entity model + business rules + output)"
 standards_tags:
   - architecture
   - naming
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Data Architect

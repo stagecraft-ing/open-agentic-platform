@@ -5,6 +5,8 @@ description: >
   Coordinates the end-to-end pipeline. Invokes stage agents in sequence,
   runs verification gates, manages pipeline state, and hands off to
   the adapter for scaffolding.
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Pipeline Orchestrator

@@ -7,6 +7,8 @@ standards_tags:
   - security
   - error-handling
   - naming
+safety_tier: tier1
+mutation: read-only
 ---
 
 # API Architect

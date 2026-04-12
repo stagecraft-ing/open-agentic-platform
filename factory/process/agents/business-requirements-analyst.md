@@ -3,6 +3,8 @@ id: business-requirements-analyst
 role: Business Requirements Analyst
 stage: 1
 context_budget: "~50K tokens (all business docs + output)"
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Business Requirements Analyst

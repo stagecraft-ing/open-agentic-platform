@@ -3,6 +3,8 @@ id: service-designer
 role: Service Designer
 stage: 2
 context_budget: "~30K tokens (stage 1 outputs + output)"
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Service Designer

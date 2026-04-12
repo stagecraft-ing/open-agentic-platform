@@ -10,6 +10,8 @@ tools:
   - Bash
   - LS
 model: sonnet
+safety_tier: tier2
+mutation: read-write
 ---
 
 # Implementer — Focused Code Changes

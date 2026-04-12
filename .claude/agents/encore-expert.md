@@ -7,6 +7,8 @@ tools:
   - Glob
   - Bash
   - LS
+safety_tier: tier1
+mutation: read-only
 ---
 
 # Encore.ts Expert Agent
