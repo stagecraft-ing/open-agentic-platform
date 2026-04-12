@@ -33,6 +33,8 @@ interface UseTabStateReturn {
   createGitContextTab: (projectPath?: string) => string | null;
   createCheckpointTab: (projectPath?: string) => string | null;
   createFactoryTab: (projectPath?: string) => string | null;
+  createPortfolioTab: (projectPath?: string) => string | null;
+  createPromotionTab: (projectPath?: string) => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
   closeCurrentTab: () => Promise<boolean>;
   switchToTab: (id: string) => void;
@@ -409,6 +411,40 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab, updateTab]);
 
+  const createPortfolioTab = useCallback((projectPath?: string): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'portfolio');
+    if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
+      setActiveTab(existingTab.id);
+      return existingTab.id;
+    }
+    return addTab({
+      type: 'portfolio',
+      title: 'Portfolio',
+      projectPath,
+      status: 'idle',
+      hasUnsavedChanges: false,
+      icon: 'layout-grid'
+    });
+  }, [addTab, tabs, setActiveTab, updateTab]);
+
+  const createPromotionTab = useCallback((projectPath?: string): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'promotion');
+    if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
+      setActiveTab(existingTab.id);
+      return existingTab.id;
+    }
+    return addTab({
+      type: 'promotion',
+      title: 'Promotion',
+      projectPath,
+      status: 'idle',
+      hasUnsavedChanges: false,
+      icon: 'shield-check'
+    });
+  }, [addTab, tabs, setActiveTab, updateTab]);
+
   const closeTab = useCallback(async (id: string, force: boolean = false): Promise<boolean> => {
     const tab = getTabById(id);
     if (!tab) return true;
@@ -509,6 +545,8 @@ export const useTabState = (): UseTabStateReturn => {
     createGitContextTab,
     createCheckpointTab,
     createFactoryTab,
+    createPortfolioTab,
+    createPromotionTab,
     closeTab,
     closeCurrentTab,
     switchToTab: setActiveTab,

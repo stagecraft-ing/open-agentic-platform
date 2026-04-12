@@ -344,6 +344,10 @@ fn load_agent_registry_snapshot(conn: &Connection) -> Result<AgentRegistrySnapsh
             Ok(AgentRegistryEntry {
                 id: format!("agent-{}", id),
                 description,
+                agent_type: None,
+                model: None,
+                tags: Vec::new(),
+                safety_tier: None,
             })
         })
         .map_err(|e| format!("query agent registry failed: {}", e))?

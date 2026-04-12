@@ -4,8 +4,9 @@ use factory_engine::{
     FactoryEngineConfig, FactoryPipelineState,
 };
 use orchestrator::{
-    detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory, AgentPromptLookup,
-    ArtifactManager, ClaudeCodeExecutor, DispatchOptions, GateHandler,
+    detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory,
+    promotion::SyncTracker, AgentPromptLookup, ArtifactManager, ClaudeCodeExecutor,
+    DispatchOptions, GateHandler,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -295,12 +296,14 @@ fn resolve_sc_context(
 }
 
 /// Fire-and-forget: post step-level events from a dispatch summary to Stagecraft.
+/// When a `SyncTracker` is provided, records ack/fail for promotion eligibility (099 Slice 1).
 fn sc_ingest_step_events(
     sc: &StagecraftClient,
     project_id: &str,
     pipeline_id: &str,
     summary: &orchestrator::RunSummary,
     phase: &str,
+    sync_tracker: Option<&SyncTracker>,
 ) {
     let events: Vec<super::stagecraft_client::OrchestratorEventReport> = summary
         .steps
@@ -328,12 +331,24 @@ fn sc_ingest_step_events(
         return;
     }
 
+    let event_count = events.len() as u32;
     let sc = sc.clone();
     let project_id = project_id.to_string();
     let pipeline_id = pipeline_id.to_string();
+    let tracker = sync_tracker.cloned();
     tokio::spawn(async move {
-        if let Err(e) = sc.ingest_events(&project_id, &pipeline_id, &events).await {
-            log::warn!("Stagecraft event ingestion failed: {e}");
+        match sc.ingest_events(&project_id, &pipeline_id, &events).await {
+            Ok(_) => {
+                if let Some(ref t) = tracker {
+                    t.record_events_ack(event_count);
+                }
+            }
+            Err(e) => {
+                log::warn!("Stagecraft event ingestion failed: {e}");
+                if let Some(ref t) = tracker {
+                    t.record_events_fail(e.to_string());
+                }
+            }
         }
     });
 }
@@ -657,6 +672,16 @@ pub async fn start_factory_pipeline(
         .and_then(|_| app.try_state::<StagecraftState>())
         .and_then(|s| s.0.clone());
 
+    // Derive governance mode once for the entire pipeline (098 Slice 2).
+    let grants_json = crate::governed_claude::grants_json_claude_default();
+    let (gov_plan, _bypass_reason) =
+        crate::governed_claude::plan_governed_from_binary(&grants_json);
+    let governance_mode_str = match &gov_plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed".to_string(),
+        crate::governed_claude::GovernedPlan::Bypass => "bypass".to_string(),
+    };
+    // Single SyncTracker shared across both phases (099 Slice 2).
+    let sync_tracker = SyncTracker::new();
 
     tokio::spawn(async move {
         // Dual-write: mark pipeline as "running" in Stagecraft.
@@ -677,8 +702,8 @@ pub async fn start_factory_pipeline(
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
             cas: None,
-            governance_mode: None,
-            sync_tracker: None,
+            governance_mode: Some(governance_mode_str.clone()),
+            sync_tracker: Some(sync_tracker.clone()),
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -762,7 +787,7 @@ pub async fn start_factory_pipeline(
                 }
             }
             // Ingest step-level events for audit trail.
-            sc_ingest_step_events(&sc, &pid, &plid, &summary1, "process");
+            sc_ingest_step_events(&sc, &pid, &plid, &summary1, "process", Some(&sync_tracker));
         }
 
         // Phase transition: read frozen Build Spec, generate Phase 2 manifest.
@@ -858,8 +883,8 @@ pub async fn start_factory_pipeline(
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
             cas: None,
-            governance_mode: None,
-            sync_tracker: None,
+            governance_mode: Some(governance_mode_str),
+            sync_tracker: Some(sync_tracker.clone()),
         };
 
         let summary2 = match dispatch_manifest(
@@ -996,7 +1021,7 @@ pub async fn start_factory_pipeline(
                 }
 
             // Ingest step-level events for audit trail.
-            sc_ingest_step_events(&sc, &pid, &plid, &summary2, "scaffold");
+            sc_ingest_step_events(&sc, &pid, &plid, &summary2, "scaffold", Some(&sync_tracker));
 
             // Mark pipeline as completed in Stagecraft.
             sc_update_status(&sc, &pid, &plid, "completed", None, None, None);
@@ -1359,13 +1384,24 @@ pub async fn resume_factory_pipeline(
             .with_max_turns(25),
     );
 
+    // Derive governance mode for resumed pipeline (098 Slice 2).
+    let grants_json = crate::governed_claude::grants_json_claude_default();
+    let (gov_plan, _bypass_reason) =
+        crate::governed_claude::plan_governed_from_binary(&grants_json);
+    let governance_mode_str = match &gov_plan {
+        crate::governed_claude::GovernedPlan::Governed { .. } => "governed".to_string(),
+        crate::governed_claude::GovernedPlan::Bypass => "bypass".to_string(),
+    };
+    // Fresh SyncTracker for the resumed run (099 Slice 2).
+    let sync_tracker = SyncTracker::new();
+
     let options = DispatchOptions {
         gate_handler: Some(gate_handler as Arc<dyn GateHandler>),
         project_root: Some(project_path),
         skip_completed_steps: skip_steps,
         cas: None,
-        governance_mode: None,
-        sync_tracker: None,
+        governance_mode: Some(governance_mode_str),
+        sync_tracker: Some(sync_tracker),
     };
 
     let app_handle = app.clone();

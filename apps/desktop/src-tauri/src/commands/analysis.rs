@@ -1,10 +1,13 @@
 use tauri::command;
 use xray::scan_target;
+use featuregraph::enrichment::enrich_features_with_metrics;
+use featuregraph::scanner::Scanner;
 use featuregraph::tools::FeatureGraphTools;
 use featuregraph::preflight::compute_blast_radius;
 use serde::Serialize;
 use serde_json::{json, Value};
 use specta::Type;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -180,6 +183,53 @@ pub async fn governance_drift(repo_root: String) -> Result<serde_json::Value, St
     let root = resolve_repo_root(&repo_root);
     let fg_tools = FeatureGraphTools::new();
     fg_tools.governance_drift(&root).map_err(|e| e.to_string())
+}
+
+/// Spec 096 Slice 4 — Portfolio overview: enriched feature list with structural metrics.
+#[command]
+pub async fn portfolio_overview(repo_root: String) -> Result<serde_json::Value, String> {
+    let root = resolve_repo_root(&repo_root);
+
+    let scanner = Scanner::new(&root);
+    let graph = scanner.scan().map_err(|e| e.to_string())?;
+
+    let index = scan_target(&root, None).map_err(|e| e.to_string())?;
+    let features = enrich_features_with_metrics(&graph, &index);
+
+    // Compute aggregates.
+    let total_features = features.len();
+    let total_loc: u64 = features.iter().map(|f| f.total_loc).sum();
+    let avg_test_coverage = if total_features > 0 {
+        features.iter().map(|f| f.test_coverage_ratio).sum::<f64>() / total_features as f64
+    } else {
+        0.0
+    };
+
+    let mut by_status: HashMap<String, usize> = HashMap::new();
+    let mut by_risk: HashMap<String, usize> = HashMap::new();
+    for f in &features {
+        *by_status.entry(f.status.clone()).or_default() += 1;
+        // Derive risk from complexity + test coverage.
+        let risk = if f.max_complexity > 20 && f.test_coverage_ratio < 0.1 {
+            "high"
+        } else if f.max_complexity > 10 || f.test_coverage_ratio < 0.2 {
+            "medium"
+        } else {
+            "low"
+        };
+        *by_risk.entry(risk.to_string()).or_default() += 1;
+    }
+
+    Ok(json!({
+        "features": features,
+        "aggregates": {
+            "totalFeatures": total_features,
+            "totalLoc": total_loc,
+            "avgTestCoverage": avg_test_coverage,
+            "byStatus": by_status,
+            "byRisk": by_risk,
+        },
+    }))
 }
 
 #[command]

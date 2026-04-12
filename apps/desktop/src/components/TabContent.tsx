@@ -28,6 +28,8 @@ const CallGraphPanel = lazy(() => import('@/components/CallGraphPanel').then(m =
 const GitContextPanel = lazy(() => import('@/components/GitContextPanel').then(m => ({ default: m.GitContextPanel })));
 const CheckpointPanel = lazy(() => import('@/components/CheckpointPanel').then(m => ({ default: m.CheckpointPanel })));
 const FactoryPipelinePanel = lazy(() => import('@/components/factory/FactoryPipelinePanel').then(m => ({ default: m.FactoryPipelinePanel })));
+const PortfolioPanel = lazy(() => import('@/components/PortfolioPanel').then(m => ({ default: m.PortfolioPanel })));
+const PromotionPanel = lazy(() => import('@/components/PromotionPanel').then(m => ({ default: m.PromotionPanel })));
 
 // Import non-lazy components for projects view
 
@@ -431,6 +433,20 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
         return (
           <div className="h-full">
             <FactoryPipelinePanel projectPath={tab.projectPath} />
+          </div>
+        );
+
+      case 'portfolio':
+        return (
+          <div className="h-full">
+            <PortfolioPanel projectPath={tab.projectPath} />
+          </div>
+        );
+
+      case 'promotion':
+        return (
+          <div className="h-full">
+            <PromotionPanel projectPath={tab.projectPath} />
           </div>
         );
 

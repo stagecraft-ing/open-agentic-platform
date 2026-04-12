@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:8c6bd31e0f9fe124f4ac1be90bf169623ffa40819b00a9b1aaccbe4a943115b0",
+  "graph_fingerprint": "sha256:78ee99119527d23a28807414fa1281190750d8de53f46cf7d476e0d81476118a",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1033,7 +1033,7 @@
       "feature_id": "044-multi-agent-orchestration",
       "title": "multi-agent orchestration with file-based artifact passing",
       "spec_path": "specs/044-multi-agent-orchestration/spec.md",
-      "status": "draft",
+      "status": "superseded",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1161,13 +1161,21 @@
     },
     {
       "feature_id": "054-agent-frontmatter-schema",
-      "title": "Agent Frontmatter Schema",
+      "title": "Unified Agent and Skill Frontmatter Schema",
       "spec_path": "specs/054-agent-frontmatter-schema/spec.md",
       "status": "draft",
-      "governance": "",
+      "governance": "medium",
       "owner": "",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "035-agent-governed-execution",
+        "036-safety-tier-governance",
+        "067-tool-definition-registry",
+        "068-permission-runtime",
+        "071-skill-command-factory",
+        "093-spec-driven-preflight",
+        "098-governance-enforcement-stitching"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -1176,11 +1184,15 @@
       "feature_id": "055-yaml-standards-schema",
       "title": "YAML Standards Schema",
       "spec_path": "specs/055-yaml-standards-schema/spec.md",
-      "status": "draft",
-      "governance": "",
+      "status": "active",
+      "governance": "low",
       "owner": "",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "054-agent-frontmatter-schema",
+        "053-verification-profiles",
+        "035-agent-governed-execution"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -2098,6 +2110,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/standards_resolver.rs",
+      "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/topo_sort.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-004",
       "suggested_fix": "Fix header format"
@@ -2163,6 +2182,41 @@
       "severity": "error",
       "path": "crates/orchestrator/src/verify.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/standards-loader/src/formatter.rs",
+      "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/standards-loader/src/lib.rs",
+      "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/standards-loader/src/loader.rs",
+      "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/standards-loader/src/resolver.rs",
+      "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/standards-loader/src/types.rs",
+      "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
       "suggested_fix": "Fix header format"
     },
     {

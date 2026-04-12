@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Scan, Shield, Search, Share2, GitBranch, History } from 'lucide-react';
+import { FileText, Scan, Shield, Search, Share2, GitBranch, History, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { TooltipProvider, TooltipSimple } from '@opc/ui/tooltip-modern';
 import { useTabState } from '@/hooks/useTabState';
 import type { Tab } from '@/contexts/TabContext';
@@ -22,6 +22,8 @@ export const ProjectToolbar: React.FC = () => {
     createSemanticSearchTab,
     createCallGraphTab,
     createCheckpointTab,
+    createPortfolioTab,
+    createPromotionTab,
   } = useTabState();
   const projectPath = getProjectPath(activeTab);
 
@@ -35,6 +37,8 @@ export const ProjectToolbar: React.FC = () => {
     { key: 'semantic-search', icon: Search, label: 'Semantic Search', onClick: () => createSemanticSearchTab(projectPath) },
     { key: 'call-graph', icon: Share2, label: 'Call Graph', onClick: () => createCallGraphTab(projectPath) },
     { key: 'checkpoint', icon: History, label: 'Checkpoint', onClick: () => createCheckpointTab(projectPath) },
+    { key: 'portfolio', icon: LayoutGrid, label: 'Portfolio', onClick: () => createPortfolioTab(projectPath) },
+    { key: 'promotion', icon: ShieldCheck, label: 'Promotion', onClick: () => createPromotionTab(projectPath) },
   ];
 
   return (
