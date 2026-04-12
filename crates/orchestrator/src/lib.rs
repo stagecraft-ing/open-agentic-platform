@@ -288,6 +288,7 @@ struct StepMetrics {
 /// Dispatches a single step with optional post-verification and retry.
 ///
 /// Returns accumulated metrics or an error.
+#[allow(clippy::too_many_arguments)]
 async fn dispatch_with_verify(
     step: &WorkflowStep,
     executor: &dyn GovernedExecutor,
