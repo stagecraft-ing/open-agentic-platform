@@ -1160,11 +1160,10 @@ pub async fn dispatch_manifest(
                     completed_hashes.insert(step.id.clone(), hashes);
 
                     // Promote to CAS for cross-run persistence (094 Slice 2).
-                    if let Some(ref cas) = options.cas {
-                        if let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
+                    if let Some(ref cas) = options.cas
+                        && let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
                             eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
                         }
-                    }
                 }
 
                 let elapsed = step_start.elapsed();
@@ -1718,11 +1717,10 @@ pub async fn dispatch_manifest_persisted(
                     completed_hashes.insert(step.id.clone(), hashes);
 
                     // Promote to CAS for cross-run persistence (094 Slice 2).
-                    if let Some(ref cas) = options.cas {
-                        if let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
+                    if let Some(ref cas) = options.cas
+                        && let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
                             eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
                         }
-                    }
                 }
 
                 wf_state.mark_step_finished(

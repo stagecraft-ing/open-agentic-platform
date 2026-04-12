@@ -129,11 +129,10 @@ pub fn apply_risk_ceiling(tier: ToolTier, spec_risk: Option<&str>) -> ToolTier {
 /// Single source of truth consumed by both the agent crate and axiomregent router (Feature 036).
 pub fn get_tool_metadata(tool_name: &str) -> ToolMetadata {
     // Spec 093: check TOML config first
-    if let Some(map) = toml_tiers() {
-        if let Some(meta) = map.get(tool_name) {
+    if let Some(map) = toml_tiers()
+        && let Some(meta) = map.get(tool_name) {
             return meta.clone();
         }
-    }
     get_tool_metadata_hardcoded(tool_name)
 }
 
@@ -150,6 +149,7 @@ fn get_tool_metadata_hardcoded(tool_name: &str) -> ToolMetadata {
         "checkpoint.list"
         | "checkpoint.info"
         | "checkpoint.diff"
+        | "checkpoint.compare"
         | "checkpoint.verify"
         | "checkpoint.timeline"
         | "checkpoint.status" => ToolMetadata {
@@ -275,6 +275,7 @@ pub fn explicitly_classified_tools() -> &'static [&'static str] {
         "checkpoint.list",
         "checkpoint.info",
         "checkpoint.diff",
+        "checkpoint.compare",
         "checkpoint.verify",
         "checkpoint.timeline",
         "checkpoint.status",

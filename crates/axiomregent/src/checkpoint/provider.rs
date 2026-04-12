@@ -791,19 +791,17 @@ impl CheckpointProvider {
         }
         // Files added — all lines are "added".
         for path in &diff.added {
-            if let Some(entry) = entries_b.iter().find(|e| e.path.to_string_lossy() == *path) {
-                if let Some(content) = self.store.blobs.get(&entry.content_hash)? {
+            if let Some(entry) = entries_b.iter().find(|e| e.path.to_string_lossy() == *path)
+                && let Some(content) = self.store.blobs.get(&entry.content_hash)? {
                     lines_added += content.iter().filter(|&&b| b == b'\n').count() + 1;
                 }
-            }
         }
         // Files deleted — all lines are "removed".
         for path in &diff.deleted {
-            if let Some(entry) = entries_a.iter().find(|e| e.path.to_string_lossy() == *path) {
-                if let Some(content) = self.store.blobs.get(&entry.content_hash)? {
+            if let Some(entry) = entries_a.iter().find(|e| e.path.to_string_lossy() == *path)
+                && let Some(content) = self.store.blobs.get(&entry.content_hash)? {
                     lines_removed += content.iter().filter(|&&b| b == b'\n').count() + 1;
                 }
-            }
         }
 
         // Git SHA comparison.

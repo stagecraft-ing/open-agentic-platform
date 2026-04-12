@@ -650,6 +650,7 @@ export const rejectStage = api(
 
 type AuditRequest = {
   id: string;
+  workspaceId: string;
   from?: string; // ISO date string
   limit?: number;
 };
@@ -662,7 +663,7 @@ type AuditResponse = {
 export const getAudit = api(
   { expose: true, method: "GET", path: "/api/projects/:id/factory/audit" },
   async (req: AuditRequest): Promise<AuditResponse> => {
-    const pipeline = await getActivePipeline(req.id, undefined);
+    const pipeline = await getActivePipeline(req.id, req.workspaceId);
     const limit = Math.min(req.limit ?? 100, 500);
 
     const conditions = [eq(factoryAuditLog.pipelineId, pipeline.id)];
