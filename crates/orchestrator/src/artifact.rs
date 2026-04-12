@@ -161,7 +161,7 @@ impl ContentAddressedStore {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "artifact".into());
 
-        let target = self.artifact_path(&content_hash, &filename);
+        let target = self.artifact_path(&content_hash, &filename)?;
 
         if !target.exists() {
             if let Some(parent) = target.parent() {
@@ -182,6 +182,9 @@ impl ContentAddressedStore {
 
     /// Check whether an artifact with this hash exists.
     pub fn exists(&self, content_hash: &str) -> bool {
+        if !content_hash.chars().all(|c| c.is_ascii_hexdigit()) {
+            return false;
+        }
         let prefix = &content_hash[..2.min(content_hash.len())];
         self.base_dir.join(prefix).join(content_hash).exists()
     }
@@ -193,7 +196,7 @@ impl ContentAddressedStore {
         filename: &str,
         target_path: &Path,
     ) -> std::io::Result<bool> {
-        let source = self.artifact_path(content_hash, filename);
+        let source = self.artifact_path(content_hash, filename)?;
         if !source.exists() {
             return Ok(false);
         }
@@ -204,9 +207,21 @@ impl ContentAddressedStore {
         Ok(true)
     }
 
-    fn artifact_path(&self, content_hash: &str, filename: &str) -> PathBuf {
+    fn artifact_path(&self, content_hash: &str, filename: &str) -> std::io::Result<PathBuf> {
+        if !content_hash.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "content_hash must contain only hex characters",
+            ));
+        }
+        if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "filename must not contain path separators or '..'",
+            ));
+        }
         let prefix = &content_hash[..2.min(content_hash.len())];
-        self.base_dir.join(prefix).join(content_hash).join(filename)
+        Ok(self.base_dir.join(prefix).join(content_hash).join(filename))
     }
 
     pub fn base_dir(&self) -> &Path {
@@ -545,6 +560,27 @@ mod tests {
             .unwrap();
         assert_eq!(promoted.len(), 1);
         assert!(cas.exists(&promoted[0].content_hash));
+    }
+
+    #[test]
+    fn cas_rejects_path_traversal_in_filename() {
+        let store_dir = tempfile::TempDir::new().unwrap();
+        let cas = ContentAddressedStore::new(store_dir.path()).unwrap();
+        let zero = "0000000000000000000000000000000000000000000000000000000000000000";
+        let dst = store_dir.path().join("out.txt");
+        let result = cas.retrieve(zero, "../../etc/passwd", &dst);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("path separators"));
+    }
+
+    #[test]
+    fn cas_rejects_non_hex_content_hash() {
+        let store_dir = tempfile::TempDir::new().unwrap();
+        let cas = ContentAddressedStore::new(store_dir.path()).unwrap();
+        let dst = store_dir.path().join("out.txt");
+        let result = cas.retrieve("../../../etc", "file.txt", &dst);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("hex"));
     }
 
     // -- ArtifactMetadataStore tests (094 Slices 3-4) --

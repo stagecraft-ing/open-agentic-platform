@@ -16,8 +16,10 @@ impl Config {
             oidc_endpoint: std::env::var("OIDC_ENDPOINT")
                 .or_else(|_| std::env::var("LOGTO_ENDPOINT"))
                 .unwrap_or_default(),
-            audience: std::env::var("DEPLOYD_AUDIENCE").unwrap_or_default(),
-            required_scope: std::env::var("DEPLOYD_REQUIRED_SCOPE").unwrap_or_default(),
+            audience: std::env::var("DEPLOYD_AUDIENCE")
+                .expect("DEPLOYD_AUDIENCE env var is required"),
+            required_scope: std::env::var("DEPLOYD_REQUIRED_SCOPE")
+                .expect("DEPLOYD_REQUIRED_SCOPE env var is required"),
         }
     }
 }

@@ -959,6 +959,33 @@ async fn check_agent_authorized(slug: &str) -> AgentAuthOutcome {
     }
 }
 
+/// Validate that project_path is safe to use for agent execution.
+fn validate_project_path(path: &str) -> Result<std::path::PathBuf, String> {
+    let path = std::path::PathBuf::from(path);
+    if !path.is_absolute() {
+        return Err("project_path must be absolute".into());
+    }
+    let canonical = path
+        .canonicalize()
+        .map_err(|e| format!("Invalid project path: {}", e))?;
+    if !canonical.is_dir() {
+        return Err("project_path must be an existing directory".into());
+    }
+    let s = canonical.to_string_lossy();
+    if s == "/"
+        || s.starts_with("/System")
+        || s.starts_with("/usr/")
+        || s.starts_with("/bin")
+        || s.starts_with("/sbin")
+    {
+        return Err(format!(
+            "project_path must not be a system directory: {}",
+            s
+        ));
+    }
+    Ok(canonical)
+}
+
 /// Execute a CC agent with streaming output
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
@@ -973,6 +1000,9 @@ pub async fn execute_agent(
     sidecar: State<'_, SidecarState>,
 ) -> Result<ExecuteAgentResponse, String> {
     info!("Executing agent {} with task: {}", agent_id, task);
+
+    let project_path = validate_project_path(&project_path)?;
+    let project_path = project_path.to_string_lossy().to_string();
 
     // Get the agent from database
     let agent = get_agent(db.clone(), agent_id).await?;

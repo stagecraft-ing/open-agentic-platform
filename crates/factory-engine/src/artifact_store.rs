@@ -67,7 +67,7 @@ impl LocalArtifactStore {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "artifact".into());
 
-        let target = self.artifact_path(&content_hash, &filename);
+        let target = self.artifact_path(&content_hash, &filename)?;
 
         if !target.exists() {
             if let Some(parent) = target.parent() {
@@ -96,7 +96,7 @@ impl LocalArtifactStore {
         filename: &str,
         target_path: &Path,
     ) -> std::io::Result<bool> {
-        let source = self.artifact_path(content_hash, filename);
+        let source = self.artifact_path(content_hash, filename)?;
         if !source.exists() {
             return Ok(false);
         }
@@ -109,15 +109,30 @@ impl LocalArtifactStore {
 
     /// Check whether an artifact with this hash exists in the store.
     pub fn exists(&self, content_hash: &str) -> bool {
+        if !content_hash.chars().all(|c| c.is_ascii_hexdigit()) {
+            return false;
+        }
         let prefix = &content_hash[..2.min(content_hash.len())];
         let dir = self.base_dir.join(prefix).join(content_hash);
         dir.exists()
     }
 
     /// Resolve the storage path for an artifact.
-    fn artifact_path(&self, content_hash: &str, filename: &str) -> PathBuf {
+    fn artifact_path(&self, content_hash: &str, filename: &str) -> std::io::Result<PathBuf> {
+        if !content_hash.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "content_hash must contain only hex characters",
+            ));
+        }
+        if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "filename must not contain path separators or '..'",
+            ));
+        }
         let prefix = &content_hash[..2.min(content_hash.len())];
-        self.base_dir.join(prefix).join(content_hash).join(filename)
+        Ok(self.base_dir.join(prefix).join(content_hash).join(filename))
     }
 
     /// Return the base directory for inspection/testing.
@@ -195,6 +210,27 @@ mod tests {
                 )
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn rejects_path_traversal_in_filename() {
+        let store_dir = TempDir::new().unwrap();
+        let store = LocalArtifactStore::new(store_dir.path()).unwrap();
+        let zero = "0000000000000000000000000000000000000000000000000000000000000000";
+        let dst = store_dir.path().join("out.txt");
+        let result = store.retrieve(zero, "../../etc/passwd", &dst);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("path separators"));
+    }
+
+    #[test]
+    fn rejects_non_hex_content_hash() {
+        let store_dir = TempDir::new().unwrap();
+        let store = LocalArtifactStore::new(store_dir.path()).unwrap();
+        let dst = store_dir.path().join("out.txt");
+        let result = store.retrieve("../../../etc", "file.txt", &dst);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("hex"));
     }
 
     #[test]

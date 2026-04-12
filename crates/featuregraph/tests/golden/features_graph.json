@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f9ecf500e51df17453ddfcad90e44fc3ee5fb1d8e702fb9df1cbd9875250f0d5",
+  "graph_fingerprint": "sha256:8c6bd31e0f9fe124f4ac1be90bf169623ffa40819b00a9b1aaccbe4a943115b0",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1732,6 +1732,89 @@
       "depends_on": [
         "092",
         "094"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "096-portfolio-intelligence",
+      "title": "Portfolio Intelligence — xray-featuregraph Bridge",
+      "spec_path": "specs/096-portfolio-intelligence/spec.md",
+      "status": "active",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "091",
+        "093"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "097-promotion-grade-mirror",
+      "title": "Promotion-Grade Platform Mirror",
+      "spec_path": "specs/097-promotion-grade-mirror/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "080",
+        "082",
+        "092",
+        "094"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "098-governance-enforcement-stitching",
+      "title": "Governance Enforcement Stitching",
+      "spec_path": "specs/098-governance-enforcement-stitching/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "090",
+        "093",
+        "097"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "099-workspace-scoped-persistence",
+      "title": "Workspace-Scoped Persistence",
+      "spec_path": "specs/099-workspace-scoped-persistence/spec.md",
+      "status": "active",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "092",
+        "094",
+        "097"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "100-post-convergence-remediation",
+      "title": "Post-Convergence Remediation",
+      "spec_path": "specs/100-post-convergence-remediation/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "089"
       ],
       "impl_files": [],
       "test_files": [],

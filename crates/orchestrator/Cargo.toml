@@ -21,7 +21,7 @@ serde_yaml = "0.9"
 thiserror = "2"
 tokio = { version = "1", features = ["sync", "time", "rt-multi-thread", "macros", "process"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.8", features = ["macros"] }
 dashmap = "5"
 futures-util = "0.3"
 async-stream = "0.3"

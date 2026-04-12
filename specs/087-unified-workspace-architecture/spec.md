@@ -4,7 +4,7 @@ slug: unified-workspace-architecture
 title: Unified Workspace Architecture
 status: active
 owner: bart
-created: 2026-04-09
+created: "2026-04-09"
 summary: >
   Unified architecture connecting web and desktop planes into one system with
   a first-class knowledge intake domain and workspace-scoped entity hierarchy.

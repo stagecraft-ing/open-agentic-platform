@@ -11,7 +11,7 @@ description = "Rust contract types for Factory delivery engine schemas — spec 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-thiserror = "1.0"
+thiserror = "2"
 glob = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 

@@ -20,9 +20,20 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
         - name: deployd-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8080
           env:
@@ -64,6 +75,8 @@ spec:
             - name: secrets-store
               mountPath: {{ .Values.secrets.mountPath | quote }}
               readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: secrets-store
           {{- if eq (default "k8s" .Values.secrets.provider) "csi-azure" }}
@@ -76,3 +89,5 @@ spec:
           secret:
             secretName: deployd-api-secrets
           {{- end }}
+        - name: tmp
+          emptyDir: {}

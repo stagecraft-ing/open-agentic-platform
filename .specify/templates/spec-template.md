@@ -1,3 +1,16 @@
+---
+id: "[NNN-kebab-case]"
+title: "[FEATURE NAME]"
+status: draft
+owner: "[OWNER]"
+created: "[YYYY-MM-DD]"
+risk: medium
+depends_on: []
+code_aliases: ["[CODE_ALIAS]"]
+summary: >
+  [One-sentence summary of what this spec does and why.]
+---
+
 # Feature Specification: [FEATURE NAME]
 
 **Feature Branch**: `[###-feature-name]`  

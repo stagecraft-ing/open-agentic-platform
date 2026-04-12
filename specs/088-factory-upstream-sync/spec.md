@@ -4,7 +4,7 @@ slug: factory-upstream-sync
 title: Factory Upstream Sync Protocol
 status: active
 owner: bart
-created: 2026-04-10
+created: "2026-04-10"
 summary: >
   Defines the protocol, mapping manifest, and tooling for translating updates
   from upstream repositories (the_factory, AIM-vue-node-template) into OAP's

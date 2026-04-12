@@ -2,3 +2,4 @@ kubeconfig
 *.tfstate
 *.tfstate.backup
 .terraform/
+.env

@@ -395,16 +395,16 @@ fn sort_json_value(v: serde_json::Value) -> String {
             let mut keys: Vec<_> = map.keys().cloned().collect();
             keys.sort();
             for k in keys {
-                let inner = map.get(&k).unwrap().clone();
+                let inner = map.get(&k).expect("key from own iterator").clone();
                 let s = sort_json_value(inner);
-                out.insert(k, serde_json::from_str(&s).unwrap());
+                out.insert(k, serde_json::from_str(&s).expect("re-parsing own JSON output"));
             }
             serde_json::to_string(&Value::Object(out)).expect("stringify")
         }
         Value::Array(arr) => {
             let sorted: Vec<serde_json::Value> = arr
                 .into_iter()
-                .map(|x| serde_json::from_str(&sort_json_value(x)).unwrap())
+                .map(|x| serde_json::from_str(&sort_json_value(x)).expect("re-parsing own JSON output"))
                 .collect();
             serde_json::to_string(&Value::Array(sorted)).expect("stringify")
         }
