@@ -2,12 +2,17 @@
 id: "055-yaml-standards-schema"
 title: "YAML Standards Schema"
 feature_branch: "055-yaml-standards-schema"
-status: draft
+status: active
 kind: platform
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"
 language: en
+risk: low
+depends_on:
+  - "054-agent-frontmatter-schema"
+  - "053-verification-profiles"
+  - "035-agent-governed-execution"
 summary: >
   Machine-readable coding standards defined in YAML with structured fields: id,
   category, priority, rules (ALWAYS/NEVER/USE/PREFER/AVOID), anti-patterns,
