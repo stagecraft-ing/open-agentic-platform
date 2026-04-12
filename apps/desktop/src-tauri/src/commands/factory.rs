@@ -676,6 +676,7 @@ pub async fn start_factory_pipeline(
             gate_handler: Some(gate_handler.clone() as Arc<dyn GateHandler>),
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
+            cas: None,
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -854,6 +855,7 @@ pub async fn start_factory_pipeline(
             gate_handler: Some(gate_handler as Arc<dyn GateHandler>),
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
+            cas: None,
         };
 
         let summary2 = match dispatch_manifest(
@@ -1357,6 +1359,7 @@ pub async fn resume_factory_pipeline(
         gate_handler: Some(gate_handler as Arc<dyn GateHandler>),
         project_root: Some(project_path),
         skip_completed_steps: skip_steps,
+        cas: None,
     };
 
     let app_handle = app.clone();

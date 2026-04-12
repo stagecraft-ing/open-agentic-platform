@@ -109,6 +109,7 @@ where
         StepGateConfig::Approval {
             timeout_ms: timeout_ms_val,
             escalation,
+            checkpoint_id: _,
         } => {
             // FR-005 / SC-003: pause at approval gate, persist awaiting status.
             state.mark_awaiting_checkpoint(step_id);
@@ -331,6 +332,7 @@ mod tests {
         let gate = StepGateConfig::Approval {
             timeout_ms: 5_000,
             escalation: Some(ApprovalEscalation::Fail),
+            checkpoint_id: None,
         };
 
         let outcome = evaluate_gate(
@@ -355,6 +357,7 @@ mod tests {
         let gate = StepGateConfig::Approval {
             timeout_ms: 50, // 50ms — will time out quickly
             escalation: Some(ApprovalEscalation::Fail),
+            checkpoint_id: None,
         };
 
         let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
@@ -379,6 +382,7 @@ mod tests {
         let gate = StepGateConfig::Approval {
             timeout_ms: 50,
             escalation: Some(ApprovalEscalation::Skip),
+            checkpoint_id: None,
         };
 
         let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
@@ -402,6 +406,7 @@ mod tests {
         let gate = StepGateConfig::Approval {
             timeout_ms: 50,
             escalation: Some(ApprovalEscalation::Notify),
+            checkpoint_id: None,
         };
 
         let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
@@ -426,6 +431,7 @@ mod tests {
         let gate = StepGateConfig::Approval {
             timeout_ms: 50,
             escalation: None, // No escalation configured — should default to Fail.
+            checkpoint_id: None,
         };
 
         let outcome = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(()))
@@ -449,6 +455,7 @@ mod tests {
         let gate = StepGateConfig::Approval {
             timeout_ms: 5_000,
             escalation: Some(ApprovalEscalation::Fail),
+            checkpoint_id: None,
         };
 
         let result = evaluate_gate(&mut state, "step_001", &gate, &handler, |_| Ok(())).await;

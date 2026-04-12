@@ -78,24 +78,28 @@ impl ToolProvider for CheckpointProvider {
             }),
             json!({
                 "name": "checkpoint.list",
-                "description": "List all checkpoints for a repository, newest first",
+                "description": "List all checkpoints for a repository, newest first. Supports filtering by workspace, branch, and run.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "repo_root": { "type": "string" },
-                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" }
+                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" },
+                        "branch_name": { "type": "string", "description": "Optional git branch name to filter checkpoints (095)" },
+                        "run_id": { "type": "string", "description": "Optional run ID to filter checkpoints (095)" }
                     },
                     "required": ["repo_root"]
                 }
             }),
             json!({
                 "name": "checkpoint.timeline",
-                "description": "Show the checkpoint DAG (directed acyclic graph) with parent/child relationships",
+                "description": "Show the checkpoint DAG (directed acyclic graph) with parent/child relationships, branch names, and git SHAs",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "repo_root": { "type": "string" },
-                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" }
+                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" },
+                        "branch_name": { "type": "string", "description": "Optional git branch name to filter checkpoints (095)" },
+                        "run_id": { "type": "string", "description": "Optional run ID to filter checkpoints (095)" }
                     },
                     "required": ["repo_root"]
                 }
@@ -167,6 +171,18 @@ impl ToolProvider for CheckpointProvider {
                         "checkpoint_id": { "type": "string" }
                     },
                     "required": ["checkpoint_id"]
+                }
+            }),
+            json!({
+                "name": "checkpoint.compare",
+                "description": "Compare two checkpoints structurally: files added/removed/modified, LOC delta, Merkle root comparison, git SHA comparison, and fingerprint delta (spec 095 Slice 4)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "checkpoint_a": { "type": "string", "description": "ID of the first checkpoint" },
+                        "checkpoint_b": { "type": "string", "description": "ID of the second checkpoint" }
+                    },
+                    "required": ["checkpoint_a", "checkpoint_b"]
                 }
             }),
             // Backward-compatible snapshot.* aliases
@@ -254,7 +270,9 @@ impl ToolProvider for CheckpointProvider {
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
                 };
                 let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
-                Some(self.do_list(repo_root, workspace_id).await)
+                let branch_name = args.get("branch_name").and_then(|v| v.as_str());
+                let run_id = args.get("run_id").and_then(|v| v.as_str());
+                Some(self.do_list(repo_root, workspace_id, branch_name, run_id).await)
             }
 
             "checkpoint.timeline" => {
@@ -263,7 +281,9 @@ impl ToolProvider for CheckpointProvider {
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
                 };
                 let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
-                Some(self.do_timeline(repo_root, workspace_id).await)
+                let branch_name = args.get("branch_name").and_then(|v| v.as_str());
+                let run_id = args.get("run_id").and_then(|v| v.as_str());
+                Some(self.do_timeline(repo_root, workspace_id, branch_name, run_id).await)
             }
 
             "checkpoint.fork" => {
@@ -323,6 +343,18 @@ impl ToolProvider for CheckpointProvider {
                 Some(self.do_info(checkpoint_id).await)
             }
 
+            "checkpoint.compare" => {
+                let checkpoint_a = match args.get("checkpoint_a").and_then(|v| v.as_str()) {
+                    Some(v) => v,
+                    None => return Some(Err(anyhow::anyhow!("checkpoint_a required"))),
+                };
+                let checkpoint_b = match args.get("checkpoint_b").and_then(|v| v.as_str()) {
+                    Some(v) => v,
+                    None => return Some(Err(anyhow::anyhow!("checkpoint_b required"))),
+                };
+                Some(self.do_compare(checkpoint_a, checkpoint_b).await)
+            }
+
             _ => None,
         }
     }
@@ -335,7 +367,8 @@ impl ToolProvider for CheckpointProvider {
             | "checkpoint.status"
             | "checkpoint.info"
             | "checkpoint.diff"
-            | "checkpoint.verify" => Some(agent::safety::ToolTier::Tier1),
+            | "checkpoint.verify"
+            | "checkpoint.compare" => Some(agent::safety::ToolTier::Tier1),
             "checkpoint.create" | "checkpoint.fork" | "checkpoint.gc" => {
                 Some(agent::safety::ToolTier::Tier2)
             }
@@ -352,7 +385,8 @@ impl ToolProvider for CheckpointProvider {
             | "checkpoint.status"
             | "checkpoint.info"
             | "checkpoint.diff"
-            | "checkpoint.verify" => Some(ToolPermissions {
+            | "checkpoint.verify"
+            | "checkpoint.compare" => Some(ToolPermissions {
                 requires_file_read: true,
                 ..Default::default()
             }),
@@ -429,13 +463,60 @@ impl CheckpointProvider {
         let cp_id = uuid::Uuid::new_v4().to_string();
         let total_bytes: u64 = entries.iter().map(|e| e.size).sum();
 
+        // Populate head_sha from git (095 Slice 1).
+        let head_sha = std::process::Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(&root)
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        // Populate fingerprint summary (095 Slice 2).
+        let fingerprint = {
+            let mut ext_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+            for entry in &entries {
+                let ext = entry.path.extension()
+                    .map(|e| e.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "none".to_string());
+                *ext_counts.entry(ext).or_insert(0) += 1;
+            }
+            // Top 10 extensions by count.
+            let mut sorted: Vec<_> = ext_counts.into_iter().collect();
+            sorted.sort_by(|a, b| b.1.cmp(&a.1));
+            sorted.truncate(10);
+            let top_extensions: serde_json::Map<String, Value> = sorted
+                .into_iter()
+                .map(|(k, v)| (k, Value::Number(serde_json::Number::from(v))))
+                .collect();
+            json!({
+                "file_count": entries.len(),
+                "total_size": total_bytes,
+                "top_extensions": top_extensions,
+            }).to_string()
+        };
+
+        // Populate branch_name from git (095 Slice 3).
+        let branch_name = std::process::Command::new("git")
+            .args(["rev-parse", "--abbrev-ref", "HEAD"])
+            .current_dir(&root)
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .filter(|s| !s.is_empty() && s != "HEAD");
+
+        // Populate run_id from env (095 Slice 3).
+        let run_id = std::env::var("OPC_RUN_ID").ok().filter(|v| !v.is_empty());
+
         let info = CheckpointInfo {
             checkpoint_id: cp_id.clone(),
             parent_id,
             label,
             repo_root: root_str,
-            head_sha: None,
-            fingerprint: "{}".to_string(),
+            head_sha,
+            fingerprint,
             state_hash,
             merkle_root,
             file_count: entries.len() as i64,
@@ -443,6 +524,8 @@ impl CheckpointProvider {
             created_at: now,
             metadata: None,
             workspace_id: std::env::var("OPC_WORKSPACE_ID").ok().filter(|v| !v.is_empty()),
+            branch_name,
+            run_id,
         };
 
         self.store.create_checkpoint(&info, &entries).await?;
@@ -500,13 +583,39 @@ impl CheckpointProvider {
         }))
     }
 
-    async fn do_list(&self, repo_root: &str, workspace_id: Option<&str>) -> anyhow::Result<Value> {
-        let checkpoints = self.store.list_checkpoints(repo_root, workspace_id).await?;
+    async fn do_list(
+        &self,
+        repo_root: &str,
+        workspace_id: Option<&str>,
+        branch_name: Option<&str>,
+        run_id: Option<&str>,
+    ) -> anyhow::Result<Value> {
+        let mut checkpoints = self.store.list_checkpoints(repo_root, workspace_id).await?;
+        // Client-side filtering for branch_name and run_id (095 Slice 3).
+        if let Some(branch) = branch_name {
+            checkpoints.retain(|cp| cp.branch_name.as_deref() == Some(branch));
+        }
+        if let Some(rid) = run_id {
+            checkpoints.retain(|cp| cp.run_id.as_deref() == Some(rid));
+        }
         Ok(json!({ "checkpoints": checkpoints }))
     }
 
-    async fn do_timeline(&self, repo_root: &str, workspace_id: Option<&str>) -> anyhow::Result<Value> {
-        let timeline = self.store.get_timeline(repo_root, workspace_id).await?;
+    async fn do_timeline(
+        &self,
+        repo_root: &str,
+        workspace_id: Option<&str>,
+        branch_name: Option<&str>,
+        run_id: Option<&str>,
+    ) -> anyhow::Result<Value> {
+        let mut timeline = self.store.get_timeline(repo_root, workspace_id).await?;
+        // Client-side filtering for branch_name and run_id (095 Slice 3).
+        if let Some(branch) = branch_name {
+            timeline.retain(|node| node.branch_name.as_deref() == Some(branch));
+        }
+        if let Some(rid) = run_id {
+            timeline.retain(|node| node.run_id.as_deref() == Some(rid));
+        }
         Ok(json!({ "timeline": timeline }))
     }
 
@@ -644,5 +753,88 @@ impl CheckpointProvider {
             .ok_or_else(|| anyhow::anyhow!("Checkpoint not found: {}", checkpoint_id))?;
 
         Ok(serde_json::to_value(&info)?)
+    }
+
+    /// Structural comparison between two checkpoints (095 Slice 4).
+    async fn do_compare(&self, checkpoint_a: &str, checkpoint_b: &str) -> anyhow::Result<Value> {
+        let info_a = self
+            .store
+            .get_checkpoint(checkpoint_a)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Checkpoint not found: {}", checkpoint_a))?;
+        let info_b = self
+            .store
+            .get_checkpoint(checkpoint_b)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Checkpoint not found: {}", checkpoint_b))?;
+
+        // File-level diff.
+        let diff = self.store.diff_checkpoints(checkpoint_a, checkpoint_b).await?;
+
+        // LOC delta from detailed diff.
+        let entries_a = self.store.get_entries(checkpoint_a).await?;
+        let entries_b = self.store.get_entries(checkpoint_b).await?;
+        let mut lines_added: usize = 0;
+        let mut lines_removed: usize = 0;
+        for path in &diff.modified {
+            let blob_a = entries_a.iter().find(|e| e.path.to_string_lossy() == *path);
+            let blob_b = entries_b.iter().find(|e| e.path.to_string_lossy() == *path);
+            if let (Some(a), Some(b)) = (blob_a, blob_b) {
+                let content_a = self.store.blobs.get(&a.content_hash)?;
+                let content_b = self.store.blobs.get(&b.content_hash)?;
+                if let (Some(ca), Some(cb)) = (content_a, content_b) {
+                    let file_diff = create_file_diff(path, &ca, &cb);
+                    lines_added += file_diff.lines_added;
+                    lines_removed += file_diff.lines_deleted;
+                }
+            }
+        }
+        // Files added — all lines are "added".
+        for path in &diff.added {
+            if let Some(entry) = entries_b.iter().find(|e| e.path.to_string_lossy() == *path) {
+                if let Some(content) = self.store.blobs.get(&entry.content_hash)? {
+                    lines_added += content.iter().filter(|&&b| b == b'\n').count() + 1;
+                }
+            }
+        }
+        // Files deleted — all lines are "removed".
+        for path in &diff.deleted {
+            if let Some(entry) = entries_a.iter().find(|e| e.path.to_string_lossy() == *path) {
+                if let Some(content) = self.store.blobs.get(&entry.content_hash)? {
+                    lines_removed += content.iter().filter(|&&b| b == b'\n').count() + 1;
+                }
+            }
+        }
+
+        // Git SHA comparison.
+        let git_sha_comparison = match (&info_a.head_sha, &info_b.head_sha) {
+            (Some(a), Some(b)) if a == b => "identical",
+            (Some(_), Some(_)) => "different",
+            _ => "unavailable",
+        };
+
+        // Fingerprint delta.
+        let fingerprint_a: serde_json::Value = serde_json::from_str(&info_a.fingerprint).unwrap_or(json!({}));
+        let fingerprint_b: serde_json::Value = serde_json::from_str(&info_b.fingerprint).unwrap_or(json!({}));
+
+        Ok(json!({
+            "checkpoint_a": checkpoint_a,
+            "checkpoint_b": checkpoint_b,
+            "files_added": diff.added.len(),
+            "files_modified": diff.modified.len(),
+            "files_deleted": diff.deleted.len(),
+            "lines_added": lines_added,
+            "lines_removed": lines_removed,
+            "merkle_root_a": info_a.merkle_root,
+            "merkle_root_b": info_b.merkle_root,
+            "merkle_roots_match": info_a.merkle_root == info_b.merkle_root,
+            "head_sha_a": info_a.head_sha,
+            "head_sha_b": info_b.head_sha,
+            "git_sha_comparison": git_sha_comparison,
+            "fingerprint_a": fingerprint_a,
+            "fingerprint_b": fingerprint_b,
+            "branch_a": info_a.branch_name,
+            "branch_b": info_b.branch_name,
+        }))
     }
 }

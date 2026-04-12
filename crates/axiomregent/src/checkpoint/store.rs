@@ -46,8 +46,8 @@ impl CheckpointStore {
                     "INSERT INTO checkpoints \
                      (checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                       state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                      workspace_id) \
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+                      workspace_id, branch_name, run_id) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
                 ),
                 vec![
                     Param::Text(info.checkpoint_id.clone()),
@@ -72,6 +72,14 @@ impl CheckpointStore {
                         .map(Param::Text)
                         .unwrap_or(Param::Null),
                     info.workspace_id
+                        .clone()
+                        .map(Param::Text)
+                        .unwrap_or(Param::Null),
+                    info.branch_name
+                        .clone()
+                        .map(Param::Text)
+                        .unwrap_or(Param::Null),
+                    info.run_id
                         .clone()
                         .map(Param::Text)
                         .unwrap_or(Param::Null),
@@ -157,7 +165,7 @@ impl CheckpointStore {
             .query_as(
                 "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                  state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                 workspace_id \
+                 workspace_id, branch_name, run_id \
                  FROM checkpoints WHERE checkpoint_id = $1",
                 vec![Param::Text(checkpoint_id.to_string())],
             )
@@ -333,6 +341,9 @@ impl CheckpointStore {
                     created_at: cp.created_at,
                     children,
                     is_current,
+                    head_sha: cp.head_sha,
+                    branch_name: cp.branch_name,
+                    run_id: cp.run_id,
                 }
             })
             .collect())
@@ -372,6 +383,8 @@ impl CheckpointStore {
             created_at: now,
             metadata: source.metadata,
             workspace_id: source.workspace_id,
+            branch_name: source.branch_name,
+            run_id: source.run_id,
         };
 
         self.create_checkpoint(&fork, &entries).await?;

@@ -12,6 +12,29 @@ export interface CheckpointInfo {
   total_bytes: number;
   created_at: string; // ISO 8601
   metadata: string | null;
+  /** Workspace context (spec 092). */
+  workspace_id?: string | null;
+  /** Git branch name at creation time (spec 095). */
+  branch_name?: string | null;
+  /** Orchestrator run ID (spec 095). */
+  run_id?: string | null;
+}
+
+/** Compare result from checkpoint.compare (spec 095 Slice 4). */
+export interface CheckpointCompare {
+  checkpoint_a: string;
+  checkpoint_b: string;
+  files_added: number;
+  files_modified: number;
+  files_deleted: number;
+  lines_added: number;
+  lines_removed: number;
+  merkle_roots_match: boolean;
+  head_sha_a: string | null;
+  head_sha_b: string | null;
+  git_sha_comparison: string;
+  branch_a: string | null;
+  branch_b: string | null;
 }
 
 /** Alias used by the checkpoint flow. */

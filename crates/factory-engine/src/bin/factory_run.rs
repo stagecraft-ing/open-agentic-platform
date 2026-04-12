@@ -272,6 +272,7 @@ async fn main() -> ExitCode {
         gate_handler: Some(gate_handler.clone()),
         project_root: Some(project_path.clone()),
         skip_completed_steps: phase1_skip,
+        cas: None,
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -373,6 +374,7 @@ async fn main() -> ExitCode {
         gate_handler: Some(gate_handler),
         project_root: Some(project_path.clone()),
         skip_completed_steps: phase2_skip,
+        cas: None,
     };
 
     let summary2 = match dispatch_manifest(

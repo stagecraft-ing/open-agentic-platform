@@ -227,6 +227,7 @@ fn gate_info_from_step_gate(cfg: &StepGateConfig) -> GateInfo {
         StepGateConfig::Approval {
             timeout_ms,
             escalation,
+            checkpoint_id: _,
         } => {
             let mut m = serde_json::Map::new();
             if let Some(e) = escalation {
@@ -463,6 +464,7 @@ mod tests {
                     gate: Some(StepGateConfig::Approval {
                         timeout_ms: 30_000,
                         escalation: Some(ApprovalEscalation::Fail),
+                        checkpoint_id: None,
                     }),
                     pre_verify: None,
                     post_verify: None,

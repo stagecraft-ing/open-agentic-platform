@@ -32,7 +32,9 @@ const SCHEMA_SQL: &[&str] = &[
         total_bytes   INTEGER NOT NULL,
         created_at    TEXT NOT NULL,
         metadata      TEXT,
-        workspace_id  TEXT
+        workspace_id  TEXT,
+        branch_name   TEXT,
+        run_id        TEXT
     )"#,
     r#"CREATE TABLE IF NOT EXISTS manifest_entries (
         checkpoint_id TEXT NOT NULL,
@@ -136,6 +138,8 @@ async fn migrate(client: &Client) -> Result<()> {
     // the column already exists, so we ignore "duplicate column" failures.
     let additive: &[&str] = &[
         "ALTER TABLE checkpoints ADD COLUMN workspace_id TEXT",
+        "ALTER TABLE checkpoints ADD COLUMN branch_name TEXT",
+        "ALTER TABLE checkpoints ADD COLUMN run_id TEXT",
     ];
     for ddl in additive {
         let _ = client.execute(Cow::Borrowed(*ddl), vec![]).await;

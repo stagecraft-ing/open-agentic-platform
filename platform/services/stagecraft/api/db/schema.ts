@@ -585,6 +585,10 @@ export const factoryArtifacts = pgTable("factory_artifacts", {
   contentHash: text("content_hash").notNull(),
   storagePath: text("storage_path").notNull(),
   sizeBytes: integer("size_bytes").notNull().default(0),
+  // Workspace scoping (spec 094 Slice 5).
+  workspaceId: uuid("workspace_id"),
+  // Provenance: which agent produced this artifact (spec 094 Slice 5).
+  producerAgent: text("producer_agent"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

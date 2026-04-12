@@ -39,6 +39,12 @@ pub struct CheckpointInfo {
     /// Workspace context for this checkpoint (spec 092).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<String>,
+    /// Git branch name at checkpoint creation time (spec 095 Slice 3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch_name: Option<String>,
+    /// Orchestrator run ID for scoping (spec 095 Slice 3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
 }
 
 /// Path-level diff between two checkpoints (no line-level detail).
@@ -82,6 +88,15 @@ pub struct TimelineNode {
     pub children: Vec<String>,
     /// Whether this is the most-recently-created checkpoint.
     pub is_current: bool,
+    /// Git HEAD SHA at creation time (spec 095).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head_sha: Option<String>,
+    /// Git branch name (spec 095 Slice 3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch_name: Option<String>,
+    /// Run ID (spec 095 Slice 3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
 }
 
 /// Result of a garbage-collection pass.

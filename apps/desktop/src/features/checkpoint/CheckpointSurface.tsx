@@ -10,6 +10,8 @@ import {
   Plus,
   ShieldCheck,
   GitCompareArrows,
+  GitBranch,
+  GitCommit,
 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { useCheckpointFlow } from './useCheckpointFlow';
@@ -123,13 +125,30 @@ const CheckpointRow: React.FC<{
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate">
+          <div className="text-sm font-medium truncate flex items-center gap-2">
             {cp.label || <span className="text-muted-foreground italic">unnamed</span>}
+            {cp.branch_name && (
+              <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-normal">
+                <GitBranch className="h-3 w-3" />
+                {cp.branch_name}
+              </span>
+            )}
+            {cp.parent_id === null && (
+              <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-normal">
+                root
+              </span>
+            )}
           </div>
           <div className="text-xs text-muted-foreground flex gap-3">
             <span>{relativeTime(cp.created_at)}</span>
             <span>{cp.file_count} files</span>
             <span>{formatBytes(cp.total_bytes)}</span>
+            {cp.head_sha && (
+              <span className="inline-flex items-center gap-1 font-mono" title={cp.head_sha}>
+                <GitCommit className="h-3 w-3" />
+                {cp.head_sha.slice(0, 7)}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -180,7 +199,20 @@ const CheckpointRow: React.FC<{
         <div className="px-3 pb-2 pt-1 border-t text-xs space-y-1 text-muted-foreground">
           <div>ID: <span className="font-mono">{cp.checkpoint_id}</span></div>
           <div>Timestamp: {new Date(cp.created_at).toLocaleString()}</div>
+          {cp.head_sha && <div>Git SHA: <span className="font-mono">{cp.head_sha}</span></div>}
+          {cp.branch_name && <div>Branch: <span className="font-medium">{cp.branch_name}</span></div>}
+          {cp.run_id && <div>Run ID: <span className="font-mono">{cp.run_id}</span></div>}
+          {cp.parent_id && <div>Parent: <span className="font-mono">{cp.parent_id.slice(0, 8)}...</span></div>}
           <div>State hash: <span className="font-mono truncate">{cp.state_hash.slice(0, 16)}...</span></div>
+          <div>Merkle root: <span className="font-mono truncate">{cp.merkle_root.slice(0, 16)}...</span></div>
+          {cp.fingerprint && cp.fingerprint !== '{}' && (
+            <details>
+              <summary className="cursor-pointer font-medium">Fingerprint</summary>
+              <pre className="mt-1 text-xs font-mono bg-muted/50 p-2 rounded overflow-auto max-h-24">
+                {JSON.stringify(JSON.parse(cp.fingerprint), null, 2)}
+              </pre>
+            </details>
+          )}
           {verification && <VerifyBadge report={verification} />}
         </div>
       )}
@@ -393,6 +425,39 @@ export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPat
 
             {/* Diff result */}
             {state.diff && <DiffSummary diff={state.diff} />}
+
+            {/* Branch summary (095 Slice 6) */}
+            {state.checkpoints.length > 0 && (() => {
+              const branches = new Map<string, number>();
+              for (const cp of state.checkpoints) {
+                const branch = cp.branch_name ?? 'unknown';
+                branches.set(branch, (branches.get(branch) ?? 0) + 1);
+              }
+              const forkPoints = state.checkpoints.filter(
+                (cp) => state.checkpoints.filter((c) => c.parent_id === cp.checkpoint_id).length > 1
+              );
+              return branches.size > 1 || forkPoints.length > 0 ? (
+                <div className="border rounded-md p-3 bg-background text-xs space-y-1">
+                  <div className="font-medium flex items-center gap-2">
+                    <GitBranch className="h-4 w-4" />
+                    Branches
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(branches.entries()).map(([name, count]) => (
+                      <span key={name} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        <GitBranch className="h-3 w-3" />
+                        {name} <span className="text-muted-foreground">({count})</span>
+                      </span>
+                    ))}
+                  </div>
+                  {forkPoints.length > 0 && (
+                    <div className="text-muted-foreground">
+                      {forkPoints.length} divergence point{forkPoints.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              ) : null;
+            })()}
 
             {/* Checkpoint list */}
             {state.checkpoints.length === 0 ? (

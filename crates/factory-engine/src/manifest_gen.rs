@@ -111,6 +111,7 @@ fn process_stages() -> Vec<StageDefinition> {
             gate: Some(StepGateConfig::Approval {
                 timeout_ms: 3_600_000, // 1 hour
                 escalation: None,
+                checkpoint_id: None,
             }),
         },
     ]

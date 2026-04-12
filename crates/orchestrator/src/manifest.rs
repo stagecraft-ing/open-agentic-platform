@@ -83,6 +83,10 @@ pub enum StepGateConfig {
         /// Escalation policy applied when the timeout elapses.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         escalation: Option<ApprovalEscalation>,
+        /// Checkpoint ID bound to this approval (spec 095 Slice 5).
+        /// Auto-populated when the gate is reached if not set in the manifest.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        checkpoint_id: Option<String>,
     },
 }
 

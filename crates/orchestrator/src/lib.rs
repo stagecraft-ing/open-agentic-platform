@@ -28,7 +28,12 @@ pub mod store;
 pub mod store_config;
 pub mod verify;
 
-pub use artifact::{ArtifactManager, DEFAULT_ARTIFACT_DIR};
+pub use artifact::{
+    ArtifactManager, ArtifactLineage, ArtifactRecord, CasArtifact, ContentAddressedStore,
+    DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
+};
+#[cfg(feature = "local-sqlite")]
+pub use artifact::ArtifactMetadataStore;
 pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor, ThinkingLevel};
 pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use effort::{EffortLevel, classify_from_task};
@@ -199,6 +204,9 @@ pub struct DispatchOptions {
     pub project_root: Option<PathBuf>,
     /// Step IDs to skip (mark as Success without dispatch). Used for resume after failure.
     pub skip_completed_steps: std::collections::HashSet<String>,
+    /// Content-addressed store for artifact promotion (094 Slice 2).
+    /// If `Some`, completed step artifacts are promoted to CAS for cross-run persistence.
+    pub cas: Option<Arc<ContentAddressedStore>>,
 }
 
 /// Outcome of gate evaluation in the non-persisted dispatch path.
@@ -229,6 +237,7 @@ async fn handle_gate_simple(
         manifest::StepGateConfig::Approval {
             timeout_ms,
             escalation,
+            checkpoint_id: _,
         } => {
             let duration = Duration::from_millis(*timeout_ms);
             match tokio::time::timeout(duration, handler.await_approval(step_id, *timeout_ms)).await
@@ -1147,6 +1156,13 @@ pub async fn dispatch_manifest(
                     }
                     step_output_hashes[idx] = hashes.clone();
                     completed_hashes.insert(step.id.clone(), hashes);
+
+                    // Promote to CAS for cross-run persistence (094 Slice 2).
+                    if let Some(ref cas) = options.cas {
+                        if let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
+                            eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
+                        }
+                    }
                 }
 
                 let elapsed = step_start.elapsed();
@@ -1307,6 +1323,9 @@ pub async fn dispatch_manifest_persisted(
     let mut retry_counts: Vec<u32> = vec![0; steps.len()];
     let mut step_output_hashes: Vec<HashMap<String, String>> = vec![HashMap::new(); steps.len()];
 
+    // Accumulated hashes from completed steps for input verification (082 FR-004, 094 Slice 1).
+    let mut completed_hashes: HashMap<String, HashMap<String, String>> = HashMap::new();
+
     /// Helper: persist state + append event + broadcast.
     async fn persist_and_emit(
         persistence: &PersistenceContext,
@@ -1395,6 +1414,59 @@ pub async fn dispatch_manifest_persisted(
             });
         }
 
+        // Verify input artifact integrity (082 FR-004, 094 Slice 1).
+        for input in &step.inputs {
+            if let Some((producer_id, file)) = split_input_ref(input)
+                && let Some(producer_hashes) = completed_hashes.get(producer_id)
+                && let Some(expected_hash) = producer_hashes.get(file)
+            {
+                let input_path = artifact_base.output_artifact_path(run_id, producer_id, file);
+                match ArtifactManager::verify_artifact(&input_path, expected_hash) {
+                    Ok(true) => {} // Hash matches
+                    Ok(false) => {
+                        statuses[idx] = StepStatus::Failure;
+
+                        wf_state.mark_step_finished(
+                            &step.id,
+                            StepExecutionStatus::Failed,
+                            now_ts(),
+                            None,
+                            Some(serde_json::json!({ "error": format!("artifact integrity check failed: {}", input_path.display()) })),
+                        );
+                        wf_state.status = WorkflowStatus::Failed;
+
+                        persist_and_emit(
+                            persistence,
+                            &wf_state,
+                            run_id,
+                            "step_failed",
+                            &serde_json::json!({ "step_id": step.id, "reason": format!("artifact integrity check failed: {}", input_path.display()) }),
+                        )
+                        .await?;
+
+                        let summary = build_summary(
+                            artifact_base,
+                            run_id,
+                            steps,
+                            &statuses,
+                            &tokens_used,
+                            &costs_usd,
+                            &durations_ms,
+                            &num_turns,
+                            &retry_counts,
+                            &step_output_hashes,
+                        );
+                        summary.write_to_disk(artifact_base)?;
+                        return Err(OrchestratorError::DependencyMissing {
+                            step_id: step.id.clone(),
+                            artifact_path: input_path,
+                        });
+                    }
+                    Err(_) => {} // File read error already caught by existence check above
+                }
+            }
+        }
+
         if !registry.has_agent(&step.agent).await {
             statuses[idx] = StepStatus::Failure;
 
@@ -1445,13 +1517,22 @@ pub async fn dispatch_manifest_persisted(
                 Ok(())
             };
 
-            // Emit gate_reached event.
+            // Extract checkpoint_id from Approval gate if present (095 Slice 5).
+            let gate_checkpoint_id = match gate {
+                manifest::StepGateConfig::Approval { checkpoint_id, .. } => checkpoint_id.clone(),
+                _ => None,
+            };
+
+            // Emit gate_reached event with checkpoint binding (095 Slice 5).
             persist_and_emit(
                 persistence,
                 &wf_state,
                 run_id,
                 "gate_reached",
-                &serde_json::json!({ "step_id": step.id }),
+                &serde_json::json!({
+                    "step_id": step.id,
+                    "checkpoint_id": gate_checkpoint_id,
+                }),
             )
             .await?;
 
@@ -1471,7 +1552,10 @@ pub async fn dispatch_manifest_persisted(
                         &wf_state,
                         run_id,
                         "gate_approved",
-                        &serde_json::json!({ "step_id": step.id }),
+                        &serde_json::json!({
+                            "step_id": step.id,
+                            "checkpoint_id": gate_checkpoint_id,
+                        }),
                     )
                     .await?;
                 }
@@ -1627,7 +1711,16 @@ pub async fn dispatch_manifest_persisted(
                             hashes.insert(output_name.clone(), hash);
                         }
                     }
-                    step_output_hashes[idx] = hashes;
+                    step_output_hashes[idx] = hashes.clone();
+                    // Accumulate for input verification of downstream steps (094 Slice 1).
+                    completed_hashes.insert(step.id.clone(), hashes);
+
+                    // Promote to CAS for cross-run persistence (094 Slice 2).
+                    if let Some(ref cas) = options.cas {
+                        if let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
+                            eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
+                        }
+                    }
                 }
 
                 wf_state.mark_step_finished(

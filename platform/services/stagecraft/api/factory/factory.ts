@@ -1326,3 +1326,98 @@ export const lookupArtifact = api(
     };
   }
 );
+
+// ---------------------------------------------------------------------------
+// Workspace-scoped artifact recording (spec 094 Slice 5)
+// ---------------------------------------------------------------------------
+
+type WorkspaceRecordArtifactRequest = {
+  workspace_id: string; // path param
+  content_hash: string;
+  filename: string;
+  step_id: string;
+  workflow_id: string;
+  size_bytes: number;
+  content_type?: string;
+  producer_agent?: string;
+  workspaceId: string; // body: must match path param
+};
+
+type WorkspaceRecordArtifactResponse = {
+  recorded: boolean;
+};
+
+export const workspaceRecordArtifact = api(
+  { expose: true, method: "POST", path: "/api/workspaces/:workspace_id/artifacts" },
+  async (req: WorkspaceRecordArtifactRequest): Promise<WorkspaceRecordArtifactResponse> => {
+    if (req.workspaceId !== req.workspace_id) {
+      throw APIError.invalidArgument("workspaceId must match path workspace_id");
+    }
+
+    await db.insert(factoryArtifacts).values({
+      pipelineId: req.workflow_id, // reuse pipelineId for workflow_id
+      stageId: req.step_id,
+      artifactType: req.content_type ?? "application/octet-stream",
+      contentHash: req.content_hash,
+      storagePath: req.filename,
+      sizeBytes: req.size_bytes,
+      workspaceId: req.workspace_id,
+      producerAgent: req.producer_agent ?? null,
+    });
+
+    return { recorded: true };
+  }
+);
+
+type WorkspaceLookupArtifactRequest = {
+  workspace_id: string; // path param
+  content_hash: string;
+  workspaceId: string;
+};
+
+type WorkspaceLookupArtifactResponse = {
+  found: boolean;
+  artifacts: Array<{
+    workflow_id: string;
+    step_id: string;
+    filename: string;
+    content_hash: string;
+    size_bytes: number;
+    producer_agent: string | null;
+    created_at: string;
+  }>;
+};
+
+export const workspaceLookupArtifact = api(
+  { expose: true, method: "GET", path: "/api/workspaces/:workspace_id/artifacts" },
+  async (req: WorkspaceLookupArtifactRequest): Promise<WorkspaceLookupArtifactResponse> => {
+    if (req.workspaceId !== req.workspace_id) {
+      throw APIError.invalidArgument("workspaceId must match path workspace_id");
+    }
+
+    const rows = await db
+      .select()
+      .from(factoryArtifacts)
+      .where(
+        and(
+          eq(factoryArtifacts.workspaceId, req.workspace_id),
+          eq(factoryArtifacts.contentHash, req.content_hash)
+        )
+      )
+      .orderBy(desc(factoryArtifacts.createdAt))
+      .limit(10);
+
+    return {
+      found: rows.length > 0,
+      artifacts: rows.map((a) => ({
+        workflow_id: a.pipelineId,
+        step_id: a.stageId,
+        filename: a.storagePath,
+        content_hash: a.contentHash,
+        size_bytes: a.sizeBytes,
+        producer_agent: a.producerAgent,
+        created_at: a.createdAt.toISOString(),
+      })),
+    };
+  }
+);
