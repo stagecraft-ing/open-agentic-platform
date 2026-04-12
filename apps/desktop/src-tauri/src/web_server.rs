@@ -667,7 +667,7 @@ async fn execute_claude_command(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] new_claude_command falling back to bypass: {}", reason);
     }
@@ -790,7 +790,7 @@ async fn continue_claude_command(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] continue_claude_command falling back to bypass: {}", reason);
     }
@@ -890,7 +890,7 @@ async fn resume_claude_command(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] resume_claude_command falling back to bypass: {}", reason);
     }

@@ -426,6 +426,29 @@ impl ArtifactMetadataStore {
         rows.collect()
     }
 
+    /// Look up artifacts by workspace ID.
+    pub fn find_by_workspace(&self, workspace_id: &str) -> rusqlite::Result<Vec<ArtifactRecord>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT content_hash, filename, step_id, workflow_id, workspace_id,
+                    created_at, size_bytes, content_type, producer_agent
+             FROM artifact_records WHERE workspace_id = ?1 ORDER BY created_at",
+        )?;
+        let rows = stmt.query_map([workspace_id], |row| {
+            Ok(ArtifactRecord {
+                content_hash: row.get(0)?,
+                filename: row.get(1)?,
+                step_id: row.get(2)?,
+                workflow_id: row.get(3)?,
+                workspace_id: row.get(4)?,
+                created_at: row.get(5)?,
+                size_bytes: row.get::<_, i64>(6)? as u64,
+                content_type: row.get(7)?,
+                producer_agent: row.get(8)?,
+            })
+        })?;
+        rows.collect()
+    }
+
     /// Check whether any prior run produced an artifact with this hash.
     pub fn has_artifact(&self, content_hash: &str) -> rusqlite::Result<bool> {
         let count: i64 = self.conn.query_row(

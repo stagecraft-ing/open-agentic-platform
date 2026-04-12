@@ -1094,7 +1094,7 @@ pub async fn execute_agent(
 
     let announce_port = *sidecar.axiomregent_port.lock().unwrap();
     let grants_json = crate::governed_claude::grants_json_for_agent(&agent);
-    let (plan, bypass_reason) = crate::governed_claude::plan_governed(announce_port, grants_json);
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed(announce_port, grants_json)?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] execute_agent falling back to bypass: {}", reason);
     }
@@ -1104,7 +1104,7 @@ pub async fn execute_agent(
     };
     let _ = app.emit(
         "governance-mode",
-        serde_json::json!({ "mode": mode, "run_id": run_id }),
+        serde_json::json!({ "mode": mode, "run_id": run_id, "governance_bypass_reason": bypass_reason }),
     );
 
     // Build arguments (governed: MCP axiomregent; bypass: skip-permissions)

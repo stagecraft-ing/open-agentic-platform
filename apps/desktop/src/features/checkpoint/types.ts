@@ -35,6 +35,10 @@ export interface CheckpointCompare {
   git_sha_comparison: string;
   branch_a: string | null;
   branch_b: string | null;
+  /** Fingerprint of checkpoint A ({file_count, total_size, top_extensions}). */
+  fingerprint_a?: Record<string, unknown> | null;
+  /** Fingerprint of checkpoint B. */
+  fingerprint_b?: Record<string, unknown> | null;
 }
 
 /** Alias used by the checkpoint flow. */

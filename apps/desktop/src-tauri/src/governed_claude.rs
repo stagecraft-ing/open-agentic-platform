@@ -120,23 +120,79 @@ pub fn axiomregent_mcp_config_json(axiom_exe: &std::path::Path, grants_json: &st
     serde_json::to_string(&cfg).map_err(|e| e.to_string())
 }
 
+/// Check whether ungoverned operation is explicitly allowed via `OPC_ALLOW_UNGOVERNED=1|true`.
+fn ungoverned_explicitly_allowed() -> bool {
+    std::env::var("OPC_ALLOW_UNGOVERNED")
+        .ok()
+        .filter(|v| v == "1" || v == "true")
+        .is_some()
+}
+
 /// Attempt governance via bundled axiomregent binary + MCP config generation.
-/// Returns `GovernedPlan::Bypass` with a reason if governance is unavailable.
-pub fn plan_governed_from_binary(grants_json: &str) -> (GovernedPlan, Option<String>) {
-    let Ok(binary) = bundled_axiomregent_binary_path() else {
-        return (GovernedPlan::Bypass, Some("axiomregent binary not found".into()));
+///
+/// Returns `Ok((GovernedPlan, Option<bypass_reason>))` when governance is available or
+/// bypass is explicitly permitted via `OPC_ALLOW_UNGOVERNED=1`.
+/// Returns `Err` when governance infrastructure is absent and no explicit opt-out is set —
+/// callers MUST surface this to the user rather than silently degrading (spec 090).
+pub fn plan_governed_from_binary(grants_json: &str) -> Result<(GovernedPlan, Option<String>), String> {
+    let binary = match bundled_axiomregent_binary_path() {
+        Ok(p) => p,
+        Err(msg) => {
+            if ungoverned_explicitly_allowed() {
+                eprintln!(
+                    "[governance] WARN: {msg} — running ungoverned (OPC_ALLOW_UNGOVERNED=true)"
+                );
+                return Ok((
+                    GovernedPlan::Bypass,
+                    Some(format!("{msg} (ungoverned mode explicitly allowed)")),
+                ));
+            }
+            return Err(format!(
+                "Governance required but unavailable: {msg}. \
+                 Set OPC_ALLOW_UNGOVERNED=1 to run without governance."
+            ));
+        }
     };
     match axiomregent_mcp_config_json(&binary, grants_json) {
-        Ok(mcp_config_json) => (GovernedPlan::Governed { mcp_config_json }, None),
-        Err(e) => (GovernedPlan::Bypass, Some(format!("MCP config generation failed: {e}"))),
+        Ok(mcp_config_json) => Ok((GovernedPlan::Governed { mcp_config_json }, None)),
+        Err(e) => {
+            if ungoverned_explicitly_allowed() {
+                eprintln!(
+                    "[governance] WARN: MCP config generation failed: {e} — running ungoverned"
+                );
+                return Ok((
+                    GovernedPlan::Bypass,
+                    Some(format!("MCP config generation failed: {e} (ungoverned mode explicitly allowed)")),
+                ));
+            }
+            Err(format!(
+                "Governance required but MCP config generation failed: {e}. \
+                 Set OPC_ALLOW_UNGOVERNED=1 to run without governance."
+            ))
+        }
     }
 }
 
 /// `announce_port`: `SidecarState` probe port when Some (axiomregent announced readiness).
-/// Returns the plan and an optional bypass reason for logging.
-pub fn plan_governed(announce_port: Option<u16>, grants_json: String) -> (GovernedPlan, Option<String>) {
+///
+/// Returns `Ok((plan, bypass_reason))` or `Err` when governance is required but unavailable.
+/// Sidecar-not-running is also gated behind `OPC_ALLOW_UNGOVERNED` (spec 090).
+pub fn plan_governed(announce_port: Option<u16>, grants_json: String) -> Result<(GovernedPlan, Option<String>), String> {
     if announce_port.is_none() {
-        return (GovernedPlan::Bypass, Some("axiomregent sidecar not running (no announce port)".into()));
+        if ungoverned_explicitly_allowed() {
+            eprintln!(
+                "[governance] WARN: axiomregent sidecar not running — running ungoverned (OPC_ALLOW_UNGOVERNED=true)"
+            );
+            return Ok((
+                GovernedPlan::Bypass,
+                Some("axiomregent sidecar not running (ungoverned mode explicitly allowed)".into()),
+            ));
+        }
+        return Err(
+            "Governance required but axiomregent sidecar not running (no announce port). \
+             Set OPC_ALLOW_UNGOVERNED=1 to run without governance."
+                .into(),
+        );
     }
     plan_governed_from_binary(&grants_json)
 }

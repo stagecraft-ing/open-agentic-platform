@@ -18,9 +18,12 @@ pub enum WorkflowStatus {
     /// Fully synced — all events and artifacts recorded to platform. Promotion-eligible.
     Completed,
     /// Finished locally but platform sync incomplete. Not promotion-eligible (spec 097).
+    #[serde(rename = "completed_local")]
     CompletedLocal,
     Failed,
+    #[serde(rename = "timed_out")]
     TimedOut,
+    #[serde(rename = "awaiting_checkpoint")]
     AwaitingCheckpoint,
 }
 

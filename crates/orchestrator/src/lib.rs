@@ -119,6 +119,9 @@ pub enum StepStatus {
 pub struct RunSummary {
     pub run_id: Uuid,
     pub steps: Vec<StepSummaryEntry>,
+    /// Workflow-level metadata: governance_mode, promotion result (097/098).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub metadata: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -216,6 +219,11 @@ pub struct DispatchOptions {
     /// Content-addressed store for artifact promotion (094 Slice 2).
     /// If `Some`, completed step artifacts are promoted to CAS for cross-run persistence.
     pub cas: Option<Arc<ContentAddressedStore>>,
+    /// Artifact metadata store for provenance recording (094 Slices 3-4).
+    /// When `Some`, artifact records and lineage are persisted after CAS promotion.
+    /// Wrapped in `Mutex` because `rusqlite::Connection` is `Send` but not `Sync`.
+    #[cfg(feature = "local-sqlite")]
+    pub artifact_metadata: Option<Arc<std::sync::Mutex<artifact::ArtifactMetadataStore>>>,
     /// Governance mode for this dispatch: `"governed"` or `"bypass"` (098 Slice 1).
     pub governance_mode: Option<String>,
     /// Platform sync tracker for promotion eligibility (099 Slice 2).
@@ -529,6 +537,7 @@ pub fn materialize_run_directory_with_phase(
         let summary = RunSummary {
             run_id,
             steps: vec![],
+            metadata: HashMap::new(),
         };
         let sj = serde_json::to_string_pretty(&summary).map_err(|e| {
             OrchestratorError::InvalidManifest {
@@ -877,6 +886,7 @@ pub fn dispatch_manifest_noop(
             let summary = RunSummary {
                 run_id,
                 steps: summary_entries,
+                metadata: HashMap::new(),
             };
             summary.write_to_disk(artifact_base)?;
 
@@ -920,6 +930,7 @@ pub fn dispatch_manifest_noop(
     let summary = RunSummary {
         run_id,
         steps: summary_entries,
+        metadata: HashMap::new(),
     };
     summary.write_to_disk(artifact_base)?;
     Ok(summary)
@@ -963,6 +974,7 @@ fn build_summary(
     RunSummary {
         run_id,
         steps: summary_entries,
+        metadata: HashMap::new(),
     }
 }
 
@@ -1204,6 +1216,19 @@ pub async fn dispatch_manifest(
                     {
                         eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
                     }
+
+                    // Record artifact metadata and provenance (094 Slices 3-4).
+                    #[cfg(feature = "local-sqlite")]
+                    if let Some(ref meta_store) = options.artifact_metadata {
+                        record_artifact_metadata(
+                            meta_store,
+                            &step_output_hashes[idx],
+                            step,
+                            run_id,
+                            None,
+                            &output_paths,
+                        );
+                    }
                 }
 
                 let elapsed = step_start.elapsed();
@@ -1262,7 +1287,7 @@ pub async fn dispatch_manifest(
         phase_elapsed.as_secs_f64()
     );
 
-    let summary = build_summary(
+    let mut summary = build_summary(
         artifact_base,
         run_id,
         steps,
@@ -1274,8 +1299,140 @@ pub async fn dispatch_manifest(
         &retry_counts,
         &step_output_hashes,
     );
+    // --- Promotion eligibility check (097 Slice 4, 098 Slice 2) ---
+    let all_succeeded = statuses.iter().all(|s| matches!(s, StepStatus::Success));
+    let promo_check = check_promotion_from_metadata(
+        &options.governance_mode,
+        &options.sync_tracker,
+        all_succeeded,
+        run_id,
+    );
+    if let Ok(v) = serde_json::to_value(&promo_check) {
+        summary.metadata.insert("promotion".to_string(), v);
+    }
+    if let Some(ref gm) = options.governance_mode {
+        summary
+            .metadata
+            .insert("governance_mode".to_string(), serde_json::json!(gm));
+    }
+
     summary.write_to_disk(artifact_base)?;
     Ok(summary)
+}
+
+/// Run promotion eligibility check using dispatch options + sync tracker.
+/// Returns a `PromotionCheck` without requiring a full `WorkflowState` (097/098).
+fn check_promotion_from_metadata(
+    governance_mode: &Option<String>,
+    sync_tracker: &Option<promotion::SyncTracker>,
+    steps_all_succeeded: bool,
+    run_id: Uuid,
+) -> promotion::PromotionCheck {
+    let sync_status = match sync_tracker {
+        Some(tracker) => tracker.to_sync_status(),
+        None => promotion::SyncStatus::default(),
+    };
+
+    let gm = governance_mode.as_deref().unwrap_or("");
+    let governance_active = gm == "governed";
+
+    let mut reasons = Vec::new();
+
+    // Non-persisted path has no workspace_id in DispatchOptions,
+    // so always flag as missing.
+    reasons.push("no workspace_id (non-persisted dispatch path)".to_string());
+
+    if !governance_active {
+        reasons.push(format!(
+            "governance mode is '{gm}', expected 'governed'"
+        ));
+    }
+    if !sync_status.events_synced {
+        reasons.push("not all events were synced to platform".to_string());
+    }
+    if !sync_status.artifacts_recorded {
+        reasons.push("not all artifacts were recorded".to_string());
+    }
+    if !steps_all_succeeded {
+        reasons.push("not all steps completed successfully".to_string());
+    }
+
+    let eligibility = if reasons.is_empty() {
+        promotion::PromotionEligibility::Eligible
+    } else {
+        promotion::PromotionEligibility::Ineligible {
+            reasons,
+        }
+    };
+
+    promotion::PromotionCheck {
+        workflow_id: run_id.to_string(),
+        workspace_id: None,
+        governance_active,
+        events_synced: sync_status.events_synced,
+        artifacts_recorded: sync_status.artifacts_recorded,
+        all_steps_completed: steps_all_succeeded,
+        eligibility,
+    }
+}
+
+/// Record artifact metadata and provenance lineage after CAS promotion (094 Slices 3-4).
+#[cfg(feature = "local-sqlite")]
+fn record_artifact_metadata(
+    store: &std::sync::Mutex<artifact::ArtifactMetadataStore>,
+    output_hashes: &HashMap<String, String>,
+    step: &manifest::WorkflowStep,
+    run_id: Uuid,
+    workspace_id: Option<&str>,
+    output_paths: &[PathBuf],
+) {
+    let store = match store.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("[094] Artifact metadata store lock poisoned: {e}");
+            return;
+        }
+    };
+    let now = now_ts();
+    for (filename, hash) in output_hashes {
+        let size = output_paths
+            .iter()
+            .find(|p| {
+                p.file_name()
+                    .map(|f| f.to_string_lossy() == filename.as_str())
+                    .unwrap_or(false)
+            })
+            .and_then(|p| std::fs::metadata(p).ok())
+            .map(|m| m.len())
+            .unwrap_or(0);
+
+        let record = artifact::ArtifactRecord {
+            content_hash: hash.clone(),
+            filename: filename.clone(),
+            step_id: step.id.clone(),
+            workflow_id: run_id.to_string(),
+            workspace_id: workspace_id.map(String::from),
+            created_at: now.clone(),
+            size_bytes: size,
+            content_type: None,
+            producer_agent: Some(step.agent.clone()),
+        };
+        if let Err(e) = store.record_artifact(&record) {
+            eprintln!("[094] Artifact metadata warning for {filename}: {e}");
+        }
+
+        let lineage = artifact::ArtifactLineage {
+            content_hash: hash.clone(),
+            relationship: artifact::LineageRelation::ProducedBy,
+            workflow_id: run_id.to_string(),
+            step_id: step.id.clone(),
+            agent_id: Some(step.agent.clone()),
+            created_at: now.clone(),
+        };
+        if let Err(e) = store.record_lineage(&lineage) {
+            eprintln!("[094] Lineage recording warning for {filename}: {e}");
+        }
+    }
 }
 
 /// Optional persistence context for wiring state persistence and event
@@ -1766,6 +1923,23 @@ pub async fn dispatch_manifest_persisted(
                             artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas)
                     {
                         eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
+                    }
+
+                    // Record artifact metadata and provenance (094 Slices 3-4).
+                    #[cfg(feature = "local-sqlite")]
+                    if let Some(ref meta_store) = options.artifact_metadata {
+                        let ws_id = wf_state
+                            .metadata
+                            .get("workspace_id")
+                            .and_then(|v| v.as_str());
+                        record_artifact_metadata(
+                            meta_store,
+                            &step_output_hashes[idx],
+                            step,
+                            run_id,
+                            ws_id,
+                            &output_paths,
+                        );
                     }
                 }
 
@@ -2327,6 +2501,7 @@ mod tests {
                     output_hashes: HashMap::new(),
                 },
             ],
+            metadata: HashMap::new(),
         };
         let json = serde_json::to_string_pretty(&summary).unwrap();
         std::fs::write(run_dir.join("summary.json"), json).unwrap();

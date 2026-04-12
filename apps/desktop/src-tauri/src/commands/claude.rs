@@ -1030,7 +1030,7 @@ pub async fn execute_claude_code(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] execute_claude_code falling back to bypass: {}", reason);
     }
@@ -1040,7 +1040,7 @@ pub async fn execute_claude_code(
     };
     let _ = app.emit(
         "governance-mode",
-        serde_json::json!({ "mode": mode, "context": "claude_code" }),
+        serde_json::json!({ "mode": mode, "context": "claude_code", "governance_bypass_reason": bypass_reason }),
     );
 
     let mut args = vec![
@@ -1080,7 +1080,7 @@ pub async fn continue_claude_code(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] continue_claude_code falling back to bypass: {}", reason);
     }
@@ -1090,7 +1090,7 @@ pub async fn continue_claude_code(
     };
     let _ = app.emit(
         "governance-mode",
-        serde_json::json!({ "mode": mode, "context": "claude_code_continue" }),
+        serde_json::json!({ "mode": mode, "context": "claude_code_continue", "governance_bypass_reason": bypass_reason }),
     );
 
     let mut args = vec![
@@ -1133,7 +1133,7 @@ pub async fn resume_claude_code(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] resume_claude_code falling back to bypass: {}", reason);
     }
@@ -1143,7 +1143,7 @@ pub async fn resume_claude_code(
     };
     let _ = app.emit(
         "governance-mode",
-        serde_json::json!({ "mode": mode, "context": "claude_code_resume" }),
+        serde_json::json!({ "mode": mode, "context": "claude_code_resume", "governance_bypass_reason": bypass_reason }),
     );
 
     let mut args = vec![
@@ -1186,7 +1186,7 @@ pub async fn execute_claude_bridge(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
-    );
+    )?;
     if let Some(reason) = &bypass_reason {
         eprintln!("[governance] execute_claude_bridge falling back to bypass: {}", reason);
     }
@@ -1196,7 +1196,7 @@ pub async fn execute_claude_bridge(
     };
     let _ = app.emit(
         "governance-mode",
-        serde_json::json!({ "mode": mode, "context": "claude_bridge" }),
+        serde_json::json!({ "mode": mode, "context": "claude_bridge", "governance_bypass_reason": bypass_reason }),
     );
 
     let query_json = serde_json::json!({

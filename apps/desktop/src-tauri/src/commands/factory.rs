@@ -353,6 +353,73 @@ fn sc_ingest_step_events(
     });
 }
 
+/// Record step output artifacts to Stagecraft for promotion eligibility (099).
+fn sc_record_artifacts(
+    sc: &StagecraftClient,
+    project_id: &str,
+    pipeline_id: &str,
+    summary: &orchestrator::RunSummary,
+    stage_id: &str,
+    sync_tracker: Option<&SyncTracker>,
+) {
+    let mut artifacts = Vec::new();
+    for step in &summary.steps {
+        for (filename, hash) in &step.output_hashes {
+            let size = step
+                .output_artifacts
+                .iter()
+                .find(|p| {
+                    p.file_name()
+                        .map(|f| f.to_string_lossy() == filename.as_str())
+                        .unwrap_or(false)
+                })
+                .and_then(|p| std::fs::metadata(p).ok())
+                .map(|m| m.len())
+                .unwrap_or(0);
+            let ext = std::path::Path::new(filename)
+                .extension()
+                .map(|e| e.to_string_lossy().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+            artifacts.push(super::stagecraft_client::ArtifactRecord {
+                artifact_type: ext,
+                content_hash: hash.clone(),
+                storage_path: filename.clone(),
+                size_bytes: size,
+            });
+        }
+    }
+    if artifacts.is_empty() {
+        // No artifacts to record — still count as ack so sync succeeds.
+        if let Some(t) = sync_tracker {
+            t.record_artifacts_ack(0);
+        }
+        return;
+    }
+
+    let sc = sc.clone();
+    let pid = project_id.to_string();
+    let plid = pipeline_id.to_string();
+    let sid = stage_id.to_string();
+    let tracker = sync_tracker.cloned();
+    let count = artifacts.len() as u32;
+
+    tokio::spawn(async move {
+        match sc.record_artifacts(&pid, &plid, &sid, &artifacts).await {
+            Ok(_) => {
+                if let Some(ref t) = tracker {
+                    t.record_artifacts_ack(count);
+                }
+            }
+            Err(e) => {
+                log::warn!("Stagecraft artifact recording failed: {e}");
+                if let Some(ref t) = tracker {
+                    t.record_artifacts_fail(e.to_string());
+                }
+            }
+        }
+    });
+}
+
 /// Infer the scaffold category from a step ID.
 /// Step IDs follow patterns like "s6a-entity-*" (data), "s6b-api-*" (api), "s6c-ui-*" (ui), etc.
 fn infer_scaffold_category(step_id: &str) -> String {
@@ -681,8 +748,11 @@ pub async fn start_factory_pipeline(
 
     // Derive governance mode once for the entire pipeline (098 Slice 2).
     let grants_json = crate::governed_claude::grants_json_claude_default();
-    let (gov_plan, _bypass_reason) =
-        crate::governed_claude::plan_governed_from_binary(&grants_json);
+    let (gov_plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
+        .map_err(|e| format!("factory start: {e}"))?;
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] factory start falling back to bypass: {}", reason);
+    }
     let governance_mode_str = match &gov_plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed".to_string(),
         crate::governed_claude::GovernedPlan::Bypass => "bypass".to_string(),
@@ -709,6 +779,7 @@ pub async fn start_factory_pipeline(
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
             cas: None,
+            artifact_metadata: None,
             governance_mode: Some(governance_mode_str.clone()),
             sync_tracker: Some(sync_tracker.clone()),
         };
@@ -795,6 +866,7 @@ pub async fn start_factory_pipeline(
             }
             // Ingest step-level events for audit trail.
             sc_ingest_step_events(&sc, &pid, &plid, &summary1, "process", Some(&sync_tracker));
+            sc_record_artifacts(&sc, &pid, &plid, &summary1, "process", Some(&sync_tracker));
         }
 
         // Phase transition: read frozen Build Spec, generate Phase 2 manifest.
@@ -891,6 +963,7 @@ pub async fn start_factory_pipeline(
             project_root: Some(project_path.clone()),
             skip_completed_steps: HashSet::new(),
             cas: None,
+            artifact_metadata: None,
             governance_mode: Some(governance_mode_str),
             sync_tracker: Some(sync_tracker.clone()),
         };
@@ -1030,6 +1103,7 @@ pub async fn start_factory_pipeline(
 
             // Ingest step-level events for audit trail.
             sc_ingest_step_events(&sc, &pid, &plid, &summary2, "scaffold", Some(&sync_tracker));
+            sc_record_artifacts(&sc, &pid, &plid, &summary2, "scaffold", Some(&sync_tracker));
 
             // Mark pipeline as completed in Stagecraft.
             sc_update_status(&sc, &pid, &plid, "completed", None, None, None);
@@ -1401,8 +1475,11 @@ pub async fn resume_factory_pipeline(
 
     // Derive governance mode for resumed pipeline (098 Slice 2).
     let grants_json = crate::governed_claude::grants_json_claude_default();
-    let (gov_plan, _bypass_reason) =
-        crate::governed_claude::plan_governed_from_binary(&grants_json);
+    let (gov_plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
+        .map_err(|e| format!("factory resume: {e}"))?;
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] factory resume falling back to bypass: {}", reason);
+    }
     let governance_mode_str = match &gov_plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed".to_string(),
         crate::governed_claude::GovernedPlan::Bypass => "bypass".to_string(),
@@ -1415,6 +1492,7 @@ pub async fn resume_factory_pipeline(
         project_root: Some(project_path),
         skip_completed_steps: skip_steps,
         cas: None,
+        artifact_metadata: None,
         governance_mode: Some(governance_mode_str),
         sync_tracker: Some(sync_tracker),
     };

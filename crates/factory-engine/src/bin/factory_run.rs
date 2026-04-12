@@ -312,6 +312,7 @@ async fn main() -> ExitCode {
         project_root: Some(project_path.clone()),
         skip_completed_steps: phase1_skip,
         cas: None,
+        artifact_metadata: None,
         governance_mode: None,
         sync_tracker: None,
     };
@@ -419,6 +420,7 @@ async fn main() -> ExitCode {
         project_root: Some(project_path.clone()),
         skip_completed_steps: phase2_skip,
         cas: None,
+        artifact_metadata: None,
         governance_mode: None,
         sync_tracker: None,
     };

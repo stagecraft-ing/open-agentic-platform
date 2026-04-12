@@ -279,7 +279,18 @@ impl Router {
             return None;
         }
 
-        let repo_root = args.get("repo_root").and_then(|v| v.as_str())?;
+        let repo_root = match args.get("repo_root").and_then(|v| v.as_str()) {
+            Some(r) => r,
+            None => {
+                // Mutation tools require repo_root for governance preflight (098 Slice 4).
+                // Missing repo_root must not silently bypass — return error.
+                return Some(json_rpc_error(
+                    id,
+                    -32602, // Invalid params
+                    "Mutation preflight requires 'repo_root' parameter",
+                ));
+            }
+        };
 
         // Extract the paths that will be mutated and infer intent from the tool name.
         let (changed_paths, intent) = match tool_name {
@@ -325,8 +336,14 @@ impl Router {
                 -32603,
                 "Mutation blocked by governance preflight: affected features have violations",
             )),
-            // Fail-open on infrastructure errors — do not block the tool call.
-            Err(_) => None,
+            // Fail-open on infrastructure errors — do not block the tool call,
+            // but log the error so it is observable (spec 090: no silent bypass).
+            Err(e) => {
+                eprintln!(
+                    "[governance] WARN: mutation preflight check failed (fail-open): {e}"
+                );
+                None
+            }
         }
     }
 

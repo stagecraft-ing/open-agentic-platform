@@ -15,6 +15,8 @@ pub struct EnrichedFeature {
     pub title: String,
     pub status: String,
     pub owner: String,
+    /// Spec risk level from registry (low/medium/high/critical).
+    pub risk: String,
     pub spec_path: String,
     pub depends_on: Vec<String>,
     pub impl_file_count: usize,
@@ -99,6 +101,7 @@ fn enrich_one(node: &FeatureNode, file_map: &HashMap<&str, &FileNode>) -> Enrich
         title: node.title.clone(),
         status: node.status.clone(),
         owner: node.owner.clone(),
+        risk: node.governance.clone(),
         spec_path: node.spec_path.clone(),
         depends_on: node.depends_on.clone(),
         impl_file_count,

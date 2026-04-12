@@ -109,9 +109,17 @@ where
         StepGateConfig::Approval {
             timeout_ms: timeout_ms_val,
             escalation,
-            checkpoint_id: _,
+            checkpoint_id,
         } => {
             // FR-005 / SC-003: pause at approval gate, persist awaiting status.
+            // Bind a checkpoint_id for the desktop handler to associate with this gate (095 Slice 5).
+            let bound_checkpoint_id = checkpoint_id
+                .clone()
+                .unwrap_or_else(|| format!("gate-{}-{}", step_id, chrono_now_iso()));
+            state.metadata.insert(
+                "gate_checkpoint_id".to_string(),
+                serde_json::Value::String(bound_checkpoint_id),
+            );
             state.mark_awaiting_checkpoint(step_id);
             persist(state).map_err(GateError::HandlerError)?;
 

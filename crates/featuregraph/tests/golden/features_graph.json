@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:78ee99119527d23a28807414fa1281190750d8de53f46cf7d476e0d81476118a",
+  "graph_fingerprint": "sha256:4f1608d6cd319047caa81495c6d0628a7e152a648f693787e7ae5a35a409b621",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1163,7 +1163,7 @@
       "feature_id": "054-agent-frontmatter-schema",
       "title": "Unified Agent and Skill Frontmatter Schema",
       "spec_path": "specs/054-agent-frontmatter-schema/spec.md",
-      "status": "draft",
+      "status": "active",
       "governance": "medium",
       "owner": "",
       "group": "",

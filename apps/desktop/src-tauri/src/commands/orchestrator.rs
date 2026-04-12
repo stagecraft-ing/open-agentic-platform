@@ -232,7 +232,7 @@ impl RealGovernedExecutor {
                 args.push("--allowedTools".to_string());
                 args.extend(allowed_tools.iter().cloned());
             }
-        let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json);
+        let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)?;
         let governance_mode_str = match &plan {
             crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
             crate::governed_claude::GovernedPlan::Bypass => "bypass",
@@ -397,7 +397,11 @@ pub async fn orchestrate_manifest(
 
     // Determine governance mode at launch time (098 Slice 2).
     let grants_json = crate::governed_claude::grants_json_claude_default();
-    let (plan, _bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json);
+    let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
+        .map_err(|e| format!("orchestrate_manifest: {e}"))?;
+    if let Some(reason) = &bypass_reason {
+        eprintln!("[governance] orchestrate_manifest falling back to bypass: {}", reason);
+    }
     let governance_mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
         crate::governed_claude::GovernedPlan::Bypass => "bypass",

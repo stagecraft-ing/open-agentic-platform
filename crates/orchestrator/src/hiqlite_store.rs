@@ -109,6 +109,17 @@ impl HiqliteWorkflowStore {
             )
             .await;
 
+        // Index for workspace-scoped queries (099 Slice 4).
+        let _ = self
+            .client
+            .execute(
+                Cow::Borrowed(
+                    "CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id)",
+                ),
+                vec![],
+            )
+            .await;
+
         Ok(())
     }
 

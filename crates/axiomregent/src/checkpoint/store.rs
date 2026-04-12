@@ -185,7 +185,7 @@ impl CheckpointStore {
                 .query_as(
                     "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                          state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                         workspace_id \
+                         workspace_id, branch_name, run_id \
                          FROM checkpoints WHERE repo_root = $1 AND workspace_id = $2 \
                          ORDER BY created_at DESC",
                     vec![
@@ -200,7 +200,7 @@ impl CheckpointStore {
                 .query_as(
                     "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                          state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                         workspace_id \
+                         workspace_id, branch_name, run_id \
                          FROM checkpoints WHERE repo_root = $1 ORDER BY created_at DESC",
                     vec![Param::Text(repo_root.to_string())],
                 )
