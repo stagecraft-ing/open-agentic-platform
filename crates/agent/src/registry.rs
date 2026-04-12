@@ -43,10 +43,29 @@ impl OrganizerPlanner for DeterministicOrganizerPlanner {
 }
 
 /// Single row from the agent catalog (Feature 042 injection surface).
+///
+/// Enriched with Tier 1 frontmatter fields from spec 054 for
+/// governance-aware team selection by the organizer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentRegistryEntry {
     pub id: String,
     pub description: String,
+    /// Agent execution type (spec 054 FR-004).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        alias = "type"
+    )]
+    pub agent_type: Option<String>,
+    /// LLM model identifier (spec 054).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Catalog tags (spec 054).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    /// Safety tier classification (spec 054 FR-006).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub safety_tier: Option<String>,
 }
 
 /// Snapshot injected from desktop / SQLite (O-002).
@@ -96,6 +115,10 @@ impl AgentRegistrySnapshot {
                     description:
                         "Phase 2 compatibility placeholder; replace with real registry rows."
                             .to_string(),
+                    agent_type: None,
+                    model: None,
+                    tags: vec![],
+                    safety_tier: None,
                 })
                 .collect(),
         }
@@ -528,6 +551,10 @@ mod tests {
             .map(|i| AgentRegistryEntry {
                 id: format!("agent-{i:02}"),
                 description: format!("specialist {i} for api frontend testing"),
+                agent_type: None,
+                model: None,
+                tags: vec![],
+                safety_tier: None,
             })
             .collect();
         agents.sort_by(|a, b| a.id.cmp(&b.id));
@@ -550,6 +577,10 @@ mod tests {
         let agents = vec![AgentRegistryEntry {
             id: "agent-emoji".to_string(),
             description: "🚀 very capable agent with unicode description 🚀".repeat(10),
+            agent_type: None,
+            model: None,
+            tags: vec![],
+            safety_tier: None,
         }];
         let snap = AgentRegistrySnapshot { agents };
         let prompt = "Plan work on 🚀 unicode-heavy request 🚀".repeat(20);

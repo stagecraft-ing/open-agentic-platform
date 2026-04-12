@@ -49,6 +49,28 @@ impl std::str::FromStr for ToolTier {
     }
 }
 
+/// Convert from the frontmatter `SafetyTier` to the runtime `ToolTier` (spec 054).
+impl From<agent_frontmatter::SafetyTier> for ToolTier {
+    fn from(st: agent_frontmatter::SafetyTier) -> Self {
+        match st {
+            agent_frontmatter::SafetyTier::Tier1 => ToolTier::Tier1,
+            agent_frontmatter::SafetyTier::Tier2 => ToolTier::Tier2,
+            agent_frontmatter::SafetyTier::Tier3 => ToolTier::Tier3,
+        }
+    }
+}
+
+/// Convert from the runtime `ToolTier` to the frontmatter `SafetyTier` (spec 054).
+impl From<ToolTier> for agent_frontmatter::SafetyTier {
+    fn from(tt: ToolTier) -> Self {
+        match tt {
+            ToolTier::Tier1 => agent_frontmatter::SafetyTier::Tier1,
+            ToolTier::Tier2 => agent_frontmatter::SafetyTier::Tier2,
+            ToolTier::Tier3 => agent_frontmatter::SafetyTier::Tier3,
+        }
+    }
+}
+
 // --- Spec 093, Slice 6: TOML-based tool tier configuration ---
 
 /// TOML config shape for `.oap/tool-tiers.toml`.
