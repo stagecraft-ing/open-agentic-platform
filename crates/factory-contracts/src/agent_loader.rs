@@ -6,7 +6,10 @@
 //! Reads agent prompt files from `factory/process/agents/` (process agents,
 //! Tier 1 read-only) and `factory/adapters/{name}/agents/` (scaffold agents,
 //! Tier 2 read-write).
+//!
+//! Delegates YAML frontmatter parsing to `agent-frontmatter` (spec 054).
 
+use agent_frontmatter::UnifiedFrontmatter;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -48,22 +51,6 @@ pub enum LoadError {
         path: PathBuf,
         source: serde_yaml::Error,
     },
-}
-
-/// Agent file frontmatter (between `---` delimiters).
-#[derive(Debug, serde::Deserialize)]
-struct AgentFrontmatter {
-    id: Option<String>,
-    role: Option<String>,
-    #[serde(default)]
-    tier: Option<u8>,
-    model_hint: Option<String>,
-    /// Standards category filter (spec 055).
-    #[serde(default)]
-    standards_category: Option<String>,
-    /// Standards tag filter (spec 055).
-    #[serde(default)]
-    standards_tags: Vec<String>,
 }
 
 /// Load all process agents from `factory_root/process/agents/`.
@@ -133,13 +120,7 @@ fn parse_agent_file(
     default_tier: u8,
     default_model_hint: Option<&str>,
 ) -> Result<AgentPrompt, LoadError> {
-    let (frontmatter, prompt_text) = split_frontmatter(contents, path)?;
-
-    let fm: AgentFrontmatter =
-        serde_yaml::from_str(&frontmatter).map_err(|e| LoadError::InvalidFrontmatter {
-            path: path.to_path_buf(),
-            source: e,
-        })?;
+    let (frontmatter_str, prompt_text) = split_frontmatter(contents, path)?;
 
     let file_stem = path
         .file_stem()
@@ -147,14 +128,41 @@ fn parse_agent_file(
         .unwrap_or("unknown")
         .to_string();
 
+    // Handle files without frontmatter (derive everything from defaults).
+    if frontmatter_str.is_empty() {
+        return Ok(AgentPrompt {
+            id: file_stem.clone(),
+            role: file_stem,
+            tier: default_tier,
+            prompt_text: prompt_text.trim().to_string(),
+            model_hint: default_model_hint.map(String::from),
+            source_path: path.to_path_buf(),
+            standards_category: None,
+            standards_tags: vec![],
+        });
+    }
+
+    // Parse via UnifiedFrontmatter from agent-frontmatter (spec 054).
+    // Field aliases (id→name, role→display_name, model_hint→model, tier→safety_tier)
+    // are handled automatically by the shared crate.
+    let fm: UnifiedFrontmatter = serde_yaml::from_str(&frontmatter_str).map_err(|e| {
+        LoadError::InvalidFrontmatter {
+            path: path.to_path_buf(),
+            source: e,
+        }
+    })?;
+
+    let tier = fm
+        .safety_tier
+        .map(|st| st.as_u8())
+        .unwrap_or(default_tier);
+
     Ok(AgentPrompt {
-        id: fm.id.unwrap_or_else(|| file_stem.clone()),
-        role: fm.role.unwrap_or(file_stem),
-        tier: fm.tier.unwrap_or(default_tier),
+        id: fm.name,
+        role: fm.display_name.unwrap_or(file_stem),
+        tier,
         prompt_text: prompt_text.trim().to_string(),
-        model_hint: fm
-            .model_hint
-            .or_else(|| default_model_hint.map(String::from)),
+        model_hint: fm.model.or_else(|| default_model_hint.map(String::from)),
         source_path: path.to_path_buf(),
         standards_category: fm.standards_category,
         standards_tags: fm.standards_tags,

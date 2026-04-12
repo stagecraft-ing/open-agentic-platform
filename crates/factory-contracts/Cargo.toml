@@ -8,6 +8,7 @@ edition = "2024"
 description = "Rust contract types for Factory delivery engine schemas — spec 074"
 
 [dependencies]
+agent-frontmatter = { path = "../agent-frontmatter" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
