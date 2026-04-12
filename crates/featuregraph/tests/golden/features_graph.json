@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:7de54152129aa278489cf7fa8ea0db42c8026bf9341a452acaafc5c1b89c1601",
+  "graph_fingerprint": "sha256:7842dfd8347f65e0b9e01372d0813108cce05b79863158510754559d8efba241",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1668,6 +1668,70 @@
       "group": "",
       "depends_on": [
         "039"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "092-workspace-runtime-threading",
+      "title": "Workspace Runtime Threading",
+      "spec_path": "specs/092-workspace-runtime-threading/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "090"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "093-spec-driven-preflight",
+      "title": "Spec-Driven Preflight and Gating",
+      "spec_path": "specs/093-spec-driven-preflight/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "091",
+        "092"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "094-unified-artifact-store",
+      "title": "Unified Artifact Store with Provenance",
+      "spec_path": "specs/094-unified-artifact-store/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "082",
+        "092"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "095-checkpoint-branch-of-thought",
+      "title": "Checkpoint Branch-of-Thought",
+      "spec_path": "specs/095-checkpoint-branch-of-thought/spec.md",
+      "status": "active",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "092",
+        "094"
       ],
       "impl_files": [],
       "test_files": [],

@@ -46,6 +46,9 @@ fn sample_ctx() -> ToolCallContext {
         diff_lines: None,
         diff_bytes: None,
         active_shard_scopes: vec![],
+        feature_ids: vec![],
+        max_spec_risk: None,
+        spec_statuses: vec![],
     }
 }
 

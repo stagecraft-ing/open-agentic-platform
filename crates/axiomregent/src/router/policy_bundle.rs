@@ -105,6 +105,10 @@ pub fn build_tool_call_context(tool_name: &str, args: &Map<String, Value>) -> To
         diff_lines,
         diff_bytes,
         active_shard_scopes: active_shard_scopes_from_env(),
+        // Spec 093: populated by caller when featuregraph context is available.
+        feature_ids: vec![],
+        max_spec_risk: None,
+        spec_statuses: vec![],
     }
 }
 

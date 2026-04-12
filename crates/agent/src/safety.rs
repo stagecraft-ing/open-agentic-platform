@@ -4,6 +4,10 @@
 // Spec: spec/agent/automation.md
 
 use crate::schemas::PlanTask;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ToolTier {
@@ -45,9 +49,96 @@ impl std::str::FromStr for ToolTier {
     }
 }
 
+// --- Spec 093, Slice 6: TOML-based tool tier configuration ---
+
+/// TOML config shape for `.oap/tool-tiers.toml`.
+#[derive(Debug, Deserialize)]
+struct ToolTiersConfig {
+    #[serde(default)]
+    tools: HashMap<String, ToolTierEntry>,
+}
+
+/// Single entry in `[tools."name"]`.
+#[derive(Debug, Deserialize)]
+struct ToolTierEntry {
+    tier: String,
+    #[serde(default)]
+    file_read: bool,
+    #[serde(default)]
+    file_write: bool,
+    #[serde(default)]
+    network: bool,
+}
+
+/// Cached TOML-loaded tool tiers. Populated once via `OnceLock`.
+static TOML_TIERS: OnceLock<Option<HashMap<String, ToolMetadata>>> = OnceLock::new();
+
+/// Load tool tiers from a TOML file path. Returns a map of tool_name → ToolMetadata.
+pub fn load_tool_tiers(path: &Path) -> Option<HashMap<String, ToolMetadata>> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let config: ToolTiersConfig = toml::from_str(&content).ok()?;
+    let mut map = HashMap::new();
+    for (name, entry) in config.tools {
+        let tier = entry.tier.parse::<ToolTier>().ok()?;
+        map.insert(
+            name,
+            ToolMetadata {
+                tier,
+                requires_file_read: entry.file_read,
+                requires_file_write: entry.file_write,
+                requires_network: entry.network,
+            },
+        );
+    }
+    Some(map)
+}
+
+/// Try to load from `.oap/tool-tiers.toml` relative to the current working directory (cached).
+fn toml_tiers() -> &'static Option<HashMap<String, ToolMetadata>> {
+    TOML_TIERS.get_or_init(|| {
+        let cwd = std::env::current_dir().ok()?;
+        let path = cwd.join(".oap/tool-tiers.toml");
+        load_tool_tiers(&path)
+    })
+}
+
+/// Apply spec risk ceiling: critical → max Tier1, high → max Tier2.
+/// Returns a potentially capped tier.
+pub fn apply_risk_ceiling(tier: ToolTier, spec_risk: Option<&str>) -> ToolTier {
+    match spec_risk {
+        Some("critical") => {
+            if tier > ToolTier::Tier1 {
+                ToolTier::Tier1
+            } else {
+                tier
+            }
+        }
+        Some("high") => {
+            if tier > ToolTier::Tier2 {
+                ToolTier::Tier2
+            } else {
+                tier
+            }
+        }
+        _ => tier,
+    }
+}
+
 /// Returns unified tier and permission metadata for a tool.
+/// Checks `.oap/tool-tiers.toml` first (spec 093), falls back to hardcoded defaults.
 /// Single source of truth consumed by both the agent crate and axiomregent router (Feature 036).
 pub fn get_tool_metadata(tool_name: &str) -> ToolMetadata {
+    // Spec 093: check TOML config first
+    if let Some(map) = toml_tiers() {
+        if let Some(meta) = map.get(tool_name) {
+            return meta.clone();
+        }
+    }
+    get_tool_metadata_hardcoded(tool_name)
+}
+
+/// Hardcoded fallback tier table (pre-093 behavior).
+fn get_tool_metadata_hardcoded(tool_name: &str) -> ToolMetadata {
     match tool_name {
         // Tier 1 — read-only / diagnostic
         "gov.preflight" | "gov.drift" | "features.impact" => ToolMetadata {
@@ -250,6 +341,7 @@ mod tests {
     use super::*;
     use crate::schemas::ToolCall;
     use serde_json::json;
+    use std::io::Write;
 
     fn make_task(tools: Vec<&str>) -> PlanTask {
         PlanTask {
@@ -294,5 +386,73 @@ mod tests {
         // agent.execute is Tier 3
         let t6 = make_task(vec!["agent.execute"]);
         assert_eq!(calculate_plan_tier(&[t6]), ToolTier::Tier3);
+    }
+
+    // --- Spec 093: TOML loading tests ---
+
+    #[test]
+    fn sc093_5_load_tool_tiers_from_toml() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("tool-tiers.toml");
+        let mut f = std::fs::File::create(&path).unwrap();
+        write!(
+            f,
+            r#"
+[tools."custom.read"]
+tier = "tier1"
+file_read = true
+
+[tools."custom.write"]
+tier = "tier2"
+file_write = true
+network = true
+"#
+        )
+        .unwrap();
+
+        let map = load_tool_tiers(&path).expect("should parse TOML");
+        assert_eq!(map.len(), 2);
+
+        let read_meta = &map["custom.read"];
+        assert_eq!(read_meta.tier, ToolTier::Tier1);
+        assert!(read_meta.requires_file_read);
+        assert!(!read_meta.requires_file_write);
+
+        let write_meta = &map["custom.write"];
+        assert_eq!(write_meta.tier, ToolTier::Tier2);
+        assert!(write_meta.requires_file_write);
+        assert!(write_meta.requires_network);
+    }
+
+    #[test]
+    fn sc093_5_load_tool_tiers_returns_none_for_missing_file() {
+        let path = Path::new("/nonexistent/tool-tiers.toml");
+        assert!(load_tool_tiers(path).is_none());
+    }
+
+    #[test]
+    fn sc093_risk_ceiling_caps_tier() {
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, Some("critical")), ToolTier::Tier1);
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier1, Some("critical")), ToolTier::Tier1);
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, Some("high")), ToolTier::Tier2);
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier2, Some("high")), ToolTier::Tier2);
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier1, Some("high")), ToolTier::Tier1);
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, Some("medium")), ToolTier::Tier3);
+        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, None), ToolTier::Tier3);
+    }
+
+    #[test]
+    fn sc093_5_hardcoded_fallback_still_works() {
+        // Even without TOML, hardcoded entries are returned
+        let meta = get_tool_metadata_hardcoded("gov.preflight");
+        assert_eq!(meta.tier, ToolTier::Tier1);
+        assert!(meta.requires_file_read);
+
+        let meta = get_tool_metadata_hardcoded("run.execute");
+        assert_eq!(meta.tier, ToolTier::Tier3);
+
+        // Unknown tool → Tier3 catch-all
+        let meta = get_tool_metadata_hardcoded("totally.unknown");
+        assert_eq!(meta.tier, ToolTier::Tier3);
     }
 }

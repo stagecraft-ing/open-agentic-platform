@@ -127,6 +127,35 @@ pub fn get_tool_tier_assignments() -> Vec<ToolTierEntry> {
         .collect()
 }
 
+/// Spec 093 — Governance preflight: given a set of changed files, returns safety tier,
+/// affected features, and violations from the featuregraph preflight checker.
+#[command]
+pub async fn governance_preflight(
+    changed_files: Vec<String>,
+    repo_root: String,
+) -> Result<serde_json::Value, String> {
+    let root = resolve_repo_root(&repo_root);
+    let fg_tools = FeatureGraphTools::new();
+    let request = json!({
+        "intent": "edit",
+        "mode": "worktree",
+        "changed_paths": changed_files,
+    });
+    let preflight = fg_tools
+        .governance_preflight(&root, request)
+        .map_err(|e| e.to_string())?;
+
+    // Enrich with affected feature details from impact analysis
+    let impact = fg_tools
+        .features_impact(&root.to_string_lossy(), &changed_files)
+        .map_err(|e| e.to_string())?;
+
+    Ok(json!({
+        "preflight": preflight,
+        "impact": impact,
+    }))
+}
+
 #[command]
 pub async fn featuregraph_impact(file_paths: Vec<String>, features_yaml_path: String) -> Result<serde_json::Value, String> {
     let repo_root = resolve_repo_root(&features_yaml_path);

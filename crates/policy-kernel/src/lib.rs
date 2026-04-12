@@ -76,6 +76,18 @@ pub struct ToolCallContext {
     /// Shard scope tags to merge (e.g. `domain:payments`). Constitution is always included.
     #[serde(default)]
     pub active_shard_scopes: Vec<String>,
+
+    // --- spec 093: Spec-driven preflight fields ---
+
+    /// Feature IDs affected by the tool call's target files (populated via featuregraph lookup).
+    #[serde(default)]
+    pub feature_ids: Vec<String>,
+    /// Highest risk level among affected features: low / medium / high / critical.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_spec_risk: Option<String>,
+    /// Deduplicated statuses of affected features: draft / active / deprecated.
+    #[serde(default)]
+    pub spec_statuses: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -105,6 +117,13 @@ pub fn evaluate(ctx: &ToolCallContext, bundle: &PolicyBundle) -> PolicyDecision 
         return d;
     }
     if let Some(d) = gate_tool_allowlist(ctx, bundle) {
+        return d;
+    }
+    // Spec 093: spec-derived gates (after security gates, before diff size)
+    if let Some(d) = gate_spec_status(ctx, bundle) {
+        return d;
+    }
+    if let Some(d) = gate_spec_risk(ctx, bundle) {
         return d;
     }
     if let Some(d) = gate_diff_size_limiter(ctx, bundle) {
@@ -201,6 +220,47 @@ fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<P
             reason: "policy:deny:tool_allowlist:not_listed".into(),
             rule_ids: originating_rule_ids.into_iter().collect(),
         })
+    }
+}
+
+/// Spec 093, Slice 3: if affected features include `draft` specs, degrade to read-only;
+/// if any are `deprecated`, deny outright. Skipped when `spec_statuses` is empty.
+fn gate_spec_status(ctx: &ToolCallContext, _bundle: &PolicyBundle) -> Option<PolicyDecision> {
+    if ctx.spec_statuses.is_empty() {
+        return None;
+    }
+    if ctx.spec_statuses.iter().any(|s| s == "deprecated") {
+        return Some(PolicyDecision {
+            outcome: PolicyOutcome::Deny,
+            reason: "policy:deny:spec_status:deprecated".into(),
+            rule_ids: vec!["KERNEL:SPEC-STATUS".into()],
+        });
+    }
+    if ctx.spec_statuses.iter().any(|s| s == "draft") {
+        return Some(PolicyDecision {
+            outcome: PolicyOutcome::Degrade,
+            reason: "policy:degrade:spec_status:draft_read_only".into(),
+            rule_ids: vec!["KERNEL:SPEC-STATUS".into()],
+        });
+    }
+    None
+}
+
+/// Spec 093, Slice 4: gate based on spec risk level. `critical` → degrade (manual confirm),
+/// `high` → degrade (gated). `medium`/`low`/absent → no restriction.
+fn gate_spec_risk(ctx: &ToolCallContext, _bundle: &PolicyBundle) -> Option<PolicyDecision> {
+    match ctx.max_spec_risk.as_deref() {
+        Some("critical") => Some(PolicyDecision {
+            outcome: PolicyOutcome::Degrade,
+            reason: "policy:degrade:spec_risk:critical_requires_confirmation".into(),
+            rule_ids: vec!["KERNEL:SPEC-RISK".into()],
+        }),
+        Some("high") => Some(PolicyDecision {
+            outcome: PolicyOutcome::Degrade,
+            reason: "policy:degrade:spec_risk:high_gated".into(),
+            rule_ids: vec!["KERNEL:SPEC-RISK".into()],
+        }),
+        _ => None,
     }
 }
 
@@ -384,6 +444,9 @@ mod tests {
             diff_lines: None,
             diff_bytes: None,
             active_shard_scopes: vec![],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -426,6 +489,9 @@ mod tests {
             diff_lines: None,
             diff_bytes: None,
             active_shard_scopes: vec![],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -454,6 +520,9 @@ mod tests {
             diff_lines: None,
             diff_bytes: None,
             active_shard_scopes: vec![],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -501,6 +570,9 @@ mod tests {
             diff_lines: None,
             diff_bytes: None,
             active_shard_scopes: vec!["domain:a".into()],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -528,6 +600,9 @@ mod tests {
             diff_lines: Some(100),
             diff_bytes: None,
             active_shard_scopes: vec![],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -556,9 +631,131 @@ mod tests {
             diff_lines: None,
             diff_bytes: None,
             active_shard_scopes: vec![],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
         };
         let a = decision_to_canonical_json(&evaluate(&ctx, &bundle));
         let b = decision_to_canonical_json(&evaluate(&ctx, &bundle));
         assert_eq!(a, b);
+    }
+
+    // --- Spec 093: spec-status gate tests ---
+
+    fn empty_bundle() -> PolicyBundle {
+        bundle_from_constitution(vec![])
+    }
+
+    fn base_ctx() -> ToolCallContext {
+        ToolCallContext {
+            tool_name: "write_file".into(),
+            arguments_summary: "".into(),
+            proposed_file_content: None,
+            diff_lines: None,
+            diff_bytes: None,
+            active_shard_scopes: vec![],
+            feature_ids: vec![],
+            max_spec_risk: None,
+            spec_statuses: vec![],
+        }
+    }
+
+    #[test]
+    fn sc093_2_draft_status_degrades() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.spec_statuses = vec!["draft".into()];
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Degrade);
+        assert!(d.reason.contains("draft_read_only"));
+        assert_eq!(d.rule_ids, vec!["KERNEL:SPEC-STATUS"]);
+    }
+
+    #[test]
+    fn sc093_deprecated_status_denies() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.spec_statuses = vec!["deprecated".into()];
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Deny);
+        assert!(d.reason.contains("deprecated"));
+    }
+
+    #[test]
+    fn sc093_active_status_allows() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.spec_statuses = vec!["active".into()];
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Allow);
+    }
+
+    #[test]
+    fn sc093_empty_statuses_allows() {
+        let bundle = empty_bundle();
+        let ctx = base_ctx();
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Allow);
+    }
+
+    // --- Spec 093: spec-risk gate tests ---
+
+    #[test]
+    fn sc093_3_critical_risk_degrades() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.max_spec_risk = Some("critical".into());
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Degrade);
+        assert!(d.reason.contains("critical_requires_confirmation"));
+        assert_eq!(d.rule_ids, vec!["KERNEL:SPEC-RISK"]);
+    }
+
+    #[test]
+    fn sc093_high_risk_degrades() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.max_spec_risk = Some("high".into());
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Degrade);
+        assert!(d.reason.contains("high_gated"));
+    }
+
+    #[test]
+    fn sc093_medium_risk_allows() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.max_spec_risk = Some("medium".into());
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Allow);
+    }
+
+    #[test]
+    fn sc093_low_risk_allows() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.max_spec_risk = Some("low".into());
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Allow);
+    }
+
+    #[test]
+    fn sc093_no_risk_allows() {
+        let bundle = empty_bundle();
+        let ctx = base_ctx();
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Allow);
+    }
+
+    #[test]
+    fn sc093_status_gate_runs_before_risk_gate() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.spec_statuses = vec!["draft".into()];
+        ctx.max_spec_risk = Some("critical".into());
+        // Status gate (Degrade:draft) fires before risk gate
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Degrade);
+        assert!(d.reason.contains("draft_read_only"));
     }
 }

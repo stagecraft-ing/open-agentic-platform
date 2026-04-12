@@ -3,10 +3,10 @@
 // Feature: GOVERNANCE_ENGINE
 // Spec: spec/core/governance.md
 
-use crate::graph::{FeatureGraph, Violation};
+use crate::graph::{FeatureGraph, FeatureNode, Violation};
 use crate::scanner::HeaderParser;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,6 +76,9 @@ impl PreflightChecker {
 
         // 1. Check Policy Violations
         self.check_policy_violations(req, &mut violations);
+
+        // 1b. Spec 093 — Check dependency satisfaction for affected features
+        self.check_dependency_satisfaction(graph, req, &mut violations);
 
         // 2. Check Feature Graph Consistency
 
@@ -160,6 +163,74 @@ impl PreflightChecker {
         })
     }
 
+    /// Spec 093, Slice 5: for each feature affected by changed paths, verify that all
+    /// `depends_on` entries are present in the graph and have status `active`.
+    fn check_dependency_satisfaction(
+        &self,
+        graph: &FeatureGraph,
+        req: &PreflightRequest,
+        violations: &mut Vec<Violation>,
+    ) {
+        let feature_map: HashMap<&str, &FeatureNode> = graph
+            .features
+            .iter()
+            .map(|f| (f.feature_id.as_str(), f))
+            .collect();
+
+        // Collect features affected by the changed paths
+        let mut affected_features: HashSet<&str> = HashSet::new();
+        for path in &req.changed_paths {
+            for node in &graph.features {
+                if node.impl_files.contains(path) || node.test_files.contains(path) {
+                    affected_features.insert(&node.feature_id);
+                }
+            }
+        }
+
+        for &fid in &affected_features {
+            let Some(node) = feature_map.get(fid) else {
+                continue;
+            };
+            for dep_id in &node.depends_on {
+                match feature_map.get(dep_id.as_str()) {
+                    None => {
+                        violations.push(Violation {
+                            code: "DEPENDENCY_MISSING".to_string(),
+                            severity: "error".to_string(),
+                            path: node.spec_path.clone(),
+                            feature_id: Some(fid.to_string()),
+                            message: format!(
+                                "Feature '{}' depends on '{}' which is not in the feature graph",
+                                fid, dep_id
+                            ),
+                            suggested_fix: Some(format!(
+                                "Add spec for dependency '{}' or remove it from depends_on",
+                                dep_id
+                            )),
+                        });
+                    }
+                    Some(dep_node) if dep_node.status == "draft" => {
+                        violations.push(Violation {
+                            code: "DEPENDENCY_NOT_READY".to_string(),
+                            severity: "warning".to_string(),
+                            path: node.spec_path.clone(),
+                            feature_id: Some(fid.to_string()),
+                            message: format!(
+                                "Feature '{}' depends on '{}' which is still draft",
+                                fid, dep_id
+                            ),
+                            suggested_fix: Some(format!(
+                                "Promote dependency '{}' to active before working on '{}'",
+                                dep_id, fid
+                            )),
+                        });
+                    }
+                    _ => {} // dependency is active or other non-draft status — ok
+                }
+            }
+        }
+    }
+
     fn check_policy_violations(&self, req: &PreflightRequest, violations: &mut Vec<Violation>) {
         for path in &req.changed_paths {
             // Policy: Do not edit generated files
@@ -181,17 +252,22 @@ impl PreflightChecker {
         req: &PreflightRequest,
         violations: &[Violation],
     ) -> ChangeTier {
-        // If there are any errors or Forbidden violations, it's Tier 3
+        // If there are any errors (including DEPENDENCY_MISSING), it's Tier 3
         if violations.iter().any(|v| v.severity == "error") {
             return ChangeTier::Tier3;
         }
 
-        // Tier 1: Documentation only changes
+        // Spec 093: DEPENDENCY_NOT_READY warnings escalate to at least Tier 2
+        let has_dependency_warnings = violations
+            .iter()
+            .any(|v| v.code == "DEPENDENCY_NOT_READY");
+
+        // Tier 1: Documentation only changes (unless dependency warnings)
         let all_docs = req.changed_paths.iter().all(|p| {
             p.ends_with(".md") || p.ends_with(".txt") || p.ends_with(".png") || p.ends_with(".jpg")
         });
 
-        if all_docs {
+        if all_docs && !has_dependency_warnings {
             return ChangeTier::Tier1;
         }
 
@@ -219,6 +295,116 @@ mod tests {
     use crate::graph::{FeatureGraph, FeatureNode};
     use std::fs::File;
     use std::io::Write;
+
+    fn make_node(id: &str, status: &str, deps: Vec<&str>, impl_files: Vec<&str>) -> FeatureNode {
+        FeatureNode {
+            feature_id: id.to_string(),
+            title: format!("Feature {id}"),
+            spec_path: format!("specs/{id}/spec.md"),
+            status: status.to_string(),
+            governance: String::new(),
+            owner: String::new(),
+            group: String::new(),
+            depends_on: deps.into_iter().map(String::from).collect(),
+            impl_files: impl_files.into_iter().map(String::from).collect(),
+            test_files: vec![],
+            violations: vec![],
+        }
+    }
+
+    #[test]
+    fn sc093_4_dependency_not_ready_warning() {
+        let mut graph = FeatureGraph::new();
+        graph.features.push(make_node("DEP", "draft", vec![], vec![]));
+        graph.features.push(make_node("FEAT", "active", vec!["DEP"], vec!["src/feat.rs"]));
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let feat_path = temp_dir.path().join("src/feat.rs");
+        std::fs::create_dir_all(feat_path.parent().unwrap()).unwrap();
+        let mut f = File::create(&feat_path).unwrap();
+        writeln!(f, "// Feature: FEAT").unwrap();
+
+        let checker = PreflightChecker::new(temp_dir.path());
+        let req = PreflightRequest {
+            intent: PreflightIntent::Edit,
+            mode: PreflightMode::Worktree,
+            changed_paths: vec!["src/feat.rs".to_string()],
+            snapshot_id: None,
+        };
+
+        let res = checker.check(&graph, &req).unwrap();
+        let dep_violations: Vec<_> = res
+            .violations
+            .iter()
+            .filter(|v| v.code == "DEPENDENCY_NOT_READY")
+            .collect();
+        assert_eq!(dep_violations.len(), 1);
+        assert!(dep_violations[0].message.contains("DEP"));
+        assert!(dep_violations[0].message.contains("still draft"));
+        // Dependency warning escalates to at least Tier2
+        assert!(res.safety_tier >= ChangeTier::Tier2);
+    }
+
+    #[test]
+    fn sc093_4_dependency_missing_error() {
+        let mut graph = FeatureGraph::new();
+        graph.features.push(make_node("FEAT", "active", vec!["NONEXISTENT"], vec!["src/feat.rs"]));
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let feat_path = temp_dir.path().join("src/feat.rs");
+        std::fs::create_dir_all(feat_path.parent().unwrap()).unwrap();
+        let mut f = File::create(&feat_path).unwrap();
+        writeln!(f, "// Feature: FEAT").unwrap();
+
+        let checker = PreflightChecker::new(temp_dir.path());
+        let req = PreflightRequest {
+            intent: PreflightIntent::Edit,
+            mode: PreflightMode::Worktree,
+            changed_paths: vec!["src/feat.rs".to_string()],
+            snapshot_id: None,
+        };
+
+        let res = checker.check(&graph, &req).unwrap();
+        let missing: Vec<_> = res
+            .violations
+            .iter()
+            .filter(|v| v.code == "DEPENDENCY_MISSING")
+            .collect();
+        assert_eq!(missing.len(), 1);
+        assert!(missing[0].message.contains("NONEXISTENT"));
+        // Missing dependency is an error → Tier3
+        assert_eq!(res.safety_tier, ChangeTier::Tier3);
+        assert!(!res.allowed);
+    }
+
+    #[test]
+    fn sc093_4_satisfied_dependencies_no_violation() {
+        let mut graph = FeatureGraph::new();
+        graph.features.push(make_node("DEP", "active", vec![], vec![]));
+        graph.features.push(make_node("FEAT", "active", vec!["DEP"], vec!["src/feat.rs"]));
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let feat_path = temp_dir.path().join("src/feat.rs");
+        std::fs::create_dir_all(feat_path.parent().unwrap()).unwrap();
+        let mut f = File::create(&feat_path).unwrap();
+        writeln!(f, "// Feature: FEAT").unwrap();
+
+        let checker = PreflightChecker::new(temp_dir.path());
+        let req = PreflightRequest {
+            intent: PreflightIntent::Edit,
+            mode: PreflightMode::Worktree,
+            changed_paths: vec!["src/feat.rs".to_string()],
+            snapshot_id: None,
+        };
+
+        let res = checker.check(&graph, &req).unwrap();
+        let dep_violations: Vec<_> = res
+            .violations
+            .iter()
+            .filter(|v| v.code.starts_with("DEPENDENCY_"))
+            .collect();
+        assert!(dep_violations.is_empty());
+    }
 
     #[test]
     fn test_preflight_dangling() {
