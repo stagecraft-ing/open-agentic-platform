@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "agent",
+    "agent-frontmatter",
     "axiomregent",
     "factory-contracts",
     "factory-engine",
