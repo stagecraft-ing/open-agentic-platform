@@ -51,11 +51,7 @@ pub struct AgentRegistryEntry {
     pub id: String,
     pub description: String,
     /// Agent execution type (spec 054 FR-004).
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        alias = "type"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "type")]
     pub agent_type: Option<String>,
     /// LLM model identifier (spec 054).
     #[serde(default, skip_serializing_if = "Option::is_none")]

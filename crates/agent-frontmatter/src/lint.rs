@@ -91,15 +91,15 @@ pub fn lint_frontmatter(fm: &UnifiedFrontmatter, path: &Path) -> Vec<LintDiagnos
     }
 
     // L-004: allowed_tools list should not be empty for agents that declare tool use.
-    if let AllowedTools::List(tools) = &fm.allowed_tools {
-        if tools.is_empty() {
-            diags.push(LintDiagnostic {
-                severity: Severity::Warning,
-                rule: "L-004",
-                message: "allowed_tools list is empty — agent will have no tools".into(),
-                path: path_str.clone(),
-            });
-        }
+    if let AllowedTools::List(tools) = &fm.allowed_tools
+        && tools.is_empty()
+    {
+        diags.push(LintDiagnostic {
+            severity: Severity::Warning,
+            rule: "L-004",
+            message: "allowed_tools list is empty — agent will have no tools".into(),
+            path: path_str.clone(),
+        });
     }
 
     // L-005: hook declarations should have non-empty name and run.
@@ -206,7 +206,9 @@ mod tests {
 
     #[test]
     fn wildcard_tools_no_warning() {
-        let diags = lint("name: test-agent\ndescription: A test agent that does enough things to pass the minimum length check here.\nallowed_tools: \"*\"\n");
+        let diags = lint(
+            "name: test-agent\ndescription: A test agent that does enough things to pass the minimum length check here.\nallowed_tools: \"*\"\n",
+        );
         assert!(!diags.iter().any(|d| d.rule == "L-004"));
     }
 

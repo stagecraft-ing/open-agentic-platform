@@ -10,15 +10,15 @@
 //! resolves overrides, applies category/tag filters, and formats the result
 //! as prompt-ready markdown.
 
-pub mod types;
+pub mod formatter;
 pub mod loader;
 pub mod resolver;
-pub mod formatter;
+pub mod types;
 
-pub use types::*;
-pub use loader::{TieredStandards, LoadError, load_all_tiers, load_standards_from_dir};
-pub use resolver::{StandardsFilter, resolve_standards};
 pub use formatter::{FormatOptions, FormattedStandards, format_standards_for_prompt};
+pub use loader::{LoadError, TieredStandards, load_all_tiers, load_standards_from_dir};
+pub use resolver::{StandardsFilter, resolve_standards};
+pub use types::*;
 
 use std::path::Path;
 
@@ -71,19 +71,18 @@ mod tests {
 
     #[test]
     fn resolve_and_format_integration() {
-        let result = resolve_and_format(
-            &repo_root(),
-            None,
-            &FormatOptions::default(),
-        )
-        .unwrap();
+        let result = resolve_and_format(&repo_root(), None, &FormatOptions::default()).unwrap();
 
         assert!(
             result.standard_count >= 10,
             "Expected at least 10 standards, got {}",
             result.standard_count
         );
-        assert!(result.prompt_text.contains("## Applicable Coding Standards"));
+        assert!(
+            result
+                .prompt_text
+                .contains("## Applicable Coding Standards")
+        );
         assert_eq!(result.standard_ids.len(), result.standard_count);
     }
 
@@ -93,16 +92,15 @@ mod tests {
             category: Some("security".into()),
             tags: vec![],
         };
-        let result = resolve_and_format(
-            &repo_root(),
-            Some(&filter),
-            &FormatOptions::default(),
-        )
-        .unwrap();
+        let result =
+            resolve_and_format(&repo_root(), Some(&filter), &FormatOptions::default()).unwrap();
 
         assert!(result.standard_count >= 1);
         for id in &result.standard_ids {
-            assert!(id.starts_with("security"), "Expected security standard, got {id}");
+            assert!(
+                id.starts_with("security"),
+                "Expected security standard, got {id}"
+            );
         }
     }
 
@@ -112,12 +110,8 @@ mod tests {
             category: None,
             tags: vec!["typescript".into()],
         };
-        let result = resolve_and_format(
-            &repo_root(),
-            Some(&filter),
-            &FormatOptions::default(),
-        )
-        .unwrap();
+        let result =
+            resolve_and_format(&repo_root(), Some(&filter), &FormatOptions::default()).unwrap();
 
         assert!(
             result.standard_count >= 1,

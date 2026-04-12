@@ -4,8 +4,8 @@
 
 //! Three-tier standards resolution with category/tag filtering (FR-004, FR-008, SC-003).
 
-use crate::types::{CodingStandard, StandardStatus};
 use crate::loader::TieredStandards;
+use crate::types::{CodingStandard, StandardStatus};
 use std::collections::HashMap;
 
 /// Filter criteria for resolved standards (FR-008).
@@ -53,9 +53,7 @@ pub fn resolve_standards(
             result.retain(|s| s.category == *category);
         }
         if !f.tags.is_empty() {
-            result.retain(|s| {
-                f.tags.iter().any(|t| s.tags.contains(t))
-            });
+            result.retain(|s| f.tags.iter().any(|t| s.tags.contains(t)));
         }
     }
 
@@ -75,7 +73,12 @@ mod tests {
     use super::*;
     use crate::types::*;
 
-    fn make_standard(id: &str, category: &str, priority: StandardPriority, tags: &[&str]) -> CodingStandard {
+    fn make_standard(
+        id: &str,
+        category: &str,
+        priority: StandardPriority,
+        tags: &[&str],
+    ) -> CodingStandard {
         CodingStandard {
             id: id.into(),
             category: category.into(),

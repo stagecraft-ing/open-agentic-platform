@@ -101,8 +101,12 @@ pub struct FeatureContextInfo {
 pub trait MutationPreflight: Send + Sync {
     /// Check whether a mutation to the given paths is allowed by featuregraph preflight.
     /// Returns Ok(true) if allowed, Ok(false) if blocked, Err on infrastructure failure.
-    async fn check_mutation(&self, repo_root: &str, paths: &[String], intent: &str)
-        -> Result<bool, String>;
+    async fn check_mutation(
+        &self,
+        repo_root: &str,
+        paths: &[String],
+        intent: &str,
+    ) -> Result<bool, String>;
 
     /// Spec 093: sync feature context lookup (IDs, max risk, statuses) for affected paths.
     /// Default returns empty context (no featuregraph available).
@@ -131,20 +135,21 @@ pub struct Router {
 }
 
 /// Spec 093: extract file paths that will be affected by a tool call.
-fn extract_file_paths_from_args(tool_name: &str, args: &serde_json::Map<String, Value>) -> Vec<String> {
+fn extract_file_paths_from_args(
+    tool_name: &str,
+    args: &serde_json::Map<String, Value>,
+) -> Vec<String> {
     match tool_name {
-        "repo.write_file" | "workspace.write_file" | "write_file" => {
-            args.get("path")
-                .and_then(|v| v.as_str())
-                .map(|p| vec![p.to_string()])
-                .unwrap_or_default()
-        }
-        "repo.delete" | "workspace.delete" => {
-            args.get("path")
-                .and_then(|v| v.as_str())
-                .map(|p| vec![p.to_string()])
-                .unwrap_or_default()
-        }
+        "repo.write_file" | "workspace.write_file" | "write_file" => args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .map(|p| vec![p.to_string()])
+            .unwrap_or_default(),
+        "repo.delete" | "workspace.delete" => args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .map(|p| vec![p.to_string()])
+            .unwrap_or_default(),
         "repo.apply_patch" | "workspace.apply_patch" => {
             let patch = args.get("patch").and_then(|v| v.as_str()).unwrap_or("");
             patch
@@ -310,7 +315,10 @@ impl Router {
             _ => return None,
         };
 
-        match checker.check_mutation(repo_root, &changed_paths, intent).await {
+        match checker
+            .check_mutation(repo_root, &changed_paths, intent)
+            .await
+        {
             Ok(true) => None,
             Ok(false) => Some(json_rpc_error(
                 id,

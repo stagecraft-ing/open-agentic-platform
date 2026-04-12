@@ -152,9 +152,10 @@ pub fn apply_risk_ceiling(tier: ToolTier, spec_risk: Option<&str>) -> ToolTier {
 pub fn get_tool_metadata(tool_name: &str) -> ToolMetadata {
     // Spec 093: check TOML config first
     if let Some(map) = toml_tiers()
-        && let Some(meta) = map.get(tool_name) {
-            return meta.clone();
-        }
+        && let Some(meta) = map.get(tool_name)
+    {
+        return meta.clone();
+    }
     get_tool_metadata_hardcoded(tool_name)
 }
 
@@ -225,15 +226,14 @@ fn get_tool_metadata_hardcoded(tool_name: &str) -> ToolMetadata {
             requires_file_write: true,
             requires_network: false,
         },
-        "checkpoint.create"
-        | "checkpoint.restore"
-        | "checkpoint.fork"
-        | "checkpoint.gc" => ToolMetadata {
-            tier: ToolTier::Tier2,
-            requires_file_read: false,
-            requires_file_write: true,
-            requires_network: false,
-        },
+        "checkpoint.create" | "checkpoint.restore" | "checkpoint.fork" | "checkpoint.gc" => {
+            ToolMetadata {
+                tier: ToolTier::Tier2,
+                requires_file_read: false,
+                requires_file_write: true,
+                requires_network: false,
+            }
+        }
         "snapshot.create" => ToolMetadata {
             tier: ToolTier::Tier2,
             requires_file_read: false,
@@ -455,12 +455,30 @@ network = true
 
     #[test]
     fn sc093_risk_ceiling_caps_tier() {
-        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, Some("critical")), ToolTier::Tier1);
-        assert_eq!(apply_risk_ceiling(ToolTier::Tier1, Some("critical")), ToolTier::Tier1);
-        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, Some("high")), ToolTier::Tier2);
-        assert_eq!(apply_risk_ceiling(ToolTier::Tier2, Some("high")), ToolTier::Tier2);
-        assert_eq!(apply_risk_ceiling(ToolTier::Tier1, Some("high")), ToolTier::Tier1);
-        assert_eq!(apply_risk_ceiling(ToolTier::Tier3, Some("medium")), ToolTier::Tier3);
+        assert_eq!(
+            apply_risk_ceiling(ToolTier::Tier3, Some("critical")),
+            ToolTier::Tier1
+        );
+        assert_eq!(
+            apply_risk_ceiling(ToolTier::Tier1, Some("critical")),
+            ToolTier::Tier1
+        );
+        assert_eq!(
+            apply_risk_ceiling(ToolTier::Tier3, Some("high")),
+            ToolTier::Tier2
+        );
+        assert_eq!(
+            apply_risk_ceiling(ToolTier::Tier2, Some("high")),
+            ToolTier::Tier2
+        );
+        assert_eq!(
+            apply_risk_ceiling(ToolTier::Tier1, Some("high")),
+            ToolTier::Tier1
+        );
+        assert_eq!(
+            apply_risk_ceiling(ToolTier::Tier3, Some("medium")),
+            ToolTier::Tier3
+        );
         assert_eq!(apply_risk_ceiling(ToolTier::Tier3, None), ToolTier::Tier3);
     }
 

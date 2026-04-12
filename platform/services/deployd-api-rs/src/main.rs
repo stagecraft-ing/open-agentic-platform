@@ -21,7 +21,8 @@ async fn main() -> Result<()> {
     let cfg = config::Config::from_env();
     tracing::info!("deployd-api starting on :{}", cfg.port);
 
-    let data_dir = std::env::var("DEPLOYD_DATA_DIR").unwrap_or_else(|_| "/var/lib/deployd/data".into());
+    let data_dir =
+        std::env::var("DEPLOYD_DATA_DIR").unwrap_or_else(|_| "/var/lib/deployd/data".into());
     let client = store::init_db(&data_dir).await?;
     let state = Arc::new(store::AppState {
         client,

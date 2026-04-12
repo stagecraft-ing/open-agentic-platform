@@ -811,9 +811,8 @@ impl<'de> Deserialize<'de> for HostValidation {
 
         match StringOrStruct::deserialize(deserializer)? {
             StringOrStruct::String(s) => {
-                let policy =
-                    serde_yaml::from_str::<HostValidationPolicy>(&format!("\"{s}\""))
-                        .map_err(serde::de::Error::custom)?;
+                let policy = serde_yaml::from_str::<HostValidationPolicy>(&format!("\"{s}\""))
+                    .map_err(serde::de::Error::custom)?;
                 Ok(HostValidation {
                     policy: Some(policy),
                     description: None,

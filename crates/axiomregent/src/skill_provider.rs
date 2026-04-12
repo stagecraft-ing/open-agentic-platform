@@ -59,7 +59,11 @@ impl SkillProvider {
             })
             .collect();
 
-        log::info!("loaded {} skill(s) from {}", skills.len(), commands_dir.display());
+        log::info!(
+            "loaded {} skill(s) from {}",
+            skills.len(),
+            commands_dir.display()
+        );
 
         Self { skills }
     }
@@ -127,8 +131,10 @@ impl ToolProvider for SkillProvider {
 
         // All skills require file_read (they read skill prompts and context).
         // Headless skills also require network (they spawn background tasks).
-        let requires_network =
-            matches!(skill.skill.frontmatter.skill_type, skill_factory::SkillType::Headless);
+        let requires_network = matches!(
+            skill.skill.frontmatter.skill_type,
+            skill_factory::SkillType::Headless
+        );
 
         Some(ToolPermissions {
             requires_file_read: true,
@@ -183,11 +189,7 @@ mod tests {
     #[test]
     fn tier_returns_tier2_for_known_skills() {
         let dir = TempDir::new().unwrap();
-        write_skill(
-            dir.path(),
-            "test.md",
-            "---\nname: test\n---\nbody",
-        );
+        write_skill(dir.path(), "test.md", "---\nname: test\n---\nbody");
 
         let provider = SkillProvider::load(dir.path());
         assert_eq!(

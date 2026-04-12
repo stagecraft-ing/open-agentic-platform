@@ -79,10 +79,7 @@ impl CheckpointStore {
                         .clone()
                         .map(Param::Text)
                         .unwrap_or(Param::Null),
-                    info.run_id
-                        .clone()
-                        .map(Param::Text)
-                        .unwrap_or(Param::Null),
+                    info.run_id.clone().map(Param::Text).unwrap_or(Param::Null),
                 ],
             )
             .await?;
@@ -183,34 +180,32 @@ impl CheckpointStore {
         workspace_id: Option<&str>,
     ) -> Result<Vec<CheckpointInfo>> {
         match workspace_id {
-            Some(wid) => {
-                self.client
-                    .query_as(
-                        "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
+            Some(wid) => self
+                .client
+                .query_as(
+                    "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                          state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
                          workspace_id \
                          FROM checkpoints WHERE repo_root = $1 AND workspace_id = $2 \
                          ORDER BY created_at DESC",
-                        vec![
-                            Param::Text(repo_root.to_string()),
-                            Param::Text(wid.to_string()),
-                        ],
-                    )
-                    .await
-                    .map_err(Into::into)
-            }
-            None => {
-                self.client
-                    .query_as(
-                        "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
+                    vec![
+                        Param::Text(repo_root.to_string()),
+                        Param::Text(wid.to_string()),
+                    ],
+                )
+                .await
+                .map_err(Into::into),
+            None => self
+                .client
+                .query_as(
+                    "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                          state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
                          workspace_id \
                          FROM checkpoints WHERE repo_root = $1 ORDER BY created_at DESC",
-                        vec![Param::Text(repo_root.to_string())],
-                    )
-                    .await
-                    .map_err(Into::into)
-            }
+                    vec![Param::Text(repo_root.to_string())],
+                )
+                .await
+                .map_err(Into::into),
         }
     }
 

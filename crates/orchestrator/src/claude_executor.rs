@@ -38,7 +38,9 @@ impl std::str::FromStr for ThinkingLevel {
             "medium" | "med" => Ok(ThinkingLevel::Medium),
             "high" => Ok(ThinkingLevel::High),
             "max" => Ok(ThinkingLevel::Max),
-            other => Err(format!("unknown thinking level: {other} (expected low, medium, high, max)")),
+            other => Err(format!(
+                "unknown thinking level: {other} (expected low, medium, high, max)"
+            )),
         }
     }
 }
@@ -188,15 +190,15 @@ impl ClaudeCodeExecutor {
             .and_then(|sr| sr.resolve_for_agent(&request.agent_id));
 
         let mut parts: Vec<&str> = Vec::new();
-        if let Some(ref d) = domain {
-            if !d.is_empty() {
-                parts.push(d);
-            }
+        if let Some(ref d) = domain
+            && !d.is_empty()
+        {
+            parts.push(d);
         }
-        if let Some(ref s) = standards {
-            if !s.is_empty() {
-                parts.push(s);
-            }
+        if let Some(ref s) = standards
+            && !s.is_empty()
+        {
+            parts.push(s);
         }
         parts.push(&request.system_prompt);
         parts.join("\n\n")
@@ -379,7 +381,9 @@ fn parse_claude_output(json_str: &str) -> ClaudeOutput {
     // objects on separate lines) as well as single-object output.
     let v: serde_json::Value = find_result_json(json_str).unwrap_or_else(|| {
         // Fallback: try parsing the entire string as a single JSON value.
-        serde_json::from_str(json_str).ok().unwrap_or(serde_json::Value::Null)
+        serde_json::from_str(json_str)
+            .ok()
+            .unwrap_or(serde_json::Value::Null)
     });
 
     if v.is_null() {
@@ -631,8 +635,14 @@ mod tests {
     #[test]
     fn thinking_level_round_trips() {
         assert_eq!("low".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Low);
-        assert_eq!("med".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Medium);
-        assert_eq!("high".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::High);
+        assert_eq!(
+            "med".parse::<ThinkingLevel>().unwrap(),
+            ThinkingLevel::Medium
+        );
+        assert_eq!(
+            "high".parse::<ThinkingLevel>().unwrap(),
+            ThinkingLevel::High
+        );
         assert_eq!("max".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Max);
         assert_eq!(ThinkingLevel::High.as_str(), "high");
     }

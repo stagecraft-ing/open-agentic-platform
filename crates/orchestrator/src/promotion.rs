@@ -166,8 +166,7 @@ pub fn check_promotion_eligibility(
             .steps
             .iter()
             .filter(|s| {
-                s.status == StepExecutionStatus::Failed
-                    || s.status == StepExecutionStatus::Skipped
+                s.status == StepExecutionStatus::Failed || s.status == StepExecutionStatus::Skipped
             })
             .map(|s| format!("{} ({})", s.id, format!("{:?}", s.status).to_lowercase()))
             .collect();
@@ -201,16 +200,10 @@ mod tests {
     use serde_json::Value as JsonValue;
     use uuid::Uuid;
 
-    fn make_completed_state(
-        workspace_id: Option<&str>,
-        governance_mode: &str,
-    ) -> WorkflowState {
+    fn make_completed_state(workspace_id: Option<&str>, governance_mode: &str) -> WorkflowState {
         let mut meta = serde_json::Map::new();
         if let Some(ws) = workspace_id {
-            meta.insert(
-                "workspace_id".into(),
-                JsonValue::String(ws.into()),
-            );
+            meta.insert("workspace_id".into(), JsonValue::String(ws.into()));
         }
         meta.insert(
             "governance_mode".into(),
@@ -339,7 +332,10 @@ mod tests {
         let check = check_promotion_eligibility(&state, &sync);
         match &check.eligibility {
             PromotionEligibility::Ineligible { reasons } => {
-                assert!(reasons.len() >= 4, "expected at least 4 reasons, got: {reasons:?}");
+                assert!(
+                    reasons.len() >= 4,
+                    "expected at least 4 reasons, got: {reasons:?}"
+                );
             }
             PromotionEligibility::Eligible => panic!("expected ineligible"),
         }
@@ -351,10 +347,7 @@ mod tests {
     fn sc098_3_ineligible_when_governance_mode_missing() {
         // Simulate a workflow where governance_mode was never written to metadata.
         let mut meta = serde_json::Map::new();
-        meta.insert(
-            "workspace_id".into(),
-            JsonValue::String("ws-001".into()),
-        );
+        meta.insert("workspace_id".into(), JsonValue::String("ws-001".into()));
         // Note: no "governance_mode" key — previously this would pass as "unknown" != "bypass"
 
         let mut state = WorkflowState::new(
@@ -376,7 +369,10 @@ mod tests {
         };
 
         let check = check_promotion_eligibility(&state, &sync);
-        assert!(!check.governance_active, "absent governance_mode must not pass");
+        assert!(
+            !check.governance_active,
+            "absent governance_mode must not pass"
+        );
         match &check.eligibility {
             PromotionEligibility::Ineligible { reasons } => {
                 assert!(reasons.iter().any(|r| r.contains("governance")));

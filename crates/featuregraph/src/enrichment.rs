@@ -116,8 +116,8 @@ fn enrich_one(node: &FeatureNode, file_map: &HashMap<&str, &FileNode>) -> Enrich
 mod tests {
     use super::*;
     use crate::graph::{FeatureGraph, FeatureNode};
-    use xray::schema::{FileNode, RepoStats, XrayIndex};
     use std::collections::BTreeMap;
+    use xray::schema::{FileNode, RepoStats, XrayIndex};
 
     fn make_feature(id: &str, impl_files: Vec<&str>, test_files: Vec<&str>) -> FeatureNode {
         FeatureNode {
@@ -204,7 +204,9 @@ mod tests {
     #[test]
     fn feature_with_no_matching_files_gets_zeroes() {
         let mut graph = FeatureGraph::new();
-        graph.features.push(make_feature("ORPHAN", vec!["missing.rs"], vec![]));
+        graph
+            .features
+            .push(make_feature("ORPHAN", vec!["missing.rs"], vec![]));
 
         let index = make_index(vec![]);
         let enriched = enrich_features_with_metrics(&graph, &index);

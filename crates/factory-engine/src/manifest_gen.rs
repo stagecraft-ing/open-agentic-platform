@@ -172,7 +172,10 @@ pub fn generate_process_manifest(
         });
     }
 
-    Ok(WorkflowManifest { steps, workspace_id })
+    Ok(WorkflowManifest {
+        steps,
+        workspace_id,
+    })
 }
 
 /// Generate Phase 2 (scaffolding) manifest from a frozen Build Spec (FR-003).
@@ -429,11 +432,8 @@ pub fn generate_scaffold_manifest(
             .iter()
             .find(|e| e.name == resource.entity)
             .map(|e| {
-                let fields: Vec<String> = e
-                    .fields
-                    .iter()
-                    .map(format_field_for_instruction)
-                    .collect();
+                let fields: Vec<String> =
+                    e.fields.iter().map(format_field_for_instruction).collect();
                 format!("\nEntity fields: {}", fields.join(", "))
             })
             .unwrap_or_default();
@@ -743,7 +743,10 @@ pub fn generate_scaffold_manifest(
         max_retries: Some(3),
     });
 
-    Ok(WorkflowManifest { steps, workspace_id })
+    Ok(WorkflowManifest {
+        steps,
+        workspace_id,
+    })
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -843,13 +846,11 @@ fn format_field_for_instruction(f: &factory_contracts::build_spec::Field) -> Str
                 "Reference".to_string()
             }
         }
-        FieldType::Decimal => {
-            match (f.precision, f.scale) {
-                (Some(p), Some(s)) => format!("Decimal({},{})", p, s),
-                (Some(p), None) => format!("Decimal({})", p),
-                _ => "Decimal".to_string(),
-            }
-        }
+        FieldType::Decimal => match (f.precision, f.scale) {
+            (Some(p), Some(s)) => format!("Decimal({},{})", p, s),
+            (Some(p), None) => format!("Decimal({})", p),
+            _ => "Decimal".to_string(),
+        },
         FieldType::String => {
             if let Some(max) = f.max_length {
                 format!("String({})", max)
@@ -919,9 +920,13 @@ mod tests {
     #[test]
     fn process_manifest_agent_ids_match_frontmatter() {
         let adapter = test_adapter();
-        let manifest =
-            generate_process_manifest(&adapter, &["/docs/input.md"], Path::new("/tmp/factory"), None)
-                .unwrap();
+        let manifest = generate_process_manifest(
+            &adapter,
+            &["/docs/input.md"],
+            Path::new("/tmp/factory"),
+            None,
+        )
+        .unwrap();
 
         // Agent IDs should match the frontmatter `id` field in process agent files
         // (e.g., "pipeline-orchestrator", "business-requirements-analyst").

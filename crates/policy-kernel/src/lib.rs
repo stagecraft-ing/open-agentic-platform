@@ -78,7 +78,6 @@ pub struct ToolCallContext {
     pub active_shard_scopes: Vec<String>,
 
     // --- spec 093: Spec-driven preflight fields ---
-
     /// Feature IDs affected by the tool call's target files (populated via featuregraph lookup).
     #[serde(default)]
     pub feature_ids: Vec<String>,
@@ -397,14 +396,19 @@ fn sort_json_value(v: serde_json::Value) -> String {
             for k in keys {
                 let inner = map.get(&k).expect("key from own iterator").clone();
                 let s = sort_json_value(inner);
-                out.insert(k, serde_json::from_str(&s).expect("re-parsing own JSON output"));
+                out.insert(
+                    k,
+                    serde_json::from_str(&s).expect("re-parsing own JSON output"),
+                );
             }
             serde_json::to_string(&Value::Object(out)).expect("stringify")
         }
         Value::Array(arr) => {
             let sorted: Vec<serde_json::Value> = arr
                 .into_iter()
-                .map(|x| serde_json::from_str(&sort_json_value(x)).expect("re-parsing own JSON output"))
+                .map(|x| {
+                    serde_json::from_str(&sort_json_value(x)).expect("re-parsing own JSON output")
+                })
                 .collect();
             serde_json::to_string(&Value::Array(sorted)).expect("stringify")
         }

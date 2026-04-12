@@ -68,11 +68,10 @@ pub fn load_standards_from_dir(dir: &Path) -> Result<Vec<CodingStandard>, LoadEr
         let path = entry.path();
         let path_str = path.display().to_string();
 
-        let content =
-            std::fs::read_to_string(&path).map_err(|e| LoadError::Io {
-                path: path_str.clone(),
-                source: e,
-            })?;
+        let content = std::fs::read_to_string(&path).map_err(|e| LoadError::Io {
+            path: path_str.clone(),
+            source: e,
+        })?;
 
         let standard: CodingStandard =
             serde_yaml::from_str(&content).map_err(|e| LoadError::Yaml {

@@ -77,7 +77,9 @@ pub fn has_scope(claims: &Claims, required: &str) -> bool {
 async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> {
     // Check cache
     {
-        let cache = JWKS_CACHE.lock().map_err(|e| anyhow!("JWKS cache lock poisoned: {}", e))?;
+        let cache = JWKS_CACHE
+            .lock()
+            .map_err(|e| anyhow!("JWKS cache lock poisoned: {}", e))?;
         if let Some((cached_body, cached_iss, ts)) = cache.as_ref()
             && ts.elapsed() < std::time::Duration::from_secs(600)
         {
@@ -102,7 +104,9 @@ async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> 
     let body = reqwest::get(&jwks_uri).await?.text().await?;
 
     {
-        let mut cache = JWKS_CACHE.lock().map_err(|e| anyhow!("JWKS cache lock poisoned: {}", e))?;
+        let mut cache = JWKS_CACHE
+            .lock()
+            .map_err(|e| anyhow!("JWKS cache lock poisoned: {}", e))?;
         *cache = Some((body.clone(), issuer.clone(), std::time::Instant::now()));
     }
     Ok((body, issuer))

@@ -530,19 +530,11 @@ impl ToolProvider for LegacyToolProvider {
     fn tier(&self, name: &str) -> Option<agent::safety::ToolTier> {
         let name = normalize_repo_tool_name(name);
         match name {
-            "features.impact"
-            | "gov.preflight"
-            | "gov.drift"
-            | "xray.scan"
-            | "agent.verify"
-            | "run.status"
-            | "run.logs"
-            | "repo.write_file"
-            | "repo.delete"
-            | "repo.apply_patch"
-            | "agent.propose"
-            | "agent.execute"
-            | "run.execute" => Some(agent::safety::get_tool_tier(name)),
+            "features.impact" | "gov.preflight" | "gov.drift" | "xray.scan" | "agent.verify"
+            | "run.status" | "run.logs" | "repo.write_file" | "repo.delete"
+            | "repo.apply_patch" | "agent.propose" | "agent.execute" | "run.execute" => {
+                Some(agent::safety::get_tool_tier(name))
+            }
             _ => None,
         }
     }

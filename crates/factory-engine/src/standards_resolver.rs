@@ -10,8 +10,8 @@
 use crate::FactoryAgentBridge;
 use orchestrator::StandardsResolver;
 use standards_loader::{
-    FormatOptions, FormattedStandards, TieredStandards, resolve_standards,
-    format_standards_for_prompt,
+    FormatOptions, FormattedStandards, TieredStandards, format_standards_for_prompt,
+    resolve_standards,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -68,7 +68,11 @@ impl StandardsResolver for FactoryStandardsResolver {
         {
             let cache = self.cache.lock().unwrap();
             if let Some(cached) = cache.get(&key) {
-                return if cached.is_empty() { None } else { Some(cached.clone()) };
+                return if cached.is_empty() {
+                    None
+                } else {
+                    Some(cached.clone())
+                };
             }
         }
 
@@ -95,11 +99,7 @@ mod tests {
     use factory_contracts::AgentPrompt;
     use std::path::PathBuf;
 
-    fn make_agent(
-        id: &str,
-        category: Option<&str>,
-        tags: &[&str],
-    ) -> AgentPrompt {
+    fn make_agent(id: &str, category: Option<&str>, tags: &[&str]) -> AgentPrompt {
         AgentPrompt {
             id: id.into(),
             role: "test".into(),
@@ -112,11 +112,7 @@ mod tests {
         }
     }
 
-    fn make_standard(
-        id: &str,
-        category: &str,
-        tags: &[&str],
-    ) -> standards_loader::CodingStandard {
+    fn make_standard(id: &str, category: &str, tags: &[&str]) -> standards_loader::CodingStandard {
         standards_loader::CodingStandard {
             id: id.into(),
             category: category.into(),
@@ -152,11 +148,8 @@ mod tests {
             vec![make_agent("agent-a", None, &[])],
             vec![],
         ));
-        let resolver = FactoryStandardsResolver::new(
-            bridge,
-            test_tiers(),
-            FormatOptions::default(),
-        );
+        let resolver =
+            FactoryStandardsResolver::new(bridge, test_tiers(), FormatOptions::default());
 
         let text = resolver.resolve_for_agent("agent-a").unwrap();
         assert!(text.contains("security-001"));
@@ -170,11 +163,8 @@ mod tests {
             vec![make_agent("agent-b", Some("security"), &[])],
             vec![],
         ));
-        let resolver = FactoryStandardsResolver::new(
-            bridge,
-            test_tiers(),
-            FormatOptions::default(),
-        );
+        let resolver =
+            FactoryStandardsResolver::new(bridge, test_tiers(), FormatOptions::default());
 
         let text = resolver.resolve_for_agent("agent-b").unwrap();
         assert!(text.contains("security-001"));
@@ -188,11 +178,8 @@ mod tests {
             vec![make_agent("agent-c", None, &["owasp"])],
             vec![],
         ));
-        let resolver = FactoryStandardsResolver::new(
-            bridge,
-            test_tiers(),
-            FormatOptions::default(),
-        );
+        let resolver =
+            FactoryStandardsResolver::new(bridge, test_tiers(), FormatOptions::default());
 
         let text = resolver.resolve_for_agent("agent-c").unwrap();
         assert!(text.contains("security-001")); // has owasp tag
@@ -205,11 +192,8 @@ mod tests {
             vec![make_agent("agent-a", None, &[])],
             vec![],
         ));
-        let resolver = FactoryStandardsResolver::new(
-            bridge,
-            test_tiers(),
-            FormatOptions::default(),
-        );
+        let resolver =
+            FactoryStandardsResolver::new(bridge, test_tiers(), FormatOptions::default());
 
         let text1 = resolver.resolve_for_agent("agent-a").unwrap();
         let text2 = resolver.resolve_for_agent("agent-a").unwrap();
@@ -223,11 +207,8 @@ mod tests {
     #[test]
     fn unknown_agent_resolves_without_filter() {
         let bridge = Arc::new(FactoryAgentBridge::new(vec![], vec![]));
-        let resolver = FactoryStandardsResolver::new(
-            bridge,
-            test_tiers(),
-            FormatOptions::default(),
-        );
+        let resolver =
+            FactoryStandardsResolver::new(bridge, test_tiers(), FormatOptions::default());
 
         // Unknown agent — bridge returns None for filter → all standards
         let text = resolver.resolve_for_agent("unknown-agent").unwrap();

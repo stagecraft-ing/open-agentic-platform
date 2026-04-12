@@ -10,9 +10,7 @@ use std::path::Path;
 #[derive(Debug)]
 pub enum ParseError {
     /// The file has no YAML frontmatter delimiters (`---`).
-    MissingFrontmatter {
-        path: String,
-    },
+    MissingFrontmatter { path: String },
     /// The YAML frontmatter is malformed.
     InvalidYaml {
         path: String,
@@ -152,7 +150,12 @@ Review code changes.
 "#;
         let (fm, body) = parse_frontmatter(content, &test_path("reviewer.md")).unwrap();
         assert_eq!(fm.name, "reviewer");
-        assert_eq!(fm.description.as_deref(), Some("Use this agent to review code changes for bugs, security issues, and performance."));
+        assert_eq!(
+            fm.description.as_deref(),
+            Some(
+                "Use this agent to review code changes for bugs, security issues, and performance."
+            )
+        );
         assert_eq!(fm.agent_type, AgentType::Prompt);
         assert_eq!(fm.model.as_deref(), Some("sonnet"));
         assert_eq!(
@@ -300,7 +303,10 @@ Research $ARGS
     fn unknown_fields_preserved_in_extra() {
         let yaml = "name: test\ncustom_field: hello\nanother: 42\n";
         let fm = parse_frontmatter_yaml(yaml).unwrap();
-        assert_eq!(fm.extra.get("custom_field").and_then(|v| v.as_str()), Some("hello"));
+        assert_eq!(
+            fm.extra.get("custom_field").and_then(|v| v.as_str()),
+            Some("hello")
+        );
         assert_eq!(fm.extra.get("another").and_then(|v| v.as_i64()), Some(42));
     }
 

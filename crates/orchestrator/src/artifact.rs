@@ -510,7 +510,10 @@ mod tests {
 
         let dst_dir = tempfile::TempDir::new().unwrap();
         let dst_path = dst_dir.path().join("retrieved.md");
-        assert!(cas.retrieve(&stored.content_hash, "output.md", &dst_path).unwrap());
+        assert!(
+            cas.retrieve(&stored.content_hash, "output.md", &dst_path)
+                .unwrap()
+        );
         assert_eq!(
             std::fs::read_to_string(&dst_path).unwrap(),
             "# Test\nContent here."

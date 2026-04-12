@@ -259,9 +259,7 @@ impl PreflightChecker {
         }
 
         // Spec 093: DEPENDENCY_NOT_READY warnings escalate to at least Tier 2
-        let has_dependency_warnings = violations
-            .iter()
-            .any(|v| v.code == "DEPENDENCY_NOT_READY");
+        let has_dependency_warnings = violations.iter().any(|v| v.code == "DEPENDENCY_NOT_READY");
 
         // Tier 1: Documentation only changes (unless dependency warnings)
         let all_docs = req.changed_paths.iter().all(|p| {
@@ -358,7 +356,11 @@ pub fn compute_blast_radius(
     }
 
     // Step 3: accumulate metrics from xray for all files in affected + downstream
-    let all_features: HashSet<&str> = affected.iter().copied().chain(downstream.iter().copied()).collect();
+    let all_features: HashSet<&str> = affected
+        .iter()
+        .copied()
+        .chain(downstream.iter().copied())
+        .collect();
     let feature_map: HashMap<&str, &FeatureNode> = graph
         .features
         .iter()
@@ -440,8 +442,15 @@ mod tests {
     #[test]
     fn sc093_4_dependency_not_ready_warning() {
         let mut graph = FeatureGraph::new();
-        graph.features.push(make_node("DEP", "draft", vec![], vec![]));
-        graph.features.push(make_node("FEAT", "active", vec!["DEP"], vec!["src/feat.rs"]));
+        graph
+            .features
+            .push(make_node("DEP", "draft", vec![], vec![]));
+        graph.features.push(make_node(
+            "FEAT",
+            "active",
+            vec!["DEP"],
+            vec!["src/feat.rs"],
+        ));
 
         let temp_dir = tempfile::tempdir().unwrap();
         let feat_path = temp_dir.path().join("src/feat.rs");
@@ -473,7 +482,12 @@ mod tests {
     #[test]
     fn sc093_4_dependency_missing_error() {
         let mut graph = FeatureGraph::new();
-        graph.features.push(make_node("FEAT", "active", vec!["NONEXISTENT"], vec!["src/feat.rs"]));
+        graph.features.push(make_node(
+            "FEAT",
+            "active",
+            vec!["NONEXISTENT"],
+            vec!["src/feat.rs"],
+        ));
 
         let temp_dir = tempfile::tempdir().unwrap();
         let feat_path = temp_dir.path().join("src/feat.rs");
@@ -505,8 +519,15 @@ mod tests {
     #[test]
     fn sc093_4_satisfied_dependencies_no_violation() {
         let mut graph = FeatureGraph::new();
-        graph.features.push(make_node("DEP", "active", vec![], vec![]));
-        graph.features.push(make_node("FEAT", "active", vec!["DEP"], vec!["src/feat.rs"]));
+        graph
+            .features
+            .push(make_node("DEP", "active", vec![], vec![]));
+        graph.features.push(make_node(
+            "FEAT",
+            "active",
+            vec!["DEP"],
+            vec!["src/feat.rs"],
+        ));
 
         let temp_dir = tempfile::tempdir().unwrap();
         let feat_path = temp_dir.path().join("src/feat.rs");
@@ -594,7 +615,10 @@ mod tests {
             languages: BTreeMap::new(),
             top_dirs: BTreeMap::new(),
             module_files: vec![],
-            stats: RepoStats { file_count: 0, total_size: 0 },
+            stats: RepoStats {
+                file_count: 0,
+                total_size: 0,
+            },
             digest: String::new(),
             prev_digest: None,
             changed_files: None,
@@ -608,11 +632,19 @@ mod tests {
     fn sc096_2_blast_radius_direct_and_downstream() {
         let mut graph = FeatureGraph::new();
         // A is the root, B depends on A, C depends on B (chain: A -> B -> C)
-        graph.features.push(make_node("A", "active", vec![], vec!["src/a.rs"]));
-        graph.features.push(make_node("B", "active", vec!["A"], vec!["src/b.rs"]));
-        graph.features.push(make_node("C", "active", vec!["B"], vec!["src/c.rs"]));
+        graph
+            .features
+            .push(make_node("A", "active", vec![], vec!["src/a.rs"]));
+        graph
+            .features
+            .push(make_node("B", "active", vec!["A"], vec!["src/b.rs"]));
+        graph
+            .features
+            .push(make_node("C", "active", vec!["B"], vec!["src/c.rs"]));
         // D is independent
-        graph.features.push(make_node("D", "active", vec![], vec!["src/d.rs"]));
+        graph
+            .features
+            .push(make_node("D", "active", vec![], vec!["src/d.rs"]));
 
         let index = make_xray_index(vec![
             make_xray_file("src/a.rs", 100, 5),
@@ -635,11 +667,11 @@ mod tests {
     #[test]
     fn sc096_2_blast_radius_no_downstream() {
         let mut graph = FeatureGraph::new();
-        graph.features.push(make_node("A", "active", vec![], vec!["src/a.rs"]));
+        graph
+            .features
+            .push(make_node("A", "active", vec![], vec!["src/a.rs"]));
 
-        let index = make_xray_index(vec![
-            make_xray_file("src/a.rs", 100, 5),
-        ]);
+        let index = make_xray_index(vec![make_xray_file("src/a.rs", 100, 5)]);
 
         let br = compute_blast_radius(&graph, &index, &["src/a.rs".into()]);
         assert_eq!(br.affected_features, vec!["A"]);
@@ -650,9 +682,7 @@ mod tests {
     #[test]
     fn sc096_2_blast_radius_unattributed_file() {
         let graph = FeatureGraph::new(); // no features
-        let index = make_xray_index(vec![
-            make_xray_file("src/orphan.rs", 100, 5),
-        ]);
+        let index = make_xray_index(vec![make_xray_file("src/orphan.rs", 100, 5)]);
 
         let br = compute_blast_radius(&graph, &index, &["src/orphan.rs".into()]);
         assert!(br.affected_features.is_empty());

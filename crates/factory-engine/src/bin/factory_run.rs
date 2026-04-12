@@ -5,7 +5,9 @@
 //! Supports `--resume <run-id>` to continue a previously failed pipeline.
 
 use clap::Parser;
-use factory_engine::{FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryStandardsResolver};
+use factory_engine::{
+    FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryStandardsResolver,
+};
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
     DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
@@ -120,37 +122,37 @@ async fn main() -> ExitCode {
     if cli.resume.is_none()
         && let Some(ref scaffold_src) = cli.scaffold_source
     {
-            if !scaffold_src.exists() {
-                eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
+        if !scaffold_src.exists() {
+            eprintln!("Scaffold source does not exist: {}", scaffold_src.display());
+            return ExitCode::FAILURE;
+        }
+        eprintln!(
+            "Copying scaffold from {} into project...",
+            scaffold_src.display()
+        );
+        let status = std::process::Command::new("rsync")
+            .args([
+                "-a",
+                "--exclude",
+                ".git",
+                &format!("{}/", scaffold_src.display()),
+                &format!("{}/", project_path.display()),
+            ])
+            .status();
+        match status {
+            Ok(s) if s.success() => eprintln!("  Scaffold copied successfully"),
+            Ok(s) => {
+                eprintln!(
+                    "  Scaffold copy failed with exit code: {}",
+                    s.code().unwrap_or(-1)
+                );
                 return ExitCode::FAILURE;
             }
-            eprintln!(
-                "Copying scaffold from {} into project...",
-                scaffold_src.display()
-            );
-            let status = std::process::Command::new("rsync")
-                .args([
-                    "-a",
-                    "--exclude",
-                    ".git",
-                    &format!("{}/", scaffold_src.display()),
-                    &format!("{}/", project_path.display()),
-                ])
-                .status();
-            match status {
-                Ok(s) if s.success() => eprintln!("  Scaffold copied successfully"),
-                Ok(s) => {
-                    eprintln!(
-                        "  Scaffold copy failed with exit code: {}",
-                        s.code().unwrap_or(-1)
-                    );
-                    return ExitCode::FAILURE;
-                }
-                Err(e) => {
-                    eprintln!("  Scaffold copy failed: {e}");
-                    return ExitCode::FAILURE;
-                }
+            Err(e) => {
+                eprintln!("  Scaffold copy failed: {e}");
+                return ExitCode::FAILURE;
             }
+        }
     }
 
     // Set OPC_WORKSPACE_ID env var early so all child processes inherit it (spec 092).
@@ -210,7 +212,8 @@ async fn main() -> ExitCode {
     // ── Phase 1: Process stages ─────────────────────────────────────────
     eprintln!("Phase 1: Generating process manifest (s0-s5)...");
 
-    let start = match engine.start_pipeline(&cli.adapter, &cli.business_docs, cli.workspace.clone()) {
+    let start = match engine.start_pipeline(&cli.adapter, &cli.business_docs, cli.workspace.clone())
+    {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Pipeline start failed: {e}");
@@ -255,7 +258,9 @@ async fn main() -> ExitCode {
         HashSet::new()
     };
 
-    if let Err(e) = materialize_run_directory_with_phase(&am, run_id, &start.manifest, Some("process")) {
+    if let Err(e) =
+        materialize_run_directory_with_phase(&am, run_id, &start.manifest, Some("process"))
+    {
         eprintln!("Failed to materialize run directory: {e}");
         return ExitCode::FAILURE;
     }
@@ -378,7 +383,9 @@ async fn main() -> ExitCode {
     eprintln!("\nDispatching Phase 2...\n");
 
     // Materialize Phase 2 run directory (reuse same run_id).
-    if let Err(e) = materialize_run_directory_with_phase(&am, run_id, &transition.manifest, Some("scaffold")) {
+    if let Err(e) =
+        materialize_run_directory_with_phase(&am, run_id, &transition.manifest, Some("scaffold"))
+    {
         eprintln!("Failed to materialize Phase 2 run directory: {e}");
         return ExitCode::FAILURE;
     }

@@ -145,17 +145,13 @@ fn parse_agent_file(
     // Parse via UnifiedFrontmatter from agent-frontmatter (spec 054).
     // Field aliases (id→name, role→display_name, model_hint→model, tier→safety_tier)
     // are handled automatically by the shared crate.
-    let fm: UnifiedFrontmatter = serde_yaml::from_str(&frontmatter_str).map_err(|e| {
-        LoadError::InvalidFrontmatter {
+    let fm: UnifiedFrontmatter =
+        serde_yaml::from_str(&frontmatter_str).map_err(|e| LoadError::InvalidFrontmatter {
             path: path.to_path_buf(),
             source: e,
-        }
-    })?;
+        })?;
 
-    let tier = fm
-        .safety_tier
-        .map(|st| st.as_u8())
-        .unwrap_or(default_tier);
+    let tier = fm.safety_tier.map(|st| st.as_u8()).unwrap_or(default_tier);
 
     Ok(AgentPrompt {
         id: fm.name,

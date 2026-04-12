@@ -272,7 +272,10 @@ impl ToolProvider for CheckpointProvider {
                 let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
                 let branch_name = args.get("branch_name").and_then(|v| v.as_str());
                 let run_id = args.get("run_id").and_then(|v| v.as_str());
-                Some(self.do_list(repo_root, workspace_id, branch_name, run_id).await)
+                Some(
+                    self.do_list(repo_root, workspace_id, branch_name, run_id)
+                        .await,
+                )
             }
 
             "checkpoint.timeline" => {
@@ -283,7 +286,10 @@ impl ToolProvider for CheckpointProvider {
                 let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
                 let branch_name = args.get("branch_name").and_then(|v| v.as_str());
                 let run_id = args.get("run_id").and_then(|v| v.as_str());
-                Some(self.do_timeline(repo_root, workspace_id, branch_name, run_id).await)
+                Some(
+                    self.do_timeline(repo_root, workspace_id, branch_name, run_id)
+                        .await,
+                )
             }
 
             "checkpoint.fork" => {
@@ -475,9 +481,12 @@ impl CheckpointProvider {
 
         // Populate fingerprint summary (095 Slice 2).
         let fingerprint = {
-            let mut ext_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+            let mut ext_counts: std::collections::HashMap<String, usize> =
+                std::collections::HashMap::new();
             for entry in &entries {
-                let ext = entry.path.extension()
+                let ext = entry
+                    .path
+                    .extension()
                     .map(|e| e.to_string_lossy().to_string())
                     .unwrap_or_else(|| "none".to_string());
                 *ext_counts.entry(ext).or_insert(0) += 1;
@@ -494,7 +503,8 @@ impl CheckpointProvider {
                 "file_count": entries.len(),
                 "total_size": total_bytes,
                 "top_extensions": top_extensions,
-            }).to_string()
+            })
+            .to_string()
         };
 
         // Populate branch_name from git (095 Slice 3).
@@ -523,7 +533,9 @@ impl CheckpointProvider {
             total_bytes: total_bytes as i64,
             created_at: now,
             metadata: None,
-            workspace_id: std::env::var("OPC_WORKSPACE_ID").ok().filter(|v| !v.is_empty()),
+            workspace_id: std::env::var("OPC_WORKSPACE_ID")
+                .ok()
+                .filter(|v| !v.is_empty()),
             branch_name,
             run_id,
         };
@@ -769,7 +781,10 @@ impl CheckpointProvider {
             .ok_or_else(|| anyhow::anyhow!("Checkpoint not found: {}", checkpoint_b))?;
 
         // File-level diff.
-        let diff = self.store.diff_checkpoints(checkpoint_a, checkpoint_b).await?;
+        let diff = self
+            .store
+            .diff_checkpoints(checkpoint_a, checkpoint_b)
+            .await?;
 
         // LOC delta from detailed diff.
         let entries_a = self.store.get_entries(checkpoint_a).await?;
@@ -792,16 +807,18 @@ impl CheckpointProvider {
         // Files added — all lines are "added".
         for path in &diff.added {
             if let Some(entry) = entries_b.iter().find(|e| e.path.to_string_lossy() == *path)
-                && let Some(content) = self.store.blobs.get(&entry.content_hash)? {
-                    lines_added += content.iter().filter(|&&b| b == b'\n').count() + 1;
-                }
+                && let Some(content) = self.store.blobs.get(&entry.content_hash)?
+            {
+                lines_added += content.iter().filter(|&&b| b == b'\n').count() + 1;
+            }
         }
         // Files deleted — all lines are "removed".
         for path in &diff.deleted {
             if let Some(entry) = entries_a.iter().find(|e| e.path.to_string_lossy() == *path)
-                && let Some(content) = self.store.blobs.get(&entry.content_hash)? {
-                    lines_removed += content.iter().filter(|&&b| b == b'\n').count() + 1;
-                }
+                && let Some(content) = self.store.blobs.get(&entry.content_hash)?
+            {
+                lines_removed += content.iter().filter(|&&b| b == b'\n').count() + 1;
+            }
         }
 
         // Git SHA comparison.
@@ -812,8 +829,10 @@ impl CheckpointProvider {
         };
 
         // Fingerprint delta.
-        let fingerprint_a: serde_json::Value = serde_json::from_str(&info_a.fingerprint).unwrap_or(json!({}));
-        let fingerprint_b: serde_json::Value = serde_json::from_str(&info_b.fingerprint).unwrap_or(json!({}));
+        let fingerprint_a: serde_json::Value =
+            serde_json::from_str(&info_a.fingerprint).unwrap_or(json!({}));
+        let fingerprint_b: serde_json::Value =
+            serde_json::from_str(&info_b.fingerprint).unwrap_or(json!({}));
 
         Ok(json!({
             "checkpoint_a": checkpoint_a,

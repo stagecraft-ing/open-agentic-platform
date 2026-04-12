@@ -104,8 +104,12 @@ impl FactoryEngine {
         let run_id = Uuid::new_v4();
 
         // Generate Phase 1 manifest.
-        let phase1_manifest =
-            generate_process_manifest(adapter, business_doc_paths, &self.config.factory_root, workspace_id)?;
+        let phase1_manifest = generate_process_manifest(
+            adapter,
+            business_doc_paths,
+            &self.config.factory_root,
+            workspace_id,
+        )?;
 
         // Create agent bridge.
         let process_agents =
@@ -180,8 +184,12 @@ impl FactoryEngine {
         let policy_bundle = generate_factory_policy_shard(adapter, &build_spec);
 
         // Generate Phase 2 manifest (FR-003).
-        let phase2_manifest =
-            generate_scaffold_manifest(&build_spec, adapter, &self.config.factory_root, workspace_id)?;
+        let phase2_manifest = generate_scaffold_manifest(
+            &build_spec,
+            adapter,
+            &self.config.factory_root,
+            workspace_id,
+        )?;
 
         Ok(PhaseTransitionResult {
             manifest: phase2_manifest,

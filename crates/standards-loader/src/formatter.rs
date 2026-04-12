@@ -42,11 +42,17 @@ pub struct FormattedStandards {
 }
 
 fn format_rule(rule: &StandardRule) -> String {
-    format!("- {}: {}\n  Rationale: {}", rule.verb, rule.subject, rule.rationale)
+    format!(
+        "- {}: {}\n  Rationale: {}",
+        rule.verb, rule.subject, rule.rationale
+    )
 }
 
 fn format_anti_pattern(ap: &AntiPattern) -> String {
-    format!("- Avoid: `{}`\n  Use instead: `{}`", ap.pattern, ap.correction)
+    format!(
+        "- Avoid: `{}`\n  Use instead: `{}`",
+        ap.pattern, ap.correction
+    )
 }
 
 fn format_standard(standard: &CodingStandard, options: &FormatOptions) -> String {
@@ -180,7 +186,11 @@ mod tests {
         let standards = vec![make_standard("test-001", StandardPriority::High)];
         let result = format_standards_for_prompt(&standards, &FormatOptions::default());
 
-        assert!(result.prompt_text.starts_with("## Applicable Coding Standards"));
+        assert!(
+            result
+                .prompt_text
+                .starts_with("## Applicable Coding Standards")
+        );
         assert!(result.prompt_text.contains("1 coding standard applies"));
         assert!(result.prompt_text.contains("### test-001 [high]"));
         assert!(result.prompt_text.contains("Category: testing"));

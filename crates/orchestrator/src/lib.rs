@@ -29,13 +29,15 @@ pub mod store;
 pub mod store_config;
 pub mod verify;
 
-pub use artifact::{
-    ArtifactManager, ArtifactLineage, ArtifactRecord, CasArtifact, ContentAddressedStore,
-    DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
-};
 #[cfg(feature = "local-sqlite")]
 pub use artifact::ArtifactMetadataStore;
-pub use claude_executor::{AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, ThinkingLevel};
+pub use artifact::{
+    ArtifactLineage, ArtifactManager, ArtifactRecord, CasArtifact, ContentAddressedStore,
+    DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
+};
+pub use claude_executor::{
+    AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, ThinkingLevel,
+};
 pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use effort::{EffortLevel, classify_from_task};
 pub use gates::{GateError, GateHandler, GateOutcome, evaluate_gate, evaluate_gate_if_present};
@@ -44,7 +46,9 @@ pub use hiqlite_store::{HiqliteEventNotifier, HiqliteWorkflowStore};
 pub use http::HttpState;
 pub use manifest::ApprovalEscalation;
 pub use manifest::{VerifyCommand, WorkflowManifest, WorkflowStep, split_input_ref};
-pub use promotion::{PromotionCheck, PromotionEligibility, SyncStatus, SyncTracker, check_promotion_eligibility};
+pub use promotion::{
+    PromotionCheck, PromotionEligibility, SyncStatus, SyncTracker, check_promotion_eligibility,
+};
 #[cfg(feature = "local-sqlite")]
 pub use scheduler::SqliteSchedulerStore;
 pub use scheduler::{
@@ -374,7 +378,8 @@ async fn dispatch_with_verify(
                             ),
                         });
                     }
-                    current_prompt = build_retry_instruction(&original_prompt, &detail, attempt, max_retries);
+                    current_prompt =
+                        build_retry_instruction(&original_prompt, &detail, attempt, max_retries);
                     continue;
                 }
             }
@@ -387,9 +392,21 @@ async fn dispatch_with_verify(
                     return Ok(StepMetrics {
                         status: StepStatus::Success,
                         tokens_used: Some(total_tokens),
-                        cost_usd: if total_cost > 0.0 { Some(total_cost) } else { None },
-                        duration_ms: if total_duration_ms > 0 { Some(total_duration_ms) } else { None },
-                        num_turns: if total_turns > 0 { Some(total_turns) } else { None },
+                        cost_usd: if total_cost > 0.0 {
+                            Some(total_cost)
+                        } else {
+                            None
+                        },
+                        duration_ms: if total_duration_ms > 0 {
+                            Some(total_duration_ms)
+                        } else {
+                            None
+                        },
+                        num_turns: if total_turns > 0 {
+                            Some(total_turns)
+                        } else {
+                            None
+                        },
                         retry_count: attempt,
                     });
                 }
@@ -414,7 +431,8 @@ async fn dispatch_with_verify(
                     }
                     // Rebuild prompt with failure context (075 FR-006).
                     // When resuming a session, use a focused retry message as the user prompt.
-                    current_prompt = build_retry_instruction(&original_prompt, &detail, attempt, max_retries);
+                    current_prompt =
+                        build_retry_instruction(&original_prompt, &detail, attempt, max_retries);
                     continue;
                 }
             }
@@ -422,13 +440,25 @@ async fn dispatch_with_verify(
 
         // No verification configured — success.
         return Ok(StepMetrics {
-                        status: StepStatus::Success,
-                        tokens_used: Some(total_tokens),
-                        cost_usd: if total_cost > 0.0 { Some(total_cost) } else { None },
-                        duration_ms: if total_duration_ms > 0 { Some(total_duration_ms) } else { None },
-                        num_turns: if total_turns > 0 { Some(total_turns) } else { None },
-                        retry_count: attempt,
-                    });
+            status: StepStatus::Success,
+            tokens_used: Some(total_tokens),
+            cost_usd: if total_cost > 0.0 {
+                Some(total_cost)
+            } else {
+                None
+            },
+            duration_ms: if total_duration_ms > 0 {
+                Some(total_duration_ms)
+            } else {
+                None
+            },
+            num_turns: if total_turns > 0 {
+                Some(total_turns)
+            } else {
+                None
+            },
+            retry_count: attempt,
+        });
     }
 }
 
@@ -1169,9 +1199,11 @@ pub async fn dispatch_manifest(
 
                     // Promote to CAS for cross-run persistence (094 Slice 2).
                     if let Some(ref cas) = options.cas
-                        && let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
-                            eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
-                        }
+                        && let Err(e) =
+                            artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas)
+                    {
+                        eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
+                    }
                 }
 
                 let elapsed = step_start.elapsed();
@@ -1730,9 +1762,11 @@ pub async fn dispatch_manifest_persisted(
 
                     // Promote to CAS for cross-run persistence (094 Slice 2).
                     if let Some(ref cas) = options.cas
-                        && let Err(e) = artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas) {
-                            eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
-                        }
+                        && let Err(e) =
+                            artifact_base.promote_to_cas(run_id, &step.id, &step.outputs, cas)
+                    {
+                        eprintln!("[094] CAS promotion warning for step {}: {e}", step.id);
+                    }
                 }
 
                 wf_state.mark_step_finished(
@@ -1740,7 +1774,9 @@ pub async fn dispatch_manifest_persisted(
                     StepExecutionStatus::Completed,
                     now_ts(),
                     None,
-                    metrics.tokens_used.map(|t| serde_json::json!({ "tokens_used": t })),
+                    metrics
+                        .tokens_used
+                        .map(|t| serde_json::json!({ "tokens_used": t })),
                 );
 
                 persist_and_emit(
@@ -1825,7 +1861,9 @@ pub async fn dispatch_manifest_persisted(
 
     // Persist promotion metadata in workflow state
     if let Ok(promo_json) = serde_json::to_value(&promo_check) {
-        wf_state.metadata.insert("promotion".to_string(), promo_json);
+        wf_state
+            .metadata
+            .insert("promotion".to_string(), promo_json);
     }
 
     persist_and_emit(

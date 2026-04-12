@@ -115,7 +115,10 @@ fn truncate_verify_output(output: &str, max_chars: usize) -> String {
     let half = max_chars / 2;
     let head = &output[..half];
     let tail = &output[output.len() - half..];
-    format!("{head}\n\n... ({} chars truncated) ...\n\n{tail}", output.len() - max_chars)
+    format!(
+        "{head}\n\n... ({} chars truncated) ...\n\n{tail}",
+        output.len() - max_chars
+    )
 }
 
 #[cfg(test)]

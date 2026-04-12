@@ -64,16 +64,12 @@ impl std::fmt::Display for StandardPriority {
 /// Lifecycle status of a coding standard (FR-007).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum StandardStatus {
+    #[default]
     Active,
     Candidate,
     Rejected,
-}
-
-impl Default for StandardStatus {
-    fn default() -> Self {
-        StandardStatus::Active
-    }
 }
 
 /// A single rule within a coding standard (FR-002).

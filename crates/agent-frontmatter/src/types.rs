@@ -78,7 +78,9 @@ impl<'de> Deserialize<'de> for SafetyTier {
             type Value = SafetyTier;
 
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("a safety tier string (\"tier1\"/\"tier2\"/\"tier3\") or integer (1/2/3)")
+                f.write_str(
+                    "a safety tier string (\"tier1\"/\"tier2\"/\"tier3\") or integer (1/2/3)",
+                )
             }
 
             fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<SafetyTier, E> {
@@ -387,10 +389,10 @@ impl UnifiedFrontmatter {
         }
 
         // Derive mutation from safety_tier when absent.
-        if self.mutation.is_none() {
-            if let Some(tier) = self.safety_tier {
-                self.mutation = Some(MutationCapability::from(tier));
-            }
+        if self.mutation.is_none()
+            && let Some(tier) = self.safety_tier
+        {
+            self.mutation = Some(MutationCapability::from(tier));
         }
     }
 }
