@@ -117,9 +117,25 @@ pub struct StepSummaryEntry {
     pub input_artifacts: Vec<PathBuf>,
     pub output_artifacts: Vec<PathBuf>,
     pub tokens_used: Option<u64>,
+    /// Total API cost in USD for this step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_usd: Option<f64>,
+    /// Wall-clock duration in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+    /// Number of agentic turns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub num_turns: Option<u32>,
+    /// Number of retries before success.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub retry_count: u32,
     /// SHA-256 hex hashes of output artifacts, keyed by filename (082 FR-002).
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub output_hashes: HashMap<String, String>,
+}
+
+fn is_zero(v: &u32) -> bool {
+    *v == 0
 }
 
 #[derive(Clone, Debug)]
@@ -129,6 +145,12 @@ pub struct DispatchResult {
     pub output_hashes: HashMap<String, String>,
     /// Session ID from the claude CLI, used for `--resume` on retries.
     pub session_id: Option<String>,
+    /// Total API cost in USD for this step dispatch.
+    pub cost_usd: Option<f64>,
+    /// Wall-clock duration in milliseconds.
+    pub duration_ms: Option<u64>,
+    /// Number of agentic turns.
+    pub num_turns: Option<u32>,
 }
 
 /// Plan for resuming a workflow from a previously persisted `state.json` (052 FR-003).
@@ -233,8 +255,19 @@ async fn handle_gate_simple(
 }
 
 /// Run the dispatch+verify retry loop for a single step (075 FR-005, FR-006).
+/// Accumulated metrics from dispatching a step (possibly with retries).
+struct StepMetrics {
+    status: StepStatus,
+    tokens_used: Option<u64>,
+    cost_usd: Option<f64>,
+    duration_ms: Option<u64>,
+    num_turns: Option<u32>,
+    retry_count: u32,
+}
+
+/// Dispatches a single step with optional post-verification and retry.
 ///
-/// Returns `(final_status, total_tokens)` or an error.
+/// Returns accumulated metrics or an error.
 async fn dispatch_with_verify(
     step: &WorkflowStep,
     executor: &dyn GovernedExecutor,
@@ -243,10 +276,13 @@ async fn dispatch_with_verify(
     input_paths: &[PathBuf],
     output_paths: &[PathBuf],
     project_root: Option<&Path>,
-) -> Result<(StepStatus, Option<u64>), OrchestratorError> {
+) -> Result<StepMetrics, OrchestratorError> {
     let max_retries = step.max_retries.unwrap_or(3);
     let mut attempt = 0u32;
     let mut total_tokens = 0u64;
+    let mut total_cost = 0.0f64;
+    let mut total_duration_ms = 0u64;
+    let mut total_turns = 0u32;
     let original_prompt = build_step_system_prompt(artifact_base, run_id, step);
     let mut current_prompt = original_prompt.clone();
     let mut resume_session_id: Option<String> = None;
@@ -270,6 +306,9 @@ async fn dispatch_with_verify(
         })?;
 
         total_tokens += result.tokens_used.unwrap_or(0);
+        total_cost += result.cost_usd.unwrap_or(0.0);
+        total_duration_ms += result.duration_ms.unwrap_or(0);
+        total_turns += result.num_turns.unwrap_or(0);
         // Capture session ID for potential retry continuation.
         if result.session_id.is_some() {
             resume_session_id = result.session_id.clone();
@@ -322,7 +361,14 @@ async fn dispatch_with_verify(
         if let (Some(verify_cmds), Some(root)) = (&step.post_verify, project_root) {
             match run_verify_commands(verify_cmds, root).await {
                 VerifyOutcome::Passed => {
-                    return Ok((StepStatus::Success, Some(total_tokens)));
+                    return Ok(StepMetrics {
+                        status: StepStatus::Success,
+                        tokens_used: Some(total_tokens),
+                        cost_usd: if total_cost > 0.0 { Some(total_cost) } else { None },
+                        duration_ms: if total_duration_ms > 0 { Some(total_duration_ms) } else { None },
+                        num_turns: if total_turns > 0 { Some(total_turns) } else { None },
+                        retry_count: attempt,
+                    });
                 }
                 VerifyOutcome::Failed {
                     command,
@@ -352,7 +398,14 @@ async fn dispatch_with_verify(
         }
 
         // No verification configured — success.
-        return Ok((StepStatus::Success, Some(total_tokens)));
+        return Ok(StepMetrics {
+                        status: StepStatus::Success,
+                        tokens_used: Some(total_tokens),
+                        cost_usd: if total_cost > 0.0 { Some(total_cost) } else { None },
+                        duration_ms: if total_duration_ms > 0 { Some(total_duration_ms) } else { None },
+                        num_turns: if total_turns > 0 { Some(total_turns) } else { None },
+                        retry_count: attempt,
+                    });
     }
 }
 
@@ -374,10 +427,25 @@ impl RunSummary {
 }
 
 /// Writes frozen `manifest.yaml` and placeholder `summary.json` under the run directory.
+///
+/// If `phase_name` is provided, also writes `manifest-{phase_name}.yaml` to preserve
+/// phase-specific manifests when the same run directory is reused across phases
+/// (e.g., Phase 1 "process" and Phase 2 "scaffold"). The main `manifest.yaml` is
+/// always overwritten to reflect the current/latest phase for resume detection.
 pub fn materialize_run_directory(
     artifact_base: &ArtifactManager,
     run_id: Uuid,
     manifest: &WorkflowManifest,
+) -> Result<PathBuf, OrchestratorError> {
+    materialize_run_directory_with_phase(artifact_base, run_id, manifest, None)
+}
+
+/// Like [`materialize_run_directory`] but also writes a phase-specific manifest file.
+pub fn materialize_run_directory_with_phase(
+    artifact_base: &ArtifactManager,
+    run_id: Uuid,
+    manifest: &WorkflowManifest,
+    phase_name: Option<&str>,
 ) -> Result<PathBuf, OrchestratorError> {
     let run_dir = artifact_base.run_dir(run_id);
     std::fs::create_dir_all(&run_dir).map_err(|e| OrchestratorError::InvalidManifest {
@@ -386,11 +454,21 @@ pub fn materialize_run_directory(
     let yaml = serde_yaml::to_string(manifest).map_err(|e| OrchestratorError::InvalidManifest {
         reason: format!("serialize manifest: {e}"),
     })?;
-    std::fs::write(run_dir.join("manifest.yaml"), yaml).map_err(|e| {
+    // Always write manifest.yaml (current/latest phase, used by resume).
+    std::fs::write(run_dir.join("manifest.yaml"), &yaml).map_err(|e| {
         OrchestratorError::InvalidManifest {
             reason: format!("write manifest.yaml: {e}"),
         }
     })?;
+    // Write phase-specific manifest if a phase name is provided.
+    if let Some(phase) = phase_name {
+        let phase_file = format!("manifest-{phase}.yaml");
+        std::fs::write(run_dir.join(&phase_file), &yaml).map_err(|e| {
+            OrchestratorError::InvalidManifest {
+                reason: format!("write {phase_file}: {e}"),
+            }
+        })?;
+    }
     // Only write a placeholder summary.json if one does not already exist,
     // so that resume state from a prior run is preserved.
     let summary_path = run_dir.join("summary.json");
@@ -735,6 +813,10 @@ pub fn dispatch_manifest_noop(
                     input_artifacts: resolved_inputs,
                     output_artifacts: output_paths,
                     tokens_used: None,
+                    cost_usd: None,
+                    duration_ms: None,
+                    num_turns: None,
+                    retry_count: 0,
                     output_hashes: HashMap::new(),
                 });
             }
@@ -774,6 +856,10 @@ pub fn dispatch_manifest_noop(
             input_artifacts: input_paths,
             output_artifacts: output_paths,
             tokens_used: None,
+            cost_usd: None,
+            duration_ms: None,
+            num_turns: None,
+            retry_count: 0,
             output_hashes: HashMap::new(),
         });
     }
@@ -786,12 +872,17 @@ pub fn dispatch_manifest_noop(
     Ok(summary)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_summary(
     artifact_base: &ArtifactManager,
     run_id: Uuid,
     steps: &[WorkflowStep],
     statuses: &[StepStatus],
     tokens_used: &[Option<u64>],
+    costs_usd: &[Option<f64>],
+    durations_ms: &[Option<u64>],
+    num_turns: &[Option<u32>],
+    retry_counts: &[u32],
     output_hashes: &[HashMap<String, String>],
 ) -> RunSummary {
     let mut summary_entries = Vec::with_capacity(steps.len());
@@ -809,6 +900,10 @@ fn build_summary(
             input_artifacts: input_paths,
             output_artifacts: output_paths,
             tokens_used: tokens_used[i],
+            cost_usd: costs_usd.get(i).copied().flatten(),
+            duration_ms: durations_ms.get(i).copied().flatten(),
+            num_turns: num_turns.get(i).copied().flatten(),
+            retry_count: retry_counts.get(i).copied().unwrap_or(0),
             output_hashes: output_hashes.get(i).cloned().unwrap_or_default(),
         });
     }
@@ -843,6 +938,10 @@ pub async fn dispatch_manifest(
 
     let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
     let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
+    let mut costs_usd: Vec<Option<f64>> = vec![None; steps.len()];
+    let mut durations_ms: Vec<Option<u64>> = vec![None; steps.len()];
+    let mut num_turns: Vec<Option<u32>> = vec![None; steps.len()];
+    let mut retry_counts: Vec<u32> = vec![0; steps.len()];
     let mut step_output_hashes: Vec<HashMap<String, String>> = vec![HashMap::new(); steps.len()];
 
     // Accumulated hashes from completed steps for input verification (082 FR-004).
@@ -887,6 +986,10 @@ pub async fn dispatch_manifest(
                 steps,
                 &statuses,
                 &tokens_used,
+                &costs_usd,
+                &durations_ms,
+                &num_turns,
+                &retry_counts,
                 &step_output_hashes,
             );
             summary.write_to_disk(artifact_base)?;
@@ -913,6 +1016,10 @@ pub async fn dispatch_manifest(
                             steps,
                             &statuses,
                             &tokens_used,
+                            &costs_usd,
+                            &durations_ms,
+                            &num_turns,
+                            &retry_counts,
                             &step_output_hashes,
                         );
                         summary.write_to_disk(artifact_base)?;
@@ -934,6 +1041,10 @@ pub async fn dispatch_manifest(
                 steps,
                 &statuses,
                 &tokens_used,
+                &costs_usd,
+                &durations_ms,
+                &num_turns,
+                &retry_counts,
                 &step_output_hashes,
             );
             summary.write_to_disk(artifact_base)?;
@@ -965,6 +1076,10 @@ pub async fn dispatch_manifest(
                         steps,
                         &statuses,
                         &tokens_used,
+                        &costs_usd,
+                        &durations_ms,
+                        &num_turns,
+                        &retry_counts,
                         &step_output_hashes,
                     );
                     summary.write_to_disk(artifact_base)?;
@@ -1008,10 +1123,14 @@ pub async fn dispatch_manifest(
         )
         .await
         {
-            Ok((status, step_tokens)) => {
-                let is_success = status == StepStatus::Success;
-                statuses[idx] = status;
-                tokens_used[idx] = step_tokens;
+            Ok(metrics) => {
+                let is_success = metrics.status == StepStatus::Success;
+                statuses[idx] = metrics.status;
+                tokens_used[idx] = metrics.tokens_used;
+                costs_usd[idx] = metrics.cost_usd;
+                durations_ms[idx] = metrics.duration_ms;
+                num_turns[idx] = metrics.num_turns;
+                retry_counts[idx] = metrics.retry_count;
 
                 // Hash output artifacts (082 FR-003).
                 if is_success {
@@ -1063,6 +1182,10 @@ pub async fn dispatch_manifest(
                     steps,
                     &statuses,
                     &tokens_used,
+                    &costs_usd,
+                    &durations_ms,
+                    &num_turns,
+                    &retry_counts,
                     &step_output_hashes,
                 );
                 summary.write_to_disk(artifact_base)?;
@@ -1083,6 +1206,10 @@ pub async fn dispatch_manifest(
         steps,
         &statuses,
         &tokens_used,
+        &costs_usd,
+        &durations_ms,
+        &num_turns,
+        &retry_counts,
         &step_output_hashes,
     );
     summary.write_to_disk(artifact_base)?;
@@ -1165,6 +1292,10 @@ pub async fn dispatch_manifest_persisted(
 
     let mut statuses: Vec<StepStatus> = vec![StepStatus::Pending; steps.len()];
     let mut tokens_used: Vec<Option<u64>> = vec![None; steps.len()];
+    let mut costs_usd: Vec<Option<f64>> = vec![None; steps.len()];
+    let mut durations_ms: Vec<Option<u64>> = vec![None; steps.len()];
+    let mut num_turns: Vec<Option<u32>> = vec![None; steps.len()];
+    let mut retry_counts: Vec<u32> = vec![0; steps.len()];
     let mut step_output_hashes: Vec<HashMap<String, String>> = vec![HashMap::new(); steps.len()];
 
     /// Helper: persist state + append event + broadcast.
@@ -1242,6 +1373,10 @@ pub async fn dispatch_manifest_persisted(
                 steps,
                 &statuses,
                 &tokens_used,
+                &costs_usd,
+                &durations_ms,
+                &num_turns,
+                &retry_counts,
                 &step_output_hashes,
             );
             summary.write_to_disk(artifact_base)?;
@@ -1278,6 +1413,10 @@ pub async fn dispatch_manifest_persisted(
                 steps,
                 &statuses,
                 &tokens_used,
+                &costs_usd,
+                &durations_ms,
+                &num_turns,
+                &retry_counts,
                 &step_output_hashes,
             );
             summary.write_to_disk(artifact_base)?;
@@ -1366,6 +1505,10 @@ pub async fn dispatch_manifest_persisted(
                                 steps,
                                 &statuses,
                                 &tokens_used,
+                                &costs_usd,
+                                &durations_ms,
+                                &num_turns,
+                                &retry_counts,
                                 &step_output_hashes,
                             );
                             summary.write_to_disk(artifact_base)?;
@@ -1404,6 +1547,10 @@ pub async fn dispatch_manifest_persisted(
                         steps,
                         &statuses,
                         &tokens_used,
+                        &costs_usd,
+                        &durations_ms,
+                        &num_turns,
+                        &retry_counts,
                         &step_output_hashes,
                     );
                     summary.write_to_disk(artifact_base)?;
@@ -1453,10 +1600,14 @@ pub async fn dispatch_manifest_persisted(
         )
         .await
         {
-            Ok((status, step_tokens)) => {
-                let is_success = status == StepStatus::Success;
-                statuses[idx] = status;
-                tokens_used[idx] = step_tokens;
+            Ok(metrics) => {
+                let is_success = metrics.status == StepStatus::Success;
+                statuses[idx] = metrics.status;
+                tokens_used[idx] = metrics.tokens_used;
+                costs_usd[idx] = metrics.cost_usd;
+                durations_ms[idx] = metrics.duration_ms;
+                num_turns[idx] = metrics.num_turns;
+                retry_counts[idx] = metrics.retry_count;
 
                 // Hash output artifacts (082 FR-003).
                 if is_success {
@@ -1474,7 +1625,7 @@ pub async fn dispatch_manifest_persisted(
                     StepExecutionStatus::Completed,
                     now_ts(),
                     None,
-                    step_tokens.map(|t| serde_json::json!({ "tokens_used": t })),
+                    metrics.tokens_used.map(|t| serde_json::json!({ "tokens_used": t })),
                 );
 
                 persist_and_emit(
@@ -1531,6 +1682,10 @@ pub async fn dispatch_manifest_persisted(
                     steps,
                     &statuses,
                     &tokens_used,
+                    &costs_usd,
+                    &durations_ms,
+                    &num_turns,
+                    &retry_counts,
                     &step_output_hashes,
                 );
                 summary.write_to_disk(artifact_base)?;
@@ -1557,6 +1712,10 @@ pub async fn dispatch_manifest_persisted(
         steps,
         &statuses,
         &tokens_used,
+        &costs_usd,
+        &durations_ms,
+        &num_turns,
+        &retry_counts,
         &step_output_hashes,
     );
     summary.write_to_disk(artifact_base)?;
@@ -1606,6 +1765,9 @@ mod tests {
                 tokens_used: Some(123),
                 output_hashes: HashMap::new(),
                 session_id: None,
+                cost_usd: None,
+                duration_ms: None,
+                num_turns: None,
             })
         }
     }
@@ -1653,6 +1815,9 @@ mod tests {
                 tokens_used: Some(tokens_used),
                 output_hashes: HashMap::new(),
                 session_id: None,
+                cost_usd: None,
+                duration_ms: None,
+                num_turns: None,
             })
         }
     }
@@ -1962,6 +2127,10 @@ mod tests {
                     input_artifacts: vec![],
                     output_artifacts: vec![],
                     tokens_used: Some(100),
+                    cost_usd: None,
+                    duration_ms: None,
+                    num_turns: None,
+                    retry_count: 0,
                     output_hashes: HashMap::new(),
                 },
                 StepSummaryEntry {
@@ -1971,6 +2140,10 @@ mod tests {
                     input_artifacts: vec![],
                     output_artifacts: vec![],
                     tokens_used: None,
+                    cost_usd: None,
+                    duration_ms: None,
+                    num_turns: None,
+                    retry_count: 0,
                     output_hashes: HashMap::new(),
                 },
             ],

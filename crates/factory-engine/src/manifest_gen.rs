@@ -297,7 +297,7 @@ pub fn generate_scaffold_manifest(
                 entity
                     .fields
                     .iter()
-                    .map(|f| format!("{}: {:?}", f.name, f.field_type))
+                    .map(format_field_for_instruction)
                     .collect::<Vec<_>>()
                     .join(", "),
                 adapter.adapter.name,
@@ -429,7 +429,7 @@ pub fn generate_scaffold_manifest(
                 let fields: Vec<String> = e
                     .fields
                     .iter()
-                    .map(|f| format!("{}: {:?}", f.name, f.field_type))
+                    .map(format_field_for_instruction)
                     .collect();
                 format!("\nEntity fields: {}", fields.join(", "))
             })
@@ -811,6 +811,58 @@ fn build_full_verify_commands(adapter: &AdapterManifest) -> Vec<VerifyCommand> {
     cmds
 }
 
+/// Format a field definition for inclusion in agent instructions.
+///
+/// Includes enum values, reference targets, max_length, and precision/scale
+/// inline so the scaffolding agent has the full spec — preventing it from
+/// improvising or simplifying enum values.
+fn format_field_for_instruction(f: &factory_contracts::build_spec::Field) -> String {
+    use factory_contracts::build_spec::FieldType;
+
+    let type_str = match f.field_type {
+        FieldType::Enum => {
+            if let Some(ref vals) = f.enum_values {
+                format!("Enum({})", vals.join("|"))
+            } else {
+                "Enum".to_string()
+            }
+        }
+        FieldType::Reference => {
+            if let Some(ref entity) = f.ref_entity {
+                let field = f.ref_field.as_deref().unwrap_or("id");
+                let on_delete = f
+                    .ref_on_delete
+                    .as_ref()
+                    .map(|d| format!(" ON DELETE {:?}", d))
+                    .unwrap_or_default();
+                format!("Reference({}.{}{})", entity, field, on_delete)
+            } else {
+                "Reference".to_string()
+            }
+        }
+        FieldType::Decimal => {
+            match (f.precision, f.scale) {
+                (Some(p), Some(s)) => format!("Decimal({},{})", p, s),
+                (Some(p), None) => format!("Decimal({})", p),
+                _ => "Decimal".to_string(),
+            }
+        }
+        FieldType::String => {
+            if let Some(max) = f.max_length {
+                format!("String({})", max)
+            } else {
+                "String".to_string()
+            }
+        }
+        ref other => format!("{:?}", other),
+    };
+
+    let required = if f.required { "" } else { "?" };
+    let primary = if f.primary { " PK" } else { "" };
+
+    format!("{}: {}{}{}", f.name, type_str, required, primary)
+}
+
 /// Helper: HttpMethod to string.
 trait HttpMethodStr {
     fn as_str(&self) -> &'static str;
@@ -973,5 +1025,147 @@ mod tests {
             },
             dual_stack: None,
         }
+    }
+
+    #[test]
+    fn format_field_includes_enum_values() {
+        use factory_contracts::build_spec::{Field, FieldType};
+
+        let field = Field {
+            name: "requestStatus".into(),
+            field_type: FieldType::Enum,
+            primary: false,
+            required: true,
+            unique: None,
+            default: None,
+            description: None,
+            enum_values: Some(vec![
+                "draft".into(),
+                "submitted".into(),
+                "under-review".into(),
+                "approved".into(),
+                "denied".into(),
+            ]),
+            precision: None,
+            scale: None,
+            max_length: None,
+            min_length: None,
+            ref_entity: None,
+            ref_field: None,
+            ref_on_delete: None,
+        };
+
+        let result = format_field_for_instruction(&field);
+        assert_eq!(
+            result,
+            "requestStatus: Enum(draft|submitted|under-review|approved|denied)"
+        );
+    }
+
+    #[test]
+    fn format_field_includes_reference_target() {
+        use factory_contracts::build_spec::{Field, FieldType, RefOnDelete};
+
+        let field = Field {
+            name: "organizationId".into(),
+            field_type: FieldType::Reference,
+            primary: false,
+            required: true,
+            unique: None,
+            default: None,
+            description: None,
+            enum_values: None,
+            precision: None,
+            scale: None,
+            max_length: None,
+            min_length: None,
+            ref_entity: Some("Organization".into()),
+            ref_field: Some("organizationId".into()),
+            ref_on_delete: Some(RefOnDelete::Cascade),
+        };
+
+        let result = format_field_for_instruction(&field);
+        assert_eq!(
+            result,
+            "organizationId: Reference(Organization.organizationId ON DELETE Cascade)"
+        );
+    }
+
+    #[test]
+    fn format_field_optional_marker() {
+        use factory_contracts::build_spec::{Field, FieldType};
+
+        let field = Field {
+            name: "submittedBy".into(),
+            field_type: FieldType::Reference,
+            primary: false,
+            required: false,
+            unique: None,
+            default: None,
+            description: None,
+            enum_values: None,
+            precision: None,
+            scale: None,
+            max_length: None,
+            min_length: None,
+            ref_entity: Some("PortalUser".into()),
+            ref_field: Some("userId".into()),
+            ref_on_delete: None,
+        };
+
+        let result = format_field_for_instruction(&field);
+        assert_eq!(result, "submittedBy: Reference(PortalUser.userId)?");
+    }
+
+    #[test]
+    fn format_field_decimal_with_precision() {
+        use factory_contracts::build_spec::{Field, FieldType};
+
+        let field = Field {
+            name: "amount".into(),
+            field_type: FieldType::Decimal,
+            primary: false,
+            required: true,
+            unique: None,
+            default: None,
+            description: None,
+            enum_values: None,
+            precision: Some(14),
+            scale: Some(2),
+            max_length: None,
+            min_length: None,
+            ref_entity: None,
+            ref_field: None,
+            ref_on_delete: None,
+        };
+
+        let result = format_field_for_instruction(&field);
+        assert_eq!(result, "amount: Decimal(14,2)");
+    }
+
+    #[test]
+    fn format_field_primary_key_marker() {
+        use factory_contracts::build_spec::{Field, FieldType};
+
+        let field = Field {
+            name: "id".into(),
+            field_type: FieldType::Uuid,
+            primary: true,
+            required: true,
+            unique: None,
+            default: None,
+            description: None,
+            enum_values: None,
+            precision: None,
+            scale: None,
+            max_length: None,
+            min_length: None,
+            ref_entity: None,
+            ref_field: None,
+            ref_on_delete: None,
+        };
+
+        let result = format_field_for_instruction(&field);
+        assert_eq!(result, "id: Uuid PK");
     }
 }

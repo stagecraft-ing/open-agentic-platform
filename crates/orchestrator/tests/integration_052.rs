@@ -212,6 +212,9 @@ impl GovernedExecutor for TestExecutor {
             tokens_used: Some(100),
             output_hashes: std::collections::HashMap::new(),
             session_id: None,
+            cost_usd: None,
+            duration_ms: None,
+            num_turns: None,
         })
     }
 }

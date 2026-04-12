@@ -9,7 +9,7 @@ use factory_engine::{FactoryAgentBridge, FactoryEngine, FactoryEngineConfig};
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
     DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
-    materialize_run_directory,
+    materialize_run_directory_with_phase,
 };
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -242,7 +242,7 @@ async fn main() -> ExitCode {
         HashSet::new()
     };
 
-    if let Err(e) = materialize_run_directory(&am, run_id, &start.manifest) {
+    if let Err(e) = materialize_run_directory_with_phase(&am, run_id, &start.manifest, Some("process")) {
         eprintln!("Failed to materialize run directory: {e}");
         return ExitCode::FAILURE;
     }
@@ -340,7 +340,7 @@ async fn main() -> ExitCode {
     eprintln!("\nDispatching Phase 2...\n");
 
     // Materialize Phase 2 run directory (reuse same run_id).
-    if let Err(e) = materialize_run_directory(&am, run_id, &transition.manifest) {
+    if let Err(e) = materialize_run_directory_with_phase(&am, run_id, &transition.manifest, Some("scaffold")) {
         eprintln!("Failed to materialize Phase 2 run directory: {e}");
         return ExitCode::FAILURE;
     }

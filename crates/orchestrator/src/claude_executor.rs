@@ -295,6 +295,9 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             tokens_used: parsed.tokens_used,
             output_hashes: HashMap::new(),
             session_id: parsed.session_id,
+            cost_usd: parsed.cost_usd,
+            duration_ms: parsed.duration_ms,
+            num_turns: parsed.num_turns,
         })
     }
 }
@@ -303,31 +306,96 @@ impl GovernedExecutor for ClaudeCodeExecutor {
 struct ClaudeOutput {
     tokens_used: Option<u64>,
     session_id: Option<String>,
+    /// Total API cost in USD (from `total_cost_usd`).
+    cost_usd: Option<f64>,
+    /// Wall-clock duration in milliseconds (from `duration_ms`).
+    duration_ms: Option<u64>,
+    /// Number of agentic turns (from `num_turns`).
+    num_turns: Option<u32>,
 }
 
-/// Extract token counts and session ID from the claude JSON output.
+/// Extract token counts, session ID, cost, and duration from the claude JSON output.
 ///
-/// Expects the top-level `usage` object with `input_tokens` and
-/// `output_tokens` fields, and an optional `session_id` string.
+/// The `claude --print --output-format json` CLI may write multiple JSON objects
+/// to stdout (streaming content, intermediate messages, then the final result).
+/// This function finds the last line containing a `{"type":"result",...}` object
+/// and extracts fields from it. Falls back to parsing the entire string as a
+/// single JSON value for backward compatibility.
+///
 /// Returns `None` fields if the structure is absent or cannot be parsed,
 /// so the executor remains resilient to format changes.
 fn parse_claude_output(json_str: &str) -> ClaudeOutput {
-    let v: serde_json::Value = match serde_json::from_str(json_str) {
-        Ok(v) => v,
-        Err(_) => return ClaudeOutput { tokens_used: None, session_id: None },
+    let empty = ClaudeOutput {
+        tokens_used: None,
+        session_id: None,
+        cost_usd: None,
+        duration_ms: None,
+        num_turns: None,
     };
+
+    // Strategy: find the last JSON line with "type":"result" — this is the
+    // final result object from the claude CLI. Handles NDJSON (multiple JSON
+    // objects on separate lines) as well as single-object output.
+    let v: serde_json::Value = find_result_json(json_str).unwrap_or_else(|| {
+        // Fallback: try parsing the entire string as a single JSON value.
+        serde_json::from_str(json_str).ok().unwrap_or(serde_json::Value::Null)
+    });
+
+    if v.is_null() {
+        return empty;
+    }
 
     let tokens_used = v.get("usage").and_then(|u| {
         let input = u.get("input_tokens")?.as_u64().unwrap_or(0);
         let output = u.get("output_tokens")?.as_u64().unwrap_or(0);
-        Some(input + output)
+        let cache_creation = u
+            .get("cache_creation_input_tokens")
+            .and_then(|t| t.as_u64())
+            .unwrap_or(0);
+        let cache_read = u
+            .get("cache_read_input_tokens")
+            .and_then(|t| t.as_u64())
+            .unwrap_or(0);
+        Some(input + output + cache_creation + cache_read)
     });
 
-    let session_id = v.get("session_id")
+    let session_id = v
+        .get("session_id")
         .and_then(|s| s.as_str())
         .map(String::from);
 
-    ClaudeOutput { tokens_used, session_id }
+    let cost_usd = v.get("total_cost_usd").and_then(|c| c.as_f64());
+
+    let duration_ms = v.get("duration_ms").and_then(|d| d.as_u64());
+
+    let num_turns = v
+        .get("num_turns")
+        .and_then(|n| n.as_u64())
+        .map(|n| n as u32);
+
+    ClaudeOutput {
+        tokens_used,
+        session_id,
+        cost_usd,
+        duration_ms,
+        num_turns,
+    }
+}
+
+/// Find the last JSON object in the output that has `"type":"result"`.
+fn find_result_json(output: &str) -> Option<serde_json::Value> {
+    // Iterate lines in reverse to find the last result object.
+    for line in output.lines().rev() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('{')
+            && trimmed.contains("\"type\"")
+            && let Ok(v) = serde_json::from_str::<serde_json::Value>(trimmed)
+            && v.get("type").and_then(|t| t.as_str()) == Some("result")
+        {
+            return Some(v);
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -336,18 +404,43 @@ mod tests {
 
     #[test]
     fn parse_claude_output_extracts_tokens_and_session() {
-        let json = r#"{"result":"done","usage":{"input_tokens":100,"output_tokens":50},"session_id":"abc-123"}"#;
+        let json = r#"{"type":"result","usage":{"input_tokens":100,"output_tokens":50},"session_id":"abc-123"}"#;
         let out = parse_claude_output(json);
         assert_eq!(out.tokens_used, Some(150));
         assert_eq!(out.session_id.as_deref(), Some("abc-123"));
     }
 
     #[test]
+    fn parse_claude_output_extracts_cost_and_duration() {
+        let json = r#"{"type":"result","usage":{"input_tokens":10,"output_tokens":200,"cache_creation_input_tokens":500,"cache_read_input_tokens":1000},"session_id":"s1","total_cost_usd":1.23,"duration_ms":45000,"num_turns":12}"#;
+        let out = parse_claude_output(json);
+        assert_eq!(out.tokens_used, Some(10 + 200 + 500 + 1000));
+        assert_eq!(out.cost_usd, Some(1.23));
+        assert_eq!(out.duration_ms, Some(45000));
+        assert_eq!(out.num_turns, Some(12));
+    }
+
+    #[test]
+    fn parse_claude_output_handles_multiline_ndjson() {
+        // Claude CLI may output multiple JSON objects; we want the last "result" one.
+        let output = r#"{"type":"assistant","content":"thinking..."}
+{"type":"result","usage":{"input_tokens":100,"output_tokens":50},"session_id":"final-session","total_cost_usd":0.42,"duration_ms":30000,"num_turns":5}
+"#;
+        let out = parse_claude_output(output);
+        assert_eq!(out.tokens_used, Some(150));
+        assert_eq!(out.session_id.as_deref(), Some("final-session"));
+        assert_eq!(out.cost_usd, Some(0.42));
+        assert_eq!(out.duration_ms, Some(30000));
+        assert_eq!(out.num_turns, Some(5));
+    }
+
+    #[test]
     fn parse_claude_output_returns_none_on_missing_usage() {
-        let json = r#"{"result":"done"}"#;
+        let json = r#"{"type":"result"}"#;
         let out = parse_claude_output(json);
         assert_eq!(out.tokens_used, None);
         assert_eq!(out.session_id, None);
+        assert_eq!(out.cost_usd, None);
     }
 
     #[test]
@@ -355,6 +448,15 @@ mod tests {
         let out = parse_claude_output("not json");
         assert_eq!(out.tokens_used, None);
         assert_eq!(out.session_id, None);
+    }
+
+    #[test]
+    fn parse_claude_output_fallback_for_non_result_json() {
+        // Single JSON without type:result — falls back to parsing the whole string
+        let json = r#"{"usage":{"input_tokens":10,"output_tokens":20},"session_id":"fallback"}"#;
+        let out = parse_claude_output(json);
+        assert_eq!(out.tokens_used, Some(30));
+        assert_eq!(out.session_id.as_deref(), Some("fallback"));
     }
 
     #[test]
