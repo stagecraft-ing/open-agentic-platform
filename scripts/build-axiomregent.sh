@@ -39,7 +39,7 @@ build_target() {
     cd "$CRATE_DIR"
     cargo build --release --target "$target"
 
-    local src="$CRATE_DIR/target/$target/release/axiomregent"
+    local src="$REPO_ROOT/crates/target/$target/release/axiomregent"
     local dst="$BIN_DIR/axiomregent-$target"
 
     # Windows: add .exe extension

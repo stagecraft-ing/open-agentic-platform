@@ -13,6 +13,7 @@
 #   make k8s-down       # tear down local cluster
 
 .PHONY: setup dev dev-platform dev-all stop \
+        axiomregent \
         spec-compile spec-tools \
         k8s-up k8s-down \
         check-deps
@@ -44,7 +45,27 @@ setup: check-deps
 	@echo "==> Compiling spec registry..."
 	./tools/spec-compiler/target/release/spec-compiler compile
 	@echo ""
+	@echo "==> Fetching axiomregent sidecar binary..."
+	@node scripts/fetch-axiomregent.js --check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
+	@echo ""
 	@echo "==> Setup complete. Run 'make dev' to start."
+
+# ============================================================
+# axiomregent sidecar binary
+# ============================================================
+
+axiomregent:
+	@echo "==> Building axiomregent from source..."
+	cargo build --release --manifest-path crates/axiomregent/Cargo.toml
+	@HOST_TRIPLE=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
+	EXT=""; \
+	case "$$HOST_TRIPLE" in *windows*) EXT=".exe";; esac; \
+	SRC="crates/axiomregent/target/release/axiomregent$$EXT"; \
+	DST="apps/desktop/src-tauri/binaries/axiomregent-$$HOST_TRIPLE$$EXT"; \
+	mkdir -p apps/desktop/src-tauri/binaries; \
+	cp "$$SRC" "$$DST"; \
+	case "$$HOST_TRIPLE" in *windows*) ;; *) strip "$$DST" 2>/dev/null || true;; esac; \
+	echo "    -> $$DST"
 
 # ============================================================
 # Spec tools
@@ -155,6 +176,9 @@ help:
 	@echo "  make deploy-azure   Deploy to Azure AKS"
 	@echo "  make deploy-aws     Deploy to AWS EKS"
 	@echo "  make deploy-hetzner Deploy to Hetzner K3s"
+	@echo ""
+	@echo "Sidecar:"
+	@echo "  make axiomregent    Build axiomregent sidecar from source"
 	@echo ""
 	@echo "Other:"
 	@echo "  make clean          Remove build artifacts"
