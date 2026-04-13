@@ -100,7 +100,7 @@ dev-stagecraft:
 
 dev-deployd:
 	@echo "==> Starting deployd-api (Rust/axum, port 8080)..."
-	cargo run --manifest-path platform/services/deployd-api-rs/Cargo.toml
+	DEPLOYD_AUDIENCE=deployd-local DEPLOYD_REQUIRED_SCOPE=deployd:admin cargo run --manifest-path platform/services/deployd-api-rs/Cargo.toml
 
 dev-platform:
 	@echo "==> Starting platform services in background..."
