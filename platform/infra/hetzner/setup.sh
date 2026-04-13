@@ -272,6 +272,23 @@ STAGECRAFT_DB_URL="postgres://stagecraft:${POSTGRES_PASSWORD}@postgresql.stagecr
 GITHUB_APP_PRIVATE_KEY=$(echo "$GITHUB_APP_PRIVATE_KEY_B64" | base64 -d 2>/dev/null) \
   || err "GITHUB_APP_PRIVATE_KEY_B64 is not valid base64. Encode with: base64 -i private-key.pem"
 
+# Create GHCR image-pull secrets (required for pulling from private ghcr.io)
+if [ -n "${GHCR_PAT:-}" ]; then
+  info "Creating GHCR image-pull secrets..."
+  for ns_secret in "stagecraft-system/ghcr-credentials" "deployd-system/ghcr-pull-secret"; do
+    ns="${ns_secret%%/*}"
+    secret_name="${ns_secret##*/}"
+    kubectl create secret docker-registry "$secret_name" \
+      --namespace "$ns" \
+      --docker-server=ghcr.io \
+      --docker-username=oap \
+      --docker-password="$GHCR_PAT" \
+      --dry-run=client -o yaml | kubectl apply -f -
+  done
+else
+  warn "GHCR_PAT not set — skipping image-pull secrets (pods won't be able to pull from ghcr.io)"
+fi
+
 info "Creating stagecraft-api-secrets..."
 kubectl create secret generic stagecraft-api-secrets \
   --namespace stagecraft-system \
@@ -300,7 +317,7 @@ helm upgrade --install stagecraft "$CHARTS_ROOT/stagecraft" \
   --namespace stagecraft-system \
   -f "$CHARTS_ROOT/stagecraft/values.yaml" \
   -f "$CHARTS_ROOT/stagecraft/values-hetzner.yaml" \
-  --wait --timeout 300s
+  --wait --timeout 600s
 
 info "Deploying Deployd-API..."
 helm upgrade --install deployd-api "$CHARTS_ROOT/deployd-api" \
@@ -308,6 +325,27 @@ helm upgrade --install deployd-api "$CHARTS_ROOT/deployd-api" \
   -f "$CHARTS_ROOT/deployd-api/values.yaml" \
   -f "$CHARTS_ROOT/deployd-api/values-hetzner.yaml" \
   --wait --timeout 300s
+
+# ---------------------------------------------------------------------------
+# Sync secrets to GitHub Actions (if gh CLI is available)
+# ---------------------------------------------------------------------------
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  info "Syncing secrets to GitHub Actions..."
+  KUBECONFIG_B64=$(base64 < "$KUBECONFIG_PATH" | tr -d '\n')
+
+  gh secret set KUBECONFIG_HETZNER --body "$KUBECONFIG_B64" 2>/dev/null && ok "KUBECONFIG_HETZNER synced" || warn "Failed to sync KUBECONFIG_HETZNER"
+  gh secret set WEBHOOK_SECRET --body "$GITHUB_WEBHOOK_SECRET" 2>/dev/null && ok "WEBHOOK_SECRET synced" || warn "Failed to sync WEBHOOK_SECRET"
+
+  if [ -n "${GHCR_PAT:-}" ]; then
+    gh secret set GHCR_PAT --body "$GHCR_PAT" 2>/dev/null && ok "GHCR_PAT synced" || warn "Failed to sync GHCR_PAT"
+  fi
+else
+  warn "gh CLI not available or not authenticated — skipping GitHub Actions secret sync"
+  echo "  To sync manually:"
+  echo "    gh secret set KUBECONFIG_HETZNER < <(base64 < $KUBECONFIG_PATH)"
+  echo "    gh secret set WEBHOOK_SECRET --body \"\$GITHUB_WEBHOOK_SECRET\""
+  echo "    gh secret set GHCR_PAT --body \"\$GHCR_PAT\""
+fi
 
 # ---------------------------------------------------------------------------
 # Done

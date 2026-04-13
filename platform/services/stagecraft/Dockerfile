@@ -33,5 +33,5 @@ COPY web/build/server/ ./build/server/
 ENV ENCORE_RUNTIME_LIB=/app/encore-runtime.node
 ENV NODE_ENV=production
 
-EXPOSE 8080
+EXPOSE 4000
 CMD ["node", "main.mjs"]
