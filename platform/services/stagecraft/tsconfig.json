@@ -18,6 +18,7 @@
 
     /* Module Resolution Options */
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "sourceMap": true,
