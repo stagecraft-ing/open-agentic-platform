@@ -48,7 +48,7 @@ pub struct StagecraftClient {
     client: Client,
     base_url: String,
     /// Default actor identity sent on mutating requests.
-    actor_user_id: String,
+    actor_user_id: RwLock<String>,
     /// Active workspace ID (set at runtime after auth).
     workspace_id: RwLock<String>,
     /// Rauthy JWT for authenticated endpoints (loaded from OS keychain).
@@ -60,7 +60,7 @@ impl Clone for StagecraftClient {
         Self {
             client: self.client.clone(),
             base_url: self.base_url.clone(),
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: RwLock::new(self.actor_user_id.read().unwrap().clone()),
             workspace_id: RwLock::new(self.workspace_id.read().unwrap().clone()),
             auth_token: RwLock::new(self.auth_token.read().unwrap().clone()),
         }
@@ -80,7 +80,7 @@ impl StagecraftClient {
         Some(Self {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
-            actor_user_id: actor_user_id.to_string(),
+            actor_user_id: RwLock::new(actor_user_id.to_string()),
             workspace_id: RwLock::new(String::new()),
             auth_token: RwLock::new(None),
         })
@@ -114,6 +114,28 @@ impl StagecraftClient {
             return true;
         }
         false
+    }
+
+    /// Update the actor user identity at runtime (e.g. after desktop OAuth).
+    pub fn set_actor_user_id(&self, id: &str) {
+        *self.actor_user_id.write().unwrap() = id.to_string();
+    }
+
+    /// Return the base URL (without trailing slash).
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
+    /// Clear all auth state (tokens, workspace, actor identity).
+    pub fn clear_auth(&self) {
+        *self.auth_token.write().unwrap() = None;
+        *self.workspace_id.write().unwrap() = String::new();
+        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
+            let _ = entry.delete_credential();
+        }
+        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "refresh_token") {
+            let _ = entry.delete_credential();
+        }
     }
 
     /// Build a request with Bearer auth header.
@@ -206,12 +228,11 @@ impl StagecraftClient {
                 Some(business_docs.to_vec())
             },
             policy_overrides: None,
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -240,12 +261,11 @@ impl StagecraftClient {
         );
         let body = ConfirmRequest {
             notes: notes.map(String::from),
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -274,12 +294,11 @@ impl StagecraftClient {
         );
         let body = RejectRequest {
             feedback: feedback.into(),
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -314,12 +333,11 @@ impl StagecraftClient {
             current_stage: current_stage.map(String::from),
             error: error.map(String::from),
             phase: phase.map(String::from),
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -348,12 +366,11 @@ impl StagecraftClient {
         let body = ScaffoldProgressRequest {
             pipeline_id: pipeline_id.into(),
             features: features.to_vec(),
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -380,12 +397,11 @@ impl StagecraftClient {
         );
         let body = CancelRequest {
             reason: reason.into(),
-            actor_user_id: self.actor_user_id.clone(),
+            actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -417,8 +433,7 @@ impl StagecraftClient {
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -452,8 +467,7 @@ impl StagecraftClient {
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await
@@ -484,8 +498,7 @@ impl StagecraftClient {
             self.workspace_id()
         );
         let resp = self
-            .client
-            .get(&url)
+            .authed_get(&url)
             .send()
             .await
             .map_err(StagecraftError::Network)?;
@@ -523,8 +536,7 @@ impl StagecraftClient {
             workspace_id: self.workspace_id(),
         };
         let resp = self
-            .client
-            .post(&url)
+            .authed_post(&url)
             .json(&body)
             .send()
             .await

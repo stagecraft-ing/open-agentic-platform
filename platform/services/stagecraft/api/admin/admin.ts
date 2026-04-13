@@ -1,7 +1,17 @@
-import { api } from "encore.dev/api";
+import { api, APIError } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import { db } from "../db/drizzle";
 import { auditLog, users } from "../db/schema";
 import { desc, eq } from "drizzle-orm";
+
+/** Require admin or owner platform role. Throws 403 if not. */
+function requireAdmin(): { userID: string; orgId: string } {
+  const auth = getAuthData()!;
+  if (auth.platformRole !== "admin" && auth.platformRole !== "owner") {
+    throw APIError.permissionDenied("Admin access required");
+  }
+  return auth;
+}
 
 export type UserRow = {
   id: string;
@@ -29,8 +39,9 @@ export type AuditRow = {
 export type ListAuditResponse = { events: AuditRow[] };
 
 export const listUsers = api(
-  { expose: true, method: "GET", path: "/admin/users" },
+  { expose: true, auth: true, method: "GET", path: "/admin/users" },
   async (): Promise<ListUsersResponse> => {
+    requireAdmin();
     const rows = await db.select({
       id: users.id,
       email: users.email,
@@ -45,16 +56,16 @@ export const listUsers = api(
 );
 
 export const setRole = api(
-  { expose: true, method: "POST", path: "/admin/users/set-role" },
+  { expose: true, auth: true, method: "POST", path: "/admin/users/set-role" },
   async (req: {
-    actorUserId: string;
     userId: string;
     role: "user" | "admin";
   }): Promise<SetRoleResponse> => {
+    const auth = requireAdmin();
     await db.update(users).set({ role: req.role }).where(eq(users.id, req.userId));
 
     await db.insert(auditLog).values({
-      actorUserId: req.actorUserId,
+      actorUserId: auth.userID,
       action: "user.set_role",
       targetType: "user",
       targetId: req.userId,
@@ -66,8 +77,9 @@ export const setRole = api(
 );
 
 export const listAudit = api(
-  { expose: true, method: "GET", path: "/admin/audit" },
+  { expose: true, auth: true, method: "GET", path: "/admin/audit" },
   async (): Promise<ListAuditResponse> => {
+    requireAdmin();
     const rows = await db
       .select()
       .from(auditLog)

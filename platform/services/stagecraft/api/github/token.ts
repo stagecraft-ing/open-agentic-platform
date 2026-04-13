@@ -1,13 +1,9 @@
 import { api, APIError } from "encore.dev/api";
-import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { db } from "../db/drizzle";
 import { projectRepos } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-
-// GitHub App credentials (CSI-mounted secrets)
-const githubAppId = secret("GITHUB_APP_ID");
-const githubPrivateKey = secret("GITHUB_APP_PRIVATE_KEY");
+import { signAppJwt } from "./appJwt";
 
 // Scope mapping per tool category
 const SCOPE_MAP: Record<string, Record<string, string>> = {
@@ -109,27 +105,3 @@ export const getToken = api(
   }
 );
 
-// Sign a JWT as the GitHub App (RS256, 10-minute TTL)
-async function signAppJwt(): Promise<string> {
-  const appId = githubAppId();
-  const privateKey = githubPrivateKey();
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = Buffer.from(
-    JSON.stringify({ alg: "RS256", typ: "JWT" })
-  ).toString("base64url");
-  const payload = Buffer.from(
-    JSON.stringify({
-      iat: now - 60,   // 60 seconds in the past for clock skew
-      exp: now + 600,  // 10-minute TTL
-      iss: appId,
-    })
-  ).toString("base64url");
-
-  const { createSign } = await import("crypto");
-  const sign = createSign("RSA-SHA256");
-  sign.update(`${header}.${payload}`);
-  const signature = sign.sign(privateKey, "base64url");
-
-  return `${header}.${payload}.${signature}`;
-}

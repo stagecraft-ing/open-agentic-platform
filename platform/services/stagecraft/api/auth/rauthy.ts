@@ -34,6 +34,7 @@ export interface OapClaims {
   oap_org_slug: string;      // org slug
   oap_workspace_id?: string; // active workspace ID
   github_login: string;      // GitHub handle
+  avatar_url?: string;       // GitHub avatar URL
   platform_role: string;     // owner | admin | member
   exp: number;
   iat: number;
@@ -367,6 +368,7 @@ export async function issueRauthySession(opts: {
   orgSlug: string;
   workspaceId: string;
   githubLogin: string;
+  avatarUrl?: string;
   platformRole: string;
 }): Promise<{ accessToken: string; expiresIn: number }> {
   const baseUrl = rauthyUrl();
@@ -389,6 +391,7 @@ export async function issueRauthySession(opts: {
           oap_org_slug: opts.orgSlug,
           oap_workspace_id: opts.workspaceId,
           github_login: opts.githubLogin,
+          avatar_url: opts.avatarUrl ?? "",
           platform_role: opts.platformRole,
         },
       }),

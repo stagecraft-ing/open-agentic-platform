@@ -80,6 +80,30 @@ export async function deleteProject(
   ) as Promise<{ ok: true }>;
 }
 
+// Self-service project creation (spec 080 Phase 2)
+
+export async function createProjectWithRepo(
+  request: Request,
+  data: {
+    name: string;
+    slug: string;
+    description?: string;
+    adapter: string;
+    repoName: string;
+    isPrivate?: boolean;
+  }
+) {
+  return apiFetch(request, "/api/projects/with-repo", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<{
+    project: any;
+    repo: any;
+    environments: any[];
+    githubRepoUrl: string;
+  }>;
+}
+
 // Repos
 
 export async function listProjectRepos(request: Request, projectId: string) {

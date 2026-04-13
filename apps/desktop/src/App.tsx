@@ -6,6 +6,9 @@ import { initializeWebMode } from "@/lib/apiAdapter";
 import { OutputCacheProvider } from "@/lib/outputCache";
 import { TabProvider } from "@/contexts/TabContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LoginScreen } from "@/components/auth/LoginScreen";
+import { OrgPicker } from "@/components/auth/OrgPicker";
 import { Card } from "@opc/ui/card";
 import { ProjectList } from "@/components/ProjectList";
 import { FilePicker } from "@/components/FilePicker";
@@ -68,6 +71,9 @@ function AppContent() {
   const [projectForSettings, setProjectForSettings] = useState<Project | null>(null);
   const [previousView] = useState<View>("welcome");
   
+  // Auth state
+  const { status: authStatus } = useAuth();
+
   // Initialize analytics lifecycle tracking
   useAppLifecycle();
   const trackEvent = useTrackEvent();
@@ -422,8 +428,15 @@ function AppContent() {
       
       
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        {renderContent()}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {authStatus === 'unauthenticated' && <LoginScreen />}
+        {authStatus === 'org-selection' && <OrgPicker />}
+        {authStatus === 'loading' && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        )}
+        {authStatus === 'authenticated' && renderContent()}
       </div>
       
       
@@ -521,12 +534,14 @@ function App() {
 
   return (
     <ThemeProvider>
-      <OutputCacheProvider>
-        <TabProvider>
-          <AppContent />
-          <StartupIntro visible={showIntro} />
-        </TabProvider>
-      </OutputCacheProvider>
+      <AuthProvider>
+        <OutputCacheProvider>
+          <TabProvider>
+            <AppContent />
+            <StartupIntro visible={showIntro} />
+          </TabProvider>
+        </OutputCacheProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

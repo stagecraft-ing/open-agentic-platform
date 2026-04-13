@@ -17,19 +17,24 @@ import { users, userIdentities, auditLog } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { resolveOrgMemberships, type ResolvedOrg } from "./membership";
 import { provisionRauthyUser, issueRauthySession } from "./rauthy";
+import {
+  consumeDesktopFlow,
+  storeDesktopSession,
+  cleanupDesktopState,
+} from "./desktop-state";
 
 // GitHub OAuth App credentials (separate from the GitHub App)
-const githubOAuthClientId = secret("GITHUB_OAUTH_CLIENT_ID");
-const githubOAuthClientSecret = secret("GITHUB_OAUTH_CLIENT_SECRET");
+export const githubOAuthClientId = secret("GITHUB_OAUTH_CLIENT_ID");
+export const githubOAuthClientSecret = secret("GITHUB_OAUTH_CLIENT_SECRET");
 
 // Base URL for constructing callback URLs
-const appBaseUrl = secret("APP_BASE_URL"); // e.g. https://stagecraft.localdev.online
+export const appBaseUrl = secret("APP_BASE_URL"); // e.g. https://stagecraft.localdev.online
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface GitHubUser {
+export interface GitHubUser {
   id: number;
   login: string;
   name: string | null;
@@ -37,7 +42,7 @@ interface GitHubUser {
   avatar_url: string;
 }
 
-interface GitHubAccessTokenResponse {
+export interface GitHubAccessTokenResponse {
   access_token: string;
   token_type: string;
   scope: string;
@@ -48,7 +53,7 @@ interface GitHubAccessTokenResponse {
 
 // Ephemeral state store for OAuth CSRF protection (in-memory, short-lived).
 // In production, use Redis or a DB-backed store.
-const pendingStates = new Map<string, { createdAt: number }>();
+export const pendingStates = new Map<string, { createdAt: number }>();
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function cleanupStaleStates() {
@@ -68,6 +73,7 @@ interface PendingOrgData {
   email: string;
   name: string;
   githubLogin: string;
+  avatarUrl: string;
   orgs: ResolvedOrg[];
   createdAt: number;
 }
@@ -178,6 +184,13 @@ export const githubCallback = api.raw(
       return;
     }
     pendingStates.delete(state);
+
+    // Desktop flow detection — if this state was initiated by /auth/desktop/authorize,
+    // run the same stages 1-5 but redirect to opc:// instead of setting a cookie.
+    const desktopFlow = consumeDesktopFlow(state);
+    if (desktopFlow) {
+      return handleDesktopCallbackFlow(code, state, desktopFlow, resp);
+    }
 
     // Stage 1: Exchange code for access token
     let tokenData: GitHubAccessTokenResponse;
@@ -358,6 +371,8 @@ export const githubCallback = api.raw(
             rauthyUserId: rauthyUserId!,
             email,
             name: ghUser.name || ghUser.login,
+            githubLogin: ghUser.login,
+            avatarUrl: ghUser.avatar_url,
           },
           org
         );
@@ -378,6 +393,7 @@ export const githubCallback = api.raw(
         email,
         name: ghUser.name || ghUser.login,
         githubLogin: ghUser.login,
+        avatarUrl: ghUser.avatar_url,
         orgs: matchedOrgs,
         createdAt: Date.now(),
       });
@@ -455,6 +471,8 @@ export const orgSelectComplete = api.raw(
           rauthyUserId: pendingData.rauthyUserId,
           email: pendingData.email,
           name: pendingData.name,
+          githubLogin: pendingData.githubLogin,
+          avatarUrl: pendingData.avatarUrl ?? "",
         },
         selectedOrg
       );
@@ -483,7 +501,7 @@ export const orgSelectComplete = api.raw(
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function fetchGitHubUser(accessToken: string): Promise<GitHubUser> {
+export async function fetchGitHubUser(accessToken: string): Promise<GitHubUser> {
   const resp = await fetch("https://api.github.com/user", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -499,7 +517,7 @@ async function fetchGitHubUser(accessToken: string): Promise<GitHubUser> {
   return (await resp.json()) as GitHubUser;
 }
 
-async function fetchGitHubPrimaryEmail(
+export async function fetchGitHubPrimaryEmail(
   accessToken: string
 ): Promise<string | null> {
   const resp = await fetch("https://api.github.com/user/emails", {
@@ -522,7 +540,7 @@ async function fetchGitHubPrimaryEmail(
   return primary?.email ?? emails.find((e) => e.verified)?.email ?? null;
 }
 
-async function findOrCreateUser(opts: {
+export async function findOrCreateUser(opts: {
   githubUserId: number;
   githubLogin: string;
   email: string;
@@ -591,7 +609,7 @@ async function findOrCreateUser(opts: {
  * Rauthy-issued JWT that can be validated by the auth handler.
  */
 async function buildRauthySessionCookie(
-  user: { id: string; rauthyUserId: string; email: string; name: string },
+  user: { id: string; rauthyUserId: string; email: string; name: string; githubLogin: string; avatarUrl: string },
   org: ResolvedOrg
 ): Promise<string> {
   const { accessToken, expiresIn } = await issueRauthySession({
@@ -600,11 +618,183 @@ async function buildRauthySessionCookie(
     orgId: org.orgId,
     orgSlug: org.orgSlug,
     workspaceId: org.workspaceId,
-    githubLogin: org.githubOrgLogin,
+    githubLogin: user.githubLogin,
+    avatarUrl: user.avatarUrl,
     platformRole: org.platformRole,
   });
 
   const maxAge = Math.min(expiresIn, 14 * 24 * 60 * 60); // cap at 14 days
   const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
   return `__session=${accessToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge};${secure}`;
+}
+
+/**
+ * Handle the GitHub OAuth callback for desktop (OPC) flows.
+ * Runs the same stages 1-5 as the web flow, but instead of setting a cookie,
+ * generates a one-time auth code and redirects to the OPC deep-link.
+ */
+async function handleDesktopCallbackFlow(
+  code: string,
+  _githubState: string,
+  desktopFlow: import("./desktop-state").PendingDesktopFlow,
+  resp: import("http").ServerResponse
+): Promise<void> {
+  const redirectError = (errorCode: string) => {
+    const params = new URLSearchParams({ error: errorCode, state: desktopFlow.desktopState });
+    resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
+    resp.end();
+  };
+
+  // Stage 1: Exchange code for access token
+  let tokenData: GitHubAccessTokenResponse;
+  try {
+    const tokenResp = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: githubOAuthClientId(),
+        client_secret: githubOAuthClientSecret(),
+        code,
+      }),
+    });
+    if (!tokenResp.ok) throw new Error(`Token exchange HTTP ${tokenResp.status}`);
+    tokenData = (await tokenResp.json()) as GitHubAccessTokenResponse;
+    if (!tokenData.access_token) throw new Error("No access_token in GitHub response");
+  } catch (err) {
+    log.error("Desktop: GitHub token exchange failed", { error: String(err) });
+    return redirectError("token_failed");
+  }
+
+  // Stage 2: Get GitHub user identity and email
+  let ghUser: GitHubUser;
+  let email: string;
+  try {
+    ghUser = await fetchGitHubUser(tokenData.access_token);
+    let resolvedEmail = ghUser.email;
+    if (!resolvedEmail) resolvedEmail = await fetchGitHubPrimaryEmail(tokenData.access_token);
+    if (!resolvedEmail) return redirectError("no_email");
+    email = resolvedEmail;
+  } catch (err) {
+    log.error("Desktop: GitHub API call failed", { error: String(err) });
+    return redirectError("github_api_failed");
+  }
+
+  // Stage 3: Find or create OAP user and upsert identity
+  let user: { id: string; rauthyUserId: string | null };
+  try {
+    user = await findOrCreateUser({
+      githubUserId: ghUser.id,
+      githubLogin: ghUser.login,
+      email,
+      name: ghUser.name || ghUser.login,
+      avatarUrl: ghUser.avatar_url,
+    });
+    await db
+      .insert(userIdentities)
+      .values({
+        userId: user.id,
+        provider: "github",
+        providerUserId: String(ghUser.id),
+        providerLogin: ghUser.login,
+        providerEmail: email,
+        avatarUrl: ghUser.avatar_url,
+        accessTokenEnc: tokenData.access_token,
+        refreshTokenEnc: tokenData.refresh_token ?? null,
+        tokenExpiresAt: tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000)
+          : null,
+      })
+      .onConflictDoUpdate({
+        target: [userIdentities.provider, userIdentities.providerUserId],
+        set: {
+          providerLogin: ghUser.login,
+          providerEmail: email,
+          avatarUrl: ghUser.avatar_url,
+          accessTokenEnc: tokenData.access_token,
+          refreshTokenEnc: tokenData.refresh_token ?? null,
+          tokenExpiresAt: tokenData.expires_in
+            ? new Date(Date.now() + tokenData.expires_in * 1000)
+            : null,
+          updatedAt: new Date(),
+        },
+      });
+  } catch (err) {
+    log.error("Desktop: account creation/linking failed", { error: String(err) });
+    return redirectError("account_error");
+  }
+
+  // Stage 4: Resolve org memberships
+  let matchedOrgs: ResolvedOrg[];
+  try {
+    matchedOrgs = await resolveOrgMemberships(tokenData.access_token, user.id);
+  } catch (err) {
+    log.error("Desktop: org membership resolution failed", { error: String(err) });
+    return redirectError("membership_failed");
+  }
+
+  // Stage 5: Provision Rauthy user
+  let rauthyUserId = user.rauthyUserId;
+  try {
+    if (!rauthyUserId) {
+      rauthyUserId = await provisionRauthyUser({
+        email,
+        githubLogin: ghUser.login,
+        name: ghUser.name || ghUser.login,
+      });
+      await db.update(users).set({ rauthyUserId }).where(eq(users.id, user.id));
+    }
+  } catch (err) {
+    log.error("Desktop: Rauthy provisioning failed", { error: String(err) });
+    return redirectError("rauthy_unavailable");
+  }
+
+  // Bookkeeping (non-fatal)
+  try {
+    await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
+    await db.insert(auditLog).values({
+      actorUserId: user.id,
+      action: "user.github_login_desktop",
+      targetType: "user",
+      targetId: user.id,
+      metadata: { github_login: ghUser.login, orgs_matched: matchedOrgs.length, source: "desktop" },
+    });
+  } catch (err) {
+    log.warn("Desktop: post-login bookkeeping failed (non-fatal)", { error: String(err) });
+  }
+
+  // No orgs matched
+  if (matchedOrgs.length === 0) {
+    return redirectError("no_orgs");
+  }
+
+  // Generate one-time auth code and store pending session
+  cleanupDesktopState();
+  const authCode = storeDesktopSession({
+    userId: user.id,
+    rauthyUserId: rauthyUserId!,
+    email,
+    name: ghUser.name || ghUser.login,
+    githubLogin: ghUser.login,
+    avatarUrl: ghUser.avatar_url,
+    codeChallenge: desktopFlow.codeChallenge,
+    matchedOrgs: matchedOrgs.map((o) => ({
+      orgId: o.orgId,
+      orgSlug: o.orgSlug,
+      workspaceId: o.workspaceId,
+      githubOrgLogin: o.githubOrgLogin,
+      platformRole: o.platformRole,
+    })),
+    createdAt: Date.now(),
+  });
+
+  // Redirect to OPC deep-link with auth code
+  const params = new URLSearchParams({
+    code: authCode,
+    state: desktopFlow.desktopState,
+  });
+  if (matchedOrgs.length > 1) {
+    params.set("multi_org", "true");
+  }
+  resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
+  resp.end();
 }

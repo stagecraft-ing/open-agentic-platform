@@ -17,6 +17,7 @@ export default [
     index("routes/app._index.tsx"),
     route("knowledge", "routes/app.knowledge.tsx"),
     route("knowledge/:id", "routes/app.knowledge.$id.tsx"),
+    route("projects/new", "routes/app.projects.new.tsx"),
     route("pipelines", "routes/app.pipelines.tsx"),
     route("pipelines/:projectId", "routes/app.pipelines.$projectId.tsx"),
     route("deploys", "routes/app.deploys.tsx"),

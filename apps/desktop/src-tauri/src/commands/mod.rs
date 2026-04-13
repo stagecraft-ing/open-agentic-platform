@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod analysis;
+pub mod auth;
 pub mod claude;
 pub mod factory;
 pub mod git;

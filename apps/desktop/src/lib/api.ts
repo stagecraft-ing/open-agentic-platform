@@ -505,6 +505,36 @@ export interface ImportServerResult {
  * API client for interacting with the Rust backend
  */
 export const api = {
+  // Desktop OAuth (spec 080 Phase 1)
+  async authStartLogin(): Promise<void> {
+    await apiCall<null>("auth_start_login");
+  },
+
+  async authHandleCallback(url: string): Promise<any> {
+    return await apiCall<any>("auth_handle_callback", { url });
+  },
+
+  async authSelectOrg(pendingId: string, orgId: string): Promise<any> {
+    return await apiCall<any>("auth_select_org", { pendingId, orgId });
+  },
+
+  async authRefreshToken(): Promise<number> {
+    return await apiCall<number>("auth_refresh_token");
+  },
+
+  async authGetStatus(): Promise<{
+    authenticated: boolean;
+    user: any | null;
+    org: any | null;
+    expires_at: number | null;
+  }> {
+    return await apiCall<any>("auth_get_status");
+  },
+
+  async authLogout(): Promise<void> {
+    await apiCall<null>("auth_logout");
+  },
+
   /**
    * Gets the user's home directory path
    * @returns Promise resolving to the home directory path

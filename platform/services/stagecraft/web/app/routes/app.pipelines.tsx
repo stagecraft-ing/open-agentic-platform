@@ -36,21 +36,35 @@ export default function PipelinesList() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-        Factory Pipelines
-      </h2>
-
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        Select a project to view its factory pipeline status and manage stage
-        approvals.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Factory Pipelines
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Select a project to view its factory pipeline status and manage stage
+            approvals.
+          </p>
+        </div>
+        <Link
+          to="/app/projects/new"
+          className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          New Project
+        </Link>
+      </div>
 
       {projects.length === 0 ? (
         <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-12 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No projects yet. Create a project in the Admin panel to start a
-            factory pipeline.
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            No projects yet.
           </p>
+          <Link
+            to="/app/projects/new"
+            className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            Create your first project
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

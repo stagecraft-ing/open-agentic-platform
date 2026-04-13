@@ -315,6 +315,39 @@ async getPreflightSafetyTierReference() : Promise<SafetyTierRef[]> {
 },
 async getToolTierAssignments() : Promise<ToolTierEntry[]> {
     return await TAURI_INVOKE("get_tool_tier_assignments");
+},
+/**
+ * Store a JWT in the OS keychain.
+ */
+async keychainStore(token: string, user: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("keychain_store", { token, user }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Retrieve a JWT from the OS keychain. Returns None if not found.
+ */
+async keychainRetrieve(user: string | null) : Promise<Result<string | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("keychain_retrieve", { user }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Clear a JWT from the OS keychain.
+ */
+async keychainClear(user: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("keychain_clear", { user }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

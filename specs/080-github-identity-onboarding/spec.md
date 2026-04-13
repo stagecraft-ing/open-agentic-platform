@@ -2,7 +2,7 @@
 id: "080-github-identity-onboarding"
 title: "GitHub Identity and Org Onboarding — App Installation, OAuth Login, Rauthy Sessions"
 feature_branch: "feat/080-github-identity-onboarding"
-status: draft
+status: active
 kind: platform
 created: "2026-04-06"
 authors: ["open-agentic-platform"]
@@ -23,8 +23,8 @@ risk: medium
 
 | Phase | Title | Status |
 |-------|-------|--------|
-| phase-1 | GitHub App + OAuth Login + Rauthy Sessions | draft |
-| phase-2 | Self-Service Project Creation | draft |
+| phase-1 | GitHub App + OAuth Login + Rauthy Sessions | active |
+| phase-2 | Self-Service Project Creation | active |
 | phase-3 | Team Role Mapping + Sync | draft |
 | phase-4 | Enterprise OIDC Federation | draft |
 

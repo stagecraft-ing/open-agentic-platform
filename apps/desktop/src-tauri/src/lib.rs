@@ -71,7 +71,7 @@ use commands::worktree_agents::{
 use process::ProcessRegistryState;
 use sidecars::SidecarState;
 use std::sync::Mutex;
-use tauri::Manager;
+use tauri::{Emitter, Listener, Manager};
 
 #[cfg(target_os = "macos")]
 use window_vibrancy::{NSVisualEffectMaterial, apply_vibrancy};
@@ -234,6 +234,23 @@ pub fn run() {
                 }
                 app.manage(StagecraftState(sc));
             }
+
+            // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)
+            app.manage(commands::auth::AuthFlowState(std::sync::Mutex::new(None)));
+
+            // Listen for deep-link callbacks (OPC desktop OAuth flow, spec 080)
+            let handle_clone = app.handle().clone();
+            app.listen("deep-link://new-url", move |event: tauri::Event| {
+                let payload = event.payload();
+                // The payload is a JSON array of URL strings
+                if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload) {
+                    for url in urls {
+                        if url.starts_with("opc://auth/callback") {
+                            let _ = handle_clone.emit("auth-callback", &url);
+                        }
+                    }
+                }
+            });
 
             // Initialize zoom state (Tauri 2 has no zoom getter; we track it here)
             app.manage(commands::window_ctrl::ZoomState::default());
@@ -483,6 +500,13 @@ pub fn run() {
             keychain_store,
             keychain_retrieve,
             keychain_clear,
+            // Desktop OAuth (spec 080 Phase 1)
+            commands::auth::auth_start_login,
+            commands::auth::auth_handle_callback,
+            commands::auth::auth_select_org,
+            commands::auth::auth_refresh_token,
+            commands::auth::auth_get_status,
+            commands::auth::auth_logout,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

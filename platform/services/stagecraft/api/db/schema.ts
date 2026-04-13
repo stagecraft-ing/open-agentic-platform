@@ -615,3 +615,23 @@ export const promotions = pgTable("promotions", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Desktop Refresh Tokens (spec 080 Phase 1 — OPC PKCE auth)
+// ---------------------------------------------------------------------------
+
+export const desktopRefreshTokens = pgTable("desktop_refresh_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tokenHash: text("token_hash").notNull().unique(),
+  userId: uuid("user_id").notNull(),
+  orgId: uuid("org_id").notNull(),
+  workspaceId: text("workspace_id").notNull().default(""),
+  orgSlug: text("org_slug").notNull().default(""),
+  githubLogin: text("github_login").notNull(),
+  platformRole: text("platform_role").notNull().default("member"),
+  rauthyUserId: text("rauthy_user_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

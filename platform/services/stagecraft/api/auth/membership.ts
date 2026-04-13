@@ -220,6 +220,46 @@ export async function resolveOrgMemberships(
   return matchedOrgs;
 }
 
+// ---------------------------------------------------------------------------
+// Org-level permissions (spec 080 FR-007)
+// ---------------------------------------------------------------------------
+
+export type OrgPermission =
+  | "project:create"
+  | "project:delete"
+  | "org:manage_members"
+  | "org:manage_policies"
+  | "org:manage_billing"
+  | "factory:init"
+  | "factory:confirm"
+  | "deploy:production";
+
+const ORG_PERMISSION_MAP: Record<OrgPermission, Set<"owner" | "admin" | "member">> = {
+  "project:create": new Set(["owner", "admin", "member"]),
+  "project:delete": new Set(["owner", "admin"]),
+  "org:manage_members": new Set(["owner", "admin"]),
+  "org:manage_policies": new Set(["owner"]),
+  "org:manage_billing": new Set(["owner"]),
+  "factory:init": new Set(["owner", "admin", "member"]),
+  "factory:confirm": new Set(["owner", "admin"]),
+  "deploy:production": new Set(["owner"]),
+};
+
+/**
+ * Check whether a platform role has a specific org-level permission.
+ * Uses the default role-permission mapping from spec 080 FR-007.
+ */
+export function hasOrgPermission(
+  platformRole: "owner" | "admin" | "member",
+  permission: OrgPermission
+): boolean {
+  return ORG_PERMISSION_MAP[permission]?.has(platformRole) ?? false;
+}
+
+// ---------------------------------------------------------------------------
+// Role lookups
+// ---------------------------------------------------------------------------
+
 /**
  * Get the platform role for a user in a specific org.
  * Reads from org_memberships (the resolved state).

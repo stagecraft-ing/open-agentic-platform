@@ -9,6 +9,7 @@ import {
   projects,
   environments,
   githubInstallations,
+  workspaces,
   auditLog,
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -280,6 +281,17 @@ async function handleInstallationEvent(p: any): Promise<void> {
           .where(eq(organizations.id, orgId));
       }
     }
+
+    // Ensure a default workspace exists for the org (spec 080 — resolveOrgMemberships needs it)
+    await db
+      .insert(workspaces)
+      .values({
+        orgId,
+        name: "Default",
+        slug: "default",
+        objectStoreBucket: `oap-${githubOrgLogin.toLowerCase()}-default`,
+      })
+      .onConflictDoNothing(); // unique(org_id, slug)
 
     // Upsert github_installations row
     await db
