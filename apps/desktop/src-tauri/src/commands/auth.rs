@@ -40,7 +40,12 @@ pub struct AuthUser {
     pub id: String,
     pub email: String,
     pub name: String,
+    #[serde(default)]
     pub github_login: String,
+    #[serde(default)]
+    pub idp_provider: String,
+    #[serde(default)]
+    pub idp_login: String,
     pub avatar_url: String,
 }
 
@@ -48,7 +53,10 @@ pub struct AuthUser {
 pub struct AuthOrg {
     pub org_id: String,
     pub org_slug: String,
+    #[serde(default)]
     pub github_org_login: String,
+    #[serde(default)]
+    pub org_display_name: String,
     pub platform_role: String,
 }
 
@@ -146,7 +154,12 @@ struct TokenUser {
     id: String,
     email: String,
     name: String,
+    #[serde(default)]
     github_login: String,
+    #[serde(default)]
+    idp_provider: String,
+    #[serde(default)]
+    idp_login: String,
     avatar_url: String,
 }
 
@@ -155,7 +168,10 @@ struct TokenUser {
 struct TokenOrg {
     org_id: String,
     org_slug: String,
+    #[serde(default)]
     github_org_login: String,
+    #[serde(default)]
+    org_display_name: String,
     platform_role: String,
 }
 
@@ -166,6 +182,8 @@ impl From<TokenUser> for AuthUser {
             email: u.email,
             name: u.name,
             github_login: u.github_login,
+            idp_provider: u.idp_provider,
+            idp_login: u.idp_login,
             avatar_url: u.avatar_url,
         }
     }
@@ -177,6 +195,7 @@ impl From<TokenOrg> for AuthOrg {
             org_id: o.org_id,
             org_slug: o.org_slug,
             github_org_login: o.github_org_login,
+            org_display_name: o.org_display_name,
             platform_role: o.platform_role,
         }
     }
@@ -575,6 +594,16 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
+        idp_provider: claims
+            .get("idp_provider")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        idp_login: claims
+            .get("idp_login")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
         avatar_url: claims
             .get("avatar_url")
             .and_then(|v| v.as_str())
@@ -582,22 +611,25 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
             .to_string(),
     };
 
+    let org_slug = claims
+        .get("oap_org_slug")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
     let org = AuthOrg {
         org_id: claims
             .get("oap_org_id")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        org_slug: claims
-            .get("oap_org_slug")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
+        org_slug: org_slug.clone(),
         github_org_login: claims
             .get("github_org_login")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
+        org_display_name: org_slug,
         platform_role: claims
             .get("platform_role")
             .and_then(|v| v.as_str())
@@ -688,14 +720,20 @@ pub async fn auth_switch_org(
         email: c.get("email").and_then(|v| v.as_str()).unwrap_or("").to_string(),
         name: c.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
         github_login: c.get("github_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        idp_provider: c.get("idp_provider").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        idp_login: c.get("idp_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
         avatar_url: c.get("avatar_url").and_then(|v| v.as_str()).unwrap_or("").to_string(),
     });
 
-    let org = claims.as_ref().map(|c| AuthOrg {
-        org_id: c.get("oap_org_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        org_slug: c.get("oap_org_slug").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        github_org_login: c.get("oap_org_slug").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        platform_role: c.get("platform_role").and_then(|v| v.as_str()).unwrap_or("member").to_string(),
+    let org = claims.as_ref().map(|c| {
+        let slug = c.get("oap_org_slug").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        AuthOrg {
+            org_id: c.get("oap_org_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            org_slug: slug.clone(),
+            github_org_login: c.get("github_org_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            org_display_name: slug,
+            platform_role: c.get("platform_role").and_then(|v| v.as_str()).unwrap_or("member").to_string(),
+        }
     });
 
     match (user, org) {

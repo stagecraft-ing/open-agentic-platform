@@ -26,7 +26,7 @@ risk: medium
 | phase-1 | GitHub App + OAuth Login + Rauthy Sessions | active |
 | phase-2 | Self-Service Project Creation | active |
 | phase-3 | Team Role Mapping + Sync | active |
-| phase-4 | Enterprise OIDC Federation | draft |
+| phase-4 | Enterprise OIDC Federation | active |
 
 ## Purpose
 
@@ -569,11 +569,173 @@ When a user belongs to multiple installed orgs:
 ### Scope
 
 - Support additional upstream identity providers via Rauthy (Azure AD, Okta, Google Workspace)
-- SAML-to-OIDC bridge for enterprise SSO
+- SAML-to-OIDC bridge for enterprise SSO (deferred — requires Rauthy SAML upstream support or sidecar proxy)
 - JIT provisioning from enterprise IdPs
 - Custom claims mapping per enterprise tenant
+- Email-domain-based IdP routing on the sign-in page
+- Admin API for OIDC provider and group-to-role mapping CRUD
+- Desktop PKCE flow generalization (route through Rauthy for enterprise IdPs)
 
-This phase is intentionally light on detail. It depends on Rauthy's upstream provider capabilities and enterprise customer requirements.
+### Data Model
+
+#### New Tables
+
+```sql
+-- Per-org OIDC provider registration
+CREATE TABLE oidc_providers (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID NOT NULL REFERENCES organizations(id),
+  name            TEXT NOT NULL,                            -- display name
+  provider_type   TEXT NOT NULL DEFAULT 'oidc',             -- oidc | azure-ad | okta | google-workspace | saml-bridge
+  issuer          TEXT NOT NULL,                            -- OIDC issuer URL
+  client_id       TEXT NOT NULL,
+  client_secret_enc TEXT NOT NULL,                          -- encrypted client secret
+  scopes          TEXT NOT NULL DEFAULT 'openid profile email',
+  claims_mapping  JSONB NOT NULL DEFAULT '{}',              -- map IdP claim names to OAP fields
+  email_domain    TEXT,                                     -- for domain-based IdP routing
+  auto_provision  BOOLEAN NOT NULL DEFAULT true,            -- JIT user provisioning
+  status          TEXT NOT NULL DEFAULT 'active',           -- active | disabled | pending
+  UNIQUE(org_id, issuer)
+);
+
+-- Map IdP groups to OAP roles (analogous to github_team_role_mappings)
+CREATE TABLE oidc_group_role_mappings (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID NOT NULL REFERENCES organizations(id),
+  provider_id     UUID NOT NULL REFERENCES oidc_providers(id) ON DELETE CASCADE,
+  idp_group_id    TEXT NOT NULL,        -- group ID from the IdP
+  idp_group_name  TEXT,                 -- display name
+  target_scope    target_scope NOT NULL, -- 'org' | 'project'
+  target_id       UUID,                 -- NULL for org-level
+  role            TEXT NOT NULL,
+  UNIQUE(org_id, provider_id, idp_group_id, target_scope, target_id)
+);
+```
+
+#### Modified Tables
+
+```sql
+ALTER TYPE membership_source ADD VALUE 'oidc';
+ALTER TABLE desktop_refresh_tokens ALTER COLUMN github_login DROP NOT NULL;
+ALTER TABLE users ADD COLUMN idp_provider TEXT;
+ALTER TABLE users ADD COLUMN idp_subject TEXT;
+```
+
+### FR-013: Enterprise OIDC Login Flow
+
+```
+Browser                  Stagecraft              Rauthy              Enterprise IdP
+  │                         │                      │                      │
+  ├─ GET /auth/oidc ────────►                      │                      │
+  │  (?provider=X&email=Y)  │                      │                      │
+  │                         ├─ redirect ───────────►                      │
+  │  ◄──────────────────────┤  (authorize + hint)  │                      │
+  │                         │                      ├─ redirect ───────────►
+  │                         │                      │  (upstream IdP)      │
+  │  (user authenticates)   │                      │                      │
+  │                         │                      │  ◄───────────────────┤
+  │  ◄─────────────────────────────────────────────┤  callback + code    │
+  │                         │                      │                      │
+  ├─ GET /auth/oidc/cb ────►│                      │                      │
+  │  (with ?code=xxx)       ├─ exchange code ──────►                      │
+  │                         │  ◄───────────────────┤ tokens (id_token)    │
+  │                         │                      │                      │
+  │                         ├─ JIT provision user                        │
+  │                         ├─ resolve OIDC group memberships            │
+  │                         ├─ issue Rauthy session                      │
+  │                         │                                             │
+  │  ◄──────────────────────┤  Set-Cookie (__session)                    │
+```
+
+**Server-side steps after receiving Rauthy tokens:**
+
+1. Decode the ID token to extract user claims (email, name, sub, groups)
+2. Apply `claims_mapping` from the `oidc_providers` row to normalize claim names
+3. JIT provision: find or create OAP user by IdP subject, then email
+4. Upsert `user_identities` row with provider tokens
+5. Resolve org membership from OIDC group claims using `oidc_group_role_mappings`
+6. If no group mappings exist, assign default "member" role in provider's org
+7. Ensure Rauthy user exists (provision via admin API if needed)
+8. Issue Rauthy session with custom claims (including `idp_provider`, `idp_login`)
+9. Route by org count (same as GitHub flow: 0 → no-org, 1 → auto, N → picker)
+
+### FR-014: Email-Domain IdP Routing
+
+The sign-in page presents both GitHub login and an enterprise email field:
+
+1. User enters their work email address
+2. Frontend calls `GET /auth/oidc/discover?email=user@company.com`
+3. Server looks up `oidc_providers` where `email_domain = 'company.com'` and `status = 'active'`
+4. If found: redirect to `/auth/oidc?provider=<id>&email=<email>`
+5. If not found: show "no enterprise provider configured" message
+
+### FR-015: OIDC Group-to-Role Mapping
+
+Enterprise IdPs send group membership in the ID token (typically the `groups` claim). Admins configure mappings via the admin API:
+
+- `POST /admin/orgs/:orgId/oidc-providers/:providerId/group-mappings`
+- Each mapping: IdP group ID → OAP role (org-level or project-level)
+- At login, the highest-privilege matching role wins for org-scope
+- Project-scope mappings upsert `project_members`
+- If no group mappings are configured, default to `member` role
+
+### FR-016: JIT User Provisioning
+
+When a user logs in via enterprise OIDC for the first time:
+
+1. Check `user_identities` for existing `(provider, sub)` match → link if found
+2. Check `users` for email match → link IdP identity if found
+3. If no match and `auto_provision = true` on the provider: create new user
+4. If no match and `auto_provision = false`: reject with "user not pre-provisioned" error
+5. Set `users.idp_provider` and `users.idp_subject` for future lookups
+
+### FR-017: OIDC Provider Admin API
+
+Full CRUD for org-scoped OIDC providers:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/orgs/:orgId/oidc-providers` | GET | List all providers |
+| `/admin/orgs/:orgId/oidc-providers` | POST | Create provider |
+| `/admin/orgs/:orgId/oidc-providers/:id` | PUT | Update provider |
+| `/admin/orgs/:orgId/oidc-providers/:id` | DELETE | Delete provider (cascades group mappings) |
+| `/admin/orgs/:orgId/oidc-providers/:id/group-mappings` | GET | List group mappings |
+| `/admin/orgs/:orgId/oidc-providers/:id/group-mappings` | POST | Create group mapping |
+| `/admin/orgs/:orgId/oidc-providers/:id/group-mappings/:id` | DELETE | Delete group mapping |
+
+All admin endpoints require `admin` or `owner` platform role in the target org.
+
+### FR-018: Desktop PKCE Enterprise Support
+
+Desktop PKCE flow accepts an optional `idp_hint` parameter:
+
+- `GET /auth/desktop/authorize?...&idp_hint=<email-or-provider-id>`
+- If `idp_hint` resolves to an OIDC provider: route through Rauthy authorize
+- If not: fall back to GitHub OAuth (existing behavior)
+- Deep-link callback and token exchange remain the same
+
+### FR-019: Generalized Auth Types
+
+All auth types made provider-agnostic:
+
+- `OapClaims`: `github_login` → optional; add `idp_provider`, `idp_login`
+- `AuthData`: `githubLogin` → always present but may be empty; add `idpProvider`, `idpLogin`
+- `AuthUser` (Rust): `github_login` → `#[serde(default)]`; add `idp_provider`, `idp_login`
+- `AuthOrg` (Rust): add `org_display_name` for provider-agnostic display
+- Frontend types updated accordingly
+
+### Non-Functional Requirements
+
+- **NFR-005:** OIDC client secrets stored encrypted in `oidc_providers.client_secret_enc`
+- **NFR-006:** JIT provisioning must complete in < 3 seconds (same SLA as GitHub login)
+- **NFR-007:** Rauthy upstream provider config injected via Helm values and K8s secrets
+- **NFR-008:** SAML-to-OIDC bridge deferred pending Rauthy native support or sidecar evaluation
+
+### Rauthy Helm Chart Changes
+
+- `values.yaml`: new `upstreamProviders` array for upstream IdP configuration
+- `configmap.yaml`: renders `[[upstream_auth_provider]]` TOML blocks
+- `statefulset.yaml`: injects upstream client ID/secret as env vars from K8s secrets
 
 ---
 
@@ -635,3 +797,38 @@ This phase is intentionally light on detail. It depends on Rauthy's upstream pro
 - [ ] Org removal revokes sessions and marks membership removed
 - [ ] Org picker works for multi-org users
 - [ ] Org switch updates session claims
+
+### Phase 4
+
+- [ ] OIDC provider CRUD: create, list, update, delete via admin API
+- [ ] OIDC group mapping CRUD: create, list, delete via admin API
+- [ ] Email-domain discovery: `/auth/oidc/discover` returns provider for known domain
+- [ ] Email-domain discovery: returns `found: false` for unknown domain
+- [ ] Enterprise login redirect: `/auth/oidc?provider=X` redirects to Rauthy authorize
+- [ ] OIDC callback: code exchange with Rauthy returns valid tokens
+- [ ] JIT provisioning: new user created on first OIDC login
+- [ ] JIT provisioning: existing user linked by email on OIDC login
+- [ ] JIT provisioning: existing user linked by IdP subject on OIDC login
+- [ ] JIT provisioning: rejected when `auto_provision = false` and user not found
+- [ ] OIDC group claims: mapped to org-level platform role via group mappings
+- [ ] OIDC group claims: mapped to project-level role via group mappings
+- [ ] OIDC group claims: highest-privilege org role wins when multiple groups match
+- [ ] OIDC group claims: default `member` role when no group mappings exist
+- [ ] OIDC login with zero matching orgs redirects to `/auth/no-org`
+- [ ] OIDC login with one org auto-selects and redirects to `/app`
+- [ ] OIDC login with multiple orgs redirects to org picker
+- [ ] Rauthy JWT carries `idp_provider` and `idp_login` claims for enterprise users
+- [ ] Rauthy JWT omits `github_login` for enterprise users
+- [ ] Auth handler populates `idpProvider` and `idpLogin` in `AuthData`
+- [ ] Existing GitHub login flow unaffected (backward compatible)
+- [ ] Sign-in page shows both GitHub button and enterprise email field
+- [ ] Org picker displays `orgDisplayName` (not just `githubOrgLogin`)
+- [ ] No-org page shows correct messaging for enterprise IdP users
+- [ ] Desktop PKCE with `idp_hint` routes through Rauthy for enterprise IdP
+- [ ] Desktop PKCE without `idp_hint` routes through GitHub (backward compatible)
+- [ ] `desktop_refresh_tokens.github_login` nullable — enterprise users store empty
+- [ ] Helm chart renders upstream provider TOML blocks from `upstreamProviders` values
+- [ ] Helm chart injects upstream client secrets from K8s secret refs
+- [ ] Admin endpoints enforce org-admin permission (403 for members)
+- [ ] Audit log captures OIDC provider and group mapping CRUD events
+- [ ] Audit log captures `user.oidc_login` events with provider metadata

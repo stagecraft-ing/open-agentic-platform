@@ -32,6 +32,8 @@ else
     --set controller.kind=DaemonSet \
     --set controller.hostPort.enabled=true \
     --set controller.service.type=ClusterIP \
+    --set controller.config.use-forwarded-headers='"true"' \
+    --set controller.config.compute-full-forwarded-for='"true"' \
     --wait --timeout 180s
 fi
 

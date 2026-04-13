@@ -28,6 +28,7 @@ export const membershipSourceEnum = pgEnum("membership_source", [
   "github",
   "manual",
   "rauthy",
+  "oidc",
 ]);
 
 export const orgMembershipStatusEnum = pgEnum("org_membership_status", [
@@ -53,6 +54,8 @@ export const users = pgTable("users", {
   githubLogin: text("github_login"),
   avatarUrl: text("avatar_url"),
   rauthyUserId: text("rauthy_user_id").unique(),
+  idpProvider: text("idp_provider"),    // 'github' | 'azure-ad' | 'okta' | etc.
+  idpSubject: text("idp_subject"),      // provider-specific user ID
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -654,7 +657,9 @@ export const desktopRefreshTokens = pgTable("desktop_refresh_tokens", {
   orgId: uuid("org_id").notNull(),
   workspaceId: text("workspace_id").notNull().default(""),
   orgSlug: text("org_slug").notNull().default(""),
-  githubLogin: text("github_login").notNull(),
+  githubLogin: text("github_login").default(""),
+  idpProvider: text("idp_provider").notNull().default(""),
+  idpLogin: text("idp_login").notNull().default(""),
   platformRole: text("platform_role").notNull().default("member"),
   rauthyUserId: text("rauthy_user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -662,3 +667,54 @@ export const desktopRefreshTokens = pgTable("desktop_refresh_tokens", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// OIDC Providers (spec 080 Phase 4 — Enterprise OIDC Federation)
+// ---------------------------------------------------------------------------
+
+export const oidcProviders = pgTable(
+  "oidc_providers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    name: text("name").notNull(),
+    providerType: text("provider_type").notNull().default("oidc"), // oidc | azure-ad | okta | google-workspace | saml-bridge
+    issuer: text("issuer").notNull(),
+    clientId: text("client_id").notNull(),
+    clientSecretEnc: text("client_secret_enc").notNull(),
+    scopes: text("scopes").notNull().default("openid profile email"),
+    claimsMapping: jsonb("claims_mapping").notNull().default({}),
+    emailDomain: text("email_domain"),
+    autoProvision: boolean("auto_provision").notNull().default(true),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.issuer)]
+);
+
+// ---------------------------------------------------------------------------
+// OIDC Group-to-Role Mappings (spec 080 Phase 4)
+// ---------------------------------------------------------------------------
+
+export const oidcGroupRoleMappings = pgTable(
+  "oidc_group_role_mappings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    providerId: uuid("provider_id").notNull(),
+    idpGroupId: text("idp_group_id").notNull(),
+    idpGroupName: text("idp_group_name"),
+    targetScope: targetScopeEnum("target_scope").notNull(),
+    targetId: uuid("target_id"), // NULL for org-level, project_id for project-level
+    role: text("role").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.providerId, t.idpGroupId, t.targetScope, t.targetId)]
+);

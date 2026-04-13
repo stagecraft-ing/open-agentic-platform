@@ -10,13 +10,15 @@ import { db } from "../db/drizzle";
 import {
   githubInstallations,
   githubTeamRoleMappings,
+  oidcGroupRoleMappings,
+  oidcProviders,
   orgMemberships,
   organizations,
   projectMembers,
   users,
   workspaces,
 } from "../db/schema";
-import { eq, and, notInArray, inArray } from "drizzle-orm";
+import { eq, and, notInArray, inArray, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,7 +34,8 @@ export interface ResolvedOrg {
   orgId: string;
   orgSlug: string;
   workspaceId: string;
-  githubOrgLogin: string;
+  githubOrgLogin: string;    // empty for enterprise OIDC orgs
+  orgDisplayName: string;    // best display name (githubOrgLogin || org name || orgSlug)
   platformRole: "owner" | "admin" | "member";
 }
 
@@ -182,6 +185,7 @@ export async function resolveOrgMemberships(
       orgSlug: row.orgSlug,
       workspaceId: ws?.id ?? "",
       githubOrgLogin: ghOrg.login,
+      orgDisplayName: ghOrg.login || row.orgSlug,
       platformRole: "member",
     });
     matchedOrgIds.push(row.orgId);
@@ -393,4 +397,144 @@ export async function applyTeamRoleMappings(
   });
 
   return { orgUpdated, projectUpdated };
+}
+
+// ---------------------------------------------------------------------------
+// OIDC Membership Resolution (spec 080 Phase 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve org memberships for a user from OIDC group claims.
+ *
+ * Unlike GitHub membership (which queries the GitHub API), OIDC membership
+ * derives from group claims in the ID token, mapped via oidc_group_role_mappings.
+ *
+ * If no group mappings exist for the provider, the user is assigned to the
+ * provider's org with the default "member" role.
+ */
+export async function resolveOidcMemberships(
+  userId: string,
+  providerId: string,
+  providerOrgId: string,
+  idpGroups: string[]
+): Promise<ResolvedOrg[]> {
+  log.info("Resolving OIDC org memberships", {
+    userId,
+    providerId,
+    groupCount: idpGroups.length,
+  });
+
+  // Always create/update the base org membership for the provider's org
+  const [org] = await db
+    .select({ id: organizations.id, slug: organizations.slug, name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, providerOrgId))
+    .limit(1);
+
+  if (!org) {
+    log.error("OIDC provider org not found", { orgId: providerOrgId });
+    return [];
+  }
+
+  // Resolve the default workspace for this org
+  const [ws] = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(and(eq(workspaces.orgId, org.id), eq(workspaces.slug, "default")))
+    .limit(1);
+
+  // Start with default member role
+  let resolvedPlatformRole: "owner" | "admin" | "member" = "member";
+
+  // If there are group claims, apply group-to-role mappings
+  if (idpGroups.length > 0) {
+    const groupMappings = await db
+      .select()
+      .from(oidcGroupRoleMappings)
+      .where(
+        and(
+          eq(oidcGroupRoleMappings.orgId, org.id),
+          eq(oidcGroupRoleMappings.providerId, providerId),
+          inArray(oidcGroupRoleMappings.idpGroupId, idpGroups)
+        )
+      );
+
+    // Apply org-level mappings (highest role wins)
+    const roleHierarchy: Record<string, number> = { member: 0, admin: 1, owner: 2 };
+    for (const mapping of groupMappings) {
+      if (mapping.targetScope === "org") {
+        const mappedRole = mapping.role as "owner" | "admin" | "member";
+        if ((roleHierarchy[mappedRole] ?? 0) > (roleHierarchy[resolvedPlatformRole] ?? 0)) {
+          resolvedPlatformRole = mappedRole;
+        }
+      }
+    }
+
+    // Apply project-level mappings
+    const projectMappings = groupMappings.filter(
+      (m) => m.targetScope === "project" && m.targetId
+    );
+    for (const mapping of projectMappings) {
+      const validRoles = new Set(["viewer", "developer", "deployer", "admin"]);
+      if (!validRoles.has(mapping.role)) continue;
+
+      await db
+        .insert(projectMembers)
+        .values({
+          projectId: mapping.targetId!,
+          userId,
+          role: mapping.role as "viewer" | "developer" | "deployer" | "admin",
+        })
+        .onConflictDoUpdate({
+          target: [projectMembers.projectId, projectMembers.userId],
+          set: {
+            role: mapping.role as "viewer" | "developer" | "deployer" | "admin",
+            updatedAt: new Date(),
+          },
+        });
+    }
+  }
+
+  // Upsert the org membership — preserve existing source if already set
+  // (e.g. a user who logged in via GitHub first keeps source=github)
+  await db
+    .insert(orgMemberships)
+    .values({
+      userId,
+      orgId: org.id,
+      source: "oidc",
+      platformRole: resolvedPlatformRole,
+      status: "active",
+      syncedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [orgMemberships.userId, orgMemberships.orgId],
+      set: {
+        // Don't overwrite source — keep the original provider trace
+        platformRole: resolvedPlatformRole,
+        syncedAt: new Date(),
+        status: "active",
+        updatedAt: new Date(),
+      },
+    });
+
+  const resolvedOrgs: ResolvedOrg[] = [
+    {
+      orgId: org.id,
+      orgSlug: org.slug,
+      workspaceId: ws?.id ?? "",
+      githubOrgLogin: "",
+      orgDisplayName: org.name || org.slug,
+      platformRole: resolvedPlatformRole,
+    },
+  ];
+
+  log.info("OIDC org membership resolution complete", {
+    userId,
+    orgId: org.id,
+    role: resolvedPlatformRole,
+    groupsUsed: idpGroups.length,
+  });
+
+  return resolvedOrgs;
 }

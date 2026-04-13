@@ -17,7 +17,7 @@ import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import crypto from "crypto";
 import { db } from "../db/drizzle";
-import { desktopRefreshTokens } from "../db/schema";
+import { desktopRefreshTokens, oidcProviders } from "../db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { issueRauthySession } from "./rauthy";
 import {
@@ -32,6 +32,7 @@ import {
   appBaseUrl,
   pendingStates,
 } from "./github";
+import { buildAuthorizationUrl } from "./rauthy";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +43,8 @@ interface DesktopUser {
   email: string;
   name: string;
   githubLogin: string;
+  idpProvider: string;
+  idpLogin: string;
   avatarUrl: string;
 }
 
@@ -49,6 +52,7 @@ interface DesktopOrg {
   orgId: string;
   orgSlug: string;
   githubOrgLogin: string;
+  orgDisplayName: string;
   platformRole: string;
 }
 
@@ -91,6 +95,7 @@ export const desktopAuthorize = api.raw(
     const codeChallengeMethod = url.searchParams.get("code_challenge_method");
     const desktopState = url.searchParams.get("state");
     const redirectUri = url.searchParams.get("redirect_uri");
+    const idpHint = url.searchParams.get("idp_hint");   // optional: OIDC provider ID or email domain
 
     // Validate required params
     if (!codeChallenge || !codeChallengeMethod || !desktopState || !redirectUri) {
@@ -113,7 +118,54 @@ export const desktopAuthorize = api.raw(
 
     cleanupDesktopState();
 
-    // Generate a separate GitHub OAuth state (links back to desktop flow)
+    // If an IdP hint is provided, try to resolve an enterprise OIDC provider
+    // and route through Rauthy instead of GitHub
+    if (idpHint) {
+      let providerRow;
+      // Check if it's a UUID (provider ID) or email domain
+      if (idpHint.includes("@")) {
+        const domain = idpHint.split("@")[1].toLowerCase();
+        [providerRow] = await db
+          .select()
+          .from(oidcProviders)
+          .where(and(eq(oidcProviders.emailDomain, domain), eq(oidcProviders.status, "active")))
+          .limit(1);
+      } else {
+        [providerRow] = await db
+          .select()
+          .from(oidcProviders)
+          .where(and(eq(oidcProviders.id, idpHint), eq(oidcProviders.status, "active")))
+          .limit(1);
+      }
+
+      if (providerRow) {
+        // Route through Rauthy's OIDC authorization endpoint
+        const rauthyState = crypto.randomBytes(32).toString("base64url");
+        pendingDesktopFlows.set(rauthyState, {
+          codeChallenge,
+          codeChallengeMethod,
+          redirectUri,
+          desktopState,
+          createdAt: Date.now(),
+        });
+
+        const authUrl = buildAuthorizationUrl({
+          redirectUri: `${appBaseUrl()}/auth/oidc/callback`,
+          state: rauthyState,
+          scopes: providerRow.scopes.split(" ").filter(Boolean),
+        });
+
+        const authUrlObj = new URL(authUrl);
+        if (idpHint.includes("@")) authUrlObj.searchParams.set("login_hint", idpHint);
+        authUrlObj.searchParams.set("upstream_auth_provider_id", providerRow.name);
+
+        resp.writeHead(302, { Location: authUrlObj.toString() });
+        resp.end();
+        return;
+      }
+    }
+
+    // Default: GitHub OAuth flow
     const githubState = crypto.randomBytes(32).toString("base64url");
 
     // Store in BOTH maps:
@@ -181,6 +233,8 @@ export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
       email: session.email,
       name: session.name,
       githubLogin: session.githubLogin,
+      idpProvider: session.idpProvider,
+      idpLogin: session.idpLogin,
       avatarUrl: session.avatarUrl,
     };
 
@@ -196,6 +250,7 @@ export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
           orgId: o.orgId,
           orgSlug: o.orgSlug,
           githubOrgLogin: o.githubOrgLogin,
+          orgDisplayName: o.orgDisplayName,
           platformRole: o.platformRole,
         })),
         user,
@@ -214,6 +269,7 @@ export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
         orgId: org.orgId,
         orgSlug: org.orgSlug,
         githubOrgLogin: org.githubOrgLogin,
+        orgDisplayName: org.orgDisplayName,
         platformRole: org.platformRole,
       },
     };
@@ -259,12 +315,15 @@ export const desktopOrgSelect = api<DesktopOrgSelectRequest, DesktopTokenRespons
         email: session.email,
         name: session.name,
         githubLogin: session.githubLogin,
+        idpProvider: session.idpProvider,
+        idpLogin: session.idpLogin,
         avatarUrl: session.avatarUrl,
       },
       org: {
         orgId: org.orgId,
         orgSlug: org.orgSlug,
         githubOrgLogin: org.githubOrgLogin,
+        orgDisplayName: org.orgDisplayName,
         platformRole: org.platformRole,
       },
     };
@@ -313,7 +372,9 @@ export const desktopRefresh = api<DesktopRefreshRequest, DesktopRefreshResponse>
       orgId: row.orgId,
       orgSlug: row.orgSlug,
       workspaceId: row.workspaceId,
-      githubLogin: row.githubLogin,
+      githubLogin: row.githubLogin || undefined,
+      idpProvider: row.idpProvider || undefined,
+      idpLogin: row.idpLogin || undefined,
       platformRole: row.platformRole,
     });
 
@@ -329,7 +390,9 @@ export const desktopRefresh = api<DesktopRefreshRequest, DesktopRefreshResponse>
       orgId: row.orgId,
       workspaceId: row.workspaceId,
       orgSlug: row.orgSlug,
-      githubLogin: row.githubLogin,
+      githubLogin: row.githubLogin || "",
+      idpProvider: row.idpProvider || "",
+      idpLogin: row.idpLogin || "",
       platformRole: row.platformRole,
       rauthyUserId: row.rauthyUserId,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
@@ -358,7 +421,9 @@ async function issueDesktopTokens(
     orgId: org.orgId,
     orgSlug: org.orgSlug,
     workspaceId: org.workspaceId,
-    githubLogin: session.githubLogin,
+    githubLogin: session.githubLogin || undefined,
+    idpProvider: session.idpProvider,
+    idpLogin: session.idpLogin,
     platformRole: org.platformRole,
   });
 
@@ -372,7 +437,9 @@ async function issueDesktopTokens(
     orgId: org.orgId,
     workspaceId: org.workspaceId,
     orgSlug: org.orgSlug,
-    githubLogin: session.githubLogin,
+    githubLogin: session.githubLogin || "",
+    idpProvider: session.idpProvider || "",
+    idpLogin: session.idpLogin || "",
     platformRole: org.platformRole,
     rauthyUserId: session.rauthyUserId,
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),

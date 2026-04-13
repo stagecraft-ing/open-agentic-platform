@@ -18,14 +18,17 @@ export interface PendingDesktopSession {
   rauthyUserId: string;
   email: string;
   name: string;
-  githubLogin: string;
+  githubLogin: string;      // empty for enterprise IdP users
+  idpProvider: string;       // github | azure-ad | okta | etc.
+  idpLogin: string;          // provider-specific display name
   avatarUrl: string;
   codeChallenge: string; // Passed through from PendingDesktopFlow for PKCE verification
   matchedOrgs: Array<{
     orgId: string;
     orgSlug: string;
     workspaceId: string;
-    githubOrgLogin: string;
+    githubOrgLogin: string;  // empty for enterprise orgs
+    orgDisplayName: string;  // best display name (githubOrgLogin || orgSlug)
     platformRole: string;
   }>;
   createdAt: number;

@@ -24,7 +24,9 @@ export interface AuthData {
   orgId: string;
   orgSlug: string;
   workspaceId: string;
-  githubLogin: string;
+  githubLogin: string;       // may be empty for enterprise IdP users
+  idpProvider: string;        // github | azure-ad | okta | google-workspace | etc.
+  idpLogin: string;           // provider-specific login/display name
   platformRole: "owner" | "admin" | "member";
 }
 
@@ -66,7 +68,9 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
     orgId: claims.oap_org_id,
     orgSlug: claims.oap_org_slug,
     workspaceId: claims.oap_workspace_id ?? "",
-    githubLogin: claims.github_login,
+    githubLogin: claims.github_login ?? "",
+    idpProvider: claims.idp_provider ?? (claims.github_login ? "github" : ""),
+    idpLogin: claims.idp_login ?? claims.github_login ?? "",
     platformRole: claims.platform_role as AuthData["platformRole"],
   };
 });

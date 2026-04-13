@@ -1,9 +1,9 @@
 /**
- * Org picker for multi-org users (spec 080 FR-012, updated Phase 5).
+ * Org picker for multi-org users (spec 080 FR-012, Phase 4 generalized).
  *
- * Shown after GitHub login when the user belongs to multiple installed orgs.
+ * Shown after login when the user belongs to multiple installed orgs.
  * Org data is stored server-side; the loader fetches it via the pending-orgs
- * API endpoint (Phase 5 removed HMAC-signed cookies).
+ * API endpoint. Supports both GitHub and enterprise OIDC login flows.
  */
 
 import { useLoaderData, redirect } from "react-router";
@@ -12,10 +12,12 @@ interface OrgOption {
   orgId: string;
   orgSlug: string;
   githubOrgLogin: string;
+  orgDisplayName: string;
   platformRole: string;
 }
 
 interface LoaderData {
+  displayName: string;
   githubLogin: string;
   orgs: OrgOption[];
 }
@@ -24,17 +26,20 @@ export async function loader({ request }: { request: Request }) {
   const cookieHeader = request.headers.get("Cookie") || "";
   const apiBase = process.env.ENCORE_API_BASE_URL ?? "http://localhost:4000";
 
-  // Forward the cookie to the API endpoint to resolve pending org data
+  // Single unified endpoint handles both GitHub and OIDC pending orgs
   const resp = await fetch(`${apiBase}/auth/pending-orgs`, {
     headers: { Cookie: cookieHeader },
   });
 
-  if (!resp.ok) {
-    return redirect("/signin?error=session_expired");
+  let data: LoaderData | null = null;
+  if (resp.ok) {
+    const parsed = (await resp.json()) as LoaderData;
+    if (parsed.orgs?.length) {
+      data = parsed;
+    }
   }
 
-  const data = (await resp.json()) as LoaderData;
-  if (!data.githubLogin || !data.orgs?.length) {
+  if (!data || !data.orgs?.length) {
     return redirect("/signin?error=session_expired");
   }
 
@@ -42,7 +47,8 @@ export async function loader({ request }: { request: Request }) {
 }
 
 export default function OrgSelect() {
-  const { githubLogin, orgs } = useLoaderData<typeof loader>();
+  const { displayName, githubLogin, orgs } = useLoaderData<typeof loader>();
+  const name = displayName || githubLogin;
 
   return (
     <div className="min-h-full container px-4 mx-auto my-16 max-w-sm">
@@ -50,7 +56,7 @@ export default function OrgSelect() {
         Select organization
       </h1>
       <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        Welcome, <strong>{githubLogin}</strong>. You belong to multiple
+        Welcome, <strong>{name}</strong>. You belong to multiple
         organizations. Select one to continue.
       </p>
       <div className="mt-6 space-y-3">
@@ -63,7 +69,7 @@ export default function OrgSelect() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900 dark:text-gray-100">
-                  {org.githubOrgLogin}
+                  {org.orgDisplayName || org.githubOrgLogin || org.orgSlug}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Role: {org.platformRole}

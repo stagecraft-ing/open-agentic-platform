@@ -33,8 +33,10 @@ export interface OapClaims {
   oap_org_id: string;        // selected org ID
   oap_org_slug: string;      // org slug
   oap_workspace_id?: string; // active workspace ID
-  github_login: string;      // GitHub handle
-  avatar_url?: string;       // GitHub avatar URL
+  github_login?: string;     // GitHub handle (absent for enterprise IdP users)
+  idp_provider?: string;     // identity provider type (github | azure-ad | okta | etc.)
+  idp_login?: string;        // provider-specific login/display name
+  avatar_url?: string;       // avatar URL
   platform_role: string;     // owner | admin | member
   exp: number;
   iat: number;
@@ -216,11 +218,13 @@ function derLength(len: number): Buffer {
  */
 export async function provisionRauthyUser(opts: {
   email: string;
-  githubLogin: string;
   name: string;
+  loginHint?: string;    // GitHub login, enterprise username, etc. (fallback for given_name)
+  githubLogin?: string;  // kept for backward compat — alias for loginHint
 }): Promise<string> {
   const baseUrl = rauthyUrl();
   const adminAuth = `Bearer ${rauthyAdminToken()}`;
+  const hint = opts.loginHint ?? opts.githubLogin ?? "";
 
   // Try to find existing user by email
   const searchResp = await fetch(
@@ -249,7 +253,7 @@ export async function provisionRauthyUser(opts: {
     },
     body: JSON.stringify({
       email: opts.email,
-      given_name: givenName || opts.githubLogin,
+      given_name: givenName || hint,
       family_name: familyParts.join(" ") || "",
       enabled: true,
     }),
@@ -367,12 +371,27 @@ export async function issueRauthySession(opts: {
   orgId: string;
   orgSlug: string;
   workspaceId: string;
-  githubLogin: string;
+  githubLogin?: string;
+  idpProvider?: string;
+  idpLogin?: string;
   avatarUrl?: string;
   platformRole: string;
 }): Promise<{ accessToken: string; expiresIn: number }> {
   const baseUrl = rauthyUrl();
   const adminAuth = `Bearer ${rauthyAdminToken()}`;
+
+  // Build custom claims — include provider-agnostic fields, plus backward-compat github_login
+  const customClaims: Record<string, string> = {
+    oap_user_id: opts.oapUserId,
+    oap_org_id: opts.orgId,
+    oap_org_slug: opts.orgSlug,
+    oap_workspace_id: opts.workspaceId ?? "",
+    avatar_url: opts.avatarUrl ?? "",
+    platform_role: opts.platformRole,
+  };
+  if (opts.githubLogin) customClaims.github_login = opts.githubLogin;
+  if (opts.idpProvider) customClaims.idp_provider = opts.idpProvider;
+  if (opts.idpLogin) customClaims.idp_login = opts.idpLogin;
 
   const resp = await fetch(
     `${baseUrl}/auth/v1/admin/users/${opts.rauthyUserId}/sessions`,
@@ -385,15 +404,7 @@ export async function issueRauthySession(opts: {
       body: JSON.stringify({
         client_id: rauthyClientId(),
         scope: "openid profile email",
-        custom_claims: {
-          oap_user_id: opts.oapUserId,
-          oap_org_id: opts.orgId,
-          oap_org_slug: opts.orgSlug,
-          oap_workspace_id: opts.workspaceId,
-          github_login: opts.githubLogin,
-          avatar_url: opts.avatarUrl ?? "",
-          platform_role: opts.platformRole,
-        },
+        custom_claims: customClaims,
       }),
     }
   );

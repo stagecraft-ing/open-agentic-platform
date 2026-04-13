@@ -4,7 +4,8 @@ image:
   pullPolicy: IfNotPresent
 
 proxyMode: false
-trustedProxies: "10.244.0.0/16"
+trustedProxies:
+  - "10.244.0.0/16"
 
 replicas: 3
 
@@ -56,3 +57,22 @@ resources:
   limits:
     cpu: 250m
     memory: 512Mi
+
+# Enterprise OIDC upstream providers (spec 080 Phase 4).
+# Each entry configures Rauthy to federate to an upstream IdP.
+# Secrets (client_id, client_secret) should come from an existingSecret
+# or be set via --set at deploy time.
+#
+# Example:
+#   upstreamProviders:
+#     - name: "contoso-azure-ad"
+#       typ: "OIDC"
+#       issuer: "https://login.microsoftonline.com/{tenant-id}/v2.0"
+#       clientId: "..."
+#       existingSecret: "rauthy-upstream-contoso"
+#       existingSecretKey: "client-secret"
+#       rootCertificates: ""
+#       scopes: "openid profile email groups"
+#       adminClaimPath: "$.roles[?(@ == 'admin')]"
+#       adminClaimValue: ""
+upstreamProviders: []

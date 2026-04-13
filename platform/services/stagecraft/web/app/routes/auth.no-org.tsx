@@ -1,7 +1,7 @@
 /**
- * No connected org error page (spec 080 FR-002 step 11).
- * Shown when a user logs in via GitHub but none of their orgs have
- * the Stagecraft GitHub App installed.
+ * No connected org error page (spec 080 FR-002 step 11, Phase 4 generalized).
+ * Shown when a user logs in but none of their organizations are connected
+ * to Stagecraft (no GitHub App installed or no OIDC provider configured).
  */
 
 import { Link, useSearchParams } from "react-router";
@@ -9,6 +9,8 @@ import { Link, useSearchParams } from "react-router";
 export default function NoOrg() {
   const [params] = useSearchParams();
   const login = params.get("login");
+  const provider = params.get("provider");
+  const isEnterprise = provider && provider !== "github";
 
   return (
     <div className="min-h-full container px-4 mx-auto my-16 max-w-md text-center">
@@ -33,16 +35,17 @@ export default function NoOrg() {
       <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
         {login ? (
           <>
-            Signed in as <strong>{login}</strong>, but none of your GitHub
-            organizations have the Stagecraft app installed.
+            Signed in as <strong>{login}</strong>, but none of your
+            organizations are connected to Stagecraft.
           </>
         ) : (
-          "None of your GitHub organizations have the Stagecraft app installed."
+          "None of your organizations are connected to Stagecraft."
         )}
       </p>
       <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-        Ask your organization admin to install the Stagecraft GitHub App, then
-        try signing in again.
+        {isEnterprise
+          ? "Ask your organization admin to configure the OIDC identity provider connection, then try signing in again."
+          : "Ask your organization admin to install the Stagecraft GitHub App, then try signing in again."}
       </p>
       <div className="mt-6">
         <Link

@@ -29,7 +29,9 @@ interface JwtClaims {
   oap_org_id: string;
   oap_org_slug: string;
   oap_workspace_id?: string;
-  github_login: string;
+  github_login?: string;
+  idp_provider?: string;
+  idp_login?: string;
   platform_role: "owner" | "admin" | "member";
   email?: string;
   name?: string;
@@ -72,12 +74,14 @@ export async function requireUser(request: Request) {
   return {
     userId: claims.oap_user_id,
     email: claims.email ?? "",
-    name: claims.name ?? claims.github_login,
+    name: claims.name ?? claims.idp_login ?? claims.github_login ?? "",
     role: claims.platform_role === "owner" ? ("admin" as const) : ("user" as const),
     kind: "user" as const,
     orgId: claims.oap_org_id,
     orgSlug: claims.oap_org_slug,
-    githubLogin: claims.github_login,
+    githubLogin: claims.github_login ?? "",
+    idpProvider: claims.idp_provider ?? (claims.github_login ? "github" : ""),
+    idpLogin: claims.idp_login ?? claims.github_login ?? "",
     platformRole: claims.platform_role,
   };
 }
@@ -97,12 +101,14 @@ export async function requireAdmin(request: Request) {
   return {
     userId: claims.oap_user_id,
     email: claims.email ?? "",
-    name: claims.name ?? claims.github_login,
+    name: claims.name ?? claims.idp_login ?? claims.github_login ?? "",
     role: "admin" as const,
     kind: "admin" as const,
     orgId: claims.oap_org_id,
     orgSlug: claims.oap_org_slug,
-    githubLogin: claims.github_login,
+    githubLogin: claims.github_login ?? "",
+    idpProvider: claims.idp_provider ?? (claims.github_login ? "github" : ""),
+    idpLogin: claims.idp_login ?? claims.github_login ?? "",
     platformRole: claims.platform_role,
   };
 }

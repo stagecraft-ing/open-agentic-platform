@@ -7,6 +7,8 @@ export interface AuthUser {
   email: string;
   name: string;
   github_login: string;
+  idp_provider: string;
+  idp_login: string;
   avatar_url: string;
 }
 
@@ -14,6 +16,7 @@ export interface AuthOrg {
   org_id: string;
   org_slug: string;
   github_org_login: string;
+  org_display_name: string;
   platform_role: string;
 }
 

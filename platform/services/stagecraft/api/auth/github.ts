@@ -23,6 +23,10 @@ import {
   storeDesktopSession,
   cleanupDesktopState,
 } from "./desktop-state";
+import {
+  pendingOidcOrgSelections,
+  type PendingOidcOrgData,
+} from "./oidc";
 
 // GitHub OAuth App credentials (separate from the GitHub App)
 export const githubOAuthClientId = secret("GITHUB_OAUTH_CLIENT_ID");
@@ -105,21 +109,28 @@ export const getPendingOrgs = api.raw(
       return;
     }
 
-    const data = pendingOrgSelections.get(match[1]);
-    if (!data) {
+    const ghData = pendingOrgSelections.get(match[1]);
+    const oidcData = !ghData ? pendingOidcOrgSelections.get(match[1]) : undefined;
+
+    if (!ghData && !oidcData) {
       resp.writeHead(404, { "Content-Type": "application/json" });
       resp.end(JSON.stringify({ error: "pending org selection expired" }));
       return;
     }
 
+    const data = ghData ?? oidcData!;
+    const displayName = ghData?.githubLogin || oidcData?.idpLogin || data.name || data.email;
+
     resp.writeHead(200, { "Content-Type": "application/json" });
     resp.end(
       JSON.stringify({
-        githubLogin: data.githubLogin,
+        githubLogin: ghData?.githubLogin ?? "",
+        displayName,
         orgs: data.orgs.map((o) => ({
           orgId: o.orgId,
           orgSlug: o.orgSlug,
           githubOrgLogin: o.githubOrgLogin,
+          orgDisplayName: o.orgDisplayName,
           platformRole: o.platformRole,
         })),
       })
@@ -446,16 +457,22 @@ export const orgSelectComplete = api.raw(
 
     try {
       const pendingId = match[1];
-      const pendingData = pendingOrgSelections.get(pendingId);
 
-      if (!pendingData) {
+      // Check GitHub pending data first, then OIDC (shared __pending_org cookie)
+      const ghPending = pendingOrgSelections.get(pendingId);
+      const oidcPending = !ghPending ? pendingOidcOrgSelections.get(pendingId) : undefined;
+
+      if (!ghPending && !oidcPending) {
         resp.writeHead(302, { Location: "/signin?error=session_expired" });
         resp.end();
         return;
       }
 
-      // Clean up the pending data
-      pendingOrgSelections.delete(pendingId);
+      // Clean up the pending data from whichever map held it
+      if (ghPending) pendingOrgSelections.delete(pendingId);
+      if (oidcPending) pendingOidcOrgSelections.delete(pendingId);
+
+      const pendingData = ghPending ?? oidcPending!;
 
       const selectedOrg = pendingData.orgs.find(
         (o) => o.orgId === selectedOrgId
@@ -472,8 +489,10 @@ export const orgSelectComplete = api.raw(
           rauthyUserId: pendingData.rauthyUserId,
           email: pendingData.email,
           name: pendingData.name,
-          githubLogin: pendingData.githubLogin,
-          avatarUrl: pendingData.avatarUrl ?? "",
+          githubLogin: ghPending?.githubLogin ?? "",
+          idpProvider: oidcPending?.idpProvider ?? (ghPending ? "github" : ""),
+          idpLogin: oidcPending?.idpLogin ?? ghPending?.githubLogin ?? "",
+          avatarUrl: (ghPending?.avatarUrl ?? oidcPending?.avatarUrl) ?? "",
         },
         selectedOrg
       );
@@ -574,7 +593,9 @@ export const orgSwitch = api(
       orgId: req.orgId,
       orgSlug: org.slug,
       workspaceId: ws?.id ?? "",
-      githubLogin: user.githubLogin ?? "",
+      githubLogin: user.githubLogin || undefined,
+      idpProvider: auth.idpProvider,
+      idpLogin: auth.idpLogin,
       avatarUrl: user.avatarUrl ?? "",
       platformRole: role,
     });
@@ -701,7 +722,9 @@ export const orgSwitchCookie = api.raw(
         orgId,
         orgSlug: org?.slug ?? "",
         workspaceId: ws?.id ?? "",
-        githubLogin: user.githubLogin ?? "",
+        githubLogin: user.githubLogin || undefined,
+        idpProvider: auth.idpProvider,
+        idpLogin: auth.idpLogin,
         avatarUrl: user.avatarUrl ?? "",
         platformRole: role,
       });
@@ -834,7 +857,7 @@ export async function findOrCreateUser(opts: {
  * Rauthy-issued JWT that can be validated by the auth handler.
  */
 async function buildRauthySessionCookie(
-  user: { id: string; rauthyUserId: string; email: string; name: string; githubLogin: string; avatarUrl: string },
+  user: { id: string; rauthyUserId: string; email: string; name: string; githubLogin: string; avatarUrl: string; idpProvider?: string; idpLogin?: string },
   org: ResolvedOrg
 ): Promise<string> {
   const { accessToken, expiresIn } = await issueRauthySession({
@@ -843,7 +866,9 @@ async function buildRauthySessionCookie(
     orgId: org.orgId,
     orgSlug: org.orgSlug,
     workspaceId: org.workspaceId,
-    githubLogin: user.githubLogin,
+    githubLogin: user.githubLogin || undefined,
+    idpProvider: user.idpProvider ?? (user.githubLogin ? "github" : ""),
+    idpLogin: user.idpLogin ?? user.githubLogin ?? "",
     avatarUrl: user.avatarUrl,
     platformRole: org.platformRole,
   });
@@ -1000,6 +1025,8 @@ async function handleDesktopCallbackFlow(
     email,
     name: ghUser.name || ghUser.login,
     githubLogin: ghUser.login,
+    idpProvider: "github",
+    idpLogin: ghUser.login,
     avatarUrl: ghUser.avatar_url,
     codeChallenge: desktopFlow.codeChallenge,
     matchedOrgs: matchedOrgs.map((o) => ({
@@ -1007,6 +1034,7 @@ async function handleDesktopCallbackFlow(
       orgSlug: o.orgSlug,
       workspaceId: o.workspaceId,
       githubOrgLogin: o.githubOrgLogin,
+      orgDisplayName: o.orgDisplayName,
       platformRole: o.platformRole,
     })),
     createdAt: Date.now(),
