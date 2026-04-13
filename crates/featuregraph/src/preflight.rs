@@ -689,4 +689,104 @@ mod tests {
         assert!(br.downstream_features.is_empty());
         assert_eq!(br.total_loc_at_risk, 0);
     }
+
+    #[test]
+    fn sc096_2_blast_radius_diamond_dependency() {
+        // Diamond: A -> B, A -> C, B -> D, C -> D
+        let mut graph = FeatureGraph::new();
+        graph
+            .features
+            .push(make_node("A", "active", vec![], vec!["src/a.rs"]));
+        graph
+            .features
+            .push(make_node("B", "active", vec!["A"], vec!["src/b.rs"]));
+        graph
+            .features
+            .push(make_node("C", "active", vec!["A"], vec!["src/c.rs"]));
+        graph.features.push(make_node(
+            "D",
+            "active",
+            vec!["B", "C"],
+            vec!["src/d.rs"],
+        ));
+
+        let index = make_xray_index(vec![
+            make_xray_file("src/a.rs", 100, 5),
+            make_xray_file("src/b.rs", 200, 10),
+            make_xray_file("src/c.rs", 150, 8),
+            make_xray_file("src/d.rs", 50, 3),
+        ]);
+
+        let br = compute_blast_radius(&graph, &index, &["src/a.rs".into()]);
+        assert_eq!(br.affected_features, vec!["A"]);
+        // B, C, D are all downstream
+        assert!(br.downstream_features.contains(&"B".to_string()));
+        assert!(br.downstream_features.contains(&"C".to_string()));
+        assert!(br.downstream_features.contains(&"D".to_string()));
+        assert_eq!(br.dependency_depth, 2); // A -> B/C -> D
+    }
+
+    #[test]
+    fn sc096_2_blast_radius_multiple_changed_files() {
+        // Two independent features, change files from both
+        let mut graph = FeatureGraph::new();
+        graph
+            .features
+            .push(make_node("X", "active", vec![], vec!["src/x.rs"]));
+        graph
+            .features
+            .push(make_node("Y", "active", vec![], vec!["src/y.rs"]));
+
+        let index = make_xray_index(vec![
+            make_xray_file("src/x.rs", 100, 5),
+            make_xray_file("src/y.rs", 200, 10),
+        ]);
+
+        let br = compute_blast_radius(
+            &graph,
+            &index,
+            &["src/x.rs".into(), "src/y.rs".into()],
+        );
+        assert_eq!(br.affected_features.len(), 2);
+        assert!(br.affected_features.contains(&"X".to_string()));
+        assert!(br.affected_features.contains(&"Y".to_string()));
+        assert!(br.downstream_features.is_empty()); // no dependents
+    }
+
+    #[test]
+    fn sc096_2_blast_radius_deduplicates_downstream() {
+        // A -> C, B -> C: change files from both A and B
+        let mut graph = FeatureGraph::new();
+        graph
+            .features
+            .push(make_node("A", "active", vec![], vec!["src/a.rs"]));
+        graph
+            .features
+            .push(make_node("B", "active", vec![], vec!["src/b.rs"]));
+        graph.features.push(make_node(
+            "C",
+            "active",
+            vec!["A", "B"],
+            vec!["src/c.rs"],
+        ));
+
+        let index = make_xray_index(vec![
+            make_xray_file("src/a.rs", 100, 5),
+            make_xray_file("src/b.rs", 100, 5),
+            make_xray_file("src/c.rs", 200, 10),
+        ]);
+
+        let br = compute_blast_radius(
+            &graph,
+            &index,
+            &["src/a.rs".into(), "src/b.rs".into()],
+        );
+        // C should appear only once in downstream despite two paths
+        let c_count = br
+            .downstream_features
+            .iter()
+            .filter(|f| *f == "C")
+            .count();
+        assert_eq!(c_count, 1, "C should appear exactly once in downstream");
+    }
 }

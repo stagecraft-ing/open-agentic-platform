@@ -416,4 +416,127 @@ mod tests {
         assert!(!status.events_synced);
         assert!(!status.artifacts_recorded);
     }
+
+    // --- SyncTracker edge cases (099 Slice 2) ---
+
+    #[test]
+    fn sc099_2_mixed_ack_and_fail() {
+        let tracker = SyncTracker::new();
+        tracker.record_events_ack(3);
+        tracker.record_events_fail("timeout".into());
+        tracker.record_artifacts_ack(2);
+        tracker.record_artifacts_fail("disk full".into());
+
+        let status = tracker.to_sync_status();
+        assert!(!status.events_synced, "any failure → not synced");
+        assert!(!status.artifacts_recorded, "any failure → not recorded");
+        assert!(status.last_sync_error.is_some());
+    }
+
+    #[test]
+    fn sc099_2_events_ok_artifacts_failed() {
+        let tracker = SyncTracker::new();
+        tracker.record_events_ack(5);
+        tracker.record_artifacts_fail("upload error".into());
+
+        let status = tracker.to_sync_status();
+        assert!(status.events_synced, "events all acked");
+        assert!(!status.artifacts_recorded, "artifacts had failure");
+    }
+
+    #[test]
+    fn sc099_2_clone_shares_state() {
+        let tracker = SyncTracker::new();
+        let clone = tracker.clone();
+
+        clone.record_events_ack(3);
+        clone.record_artifacts_ack(2);
+
+        // Read from original — should see the clone's writes
+        let status = tracker.to_sync_status();
+        assert!(status.events_synced);
+        assert!(status.artifacts_recorded);
+    }
+
+    #[test]
+    fn sc099_2_last_error_tracks_most_recent() {
+        let tracker = SyncTracker::new();
+        tracker.record_events_fail("first error".into());
+        tracker.record_artifacts_fail("second error".into());
+
+        let status = tracker.to_sync_status();
+        assert_eq!(
+            status.last_sync_error.as_deref(),
+            Some("second error"),
+            "last_error should be the most recent failure"
+        );
+    }
+
+    // --- Promotion edge cases (097 Slice 3) ---
+
+    #[test]
+    fn sc097_3_ineligible_with_skipped_step() {
+        let mut state = make_completed_state(Some("ws-001"), "governed");
+        state.steps[1].status = crate::state::StepExecutionStatus::Skipped;
+
+        let sync = SyncStatus {
+            events_synced: true,
+            artifacts_recorded: true,
+            last_sync_error: None,
+        };
+
+        let check = check_promotion_eligibility(&state, &sync);
+        assert!(!check.all_steps_completed);
+        match &check.eligibility {
+            PromotionEligibility::Ineligible { reasons } => {
+                assert!(reasons.iter().any(|r| r.contains("step-02") && r.contains("skipped")));
+            }
+            PromotionEligibility::Eligible => panic!("expected ineligible for skipped step"),
+        }
+    }
+
+    #[test]
+    fn sc097_3_empty_steps_vacuously_complete() {
+        let mut meta = serde_json::Map::new();
+        meta.insert("workspace_id".into(), JsonValue::String("ws-001".into()));
+        meta.insert(
+            "governance_mode".into(),
+            JsonValue::String("governed".into()),
+        );
+
+        let state = WorkflowState::new(
+            Uuid::new_v4(),
+            "empty-workflow",
+            "2026-04-12T00:00:00Z".into(),
+            Vec::<(String, String)>::new(), // zero steps
+            meta,
+        );
+
+        let sync = SyncStatus {
+            events_synced: true,
+            artifacts_recorded: true,
+            last_sync_error: None,
+        };
+
+        let check = check_promotion_eligibility(&state, &sync);
+        assert!(
+            check.all_steps_completed,
+            "empty steps should be vacuously complete"
+        );
+        assert_eq!(check.eligibility, PromotionEligibility::Eligible);
+    }
+
+    #[test]
+    fn sc098_2_governed_mode_positive_assertion() {
+        let state = make_completed_state(Some("ws-001"), "governed");
+        let sync = SyncStatus {
+            events_synced: true,
+            artifacts_recorded: true,
+            last_sync_error: None,
+        };
+
+        let check = check_promotion_eligibility(&state, &sync);
+        assert!(check.governance_active, "governed mode should be active");
+        assert_eq!(check.eligibility, PromotionEligibility::Eligible);
+    }
 }

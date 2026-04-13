@@ -673,4 +673,163 @@ mod tests {
         assert_eq!(lineage[0].relationship, LineageRelation::ProducedBy);
         assert_eq!(lineage[1].relationship, LineageRelation::ConsumedBy);
     }
+
+    // -- find_by_workspace, upsert, dedup, cross-workflow (094 Slices 3-4) --
+
+    #[cfg(feature = "local-sqlite")]
+    #[test]
+    fn sc094_3_find_by_workspace() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
+
+        let base = ArtifactRecord {
+            content_hash: "h1".into(),
+            filename: "out.md".into(),
+            step_id: "s1".into(),
+            workflow_id: "wf-1".into(),
+            workspace_id: Some("ws-A".into()),
+            created_at: "2026-04-12T00:00:00Z".into(),
+            size_bytes: 100,
+            content_type: None,
+            producer_agent: None,
+        };
+        store.record_artifact(&base).unwrap();
+
+        let mut r2 = base.clone();
+        r2.content_hash = "h2".into();
+        r2.workflow_id = "wf-2".into();
+        r2.created_at = "2026-04-12T00:01:00Z".into();
+        store.record_artifact(&r2).unwrap();
+
+        let mut r3 = base.clone();
+        r3.content_hash = "h3".into();
+        r3.workflow_id = "wf-3".into();
+        r3.workspace_id = Some("ws-B".into());
+        store.record_artifact(&r3).unwrap();
+
+        let ws_a = store.find_by_workspace("ws-A").unwrap();
+        assert_eq!(ws_a.len(), 2);
+        assert!(ws_a.iter().all(|r| r.workspace_id.as_deref() == Some("ws-A")));
+    }
+
+    #[cfg(feature = "local-sqlite")]
+    #[test]
+    fn sc094_3_find_by_workspace_empty() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
+        assert!(store.find_by_workspace("nonexistent").unwrap().is_empty());
+    }
+
+    #[cfg(feature = "local-sqlite")]
+    #[test]
+    fn sc094_3_upsert_on_conflict() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
+
+        let record = ArtifactRecord {
+            content_hash: "h-up".into(),
+            filename: "out.md".into(),
+            step_id: "s1".into(),
+            workflow_id: "wf-1".into(),
+            workspace_id: None,
+            created_at: "2026-04-12T00:00:00Z".into(),
+            size_bytes: 100,
+            content_type: None,
+            producer_agent: None,
+        };
+        store.record_artifact(&record).unwrap();
+
+        // Re-record with different size (same PK)
+        let mut updated = record.clone();
+        updated.size_bytes = 999;
+        store.record_artifact(&updated).unwrap();
+
+        let found = store.find_by_hash("h-up").unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].size_bytes, 999);
+    }
+
+    #[cfg(feature = "local-sqlite")]
+    #[test]
+    fn sc094_4_lineage_dedup_on_insert() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
+
+        let lineage = ArtifactLineage {
+            content_hash: "h-dup".into(),
+            relationship: LineageRelation::ProducedBy,
+            workflow_id: "wf-1".into(),
+            step_id: "s1".into(),
+            agent_id: Some("arch".into()),
+            created_at: "2026-04-12T00:00:00Z".into(),
+        };
+        store.record_lineage(&lineage).unwrap();
+        store.record_lineage(&lineage).unwrap(); // duplicate
+
+        let result = store.get_lineage("h-dup").unwrap();
+        assert_eq!(result.len(), 1, "INSERT OR IGNORE should deduplicate");
+    }
+
+    #[cfg(feature = "local-sqlite")]
+    #[test]
+    fn sc094_3_find_by_hash_cross_workflow() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
+
+        let r1 = ArtifactRecord {
+            content_hash: "h-shared".into(),
+            filename: "out.md".into(),
+            step_id: "s1".into(),
+            workflow_id: "wf-1".into(),
+            workspace_id: None,
+            created_at: "2026-04-12T00:00:00Z".into(),
+            size_bytes: 100,
+            content_type: None,
+            producer_agent: None,
+        };
+        store.record_artifact(&r1).unwrap();
+
+        let mut r2 = r1.clone();
+        r2.workflow_id = "wf-2".into();
+        r2.created_at = "2026-04-12T00:01:00Z".into();
+        store.record_artifact(&r2).unwrap();
+
+        let found = store.find_by_hash("h-shared").unwrap();
+        assert_eq!(found.len(), 2);
+    }
+
+    #[cfg(feature = "local-sqlite")]
+    #[test]
+    fn sc094_4_lineage_isolation() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
+
+        let l1 = ArtifactLineage {
+            content_hash: "h-iso-a".into(),
+            relationship: LineageRelation::ProducedBy,
+            workflow_id: "wf-1".into(),
+            step_id: "s1".into(),
+            agent_id: None,
+            created_at: "2026-04-12T00:00:00Z".into(),
+        };
+        store.record_lineage(&l1).unwrap();
+
+        let l2 = ArtifactLineage {
+            content_hash: "h-iso-b".into(),
+            relationship: LineageRelation::ConsumedBy,
+            workflow_id: "wf-1".into(),
+            step_id: "s2".into(),
+            agent_id: None,
+            created_at: "2026-04-12T00:01:00Z".into(),
+        };
+        store.record_lineage(&l2).unwrap();
+
+        let lineage_a = store.get_lineage("h-iso-a").unwrap();
+        assert_eq!(lineage_a.len(), 1);
+        assert_eq!(lineage_a[0].relationship, LineageRelation::ProducedBy);
+
+        let lineage_b = store.get_lineage("h-iso-b").unwrap();
+        assert_eq!(lineage_b.len(), 1);
+        assert_eq!(lineage_b[0].relationship, LineageRelation::ConsumedBy);
+    }
 }
