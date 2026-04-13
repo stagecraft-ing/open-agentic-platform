@@ -232,18 +232,22 @@ export const environments = pgTable("environments", {
 // Project Members
 // ---------------------------------------------------------------------------
 
-export const projectMembers = pgTable("project_members", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id").notNull(),
-  userId: uuid("user_id").notNull(),
-  role: projectMemberRoleEnum("role").notNull().default("viewer"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    role: projectMemberRoleEnum("role").notNull().default("viewer"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.projectId, t.userId)]
+);
 
 // ---------------------------------------------------------------------------
 // Audit Log
@@ -615,6 +619,29 @@ export const promotions = pgTable("promotions", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// GitHub Team Role Mappings (spec 080 Phase 3 — FR-009)
+// ---------------------------------------------------------------------------
+
+export const targetScopeEnum = pgEnum("target_scope", ["org", "project"]);
+
+export const githubTeamRoleMappings = pgTable(
+  "github_team_role_mappings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    githubTeamSlug: text("github_team_slug").notNull(),
+    githubTeamId: bigint("github_team_id", { mode: "number" }).notNull(),
+    targetScope: targetScopeEnum("target_scope").notNull(),
+    targetId: uuid("target_id"), // NULL for org-level, project_id for project-level
+    role: text("role").notNull(), // platform_role or project_member_role
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.githubTeamSlug, t.targetScope, t.targetId)]
+);
 
 // ---------------------------------------------------------------------------
 // Desktop Refresh Tokens (spec 080 Phase 1 — OPC PKCE auth)

@@ -504,6 +504,7 @@ pub fn run() {
             commands::auth::auth_start_login,
             commands::auth::auth_handle_callback,
             commands::auth::auth_select_org,
+            commands::auth::auth_switch_org,
             commands::auth::auth_refresh_token,
             commands::auth::auth_get_status,
             commands::auth::auth_logout,

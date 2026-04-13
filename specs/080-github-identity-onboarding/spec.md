@@ -25,7 +25,7 @@ risk: medium
 |-------|-------|--------|
 | phase-1 | GitHub App + OAuth Login + Rauthy Sessions | active |
 | phase-2 | Self-Service Project Creation | active |
-| phase-3 | Team Role Mapping + Sync | draft |
+| phase-3 | Team Role Mapping + Sync | active |
 | phase-4 | Enterprise OIDC Federation | draft |
 
 ## Purpose

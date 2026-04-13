@@ -23,11 +23,13 @@ interface AuthContextType {
   status: AuthStatus;
   user: AuthUser | null;
   org: AuthOrg | null;
+  availableOrgs: AuthOrg[];
   pendingOrgs: AuthOrg[] | null;
   pendingId: string | null;
   error: string | null;
   login: () => Promise<void>;
   selectOrg: (orgId: string) => Promise<void>;
+  switchOrg: (orgId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [org, setOrg] = useState<AuthOrg | null>(null);
   const [pendingOrgs, setPendingOrgs] = useState<AuthOrg[] | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [availableOrgs, setAvailableOrgs] = useState<AuthOrg[]>([]);
   const [error, setError] = useState<string | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
 
@@ -113,6 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result.type === 'authenticated') {
       setUser(result.user);
       setOrg(result.org);
+      if (result.available_orgs) setAvailableOrgs(result.available_orgs);
+      else if (result.org) setAvailableOrgs([result.org]);
       setPendingOrgs(null);
       setPendingId(null);
       setStatus('authenticated');
@@ -120,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else if (result.type === 'org_selection') {
       setUser(result.user);
       setPendingOrgs(result.orgs);
+      setAvailableOrgs(result.orgs ?? []);
       setPendingId(result.pending_id);
       setStatus('org-selection');
     } else if (result.type === 'error') {
@@ -152,6 +158,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pendingId]);
 
+  const switchOrg = useCallback(async (orgId: string) => {
+    try {
+      const result = await api.authSwitchOrg(orgId);
+      if (result.type === 'authenticated') {
+        handleAuthResult(result);
+      } else if (result.org) {
+        setOrg(result.org);
+        if (result.expires_at) scheduleRefresh(result.expires_at);
+      }
+    } catch (err) {
+      setError(String(err));
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.authLogout();
@@ -168,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ status, user, org, pendingOrgs, pendingId, error, login, selectOrg, logout }}>
+    <AuthContext.Provider value={{ status, user, org, availableOrgs, pendingOrgs, pendingId, error, login, selectOrg, switchOrg, logout }}>
       {children}
     </AuthContext.Provider>
   );

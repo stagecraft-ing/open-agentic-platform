@@ -9,8 +9,11 @@ import log from "encore.dev/log";
 import { db } from "../db/drizzle";
 import {
   githubInstallations,
+  githubTeamRoleMappings,
   orgMemberships,
   organizations,
+  projectMembers,
+  users,
   workspaces,
 } from "../db/schema";
 import { eq, and, notInArray, inArray } from "drizzle-orm";
@@ -281,4 +284,113 @@ export async function getUserOrgRole(
     .limit(1);
 
   return row?.platformRole ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Team-to-role mapping application (spec 080 FR-009 / FR-010)
+// ---------------------------------------------------------------------------
+
+interface TeamMember {
+  githubUserId: number;
+  githubLogin: string;
+}
+
+/**
+ * Apply team-to-role mappings for a specific team.
+ *
+ * For org-scope mappings: elevates `org_memberships.platform_role` for team members.
+ * For project-scope mappings: upserts `project_members` with the mapped role.
+ */
+export async function applyTeamRoleMappings(
+  orgId: string,
+  teamSlug: string,
+  teamMembers: TeamMember[]
+): Promise<{ orgUpdated: number; projectUpdated: number }> {
+  const mappings = await db
+    .select()
+    .from(githubTeamRoleMappings)
+    .where(
+      and(
+        eq(githubTeamRoleMappings.orgId, orgId),
+        eq(githubTeamRoleMappings.githubTeamSlug, teamSlug)
+      )
+    );
+
+  if (mappings.length === 0) return { orgUpdated: 0, projectUpdated: 0 };
+
+  // Resolve OAP user IDs for team members
+  const ghUserIds = teamMembers.map((m) => m.githubUserId);
+  const oapUsers =
+    ghUserIds.length > 0
+      ? await db
+          .select({ id: users.id, githubUserId: users.githubUserId })
+          .from(users)
+          .where(inArray(users.githubUserId, ghUserIds))
+      : [];
+
+  const ghToOap = new Map(
+    oapUsers
+      .filter((u) => u.githubUserId != null)
+      .map((u) => [u.githubUserId!, u.id])
+  );
+
+  let orgUpdated = 0;
+  let projectUpdated = 0;
+
+  for (const mapping of mappings) {
+    if (mapping.targetScope === "org") {
+      // Elevate org membership platform_role for team members
+      const validRoles = new Set(["owner", "admin", "member"]);
+      if (!validRoles.has(mapping.role)) continue;
+
+      for (const [, userId] of ghToOap) {
+        const result = await db
+          .update(orgMemberships)
+          .set({
+            platformRole: mapping.role as "owner" | "admin" | "member",
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(orgMemberships.userId, userId),
+              eq(orgMemberships.orgId, orgId),
+              eq(orgMemberships.status, "active")
+            )
+          );
+        if (result.rowCount && result.rowCount > 0) orgUpdated++;
+      }
+    } else if (mapping.targetScope === "project" && mapping.targetId) {
+      // Upsert project_members for team members
+      const validRoles = new Set(["viewer", "developer", "deployer", "admin"]);
+      if (!validRoles.has(mapping.role)) continue;
+
+      for (const [, userId] of ghToOap) {
+        await db
+          .insert(projectMembers)
+          .values({
+            projectId: mapping.targetId!,
+            userId,
+            role: mapping.role as "viewer" | "developer" | "deployer" | "admin",
+          })
+          .onConflictDoUpdate({
+            target: [projectMembers.projectId, projectMembers.userId],
+            set: {
+              role: mapping.role as "viewer" | "developer" | "deployer" | "admin",
+              updatedAt: new Date(),
+            },
+          });
+        projectUpdated++;
+      }
+    }
+  }
+
+  log.info("Applied team role mappings", {
+    orgId,
+    teamSlug,
+    teamMemberCount: teamMembers.length,
+    orgUpdated,
+    projectUpdated,
+  });
+
+  return { orgUpdated, projectUpdated };
 }

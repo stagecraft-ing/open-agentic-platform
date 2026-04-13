@@ -8,14 +8,15 @@
  * Rauthy provisioning is now required (not best-effort).
  */
 
-import { api } from "encore.dev/api";
+import { api, APIError } from "encore.dev/api";
 import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
+import { getAuthData } from "~encore/auth";
 import crypto from "crypto";
 import { db } from "../db/drizzle";
-import { users, userIdentities, auditLog } from "../db/schema";
-import { eq } from "drizzle-orm";
-import { resolveOrgMemberships, type ResolvedOrg } from "./membership";
+import { users, userIdentities, orgMemberships, organizations, workspaces, auditLog } from "../db/schema";
+import { eq, and } from "drizzle-orm";
+import { resolveOrgMemberships, type ResolvedOrg, getUserOrgRole } from "./membership";
 import { provisionRauthyUser, issueRauthySession } from "./rauthy";
 import {
   consumeDesktopFlow,
@@ -493,6 +494,230 @@ export const orgSelectComplete = api.raw(
       log.error("Org select complete failed", { error: String(err) });
       resp.writeHead(302, { Location: "/signin?error=session_expired" });
       resp.end();
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /auth/org-switch — switch org context for authenticated user (FR-012)
+// ---------------------------------------------------------------------------
+
+export const orgSwitch = api(
+  { expose: true, auth: true, method: "POST", path: "/auth/org-switch" },
+  async (req: { orgId: string }): Promise<{ ok: true; accessToken: string; expiresIn: number }> => {
+    const auth = getAuthData()!;
+
+    // Verify user has active membership in the target org
+    const role = await getUserOrgRole(auth.userID, req.orgId);
+    if (!role) {
+      throw APIError.permissionDenied("No active membership in this organization");
+    }
+
+    // Get user details
+    const [user] = await db
+      .select({
+        id: users.id,
+        rauthyUserId: users.rauthyUserId,
+        email: users.email,
+        name: users.name,
+        githubLogin: users.githubLogin,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, auth.userID))
+      .limit(1);
+
+    if (!user || !user.rauthyUserId) {
+      throw APIError.internal("User account not properly configured");
+    }
+
+    // Get org details and default workspace
+    const [membership] = await db
+      .select({ orgId: orgMemberships.orgId })
+      .from(orgMemberships)
+      .where(
+        and(
+          eq(orgMemberships.userId, auth.userID),
+          eq(orgMemberships.orgId, req.orgId),
+          eq(orgMemberships.status, "active")
+        )
+      )
+      .limit(1);
+
+    if (!membership) {
+      throw APIError.permissionDenied("No active membership in this organization");
+    }
+
+    // Resolve org slug and workspace
+    const [org] = await db
+      .select({ id: organizations.id, slug: organizations.slug })
+      .from(organizations)
+      .where(eq(organizations.id, req.orgId))
+      .limit(1);
+
+    if (!org) {
+      throw APIError.notFound("Organization not found");
+    }
+
+    const [ws] = await db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(
+        and(eq(workspaces.orgId, req.orgId), eq(workspaces.slug, "default"))
+      )
+      .limit(1);
+
+    // Issue new Rauthy session with updated org context
+    const { accessToken, expiresIn } = await issueRauthySession({
+      rauthyUserId: user.rauthyUserId,
+      oapUserId: user.id,
+      orgId: req.orgId,
+      orgSlug: org.slug,
+      workspaceId: ws?.id ?? "",
+      githubLogin: user.githubLogin ?? "",
+      avatarUrl: user.avatarUrl ?? "",
+      platformRole: role,
+    });
+
+    log.info("Org switch completed", {
+      userId: auth.userID,
+      fromOrgId: auth.orgId,
+      toOrgId: req.orgId,
+    });
+
+    return { ok: true, accessToken, expiresIn };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /auth/user-orgs — list orgs available to the current user (FR-012)
+// ---------------------------------------------------------------------------
+
+export type UserOrgRow = {
+  orgId: string;
+  orgSlug: string;
+  platformRole: "owner" | "admin" | "member";
+};
+
+export const listUserOrgs = api(
+  { expose: true, auth: true, method: "GET", path: "/auth/user-orgs" },
+  async (): Promise<{ orgs: UserOrgRow[] }> => {
+    const auth = getAuthData()!;
+
+    const rows = await db
+      .select({
+        orgId: orgMemberships.orgId,
+        orgSlug: organizations.slug,
+        platformRole: orgMemberships.platformRole,
+      })
+      .from(orgMemberships)
+      .innerJoin(organizations, eq(organizations.id, orgMemberships.orgId))
+      .where(
+        and(
+          eq(orgMemberships.userId, auth.userID),
+          eq(orgMemberships.status, "active")
+        )
+      );
+
+    return { orgs: rows };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /auth/org-switch/cookie — org switch for web (sets __session cookie)
+// ---------------------------------------------------------------------------
+
+export const orgSwitchCookie = api.raw(
+  { expose: true, method: "POST", path: "/auth/org-switch/cookie", auth: true },
+  async (req, resp) => {
+    const auth = getAuthData()!;
+
+    // Read orgId from body
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    let orgId: string;
+    try {
+      const body = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+      orgId = body.orgId;
+    } catch {
+      resp.writeHead(400, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "Invalid request body" }));
+      return;
+    }
+
+    if (!orgId) {
+      resp.writeHead(400, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "orgId is required" }));
+      return;
+    }
+
+    // Verify membership
+    const role = await getUserOrgRole(auth.userID, orgId);
+    if (!role) {
+      resp.writeHead(403, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "No active membership in this organization" }));
+      return;
+    }
+
+    // Get user details
+    const [user] = await db
+      .select({
+        id: users.id,
+        rauthyUserId: users.rauthyUserId,
+        email: users.email,
+        name: users.name,
+        githubLogin: users.githubLogin,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, auth.userID))
+      .limit(1);
+
+    if (!user?.rauthyUserId) {
+      resp.writeHead(500, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "User not configured" }));
+      return;
+    }
+
+    // Resolve org
+    const [org] = await db
+      .select({ slug: organizations.slug })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1);
+
+    const [ws] = await db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(and(eq(workspaces.orgId, orgId), eq(workspaces.slug, "default")))
+      .limit(1);
+
+    try {
+      const { accessToken, expiresIn } = await issueRauthySession({
+        rauthyUserId: user.rauthyUserId,
+        oapUserId: user.id,
+        orgId,
+        orgSlug: org?.slug ?? "",
+        workspaceId: ws?.id ?? "",
+        githubLogin: user.githubLogin ?? "",
+        avatarUrl: user.avatarUrl ?? "",
+        platformRole: role,
+      });
+
+      const maxAge = Math.min(expiresIn, 14 * 24 * 60 * 60);
+      const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
+
+      resp.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": `__session=${accessToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge};${secure}`,
+      });
+      resp.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      log.error("Org switch cookie failed", { error: String(err) });
+      resp.writeHead(500, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ error: "Failed to switch org" }));
     }
   }
 );

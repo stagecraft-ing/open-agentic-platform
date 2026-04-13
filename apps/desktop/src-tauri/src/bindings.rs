@@ -71,6 +71,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::auth::auth_start_login,
         crate::commands::auth::auth_handle_callback,
         crate::commands::auth::auth_select_org,
+        crate::commands::auth::auth_switch_org,
         crate::commands::auth::auth_refresh_token,
         crate::commands::auth::auth_get_status,
         crate::commands::auth::auth_logout,

@@ -613,6 +613,104 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
     })
 }
 
+/// Switch to a different org — calls the org-switch API, stores new tokens.
+///
+/// Returns an AuthResult with the new org context.
+#[tauri::command]
+#[specta::specta]
+pub async fn auth_switch_org(
+    org_id: String,
+    stagecraft: State<'_, StagecraftState>,
+) -> AppResult<AuthResult> {
+    let client = stagecraft
+        .0
+        .as_ref()
+        .ok_or("Stagecraft client not configured")?;
+
+    let body = serde_json::json!({ "orgId": org_id });
+
+    let mut req = reqwest::Client::new()
+        .post(format!("{}/auth/org-switch", client.base_url()))
+        .json(&body);
+
+    // Attach the current auth token
+    if let Some(token) = keychain_get("session") {
+        req = req.header("Authorization", format!("Bearer {token}"));
+    }
+
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| format!("org-switch request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status().as_u16();
+        let text = resp.text().await.unwrap_or_default();
+        return Ok(AuthResult::Error {
+            code: format!("http_{status}"),
+            message: format!("org switch failed ({status}): {text}"),
+        });
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct OrgSwitchResponse {
+        ok: bool,
+        access_token: String,
+        expires_in: i64,
+    }
+
+    let data: OrgSwitchResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("failed to decode org-switch response: {e}"))?;
+
+    if !data.ok {
+        return Ok(AuthResult::Error {
+            code: "switch_failed".into(),
+            message: "Org switch was not successful".into(),
+        });
+    }
+
+    // Store the new token in memory and keychain
+    client.set_auth_token(&data.access_token);
+    keychain_set("session", &data.access_token);
+
+    // Extract claims from the new JWT to build AuthUser + AuthOrg
+    let claims = decode_jwt_claims(&data.access_token);
+    let expires_at = claims
+        .as_ref()
+        .and_then(|c| c.get("exp")?.as_i64())
+        .unwrap_or_else(|| expires_at_from_in(data.expires_in));
+
+    let user = claims.as_ref().map(|c| AuthUser {
+        id: c.get("oap_user_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        email: c.get("email").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        name: c.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        github_login: c.get("github_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        avatar_url: c.get("avatar_url").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+    });
+
+    let org = claims.as_ref().map(|c| AuthOrg {
+        org_id: c.get("oap_org_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        org_slug: c.get("oap_org_slug").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        github_org_login: c.get("oap_org_slug").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        platform_role: c.get("platform_role").and_then(|v| v.as_str()).unwrap_or("member").to_string(),
+    });
+
+    match (user, org) {
+        (Some(u), Some(o)) => Ok(AuthResult::Authenticated {
+            user: u,
+            org: o,
+            expires_at,
+        }),
+        _ => Ok(AuthResult::Error {
+            code: "decode_failed".into(),
+            message: "Could not decode org context from new token".into(),
+        }),
+    }
+}
+
 /// Clear all auth state — keychain entries and in-memory token.
 #[tauri::command]
 #[specta::specta]

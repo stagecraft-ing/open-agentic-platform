@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Circle, ExternalLink } from "lucide-react";
+import { Circle, ExternalLink, ChevronDown } from "lucide-react";
 import { Button } from "@opc/ui/button";
 import { Popover } from "@opc/ui/popover";
 import { api, type ClaudeVersionStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TopbarProps {
   /**
@@ -44,6 +45,58 @@ interface TopbarProps {
  *   onMCPClick={() => setView('mcp')}
  * />
  */
+function OrgIndicator() {
+  const { org, availableOrgs, switchOrg, status } = useAuth();
+  const [switching, setSwitching] = useState(false);
+
+  if (status !== 'authenticated' || !org) return null;
+
+  if (availableOrgs.length <= 1) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        {org.org_slug}
+      </span>
+    );
+  }
+
+  return (
+    <Popover
+      trigger={
+        <Button variant="ghost" size="sm" className="h-auto py-1 px-2 text-xs" disabled={switching}>
+          {org.org_slug}
+          <ChevronDown className="ml-1 h-3 w-3" />
+        </Button>
+      }
+      content={
+        <div className="space-y-1 min-w-[160px]">
+          <p className="text-xs font-medium text-muted-foreground px-2 py-1">Switch organization</p>
+          {availableOrgs.map((o) => (
+            <Button
+              key={o.org_id}
+              variant={o.org_id === org.org_id ? "secondary" : "ghost"}
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={switching || o.org_id === org.org_id}
+              onClick={async () => {
+                setSwitching(true);
+                try {
+                  await switchOrg(o.org_id);
+                } finally {
+                  setSwitching(false);
+                }
+              }}
+            >
+              {o.org_slug}
+              <span className="ml-auto text-muted-foreground">{o.platform_role}</span>
+            </Button>
+          ))}
+        </div>
+      }
+      align="end"
+    />
+  );
+}
+
 export const Topbar: React.FC<TopbarProps> = ({
   onSettingsClick,
   className,
@@ -166,9 +219,9 @@ export const Topbar: React.FC<TopbarProps> = ({
     >
       {/* Status Indicator */}
       <StatusIndicator />
-      
-      {/* Spacer - Navigation moved to titlebar */}
-      <div></div>
+
+      {/* Org Switcher */}
+      <OrgIndicator />
     </motion.div>
   );
 }; 

@@ -9,6 +9,7 @@ import {
   projects,
   environments,
   githubInstallations,
+  users,
   workspaces,
   auditLog,
 } from "../db/schema";
@@ -18,6 +19,7 @@ import {
   destroyPreviewDeployment,
   isDeploydConfigured,
 } from "../deploy/deploydClient";
+import { revokeOrgMembership } from "./teamSync";
 
 const webhookSecret = secret("GITHUB_WEBHOOK_SECRET");
 
@@ -198,6 +200,10 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
           // via the factory pipeline. This emits the audit event for the trigger.
         }
       }
+      break;
+
+    case "organization":
+      await handleOrganizationEvent(p);
       break;
 
     default:
@@ -397,6 +403,82 @@ async function handleInstallationEvent(p: any): Promise<void> {
       .update(githubInstallations)
       .set({ installationState: "active", updatedAt: new Date() })
       .where(eq(githubInstallations.installationId, installId));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Organization membership events (spec 080 FR-011)
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleOrganizationEvent(p: any): Promise<void> {
+  if (p.action === "member_removed") {
+    const ghUserId: number = p.membership?.user?.id;
+    const installId: number | undefined = p.installation?.id;
+
+    if (!ghUserId) {
+      log.warn("organization.member_removed: no user ID in payload");
+      return;
+    }
+
+    log.info("Organization member removed", {
+      github_user_id: ghUserId,
+      org: p.organization?.login,
+    });
+
+    // Look up the OAP user by github_user_id
+    const [oapUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.githubUserId, ghUserId))
+      .limit(1);
+
+    if (!oapUser) {
+      log.info("Removed user not found in OAP, skipping", {
+        github_user_id: ghUserId,
+      });
+      return;
+    }
+
+    // Resolve the org via installation or github_org_id
+    let orgId: string | null = null;
+    if (installId) {
+      const [inst] = await db
+        .select({ orgId: githubInstallations.orgId })
+        .from(githubInstallations)
+        .where(eq(githubInstallations.installationId, installId))
+        .limit(1);
+      orgId = inst?.orgId ?? null;
+    }
+
+    if (!orgId && p.organization?.id) {
+      const [org] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.githubOrgId, p.organization.id))
+        .limit(1);
+      orgId = org?.id ?? null;
+    }
+
+    if (!orgId) {
+      log.warn("Could not resolve OAP org for member removal", {
+        github_user_id: ghUserId,
+        org: p.organization?.login,
+      });
+      return;
+    }
+
+    await revokeOrgMembership(oapUser.id, orgId);
+    log.info("Revoked membership via webhook", {
+      userId: oapUser.id,
+      orgId,
+      github_user_id: ghUserId,
+    });
+  } else if (p.action === "member_added") {
+    log.info("Organization member added (will sync on next cron run)", {
+      github_user_id: p.membership?.user?.id,
+      org: p.organization?.login,
+    });
   }
 }
 

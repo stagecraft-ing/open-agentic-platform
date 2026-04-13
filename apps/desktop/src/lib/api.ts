@@ -535,6 +535,10 @@ export const api = {
     await apiCall<null>("auth_logout");
   },
 
+  async authSwitchOrg(orgId: string): Promise<any> {
+    return await apiCall<any>("auth_switch_org", { orgId });
+  },
+
   /**
    * Gets the user's home directory path
    * @returns Promise resolving to the home directory path
