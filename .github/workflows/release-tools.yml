@@ -28,8 +28,6 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
           - os: windows-latest
@@ -135,7 +133,7 @@ jobs:
           mkdir -p release
           cd dist
 
-          for target in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu; do
+          for target in aarch64-apple-darwin x86_64-unknown-linux-gnu; do
             tar czf "../release/oap-tools-${target}.tar.gz" *-${target}
           done
 

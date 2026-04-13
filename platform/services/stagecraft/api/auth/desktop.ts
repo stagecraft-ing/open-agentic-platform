@@ -58,23 +58,18 @@ interface DesktopOrg {
   platformRole: string;
 }
 
-interface DesktopTokenResponse {
-  type: "authenticated";
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+interface DesktopTokenResult {
+  type: "authenticated" | "org_selection";
   user: DesktopUser;
-  org: DesktopOrg;
+  // Present when type === "authenticated"
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  org?: DesktopOrg;
+  // Present when type === "org_selection"
+  pendingId?: string;
+  orgs?: DesktopOrg[];
 }
-
-interface DesktopOrgSelectionResponse {
-  type: "org_selection";
-  pendingId: string;
-  orgs: DesktopOrg[];
-  user: DesktopUser;
-}
-
-type DesktopTokenResult = DesktopTokenResponse | DesktopOrgSelectionResponse;
 
 interface DesktopRefreshResponse {
   accessToken: string;
@@ -302,7 +297,7 @@ interface DesktopOrgSelectRequest {
   orgId: string;
 }
 
-export const desktopOrgSelect = api<DesktopOrgSelectRequest, DesktopTokenResponse>(
+export const desktopOrgSelect = api<DesktopOrgSelectRequest, DesktopTokenResult>(
   { expose: true, method: "POST", path: "/auth/desktop/org-select", auth: false },
   async (req) => {
     const { pendingId, orgId } = req;

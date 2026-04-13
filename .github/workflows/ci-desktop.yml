@@ -42,6 +42,12 @@ jobs:
           mkdir -p apps/desktop/dist
           echo '<!doctype html><html><body>stub</body></html>' > apps/desktop/dist/index.html
 
+      - name: Create sidecar binary stub for Tauri build.rs
+        run: |
+          mkdir -p apps/desktop/src-tauri/binaries
+          touch apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          chmod +x apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+
       - name: cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 
