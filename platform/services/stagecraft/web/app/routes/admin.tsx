@@ -37,6 +37,12 @@ export default function AdminLayout() {
         >
           Projects
         </Link>
+        <Link
+          to="/admin/oidc-providers"
+          className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+        >
+          SSO Providers
+        </Link>
       </nav>
       <main>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">

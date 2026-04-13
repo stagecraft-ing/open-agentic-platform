@@ -245,6 +245,22 @@ fn random_base64url(byte_count: usize) -> String {
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
 }
 
+/// Minimal percent-encoding for URL query parameter values.
+fn percent_encode_component(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() * 3);
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char);
+            }
+            _ => {
+                out.push_str(&format!("%{:02X}", b));
+            }
+        }
+    }
+    out
+}
+
 fn pkce_challenge(verifier: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(verifier.as_bytes());
@@ -271,9 +287,13 @@ fn expires_at_from_in(expires_in: i64) -> i64 {
 ///
 /// Generates a PKCE challenge, stores the flow in managed state, then opens
 /// the user's default browser pointing at the stagecraft authorize endpoint.
+///
+/// If `idp_hint` is provided (email address or OIDC provider ID), the flow
+/// routes through the enterprise OIDC path instead of GitHub OAuth.
 #[tauri::command]
 #[specta::specta]
 pub async fn auth_start_login(
+    idp_hint: Option<String>,
     stagecraft: State<'_, StagecraftState>,
     flow: State<'_, AuthFlowState>,
     app: tauri::AppHandle,
@@ -301,12 +321,20 @@ pub async fn auth_start_login(
         });
     }
 
-    let url = format!(
+    let mut url = format!(
         "{}/auth/desktop/authorize?code_challenge={}&code_challenge_method=S256&state={}&redirect_uri=opc://auth/callback",
         client.base_url(),
         code_challenge,
         state_param
     );
+
+    // Append idp_hint for enterprise OIDC routing (percent-encoded)
+    if let Some(hint) = idp_hint {
+        if !hint.is_empty() {
+            url.push_str("&idp_hint=");
+            url.push_str(&percent_encode_component(&hint));
+        }
+    }
 
     app.opener()
         .open_url(&url, None::<&str>)
@@ -414,6 +442,7 @@ pub async fn auth_handle_callback(
         TokenResponse::Authenticated(data) => {
             let expires_at = expires_at_from_in(data.expires_in);
             client.set_auth_token(&data.access_token);
+            keychain_set("session", &data.access_token);
             keychain_set("refresh_token", &data.refresh_token);
             client.set_workspace_id(&data.org.org_id);
             Ok(AuthResult::Authenticated {
@@ -471,6 +500,7 @@ pub async fn auth_select_org(
 
     let expires_at = expires_at_from_in(data.expires_in);
     client.set_auth_token(&data.access_token);
+    keychain_set("session", &data.access_token);
     keychain_set("refresh_token", &data.refresh_token);
     client.set_workspace_id(&data.org.org_id);
 
@@ -516,6 +546,7 @@ pub async fn auth_refresh_token(stagecraft: State<'_, StagecraftState>) -> AppRe
         .map_err(|e| format!("failed to decode refresh response: {e}"))?;
 
     client.set_auth_token(&data.access_token);
+    keychain_set("session", &data.access_token);
     keychain_set("refresh_token", &data.refresh_token);
 
     // Extract `exp` from new JWT if available; otherwise derive from expires_in

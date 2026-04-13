@@ -1,5 +1,5 @@
 /**
- * Enterprise OIDC login flow (spec 080 Phase 4).
+ * Enterprise OIDC login flow (spec 080 Phase 4–5).
  *
  * Routes enterprise users through Rauthy's OIDC authorization endpoint,
  * which federates to the configured upstream IdP (Azure AD, Okta, Google
@@ -35,18 +35,24 @@ import {
 } from "./rauthy";
 import { resolveOidcMemberships, type ResolvedOrg } from "./membership";
 import { appBaseUrl } from "./github";
+import {
+  consumeDesktopFlow,
+  storeDesktopSession,
+  cleanupDesktopState,
+  type PendingDesktopFlow,
+} from "./desktop-state";
 
 // ---------------------------------------------------------------------------
 // Ephemeral state for OIDC CSRF protection
 // ---------------------------------------------------------------------------
 
-interface PendingOidcState {
+export interface PendingOidcState {
   providerId: string;
   orgId: string;
   createdAt: number;
 }
 
-const pendingOidcStates = new Map<string, PendingOidcState>();
+export const pendingOidcStates = new Map<string, PendingOidcState>();
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function cleanupStaleOidcStates() {
@@ -214,6 +220,13 @@ export const oidcCallback = api.raw(
       return;
     }
     pendingOidcStates.delete(state);
+
+    // Desktop flow detection — if this state was initiated by
+    // /auth/desktop/authorize with an idp_hint, route to opc:// deep-link
+    // instead of setting a web session cookie.
+    // Note: desktopAuthorize registers the state in BOTH pendingDesktopFlows
+    // and pendingOidcStates so that CSRF validation above succeeds.
+    const desktopFlow = consumeDesktopFlow(state);
 
     // Load the OIDC provider config
     const [provider] = await db
@@ -395,7 +408,60 @@ export const oidcCallback = api.raw(
       log.warn("OIDC post-login bookkeeping failed (non-fatal)", { error: String(err) });
     }
 
-    // Route based on matched orgs
+    // Desktop OIDC flow — redirect to opc:// deep-link instead of web session
+    if (desktopFlow) {
+      try {
+        const redirectDesktopError = (errorCode: string) => {
+          const params = new URLSearchParams({ error: errorCode, state: desktopFlow.desktopState });
+          resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
+          resp.end();
+        };
+
+        if (matchedOrgs.length === 0) {
+          return redirectDesktopError("no_orgs");
+        }
+
+        cleanupDesktopState();
+        const authCode = storeDesktopSession({
+          userId: user.id,
+          rauthyUserId: rauthyUserId!,
+          email,
+          name,
+          githubLogin: "",
+          idpProvider: provider.providerType,
+          idpLogin,
+          avatarUrl,
+          codeChallenge: desktopFlow.codeChallenge,
+          matchedOrgs: matchedOrgs.map((o) => ({
+            orgId: o.orgId,
+            orgSlug: o.orgSlug,
+            workspaceId: o.workspaceId,
+            githubOrgLogin: o.githubOrgLogin,
+            orgDisplayName: o.orgDisplayName,
+            platformRole: o.platformRole,
+          })),
+          createdAt: Date.now(),
+        });
+
+        const params = new URLSearchParams({
+          code: authCode,
+          state: desktopFlow.desktopState,
+        });
+        if (matchedOrgs.length > 1) {
+          params.set("multi_org", "true");
+        }
+        resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
+        resp.end();
+      } catch (err) {
+        log.error("OIDC desktop session creation failed", { error: String(err) });
+        const params = new URLSearchParams({ error: "oauth_failed", state: desktopFlow.desktopState });
+        resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
+        resp.end();
+      }
+      return;
+    }
+
+    // Web flow — route based on matched orgs
     try {
       if (matchedOrgs.length === 0) {
         resp.writeHead(302, {

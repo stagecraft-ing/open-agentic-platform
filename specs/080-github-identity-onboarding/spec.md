@@ -27,6 +27,7 @@ risk: medium
 | phase-2 | Self-Service Project Creation | active |
 | phase-3 | Team Role Mapping + Sync | active |
 | phase-4 | Enterprise OIDC Federation | active |
+| phase-5 | Desktop OIDC + Admin UI + Auth Hardening | active |
 
 ## Purpose
 
@@ -739,6 +740,49 @@ All auth types made provider-agnostic:
 
 ---
 
+## Phase 5: Desktop OIDC + Admin UI + Auth Hardening
+
+### Scope
+
+- Fix desktop OIDC callback routing (FR-018 gap from Phase 4)
+- Add `idp_hint` parameter to desktop auth command
+- Fix keychain key consistency for `auth_get_status`
+- Admin UI for OIDC provider and group-mapping management
+- Status enum validation on OIDC provider updates
+
+### FR-020: Desktop OIDC Callback Routing
+
+The Phase 4 OIDC callback (`/auth/oidc/callback`) only handled the web flow. When a desktop flow initiated via `/auth/desktop/authorize?idp_hint=...` reached the OIDC callback, it would redirect to the web app instead of issuing an `opc://` deep-link.
+
+**Fix:** The OIDC callback now checks `pendingDesktopFlows` (from `desktop-state.ts`) before routing. If the state belongs to a desktop flow, it generates a one-time auth code via `storeDesktopSession()` and redirects to the `opc://auth/callback` deep-link — identical to the GitHub desktop path.
+
+### FR-021: Desktop Enterprise Login Command
+
+The Tauri `auth_start_login` command now accepts an optional `idp_hint` parameter (email address or OIDC provider ID). When provided, the `/auth/desktop/authorize` endpoint routes through Rauthy's OIDC authorization instead of GitHub OAuth.
+
+The desktop `AuthContext` exposes `login(idpHint?: string)` so the frontend can trigger either GitHub or enterprise login.
+
+### FR-022: Keychain Consistency
+
+All Tauri auth commands (`auth_handle_callback`, `auth_select_org`, `auth_refresh_token`) now write both the `session` and `refresh_token` keychain entries. Previously only `refresh_token` was written during login, causing `auth_get_status` (which reads `session`) to always return `unauthenticated` after a fresh login.
+
+### FR-023: OIDC Provider Admin UI
+
+New route `/admin/oidc-providers` provides CRUD for enterprise OIDC providers and group-to-role mappings:
+
+- List all OIDC providers with status badges
+- Create new provider (name, type, issuer, client ID, secret, email domain, auto-provision toggle)
+- Enable/disable providers
+- Delete providers (cascades group mappings)
+- Select a provider to view/manage its group-to-role mappings
+- Create and delete group-to-role mappings with scope-appropriate role selection
+
+### FR-024: Status Enum Validation
+
+`updateOidcProvider` now validates the `status` field against the allowed set (`active`, `disabled`, `pending`) and returns a 400 error for invalid values.
+
+---
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
@@ -832,3 +876,26 @@ All auth types made provider-agnostic:
 - [ ] Admin endpoints enforce org-admin permission (403 for members)
 - [ ] Audit log captures OIDC provider and group mapping CRUD events
 - [ ] Audit log captures `user.oidc_login` events with provider metadata
+
+### Phase 5
+
+- [ ] Desktop OIDC callback generates `opc://` deep-link (not web redirect)
+- [ ] Desktop OIDC callback stores session via `storeDesktopSession()` for PKCE exchange
+- [ ] Desktop OIDC with zero orgs returns error code in deep-link
+- [ ] Desktop OIDC with multiple orgs sets `multi_org=true` in deep-link
+- [ ] `auth_start_login` accepts optional `idp_hint` parameter
+- [ ] `idp_hint` with email routes through enterprise OIDC
+- [ ] `idp_hint` with provider ID routes through enterprise OIDC
+- [ ] `idp_hint` absent routes through GitHub (backward compatible)
+- [ ] `auth_get_status` returns `authenticated` after fresh login (keychain fixed)
+- [ ] `auth_handle_callback` writes both `session` and `refresh_token` to keychain
+- [ ] `auth_select_org` writes both `session` and `refresh_token` to keychain
+- [ ] `auth_refresh_token` updates `session` keychain entry
+- [ ] Admin UI: `/admin/oidc-providers` route loads for admin users
+- [ ] Admin UI: create OIDC provider form submits successfully
+- [ ] Admin UI: provider list displays with status badges
+- [ ] Admin UI: enable/disable toggle updates provider status
+- [ ] Admin UI: delete provider removes it and cascades group mappings
+- [ ] Admin UI: group-mapping CRUD (create, list, delete)
+- [ ] Admin UI: scope-aware role dropdown (org roles vs project roles)
+- [ ] `updateOidcProvider` rejects invalid status values with 400

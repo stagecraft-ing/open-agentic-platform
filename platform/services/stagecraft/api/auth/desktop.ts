@@ -33,6 +33,7 @@ import {
   pendingStates,
 } from "./github";
 import { buildAuthorizationUrl } from "./rauthy";
+import { pendingOidcStates } from "./oidc";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -139,13 +140,21 @@ export const desktopAuthorize = api.raw(
       }
 
       if (providerRow) {
-        // Route through Rauthy's OIDC authorization endpoint
+        // Route through Rauthy's OIDC authorization endpoint.
+        // Register state in BOTH pendingDesktopFlows (so the OIDC callback
+        // detects this is a desktop flow) and pendingOidcStates (so the
+        // OIDC callback's CSRF validation succeeds).
         const rauthyState = crypto.randomBytes(32).toString("base64url");
         pendingDesktopFlows.set(rauthyState, {
           codeChallenge,
           codeChallengeMethod,
           redirectUri,
           desktopState,
+          createdAt: Date.now(),
+        });
+        pendingOidcStates.set(rauthyState, {
+          providerId: providerRow.id,
+          orgId: providerRow.orgId,
           createdAt: Date.now(),
         });
 

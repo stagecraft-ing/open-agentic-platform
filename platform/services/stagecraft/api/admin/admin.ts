@@ -419,6 +419,11 @@ export const updateOidcProvider = api(
   }): Promise<{ ok: true }> => {
     const auth = requireOrgAdmin(req.orgId);
 
+    const VALID_STATUSES = ["active", "disabled", "pending"];
+    if (req.status !== undefined && !VALID_STATUSES.includes(req.status)) {
+      throw APIError.invalidArgument(`Invalid status: must be one of ${VALID_STATUSES.join(", ")}`);
+    }
+
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (req.name !== undefined) updates.name = req.name;
     if (req.scopes !== undefined) updates.scopes = req.scopes;

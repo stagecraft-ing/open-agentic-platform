@@ -30,7 +30,7 @@ interface AuthContextType {
   pendingOrgs: AuthOrg[] | null;
   pendingId: string | null;
   error: string | null;
-  login: () => Promise<void>;
+  login: (idpHint?: string) => Promise<void>;
   selectOrg: (orgId: string) => Promise<void>;
   switchOrg: (orgId: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -137,11 +137,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = useCallback(async () => {
+  const login = useCallback(async (idpHint?: string) => {
     setError(null);
     setStatus('loading');
     try {
-      await api.authStartLogin();
+      await api.authStartLogin(idpHint ?? null);
       // Browser will open — callback arrives via deep-link event listener above
     } catch {
       setError('Could not open browser. Check your default browser settings.');

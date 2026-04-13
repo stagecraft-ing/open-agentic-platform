@@ -506,8 +506,8 @@ export interface ImportServerResult {
  */
 export const api = {
   // Desktop OAuth (spec 080 Phase 1)
-  async authStartLogin(): Promise<void> {
-    await apiCall<null>("auth_start_login");
+  async authStartLogin(idpHint?: string | null): Promise<void> {
+    await apiCall<null>("auth_start_login", { idp_hint: idpHint ?? null });
   },
 
   async authHandleCallback(url: string): Promise<any> {
