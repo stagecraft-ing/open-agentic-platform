@@ -703,12 +703,9 @@ mod tests {
         graph
             .features
             .push(make_node("C", "active", vec!["A"], vec!["src/c.rs"]));
-        graph.features.push(make_node(
-            "D",
-            "active",
-            vec!["B", "C"],
-            vec!["src/d.rs"],
-        ));
+        graph
+            .features
+            .push(make_node("D", "active", vec!["B", "C"], vec!["src/d.rs"]));
 
         let index = make_xray_index(vec![
             make_xray_file("src/a.rs", 100, 5),
@@ -742,11 +739,7 @@ mod tests {
             make_xray_file("src/y.rs", 200, 10),
         ]);
 
-        let br = compute_blast_radius(
-            &graph,
-            &index,
-            &["src/x.rs".into(), "src/y.rs".into()],
-        );
+        let br = compute_blast_radius(&graph, &index, &["src/x.rs".into(), "src/y.rs".into()]);
         assert_eq!(br.affected_features.len(), 2);
         assert!(br.affected_features.contains(&"X".to_string()));
         assert!(br.affected_features.contains(&"Y".to_string()));
@@ -763,12 +756,9 @@ mod tests {
         graph
             .features
             .push(make_node("B", "active", vec![], vec!["src/b.rs"]));
-        graph.features.push(make_node(
-            "C",
-            "active",
-            vec!["A", "B"],
-            vec!["src/c.rs"],
-        ));
+        graph
+            .features
+            .push(make_node("C", "active", vec!["A", "B"], vec!["src/c.rs"]));
 
         let index = make_xray_index(vec![
             make_xray_file("src/a.rs", 100, 5),
@@ -776,17 +766,9 @@ mod tests {
             make_xray_file("src/c.rs", 200, 10),
         ]);
 
-        let br = compute_blast_radius(
-            &graph,
-            &index,
-            &["src/a.rs".into(), "src/b.rs".into()],
-        );
+        let br = compute_blast_radius(&graph, &index, &["src/a.rs".into(), "src/b.rs".into()]);
         // C should appear only once in downstream despite two paths
-        let c_count = br
-            .downstream_features
-            .iter()
-            .filter(|f| *f == "C")
-            .count();
+        let c_count = br.downstream_features.iter().filter(|f| *f == "C").count();
         assert_eq!(c_count, 1, "C should appear exactly once in downstream");
     }
 }

@@ -35,7 +35,7 @@ export function LoginScreen() {
           <Button
             className="w-full gap-2"
             size="lg"
-            onClick={login}
+            onClick={() => login()}
             disabled={isLoading}
           >
             {isLoading ? (

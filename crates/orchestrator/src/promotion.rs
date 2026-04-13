@@ -489,7 +489,11 @@ mod tests {
         assert!(!check.all_steps_completed);
         match &check.eligibility {
             PromotionEligibility::Ineligible { reasons } => {
-                assert!(reasons.iter().any(|r| r.contains("step-02") && r.contains("skipped")));
+                assert!(
+                    reasons
+                        .iter()
+                        .any(|r| r.contains("step-02") && r.contains("skipped"))
+                );
             }
             PromotionEligibility::Eligible => panic!("expected ineligible for skipped step"),
         }

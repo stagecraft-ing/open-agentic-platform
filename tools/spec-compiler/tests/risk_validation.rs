@@ -12,9 +12,7 @@ fn make_temp_spec_repo(frontmatter: &str) -> tempfile::TempDir {
     fs::create_dir_all(&spec_dir).unwrap();
     fs::write(
         spec_dir.join("spec.md"),
-        format!(
-            "---\n{frontmatter}\n---\n# Risk Test\n\n## Section\n\nBody text.\n"
-        ),
+        format!("---\n{frontmatter}\n---\n# Risk Test\n\n## Section\n\nBody text.\n"),
     )
     .unwrap();
     dir
@@ -51,10 +49,7 @@ risk: banana"#,
         "expected V-007 violation for invalid risk, got: {violations:?}"
     );
     assert!(
-        v007[0]["message"]
-            .as_str()
-            .unwrap()
-            .contains("banana"),
+        v007[0]["message"].as_str().unwrap().contains("banana"),
         "V-007 message should mention the invalid value"
     );
 }

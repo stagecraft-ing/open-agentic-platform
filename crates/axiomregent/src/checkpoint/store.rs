@@ -639,10 +639,7 @@ mod tests {
         info3.created_at = "2026-04-12T00:02:00Z".into();
         store.create_checkpoint(&info3, &[]).await.unwrap();
 
-        let ws1 = store
-            .list_checkpoints("/repo", Some("ws-1"))
-            .await
-            .unwrap();
+        let ws1 = store.list_checkpoints("/repo", Some("ws-1")).await.unwrap();
         assert_eq!(ws1.len(), 2);
 
         let all = store.list_checkpoints("/repo", None).await.unwrap();
@@ -723,7 +720,7 @@ mod tests {
         let entries_b = vec![
             make_entry("foo.rs", "h3", 150), // modified (different hash)
             make_entry("baz.rs", "h4", 300), // added
-                                              // bar.rs deleted
+                                             // bar.rs deleted
         ];
         store.create_checkpoint(&info_b, &entries_b).await.unwrap();
 
@@ -747,10 +744,7 @@ mod tests {
         info_b.created_at = "2026-04-12T00:01:00Z".into();
         store.create_checkpoint(&info_b, &entries).await.unwrap();
 
-        let diff = store
-            .diff_checkpoints("cp-id-a", "cp-id-b")
-            .await
-            .unwrap();
+        let diff = store.diff_checkpoints("cp-id-a", "cp-id-b").await.unwrap();
         assert!(diff.added.is_empty());
         assert!(diff.modified.is_empty());
         assert!(diff.deleted.is_empty());
@@ -828,10 +822,7 @@ mod tests {
         let (_dir, store) = make_test_store().await;
 
         let info = make_info("cp-src", "/repo");
-        let entries = vec![
-            make_entry("a.rs", "ha", 100),
-            make_entry("b.rs", "hb", 200),
-        ];
+        let entries = vec![make_entry("a.rs", "ha", 100), make_entry("b.rs", "hb", 200)];
         store.create_checkpoint(&info, &entries).await.unwrap();
 
         let fork = store
@@ -890,7 +881,11 @@ mod tests {
         assert!(store.blobs.has(&hash_a), "blob should exist before GC");
 
         let gc = store.gc("/repo").await.unwrap();
-        assert!(gc.objects_removed >= 2, "expected 2+ removed, got {}", gc.objects_removed);
+        assert!(
+            gc.objects_removed >= 2,
+            "expected 2+ removed, got {}",
+            gc.objects_removed
+        );
         assert!(gc.bytes_freed > 0);
         assert!(!store.blobs.has(&hash_a), "blob should be deleted after GC");
         assert!(!store.blobs.has(&hash_b), "blob should be deleted after GC");

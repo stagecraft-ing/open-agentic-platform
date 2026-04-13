@@ -709,7 +709,10 @@ mod tests {
 
         let ws_a = store.find_by_workspace("ws-A").unwrap();
         assert_eq!(ws_a.len(), 2);
-        assert!(ws_a.iter().all(|r| r.workspace_id.as_deref() == Some("ws-A")));
+        assert!(
+            ws_a.iter()
+                .all(|r| r.workspace_id.as_deref() == Some("ws-A"))
+        );
     }
 
     #[cfg(feature = "local-sqlite")]
