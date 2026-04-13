@@ -16,6 +16,7 @@
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import crypto from "crypto";
+import { applyRateLimit, checkRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import { desktopRefreshTokens, oidcProviders } from "../db/schema";
 import { eq, and, gt } from "drizzle-orm";
@@ -91,6 +92,7 @@ const REFRESH_TOKEN_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 export const desktopAuthorize = api.raw(
   { expose: true, method: "GET", path: "/auth/desktop/authorize", auth: false },
   async (req, resp) => {
+    if (applyRateLimit(req, resp)) return;
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const codeChallenge = url.searchParams.get("code_challenge");
     const codeChallengeMethod = url.searchParams.get("code_challenge_method");
@@ -215,6 +217,12 @@ interface DesktopTokenRequest {
 export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
   { expose: true, method: "POST", path: "/auth/desktop/token", auth: false },
   async (req) => {
+    // Rate limit typed endpoints by returning 429 via APIError
+    const retryAfter = checkRateLimit("desktop-token-global");
+    if (retryAfter !== null) {
+      throw APIError.resourceExhausted(`Rate limited. Retry after ${retryAfter}s`);
+    }
+
     const { code, codeVerifier, redirectUri } = req;
 
     if (!code || !codeVerifier || !redirectUri) {
@@ -350,6 +358,11 @@ interface DesktopRefreshRequest {
 export const desktopRefresh = api<DesktopRefreshRequest, DesktopRefreshResponse>(
   { expose: true, method: "POST", path: "/auth/desktop/refresh", auth: false },
   async (req) => {
+    const retryAfter = checkRateLimit("desktop-refresh-global");
+    if (retryAfter !== null) {
+      throw APIError.resourceExhausted(`Rate limited. Retry after ${retryAfter}s`);
+    }
+
     const { refreshToken } = req;
 
     if (!refreshToken) {

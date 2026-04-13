@@ -13,6 +13,7 @@ import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
 import crypto from "crypto";
+import { applyRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import { users, userIdentities, orgMemberships, organizations, workspaces, auditLog } from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -145,6 +146,7 @@ export const getPendingOrgs = api.raw(
 export const githubLogin = api.raw(
   { expose: true, method: "GET", path: "/auth/github", auth: false },
   async (_req, resp) => {
+    if (applyRateLimit(_req, resp)) return;
     cleanupStaleStates();
 
     const state = crypto.randomBytes(32).toString("base64url");
@@ -170,6 +172,7 @@ export const githubLogin = api.raw(
 export const githubCallback = api.raw(
   { expose: true, method: "GET", path: "/auth/github/callback", auth: false },
   async (req, resp) => {
+    if (applyRateLimit(req, resp)) return;
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");

@@ -32,6 +32,7 @@ export default [
     index("routes/admin._index.tsx"),
     route("users", "routes/admin.users.tsx"),
     route("audit", "routes/admin.audit.tsx"),
+    route("sessions", "routes/admin.sessions.tsx"),
     route("oidc-providers", "routes/admin.oidc-providers.tsx"),
     route("projects", "routes/admin.projects.tsx", [
       index("routes/admin.projects._index.tsx"),

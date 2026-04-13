@@ -28,6 +28,7 @@ risk: medium
 | phase-3 | Team Role Mapping + Sync | active |
 | phase-4 | Enterprise OIDC Federation | active |
 | phase-5 | Desktop OIDC + Admin UI + Auth Hardening | active |
+| phase-6 | Session Lifecycle, User Governance + Auth Hardening | active |
 
 ## Purpose
 
@@ -899,3 +900,92 @@ New route `/admin/oidc-providers` provides CRUD for enterprise OIDC providers an
 - [ ] Admin UI: group-mapping CRUD (create, list, delete)
 - [ ] Admin UI: scope-aware role dropdown (org roles vs project roles)
 - [ ] `updateOidcProvider` rejects invalid status values with 400
+
+## Phase 6: Session Lifecycle, User Governance + Auth Hardening
+
+Phase 5 completed the authentication flows. Phase 6 closes the operational gaps: admins cannot see or revoke active sessions, the `users.disabled` column is never enforced, signout only clears cookies without revoking server-side state, the audit log has no pagination or filtering, and auth endpoints have no rate limiting.
+
+### FR-025: Enforce `users.disabled`
+
+The `users.disabled` column exists in the schema but is never checked. Phase 6 wires it into the auth flow and provides admin controls:
+
+1. **Auth handler check**: After JWT validation succeeds, the auth handler queries the `users` table to verify `disabled = false`. A disabled user's valid JWT is rejected with 403. The check uses a short-lived in-memory cache (60s TTL) to avoid a DB round-trip on every request.
+2. **Admin disable/enable endpoint**: `POST /admin/users/set-disabled` accepts `{ userId, disabled }`. On disable, it also revokes all Rauthy sessions and deletes all desktop refresh tokens for the user.
+3. **Admin UI toggle**: The users list shows a disable/enable button. Disabling shows a confirmation prompt.
+4. **Audit**: `user.disabled` and `user.enabled` events logged with actor identity.
+
+### FR-026: Active Session Management
+
+The `sessions` table exists but is unused. Phase 6 repurposes the `desktop_refresh_tokens` table (which already tracks active desktop sessions) and adds a new admin API for session visibility:
+
+1. **Admin session listing**: `GET /admin/users/:userId/sessions` returns all active desktop refresh tokens for a user (device info derived from `idpProvider`, creation time, expiry).
+2. **Admin force-revoke**: `DELETE /admin/users/:userId/sessions` revokes all Rauthy sessions for the user and deletes all desktop refresh tokens. Audit-logged as `user.sessions_revoked`.
+3. **Admin revoke single session**: `DELETE /admin/users/:userId/sessions/:tokenId` deletes one desktop refresh token.
+
+### FR-027: Server-Side Signout
+
+The current signout endpoints only clear the `__session` cookie. Phase 6 makes signout actually revoke server-side state:
+
+1. **Web signout** (`POST /auth/signout`): Now authenticated. Reads the user ID from the JWT, calls `revokeSession(rauthyUserId)` to invalidate all Rauthy sessions, deletes all `desktop_refresh_tokens` for the user, then clears the cookie.
+2. **Audit**: `user.signout` event logged.
+
+### FR-028: Audit Log Pagination and Filtering
+
+The current audit API returns a hard-coded 200 rows with no filtering. Phase 6 adds:
+
+1. **Cursor pagination**: `GET /admin/audit?cursor=<id>&limit=50` — default limit 50, max 200. Returns `nextCursor` when more rows exist.
+2. **Filters**: `action`, `actorUserId`, `targetType`, `targetId`, `from` (ISO date), `to` (ISO date). All optional, AND-combined.
+3. **Admin UI update**: Adds filter dropdowns for action and target type, a date range picker, and infinite-scroll pagination.
+
+### FR-029: Auth Endpoint Rate Limiting
+
+In-memory sliding-window rate limiter protecting auth endpoints from brute force:
+
+1. **IP-based rate limit**: 20 requests per minute per IP on `/auth/github`, `/auth/github/callback`, `/auth/oidc`, `/auth/oidc/callback`, `/auth/desktop/authorize`, `/auth/desktop/token`, `/auth/desktop/refresh`.
+2. **Implementation**: Lightweight in-memory Map with 1-minute window. Returns 429 with `Retry-After` header when exceeded.
+3. **Cleanup**: Expired entries pruned every 5 minutes.
+
+### FR-030: Org-Scoped Admin User Listing
+
+The current `listUsers` endpoint returns all users across all orgs:
+
+1. **Scope to caller's org**: `GET /admin/users` filters by the caller's `orgId` — joins through `org_memberships` to return only users who are members of the caller's org.
+2. **User detail enrichment**: Each user row now includes `lastLoginAt` and active session count (count of non-expired desktop refresh tokens).
+
+---
+
+### Phase 6 Test Plan
+
+- [ ] Auth handler rejects JWT for a disabled user with 403
+- [ ] Auth handler allows JWT for an enabled user
+- [ ] Disabled-user cache expires after 60s (re-enabled user can authenticate)
+- [ ] `POST /admin/users/set-disabled` disables a user
+- [ ] `POST /admin/users/set-disabled` enables a previously disabled user
+- [ ] Disabling a user revokes their Rauthy sessions
+- [ ] Disabling a user deletes their desktop refresh tokens
+- [ ] Disabling a user emits `user.disabled` audit event
+- [ ] Enabling a user emits `user.enabled` audit event
+- [ ] Admin cannot disable themselves
+- [ ] `GET /admin/users/:userId/sessions` returns active desktop sessions
+- [ ] `DELETE /admin/users/:userId/sessions` revokes all sessions for user
+- [ ] `DELETE /admin/users/:userId/sessions/:tokenId` revokes single session
+- [ ] Session revocation emits `user.sessions_revoked` audit event
+- [ ] `POST /auth/signout` revokes Rauthy sessions (authenticated)
+- [ ] `POST /auth/signout` deletes desktop refresh tokens
+- [ ] `POST /auth/signout` clears `__session` cookie
+- [ ] `POST /auth/signout` emits `user.signout` audit event
+- [ ] `GET /admin/audit?cursor=X&limit=50` returns paginated results
+- [ ] `GET /admin/audit?action=user.github_login` filters by action
+- [ ] `GET /admin/audit?actorUserId=X` filters by actor
+- [ ] `GET /admin/audit?targetType=user` filters by target type
+- [ ] `GET /admin/audit?from=2026-04-01&to=2026-04-13` filters by date range
+- [ ] Audit response includes `nextCursor` when more rows exist
+- [ ] Rate limiter returns 429 after 20 requests/minute to auth endpoints
+- [ ] Rate limiter includes `Retry-After` header in 429 response
+- [ ] Rate limiter allows requests after window expires
+- [ ] `GET /admin/users` returns only users in caller's org
+- [ ] `GET /admin/users` includes `lastLoginAt` per user
+- [ ] `GET /admin/users` includes active session count per user
+- [ ] Admin UI: disable/enable toggle on user list
+- [ ] Admin UI: session list and revoke buttons on user detail
+- [ ] Admin UI: audit log filter controls and pagination

@@ -16,6 +16,7 @@
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import crypto from "crypto";
+import { applyRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import {
   users,
@@ -130,6 +131,7 @@ export const oidcDiscover = api(
 export const oidcLogin = api.raw(
   { expose: true, method: "GET", path: "/auth/oidc", auth: false },
   async (req, resp) => {
+    if (applyRateLimit(req, resp)) return;
     cleanupStaleOidcStates();
 
     const url = new URL(req.url!, `http://${req.headers.host}`);
@@ -193,6 +195,7 @@ export const oidcLogin = api.raw(
 export const oidcCallback = api.raw(
   { expose: true, method: "GET", path: "/auth/oidc/callback", auth: false },
   async (req, resp) => {
+    if (applyRateLimit(req, resp)) return;
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");

@@ -1,14 +1,19 @@
 import { api, APIError } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
+import log from "encore.dev/log";
 import { db } from "../db/drizzle";
 import {
   auditLog,
+  desktopRefreshTokens,
   githubTeamRoleMappings,
   oidcGroupRoleMappings,
   oidcProviders,
+  orgMemberships,
   users,
 } from "../db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, lt, gte, lte, sql, count as drizzleCount } from "drizzle-orm";
+import { revokeSession } from "../auth/rauthy";
+import { evictDisabledCache } from "../auth/handler";
 
 /** Require admin or owner platform role. Throws 403 if not. */
 function requireAdmin(): { userID: string; orgId: string } {
@@ -28,18 +33,41 @@ function requireOrgAdmin(reqOrgId: string): { userID: string; orgId: string } {
   return auth;
 }
 
+/** Verify a target user belongs to the caller's org. Prevents cross-org IDOR. */
+async function requireUserInOrg(targetUserId: string, orgId: string): Promise<void> {
+  const [membership] = await db
+    .select({ id: orgMemberships.id })
+    .from(orgMemberships)
+    .where(
+      and(
+        eq(orgMemberships.userId, targetUserId),
+        eq(orgMemberships.orgId, orgId),
+        eq(orgMemberships.status, "active")
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    throw APIError.permissionDenied("User is not a member of your organization");
+  }
+}
+
 export type UserRow = {
   id: string;
   email: string;
   name: string;
   role: "user" | "admin";
   disabled: boolean;
+  lastLoginAt: Date | null;
+  activeSessionCount: number;
   createdAt: Date;
 };
 
 export type ListUsersResponse = { users: UserRow[] };
 
 export type SetRoleResponse = { ok: true };
+
+export type SetDisabledResponse = { ok: true };
 
 export type AuditRow = {
   id: string;
@@ -51,22 +79,67 @@ export type AuditRow = {
   createdAt: Date;
 };
 
-export type ListAuditResponse = { events: AuditRow[] };
+export type ListAuditResponse = {
+  events: AuditRow[];
+  nextCursor?: string;
+};
 
+// FR-030: Org-scoped admin user listing with enrichment
 export const listUsers = api(
   { expose: true, auth: true, method: "GET", path: "/admin/users" },
   async (): Promise<ListUsersResponse> => {
-    requireAdmin();
-    const rows = await db.select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      disabled: users.disabled,
-      createdAt: users.createdAt,
-    }).from(users);
+    const auth = requireAdmin();
 
-    return { users: rows };
+    // Join through org_memberships to scope to caller's org
+    const rows = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        disabled: users.disabled,
+        lastLoginAt: users.lastLoginAt,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .innerJoin(orgMemberships, eq(users.id, orgMemberships.userId))
+      .where(
+        and(
+          eq(orgMemberships.orgId, auth.orgId),
+          eq(orgMemberships.status, "active")
+        )
+      );
+
+    // Enrich with active session counts (desktop refresh tokens)
+    const userIds = rows.map((r) => r.id);
+    const sessionCounts = new Map<string, number>();
+
+    if (userIds.length > 0) {
+      const counts = await db
+        .select({
+          userId: desktopRefreshTokens.userId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(desktopRefreshTokens)
+        .where(
+          and(
+            sql`${desktopRefreshTokens.userId} = ANY(${userIds})`,
+            gte(desktopRefreshTokens.expiresAt, new Date())
+          )
+        )
+        .groupBy(desktopRefreshTokens.userId);
+
+      for (const c of counts) {
+        sessionCounts.set(c.userId, c.count);
+      }
+    }
+
+    return {
+      users: rows.map((r) => ({
+        ...r,
+        activeSessionCount: sessionCounts.get(r.id) ?? 0,
+      })),
+    };
   }
 );
 
@@ -77,6 +150,7 @@ export const setRole = api(
     role: "user" | "admin";
   }): Promise<SetRoleResponse> => {
     const auth = requireAdmin();
+    await requireUserInOrg(req.userId, auth.orgId);
     await db.update(users).set({ role: req.role }).where(eq(users.id, req.userId));
 
     await db.insert(auditLog).values({
@@ -91,20 +165,236 @@ export const setRole = api(
   }
 );
 
+// ---------------------------------------------------------------------------
+// FR-025: User disable/enable (spec 080 Phase 6)
+// ---------------------------------------------------------------------------
+
+export const setDisabled = api(
+  { expose: true, auth: true, method: "POST", path: "/admin/users/set-disabled" },
+  async (req: {
+    userId: string;
+    disabled: boolean;
+  }): Promise<SetDisabledResponse> => {
+    const auth = requireAdmin();
+
+    // Prevent self-disable
+    if (req.userId === auth.userID) {
+      throw APIError.invalidArgument("Cannot disable your own account");
+    }
+
+    await requireUserInOrg(req.userId, auth.orgId);
+    await db.update(users).set({ disabled: req.disabled, updatedAt: new Date() }).where(eq(users.id, req.userId));
+
+    // Evict from auth handler cache so the change takes effect immediately
+    evictDisabledCache(req.userId);
+
+    // On disable: revoke all sessions
+    if (req.disabled) {
+      const [user] = await db
+        .select({ rauthyUserId: users.rauthyUserId })
+        .from(users)
+        .where(eq(users.id, req.userId))
+        .limit(1);
+
+      if (user?.rauthyUserId) {
+        try {
+          await revokeSession(user.rauthyUserId);
+        } catch (err) {
+          log.warn("Failed to revoke Rauthy sessions on user disable", { error: String(err) });
+        }
+      }
+
+      // Delete all desktop refresh tokens
+      await db.delete(desktopRefreshTokens).where(eq(desktopRefreshTokens.userId, req.userId));
+    }
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: req.disabled ? "user.disabled" : "user.enabled",
+      targetType: "user",
+      targetId: req.userId,
+      metadata: {},
+    });
+
+    return { ok: true };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-026: Session management (spec 080 Phase 6)
+// ---------------------------------------------------------------------------
+
+export type SessionRow = {
+  id: string;
+  userId: string;
+  idpProvider: string;
+  platformRole: string;
+  orgSlug: string;
+  expiresAt: Date;
+  createdAt: Date;
+};
+
+export type ListSessionsResponse = { sessions: SessionRow[] };
+
+export const listUserSessions = api(
+  { expose: true, auth: true, method: "GET", path: "/admin/users/:userId/sessions" },
+  async (req: { userId: string }): Promise<ListSessionsResponse> => {
+    const auth = requireAdmin();
+    await requireUserInOrg(req.userId, auth.orgId);
+
+    const rows = await db
+      .select({
+        id: desktopRefreshTokens.id,
+        userId: desktopRefreshTokens.userId,
+        idpProvider: desktopRefreshTokens.idpProvider,
+        platformRole: desktopRefreshTokens.platformRole,
+        orgSlug: desktopRefreshTokens.orgSlug,
+        expiresAt: desktopRefreshTokens.expiresAt,
+        createdAt: desktopRefreshTokens.createdAt,
+      })
+      .from(desktopRefreshTokens)
+      .where(
+        and(
+          eq(desktopRefreshTokens.userId, req.userId),
+          gte(desktopRefreshTokens.expiresAt, new Date())
+        )
+      )
+      .orderBy(desc(desktopRefreshTokens.createdAt));
+
+    return { sessions: rows };
+  }
+);
+
+export const revokeUserSessions = api(
+  { expose: true, auth: true, method: "DELETE", path: "/admin/users/:userId/sessions" },
+  async (req: { userId: string }): Promise<{ ok: true }> => {
+    const auth = requireAdmin();
+    await requireUserInOrg(req.userId, auth.orgId);
+
+    // Revoke Rauthy sessions
+    const [user] = await db
+      .select({ rauthyUserId: users.rauthyUserId })
+      .from(users)
+      .where(eq(users.id, req.userId))
+      .limit(1);
+
+    if (user?.rauthyUserId) {
+      try {
+        await revokeSession(user.rauthyUserId);
+      } catch (err) {
+        log.warn("Failed to revoke Rauthy sessions", { error: String(err) });
+      }
+    }
+
+    // Delete all desktop refresh tokens
+    await db.delete(desktopRefreshTokens).where(eq(desktopRefreshTokens.userId, req.userId));
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "user.sessions_revoked",
+      targetType: "user",
+      targetId: req.userId,
+      metadata: { scope: "all" },
+    });
+
+    return { ok: true };
+  }
+);
+
+export const revokeUserSession = api(
+  { expose: true, auth: true, method: "DELETE", path: "/admin/users/:userId/sessions/:tokenId" },
+  async (req: { userId: string; tokenId: string }): Promise<{ ok: true }> => {
+    const auth = requireAdmin();
+    await requireUserInOrg(req.userId, auth.orgId);
+
+    const [deleted] = await db
+      .delete(desktopRefreshTokens)
+      .where(
+        and(
+          eq(desktopRefreshTokens.id, req.tokenId),
+          eq(desktopRefreshTokens.userId, req.userId)
+        )
+      )
+      .returning({ id: desktopRefreshTokens.id });
+
+    if (!deleted) {
+      throw APIError.notFound("Session not found");
+    }
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "user.sessions_revoked",
+      targetType: "desktop_refresh_token",
+      targetId: req.tokenId,
+      metadata: { scope: "single", user_id: req.userId },
+    });
+
+    return { ok: true };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// FR-028: Audit log with pagination and filtering (spec 080 Phase 6)
+// ---------------------------------------------------------------------------
+
 export const listAudit = api(
   { expose: true, auth: true, method: "GET", path: "/admin/audit" },
-  async (): Promise<ListAuditResponse> => {
+  async (req: {
+    cursor?: string;
+    limit?: number;
+    action?: string;
+    actorUserId?: string;
+    targetType?: string;
+    targetId?: string;
+    from?: string;
+    to?: string;
+  }): Promise<ListAuditResponse> => {
     requireAdmin();
+
+    const pageLimit = Math.min(req.limit ?? 50, 200);
+
+    // Build dynamic conditions
+    const conditions = [];
+    if (req.cursor) {
+      conditions.push(lt(auditLog.id, req.cursor));
+    }
+    if (req.action) {
+      conditions.push(eq(auditLog.action, req.action));
+    }
+    if (req.actorUserId) {
+      conditions.push(eq(auditLog.actorUserId, req.actorUserId));
+    }
+    if (req.targetType) {
+      conditions.push(eq(auditLog.targetType, req.targetType));
+    }
+    if (req.targetId) {
+      conditions.push(eq(auditLog.targetId, req.targetId));
+    }
+    if (req.from) {
+      conditions.push(gte(auditLog.createdAt, new Date(req.from)));
+    }
+    if (req.to) {
+      conditions.push(lte(auditLog.createdAt, new Date(req.to)));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
     const rows = await db
       .select()
       .from(auditLog)
-      .orderBy(desc(auditLog.createdAt))
-      .limit(200);
+      .where(whereClause)
+      .orderBy(desc(auditLog.id))
+      .limit(pageLimit + 1); // fetch one extra to detect next page
+
+    const hasMore = rows.length > pageLimit;
+    const page = hasMore ? rows.slice(0, pageLimit) : rows;
+
     return {
-      events: rows.map((r) => ({
+      events: page.map((r) => ({
         ...r,
         metadata: (r.metadata ?? {}) as Record<string, unknown>,
       })),
+      nextCursor: hasMore ? page[page.length - 1].id : undefined,
     };
   }
 );

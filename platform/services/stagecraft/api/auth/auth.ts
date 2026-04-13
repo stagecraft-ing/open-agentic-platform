@@ -1,11 +1,17 @@
 /**
- * Auth endpoints — Phase 5 hardened (spec 087).
+ * Auth endpoints — Phase 6 hardened (spec 080).
  *
- * Password-based signup/signin removed. All authentication flows through
- * GitHub OAuth → Rauthy OIDC JWT. Only signout endpoints remain.
+ * Signout is now authenticated and performs server-side revocation:
+ * revokes Rauthy sessions, deletes desktop refresh tokens, clears cookie.
  */
 
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
+import log from "encore.dev/log";
+import { db } from "../db/drizzle";
+import { auditLog, desktopRefreshTokens, users } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { revokeSession } from "./rauthy";
 
 export interface AuthSignoutResponse {
   ok: boolean;
@@ -22,15 +28,70 @@ function clearCookieHeader(name: string, path: string): string {
 }
 
 export const signout = api(
-  { expose: true, method: "POST", path: "/auth/signout" },
+  { expose: true, auth: true, method: "POST", path: "/auth/signout" },
   async (): Promise<AuthSignoutResponse> => {
+    const auth = getAuthData()!;
+
+    // Revoke Rauthy sessions for this user
+    const [user] = await db
+      .select({ rauthyUserId: users.rauthyUserId })
+      .from(users)
+      .where(eq(users.id, auth.userID))
+      .limit(1);
+
+    if (user?.rauthyUserId) {
+      try {
+        await revokeSession(user.rauthyUserId);
+      } catch (err) {
+        log.warn("Failed to revoke Rauthy session on signout", { error: String(err) });
+      }
+    }
+
+    // Delete all desktop refresh tokens for this user
+    await db.delete(desktopRefreshTokens).where(eq(desktopRefreshTokens.userId, auth.userID));
+
+    // Audit log
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "user.signout",
+      targetType: "user",
+      targetId: auth.userID,
+      metadata: {},
+    });
+
     return { ok: true, setCookie: clearCookieHeader(USER_COOKIE, "/") };
   }
 );
 
 export const adminSignout = api(
-  { expose: true, method: "POST", path: "/admin/auth/signout" },
+  { expose: true, auth: true, method: "POST", path: "/admin/auth/signout" },
   async (): Promise<AuthSignoutResponse> => {
+    const auth = getAuthData()!;
+
+    const [user] = await db
+      .select({ rauthyUserId: users.rauthyUserId })
+      .from(users)
+      .where(eq(users.id, auth.userID))
+      .limit(1);
+
+    if (user?.rauthyUserId) {
+      try {
+        await revokeSession(user.rauthyUserId);
+      } catch (err) {
+        log.warn("Failed to revoke Rauthy session on admin signout", { error: String(err) });
+      }
+    }
+
+    await db.delete(desktopRefreshTokens).where(eq(desktopRefreshTokens.userId, auth.userID));
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "user.signout",
+      targetType: "user",
+      targetId: auth.userID,
+      metadata: { scope: "admin" },
+    });
+
     return { ok: true, setCookie: clearCookieHeader(ADMIN_COOKIE, "/admin") };
   }
 );

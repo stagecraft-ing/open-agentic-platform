@@ -128,6 +128,7 @@ export namespace admin {
 
     export interface ListAuditResponse {
         events: AuditRow[]
+        nextCursor?: string
     }
 
     export interface ListUsersResponse {
@@ -138,13 +139,33 @@ export namespace admin {
         ok: true
     }
 
+    export interface SetDisabledResponse {
+        ok: true
+    }
+
     export interface UserRow {
         id: string
         email: string
         name: string
         role: "user" | "admin"
         disabled: boolean
+        lastLoginAt: string | null
+        activeSessionCount: number
         createdAt: string
+    }
+
+    export interface SessionRow {
+        id: string
+        userId: string
+        idpProvider: string
+        platformRole: string
+        orgSlug: string
+        expiresAt: string
+        createdAt: string
+    }
+
+    export interface ListSessionsResponse {
+        sessions: SessionRow[]
     }
 
     export class ServiceClient {
@@ -155,28 +176,75 @@ export namespace admin {
             this.listAudit = this.listAudit.bind(this)
             this.listUsers = this.listUsers.bind(this)
             this.setRole = this.setRole.bind(this)
+            this.setDisabled = this.setDisabled.bind(this)
+            this.listUserSessions = this.listUserSessions.bind(this)
+            this.revokeUserSessions = this.revokeUserSessions.bind(this)
+            this.revokeUserSession = this.revokeUserSession.bind(this)
         }
 
-        public async listAudit(): Promise<ListAuditResponse> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI("GET", `/admin/audit`)
+        public async listAudit(params?: {
+    cursor?: string
+    limit?: number
+    action?: string
+    actorUserId?: string
+    targetType?: string
+    targetId?: string
+    from?: string
+    to?: string
+}): Promise<ListAuditResponse> {
+            const query = new URLSearchParams()
+            if (params) {
+                for (const [k, v] of Object.entries(params)) {
+                    if (v !== undefined && v !== null) query.set(k, String(v))
+                }
+            }
+            const qs = query.toString()
+            const resp = await this.baseClient.callTypedAPI("GET", `/admin/audit${qs ? `?${qs}` : ``}`)
             return await resp.json() as ListAuditResponse
         }
 
         public async listUsers(): Promise<ListUsersResponse> {
-            // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/admin/users`)
             return await resp.json() as ListUsersResponse
         }
 
         public async setRole(params: {
-    actorUserId: string
+    actorUserId?: string
     userId: string
     role: "user" | "admin"
 }): Promise<SetRoleResponse> {
-            // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/admin/users/set-role`, JSON.stringify(params))
             return await resp.json() as SetRoleResponse
+        }
+
+        public async setDisabled(params: {
+    userId: string
+    disabled: boolean
+}): Promise<SetDisabledResponse> {
+            const resp = await this.baseClient.callTypedAPI("POST", `/admin/users/set-disabled`, JSON.stringify(params))
+            return await resp.json() as SetDisabledResponse
+        }
+
+        public async listUserSessions(params: {
+    userId: string
+}): Promise<ListSessionsResponse> {
+            const resp = await this.baseClient.callTypedAPI("GET", `/admin/users/${params.userId}/sessions`)
+            return await resp.json() as ListSessionsResponse
+        }
+
+        public async revokeUserSessions(params: {
+    userId: string
+}): Promise<{ ok: true }> {
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/admin/users/${params.userId}/sessions`)
+            return await resp.json() as { ok: true }
+        }
+
+        public async revokeUserSession(params: {
+    userId: string
+    tokenId: string
+}): Promise<{ ok: true }> {
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/admin/users/${params.userId}/sessions/${params.tokenId}`)
+            return await resp.json() as { ok: true }
         }
     }
 }

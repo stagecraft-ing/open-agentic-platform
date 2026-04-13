@@ -1,14 +1,55 @@
 /**
  * Encore auth handler — validates Rauthy JWTs on all authenticated API calls.
- * Spec 087 Phase 5: OIDC JWT enforcement — HMAC session fallback removed.
+ * Spec 080 Phase 6: disabled-user enforcement added.
  *
  * All authenticated requests must present a valid Rauthy-issued JWT
  * in the Authorization header (Bearer) or __session cookie.
+ * After JWT validation, the handler checks that the user is not disabled
+ * (FR-025, cached for 60s to avoid per-request DB round-trips).
  */
 
-import { Header, Gateway } from "encore.dev/api";
+import { Header, Gateway, APIError } from "encore.dev/api";
 import { authHandler } from "encore.dev/auth";
 import { validateJwt } from "./rauthy";
+import { db } from "../db/drizzle";
+import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
+
+// ---------------------------------------------------------------------------
+// Disabled-user cache (FR-025)
+// ---------------------------------------------------------------------------
+
+const DISABLED_CACHE_TTL_MS = 60_000; // 60 seconds
+
+interface CacheEntry {
+  disabled: boolean;
+  fetchedAt: number;
+}
+
+const disabledCache = new Map<string, CacheEntry>();
+
+async function isUserDisabled(userId: string): Promise<boolean> {
+  const now = Date.now();
+  const cached = disabledCache.get(userId);
+  if (cached && now - cached.fetchedAt < DISABLED_CACHE_TTL_MS) {
+    return cached.disabled;
+  }
+
+  const [row] = await db
+    .select({ disabled: users.disabled })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const disabled = row?.disabled ?? false;
+  disabledCache.set(userId, { disabled, fetchedAt: now });
+  return disabled;
+}
+
+/** Evict a user from the disabled cache (call after toggling disabled status). */
+export function evictDisabledCache(userId: string): void {
+  disabledCache.delete(userId);
+}
 
 // ---------------------------------------------------------------------------
 // Auth types
@@ -61,6 +102,11 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
   const claims = await validateJwt(token);
   if (!claims) {
     throw new Error("Invalid or expired JWT");
+  }
+
+  // FR-025: reject disabled users even if their JWT is still valid
+  if (await isUserDisabled(claims.oap_user_id)) {
+    throw APIError.permissionDenied("Account is disabled");
   }
 
   return {
