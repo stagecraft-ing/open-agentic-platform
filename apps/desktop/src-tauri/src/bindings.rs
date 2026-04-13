@@ -20,7 +20,7 @@
 //! my_module::my_command,
 //! ```
 
-use tauri_specta::{collect_commands, Builder};
+use tauri_specta::{Builder, collect_commands};
 
 pub fn generate_bindings() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![

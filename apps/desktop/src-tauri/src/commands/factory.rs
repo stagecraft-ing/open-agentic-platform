@@ -1,12 +1,12 @@
 use chrono::Utc;
 use factory_engine::{
-    record_scaffold_completion, record_scaffold_failure, FactoryAgentBridge, FactoryEngine,
-    FactoryEngineConfig, FactoryPipelineState,
+    FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryPipelineState,
+    record_scaffold_completion, record_scaffold_failure,
 };
 use orchestrator::{
+    AgentPromptLookup, ArtifactManager, ClaudeCodeExecutor, DispatchOptions, GateHandler,
     detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory,
-    promotion::SyncTracker, AgentPromptLookup, ArtifactManager, ClaudeCodeExecutor,
-    DispatchOptions, GateHandler,
+    promotion::SyncTracker,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -124,7 +124,8 @@ impl TauriGateHandler {
     fn approve(&self, step_id: &str) -> Result<(), String> {
         let mut pending = self.pending.lock().map_err(|e| e.to_string())?;
         if let Some(tx) = pending.remove(step_id) {
-            tx.send(Ok(())).map_err(|_| "gate channel closed".to_string())
+            tx.send(Ok(()))
+                .map_err(|_| "gate channel closed".to_string())
         } else {
             Err(format!("no pending gate for step {step_id}"))
         }
@@ -320,7 +321,10 @@ fn sc_ingest_step_events(
                     "phase": phase,
                 })),
             }];
-            if matches!(step.status, orchestrator::StepStatus::Failure | orchestrator::StepStatus::VerificationFailed) {
+            if matches!(
+                step.status,
+                orchestrator::StepStatus::Failure | orchestrator::StepStatus::VerificationFailed
+            ) {
                 evts[0].event_type = "step_failed".into();
             }
             evts
@@ -461,9 +465,10 @@ fn resolve_factory_root() -> Result<PathBuf, String> {
     ];
     for candidate in &candidates {
         if let Ok(p) = candidate.canonicalize()
-            && p.join("adapters").is_dir() {
-                return Ok(p);
-            }
+            && p.join("adapters").is_dir()
+        {
+            return Ok(p);
+        }
     }
     Err("factory/ directory not found. Ensure the repository contains a factory/ directory with adapters/".into())
 }
@@ -492,9 +497,7 @@ fn build_status_response(ctx: &FactoryRunContext) -> PipelineStatusResponse {
                     .map(|t| t.status.clone())
                     .unwrap_or_else(|| "pending".into()),
                 token_spend: tracker.map(|t| t.token_spend).unwrap_or(0),
-                artifacts: tracker
-                    .map(|t| t.artifacts.clone())
-                    .unwrap_or_default(),
+                artifacts: tracker.map(|t| t.artifacts.clone()).unwrap_or_default(),
                 started_at: tracker.and_then(|t| t.started_at.clone()),
                 completed_at: tracker.and_then(|t| t.completed_at.clone()),
             }
@@ -692,9 +695,8 @@ pub async fn start_factory_pipeline(
 
     // Dual-write: register pipeline with Stagecraft (fire-and-forget).
     if let Some(sc_project_id) = &stagecraft_project_id {
-        let sc_opt: Option<StagecraftClient> = app
-            .try_state::<StagecraftState>()
-            .and_then(|s| s.0.clone());
+        let sc_opt: Option<StagecraftClient> =
+            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
         if let Some(sc) = sc_opt {
             let pid = sc_project_id.clone();
             let adapter = adapter_name.clone();
@@ -751,7 +753,10 @@ pub async fn start_factory_pipeline(
     let (gov_plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
         .map_err(|e| format!("factory start: {e}"))?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] factory start falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] factory start falling back to bypass: {}",
+            reason
+        );
     }
     let governance_mode_str = match &gov_plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed".to_string(),
@@ -763,7 +768,15 @@ pub async fn start_factory_pipeline(
     tokio::spawn(async move {
         // Dual-write: mark pipeline as "running" in Stagecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-            sc_update_status(&sc, &pid, &plid, "running", Some("s0-preflight"), None, Some("process"));
+            sc_update_status(
+                &sc,
+                &pid,
+                &plid,
+                "running",
+                Some("s0-preflight"),
+                None,
+                Some("process"),
+            );
         }
 
         // Build executor with agent prompt lookup.
@@ -799,7 +812,15 @@ pub async fn start_factory_pipeline(
             Err(e) => {
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-                    sc_update_status(&sc, &pid, &plid, "failed", None, Some(&e.to_string()), Some("process"));
+                    sc_update_status(
+                        &sc,
+                        &pid,
+                        &plid,
+                        "failed",
+                        None,
+                        Some(&e.to_string()),
+                        Some("process"),
+                    );
                 }
                 app_handle
                     .emit(
@@ -857,10 +878,20 @@ pub async fn start_factory_pipeline(
                     // the orchestrator doesn't track prompt vs completion separately.
                     let half = tokens / 2;
                     if let Err(e) = sc
-                        .report_token_spend(&pid, &rid, &step.step_id, half, tokens - half, "claude-sonnet-4-20250514")
+                        .report_token_spend(
+                            &pid,
+                            &rid,
+                            &step.step_id,
+                            half,
+                            tokens - half,
+                            "claude-sonnet-4-20250514",
+                        )
                         .await
                     {
-                        log::warn!("Stagecraft token-spend report failed for {}: {e}", step.step_id);
+                        log::warn!(
+                            "Stagecraft token-spend report failed for {}: {e}",
+                            step.step_id
+                        );
                     }
                 }
             }
@@ -876,7 +907,15 @@ pub async fn start_factory_pipeline(
             ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
             let err_msg = format!("Build Spec not found at {}", build_spec_path.display());
             if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-                sc_update_status(&sc, &pid, &plid, "failed", None, Some(&err_msg), Some("transition"));
+                sc_update_status(
+                    &sc,
+                    &pid,
+                    &plid,
+                    "failed",
+                    None,
+                    Some(&err_msg),
+                    Some("transition"),
+                );
             }
             app_handle
                 .emit(
@@ -904,7 +943,15 @@ pub async fn start_factory_pipeline(
                 Err(e) => {
                     ps.mark_failed();
                     if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-                        sc_update_status(&sc, &pid, &plid, "failed", None, Some(&e.to_string()), Some("transition"));
+                        sc_update_status(
+                            &sc,
+                            &pid,
+                            &plid,
+                            "failed",
+                            None,
+                            Some(&e.to_string()),
+                            Some("transition"),
+                        );
                     }
                     app_handle
                         .emit(
@@ -934,7 +981,15 @@ pub async fn start_factory_pipeline(
 
         // Dual-write: transition to scaffolding phase in Stagecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-            sc_update_status(&sc, &pid, &plid, "running", Some("s6-scaffolding"), None, Some("scaffold"));
+            sc_update_status(
+                &sc,
+                &pid,
+                &plid,
+                "running",
+                Some("s6-scaffolding"),
+                None,
+                Some("scaffold"),
+            );
         }
 
         // Materialize Phase 2 run directory.
@@ -942,7 +997,15 @@ pub async fn start_factory_pipeline(
             ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
             let err_msg = format!("materialize phase 2 failed: {e}");
             if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-                sc_update_status(&sc, &pid, &plid, "failed", None, Some(&err_msg), Some("scaffolding"));
+                sc_update_status(
+                    &sc,
+                    &pid,
+                    &plid,
+                    "failed",
+                    None,
+                    Some(&err_msg),
+                    Some("scaffolding"),
+                );
             }
             app_handle
                 .emit(
@@ -982,7 +1045,15 @@ pub async fn start_factory_pipeline(
             Err(e) => {
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-                    sc_update_status(&sc, &pid, &plid, "failed", None, Some(&e.to_string()), Some("scaffolding"));
+                    sc_update_status(
+                        &sc,
+                        &pid,
+                        &plid,
+                        "failed",
+                        None,
+                        Some(&e.to_string()),
+                        Some("scaffolding"),
+                    );
                 }
                 app_handle
                     .emit(
@@ -1066,7 +1137,14 @@ pub async fn start_factory_pipeline(
             if scaffold_total > 0 {
                 let half = scaffold_total / 2;
                 if let Err(e) = sc
-                    .report_token_spend(&pid, &rid, "s6-scaffolding", half, scaffold_total - half, "claude-sonnet-4-20250514")
+                    .report_token_spend(
+                        &pid,
+                        &rid,
+                        "s6-scaffolding",
+                        half,
+                        scaffold_total - half,
+                        "claude-sonnet-4-20250514",
+                    )
                     .await
                 {
                     log::warn!("Stagecraft token-spend report failed for s6-scaffolding: {e}");
@@ -1097,9 +1175,10 @@ pub async fn start_factory_pipeline(
                 })
                 .collect();
             if !features.is_empty()
-                && let Err(e) = sc.report_scaffold_progress(&pid, &plid, &features).await {
-                    log::warn!("Stagecraft scaffold-progress report failed: {e}");
-                }
+                && let Err(e) = sc.report_scaffold_progress(&pid, &plid, &features).await
+            {
+                log::warn!("Stagecraft scaffold-progress report failed: {e}");
+            }
 
             // Ingest step-level events for audit trail.
             sc_ingest_step_events(&sc, &pid, &plid, &summary2, "scaffold", Some(&sync_tracker));
@@ -1126,9 +1205,7 @@ pub async fn start_factory_pipeline(
 
 /// Return the current status of a pipeline run.
 #[tauri::command]
-pub async fn get_factory_pipeline_status(
-    run_id: String,
-) -> Result<PipelineStatusResponse, String> {
+pub async fn get_factory_pipeline_status(run_id: String) -> Result<PipelineStatusResponse, String> {
     let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
     if let Some(ctx) = runs.get(&run_id) {
         return Ok(build_status_response(ctx));
@@ -1169,9 +1246,8 @@ pub async fn confirm_factory_stage(
 
     // Dual-write: confirm stage in Stagecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<StagecraftClient> = app
-            .try_state::<StagecraftState>()
-            .and_then(|s| s.0.clone());
+        let sc_opt: Option<StagecraftClient> =
+            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
             tokio::spawn(async move {
@@ -1225,9 +1301,8 @@ pub async fn reject_factory_stage(
 
     // Dual-write: reject stage in Stagecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<StagecraftClient> = app
-            .try_state::<StagecraftState>()
-            .and_then(|s| s.0.clone());
+        let sc_opt: Option<StagecraftClient> =
+            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
             let fb = feedback;
@@ -1280,9 +1355,8 @@ pub async fn cancel_factory_pipeline(
 
     // Dual-write: cancel in Stagecraft
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<StagecraftClient> = app
-            .try_state::<StagecraftState>()
-            .and_then(|s| s.0.clone());
+        let sc_opt: Option<StagecraftClient> =
+            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
         if let Some(sc) = sc_opt {
             tokio::spawn(async move {
                 if let Err(e) = sc.cancel_pipeline(&pid, &reason).await {
@@ -1297,9 +1371,7 @@ pub async fn cancel_factory_pipeline(
 
 /// List all Factory pipeline runs by scanning `<project_path>/.factory/runs/*/state.json`.
 #[tauri::command]
-pub async fn list_factory_runs(
-    project_path: String,
-) -> Result<Vec<PipelineRunSummary>, String> {
+pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSummary>, String> {
     let runs_dir = std::path::Path::new(&project_path)
         .join(".factory")
         .join("runs");
@@ -1344,10 +1416,7 @@ pub async fn get_factory_artifacts(
         .map(|ctx| ctx.project_path.clone());
 
     let base = if let Some(p) = project_path {
-        p.join(".factory")
-            .join("runs")
-            .join(&run_id)
-            .join(&step_id)
+        p.join(".factory").join("runs").join(&run_id).join(&step_id)
     } else {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
         PathBuf::from(home)
@@ -1361,8 +1430,7 @@ pub async fn get_factory_artifacts(
         return Ok(vec![]);
     }
 
-    let entries =
-        std::fs::read_dir(&base).map_err(|e| format!("read artifact dir failed: {e}"))?;
+    let entries = std::fs::read_dir(&base).map_err(|e| format!("read artifact dir failed: {e}"))?;
 
     let mut artifacts = Vec::new();
     for entry in entries.flatten() {
@@ -1433,8 +1501,7 @@ pub async fn resume_factory_pipeline(
     let project_path = PathBuf::from(&project_path)
         .canonicalize()
         .map_err(|e| format!("resolve project path failed: {e}"))?;
-    let run_uuid =
-        Uuid::parse_str(&run_id).map_err(|e| format!("invalid run_id: {e}"))?;
+    let run_uuid = Uuid::parse_str(&run_id).map_err(|e| format!("invalid run_id: {e}"))?;
 
     let config = FactoryEngineConfig {
         factory_root: factory_root.clone(),
@@ -1478,7 +1545,10 @@ pub async fn resume_factory_pipeline(
     let (gov_plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
         .map_err(|e| format!("factory resume: {e}"))?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] factory resume falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] factory resume falling back to bypass: {}",
+            reason
+        );
     }
     let governance_mode_str = match &gov_plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed".to_string(),

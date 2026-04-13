@@ -1,15 +1,15 @@
-use tauri::command;
-use xray::scan_target;
 use featuregraph::enrichment::enrich_features_with_metrics;
+use featuregraph::preflight::compute_blast_radius;
 use featuregraph::scanner::Scanner;
 use featuregraph::tools::FeatureGraphTools;
-use featuregraph::preflight::compute_blast_radius;
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use specta::Type;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use tauri::command;
+use xray::scan_target;
 
 #[command]
 pub async fn xray_scan_project(path: String) -> Result<serde_json::Value, String> {
@@ -21,7 +21,9 @@ pub async fn xray_scan_project(path: String) -> Result<serde_json::Value, String
 /// Governance + inspect: compiled **registry** summary plus **featuregraph** scan.
 /// The graph scan prefers `build/spec-registry/registry.json` (via `spec-compiler`), then `spec/features.yaml` — see `featuregraph::scanner::Scanner::scan`.
 #[command]
-pub async fn featuregraph_overview(features_yaml_path: String) -> Result<serde_json::Value, String> {
+pub async fn featuregraph_overview(
+    features_yaml_path: String,
+) -> Result<serde_json::Value, String> {
     let repo_root = resolve_repo_root(&features_yaml_path);
     let registry_path = repo_root.join("build/spec-registry/registry.json");
 
@@ -233,7 +235,10 @@ pub async fn portfolio_overview(repo_root: String) -> Result<serde_json::Value, 
 }
 
 #[command]
-pub async fn featuregraph_impact(file_paths: Vec<String>, features_yaml_path: String) -> Result<serde_json::Value, String> {
+pub async fn featuregraph_impact(
+    file_paths: Vec<String>,
+    features_yaml_path: String,
+) -> Result<serde_json::Value, String> {
     let repo_root = resolve_repo_root(&features_yaml_path);
     let fg_tools = FeatureGraphTools::new();
     fg_tools
@@ -354,7 +359,9 @@ mod tests {
         assert_eq!(summary["validationPassed"], true);
         assert_eq!(summary["statusCounts"]["active"], 2);
         assert_eq!(summary["statusCounts"]["draft"], 1);
-        let fs = summary["featureSummaries"].as_array().expect("featureSummaries");
+        let fs = summary["featureSummaries"]
+            .as_array()
+            .expect("featureSummaries");
         assert_eq!(fs.len(), 3);
         assert_eq!(fs[0]["specPath"], "specs/001-a/spec.md");
     }

@@ -7,8 +7,8 @@ use clap::Parser;
 
 mod checkpoint;
 mod claude_binary;
-mod governed_claude;
 mod commands;
+mod governed_claude;
 
 /// `opc-web` binary has no Tauri sidecar lifecycle; [`SidecarState::axiomregent_port`] stays `None`.
 pub mod sidecars {

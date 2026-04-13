@@ -178,17 +178,19 @@ fn find_markdown_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
 
         // Skip hidden files/directories
         if let Some(name) = path.file_name().and_then(|n| n.to_str())
-            && name.starts_with('.') {
-                continue;
-            }
+            && name.starts_with('.')
+        {
+            continue;
+        }
 
         if path.is_dir() {
             find_markdown_files(&path, files)?;
         } else if path.is_file()
             && let Some(ext) = path.extension()
-                && ext == "md" {
-                    files.push(path);
-                }
+            && ext == "md"
+        {
+            files.push(path);
+        }
     }
 
     Ok(())
@@ -403,7 +405,9 @@ pub async fn slash_command_save(
 
     // Write file atomically (temp + rename) to prevent data loss on crash
     {
-        let parent = file_path.parent().ok_or("Command file path has no parent")?;
+        let parent = file_path
+            .parent()
+            .ok_or("Command file path has no parent")?;
         let mut tmp = tempfile::NamedTempFile::new_in(parent)
             .map_err(|e| format!("Failed to create temp file: {}", e))?;
         tmp.write_all(full_content.as_bytes())

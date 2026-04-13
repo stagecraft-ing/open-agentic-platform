@@ -26,7 +26,10 @@ export async function* queryViaSdk(
   options: BridgeQueryOptions,
 ): AsyncGenerator<BridgeEvent> {
   // Dynamic import — throws if the SDK package is absent (FR-008 trigger).
-  const sdk = await import("@anthropic-ai/claude-code");
+  // The module specifier is assigned to a variable so TypeScript does not
+  // attempt static resolution of the optional peer dependency.
+  const sdkModule: string = "@anthropic-ai/claude-code";
+  const sdk = await import(/* webpackIgnore: true */ sdkModule);
   const query = sdk.query ?? (sdk as any).default?.query;
   if (typeof query !== "function") {
     throw new Error("@anthropic-ai/claude-code does not export query()");

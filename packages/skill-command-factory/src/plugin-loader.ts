@@ -11,7 +11,7 @@
  * skill wins with a warning.
  */
 
-import { readdirSync } from "node:fs";
+import { type Dirent, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { SkillFactory, SkillFactoryLoadResult, SkillRegisteredHook } from "./factory.js";
 import type { SkillLoadResult } from "./types.js";
@@ -41,7 +41,7 @@ export function loadPluginSkills(
 ): PluginLoadResult[] {
   const results: PluginLoadResult[] = [];
 
-  let entries: ReturnType<typeof readdirSync>;
+  let entries: Dirent<string>[];
   try {
     entries = readdirSync(pluginsDir, { withFileTypes: true });
   } catch {

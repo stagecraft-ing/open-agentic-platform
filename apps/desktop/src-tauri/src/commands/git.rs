@@ -36,12 +36,12 @@ pub fn git_diff(
 
     let diff = match (ref1, ref2) {
         (None, None) => {
-            let head_tree = repo
-                .head()
-                .and_then(|h| h.peel_to_tree())
-                .map_err(|e| GitError::Other {
-                    message: format!("Failed to resolve HEAD: {}", e.message()),
-                })?;
+            let head_tree =
+                repo.head()
+                    .and_then(|h| h.peel_to_tree())
+                    .map_err(|e| GitError::Other {
+                        message: format!("Failed to resolve HEAD: {}", e.message()),
+                    })?;
             let mut opts = DiffOptions::new();
             repo.diff_tree_to_workdir_with_index(Some(&head_tree), Some(&mut opts))
                 .map_err(|e| GitError::Other {
@@ -73,7 +73,7 @@ pub fn git_diff(
         _ => {
             return Err(GitError::Other {
                 message: "Provide both ref1 and ref2, or neither".to_string(),
-            })
+            });
         }
     };
 
@@ -125,9 +125,11 @@ pub fn git_status(repo_path: String) -> Result<Vec<GitStatusEntry>, GitError> {
         .recurse_untracked_dirs(true)
         .include_ignored(false);
 
-    let statuses = repo.statuses(Some(&mut opts)).map_err(|e| GitError::Other {
-        message: e.message().to_string(),
-    })?;
+    let statuses = repo
+        .statuses(Some(&mut opts))
+        .map_err(|e| GitError::Other {
+            message: e.message().to_string(),
+        })?;
 
     let mut entries = Vec::new();
 
@@ -187,10 +189,7 @@ pub fn git_status(repo_path: String) -> Result<Vec<GitStatusEntry>, GitError> {
 /// Returns `ahead = 0, behind = 0` when there is no upstream configured.
 #[tauri::command]
 #[specta::specta]
-pub fn git_ahead_behind(
-    repo_path: String,
-    branch: String,
-) -> Result<GitAheadBehind, GitError> {
+pub fn git_ahead_behind(repo_path: String, branch: String) -> Result<GitAheadBehind, GitError> {
     let repo = open_repo(&repo_path)?;
 
     let local_branch = repo
@@ -201,22 +200,21 @@ pub fn git_ahead_behind(
 
     let upstream = match local_branch.upstream() {
         Ok(u) => u,
-        Err(_) => return Ok(GitAheadBehind { ahead: 0, behind: 0 }),
+        Err(_) => {
+            return Ok(GitAheadBehind {
+                ahead: 0,
+                behind: 0,
+            });
+        }
     };
 
-    let local_oid = local_branch
-        .get()
-        .target()
-        .ok_or_else(|| GitError::Other {
-            message: "Local branch has no target OID".to_string(),
-        })?;
+    let local_oid = local_branch.get().target().ok_or_else(|| GitError::Other {
+        message: "Local branch has no target OID".to_string(),
+    })?;
 
-    let upstream_oid = upstream
-        .get()
-        .target()
-        .ok_or_else(|| GitError::Other {
-            message: "Upstream branch has no target OID".to_string(),
-        })?;
+    let upstream_oid = upstream.get().target().ok_or_else(|| GitError::Other {
+        message: "Upstream branch has no target OID".to_string(),
+    })?;
 
     let (ahead, behind) = repo
         .graph_ahead_behind(local_oid, upstream_oid)

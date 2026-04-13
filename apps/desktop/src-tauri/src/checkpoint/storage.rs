@@ -377,7 +377,12 @@ impl CheckpointStorage {
     }
 
     /// Delete a single checkpoint by ID and run garbage collection
-    pub fn delete_checkpoint(&self, project_id: &str, session_id: &str, checkpoint_id: &str) -> Result<()> {
+    pub fn delete_checkpoint(
+        &self,
+        project_id: &str,
+        session_id: &str,
+        checkpoint_id: &str,
+    ) -> Result<()> {
         let paths = CheckpointPaths::new(&self.claude_dir, project_id, session_id);
         self.remove_checkpoint(&paths, checkpoint_id)?;
 
@@ -389,7 +394,10 @@ impl CheckpointStorage {
                 }
             }
             Err(e) => {
-                log::warn!("Failed to garbage collect content after checkpoint deletion: {}", e);
+                log::warn!(
+                    "Failed to garbage collect content after checkpoint deletion: {}",
+                    e
+                );
             }
         }
 
@@ -445,11 +453,12 @@ impl CheckpointStorage {
                         let ref_path = ref_entry?.path();
                         if ref_path.extension().and_then(|e| e.to_str()) == Some("json")
                             && let Ok(ref_json) = fs::read_to_string(&ref_path)
-                                && let Ok(ref_metadata) =
-                                    serde_json::from_str::<serde_json::Value>(&ref_json)
-                                    && let Some(hash) = ref_metadata["hash"].as_str() {
-                                        referenced_hashes.insert(hash.to_string());
-                                    }
+                            && let Ok(ref_metadata) =
+                                serde_json::from_str::<serde_json::Value>(&ref_json)
+                            && let Some(hash) = ref_metadata["hash"].as_str()
+                        {
+                            referenced_hashes.insert(hash.to_string());
+                        }
                     }
                 }
             }
@@ -461,10 +470,11 @@ impl CheckpointStorage {
             let content_file = entry?.path();
             if content_file.is_file()
                 && let Some(hash) = content_file.file_name().and_then(|n| n.to_str())
-                    && !referenced_hashes.contains(hash)
-                        && fs::remove_file(&content_file).is_ok() {
-                            removed_count += 1;
-                        }
+                && !referenced_hashes.contains(hash)
+                && fs::remove_file(&content_file).is_ok()
+            {
+                removed_count += 1;
+            }
         }
 
         Ok(removed_count)

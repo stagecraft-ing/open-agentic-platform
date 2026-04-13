@@ -1,8 +1,8 @@
 use crate::commands::agents::AgentDb;
 use orchestrator::{
-    dispatch_manifest, materialize_run_directory, AgentRegistry, ArtifactManager, DispatchOptions,
-    DispatchRequest, DispatchResult, EffortLevel, GovernedExecutor, RunSummary, StepStatus,
-    WorkflowManifest,
+    AgentRegistry, ArtifactManager, DispatchOptions, DispatchRequest, DispatchResult, EffortLevel,
+    GovernedExecutor, RunSummary, StepStatus, WorkflowManifest, dispatch_manifest,
+    materialize_run_directory,
 };
 use rusqlite::params;
 use std::collections::HashMap;
@@ -54,7 +54,10 @@ struct RealGovernedExecutor {
 impl GovernedExecutor for RealGovernedExecutor {
     async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
         let Some(profile) = self.agents.get(&request.agent_id) else {
-            return Err(format!("agent execution profile not found: {}", request.agent_id));
+            return Err(format!(
+                "agent execution profile not found: {}",
+                request.agent_id
+            ));
         };
 
         let user_prompt = build_user_prompt_with_requirements(&request);
@@ -201,7 +204,15 @@ impl RealGovernedExecutor {
             ));
         }
 
-        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None, governance_mode: None })
+        Ok(DispatchResult {
+            tokens_used,
+            output_hashes: Default::default(),
+            session_id: None,
+            cost_usd: None,
+            duration_ms: None,
+            num_turns: None,
+            governance_mode: None,
+        })
     }
 
     async fn dispatch_via_governed_claude(
@@ -228,11 +239,13 @@ impl RealGovernedExecutor {
             "--verbose".to_string(),
         ];
         if let Some(allowed_tools) = &profile.allowed_tools
-            && !allowed_tools.is_empty() {
-                args.push("--allowedTools".to_string());
-                args.extend(allowed_tools.iter().cloned());
-            }
-        let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)?;
+            && !allowed_tools.is_empty()
+        {
+            args.push("--allowedTools".to_string());
+            args.extend(allowed_tools.iter().cloned());
+        }
+        let (plan, bypass_reason) =
+            crate::governed_claude::plan_governed_from_binary(&grants_json)?;
         let governance_mode_str = match &plan {
             crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
             crate::governed_claude::GovernedPlan::Bypass => "bypass",
@@ -293,7 +306,10 @@ impl RealGovernedExecutor {
                         .unwrap_or(0);
                     tokens_used = Some(input + output);
                     if v.get("subtype").and_then(|x| x.as_str()) == Some("error") {
-                        return Err(format!("step {} failed in governed execution", request.step_id));
+                        return Err(format!(
+                            "step {} failed in governed execution",
+                            request.step_id
+                        ));
                     }
                 } else if v.get("type").and_then(|x| x.as_str()) == Some("error") {
                     let msg = v
@@ -322,14 +338,24 @@ impl RealGovernedExecutor {
         if !status.success() {
             let detail = stderr_buf.trim();
             if detail.is_empty() {
-                return Err(format!("governed claude exited with non-zero status: {status}"));
+                return Err(format!(
+                    "governed claude exited with non-zero status: {status}"
+                ));
             }
             return Err(format!(
                 "governed claude exited with non-zero status: {status}; stderr: {detail}"
             ));
         }
 
-        Ok(DispatchResult { tokens_used, output_hashes: Default::default(), session_id: None, cost_usd: None, duration_ms: None, num_turns: None, governance_mode: Some(governance_mode_str.to_string()) })
+        Ok(DispatchResult {
+            tokens_used,
+            output_hashes: Default::default(),
+            session_id: None,
+            cost_usd: None,
+            duration_ms: None,
+            num_turns: None,
+            governance_mode: Some(governance_mode_str.to_string()),
+        })
     }
 }
 
@@ -341,8 +367,7 @@ fn build_user_prompt_with_requirements(request: &DispatchRequest) -> String {
     };
     format!(
         "{}\n\nExecution requirements:\n- Effort hint: {}\n- You MUST write all declared output artifacts to the exact absolute paths listed in the prompt.",
-        request.system_prompt,
-        effort_hint
+        request.system_prompt, effort_hint
     )
 }
 
@@ -353,8 +378,8 @@ pub async fn orchestrate_manifest(
     project_path: String,
     db: State<'_, AgentDb>,
 ) -> Result<RunSummary, String> {
-    let manifest_text =
-        std::fs::read_to_string(&manifest_path).map_err(|e| format!("read manifest failed: {e}"))?;
+    let manifest_text = std::fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("read manifest failed: {e}"))?;
     let manifest: WorkflowManifest =
         serde_yaml::from_str(&manifest_text).map_err(|e| format!("parse manifest failed: {e}"))?;
 
@@ -401,7 +426,10 @@ pub async fn orchestrate_manifest(
     let (plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
         .map_err(|e| format!("orchestrate_manifest: {e}"))?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] orchestrate_manifest falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] orchestrate_manifest falling back to bypass: {}",
+            reason
+        );
     }
     let governance_mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
@@ -446,20 +474,17 @@ pub async fn list_workspace_workflows(
     limit: Option<u32>,
 ) -> Result<Vec<orchestrator::WorkflowStateSummary>, String> {
     // Use the default SQLite store location
-    let store_path = std::env::var("OPC_WORKFLOW_DB")
-        .unwrap_or_else(|_| {
-            let data_dir = dirs::data_local_dir()
-                .unwrap_or_else(|| std::path::PathBuf::from("."));
-            data_dir
-                .join("opc")
-                .join("workflows.db")
-                .to_string_lossy()
-                .to_string()
-        });
-    let store = orchestrator::sqlite_state::SqliteWorkflowStore::open(
-        std::path::Path::new(&store_path),
-    )
-    .map_err(|e| format!("open workflow store: {e}"))?;
+    let store_path = std::env::var("OPC_WORKFLOW_DB").unwrap_or_else(|_| {
+        let data_dir = dirs::data_local_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+        data_dir
+            .join("opc")
+            .join("workflows.db")
+            .to_string_lossy()
+            .to_string()
+    });
+    let store =
+        orchestrator::sqlite_state::SqliteWorkflowStore::open(std::path::Path::new(&store_path))
+            .map_err(|e| format!("open workflow store: {e}"))?;
     store
         .list_workflows_by_workspace(&workspace_id, limit)
         .await
@@ -474,18 +499,19 @@ fn parse_allowed_tools(raw: Option<&str>) -> Option<Vec<String>> {
     }
 
     if trimmed.starts_with('[')
-        && let Ok(parsed) = serde_json::from_str::<Vec<String>>(trimmed) {
-            let normalized: Vec<String> = parsed
-                .into_iter()
-                .map(|tool| tool.trim().to_string())
-                .filter(|tool| !tool.is_empty())
-                .collect();
-            return if normalized.is_empty() {
-                None
-            } else {
-                Some(normalized)
-            };
-        }
+        && let Ok(parsed) = serde_json::from_str::<Vec<String>>(trimmed)
+    {
+        let normalized: Vec<String> = parsed
+            .into_iter()
+            .map(|tool| tool.trim().to_string())
+            .filter(|tool| !tool.is_empty())
+            .collect();
+        return if normalized.is_empty() {
+            None
+        } else {
+            Some(normalized)
+        };
+    }
 
     let normalized: Vec<String> = trimmed
         .split(',')

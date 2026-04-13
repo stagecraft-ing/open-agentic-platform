@@ -129,7 +129,6 @@ fn calculate_cost(model: &str, usage: &UsageData) -> f64 {
         };
 
     // Calculate cost (prices are per million tokens)
-    
 
     (input_tokens * input_price / 1_000_000.0)
         + (output_tokens * output_price / 1_000_000.0)
@@ -162,63 +161,63 @@ fn parse_jsonl_file(
             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(line) {
                 // Extract the actual project path from cwd if we haven't already
                 if actual_project_path.is_none()
-                    && let Some(cwd) = json_value.get("cwd").and_then(|v| v.as_str()) {
-                        actual_project_path = Some(cwd.to_string());
-                    }
+                    && let Some(cwd) = json_value.get("cwd").and_then(|v| v.as_str())
+                {
+                    actual_project_path = Some(cwd.to_string());
+                }
 
                 // Try to parse as JsonlEntry for usage data
                 if let Ok(entry) = serde_json::from_value::<JsonlEntry>(json_value)
-                    && let Some(message) = &entry.message {
-                        // Deduplication based on message ID and request ID
-                        if let (Some(msg_id), Some(req_id)) = (&message.id, &entry.request_id) {
-                            let unique_hash = format!("{}:{}", msg_id, req_id);
-                            if processed_hashes.contains(&unique_hash) {
-                                continue; // Skip duplicate entry
-                            }
-                            processed_hashes.insert(unique_hash);
+                    && let Some(message) = &entry.message
+                {
+                    // Deduplication based on message ID and request ID
+                    if let (Some(msg_id), Some(req_id)) = (&message.id, &entry.request_id) {
+                        let unique_hash = format!("{}:{}", msg_id, req_id);
+                        if processed_hashes.contains(&unique_hash) {
+                            continue; // Skip duplicate entry
                         }
-
-                        if let Some(usage) = &message.usage {
-                            // Skip entries without meaningful token usage
-                            if usage.input_tokens.unwrap_or(0) == 0
-                                && usage.output_tokens.unwrap_or(0) == 0
-                                && usage.cache_creation_input_tokens.unwrap_or(0) == 0
-                                && usage.cache_read_input_tokens.unwrap_or(0) == 0
-                            {
-                                continue;
-                            }
-
-                            let cost = entry.cost_usd.unwrap_or_else(|| {
-                                if let Some(model_str) = &message.model {
-                                    calculate_cost(model_str, usage)
-                                } else {
-                                    0.0
-                                }
-                            });
-
-                            // Use actual project path if found, otherwise use encoded name
-                            let project_path = actual_project_path
-                                .clone()
-                                .unwrap_or_else(|| encoded_project_name.to_string());
-
-                            entries.push(UsageEntry {
-                                timestamp: entry.timestamp,
-                                model: message
-                                    .model
-                                    .clone()
-                                    .unwrap_or_else(|| "unknown".to_string()),
-                                input_tokens: usage.input_tokens.unwrap_or(0),
-                                output_tokens: usage.output_tokens.unwrap_or(0),
-                                cache_creation_tokens: usage
-                                    .cache_creation_input_tokens
-                                    .unwrap_or(0),
-                                cache_read_tokens: usage.cache_read_input_tokens.unwrap_or(0),
-                                cost,
-                                session_id: entry.session_id.unwrap_or_else(|| session_id.clone()),
-                                project_path,
-                            });
-                        }
+                        processed_hashes.insert(unique_hash);
                     }
+
+                    if let Some(usage) = &message.usage {
+                        // Skip entries without meaningful token usage
+                        if usage.input_tokens.unwrap_or(0) == 0
+                            && usage.output_tokens.unwrap_or(0) == 0
+                            && usage.cache_creation_input_tokens.unwrap_or(0) == 0
+                            && usage.cache_read_input_tokens.unwrap_or(0) == 0
+                        {
+                            continue;
+                        }
+
+                        let cost = entry.cost_usd.unwrap_or_else(|| {
+                            if let Some(model_str) = &message.model {
+                                calculate_cost(model_str, usage)
+                            } else {
+                                0.0
+                            }
+                        });
+
+                        // Use actual project path if found, otherwise use encoded name
+                        let project_path = actual_project_path
+                            .clone()
+                            .unwrap_or_else(|| encoded_project_name.to_string());
+
+                        entries.push(UsageEntry {
+                            timestamp: entry.timestamp,
+                            model: message
+                                .model
+                                .clone()
+                                .unwrap_or_else(|| "unknown".to_string()),
+                            input_tokens: usage.input_tokens.unwrap_or(0),
+                            output_tokens: usage.output_tokens.unwrap_or(0),
+                            cache_creation_tokens: usage.cache_creation_input_tokens.unwrap_or(0),
+                            cache_read_tokens: usage.cache_read_input_tokens.unwrap_or(0),
+                            cost,
+                            session_id: entry.session_id.unwrap_or_else(|| session_id.clone()),
+                            project_path,
+                        });
+                    }
+                }
             }
         }
     }
@@ -231,15 +230,16 @@ fn get_earliest_timestamp(path: &PathBuf) -> Option<String> {
         let mut earliest_timestamp: Option<String> = None;
         for line in content.lines() {
             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(line)
-                && let Some(timestamp_str) = json_value.get("timestamp").and_then(|v| v.as_str()) {
-                    if let Some(current_earliest) = &earliest_timestamp {
-                        if timestamp_str < current_earliest.as_str() {
-                            earliest_timestamp = Some(timestamp_str.to_string());
-                        }
-                    } else {
+                && let Some(timestamp_str) = json_value.get("timestamp").and_then(|v| v.as_str())
+            {
+                if let Some(current_earliest) = &earliest_timestamp {
+                    if timestamp_str < current_earliest.as_str() {
                         earliest_timestamp = Some(timestamp_str.to_string());
                     }
+                } else {
+                    earliest_timestamp = Some(timestamp_str.to_string());
                 }
+            }
         }
         return earliest_timestamp;
     }

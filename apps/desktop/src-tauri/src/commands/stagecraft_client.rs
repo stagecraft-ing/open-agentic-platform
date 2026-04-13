@@ -61,12 +61,8 @@ impl Clone for StagecraftClient {
             client: self.client.clone(),
             base_url: self.base_url.clone(),
             actor_user_id: self.actor_user_id.clone(),
-            workspace_id: RwLock::new(
-                self.workspace_id.read().unwrap().clone(),
-            ),
-            auth_token: RwLock::new(
-                self.auth_token.read().unwrap().clone(),
-            ),
+            workspace_id: RwLock::new(self.workspace_id.read().unwrap().clone()),
+            auth_token: RwLock::new(self.auth_token.read().unwrap().clone()),
         }
     }
 }
@@ -148,13 +144,19 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
 
     /// Get a single workspace by ID.
-    pub async fn get_workspace(&self, workspace_id: &str) -> Result<GetWorkspaceResponse, StagecraftError> {
+    pub async fn get_workspace(
+        &self,
+        workspace_id: &str,
+    ) -> Result<GetWorkspaceResponse, StagecraftError> {
         let url = format!("{}/api/workspaces/{}", self.base_url, workspace_id);
         let resp = self
             .authed_get(&url)
@@ -162,7 +164,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -176,7 +181,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -189,10 +197,7 @@ impl StagecraftClient {
         adapter: &str,
         business_docs: &[BusinessDocRef],
     ) -> Result<InitResponse, StagecraftError> {
-        let url = format!(
-            "{}/api/projects/{}/factory/init",
-            self.base_url, project_id
-        );
+        let url = format!("{}/api/projects/{}/factory/init", self.base_url, project_id);
         let body = InitRequest {
             adapter: adapter.into(),
             business_docs: if business_docs.is_empty() {
@@ -212,7 +217,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -243,7 +251,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -274,7 +285,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -311,7 +325,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -342,7 +359,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -371,7 +391,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -401,7 +424,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -433,7 +459,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -448,7 +477,11 @@ impl StagecraftClient {
     ) -> Result<LookupArtifactResponse, StagecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}&workspaceId={}",
-            self.base_url, project_id, content_hash, stage_id, self.workspace_id()
+            self.base_url,
+            project_id,
+            content_hash,
+            stage_id,
+            self.workspace_id()
         );
         let resp = self
             .client
@@ -457,7 +490,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
@@ -494,7 +530,10 @@ impl StagecraftClient {
             .await
             .map_err(StagecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(resp.status().as_u16(), resp.text().await.unwrap_or_default()));
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
         }
         Ok(())
     }

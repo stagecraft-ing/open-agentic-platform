@@ -78,11 +78,7 @@ fn run_git(repo_root: &str, args: &[&str]) -> Result<String, String> {
         .map_err(|e| format!("failed to run git {}: {}", args.join(" "), e))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!(
-            "git {} failed: {}",
-            args.join(" "),
-            stderr.trim()
-        ));
+        return Err(format!("git {} failed: {}", args.join(" "), stderr.trim()));
     }
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
@@ -140,7 +136,9 @@ pub async fn spawn_background_agent(
     std::fs::create_dir_all(PathBuf::from(&repo_root).join(".worktrees"))
         .map_err(|e| format!("failed to create .worktrees directory: {}", e))?;
 
-    let gitignore_path = PathBuf::from(&repo_root).join(".worktrees").join(".gitignore");
+    let gitignore_path = PathBuf::from(&repo_root)
+        .join(".worktrees")
+        .join(".gitignore");
     if !gitignore_path.exists() {
         std::fs::write(&gitignore_path, "*\n")
             .map_err(|e| format!("failed to create .worktrees/.gitignore: {}", e))?;
@@ -148,7 +146,14 @@ pub async fn spawn_background_agent(
 
     run_git(
         &repo_root,
-        &["worktree", "add", &worktree_path, "-b", &branch_name, "HEAD"],
+        &[
+            "worktree",
+            "add",
+            &worktree_path,
+            "-b",
+            &branch_name,
+            "HEAD",
+        ],
     )?;
 
     let ts = now_iso();
@@ -243,7 +248,10 @@ pub async fn merge_agent(
     let agent_branch = agent.agent_branch.clone();
     let worktree_path = agent.worktree_path.clone();
 
-    if !run_git(&repo_root, &["status", "--porcelain"])?.trim().is_empty() {
+    if !run_git(&repo_root, &["status", "--porcelain"])?
+        .trim()
+        .is_empty()
+    {
         return Err("refusing merge: repository has uncommitted changes".to_string());
     }
     if !branch_exists(&repo_root, &parent_branch) {
@@ -284,7 +292,11 @@ pub async fn merge_agent(
                     format!("Squash merge {} into {}", agent_branch, parent_branch)
                 });
                 run_git(&repo_root, &["commit", "-m", &message])?;
-                created_commit_sha = Some(run_git(&repo_root, &["rev-parse", "HEAD"])?.trim().to_string());
+                created_commit_sha = Some(
+                    run_git(&repo_root, &["rev-parse", "HEAD"])?
+                        .trim()
+                        .to_string(),
+                );
             }
             "cherry-pick" => {
                 let picks = cherry_pick_commits.unwrap_or_default();
@@ -297,10 +309,16 @@ pub async fn merge_agent(
                         return Err(err);
                     }
                 }
-                created_commit_sha = Some(run_git(&repo_root, &["rev-parse", "HEAD"])?.trim().to_string());
+                created_commit_sha = Some(
+                    run_git(&repo_root, &["rev-parse", "HEAD"])?
+                        .trim()
+                        .to_string(),
+                );
             }
             _ => {
-                return Err("strategy must be one of: fast-forward, squash, cherry-pick".to_string());
+                return Err(
+                    "strategy must be one of: fast-forward, squash, cherry-pick".to_string()
+                );
             }
         }
         Ok(())

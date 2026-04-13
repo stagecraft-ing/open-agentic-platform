@@ -8,9 +8,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::{
-    storage::{self, CheckpointStorage},
     Checkpoint, CheckpointMetadata, CheckpointPaths, CheckpointResult, CheckpointStrategy,
     FileSnapshot, FileState, FileTracker, SessionTimeline,
+    storage::{self, CheckpointStorage},
 };
 
 /// Manages checkpoint operations for a session
@@ -68,15 +68,17 @@ impl CheckpointManager {
         // Parse message to check for tool usage
         if let Ok(msg) = serde_json::from_str::<serde_json::Value>(&jsonl_message)
             && let Some(content) = msg.get("message").and_then(|m| m.get("content"))
-                && let Some(content_array) = content.as_array() {
-                    for item in content_array {
-                        if item.get("type").and_then(|t| t.as_str()) == Some("tool_use")
-                            && let Some(tool_name) = item.get("name").and_then(|n| n.as_str())
-                                && let Some(input) = item.get("input") {
-                                    self.track_tool_operation(tool_name, input).await?;
-                                }
-                    }
+            && let Some(content_array) = content.as_array()
+        {
+            for item in content_array {
+                if item.get("type").and_then(|t| t.as_str()) == Some("tool_use")
+                    && let Some(tool_name) = item.get("name").and_then(|n| n.as_str())
+                    && let Some(input) = item.get("input")
+                {
+                    self.track_tool_operation(tool_name, input).await?;
                 }
+            }
+        }
 
         Ok(())
     }
@@ -206,9 +208,10 @@ impl CheckpointManager {
                 if path.is_dir() {
                     // Skip hidden directories like .git
                     if let Some(name) = path.file_name().and_then(|n| n.to_str())
-                        && name.starts_with('.') {
-                            continue;
-                        }
+                        && name.starts_with('.')
+                    {
+                        continue;
+                    }
                     collect_files(&path, base, files)?;
                 } else if path.is_file() {
                     // Compute relative path from project root
@@ -314,15 +317,16 @@ impl CheckpointManager {
                         .get("message")
                         .and_then(|m| m.get("content"))
                         .and_then(|c| c.as_array())
-                    {
-                        for item in content {
-                            if item.get("type").and_then(|t| t.as_str()) == Some("text")
-                                && let Some(text) = item.get("text").and_then(|t| t.as_str()) {
-                                    user_prompt = text.to_string();
-                                    break;
-                                }
+                {
+                    for item in content {
+                        if item.get("type").and_then(|t| t.as_str()) == Some("text")
+                            && let Some(text) = item.get("text").and_then(|t| t.as_str())
+                        {
+                            user_prompt = text.to_string();
+                            break;
                         }
                     }
+                }
 
                 // Extract model info
                 if let Some(model) = msg.get("model").and_then(|m| m.as_str()) {
@@ -331,34 +335,36 @@ impl CheckpointManager {
 
                 // Also check for model in message.model (assistant messages)
                 if let Some(message) = msg.get("message")
-                    && let Some(model) = message.get("model").and_then(|m| m.as_str()) {
-                        model_used = model.to_string();
-                    }
+                    && let Some(model) = message.get("model").and_then(|m| m.as_str())
+                {
+                    model_used = model.to_string();
+                }
 
                 // Count tokens - check both top-level and nested usage
                 // First check for usage in message.usage (assistant messages)
                 if let Some(message) = msg.get("message")
-                    && let Some(usage) = message.get("usage") {
-                        if let Some(input) = usage.get("input_tokens").and_then(|t| t.as_u64()) {
-                            total_tokens += input;
-                        }
-                        if let Some(output) = usage.get("output_tokens").and_then(|t| t.as_u64()) {
-                            total_tokens += output;
-                        }
-                        // Also count cache tokens
-                        if let Some(cache_creation) = usage
-                            .get("cache_creation_input_tokens")
-                            .and_then(|t| t.as_u64())
-                        {
-                            total_tokens += cache_creation;
-                        }
-                        if let Some(cache_read) = usage
-                            .get("cache_read_input_tokens")
-                            .and_then(|t| t.as_u64())
-                        {
-                            total_tokens += cache_read;
-                        }
+                    && let Some(usage) = message.get("usage")
+                {
+                    if let Some(input) = usage.get("input_tokens").and_then(|t| t.as_u64()) {
+                        total_tokens += input;
                     }
+                    if let Some(output) = usage.get("output_tokens").and_then(|t| t.as_u64()) {
+                        total_tokens += output;
+                    }
+                    // Also count cache tokens
+                    if let Some(cache_creation) = usage
+                        .get("cache_creation_input_tokens")
+                        .and_then(|t| t.as_u64())
+                    {
+                        total_tokens += cache_creation;
+                    }
+                    if let Some(cache_read) = usage
+                        .get("cache_read_input_tokens")
+                        .and_then(|t| t.as_u64())
+                    {
+                        total_tokens += cache_read;
+                    }
+                }
 
                 // Then check for top-level usage (result messages)
                 if let Some(usage) = msg.get("usage") {
@@ -458,9 +464,10 @@ impl CheckpointManager {
                 if path.is_dir() {
                     // Skip hidden directories like .git
                     if let Some(name) = path.file_name().and_then(|n| n.to_str())
-                        && name.starts_with('.') {
-                            continue;
-                        }
+                        && name.starts_with('.')
+                    {
+                        continue;
+                    }
                     collect_all_project_files(&path, base, files)?;
                 } else if path.is_file() {
                     // Compute relative path from project root

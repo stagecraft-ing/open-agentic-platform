@@ -9,8 +9,8 @@
 
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager, State};
-use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::CommandEvent;
 
 // ============================================================================
 // Managed state
@@ -97,8 +97,14 @@ mod tests {
 
     #[test]
     fn parse_port_line_accepts_stderr_style() {
-        assert_eq!(parse_axiomregent_port_line("OPC_AXIOMREGENT_PORT=9123\n"), Some(9123));
-        assert_eq!(parse_axiomregent_port_line("  OPC_AXIOMREGENT_PORT=1  "), Some(1));
+        assert_eq!(
+            parse_axiomregent_port_line("OPC_AXIOMREGENT_PORT=9123\n"),
+            Some(9123)
+        );
+        assert_eq!(
+            parse_axiomregent_port_line("  OPC_AXIOMREGENT_PORT=1  "),
+            Some(1)
+        );
         assert_eq!(parse_axiomregent_port_line("noise"), None);
     }
 }

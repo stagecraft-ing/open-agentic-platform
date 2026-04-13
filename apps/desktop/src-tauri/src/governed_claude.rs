@@ -7,9 +7,7 @@ use crate::commands::agents::Agent;
 
 #[derive(Debug, Clone)]
 pub enum GovernedPlan {
-    Governed {
-        mcp_config_json: String,
-    },
+    Governed { mcp_config_json: String },
     Bypass,
 }
 
@@ -38,7 +36,10 @@ pub fn bundled_axiomregent_binary_path() -> Result<PathBuf, String> {
     if path.exists() {
         Ok(path)
     } else {
-        Err(format!("bundled axiomregent not found at {}", path.display()))
+        Err(format!(
+            "bundled axiomregent not found at {}",
+            path.display()
+        ))
     }
 }
 
@@ -72,10 +73,18 @@ pub async fn grants_json_platform_or_default() -> String {
 }
 
 async fn fetch_platform_grants() -> Option<String> {
-    let api_url = std::env::var("PLATFORM_API_URL").ok().filter(|v| !v.is_empty())?;
-    let token = std::env::var("PLATFORM_M2M_TOKEN").ok().filter(|v| !v.is_empty())?;
-    let user_id = std::env::var("OPC_USER_ID").ok().filter(|v| !v.is_empty())?;
-    let workspace_id = std::env::var("OPC_WORKSPACE_ID").ok().filter(|v| !v.is_empty())?;
+    let api_url = std::env::var("PLATFORM_API_URL")
+        .ok()
+        .filter(|v| !v.is_empty())?;
+    let token = std::env::var("PLATFORM_M2M_TOKEN")
+        .ok()
+        .filter(|v| !v.is_empty())?;
+    let user_id = std::env::var("OPC_USER_ID")
+        .ok()
+        .filter(|v| !v.is_empty())?;
+    let workspace_id = std::env::var("OPC_WORKSPACE_ID")
+        .ok()
+        .filter(|v| !v.is_empty())?;
 
     let url = format!(
         "{}/grants/{}/{}",
@@ -89,12 +98,7 @@ async fn fetch_platform_grants() -> Option<String> {
         .build()
         .ok()?;
 
-    let resp = client
-        .get(&url)
-        .bearer_auth(&token)
-        .send()
-        .await
-        .ok()?;
+    let resp = client.get(&url).bearer_auth(&token).send().await.ok()?;
 
     if !resp.status().is_success() {
         eprintln!("[platform] grants fetch returned {}: {url}", resp.status());
@@ -104,7 +108,10 @@ async fn fetch_platform_grants() -> Option<String> {
     resp.text().await.ok()
 }
 
-pub fn axiomregent_mcp_config_json(axiom_exe: &std::path::Path, grants_json: &str) -> Result<String, String> {
+pub fn axiomregent_mcp_config_json(
+    axiom_exe: &std::path::Path,
+    grants_json: &str,
+) -> Result<String, String> {
     let empty_args: Vec<String> = vec![];
     let cfg = json!({
         "mcpServers": {
@@ -134,7 +141,9 @@ fn ungoverned_explicitly_allowed() -> bool {
 /// bypass is explicitly permitted via `OPC_ALLOW_UNGOVERNED=1`.
 /// Returns `Err` when governance infrastructure is absent and no explicit opt-out is set —
 /// callers MUST surface this to the user rather than silently degrading (spec 090).
-pub fn plan_governed_from_binary(grants_json: &str) -> Result<(GovernedPlan, Option<String>), String> {
+pub fn plan_governed_from_binary(
+    grants_json: &str,
+) -> Result<(GovernedPlan, Option<String>), String> {
     let binary = match bundled_axiomregent_binary_path() {
         Ok(p) => p,
         Err(msg) => {
@@ -162,7 +171,9 @@ pub fn plan_governed_from_binary(grants_json: &str) -> Result<(GovernedPlan, Opt
                 );
                 return Ok((
                     GovernedPlan::Bypass,
-                    Some(format!("MCP config generation failed: {e} (ungoverned mode explicitly allowed)")),
+                    Some(format!(
+                        "MCP config generation failed: {e} (ungoverned mode explicitly allowed)"
+                    )),
                 ));
             }
             Err(format!(
@@ -177,7 +188,10 @@ pub fn plan_governed_from_binary(grants_json: &str) -> Result<(GovernedPlan, Opt
 ///
 /// Returns `Ok((plan, bypass_reason))` or `Err` when governance is required but unavailable.
 /// Sidecar-not-running is also gated behind `OPC_ALLOW_UNGOVERNED` (spec 090).
-pub fn plan_governed(announce_port: Option<u16>, grants_json: String) -> Result<(GovernedPlan, Option<String>), String> {
+pub fn plan_governed(
+    announce_port: Option<u16>,
+    grants_json: String,
+) -> Result<(GovernedPlan, Option<String>), String> {
     if announce_port.is_none() {
         if ungoverned_explicitly_allowed() {
             eprintln!(

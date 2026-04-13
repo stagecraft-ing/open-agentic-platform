@@ -1343,9 +1343,7 @@ fn check_promotion_from_metadata(
     reasons.push("no workspace_id (non-persisted dispatch path)".to_string());
 
     if !governance_active {
-        reasons.push(format!(
-            "governance mode is '{gm}', expected 'governed'"
-        ));
+        reasons.push(format!("governance mode is '{gm}', expected 'governed'"));
     }
     if !sync_status.events_synced {
         reasons.push("not all events were synced to platform".to_string());
@@ -1360,9 +1358,7 @@ fn check_promotion_from_metadata(
     let eligibility = if reasons.is_empty() {
         promotion::PromotionEligibility::Eligible
     } else {
-        promotion::PromotionEligibility::Ineligible {
-            reasons,
-        }
+        promotion::PromotionEligibility::Ineligible { reasons }
     };
 
     promotion::PromotionCheck {

@@ -147,13 +147,14 @@ pub async fn check_for_update(app: tauri::AppHandle) -> Result<UpdateInfo, Updat
 
     // Fetch SHA-256 sidecar file
     let sha_name = format!("{}.sha256", asset.name);
-    let sha_asset = release
-        .assets
-        .iter()
-        .find(|a| a.name == sha_name)
-        .ok_or(UpdateError::NetworkError {
-            message: format!("No checksum file found: {sha_name}"),
-        })?;
+    let sha_asset =
+        release
+            .assets
+            .iter()
+            .find(|a| a.name == sha_name)
+            .ok_or(UpdateError::NetworkError {
+                message: format!("No checksum file found: {sha_name}"),
+            })?;
 
     let checksum_raw = client
         .get(&sha_asset.browser_download_url)
@@ -206,9 +207,12 @@ pub async fn download_and_install_update(
     let filename = url.split('/').next_back().unwrap_or("opc_update");
     let temp_path = std::env::temp_dir().join(filename);
 
-    let bytes = response.bytes().await.map_err(|e| UpdateError::NetworkError {
-        message: format!("Download failed: {e}"),
-    })?;
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| UpdateError::NetworkError {
+            message: format!("Download failed: {e}"),
+        })?;
 
     // Verify checksum before writing to disk
     let mut hasher = Sha256::new();
@@ -219,13 +223,13 @@ pub async fn download_and_install_update(
         return Err(UpdateError::ChecksumMismatch);
     }
 
-    let mut file =
-        std::fs::File::create(&temp_path).map_err(|e| UpdateError::LaunchFailed {
-            message: format!("Cannot create temp file: {e}"),
-        })?;
-    file.write_all(&bytes).map_err(|e| UpdateError::LaunchFailed {
-        message: format!("Cannot write temp file: {e}"),
+    let mut file = std::fs::File::create(&temp_path).map_err(|e| UpdateError::LaunchFailed {
+        message: format!("Cannot create temp file: {e}"),
     })?;
+    file.write_all(&bytes)
+        .map_err(|e| UpdateError::LaunchFailed {
+            message: format!("Cannot write temp file: {e}"),
+        })?;
     drop(file); // Flush + close before launching
 
     log::info!("Update downloaded to {temp_path:?}, launching installer");

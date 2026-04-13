@@ -22,7 +22,7 @@ static CURRENT_QUICK_PANE_SHORTCUT: Mutex<Option<String>> = Mutex::new(None);
 
 #[cfg(target_os = "macos")]
 use tauri_nspanel::{
-    tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
+    CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask, tauri_panel,
 };
 
 #[cfg(target_os = "macos")]
@@ -60,7 +60,10 @@ fn init_quick_pane_macos(app: &AppHandle) -> Result<(), String> {
     let panel = PanelBuilder::<_, QuickPanePanel>::new(app, QUICK_PANE_LABEL)
         .url(WebviewUrl::App("quick-pane.html".into()))
         .title("Quick Entry")
-        .size(Size::Logical(LogicalSize::new(QUICK_PANE_WIDTH, QUICK_PANE_HEIGHT)))
+        .size(Size::Logical(LogicalSize::new(
+            QUICK_PANE_WIDTH,
+            QUICK_PANE_HEIGHT,
+        )))
         .level(PanelLevel::Status)
         .transparent(true)
         .has_shadow(true)
@@ -141,9 +144,10 @@ fn get_centered_position_on_cursor_monitor(
 
 fn position_on_cursor_monitor(app: &AppHandle) {
     if let Some(position) = get_centered_position_on_cursor_monitor(app)
-        && let Some(window) = app.get_webview_window(QUICK_PANE_LABEL) {
-            let _ = window.set_position(position);
-        }
+        && let Some(window) = app.get_webview_window(QUICK_PANE_LABEL)
+    {
+        let _ = window.set_position(position);
+    }
 }
 
 // ============================================================================
@@ -188,8 +192,12 @@ pub fn show_quick_pane(app: AppHandle) -> Result<(), String> {
         let window = app.get_webview_window(QUICK_PANE_LABEL).ok_or_else(|| {
             "Quick pane window not found — was init_quick_pane called at startup?".to_string()
         })?;
-        window.show().map_err(|e| format!("Failed to show window: {e}"))?;
-        window.set_focus().map_err(|e| format!("Failed to focus window: {e}"))?;
+        window
+            .show()
+            .map_err(|e| format!("Failed to show window: {e}"))?;
+        window
+            .set_focus()
+            .map_err(|e| format!("Failed to focus window: {e}"))?;
     }
 
     Ok(())
@@ -217,7 +225,9 @@ pub fn dismiss_quick_pane(app: AppHandle) -> Result<(), String> {
             if !window.is_visible().unwrap_or(false) {
                 return Ok(());
             }
-            window.hide().map_err(|e| format!("Failed to hide window: {e}"))?;
+            window
+                .hide()
+                .map_err(|e| format!("Failed to hide window: {e}"))?;
         }
     }
 
@@ -309,18 +319,20 @@ pub fn register_quick_pane_shortcut(app: &AppHandle, shortcut: &str) -> Result<(
 
     // Unregister the old shortcut first
     if let Some(old_str) = current.take()
-        && let Ok(old) = old_str.parse::<Shortcut>() {
-            let _ = global_shortcut.unregister(old);
-        }
+        && let Ok(old) = old_str.parse::<Shortcut>()
+    {
+        let _ = global_shortcut.unregister(old);
+    }
 
     let app_handle = app.clone();
     global_shortcut
         .on_shortcut(shortcut, move |_app, _shortcut, event| {
             use tauri_plugin_global_shortcut::ShortcutState;
             if event.state == ShortcutState::Pressed
-                && let Err(e) = toggle_quick_pane(app_handle.clone()) {
-                    log::error!("Failed to toggle quick pane: {e}");
-                }
+                && let Err(e) = toggle_quick_pane(app_handle.clone())
+            {
+                log::error!("Failed to toggle quick pane: {e}");
+            }
         })
         .map_err(|e| format!("Failed to register shortcut '{shortcut}': {e}"))?;
 

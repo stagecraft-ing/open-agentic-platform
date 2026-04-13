@@ -18,47 +18,45 @@ pub mod web_server;
 
 use checkpoint::state::CheckpointState;
 use commands::agents::{
-    cleanup_finished_processes, create_agent, delete_agent, execute_agent, export_agent,
+    AgentDb, cleanup_finished_processes, create_agent, delete_agent, execute_agent, export_agent,
     export_agent_to_file, fetch_github_agent_content, fetch_github_agents, get_agent,
     get_agent_run, get_agent_run_with_real_time_metrics, get_claude_binary_path,
     get_live_session_output, get_session_output, get_session_status, import_agent,
     import_agent_from_file, import_agent_from_github, init_database, kill_agent_session,
     list_agent_runs, list_agent_runs_with_metrics, list_agents, list_claude_installations,
     list_running_sessions, list_workspaces, load_agent_session_history, plan_request,
-    set_active_workspace, set_claude_binary_path, stream_session_output, update_agent, AgentDb,
+    set_active_workspace, set_claude_binary_path, stream_session_output, update_agent,
 };
 use commands::claude::{
-    cancel_claude_execution, check_auto_checkpoint, check_claude_version, cleanup_old_checkpoints,
-    clear_checkpoint_manager, continue_claude_code, create_checkpoint, create_project, delete_checkpoint, delete_session, get_cpu_usage,
-    execute_claude_bridge, execute_claude_code, find_claude_md_files, fork_from_checkpoint,
-    get_checkpoint_diff,
+    ClaudeBridgeIpcState, ClaudeProcessState, cancel_claude_execution, check_auto_checkpoint,
+    check_claude_version, cleanup_old_checkpoints, clear_checkpoint_manager, continue_claude_code,
+    create_checkpoint, create_project, delete_checkpoint, delete_session, execute_claude_bridge,
+    execute_claude_code, find_claude_md_files, fork_from_checkpoint, get_checkpoint_diff,
     get_checkpoint_settings, get_checkpoint_state_stats, get_claude_session_output,
-    get_claude_settings, get_home_directory, get_hooks_config, get_project_sessions,
-    get_recently_modified_files, get_session_timeline, get_system_prompt, list_checkpoints,
-    list_directory_contents, list_projects, list_running_claude_sessions, load_session_history,
-    open_new_session, read_claude_md_file, respond_to_bridge_permission, restore_checkpoint,
-    resume_claude_code, save_claude_md_file, save_claude_settings, save_system_prompt,
-    search_files,
-    track_checkpoint_message, track_session_messages, update_checkpoint_settings,
-    update_hooks_config, validate_hook_command, get_scoped_settings, save_scoped_settings,
-    ClaudeBridgeIpcState, ClaudeProcessState,
+    get_claude_settings, get_cpu_usage, get_home_directory, get_hooks_config, get_project_sessions,
+    get_recently_modified_files, get_scoped_settings, get_session_timeline, get_system_prompt,
+    list_checkpoints, list_directory_contents, list_projects, list_running_claude_sessions,
+    load_session_history, open_new_session, read_claude_md_file, respond_to_bridge_permission,
+    restore_checkpoint, resume_claude_code, save_claude_md_file, save_claude_settings,
+    save_scoped_settings, save_system_prompt, search_files, track_checkpoint_message,
+    track_session_messages, update_checkpoint_settings, update_hooks_config, validate_hook_command,
 };
+use commands::factory::{
+    cancel_factory_pipeline, confirm_factory_stage, get_factory_artifacts,
+    get_factory_pipeline_status, list_factory_runs, reject_factory_stage, resume_factory_pipeline,
+    skip_factory_step, start_factory_pipeline,
+};
+use commands::keychain::{keychain_clear, keychain_retrieve, keychain_store};
 use commands::mcp::{
     mcp_add, mcp_add_from_claude_desktop, mcp_add_json, mcp_get, mcp_get_server_status, mcp_list,
     mcp_read_project_config, mcp_remove, mcp_reset_project_choices, mcp_save_project_config,
     mcp_serve, mcp_test_connection,
 };
+use commands::orchestrator::{
+    cancel_run, cleanup_artifacts, get_run_status, list_workspace_workflows, orchestrate_manifest,
+};
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
-use commands::orchestrator::{cancel_run, cleanup_artifacts, get_run_status, list_workspace_workflows, orchestrate_manifest};
-use commands::factory::{
-    cancel_factory_pipeline, confirm_factory_stage, get_factory_artifacts,
-    get_factory_pipeline_status, list_factory_runs, reject_factory_stage,
-    resume_factory_pipeline, skip_factory_step, start_factory_pipeline,
-};
-use commands::worktree_agents::{
-    discard_agent, get_agent_diff, list_background_agents, merge_agent, spawn_background_agent,
-    WorktreeAgentsState,
-};
+use commands::stagecraft_client::StagecraftState;
 use commands::storage::{
     storage_delete_row, storage_execute_sql, storage_insert_row, storage_list_tables,
     storage_read_table, storage_reset_database, storage_update_row,
@@ -66,15 +64,17 @@ use commands::storage::{
 use commands::usage::{
     get_session_stats, get_usage_by_date_range, get_usage_details, get_usage_stats,
 };
-use commands::keychain::{keychain_store, keychain_retrieve, keychain_clear};
-use commands::stagecraft_client::StagecraftState;
+use commands::worktree_agents::{
+    WorktreeAgentsState, discard_agent, get_agent_diff, list_background_agents, merge_agent,
+    spawn_background_agent,
+};
 use process::ProcessRegistryState;
 use sidecars::SidecarState;
 use std::sync::Mutex;
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+use window_vibrancy::{NSVisualEffectMaterial, apply_vibrancy};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

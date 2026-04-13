@@ -3,10 +3,10 @@
 use axum::extract::ws::{Message, WebSocket};
 use axum::http::{Method, StatusCode};
 use axum::{
+    Router,
     extract::{Path, State as AxumState, WebSocketUpgrade},
     response::{Html, IntoResponse, Json, Response},
     routing::{delete, get, post, put},
-    Router,
 };
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -340,8 +340,8 @@ async fn check_claude_version() -> Json<ApiResponse<serde_json::Value>> {
 }
 
 /// List all available Claude installations on the system
-async fn list_claude_installations(
-) -> Json<ApiResponse<Vec<crate::claude_binary::ClaudeInstallation>>> {
+async fn list_claude_installations()
+-> Json<ApiResponse<Vec<crate::claude_binary::ClaudeInstallation>>> {
     let installations = crate::claude_binary::discover_claude_installations();
 
     if installations.is_empty() {
@@ -573,7 +573,9 @@ async fn claude_websocket_handler(socket: WebSocket, state: AppState) {
                                 println!("[TRACE] Sending completion message: {}", completion_msg);
                                 let _ = sender.send(completion_msg.to_string()).await;
                             } else {
-                                println!("[TRACE] Session not found in active sessions when sending completion");
+                                println!(
+                                    "[TRACE] Session not found in active sessions when sending completion"
+                                );
                             }
                         });
                     }
@@ -669,7 +671,10 @@ async fn execute_claude_command(
         crate::governed_claude::grants_json_claude_default(),
     )?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] new_claude_command falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] new_claude_command falling back to bypass: {}",
+            reason
+        );
     }
     let mut args: Vec<String> = vec![
         "-p".into(),
@@ -792,7 +797,10 @@ async fn continue_claude_command(
         crate::governed_claude::grants_json_claude_default(),
     )?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] continue_claude_command falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] continue_claude_command falling back to bypass: {}",
+            reason
+        );
     }
     let mut args: Vec<String> = vec![
         "-c".into(),
@@ -860,8 +868,10 @@ async fn resume_claude_command(
     use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::process::Command;
 
-    println!("[resume_claude_command] Starting with project_path: {}, claude_session_id: {}, prompt: {}, model: {}", 
-             project_path, claude_session_id, prompt, model);
+    println!(
+        "[resume_claude_command] Starting with project_path: {}, claude_session_id: {}, prompt: {}, model: {}",
+        project_path, claude_session_id, prompt, model
+    );
 
     send_to_session(
         &state,
@@ -892,7 +902,10 @@ async fn resume_claude_command(
         crate::governed_claude::grants_json_claude_default(),
     )?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] resume_claude_command falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] resume_claude_command falling back to bypass: {}",
+            reason
+        );
     }
     let mut args: Vec<String> = vec![
         "--resume".into(),
@@ -1027,7 +1040,9 @@ async fn get_schedule(
         Some(s) => (StatusCode::OK, Json(ApiResponse::success(s.clone()))).into_response(),
         None => (
             StatusCode::NOT_FOUND,
-            Json(ApiResponse::<Schedule>::error(format!("schedule {id} not found"))),
+            Json(ApiResponse::<Schedule>::error(format!(
+                "schedule {id} not found"
+            ))),
         )
             .into_response(),
     }
@@ -1064,7 +1079,9 @@ async fn toggle_schedule(
         }
         None => (
             StatusCode::NOT_FOUND,
-            Json(ApiResponse::<Schedule>::error(format!("schedule {id} not found"))),
+            Json(ApiResponse::<Schedule>::error(format!(
+                "schedule {id} not found"
+            ))),
         )
             .into_response(),
     }
@@ -1100,10 +1117,7 @@ pub async fn create_web_server(
     let control_routes = Router::new()
         .route("/status", get(control_status))
         .route("/projects", get(control_list_projects))
-        .route(
-            "/projects/{project_id}/sessions",
-            get(control_get_sessions),
-        )
+        .route("/projects/{project_id}/sessions", get(control_get_sessions))
         .route(
             "/sessions/{session_id}/messages/{project_id}",
             get(control_get_messages),
@@ -1114,10 +1128,7 @@ pub async fn create_web_server(
             post(control_send_message),
         )
         // Feature: REMOTE_CONTROL_CLI
-        .route(
-            "/sessions/{session_id}",
-            delete(control_cancel_session),
-        )
+        .route("/sessions/{session_id}", delete(control_cancel_session))
         .layer(axum::middleware::from_fn_with_state(
             control_auth.clone(),
             control_auth_middleware,
@@ -1169,7 +1180,10 @@ pub async fn create_web_server(
         .route("/ws/claude", get(claude_websocket))
         // Schedule CRUD routes (Feature 079)
         .route("/api/schedules", get(list_schedules).post(create_schedule))
-        .route("/api/schedules/{id}", get(get_schedule).delete(delete_schedule))
+        .route(
+            "/api/schedules/{id}",
+            get(get_schedule).delete(delete_schedule),
+        )
         .route("/api/schedules/{id}/toggle", put(toggle_schedule))
         // Control API (token-authenticated, for oap-ctl)
         .nest("/control", control_routes)
@@ -1192,7 +1206,10 @@ pub async fn create_web_server(
     if let Err(e) = write_control_files(bound_port, &control_auth.token) {
         log::warn!("Could not write control lockfiles: {}", e);
     } else {
-        log::info!("Control API listening on port {} (token written to ~/.oap/)", bound_port);
+        log::info!(
+            "Control API listening on port {} (token written to ~/.oap/)",
+            bound_port
+        );
     }
 
     // Register cleanup on process exit via a simple Drop guard on the current task.

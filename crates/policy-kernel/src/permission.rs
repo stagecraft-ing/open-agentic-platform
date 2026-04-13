@@ -182,11 +182,7 @@ impl PermissionRuntime {
         // The merge layer already guards this, but we double-check here in case
         // MergedSettings was constructed directly without going through merge_settings().
         let decision = match settings.default_mode {
-            DefaultMode::Bypass
-                if settings
-                    .default_mode_tier
-                    .map_or(false, |t| t.is_immutable()) =>
-            {
+            DefaultMode::Bypass if settings.default_mode_tier.is_some_and(|t| t.is_immutable()) => {
                 PermissionDecision::Allow
             }
             DefaultMode::Bypass => {

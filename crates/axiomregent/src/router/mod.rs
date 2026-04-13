@@ -339,9 +339,7 @@ impl Router {
             // Fail-open on infrastructure errors — do not block the tool call,
             // but log the error so it is observable (spec 090: no silent bypass).
             Err(e) => {
-                eprintln!(
-                    "[governance] WARN: mutation preflight check failed (fail-open): {e}"
-                );
+                eprintln!("[governance] WARN: mutation preflight check failed (fail-open): {e}");
                 None
             }
         }

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
 
-use crate::types::{validate_filename, RecoveryError, MAX_RECOVERY_DATA_BYTES};
+use crate::types::{MAX_RECOVERY_DATA_BYTES, RecoveryError, validate_filename};
 
 fn get_recovery_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app
@@ -34,11 +34,10 @@ pub async fn save_emergency_data(
 ) -> Result<(), RecoveryError> {
     validate_filename(&filename).map_err(|e| RecoveryError::ValidationError { message: e })?;
 
-    let json_content = serde_json::to_string_pretty(&data).map_err(|e| {
-        RecoveryError::ParseError {
+    let json_content =
+        serde_json::to_string_pretty(&data).map_err(|e| RecoveryError::ParseError {
             message: e.to_string(),
-        }
-    })?;
+        })?;
 
     if json_content.len() > MAX_RECOVERY_DATA_BYTES as usize {
         return Err(RecoveryError::DataTooLarge {
@@ -46,8 +45,7 @@ pub async fn save_emergency_data(
         });
     }
 
-    let recovery_dir =
-        get_recovery_dir(&app).map_err(|e| RecoveryError::IoError { message: e })?;
+    let recovery_dir = get_recovery_dir(&app).map_err(|e| RecoveryError::IoError { message: e })?;
     let file_path = recovery_dir.join(format!("{filename}.json"));
     let temp_path = file_path.with_extension("tmp");
 
@@ -74,8 +72,7 @@ pub async fn save_emergency_data(
 pub async fn load_emergency_data(app: AppHandle, filename: String) -> Result<Value, RecoveryError> {
     validate_filename(&filename).map_err(|e| RecoveryError::ValidationError { message: e })?;
 
-    let recovery_dir =
-        get_recovery_dir(&app).map_err(|e| RecoveryError::IoError { message: e })?;
+    let recovery_dir = get_recovery_dir(&app).map_err(|e| RecoveryError::IoError { message: e })?;
     let file_path = recovery_dir.join(format!("{filename}.json"));
 
     if !file_path.exists() {
@@ -95,8 +92,7 @@ pub async fn load_emergency_data(app: AppHandle, filename: String) -> Result<Val
 #[tauri::command]
 #[specta::specta]
 pub async fn cleanup_old_recovery_files(app: AppHandle) -> Result<u32, RecoveryError> {
-    let recovery_dir =
-        get_recovery_dir(&app).map_err(|e| RecoveryError::IoError { message: e })?;
+    let recovery_dir = get_recovery_dir(&app).map_err(|e| RecoveryError::IoError { message: e })?;
     let mut removed_count = 0u32;
 
     let now = SystemTime::now()
@@ -125,10 +121,9 @@ pub async fn cleanup_old_recovery_files(app: AppHandle) -> Result<u32, RecoveryE
         let Ok(modified_dur) = modified.duration_since(UNIX_EPOCH) else {
             continue;
         };
-        if modified_dur.as_secs() < seven_days_ago
-            && std::fs::remove_file(&path).is_ok() {
-                removed_count += 1;
-            }
+        if modified_dur.as_secs() < seven_days_ago && std::fs::remove_file(&path).is_ok() {
+            removed_count += 1;
+        }
     }
 
     log::info!("Recovery cleanup: removed {removed_count} old files");

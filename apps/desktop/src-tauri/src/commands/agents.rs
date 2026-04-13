@@ -1,19 +1,19 @@
 use agent::{
-    plan::{AgentRole as OrganizerAgentRole, ComplexityBand, ExecutionPlan},
     AgentRegistryEntry, AgentRegistrySnapshot,
+    plan::{AgentRole as OrganizerAgentRole, ComplexityBand, ExecutionPlan},
 };
 use anyhow::Result;
 use chrono;
 use dirs;
 use log::{debug, error, info, warn};
 use reqwest;
-use rusqlite::{params, Connection, Result as SqliteResult};
+use rusqlite::{Connection, Result as SqliteResult, params};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use specta::Type;
 use std::io::{BufRead, BufReader, Write};
 use std::process::Stdio;
 use std::sync::Mutex;
-use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::stagecraft_client::{StagecraftState, WorkspaceInfo};
@@ -263,15 +263,16 @@ impl AgentRunMetrics {
 
                 // Track timestamps
                 if let Some(timestamp_str) = json.get("timestamp").and_then(|t| t.as_str())
-                    && let Ok(timestamp) = chrono::DateTime::parse_from_rfc3339(timestamp_str) {
-                        let utc_time = timestamp.with_timezone(&chrono::Utc);
-                        if start_time.is_none() || utc_time < start_time.unwrap() {
-                            start_time = Some(utc_time);
-                        }
-                        if end_time.is_none() || utc_time > end_time.unwrap() {
-                            end_time = Some(utc_time);
-                        }
+                    && let Ok(timestamp) = chrono::DateTime::parse_from_rfc3339(timestamp_str)
+                {
+                    let utc_time = timestamp.with_timezone(&chrono::Utc);
+                    if start_time.is_none() || utc_time < start_time.unwrap() {
+                        start_time = Some(utc_time);
                     }
+                    if end_time.is_none() || utc_time > end_time.unwrap() {
+                        end_time = Some(utc_time);
+                    }
+                }
 
                 // Extract token usage - check both top-level and nested message.usage
                 let usage = json
@@ -333,13 +334,7 @@ fn load_agent_registry_snapshot(conn: &Connection) -> Result<AgentRegistrySnapsh
 
             let description = default_task
                 .filter(|s| !s.trim().is_empty())
-                .unwrap_or_else(|| {
-                    system_prompt
-                        .lines()
-                        .next()
-                        .unwrap_or("agent")
-                        .to_string()
-                });
+                .unwrap_or_else(|| system_prompt.lines().next().unwrap_or("agent").to_string());
 
             Ok(AgentRegistryEntry {
                 id: format!("agent-{}", id),
@@ -959,7 +954,9 @@ async fn check_agent_authorized(slug: &str) -> AgentAuthOutcome {
             AgentAuthOutcome::Denied(reason)
         }
         404 => AgentAuthOutcome::Allowed, // Unknown agent — allow by default.
-        status => AgentAuthOutcome::Unavailable(format!("unexpected status {status} from platform")),
+        status => {
+            AgentAuthOutcome::Unavailable(format!("unexpected status {status} from platform"))
+        }
     }
 }
 
@@ -1040,7 +1037,9 @@ pub async fn execute_agent(
                 .map_err(|e| format!("Failed to serialize settings: {}", e))?;
 
             {
-                let parent = settings_path.parent().ok_or("settings.json path has no parent")?;
+                let parent = settings_path
+                    .parent()
+                    .ok_or("settings.json path has no parent")?;
                 let mut tmp = tempfile::NamedTempFile::new_in(parent)
                     .map_err(|e| format!("Failed to create temp file: {}", e))?;
                 tmp.write_all(settings_content.as_bytes())
@@ -1096,7 +1095,10 @@ pub async fn execute_agent(
     let grants_json = crate::governed_claude::grants_json_for_agent(&agent);
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(announce_port, grants_json)?;
     if let Some(reason) = &bypass_reason {
-        eprintln!("[governance] execute_agent falling back to bypass: {}", reason);
+        eprintln!(
+            "[governance] execute_agent falling back to bypass: {}",
+            reason
+        );
     }
     let mode = match &plan {
         crate::governed_claude::GovernedPlan::Governed { .. } => "governed",
@@ -1273,31 +1275,32 @@ async fn spawn_agent_system(
                 if json.get("type").and_then(|t| t.as_str()) == Some("system")
                     && json.get("subtype").and_then(|s| s.as_str()) == Some("init")
                     && let Some(sid) = json.get("session_id").and_then(|s| s.as_str())
-                        && let Ok(mut current_session_id) = session_id_clone.lock()
-                            && current_session_id.is_empty() {
-                                *current_session_id = sid.to_string();
-                                info!("🔑 Extracted session ID: {}", sid);
+                    && let Ok(mut current_session_id) = session_id_clone.lock()
+                    && current_session_id.is_empty()
+                {
+                    *current_session_id = sid.to_string();
+                    info!("🔑 Extracted session ID: {}", sid);
 
-                                // Update database immediately with session ID
-                                if let Ok(conn) = Connection::open(&db_path_for_stdout) {
-                                    match conn.execute(
-                                        "UPDATE agent_runs SET session_id = ?1 WHERE id = ?2",
-                                        params![sid, run_id],
-                                    ) {
-                                        Ok(rows) => {
-                                            if rows > 0 {
-                                                info!("✅ Updated agent run {} with session ID immediately", run_id);
-                                            }
-                                        }
-                                        Err(e) => {
-                                            error!(
-                                                "❌ Failed to update session ID immediately: {}",
-                                                e
-                                            );
-                                        }
-                                    }
+                    // Update database immediately with session ID
+                    if let Ok(conn) = Connection::open(&db_path_for_stdout) {
+                        match conn.execute(
+                            "UPDATE agent_runs SET session_id = ?1 WHERE id = ?2",
+                            params![sid, run_id],
+                        ) {
+                            Ok(rows) => {
+                                if rows > 0 {
+                                    info!(
+                                        "✅ Updated agent run {} with session ID immediately",
+                                        run_id
+                                    );
                                 }
                             }
+                            Err(e) => {
+                                error!("❌ Failed to update session ID immediately: {}", e);
+                            }
+                        }
+                    }
+                }
             }
 
             // Emit the line to the frontend with run_id for isolation
@@ -2036,14 +2039,15 @@ fn create_command_with_env(program: &str) -> Command {
 
     // Add NVM support if the program is in an NVM directory
     if program.contains("/.nvm/versions/node/")
-        && let Some(node_bin_dir) = std::path::Path::new(program).parent() {
-            let current_path = std::env::var("PATH").unwrap_or_default();
-            let node_bin_str = node_bin_dir.to_string_lossy();
-            if !current_path.contains(node_bin_str.as_ref()) {
-                let new_path = format!("{}:{}", node_bin_str, current_path);
-                tokio_cmd.env("PATH", new_path);
-            }
+        && let Some(node_bin_dir) = std::path::Path::new(program).parent()
+    {
+        let current_path = std::env::var("PATH").unwrap_or_default();
+        let node_bin_str = node_bin_dir.to_string_lossy();
+        if !current_path.contains(node_bin_str.as_ref()) {
+            let new_path = format!("{}:{}", node_bin_str, current_path);
+            tokio_cmd.env("PATH", new_path);
         }
+    }
 
     // Ensure PATH contains common Homebrew locations
     if let Ok(existing_path) = std::env::var("PATH") {
@@ -2346,9 +2350,10 @@ pub async fn load_agent_session_history(
 
         for line in reader.lines() {
             if let Ok(line) = line
-                && let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
-                    messages.push(json);
-                }
+                && let Ok(json) = serde_json::from_str::<serde_json::Value>(&line)
+            {
+                messages.push(json);
+            }
         }
 
         Ok(messages)

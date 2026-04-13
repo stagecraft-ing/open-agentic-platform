@@ -54,10 +54,7 @@ pub fn set_zoom(
 /// Returns the last value set via `set_zoom`, or `1.0` if never zoomed.
 #[tauri::command]
 #[specta::specta]
-pub fn get_zoom(
-    zoom_state: State<'_, ZoomState>,
-    window_label: Option<String>,
-) -> f64 {
+pub fn get_zoom(zoom_state: State<'_, ZoomState>, window_label: Option<String>) -> f64 {
     let label = window_label.as_deref().unwrap_or("main");
     *zoom_state.0.lock().unwrap().get(label).unwrap_or(&1.0)
 }
@@ -74,7 +71,9 @@ pub fn broadcast_zoom(
     let mut cache = zoom_state.0.lock().unwrap();
     for (label, window) in app.webview_windows() {
         match window.set_zoom(factor) {
-            Ok(()) => { cache.insert(label, factor); }
+            Ok(()) => {
+                cache.insert(label, factor);
+            }
             Err(e) => errors.push(format!("{label}: {e}")),
         }
     }

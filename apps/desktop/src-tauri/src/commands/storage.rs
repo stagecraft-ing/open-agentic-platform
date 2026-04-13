@@ -1,6 +1,6 @@
 use super::agents::AgentDb;
 use anyhow::Result;
-use rusqlite::{params, types::ValueRef, Connection, Result as SqliteResult};
+use rusqlite::{Connection, Result as SqliteResult, params, types::ValueRef};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value as JsonValue};
 use std::collections::HashMap;
