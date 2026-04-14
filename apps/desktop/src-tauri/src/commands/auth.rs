@@ -329,11 +329,11 @@ pub async fn auth_start_login(
     );
 
     // Append idp_hint for enterprise OIDC routing (percent-encoded)
-    if let Some(hint) = idp_hint {
-        if !hint.is_empty() {
-            url.push_str("&idp_hint=");
-            url.push_str(&percent_encode_component(&hint));
-        }
+    if let Some(hint) = idp_hint
+        && !hint.is_empty()
+    {
+        url.push_str("&idp_hint=");
+        url.push_str(&percent_encode_component(&hint));
     }
 
     app.opener()
