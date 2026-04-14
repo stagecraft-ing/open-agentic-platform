@@ -313,3 +313,6 @@ crates/xray/tests/outputs/
 platform/kubeconfig/
 platform/tmp/
 platform/_tmp_test/
+
+# Local dev runtime data
+.local/

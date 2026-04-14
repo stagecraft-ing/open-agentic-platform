@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{
     Router,
     routing::{delete, get, post},
@@ -23,6 +23,8 @@ async fn main() -> Result<()> {
 
     let data_dir =
         std::env::var("DEPLOYD_DATA_DIR").unwrap_or_else(|_| "/var/lib/deployd/data".into());
+    std::fs::create_dir_all(&data_dir)
+        .with_context(|| format!("failed to create data dir: {data_dir}"))?;
     let client = store::init_db(&data_dir).await?;
     let state = Arc::new(store::AppState {
         client,

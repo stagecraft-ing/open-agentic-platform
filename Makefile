@@ -100,7 +100,7 @@ dev-stagecraft:
 
 dev-deployd:
 	@echo "==> Starting deployd-api (Rust/axum, port 8080)..."
-	DEPLOYD_AUDIENCE=deployd-local DEPLOYD_REQUIRED_SCOPE=deployd:admin cargo run --manifest-path platform/services/deployd-api-rs/Cargo.toml
+	DEPLOYD_DATA_DIR=$(CURDIR)/.local/deployd DEPLOYD_AUDIENCE=deployd-local DEPLOYD_REQUIRED_SCOPE=deployd:admin cargo run --manifest-path platform/services/deployd-api-rs/Cargo.toml
 
 dev-platform:
 	@echo "==> Starting platform services in background..."
@@ -119,7 +119,7 @@ dev-all:
 stop:
 	@echo "==> Stopping background services..."
 	-@pkill -f "encore run" 2>/dev/null || true
-	-@pkill -f "tsx watch.*deployd" 2>/dev/null || true
+	-@pkill -f "deployd.api" 2>/dev/null || true
 	@echo "Done."
 
 # ============================================================
