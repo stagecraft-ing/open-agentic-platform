@@ -27,7 +27,7 @@ Complete the `ui`, `integrations`, `notifications`, `audit`, and `traceability` 
 You MUST match the structure defined in the contract schema and example files. When in doubt, copy the structure from the example — not from memory.
 
 - **Schema**: `factory/contract/schemas/build-spec.schema.yaml` — authoritative field names, types, and required/optional markers
-- **Example**: `factory/contract/examples/cfs-womens-shelter.build-spec.yaml` — a fully validated, parseable reference
+- **Example**: `factory/contract/examples/community-grant-portal.build-spec.yaml` — a fully validated, parseable reference
 
 Key structural rules the parser enforces:
 - `ui.pages[]` requires `view_type` (one of: `public`, `public-authenticated`, `private-authenticated`) — do not use a `stack` field

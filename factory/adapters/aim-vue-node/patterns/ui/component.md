@@ -6,7 +6,7 @@ props and emit events — they never import stores directly.
 ## Convention
 
 - Component file: `apps/{stack}/src/components/{Name}.vue`
-- GoA wrapper: `apps/{stack}/src/components/goa/{GoabName}.vue`
+- Design system wrapper: `apps/{stack}/src/components/goa/{GoabName}.vue`
 
 ## Template — Data Display Component
 
@@ -40,7 +40,7 @@ defineEmits<{
 </template>
 ```
 
-## Template — GoA Wrapper Component
+## Template — Design System Wrapper Component
 
 ```vue
 <script setup lang="ts">
@@ -73,7 +73,7 @@ const emit = defineEmits<{
 2. Props via `defineProps<{}>()` with TypeScript generics.
 3. Events via `defineEmits<{}>()` with typed payloads.
 4. Components receive data via props — never import Pinia stores directly.
-5. GoA web components use `@_change` / `@_click` events (underscore prefix).
-6. GoA wrapper components bridge `v-model` to custom element events.
+5. Design system web components use `@_change` / `@_click` events (underscore prefix).
+6. Design system wrapper components bridge `v-model` to custom element events.
 7. Import shared types from `@template/shared`.
 8. No business logic in components — delegate to parent views or composables.

@@ -1,5 +1,6 @@
 image:
-  repository: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
+  # TODO: Set to your GHCR (or other registry) image path
+  repository: ghcr.io/your-org/open-agentic-platform/stagecraft
   tag: latest
 
 imagePullSecrets:
@@ -8,7 +9,8 @@ imagePullSecrets:
 ingress:
   enabled: true
   className: nginx
-  host: stagecraft.ing
+  # TODO: Set to your stagecraft public hostname (e.g. stagecraft.yourdomain.com)
+  host: ""
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
@@ -18,6 +20,8 @@ secrets:
   create: false
 
 oidc:
-  endpoint: "https://auth.stagecraft.ing"
-  deploydAudience: "https://deploy.stagecraft.ing"
+  # TODO: Set to your Rauthy public base URL (e.g. https://auth.yourdomain.com)
+  endpoint: ""
+  # TODO: Set to your deployd-api public URL (e.g. https://deploy.yourdomain.com)
+  deploydAudience: ""
   deploydScope: "deployd:deploy"

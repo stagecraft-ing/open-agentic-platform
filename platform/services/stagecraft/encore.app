@@ -13,6 +13,7 @@
       "allow_origins_without_credentials": ["*"],
 
       // Authenticated requests (cookies or Authorization header)
+      // TODO: Replace stagecraft.ing entries with your own domain(s) before deploying
       "allow_origins_with_credentials": [
         "https://localdev.online",
         "https://*.localdev.online",

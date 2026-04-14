@@ -2,8 +2,8 @@
 
 ## Convention
 
-A data-entry form using GoA Design System components with reactive
-validation. Based on the NewApplicationView pattern from cfs portal.
+A data-entry form using design system components with reactive
+validation. Based on a NewApplicationView pattern from a government portal.
 
 ## Template
 ```vue
@@ -97,4 +97,4 @@ async function handleSubmit() {
 7. Submit button is disabled while `submitting` is true.
 8. On success, navigate to the detail or list page -- never stay on the form.
 9. Cancel button calls `router.back()` -- never resets the form silently.
-10. GoA events use `@_click` / `@_change` (underscore prefix convention).
+10. Design system events use `@_click` / `@_change` (underscore prefix convention).

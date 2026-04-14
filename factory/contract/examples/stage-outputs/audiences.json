@@ -2,14 +2,14 @@
   "audiences": [
     {
       "name": "citizen",
-      "description": "External users from women's shelter organizations who apply for provincial funding through their Alberta.ca Account.",
+      "description": "External users from community development organizations who apply for regional funding through their Enterprise SSO account.",
       "auth_method": "saml",
-      "auth_provider": "alberta-ca-account",
+      "auth_provider": "enterprise-sso",
       "roles": [
         {
           "role_code": "applicant",
-          "display_name": "Shelter Organization Applicant",
-          "description": "Shelter staff who create and submit funding requests on behalf of their organization",
+          "display_name": "Grant Organization Applicant",
+          "description": "Organization staff who create and submit funding requests on behalf of their organization",
           "permissions": [
             "funding-request:create",
             "funding-request:read-own",
@@ -24,13 +24,13 @@
     },
     {
       "name": "staff",
-      "description": "Internal CFS staff who review, assess, and approve funding requests through the Government of Alberta Entra ID.",
+      "description": "Internal Division staff who review, assess, and approve funding requests through the Cascadia Regional Authority Entra ID.",
       "auth_method": "oidc",
       "auth_provider": "entra-id",
       "roles": [
         {
-          "role_code": "cfs-analyst",
-          "display_name": "CFS Funding Analyst",
+          "role_code": "grant-analyst",
+          "display_name": "Division Funding Analyst",
           "description": "Reviews and scores funding requests using filter analysis and community needs data",
           "permissions": [
             "funding-request:read",
@@ -40,8 +40,8 @@
           ]
         },
         {
-          "role_code": "cfs-manager",
-          "display_name": "CFS Program Manager",
+          "role_code": "grant-manager",
+          "display_name": "Division Program Manager",
           "description": "Reviews analyst assessments and makes preliminary funding decisions",
           "permissions": [
             "funding-request:read",
@@ -53,19 +53,19 @@
           ]
         },
         {
-          "role_code": "cfs-leadership",
-          "display_name": "CFS Leadership",
+          "role_code": "division-leadership",
+          "display_name": "Division Leadership",
           "description": "Senior leadership who recommend or advance funding decisions",
           "permissions": [
             "funding-request:read",
             "assessment:read",
-            "decision:write-ministerial",
+            "decision:write-executive",
             "audit:read"
           ]
         },
         {
-          "role_code": "minister-office",
-          "display_name": "Minister's Office",
+          "role_code": "executive-office",
+          "display_name": "Executive Office",
           "description": "Final approval authority for funding requests",
           "permissions": [
             "funding-request:read",

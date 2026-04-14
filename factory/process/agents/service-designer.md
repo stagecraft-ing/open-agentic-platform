@@ -32,7 +32,7 @@ Write these files to `requirements/`:
       "name": "citizen",
       "description": "Shelter organization applicants",
       "auth_method": "saml",
-      "auth_provider": "alberta-ca-account",
+      "auth_provider": "enterprise-sso",
       "roles": [
         {
           "role_code": "applicant",
@@ -57,7 +57,7 @@ Per audience, the key workflows as step sequences.
       "audience": "citizen",
       "name": "Submit Funding Application",
       "steps": [
-        { "action": "Sign in", "page": "login", "notes": "Via Alberta.ca Account" },
+        { "action": "Sign in", "page": "login", "notes": "Via Enterprise SSO" },
         { "action": "View dashboard", "page": "dashboard" },
         { "action": "Start new application", "page": "application-form" },
         { "action": "Submit application", "page": "application-form", "use_case": "UC-001" }

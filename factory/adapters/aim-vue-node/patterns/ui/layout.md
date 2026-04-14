@@ -1,6 +1,6 @@
 # Layout Pattern
 
-Vue layout components provide the outer shell for pages — GoA header, navigation,
+Vue layout components provide the outer shell for pages — design system header, navigation,
 footer, and content area. Layouts wrap `<router-view>` or use slots.
 
 ## Convention
@@ -57,7 +57,7 @@ const { items } = useNavigation();
 
 ## Rules
 
-1. Use GoA Design System shell components (`goa-microsite-header`, `goa-app-header`, `goa-app-footer`).
+1. Use design system shell components (`goa-microsite-header`, `goa-app-header`, `goa-app-footer`).
 2. Include skip-link for accessibility (`<a href="#main-content">`).
 3. `goa-microsite-header` type is `alpha` for dev, `beta` for staging, `live` for production.
 4. Navigation items registered via `useNavigation()` composable, not hardcoded.

@@ -29,6 +29,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # TODO: Update to your GHCR org/repo path before deploying (e.g. ghcr.io/your-org/open-agentic-platform/deployd-api)
   IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
 
 jobs:

@@ -435,7 +435,7 @@ auth:
   audiences:
     citizen:
       method: saml
-      provider: alberta-ca-account
+      provider: gov-citizen-account
       roles:
         - role_code: applicant
           display_name: Applicant
@@ -499,7 +499,7 @@ ui:
     #[test]
     fn test_parse_real_build_spec_example() {
         let path = std::path::Path::new(
-            "../../factory/contract/examples/cfs-womens-shelter.build-spec.yaml",
+            "../../factory/contract/examples/community-grant-portal.build-spec.yaml",
         );
         if path.exists() {
             let result = validate_build_spec(path);

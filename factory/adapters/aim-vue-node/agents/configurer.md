@@ -22,7 +22,7 @@ Replace template placeholders in package.json files:
 - `@template/shared` → `@{org}/shared`
 - `@template/config` → `@{org}/config`
 - `@template/auth` → `@{org}/auth`
-- App names: `vue-node-alberta-enterprise-template` → `{project.name}`
+- App names: `vue-node-enterprise-template` → `{project.name}`
 - Description → `{project.description}`
 
 ### 2. Configure Environment Files

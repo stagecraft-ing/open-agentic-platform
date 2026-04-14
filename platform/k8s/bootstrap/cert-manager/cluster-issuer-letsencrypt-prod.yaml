@@ -4,7 +4,8 @@ metadata:
   name: letsencrypt-prod
 spec:
   acme:
-    email: platform-admin@stagecraft.ing
+    # TODO: Replace with your ACME registration email before applying
+    email: admin@example.com
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-prod

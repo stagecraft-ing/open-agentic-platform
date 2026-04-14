@@ -74,7 +74,7 @@
         {
           "from": "submitted",
           "to": ["under-review", "withdrawn"],
-          "requires_role": ["cfs-analyst", "cfs-manager"],
+          "requires_role": ["grant-analyst", "grant-manager"],
           "conditions": [
             "Request has been assigned to an analyst"
           ]
@@ -82,7 +82,7 @@
         {
           "from": "under-review",
           "to": ["information-requested", "evaluated", "withdrawn"],
-          "requires_role": ["cfs-analyst"],
+          "requires_role": ["grant-analyst"],
           "conditions": [
             "To evaluated: assessment must be finalized with composite score"
           ]
@@ -90,7 +90,7 @@
         {
           "from": "information-requested",
           "to": ["under-review", "withdrawn"],
-          "requires_role": ["applicant", "cfs-analyst"],
+          "requires_role": ["applicant", "grant-analyst"],
           "conditions": [
             "Applicant has responded to the information request"
           ]
@@ -98,7 +98,7 @@
         {
           "from": "evaluated",
           "to": ["recommended", "withdrawn"],
-          "requires_role": ["cfs-manager"],
+          "requires_role": ["grant-manager"],
           "conditions": [
             "Manager has reviewed the finalized assessment"
           ]
@@ -106,9 +106,9 @@
         {
           "from": "recommended",
           "to": ["approved", "denied"],
-          "requires_role": ["cfs-leadership", "minister-office"],
+          "requires_role": ["division-leadership", "executive-office"],
           "conditions": [
-            "BR-011: Decision sequence respected (preliminary before ministerial before final)",
+            "BR-011: Decision sequence respected (preliminary before executive before final)",
             "BR-010: Approved amount does not exceed requested amount"
           ]
         }
@@ -123,17 +123,17 @@
       "id": "BR-008",
       "name": "Role-Based Access Control",
       "type": "authorization",
-      "description": "All API operations enforce role-based access. Citizens (applicant role) may only access their own organization's data. Staff roles are hierarchical: analysts can assess, managers can decide (preliminary), leadership and minister-office can decide (final). System-admin manages users and roles.",
+      "description": "All API operations enforce role-based access. Citizens (applicant role) may only access their own organization's data. Staff roles are hierarchical: analysts can assess, managers can decide (preliminary), leadership and executive-office can decide (final). System-admin manages users and roles.",
       "entities": ["PortalUser", "UserRole"]
     },
     {
       "id": "BR-009",
-      "name": "Funded Beds for Emergency Shelter Programs",
+      "name": "Funded Beds for Emergency Housing Programs",
       "type": "validation",
-      "description": "Programs with programType = 'emergency-shelter' must specify a fundedBeds value greater than zero.",
+      "description": "Programs with programType = 'emergency-housing' must specify a fundedBeds value greater than zero.",
       "entities": ["Program"],
-      "condition": "programType = emergency-shelter",
-      "message": "Funded beds count is required for emergency shelter programs"
+      "condition": "programType = emergency-housing",
+      "message": "Funded beds count is required for emergency housing programs"
     },
     {
       "id": "BR-010",
@@ -146,7 +146,7 @@
       "id": "BR-011",
       "name": "Decision Sequence",
       "type": "constraint",
-      "description": "Decision types must follow a strict sequence: preliminary, then ministerial_review, then final. A ministerial_review decision requires a prior preliminary decision. A final decision requires a prior ministerial_review decision.",
+      "description": "Decision types must follow a strict sequence: preliminary, then executive_review, then final. An executive_review decision requires a prior preliminary decision. A final decision requires a prior executive_review decision.",
       "entities": ["DecisionRecord"]
     },
     {
@@ -183,7 +183,7 @@
       "id": "BR-016",
       "name": "Zero Substitution",
       "type": "computation",
-      "description": "When an LGA indicator raw value is null (missing data), the score value is substituted with zero during Infomart data ingestion.",
+      "description": "When an LGA indicator raw value is null (missing data), the score value is substituted with zero during RegionData ingestion.",
       "entities": ["LgaIndicatorValue"],
       "formula": "scoreValue = rawValue ?? 0",
       "inputs": ["rawValue"],

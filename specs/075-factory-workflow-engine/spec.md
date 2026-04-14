@@ -321,7 +321,7 @@ pub async fn reject_factory_stage(
 2. Implement `generate_scaffold_manifest()` — dynamic fan-out from Build Spec
 3. Implement entity dependency ordering (topological sort)
 4. Implement `generate_factory_policy_shard()`
-5. Tests against `cfs-womens-shelter.build-spec.yaml` example
+5. Tests against `community-grant-portal.build-spec.yaml` example
 
 ### Phase 3: Two-Phase Execution (3 days)
 
@@ -345,7 +345,7 @@ pub async fn reject_factory_stage(
 ## Success Criteria
 
 - **SC-001**: `generate_process_manifest()` produces a valid 6-step manifest from adapter + doc paths
-- **SC-002**: `generate_scaffold_manifest()` produces correct fan-out from `cfs-womens-shelter.build-spec.yaml` (19 entities × operations × pages = ~50+ steps)
+- **SC-002**: `generate_scaffold_manifest()` produces correct fan-out from `community-grant-portal.build-spec.yaml` (19 entities × operations × pages = ~50+ steps)
 - **SC-003**: Entity dependency ordering is correct (topological sort verified)
 - **SC-004**: Post-step verification runs adapter `feature_verify` commands after each scaffold step
 - **SC-005**: Retry loop prepends error output and re-dispatches (max 3 retries)

@@ -54,7 +54,7 @@ Factory lives in `factory/` at repository root as first-class OAP code. The dire
 factory/
   contract/
     schemas/           ← YAML schemas (Build Spec, Adapter Manifest, etc.)
-    examples/          ← Example Build Specs (cfs-womens-shelter, etc.)
+    examples/          ← Example Build Specs (community-grant-portal, etc.)
   process/
     stages/            ← Stage definitions (00-06)
     agents/            ← Process agent prompts (7 agents)

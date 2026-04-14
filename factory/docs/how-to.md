@@ -48,7 +48,7 @@ Each adapter implements one technology stack. Pick the one that matches your dep
 
 | Adapter | Backend | Frontend | Database | Best For |
 |---------|---------|----------|----------|----------|
-| `aim-vue-node` | Express 5 | Vue 3 + GoA Design System | PostgreSQL (direct SQL) | Alberta Government enterprise apps |
+| `aim-vue-node` | Express 5 | Vue 3 + Gov Design System | PostgreSQL (direct SQL) | Government enterprise apps |
 | `encore-react` | Encore.ts microservices | React Router 7 + Tailwind | PostgreSQL (Drizzle ORM) | SaaS apps with built-in infra |
 | `next-prisma` | Next.js 15 App Router | React Server Components + Tailwind | PostgreSQL (Prisma ORM) | Full-stack React apps |
 | `rust-axum` | Axum + SQLx | Askama templates + HTMX | PostgreSQL (compile-time SQL) | High-performance, Rust-native apps |

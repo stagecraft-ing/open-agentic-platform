@@ -22,9 +22,9 @@ schema_version: "1.0.0"
 #
 project:
   # Required fields
-  name: string                    # Machine-safe slug (e.g., "cfs-womens-shelter-funding-portal")
-  display_name: string            # Human-readable (e.g., "CFS Women's Shelter Funding Portal")
-  org: string                     # Organization slug (e.g., "goa-cfs")
+  name: string                    # Machine-safe slug (e.g., "community-grant-portal")
+  display_name: string            # Human-readable (e.g., "Community Grant Portal")
+  org: string                     # Organization slug (e.g., "example-org")
   description: string             # One-paragraph purpose statement
   workspace_id: string            # Workspace context for this build
 
@@ -53,10 +53,10 @@ auth:
     <audience_name>:
       method:
         enum: [saml, oidc, api-key, basic, mock]
-      provider: string            # Identity provider name (e.g., "alberta-ca-account", "entra-id")
+      provider: string            # Identity provider name (e.g., "gov-citizen-account", "entra-id")
       roles:
-        - role_code: string       # Machine-safe (e.g., "cfs-analyst")
-          display_name: string    # Human-readable (e.g., "CFS Funding Analyst")
+        - role_code: string       # Machine-safe (e.g., "grant-analyst")
+          display_name: string    # Human-readable (e.g., "Grant Analyst")
           description: string     # What this role can do
           permissions: [string]   # Abstract permission labels (e.g., "assess:write", "decision:write")
 

@@ -16,22 +16,22 @@ schema_version: "1.0.0"
 upstreams:
 
   # ────────────────────────────────────────────────────────────────────────
-  # the_factory — GoA production factory (pipeline skills + security agents)
+  # the_factory — upstream production factory (pipeline skills + security agents)
   # ────────────────────────────────────────────────────────────────────────
   the_factory:
-    path: "~/Dev2/the_factory"
-    remote: "GovAlta-EMU/the_factory"
+    path: "~/upstream/the_factory"
+    remote: "upstream-org/the_factory"
     last_synced_sha: "420ab9c2e20334d410d472cf7febe3fd076b065a"
     last_synced_date: "2026-04-10"
 
     exclude_patterns:
-      # GoA-specific content
+      # client-specific content
       - "Factory Agent/Orchestrator/factory-orchestration-cd.md"  # Client doc generation
       - "Factory Agent/Orchestrator/scripts/"                      # docx/ppt generators
-      - "Factory Agent/Requirements/Client/"                       # GoA client documents
-      - "Factory Agent/Controllers/api-web-standards.md"           # GoA web standards
-      - "Factory Agent/Controllers/api-standards-compliance.md"    # GoA compliance
-      - "Factory Agent/Requirements/Service/sitemap-template-*.json"  # GoA sitemap templates
+      - "Factory Agent/Requirements/Client/"                       # client documents
+      - "Factory Agent/Controllers/api-web-standards.md"           # web standards
+      - "Factory Agent/Controllers/api-standards-compliance.md"    # compliance docs
+      - "Factory Agent/Requirements/Service/sitemap-template-*.json"  # sitemap templates
       # Security agents (separate concern)
       - "Security Agent/"
       - "eval_framework/"
@@ -61,7 +61,7 @@ upstreams:
         notes: >
           44KB monolithic orchestrator. OAP decomposes into 7 stage files + 1
           agent. Extract execution rules, gate conditions, and dispatch table.
-          Ignore GoA-specific validation codes (FAC-*) — translate concepts into
+          Ignore client-specific validation codes (FAC-*) — translate concepts into
           OAP's verification contract checks. The 12 orchestrator rules map to
           OAP's .claude/rules/orchestrator-rules.md.
 
@@ -77,8 +77,8 @@ upstreams:
         layer: process
         notes: >
           Extract BRD extraction protocol, entity identification rules, and
-          quality gates. Ignore GoA QG-1 through QG-11 specific codes — translate
-          gate concepts into verification contract checks.
+          quality gates. Ignore client-specific QG codes — translate gate concepts
+          into verification contract checks.
 
       - source: "Factory Agent/Orchestrator/factory-orchestration-s2.md"
         targets:
@@ -166,7 +166,7 @@ upstreams:
         notes: >
           55KB builder with 3 modes. Extract: DDL alignment rules, shared type
           enforcement, SQL column verification protocol, response shape rules.
-          Ignore: GoA-specific compliance, mode detection logic (OAP uses adapter
+          Ignore: client-specific compliance, mode detection logic (OAP uses adapter
           manifest), inline OpenAPI generation (OAP adapter handles this).
 
       - source: "Factory Agent/Controllers/api-reviewer.md"
@@ -178,8 +178,8 @@ upstreams:
         layer: adapter
         notes: >
           44KB reviewer. Extract: deficiency codes and categories, structured
-          evidence requirements, cross-layer consistency checks. Ignore: GoA
-          compliance report section numbers, inline GoA standards references.
+          evidence requirements, cross-layer consistency checks. Ignore: client-specific
+          compliance report section numbers, inline client standards references.
 
       - source: "Factory Agent/Controllers/api-orchestrator.md"
         targets:
@@ -199,7 +199,7 @@ upstreams:
         layer: adapter
         notes: >
           33KB security skill. Extract: authorization patterns, RBAC rules,
-          session security checks. Ignore: GoA Protected B classification,
+          session security checks. Ignore: protected-level security classifications,
           ASVS references, ministry-specific compliance.
 
       # ── Client Interface ───────────────────────────────────────────────
@@ -221,8 +221,8 @@ upstreams:
         relationship: extract-only
         layer: adapter
         notes: >
-          32KB GoA design system skill. Extract: component usage patterns,
-          layout conventions, accessibility rules. Ignore: GoA brand guidelines,
+          32KB design system skill. Extract: component usage patterns,
+          layout conventions, accessibility rules. Ignore: client brand guidelines,
           ministry-specific theming.
 
       - source: "Factory Agent/Client_Interface/page-types/authenticated/"
@@ -290,7 +290,7 @@ upstreams:
         layer: process
         notes: >
           46KB BRD extraction skill. Extract: document analysis protocol,
-          entity extraction rules, use case derivation. Ignore: GoA QG codes,
+          entity extraction rules, use case derivation. Ignore: client-specific QG codes,
           phase-specific validation (OAP uses verification contract).
 
       - source: "Factory Agent/Requirements/System/admin-interface-base-requirements.json"
@@ -301,18 +301,18 @@ upstreams:
         relationship: extract-only
         layer: adapter
         notes: >
-          GoA admin interface requirements JSON. Extract: RBAC architecture
+          Admin interface requirements JSON. Extract: RBAC architecture
           patterns (IdP-as-identity, DB-authoritative roles), permission
           management model, session invalidation protocol, admin UI structure.
-          Ignore: Entra ID-specific references, GoA section numbering.
+          Ignore: IdP vendor-specific references, client section numbering.
 
 
   # ────────────────────────────────────────────────────────────────────────
-  # AIM-vue-node-template — GoA enterprise application scaffold
+  # AIM-vue-node-template — upstream enterprise application scaffold
   # ────────────────────────────────────────────────────────────────────────
   aim-vue-node-template:
-    path: "~/Dev2/AIM-vue-node-template"
-    remote: "GovAlta-EMU/AIM-vue-node-template"
+    path: "~/upstream/aim-vue-node-template"
+    remote: "upstream-org/aim-vue-node-template"
     last_synced_sha: "9b83c1095013fd460b18745ef35987bd8d2de1b1"
     last_synced_date: "2026-04-10"
 

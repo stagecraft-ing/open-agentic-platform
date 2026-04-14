@@ -2,7 +2,7 @@
   "entities": [
     {
       "name": "Organization",
-      "description": "A women's shelter organization eligible to apply for provincial funding",
+      "description": "A community development organization eligible to apply for regional funding",
       "fields": [
         {
           "name": "organizationId",
@@ -47,7 +47,7 @@
           "max_length": 100
         },
         {
-          "name": "orgAddrProvince",
+          "name": "orgAddrRegion",
           "type": "string",
           "required": true,
           "max_length": 50
@@ -69,7 +69,7 @@
     },
     {
       "name": "FundingRequest",
-      "description": "A funding application submitted by a shelter organization for a specific fiscal year",
+      "description": "A funding application submitted by a community organization for a specific fiscal year",
       "fields": [
         {
           "name": "requestId",
@@ -171,7 +171,7 @@
     },
     {
       "name": "PortalUser",
-      "description": "A user who accesses the portal, either a shelter applicant or CFS staff member",
+      "description": "A user who accesses the portal, either a grant applicant or Division staff member",
       "fields": [
         {
           "name": "userId",

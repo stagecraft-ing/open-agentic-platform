@@ -20,10 +20,10 @@ depends_on:
 
 OAP's `factory/` directory was originally derived from two upstream sources:
 
-- **the_factory** (`~/Dev2/the_factory`, `GovAlta-EMU/the_factory`) — the GoA
-  production factory containing pipeline orchestration skills, controller agents,
+- **the_factory** (`~/upstream/the_factory`, `upstream-org/the_factory`) — the
+  upstream production factory containing pipeline orchestration skills, controller agents,
   page type definitions, security assessment agents, and an evaluation framework.
-- **AIM-vue-node-template** (`~/Dev2/AIM-vue-node-template`) — the GoA
+- **AIM-vue-node-template** (`~/upstream/aim-vue-node-template`) — the upstream
   enterprise application scaffold that the `aim-vue-node` adapter targets.
 
 Both upstreams continue to evolve independently. When bugs are discovered during
@@ -51,8 +51,8 @@ across different layers. Simple file copying or git subtree merges do not work.
    AIM-vue-node-template, and any future upstream. Each upstream is a named
    entry in the mapping manifest with its own path, SHA tracking, and mappings.
 
-3. **GoA content is filtered.** Government of Alberta-specific content
-   (ministry references, Entra ID specifics, Protected B classifications,
+3. **Client-specific content is filtered.** Government client-specific content
+   (ministry references, IdP-vendor specifics, protected-level classifications,
    client document generation) is excluded during translation. The mapping
    manifest declares what to strip.
 
@@ -141,7 +141,7 @@ For each mapped change:
    - **Bug fix** — fixes a defect found during pipeline runs. Highest priority.
    - **Enhancement** — adds new capability or strengthens validation.
    - **Refactor** — restructures without changing behavior.
-   - **GoA-specific** — government-specific content that should not be translated.
+   - **Client-specific** — upstream-specific content that should not be translated.
 3. For `diffable` relationships: generate a proposed edit for each OAP target
 4. For `restructured` relationships: describe what changed and which OAP
    sections are likely affected
@@ -171,12 +171,12 @@ Content that is never translated from the_factory:
 
 | Category | Examples | Reason |
 |---|---|---|
-| GoA ministry references | Ministry names, program codes | Government-specific |
+| Ministry references | Ministry names, program codes | Client-specific |
 | IdP-specific auth | Entra ID group claims, SAML assertions | Vendor-specific |
-| Client document generation | docx-generator.py, ppt-generator.py | GoA deliverable format |
-| Protected B classification | Threat models, security clearance levels | GoA security classification |
+| Client document generation | docx-generator.py, ppt-generator.py | Client deliverable format |
+| Protected-level classification | Threat models, security clearance levels | Client security classification |
 | Evaluation framework | eval_framework/, REDTEAM/ | Separate concern, Python-based |
-| GoA web standards | api-web-standards.md, api-standards-compliance.md | GoA policy documents |
+| Client web standards | api-web-standards.md, api-standards-compliance.md | Client policy documents |
 
 Content that is never translated from AIM-vue-node-template:
 

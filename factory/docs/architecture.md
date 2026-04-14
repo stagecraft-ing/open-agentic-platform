@@ -154,12 +154,12 @@ factory/
 │   │       ├── audiences.schema.json
 │   │       └── sitemap.schema.json
 │   └── examples/
-│       ├── cfs-womens-shelter.build-spec.yaml  Real-world Build Spec
+│       ├── community-grant-portal.build-spec.yaml  Example Build Spec
 │       ├── aim-vue-node.adapter-manifest.yaml  First adapter manifest
 │       └── stage-outputs/                 Example intermediate artifacts
 │
 ├── adapters/
-│   ├── aim-vue-node/                      Vue 3 + Express 5 + GoA Design System
+│   ├── aim-vue-node/                      Vue 3 + Express 5 + Design System
 │   │   ├── manifest.yaml                  Capabilities and conventions
 │   │   ├── agents/                        6 focused prompts (<65 lines each)
 │   │   ├── patterns/                      11 code generation patterns

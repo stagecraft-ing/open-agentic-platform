@@ -83,7 +83,7 @@ This plan sequences all work into 6 phases over ~12 weeks. Each phase delivers i
 
 - `cargo build --release -p factory-contracts` succeeds
 - All 4 adapters discovered and validated
-- `cfs-womens-shelter.build-spec.yaml` parses into `BuildSpec` and round-trips
+- `community-grant-portal.build-spec.yaml` parses into `BuildSpec` and round-trips
 
 ### Checkpoint
 
@@ -122,7 +122,7 @@ Demonstrate: parse a real Build Spec, discover adapters, validate capabilities m
 
 ### Checkpoint
 
-Demonstrate: noop pipeline generates correct Phase 1 manifest from `cfs-womens-shelter` example, transitions to Phase 2 after mock stage 5 approval, fans out into ~50+ scaffold steps, persists state, resumes.
+Demonstrate: noop pipeline generates correct Phase 1 manifest from `community-grant-portal` example, transitions to Phase 2 after mock stage 5 approval, fans out into ~50+ scaffold steps, persists state, resumes.
 
 ---
 

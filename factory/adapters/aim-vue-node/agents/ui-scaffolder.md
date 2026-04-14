@@ -49,7 +49,7 @@ Up to 4 artifacts per page:
 ## Rules
 
 1. Read the page-type pattern FIRST — it defines the component structure
-2. Use GoA Design System components (`@abgov/web-components`) — never generic HTML for interactive elements
+2. Use design system components (`@abgov/web-components`) — never generic HTML for interactive elements
 3. All views lazy-loaded in router: `() => import('../views/...')`
 4. Use `<script setup lang="ts">` — never Options API
 5. Pinia store only if state is shared. Local state stays in the component via `ref()`/`reactive()`.

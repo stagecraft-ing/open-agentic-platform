@@ -1,9 +1,9 @@
 # ============================================================================
-# Build Specification — CFS Women's Shelter Funding Portal
+# Build Specification — Community Grant Portal
 # ============================================================================
 #
 # Concrete example file that validates the build-spec.schema.yaml schema.
-# Populated with real data from the cfs-womens-shelter-funding-portal codebase.
+# Synthetic example demonstrating full build-spec schema coverage.
 #
 # This spec describes WHAT to build — completely technology-free.
 # No frameworks, no languages, no components, no file paths.
@@ -18,18 +18,18 @@ schema_version: "1.0.0"
 # ─────────────────────────────────────────────────────────────────────────────
 
 project:
-  name: "cfs-womens-shelter-funding-portal"
-  display_name: "CFS Women's Shelter Funding Portal"
-  org: "goa-cfs"
+  name: "community-grant-portal"
+  display_name: "Community Grant Portal"
+  org: "cra-grants"
   description: >
-    Online portal for women's shelter organizations in Alberta to apply for
-    provincial funding through Children and Family Services (CFS). Shelter
-    operators submit funding requests with program details, budgets, and
-    supporting documents. CFS analysts assess applications using community
+    Online portal for community development organizations in Cascadia to apply
+    for regional funding through the Community Development Division (CDD).
+    Grant applicants submit funding requests with program details, budgets, and
+    supporting documents. Division analysts assess applications using community
     needs data, and managers advance requests through a multi-stage approval
-    chain culminating in ministerial sign-off.
+    chain culminating in executive sign-off.
   variant: dual
-  domain: "children-and-family-services"
+  domain: "community-development"
   fiscal_context: "2025-2026"
 
 
@@ -41,11 +41,11 @@ auth:
   audiences:
     citizen:
       method: saml
-      provider: "alberta-ca-account"
+      provider: "enterprise-sso"
       roles:
         - role_code: "applicant"
-          display_name: "Shelter Organization Applicant"
-          description: "Shelter staff who create and submit funding requests on behalf of their organization"
+          display_name: "Grant Organization Applicant"
+          description: "Organization staff who create and submit funding requests on behalf of their organization"
           permissions:
             - "funding-request:create"
             - "funding-request:read-own"
@@ -59,8 +59,8 @@ auth:
       method: oidc
       provider: "entra-id"
       roles:
-        - role_code: "cfs-analyst"
-          display_name: "CFS Funding Analyst"
+        - role_code: "grant-analyst"
+          display_name: "Division Funding Analyst"
           description: "Reviews and scores funding requests using filter analysis and community needs data"
           permissions:
             - "funding-request:read"
@@ -68,8 +68,8 @@ auth:
             - "assessment:finalize"
             - "community-data:read"
 
-        - role_code: "cfs-manager"
-          display_name: "CFS Program Manager"
+        - role_code: "grant-manager"
+          display_name: "Division Program Manager"
           description: "Reviews analyst assessments and makes preliminary funding decisions"
           permissions:
             - "funding-request:read"
@@ -79,17 +79,17 @@ auth:
             - "audit:read"
             - "community-data:read"
 
-        - role_code: "cfs-leadership"
-          display_name: "CFS Leadership"
+        - role_code: "division-leadership"
+          display_name: "Division Leadership"
           description: "Senior leadership who recommend or advance funding decisions"
           permissions:
             - "funding-request:read"
             - "assessment:read"
-            - "decision:write-ministerial"
+            - "decision:write-executive"
             - "audit:read"
 
-        - role_code: "minister-office"
-          display_name: "Minister's Office"
+        - role_code: "executive-office"
+          display_name: "Executive Office"
           description: "Final approval authority for funding requests"
           permissions:
             - "funding-request:read"
@@ -125,7 +125,7 @@ data_model:
   entities:
     # ── Organization ──────────────────────────────────────────────────────
     - name: "Organization"
-      description: "A women's shelter organization eligible to apply for provincial funding"
+      description: "A community development organization eligible to apply for regional funding"
       fields:
         - name: "organizationId"
           type: uuid
@@ -163,7 +163,7 @@ data_model:
           type: string
           required: true
           max_length: 100
-        - name: "orgAddrProvince"
+        - name: "orgAddrRegion"
           type: string
           required: true
           max_length: 50
@@ -185,7 +185,7 @@ data_model:
 
     # ── OrganizationContact ───────────────────────────────────────────────
     - name: "OrganizationContact"
-      description: "A named contact person for a shelter organization (legal representative or primary contact)"
+      description: "A named contact person for a community organization (legal representative or primary contact)"
       fields:
         - name: "contactId"
           type: uuid
@@ -228,7 +228,7 @@ data_model:
           type: string
           required: false
           max_length: 100
-        - name: "addrProvince"
+        - name: "addrRegion"
           type: string
           required: false
           max_length: 50
@@ -244,7 +244,7 @@ data_model:
 
     # ── FundingRequest ────────────────────────────────────────────────────
     - name: "FundingRequest"
-      description: "A funding application submitted by a shelter organization for a specific fiscal year"
+      description: "A funding application submitted by a community organization for a specific fiscal year"
       fields:
         - name: "requestId"
           type: uuid
@@ -407,7 +407,7 @@ data_model:
 
     # ── DecisionRecord ────────────────────────────────────────────────────
     - name: "DecisionRecord"
-      description: "A funding decision at a specific stage of the approval chain (preliminary, ministerial review, or final)"
+      description: "A funding decision at a specific stage of the approval chain (preliminary, executive review, or final)"
       fields:
         - name: "decisionId"
           type: uuid
@@ -425,7 +425,7 @@ data_model:
           required: true
           enum_values:
             - "preliminary"
-            - "ministerial_review"
+            - "executive_review"
             - "final"
         - name: "decisionOutcome"
           type: enum
@@ -469,7 +469,7 @@ data_model:
 
     # ── PortalUser ────────────────────────────────────────────────────────
     - name: "PortalUser"
-      description: "A user who accesses the portal, either a shelter applicant (citizen) or CFS staff member"
+      description: "A user who accesses the portal, either a grant applicant (citizen) or Division staff member"
       fields:
         - name: "userId"
           type: uuid
@@ -523,10 +523,10 @@ data_model:
           required: true
           enum_values:
             - "applicant"
-            - "cfs-analyst"
-            - "cfs-manager"
-            - "cfs-leadership"
-            - "minister-office"
+            - "grant-analyst"
+            - "grant-manager"
+            - "division-leadership"
+            - "executive-office"
             - "system-admin"
       unique_constraints:
         - fields: ["userId", "roleCode"]
@@ -648,7 +648,7 @@ data_model:
 
     # ── LocalGeographicArea ───────────────────────────────────────────────
     - name: "LocalGeographicArea"
-      description: "An Alberta local geographic area (LGA) with community needs data sourced from Infomart"
+      description: "A Cascadia local geographic area (LGA) with community needs data sourced from RegionData"
       fields:
         - name: "lgaCode"
           type: string
@@ -684,7 +684,7 @@ data_model:
 
     # ── Program ───────────────────────────────────────────────────────────
     - name: "Program"
-      description: "A shelter program within a funding request (e.g., emergency housing, counselling, outreach)"
+      description: "A community program within a funding request (e.g., emergency housing, counselling, outreach)"
       fields:
         - name: "programId"
           type: uuid
@@ -944,7 +944,7 @@ data_model:
           max_length: 30
           enum_values:
             - "preliminary"
-            - "ministerial_review"
+            - "executive_review"
             - "final"
         - name: "approvedAt"
           type: timestamp
@@ -987,12 +987,12 @@ data_model:
     - type: one-to-one
       from: "FundingRequest"
       to: "Assessment"
-      description: "Each funding request has at most one assessment record created by a CFS analyst"
+      description: "Each funding request has at most one assessment record created by a Division analyst"
 
     - type: one-to-many
       from: "FundingRequest"
       to: "DecisionRecord"
-      description: "A funding request may have multiple sequential decision records (preliminary, ministerial, final)"
+      description: "A funding request may have multiple sequential decision records (preliminary, executive, final)"
 
     - type: many-to-many
       from: "PortalUser"
@@ -1094,29 +1094,29 @@ business_rules:
           - "BR-005: Legal representative contact exists"
       - from: "submitted"
         to: ["under-review", "withdrawn"]
-        requires_role: ["cfs-analyst", "cfs-manager"]
+        requires_role: ["grant-analyst", "grant-manager"]
         conditions:
           - "Request has been assigned to an analyst"
       - from: "under-review"
         to: ["information-requested", "evaluated", "withdrawn"]
-        requires_role: ["cfs-analyst"]
+        requires_role: ["grant-analyst"]
         conditions:
           - "To evaluated: assessment must be finalized with composite score"
       - from: "information-requested"
         to: ["under-review", "withdrawn"]
-        requires_role: ["applicant", "cfs-analyst"]
+        requires_role: ["applicant", "grant-analyst"]
         conditions:
           - "Applicant has responded to the information request"
       - from: "evaluated"
         to: ["recommended", "withdrawn"]
-        requires_role: ["cfs-manager"]
+        requires_role: ["grant-manager"]
         conditions:
           - "Manager has reviewed the finalized assessment"
       - from: "recommended"
         to: ["approved", "denied"]
-        requires_role: ["cfs-leadership", "minister-office"]
+        requires_role: ["division-leadership", "executive-office"]
         conditions:
-          - "BR-011: Decision sequence respected (preliminary before ministerial before final)"
+          - "BR-011: Decision sequence respected (preliminary before executive before final)"
           - "BR-010: Approved amount does not exceed requested amount"
     terminal_states:
       - "approved"
@@ -1129,22 +1129,22 @@ business_rules:
       All API operations enforce role-based access. Citizens (applicant
       role) may only access their own organization's data. Staff roles are
       hierarchical: analysts can assess, managers can decide (preliminary),
-      leadership and minister-office can decide (final). System-admin
+      leadership and executive-office can decide (final). System-admin
       manages users and roles.
     type: authorization
     enforced_at: service
     entities: ["PortalUser", "UserRole"]
 
   - id: "BR-009"
-    name: "Funded Beds for Emergency Shelter Programs"
+    name: "Funded Beds for Emergency Housing Programs"
     description: >
-      Programs with programType = 'emergency-shelter' must specify a
+      Programs with programType = 'emergency-housing' must specify a
       fundedBeds value greater than zero.
     type: validation
     enforced_at: service
     entities: ["Program"]
-    condition: "programType = emergency-shelter"
-    message: "Funded beds count is required for emergency shelter programs"
+    condition: "programType = emergency-housing"
+    message: "Funded beds count is required for emergency housing programs"
 
   - id: "BR-010"
     name: "Approved Amount Ceiling"
@@ -1159,9 +1159,9 @@ business_rules:
     name: "Decision Sequence"
     description: >
       Decision types must follow a strict sequence: preliminary, then
-      ministerial_review, then final. A ministerial_review decision
+      executive_review, then final. An executive_review decision
       requires a prior preliminary decision. A final decision requires
-      a prior ministerial_review decision.
+      a prior executive_review decision.
     type: constraint
     enforced_at: service
     entities: ["DecisionRecord"]
@@ -1208,7 +1208,7 @@ business_rules:
     name: "Zero Substitution"
     description: >
       When an LGA indicator raw value is null (missing data), the
-      score value is substituted with zero during Infomart data
+      score value is substituted with zero during RegionData
       ingestion.
     type: computation
     enforced_at: service
@@ -1248,7 +1248,7 @@ api:
     # ── Organizations ─────────────────────────────────────────────────────
     - name: "organizations"
       entity: "Organization"
-      description: "Manage shelter organizations and their contacts"
+      description: "Manage community organizations and their contacts"
       operations:
         - id: "list-organizations"
           method: GET
@@ -1275,7 +1275,7 @@ api:
         - id: "create-organization"
           method: POST
           path: "/"
-          description: "Register a new shelter organization"
+          description: "Register a new community organization"
           audience: ["citizen"]
           auth: required
           required_roles: ["applicant"]
@@ -1292,7 +1292,7 @@ api:
                 - "websiteUrl"
                 - "orgAddrStreet"
                 - "orgAddrCity"
-                - "orgAddrProvince"
+                - "orgAddrRegion"
                 - "orgAddrPostalCode"
           response:
             type: single
@@ -1339,7 +1339,7 @@ api:
                 - "websiteUrl"
                 - "orgAddrStreet"
                 - "orgAddrCity"
-                - "orgAddrProvince"
+                - "orgAddrRegion"
                 - "orgAddrPostalCode"
           response:
             type: single
@@ -1368,7 +1368,7 @@ api:
                 - "contactPhone"
                 - "addrStreet"
                 - "addrCity"
-                - "addrProvince"
+                - "addrRegion"
                 - "addrPostalCode"
           response:
             type: empty
@@ -1522,7 +1522,7 @@ api:
           description: "Get the existing assessment or create a new draft assessment for the funding request"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst"]
+          required_roles: ["grant-analyst"]
           stack: internal
           response:
             type: single
@@ -1534,7 +1534,7 @@ api:
           description: "Get the assessment for a funding request"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst", "cfs-manager", "cfs-leadership"]
+          required_roles: ["grant-analyst", "grant-manager", "division-leadership"]
           stack: internal
           response:
             type: single
@@ -1546,7 +1546,7 @@ api:
           description: "Create or update a filter analysis response for the assessment"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst"]
+          required_roles: ["grant-analyst"]
           stack: internal
           request:
             body:
@@ -1573,7 +1573,7 @@ api:
           description: "Record dimension scores and compute the composite score per BR-014"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst"]
+          required_roles: ["grant-analyst"]
           stack: internal
           request:
             body:
@@ -1604,7 +1604,7 @@ api:
           description: "Lock the assessment and advance the funding request to evaluated status"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst"]
+          required_roles: ["grant-analyst"]
           stack: internal
           response:
             type: single
@@ -1625,7 +1625,7 @@ api:
           description: "List all decision records for a funding request"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-manager", "cfs-leadership", "minister-office"]
+          required_roles: ["grant-manager", "division-leadership", "executive-office"]
           stack: internal
           response:
             type: list
@@ -1634,17 +1634,17 @@ api:
         - id: "create-decision"
           method: POST
           path: "/"
-          description: "Record a funding decision (preliminary, ministerial, or final)"
+          description: "Record a funding decision (preliminary, executive, or final)"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-manager", "cfs-leadership", "minister-office"]
+          required_roles: ["grant-manager", "division-leadership", "executive-office"]
           stack: internal
           request:
             body:
               schema:
                 decisionType:
                   type: "string"
-                  description: "Decision stage: preliminary, ministerial_review, or final"
+                  description: "Decision stage: preliminary, executive_review, or final"
                 decisionOutcome:
                   type: "string"
                   description: "Outcome: approved, denied, deferred, or returned"
@@ -1671,7 +1671,7 @@ api:
           description: "Get the full approval chain with approver details for a funding request"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-manager", "cfs-leadership", "minister-office"]
+          required_roles: ["grant-manager", "division-leadership", "executive-office"]
           stack: internal
           response:
             type: list
@@ -1688,7 +1688,7 @@ api:
           description: "List local geographic areas with optional region and search filters"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst", "cfs-manager", "cfs-leadership"]
+          required_roles: ["grant-analyst", "grant-manager", "division-leadership"]
           stack: internal
           request:
             query:
@@ -1718,7 +1718,7 @@ api:
           description: "Get a single LGA by code"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst", "cfs-manager", "cfs-leadership"]
+          required_roles: ["grant-analyst", "grant-manager", "division-leadership"]
           stack: internal
           request:
             params:
@@ -1735,7 +1735,7 @@ api:
           description: "Get the composite community needs score for an LGA"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-analyst", "cfs-manager"]
+          required_roles: ["grant-analyst", "grant-manager"]
           stack: internal
           response:
             type: single
@@ -1810,7 +1810,7 @@ api:
           description: "List audit log entries with pagination"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-manager", "system-admin"]
+          required_roles: ["grant-manager", "system-admin"]
           stack: internal
           request:
             query:
@@ -1833,7 +1833,7 @@ api:
           description: "List audit entries for a specific entity"
           audience: ["staff"]
           auth: required
-          required_roles: ["cfs-manager", "system-admin"]
+          required_roles: ["grant-manager", "system-admin"]
           stack: internal
           request:
             params:
@@ -1855,16 +1855,16 @@ api:
       description: "Liveness/readiness probe for the API"
       auth: public
 
-    - id: "trigger-infomart-sync"
+    - id: "trigger-regiondata-sync"
       method: "POST"
-      path: "/api/v1/integration/infomart/sync"
-      description: "Manually trigger Infomart data ingestion (system-admin only)"
+      path: "/api/v1/integration/regiondata/sync"
+      description: "Manually trigger RegionData data ingestion (system-admin only)"
       auth: required
 
-    - id: "get-infomart-sync-status"
+    - id: "get-regiondata-sync-status"
       method: "GET"
-      path: "/api/v1/integration/infomart/status"
-      description: "Get the last Infomart data sync status and staleness"
+      path: "/api/v1/integration/regiondata/status"
+      description: "Get the last RegionData sync status and staleness"
       auth: required
 
 
@@ -1878,7 +1878,7 @@ ui:
     - id: "public-home"
       title: "Home"
       path: "/"
-      description: "Landing page introducing the Women's Shelter Funding Portal and guiding applicants to begin"
+      description: "Landing page introducing the Community Grant Portal and guiding applicants to begin"
       page_type: landing
       audience: "citizen"
       view_type: public
@@ -1892,7 +1892,7 @@ ui:
     - id: "public-login"
       title: "Sign In"
       path: "/login"
-      description: "SAML authentication entry point for shelter organization applicants via Alberta.ca Account"
+      description: "SAML authentication entry point for community organization applicants via Enterprise SSO"
       page_type: login
       audience: "citizen"
       view_type: public
@@ -1979,7 +1979,7 @@ ui:
           trigger: on-action
       nav_section: "none"
 
-    # ── Internal Web (CFS Staff) ──────────────────────────────────────────
+    # ── Internal Web (Division Staff) ─────────────────────────────────────
     - id: "internal-home"
       title: "Home"
       path: "/"
@@ -1997,7 +1997,7 @@ ui:
     - id: "internal-login"
       title: "Sign In"
       path: "/login"
-      description: "OIDC authentication entry point for CFS staff via Entra ID"
+      description: "OIDC authentication entry point for Division staff via Entra ID"
       page_type: login
       audience: "staff"
       view_type: public
@@ -2026,7 +2026,7 @@ ui:
       audience: "staff"
       view_type: private-authenticated
       requires_auth: true
-      required_roles: ["cfs-analyst", "cfs-manager", "cfs-leadership", "minister-office"]
+      required_roles: ["grant-analyst", "grant-manager", "division-leadership", "executive-office"]
       guest_only: false
       data_sources:
         - operation_id: "list-funding-requests"
@@ -2044,7 +2044,7 @@ ui:
       audience: "staff"
       view_type: private-authenticated
       requires_auth: true
-      required_roles: ["cfs-analyst", "cfs-manager", "cfs-leadership", "minister-office"]
+      required_roles: ["grant-analyst", "grant-manager", "division-leadership", "executive-office"]
       guest_only: false
       data_sources:
         - operation_id: "get-funding-request"
@@ -2070,12 +2070,12 @@ ui:
     - id: "internal-community-map"
       title: "Community Map"
       path: "/community-map"
-      description: "Interactive map of Alberta local geographic areas (LGAs) showing community needs indicators, composite scores, and existing community resources"
+      description: "Interactive map of Cascadia local geographic areas (LGAs) showing community needs indicators, composite scores, and existing community resources"
       page_type: dashboard
       audience: "staff"
       view_type: private-authenticated
       requires_auth: true
-      required_roles: ["cfs-analyst", "cfs-manager", "cfs-leadership"]
+      required_roles: ["grant-analyst", "grant-manager", "division-leadership"]
       guest_only: false
       data_sources:
         - operation_id: "list-lgas"
@@ -2158,24 +2158,24 @@ integrations:
     business_rules: ["BR-006"]
 
   - id: "INT-003"
-    name: "Infomart"
+    name: "RegionData"
     type: data-ingestion
     description: >
-      Periodic ingestion of community needs data from the Government of Alberta
-      Infomart API. Imports local geographic area definitions, needs indicator
-      values, and composite scores. Privacy suppression (BR-015) and zero
-      substitution (BR-016) are applied during ingestion.
+      Periodic ingestion of community needs data from the Cascadia Regional
+      Authority RegionData API. Imports local geographic area definitions,
+      needs indicator values, and composite scores. Privacy suppression
+      (BR-015) and zero substitution (BR-016) are applied during ingestion.
     required: false
     config_params:
-      - name: "infomart_api_base_url"
-        description: "Base URL of the Infomart REST API"
+      - name: "regiondata_api_base_url"
+        description: "Base URL of the RegionData REST API"
         sensitive: false
         required: true
-      - name: "infomart_api_key"
-        description: "API subscription key for Infomart"
+      - name: "regiondata_api_key"
+        description: "API subscription key for RegionData"
         sensitive: true
         required: true
-      - name: "infomart_sync_cron"
+      - name: "regiondata_sync_cron"
         description: "Cron schedule for automatic sync (default: daily at 2:00 AM)"
         sensitive: false
         required: false
@@ -2228,7 +2228,7 @@ notifications:
       trigger: "FundingRequest transitions to submitted"
       recipient: "applicant"
       channel: email
-      subject_template: "Women's Shelter Funding Application {{requestRef}} Received"
+      subject_template: "Community Grant Application {{requestRef}} Received"
       description: "Confirms receipt of the funding application to the applicant"
 
     - id: "application_under_review"
@@ -2261,14 +2261,14 @@ notifications:
 
     - id: "assessment_finalized"
       trigger: "Assessment status transitions to finalized"
-      recipient: "cfs-manager"
+      recipient: "grant-manager"
       channel: email
       subject_template: "Assessment Finalized — Application {{requestRef}}"
       description: "Alerts the manager that an assessment is ready for review"
 
     - id: "decision_recommended"
       trigger: "FundingRequest transitions to recommended"
-      recipient: "cfs-leadership"
+      recipient: "division-leadership"
       channel: email
       subject_template: "Application {{requestRef}} — Recommended for Decision"
       description: "Alerts leadership that a request has been recommended for final decision"
@@ -2316,22 +2316,22 @@ traceability:
   use_cases:
     - id: "UC-001"
       name: "Register Organization"
-      description: "Applicant creates a shelter organization profile with contacts"
+      description: "Applicant creates a community organization profile with contacts"
     - id: "UC-002"
       name: "Create Funding Request"
       description: "Applicant creates a new funding request in draft status"
     - id: "UC-003"
       name: "Submit Funding Request"
-      description: "Applicant submits a completed funding request for CFS review"
+      description: "Applicant submits a completed funding request for Division review"
     - id: "UC-004"
       name: "Assess Funding Request"
-      description: "CFS analyst evaluates the request using filter analysis and scores dimensions"
+      description: "Division analyst evaluates the request using filter analysis and scores dimensions"
     - id: "UC-005"
       name: "Record Funding Decision"
-      description: "CFS manager or leadership records a decision at the appropriate approval stage"
+      description: "Division manager or leadership records a decision at the appropriate approval stage"
     - id: "UC-006"
       name: "View Community Needs Map"
-      description: "CFS analyst or manager views LGA community needs indicators to inform assessment"
+      description: "Division analyst or manager views LGA community needs indicators to inform assessment"
     - id: "UC-007"
       name: "Manage Users and Roles"
       description: "System administrator assigns or revokes roles for staff and applicant users"

@@ -45,7 +45,7 @@ invariants:
     severity: "error"
 
   - id: "INV-005"
-    description: "No Tailwind CSS — GoA Design System only"
+    description: "No Tailwind CSS — design system components only"
     check:
       type: "grep-absent"
       pattern: "tailwindcss|@tailwind|tailwind\\.config"

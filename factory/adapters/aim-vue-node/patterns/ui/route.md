@@ -55,7 +55,7 @@ export default router;
 ```
 
 ## Example
-Concrete routes from the CFS Women's Shelter public portal:
+Concrete routes from a community grant portal:
 ```typescript
 const routes: RouteRecordRaw[] = [
   // Public (no auth)
@@ -79,7 +79,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/NotFoundView.vue'),
     meta: { title: 'Page Not Found', requiresAuth: false, guestOnly: false } },
 ];
-// Guards identical to template above. Base title: "Women's Shelter Funding Portal"
+// Guards identical to template above. Base title: "Community Grant Portal"
 ```
 
 ## Naming

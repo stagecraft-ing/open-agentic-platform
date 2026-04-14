@@ -3,12 +3,12 @@
 ```shell
   crates/target/release/factory-run \
       --adapter aim-vue-node \
-      --project ~/.factory-proof/cfs-womens-shelter \
-      --business-docs ~/.factory-proof/cfs-womens-shelter.build-spec.yaml \
+      --project ~/.factory-proof/example-project \
+      --business-docs ~/.factory-proof/example-project.build-spec.yaml \
       --factory-root factory \
-      --org goa-cfs \
+      --org example-org \
       --auto-approve \
-      --scaffold-source /Users/bart/Dev2/AIM-vue-node-template \
+      --scaffold-source ./upstream/aim-vue-node-template \
       --model opus \
       --extended-context \
       --thinking max \

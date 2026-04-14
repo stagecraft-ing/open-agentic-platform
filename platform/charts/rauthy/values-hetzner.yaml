@@ -23,12 +23,14 @@ trustedProxies:
   - "131.0.72.0/22"
 
 oidc:
-  issuer: "https://auth.stagecraft.ing/auth/v1/"
+  # TODO: Set to your Rauthy public OIDC base URL (e.g. https://auth.yourdomain.com/auth/v1/)
+  issuer: ""
 
 ingress:
   enabled: true
   className: nginx
-  host: auth.stagecraft.ing
+  # TODO: Set to your Rauthy public hostname (e.g. auth.yourdomain.com)
+  host: ""
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
@@ -37,4 +39,4 @@ persistence:
   size: 2Gi
 
 bootstrap:
-  adminEmail: "admin@stagecraft.ing"
+  adminEmail: ""  # Set to your admin email

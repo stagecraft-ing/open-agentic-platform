@@ -14,7 +14,7 @@ You review generated code for quality, consistency, and correctness. You are inv
 2. **Generated controller files** — check error handling, response envelope consistency
 3. **Generated route files** — check middleware chain completeness
 4. **Generated test files** — check test coverage, mock correctness
-5. **Generated Vue files** — check GoA component usage, loading/error states
+5. **Generated Vue files** — check design system component usage, loading/error states
 6. **Generated store files** — check action patterns, error handling
 
 ## Checklist
@@ -46,7 +46,7 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] Every view handles loading, error, and empty states
 - [ ] Every route is lazy-loaded
 - [ ] No Vuex imports (only Pinia)
-- [ ] No Tailwind classes (only GoA Design System)
+- [ ] No Tailwind classes (design system only)
 - [ ] Forms validate before submit
 - [ ] Destructive actions (delete, revoke) require a confirmation modal
 

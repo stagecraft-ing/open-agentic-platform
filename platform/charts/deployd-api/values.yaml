@@ -1,5 +1,6 @@
 image:
-  repository: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
+  # TODO: Set to your GHCR (or other registry) image path before deploying
+  repository: ghcr.io/your-org/open-agentic-platform/deployd-api
   tag: dev
 
 imagePullSecrets: []

@@ -5,7 +5,7 @@
       "name": "Register Organization",
       "actor": "applicant",
       "preconditions": [
-        "User is authenticated via Alberta.ca Account (SAML)",
+        "User is authenticated via Enterprise SSO (SAML)",
         "User has the applicant role"
       ],
       "main_flow": [
@@ -92,9 +92,9 @@
     {
       "id": "UC-004",
       "name": "Assess Funding Request",
-      "actor": "cfs-analyst",
+      "actor": "grant-analyst",
       "preconditions": [
-        "User is authenticated via Entra ID (OIDC) and has the cfs-analyst role",
+        "User is authenticated via Entra ID (OIDC) and has the grant-analyst role",
         "FundingRequest is in under-review status",
         "An Assessment record exists (or is created on first access) for the funding request"
       ],
@@ -112,13 +112,13 @@
         "System locks the Assessment record (status = finalized)",
         "System transitions the FundingRequest status from under-review to evaluated per BR-007",
         "System logs audit entries for the assessment and status change",
-        "System sends a notification to the CFS manager that the assessment is ready for review"
+        "System sends a notification to the Division manager that the assessment is ready for review"
       ],
       "postconditions": [
         "Assessment status is finalized with a computed compositeScore",
         "FundingRequest status is evaluated",
         "Audit entries recorded for the assess and status-change actions",
-        "CFS manager is notified via email"
+        "Division manager is notified via email"
       ],
       "related_entities": ["Assessment", "FundingRequest", "PortalUser", "AuditEntry"],
       "business_rules": ["BR-007", "BR-012", "BR-014"]
@@ -126,9 +126,9 @@
     {
       "id": "UC-005",
       "name": "Record Funding Decision",
-      "actor": "cfs-manager",
+      "actor": "grant-manager",
       "preconditions": [
-        "User is authenticated via Entra ID (OIDC) and has cfs-manager, cfs-leadership, or minister-office role",
+        "User is authenticated via Entra ID (OIDC) and has grant-manager, division-leadership, or executive-office role",
         "FundingRequest is in evaluated or recommended status",
         "A finalized Assessment exists for the funding request"
       ],
@@ -136,8 +136,8 @@
         "Decision-maker opens the Application Detail page for an evaluated or recommended funding request",
         "System loads the funding request, finalized assessment, and any prior decision records",
         "System displays the approval chain showing which decision stages are complete",
-        "Decision-maker selects the decision type (preliminary, ministerial_review, or final) based on the next required stage",
-        "System validates the decision sequence: preliminary must come before ministerial_review, which must come before final (BR-011)",
+        "Decision-maker selects the decision type (preliminary, executive_review, or final) based on the next required stage",
+        "System validates the decision sequence: preliminary must come before executive_review, which must come before final (BR-011)",
         "Decision-maker selects an outcome (approved, denied, deferred, or returned)",
         "If approved, decision-maker enters the approved amount",
         "System validates that the approved amount does not exceed the requested funding amount (BR-010)",
@@ -162,15 +162,15 @@
     {
       "id": "UC-006",
       "name": "View Community Needs Map",
-      "actor": "cfs-analyst",
+      "actor": "grant-analyst",
       "preconditions": [
-        "User is authenticated via Entra ID (OIDC) and has cfs-analyst, cfs-manager, or cfs-leadership role",
-        "Community needs data has been ingested from Infomart"
+        "User is authenticated via Entra ID (OIDC) and has grant-analyst, grant-manager, or division-leadership role",
+        "Community needs data has been ingested from RegionData"
       ],
       "main_flow": [
         "Staff member navigates to the Community Map page",
         "System loads the list of local geographic areas (LGAs) with metadata",
-        "System displays an interactive map of Alberta LGAs",
+        "System displays an interactive map of Cascadia LGAs",
         "Staff member selects an LGA on the map or searches by name/region",
         "System loads the composite community needs score for the selected LGA",
         "System displays indicator values with privacy suppression applied for small populations (BR-015)",
@@ -197,7 +197,7 @@
         "Administrator searches or filters users by role or active status",
         "Administrator selects a user to manage",
         "Administrator assigns a new role to the user by selecting from the available role codes",
-        "System validates that the role assignment is consistent with the audience (applicant for citizen users, staff roles for CFS users)",
+        "System validates that the role assignment is consistent with the audience (applicant for citizen users, staff roles for Division users)",
         "System creates or updates the UserRole record",
         "System logs an audit entry for the role change"
       ],

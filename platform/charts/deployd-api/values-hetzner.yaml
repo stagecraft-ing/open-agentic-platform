@@ -1,5 +1,6 @@
 image:
-  repository: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
+  # TODO: Set to your GHCR (or other registry) image path
+  repository: ghcr.io/your-org/open-agentic-platform/deployd-api
   tag: latest
 
 imagePullSecrets:
@@ -8,7 +9,8 @@ imagePullSecrets:
 ingress:
   enabled: true
   className: nginx
-  host: deploy.stagecraft.ing
+  # TODO: Set to your deployd-api public hostname (e.g. deploy.yourdomain.com)
+  host: ""
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
 
@@ -17,7 +19,9 @@ secrets:
   create: false
 
 oidc:
-  endpoint: "https://auth.stagecraft.ing"
-  audience: "https://deploy.stagecraft.ing"
+  # TODO: Set to your Rauthy public base URL (e.g. https://auth.yourdomain.com)
+  endpoint: ""
+  # TODO: Set to your deployd-api public URL (e.g. https://deploy.yourdomain.com)
+  audience: ""
 
 requiredScope: "deployd:deploy"

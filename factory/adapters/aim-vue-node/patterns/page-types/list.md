@@ -2,8 +2,8 @@
 
 ## Convention
 
-A filterable, paginated table view using GoA Design System components.
-Based on the staff request queue (DashboardView) pattern from cfs portal.
+A filterable, paginated table view using design system components.
+Based on a staff request queue (DashboardView) pattern from a government portal.
 
 ## Template
 
@@ -87,10 +87,12 @@ function clearFilters() {
 function changePage(p: number) { store.fetchList({ ...filters.value, page: p }); }
 
 function formatCurrency(v: number) {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(v);
+  // Use locale and currency from the build-spec; 'en-US' / 'USD' are neutral defaults
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 }
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-CA');
+  // Use locale from the build-spec; 'en-US' is a neutral default
+  return new Date(d).toLocaleDateString('en-US');
 }
 function statusBadge(s: string) {
   const map: Record<string, string> = {
@@ -111,6 +113,6 @@ onMounted(() => store.fetchList({ page: 1 }));
 3. Filter bar uses `goa-dropdown` and `goa-form-item`, not raw selects.
 4. Pagination is Previous/Next buttons with page X of Y display.
 5. Format helpers for currency (`Intl.NumberFormat`), dates, and status badges.
-6. GoA events use `@_click` / `@_change` (underscore prefix).
+6. Design system events use `@_click` / `@_change` (underscore prefix).
 7. Table actions use `type="tertiary" size="compact"` buttons.
 8. Fetch initial data in `onMounted`, not in the store constructor.

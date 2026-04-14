@@ -1,7 +1,7 @@
 # View (Vue SFC)
 
 ## Convention
-Every page is a Vue 3 SFC using `<script setup lang="ts">`. Views import GoA Design System components, use Pinia stores for shared state, and handle loading/error/empty states explicitly.
+Every page is a Vue 3 SFC using `<script setup lang="ts">`. Views import design system components, use Pinia stores for shared state, and handle loading/error/empty states explicitly.
 
 ## Template
 ```vue
@@ -93,7 +93,7 @@ const pendingCount = computed(() =>
 
 ## Rules
 1. Always `<script setup lang="ts">` -- never Options API, never `defineComponent()`
-2. Import GoA components from `@abgov/vue-components` -- never raw HTML for buttons, tables, callouts
+2. Import design system components from `@abgov/vue-components` -- never raw HTML for buttons, tables, callouts
 3. Handle all three states in template: loading, error, content (with empty sub-state)
 4. Use `v-if` / `v-else-if` / `v-else` chain -- never nested `v-if`
 5. Keep business logic in stores -- views call store actions and read store state

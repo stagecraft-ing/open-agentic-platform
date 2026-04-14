@@ -22,7 +22,7 @@ code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
 
 The Factory pipeline currently produces schema-only DDL migrations. No seed data, no development fixtures, and no shared test fixture module are generated. This creates three concrete problems:
 
-1. **Lookup tables are empty.** Entities of enum/lookup nature (e.g., `LocalGeographicArea` with 96 Alberta regions) have no INSERT statements, so the application starts with empty dropdowns and broken filters.
+1. **Lookup tables are empty.** Entities of enum/lookup nature (e.g., `LocalGeographicArea` with 96 service regions) have no INSERT statements, so the application starts with empty dropdowns and broken filters.
 2. **Integration tests have no data.** `docs/TESTING.md` recommends integration tests against a real PostgreSQL instance, but no fixture mechanism exists to populate the test database.
 3. **Unit test data is scattered.** Each `*.service.test.ts` file defines its own inline `const sample*` objects. There is no shared fixture module, leading to duplication and drift between test files.
 
@@ -77,7 +77,7 @@ When `hydration.type` is not explicitly set, the data-scaffolder agent MUST infe
 **FR-003: Seed data derivation for reference entities**
 For `reference` type entities, the agent MUST derive seed values from:
 1. `enum_values` on enum-typed fields (e.g., `lga_type: enum [urban, rural, mixed]` → 3 seed rows)
-2. Business document context when `enum_values` alone are insufficient (e.g., 96 Alberta LGA names are domain knowledge, not derivable from field constraints alone)
+2. Business document context when `enum_values` alone are insufficient (e.g., 96 regional LGA names are domain knowledge, not derivable from field constraints alone)
 3. A minimum of 3 representative rows when neither source provides values
 
 #### Seed Data Generation
@@ -335,7 +335,7 @@ directory_conventions:
 
 ### Phase 4: Validation (~1 day)
 
-12. Run factory pipeline against CFS Women's Shelter Build Spec
+12. Run factory pipeline against Community Grant Portal Build Spec
 13. Verify seed SQL executes, fixtures load, tests pass with fixture module
 14. Verify `PF-006` (pattern file exists) passes for new `seed.md`
 

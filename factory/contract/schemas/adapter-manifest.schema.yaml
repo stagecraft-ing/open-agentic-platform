@@ -24,7 +24,7 @@ schema_version: "1.0.0"
 # ─────────────────────────────────────────────────────────────────────────────
 adapter:
   name: string                      # Machine-safe identifier (e.g., "aim-vue-node")
-  display_name: string              # Human-readable (e.g., "AIM Vue+Node GoA Template")
+  display_name: string              # Human-readable (e.g., "AIM Vue+Node Enterprise Template")
   version: string                   # SemVer (e.g., "3.0.0")
   description: string               # What this adapter builds
 

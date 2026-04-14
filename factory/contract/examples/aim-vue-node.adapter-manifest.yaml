@@ -1,5 +1,5 @@
 # ============================================================================
-# Adapter Manifest: AIM Vue+Node GoA Template
+# Adapter Manifest: AIM Vue+Node Enterprise Template
 # ============================================================================
 # This is a concrete example of what the first adapter (the current
 # AIM-vue-node-template) would declare about itself.
@@ -9,9 +9,9 @@ schema_version: "1.0.0"
 
 adapter:
   name: "aim-vue-node"
-  display_name: "AIM Vue+Node GoA Enterprise Template"
+  display_name: "AIM Vue+Node Enterprise Template"
   version: "3.0.0"
-  description: "Alberta Government enterprise application template with Vue 3 frontend, Express 5 BFF backend, multi-driver authentication, and GoA Design System integration."
+  description: "Government enterprise application template with Vue 3 frontend, Express 5 BFF backend, multi-driver authentication, and design system integration."
 
 stack:
   language: "typescript"
@@ -25,7 +25,7 @@ stack:
     framework: "vue-3"
     state_management: "pinia"
     design_system: "goa-web-components"
-    description: "Vue 3 Composition API with <script setup>. GoA Design System (@abgov/web-components). Pinia for shared state. Vue Router 4 with lazy-loaded views."
+    description: "Vue 3 Composition API with <script setup>. Design system (@abgov/web-components). Pinia for shared state. Vue Router 4 with lazy-loaded views."
 
   database:
     supported: ["postgresql"]
@@ -52,7 +52,7 @@ capabilities:
 supported_auth:
   - method: "saml"
     driver: "passport-saml"
-    providers: ["alberta-ca-account"]
+    providers: ["gov-citizen-account"]
     description: "SAML 2.0 via @node-saml/passport-saml for citizen-facing apps"
   - method: "oidc"
     driver: "openid-client"
@@ -144,7 +144,7 @@ agents:
 
 scaffold:
   source: "scaffold/"
-  description: "Monorepo with apps/ (api, web) and packages/ (shared, config, auth). Module system for pluggable auth drivers and session stores. GoA Design System pre-installed."
+  description: "Monorepo with apps/ (api, web) and packages/ (shared, config, auth). Module system for pluggable auth drivers and session stores. Design system pre-installed."
   modules:
     single-public:
       - "security-core"
@@ -203,7 +203,7 @@ validation:
       severity: "error"
 
     - id: "INV-004"
-      description: "No Tailwind CSS — GoA Design System only"
+      description: "No Tailwind CSS — design system components only"
       check:
         type: "grep-absent"
         pattern: "tailwindcss|@tailwind"

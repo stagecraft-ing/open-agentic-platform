@@ -43,7 +43,7 @@ Populate the `ui` and remaining sections (integrations, notifications, audit, tr
 
 - Do not choose components, frameworks, or design systems. The adapter does that.
 - Do not specify layouts, CSS, or responsive behavior. The adapter handles that via its page-type patterns.
-- Page types are abstract categories. "form" means "a page where users input data" — not "a Vue SFC with GoA form components."
+- Page types are abstract categories. "form" means "a page where users input data" — not "a Vue SFC with design system form components."
 
 ## Gate
 

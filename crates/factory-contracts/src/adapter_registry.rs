@@ -442,7 +442,7 @@ mod tests {
     #[test]
     fn test_capabilities_match_real_example() {
         let factory_root = std::path::Path::new("../../factory");
-        let spec_path = factory_root.join("contract/examples/cfs-womens-shelter.build-spec.yaml");
+        let spec_path = factory_root.join("contract/examples/community-grant-portal.build-spec.yaml");
         if !spec_path.exists() {
             return;
         }
@@ -451,7 +451,7 @@ mod tests {
         let spec =
             crate::validation::validate_build_spec(&spec_path).expect("Failed to parse build spec");
 
-        // aim-vue-node should be compatible with CFS (dual, saml+oidc)
+        // aim-vue-node should be compatible with community-grant-portal (dual, saml+oidc)
         let report = registry.capabilities_match("aim-vue-node", &spec);
         assert!(
             report.compatible,

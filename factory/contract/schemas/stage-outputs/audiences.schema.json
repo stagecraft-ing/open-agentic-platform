@@ -35,7 +35,7 @@
         },
         "auth_provider": {
           "type": "string",
-          "description": "Identity provider name (e.g. \"alberta-ca-account\", \"entra-id\")."
+          "description": "Identity provider name (e.g. \"gov-citizen-account\", \"entra-id\")."
         },
         "roles": {
           "type": "array",
@@ -52,7 +52,7 @@
         "role_code": {
           "type": "string",
           "minLength": 1,
-          "description": "Machine-safe role identifier (e.g. \"cfs-analyst\")."
+          "description": "Machine-safe role identifier (e.g. \"grant-analyst\")."
         },
         "display_name": {
           "type": "string",

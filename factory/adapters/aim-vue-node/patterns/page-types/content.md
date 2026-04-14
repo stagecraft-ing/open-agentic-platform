@@ -1,7 +1,7 @@
 # Content Page Pattern
 
 ## Convention
-Static content pages (About, Help, FAQ) display informational text with no data fetching. Minimal logic, mostly template markup with GoA typography and layout components.
+Static content pages (About, Help, FAQ) display informational text with no data fetching. Minimal logic, mostly template markup with design system typography and layout components.
 
 ## Template
 ```vue

@@ -55,7 +55,7 @@ kubectl wait --for=condition=Available deployment/cert-manager-webhook \
 
 # --- ClusterIssuer ---
 info "Creating Let's Encrypt ClusterIssuer..."
-LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@stagecraft.ing}"
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@example.com}"
 cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer

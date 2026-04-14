@@ -71,7 +71,7 @@ For each mapped change, dispatch an Agent to analyze it:
 
 3. Read the mapping's `notes` field for translation guidance.
 
-4. Classify the change as: **bug-fix**, **enhancement**, **refactor**, or **goa-specific**.
+4. Classify the change as: **bug-fix**, **enhancement**, **refactor**, or **upstream-specific**.
 
 5. For `diffable` relationships: produce a proposed edit (old_string → new_string) for each OAP target.
 
@@ -84,7 +84,7 @@ For each mapped change, dispatch an Agent to analyze it:
 After all agents complete, update `.factory/sync-report.md` with the analysis results and a recommended action for each change:
 - **APPLY** — clear translation, propose specific edits
 - **REVIEW** — restructured mapping, human judgment needed
-- **SKIP** — GoA-specific or no OAP impact
+- **SKIP** — upstream-specific or no OAP impact
 - **MANIFEST-UPDATE** — unmapped file that should be added to the manifest
 
 ## Phase 3: Apply Changes
@@ -131,7 +131,7 @@ After user approval of the applied changes:
    - Upstream: {name}
    - Commit range: {old_sha}..{new_sha} ({count} commits)
    - Changes applied: {N}
-   - Changes skipped: {M} (GoA-specific or rejected)
+   - Changes skipped: {M} (upstream-specific or rejected)
    - Unmapped files: {K} (manifest update recommended)
    - Files modified: {list}
    ```
@@ -143,6 +143,6 @@ After user approval of the applied changes:
 1. **Never modify upstream repos.** This command is read-only with respect to the_factory and AIM-vue-node-template.
 2. **Never skip checkpoints.** Both checkpoint gates (before apply, before SHA update) require explicit user approval.
 3. **Preserve OAP architecture.** Upstream changes to monolithic skill files must be decomposed into the correct OAP layers (process, contract, adapter). Never copy upstream content verbatim into OAP.
-4. **Strip GoA content.** Government of Alberta-specific references (ministry names, Entra ID specifics, Protected B, ASVS chapters) must not appear in OAP files. Translate the underlying pattern, not the GoA implementation.
+4. **Strip client-specific content.** Upstream-specific references (ministry names, IdP vendor specifics, protected-level classifications, ASVS chapters) must not appear in OAP files. Translate the underlying pattern, not the upstream implementation.
 5. **Idempotent.** Running this command twice with no new upstream commits should produce no changes.
 6. **One upstream at a time when $ARGUMENTS is provided.** If the user specifies an upstream name, only sync that one.

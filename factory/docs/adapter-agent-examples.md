@@ -85,7 +85,7 @@ Up to four files per page:
 ## Rules
 
 1. Read the page-type pattern FIRST — it defines the component structure for this page type
-2. Use GoA Design System components (@abgov/web-components) — not generic HTML
+2. Use design system components (@abgov/web-components) — not generic HTML
 3. All views must be lazy-loaded in the router: `() => import('../views/...')`
 4. Use <script setup lang="ts"> — never Options API
 5. Use Pinia store only if state is shared across views. Local state stays in the component.

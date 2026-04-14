@@ -1,6 +1,6 @@
 # Page Type: Help / FAQ
 
-An authenticated help page with collapsible FAQ sections using GoA accordion
+An authenticated help page with collapsible FAQ sections using design system accordion
 components. Static content or loaded once from a configuration source.
 
 ## Convention
@@ -34,7 +34,7 @@ const sections = [
   <goa-container>
     <h1>Help & FAQ</h1>
     <goa-callout type="information">
-      For urgent issues, contact support at support@example.gov.ab.ca
+      For urgent issues, contact support at support@example.gov
     </goa-callout>
 
     <section v-for="section in sections" :key="section.heading">

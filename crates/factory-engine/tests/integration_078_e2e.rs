@@ -22,7 +22,7 @@ fn factory_root() -> PathBuf {
 
 /// Resolve a build-spec example path.
 fn build_spec_example() -> PathBuf {
-    factory_root().join("contract/examples/cfs-womens-shelter.build-spec.yaml")
+    factory_root().join("contract/examples/community-grant-portal.build-spec.yaml")
 }
 
 /// Pre-populate all output artifacts for a manifest's steps so dispatch_manifest_noop succeeds.
@@ -59,7 +59,7 @@ fn noop_e2e_phase1_generates_six_process_stages() {
 
     let engine = FactoryEngine::new(config).expect("engine should initialize");
 
-    // Use the cfs-womens-shelter example business doc path as input.
+    // Use the community-grant-portal example business doc path as input.
     let biz_doc = build_spec_example();
     let result = engine
         .start_pipeline("aim-vue-node", &[biz_doc], None)
