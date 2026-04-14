@@ -23,13 +23,13 @@ trustedProxies:
   - "131.0.72.0/22"
 
 oidc:
-  # TODO: Set to your Rauthy public OIDC base URL (e.g. https://auth.yourdomain.com/auth/v1/)
+  # Injected by setup.sh via --set from $DOMAIN
   issuer: ""
 
 ingress:
   enabled: true
   className: nginx
-  # TODO: Set to your Rauthy public hostname (e.g. auth.yourdomain.com)
+  # Injected by setup.sh via --set from $DOMAIN
   host: ""
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -39,4 +39,4 @@ persistence:
   size: 2Gi
 
 bootstrap:
-  adminEmail: ""  # Set to your admin email
+  adminEmail: ""  # Injected by setup.sh via --set from $DOMAIN

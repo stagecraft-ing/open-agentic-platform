@@ -9,7 +9,7 @@ imagePullSecrets:
 ingress:
   enabled: true
   className: nginx
-  # TODO: Set to your deployd-api public hostname (e.g. deploy.yourdomain.com)
+  # Injected by setup.sh via --set from $DOMAIN
   host: ""
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -19,9 +19,9 @@ secrets:
   create: false
 
 oidc:
-  # TODO: Set to your Rauthy public base URL (e.g. https://auth.yourdomain.com)
+  # Injected by setup.sh via --set from $DOMAIN
   endpoint: ""
-  # TODO: Set to your deployd-api public URL (e.g. https://deploy.yourdomain.com)
+  # Injected by setup.sh via --set from $DOMAIN
   audience: ""
 
 requiredScope: "deployd:deploy"

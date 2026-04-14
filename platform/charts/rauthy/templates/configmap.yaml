@@ -7,7 +7,10 @@ metadata:
 data:
   config.toml: |
     # Minimal config — most settings provided via environment variables.
-    # Rauthy >= 0.35.0 requires this file to exist.
+    # Rauthy >= 0.35.0 requires this file to exist and include [server].
+
+    [server]
+    pub_url = {{ include "rauthy.pubUrl" . | quote }}
 
     {{- range .Values.upstreamProviders }}
     [[upstream_auth_provider]]

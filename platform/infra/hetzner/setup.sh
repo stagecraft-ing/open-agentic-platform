@@ -190,6 +190,9 @@ helm upgrade --install rauthy "$CHARTS_ROOT/rauthy" \
   --namespace rauthy-system \
   -f "$CHARTS_ROOT/rauthy/values.yaml" \
   -f "$CHARTS_ROOT/rauthy/values-hetzner.yaml" \
+  --set "ingress.host=auth.${DOMAIN}" \
+  --set "oidc.issuer=https://auth.${DOMAIN}/auth/v1/" \
+  --set "bootstrap.adminEmail=admin@${DOMAIN}" \
   --wait --timeout 300s
 
 # ---------------------------------------------------------------------------
@@ -317,6 +320,9 @@ helm upgrade --install stagecraft "$CHARTS_ROOT/stagecraft" \
   --namespace stagecraft-system \
   -f "$CHARTS_ROOT/stagecraft/values.yaml" \
   -f "$CHARTS_ROOT/stagecraft/values-hetzner.yaml" \
+  --set "ingress.host=${DOMAIN}" \
+  --set "oidc.endpoint=https://auth.${DOMAIN}" \
+  --set "oidc.deploydAudience=https://deploy.${DOMAIN}" \
   --wait --timeout 600s
 
 info "Deploying Deployd-API..."
@@ -324,6 +330,9 @@ helm upgrade --install deployd-api "$CHARTS_ROOT/deployd-api" \
   --namespace deployd-system \
   -f "$CHARTS_ROOT/deployd-api/values.yaml" \
   -f "$CHARTS_ROOT/deployd-api/values-hetzner.yaml" \
+  --set "ingress.host=deploy.${DOMAIN}" \
+  --set "oidc.endpoint=https://auth.${DOMAIN}" \
+  --set "oidc.audience=https://deploy.${DOMAIN}" \
   --wait --timeout 300s
 
 # ---------------------------------------------------------------------------
