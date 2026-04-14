@@ -54,3 +54,15 @@ jobs:
 
       - name: spec-lint tests
         run: cargo test --manifest-path tools/spec-lint/Cargo.toml
+
+      - name: Build codebase-indexer (Feature 101)
+        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+
+      - name: Emit codebase index (smoke)
+        run: ./tools/codebase-indexer/target/release/codebase-indexer compile
+
+      - name: Codebase index tests
+        run: cargo test --manifest-path tools/codebase-indexer/Cargo.toml
+
+      - name: Codebase index staleness check
+        run: ./tools/codebase-indexer/target/release/codebase-indexer check

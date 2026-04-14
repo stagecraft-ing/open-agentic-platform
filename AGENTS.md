@@ -10,6 +10,7 @@ Run `/init` as the mandatory first action of every new session. The command read
 1. **Parallel reads** (dispatch simultaneously):
    - `CLAUDE.md` — project overview and conventions
    - `README.md` — full project description
+   - `build/codebase-index/index.json` — structural context (crate/package/spec inventory)
    - `git log --oneline -10` — recent history
    - `git diff --stat HEAD~1` — last change summary
 2. **Emit** `## initialized: open-agentic-platform` summary block (layer overview, recent activity, ready to help with)

@@ -26,6 +26,9 @@ Dispatch all of the following simultaneously (batch them in a single response). 
 - `.specify/contract.md` -- constitutional contract summary
 - `ls specs/` -- list all feature spec directories (do not read each spec)
 
+**Structural index:**
+- `build/codebase-index/index.json` -- compiled structural inventory (if exists)
+
 **Build and tool state:**
 - `ls tools/` -- available toolchain
 - `ls apps/` -- application targets
@@ -52,6 +55,9 @@ After all reads complete, emit a structured summary block in exactly this format
 **Branch:** <current branch>
 **Uncommitted:** <yes/no + short summary if yes>
 
+**Structural index:** {loaded/not found}
+  - {N} Rust crates, {M} npm packages
+  - {K} specs traced, {O} orphaned specs, {U} untraced paths
 **Spec spine:** <N> feature specs (latest: <most recent spec dir name>)
 **Tools:** <list from tools/>
 **Apps:** <list from apps/>

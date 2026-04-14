@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-agentic-platform.local/schemas/codebase-index.schema.json",
+  "title": "Open Agentic Platform — compiled codebase index (spec 101)",
+  "description": "Four-layer structural inventory: crate/package inventory, spec-to-code traceability, factory adapter coverage, tool/infrastructure catalog.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "build", "inventory", "traceability", "factory", "infrastructure", "diagnostics"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version. Bump on breaking changes."
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indexerId", "indexerVersion", "repoRoot", "contentHash"],
+      "properties": {
+        "indexerId": {
+          "type": "string",
+          "const": "codebase-indexer"
+        },
+        "indexerVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "repoRoot": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute or repository-relative root used for indexing."
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the deterministic input state. Used for staleness checks."
+        }
+      }
+    },
+    "inventory": {
+      "description": "Layer 1: Crate and package inventory.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/packageRecord" }
+    },
+    "traceability": {
+      "description": "Layer 2: Spec-to-code traceability.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mappings", "orphanedSpecs", "untracedCode"],
+      "properties": {
+        "mappings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/traceMapping" }
+        },
+        "orphanedSpecs": {
+          "description": "Spec IDs with no implementing code.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "untracedCode": {
+          "description": "Package paths with no governing spec.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "factory": {
+      "description": "Layer 3: Factory adapter inventory.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/adapterRecord" }
+    },
+    "infrastructure": {
+      "description": "Layer 4: Tool and infrastructure inventory.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tools", "agents", "commands", "rules", "schemas"],
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/toolEntry" }
+        },
+        "agents": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/namedEntry" }
+        },
+        "commands": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/namedEntry" }
+        },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/namedEntry" }
+        },
+        "schemas": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/namedEntry" }
+        }
+      }
+    },
+    "diagnostics": {
+      "description": "Indexer warnings and errors.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warnings", "errors"],
+      "properties": {
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "packageRecord": {
+      "description": "A Rust crate or npm package.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path", "kind"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical package name from manifest."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative directory path."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["rust-lib", "rust-bin", "rust-lib-bin", "npm-package", "npm-workspace"],
+          "description": "Package classification."
+        },
+        "version": {
+          "type": "string",
+          "description": "Declared version string."
+        },
+        "edition": {
+          "type": "string",
+          "description": "Rust edition (2021, 2024, etc). Null for npm packages."
+        },
+        "entryPoints": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Primary entry files (src/lib.rs, src/main.rs, index.ts, etc)."
+        },
+        "internalDeps": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Names of other packages in this repo that this package depends on."
+        },
+        "externalDeps": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Names of external dependencies."
+        },
+        "specRef": {
+          "type": "string",
+          "description": "Spec ID from [package.metadata.oap].spec or package.json oap.spec."
+        }
+      }
+    },
+    "traceMapping": {
+      "description": "A single spec-to-code mapping.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specId", "implementingPaths"],
+      "properties": {
+        "specId": {
+          "type": "string",
+          "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Spec ID from frontmatter."
+        },
+        "specStatus": {
+          "type": "string",
+          "enum": ["draft", "approved", "active", "superseded", "retired"],
+          "description": "Current spec lifecycle status."
+        },
+        "implementingPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Repo-relative path to implementing crate/package."
+              },
+              "name": {
+                "type": "string",
+                "description": "Crate or package name."
+              },
+              "source": {
+                "type": "string",
+                "enum": ["spec-implements", "cargo-metadata", "both"],
+                "description": "How the mapping was discovered."
+              }
+            }
+          },
+          "description": "Code locations implementing this spec."
+        }
+      }
+    },
+    "adapterRecord": {
+      "description": "A factory adapter.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative path."
+        },
+        "targetStack": {
+          "type": "string",
+          "description": "Technology stack this adapter targets (e.g. aim-vue-node, next-prisma)."
+        },
+        "phaseCoverage": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]{2}-[a-z][a-z0-9-]*$"
+          },
+          "description": "Global pipeline stages from factory/process/stages/ (e.g. 00-pre-flight, 06-adapter-handoff)."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name from adapter manifest display_name."
+        },
+        "version": {
+          "type": "string",
+          "description": "Adapter version from manifest."
+        },
+        "stackLanguage": {
+          "type": "string",
+          "description": "Primary language from manifest stack.language (e.g. typescript, rust)."
+        },
+        "stackRuntime": {
+          "type": "string",
+          "description": "Runtime from manifest stack.runtime (e.g. node-22, tokio)."
+        }
+      }
+    },
+    "toolEntry": {
+      "description": "A CLI tool in tools/.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binaries": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Binary target names from Cargo.toml."
+        }
+      }
+    },
+    "namedEntry": {
+      "description": "A named filesystem entry with path.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description extracted from frontmatter or file header."
+        }
+      }
+    },
+    "diagnostic": {
+      "description": "An indexer diagnostic message.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^I-[0-9]{3}$",
+          "description": "Diagnostic code. I-0xx = info, I-1xx = traceability, I-2xx = structural."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "Repo-relative path related to the diagnostic."
+        }
+      }
+    }
+  }
+}

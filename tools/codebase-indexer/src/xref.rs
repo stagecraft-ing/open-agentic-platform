@@ -1,0 +1,123 @@
+//! Cross-reference engine (Layer 2 traceability).
+
+use crate::spec_scanner::SpecRecord;
+use crate::types::{
+    Diagnostic, ImplementingPath, PackageRecord, TraceMapping, TraceSource, Traceability,
+};
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Build the traceability layer from spec records and package inventory.
+pub fn build_traceability(
+    specs: &[SpecRecord],
+    packages: &[PackageRecord],
+) -> (Traceability, Vec<Diagnostic>) {
+    let mut diagnostics = Vec::new();
+    let package_paths: BTreeSet<String> = packages.iter().map(|p| p.path.clone()).collect();
+
+    // Forward mapping: spec → code (from spec `implements` field)
+    let mut mappings: BTreeMap<String, TraceMapping> = BTreeMap::new();
+
+    for spec in specs {
+        for imp in &spec.implements {
+            // Validate the path exists
+            if !package_paths.contains(&imp.path) {
+                diagnostics.push(Diagnostic {
+                    code: "I-101".into(),
+                    message: format!(
+                        "spec {:?} declares implements path {:?} which is not a known package",
+                        spec.id, imp.path
+                    ),
+                    path: None,
+                });
+            }
+
+            let entry = mappings.entry(spec.id.clone()).or_insert_with(|| TraceMapping {
+                spec_id: spec.id.clone(),
+                spec_status: Some(spec.status.clone()),
+                implementing_paths: Vec::new(),
+            });
+
+            entry.implementing_paths.push(ImplementingPath {
+                path: imp.path.clone(),
+                name: imp.crate_name.clone(),
+                source: Some(TraceSource::SpecImplements),
+            });
+        }
+    }
+
+    // Reverse mapping: code → spec (from [package.metadata.oap].spec)
+    for pkg in packages {
+        if let Some(ref spec_id) = pkg.spec_ref {
+            let entry = mappings.entry(spec_id.clone()).or_insert_with(|| {
+                // Find the spec status
+                let status = specs
+                    .iter()
+                    .find(|s| &s.id == spec_id)
+                    .map(|s| s.status.clone());
+                TraceMapping {
+                    spec_id: spec_id.clone(),
+                    spec_status: status,
+                    implementing_paths: Vec::new(),
+                }
+            });
+
+            // Check if this path is already declared via spec `implements`
+            if let Some(existing) = entry
+                .implementing_paths
+                .iter_mut()
+                .find(|p| p.path == pkg.path)
+            {
+                existing.source = Some(TraceSource::Both);
+            } else {
+                entry.implementing_paths.push(ImplementingPath {
+                    path: pkg.path.clone(),
+                    name: Some(pkg.name.clone()),
+                    source: Some(TraceSource::CargoMetadata),
+                });
+            }
+        }
+    }
+
+    // Sort implementing paths within each mapping
+    for mapping in mappings.values_mut() {
+        mapping.implementing_paths.sort_by(|a, b| a.path.cmp(&b.path));
+    }
+
+    let mut sorted_mappings: Vec<TraceMapping> = mappings.into_values().collect();
+    sorted_mappings.sort_by(|a, b| a.spec_id.cmp(&b.spec_id));
+
+    // Orphan detection
+    let traced_spec_ids: BTreeSet<String> =
+        sorted_mappings.iter().map(|m| m.spec_id.clone()).collect();
+    let traced_code_paths: BTreeSet<String> = sorted_mappings
+        .iter()
+        .flat_map(|m| m.implementing_paths.iter().map(|p| p.path.clone()))
+        .collect();
+
+    // Orphaned specs: specs with implementation != n/a that have no traced code
+    let mut orphaned_specs: Vec<String> = specs
+        .iter()
+        .filter(|s| {
+            let impl_status = s.implementation.as_deref().unwrap_or("pending");
+            impl_status != "n/a" && !traced_spec_ids.contains(&s.id)
+        })
+        .map(|s| s.id.clone())
+        .collect();
+    orphaned_specs.sort();
+
+    // Untraced code: packages with no governing spec
+    let mut untraced_code: Vec<String> = packages
+        .iter()
+        .filter(|p| p.spec_ref.is_none() && !traced_code_paths.contains(&p.path))
+        .map(|p| p.path.clone())
+        .collect();
+    untraced_code.sort();
+
+    let traceability = Traceability {
+        mappings: sorted_mappings,
+        orphaned_specs,
+        untraced_code,
+    };
+
+    (traceability, diagnostics)
+}

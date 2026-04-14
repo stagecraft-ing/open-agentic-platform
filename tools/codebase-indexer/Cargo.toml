@@ -1,31 +1,32 @@
 [package]
-name = "open_agentic_spec_compiler"
+name = "open_agentic_codebase_indexer"
 version = "0.1.0"
 edition = "2024"
-description = "Spec compiler MVP per specs/001-spec-compiler-mvp — emits registry.json + build-meta.json"
+description = "Codebase indexer per specs/101-codebase-index-mvp — emits index.json + build-meta.json"
 rust-version = "1.85"
 
 [[bin]]
-name = "spec-compiler"
+name = "codebase-indexer"
 path = "src/main.rs"
 
 [lib]
-name = "open_agentic_spec_compiler"
+name = "open_agentic_codebase_indexer"
 path = "src/lib.rs"
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 clap = { version = "4", features = ["derive"] }
+jsonschema = { version = "0.33", default-features = false }
 open_agentic_frontmatter = { path = "../shared/frontmatter" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 sha2 = "0.10"
+toml = "0.8"
 walkdir = "2"
 
 [dev-dependencies]
-jsonschema = { version = "0.33", default-features = false }
 tempfile = "3.27.0"
 
 [package.metadata.oap]
-spec = "001-spec-compiler-mvp"
+spec = "101-codebase-index-mvp"

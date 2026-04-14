@@ -15,6 +15,7 @@
 .PHONY: setup dev dev-platform dev-all stop \
         axiomregent \
         spec-compile spec-tools \
+        index index-check index-render \
         k8s-up k8s-down \
         check-deps
 
@@ -44,6 +45,13 @@ setup: check-deps
 	@echo ""
 	@echo "==> Compiling spec registry..."
 	./tools/spec-compiler/target/release/spec-compiler compile
+	@echo ""
+	@echo ""
+	@echo "==> Building codebase indexer..."
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+	@echo ""
+	@echo "==> Compiling codebase index..."
+	./tools/codebase-indexer/target/release/codebase-indexer compile
 	@echo ""
 	@echo "==> Fetching axiomregent sidecar binary..."
 	@node scripts/fetch-axiomregent.js --check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
@@ -78,6 +86,20 @@ spec-tools:
 	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
 	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+
+# ============================================================
+# Codebase Index
+# ============================================================
+
+index:
+	./tools/codebase-indexer/target/release/codebase-indexer compile
+
+index-check:
+	./tools/codebase-indexer/target/release/codebase-indexer check
+
+index-render:
+	./tools/codebase-indexer/target/release/codebase-indexer render
 
 # ============================================================
 # Development — Desktop App
@@ -151,6 +173,7 @@ destroy-%:
 clean:
 	@echo "==> Cleaning build artifacts..."
 	rm -rf build/spec-registry
+	rm -rf build/codebase-index
 	rm -rf apps/desktop/dist
 	rm -rf apps/desktop/src-tauri/target
 
@@ -169,6 +192,11 @@ help:
 	@echo "Specs:"
 	@echo "  make spec-compile   Recompile spec registry"
 	@echo "  make spec-tools     Build all spec CLI tools"
+	@echo ""
+	@echo "Index:"
+	@echo "  make index          Recompile codebase index"
+	@echo "  make index-check    Check if index is stale"
+	@echo "  make index-render   Render CODEBASE-INDEX.md from index"
 	@echo ""
 	@echo "Kubernetes:"
 	@echo "  make k8s-up         Bootstrap local k3d cluster + deploy"

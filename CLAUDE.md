@@ -42,7 +42,7 @@ platform/           — Organisational control plane (imported from stagecraft-i
   infra/            — Terraform modules (Azure AKS, ACR, KeyVault)
   charts/           — Helm charts (stagecraft, deployd-api, rauthy)
   k8s/              — Baseline K8s policies (network deny, resource quotas)
-build/              — Compiler output (registry.json, build-meta.json)
+build/              — Compiler output (registry.json, index.json, build-meta.json)
 .claude/            — Claude Code agents, commands, rules (AI development infrastructure)
 .specify/           — Spec Kit contract metadata and templates
 ```
@@ -67,6 +67,7 @@ All multi-step commands and agent workflows MUST follow the six rules defined in
 - **axiomregent is the unified MCP agent crate.** It now contains the `github/`, `search/`, and `checkpoint/` modules, absorbing the former `gitctx`, `blockoli`, and `stackwalk` crates.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.
 - **Spec compiler is the build system.** Run `./tools/spec-compiler/target/release/spec-compiler compile` from repo root to produce `build/spec-registry/registry.json`.
+- **Traceability via `[package.metadata.oap]`.** Rust crates that implement a spec should declare `spec = "<spec-id>"` under `[package.metadata.oap]` in their Cargo.toml. The codebase-indexer uses this to build spec-to-code traceability mappings in `build/codebase-index/index.json`.
 
 ## Build Commands
 
@@ -82,6 +83,12 @@ cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 
 # Lint specs
 cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+
+# Codebase index
+cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+./tools/codebase-indexer/target/release/codebase-indexer compile  # emit index.json
+./tools/codebase-indexer/target/release/codebase-indexer check    # staleness check
+./tools/codebase-indexer/target/release/codebase-indexer render   # emit CODEBASE-INDEX.md
 
 # Compile policies
 cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
