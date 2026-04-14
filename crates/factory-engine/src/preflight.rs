@@ -404,8 +404,9 @@ mod tests {
     #[test]
     fn preflight_real_examples() {
         // Uses real adapter fixtures if available
-        let spec_path =
-            std::path::Path::new("../factory/contract/examples/community-grant-portal.build-spec.yaml");
+        let spec_path = std::path::Path::new(
+            "../factory/contract/examples/community-grant-portal.build-spec.yaml",
+        );
         let adapter_path = std::path::Path::new("../factory/adapters/aim-vue-node");
         if !spec_path.exists() || !adapter_path.exists() {
             eprintln!("Skipping real example test — factory fixtures not found");

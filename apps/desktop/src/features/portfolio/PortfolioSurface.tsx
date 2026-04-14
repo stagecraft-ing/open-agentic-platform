@@ -21,14 +21,6 @@ function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destruct
   }
 }
 
-function implBadgeVariant(impl_status: string): 'default' | 'secondary' | 'outline' {
-  switch (impl_status) {
-    case 'complete': return 'default';
-    case 'in-progress': return 'outline';
-    default: return 'secondary';
-  }
-}
-
 function riskLabel(f: EnrichedFeature): string {
   if (f.max_complexity > 20 && f.test_coverage_ratio < 0.1) return 'high';
   if (f.max_complexity > 10 || f.test_coverage_ratio < 0.2) return 'medium';

@@ -442,7 +442,8 @@ mod tests {
     #[test]
     fn test_capabilities_match_real_example() {
         let factory_root = std::path::Path::new("../../factory");
-        let spec_path = factory_root.join("contract/examples/community-grant-portal.build-spec.yaml");
+        let spec_path =
+            factory_root.join("contract/examples/community-grant-portal.build-spec.yaml");
         if !spec_path.exists() {
             return;
         }
