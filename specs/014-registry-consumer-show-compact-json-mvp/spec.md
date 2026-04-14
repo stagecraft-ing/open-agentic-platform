@@ -2,7 +2,8 @@
 id: "014-registry-consumer-show-compact-json-mvp"
 title: "Registry consumer show compact JSON"
 feature_branch: "014-registry-consumer-show-compact-json-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `014-registry-consumer-show-compact-json-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Feature **013** added explicit `show --json` (pretty). This feature adds compact output for pipelines and diffs.
 
 ## Purpose and charter

@@ -3,6 +3,7 @@ id: "061-conductor-track-lifecycle"
 title: "Conductor Track Lifecycle"
 feature_branch: "061-conductor-track-lifecycle"
 status: draft
+implementation: pending
 kind: platform
 created: "2026-03-29"
 authors:

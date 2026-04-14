@@ -2,7 +2,8 @@
 id: "031-registry-consumer-list-ids-only-contract-mvp"
 title: "Registry consumer list ids-only contract MVP"
 feature_branch: "031-registry-consumer-list-ids-only-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

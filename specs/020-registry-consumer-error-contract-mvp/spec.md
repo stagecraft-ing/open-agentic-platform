@@ -2,7 +2,8 @@
 id: "020-registry-consumer-error-contract-mvp"
 title: "Registry consumer error contract MVP"
 feature_branch: "020-registry-consumer-error-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

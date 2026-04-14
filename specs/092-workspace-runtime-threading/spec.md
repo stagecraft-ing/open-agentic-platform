@@ -1,7 +1,8 @@
 ---
 id: "092-workspace-runtime-threading"
 title: "Workspace Runtime Threading"
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-11"
 risk: high

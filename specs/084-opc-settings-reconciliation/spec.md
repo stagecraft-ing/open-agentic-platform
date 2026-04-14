@@ -3,6 +3,7 @@ id: "084-opc-settings-reconciliation"
 title: "OPC Scoped Settings Reconciliation"
 feature_branch: "feat/084-opc-settings-reconciliation"
 status: draft
+implementation: pending
 kind: product
 created: "2026-04-08"
 authors:

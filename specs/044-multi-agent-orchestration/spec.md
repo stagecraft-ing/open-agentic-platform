@@ -3,6 +3,7 @@ id: "044-multi-agent-orchestration"
 title: "multi-agent orchestration with file-based artifact passing"
 feature_branch: "044-multi-agent-orchestration"
 status: superseded
+implementation: n/a
 superseded_by: "089"
 kind: platform
 created: "2026-03-29"

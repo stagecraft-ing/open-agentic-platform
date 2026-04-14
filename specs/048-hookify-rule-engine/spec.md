@@ -2,7 +2,8 @@
 id: "048-hookify-rule-engine"
 title: "Declarative Hook Rule Engine"
 feature_branch: "048-hookify-rule-engine"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

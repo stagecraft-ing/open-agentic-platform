@@ -2,7 +2,8 @@
 id: "024-registry-consumer-version-banner-contract-mvp"
 title: "Registry consumer version/banner contract MVP"
 feature_branch: "024-registry-consumer-version-banner-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

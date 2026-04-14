@@ -3,6 +3,7 @@ id: "083-xray-ui-upgrade"
 title: "Xray v1.2.0 UI Surface"
 feature_branch: "feat/083-xray-ui-upgrade"
 status: draft
+implementation: pending
 kind: product
 created: "2026-04-08"
 authors:

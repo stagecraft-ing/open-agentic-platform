@@ -1,7 +1,8 @@
 ---
 id: "096-portfolio-intelligence"
 title: "Portfolio Intelligence — xray-featuregraph Bridge"
-status: active
+status: approved
+implementation: in-progress
 owner: bart
 created: "2026-04-11"
 risk: medium

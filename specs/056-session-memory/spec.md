@@ -2,7 +2,8 @@
 id: "056-session-memory"
 title: "Session Memory / Project-Object Persistence"
 feature_branch: "056-session-memory"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

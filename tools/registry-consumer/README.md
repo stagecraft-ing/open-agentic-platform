@@ -57,7 +57,7 @@ From the repository root, using the **release** binary (paths below are relative
 <!-- readme-contract:list-text -->
 ```text
 id                                           status     title
-001-a                                        active     First
+001-a                                        approved   First
 002-b                                        draft      Second
 ```
 <!-- /readme-contract:list-text -->
@@ -77,7 +77,7 @@ id                                           status     title
     "H"
   ],
   "specPath": "specs/001-a/spec.md",
-  "status": "active",
+  "status": "approved",
   "summary": "sum",
   "title": "First"
 }
@@ -93,7 +93,7 @@ id                                           status     title
 <!-- readme-contract:status-report-text -->
 ```text
 draft      1
-active     1
+approved   1
 superseded 1
 retired    1
 ```
@@ -118,7 +118,7 @@ retired    1
       "H"
     ],
     "specPath": "specs/001-a/spec.md",
-    "status": "active",
+    "status": "approved",
     "summary": "sum",
     "title": "First"
   },
@@ -139,7 +139,7 @@ retired    1
 
 <!-- readme-contract:list-compact -->
 ```json
-[{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"active","summary":"sum","title":"First"},{"created":"2026-03-22","id":"002-b","sectionHeadings":["H"],"specPath":"specs/002-b/spec.md","status":"draft","summary":"sum","title":"Second"}]
+[{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"approved","summary":"sum","title":"First"},{"created":"2026-03-22","id":"002-b","sectionHeadings":["H"],"specPath":"specs/002-b/spec.md","status":"draft","summary":"sum","title":"Second"}]
 ```
 <!-- /readme-contract:list-compact -->
 
@@ -159,7 +159,7 @@ retired    1
     "H"
   ],
   "specPath": "specs/001-a/spec.md",
-  "status": "active",
+  "status": "approved",
   "summary": "sum",
   "title": "First"
 }
@@ -168,7 +168,7 @@ retired    1
 
 <!-- readme-contract:show-compact -->
 ```json
-{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"active","summary":"sum","title":"First"}
+{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"approved","summary":"sum","title":"First"}
 ```
 <!-- /readme-contract:show-compact -->
 
@@ -194,7 +194,7 @@ retired    1
     "ids": [
       "001-a"
     ],
-    "status": "active"
+    "status": "approved"
   },
   {
     "count": 1,
@@ -216,7 +216,7 @@ retired    1
 
 <!-- readme-contract:status-report-compact -->
 ```json
-[{"count":1,"ids":["004-d"],"status":"draft"},{"count":1,"ids":["001-a"],"status":"active"},{"count":1,"ids":["003-c"],"status":"superseded"},{"count":1,"ids":["002-b"],"status":"retired"}]
+[{"count":1,"ids":["004-d"],"status":"draft"},{"count":1,"ids":["001-a"],"status":"approved"},{"count":1,"ids":["003-c"],"status":"superseded"},{"count":1,"ids":["002-b"],"status":"retired"}]
 ```
 <!-- /readme-contract:status-report-compact -->
 
@@ -243,12 +243,12 @@ Default registry path: **`build/spec-registry/registry.json`** relative to the *
 ./tools/registry-consumer/target/release/registry-consumer status-report --nonzero-only
 ./tools/registry-consumer/target/release/registry-consumer status-report --json --nonzero-only
 ./tools/registry-consumer/target/release/registry-consumer status-report --compact --nonzero-only
-./tools/registry-consumer/target/release/registry-consumer status-report --status active
-./tools/registry-consumer/target/release/registry-consumer status-report --json --status active
-./tools/registry-consumer/target/release/registry-consumer status-report --compact --status active
+./tools/registry-consumer/target/release/registry-consumer status-report --status approved
+./tools/registry-consumer/target/release/registry-consumer status-report --json --status approved
+./tools/registry-consumer/target/release/registry-consumer status-report --compact --status approved
 ```
 
-**`--status`** filters on the Feature **000** enum (`draft`, `active`, `superseded`, `retired`). Normative meanings and recommended transitions: [`specs/003-feature-lifecycle-mvp/spec.md`](../../specs/003-feature-lifecycle-mvp/spec.md).
+**`--status`** filters on the Feature **000** enum (`draft`, `approved`, `superseded`, `retired`). Normative meanings and recommended transitions: [`specs/003-feature-lifecycle-mvp/spec.md`](../../specs/003-feature-lifecycle-mvp/spec.md).
 
 Override path:
 

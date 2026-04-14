@@ -3,9 +3,17 @@ List features (human-readable table), sorted by id
 Usage: registry-consumer list [OPTIONS]
 
 Options:
-      --status <STATUS>        
-      --id-prefix <ID_PREFIX>  
-      --json                   Emit filtered features as a JSON array (pretty-printed)
-      --compact                Single-line compact JSON array (mutually exclusive with --json)
-      --ids-only               Emit only feature ids, one per line (sorted/filter semantics preserved)
-  -h, --help                   Print help
+      --status <STATUS>
+          
+      --implementation <IMPLEMENTATION>
+          Filter by implementation lifecycle status [possible values: pending, in-progress, complete, n/a]
+      --id-prefix <ID_PREFIX>
+          
+      --json
+          Emit filtered features as a JSON array (pretty-printed)
+      --compact
+          Single-line compact JSON array (mutually exclusive with --json)
+      --ids-only
+          Emit only feature ids, one per line (sorted/filter semantics preserved)
+  -h, --help
+          Print help

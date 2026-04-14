@@ -2,7 +2,8 @@
 id: "016-registry-consumer-status-report-compact-json-mvp"
 title: "Registry consumer status-report compact JSON"
 feature_branch: "016-registry-consumer-status-report-compact-json-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

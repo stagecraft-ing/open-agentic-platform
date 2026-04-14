@@ -1,7 +1,8 @@
 ---
 id: "100-post-convergence-remediation"
 title: "Post-Convergence Remediation"
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-12"
 risk: high

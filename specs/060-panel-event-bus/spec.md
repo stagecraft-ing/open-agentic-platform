@@ -2,7 +2,8 @@
 id: "060-panel-event-bus"
 title: "Typed Inter-Panel Event Bus"
 feature_branch: "060-panel-event-bus"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

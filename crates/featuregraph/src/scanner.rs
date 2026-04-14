@@ -143,6 +143,10 @@ struct FeatureEntry {
     owner: String,
     group: String,
     depends_on: Vec<String>,
+    /// Design lifecycle status (draft/approved/superseded/retired).
+    #[serde(default)]
+    status: String,
+    /// Implementation lifecycle status (pending/in-progress/complete/n/a).
     implementation: Option<String>,
     /// Deprecated IDs that map to this canonical feature.
     /// Files declaring `// Feature: <alias>` are attributed to this feature.
@@ -160,7 +164,8 @@ impl FeatureEntry {
             owner: r.owner.clone().unwrap_or_default(),
             group: String::new(),
             depends_on: r.depends_on.clone(),
-            implementation: Some(r.status.clone()),
+            status: r.status.clone(),
+            implementation: r.implementation.clone(),
             aliases: r.code_aliases.clone(),
         }
     }
@@ -245,7 +250,8 @@ impl Scanner {
                     feature_id: entry.id.clone(),
                     title: entry.title.clone(),
                     spec_path: entry.spec.clone(),
-                    status: entry.implementation.clone().unwrap_or_default(),
+                    status: entry.status.clone(),
+                    implementation: entry.implementation.clone().unwrap_or_default(),
                     governance: entry.governance.clone(),
                     owner: entry.owner.clone(),
                     group: entry.group.clone(),
@@ -472,7 +478,8 @@ mod tests {
             id: "034-featuregraph-registry-scanner-fix".into(),
             title: "t".into(),
             spec_path: "specs/034-featuregraph-registry-scanner-fix/spec.md".into(),
-            status: "active".into(),
+            status: "approved".into(),
+            implementation: Some("complete".into()),
             code_aliases: vec!["FEATUREGRAPH_REGISTRY".into()],
             depends_on: vec![],
             owner: None,
@@ -488,7 +495,8 @@ mod tests {
             id: "087-unified-workspace-architecture".into(),
             title: "Unified Workspace Architecture".into(),
             spec_path: "specs/087-unified-workspace-architecture/spec.md".into(),
-            status: "active".into(),
+            status: "approved".into(),
+            implementation: Some("in-progress".into()),
             code_aliases: vec![],
             depends_on: vec!["033".into(), "068".into()],
             owner: Some("bart".into()),

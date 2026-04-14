@@ -45,7 +45,7 @@ fn fixture_registry_ok() -> serde_json::Value {
             {
                 "id": "001-a",
                 "title": "First",
-                "status": "active",
+                "status": "approved",
                 "created": "2026-03-22",
                 "summary": "sum",
                 "specPath": "specs/001-a/spec.md",
@@ -67,7 +67,7 @@ fn fixture_registry_statuses() -> serde_json::Value {
         },
         "features": [
             { "id": "004-d", "title": "D", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/004-d/spec.md", "sectionHeadings": ["H"] },
-            { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
+            { "id": "001-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
             { "id": "003-c", "title": "C", "status": "superseded", "created": "2026-03-22", "summary": "s", "specPath": "specs/003-c/spec.md", "sectionHeadings": ["H"] },
             { "id": "002-b", "title": "B", "status": "retired", "created": "2026-03-22", "summary": "s", "specPath": "specs/002-b/spec.md", "sectionHeadings": ["H"] }
         ],
@@ -135,7 +135,7 @@ fn show_json_emits_valid_object_matching_feature_record() {
     assert!(v.is_object());
     assert_eq!(v["id"], "001-a");
     assert_eq!(v["title"], "First");
-    assert_eq!(v["status"], "active");
+    assert_eq!(v["status"], "approved");
     assert_eq!(v["specPath"], "specs/001-a/spec.md");
     assert_eq!(v["summary"], "sum");
 }
@@ -451,7 +451,7 @@ fn list_json_contract_has_stable_array_shape_and_order() {
         {
             "id": "001-a",
             "title": "First",
-            "status": "active",
+            "status": "approved",
             "created": "2026-03-22",
             "summary": "sum",
             "specPath": "specs/001-a/spec.md",
@@ -491,7 +491,7 @@ fn list_compact_contract_matches_expected_serialization() {
         {
             "id": "001-a",
             "title": "First",
-            "status": "active",
+            "status": "approved",
             "created": "2026-03-22",
             "summary": "sum",
             "specPath": "specs/001-a/spec.md",
@@ -537,7 +537,7 @@ fn show_json_contract_has_stable_object_shape() {
     let expected = json!({
         "id": "001-a",
         "title": "First",
-        "status": "active",
+        "status": "approved",
         "created": "2026-03-22",
         "summary": "sum",
         "specPath": "specs/001-a/spec.md",
@@ -566,7 +566,7 @@ fn show_compact_contract_matches_expected_serialization() {
     let expected = json!({
         "id": "001-a",
         "title": "First",
-        "status": "active",
+        "status": "approved",
         "created": "2026-03-22",
         "summary": "sum",
         "specPath": "specs/001-a/spec.md",
@@ -890,7 +890,7 @@ fn status_report_has_deterministic_status_order() {
         .copied()
         .filter(|line| {
             line.starts_with("draft")
-                || line.starts_with("active")
+                || line.starts_with("approved")
                 || line.starts_with("superseded")
                 || line.starts_with("retired")
         })
@@ -899,7 +899,7 @@ fn status_report_has_deterministic_status_order() {
         status_lines,
         vec![
             "draft      1",
-            "active     1",
+            "approved   1",
             "superseded 1",
             "retired    1"
         ]
@@ -912,8 +912,8 @@ fn status_report_show_ids_lists_sorted_ids() {
     let reg = dir.path().join("registry.json");
     let mut v = fixture_registry_statuses();
     v["features"] = json!([
-        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
-        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
+        { "id": "010-z", "title": "Z", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
     ]);
     write_registry(&reg, &v);
 
@@ -926,7 +926,7 @@ fn status_report_show_ids_lists_sorted_ids() {
         .expect("spawn");
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("active"));
+    assert!(stdout.contains("approved"));
     assert!(stdout.contains("ids: 001-a, 010-z"));
 }
 
@@ -950,7 +950,7 @@ fn status_report_json_emits_machine_readable_rows() {
     let arr = rows.as_array().expect("json output must be an array");
     assert_eq!(arr.len(), 4, "one row per known status");
     assert_eq!(arr[0]["status"], "draft");
-    assert_eq!(arr[1]["status"], "active");
+    assert_eq!(arr[1]["status"], "approved");
     assert_eq!(arr[2]["status"], "superseded");
     assert_eq!(arr[3]["status"], "retired");
     assert_eq!(arr[0]["count"], 1);
@@ -965,8 +965,8 @@ fn status_report_json_ids_are_sorted_for_each_status() {
     let reg = dir.path().join("registry.json");
     let mut v = fixture_registry_statuses();
     v["features"] = json!([
-        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
-        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
+        { "id": "010-z", "title": "Z", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
     ]);
     write_registry(&reg, &v);
 
@@ -982,11 +982,11 @@ fn status_report_json_ids_are_sorted_for_each_status() {
     let rows: serde_json::Value =
         serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
     let arr = rows.as_array().expect("json output must be an array");
-    let active = arr
+    let approved = arr
         .iter()
-        .find(|row| row.get("status").and_then(|x| x.as_str()) == Some("active"))
-        .expect("active row present");
-    assert_eq!(active["ids"], json!(["001-a", "010-z"]));
+        .find(|row| row.get("status").and_then(|x| x.as_str()) == Some("approved"))
+        .expect("approved row present");
+    assert_eq!(approved["ids"], json!(["001-a", "010-z"]));
 }
 
 #[test]
@@ -1003,7 +1003,7 @@ fn status_report_nonzero_only_omits_zero_rows_in_text_mode() {
         },
         "features": [
             { "id": "002-b", "title": "B", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/002-b/spec.md", "sectionHeadings": ["H"] },
-            { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
+            { "id": "001-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] }
         ],
         "validation": { "passed": true, "violations": [] }
     });
@@ -1019,13 +1019,13 @@ fn status_report_nonzero_only_omits_zero_rows_in_text_mode() {
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("draft      1"));
-    assert!(stdout.contains("active     1"));
+    assert!(stdout.contains("approved   1"));
     assert!(!stdout.contains("superseded"));
     assert!(!stdout.contains("retired"));
     let draft_idx = stdout.find("draft").expect("draft row present");
-    let active_idx = stdout.find("active").expect("active row present");
+    let approved_idx = stdout.find("approved").expect("approved row present");
     assert!(
-        draft_idx < active_idx,
+        draft_idx < approved_idx,
         "remaining rows keep deterministic order"
     );
 }
@@ -1043,7 +1043,7 @@ fn status_report_json_nonzero_only_omits_zero_rows() {
             "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
         },
         "features": [
-            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
+            { "id": "009-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
         ],
         "validation": { "passed": true, "violations": [] }
     });
@@ -1062,7 +1062,7 @@ fn status_report_json_nonzero_only_omits_zero_rows() {
         serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
     let arr = rows.as_array().expect("json output must be an array");
     assert_eq!(arr.len(), 1);
-    assert_eq!(arr[0]["status"], "active");
+    assert_eq!(arr[0]["status"], "approved");
     assert_eq!(arr[0]["count"], 1);
     assert_eq!(arr[0]["ids"], json!(["009-a"]));
 }
@@ -1080,7 +1080,7 @@ fn status_report_default_behavior_unchanged_without_nonzero_only() {
             "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
         },
         "features": [
-            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
+            { "id": "009-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
         ],
         "validation": { "passed": true, "violations": [] }
     });
@@ -1096,7 +1096,7 @@ fn status_report_default_behavior_unchanged_without_nonzero_only() {
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("draft      0"));
-    assert!(stdout.contains("active     1"));
+    assert!(stdout.contains("approved   1"));
     assert!(stdout.contains("superseded 0"));
     assert!(stdout.contains("retired    0"));
 }
@@ -1129,7 +1129,7 @@ fn status_report_json_contract_has_stable_row_shape_and_order() {
 
     let expected = json!([
         { "status": "draft", "count": 1, "ids": ["004-d"] },
-        { "status": "active", "count": 1, "ids": ["001-a"] },
+        { "status": "approved", "count": 1, "ids": ["001-a"] },
         { "status": "superseded", "count": 1, "ids": ["003-c"] },
         { "status": "retired", "count": 1, "ids": ["002-b"] }
     ]);
@@ -1149,8 +1149,8 @@ fn status_report_json_nonzero_only_contract_is_stable() {
             "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
         },
         "features": [
-            { "id": "009-b", "title": "B", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-b/spec.md", "sectionHeadings": ["H"] },
-            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] },
+            { "id": "009-b", "title": "B", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-b/spec.md", "sectionHeadings": ["H"] },
+            { "id": "009-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] },
             { "id": "010-z", "title": "Z", "status": "retired", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] }
         ],
         "validation": { "passed": true, "violations": [] }
@@ -1169,7 +1169,7 @@ fn status_report_json_nonzero_only_contract_is_stable() {
     let rows: serde_json::Value =
         serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
     let expected = json!([
-        { "status": "active", "count": 2, "ids": ["009-a", "009-b"] },
+        { "status": "approved", "count": 2, "ids": ["009-a", "009-b"] },
         { "status": "retired", "count": 1, "ids": ["010-z"] }
     ]);
     assert_eq!(rows, expected, "nonzero JSON contract must remain stable");
@@ -1185,12 +1185,12 @@ fn status_report_status_filter_text_mode_keeps_selected_row() {
     let out = Command::new(&exe)
         .args(["--registry-path"])
         .arg(&reg)
-        .args(["status-report", "--status", "active"])
+        .args(["status-report", "--status", "approved"])
         .output()
         .expect("spawn");
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("active     1"));
+    assert!(stdout.contains("approved   1"));
     assert!(!stdout.contains("draft"));
     assert!(!stdout.contains("superseded"));
     assert!(!stdout.contains("retired"));
@@ -1202,8 +1202,8 @@ fn status_report_status_filter_json_mode_keeps_selected_row() {
     let reg = dir.path().join("registry.json");
     let mut v = fixture_registry_statuses();
     v["features"] = json!([
-        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
-        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
+        { "id": "010-z", "title": "Z", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
         { "id": "099-x", "title": "X", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/099-x/spec.md", "sectionHeadings": ["H"] }
     ]);
     write_registry(&reg, &v);
@@ -1212,7 +1212,7 @@ fn status_report_status_filter_json_mode_keeps_selected_row() {
     let out = Command::new(&exe)
         .args(["--registry-path"])
         .arg(&reg)
-        .args(["status-report", "--json", "--status", "active"])
+        .args(["status-report", "--json", "--status", "approved"])
         .output()
         .expect("spawn");
     assert_eq!(out.status.code(), Some(0));
@@ -1220,7 +1220,7 @@ fn status_report_status_filter_json_mode_keeps_selected_row() {
     let rows: serde_json::Value =
         serde_json::from_slice(&out.stdout).expect("status-report --json emits valid JSON");
     let expected = json!([
-        { "status": "active", "count": 2, "ids": ["001-a", "010-z"] }
+        { "status": "approved", "count": 2, "ids": ["001-a", "010-z"] }
     ]);
     assert_eq!(rows, expected);
 }
@@ -1308,8 +1308,8 @@ fn status_report_compact_status_filter_matches_pretty_json() {
     let reg = dir.path().join("registry.json");
     let mut v = fixture_registry_statuses();
     v["features"] = json!([
-        { "id": "010-z", "title": "Z", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
-        { "id": "001-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
+        { "id": "010-z", "title": "Z", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/010-z/spec.md", "sectionHeadings": ["H"] },
+        { "id": "001-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/001-a/spec.md", "sectionHeadings": ["H"] },
         { "id": "099-x", "title": "X", "status": "draft", "created": "2026-03-22", "summary": "s", "specPath": "specs/099-x/spec.md", "sectionHeadings": ["H"] }
     ]);
     write_registry(&reg, &v);
@@ -1318,13 +1318,13 @@ fn status_report_compact_status_filter_matches_pretty_json() {
     let pretty = Command::new(&exe)
         .args(["--registry-path"])
         .arg(&reg)
-        .args(["status-report", "--json", "--status", "active"])
+        .args(["status-report", "--json", "--status", "approved"])
         .output()
         .expect("spawn");
     let compact = Command::new(&exe)
         .args(["--registry-path"])
         .arg(&reg)
-        .args(["status-report", "--compact", "--status", "active"])
+        .args(["status-report", "--compact", "--status", "approved"])
         .output()
         .expect("spawn");
     assert_eq!(pretty.status.code(), Some(0));
@@ -1347,7 +1347,7 @@ fn status_report_compact_nonzero_only_matches_pretty_json() {
             "contentHash": "0000000000000000000000000000000000000000000000000000000000000000"
         },
         "features": [
-            { "id": "009-a", "title": "A", "status": "active", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
+            { "id": "009-a", "title": "A", "status": "approved", "created": "2026-03-22", "summary": "s", "specPath": "specs/009-a/spec.md", "sectionHeadings": ["H"] }
         ],
         "validation": { "passed": true, "violations": [] }
     });
@@ -2302,7 +2302,7 @@ fn sorting_contract_status_report_rows_follow_fixed_status_sequence() {
         .iter()
         .map(|x| x["status"].as_str().expect("status"))
         .collect();
-    assert_eq!(statuses, vec!["draft", "active", "superseded", "retired"]);
+    assert_eq!(statuses, vec!["draft", "approved", "superseded", "retired"]);
 }
 
 #[test]
@@ -2323,14 +2323,14 @@ fn sorting_contract_status_report_ids_sorted_even_with_allow_invalid() {
         .iter()
         .map(|x| x["status"].as_str().expect("status"))
         .collect();
-    assert_eq!(statuses, vec!["draft", "active", "superseded", "retired"]);
+    assert_eq!(statuses, vec!["draft", "approved", "superseded", "retired"]);
 
     let draft_ids = arr[0]["ids"].as_array().expect("ids");
-    let active_ids = arr[1]["ids"].as_array().expect("ids");
+    let approved_ids = arr[1]["ids"].as_array().expect("ids");
     let draft: Vec<&str> = draft_ids.iter().map(|x| x.as_str().unwrap()).collect();
-    let active: Vec<&str> = active_ids.iter().map(|x| x.as_str().unwrap()).collect();
+    let approved: Vec<&str> = approved_ids.iter().map(|x| x.as_str().unwrap()).collect();
     assert_eq!(draft, vec!["099-x"]);
-    assert_eq!(active, vec!["001-a", "010-z"]);
+    assert_eq!(approved, vec!["001-a", "010-z"]);
 }
 
 /// Feature 028: representative stdout/stderr channel discipline invariants.

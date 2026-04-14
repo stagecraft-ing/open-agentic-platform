@@ -2,7 +2,8 @@
 id: "001-spec-compiler-mvp"
 title: "Spec compiler MVP (registry.json + build-meta.json)"
 feature_branch: "001-spec-compiler-mvp"
-status: active
+status: approved
+implementation: complete
 kind: tooling
 created: "2026-03-22"
 closed: "2026-03-22"
@@ -20,7 +21,7 @@ summary: >
 **Feature Branch**: `001-spec-compiler-mvp`  
 **Created**: 2026-03-22  
 **Closed**: 2026-03-22 (implementation + schema-gated CI + checkpoint; see [checkpoint.md](./checkpoint.md))  
-**Status**: Active (delivered; reopen only on constitutional or scoped change)  
+**Status**: Approved (delivered; reopen only on constitutional or scoped change)  
 **Input**: Build the minimal compiler that makes Feature 000 real—**not** product servers (axiomregent, xray, featuregraph).
 
 ## Purpose and charter

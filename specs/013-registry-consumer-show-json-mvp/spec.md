@@ -2,7 +2,8 @@
 id: "013-registry-consumer-show-json-mvp"
 title: "Registry consumer show JSON contract"
 feature_branch: "013-registry-consumer-show-json-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `013-registry-consumer-show-json-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Feature **012** added `list --json`. This feature aligns `show` with an explicit automation-facing JSON flag while preserving current default behavior.
 
 ## Purpose and charter

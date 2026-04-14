@@ -2,7 +2,8 @@
 id: "080-github-identity-onboarding"
 title: "GitHub Identity and Org Onboarding — App Installation, OAuth Login, Rauthy Sessions"
 feature_branch: "feat/080-github-identity-onboarding"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-04-06"
 authors: ["open-agentic-platform"]

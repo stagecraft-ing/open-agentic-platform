@@ -2,7 +2,8 @@
 id: "054-agent-frontmatter-schema"
 title: "Unified Agent and Skill Frontmatter Schema"
 feature_branch: "054-agent-frontmatter-schema"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

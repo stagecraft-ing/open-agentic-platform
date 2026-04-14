@@ -2,7 +2,8 @@
 id: "067-tool-definition-registry"
 title: "Tool Definition Registry"
 feature_branch: "067-tool-definition-registry"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-31"
 authors: ["open-agentic-platform"]

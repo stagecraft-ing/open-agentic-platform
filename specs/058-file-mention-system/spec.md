@@ -2,7 +2,8 @@
 id: "058-file-mention-system"
 title: "@-Mention Autocomplete for Files and Agents"
 feature_branch: "058-file-mention-system"
-status: active
+status: approved
+implementation: complete
 kind: ui
 created: "2026-03-29"
 authors:

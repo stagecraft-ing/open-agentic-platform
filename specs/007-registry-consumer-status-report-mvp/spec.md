@@ -2,7 +2,8 @@
 id: "007-registry-consumer-status-report-mvp"
 title: "Registry consumer status reporting UX"
 feature_branch: "007-registry-consumer-status-report-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -18,7 +19,7 @@ summary: >
 
 **Feature Branch**: `007-registry-consumer-status-report-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: The governance spine now defines lifecycle semantics (**003**), execution (**004**), and verification (**005**). `registry-consumer` already supports `list` and `show` from **002**, but does not provide a compact status report for operators or CI logs.
 
 ## Purpose and charter

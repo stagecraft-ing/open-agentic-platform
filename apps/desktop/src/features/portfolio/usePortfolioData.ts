@@ -5,6 +5,7 @@ export interface EnrichedFeature {
   feature_id: string;
   title: string;
   status: string;
+  implementation: string;
   owner: string;
   spec_path: string;
   depends_on: string[];

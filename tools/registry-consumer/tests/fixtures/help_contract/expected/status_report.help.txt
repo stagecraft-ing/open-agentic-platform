@@ -7,5 +7,5 @@ Options:
       --json             Emit machine-readable JSON report rows
       --compact          Single-line compact JSON array of report rows (mutually exclusive with --json)
       --nonzero-only     Omit statuses with zero counts
-      --status <STATUS>  Filter report to one lifecycle status [possible values: draft, active, superseded, retired]
+      --status <STATUS>  Filter report to one lifecycle status [possible values: draft, approved, superseded, retired]
   -h, --help             Print help

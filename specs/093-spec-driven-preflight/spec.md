@@ -1,7 +1,8 @@
 ---
 id: "093-spec-driven-preflight"
 title: "Spec-Driven Preflight and Gating"
-status: active
+status: approved
+implementation: in-progress
 owner: bart
 created: "2026-04-11"
 summary: >

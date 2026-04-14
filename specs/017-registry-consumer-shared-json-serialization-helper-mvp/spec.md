@@ -2,7 +2,8 @@
 id: "017-registry-consumer-shared-json-serialization-helper-mvp"
 title: "Registry consumer shared JSON serialization helper"
 feature_branch: "017-registry-consumer-shared-json-serialization-helper-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

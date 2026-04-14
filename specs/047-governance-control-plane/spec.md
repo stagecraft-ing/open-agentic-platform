@@ -2,7 +2,8 @@
 id: "047-governance-control-plane"
 title: "governance control plane (policy compiler)"
 feature_branch: "047-governance-control-plane"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

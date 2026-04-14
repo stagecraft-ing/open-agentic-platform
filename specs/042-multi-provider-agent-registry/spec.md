@@ -3,6 +3,7 @@ id: "042-multi-provider-agent-registry"
 title: "Multi-Provider Agent Registry"
 feature_branch: "042-multi-provider-agent-registry"
 status: draft
+implementation: pending
 kind: platform
 created: "2026-03-29"
 authors:

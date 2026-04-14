@@ -34,10 +34,13 @@ pub struct FeatureNode {
     pub title: String,
     /// The path to the feature's specification file.
     pub spec_path: String,
-    /// The current implementation status of the feature.
+    /// The design lifecycle status (draft/approved/superseded/retired).
     #[serde(default)]
     pub status: String,
-    /// The governance status (e.g. "approved").
+    /// The implementation lifecycle status (pending/in-progress/complete/n/a).
+    #[serde(default)]
+    pub implementation: String,
+    /// The governance risk level (low/medium/high/critical).
     #[serde(default)]
     pub governance: String,
     /// The team that owns this feature.

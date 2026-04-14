@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
-    DEFAULT_REGISTRY_REL_PATH, KNOWN_STATUSES, authoritative_or_allow_invalid, features_sorted,
-    filter_features, find_feature_by_id, load_registry, serialize_json_compact_or_pretty,
-    status_report,
+    DEFAULT_REGISTRY_REL_PATH, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
+    authoritative_or_allow_invalid, features_sorted, filter_features, find_feature_by_id,
+    load_registry, serialize_json_compact_or_pretty, status_report,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -32,6 +32,9 @@ enum Command {
     List {
         #[arg(long)]
         status: Option<String>,
+        /// Filter by implementation lifecycle status
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(KNOWN_IMPLEMENTATIONS))]
+        implementation: Option<String>,
         #[arg(long)]
         id_prefix: Option<String>,
         /// Emit filtered features as a JSON array (pretty-printed)
@@ -109,6 +112,7 @@ fn main() -> ExitCode {
     match cli.command {
         Command::List {
             status,
+            implementation,
             id_prefix,
             json,
             compact,
@@ -118,7 +122,12 @@ fn main() -> ExitCode {
                 Ok(f) => f,
                 Err(msg) => return exit_with_prefixed_message(3, msg),
             };
-            let filtered = filter_features(sorted, status.as_deref(), id_prefix.as_deref());
+            let filtered = filter_features(
+                sorted,
+                status.as_deref(),
+                id_prefix.as_deref(),
+                implementation.as_deref(),
+            );
             if json || compact {
                 if let Err(code) = print_json_or_exit(&filtered, compact) {
                     return code;

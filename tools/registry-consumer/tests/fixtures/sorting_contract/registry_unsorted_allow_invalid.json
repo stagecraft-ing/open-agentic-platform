@@ -10,7 +10,7 @@
     {
       "id": "010-z",
       "title": "Z",
-      "status": "active",
+      "status": "approved",
       "created": "2026-03-22",
       "summary": "s",
       "specPath": "specs/010-z/spec.md",
@@ -19,7 +19,7 @@
     {
       "id": "001-a",
       "title": "A",
-      "status": "active",
+      "status": "approved",
       "created": "2026-03-22",
       "summary": "s",
       "specPath": "specs/001-a/spec.md",

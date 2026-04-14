@@ -2,7 +2,8 @@
 id: "087-unified-workspace-architecture"
 slug: unified-workspace-architecture
 title: Unified Workspace Architecture
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-09"
 summary: >

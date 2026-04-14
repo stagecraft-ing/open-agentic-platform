@@ -84,9 +84,12 @@ pub struct ToolCallContext {
     /// Highest risk level among affected features: low / medium / high / critical.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_spec_risk: Option<String>,
-    /// Deduplicated statuses of affected features: draft / active / deprecated.
+    /// Deduplicated design statuses of affected features: draft / approved / superseded / retired.
     #[serde(default)]
     pub spec_statuses: Vec<String>,
+    /// Deduplicated implementation statuses of affected features: pending / in-progress / complete / n/a.
+    #[serde(default)]
+    pub spec_impl_statuses: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -223,15 +226,19 @@ fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<P
 }
 
 /// Spec 093, Slice 3: if affected features include `draft` specs, degrade to read-only;
-/// if any are `deprecated`, deny outright. Skipped when `spec_statuses` is empty.
+/// if any are `superseded` or `retired`, deny outright. Skipped when `spec_statuses` is empty.
 fn gate_spec_status(ctx: &ToolCallContext, _bundle: &PolicyBundle) -> Option<PolicyDecision> {
     if ctx.spec_statuses.is_empty() {
         return None;
     }
-    if ctx.spec_statuses.iter().any(|s| s == "deprecated") {
+    if ctx
+        .spec_statuses
+        .iter()
+        .any(|s| s == "superseded" || s == "retired")
+    {
         return Some(PolicyDecision {
             outcome: PolicyOutcome::Deny,
-            reason: "policy:deny:spec_status:deprecated".into(),
+            reason: "policy:deny:spec_status:superseded_or_retired".into(),
             rule_ids: vec!["KERNEL:SPEC-STATUS".into()],
         });
     }
@@ -451,6 +458,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -496,6 +504,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -527,6 +536,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -577,6 +587,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -607,6 +618,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         };
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
@@ -638,6 +650,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         };
         let a = decision_to_canonical_json(&evaluate(&ctx, &bundle));
         let b = decision_to_canonical_json(&evaluate(&ctx, &bundle));
@@ -661,6 +674,7 @@ mod tests {
             feature_ids: vec![],
             max_spec_risk: None,
             spec_statuses: vec![],
+            spec_impl_statuses: vec![],
         }
     }
 
@@ -676,20 +690,30 @@ mod tests {
     }
 
     #[test]
-    fn sc093_deprecated_status_denies() {
+    fn sc093_superseded_status_denies() {
         let bundle = empty_bundle();
         let mut ctx = base_ctx();
-        ctx.spec_statuses = vec!["deprecated".into()];
+        ctx.spec_statuses = vec!["superseded".into()];
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Deny);
-        assert!(d.reason.contains("deprecated"));
+        assert!(d.reason.contains("superseded_or_retired"));
     }
 
     #[test]
-    fn sc093_active_status_allows() {
+    fn sc093_retired_status_denies() {
         let bundle = empty_bundle();
         let mut ctx = base_ctx();
-        ctx.spec_statuses = vec!["active".into()];
+        ctx.spec_statuses = vec!["retired".into()];
+        let d = evaluate(&ctx, &bundle);
+        assert_eq!(d.outcome, PolicyOutcome::Deny);
+        assert!(d.reason.contains("superseded_or_retired"));
+    }
+
+    #[test]
+    fn sc093_approved_status_allows() {
+        let bundle = empty_bundle();
+        let mut ctx = base_ctx();
+        ctx.spec_statuses = vec!["approved".into()];
         let d = evaluate(&ctx, &bundle);
         assert_eq!(d.outcome, PolicyOutcome::Allow);
     }

@@ -109,6 +109,7 @@ pub fn build_tool_call_context(tool_name: &str, args: &Map<String, Value>) -> To
         feature_ids: vec![],
         max_spec_risk: None,
         spec_statuses: vec![],
+        spec_impl_statuses: vec![],
     }
 }
 

@@ -21,7 +21,7 @@
     {
       "id": "001-a",
       "title": "First",
-      "status": "active",
+      "status": "approved",
       "created": "2026-03-22",
       "summary": "sum",
       "specPath": "specs/001-a/spec.md",

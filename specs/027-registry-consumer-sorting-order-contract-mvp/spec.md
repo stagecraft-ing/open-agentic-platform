@@ -2,7 +2,8 @@
 id: "027-registry-consumer-sorting-order-contract-mvp"
 title: "Registry consumer sorting-order contract MVP"
 feature_branch: "027-registry-consumer-sorting-order-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

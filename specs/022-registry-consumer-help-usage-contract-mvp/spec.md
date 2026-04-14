@@ -2,7 +2,8 @@
 id: "022-registry-consumer-help-usage-contract-mvp"
 title: "Registry consumer help/usage output contract MVP"
 feature_branch: "022-registry-consumer-help-usage-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

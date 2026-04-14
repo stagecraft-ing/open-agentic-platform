@@ -2,7 +2,8 @@
 id: "032-opc-inspect-governance-wiring-mvp"
 title: "OPC inspect + governance wiring MVP"
 feature_branch: "032-opc-inspect-governance-wiring-mvp"
-status: active
+status: approved
+implementation: complete
 kind: product-consolidation
 created: "2026-03-23"
 authors:

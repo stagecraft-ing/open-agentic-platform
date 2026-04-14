@@ -2,7 +2,8 @@
 id: "004-spec-to-execution-bridge-mvp"
 title: "Spec-to-execution bridge (changeset / task execution protocol)"
 feature_branch: "004-spec-to-execution-bridge-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-22"
 authors:

@@ -2,7 +2,8 @@
 id: "033-axiomregent-activation"
 title: "axiomregent sidecar activation and governance surface"
 feature_branch: "033-axiomregent-activation"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

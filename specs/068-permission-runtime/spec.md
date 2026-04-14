@@ -2,7 +2,8 @@
 id: "068-permission-runtime"
 title: "Permission Runtime and Settings Layering"
 feature_branch: "068-permission-runtime"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-31"
 authors: ["open-agentic-platform"]

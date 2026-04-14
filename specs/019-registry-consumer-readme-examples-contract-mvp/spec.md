@@ -2,7 +2,8 @@
 id: "019-registry-consumer-readme-examples-contract-mvp"
 title: "Registry consumer README examples contract MVP"
 feature_branch: "019-registry-consumer-readme-examples-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

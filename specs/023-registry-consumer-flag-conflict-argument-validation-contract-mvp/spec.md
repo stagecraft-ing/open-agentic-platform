@@ -2,7 +2,8 @@
 id: "023-registry-consumer-flag-conflict-argument-validation-contract-mvp"
 title: "Registry consumer flag-conflict and argument-validation contract MVP"
 feature_branch: "023-registry-consumer-flag-conflict-argument-validation-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

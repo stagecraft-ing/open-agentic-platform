@@ -6,7 +6,7 @@
       "H"
     ],
     "specPath": "specs/001-a/spec.md",
-    "status": "active",
+    "status": "approved",
     "summary": "sum",
     "title": "First"
   },

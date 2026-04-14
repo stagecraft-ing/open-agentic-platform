@@ -2,7 +2,8 @@
 id: "008-registry-consumer-status-report-json-mvp"
 title: "Registry consumer status-report JSON output"
 feature_branch: "008-registry-consumer-status-report-json-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `008-registry-consumer-status-report-json-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Feature **007** delivered human-readable status reporting through the 000-006 governance spine. This feature treats **007** as the new baseline and adds machine-readable output for operational automation.
 
 ## Milestone baseline

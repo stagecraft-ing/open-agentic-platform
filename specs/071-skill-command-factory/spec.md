@@ -2,7 +2,8 @@
 id: "071-skill-command-factory"
 title: "Skill and Command Factory"
 feature_branch: "071-skill-command-factory"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-31"
 authors: ["open-agentic-platform"]

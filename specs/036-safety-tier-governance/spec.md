@@ -2,7 +2,8 @@
 id: "036-safety-tier-governance"
 title: "safety tier governance"
 feature_branch: "036-safety-tier-governance"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

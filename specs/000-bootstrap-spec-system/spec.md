@@ -2,7 +2,8 @@
 id: "000-bootstrap-spec-system"
 title: "Bootstrap spec system (markdown → compiled JSON registry)"
 feature_branch: "000-bootstrap-spec-system"
-status: active
+status: approved
+implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
 ratified: "2026-03-22"
@@ -20,7 +21,7 @@ summary: >
 **Feature Branch**: `000-bootstrap-spec-system`  
 **Created**: 2026-03-22  
 **Ratified**: 2026-03-22 (ratification pass: dates, determinism split, frontmatter rules, V-005 scope)  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Constitutional bootstrap — establish spec-first markdown → compiled JSON registry for the new repository.
 
 ## Purpose and charter
@@ -112,7 +113,8 @@ Every **feature spec** (`specs/*/spec.md`) MUST contain:
 1. **YAML frontmatter** (between opening and closing `---` lines) with at least:
    - `id` — string, MUST equal `<NNN>-<kebab-name>` and match the parent directory name.
    - `title` — non-empty string.
-   - `status` — enum string (`draft` \| `active` \| `superseded` \| `retired`) as used by this repo.
+   - `status` — enum string (`draft` \| `approved` \| `superseded` \| `retired`) — the design lifecycle status.
+   - `implementation` — optional enum string (`pending` \| `in-progress` \| `complete` \| `n/a`) — the implementation lifecycle status.
    - `created` — ISO 8601 date string.
    - `summary` — single-line or folded summary string (required; compiled into the registry as a **normalized** field, not only as raw YAML).
 

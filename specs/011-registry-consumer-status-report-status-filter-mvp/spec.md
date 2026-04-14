@@ -2,7 +2,8 @@
 id: "011-registry-consumer-status-report-status-filter-mvp"
 title: "Registry consumer status-report status filter"
 feature_branch: "011-registry-consumer-status-report-status-filter-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `011-registry-consumer-status-report-status-filter-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Features **008-010** established JSON output, nonzero filtering, and contract tests. This feature adds focused single-status projection for automation and CI.
 
 ## Purpose and charter

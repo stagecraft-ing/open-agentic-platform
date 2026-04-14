@@ -2,7 +2,8 @@
 id: "069-lifecycle-hook-runtime"
 title: "Lifecycle Hook Runtime"
 feature_branch: "069-lifecycle-hook-runtime"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-31"
 authors: ["open-agentic-platform"]

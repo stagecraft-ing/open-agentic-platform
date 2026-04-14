@@ -1,7 +1,8 @@
 ---
 id: "095-checkpoint-branch-of-thought"
 title: "Checkpoint Branch-of-Thought"
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-11"
 risk: high

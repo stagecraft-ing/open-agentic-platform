@@ -2,7 +2,8 @@
 id: "012-registry-consumer-list-json-mvp"
 title: "Registry consumer list JSON output"
 feature_branch: "012-registry-consumer-list-json-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `012-registry-consumer-list-json-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: `list` is human-readable only; `status-report --json` already established automation-facing JSON. This feature closes the same gap for feature listing.
 
 ## Purpose and charter

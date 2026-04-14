@@ -6,7 +6,8 @@ use std::path::Path;
 
 /// Default path relative to the repository root (current working directory).
 pub const DEFAULT_REGISTRY_REL_PATH: &str = "build/spec-registry/registry.json";
-pub const KNOWN_STATUSES: [&str; 4] = ["draft", "active", "superseded", "retired"];
+pub const KNOWN_STATUSES: [&str; 4] = ["draft", "approved", "superseded", "retired"];
+pub const KNOWN_IMPLEMENTATIONS: [&str; 4] = ["pending", "in-progress", "complete", "n/a"];
 
 /// `(status_name, count, sorted_feature_ids)` — one entry per known status.
 pub type StatusRow = (String, usize, Vec<String>);
@@ -75,11 +76,12 @@ pub fn features_sorted(v: &Value) -> Result<Vec<Value>, &'static str> {
     Ok(out)
 }
 
-/// Apply `--status` (exact) and `--id-prefix` (prefix on `id`) filters.
+/// Apply `--status`, `--implementation` (exact), and `--id-prefix` (prefix on `id`) filters.
 pub fn filter_features(
     features: Vec<Value>,
     status: Option<&str>,
     id_prefix: Option<&str>,
+    implementation: Option<&str>,
 ) -> Vec<Value> {
     features
         .into_iter()
@@ -93,6 +95,12 @@ pub fn filter_features(
             if let Some(prefix) = id_prefix {
                 match f.get("id").and_then(|x| x.as_str()) {
                     Some(id) if id.starts_with(prefix) => {}
+                    _ => return false,
+                }
+            }
+            if let Some(imp) = implementation {
+                match f.get("implementation").and_then(|x| x.as_str()) {
+                    Some(i) if i == imp => {}
                     _ => return false,
                 }
             }
@@ -133,6 +141,39 @@ pub fn status_report(v: &Value) -> Result<Vec<StatusRow>, &'static str> {
             *count += 1;
             ids.push(id.to_string());
         }
+    }
+
+    for (_, _, ids) in &mut out {
+        ids.sort();
+    }
+    Ok(out)
+}
+
+/// Build a deterministic implementation-status report from `features[]`.
+///
+/// Returns one tuple per known implementation status in fixed order:
+/// `(implementation, count, sorted_feature_ids)`.
+pub fn implementation_report(v: &Value) -> Result<Vec<StatusRow>, &'static str> {
+    let features = features_sorted(v)?;
+    let mut out: Vec<StatusRow> = KNOWN_IMPLEMENTATIONS
+        .iter()
+        .map(|s| (s.to_string(), 0usize, Vec::<String>::new()))
+        .collect();
+
+    for f in &features {
+        let imp = f
+            .get("implementation")
+            .and_then(|x| x.as_str())
+            .unwrap_or("(unset)");
+        let id = f
+            .get("id")
+            .and_then(|x| x.as_str())
+            .ok_or("feature is missing id")?;
+        if let Some((_, count, ids)) = out.iter_mut().find(|(s, _, _)| s == imp) {
+            *count += 1;
+            ids.push(id.to_string());
+        }
+        // Features with unset or unknown implementation values are silently skipped
     }
 
     for (_, _, ids) in &mut out {

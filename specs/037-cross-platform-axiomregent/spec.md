@@ -2,7 +2,8 @@
 id: "037-cross-platform-axiomregent"
 title: "cross-platform axiomregent binaries"
 feature_branch: "037-cross-platform-axiomregent"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

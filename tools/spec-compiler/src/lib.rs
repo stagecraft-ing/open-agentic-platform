@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 const COMPILER_ID: &str = "open-agentic-spec-compiler";
-const SPEC_VERSION: &str = "1.1.0";
+const SPEC_VERSION: &str = "1.2.0";
 
 /// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
 const KNOWN_KEYS: &[&str] = &[
@@ -26,6 +26,7 @@ const KNOWN_KEYS: &[&str] = &[
     "depends_on",
     "owner",
     "risk",
+    "implementation",
 ];
 
 /// Valid values for the `risk` frontmatter field.
@@ -155,6 +156,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let depends_on = optional_string_list(fm, "depends_on");
         let owner = optional_str(fm, "owner");
         let risk = optional_str(fm, "risk");
+        let implementation = optional_str(fm, "implementation");
         if let Some(ref r) = risk {
             if !VALID_RISK_LEVELS.contains(&r.as_str()) {
                 violations.push(Violation {
@@ -195,6 +197,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             depends_on,
             owner,
             risk,
+            implementation,
             extra_frontmatter: extra,
         });
     }
@@ -257,6 +260,8 @@ struct FeatureRecord {
     owner: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     risk: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    implementation: Option<String>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }

@@ -2,7 +2,8 @@
 id: "041-checkpoint-restore-ui"
 title: "Checkpoint / Restore UI — desktop panel"
 feature_branch: "041-checkpoint-restore-ui"
-status: active
+status: approved
+implementation: complete
 kind: product
 created: "2026-03-29"
 authors:

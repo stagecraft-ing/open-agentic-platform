@@ -1,7 +1,8 @@
 ---
 id: "099-workspace-scoped-persistence"
 title: "Workspace-Scoped Persistence"
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-11"
 risk: medium

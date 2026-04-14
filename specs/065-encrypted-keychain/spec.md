@@ -2,7 +2,8 @@
 id: "065-encrypted-keychain"
 title: "Encrypted Keychain and Credential Storage"
 feature_branch: "065-encrypted-keychain"
-status: active
+status: approved
+implementation: complete
 kind: desktop
 created: "2026-03-31"
 authors:

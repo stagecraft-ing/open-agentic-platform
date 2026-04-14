@@ -2,7 +2,8 @@
 id: "018-registry-consumer-list-show-json-contract-mvp"
 title: "Registry consumer list/show JSON contract tests"
 feature_branch: "018-registry-consumer-list-show-json-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

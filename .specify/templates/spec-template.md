@@ -2,6 +2,7 @@
 id: "[NNN-kebab-case]"
 title: "[FEATURE NAME]"
 status: draft
+implementation: pending
 owner: "[OWNER]"
 created: "[YYYY-MM-DD]"
 risk: medium

@@ -2,7 +2,8 @@
 id: "025-registry-consumer-default-path-contract-mvp"
 title: "Registry consumer default-path contract MVP"
 feature_branch: "025-registry-consumer-default-path-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

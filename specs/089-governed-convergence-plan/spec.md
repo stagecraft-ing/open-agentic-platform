@@ -1,7 +1,8 @@
 ---
 id: "089-governed-convergence-plan"
 title: "Governed Convergence Plan — Binding Primitives into Default Product Truth"
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-11"
 summary: >

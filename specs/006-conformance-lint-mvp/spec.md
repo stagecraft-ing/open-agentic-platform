@@ -2,7 +2,8 @@
 id: "006-conformance-lint-mvp"
 title: "Conformance lint (optional workflow warnings)"
 feature_branch: "006-conformance-lint-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-22"
 authors:

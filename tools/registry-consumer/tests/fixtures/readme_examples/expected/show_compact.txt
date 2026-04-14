@@ -1,1 +1,1 @@
-{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"active","summary":"sum","title":"First"}
+{"created":"2026-03-22","id":"001-a","sectionHeadings":["H"],"specPath":"specs/001-a/spec.md","status":"approved","summary":"sum","title":"First"}

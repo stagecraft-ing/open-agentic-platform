@@ -2,7 +2,8 @@
 id: "030-registry-consumer-internal-output-exit-refactor-mvp"
 title: "Registry consumer internal output/exit refactor MVP"
 feature_branch: "030-registry-consumer-internal-output-exit-refactor-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

@@ -1,7 +1,8 @@
 ---
 id: "094-unified-artifact-store"
 title: "Unified Artifact Store with Provenance"
-status: active
+status: approved
+implementation: pending
 owner: bart
 created: "2026-04-11"
 risk: high

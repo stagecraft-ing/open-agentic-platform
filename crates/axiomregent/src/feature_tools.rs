@@ -33,6 +33,7 @@ struct CacheKey {
 pub struct FeatureOverview {
     pub feature_id: String,
     pub status: String,
+    pub implementation: String,
     pub spec_path: String,
     pub impl_files_count: usize,
     pub test_files_count: usize,
@@ -163,6 +164,7 @@ impl FeatureTools {
             overview.push(FeatureOverview {
                 feature_id: node.feature_id.clone(),
                 status: node.status.clone(),
+                implementation: node.implementation.clone(),
                 spec_path: node.spec_path.clone(),
                 impl_files_count: node.impl_files.len(),
                 test_files_count: node.test_files.len(),
@@ -368,7 +370,8 @@ mod tests {
                     feature_id: "FEAT_A".to_string(),
                     title: "Feature A".to_string(),
                     spec_path: "specs/001/spec.md".to_string(),
-                    status: "active".to_string(),
+                    status: "approved".to_string(),
+                    implementation: "complete".to_string(),
                     governance: "high".to_string(),
                     owner: "team-a".to_string(),
                     group: "core".to_string(),
@@ -382,6 +385,7 @@ mod tests {
                     title: "Feature B".to_string(),
                     spec_path: "specs/002/spec.md".to_string(),
                     status: "draft".to_string(),
+                    implementation: "pending".to_string(),
                     governance: "critical".to_string(),
                     owner: "team-b".to_string(),
                     group: "core".to_string(),
@@ -394,7 +398,8 @@ mod tests {
                     feature_id: "FEAT_C".to_string(),
                     title: "Feature C".to_string(),
                     spec_path: "specs/003/spec.md".to_string(),
-                    status: "active".to_string(),
+                    status: "approved".to_string(),
+                    implementation: "complete".to_string(),
                     governance: "low".to_string(),
                     owner: "team-c".to_string(),
                     group: "infra".to_string(),
@@ -417,7 +422,7 @@ mod tests {
             .unwrap();
         assert_eq!(ctx.feature_ids, vec!["FEAT_A"]);
         assert_eq!(ctx.max_risk.as_deref(), Some("high"));
-        assert!(ctx.statuses.contains(&"active".to_string()));
+        assert!(ctx.statuses.contains(&"approved".to_string()));
     }
 
     #[test]
@@ -433,7 +438,7 @@ mod tests {
         assert_eq!(ctx.feature_ids, vec!["FEAT_A", "FEAT_B"]);
         // critical > high → max should be critical
         assert_eq!(ctx.max_risk.as_deref(), Some("critical"));
-        assert!(ctx.statuses.contains(&"active".to_string()));
+        assert!(ctx.statuses.contains(&"approved".to_string()));
         assert!(ctx.statuses.contains(&"draft".to_string()));
     }
 

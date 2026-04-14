@@ -1,4 +1,4 @@
 error: invalid value 'unknown' for '--status <STATUS>'
-  [possible values: draft, active, superseded, retired]
+  [possible values: draft, approved, superseded, retired]
 
 For more information, try '--help'.

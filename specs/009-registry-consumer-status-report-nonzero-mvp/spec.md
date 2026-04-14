@@ -2,7 +2,8 @@
 id: "009-registry-consumer-status-report-nonzero-mvp"
 title: "Registry consumer status-report nonzero filtering"
 feature_branch: "009-registry-consumer-status-report-nonzero-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `009-registry-consumer-status-report-nonzero-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Feature **007** added status reporting and Feature **008** added JSON output. This feature compounds both with a minimal automation-focused filter.
 
 ## Purpose and charter

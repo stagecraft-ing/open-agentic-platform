@@ -2,7 +2,8 @@
 id: "062-multi-model-chaining"
 title: "Multi-Model Chaining"
 feature_branch: "062-multi-model-chaining"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

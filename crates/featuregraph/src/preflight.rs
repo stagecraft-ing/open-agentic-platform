@@ -221,7 +221,7 @@ impl PreflightChecker {
                                 fid, dep_id
                             ),
                             suggested_fix: Some(format!(
-                                "Promote dependency '{}' to active before working on '{}'",
+                                "Promote dependency '{}' to approved before working on '{}'",
                                 dep_id, fid
                             )),
                         });
@@ -429,6 +429,7 @@ mod tests {
             title: format!("Feature {id}"),
             spec_path: format!("specs/{id}/spec.md"),
             status: status.to_string(),
+            implementation: String::new(),
             governance: String::new(),
             owner: String::new(),
             group: String::new(),
@@ -447,7 +448,7 @@ mod tests {
             .push(make_node("DEP", "draft", vec![], vec![]));
         graph.features.push(make_node(
             "FEAT",
-            "active",
+            "approved",
             vec!["DEP"],
             vec!["src/feat.rs"],
         ));
@@ -484,7 +485,7 @@ mod tests {
         let mut graph = FeatureGraph::new();
         graph.features.push(make_node(
             "FEAT",
-            "active",
+            "approved",
             vec!["NONEXISTENT"],
             vec!["src/feat.rs"],
         ));
@@ -524,7 +525,7 @@ mod tests {
             .push(make_node("DEP", "active", vec![], vec![]));
         graph.features.push(make_node(
             "FEAT",
-            "active",
+            "approved",
             vec!["DEP"],
             vec!["src/feat.rs"],
         ));
@@ -560,8 +561,9 @@ mod tests {
             feature_id: "KNOWN".to_string(),
             title: "Known Feature".to_string(),
             spec_path: "spec/known.md".to_string(),
-            status: "done".to_string(),
-            governance: "approved".to_string(),
+            status: "approved".to_string(),
+            implementation: "complete".to_string(),
+            governance: "high".to_string(),
             owner: "test-team".to_string(),
             group: "test".to_string(),
             depends_on: vec![],

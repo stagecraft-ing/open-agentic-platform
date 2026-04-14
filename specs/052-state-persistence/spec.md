@@ -2,7 +2,8 @@
 id: "052-state-persistence"
 title: "State Persistence for Resumable Workflows"
 feature_branch: "052-state-persistence"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

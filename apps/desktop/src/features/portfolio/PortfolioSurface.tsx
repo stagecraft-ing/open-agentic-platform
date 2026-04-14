@@ -13,10 +13,18 @@ type SortDir = 'asc' | 'desc';
 
 function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
-    case 'active': return 'default';
+    case 'approved': return 'default';
     case 'draft': return 'outline';
-    case 'deprecated':
-    case 'superseded': return 'destructive';
+    case 'superseded':
+    case 'retired': return 'destructive';
+    default: return 'secondary';
+  }
+}
+
+function implBadgeVariant(impl_status: string): 'default' | 'secondary' | 'outline' {
+  switch (impl_status) {
+    case 'complete': return 'default';
+    case 'in-progress': return 'outline';
     default: return 'secondary';
   }
 }

@@ -2,7 +2,8 @@
 id: "055-yaml-standards-schema"
 title: "YAML Standards Schema"
 feature_branch: "055-yaml-standards-schema"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-29"
 authors:

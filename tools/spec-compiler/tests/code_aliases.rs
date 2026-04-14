@@ -136,8 +136,8 @@ code_aliases:
 }
 
 #[test]
-fn repo_spec_version_is_1_1_0() {
+fn repo_spec_version_is_1_2_0() {
     let out = open_agentic_spec_compiler::compile(&repo_root()).expect("compile");
     let v: Value = serde_json::from_slice(&out.registry_json).unwrap();
-    assert_eq!(v["specVersion"], "1.1.0");
+    assert_eq!(v["specVersion"], "1.2.0");
 }

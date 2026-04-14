@@ -2,7 +2,8 @@
 id: "002-registry-consumer-mvp"
 title: "Registry consumer MVP (read-only spec runtime surface)"
 feature_branch: "002-registry-consumer-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-03-22"
 authors:

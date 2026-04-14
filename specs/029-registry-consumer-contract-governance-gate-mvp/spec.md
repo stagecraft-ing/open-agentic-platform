@@ -2,7 +2,8 @@
 id: "029-registry-consumer-contract-governance-gate-mvp"
 title: "Registry consumer change classification and contract-governance gate MVP"
 feature_branch: "029-registry-consumer-contract-governance-gate-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

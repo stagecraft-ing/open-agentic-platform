@@ -22,6 +22,8 @@ pub struct RegistryFeatureRecord {
     #[serde(rename = "specPath")]
     pub spec_path: String,
     pub status: String,
+    #[serde(default)]
+    pub implementation: Option<String>,
     #[serde(rename = "codeAliases", default)]
     pub code_aliases: Vec<String>,
     #[serde(rename = "dependsOn", default)]

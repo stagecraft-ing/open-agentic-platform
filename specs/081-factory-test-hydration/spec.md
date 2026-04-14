@@ -2,7 +2,8 @@
 id: "081-factory-test-hydration"
 title: "Factory Test Data Hydration"
 feature_branch: "feat/081-factory-test-hydration"
-status: active
+status: approved
+implementation: complete
 kind: platform
 created: "2026-04-07"
 authors: ["open-agentic-platform"]

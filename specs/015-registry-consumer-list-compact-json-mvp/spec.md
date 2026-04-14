@@ -2,7 +2,8 @@
 id: "015-registry-consumer-list-compact-json-mvp"
 title: "Registry consumer list compact JSON"
 feature_branch: "015-registry-consumer-list-compact-json-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `015-registry-consumer-list-compact-json-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Feature **012** added `list --json` (pretty); Feature **014** added `show --compact`. This feature completes list/show symmetry for compact bulk output.
 
 ## Requirements *(mandatory)*

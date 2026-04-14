@@ -2,7 +2,8 @@
 id: "010-registry-consumer-status-report-json-contract-mvp"
 title: "Registry consumer status-report JSON contract tests"
 feature_branch: "010-registry-consumer-status-report-json-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:
@@ -17,7 +18,7 @@ summary: >
 
 **Feature Branch**: `010-registry-consumer-status-report-json-contract-mvp`  
 **Created**: 2026-03-22  
-**Status**: Active  
+**Status**: Approved  
 **Input**: Features **008** and **009** added machine-readable JSON output and nonzero filtering. This feature hardens that output as a stable contract for automation consumers.
 
 ## Purpose and charter

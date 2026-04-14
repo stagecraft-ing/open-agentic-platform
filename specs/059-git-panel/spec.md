@@ -3,6 +3,7 @@ id: "059-git-panel"
 title: "Comprehensive Git Panel"
 feature_branch: "059-git-panel"
 status: draft
+implementation: pending
 kind: ui
 created: "2026-03-29"
 authors:

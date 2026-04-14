@@ -2,7 +2,8 @@
 id: "028-registry-consumer-channel-discipline-contract-mvp"
 title: "Registry consumer stderr/stdout channel discipline contract MVP"
 feature_branch: "028-registry-consumer-channel-discipline-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

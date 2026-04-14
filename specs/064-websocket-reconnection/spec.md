@@ -2,7 +2,8 @@
 id: "064-websocket-reconnection"
 title: "WebSocket Session Reconnection"
 feature_branch: "064-websocket-reconnection"
-status: active
+status: approved
+implementation: complete
 kind: desktop
 created: "2026-03-31"
 authors:

@@ -85,7 +85,8 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
         Err(_) => return w,
     };
 
-    const VALID_STATUSES: &[&str] = &["draft", "active", "superseded", "retired"];
+    const VALID_STATUSES: &[&str] = &["draft", "approved", "superseded", "retired"];
+    const VALID_IMPLEMENTATIONS: &[&str] = &["pending", "in-progress", "complete", "n/a"];
 
     if let Some((fm, body)) = split_frontmatter_optional(&spec_raw) {
         if let Some(status) = fm.get("status").and_then(|v| v.as_str()) {
@@ -94,7 +95,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                     code: "W-006",
                     path: rel(repo_root, &spec_path),
                     message: format!(
-                        "status '{}' is not in the canonical enum (draft | active | superseded | retired) per Feature 000",
+                        "status '{}' is not in the canonical enum (draft | active | approved | superseded | retired) per Feature 000",
                         status
                     ),
                 });
@@ -111,6 +112,18 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                     code: "W-003",
                     path: rel(repo_root, &spec_path),
                     message: "status is retired but body lacks an obvious rationale section (Feature 003)".into(),
+                });
+            }
+        }
+        if let Some(impl_status) = fm.get("implementation").and_then(|v| v.as_str()) {
+            if !VALID_IMPLEMENTATIONS.contains(&impl_status) {
+                w.push(Warning {
+                    code: "W-007",
+                    path: rel(repo_root, &spec_path),
+                    message: format!(
+                        "implementation '{}' is not in the canonical enum (pending | in-progress | complete | n/a) per Feature 000",
+                        impl_status
+                    ),
                 });
             }
         }

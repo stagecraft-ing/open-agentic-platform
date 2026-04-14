@@ -2,7 +2,8 @@
 id: "021-registry-consumer-field-shape-invariants-contract-mvp"
 title: "Registry consumer field-shape invariants contract MVP"
 feature_branch: "021-registry-consumer-field-shape-invariants-contract-mvp"
-status: active
+status: approved
+implementation: complete
 kind: platform-delivery
 created: "2026-03-22"
 authors:

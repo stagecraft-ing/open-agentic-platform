@@ -1,7 +1,8 @@
 ---
 id: "091-registry-enrichment"
 title: "Spec Registry Enrichment"
-status: active
+status: approved
+implementation: in-progress
 owner: bart
 created: "2026-04-11"
 risk: low
