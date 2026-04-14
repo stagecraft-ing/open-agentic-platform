@@ -130,9 +130,9 @@ jobs:
             -f platform/charts/stagecraft/values-hetzner.yaml \
             --set image.repository=${{ env.IMAGE }} \
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
-            --set "ingress.host=${{ vars.DOMAIN }}" \
-            --set "oidc.endpoint=https://auth.${{ vars.DOMAIN }}" \
-            --set "oidc.deploydAudience=https://deploy.${{ vars.DOMAIN }}" \
+            --set "ingress.host=${{ secrets.DOMAIN }}" \
+            --set "oidc.endpoint=https://auth.${{ secrets.DOMAIN }}" \
+            --set "oidc.deploydAudience=https://deploy.${{ secrets.DOMAIN }}" \
             --wait --timeout 600s
 
       - name: Verify rollout
