@@ -4,6 +4,8 @@ metadata:
   name: deployd-api
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: deployd-api
