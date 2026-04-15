@@ -2,7 +2,7 @@
 id: "101-codebase-index-mvp"
 title: "Codebase Index MVP — Governed Structural Inventory"
 status: approved
-implementation: in-progress
+implementation: complete
 owner: bart
 created: "2026-04-14"
 kind: tooling

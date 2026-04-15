@@ -9,6 +9,7 @@ pub struct SpecRecord {
     pub id: String,
     pub status: String,
     pub implementation: Option<String>,
+    pub depends_on: Vec<String>,
     pub implements: Vec<ImplementsEntry>,
 }
 
@@ -74,14 +75,34 @@ fn parse_spec(path: &Path) -> Option<SpecRecord> {
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
+    let depends_on = parse_depends_on(fm);
     let implements = parse_implements(fm);
 
     Some(SpecRecord {
         id,
         status,
         implementation,
+        depends_on,
         implements,
     })
+}
+
+/// Parse the `depends_on` field from raw YAML frontmatter.
+/// Returns a sorted list of spec IDs (string values from the YAML sequence).
+fn parse_depends_on(fm: &serde_yaml::Mapping) -> Vec<String> {
+    let Some(val) = fm.get("depends_on") else {
+        return vec![];
+    };
+    let Some(seq) = val.as_sequence() else {
+        return vec![];
+    };
+
+    let mut ids: Vec<String> = seq
+        .iter()
+        .filter_map(|item| item.as_str().map(|s| s.to_string()))
+        .collect();
+    ids.sort();
+    ids
 }
 
 /// Parse the `implements` field from raw YAML frontmatter.

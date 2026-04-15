@@ -181,6 +181,11 @@
           "enum": ["draft", "approved", "active", "superseded", "retired"],
           "description": "Current spec lifecycle status."
         },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Spec IDs this spec depends on (from frontmatter depends_on)."
+        },
         "implementingPaths": {
           "type": "array",
           "items": {

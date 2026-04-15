@@ -34,6 +34,7 @@ pub fn build_traceability(
             let entry = mappings.entry(spec.id.clone()).or_insert_with(|| TraceMapping {
                 spec_id: spec.id.clone(),
                 spec_status: Some(spec.status.clone()),
+                depends_on: spec.depends_on.clone(),
                 implementing_paths: Vec::new(),
             });
 
@@ -49,14 +50,14 @@ pub fn build_traceability(
     for pkg in packages {
         if let Some(ref spec_id) = pkg.spec_ref {
             let entry = mappings.entry(spec_id.clone()).or_insert_with(|| {
-                // Find the spec status
-                let status = specs
-                    .iter()
-                    .find(|s| &s.id == spec_id)
-                    .map(|s| s.status.clone());
+                // Find the spec record for status and depends_on
+                let spec_rec = specs.iter().find(|s| &s.id == spec_id);
+                let status = spec_rec.map(|s| s.status.clone());
+                let deps = spec_rec.map(|s| s.depends_on.clone()).unwrap_or_default();
                 TraceMapping {
                     spec_id: spec_id.clone(),
                     spec_status: status,
+                    depends_on: deps,
                     implementing_paths: Vec::new(),
                 }
             });

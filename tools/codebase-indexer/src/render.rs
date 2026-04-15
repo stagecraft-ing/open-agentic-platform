@@ -76,19 +76,25 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
             "### Mapped Specs ({})\n\n",
             index.traceability.mappings.len()
         ));
-        out.push_str("| Spec ID | Status | Implementing Paths |\n");
-        out.push_str("|---------|--------|--------------------|\n");
+        out.push_str("| Spec ID | Status | Depends On | Implementing Paths |\n");
+        out.push_str("|---------|--------|------------|--------------------|\n");
         for m in &index.traceability.mappings {
             let status = m.spec_status.as_deref().unwrap_or("-");
+            let deps = if m.depends_on.is_empty() {
+                "-".to_string()
+            } else {
+                m.depends_on.join(", ")
+            };
             let paths: Vec<String> = m
                 .implementing_paths
                 .iter()
                 .map(|p| format!("`{}`", p.path))
                 .collect();
             out.push_str(&format!(
-                "| {} | {} | {} |\n",
+                "| {} | {} | {} | {} |\n",
                 m.spec_id,
                 status,
+                deps,
                 paths.join(", ")
             ));
         }
