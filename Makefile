@@ -14,7 +14,7 @@
 
 .PHONY: setup dev dev-platform dev-all stop \
         axiomregent \
-        spec-compile spec-tools \
+        registry spec-compile spec-tools \
         index index-check index-render \
         k8s-up k8s-down \
         check-deps
@@ -78,6 +78,10 @@ axiomregent:
 # ============================================================
 # Spec tools
 # ============================================================
+
+## Recompile spec registry + codebase index in one step (102 FR-026).
+registry: spec-compile index
+	@echo "==> Registry and index recompiled."
 
 spec-compile:
 	./tools/spec-compiler/target/release/spec-compiler compile
@@ -190,7 +194,8 @@ help:
 	@echo "  make stop           Stop background platform services"
 	@echo ""
 	@echo "Specs:"
-	@echo "  make spec-compile   Recompile spec registry"
+	@echo "  make registry       Recompile spec registry + codebase index"
+	@echo "  make spec-compile   Recompile spec registry only"
 	@echo "  make spec-tools     Build all spec CLI tools"
 	@echo ""
 	@echo "Index:"

@@ -57,6 +57,15 @@ enum Command {
         #[arg(long, conflicts_with = "json")]
         compact: bool,
     },
+    /// Generate compliance framework-to-spec mapping (spec 102 FR-025)
+    ComplianceReport {
+        /// Filter to a specific framework identifier (e.g. "owasp-asi-2026")
+        #[arg(long)]
+        framework: Option<String>,
+        /// Emit as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Print lifecycle/status summary report
     StatusReport {
         /// Include sorted feature ids per status
@@ -156,6 +165,67 @@ fn main() -> ExitCode {
                 exit_with_prefixed_message(1, format_args!("feature id not found: {feature_id}"))
             }
         },
+        Command::ComplianceReport { framework, json } => {
+            let sorted = match features_sorted(&registry) {
+                Ok(f) => f,
+                Err(msg) => return exit_with_prefixed_message(3, msg),
+            };
+            // Build a map of control → vec of spec IDs that declare coverage.
+            let mut control_map: std::collections::BTreeMap<String, Vec<String>> =
+                std::collections::BTreeMap::new();
+            for f in &sorted {
+                let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
+                if let Some(compliance) = f.get("compliance").and_then(|v| v.as_array()) {
+                    for entry in compliance {
+                        let fw = entry
+                            .get("framework")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+                        if let Some(ref filter) = framework {
+                            if fw != filter.as_str() {
+                                continue;
+                            }
+                        }
+                        if let Some(controls) = entry.get("controls").and_then(|v| v.as_array()) {
+                            for c in controls {
+                                if let Some(ctrl) = c.as_str() {
+                                    let key = format!("{fw}/{ctrl}");
+                                    control_map
+                                        .entry(key)
+                                        .or_default()
+                                        .push(id.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if control_map.is_empty() {
+                eprintln!("No compliance mappings found.");
+                return ExitCode::from(0);
+            }
+            if json {
+                let rows: Vec<serde_json::Value> = control_map
+                    .iter()
+                    .map(|(control, specs)| {
+                        serde_json::json!({
+                            "control": control,
+                            "specIds": specs,
+                            "count": specs.len()
+                        })
+                    })
+                    .collect();
+                if let Err(code) = print_json_or_exit(&rows, false) {
+                    return code;
+                }
+            } else {
+                println!("{:<40} {:<6} specs", "control", "count");
+                for (control, specs) in &control_map {
+                    println!("{:<40} {:<6} {}", control, specs.len(), specs.join(", "));
+                }
+            }
+            ExitCode::SUCCESS
+        }
         Command::StatusReport {
             show_ids,
             json,

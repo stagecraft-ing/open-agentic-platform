@@ -5,6 +5,7 @@
 
 pub mod enrichment;
 pub mod graph;
+pub mod index_bridge;
 pub mod locate;
 pub mod preflight;
 pub mod registry_source;

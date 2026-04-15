@@ -27,6 +27,7 @@ const KNOWN_KEYS: &[&str] = &[
     "owner",
     "risk",
     "implementation",
+    "compliance",
 ];
 
 /// Valid values for the `risk` frontmatter field.
@@ -170,6 +171,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             }
         }
         let extra = extra_frontmatter(repo_root, fm, spec_path, &mut violations)?;
+        let compliance = parse_compliance(fm);
 
         let code_aliases = parse_code_aliases(
             fm,
@@ -198,6 +200,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             owner,
             risk,
             implementation,
+            compliance,
             extra_frontmatter: extra,
         });
     }
@@ -205,6 +208,28 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
     // V-002: required keys checked above; extra invalid types add violations in extra_frontmatter
 
     features.sort_by(|a, b| a.id.cmp(&b.id));
+
+    // ── V-008: validate depends_on references resolve to existing IDs (102 FR-028) ──
+    // depends_on may use short numeric prefixes (e.g. "089") or full slugs ("089-governed-convergence-plan").
+    let all_ids: BTreeSet<String> = seen_ids.keys().cloned().collect();
+    for f in &features {
+        if let Some(ref deps) = f.depends_on {
+            for dep in deps {
+                let found = all_ids.contains(dep)
+                    || all_ids.iter().any(|id| id.starts_with(&format!("{dep}-")));
+                if !found {
+                    violations.push(Violation {
+                        code: "V-008".to_string(),
+                        severity: "warning".to_string(),
+                        message: format!(
+                            "depends_on references non-existent spec id {dep:?}"
+                        ),
+                        path: Some(f.spec_path.clone()),
+                    });
+                }
+            }
+        }
+    }
 
     // ── Factory Build Spec discovery (074 FR-007) ───────────────────────
     let factory_build_specs = discover_factory_build_specs(repo_root)?;
@@ -273,8 +298,18 @@ struct FeatureRecord {
     risk: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     implementation: Option<String>,
+    /// Compliance framework mappings (spec 102 FR-023).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    compliance: Option<Vec<ComplianceEntry>>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
+}
+
+/// A compliance framework mapping entry (spec 102 FR-023/FR-024).
+#[derive(Clone, Debug, Serialize)]
+struct ComplianceEntry {
+    framework: String,
+    controls: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -728,6 +763,42 @@ fn optional_string_list(m: &serde_yaml::Mapping, key: &str) -> Option<Vec<String
         out.push(x.as_str()?.to_string());
     }
     Some(out)
+}
+
+/// Parse the optional `compliance` frontmatter field (spec 102 FR-023).
+///
+/// Expects:
+/// ```yaml
+/// compliance:
+///   - framework: "owasp-asi-2026"
+///     controls: ["ASI01", "ASI05"]
+/// ```
+fn parse_compliance(m: &serde_yaml::Mapping) -> Option<Vec<ComplianceEntry>> {
+    let v = m.get("compliance")?;
+    let arr = v.as_sequence()?;
+    let mut entries = Vec::new();
+    for item in arr {
+        let map = item.as_mapping()?;
+        let framework = map
+            .get(&serde_yaml::Value::String("framework".into()))?
+            .as_str()?
+            .to_string();
+        let controls_val = map.get(&serde_yaml::Value::String("controls".into()))?;
+        let controls_seq = controls_val.as_sequence()?;
+        let controls: Vec<String> = controls_seq
+            .iter()
+            .filter_map(|c| c.as_str().map(|s| s.to_string()))
+            .collect();
+        entries.push(ComplianceEntry {
+            framework,
+            controls,
+        });
+    }
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
 }
 
 /// Token shape aligned with `featuregraph` / `registry.schema.json` `codeAliases` items.

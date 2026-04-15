@@ -15,6 +15,9 @@ code_aliases:
   - GOVERNED_EXCELLENCE
   - GOV_CERT
   - OWASP_ASI_COVERAGE
+compliance:
+  - framework: "owasp-asi-2026"
+    controls: ["ASI01", "ASI03", "ASI05", "ASI07", "ASI09", "ASI10"]
 summary: >
   Meta-spec that formalises the refinement of OAP from a working governed platform
   into the definitive governed operating system for AI-native delivery. Central
