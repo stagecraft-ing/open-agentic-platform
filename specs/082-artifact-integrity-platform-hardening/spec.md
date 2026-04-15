@@ -2,8 +2,8 @@
 id: "082-artifact-integrity-platform-hardening"
 title: "Artifact Integrity, Cross-Run Persistence, and Seam Auth Hardening"
 feature_branch: "feat/082-artifact-integrity-platform-hardening"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 kind: platform
 created: "2026-04-07"
 authors: ["open-agentic-platform"]

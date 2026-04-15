@@ -2,8 +2,8 @@
 id: "085-remote-control-cli"
 title: "Remote Control CLI (oap-ctl)"
 feature_branch: "feat/085-remote-control-cli"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 kind: product
 created: "2026-04-08"
 authors:

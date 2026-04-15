@@ -2,8 +2,8 @@
 id: "086-open-source-launch"
 title: "Open Source Launch Readiness"
 feature_branch: "feat/086-open-source-launch"
-status: draft
-implementation: pending
+status: approved
+implementation: in-progress
 kind: process
 created: "2026-04-08"
 authors:
