@@ -47,5 +47,8 @@
     "./tooltip": "./src/tooltip.tsx",
     "./tooltip-modern": "./src/tooltip-modern.tsx",
     "./utils": "./src/utils.ts"
+  },
+  "oap": {
+    "spec": "032-opc-inspect-governance-wiring-mvp"
   }
 }

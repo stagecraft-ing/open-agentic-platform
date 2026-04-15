@@ -5,11 +5,18 @@ use crate::types::{
     Diagnostic, ImplementingPath, PackageRecord, TraceMapping, TraceSource, Traceability,
 };
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 /// Build the traceability layer from spec records and package inventory.
+///
+/// `extra_known_paths` contains non-package paths that are valid implements
+/// targets (e.g. factory adapter directories). `repo_root` is used as a
+/// fallback to verify that declared paths exist on disk.
 pub fn build_traceability(
     specs: &[SpecRecord],
     packages: &[PackageRecord],
+    extra_known_paths: &BTreeSet<String>,
+    repo_root: &Path,
 ) -> (Traceability, Vec<Diagnostic>) {
     let mut diagnostics = Vec::new();
     let package_paths: BTreeSet<String> = packages.iter().map(|p| p.path.clone()).collect();
@@ -19,12 +26,15 @@ pub fn build_traceability(
 
     for spec in specs {
         for imp in &spec.implements {
-            // Validate the path exists
-            if !package_paths.contains(&imp.path) {
+            // Validate the path exists: check packages, then adapters, then disk
+            if !package_paths.contains(&imp.path)
+                && !extra_known_paths.contains(&imp.path)
+                && !repo_root.join(&imp.path).is_dir()
+            {
                 diagnostics.push(Diagnostic {
                     code: "I-101".into(),
                     message: format!(
-                        "spec {:?} declares implements path {:?} which is not a known package",
+                        "spec {:?} declares implements path {:?} which is not a known package, adapter, or directory",
                         spec.id, imp.path
                     ),
                     path: None,

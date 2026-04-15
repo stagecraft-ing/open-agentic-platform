@@ -126,16 +126,21 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     // Sort packages by path for determinism
     packages.sort_by(|a, b| a.path.cmp(&b.path));
 
-    // ── Layer 2: Spec scanning + traceability ────────────────────────────
-
-    let specs = spec_scanner::scan_specs(repo_root);
-    let (traceability, xref_diags) = xref::build_traceability(&specs, &packages);
-    all_diagnostics.extend(xref_diags);
-
-    // ── Layer 3: Factory adapters ────────────────────────────────────────
+    // ── Layer 3: Factory adapters (before xref so adapter paths are ─────
+    // ── available for implements-path validation) ────────────────────────
 
     let (factory_adapters, factory_diags) = factory::scan_adapters(repo_root);
     all_diagnostics.extend(factory_diags);
+
+    let adapter_paths: std::collections::BTreeSet<String> =
+        factory_adapters.iter().map(|a| a.path.clone()).collect();
+
+    // ── Layer 2: Spec scanning + traceability ────────────────────────────
+
+    let specs = spec_scanner::scan_specs(repo_root);
+    let (traceability, xref_diags) =
+        xref::build_traceability(&specs, &packages, &adapter_paths, repo_root);
+    all_diagnostics.extend(xref_diags);
 
     // ── Layer 4: Infrastructure ──────────────────────────────────────────
 
