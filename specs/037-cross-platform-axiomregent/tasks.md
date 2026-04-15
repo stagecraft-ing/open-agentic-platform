@@ -18,9 +18,9 @@ feature: "037-cross-platform-axiomregent"
   - Binary runs: MCP initialize handshake succeeds, tools/list returns all 21 tools
   - Size: 7.3 MB (well under 30 MB NF-001 cap)
 
-- [ ] **T003** — Build macOS x86_64 binary (CI or cross-compile)
-  - Target: `x86_64-apple-darwin`
-  - Deferred to CI (requires macOS runner)
+- [x] **T003** — ~~Build macOS x86_64 binary~~ **DROPPED** (2026-04-15)
+  - Target `x86_64-apple-darwin` removed — Intel Mac builds not feasible to maintain
+  - CI workflow matrix entry removed; Rust compile-time branches removed
 
 - [ ] **T004** — Build Linux x86_64 and arm64 binaries (CI or cross-compile)
   - Targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`
@@ -36,7 +36,7 @@ feature: "037-cross-platform-axiomregent"
 
 - [x] **T006** — Create CI workflow for cross-platform builds
   - `.github/workflows/build-axiomregent.yml`
-  - Matrix: macOS (arm64 + x86_64), Ubuntu (x86_64), Windows (x86_64)
+  - Matrix: macOS (arm64), Ubuntu (x86_64), Windows (x86_64)
   - Separate job for Linux arm64 (cross-compilation with aarch64-linux-gnu-gcc)
   - Triggered on push/PR to axiomregent or dependency crates
   - Uploads binaries as artifacts
@@ -54,4 +54,5 @@ feature: "037-cross-platform-axiomregent"
 ## Notes
 
 - **Stale `Tier` import fixed** — `crates/agent/src/agent.rs:8` still imported the old `Tier` name (removed in Feature 036 wide pass). Updated to `ToolTier`. This was a 036 residual, not a 037 issue.
-- **T003/T004 deferred to CI** — macOS x86_64 and Linux targets cannot be cross-compiled from Windows due to C dependencies (rusqlite bundled, zstd). The CI workflow handles these via platform-native runners.
+- **T003 dropped** — Intel Mac (`x86_64-apple-darwin`) target removed from all workflows and Rust code on 2026-04-15. Not feasible or realistic to maintain.
+- **T004 deferred to CI** — Linux targets cannot be cross-compiled from Windows due to C dependencies (rusqlite bundled, zstd). The CI workflow handles these via platform-native runners.

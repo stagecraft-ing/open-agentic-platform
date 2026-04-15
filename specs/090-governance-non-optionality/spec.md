@@ -64,7 +64,7 @@ Additional risks:
 - Files: `governed_claude.rs`, `AgentExecution.tsx`, `ClaudeCodeSession.tsx`
 
 ### 5. Cross-platform axiomregent binary (3 days, extends spec 037)
-- Add CI build targets for `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`
+- Add CI build targets for `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` _(Intel Mac `x86_64-apple-darwin` dropped 2026-04-15)_
 - Bundle all targets in Tauri sidecar config
 - Files: `.github/workflows/`, `apps/desktop/src-tauri/tauri.conf.json`
 

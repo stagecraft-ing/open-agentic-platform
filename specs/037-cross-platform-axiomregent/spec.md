@@ -30,7 +30,7 @@ This feature builds axiomregent for all five Tauri-supported targets and integra
 
 ### In scope
 
-- **Cross-compile axiomregent** for five targets: `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`.
+- **Cross-compile axiomregent** for four targets: `aarch64-apple-darwin`, `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`. _(Intel Mac `x86_64-apple-darwin` dropped 2026-04-15 — not feasible to maintain; Apple Silicon only.)_
 - **Bundle binaries** in `apps/desktop/src-tauri/binaries/` with Tauri's `{name}-{triple}[.exe]` naming convention.
 - **Build script** — a reproducible build/fetch script (following the gitctx-mcp pattern) that can be run locally and in CI.
 - **Verify sidecar spawn on Windows** — confirm `spawn_axiomregent` works with the bundled Windows binary (Tauri's `app.shell().sidecar()` resolves `axiomregent` → `axiomregent-x86_64-pc-windows-msvc.exe`).
@@ -47,7 +47,7 @@ This feature builds axiomregent for all five Tauri-supported targets and integra
 
 ### Functional
 
-- **FR-001**: `apps/desktop/src-tauri/binaries/` contains axiomregent binaries for all five target triples. Windows binary has `.exe` extension.
+- **FR-001**: `apps/desktop/src-tauri/binaries/` contains axiomregent binaries for all four target triples. Windows binary has `.exe` extension.
 - **FR-002**: `spawn_axiomregent()` successfully starts the sidecar on at least macOS arm64 and Windows x86_64, with port discovery completing within 5 seconds.
 - **FR-003**: A build script (`scripts/build-axiomregent.sh` or equivalent) can produce binaries for all targets from a single host (using cross-compilation or CI matrix).
 - **FR-004**: The governed execution path (Feature 035) works end-to-end on Windows — permission checks, tier enforcement, and audit logging behave identically to macOS.
@@ -68,7 +68,7 @@ Tauri 2's `app.shell().sidecar("axiomregent")` resolves to `binaries/axiomregent
 | Target triple | OS | Arch | Notes |
 |---|---|---|---|
 | `aarch64-apple-darwin` | macOS | arm64 | Already exists and verified |
-| `x86_64-apple-darwin` | macOS | x86_64 | Intel Macs |
+| ~~`x86_64-apple-darwin`~~ | ~~macOS~~ | ~~x86_64~~ | Dropped 2026-04-15 — Intel Mac not feasible to maintain |
 | `x86_64-unknown-linux-gnu` | Linux | x86_64 | Most Linux dev machines |
 | `aarch64-unknown-linux-gnu` | Linux | arm64 | Linux on ARM (Raspberry Pi, cloud ARM) |
 | `x86_64-pc-windows-msvc` | Windows | x86_64 | Windows dev machines |

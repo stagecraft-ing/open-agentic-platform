@@ -32,8 +32,6 @@ struct GithubAsset {
 fn platform_asset_suffix() -> &'static str {
     if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
         "x64-setup.exe"
-    } else if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
-        "x64.dmg"
     } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         "aarch64.dmg"
     } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {

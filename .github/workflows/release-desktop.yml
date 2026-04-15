@@ -30,8 +30,7 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          # x86_64-apple-darwin removed — Intel Mac builds dropped (2026-04-15)
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - os: windows-latest
@@ -161,10 +160,7 @@ jobs:
             target: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin'
             config: src-tauri/tauri.macos.conf.json
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            args: '--target x86_64-apple-darwin'
-            config: src-tauri/tauri.macos.conf.json
+          # x86_64-apple-darwin removed — Intel Mac builds dropped (2026-04-15)
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             args: ''
@@ -280,7 +276,6 @@ jobs:
             | Platform | File |
             |----------|------|
             | macOS (Apple Silicon) | `.dmg` (aarch64) |
-            | macOS (Intel) | `.dmg` (x86_64) |
             | Linux | `.AppImage`, `.deb`, `.rpm` |
             | Windows | `.msi`, `.exe` (NSIS) |
           releaseDraft: true
@@ -308,7 +303,6 @@ jobs:
             | Platform | File |
             |----------|------|
             | macOS (Apple Silicon) | `.dmg` (aarch64) |
-            | macOS (Intel) | `.dmg` (x86_64) |
             | Linux | `.AppImage`, `.deb`, `.rpm` |
             | Windows | `.msi`, `.exe` (NSIS) |
           releaseDraft: true
