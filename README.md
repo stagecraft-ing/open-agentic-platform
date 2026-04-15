@@ -269,6 +269,15 @@ That is the real idea: **make AI-native engineering operationally trustworthy.**
 
 ---
 
+## Contributing and governance
+
+- [Contributing Guide](CONTRIBUTING.md) — how to get started, branch conventions, and PR process
+- [Code of Conduct](CODE_OF_CONDUCT.md) — community standards (Contributor Covenant v2.1)
+- [Security Policy](SECURITY.md) — reporting vulnerabilities
+- [License](LICENSE) — AGPL-3.0
+
+---
+
 ## Claude-native development
 
 This repository ships with first-class [Claude Code](https://docs.anthropic.com/en/docs/claude-code) integration. The `.claude/` directory contains development infrastructure that contributors can use immediately:

@@ -26,3 +26,5 @@ export {
 export { TAB_SCREEN_NAMES } from './useAnalytics';
 export { useConversationEvents } from './useConversationEvents';
 export type { PersistedEvent } from './useConversationEvents';
+export { useStagecraftSync } from './useStagecraftSync';
+export type { StagecraftSyncOptions, StagecraftSyncState } from './useStagecraftSync';

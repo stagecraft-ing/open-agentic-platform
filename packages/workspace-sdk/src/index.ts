@@ -10,3 +10,4 @@ export * from "./knowledge";
 export * from "./factory";
 export * from "./sync";
 export * from "./auth";
+export * from "./client";

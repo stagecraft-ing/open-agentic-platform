@@ -9,6 +9,7 @@
     "./knowledge": "./src/knowledge.ts",
     "./factory": "./src/factory.ts",
     "./sync": "./src/sync.ts",
-    "./auth": "./src/auth.ts"
+    "./auth": "./src/auth.ts",
+    "./client": "./src/client.ts"
   }
 }

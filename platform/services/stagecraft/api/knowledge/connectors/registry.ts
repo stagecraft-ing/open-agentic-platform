@@ -11,6 +11,9 @@
 import type { SourceConnector } from "./types";
 import { UploadConnector } from "./upload";
 import { SharePointConnector } from "./sharepoint";
+import { S3Connector } from "./s3.js";
+import { AzureBlobConnector } from "./azure-blob.js";
+import { GcsConnector } from "./gcs.js";
 
 const connectors = new Map<string, SourceConnector>();
 
@@ -21,6 +24,9 @@ function register(connector: SourceConnector) {
 // Register all built-in connectors
 register(new UploadConnector());
 register(new SharePointConnector());
+register(new S3Connector());
+register(new AzureBlobConnector());
+register(new GcsConnector());
 
 /**
  * Get the connector implementation for a given type.
