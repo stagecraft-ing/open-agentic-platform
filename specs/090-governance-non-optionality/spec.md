@@ -2,7 +2,7 @@
 id: "090-governance-non-optionality"
 title: "Governance Non-Optionality"
 status: approved
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-04-11"
 risk: high

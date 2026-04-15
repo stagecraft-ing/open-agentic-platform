@@ -1230,14 +1230,22 @@ pub async fn create_web_server(
 
 /// Start web server mode (alternative to Tauri GUI).
 ///
-/// In standalone web mode there is no Tauri SidecarState, so we create a fresh
-/// port slot seeded from the environment variable (if set).
+/// In standalone web mode there is no Tauri SidecarState. We seed from the
+/// environment variable (if set) **and** attempt to spawn axiomregent as a
+/// standalone process so the port slot is updated even when the sidecar starts
+/// after the web server (spec 090 SC-090-3).
 pub async fn start_web_mode(port: Option<u16>) -> Result<(), Box<dyn std::error::Error>> {
     let port = port.unwrap_or(8080);
     let initial_port: Option<u16> = std::env::var("OPC_AXIOMREGENT_PORT")
         .ok()
         .and_then(|s| s.parse().ok());
     let axiomregent_port = Arc::new(std::sync::Mutex::new(initial_port));
+
+    // Spawn axiomregent in the background if no port was provided at startup.
+    // This closes the race where the sidecar starts after the web server (SC-090-3).
+    if initial_port.is_none() {
+        crate::sidecars::spawn_axiomregent_standalone(axiomregent_port.clone());
+    }
 
     println!("🚀 Starting Opcode in web server mode...");
     create_web_server(port, axiomregent_port).await

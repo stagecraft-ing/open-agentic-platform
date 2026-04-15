@@ -132,6 +132,7 @@ export interface Agent {
 export interface ExecuteAgentResponse {
   run_id: number;
   governance_mode: 'governed' | 'bypass';
+  governance_bypass_reason?: string;
 }
 
 /** Port discovery for bundled sidecars (`get_sidecar_ports`). */

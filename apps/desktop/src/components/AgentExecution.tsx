@@ -155,6 +155,7 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({
   const elapsedTimeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [runId, setRunId] = useState<number | null>(null);
   const [governanceMode, setGovernanceMode] = useState<'governed' | 'bypass' | null>(null);
+  const [governanceBypassReason, setGovernanceBypassReason] = useState<string | null>(null);
 
   // Filter out messages that shouldn't be displayed
   const displayableMessages = React.useMemo(() => {
@@ -336,6 +337,7 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({
       const exec = await api.executeAgent(agent.id!, projectPath, task, model);
       const executionRunId = exec.run_id;
       setGovernanceMode(exec.governance_mode);
+      setGovernanceBypassReason(exec.governance_bypass_reason ?? null);
       console.log("Agent execution started with run ID:", executionRunId, exec.governance_mode);
       setRunId(executionRunId);
       
@@ -595,6 +597,7 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({
                           ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
                           : 'bg-amber-500/15 text-amber-900 dark:text-amber-200'
                       )}
+                      title={governanceBypassReason ?? undefined}
                     >
                       {governanceMode === 'governed' ? 'Governed' : 'Bypass'}
                     </span>

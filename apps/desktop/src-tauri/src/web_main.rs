@@ -18,6 +18,54 @@ pub mod sidecars {
     pub struct SidecarState {
         pub axiomregent_port: Arc<Mutex<Option<u16>>>,
     }
+
+    /// Parse a line for `OPC_AXIOMREGENT_PORT=<u16>` (first line win).
+    pub fn parse_axiomregent_port_line(line: &str) -> Option<u16> {
+        line.trim()
+            .strip_prefix("OPC_AXIOMREGENT_PORT=")
+            .and_then(|s| s.parse::<u16>().ok())
+    }
+
+    /// Spawn axiomregent as a standalone OS process (no Tauri shell).
+    ///
+    /// Used by `start_web_mode` where there is no Tauri `AppHandle`. Watches stderr
+    /// for the `OPC_AXIOMREGENT_PORT=<port>` announcement and writes it into
+    /// `port_slot`, fixing the race described in spec 090 SC-090-3.
+    pub fn spawn_axiomregent_standalone(port_slot: Arc<Mutex<Option<u16>>>) {
+        let binary = match crate::governed_claude::bundled_axiomregent_binary_path() {
+            Ok(p) => p,
+            Err(e) => {
+                log::warn!("axiomregent binary not available for standalone spawn: {e}");
+                return;
+            }
+        };
+        tokio::spawn(async move {
+            let mut child = match tokio::process::Command::new(&binary)
+                .stderr(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::null())
+                .spawn()
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    log::error!("Failed to spawn axiomregent standalone: {e}");
+                    return;
+                }
+            };
+            if let Some(stderr) = child.stderr.take() {
+                let reader = tokio::io::BufReader::new(stderr);
+                let mut lines = tokio::io::AsyncBufReadExt::lines(reader);
+                while let Ok(Some(line)) = lines.next_line().await {
+                    if let Some(port) = parse_axiomregent_port_line(&line) {
+                        *port_slot.lock().unwrap() = Some(port);
+                        log::info!("axiomregent standalone probe port {port}");
+                        break;
+                    }
+                }
+            }
+            // Keep the child alive — it runs for the lifetime of the web server.
+            let _ = child.wait().await;
+        });
+    }
 }
 mod process;
 mod types;

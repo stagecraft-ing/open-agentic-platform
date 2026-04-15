@@ -33,6 +33,7 @@ fn find_claude_binary(app_handle: &AppHandle) -> Result<String, String> {
 pub struct ExecuteAgentResponse {
     pub run_id: i64,
     pub governance_mode: String,
+    pub governance_bypass_reason: Option<String>,
 }
 
 /// Represents a CC Agent stored in the database
@@ -1141,6 +1142,7 @@ pub async fn execute_agent(
     Ok(ExecuteAgentResponse {
         run_id,
         governance_mode: mode.to_string(),
+        governance_bypass_reason: bypass_reason,
     })
 }
 

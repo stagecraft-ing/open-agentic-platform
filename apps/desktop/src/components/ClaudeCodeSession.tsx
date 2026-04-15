@@ -117,9 +117,11 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
   // Add collapsed state for queued prompts
   const [queuedPromptsCollapsed, setQueuedPromptsCollapsed] = useState(false);
   const [governanceMode, setGovernanceMode] = useState<'governed' | 'bypass' | null>(null);
+  const [governanceBypassReason, setGovernanceBypassReason] = useState<string | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const unlistenRefs = useRef<UnlistenFn[]>([]);
+  const govModeUnlistenRef = useRef<UnlistenFn | null>(null);
   const hasActiveSessionRef = useRef(false);
   const floatingPromptRef = useRef<FloatingPromptInputRef>(null);
   const queuedPromptsRef = useRef<Array<{ id: string; prompt: string; model: "sonnet" | "opus" }>>([]);
@@ -435,7 +437,9 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
     // Clean up previous listeners
     unlistenRefs.current.forEach(unlisten => unlisten());
     unlistenRefs.current = [];
-    
+    if (govModeUnlistenRef.current) govModeUnlistenRef.current();
+    govModeUnlistenRef.current = null;
+
     // IMPORTANT: Set the session ID before setting up listeners
     setClaudeSessionId(sessionId);
     
@@ -517,10 +521,11 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       
       // Only clean up and set up new listeners if not already listening
       if (!isListeningRef.current) {
-        // Clean up previous listeners
+        // Clean up previous listeners (govModeUnlistenRef is cleaned up at
+        // its own registration site below to avoid TS control-flow narrowing to never).
         unlistenRefs.current.forEach(unlisten => unlisten());
         unlistenRefs.current = [];
-        
+
         // Mark as setting up listeners
         isListeningRef.current = true;
         
@@ -806,6 +811,14 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
           processComplete(evt.payload);
         });
 
+        // Governance-mode listener lives in its own ref so it survives the
+        // generic→session-specific listener promotion (spec 090 SC-090-2).
+        if (govModeUnlistenRef.current) govModeUnlistenRef.current();
+        govModeUnlistenRef.current = await listen<{ mode: string; governance_bypass_reason?: string }>('governance-mode', (evt) => {
+          setGovernanceMode(evt.payload.mode === 'governed' ? 'governed' : 'bypass');
+          setGovernanceBypassReason(evt.payload.governance_bypass_reason ?? null);
+        });
+
         // Store the generic unlisteners for now; they may be replaced later.
         unlistenRefs.current = [genericOutputUnlisten, genericErrorUnlisten, genericCompleteUnlisten];
 
@@ -1053,13 +1066,15 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       // Clean up listeners
       unlistenRefs.current.forEach(unlisten => unlisten());
       unlistenRefs.current = [];
-      
+      if (govModeUnlistenRef.current) govModeUnlistenRef.current();
+      govModeUnlistenRef.current = null;
+
       // Reset states
       setIsLoading(false);
       hasActiveSessionRef.current = false;
       isListeningRef.current = false;
       setError(null);
-      
+
       // Clear queued prompts
       setQueuedPrompts([]);
       
@@ -1087,7 +1102,9 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       // Clean up listeners anyway
       unlistenRefs.current.forEach(unlisten => unlisten());
       unlistenRefs.current = [];
-      
+      if (govModeUnlistenRef.current) govModeUnlistenRef.current();
+      govModeUnlistenRef.current = null;
+
       // Reset states to allow user to continue
       setIsLoading(false);
       hasActiveSessionRef.current = false;
@@ -1222,7 +1239,9 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       // Clean up listeners
       unlistenRefs.current.forEach(unlisten => unlisten());
       unlistenRefs.current = [];
-      
+      if (govModeUnlistenRef.current) govModeUnlistenRef.current();
+      govModeUnlistenRef.current = null;
+
       // Clear checkpoint manager when session ends
       if (effectiveSession) {
         api.clearCheckpointManager(effectiveSession.id).catch(err => {
@@ -1543,6 +1562,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
                       ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
                       : 'bg-amber-500/15 text-amber-900 dark:text-amber-200'
                   )}
+                  title={governanceBypassReason ?? undefined}
                 >
                   {governanceMode === 'governed' ? 'Governed' : 'Bypass'}
                 </span>
