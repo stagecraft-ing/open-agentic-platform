@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:79617eeeb9533ab1fe8243b7248e97d01d87c0150f1fb2311587bd6aeb6e0ff1",
+  "graph_fingerprint": "sha256:65b608d941452c18266f5fba0586fc46129a9c8fa3f3f18b379d7dfeca32a717",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1510,7 +1510,7 @@
       "title": "Factory Ingestion as First-Class Delivery Engine",
       "spec_path": "specs/074-factory-ingestion/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1928,6 +1928,24 @@
       "group": "",
       "depends_on": [
         "089"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "101-codebase-index-mvp",
+      "title": "Codebase Index MVP — Governed Structural Inventory",
+      "spec_path": "specs/101-codebase-index-mvp/spec.md",
+      "status": "approved",
+      "implementation": "in-progress",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001",
+        "003"
       ],
       "impl_files": [],
       "test_files": [],
