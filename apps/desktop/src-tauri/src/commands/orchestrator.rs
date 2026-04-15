@@ -377,11 +377,22 @@ pub async fn orchestrate_manifest(
     manifest_path: String,
     project_path: String,
     db: State<'_, AgentDb>,
+    stagecraft: State<'_, super::stagecraft_client::StagecraftState>,
 ) -> Result<RunSummary, String> {
     let manifest_text = std::fs::read_to_string(&manifest_path)
         .map_err(|e| format!("read manifest failed: {e}"))?;
-    let manifest: WorkflowManifest =
+    let mut manifest: WorkflowManifest =
         serde_yaml::from_str(&manifest_text).map_err(|e| format!("parse manifest failed: {e}"))?;
+
+    // Inject the active workspace into the manifest if not already set (spec 092).
+    if manifest.workspace_id.is_none() {
+        if let Some(ref client) = stagecraft.0 {
+            let ws = client.workspace_id();
+            if !ws.is_empty() {
+                manifest.workspace_id = Some(ws);
+            }
+        }
+    }
 
     let agent_profiles = {
         let conn = db.0.lock().map_err(|e| e.to_string())?;
