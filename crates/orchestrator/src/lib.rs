@@ -228,6 +228,9 @@ pub struct DispatchOptions {
     pub governance_mode: Option<String>,
     /// Platform sync tracker for promotion eligibility (099 Slice 2).
     pub sync_tracker: Option<promotion::SyncTracker>,
+    /// Hook to create a checkpoint when a gate is reached (095 SC-095-4).
+    /// Called with `(step_id, checkpoint_id)`, returns `Ok(merkle_root)` or an error.
+    pub on_gate_checkpoint: Option<Arc<dyn Fn(&str, &str) -> Result<String, String> + Send + Sync>>,
 }
 
 /// Outcome of gate evaluation in the non-persisted dispatch path.
@@ -1035,6 +1038,37 @@ pub async fn dispatch_manifest(
             continue;
         }
 
+        // Cache-hit detection: skip execution if all outputs are already in CAS (094 SC-094-5).
+        #[cfg(feature = "local-sqlite")]
+        if let (Some(cas), Some(meta_store)) = (&options.cas, &options.artifact_metadata)
+            && let Some(cached) = artifact::check_step_cache(meta_store, cas, &step.id, &step.outputs)
+        {
+            // Restore cached artifacts to the run directory.
+            let mut restored = true;
+            let mut hashes = HashMap::new();
+            for (filename, hash) in &cached {
+                let target = artifact_base.output_artifact_path(run_id, &step.id, filename);
+                if let Some(parent) = target.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if !cas.retrieve(hash, filename, &target).unwrap_or(false) {
+                    restored = false;
+                    break;
+                }
+                hashes.insert(filename.clone(), hash.clone());
+            }
+            if restored {
+                statuses[idx] = StepStatus::Success;
+                step_output_hashes[idx] = hashes.clone();
+                completed_hashes.insert(step.id.clone(), hashes);
+                eprintln!(
+                    "  [{}/{}] {} (agent: {}) — cache hit (094)",
+                    step_num + 1, total_steps, step.id, step.agent,
+                );
+                continue;
+            }
+        }
+
         let input_paths = resolve_input_paths(artifact_base, run_id, step);
         if let Some(missing_path) = input_paths.iter().find(|p| !p.exists()).cloned() {
             statuses[idx] = StepStatus::Failure;
@@ -1563,6 +1597,49 @@ pub async fn dispatch_manifest_persisted(
             continue;
         }
 
+        // Cache-hit detection: skip execution if all outputs are already in CAS (094 SC-094-5).
+        #[cfg(feature = "local-sqlite")]
+        if let (Some(cas), Some(meta_store)) = (&options.cas, &options.artifact_metadata)
+            && let Some(cached) = artifact::check_step_cache(meta_store, cas, &step.id, &step.outputs)
+        {
+            let mut restored = true;
+            let mut hashes = HashMap::new();
+            for (filename, hash) in &cached {
+                let target = artifact_base.output_artifact_path(run_id, &step.id, filename);
+                if let Some(parent) = target.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if !cas.retrieve(hash, filename, &target).unwrap_or(false) {
+                    restored = false;
+                    break;
+                }
+                hashes.insert(filename.clone(), hash.clone());
+            }
+            if restored {
+                statuses[idx] = StepStatus::Success;
+                step_output_hashes[idx] = hashes.clone();
+                completed_hashes.insert(step.id.clone(), hashes);
+                eprintln!("  Step {} — cache hit (094)", step.id);
+
+                wf_state.mark_step_finished(
+                    &step.id,
+                    crate::state::StepExecutionStatus::CacheHit,
+                    now_ts(),
+                    None,
+                    None,
+                );
+                persist_and_emit(
+                    persistence,
+                    &wf_state,
+                    run_id,
+                    "step_cache_hit",
+                    &serde_json::json!({ "step_id": step.id }),
+                )
+                .await?;
+                continue;
+            }
+        }
+
         let input_paths = resolve_input_paths(artifact_base, run_id, step);
         if let Some(missing_path) = input_paths.iter().find(|p| !p.exists()).cloned() {
             statuses[idx] = StepStatus::Failure;
@@ -1721,7 +1798,23 @@ pub async fn dispatch_manifest_persisted(
                 _ => None,
             };
 
-            // Emit gate_reached event with checkpoint binding (095 Slice 5).
+            // Auto-create checkpoint on gate entry (095 SC-095-4).
+            let gate_merkle_root = if let Some(ref hook) = options.on_gate_checkpoint {
+                let cp_id = gate_checkpoint_id
+                    .clone()
+                    .unwrap_or_else(|| format!("gate-{}", step.id));
+                match hook(&step.id, &cp_id) {
+                    Ok(root) => Some(root),
+                    Err(e) => {
+                        eprintln!("[095] gate checkpoint creation warning: {e}");
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
+            // Emit gate_reached event with checkpoint binding and merkle root.
             persist_and_emit(
                 persistence,
                 &wf_state,
@@ -1730,6 +1823,7 @@ pub async fn dispatch_manifest_persisted(
                 &serde_json::json!({
                     "step_id": step.id,
                     "checkpoint_id": gate_checkpoint_id,
+                    "merkle_root": gate_merkle_root,
                 }),
             )
             .await?;
@@ -1753,6 +1847,7 @@ pub async fn dispatch_manifest_persisted(
                         &serde_json::json!({
                             "step_id": step.id,
                             "checkpoint_id": gate_checkpoint_id,
+                            "merkle_root": gate_merkle_root,
                         }),
                     )
                     .await?;

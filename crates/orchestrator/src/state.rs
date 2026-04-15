@@ -36,6 +36,9 @@ pub enum StepExecutionStatus {
     Completed,
     Failed,
     Skipped,
+    /// Step was satisfied from the content-addressed cache — no agent execution required (094 SC-094-5).
+    #[serde(rename = "cache_hit")]
+    CacheHit,
 }
 
 /// Optional gate information attached to a step.

@@ -973,6 +973,7 @@ fn step_status_to_str(status: &StepExecutionStatus) -> &'static str {
         StepExecutionStatus::Completed => "completed",
         StepExecutionStatus::Failed => "failed",
         StepExecutionStatus::Skipped => "skipped",
+        StepExecutionStatus::CacheHit => "cache_hit",
     }
 }
 
@@ -983,6 +984,7 @@ fn step_status_from_str(s: &str) -> Result<StepExecutionStatus, &'static str> {
         "completed" => Ok(StepExecutionStatus::Completed),
         "failed" => Ok(StepExecutionStatus::Failed),
         "skipped" => Ok(StepExecutionStatus::Skipped),
+        "cache_hit" => Ok(StepExecutionStatus::CacheHit),
         _ => Err("unrecognized step status"),
     }
 }

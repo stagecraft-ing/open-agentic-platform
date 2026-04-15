@@ -795,6 +795,7 @@ pub async fn start_factory_pipeline(
             artifact_metadata: None,
             governance_mode: Some(governance_mode_str.clone()),
             sync_tracker: Some(sync_tracker.clone()),
+            on_gate_checkpoint: None,
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -1029,6 +1030,7 @@ pub async fn start_factory_pipeline(
             artifact_metadata: None,
             governance_mode: Some(governance_mode_str),
             sync_tracker: Some(sync_tracker.clone()),
+            on_gate_checkpoint: None,
         };
 
         let summary2 = match dispatch_manifest(
@@ -1565,6 +1567,7 @@ pub async fn resume_factory_pipeline(
         artifact_metadata: None,
         governance_mode: Some(governance_mode_str),
         sync_tracker: Some(sync_tracker),
+        on_gate_checkpoint: None,
     };
 
     let app_handle = app.clone();

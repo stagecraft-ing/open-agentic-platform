@@ -458,6 +458,59 @@ impl ArtifactMetadataStore {
         )?;
         Ok(count > 0)
     }
+
+    /// Find the most recent artifact records for a step (any workflow).
+    /// Returns `(filename, content_hash)` pairs — used for cache-hit detection (094 SC-094-5).
+    pub fn find_step_cache(
+        &self,
+        step_id: &str,
+    ) -> rusqlite::Result<Vec<(String, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT filename, content_hash FROM artifact_records
+             WHERE step_id = ?1
+             ORDER BY created_at DESC"
+        )?;
+        let rows = stmt.query_map([step_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        // Deduplicate: keep the most recent record per filename.
+        let mut seen = std::collections::HashSet::new();
+        let mut result = Vec::new();
+        for row in rows {
+            let (filename, hash) = row?;
+            if seen.insert(filename.clone()) {
+                result.push((filename, hash));
+            }
+        }
+        Ok(result)
+    }
+}
+
+/// Check if all expected outputs for a step are cached in the CAS (094 SC-094-5).
+///
+/// Returns `Some(Vec<(filename, content_hash)>)` if ALL outputs are cached, `None` otherwise.
+#[cfg(feature = "local-sqlite")]
+pub fn check_step_cache(
+    meta_store: &std::sync::Mutex<ArtifactMetadataStore>,
+    cas: &ContentAddressedStore,
+    step_id: &str,
+    expected_outputs: &[String],
+) -> Option<Vec<(String, String)>> {
+    let store = meta_store.lock().ok()?;
+    let cached = store.find_step_cache(step_id).ok()?;
+    if cached.is_empty() {
+        return None;
+    }
+    // Check that every expected output has a cached artifact in the CAS.
+    let mut hits = Vec::new();
+    for output_name in expected_outputs {
+        let entry = cached.iter().find(|(f, _)| f == output_name)?;
+        if !cas.exists(&entry.1) {
+            return None; // CAS entry missing — cache incomplete
+        }
+        hits.push((entry.0.clone(), entry.1.clone()));
+    }
+    Some(hits)
 }
 
 #[cfg(test)]
