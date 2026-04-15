@@ -28,7 +28,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # TODO: Update to your GHCR org/repo path before deploying (e.g. ghcr.io/your-org/open-agentic-platform/stagecraft)
   IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
 
 jobs:
@@ -47,9 +46,9 @@ jobs:
       image-tag: ${{ steps.meta.outputs.sha-tag }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22
           cache: npm
@@ -64,7 +63,9 @@ jobs:
         working-directory: platform/services/stagecraft
 
       - name: Install Encore CLI
-        run: curl -L https://encore.dev/install.sh | bash
+        run: |
+          ENCORE_VERSION="1.46.8"
+          curl -fsSL "https://encore.dev/install.sh" | bash -s -- --version "${ENCORE_VERSION}"
 
       - name: Compute image tags
         id: meta
@@ -84,7 +85,7 @@ jobs:
         run: docker tag ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }} ${{ env.IMAGE }}:latest
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -103,54 +104,27 @@ jobs:
     environment: production
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install Helm
-        uses: azure/setup-helm@v5
+        uses: azure/setup-helm@f0accbfd55e3332a28f721b8202b1016cecf90d5 # v5
 
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_HETZNER }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
-
-      - name: Ensure GHCR image-pull secret
-        run: |
-          kubectl -n stagecraft-system create secret docker-registry ghcr-credentials \
-            --docker-server=ghcr.io \
-            --docker-username=${{ github.actor }} \
-            --docker-password=${{ secrets.GHCR_PAT }} \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy stagecraft via Helm
-        run: |
-          helm upgrade --install stagecraft platform/charts/stagecraft \
-            --namespace stagecraft-system \
-            -f platform/charts/stagecraft/values.yaml \
-            -f platform/charts/stagecraft/values-hetzner.yaml \
-            --set image.repository=${{ env.IMAGE }} \
-            --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
-            --set "ingress.host=${{ secrets.DOMAIN }}" \
-            --set "oidc.endpoint=https://auth.${{ secrets.DOMAIN }}" \
-            --set "oidc.deploydAudience=https://deploy.${{ secrets.DOMAIN }}" \
-            --wait --timeout 600s
-
-      - name: Verify rollout
-        run: |
-          kubectl -n stagecraft-system rollout status deployment/stagecraft-api --timeout=120s
-          kubectl -n stagecraft-system get pods -l app=stagecraft-api
-
-      - name: Debug failed deploy
-        if: failure()
-        run: |
-          echo "=== Pod status ==="
-          kubectl -n stagecraft-system get pods -l app=stagecraft-api -o wide
-          echo ""
-          echo "=== Pod describe ==="
-          kubectl -n stagecraft-system describe pods -l app=stagecraft-api
-          echo ""
-          echo "=== Pod logs (latest) ==="
-          kubectl -n stagecraft-system logs -l app=stagecraft-api --tail=100 --all-containers
-          echo ""
-          echo "=== Events ==="
-          kubectl -n stagecraft-system get events --sort-by='.lastTimestamp' | tail -30
+      - name: Deploy to Hetzner
+        uses: ./.github/actions/helm-deploy
+        with:
+          namespace: stagecraft-system
+          release-name: stagecraft
+          chart-path: platform/charts/stagecraft
+          values-files: platform/charts/stagecraft/values.yaml,platform/charts/stagecraft/values-hetzner.yaml
+          helm-set-args: >-
+            --set image.repository=${{ env.IMAGE }}
+            --set image.tag=${{ needs.build-and-push.outputs.image-tag }}
+            --set "ingress.host=${{ secrets.DOMAIN }}"
+            --set "oidc.endpoint=https://auth.${{ secrets.DOMAIN }}"
+            --set "oidc.deploydAudience=https://deploy.${{ secrets.DOMAIN }}"
+          app-label: stagecraft-api
+          kubeconfig-b64: ${{ secrets.KUBECONFIG_HETZNER }}
+          ghcr-pat: ${{ secrets.GHCR_PAT }}
+          ghcr-username: ${{ github.actor }}
+          pull-secret-name: ghcr-credentials
+          timeout: '600s'

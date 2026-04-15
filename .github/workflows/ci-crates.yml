@@ -1,0 +1,56 @@
+# CI for library crates: check, clippy, and test.
+# Covers crates that are not large enough to warrant their own workflow.
+
+name: CI crates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/tool-registry/**'
+      - 'crates/skill-factory/**'
+      - 'crates/factory-engine/**'
+      - 'crates/factory-contracts/**'
+      - 'crates/provider-registry/**'
+      - 'crates/agent-frontmatter/**'
+      - 'crates/standards-loader/**'
+  pull_request:
+    paths:
+      - 'crates/tool-registry/**'
+      - 'crates/skill-factory/**'
+      - 'crates/factory-engine/**'
+      - 'crates/factory-contracts/**'
+      - 'crates/provider-registry/**'
+      - 'crates/agent-frontmatter/**'
+      - 'crates/standards-loader/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - tool-registry
+          - skill-factory
+          - factory-engine
+          - factory-contracts
+          - provider-registry
+          - agent-frontmatter
+          - standards-loader
+    runs-on: ubuntu-latest
+    name: ${{ matrix.crate }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: CI ${{ matrix.crate }}
+        uses: ./.github/actions/rust-ci
+        with:
+          manifest-path: crates/${{ matrix.crate }}/Cargo.toml

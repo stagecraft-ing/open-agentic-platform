@@ -1,0 +1,70 @@
+name: Rust CI
+description: >
+  Composite action: cargo check + clippy + test for a single Cargo workspace/crate.
+  Caller must run actions/checkout before invoking this action.
+
+inputs:
+  manifest-path:
+    description: Path to Cargo.toml
+    required: true
+  clippy-flags:
+    description: Extra flags passed to cargo clippy after --
+    required: false
+    default: '-D warnings'
+  cache-shared-key:
+    description: shared-key for Swatinem/rust-cache (leave empty to omit)
+    required: false
+    default: ''
+  cache-workspaces:
+    description: workspaces for Swatinem/rust-cache (leave empty to omit)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Rust toolchain
+      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      with:
+        components: clippy
+
+    - name: Cache Rust dependencies (with shared-key and workspaces)
+      if: inputs.cache-shared-key != '' && inputs.cache-workspaces != ''
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      with:
+        shared-key: ${{ inputs.cache-shared-key }}
+        workspaces: ${{ inputs.cache-workspaces }}
+
+    - name: Cache Rust dependencies (with shared-key)
+      if: inputs.cache-shared-key != '' && inputs.cache-workspaces == ''
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      with:
+        shared-key: ${{ inputs.cache-shared-key }}
+
+    - name: Cache Rust dependencies (with workspaces)
+      if: inputs.cache-shared-key == '' && inputs.cache-workspaces != ''
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      with:
+        workspaces: ${{ inputs.cache-workspaces }}
+
+    - name: Cache Rust dependencies
+      if: inputs.cache-shared-key == '' && inputs.cache-workspaces == ''
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+
+    - name: cargo check
+      shell: bash
+      env:
+        CARGO_TERM_COLOR: always
+      run: cargo check --manifest-path ${{ inputs.manifest-path }}
+
+    - name: cargo clippy
+      shell: bash
+      env:
+        CARGO_TERM_COLOR: always
+      run: cargo clippy --manifest-path ${{ inputs.manifest-path }} -- ${{ inputs.clippy-flags }}
+
+    - name: cargo test
+      shell: bash
+      env:
+        CARGO_TERM_COLOR: always
+      run: cargo test --manifest-path ${{ inputs.manifest-path }}

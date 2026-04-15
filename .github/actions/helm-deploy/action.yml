@@ -1,0 +1,98 @@
+name: Helm deploy
+description: >
+  Deploy to Kubernetes via Helm with automatic debug output on failure.
+  Handles kubeconfig setup, GHCR pull secret, helm upgrade --install,
+  rollout verification, and structured failure diagnostics.
+
+inputs:
+  namespace:
+    description: Kubernetes namespace for the release
+    required: true
+  release-name:
+    description: Helm release name
+    required: true
+  chart-path:
+    description: Path to the Helm chart directory
+    required: true
+  values-files:
+    description: Comma-separated list of values files (e.g. "values.yaml,values-hetzner.yaml")
+    required: true
+  helm-set-args:
+    description: Full --set argument string passed verbatim to helm upgrade
+    required: true
+  app-label:
+    description: Value of the app= label used for kubectl selectors
+    required: true
+  kubeconfig-b64:
+    description: Base64-encoded kubeconfig content
+    required: true
+  ghcr-pat:
+    description: GHCR personal access token for image pulls
+    required: true
+  ghcr-username:
+    description: GHCR username (typically github.actor)
+    required: true
+  pull-secret-name:
+    description: Name of the docker-registry pull secret to create/update
+    required: true
+  timeout:
+    description: helm --wait --timeout value
+    required: false
+    default: '300s'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up kubeconfig
+      shell: bash
+      run: |
+        mkdir -p ~/.kube
+        printf '%s' "${{ inputs.kubeconfig-b64 }}" | base64 -d > ~/.kube/config
+        chmod 600 ~/.kube/config
+
+    - name: Ensure GHCR pull secret
+      shell: bash
+      run: |
+        kubectl -n ${{ inputs.namespace }} create secret docker-registry ${{ inputs.pull-secret-name }} \
+          --docker-server=ghcr.io \
+          --docker-username=${{ inputs.ghcr-username }} \
+          --docker-password=${{ inputs.ghcr-pat }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Deploy via Helm
+      shell: bash
+      run: |
+        # Build -f flags from comma-separated values-files input
+        VALUES_FLAGS=""
+        IFS=',' read -ra FILES <<< "${{ inputs.values-files }}"
+        for f in "${FILES[@]}"; do
+          VALUES_FLAGS="${VALUES_FLAGS} -f ${f}"
+        done
+
+        helm upgrade --install ${{ inputs.release-name }} ${{ inputs.chart-path }} \
+          --namespace ${{ inputs.namespace }} \
+          ${VALUES_FLAGS} \
+          ${{ inputs.helm-set-args }} \
+          --wait --timeout ${{ inputs.timeout }}
+
+    - name: Verify rollout
+      shell: bash
+      run: |
+        kubectl -n ${{ inputs.namespace }} rollout status deployment/${{ inputs.release-name }} --timeout=120s
+        kubectl -n ${{ inputs.namespace }} get pods -l app=${{ inputs.app-label }}
+
+    - name: Debug failed deploy
+      if: failure()
+      shell: bash
+      run: |
+        echo "=== Pod status ==="
+        kubectl -n ${{ inputs.namespace }} get pods -l app=${{ inputs.app-label }} -o wide
+        echo ""
+        echo "=== Pod describe ==="
+        kubectl -n ${{ inputs.namespace }} describe pods -l app=${{ inputs.app-label }}
+        echo ""
+        echo "=== Pod logs (latest) ==="
+        kubectl -n ${{ inputs.namespace }} logs -l app=${{ inputs.app-label }} --tail=100 --all-containers
+        echo ""
+        echo "=== Events ==="
+        kubectl -n ${{ inputs.namespace }} get events --sort-by='.lastTimestamp' | tail -30
