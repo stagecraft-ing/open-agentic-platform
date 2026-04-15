@@ -52,7 +52,7 @@ auth:
     # Each audience maps to an auth method and a set of roles.
     <audience_name>:
       method:
-        enum: [saml, oidc, api-key, basic, mock]
+        enum: [saml, oidc, session, api-key, basic, mock]
       provider: string            # Identity provider name (e.g., "gov-citizen-account", "entra-id")
       roles:
         - role_code: string       # Machine-safe (e.g., "grant-analyst")

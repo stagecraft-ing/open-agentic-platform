@@ -3,7 +3,7 @@ id: "074-factory-ingestion"
 title: "Factory Ingestion as First-Class Delivery Engine"
 feature_branch: "feat/074-factory-ingestion"
 status: approved
-implementation: in-progress
+implementation: complete
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

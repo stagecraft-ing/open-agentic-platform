@@ -92,6 +92,7 @@ pub struct Audience {
 pub enum AudienceMethod {
     Saml,
     Oidc,
+    Session,
     ApiKey,
     Basic,
     Mock,

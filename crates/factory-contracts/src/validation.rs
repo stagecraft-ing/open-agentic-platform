@@ -525,4 +525,102 @@ ui:
             );
         }
     }
+
+    // ── SC-001: All contract examples parse without error ────────────────
+
+    #[test]
+    fn test_parse_site_monitor_build_spec_example() {
+        let path =
+            std::path::Path::new("../../factory/contract/examples/site-monitor.build-spec.yaml");
+        if !path.exists() {
+            return;
+        }
+        let result = validate_build_spec(path);
+        assert!(
+            result.is_ok(),
+            "Failed to parse site-monitor example: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_all_contract_examples_parse() {
+        use std::path::Path;
+        let examples_dir = Path::new("../../factory/contract/examples");
+        if !examples_dir.exists() {
+            return;
+        }
+
+        let build_specs = [
+            "community-grant-portal.build-spec.yaml",
+            "site-monitor.build-spec.yaml",
+        ];
+        for name in &build_specs {
+            let path = examples_dir.join(name);
+            assert!(path.exists(), "example file missing: {name}");
+            let result = validate_build_spec(&path);
+            assert!(result.is_ok(), "failed to parse {name}: {:?}", result.err());
+        }
+
+        let manifests = ["aim-vue-node.adapter-manifest.yaml"];
+        for name in &manifests {
+            let path = examples_dir.join(name);
+            assert!(path.exists(), "example file missing: {name}");
+            let result = validate_adapter_manifest(&path);
+            assert!(result.is_ok(), "failed to parse {name}: {:?}", result.err());
+        }
+    }
+
+    // ── SC-004: Round-trip YAML → Rust → YAML against real examples ─────
+
+    #[test]
+    fn test_round_trip_community_grant_portal() {
+        use crate::build_spec::BuildSpec;
+        let path = std::path::Path::new(
+            "../../factory/contract/examples/community-grant-portal.build-spec.yaml",
+        );
+        if !path.exists() {
+            return;
+        }
+        let spec = validate_build_spec(path).expect("parse original");
+        let serialized = serde_yaml::to_string(&spec).unwrap();
+        let reparsed: BuildSpec = serde_yaml::from_str(&serialized).unwrap();
+
+        assert_eq!(spec.project.name, reparsed.project.name);
+        assert_eq!(spec.project.variant, reparsed.project.variant);
+        assert_eq!(spec.project.org, reparsed.project.org);
+        assert_eq!(
+            spec.data_model.entities.len(),
+            reparsed.data_model.entities.len()
+        );
+        assert_eq!(spec.business_rules.len(), reparsed.business_rules.len());
+        assert_eq!(spec.api.resources.len(), reparsed.api.resources.len());
+        assert_eq!(spec.ui.pages.len(), reparsed.ui.pages.len());
+        assert_eq!(
+            spec.auth.audiences.len(),
+            reparsed.auth.audiences.len()
+        );
+    }
+
+    #[test]
+    fn test_round_trip_site_monitor() {
+        use crate::build_spec::BuildSpec;
+        let path =
+            std::path::Path::new("../../factory/contract/examples/site-monitor.build-spec.yaml");
+        if !path.exists() {
+            return;
+        }
+        let spec = validate_build_spec(path).expect("parse original");
+        let serialized = serde_yaml::to_string(&spec).unwrap();
+        let reparsed: BuildSpec = serde_yaml::from_str(&serialized).unwrap();
+
+        assert_eq!(spec.project.name, reparsed.project.name);
+        assert_eq!(spec.project.variant, reparsed.project.variant);
+        assert_eq!(
+            spec.data_model.entities.len(),
+            reparsed.data_model.entities.len()
+        );
+        assert_eq!(spec.api.resources.len(), reparsed.api.resources.len());
+        assert_eq!(spec.ui.pages.len(), reparsed.ui.pages.len());
+    }
 }

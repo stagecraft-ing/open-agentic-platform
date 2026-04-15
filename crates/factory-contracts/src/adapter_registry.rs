@@ -178,6 +178,15 @@ fn check_auth_support(spec: &BuildSpec, caps: &Capabilities, gaps: &mut Vec<Capa
                     });
                 }
             }
+            AudienceMethod::Session => {
+                if !caps.session_auth {
+                    gaps.push(CapabilityGap {
+                        capability: "session_auth".to_string(),
+                        required: true,
+                        message: "Build Spec uses session auth but adapter does not support session_auth".to_string(),
+                    });
+                }
+            }
             AudienceMethod::ApiKey => {
                 if !caps.api_key_auth {
                     gaps.push(CapabilityGap {

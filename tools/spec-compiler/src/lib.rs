@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 const COMPILER_ID: &str = "open-agentic-spec-compiler";
-const SPEC_VERSION: &str = "1.2.0";
+const SPEC_VERSION: &str = "1.3.0";
 
 /// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
 const KNOWN_KEYS: &[&str] = &[
@@ -206,6 +206,16 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     features.sort_by(|a, b| a.id.cmp(&b.id));
 
+    // ── Factory Build Spec discovery (074 FR-007) ───────────────────────
+    let factory_build_specs = discover_factory_build_specs(repo_root)?;
+    let mut factory_projects: Vec<FactoryProjectRecord> = Vec::new();
+    for bp_path in &factory_build_specs {
+        if let Some(record) = parse_factory_project(repo_root, bp_path, &mut violations)? {
+            factory_projects.push(record);
+        }
+    }
+    factory_projects.sort_by(|a, b| a.project_name.cmp(&b.project_name));
+
     let passed = !violations.iter().any(|v| v.severity == "error");
 
     let content_hash = compute_content_hash(repo_root, &spec_paths)?;
@@ -214,6 +224,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         &compiler_version,
         content_hash,
         &features,
+        &factory_projects,
         passed,
         &violations,
     )?;
@@ -266,7 +277,7 @@ struct FeatureRecord {
     extra_frontmatter: Option<Map<String, Value>>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct Violation {
     code: String,
     severity: String,
@@ -275,10 +286,30 @@ struct Violation {
     path: Option<String>,
 }
 
+/// A Factory Build Spec project discovered in the repository (074 FR-007).
+#[derive(Serialize)]
+struct FactoryProjectRecord {
+    #[serde(rename = "projectName")]
+    project_name: String,
+    #[serde(rename = "buildSpecPath")]
+    build_spec_path: String,
+    #[serde(rename = "contentHash")]
+    content_hash: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variant: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    org: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    adapter: Option<String>,
+    #[serde(rename = "pipelineStatus", skip_serializing_if = "Option::is_none")]
+    pipeline_status: Option<String>,
+}
+
 fn build_registry_value(
     compiler_version: &str,
     content_hash: String,
     features: &[FeatureRecord],
+    factory_projects: &[FactoryProjectRecord],
     passed: bool,
     violations: &[Violation],
 ) -> Result<Value, CompileError> {
@@ -293,7 +324,7 @@ fn build_registry_value(
     let features_val = serde_json::to_value(features)?;
     let viol_val = serde_json::to_value(&viol)?;
 
-    Ok(json!({
+    let mut registry = json!({
         "specVersion": SPEC_VERSION,
         "build": {
             "compilerId": COMPILER_ID,
@@ -306,7 +337,14 @@ fn build_registry_value(
             "passed": passed,
             "violations": viol_val,
         }
-    }))
+    });
+
+    // Only include factoryProjects when build specs are found (opt-in, 074 FR-007).
+    if !factory_projects.is_empty() {
+        registry["factoryProjects"] = serde_json::to_value(factory_projects)?;
+    }
+
+    Ok(registry)
 }
 
 fn canonical_json_bytes(value: &Value) -> Result<Vec<u8>, CompileError> {
@@ -484,6 +522,14 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
 /// "standalone authored YAML" in the sense of V-004; they are package-manager output
 /// or workspace glue, not parallel spec registries.
 fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
+    // Files inside `.factory/` directories are indexed by factory scanning (074 FR-007).
+    for ancestor in p.ancestors() {
+        if let Some(name) = ancestor.file_name().and_then(|n| n.to_str()) {
+            if name == ".factory" {
+                return true;
+            }
+        }
+    }
     let Some(parent) = p.parent() else {
         return false;
     };
@@ -494,6 +540,158 @@ fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
         return false;
     };
     matches!(name, "pnpm-workspace.yaml" | "pnpm-lock.yaml")
+}
+
+// ── Factory Build Spec discovery (074 FR-007) ───────────────────────────────
+
+/// Directories to skip during factory build-spec scanning (mirrors `yaml_violations` skips).
+fn is_factory_scan_skip_dir(name: &str) -> bool {
+    matches!(
+        name,
+        ".git"
+            | ".github"
+            | "build"
+            | "node_modules"
+            | "vendor"
+            | "target"
+            | ".idea"
+            | "grammars"
+    )
+}
+
+/// Discover all `.factory/build-spec.yaml` files under the repository root.
+fn discover_factory_build_specs(repo_root: &Path) -> Result<Vec<PathBuf>, CompileError> {
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for entry in WalkDir::new(repo_root)
+        .into_iter()
+        .filter_entry(|e| {
+            let name = e.file_name().to_str().unwrap_or("");
+            !is_factory_scan_skip_dir(name)
+        })
+        .filter_map(|e| e.ok())
+    {
+        let p = entry.path();
+        if !p.is_file() {
+            continue;
+        }
+        let file_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if file_name != "build-spec.yaml" {
+            continue;
+        }
+        let parent = match p.parent() {
+            Some(d) => d,
+            None => continue,
+        };
+        let parent_name = parent.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if parent_name != ".factory" {
+            continue;
+        }
+        // Skip example build specs under factory/contract/examples/.
+        let rel = normalize_repo_path(repo_root, p);
+        if rel.starts_with("factory/") {
+            continue;
+        }
+        paths.push(p.to_path_buf());
+    }
+    paths.sort();
+    Ok(paths)
+}
+
+/// Parse a factory build-spec YAML into a lightweight project record.
+fn parse_factory_project(
+    repo_root: &Path,
+    spec_path: &Path,
+    violations: &mut Vec<Violation>,
+) -> Result<Option<FactoryProjectRecord>, CompileError> {
+    let raw = match fs::read_to_string(spec_path) {
+        Ok(r) => r,
+        Err(e) => {
+            violations.push(Violation {
+                code: "V-010".to_string(),
+                severity: "warning".to_string(),
+                message: format!("failed to read factory build spec: {e}"),
+                path: Some(normalize_repo_path(repo_root, spec_path)),
+            });
+            return Ok(None);
+        }
+    };
+
+    let yaml: serde_yaml::Value = match serde_yaml::from_str(&raw) {
+        Ok(v) => v,
+        Err(e) => {
+            violations.push(Violation {
+                code: "V-010".to_string(),
+                severity: "warning".to_string(),
+                message: format!("failed to parse factory build spec YAML: {e}"),
+                path: Some(normalize_repo_path(repo_root, spec_path)),
+            });
+            return Ok(None);
+        }
+    };
+
+    let project = yaml.get("project");
+    let project_name = project
+        .and_then(|p| p.get("name"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let Some(project_name) = project_name else {
+        violations.push(Violation {
+            code: "V-010".to_string(),
+            severity: "warning".to_string(),
+            message: "factory build spec missing required project.name".to_string(),
+            path: Some(normalize_repo_path(repo_root, spec_path)),
+        });
+        return Ok(None);
+    };
+
+    let variant = project
+        .and_then(|p| p.get("variant"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let org = project
+        .and_then(|p| p.get("org"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    // Compute content hash (same pattern as spec content hash).
+    let normalized = normalize_text(&raw);
+    let rel = normalize_repo_path(repo_root, spec_path);
+    let mut hasher = Sha256::new();
+    hasher.update(rel.as_bytes());
+    hasher.update(&[0u8]);
+    hasher.update(&normalized);
+    let content_hash = format!("{:x}", hasher.finalize());
+
+    // Check for sibling pipeline-state.json to extract adapter and status.
+    let factory_dir = spec_path.parent().unwrap_or(Path::new("."));
+    let state_path = factory_dir.join("pipeline-state.json");
+    let (adapter, pipeline_status) = if state_path.is_file() {
+        let state_raw = fs::read_to_string(&state_path).unwrap_or_default();
+        let state_yaml: serde_yaml::Value =
+            serde_yaml::from_str(&state_raw).unwrap_or(serde_yaml::Value::Null);
+        let adapter = state_yaml
+            .get("adapter")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let status = state_yaml
+            .get("status")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        (adapter, status)
+    } else {
+        (None, None)
+    };
+
+    Ok(Some(FactoryProjectRecord {
+        project_name,
+        build_spec_path: rel,
+        content_hash,
+        variant,
+        org,
+        adapter,
+        pipeline_status,
+    }))
 }
 
 fn split_frontmatter(raw: &str, path: &Path) -> Result<(serde_yaml::Value, String), CompileError> {
@@ -766,5 +964,68 @@ mod tests {
         assert!(!is_specs_feature_directory("001"));
         assert!(!is_specs_feature_directory("docs"));
         assert!(!is_specs_feature_directory("00a-x"));
+    }
+
+    #[test]
+    fn factory_scan_skip_dirs() {
+        assert!(is_factory_scan_skip_dir(".git"));
+        assert!(is_factory_scan_skip_dir("node_modules"));
+        assert!(is_factory_scan_skip_dir("target"));
+        assert!(!is_factory_scan_skip_dir("projects"));
+        assert!(!is_factory_scan_skip_dir(".factory"));
+    }
+
+    #[test]
+    fn parse_factory_project_extracts_fields() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let factory_dir = root.join("myproject/.factory");
+        fs::create_dir_all(&factory_dir).unwrap();
+        fs::write(
+            factory_dir.join("build-spec.yaml"),
+            "project:\n  name: my-app\n  variant: dual\n  org: acme\n",
+        )
+        .unwrap();
+
+        let mut violations = Vec::new();
+        let record = parse_factory_project(
+            root,
+            &factory_dir.join("build-spec.yaml"),
+            &mut violations,
+        )
+        .unwrap();
+
+        assert!(violations.is_empty(), "unexpected violations: {violations:?}");
+        let rec = record.expect("should parse");
+        assert_eq!(rec.project_name, "my-app");
+        assert_eq!(rec.variant.as_deref(), Some("dual"));
+        assert_eq!(rec.org.as_deref(), Some("acme"));
+        assert_eq!(rec.content_hash.len(), 64);
+    }
+
+    #[test]
+    fn parse_factory_project_missing_name_emits_warning() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let factory_dir = root.join(".factory");
+        fs::create_dir_all(&factory_dir).unwrap();
+        fs::write(
+            factory_dir.join("build-spec.yaml"),
+            "project:\n  description: no name\n",
+        )
+        .unwrap();
+
+        let mut violations = Vec::new();
+        let record = parse_factory_project(
+            root,
+            &factory_dir.join("build-spec.yaml"),
+            &mut violations,
+        )
+        .unwrap();
+
+        assert!(record.is_none());
+        assert_eq!(violations.len(), 1);
+        assert_eq!(violations[0].code, "V-010");
+        assert_eq!(violations[0].severity, "warning");
     }
 }
