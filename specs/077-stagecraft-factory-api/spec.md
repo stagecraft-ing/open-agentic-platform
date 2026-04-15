@@ -3,7 +3,7 @@ id: "077-stagecraft-factory-api"
 title: "Stagecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail"
 feature_branch: "feat/077-stagecraft-factory-api"
 status: approved
-implementation: pending
+implementation: complete
 kind: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]

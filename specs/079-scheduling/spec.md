@@ -3,7 +3,7 @@ id: "079-scheduling"
 title: "Scheduled Agent Execution"
 feature_branch: "feat/079-scheduling"
 status: approved
-implementation: in-progress
+implementation: complete
 kind: product
 created: "2026-04-05"
 authors:
