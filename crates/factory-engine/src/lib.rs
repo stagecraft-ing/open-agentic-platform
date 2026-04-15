@@ -14,6 +14,7 @@ pub mod artifact_store;
 pub mod checks;
 pub mod engine;
 pub mod gate;
+pub mod governance_certificate;
 pub mod harness_state;
 pub mod manifest_gen;
 pub mod pipeline_state;
@@ -27,6 +28,10 @@ pub use agent_bridge::FactoryAgentBridge;
 pub use engine::{
     FactoryEngine, FactoryEngineConfig, PhaseTransitionResult, PipelineStartResult,
     ScaffoldStepKind, classify_scaffold_step, record_scaffold_completion, record_scaffold_failure,
+};
+pub use governance_certificate::{
+    CertificateBuilder, GovernanceCertificate, generate_certificate, persist_certificate,
+    verify_certificate,
 };
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};

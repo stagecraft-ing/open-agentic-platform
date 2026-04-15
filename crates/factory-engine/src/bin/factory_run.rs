@@ -315,6 +315,7 @@ async fn main() -> ExitCode {
         artifact_metadata: None,
         governance_mode: None,
         sync_tracker: None,
+        on_gate_checkpoint: None,
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -423,6 +424,7 @@ async fn main() -> ExitCode {
         artifact_metadata: None,
         governance_mode: None,
         sync_tracker: None,
+        on_gate_checkpoint: None,
     };
 
     let summary2 = match dispatch_manifest(

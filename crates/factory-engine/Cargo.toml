@@ -35,6 +35,10 @@ path = "src/bin/harness.rs"
 name = "factory-run"
 path = "src/bin/factory_run.rs"
 
+[[bin]]
+name = "verify-certificate"
+path = "src/bin/verify_certificate.rs"
+
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "time"] }

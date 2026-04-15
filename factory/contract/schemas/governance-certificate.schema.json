@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "governance-certificate.schema.json",
+  "title": "Governance Certificate",
+  "description": "Single JSON artifact proving the full intent-to-spec-to-code-to-audit chain for a factory pipeline run (spec 102 FR-002).",
+  "type": "object",
+  "required": [
+    "certificateVersion",
+    "pipelineRunId",
+    "timestamp",
+    "status",
+    "intent",
+    "buildSpec",
+    "stages",
+    "verification",
+    "proofChain",
+    "certificateHash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "certificateVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "pipelineRunId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["complete", "incomplete"]
+    },
+    "intent": {
+      "type": "object",
+      "required": ["requirementsHash"],
+      "additionalProperties": false,
+      "properties": {
+        "requirementsHash": { "type": "string", "minLength": 1 },
+        "specId": { "type": ["string", "null"] },
+        "specHash": { "type": ["string", "null"] }
+      }
+    },
+    "buildSpec": {
+      "type": "object",
+      "required": ["hash"],
+      "additionalProperties": false,
+      "properties": {
+        "hash": { "type": "string" },
+        "approvalRecord": {
+          "type": ["object", "null"],
+          "properties": {
+            "approvedBy": { "type": ["string", "null"] },
+            "approvedAt": { "type": "string", "format": "date-time" },
+            "gateType": { "type": "string" }
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stageId", "status", "artifactHashes"],
+        "additionalProperties": false,
+        "properties": {
+          "stageId": { "type": "string" },
+          "status": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+          "artifactHashes": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "gateResult": {
+            "type": ["object", "null"],
+            "properties": {
+              "passed": { "type": "boolean" },
+              "checksRun": { "type": "integer", "minimum": 0 },
+              "checksFailed": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "durationMs": { "type": ["integer", "null"], "minimum": 0 }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["compile", "test", "lint", "typecheck", "securityScan"],
+      "additionalProperties": false,
+      "properties": {
+        "compile": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "test": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "lint": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "typecheck": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "securityScan": { "type": "string", "enum": ["passed", "failed", "skipped"] }
+      }
+    },
+    "proofChain": {
+      "type": "object",
+      "required": ["recordCount", "chainIntegrity"],
+      "additionalProperties": false,
+      "properties": {
+        "recordCount": { "type": "integer", "minimum": 0 },
+        "firstRecordHash": { "type": ["string", "null"] },
+        "lastRecordHash": { "type": ["string", "null"] },
+        "chainIntegrity": { "type": "string", "enum": ["verified", "unverified", "empty"] }
+      }
+    },
+    "compliance": {
+      "type": ["object", "null"],
+      "properties": {
+        "frameworks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["control", "mechanism", "status"],
+            "properties": {
+              "control": { "type": "string" },
+              "mechanism": { "type": "string" },
+              "status": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "certificateHash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "description": "SHA-256 of canonical JSON with this field set to empty string"
+    }
+  }
+}
