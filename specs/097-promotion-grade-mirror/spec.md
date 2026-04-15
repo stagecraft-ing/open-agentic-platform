@@ -2,7 +2,7 @@
 id: "097-promotion-grade-mirror"
 title: "Promotion-Grade Platform Mirror"
 status: approved
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-04-11"
 risk: high
