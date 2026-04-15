@@ -2,7 +2,7 @@
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-2024_edition-orange.svg)](https://www.rust-lang.org/)
-[![Specs](https://img.shields.io/badge/Specs-89_features-green.svg)](specs/)
+[![Specs](https://img.shields.io/badge/Specs-103_features-green.svg)](specs/)
 
 **The governed operating system for AI-native software delivery.**
 
@@ -10,107 +10,31 @@
 
 ---
 
-## Spec-first foundation
+## What is this
 
-Human truth is **markdown** (with optional YAML frontmatter); machine registries are **compiler-emitted JSON** only. The constitutional bootstrap spec defines the system’s own design contract:
+Open Agentic Platform (OAP) closes the gap between local AI tools that feel powerful but become chaotic at scale, and enterprise platforms that promise control but sit too far from the work itself.
 
-- [`specs/000-bootstrap-spec-system/spec.md`](specs/000-bootstrap-spec-system/spec.md) — the spec that defines how specs work
-- [`specs/001-spec-compiler-mvp/spec.md`](specs/001-spec-compiler-mvp/spec.md) — compiles specs to `build/spec-registry/registry.json`
-- [`specs/003-feature-lifecycle-mvp/spec.md`](specs/003-feature-lifecycle-mvp/spec.md) — status lifecycle (draft / active / superseded / retired)
-- [`specs/004-spec-to-execution-bridge-mvp/spec.md`](specs/004-spec-to-execution-bridge-mvp/spec.md) — spec → plan → tasks → changeset
+It fuses three layers into a single governed system:
 
-```bash
-# Compile specs and query the registry
-cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
-./tools/spec-compiler/target/release/spec-compiler compile
-./tools/registry-consumer/target/release/registry-consumer list
-```
+- **OPC** (`apps/desktop/`) -- a local Tauri + React cockpit where humans and agents ask, plan, approve, execute, inspect, and rewind work
+- **Platform** (`platform/`) -- an organisational control plane for identity, policy, environments, approvals, deployments, and audit
+- **Spec Spine** (`specs/`) -- the canonical contract system that turns intent into traceable, machine-verifiable truth
 
-For the full technical architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The core belief: the best AI engineering environment is not just fast -- it is fast, governed, reviewable, and replayable.
 
 ---
 
-## Open Agentic Platform
-
-**The governed operating system for AI-native software delivery.**
-
-Open Agentic Platform (OAP) is the future-state fusion of two systems:
-
-- **OPC** - the local cockpit where humans and agents ask, plan, approve, execute, inspect, and rewind work
-- **Platform** - the organisational control plane that governs identity, policy, environments, approvals, deployments, and audit
-
-What binds them is a third layer:
-
-- **The Spec Spine** - the canonical contract system that turns intent into traceable, machine-verifiable truth
-
-OAP is built on a simple belief:
-
-> the best AI engineering environment is not just fast - it is fast, governed, reviewable, and replayable.
-
----
-
-## Why this exists
-
-Today, teams are forced to choose between two incomplete worlds:
-
-- **local AI tools** that feel powerful but become chaotic at scale
-- **enterprise platforms** that promise control but sit too far away from the work itself
-
-Open Agentic Platform is designed to close that gap.
-
-It gives developers an AI-native cockpit for real engineering work, while giving organisations a control plane for policy, visibility, reuse, and trust.
-
-The result is a system where:
-
-- local speed does not come at the cost of governance
-- agent execution is bounded, inspectable, and auditable
-- specs are not static documents; they become operational infrastructure
-- every meaningful change can be traced from idea to execution to approval to deployment
-
----
-
-## The pitch in one paragraph
-
-Open Agentic Platform is a full-stack system for governed agentic software delivery. It combines a rich local developer cockpit with an organisational platform layer, connected through a shared spec and registry spine. Engineers get high-agency local workflows with AI; organisations get policy enforcement, approvals, workspace control, deployment orchestration, and auditability. Instead of bolting governance onto AI after the fact, OAP makes governance part of the execution model from the beginning.
-
----
-
-## What the finished system becomes
-
-In its intended end state, Open Agentic Platform enables teams to:
-
-- express work as intent through chat, commands, workflows, and agent coordination
-- expand that intent into specs, plans, tasks, dependencies, and risk boundaries
-- review execution paths before work happens
-- run governed agent workflows inside local or remote workspaces
-- inspect git, code structure, semantic meaning, feature relationships, runtime traces, and execution history in one place
-- rewind, diff, branch, restore, and replay work with checkpoint-backed confidence
-- manage many repos, agents, workspaces, and environments as a single governed portfolio
-- promote trusted work from local exploration to organisational execution without losing context
-
-This is not just chat plus tools.
-It is a **closed-loop system for software change**.
-
----
-
-## OPC <-> Platform symbiosis
+## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph OPC[OPC - Local Cockpit]
-        A1[Ask]
-        A2[Plan]
-        A3[Approve]
-        A4[Execute]
-        A5[Inspect]
-        A6[Rewind]
-
+    subgraph OPC[OPC -- Local Cockpit]
         O1[Local workspaces]
         O2[Desktop UX]
         O3[Git and GitHub context]
         O4[Semantic and structural analysis]
         O5[Snapshots and checkpoints]
-        O6[Human plus agent collaboration]
+        O6[Human + agent collaboration]
     end
 
     subgraph SPINE[Shared Spec Spine]
@@ -121,15 +45,13 @@ flowchart LR
         S5[Compiled governance truth]
     end
 
-    subgraph PLATFORM[Platform - Organisational Control Plane]
-        P1[Remote workspace registry]
-        P2[Shared agent registry]
-        P3[Policy engine]
-        P4[Approval centre]
-        P5[Identity and access]
-        P6[Activity timeline and audit]
-        P7[Multi-repo feature graph]
-        P8[Deployment orchestration]
+    subgraph PLATFORM[Platform -- Organisational Control Plane]
+        P1[Identity and access]
+        P2[Policy engine]
+        P3[Approval centre]
+        P4[Deployment orchestration]
+        P5[Activity timeline and audit]
+        P6[Multi-repo feature graph]
     end
 
     OPC <--> SPINE
@@ -137,156 +59,91 @@ flowchart LR
     OPC <--> PLATFORM
 ```
 
-### The mental model
-
-- **OPC** is where work is experienced
-- **Platform** is where work is governed
-- **The Spec Spine** is what keeps both sides honest
-
-OPC without Platform is a powerful but isolated tool.
-Platform without OPC is a control plane disconnected from real engineering.
-Together, they create a system where local execution and organisational governance reinforce each other.
+**OPC** is where work is experienced. **Platform** is where work is governed. **The Spec Spine** is what keeps both sides honest.
 
 ---
 
-## The core workflow
+## Core workflow
 
-### 1. Ask
-A human or agent expresses intent.
-
-### 2. Plan
-The system expands intent into structured specs, plans, dependencies, affected features, and execution boundaries.
-
-### 3. Approve
-Humans review the proposed work, risk posture, policy checks, and feature impact.
-
-### 4. Execute
-Agents perform bounded work against governed tools and workspaces.
-
-### 5. Inspect
-The system exposes visibility into structure, semantics, git context, runtime state, history, drift, and results.
-
-### 6. Rewind
-Any work can be compared, restored, replayed, or rolled back with a full trail of state transitions.
+1. **Ask** -- a human or agent expresses intent
+2. **Plan** -- the system expands intent into specs, plans, tasks, dependencies, and risk boundaries
+3. **Approve** -- humans review the proposed work, risk posture, policy checks, and feature impact
+4. **Execute** -- agents perform bounded work against governed tools and workspaces
+5. **Inspect** -- structure, semantics, git context, runtime state, history, drift, and results are visible in one place
+6. **Rewind** -- any work can be compared, restored, replayed, or rolled back with a full trail of state transitions
 
 ---
 
-## What lives where
+## Spec-first foundation
 
-### OPC ('apps/desktop') owns the local loop
+Human truth is **markdown** (with optional YAML frontmatter); machine registries are **compiler-emitted JSON** only. The bootstrap spec defines the system's own design contract:
 
-- AI-native desktop workflow
-- workspace execution and local orchestration
-- repository inspection and semantic discovery
-- git and GitHub context exploration
-- snapshots, diffs, checkpoints, and rewind
-- fast human feedback and agent collaboration
-
-### Platform owns the organisational loop
-
-- identity, access, and org policy
-- shared workspace and environment management
-- deployment orchestration and promotion
-- approvals, reviews, and audit trails
-- shared agent catalogue and controls
-- cross-repo reasoning and portfolio visibility
-
-### The Spec Spine binds both sides
-
-- feature definitions
-- execution contracts
-- changesets and traceability links
-- approval records
-- governance metadata
-- canonical compiled machine truth
+- [`000-bootstrap-spec-system`](specs/000-bootstrap-spec-system/spec.md) -- the spec that defines how specs work
+- [`001-spec-compiler-mvp`](specs/001-spec-compiler-mvp/spec.md) -- compiles specs to `build/spec-registry/registry.json`
+- [`003-feature-lifecycle-mvp`](specs/003-feature-lifecycle-mvp/spec.md) -- status lifecycle (draft / active / superseded / retired)
+- [`004-spec-to-execution-bridge-mvp`](specs/004-spec-to-execution-bridge-mvp/spec.md) -- spec to plan to tasks to changeset
 
 ---
 
-## Why this is different
+## Repository structure
 
-### AI work becomes reviewable
-Plans, changesets, policy checks, feature impact, and execution results are first-class artifacts rather than hidden model behavior.
-
-### Specs become infrastructure
-The spec layer is not documentation sitting off to the side. It becomes the operational contract between humans, agents, cockpit, and platform.
-
-### Rewind is built in
-Checkpointing, snapshots, and auditable state transitions make rollback and replay part of the system design, not an afterthought.
-
-### Local and organisational workflows finally connect
-The same work can move from a developer cockpit to a governed platform without losing structure, context, or trust.
-
-### It is built for real multi-repo organisations
-The future platform is designed for many codebases, many environments, many agents, and many approval boundaries.
-
----
-
-## Who this is for
-
-Open Agentic Platform is for teams that want AI leverage without losing operational discipline.
-
-Especially:
-
-- engineers who want deep local agency with AI
-- platform teams who need standards, control, and auditability
-- organisations adopting agentic workflows in serious production settings
-- product and infrastructure groups working across multiple repositories and environments
-- teams that care about trust, not just demos
-
----
-
-## Future-state capability map
-
-When complete, the platform will present a unified experience for:
-
-- conversational intent capture
-- structured planning and task decomposition
-- bounded agent execution
-- policy-aware approval flows
-- semantic search and structural analysis
-- git and GitHub context exploration
-- feature graph and governance drift analysis
-- snapshotting, checkpointing, and rewind
-- shared remote workspaces and environments
-- reusable agents, skills, and workflow registries
-- activity timelines, audit trails, and release promotion
+```
+specs/              -- 103 feature specifications (000-102), the authoritative design record
+tools/              -- Rust CLI toolchain
+  spec-compiler/    --   compiles specs to build/spec-registry/registry.json
+  registry-consumer/--   queries the compiled registry
+  spec-lint/        --   conformance linter (W-xxx warnings)
+  policy-compiler/  --   compiles governance policies
+  codebase-indexer/ --   builds spec-to-code traceability index
+crates/             -- Rust library crates
+  agent/            --   agent framework: executor, verification, ID generation
+  axiomregent/      --   unified MCP agent: GitHub tools, semantic search, checkpoint
+  factory-engine/   --   two-phase pipeline engine
+  factory-contracts/--   Rust types for Factory contract schemas
+  orchestrator/     --   multi-agent workflow dispatch, DAG validation, state persistence
+  policy-kernel/    --   5-tier settings merge, proof chains, policy evaluation
+  tool-registry/    --   ToolDef trait + registry with permission gates
+  xray/             --   repository analysis: complexity scoring, call graphs, fingerprinting
+factory/            -- Factory delivery engine
+  contract/         --   formal schemas: Build Spec, Adapter Manifest, Pipeline State
+  process/          --   7-stage pipeline: agents and stage definitions
+  adapters/         --   pluggable tech adapters (aim-vue-node, next-prisma, encore-react, rust-axum)
+apps/desktop/       -- Tauri v2 + React desktop app (TypeScript + Rust)
+platform/           -- Organisational control plane
+  services/
+    stagecraft/     --   Encore.ts SaaS (auth, admin, monitoring, Slack, GitHub webhooks)
+    deployd-api-rs/ --   Rust (axum + hiqlite) K8s deployment orchestration
+  infra/            --   Terraform modules (Azure AKS, ACR, KeyVault)
+  charts/           --   Helm charts (stagecraft, deployd-api, rauthy)
+build/              -- Compiler output (registry.json, index.json, build-meta.json)
+.claude/            -- Claude Code agents, commands, and rules
+```
 
 ---
 
-## Why people should care
+## Getting started
 
-Open Agentic Platform is not trying to be another thin wrapper around an LLM.
-It is an attempt to define what a serious AI-native engineering system should look like when:
+```bash
+# Compile specs and query the registry
+cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+./tools/spec-compiler/target/release/spec-compiler compile
+./tools/registry-consumer/target/release/registry-consumer list
 
-- developers need speed
-- organisations need control
-- AI needs boundaries
-- work needs to stay understandable over time
+# Lint specs for conformance
+cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 
-If successful, OAP gives teams a path from individual AI-assisted productivity to governed, organisation-scale agentic delivery.
+# Build the codebase index (spec-to-code traceability)
+cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+./tools/codebase-indexer/target/release/codebase-indexer compile
 
-That is the real idea: **make AI-native engineering operationally trustworthy.**
+# Platform services (local dev)
+cd platform/services/stagecraft && npm run start   # Encore.ts on :4000
 
----
+# deployd-api (Rust)
+cargo build --release --manifest-path platform/services/deployd-api-rs/Cargo.toml
+```
 
-## Contributing and governance
-
-- [Contributing Guide](CONTRIBUTING.md) — how to get started, branch conventions, and PR process
-- [Code of Conduct](CODE_OF_CONDUCT.md) — community standards (Contributor Covenant v2.1)
-- [Security Policy](SECURITY.md) — reporting vulnerabilities
-- [License](LICENSE) — AGPL-3.0
-
----
-
-## Claude-native development
-
-This repository ships with first-class [Claude Code](https://docs.anthropic.com/en/docs/claude-code) integration. The `.claude/` directory contains development infrastructure that contributors can use immediately:
-
-- **Agents** (`.claude/agents/`) — architect, explorer, implementer, reviewer: task-focused sub-agents for parallel work
-- **Commands** (`.claude/commands/`) — `/init`, `/commit`, `/code-review`, `/validate-and-fix`, `/research`, `/implement-plan`, `/cleanup`
-- **Rules** (`.claude/rules/`) — Orchestrator behavioral rules enforcing step ordering, file-based artifact passing, and checkpoint discipline
-
-Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (agent protocol), this means every contributor gets AI-assisted development workflows out of the box. This is not optional tooling — it is how the platform was built.
+See [DEVELOPERS.md](DEVELOPERS.md) for the full setup guide.
 
 ---
 
@@ -294,17 +151,43 @@ Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (agent protocol)
 
 The Factory (`factory/`, `crates/factory-engine/`, `crates/factory-contracts/`) is a two-phase AI pipeline that transforms business requirements into production code:
 
-1. **Phase 1** (s0-s5): Six sequential stages extract requirements, design services, model data, specify APIs and UI, producing a frozen Build Spec
-2. **Phase 2** (s6a-s6g): Dynamic scaffold fan-out generates code per-entity, per-operation, per-page with post-step verification
+1. **Phase 1** (s0--s5): six sequential stages extract requirements, design services, model data, specify APIs and UI, producing a frozen Build Spec
+2. **Phase 2** (s6a--s6g): dynamic scaffold fan-out generates code per-entity, per-operation, per-page with post-step verification
 
 Four pluggable adapters: `aim-vue-node`, `next-prisma`, `rust-axum`, `encore-react`.
 
-Run a pipeline:
 ```bash
-cargo build --release --manifest-path crates/factory-engine/Cargo.toml
 cargo run --manifest-path crates/factory-engine/Cargo.toml --bin factory-run -- \
   --adapter next-prisma --project /tmp/my-app \
   --business-docs requirements.md
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full pipeline architecture.
+---
+
+## Claude-native development
+
+This repository ships with first-class [Claude Code](https://docs.anthropic.com/en/docs/claude-code) integration. The `.claude/` directory contains development infrastructure that contributors can use immediately:
+
+- **Agents** (`.claude/agents/`) -- architect, explorer, implementer, reviewer, encore-expert
+- **Commands** (`.claude/commands/`) -- `/init`, `/commit`, `/code-review`, `/validate-and-fix`, `/research`, `/implement-plan`, `/cleanup`, `/factory-sync`
+- **Rules** (`.claude/rules/`) -- orchestrator behavioral rules enforcing step ordering, file-based artifact passing, and checkpoint discipline
+
+Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (agent protocol), every contributor gets AI-assisted development workflows out of the box. This is not optional tooling -- it is how the platform was built.
+
+---
+
+## Who this is for
+
+- Engineers who want deep local agency with AI without losing operational discipline
+- Platform teams who need standards, control, and auditability
+- Organisations adopting agentic workflows in serious production settings
+- Product and infrastructure groups working across multiple repositories and environments
+
+---
+
+## Contributing and governance
+
+- [Contributing Guide](CONTRIBUTING.md) -- how to get started, branch conventions, and PR process
+- [Code of Conduct](CODE_OF_CONDUCT.md) -- community standards (Contributor Covenant v2.1)
+- [Security Policy](SECURITY.md) -- reporting vulnerabilities
+- [License](LICENSE) -- AGPL-3.0
