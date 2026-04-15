@@ -17,6 +17,8 @@ summary: >
 code_aliases:
   - OPC_SETTINGS
   - SETTINGS_RECONCILIATION
+implements:
+  - path: apps/desktop
 ---
 
 # 084 — OPC Scoped Settings Reconciliation

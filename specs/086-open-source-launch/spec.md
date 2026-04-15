@@ -3,7 +3,7 @@ id: "086-open-source-launch"
 title: "Open Source Launch Readiness"
 feature_branch: "feat/086-open-source-launch"
 status: approved
-implementation: complete
+implementation: n/a
 kind: process
 created: "2026-04-08"
 authors:

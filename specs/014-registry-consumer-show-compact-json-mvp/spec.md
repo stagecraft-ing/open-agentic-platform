@@ -12,6 +12,8 @@ language: en
 summary: >
   Add `show <id> --compact` for single-line compact JSON feature output, mutually
   exclusive with `--json`, without changing default or pretty `--json` behavior.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Registry consumer show compact JSON

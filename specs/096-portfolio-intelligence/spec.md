@@ -15,6 +15,9 @@ summary: >
   drift detection from desktop, and enriched feature views with complexity and
   test coverage data.
 code_aliases: ["PORTFOLIO_INTELLIGENCE"]
+implements:
+  - path: crates/featuregraph
+  - path: crates/xray
 ---
 
 # 096 — Portfolio Intelligence

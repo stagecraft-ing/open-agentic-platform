@@ -13,6 +13,8 @@ summary: >
   Deliver a small user-facing registry-consumer improvement focused on lifecycle/status
   reporting: add a status summary command with counts and optional ids, keep current
   trust/exit semantics, and verify behavior with integration tests.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Registry consumer status reporting UX

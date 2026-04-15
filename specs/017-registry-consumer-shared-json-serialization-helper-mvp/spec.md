@@ -12,6 +12,8 @@ language: en
 summary: >
   Consolidate pretty vs compact JSON serialization in one library helper; no CLI
   behavior change.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Shared JSON serialization helper

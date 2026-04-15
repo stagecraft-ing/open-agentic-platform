@@ -11,3 +11,6 @@ path = "src/lib.rs"
 
 [dependencies]
 serde_yaml = "0.9"
+
+[package.metadata.oap]
+spec = "000-bootstrap-spec-system"

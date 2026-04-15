@@ -12,6 +12,8 @@ language: en
 summary: >
   Add a narrow contract extension: `list --ids-only` emits one feature id per
   line while preserving existing filter and deterministic ordering semantics.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: list --ids-only contract

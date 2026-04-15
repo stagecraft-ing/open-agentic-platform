@@ -37,5 +37,8 @@
     "@opc/claude-code-bridge": "workspace:*",
     "@opc/permission-system": "workspace:*",
     "openai": "^4.104.0"
+  },
+  "oap": {
+    "spec": "042-multi-provider-agent-registry"
   }
 }

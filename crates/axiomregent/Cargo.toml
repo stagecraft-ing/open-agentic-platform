@@ -58,3 +58,6 @@ resolver-local  = []
 skills-core     = []
 deny-exec       = []
 rmcp            = []
+
+[package.metadata.oap]
+spec = "073-axiomregent-unification"

@@ -23,3 +23,6 @@ toml = "0.8"
 
 [dev-dependencies]
 tempfile = "3.8"
+
+[package.metadata.oap]
+spec = "035-agent-governed-execution"

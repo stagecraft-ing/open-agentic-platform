@@ -12,6 +12,8 @@ language: en
 summary: >
   Lock top-level and subcommand help output for registry-consumer using fixture
   transcripts and integration tests, preventing silent ergonomics drift.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Help/usage output contract

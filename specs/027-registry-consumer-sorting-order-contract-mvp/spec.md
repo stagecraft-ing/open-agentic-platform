@@ -12,6 +12,8 @@ language: en
 summary: >
   Lock deterministic sorting-order behavior for list and status-report outputs,
   including feature-id ordering, status row ordering, and sorted ids within rows.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Sorting-order contract

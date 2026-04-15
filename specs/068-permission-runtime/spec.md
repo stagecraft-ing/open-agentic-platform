@@ -17,6 +17,8 @@ summary: >
   evaluates permissions at tool dispatch time.
 code_aliases: ["PERMISSION_RUNTIME"]
 sources: ["claude-code"]
+implements:
+  - path: crates/policy-kernel
 ---
 
 # Feature Specification: Permission Runtime and Settings Layering

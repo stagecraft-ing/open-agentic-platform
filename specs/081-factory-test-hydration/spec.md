@@ -15,6 +15,11 @@ summary: >
   unit and integration tests. Closes the gap between schema-only DDL output and
   a runnable application with meaningful data.
 code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
+implements:
+  - path: factory/adapters/aim-vue-node
+  - path: factory/adapters/encore-react
+  - path: factory/adapters/next-prisma
+  - path: factory/adapters/rust-axum
 ---
 
 # 081 — Factory Test Data Hydration

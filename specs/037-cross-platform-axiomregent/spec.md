@@ -14,6 +14,8 @@ summary: >
   (macOS arm64/x86_64, Linux x86_64/arm64, Windows x86_64) so that governed
   execution works on every platform instead of degrading to bypass mode on
   non-macOS hosts.
+implements:
+  - path: crates/axiomregent
 ---
 
 # Feature Specification: cross-platform axiomregent binaries

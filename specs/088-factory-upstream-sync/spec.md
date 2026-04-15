@@ -13,6 +13,8 @@ summary: >
 depends_on:
   - "074"  # factory-ingestion
   - "075"  # factory-workflow-engine
+implements:
+  - path: factory/adapters/aim-vue-node
 ---
 
 # 088 — Factory Upstream Sync Protocol

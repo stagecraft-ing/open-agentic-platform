@@ -13,6 +13,8 @@ summary: >
   Lock channel discipline invariants so success-path data/help/version output is
   emitted on stdout while diagnostics remain on stderr for argument and runtime
   failures.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Channel discipline contract

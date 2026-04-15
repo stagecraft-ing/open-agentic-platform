@@ -17,6 +17,8 @@ summary: >
   manifests.
 code_aliases: ["LIFECYCLE_HOOK_RUNTIME"]
 sources: ["claude-code"]
+implements:
+  - path: packages/hookify-rule-engine
 ---
 
 # Feature Specification: Lifecycle Hook Runtime

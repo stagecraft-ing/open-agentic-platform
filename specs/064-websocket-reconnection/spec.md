@@ -19,6 +19,8 @@ code_aliases:
   - WS_RECONNECT
 sources:
   - claudecodeui
+implements:
+  - path: apps/desktop
 ---
 
 # Feature Specification: WebSocket Session Reconnection

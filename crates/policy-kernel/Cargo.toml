@@ -35,3 +35,6 @@ tempfile = "3"
 [[bench]]
 name = "kernel_eval"
 harness = false
+
+[package.metadata.oap]
+spec = "047-governance-control-plane"

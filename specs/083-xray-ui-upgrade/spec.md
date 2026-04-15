@@ -19,6 +19,8 @@ summary: >
 code_aliases:
   - XRAY_UI
   - INSPECT_SURFACE
+implements:
+  - path: apps/desktop
 ---
 
 # 083 — Xray v1.2.0 UI Surface

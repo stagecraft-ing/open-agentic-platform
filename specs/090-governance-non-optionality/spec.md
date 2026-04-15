@@ -15,6 +15,10 @@ summary: >
   default, DefaultMode::Bypass at non-policy tier) are closed or guarded. Axiomregent
   cross-platform builds reduce the platform gap.
 code_aliases: ["GOVERNANCE_NON_OPTION"]
+implements:
+  - path: crates/axiomregent
+  - path: crates/policy-kernel
+  - path: crates/orchestrator
 ---
 
 # 090 — Governance Non-Optionality

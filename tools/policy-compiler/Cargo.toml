@@ -32,3 +32,6 @@ tempfile = "3.27.0"
 [[bench]]
 name = "compile_many"
 harness = false
+
+[package.metadata.oap]
+spec = "047-governance-control-plane"

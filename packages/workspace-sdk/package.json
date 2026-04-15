@@ -11,5 +11,8 @@
     "./sync": "./src/sync.ts",
     "./auth": "./src/auth.ts",
     "./client": "./src/client.ts"
+  },
+  "oap": {
+    "spec": "087-unified-workspace-architecture"
   }
 }

@@ -20,6 +20,8 @@ code_aliases:
 sources:
   - claudepal
   - claudecodeui
+implements:
+  - path: apps/desktop
 ---
 
 # Feature Specification: Encrypted Keychain and Credential Storage

@@ -12,6 +12,8 @@ language: en
 summary: >
   Internal refactor only: centralize output/error/exit emission in helper paths
   while preserving all observable CLI behavior under existing contracts.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Internal output/exit refactor

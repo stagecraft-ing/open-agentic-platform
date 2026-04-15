@@ -38,3 +38,6 @@ path = "src/bin/factory_run.rs"
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "time"] }
+
+[package.metadata.oap]
+spec = "075-factory-workflow-engine"

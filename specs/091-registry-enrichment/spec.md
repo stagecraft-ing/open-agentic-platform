@@ -13,6 +13,9 @@ summary: >
   compiler fields. Validate risk enum values. Update featuregraph to read enriched
   fields from the compiled registry, enabling downstream spec-driven gating.
 code_aliases: ["REGISTRY_ENRICHMENT"]
+implements:
+  - path: tools/spec-compiler
+  - path: crates/featuregraph
 ---
 
 # 091 — Spec Registry Enrichment

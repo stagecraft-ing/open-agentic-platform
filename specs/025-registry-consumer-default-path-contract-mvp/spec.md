@@ -12,6 +12,8 @@ language: en
 summary: >
   Lock behavior when --registry-path is omitted by asserting default-path success
   and missing-path failure semantics from controlled current working directories.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Default-path contract

@@ -10,5 +10,8 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "AGPL-3.0"
+  "license": "AGPL-3.0",
+  "oap": {
+    "spec": "085-remote-control-cli"
+  }
 }

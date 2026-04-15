@@ -12,6 +12,8 @@ language: en
 summary: >
   Declare and verify `status-report --json` as a stable automation interface using
   fixture-based contract tests, without changing runtime behavior.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Registry consumer status-report JSON contract tests

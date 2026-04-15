@@ -27,5 +27,8 @@
   },
   "dependencies": {
     "@opc/provider-registry": "workspace:*"
+  },
+  "oap": {
+    "spec": "062-multi-model-chaining"
   }
 }

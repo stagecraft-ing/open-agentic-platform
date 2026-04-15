@@ -16,6 +16,9 @@ summary: >
   Sonnet/Opus for execution — replacing ad-hoc agent selection with governed dispatch.
 code_aliases:
   - AGENT_ORGANIZER
+implements:
+  - path: crates/agent
+  - path: crates/orchestrator
 ---
 
 # Feature Specification: agent organizer and meta-orchestrator

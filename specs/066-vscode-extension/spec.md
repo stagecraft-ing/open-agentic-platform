@@ -3,7 +3,7 @@ id: "066-vscode-extension"
 title: "VS Code Extension (Sidebar Webview)"
 feature_branch: "066-vscode-extension"
 status: approved
-implementation: complete
+implementation: n/a
 kind: platform
 created: "2026-03-31"
 authors:

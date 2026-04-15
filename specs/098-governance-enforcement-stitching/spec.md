@@ -11,6 +11,9 @@ depends_on:
   - "093"
   - "097"
 code_aliases: ["GOVERNANCE_ENFORCEMENT_STITCHING"]
+implements:
+  - path: crates/orchestrator
+  - path: crates/axiomregent
 summary: >
   Wire governance mode into live workflow metadata and make MCP router preflight
   blocking for mutation tools. Closes two stitching defects that leave governance

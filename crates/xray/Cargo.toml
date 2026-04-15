@@ -39,3 +39,6 @@ full = ["analysis-structure", "analysis-call-graph", "analysis-embeddings"]
 
 [dev-dependencies]
 fs_extra = "1.3.0"
+
+[package.metadata.oap]
+spec = "032-opc-inspect-governance-wiring-mvp"

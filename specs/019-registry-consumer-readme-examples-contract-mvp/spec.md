@@ -13,6 +13,8 @@ summary: >
   Keep README command examples aligned with verified fixture output: human-facing
   text vs automation JSON/compact, with integration tests that assert CLI output
   and README fenced blocks match committed transcripts.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: README examples contract

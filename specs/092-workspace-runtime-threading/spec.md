@@ -15,6 +15,9 @@ summary: >
   factory contracts, and spawned Claude processes. Currently workspace_id exists
   only in Stagecraft (DB + JWT) and two narrow read sites.
 code_aliases: ["WORKSPACE_THREADING"]
+implements:
+  - path: crates/orchestrator
+  - path: crates/factory-contracts
 ---
 
 # 092 — Workspace Runtime Threading

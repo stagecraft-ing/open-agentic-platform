@@ -12,6 +12,8 @@ language: en
 summary: >
   Lock top-level `--version` output for registry-consumer with fixture-backed
   transcript tests, including exit code and stderr expectations.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Version/banner contract

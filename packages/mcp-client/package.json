@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "typescript": "^5.0.0"
+  },
+  "oap": {
+    "spec": "033-axiomregent-activation"
   }
 }

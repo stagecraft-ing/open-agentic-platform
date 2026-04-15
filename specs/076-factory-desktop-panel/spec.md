@@ -13,6 +13,8 @@ summary: >
   real-time progress tracking, artifact inspection, gate confirm/reject dialogs,
   token spend dashboard, and scaffolding fan-out monitoring.
 code_aliases: ["FACTORY_DESKTOP", "FACTORY_PANEL"]
+implements:
+  - path: apps/desktop
 ---
 
 # Feature Specification: Factory Desktop Panel

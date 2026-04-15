@@ -13,6 +13,8 @@ summary: >
   Lock argument-layer behavior contracts for registry-consumer by asserting exact
   exit codes and stderr transcripts for flag conflicts, missing required args,
   and invalid enum values.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Flag-conflict and argument-validation contract

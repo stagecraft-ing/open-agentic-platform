@@ -12,6 +12,8 @@ language: en
 summary: >
   Lock key runtime failure-path contracts for registry-consumer by asserting exact
   stderr bytes and exit codes from deterministic fixtures, without changing CLI behavior.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Error contract tests

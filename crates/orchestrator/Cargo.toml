@@ -34,3 +34,6 @@ dirs = "5"
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "time"] }
+
+[package.metadata.oap]
+spec = "052-state-persistence"

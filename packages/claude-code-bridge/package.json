@@ -26,5 +26,8 @@
   "devDependencies": {
     "@types/node": "^22.15.30",
     "typescript": "^5.0.0"
+  },
+  "oap": {
+    "spec": "045-claude-code-sdk-bridge"
   }
 }

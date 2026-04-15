@@ -12,6 +12,8 @@ language: en
 summary: >
   Add `--status <value>` to `status-report` so operators and scripts can request a
   single lifecycle row in text or JSON mode while preserving existing defaults.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Registry consumer status-report status filter

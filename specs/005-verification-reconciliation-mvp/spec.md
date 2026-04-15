@@ -17,6 +17,8 @@ summary: >
 code_aliases:
   - VERIFICATION_SKILLS
   - VERIFY_PROTOCOL
+implements:
+  - path: packages/verification-profiles
 ---
 
 # Feature Specification: Verification and reconciliation

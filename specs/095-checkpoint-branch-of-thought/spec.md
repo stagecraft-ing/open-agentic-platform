@@ -15,6 +15,8 @@ summary: >
   scoping, introduce checkpoint.compare MCP tool, bind gate approvals to
   checkpoint IDs, and provide desktop branch visualization.
 code_aliases: ["CHECKPOINT_BRANCHING"]
+implements:
+  - path: crates/axiomregent
 ---
 
 # 095 — Checkpoint Branch-of-Thought

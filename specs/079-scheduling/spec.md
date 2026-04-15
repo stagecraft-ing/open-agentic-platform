@@ -17,6 +17,8 @@ code_aliases:
   - SCHEDULED_AGENT_EXECUTION
 sources:
   - claudepal
+implements:
+  - path: crates/orchestrator
 ---
 
 # 079 — Scheduled Agent Execution

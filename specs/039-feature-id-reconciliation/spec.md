@@ -13,6 +13,9 @@ summary: >
   Bridge the dual identity system — kebab spec IDs and UPPERCASE code attribution
   tokens — by adding an optional codeAliases field to the compiled registry schema,
   spec-compiler, and featuregraph scanner. Implements ADR 0001.
+implements:
+  - path: tools/spec-compiler
+  - path: crates/featuregraph
 ---
 
 # Feature Specification: Feature ID reconciliation (codeAliases)

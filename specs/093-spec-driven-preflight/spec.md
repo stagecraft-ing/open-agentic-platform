@@ -14,6 +14,10 @@ depends_on:
   - "092"  # workspace-runtime-threading (workspace_id everywhere)
 code_aliases: ["SPEC_PREFLIGHT"]
 risk: high
+implements:
+  - path: crates/policy-kernel
+  - path: crates/featuregraph
+  - path: crates/agent
 ---
 
 # 093 — Spec-Driven Preflight and Gating

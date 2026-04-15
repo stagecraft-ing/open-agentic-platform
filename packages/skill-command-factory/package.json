@@ -27,5 +27,8 @@
   },
   "dependencies": {
     "yaml": "^2.8.1"
+  },
+  "oap": {
+    "spec": "071-skill-command-factory"
   }
 }

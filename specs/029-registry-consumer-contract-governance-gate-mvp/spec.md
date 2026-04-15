@@ -13,6 +13,8 @@ summary: >
   Codify controlled-extension governance for registry-consumer via explicit
   stabilization boundary, change classification rubric, reviewer checklist,
   contract baseline definition, and CI validation gate language.
+implements:
+  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Contract governance gate

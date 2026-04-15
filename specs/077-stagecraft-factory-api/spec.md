@@ -13,6 +13,8 @@ summary: >
   project initialization, adapter selection, stage confirmation/rejection, policy
   bundle compilation, audit trail capture, and deployment handoff.
 code_aliases: ["STAGECRAFT_FACTORY", "FACTORY_API"]
+implements:
+  - path: platform/services/stagecraft
 ---
 
 # Feature Specification: Stagecraft Factory Lifecycle API

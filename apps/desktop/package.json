@@ -95,5 +95,8 @@
   "optionalDependencies": {
     "@esbuild/linux-x64": "^0.25.6",
     "@rollup/rollup-linux-x64-gnu": "^4.45.1"
+  },
+  "oap": {
+    "spec": "032-opc-inspect-governance-wiring-mvp"
   }
 }

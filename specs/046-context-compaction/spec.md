@@ -14,6 +14,8 @@ summary: >
   produces <session_context> blocks that preserve task status, file
   modifications, and interruption state so sessions can be resumed
   efficiently without losing critical context.
+implements:
+  - path: packages/prompt-assembly
 ---
 
 # Feature Specification: Context Compaction for Session Resumption

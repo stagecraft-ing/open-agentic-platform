@@ -29,5 +29,8 @@
   },
   "dependencies": {
     "yaml": "^2.8.1"
+  },
+  "oap": {
+    "spec": "055-yaml-standards-schema"
   }
 }

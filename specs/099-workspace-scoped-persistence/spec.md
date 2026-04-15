@@ -11,6 +11,9 @@ depends_on:
   - "094"
   - "097"
 code_aliases: ["WORKSPACE_SCOPED_PERSISTENCE"]
+implements:
+  - path: crates/orchestrator
+  - path: crates/run
 summary: >
   Make persistence workspace-native and sync-trackable. Replace fire-and-forget
   Stagecraft calls with tracked acknowledgement, update SyncStatus in the
