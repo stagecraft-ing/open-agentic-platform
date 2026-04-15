@@ -22,6 +22,7 @@ pub mod http;
 pub mod manifest;
 pub mod output_filter;
 pub mod promotion;
+pub mod provider_executor;
 pub mod scheduler;
 #[cfg(feature = "local-sqlite")]
 pub mod sqlite_state;
@@ -42,6 +43,7 @@ pub use artifact::{
 pub use claude_executor::{
     AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, ThinkingLevel,
 };
+pub use provider_executor::{ProviderRegistryExecutor, parse_provider_model};
 pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use effort::{EffortLevel, classify_from_task};
 pub use gates::{GateError, GateHandler, GateOutcome, evaluate_gate, evaluate_gate_if_present};

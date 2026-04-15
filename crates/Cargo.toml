@@ -8,6 +8,7 @@ members = [
     "featuregraph",
     "orchestrator",
     "policy-kernel",
+    "provider-registry",
     "run",
     "skill-factory",
     "standards-loader",

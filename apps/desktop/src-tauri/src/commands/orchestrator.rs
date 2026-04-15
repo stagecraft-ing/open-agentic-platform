@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{Emitter, State};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use uuid::Uuid;
 
@@ -68,7 +68,7 @@ impl GovernedExecutor for RealGovernedExecutor {
         );
 
         if profile.model.contains(':') {
-            self.dispatch_via_provider_registry(&request, profile, &user_prompt)
+            self.dispatch_via_provider_registry_native(&request, profile, &user_prompt)
                 .await
         } else {
             self.dispatch_via_governed_claude(&request, profile, &full_prompt)
@@ -78,141 +78,93 @@ impl GovernedExecutor for RealGovernedExecutor {
 }
 
 impl RealGovernedExecutor {
-    async fn dispatch_via_provider_registry(
+    /// Dispatch via the native Rust provider registry (spec 042).
+    /// Replaces the former Node.js sidecar subprocess path.
+    async fn dispatch_via_provider_registry_native(
         &self,
         request: &DispatchRequest,
         profile: &AgentExecutionProfile,
         prompt: &str,
     ) -> Result<DispatchResult, String> {
-        let sidecar_js = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .join("packages/provider-registry/dist/node-sidecar.js");
-        if !sidecar_js.exists() {
-            return Err(format!(
-                "bridge sidecar not found at {}. Build with: pnpm exec tsc -p packages/provider-registry/tsconfig.json",
-                sidecar_js.display()
-            ));
+        use std::collections::BTreeMap;
+        use provider_registry::{
+            GovernedProviderRegistry, ProviderConfig, ProviderRegistry,
+        };
+        use policy_kernel::PolicyBundle;
+
+        let registry = ProviderRegistry::new();
+
+        // Parse provider:model from the profile
+        let (provider_id, model) = orchestrator::parse_provider_model(&profile.model)
+            .ok_or_else(|| format!("invalid provider:model syntax: {}", profile.model))?;
+
+        // Register the appropriate adapter from env
+        match provider_id {
+            "anthropic" => {
+                if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+                    let adapter = provider_registry::adapters::anthropic::AnthropicAdapter::new(
+                        ProviderConfig {
+                            id: "anthropic".into(),
+                            api_key: Some(key),
+                            base_url: std::env::var("ANTHROPIC_BASE_URL").ok(),
+                            default_model: model.to_string(),
+                            rate_limit_rpm: None,
+                            timeout_ms: None,
+                        },
+                    );
+                    registry.register(std::sync::Arc::new(adapter)).await
+                        .map_err(|e| format!("register anthropic adapter: {e}"))?;
+                } else {
+                    return Err("ANTHROPIC_API_KEY not set".into());
+                }
+            }
+            "openai" => {
+                if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+                    let adapter = provider_registry::adapters::openai::OpenAiAdapter::new(
+                        ProviderConfig {
+                            id: "openai".into(),
+                            api_key: Some(key),
+                            base_url: std::env::var("OPENAI_BASE_URL").ok(),
+                            default_model: model.to_string(),
+                            rate_limit_rpm: None,
+                            timeout_ms: None,
+                        },
+                    );
+                    registry.register(std::sync::Arc::new(adapter)).await
+                        .map_err(|e| format!("register openai adapter: {e}"))?;
+                } else {
+                    return Err("OPENAI_API_KEY not set".into());
+                }
+            }
+            other => return Err(format!("unsupported provider: {other}")),
         }
 
-        let mut cmd = Command::new("node");
-        cmd.arg(sidecar_js.as_os_str())
-            .current_dir(&self.working_directory)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        if let Some(ref ws_id) = request.workspace_id {
-            cmd.env("OPC_WORKSPACE_ID", ws_id);
-        }
-
-        let mut child = cmd
-            .spawn()
-            .map_err(|e| format!("spawn provider-registry sidecar failed: {e}"))?;
-        let mut stdin = child
-            .stdin
-            .take()
-            .ok_or_else(|| "provider-registry sidecar stdin unavailable".to_string())?;
-        let query = serde_json::json!({
-            "type": "query",
-            "prompt": prompt,
-            "agentName": &request.agent_id,
-            "systemPrompt": &profile.system_prompt,
-            "workingDirectory": &self.working_directory,
-            "model": &profile.model,
-            "permissionMode": "default",
-            "allowedTools": &profile.allowed_tools
+        // Build governed registry with empty policy bundle (default allow)
+        let bundle = std::sync::Arc::new(PolicyBundle {
+            constitution: vec![],
+            shards: BTreeMap::new(),
         });
-        let line = serde_json::to_string(&query).map_err(|e| e.to_string())?;
-        stdin
-            .write_all(format!("{line}\n").as_bytes())
-            .await
-            .map_err(|e| format!("write sidecar query failed: {e}"))?;
-        stdin
-            .flush()
-            .await
-            .map_err(|e| format!("flush sidecar query failed: {e}"))?;
-        drop(stdin);
+        let governed = std::sync::Arc::new(GovernedProviderRegistry::new(registry, bundle));
 
-        let mut stdout = BufReader::new(
-            child
-                .stdout
-                .take()
-                .ok_or_else(|| "provider-registry sidecar stdout unavailable".to_string())?,
-        )
-        .lines();
-        let mut stderr = BufReader::new(
-            child
-                .stderr
-                .take()
-                .ok_or_else(|| "provider-registry sidecar stderr unavailable".to_string())?,
-        )
-        .lines();
+        // Build the executor and delegate
+        let executor = orchestrator::ProviderRegistryExecutor::new(
+            governed,
+            PathBuf::from(&self.working_directory),
+        );
 
-        let mut tokens_used: Option<u64> = None;
-        while let Some(line) = stdout
-            .next_line()
-            .await
-            .map_err(|e| format!("read sidecar stdout failed: {e}"))?
-        {
-            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) {
-                if v.get("done").and_then(|x| x.as_bool()) == Some(true) {
-                    break;
-                }
-                if v.get("type").and_then(|x| x.as_str()) == Some("error") {
-                    let msg = v
-                        .get("error")
-                        .and_then(|x| x.as_str())
-                        .unwrap_or("provider-registry sidecar error");
-                    return Err(format!("step {} failed: {}", request.step_id, msg));
-                }
-                if v.get("type").and_then(|x| x.as_str()) == Some("result") {
-                    let input = v
-                        .get("total_input_tokens")
-                        .and_then(|x| x.as_u64())
-                        .unwrap_or(0);
-                    let output = v
-                        .get("total_output_tokens")
-                        .and_then(|x| x.as_u64())
-                        .unwrap_or(0);
-                    tokens_used = Some(input + output);
-                }
-            }
-        }
+        // Construct a DispatchRequest with provider:model as agent_id
+        let provider_request = DispatchRequest {
+            step_id: request.step_id.clone(),
+            agent_id: profile.model.clone(), // "anthropic:claude-sonnet-4-20250514"
+            effort: request.effort.clone(),
+            system_prompt: format!("{}\n\n{}", profile.system_prompt, prompt),
+            input_artifacts: request.input_artifacts.clone(),
+            output_artifacts: request.output_artifacts.clone(),
+            resume_session_id: None,
+            workspace_id: request.workspace_id.clone(),
+        };
 
-        let mut stderr_buf = String::new();
-        while let Some(line) = stderr
-            .next_line()
-            .await
-            .map_err(|e| format!("read sidecar stderr failed: {e}"))?
-        {
-            stderr_buf.push_str(&line);
-            stderr_buf.push('\n');
-        }
-
-        let status = child
-            .wait()
-            .await
-            .map_err(|e| format!("wait sidecar process failed: {e}"))?;
-        if !status.success() {
-            let detail = stderr_buf.trim();
-            if detail.is_empty() {
-                return Err(format!(
-                    "provider-registry sidecar exited with non-zero status: {status}"
-                ));
-            }
-            return Err(format!(
-                "provider-registry sidecar exited with non-zero status: {status}; stderr: {detail}"
-            ));
-        }
-
-        Ok(DispatchResult {
-            tokens_used,
-            output_hashes: Default::default(),
-            session_id: None,
-            cost_usd: None,
-            duration_ms: None,
-            num_turns: None,
-            governance_mode: None,
-        })
+        executor.dispatch_step(provider_request).await
     }
 
     async fn dispatch_via_governed_claude(

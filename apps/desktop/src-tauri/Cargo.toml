@@ -85,6 +85,8 @@ featuregraph = { path = "../../../crates/featuregraph" }
 agent        = { path = "../../../crates/agent" }
 run          = { path = "../../../crates/run" }
 orchestrator = { path = "../../../crates/orchestrator" }
+provider-registry = { path = "../../../crates/provider-registry", default-features = false, features = ["anthropic", "openai"] }
+policy-kernel = { package = "open_agentic_policy_kernel", path = "../../../crates/policy-kernel", default-features = false }
 factory-engine = { path = "../../../crates/factory-engine" }
 
 

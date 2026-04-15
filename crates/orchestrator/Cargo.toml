@@ -12,6 +12,7 @@ local-sqlite = ["dep:rusqlite"]
 distributed = ["dep:hiqlite"]
 
 [dependencies]
+provider-registry = { path = "../provider-registry", default-features = false, features = ["anthropic", "openai"] }
 standards-loader = { path = "../standards-loader" }
 async-trait = "0.1"
 rusqlite = { version = "0.39", features = ["bundled"], optional = true }
