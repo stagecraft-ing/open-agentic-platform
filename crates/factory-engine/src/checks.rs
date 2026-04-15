@@ -333,6 +333,73 @@ pub fn run_cross_reference(
     }
 }
 
+// ── Check Runner 8: Security Scan (102 FR-034, FR-039) ──────────────
+
+/// Run a security scan on generated output files using the output filter.
+///
+/// Walks `project_root` for source files and scans each for secrets patterns.
+/// Returns a failing check if any findings are detected.
+pub fn run_security_scan(
+    check_id: &str,
+    project_root: &Path,
+    severity: Severity,
+) -> CheckResult {
+    let extensions = ["ts", "js", "rs", "yaml", "yml", "json", "env", "toml"];
+    let mut total_findings = 0u32;
+    let mut files_with_findings = Vec::new();
+
+    for entry in WalkDir::new(project_root)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("");
+        if !extensions.contains(&ext) {
+            continue;
+        }
+        // Skip node_modules, .git, target directories.
+        let path_str = path.to_string_lossy();
+        if path_str.contains("node_modules")
+            || path_str.contains("/.git/")
+            || path_str.contains("/target/")
+        {
+            continue;
+        }
+
+        if let Ok(content) = std::fs::read_to_string(path) {
+            let result = orchestrator::output_filter::scan_content(&content);
+            if !result.clean {
+                total_findings += result.findings.len() as u32;
+                files_with_findings.push(path.display().to_string());
+            }
+        }
+    }
+
+    if total_findings == 0 {
+        CheckResult::pass(
+            check_id,
+            "Security scan: no secrets or sensitive patterns detected".to_string(),
+            severity,
+        )
+    } else {
+        CheckResult::fail(
+            check_id,
+            format!(
+                "Security scan: {total_findings} finding(s) in {} file(s): {}",
+                files_with_findings.len(),
+                files_with_findings.iter().take(5).cloned().collect::<Vec<_>>().join(", ")
+            ),
+            severity,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

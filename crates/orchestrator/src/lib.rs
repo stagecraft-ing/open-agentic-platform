@@ -9,7 +9,9 @@
 //! Phase 2–3: JSON state persistence + checkpoints/approvals (Feature 052).
 //! Phase 4: SQLite state backend (Feature 052).
 
+pub mod agent_identity;
 pub mod artifact;
+pub mod circuit_breaker;
 pub mod claude_executor;
 pub mod cli_gate;
 pub mod effort;
@@ -18,6 +20,7 @@ pub mod gates;
 pub mod hiqlite_store;
 pub mod http;
 pub mod manifest;
+pub mod output_filter;
 pub mod promotion;
 pub mod scheduler;
 #[cfg(feature = "local-sqlite")]
@@ -29,6 +32,7 @@ pub mod store;
 pub mod store_config;
 pub mod verify;
 
+pub use agent_identity::AgentIdentity;
 #[cfg(feature = "local-sqlite")]
 pub use artifact::ArtifactMetadataStore;
 pub use artifact::{
