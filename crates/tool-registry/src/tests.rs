@@ -167,8 +167,8 @@ fn denied_tool_not_executed() {
 }
 
 #[test]
-fn no_policy_kernel_returns_ask() {
-    // Use default can_use which checks ctx.policy.
+fn no_policy_kernel_returns_deny() {
+    // FR-020: default can_use denies when no policy kernel (fail-closed).
     struct DefaultGateTool;
     impl ToolDef for DefaultGateTool {
         fn name(&self) -> &str {
@@ -192,7 +192,7 @@ fn no_policy_kernel_returns_ask() {
     let result = reg.execute("default_gate", json!({}), &mut ctx);
     assert!(matches!(
         result.unwrap_err(),
-        RegistryError::PermissionAsk { .. }
+        RegistryError::PermissionDenied { .. }
     ));
 }
 

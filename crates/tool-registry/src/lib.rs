@@ -9,12 +9,14 @@
 pub mod async_registry;
 mod event;
 mod mcp;
+pub mod policy_bridge;
 mod registry;
 mod types;
 
 pub use async_registry::{AsyncToolDef, AsyncToolRegistry};
 pub use event::{ToolEvent, ToolEventKind};
 pub use mcp::McpToolDef;
+pub use policy_bridge::PolicyKernelBridge;
 pub use registry::{RegistryError, ToolRegistry};
 pub use types::{
     PermissionResult, PolicyEvaluator, PolicyKernelHandle, ToolContext, ToolDef, ToolResult,

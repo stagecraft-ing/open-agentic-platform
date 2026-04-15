@@ -90,14 +90,13 @@ pub trait ToolDef: Send + Sync {
     fn input_schema(&self) -> Value;
 
     /// Permission gate — consults the policy kernel before execution (FR-004).
-    /// Defaults to `Ask` when no policy kernel is available.
+    /// Defaults to `Deny` when no policy kernel is available (FR-020: fail-closed).
     fn can_use(&self, ctx: &ToolContext) -> anyhow::Result<PermissionResult> {
         match &ctx.policy {
             Some(handle) => Ok(handle.0.evaluate(self.name(), "")),
-            None => Ok(PermissionResult::Ask(format!(
-                "No policy kernel — confirm use of tool '{}'",
-                self.name()
-            ))),
+            None => Ok(PermissionResult::Deny(
+                "policy-kernel-not-configured: tool dispatch denied in ungoverned context".into(),
+            )),
         }
     }
 

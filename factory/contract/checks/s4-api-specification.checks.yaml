@@ -1,0 +1,13 @@
+# Stage s4-api-specification — API specification gate
+# Verifies the API specification artifact is present and free of placeholder text.
+checks:
+  - id: "S4-001-api-specification-exists"
+    type: "artifact-exists"
+    severity: "error"
+    artifact: ".factory/api-specification.json"
+
+  - id: "S4-002-no-todo-placeholders"
+    type: "grep-absent"
+    severity: "error"
+    pattern: "(?i)\\bTODO\\b"
+    scope: ".factory"

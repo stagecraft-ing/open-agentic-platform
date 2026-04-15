@@ -14,6 +14,7 @@ anyhow = "1.0"
 thiserror = "2"
 jsonschema = "0.28"
 async-trait = "0.1"
+policy-kernel = { package = "open_agentic_policy_kernel", path = "../policy-kernel", default-features = false }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }

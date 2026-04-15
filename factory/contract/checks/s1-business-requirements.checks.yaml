@@ -1,0 +1,23 @@
+# Stage s1-business-requirements — Business requirements gate
+# Verifies entity model, use cases, and business rules artifacts are present,
+# structurally valid, and free of placeholder text.
+checks:
+  - id: "S1-001-artifacts-exist"
+    type: "file-check"
+    severity: "error"
+    files:
+      - ".factory/entity-model.json"
+      - ".factory/use-cases.json"
+      - ".factory/business-rules.json"
+
+  - id: "S1-002-entity-model-schema"
+    type: "schema-validation"
+    severity: "error"
+    artifact: ".factory/entity-model.json"
+    schema: "factory/contract/schemas/stage-outputs/entity-model.schema.json"
+
+  - id: "S1-003-no-todo-placeholders"
+    type: "grep-absent"
+    severity: "error"
+    pattern: "(?i)\\bTODO\\b"
+    scope: ".factory"
