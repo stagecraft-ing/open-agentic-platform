@@ -2,7 +2,7 @@
 id: "098-governance-enforcement-stitching"
 title: "Governance Enforcement Stitching"
 status: approved
-implementation: in-progress
+implementation: complete
 owner: bart
 created: "2026-04-11"
 risk: high
