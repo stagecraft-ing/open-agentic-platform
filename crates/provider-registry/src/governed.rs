@@ -80,6 +80,7 @@ impl GovernedProviderRegistry {
     }
 
     /// Policy-checked streaming query.
+    #[allow(clippy::type_complexity)]
     pub fn governed_stream(
         &self,
         provider_id: &str,

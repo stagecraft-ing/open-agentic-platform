@@ -314,13 +314,12 @@ impl ProviderAdapter for AnthropicAdapter {
                         return;
                     }
                     None => {
-                        if let Some(data) = buf.trim().strip_prefix("data: ") {
-                            if data != "[DONE]" {
-                                if let Ok(event) = serde_json::from_str::<AnthropicSseEvent>(data) {
-                                    for agent_event in normalizer.push(&event) {
-                                        yield Ok(agent_event);
-                                    }
-                                }
+                        if let Some(data) = buf.trim().strip_prefix("data: ")
+                            && data != "[DONE]"
+                            && let Ok(event) = serde_json::from_str::<AnthropicSseEvent>(data)
+                        {
+                            for agent_event in normalizer.push(&event) {
+                                yield Ok(agent_event);
                             }
                         }
                         inflight_ref.remove(&session_id_owned);

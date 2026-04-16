@@ -236,6 +236,7 @@ pub struct DispatchOptions {
     pub sync_tracker: Option<promotion::SyncTracker>,
     /// Hook to create a checkpoint when a gate is reached (095 SC-095-4).
     /// Called with `(step_id, checkpoint_id)`, returns `Ok(merkle_root)` or an error.
+    #[allow(clippy::type_complexity)]
     pub on_gate_checkpoint: Option<Arc<dyn Fn(&str, &str) -> Result<String, String> + Send + Sync>>,
 }
 

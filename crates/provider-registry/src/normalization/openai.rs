@@ -30,14 +30,14 @@ impl OpenAiStreamNormalizer {
         let mut events = Vec::new();
 
         // Extract model on first chunk
-        if self.model.is_empty() {
-            if let Some(m) = chunk.get("model").and_then(|v| v.as_str()) {
-                self.model = m.to_string();
-                events.push(AgentEvent::MessageStart {
-                    role: Role::Assistant,
-                    model: self.model.clone(),
-                });
-            }
+        if self.model.is_empty()
+            && let Some(m) = chunk.get("model").and_then(|v| v.as_str())
+        {
+            self.model = m.to_string();
+            events.push(AgentEvent::MessageStart {
+                role: Role::Assistant,
+                model: self.model.clone(),
+            });
         }
 
         // Process choices
@@ -49,12 +49,12 @@ impl OpenAiStreamNormalizer {
                 };
 
                 // Text content
-                if let Some(content) = delta.get("content").and_then(|v| v.as_str()) {
-                    if !content.is_empty() {
-                        events.push(AgentEvent::TextDelta {
-                            delta: content.to_string(),
-                        });
-                    }
+                if let Some(content) = delta.get("content").and_then(|v| v.as_str())
+                    && !content.is_empty()
+                {
+                    events.push(AgentEvent::TextDelta {
+                        delta: content.to_string(),
+                    });
                 }
 
                 // Tool calls
@@ -84,45 +84,44 @@ impl OpenAiStreamNormalizer {
                             .get("function")
                             .and_then(|f| f.get("arguments"))
                             .and_then(|v| v.as_str())
+                            && !args.is_empty()
                         {
-                            if !args.is_empty() {
-                                if let Some(buf) = self.tool_args_by_index.get_mut(&index) {
-                                    buf.push_str(args);
-                                }
-                                let tool_call_id = self
-                                    .tool_meta_by_index
-                                    .get(&index)
-                                    .map(|(id, _)| id.clone())
-                                    .unwrap_or_else(|| index.to_string());
-                                events.push(AgentEvent::ToolUseDelta {
-                                    tool_call_id,
-                                    delta: args.to_string(),
-                                });
+                            if let Some(buf) = self.tool_args_by_index.get_mut(&index) {
+                                buf.push_str(args);
                             }
+                            let tool_call_id = self
+                                .tool_meta_by_index
+                                .get(&index)
+                                .map(|(id, _)| id.clone())
+                                .unwrap_or_else(|| index.to_string());
+                            events.push(AgentEvent::ToolUseDelta {
+                                tool_call_id,
+                                delta: args.to_string(),
+                            });
                         }
                     }
                 }
 
                 // Finish reason — emit tool_use_complete for any accumulated tool calls
-                if let Some(finish) = choice.get("finish_reason").and_then(|v| v.as_str()) {
-                    if finish == "tool_calls" || finish == "stop" {
-                        let indices: Vec<u32> = self.tool_meta_by_index.keys().cloned().collect();
-                        for idx in indices {
-                            if let (Some((id, _name)), Some(args)) = (
-                                self.tool_meta_by_index.remove(&idx),
-                                self.tool_args_by_index.remove(&idx),
-                            ) {
-                                let input = if args.is_empty() {
-                                    Value::Object(Default::default())
-                                } else {
-                                    serde_json::from_str(&args)
-                                        .unwrap_or(Value::String(args))
-                                };
-                                events.push(AgentEvent::ToolUseComplete {
-                                    tool_call_id: id,
-                                    input,
-                                });
-                            }
+                if let Some(finish) = choice.get("finish_reason").and_then(|v| v.as_str())
+                    && (finish == "tool_calls" || finish == "stop")
+                {
+                    let indices: Vec<u32> = self.tool_meta_by_index.keys().cloned().collect();
+                    for idx in indices {
+                        if let (Some((id, _name)), Some(args)) = (
+                            self.tool_meta_by_index.remove(&idx),
+                            self.tool_args_by_index.remove(&idx),
+                        ) {
+                            let input = if args.is_empty() {
+                                Value::Object(Default::default())
+                            } else {
+                                serde_json::from_str(&args)
+                                    .unwrap_or(Value::String(args))
+                            };
+                            events.push(AgentEvent::ToolUseComplete {
+                                tool_call_id: id,
+                                input,
+                            });
                         }
                     }
                 }
@@ -130,31 +129,31 @@ impl OpenAiStreamNormalizer {
         }
 
         // Usage (included when stream_options.include_usage = true)
-        if let Some(usage) = chunk.get("usage") {
-            if !usage.is_null() {
-                let input_tokens = usage
-                    .get("prompt_tokens")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
-                let output_tokens = usage
-                    .get("completion_tokens")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
-                let cache_read = usage
-                    .get("prompt_tokens_details")
-                    .and_then(|d| d.get("cached_tokens"))
-                    .and_then(|v| v.as_u64());
+        if let Some(usage) = chunk.get("usage")
+            && !usage.is_null()
+        {
+            let input_tokens = usage
+                .get("prompt_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let output_tokens = usage
+                .get("completion_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let cache_read = usage
+                .get("prompt_tokens_details")
+                .and_then(|d| d.get("cached_tokens"))
+                .and_then(|v| v.as_u64());
 
-                events.push(AgentEvent::MessageComplete {
-                    stop_reason: "end_turn".to_string(),
-                    usage: TokenUsage {
-                        input_tokens,
-                        output_tokens,
-                        cache_read_tokens: cache_read,
-                        cache_write_tokens: None,
-                    },
-                });
-            }
+            events.push(AgentEvent::MessageComplete {
+                stop_reason: "end_turn".to_string(),
+                usage: TokenUsage {
+                    input_tokens,
+                    output_tokens,
+                    cache_read_tokens: cache_read,
+                    cache_write_tokens: None,
+                },
+            });
         }
 
         events

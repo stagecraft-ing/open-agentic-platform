@@ -34,3 +34,4 @@ jobs:
         uses: ./.github/actions/rust-ci
         with:
           manifest-path: crates/orchestrator/Cargo.toml
+          cache-workspaces: crates/orchestrator

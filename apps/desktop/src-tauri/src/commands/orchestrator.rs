@@ -156,7 +156,7 @@ impl RealGovernedExecutor {
         let provider_request = DispatchRequest {
             step_id: request.step_id.clone(),
             agent_id: profile.model.clone(), // "anthropic:claude-sonnet-4-20250514"
-            effort: request.effort.clone(),
+            effort: request.effort,
             system_prompt: format!("{}\n\n{}", profile.system_prompt, prompt),
             input_artifacts: request.input_artifacts.clone(),
             output_artifacts: request.output_artifacts.clone(),
@@ -337,12 +337,12 @@ pub async fn orchestrate_manifest(
         serde_yaml::from_str(&manifest_text).map_err(|e| format!("parse manifest failed: {e}"))?;
 
     // Inject the active workspace into the manifest if not already set (spec 092).
-    if manifest.workspace_id.is_none() {
-        if let Some(ref client) = stagecraft.0 {
-            let ws = client.workspace_id();
-            if !ws.is_empty() {
-                manifest.workspace_id = Some(ws);
-            }
+    if manifest.workspace_id.is_none()
+        && let Some(ref client) = stagecraft.0
+    {
+        let ws = client.workspace_id();
+        if !ws.is_empty() {
+            manifest.workspace_id = Some(ws);
         }
     }
 

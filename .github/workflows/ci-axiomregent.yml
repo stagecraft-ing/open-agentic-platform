@@ -32,6 +32,7 @@ jobs:
   check-and-test:
     runs-on: ubuntu-latest
     name: check + clippy + test
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -40,6 +41,7 @@ jobs:
         uses: ./.github/actions/rust-ci
         with:
           manifest-path: crates/axiomregent/Cargo.toml
+          cache-workspaces: crates/axiomregent
 
       - name: cargo test (policy-kernel)
         run: cargo test --manifest-path crates/policy-kernel/Cargo.toml

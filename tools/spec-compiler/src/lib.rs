@@ -27,6 +27,7 @@ const KNOWN_KEYS: &[&str] = &[
     "owner",
     "risk",
     "implementation",
+    "implements",
     "compliance",
 ];
 

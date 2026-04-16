@@ -378,20 +378,20 @@ fn collect_stage_records(artifact_dir: &Path) -> Vec<StageRecord> {
         let stage_dir = artifact_dir.join(stage_id);
         let mut artifact_hashes = BTreeMap::new();
 
-        if stage_dir.is_dir() {
-            if let Ok(entries) = std::fs::read_dir(&stage_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_file() {
-                        if let Ok(contents) = std::fs::read(&path) {
-                            let hash = sha256_bytes(&contents);
-                            let name = path
-                                .file_name()
-                                .map(|n| n.to_string_lossy().to_string())
-                                .unwrap_or_default();
-                            artifact_hashes.insert(name, hash);
-                        }
-                    }
+        if stage_dir.is_dir()
+            && let Ok(entries) = std::fs::read_dir(&stage_dir)
+        {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file()
+                    && let Ok(contents) = std::fs::read(&path)
+                {
+                    let hash = sha256_bytes(&contents);
+                    let name = path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    artifact_hashes.insert(name, hash);
                 }
             }
         }
