@@ -18,6 +18,9 @@ fn main() {
         .collect();
 
         let mut cc_build = cc::Build::new();
+        cc_build
+            .warnings(false)
+            .flag_if_supported("-Wno-unused-parameter");
         for dir in dirs {
             cc_build
                 .include(&dir)
