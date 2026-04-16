@@ -13,9 +13,8 @@ React Router v7 frontend for the Stagecraft control plane, served by the Encore.
 | Path | Access | Purpose |
 |------|--------|---------|
 | `/` | Public | Landing page |
-| `/pricing` | Public | Pricing info |
 | `/signin`, `/signup` | Public | Authentication |
-| `/app` | Authenticated | User dashboard (uptime monitoring) |
+| `/app` | Authenticated | User dashboard |
 | `/app/settings` | Authenticated | User settings |
 | `/admin` | Admin only | Admin panel |
 | `/admin/users` | Admin only | User management |
