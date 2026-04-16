@@ -296,6 +296,10 @@ _tmp/
 # Rust (spec-compiler)
 tools/spec-compiler/target/
 
+# Stray build/ dirs if a tool is run from its own crate directory instead
+# of the repo root. Canonical output for every tool is the repo-root build/.
+tools/*/build/
+
 # Other
 # Ignore top-level entries under build/ rather than the directory itself, so
 # specific artifacts (e.g. build/codebase-index/index.json) can be re-included.
