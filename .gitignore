@@ -309,6 +309,7 @@ crates/xray/tests/outputs/
 
 # Claude Code personal settings (machine-specific overrides)
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Platform layer
 platform/kubeconfig/
