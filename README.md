@@ -172,7 +172,8 @@ This repository ships with first-class [Claude Code](https://docs.anthropic.com/
 - **Commands** (`.claude/commands/`) -- `/init`, `/commit`, `/code-review`, `/validate-and-fix`, `/research`, `/implement-plan`, `/cleanup`, `/factory-sync`
 - **Rules** (`.claude/rules/`) -- orchestrator behavioral rules enforcing step ordering, file-based artifact passing, and checkpoint discipline
 
-Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (agent protocol), every contributor gets AI-assisted development workflows out of the box. This is not optional tooling -- it is how the platform was built.
+Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (agent protocol), every contributor gets AI-assisted development workflows out of the box.
+This encapsulate how the platform was built.
 
 ---
 
