@@ -1,0 +1,8 @@
+# Pinned Rust toolchain so local dev and CI resolve the same rustc/clippy
+# version. Prevents drift where a fresh `stable` on a CI runner flags lints
+# that a slightly older local install does not (e.g. clippy 1.95.0's
+# `unnecessary_sort_by`). Bump this in lockstep with CI's expectations.
+[toolchain]
+channel = "1.95.0"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

@@ -1002,7 +1002,7 @@ async fn list_schedules(AxumState(state): AxumState<AppState>) -> Json<ApiRespon
     let store = state.schedules.lock().await;
     let mut schedules: Vec<Schedule> = store.values().cloned().collect();
     // Return most recently created first
-    schedules.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    schedules.sort_by_key(|s| std::cmp::Reverse(s.created_at));
     Json(ApiResponse::success(schedules))
 }
 

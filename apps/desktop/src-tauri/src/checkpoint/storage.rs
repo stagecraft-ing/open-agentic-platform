@@ -349,7 +349,7 @@ impl CheckpointStorage {
         }
 
         // Sort by timestamp (oldest first)
-        all_checkpoints.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        all_checkpoints.sort_by_key(|c| c.timestamp);
 
         // Keep only the most recent checkpoints
         let to_remove = all_checkpoints.len().saturating_sub(keep_count);

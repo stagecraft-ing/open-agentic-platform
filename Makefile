@@ -357,7 +357,8 @@ ci-desktop:
 
 ci-stagecraft:
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
-	cd platform/services/stagecraft && npm ci && npx tsc --noEmit && npm test
+	@# CI=true forces vitest to run-once instead of TTY watch mode.
+	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
 
 # axiomregent cross-target matrix (build-axiomregent.yml). Opt-in.
 # Prerequisite per target: rustup target add <triple>

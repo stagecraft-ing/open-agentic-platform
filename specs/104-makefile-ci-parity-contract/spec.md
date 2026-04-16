@@ -164,6 +164,33 @@ A `ci-parity` target MUST exist at the root of the `Makefile`. It builds
 - Build and run `tools/ci-parity-check`
 - Fail the job on drift
 
+### FR-04.1: Precondition Check (Fresh-Clone Execution Parity)
+
+`tools/ci-parity-check` MUST also verify fresh-clone execution parity,
+not just command equality. The command-equality check guarantees that
+every `run:` block has a Makefile mirror; it does not guarantee the
+CI runner has the preconditions the command needs to succeed.
+
+Concretely: for every step in an enforcing workflow that invokes a
+"consumer" of a governed artifact under `build/`, the tool MUST assert
+that the artifact is either:
+
+- produced by an earlier step in the same job (known producer
+  invocation detected via substring match), OR
+- tracked in git (discovered via `git ls-files`)
+
+If neither holds, the tool MUST report a precondition drift. The
+canonical case this catches: a workflow step running
+`codebase-indexer check` without a prior `codebase-indexer compile` and
+without `build/codebase-index/index.json` committed — passes locally
+because the file exists as dev-workspace residue, fails on CI because
+the fresh clone has no such file.
+
+Consumer and producer rules are listed in
+`tools/ci-parity-check/src/lib.rs` (`CONSUMERS` and `PRODUCERS`
+constants). Adding a new tool that reads or writes a governed artifact
+MUST extend those constants in the same change.
+
 ### FR-05: Recognised Exclusions
 
 The tool MUST recognise and skip the following line classes:
@@ -187,7 +214,9 @@ exact lines. Each allow-list entry MUST cite the reason in a comment.
 
 Introducing a `run:` block to any enforcing workflow without a Makefile
 mirror MUST cause `ci-parity.yml` to fail with a clear diagnostic pointing
-at the missing line.
+at the missing line. Likewise, introducing a step that reads a governed
+artifact without either a prior producer step or a committed baseline
+MUST fail the precondition check.
 
 ### SC-02: The Tool Is Stable Against Cosmetic Changes
 

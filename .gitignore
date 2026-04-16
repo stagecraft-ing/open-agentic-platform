@@ -297,7 +297,17 @@ _tmp/
 tools/spec-compiler/target/
 
 # Other
-build/
+# Ignore top-level entries under build/ rather than the directory itself, so
+# specific artifacts (e.g. build/codebase-index/index.json) can be re-included.
+# gitignore can't re-include children of a directory excluded with `build/`.
+build/*
+# Codebase index (spec 101): index.json is a governed, deterministic artifact
+# that the `codebase-indexer check` staleness gate compares against a fresh
+# recompile. It must be committed for CI's fresh-clone check to pass.
+# build-meta.json and CODEBASE-INDEX.md stay ignored (wall-clock / renderable).
+!build/codebase-index/
+build/codebase-index/*
+!build/codebase-index/index.json
 .axiomregent/
 .fastembed_cache/
 

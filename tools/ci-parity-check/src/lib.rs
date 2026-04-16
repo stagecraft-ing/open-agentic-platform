@@ -6,9 +6,10 @@
 //! in CI that `make ci` does not mirror.
 
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 #[derive(Debug, Deserialize)]
 struct Workflow {
@@ -116,6 +117,161 @@ pub fn check_parity(repo_root: &Path) -> Result<Vec<Drift>, String> {
 
 fn allow_list_suppresses(line: &str) -> bool {
     ALLOW_LIST.iter().any(|entry| line.contains(entry))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Precondition check (spec 104 fix 4): fresh-clone execution parity.
+//
+// `ci-parity-check` base pass guarantees command equality between workflow
+// and Makefile. It does NOT guarantee that running those commands on a
+// fresh clone yields the same result as running them in a dev workspace.
+//
+// The concrete case that prompted this: `spec-conformance.yml` runs
+// `codebase-indexer check` as step 11, BEFORE `codebase-indexer compile`
+// at step 12. The tool reads `build/codebase-index/index.json`. On a dev
+// machine that file exists as a residue of prior runs; on CI's fresh
+// clone it doesn't. The step fails with ENOENT on CI while `make ci-tools`
+// passes locally.
+//
+// The rule: any step that invokes a "consumer" of a governed artifact
+// under `build/` MUST be preceded (in the same job) by a "producer" of
+// that artifact, OR the artifact MUST be tracked in git. Otherwise the
+// CI runner has nothing to feed the consumer and will error.
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct ConsumerRule {
+    pattern: &'static str,
+    artifact: &'static str,
+}
+
+struct ProducerRule {
+    pattern: &'static str,
+    artifact: &'static str,
+}
+
+/// Commands known to READ a governed artifact under `build/`.
+/// Extend as new tools are added to the governed-read surface.
+const CONSUMERS: &[ConsumerRule] = &[
+    ConsumerRule {
+        pattern: "codebase-indexer check",
+        artifact: "build/codebase-index/index.json",
+    },
+    ConsumerRule {
+        pattern: "codebase-indexer render",
+        artifact: "build/codebase-index/index.json",
+    },
+    ConsumerRule {
+        pattern: "registry-consumer list",
+        artifact: "build/spec-registry/registry.json",
+    },
+    ConsumerRule {
+        pattern: "registry-consumer show",
+        artifact: "build/spec-registry/registry.json",
+    },
+    ConsumerRule {
+        pattern: "registry-consumer status-report",
+        artifact: "build/spec-registry/registry.json",
+    },
+    ConsumerRule {
+        pattern: "registry-consumer compliance-report",
+        artifact: "build/spec-registry/registry.json",
+    },
+];
+
+/// Commands known to WRITE a governed artifact under `build/`.
+const PRODUCERS: &[ProducerRule] = &[
+    ProducerRule {
+        pattern: "spec-compiler compile",
+        artifact: "build/spec-registry/registry.json",
+    },
+    ProducerRule {
+        pattern: "codebase-indexer compile",
+        artifact: "build/codebase-index/index.json",
+    },
+    ProducerRule {
+        pattern: "adapter-scopes-compiler",
+        artifact: "build/adapter-scopes.json",
+    },
+];
+
+#[derive(Debug, Clone)]
+pub struct PreconditionDrift {
+    pub workflow: String,
+    pub job: String,
+    pub step: String,
+    pub missing_artifact: String,
+    pub consumer_line: String,
+}
+
+/// For every enforcing workflow, assert each governed-artifact consumer
+/// has its artifact either (a) produced by an earlier step in the same job,
+/// or (b) tracked in git.
+pub fn check_preconditions(repo_root: &Path) -> Result<Vec<PreconditionDrift>, String> {
+    let tracked = load_tracked_files(repo_root)?;
+    let workflows_dir = repo_root.join(".github").join("workflows");
+    let mut drifts = Vec::new();
+
+    for wf_name in ENFORCING_WORKFLOWS {
+        let wf_path = workflows_dir.join(wf_name);
+        let content = fs::read_to_string(&wf_path)
+            .map_err(|e| format!("reading {}: {e}", wf_path.display()))?;
+        let wf: Workflow = serde_yaml::from_str(&content)
+            .map_err(|e| format!("parsing {}: {e}", wf_path.display()))?;
+
+        for (job_name, job) in &wf.jobs {
+            let mut produced: BTreeSet<String> = BTreeSet::new();
+            for step in &job.steps {
+                let Some(run) = &step.run else { continue };
+                let step_name = step.name.clone().unwrap_or_else(|| "<unnamed>".to_string());
+
+                for raw_line in run.lines() {
+                    let line = raw_line.trim();
+                    if line.is_empty() {
+                        continue;
+                    }
+                    if let Some(c) = CONSUMERS.iter().find(|c| line.contains(c.pattern)) {
+                        let covered_by_earlier_step = produced.contains(c.artifact);
+                        let covered_by_git = tracked.contains(c.artifact);
+                        if !covered_by_earlier_step && !covered_by_git {
+                            drifts.push(PreconditionDrift {
+                                workflow: (*wf_name).to_string(),
+                                job: job_name.clone(),
+                                step: step_name.clone(),
+                                missing_artifact: c.artifact.to_string(),
+                                consumer_line: line.to_string(),
+                            });
+                        }
+                    }
+                }
+
+                for raw_line in run.lines() {
+                    if let Some(p) = PRODUCERS.iter().find(|p| raw_line.contains(p.pattern)) {
+                        produced.insert(p.artifact.to_string());
+                    }
+                }
+            }
+        }
+    }
+    Ok(drifts)
+}
+
+fn load_tracked_files(repo_root: &Path) -> Result<BTreeSet<String>, String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_root)
+        .args(["ls-files"])
+        .output()
+        .map_err(|e| format!("spawn git ls-files: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "git ls-files exited with status {:?}",
+            output.status.code()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::to_string)
+        .collect())
 }
 
 /// Normalise a raw `run:` line: strip whitespace, line-continuation slash,
@@ -252,5 +408,39 @@ mod tests {
             "touch apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
         ));
         assert!(!allow_list_suppresses("cargo test --manifest-path crates/agent/Cargo.toml"));
+    }
+
+    #[test]
+    fn consumer_rules_cover_governed_reads() {
+        // Every governed-read consumer we care about MUST resolve to some
+        // artifact under build/. If a new consumer is added without a rule,
+        // this is the test that should fail.
+        let lines = [
+            "./tools/codebase-indexer/target/release/codebase-indexer check",
+            "./tools/codebase-indexer/target/release/codebase-indexer render",
+            "./tools/registry-consumer/target/release/registry-consumer list",
+            "./tools/registry-consumer/target/release/registry-consumer status-report --json",
+        ];
+        for line in lines {
+            assert!(
+                CONSUMERS.iter().any(|c| line.contains(c.pattern)),
+                "no consumer rule matched line: {line}"
+            );
+        }
+    }
+
+    #[test]
+    fn producer_rules_cover_governed_writes() {
+        let lines = [
+            "./tools/spec-compiler/target/release/spec-compiler compile",
+            "./tools/codebase-indexer/target/release/codebase-indexer compile",
+            "./tools/adapter-scopes-compiler/target/release/adapter-scopes-compiler",
+        ];
+        for line in lines {
+            assert!(
+                PRODUCERS.iter().any(|p| line.contains(p.pattern)),
+                "no producer rule matched line: {line}"
+            );
+        }
     }
 }
