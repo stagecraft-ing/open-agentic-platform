@@ -1,63 +1,56 @@
 ---
 name: validate-and-fix
-description: Run quality checks and automatically fix issues using concurrent agents
+description: Run the local CI parity check (`make ci`) and automatically fix discovered issues using concurrent agents
 allowed-tools: Bash, Agent, Read, Edit, Glob, Grep
 ---
 
 # Validate and Fix
 
-Run quality checks and automatically fix discovered issues using parallel execution.
+Run the authoritative local CI parity check and automatically fix discovered issues. This command mirrors every GitHub Actions gate end to end — if `make ci` passes locally, the workflows in `.github/workflows/` will pass too.
 
 ## Process
 
-### 1. Systematic Priority-Based Analysis
+### 1. Run the local CI parity check
 
-#### Command Discovery
-Discover what validation commands are available:
-1. Check CLAUDE.md/AGENTS.md for documented build/test/lint commands
-2. Examine package.json scripts, Cargo.toml, Makefile for available commands
-3. Look for common patterns:
-   - **Rust (workspace)**: `cargo clippy`, `cargo check`, `cargo test`, `cargo fmt --check`
-   - **TypeScript**: `tsc --noEmit`, `eslint`, `vitest`, `prettier --check`
-   - **Specs**: `spec-compiler compile`, `spec-lint`
-   - **Build**: `cargo build`, `pnpm build`
-   - **Desktop App (OPC)** — `apps/desktop/` is an isolated workspace (separate Cargo workspace, separate pnpm project). It requires explicit validation:
-     - `cd apps/desktop && pnpm check` — runs `tsc --noEmit` (strict mode, noUnusedLocals, noUnusedParameters) then `cargo check` on `src-tauri/`
-     - `cd apps/desktop && pnpm test` — vitest unit tests (jsdom environment)
-     - `cd apps/desktop && npx @ast-grep/cli scan` — structural lint rules in `.ast-grep/rules/` (architecture enforcement, Zustand patterns). Skip if `@ast-grep/cli` is not available.
-     - Note: root `cargo clippy`/`cargo check` do NOT cover `apps/desktop/src-tauri/` because it declares its own `[workspace]`. Run Rust checks there separately via `cd apps/desktop/src-tauri && cargo clippy --all-targets` in addition to the pnpm check script.
-4. Check README.md for additional validation instructions
+Invoke `make ci` from the repo root. The `Makefile` is the **single source of truth** for what CI validates. Do not discover validation commands by grepping `package.json`, `Cargo.toml`, or CLAUDE.md — the Makefile already enumerates every gate the CI workflows enforce.
 
-#### Discovery with Immediate Categorization
-Run all discovered quality checks in parallel using Bash. Capture full output including file paths, line numbers, and error messages.
+`make ci` composes:
 
-Immediately categorize findings by:
-- **CRITICAL**: Security issues, breaking changes, data loss risk
-- **HIGH**: Functionality bugs, test failures, build breaks
-- **MEDIUM**: Code quality, style violations, documentation gaps
-- **LOW**: Formatting, minor optimizations
+- **`make ci-rust`** — per-manifest `cargo check` + `cargo clippy -- -D warnings` + `cargo test` for every isolated Rust workspace. Covers: `axiomregent`, `orchestrator`, `policy-kernel`, `tool-registry`, `skill-factory`, `factory-engine`, `factory-contracts`, `provider-registry`, `agent-frontmatter`, `standards-loader`, `platform/services/deployd-api-rs`. Mirrors `ci-axiomregent.yml`, `ci-crates.yml`, `ci-deployd-api-rs.yml`, `ci-orchestrator.yml`, `ci-policy-kernel.yml`.
+- **`make ci-tools`** — spec tool crates (build + test + smoke), registry-consumer's 10 contract subsets, `codebase-indexer check` staleness gate. Mirrors `spec-conformance.yml`.
+- **`make ci-desktop`** — `apps/desktop/src-tauri` Rust (custom clippy flags: `-A dead_code -D warnings`), version alignment check (`Cargo.toml` ↔ `package.json`), `pnpm install --frozen-lockfile`, `tsc --noEmit`, vitest. Mirrors `ci-desktop.yml`.
+- **`make ci-stagecraft`** — `platform/services/stagecraft`: `npm ci` + `npx tsc --noEmit` + `npm test`. Mirrors `ci-stagecraft.yml`.
 
-#### Risk Assessment Before Action
-- Identify "quick wins" vs. complex fixes
-- Map dependencies between issues (fix A before B)
-- Flag issues that require manual intervention
+Not in `make ci` by default (run on demand):
+- `make ci-cross` — axiomregent cross-target matrix (requires `rustup target add` per triple). Mirrors `build-axiomregent.yml`.
+
+**If a check is missing, add it to the Makefile and the relevant workflow in the same change.** Never introduce a new validation via a one-off script under `scripts/` — that directory is being retired in favour of Rust binaries invoked from the Makefile (spec 105).
+
+After edits to either the Makefile `ci*` targets or any workflow under `.github/workflows/`, run `make ci-parity` as a pre-PR check. It asserts that every `run:` block in an enforcing workflow has a mirror in the Makefile; drift is a workflow violation (spec 104). The check is also enforced by `.github/workflows/ci-parity.yml`, so a PR that skips the local run will still be caught in CI.
+
+Capture full output — file paths, line numbers, error messages. Categorize findings:
+
+- **CRITICAL** — security issues, breaking changes, data loss risk
+- **HIGH** — functionality bugs, test failures, build breaks, staleness gate failures, version mismatches
+- **MEDIUM** — clippy warnings, code quality, documentation gaps
+- **LOW** — formatting, minor optimizations
 
 ### 2. Strategic Fix Execution
 
 #### Phase 1 — Safe Quick Wins
 - Start with LOW and MEDIUM priority fixes that can't break anything
-- Verify each fix immediately before proceeding
+- Verify each fix by re-running the narrowest affected subtarget (e.g. `make ci-tools`)
 
 #### Phase 2 — Functionality Fixes
 - Address HIGH priority issues one at a time
-- Run tests after each fix to ensure no regressions
+- Run the affected `make ci-<sub>` after each fix to confirm no regressions
 
 #### Phase 3 — Critical Issues
 - Handle CRITICAL issues with explicit user confirmation
 - Provide detailed plan before executing
 
 #### Phase 4 — Verification
-- Re-run ALL checks to confirm fixes were successful
+- Re-run the full `make ci` composite to confirm end-to-end parity
 - Provide summary of what was fixed vs. what remains
 
 ### 3. Comprehensive Error Handling
@@ -73,25 +66,21 @@ Immediately categorize findings by:
 
 #### Quality Validation
 - Accept 100% success in each phase before proceeding
-- If phase fails, diagnose and provide specific next steps
+- If a phase fails, diagnose and provide specific next steps
 
 ### 4. Parallel Execution
 
 Launch multiple agents concurrently for independent, parallelizable tasks:
 - **CRITICAL**: Include multiple Agent tool calls in a SINGLE message ONLY when tasks can be done in parallel
-- Tasks that depend on each other must be executed sequentially (separate messages)
-- Parallelizable: different file fixes, independent test suites, non-overlapping components
-- Sequential: tasks with dependencies, shared state modifications, ordered phases
-- Each parallel agent should have non-overlapping file responsibilities to avoid conflicts
-- Agents working on related files must understand the shared interfaces
-- Each agent verifies their fixes work before completing
-- Execute phases sequentially: complete Phase 1 before Phase 2, etc.
-- Create checkpoint after each successful phase
+- Parallelizable: fixes in different manifests (one agent per failing crate), independent test suites, non-overlapping components
+- Sequential: shared-interface changes across crates, ordered phases, anything mutating a cross-crate contract
+- Each parallel agent must have non-overlapping file responsibilities
+- Each agent verifies its fix by re-running the relevant `make ci-<sub>` target before reporting complete
 
 ### 5. Final Verification
 
 After all agents complete:
-- Re-run all checks to confirm 100% of fixable issues are resolved
+- Re-run `make ci` to confirm 100% CI parity
 - Confirm no new issues were introduced by fixes
 - Report any remaining manual fixes needed with specific instructions
-- Provide summary: "Fixed X/Y issues, Z require manual intervention"
+- Summary: `Fixed X/Y issues, Z require manual intervention — CI parity: {PASS|FAIL}`

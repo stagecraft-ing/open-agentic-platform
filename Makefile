@@ -13,11 +13,13 @@
 #   make k8s-down       # tear down local cluster
 
 .PHONY: setup dev dev-platform dev-all stop \
-        axiomregent \
+        axiomregent axiomregent-all fetch-axiomregent fetch-axiomregent-check \
         registry spec-compile spec-tools \
         index index-check index-render \
+        adapter-scopes \
         k8s-up k8s-down \
-        check-deps
+        check-deps \
+        ci ci-rust ci-tools ci-desktop ci-stagecraft ci-cross ci-parity
 
 # ============================================================
 # Prerequisites check
@@ -29,6 +31,7 @@ check-deps:
 	@command -v pnpm   >/dev/null 2>&1 || { echo "  MISSING: pnpm    — brew install pnpm"; exit 1; }
 	@command -v bun    >/dev/null 2>&1 || { echo "  MISSING: bun     — brew install bun"; exit 1; }
 	@command -v node   >/dev/null 2>&1 || { echo "  MISSING: node    — brew install node"; exit 1; }
+	@command -v gh     >/dev/null 2>&1 || { echo "  MISSING: gh      — brew install gh, then run: gh auth login"; exit 1; }
 	@echo "All prerequisites found."
 
 # ============================================================
@@ -54,13 +57,16 @@ setup: check-deps
 	./tools/codebase-indexer/target/release/codebase-indexer compile
 	@echo ""
 	@echo "==> Fetching axiomregent sidecar binary..."
-	@node scripts/fetch-axiomregent.js --check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
+	@$(MAKE) fetch-axiomregent-check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
 	@echo ""
 	@echo "==> Setup complete. Run 'make dev' to start."
 
 # ============================================================
 # axiomregent sidecar binary
 # ============================================================
+
+AXIOMREGENT_REPO   ?= stagecraft-ing/open-agentic-platform
+AXIOMREGENT_BINDIR = apps/desktop/src-tauri/binaries
 
 axiomregent:
 	@echo "==> Building axiomregent from source..."
@@ -69,11 +75,51 @@ axiomregent:
 	EXT=""; \
 	case "$$HOST_TRIPLE" in *windows*) EXT=".exe";; esac; \
 	SRC="crates/axiomregent/target/release/axiomregent$$EXT"; \
-	DST="apps/desktop/src-tauri/binaries/axiomregent-$$HOST_TRIPLE$$EXT"; \
-	mkdir -p apps/desktop/src-tauri/binaries; \
+	DST="$(AXIOMREGENT_BINDIR)/axiomregent-$$HOST_TRIPLE$$EXT"; \
+	mkdir -p $(AXIOMREGENT_BINDIR); \
 	cp "$$SRC" "$$DST"; \
 	case "$$HOST_TRIPLE" in *windows*) ;; *) strip "$$DST" 2>/dev/null || true;; esac; \
 	echo "    -> $$DST"
+
+## Build axiomregent for every supported target and install into the sidecar dir.
+## Replaces scripts/build-axiomregent.sh --all (spec 105 Phase 3).
+## Prerequisite per target: `rustup target add <triple>`.
+axiomregent-all:
+	@set -e; mkdir -p $(AXIOMREGENT_BINDIR); \
+	 for t in $(CI_CROSS_TARGETS); do \
+	   echo "==> axiomregent-all: $$t"; \
+	   cargo build --release --target $$t --manifest-path crates/axiomregent/Cargo.toml; \
+	   EXT=""; case "$$t" in *windows*) EXT=".exe";; esac; \
+	   SRC=crates/target/$$t/release/axiomregent$$EXT; \
+	   DST=$(AXIOMREGENT_BINDIR)/axiomregent-$$t$$EXT; \
+	   cp "$$SRC" "$$DST"; \
+	   case "$$t" in *windows*) ;; *) strip "$$DST" 2>/dev/null || true;; esac; \
+	   echo "    -> $$DST"; \
+	 done
+
+## Fetch pre-built axiomregent sidecar for the host triple from a GitHub Release.
+## Replaces scripts/fetch-axiomregent.js (spec 105 Phase 2).
+fetch-axiomregent:
+	@command -v gh >/dev/null 2>&1 || { echo "  MISSING: gh — brew install gh, then run: gh auth login"; exit 1; }
+	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
+	 EXT=""; case "$$HOST" in *windows*) EXT=".exe";; esac; \
+	 mkdir -p $(AXIOMREGENT_BINDIR); \
+	 echo "==> fetch-axiomregent: $$HOST"; \
+	 gh release download --repo $(AXIOMREGENT_REPO) \
+	    --pattern "axiomregent-$$HOST$$EXT" \
+	    --dir $(AXIOMREGENT_BINDIR) \
+	    --skip-existing
+
+## Idempotent variant: skip fetch if the sidecar is already present for the host triple.
+fetch-axiomregent-check:
+	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
+	 EXT=""; case "$$HOST" in *windows*) EXT=".exe";; esac; \
+	 BIN=$(AXIOMREGENT_BINDIR)/axiomregent-$$HOST$$EXT; \
+	 if [ -f "$$BIN" ]; then \
+	   echo "  axiomregent sidecar present at $$BIN"; \
+	 else \
+	   $(MAKE) fetch-axiomregent; \
+	 fi
 
 # ============================================================
 # Spec tools
@@ -104,6 +150,16 @@ index-check:
 
 index-render:
 	./tools/codebase-indexer/target/release/codebase-indexer render
+
+# ============================================================
+# Adapter Scopes
+# ============================================================
+
+## Recompile build/adapter-scopes.json + platform/services/stagecraft/api/factory/adapter-scopes.json
+## from factory/adapters/*/manifest.yaml (spec 105 Phase 1, replaces scripts/compile-adapter-scopes.js).
+adapter-scopes:
+	cargo build --release --manifest-path tools/adapter-scopes-compiler/Cargo.toml
+	./tools/adapter-scopes-compiler/target/release/adapter-scopes-compiler
 
 # ============================================================
 # Development — Desktop App
@@ -171,6 +227,160 @@ destroy-%:
 	cd platform && $(MAKE) destroy TARGET=$*
 
 # ============================================================
+# CI parity — single source of truth for local end-to-end validation.
+#
+# Mirrors every gate enforced by .github/workflows/. If `make ci` passes
+# locally, CI will pass too. Any new workflow gate MUST be added here in
+# the same change — never a one-off script under scripts/.
+#
+# Composes:
+#   ci-rust       — Rust per-manifest: check + clippy -D warnings + test
+#                   (ci-axiomregent, ci-crates, ci-deployd-api-rs,
+#                    ci-orchestrator, ci-policy-kernel)
+#   ci-tools      — Tool crates + registry-consumer contract subsets +
+#                   codebase-indexer staleness gate (spec-conformance.yml)
+#   ci-desktop    — apps/desktop: tauri rust (custom clippy flags) +
+#                   version alignment + tsc --noEmit + vitest (ci-desktop.yml)
+#   ci-stagecraft — platform/services/stagecraft: npm ci + tsc + vitest
+#                   (ci-stagecraft.yml)
+#
+# Opt-in (not part of `ci`):
+#   ci-cross      — axiomregent cross-target matrix (build-axiomregent.yml);
+#                   requires `rustup target add <triple>` per target.
+# ============================================================
+
+ci: ci-rust ci-tools ci-desktop ci-stagecraft
+	@echo ""
+	@echo "==> Local CI parity: all gates passed."
+
+# Rust manifests each validated with: check + clippy -D warnings + test.
+# Desktop uses different clippy flags and is handled in ci-desktop.
+# Tool crates have extra smoke/contract steps and are handled in ci-tools.
+CI_RUST_MANIFESTS = \
+    crates/axiomregent/Cargo.toml \
+    crates/orchestrator/Cargo.toml \
+    crates/policy-kernel/Cargo.toml \
+    crates/tool-registry/Cargo.toml \
+    crates/skill-factory/Cargo.toml \
+    crates/factory-engine/Cargo.toml \
+    crates/factory-contracts/Cargo.toml \
+    crates/provider-registry/Cargo.toml \
+    crates/agent-frontmatter/Cargo.toml \
+    crates/standards-loader/Cargo.toml \
+    platform/services/deployd-api-rs/Cargo.toml
+
+ci-rust:
+	@set -e; for m in $(CI_RUST_MANIFESTS); do \
+	    echo ""; \
+	    echo "==> ci-rust: $$m"; \
+	    cargo check  --manifest-path $$m; \
+	    cargo clippy --manifest-path $$m -- -D warnings; \
+	    cargo test   --manifest-path $$m; \
+	done
+
+# registry-consumer contract gates (spec-conformance.yml)
+CI_REGISTRY_CONSUMER_CONTRACTS = \
+    readme_ \
+    error_contract_ \
+    shape_contract_ \
+    help_contract_ \
+    arg_contract_ \
+    version_contract_ \
+    default_path_contract_ \
+    allow_invalid_contract_ \
+    sorting_contract_ \
+    channel_contract_
+
+ci-tools:
+	@echo "==> ci-tools: spec-compiler"
+	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+	./tools/spec-compiler/target/release/spec-compiler compile
+	cargo test --manifest-path tools/spec-compiler/Cargo.toml
+	@echo ""
+	@echo "==> ci-tools: registry-consumer (+ contract subsets)"
+	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+	./tools/registry-consumer/target/release/registry-consumer list | head -n 5
+	cargo test --manifest-path tools/registry-consumer/Cargo.toml
+	@set -e; for c in $(CI_REGISTRY_CONSUMER_CONTRACTS); do \
+	    echo "  contract gate: $$c"; \
+	    cargo test --manifest-path tools/registry-consumer/Cargo.toml --all $$c; \
+	done
+	@echo ""
+	@echo "==> ci-tools: spec-lint"
+	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+	./tools/spec-lint/target/release/spec-lint || true   # warnings non-blocking (matches CI)
+	cargo test --manifest-path tools/spec-lint/Cargo.toml
+	@echo ""
+	@echo "==> ci-tools: codebase-indexer (+ staleness gate)"
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+	./tools/codebase-indexer/target/release/codebase-indexer check
+	./tools/codebase-indexer/target/release/codebase-indexer compile
+	cargo test --manifest-path tools/codebase-indexer/Cargo.toml
+	@echo ""
+	@echo "==> ci-tools: policy-compiler"
+	cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
+	cargo test --manifest-path tools/policy-compiler/Cargo.toml
+
+ci-desktop:
+	@# CI creates these stubs on fresh checkout; locally only if missing.
+	@test -f apps/desktop/dist/index.html || { \
+	    mkdir -p apps/desktop/dist; \
+	    echo '<!doctype html><html><body>stub</body></html>' > apps/desktop/dist/index.html; \
+	    echo "  (created dist stub)"; \
+	}
+	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
+	 BIN=apps/desktop/src-tauri/binaries/axiomregent-$$HOST; \
+	 if [ ! -f "$$BIN" ]; then \
+	   mkdir -p apps/desktop/src-tauri/binaries; \
+	   touch "$$BIN"; chmod +x "$$BIN"; \
+	   echo "  (created sidecar stub: $$BIN)"; \
+	 fi
+	@echo "==> ci-desktop: rust (src-tauri)"
+	cargo check  --manifest-path apps/desktop/src-tauri/Cargo.toml
+	cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings
+	cargo test   --manifest-path apps/desktop/src-tauri/Cargo.toml --lib
+	cargo test   --manifest-path apps/desktop/src-tauri/Cargo.toml --doc
+	@echo ""
+	@echo "==> ci-desktop: version alignment (Cargo.toml <-> package.json)"
+	@CARGO_V=$$(grep '^version' apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
+	 PKG_V=$$(node -p "require('./apps/desktop/package.json').version"); \
+	 if [ "$$CARGO_V" != "$$PKG_V" ]; then \
+	   echo "ERROR: version mismatch — Cargo.toml=$$CARGO_V package.json=$$PKG_V"; exit 1; \
+	 else \
+	   echo "  versions aligned: $$CARGO_V"; \
+	 fi
+	@echo ""
+	@echo "==> ci-desktop: typescript"
+	pnpm install --frozen-lockfile
+	pnpm --filter @opc/desktop exec tsc --noEmit
+	pnpm --filter @opc/desktop test
+
+ci-stagecraft:
+	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
+	cd platform/services/stagecraft && npm ci && npx tsc --noEmit && npm test
+
+# axiomregent cross-target matrix (build-axiomregent.yml). Opt-in.
+# Prerequisite per target: rustup target add <triple>
+CI_CROSS_TARGETS = \
+    aarch64-apple-darwin \
+    x86_64-unknown-linux-gnu \
+    x86_64-pc-windows-msvc \
+    aarch64-unknown-linux-gnu
+
+ci-cross:
+	@set -e; for t in $(CI_CROSS_TARGETS); do \
+	    echo "==> ci-cross: cargo build --release --target $$t --manifest-path crates/axiomregent/Cargo.toml"; \
+	    cargo build --release --target $$t --manifest-path crates/axiomregent/Cargo.toml; \
+	done
+
+# Parity drift check (spec 104): asserts `make ci` mirrors every enforcing
+# workflow's `run:` blocks. Not included in `ci` to avoid circular failure —
+# CI runs it independently via .github/workflows/ci-parity.yml.
+ci-parity:
+	cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml
+	./tools/ci-parity-check/target/release/ci-parity-check
+
+# ============================================================
 # Utility
 # ============================================================
 
@@ -203,6 +413,18 @@ help:
 	@echo "  make index-check    Check if index is stale"
 	@echo "  make index-render   Render CODEBASE-INDEX.md from index"
 	@echo ""
+	@echo "Factory:"
+	@echo "  make adapter-scopes Compile adapter-scopes.json from factory/adapters/*/manifest.yaml"
+	@echo ""
+	@echo "CI parity (mirrors .github/workflows):"
+	@echo "  make ci             Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft)"
+	@echo "  make ci-rust        All Rust manifests: check + clippy -D warnings + test"
+	@echo "  make ci-tools       Spec tool crates + registry-consumer contract subsets + staleness gate"
+	@echo "  make ci-desktop     apps/desktop rust + version alignment + tsc + vitest"
+	@echo "  make ci-stagecraft  platform/services/stagecraft: npm ci + tsc + vitest"
+	@echo "  make ci-cross       axiomregent cross-target matrix (opt-in; requires rustup targets)"
+	@echo "  make ci-parity      Drift check: Makefile mirrors enforcing workflows (spec 104)"
+	@echo ""
 	@echo "Kubernetes:"
 	@echo "  make k8s-up         Bootstrap local k3d cluster + deploy"
 	@echo "  make k8s-down       Tear down local cluster"
@@ -211,7 +433,10 @@ help:
 	@echo "  make deploy-hetzner Deploy to Hetzner K3s"
 	@echo ""
 	@echo "Sidecar:"
-	@echo "  make axiomregent    Build axiomregent sidecar from source"
+	@echo "  make axiomregent             Build axiomregent sidecar for host triple"
+	@echo "  make axiomregent-all         Build for every target and install into sidecar dir"
+	@echo "  make fetch-axiomregent       Download pre-built sidecar from GitHub Release (gh CLI)"
+	@echo "  make fetch-axiomregent-check Fetch only if sidecar is missing"
 	@echo ""
 	@echo "Other:"
 	@echo "  make clean          Remove build artifacts"

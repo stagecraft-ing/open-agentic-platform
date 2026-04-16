@@ -1,0 +1,39 @@
+# CI Parity Check (spec 104): asserts the root Makefile's `ci` targets mirror
+# the `run:` blocks in every enforcing GitHub Actions workflow. Additive to,
+# not a replacement for, the per-workflow validation gates.
+
+name: CI Parity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'Makefile'
+      - 'tools/ci-parity-check/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'Makefile'
+      - 'tools/ci-parity-check/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    name: parity / lint + test + drift check
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: ./.github/actions/rust-ci
+        with:
+          manifest-path: tools/ci-parity-check/Cargo.toml
+
+      - name: Build ci-parity-check
+        run: cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml
+
+      - name: Drift check (workflow -> Makefile)
+        run: ./tools/ci-parity-check/target/release/ci-parity-check
