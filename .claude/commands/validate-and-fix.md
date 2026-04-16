@@ -17,10 +17,15 @@ Discover what validation commands are available:
 1. Check CLAUDE.md/AGENTS.md for documented build/test/lint commands
 2. Examine package.json scripts, Cargo.toml, Makefile for available commands
 3. Look for common patterns:
-   - **Rust**: `cargo clippy`, `cargo check`, `cargo test`, `cargo fmt --check`
+   - **Rust (workspace)**: `cargo clippy`, `cargo check`, `cargo test`, `cargo fmt --check`
    - **TypeScript**: `tsc --noEmit`, `eslint`, `vitest`, `prettier --check`
    - **Specs**: `spec-compiler compile`, `spec-lint`
    - **Build**: `cargo build`, `pnpm build`
+   - **Desktop App (OPC)** — `apps/desktop/` is an isolated workspace (separate Cargo workspace, separate pnpm project). It requires explicit validation:
+     - `cd apps/desktop && pnpm check` — runs `tsc --noEmit` (strict mode, noUnusedLocals, noUnusedParameters) then `cargo check` on `src-tauri/`
+     - `cd apps/desktop && pnpm test` — vitest unit tests (jsdom environment)
+     - `cd apps/desktop && npx @ast-grep/cli scan` — structural lint rules in `.ast-grep/rules/` (architecture enforcement, Zustand patterns). Skip if `@ast-grep/cli` is not available.
+     - Note: root `cargo clippy`/`cargo check` do NOT cover `apps/desktop/src-tauri/` because it declares its own `[workspace]`. Run Rust checks there separately via `cd apps/desktop/src-tauri && cargo clippy --all-targets` in addition to the pnpm check script.
 4. Check README.md for additional validation instructions
 
 #### Discovery with Immediate Categorization
