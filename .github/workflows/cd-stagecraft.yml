@@ -29,6 +29,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
+  ENCORE_VERSION: '1.46.8'
 
 jobs:
   # ── CI gate ────────────────────────────────────────────────
@@ -62,10 +63,20 @@ jobs:
         run: cd web && npx react-router build
         working-directory: platform/services/stagecraft
 
+      # Cache the installed Encore CLI to avoid hammering encore.dev on every
+      # build. The install endpoint rate-limits aggressively and returned
+      # 403s to back-to-back runs prior to caching. Cache key is scoped by
+      # OS and version so a version bump invalidates cleanly.
+      - name: Cache Encore CLI
+        id: cache-encore
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.encore
+          key: encore-${{ runner.os }}-${{ env.ENCORE_VERSION }}
+
       - name: Install Encore CLI
-        run: |
-          ENCORE_VERSION="1.46.8"
-          curl -fsSL "https://encore.dev/install.sh" | bash -s -- --version "${ENCORE_VERSION}"
+        if: steps.cache-encore.outputs.cache-hit != 'true'
+        run: curl -fsSL "https://encore.dev/install.sh" | bash -s -- --version "${ENCORE_VERSION}"
 
       - name: Compute image tags
         id: meta
