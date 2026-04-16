@@ -6,14 +6,23 @@ Run `/init` as the mandatory first action of every new session. The command read
 
 **Init protocol (executed by `/init`):**
 
-0. **Load rules** — read `.claude/rules/orchestrator-rules.md`
+0. **Load rules** — read `.claude/rules/orchestrator-rules.md` AND `.claude/rules/governed-artifact-reads.md`.
 1. **Parallel reads** (dispatch simultaneously):
    - `CLAUDE.md` — project overview and conventions
    - `README.md` — full project description
-   - `build/codebase-index/index.json` — structural context (crate/package/spec inventory)
+   - `codebase-indexer check` — staleness gate for the structural index (non-fatal)
+   - `codebase-indexer render` → `build/codebase-index/CODEBASE-INDEX.md` — rendered structural summary (run render only if the markdown is missing)
+   - `registry-consumer status-report --json --nonzero-only` — lifecycle counts per spec status
+   - `registry-consumer list --ids-only` — spec id list (for latest-spec detection)
    - `git log --oneline -10` — recent history
    - `git diff --stat HEAD~1` — last change summary
-2. **Emit** `## initialized: open-agentic-platform` summary block (layer overview, recent activity, ready to help with)
+2. **Emit** `## initialized: open-agentic-platform` summary block (layer overview, recent activity, ready to help with).
+
+**Read discipline (spec 103):** the init protocol MUST NOT parse `build/**/*.json` directly (no `python`, `jq`, `awk`, `sed` against compiled artifacts). All structural and lifecycle data comes from the consumer binaries and the rendered markdown view.
+
+**Staleness surface:** if `codebase-indexer check` exits non-zero, include `Structural index: stale — run `codebase-indexer compile`` in the summary and continue. If `CODEBASE-INDEX.md` is missing and `render` fails (no `index.json`), report `Structural index: not built` and continue without structural counts.
+
+**Binary missing:** if a consumer binary is not built, instruct the user to `cargo build --release --manifest-path tools/<name>/Cargo.toml` and continue — do NOT fall back to ad-hoc parsing.
 
 If any file is missing: log "not found" and continue.
 
@@ -47,3 +56,4 @@ Commands live in `.claude/commands/`:
 - Items added to the "New Sessions" init protocol are auto-loaded by `/init`.
 - Agents must be self-contained within `.claude/agents/` — no cross-project dependencies (Rule 5).
 - Commands must produce output files for downstream steps — no context-window-only state (Rule 2).
+- Orchestrated workflows must read compiled artifacts (`build/**`) through consumer binaries, never via ad-hoc parsers — see `.claude/rules/governed-artifact-reads.md` (spec 103).
