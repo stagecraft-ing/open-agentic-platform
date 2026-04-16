@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:30c16b7a477880e4dbe099689bba6b7299d2f7c5ad26c160c89636ef04dd56b5",
+  "graph_fingerprint": "sha256:64bbae1f13bf37f9672b3e6e0fd69bed6d754648e6f16383e41170af06f4b4de",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1049,12 +1049,18 @@
       "feature_id": "042-multi-provider-agent-registry",
       "title": "Multi-Provider Agent Registry",
       "spec_path": "specs/042-multi-provider-agent-registry/spec.md",
-      "status": "draft",
-      "implementation": "pending",
-      "governance": "",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
       "owner": "",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "035",
+        "036",
+        "068",
+        "090",
+        "098"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -1955,8 +1961,8 @@
       "feature_id": "102-governed-excellence",
       "title": "Governed Excellence — Production Hardening for the Best Governed OS for AI-Native Delivery",
       "spec_path": "specs/102-governed-excellence/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "high",
       "owner": "bart",
       "group": "",
@@ -2303,8 +2309,22 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/orchestrator/src/agent_identity.rs",
+      "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md — FR-031, FR-036",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/orchestrator/src/artifact.rs",
       "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md, specs/094-unified-artifact-store/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/circuit_breaker.rs",
+      "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md — FR-032, FR-035",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2326,6 +2346,13 @@
       "severity": "error",
       "path": "crates/orchestrator/src/manifest.rs",
       "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/output_filter.rs",
+      "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md — FR-033, FR-037",
       "suggested_fix": "Fix header format"
     },
     {
