@@ -198,8 +198,7 @@ fn real_repo_schema_conformance_with_factory_projects() {
     let root = repo_root();
     let out = open_agentic_spec_compiler::compile(&root).expect("compile");
 
-    let schema_path =
-        root.join("specs/000-bootstrap-spec-system/contracts/registry.schema.json");
+    let schema_path = root.join("specs/000-bootstrap-spec-system/contracts/registry.schema.json");
     let schema_raw = fs::read_to_string(&schema_path).expect("read schema");
     let mut schema: Value = serde_json::from_str(&schema_raw).expect("parse schema");
     if let Some(o) = schema.as_object_mut() {

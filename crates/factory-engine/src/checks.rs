@@ -339,11 +339,7 @@ pub fn run_cross_reference(
 ///
 /// Walks `project_root` for source files and scans each for secrets patterns.
 /// Returns a failing check if any findings are detected.
-pub fn run_security_scan(
-    check_id: &str,
-    project_root: &Path,
-    severity: Severity,
-) -> CheckResult {
+pub fn run_security_scan(check_id: &str, project_root: &Path, severity: Severity) -> CheckResult {
     let extensions = ["ts", "js", "rs", "yaml", "yml", "json", "env", "toml"];
     let mut total_findings = 0u32;
     let mut files_with_findings = Vec::new();
@@ -356,10 +352,7 @@ pub fn run_security_scan(
         if !path.is_file() {
             continue;
         }
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
         if !extensions.contains(&ext) {
             continue;
         }
@@ -393,7 +386,12 @@ pub fn run_security_scan(
             format!(
                 "Security scan: {total_findings} finding(s) in {} file(s): {}",
                 files_with_findings.len(),
-                files_with_findings.iter().take(5).cloned().collect::<Vec<_>>().join(", ")
+                files_with_findings
+                    .iter()
+                    .take(5)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
             severity,
         )

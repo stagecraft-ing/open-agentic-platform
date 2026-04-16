@@ -17,8 +17,8 @@ pub use governed::GovernedProviderRegistry;
 pub use registry::ProviderRegistry;
 pub use types::*;
 
-use std::pin::Pin;
 use futures_core::Stream;
+use std::pin::Pin;
 
 /// The trait every LLM backend must implement.
 #[async_trait::async_trait]
@@ -30,10 +30,7 @@ pub trait ProviderAdapter: Send + Sync {
     fn capabilities(&self) -> &ProviderCapabilities;
 
     /// Create a new agent session.
-    async fn spawn(
-        &self,
-        config: Option<&ProviderConfig>,
-    ) -> Result<AgentSession, ProviderError>;
+    async fn spawn(&self, config: Option<&ProviderConfig>) -> Result<AgentSession, ProviderError>;
 
     /// Single-turn request/response.
     async fn query(

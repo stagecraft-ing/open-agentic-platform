@@ -257,10 +257,7 @@ impl CertificateBuilder {
 
     /// Build the certificate, computing the self-authenticating hash (FR-008).
     pub fn build(self) -> GovernanceCertificate {
-        let has_failure = self
-            .stages
-            .iter()
-            .any(|s| s.status == StageOutcome::Failed);
+        let has_failure = self.stages.iter().any(|s| s.status == StageOutcome::Failed);
 
         let status = if has_failure {
             CertificateStatus::Incomplete
@@ -328,10 +325,7 @@ pub fn generate_certificate(
         spec_hash: None,
     };
 
-    let build_spec_hash = pipeline_state
-        .build_spec_hash
-        .clone()
-        .unwrap_or_default();
+    let build_spec_hash = pipeline_state.build_spec_hash.clone().unwrap_or_default();
 
     // Collect stage records by scanning the artifact directory.
     let stages = collect_stage_records(artifact_dir);
@@ -430,10 +424,7 @@ pub fn sha256_file(path: &Path) -> std::io::Result<String> {
 // ── Persistence (FR-009) ─────────────────────────────────────────────
 
 /// Persist the certificate as `governance-certificate.json` in the given directory.
-pub fn persist_certificate(
-    cert: &GovernanceCertificate,
-    output_dir: &Path,
-) -> std::io::Result<()> {
+pub fn persist_certificate(cert: &GovernanceCertificate, output_dir: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(output_dir)?;
     let path = output_dir.join("governance-certificate.json");
     let json = serde_json::to_string_pretty(cert).map_err(std::io::Error::other)?;

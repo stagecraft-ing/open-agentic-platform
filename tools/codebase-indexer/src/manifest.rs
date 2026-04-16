@@ -65,7 +65,11 @@ pub fn parse_cargo_toml(path: &Path, repo_root: &Path) -> Result<PackageRecord, 
     let has_lib = doc.get("lib").is_some() || dir.join("src/lib.rs").is_file();
     let bin_targets: Vec<String> = if let Some(bins) = doc.get("bin").and_then(|v| v.as_array()) {
         bins.iter()
-            .filter_map(|b| b.get("name").and_then(|n| n.as_str()).map(|s| s.to_string()))
+            .filter_map(|b| {
+                b.get("name")
+                    .and_then(|n| n.as_str())
+                    .map(|s| s.to_string())
+            })
             .collect()
     } else if dir.join("src/main.rs").is_file() {
         vec![name.clone()]
@@ -97,8 +101,6 @@ pub fn parse_cargo_toml(path: &Path, repo_root: &Path) -> Result<PackageRecord, 
                 entry_points.push(p.to_string());
             }
         }
-    } else if has_bin && !has_lib {
-        entry_points.push("src/main.rs".to_string());
     } else if has_bin {
         entry_points.push("src/main.rs".to_string());
     }
@@ -260,7 +262,7 @@ pub fn get_npm_dep_names(path: &Path) -> Vec<String> {
 }
 
 /// Resolve internal vs external deps for all packages.
-pub fn resolve_internal_deps(packages: &mut Vec<PackageRecord>, dep_map: &[(String, Vec<String>)]) {
+pub fn resolve_internal_deps(packages: &mut [PackageRecord], dep_map: &[(String, Vec<String>)]) {
     let known_names: BTreeSet<String> = packages.iter().map(|p| p.name.clone()).collect();
 
     for pkg in packages.iter_mut() {
@@ -404,7 +406,8 @@ pub fn discover_npm_packages(repo_root: &Path) -> Vec<PathBuf> {
     }
 
     // Platform services (non-workspace npm packages)
-    for svc in &["stagecraft"] {
+    {
+        let svc = &"stagecraft";
         let p = repo_root
             .join("platform/services")
             .join(svc)

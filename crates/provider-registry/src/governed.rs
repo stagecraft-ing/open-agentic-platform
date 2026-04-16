@@ -8,9 +8,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use futures_core::Stream;
-use policy_kernel::{
-    evaluate, PolicyBundle, PolicyOutcome, ToolCallContext,
-};
+use policy_kernel::{PolicyBundle, PolicyOutcome, ToolCallContext, evaluate};
 
 use crate::error::ProviderError;
 use crate::registry::ProviderRegistry;
@@ -52,11 +50,7 @@ impl GovernedProviderRegistry {
         }
     }
 
-    fn check_policy(
-        &self,
-        provider_id: &str,
-        params: &QueryParams,
-    ) -> Result<(), ProviderError> {
+    fn check_policy(&self, provider_id: &str, params: &QueryParams) -> Result<(), ProviderError> {
         let ctx = Self::build_context(provider_id, params);
         let decision = evaluate(&ctx, &self.policy_bundle);
         match decision.outcome {
@@ -127,7 +121,9 @@ mod tests {
 
     #[async_trait::async_trait]
     impl ProviderAdapter for StubProvider {
-        fn id(&self) -> &str { "stub" }
+        fn id(&self) -> &str {
+            "stub"
+        }
         fn capabilities(&self) -> &ProviderCapabilities {
             &ProviderCapabilities {
                 streaming: true,
@@ -145,15 +141,24 @@ mod tests {
                 created_at: 0,
             })
         }
-        async fn query(&self, _: &AgentSession, _: QueryParams) -> Result<Vec<AgentEvent>, ProviderError> {
+        async fn query(
+            &self,
+            _: &AgentSession,
+            _: QueryParams,
+        ) -> Result<Vec<AgentEvent>, ProviderError> {
             Ok(vec![AgentEvent::TextComplete { text: "ok".into() }])
         }
-        fn stream(&self, _: AgentSession, _: QueryParams)
-            -> Pin<Box<dyn Stream<Item = Result<AgentEvent, ProviderError>> + Send + 'static>>
+        fn stream(
+            &self,
+            _: AgentSession,
+            _: QueryParams,
+        ) -> Pin<Box<dyn Stream<Item = Result<AgentEvent, ProviderError>> + Send + 'static>>
         {
             Box::pin(futures_util::stream::empty())
         }
-        async fn abort(&self, _: &AgentSession) -> Result<(), ProviderError> { Ok(()) }
+        async fn abort(&self, _: &AgentSession) -> Result<(), ProviderError> {
+            Ok(())
+        }
     }
 
     fn test_params() -> QueryParams {

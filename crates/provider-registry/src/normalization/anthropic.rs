@@ -24,7 +24,10 @@ pub enum AnthropicSseEvent {
     #[serde(rename = "content_block_stop")]
     ContentBlockStop { index: u32 },
     #[serde(rename = "message_delta")]
-    MessageDelta { delta: MessageDeltaInfo, usage: UsagePayload },
+    MessageDelta {
+        delta: MessageDeltaInfo,
+        usage: UsagePayload,
+    },
     #[serde(rename = "message_stop")]
     MessageStop,
     #[serde(rename = "ping")]
@@ -246,7 +249,10 @@ pub fn message_to_agent_events(
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
-                let input = block.get("input").cloned().unwrap_or(Value::Object(Default::default()));
+                let input = block
+                    .get("input")
+                    .cloned()
+                    .unwrap_or(Value::Object(Default::default()));
                 out.push(AgentEvent::ToolUseStart {
                     tool_call_id: id.clone(),
                     tool_name: name,
@@ -307,10 +313,14 @@ mod tests {
             .flat_map(|json| n.push(&parse_event(json)))
             .collect();
 
-        assert!(matches!(&all_events[0], AgentEvent::MessageStart { role: Role::Assistant, model } if model == "claude-sonnet-4-20250514"));
+        assert!(
+            matches!(&all_events[0], AgentEvent::MessageStart { role: Role::Assistant, model } if model == "claude-sonnet-4-20250514")
+        );
         assert!(matches!(&all_events[1], AgentEvent::TextDelta { delta } if delta == "Hello"));
         assert!(matches!(&all_events[2], AgentEvent::TextDelta { delta } if delta == " world"));
-        assert!(matches!(&all_events[3], AgentEvent::MessageComplete { stop_reason, usage } if stop_reason == "end_turn" && usage.output_tokens == 5));
+        assert!(
+            matches!(&all_events[3], AgentEvent::MessageComplete { stop_reason, usage } if stop_reason == "end_turn" && usage.output_tokens == 5)
+        );
         assert_eq!(all_events.len(), 4);
     }
 
@@ -334,17 +344,25 @@ mod tests {
             .collect();
 
         assert!(matches!(&all_events[0], AgentEvent::MessageStart { .. }));
-        assert!(matches!(&all_events[1], AgentEvent::ToolUseStart { tool_call_id, tool_name } if tool_call_id == "toolu_01" && tool_name == "get_weather"));
+        assert!(
+            matches!(&all_events[1], AgentEvent::ToolUseStart { tool_call_id, tool_name } if tool_call_id == "toolu_01" && tool_name == "get_weather")
+        );
         assert!(matches!(&all_events[2], AgentEvent::ToolUseDelta { .. }));
         assert!(matches!(&all_events[3], AgentEvent::ToolUseDelta { .. }));
         // ToolUseComplete with parsed JSON input
-        if let AgentEvent::ToolUseComplete { tool_call_id, input } = &all_events[4] {
+        if let AgentEvent::ToolUseComplete {
+            tool_call_id,
+            input,
+        } = &all_events[4]
+        {
             assert_eq!(tool_call_id, "toolu_01");
             assert_eq!(input.get("location").and_then(|v| v.as_str()), Some("NYC"));
         } else {
             panic!("expected ToolUseComplete, got {:?}", all_events[4]);
         }
-        assert!(matches!(&all_events[5], AgentEvent::MessageComplete { stop_reason, .. } if stop_reason == "tool_use"));
+        assert!(
+            matches!(&all_events[5], AgentEvent::MessageComplete { stop_reason, .. } if stop_reason == "tool_use")
+        );
     }
 
     #[test]
@@ -369,8 +387,12 @@ mod tests {
             .collect();
 
         assert!(matches!(&all_events[0], AgentEvent::MessageStart { .. }));
-        assert!(matches!(&all_events[1], AgentEvent::ThinkingDelta { delta } if delta == "Let me think..."));
-        assert!(matches!(&all_events[2], AgentEvent::TextDelta { delta } if delta == "The answer is 42."));
+        assert!(
+            matches!(&all_events[1], AgentEvent::ThinkingDelta { delta } if delta == "Let me think...")
+        );
+        assert!(
+            matches!(&all_events[2], AgentEvent::TextDelta { delta } if delta == "The answer is 42.")
+        );
         assert!(matches!(&all_events[3], AgentEvent::MessageComplete { .. }));
     }
 
@@ -382,7 +404,9 @@ mod tests {
         );
         let events = n.push(&event);
         assert_eq!(events.len(), 1);
-        assert!(matches!(&events[0], AgentEvent::Error { code, retryable, .. } if code == "overloaded_error" && *retryable));
+        assert!(
+            matches!(&events[0], AgentEvent::Error { code, retryable, .. } if code == "overloaded_error" && *retryable)
+        );
     }
 
     #[test]

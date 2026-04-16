@@ -14,9 +14,7 @@ use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use types::{
-    BuildInfo, CodebaseIndex, Diagnostic, Diagnostics, INDEXER_ID, SCHEMA_VERSION,
-};
+use types::{BuildInfo, CodebaseIndex, Diagnostic, Diagnostics, INDEXER_ID, SCHEMA_VERSION};
 
 // ── Error type ──────────────────────────────────────────────────────────────
 
@@ -334,11 +332,7 @@ fn collect_input_files(
         if let Ok(dir) = fs::read_dir(&schemas_dir) {
             for ent in dir.flatten() {
                 let p = ent.path();
-                if p.is_file()
-                    && p.extension()
-                        .and_then(|e| e.to_str())
-                        .map_or(false, |e| e == "json")
-                {
+                if p.is_file() && (p.extension().and_then(|e| e.to_str()) == Some("json")) {
                     files.push(p);
                 }
             }
@@ -356,11 +350,7 @@ fn collect_md_files(dir: &Path, files: &mut Vec<PathBuf>) {
             let p = ent.path();
             if p.is_dir() {
                 collect_md_files(&p, files);
-            } else if p
-                .extension()
-                .and_then(|e| e.to_str())
-                .map_or(false, |e| e == "md")
-            {
+            } else if p.extension().and_then(|e| e.to_str()) == Some("md") {
                 files.push(p);
             }
         }

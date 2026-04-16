@@ -58,9 +58,7 @@ pub fn scan_specs(repo_root: &Path) -> Vec<SpecRecord> {
 
 fn is_spec_dir(name: &str) -> bool {
     let b = name.as_bytes();
-    b.len() >= 5
-        && b[..3].iter().all(|u| u.is_ascii_digit())
-        && b[3] == b'-'
+    b.len() >= 5 && b[..3].iter().all(|u| u.is_ascii_digit()) && b[3] == b'-'
 }
 
 fn parse_spec(path: &Path) -> Option<SpecRecord> {

@@ -46,13 +46,12 @@ impl GovernedExecutor for ProviderRegistryExecutor {
     async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
         let start = Instant::now();
 
-        let (provider_id, model) = parse_provider_model(&request.agent_id)
-            .ok_or_else(|| {
-                format!(
-                    "ProviderRegistryExecutor requires 'provider:model' syntax, got '{}'",
-                    request.agent_id
-                )
-            })?;
+        let (provider_id, model) = parse_provider_model(&request.agent_id).ok_or_else(|| {
+            format!(
+                "ProviderRegistryExecutor requires 'provider:model' syntax, got '{}'",
+                request.agent_id
+            )
+        })?;
 
         // Read input artifacts as context
         let mut context = String::new();
@@ -134,7 +133,9 @@ impl GovernedExecutor for ProviderRegistryExecutor {
                         );
                     }
                     AgentEvent::Error {
-                        code, message, retryable,
+                        code,
+                        message,
+                        retryable,
                     } => {
                         if !retryable {
                             return Err(format!("provider error [{code}]: {message}"));

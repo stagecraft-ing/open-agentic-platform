@@ -190,10 +190,7 @@ fn main() -> ExitCode {
                             for c in controls {
                                 if let Some(ctrl) = c.as_str() {
                                     let key = format!("{fw}/{ctrl}");
-                                    control_map
-                                        .entry(key)
-                                        .or_default()
-                                        .push(id.to_string());
+                                    control_map.entry(key).or_default().push(id.to_string());
                                 }
                             }
                         }

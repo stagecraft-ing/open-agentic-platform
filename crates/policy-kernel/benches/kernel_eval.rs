@@ -49,6 +49,7 @@ fn sample_ctx() -> ToolCallContext {
         feature_ids: vec![],
         max_spec_risk: None,
         spec_statuses: vec![],
+        spec_impl_statuses: vec![],
     }
 }
 

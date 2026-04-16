@@ -7,15 +7,15 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use futures_core::Stream;
 use reqwest::Client;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
+use crate::ProviderAdapter;
 use crate::error::ProviderError;
 use crate::normalization::anthropic::{
-    message_to_agent_events, AnthropicSseEvent, AnthropicStreamNormalizer, UsagePayload,
+    AnthropicSseEvent, AnthropicStreamNormalizer, UsagePayload, message_to_agent_events,
 };
 use crate::types::*;
-use crate::ProviderAdapter;
 
 const DEFAULT_BASE_URL: &str = "https://api.anthropic.com";
 const API_VERSION: &str = "2023-06-01";
@@ -66,17 +66,11 @@ impl AnthropicAdapter {
     }
 
     fn base_url(&self) -> &str {
-        self.config
-            .base_url
-            .as_deref()
-            .unwrap_or(DEFAULT_BASE_URL)
+        self.config.base_url.as_deref().unwrap_or(DEFAULT_BASE_URL)
     }
 
     fn build_request_body(&self, session: &AgentSession, params: &QueryParams) -> Value {
-        let model = params
-            .model
-            .as_deref()
-            .unwrap_or(&session.model);
+        let model = params.model.as_deref().unwrap_or(&session.model);
         let max_tokens = params.max_tokens.unwrap_or(DEFAULT_MAX_TOKENS);
 
         let messages: Vec<Value> = params
@@ -86,9 +80,12 @@ impl AnthropicAdapter {
             .map(|m| {
                 let content = match &m.content {
                     MessageContent::Text(t) => Value::String(t.clone()),
-                    MessageContent::Blocks(blocks) => {
-                        Value::Array(blocks.iter().map(|b| serde_json::to_value(b).unwrap_or_default()).collect())
-                    }
+                    MessageContent::Blocks(blocks) => Value::Array(
+                        blocks
+                            .iter()
+                            .map(|b| serde_json::to_value(b).unwrap_or_default())
+                            .collect(),
+                    ),
                 };
                 json!({ "role": m.role.to_string(), "content": content })
             })
@@ -135,10 +132,7 @@ impl ProviderAdapter for AnthropicAdapter {
         &self.capabilities
     }
 
-    async fn spawn(
-        &self,
-        _config: Option<&ProviderConfig>,
-    ) -> Result<AgentSession, ProviderError> {
+    async fn spawn(&self, _config: Option<&ProviderConfig>) -> Result<AgentSession, ProviderError> {
         self.require_key()?;
         Ok(AgentSession {
             session_id: uuid::Uuid::new_v4().to_string(),
@@ -189,7 +183,10 @@ impl ProviderAdapter for AnthropicAdapter {
             retryable: false,
         })?;
 
-        let model = msg.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let model = msg
+            .get("model")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
         let stop_reason = msg.get("stop_reason").and_then(|v| v.as_str());
         let content = msg
             .get("content")
@@ -197,15 +194,19 @@ impl ProviderAdapter for AnthropicAdapter {
             .cloned()
             .unwrap_or_default();
         let usage_val = msg.get("usage").cloned().unwrap_or(json!({}));
-        let usage: UsagePayload =
-            serde_json::from_value(usage_val).unwrap_or(UsagePayload {
-                input_tokens: 0,
-                output_tokens: 0,
-                cache_read_input_tokens: None,
-                cache_creation_input_tokens: None,
-            });
+        let usage: UsagePayload = serde_json::from_value(usage_val).unwrap_or(UsagePayload {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_input_tokens: None,
+            cache_creation_input_tokens: None,
+        });
 
-        Ok(message_to_agent_events(model, stop_reason, &content, &usage))
+        Ok(message_to_agent_events(
+            model,
+            stop_reason,
+            &content,
+            &usage,
+        ))
     }
 
     fn stream(

@@ -31,7 +31,7 @@ pub struct SecretFinding {
 }
 
 /// Default secret patterns (FR-033).
-fn default_patterns() -> &'static [(& 'static str, &'static str, Regex)] {
+fn default_patterns() -> &'static [(&'static str, &'static str, Regex)] {
     static PATTERNS: OnceLock<Vec<(&str, &str, Regex)>> = OnceLock::new();
     PATTERNS.get_or_init(|| {
         vec![
@@ -85,11 +85,7 @@ fn scan_with_patterns(content: &str, patterns: &[(&str, &str, Regex)]) -> Filter
             let matched = mat.as_str();
             // Redact: show first 4 and last 2 chars, mask the rest.
             let redacted = if matched.len() > 8 {
-                format!(
-                    "{}...{}",
-                    &matched[..4],
-                    &matched[matched.len() - 2..]
-                )
+                format!("{}...{}", &matched[..4], &matched[matched.len() - 2..])
             } else {
                 "***".to_string()
             };
@@ -138,7 +134,12 @@ mod tests {
     fn detects_private_key() {
         let result = scan_content("-----BEGIN RSA PRIVATE KEY-----\nMIIEow...");
         assert!(!result.clean);
-        assert!(result.findings.iter().any(|f| f.pattern_id == "private-key"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|f| f.pattern_id == "private-key")
+        );
     }
 
     #[test]
@@ -154,10 +155,12 @@ mod tests {
             "conn = DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=abc123",
         );
         assert!(!result.clean);
-        assert!(result
-            .findings
-            .iter()
-            .any(|f| f.pattern_id == "azure-connection-string"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|f| f.pattern_id == "azure-connection-string")
+        );
     }
 
     #[test]
@@ -182,6 +185,9 @@ mod tests {
         let result = scan_content("AKIAIOSFODNN7EXAMPLE");
         assert!(!result.findings.is_empty());
         let preview = &result.findings[0].redacted_preview;
-        assert!(preview.contains("..."), "preview should be redacted: {preview}");
+        assert!(
+            preview.contains("..."),
+            "preview should be redacted: {preview}"
+        );
     }
 }

@@ -84,10 +84,8 @@ impl CircuitBreakerState {
         self.consecutive_failures += 1;
 
         // Prune failures outside the sliding window.
-        let window_start = now
-            - chrono::Duration::seconds(self.config.window_secs as i64);
-        self.failure_timestamps
-            .retain(|ts| *ts >= window_start);
+        let window_start = now - chrono::Duration::seconds(self.config.window_secs as i64);
+        self.failure_timestamps.retain(|ts| *ts >= window_start);
 
         // Check threshold within the window.
         if self.failure_timestamps.len() as u32 >= self.config.threshold {

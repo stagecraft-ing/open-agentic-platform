@@ -222,9 +222,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
                     violations.push(Violation {
                         code: "V-008".to_string(),
                         severity: "warning".to_string(),
-                        message: format!(
-                            "depends_on references non-existent spec id {dep:?}"
-                        ),
+                        message: format!("depends_on references non-existent spec id {dep:?}"),
                         path: Some(f.spec_path.clone()),
                     });
                 }
@@ -584,14 +582,7 @@ fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
 fn is_factory_scan_skip_dir(name: &str) -> bool {
     matches!(
         name,
-        ".git"
-            | ".github"
-            | "build"
-            | "node_modules"
-            | "vendor"
-            | "target"
-            | ".idea"
-            | "grammars"
+        ".git" | ".github" | "build" | "node_modules" | "vendor" | "target" | ".idea" | "grammars"
     )
 }
 
@@ -695,7 +686,7 @@ fn parse_factory_project(
     let rel = normalize_repo_path(repo_root, spec_path);
     let mut hasher = Sha256::new();
     hasher.update(rel.as_bytes());
-    hasher.update(&[0u8]);
+    hasher.update([0u8]);
     hasher.update(&normalized);
     let content_hash = format!("{:x}", hasher.finalize());
 
@@ -781,10 +772,10 @@ fn parse_compliance(m: &serde_yaml::Mapping) -> Option<Vec<ComplianceEntry>> {
     for item in arr {
         let map = item.as_mapping()?;
         let framework = map
-            .get(&serde_yaml::Value::String("framework".into()))?
+            .get(serde_yaml::Value::String("framework".into()))?
             .as_str()?
             .to_string();
-        let controls_val = map.get(&serde_yaml::Value::String("controls".into()))?;
+        let controls_val = map.get(serde_yaml::Value::String("controls".into()))?;
         let controls_seq = controls_val.as_sequence()?;
         let controls: Vec<String> = controls_seq
             .iter()
@@ -1060,14 +1051,14 @@ mod tests {
         .unwrap();
 
         let mut violations = Vec::new();
-        let record = parse_factory_project(
-            root,
-            &factory_dir.join("build-spec.yaml"),
-            &mut violations,
-        )
-        .unwrap();
+        let record =
+            parse_factory_project(root, &factory_dir.join("build-spec.yaml"), &mut violations)
+                .unwrap();
 
-        assert!(violations.is_empty(), "unexpected violations: {violations:?}");
+        assert!(
+            violations.is_empty(),
+            "unexpected violations: {violations:?}"
+        );
         let rec = record.expect("should parse");
         assert_eq!(rec.project_name, "my-app");
         assert_eq!(rec.variant.as_deref(), Some("dual"));
@@ -1088,12 +1079,9 @@ mod tests {
         .unwrap();
 
         let mut violations = Vec::new();
-        let record = parse_factory_project(
-            root,
-            &factory_dir.join("build-spec.yaml"),
-            &mut violations,
-        )
-        .unwrap();
+        let record =
+            parse_factory_project(root, &factory_dir.join("build-spec.yaml"), &mut violations)
+                .unwrap();
 
         assert!(record.is_none());
         assert_eq!(violations.len(), 1);

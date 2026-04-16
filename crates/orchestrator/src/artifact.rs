@@ -461,14 +461,11 @@ impl ArtifactMetadataStore {
 
     /// Find the most recent artifact records for a step (any workflow).
     /// Returns `(filename, content_hash)` pairs — used for cache-hit detection (094 SC-094-5).
-    pub fn find_step_cache(
-        &self,
-        step_id: &str,
-    ) -> rusqlite::Result<Vec<(String, String)>> {
+    pub fn find_step_cache(&self, step_id: &str) -> rusqlite::Result<Vec<(String, String)>> {
         let mut stmt = self.conn.prepare(
             "SELECT filename, content_hash FROM artifact_records
              WHERE step_id = ?1
-             ORDER BY created_at DESC"
+             ORDER BY created_at DESC",
         )?;
         let rows = stmt.query_map([step_id], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))

@@ -123,12 +123,18 @@ mod tests {
         }
 
         let nodes = load_from_index(index_path).unwrap();
-        assert!(!nodes.is_empty(), "expected at least one traceability mapping");
+        assert!(
+            !nodes.is_empty(),
+            "expected at least one traceability mapping"
+        );
 
         // Check that a known spec has implementing paths.
         if let Some(node) = nodes.get("102-governed-excellence") {
             assert!(!node.impl_files.is_empty());
-            assert!(node.impl_files.contains(&"crates/factory-engine".to_string()));
+            assert!(
+                node.impl_files
+                    .contains(&"crates/factory-engine".to_string())
+            );
         }
     }
 
@@ -160,7 +166,11 @@ mod tests {
             }
         });
 
-        fs::write(&index_path, serde_json::to_string_pretty(&index_json).unwrap()).unwrap();
+        fs::write(
+            &index_path,
+            serde_json::to_string_pretty(&index_json).unwrap(),
+        )
+        .unwrap();
 
         let nodes = load_from_index(&index_path).unwrap();
         assert_eq!(nodes.len(), 1);

@@ -40,17 +40,48 @@ pub struct TokenUsage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AgentEvent {
-    TextDelta { delta: String },
-    TextComplete { text: String },
-    ToolUseStart { tool_call_id: String, tool_name: String },
-    ToolUseDelta { tool_call_id: String, delta: String },
-    ToolUseComplete { tool_call_id: String, input: Value },
-    ToolResult { tool_call_id: String, output: Value, is_error: bool },
-    ThinkingDelta { delta: String },
-    ThinkingComplete { text: String },
-    MessageStart { role: Role, model: String },
-    MessageComplete { stop_reason: String, usage: TokenUsage },
-    Error { code: String, message: String, retryable: bool },
+    TextDelta {
+        delta: String,
+    },
+    TextComplete {
+        text: String,
+    },
+    ToolUseStart {
+        tool_call_id: String,
+        tool_name: String,
+    },
+    ToolUseDelta {
+        tool_call_id: String,
+        delta: String,
+    },
+    ToolUseComplete {
+        tool_call_id: String,
+        input: Value,
+    },
+    ToolResult {
+        tool_call_id: String,
+        output: Value,
+        is_error: bool,
+    },
+    ThinkingDelta {
+        delta: String,
+    },
+    ThinkingComplete {
+        text: String,
+    },
+    MessageStart {
+        role: Role,
+        model: String,
+    },
+    MessageComplete {
+        stop_reason: String,
+        usage: TokenUsage,
+    },
+    Error {
+        code: String,
+        message: String,
+        retryable: bool,
+    },
 }
 
 /// Capabilities a provider advertises.
@@ -106,10 +137,22 @@ pub enum MessageContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
-    Text { text: String },
-    Image { source: Value },
-    ToolUse { id: String, name: String, input: Value },
-    ToolResult { tool_use_id: String, content: Value, is_error: bool },
+    Text {
+        text: String,
+    },
+    Image {
+        source: Value,
+    },
+    ToolUse {
+        id: String,
+        name: String,
+        input: Value,
+    },
+    ToolResult {
+        tool_use_id: String,
+        content: Value,
+        is_error: bool,
+    },
 }
 
 /// Tool definition for provider tool-use capabilities.

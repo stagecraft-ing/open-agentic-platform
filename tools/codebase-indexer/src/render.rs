@@ -20,12 +20,24 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
     let rust_pkgs: Vec<_> = index
         .inventory
         .iter()
-        .filter(|p| matches!(p.kind, crate::types::PackageKind::RustLib | crate::types::PackageKind::RustBin | crate::types::PackageKind::RustLibBin))
+        .filter(|p| {
+            matches!(
+                p.kind,
+                crate::types::PackageKind::RustLib
+                    | crate::types::PackageKind::RustBin
+                    | crate::types::PackageKind::RustLibBin
+            )
+        })
         .collect();
     let npm_pkgs: Vec<_> = index
         .inventory
         .iter()
-        .filter(|p| matches!(p.kind, crate::types::PackageKind::NpmPackage | crate::types::PackageKind::NpmWorkspace))
+        .filter(|p| {
+            matches!(
+                p.kind,
+                crate::types::PackageKind::NpmPackage | crate::types::PackageKind::NpmWorkspace
+            )
+        })
         .collect();
 
     out.push_str(&format!(
@@ -38,7 +50,9 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
         out.push_str("| Name | Path | Kind | Version | Internal Deps |\n");
         out.push_str("|------|------|------|---------|---------------|\n");
         for p in &rust_pkgs {
-            let kind = format!("{:?}", p.kind).to_lowercase().replace("rust", "rust-");
+            let kind = format!("{:?}", p.kind)
+                .to_lowercase()
+                .replace("rust", "rust-");
             let version = p.version.as_deref().unwrap_or("-");
             let deps = p
                 .internal_deps
@@ -58,7 +72,9 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
         out.push_str("| Name | Path | Kind | Version |\n");
         out.push_str("|------|------|------|---------|\n");
         for p in &npm_pkgs {
-            let kind = format!("{:?}", p.kind).to_lowercase().replace("npm", "npm-");
+            let kind = format!("{:?}", p.kind)
+                .to_lowercase()
+                .replace("npm", "npm-");
             let version = p.version.as_deref().unwrap_or("-");
             out.push_str(&format!(
                 "| {} | `{}` | {} | {} |\n",
@@ -151,25 +167,60 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
     // Layer 4: Infrastructure
     out.push_str("## Layer 4: Infrastructure\n\n");
 
-    render_named_section(&mut out, "Tools", &index.infrastructure.tools.iter().map(|t| {
-        (&t.name as &str, &t.path as &str)
-    }).collect::<Vec<_>>());
+    render_named_section(
+        &mut out,
+        "Tools",
+        &index
+            .infrastructure
+            .tools
+            .iter()
+            .map(|t| (&t.name as &str, &t.path as &str))
+            .collect::<Vec<_>>(),
+    );
 
-    render_named_section(&mut out, "Agents", &index.infrastructure.agents.iter().map(|e| {
-        (e.name.as_str(), e.path.as_str())
-    }).collect::<Vec<_>>());
+    render_named_section(
+        &mut out,
+        "Agents",
+        &index
+            .infrastructure
+            .agents
+            .iter()
+            .map(|e| (e.name.as_str(), e.path.as_str()))
+            .collect::<Vec<_>>(),
+    );
 
-    render_named_section(&mut out, "Commands", &index.infrastructure.commands.iter().map(|e| {
-        (e.name.as_str(), e.path.as_str())
-    }).collect::<Vec<_>>());
+    render_named_section(
+        &mut out,
+        "Commands",
+        &index
+            .infrastructure
+            .commands
+            .iter()
+            .map(|e| (e.name.as_str(), e.path.as_str()))
+            .collect::<Vec<_>>(),
+    );
 
-    render_named_section(&mut out, "Rules", &index.infrastructure.rules.iter().map(|e| {
-        (e.name.as_str(), e.path.as_str())
-    }).collect::<Vec<_>>());
+    render_named_section(
+        &mut out,
+        "Rules",
+        &index
+            .infrastructure
+            .rules
+            .iter()
+            .map(|e| (e.name.as_str(), e.path.as_str()))
+            .collect::<Vec<_>>(),
+    );
 
-    render_named_section(&mut out, "Schemas", &index.infrastructure.schemas.iter().map(|e| {
-        (e.name.as_str(), e.path.as_str())
-    }).collect::<Vec<_>>());
+    render_named_section(
+        &mut out,
+        "Schemas",
+        &index
+            .infrastructure
+            .schemas
+            .iter()
+            .map(|e| (e.name.as_str(), e.path.as_str()))
+            .collect::<Vec<_>>(),
+    );
 
     // Diagnostics
     let total_diags = index.diagnostics.warnings.len() + index.diagnostics.errors.len();

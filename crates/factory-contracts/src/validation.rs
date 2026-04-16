@@ -596,10 +596,7 @@ ui:
         assert_eq!(spec.business_rules.len(), reparsed.business_rules.len());
         assert_eq!(spec.api.resources.len(), reparsed.api.resources.len());
         assert_eq!(spec.ui.pages.len(), reparsed.ui.pages.len());
-        assert_eq!(
-            spec.auth.audiences.len(),
-            reparsed.auth.audiences.len()
-        );
+        assert_eq!(spec.auth.audiences.len(), reparsed.auth.audiences.len());
     }
 
     #[test]

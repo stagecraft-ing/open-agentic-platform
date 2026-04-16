@@ -41,12 +41,14 @@ pub fn build_traceability(
                 });
             }
 
-            let entry = mappings.entry(spec.id.clone()).or_insert_with(|| TraceMapping {
-                spec_id: spec.id.clone(),
-                spec_status: Some(spec.status.clone()),
-                depends_on: spec.depends_on.clone(),
-                implementing_paths: Vec::new(),
-            });
+            let entry = mappings
+                .entry(spec.id.clone())
+                .or_insert_with(|| TraceMapping {
+                    spec_id: spec.id.clone(),
+                    spec_status: Some(spec.status.clone()),
+                    depends_on: spec.depends_on.clone(),
+                    implementing_paths: Vec::new(),
+                });
 
             entry.implementing_paths.push(ImplementingPath {
                 path: imp.path.clone(),
@@ -91,7 +93,9 @@ pub fn build_traceability(
 
     // Sort implementing paths within each mapping
     for mapping in mappings.values_mut() {
-        mapping.implementing_paths.sort_by(|a, b| a.path.cmp(&b.path));
+        mapping
+            .implementing_paths
+            .sort_by(|a, b| a.path.cmp(&b.path));
     }
 
     let mut sorted_mappings: Vec<TraceMapping> = mappings.into_values().collect();

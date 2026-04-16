@@ -75,7 +75,11 @@ fn extract_bin_targets(path: &Path) -> Vec<String> {
     if let Some(bins) = doc.get("bin").and_then(|v| v.as_array()) {
         let mut names: Vec<String> = bins
             .iter()
-            .filter_map(|b| b.get("name").and_then(|n| n.as_str()).map(|s| s.to_string()))
+            .filter_map(|b| {
+                b.get("name")
+                    .and_then(|n| n.as_str())
+                    .map(|s| s.to_string())
+            })
             .collect();
         names.sort();
         return names;
@@ -116,11 +120,7 @@ fn scan_rules(repo_root: &Path) -> Vec<NamedEntry> {
         .flatten()
         .flatten()
         .filter(|e| {
-            e.path().is_file()
-                && e.path()
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .map_or(false, |ext| ext == "md")
+            e.path().is_file() && (e.path().extension().and_then(|ext| ext.to_str()) == Some("md"))
         })
         .collect();
     files.sort_by_key(|e| e.file_name());
@@ -154,10 +154,7 @@ fn scan_schemas(repo_root: &Path) -> Vec<NamedEntry> {
         .flatten()
         .filter(|e| {
             e.path().is_file()
-                && e.path()
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .map_or(false, |ext| ext == "json")
+                && (e.path().extension().and_then(|ext| ext.to_str()) == Some("json"))
         })
         .collect();
     files.sort_by_key(|e| e.file_name());
@@ -174,7 +171,11 @@ fn scan_schemas(repo_root: &Path) -> Vec<NamedEntry> {
         let description = fs::read_to_string(&p)
             .ok()
             .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
-            .and_then(|doc| doc.get("title").and_then(|v| v.as_str()).map(|s| s.to_string()));
+            .and_then(|doc| {
+                doc.get("title")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            });
 
         entries.push(NamedEntry {
             name,
@@ -211,12 +212,7 @@ fn scan_md_with_frontmatter(dir: &Path, repo_root: &Path, recursive: bool) -> Ve
     };
 
     let mut files: Vec<walkdir::DirEntry> = walker
-        .filter(|e| {
-            e.path()
-                .extension()
-                .and_then(|ext| ext.to_str())
-                .map_or(false, |ext| ext == "md")
-        })
+        .filter(|e| e.path().extension().and_then(|ext| ext.to_str()) == Some("md"))
         .collect();
     files.sort_by_key(|e| e.path().to_path_buf());
 

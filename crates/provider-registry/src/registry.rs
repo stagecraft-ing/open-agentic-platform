@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::ProviderAdapter;
 use crate::error::ProviderError;
 use crate::types::ProviderCapabilities;
-use crate::ProviderAdapter;
 
 /// Thread-safe registry of provider adapters.
 #[derive(Clone)]
@@ -22,10 +22,7 @@ impl ProviderRegistry {
     }
 
     /// Register a provider adapter. Fails if an adapter with the same id exists.
-    pub async fn register(
-        &self,
-        adapter: Arc<dyn ProviderAdapter>,
-    ) -> Result<(), ProviderError> {
+    pub async fn register(&self, adapter: Arc<dyn ProviderAdapter>) -> Result<(), ProviderError> {
         let id = adapter.id().to_string();
         let mut map = self.adapters.write().await;
         if map.contains_key(&id) {
@@ -74,8 +71,8 @@ impl Default for ProviderRegistry {
 mod tests {
     use super::*;
     use crate::types::*;
-    use std::pin::Pin;
     use futures_core::Stream;
+    use std::pin::Pin;
 
     /// Minimal test adapter.
     struct StubAdapter {

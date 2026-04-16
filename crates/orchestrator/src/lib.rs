@@ -43,7 +43,6 @@ pub use artifact::{
 pub use claude_executor::{
     AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, ThinkingLevel,
 };
-pub use provider_executor::{ProviderRegistryExecutor, parse_provider_model};
 pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use effort::{EffortLevel, classify_from_task};
 pub use gates::{GateError, GateHandler, GateOutcome, evaluate_gate, evaluate_gate_if_present};
@@ -55,6 +54,7 @@ pub use manifest::{VerifyCommand, WorkflowManifest, WorkflowStep, split_input_re
 pub use promotion::{
     PromotionCheck, PromotionEligibility, SyncStatus, SyncTracker, check_promotion_eligibility,
 };
+pub use provider_executor::{ProviderRegistryExecutor, parse_provider_model};
 #[cfg(feature = "local-sqlite")]
 pub use scheduler::SqliteSchedulerStore;
 pub use scheduler::{
@@ -1048,7 +1048,8 @@ pub async fn dispatch_manifest(
         // Cache-hit detection: skip execution if all outputs are already in CAS (094 SC-094-5).
         #[cfg(feature = "local-sqlite")]
         if let (Some(cas), Some(meta_store)) = (&options.cas, &options.artifact_metadata)
-            && let Some(cached) = artifact::check_step_cache(meta_store, cas, &step.id, &step.outputs)
+            && let Some(cached) =
+                artifact::check_step_cache(meta_store, cas, &step.id, &step.outputs)
         {
             // Restore cached artifacts to the run directory.
             let mut restored = true;
@@ -1070,7 +1071,10 @@ pub async fn dispatch_manifest(
                 completed_hashes.insert(step.id.clone(), hashes);
                 eprintln!(
                     "  [{}/{}] {} (agent: {}) — cache hit (094)",
-                    step_num + 1, total_steps, step.id, step.agent,
+                    step_num + 1,
+                    total_steps,
+                    step.id,
+                    step.agent,
                 );
                 continue;
             }
@@ -1607,7 +1611,8 @@ pub async fn dispatch_manifest_persisted(
         // Cache-hit detection: skip execution if all outputs are already in CAS (094 SC-094-5).
         #[cfg(feature = "local-sqlite")]
         if let (Some(cas), Some(meta_store)) = (&options.cas, &options.artifact_metadata)
-            && let Some(cached) = artifact::check_step_cache(meta_store, cas, &step.id, &step.outputs)
+            && let Some(cached) =
+                artifact::check_step_cache(meta_store, cas, &step.id, &step.outputs)
         {
             let mut restored = true;
             let mut hashes = HashMap::new();

@@ -33,10 +33,7 @@ fn main() {
     let json = match std::fs::read_to_string(&cli.certificate) {
         Ok(j) => j,
         Err(e) => {
-            eprintln!(
-                "error: cannot read {}: {e}",
-                cli.certificate.display()
-            );
+            eprintln!("error: cannot read {}: {e}", cli.certificate.display());
             std::process::exit(2);
         }
     };

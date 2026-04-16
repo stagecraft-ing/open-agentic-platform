@@ -115,8 +115,7 @@ impl OpenAiStreamNormalizer {
                             let input = if args.is_empty() {
                                 Value::Object(Default::default())
                             } else {
-                                serde_json::from_str(&args)
-                                    .unwrap_or(Value::String(args))
+                                serde_json::from_str(&args).unwrap_or(Value::String(args))
                             };
                             events.push(AgentEvent::ToolUseComplete {
                                 tool_call_id: id,
@@ -212,8 +211,8 @@ pub fn completion_to_agent_events(response: &Value) -> Vec<AgentEvent> {
                         .and_then(|f| f.get("arguments"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("{}");
-                    let input: Value =
-                        serde_json::from_str(args_str).unwrap_or(Value::String(args_str.to_string()));
+                    let input: Value = serde_json::from_str(args_str)
+                        .unwrap_or(Value::String(args_str.to_string()));
 
                     events.push(AgentEvent::ToolUseStart {
                         tool_call_id: id.clone(),
@@ -279,10 +278,14 @@ mod tests {
             .flat_map(|json| n.push(&serde_json::from_str::<Value>(json).unwrap()))
             .collect();
 
-        assert!(matches!(&all_events[0], AgentEvent::MessageStart { model, .. } if model == "gpt-4o"));
+        assert!(
+            matches!(&all_events[0], AgentEvent::MessageStart { model, .. } if model == "gpt-4o")
+        );
         assert!(matches!(&all_events[1], AgentEvent::TextDelta { delta } if delta == "Hello"));
         assert!(matches!(&all_events[2], AgentEvent::TextDelta { delta } if delta == " world"));
-        assert!(matches!(&all_events[3], AgentEvent::MessageComplete { usage, .. } if usage.input_tokens == 10));
+        assert!(
+            matches!(&all_events[3], AgentEvent::MessageComplete { usage, .. } if usage.input_tokens == 10)
+        );
     }
 
     #[test]
@@ -302,12 +305,18 @@ mod tests {
             .collect();
 
         assert!(matches!(&all_events[0], AgentEvent::MessageStart { .. }));
-        assert!(matches!(&all_events[1], AgentEvent::ToolUseStart { tool_call_id, tool_name } if tool_call_id == "call_abc" && tool_name == "get_weather"));
+        assert!(
+            matches!(&all_events[1], AgentEvent::ToolUseStart { tool_call_id, tool_name } if tool_call_id == "call_abc" && tool_name == "get_weather")
+        );
         // Deltas
         assert!(matches!(&all_events[2], AgentEvent::ToolUseDelta { .. }));
         assert!(matches!(&all_events[3], AgentEvent::ToolUseDelta { .. }));
         // Complete with parsed input
-        if let AgentEvent::ToolUseComplete { tool_call_id, input } = &all_events[4] {
+        if let AgentEvent::ToolUseComplete {
+            tool_call_id,
+            input,
+        } = &all_events[4]
+        {
             assert_eq!(tool_call_id, "call_abc");
             assert_eq!(input.get("location").and_then(|v| v.as_str()), Some("NYC"));
         } else {
@@ -318,7 +327,8 @@ mod tests {
 
     #[test]
     fn non_streaming_completion() {
-        let response = serde_json::from_str::<Value>(r#"{
+        let response = serde_json::from_str::<Value>(
+            r#"{
             "model": "gpt-4o",
             "choices": [{
                 "message": {
@@ -328,12 +338,16 @@ mod tests {
                 "finish_reason": "stop"
             }],
             "usage": { "prompt_tokens": 5, "completion_tokens": 2 }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let events = completion_to_agent_events(&response);
         assert_eq!(events.len(), 3);
         assert!(matches!(&events[0], AgentEvent::MessageStart { model, .. } if model == "gpt-4o"));
         assert!(matches!(&events[1], AgentEvent::TextComplete { text } if text == "Hello!"));
-        assert!(matches!(&events[2], AgentEvent::MessageComplete { stop_reason, usage } if stop_reason == "stop" && usage.output_tokens == 2));
+        assert!(
+            matches!(&events[2], AgentEvent::MessageComplete { stop_reason, usage } if stop_reason == "stop" && usage.output_tokens == 2)
+        );
     }
 }

@@ -7,13 +7,13 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use futures_core::Stream;
 use reqwest::Client;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
+use crate::ProviderAdapter;
 use crate::error::ProviderError;
 use crate::normalization::openai::OpenAiStreamNormalizer;
 use crate::types::*;
-use crate::ProviderAdapter;
 
 const DEFAULT_BASE_URL: &str = "https://api.openai.com";
 const DEFAULT_MAX_TOKENS: u32 = 4096;
@@ -63,17 +63,11 @@ impl OpenAiAdapter {
     }
 
     fn base_url(&self) -> &str {
-        self.config
-            .base_url
-            .as_deref()
-            .unwrap_or(DEFAULT_BASE_URL)
+        self.config.base_url.as_deref().unwrap_or(DEFAULT_BASE_URL)
     }
 
     fn build_request_body(&self, session: &AgentSession, params: &QueryParams) -> Value {
-        let model = params
-            .model
-            .as_deref()
-            .unwrap_or(&session.model);
+        let model = params.model.as_deref().unwrap_or(&session.model);
         let max_tokens = params.max_tokens.unwrap_or(DEFAULT_MAX_TOKENS);
 
         let mut messages: Vec<Value> = Vec::new();
@@ -164,10 +158,7 @@ impl ProviderAdapter for OpenAiAdapter {
         &self.capabilities
     }
 
-    async fn spawn(
-        &self,
-        _config: Option<&ProviderConfig>,
-    ) -> Result<AgentSession, ProviderError> {
+    async fn spawn(&self, _config: Option<&ProviderConfig>) -> Result<AgentSession, ProviderError> {
         self.require_key()?;
         Ok(AgentSession {
             session_id: uuid::Uuid::new_v4().to_string(),
@@ -217,7 +208,9 @@ impl ProviderAdapter for OpenAiAdapter {
             retryable: false,
         })?;
 
-        Ok(crate::normalization::openai::completion_to_agent_events(&msg))
+        Ok(crate::normalization::openai::completion_to_agent_events(
+            &msg,
+        ))
     }
 
     fn stream(
