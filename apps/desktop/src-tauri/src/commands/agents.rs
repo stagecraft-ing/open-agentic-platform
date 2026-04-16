@@ -2384,7 +2384,7 @@ pub async fn set_active_workspace(
     info!("set_active_workspace: {}", workspace_id);
 
     // Propagate to StagecraftClient if present.
-    if let Some(client) = stagecraft.0.as_ref() {
+    if let Some(client) = stagecraft.current() {
         client.set_workspace_id(&workspace_id);
     }
 
@@ -2412,8 +2412,7 @@ pub async fn list_workspaces(
     stagecraft: State<'_, StagecraftState>,
 ) -> Result<Vec<WorkspaceInfo>, String> {
     let client = stagecraft
-        .0
-        .as_ref()
+        .current()
         .ok_or_else(|| "Stagecraft client not initialised".to_string())?;
 
     let response = client

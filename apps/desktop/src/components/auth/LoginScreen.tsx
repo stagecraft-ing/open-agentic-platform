@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Github, Loader2 } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Card } from '@opc/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { ServerSettingsDialog } from './ServerSettingsDialog';
 
 export function LoginScreen() {
   const { status, error, login } = useAuth();
   const isLoading = status === 'loading';
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="flex-1 flex items-center justify-center p-8">
@@ -61,8 +64,18 @@ export function LoginScreen() {
               {error}
             </motion.p>
           )}
+
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+          >
+            Server settings
+          </button>
         </Card>
       </motion.div>
+
+      <ServerSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

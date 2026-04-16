@@ -143,8 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.authStartLogin(idpHint ?? null);
       // Browser will open — callback arrives via deep-link event listener above
-    } catch {
-      setError('Could not open browser. Check your default browser settings.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || 'Login failed — see logs for details.');
       setStatus('unauthenticated');
     }
   }, []);

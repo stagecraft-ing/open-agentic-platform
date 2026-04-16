@@ -438,6 +438,31 @@ async authLogout() : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Return the base URL currently in effect (reflects the live client).
+ */
+async getStagecraftBaseUrl() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_stagecraft_base_url") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Persist a new base URL, rebuild the client, and clear any stale auth
+ * (tokens from a different server must not leak across).
+ * 
+ * Pass an empty string to disable the integration entirely.
+ */
+async setStagecraftBaseUrl(baseUrl: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_stagecraft_base_url", { baseUrl }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

@@ -630,7 +630,7 @@ pub async fn start_factory_pipeline(
     // Get workspace_id from StagecraftClient (set by set_active_workspace) — spec 092.
     let workspace_id: Option<String> = app
         .try_state::<StagecraftState>()
-        .and_then(|s| s.0.as_ref().map(|c| c.workspace_id()))
+        .and_then(|s| s.current().map(|c| c.workspace_id()))
         .filter(|s| !s.is_empty());
 
     let start = engine
@@ -696,7 +696,7 @@ pub async fn start_factory_pipeline(
     // Dual-write: register pipeline with Stagecraft (fire-and-forget).
     if let Some(sc_project_id) = &stagecraft_project_id {
         let sc_opt: Option<StagecraftClient> =
-            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
+            app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let pid = sc_project_id.clone();
             let adapter = adapter_name.clone();
@@ -746,7 +746,7 @@ pub async fn start_factory_pipeline(
     let sc_client: Option<StagecraftClient> = stagecraft_project_id
         .as_ref()
         .and_then(|_| app.try_state::<StagecraftState>())
-        .and_then(|s| s.0.clone());
+        .and_then(|s| s.current());
 
     // Derive governance mode once for the entire pipeline (098 Slice 2).
     let grants_json = crate::governed_claude::grants_json_claude_default();
@@ -1249,7 +1249,7 @@ pub async fn confirm_factory_stage(
     // Dual-write: confirm stage in Stagecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
         let sc_opt: Option<StagecraftClient> =
-            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
+            app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
             tokio::spawn(async move {
@@ -1304,7 +1304,7 @@ pub async fn reject_factory_stage(
     // Dual-write: reject stage in Stagecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
         let sc_opt: Option<StagecraftClient> =
-            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
+            app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
             let fb = feedback;
@@ -1358,7 +1358,7 @@ pub async fn cancel_factory_pipeline(
     // Dual-write: cancel in Stagecraft
     if let Some(pid) = sc_project_id {
         let sc_opt: Option<StagecraftClient> =
-            app.try_state::<StagecraftState>().and_then(|s| s.0.clone());
+            app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             tokio::spawn(async move {
                 if let Err(e) = sc.cancel_pipeline(&pid, &reason).await {
@@ -1516,7 +1516,7 @@ pub async fn resume_factory_pipeline(
     // Get workspace_id from StagecraftClient for resumed pipelines (spec 092).
     let workspace_id: Option<String> = app
         .try_state::<StagecraftState>()
-        .and_then(|s| s.0.as_ref().map(|c| c.workspace_id()))
+        .and_then(|s| s.current().map(|c| c.workspace_id()))
         .filter(|s| !s.is_empty());
 
     let start = engine

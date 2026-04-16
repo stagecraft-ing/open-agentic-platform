@@ -540,6 +540,14 @@ export const api = {
     return await apiCall<any>("auth_switch_org", { orgId });
   },
 
+  async getStagecraftBaseUrl(): Promise<string> {
+    return await apiCall<string>("get_stagecraft_base_url");
+  },
+
+  async setStagecraftBaseUrl(baseUrl: string): Promise<void> {
+    await apiCall<null>("set_stagecraft_base_url", { baseUrl });
+  },
+
   /**
    * Gets the user's home directory path
    * @returns Promise resolving to the home directory path

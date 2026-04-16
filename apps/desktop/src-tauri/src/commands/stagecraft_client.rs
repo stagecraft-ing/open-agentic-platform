@@ -17,9 +17,25 @@ use std::time::Duration;
 
 /// Tauri-managed wrapper for the optional Stagecraft HTTP client.
 ///
-/// When `STAGECRAFT_BASE_URL` is set, `0` contains `Some(client)`;
-/// otherwise `None` and factory commands run local-only.
-pub struct StagecraftState(pub Option<StagecraftClient>);
+/// Wrapped in a `RwLock` so the base URL can be swapped at runtime via the
+/// settings UI (see `commands::settings::set_stagecraft_base_url`). When the
+/// URL is unset, the inner `Option` is `None` and factory commands run
+/// local-only.
+pub struct StagecraftState(pub RwLock<Option<StagecraftClient>>);
+
+impl StagecraftState {
+    /// Return a clone of the current client, if any.
+    pub fn current(&self) -> Option<StagecraftClient> {
+        self.0.read().ok().and_then(|g| g.clone())
+    }
+
+    /// Replace the current client (used when the base URL changes).
+    pub fn replace(&self, client: Option<StagecraftClient>) {
+        if let Ok(mut g) = self.0.write() {
+            *g = client;
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Stage ID mapping — local engine uses longer names than Stagecraft

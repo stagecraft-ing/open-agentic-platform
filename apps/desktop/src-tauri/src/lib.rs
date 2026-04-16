@@ -215,16 +215,16 @@ pub fn run() {
             sidecars::spawn_axiomregent(app.handle());
 
             // Initialize Stagecraft Factory API client (dual-write governance).
-            // Reads STAGECRAFT_BASE_URL and OPC_USER_ID from env; if either is
-            // absent the client is None and factory commands run local-only.
+            // URL resolution order: app_settings.stagecraft_base_url (DB) →
+            // STAGECRAFT_BASE_URL env var → default "https://stagecraft.ing".
             {
-                let base_url = std::env::var("STAGECRAFT_BASE_URL").unwrap_or_default();
                 let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
+                let base_url = commands::settings::resolve_stagecraft_base_url(app.handle());
                 let sc = commands::stagecraft_client::StagecraftClient::new(&base_url, &user_id);
                 if sc.is_some() {
                     log::info!("Stagecraft client enabled → {base_url}");
                 } else {
-                    log::info!("Stagecraft client disabled (STAGECRAFT_BASE_URL not set)");
+                    log::info!("Stagecraft client disabled (no base URL configured)");
                 }
                 // Load auth token from OS keychain (spec 087 Phase 5)
                 if let Some(ref client) = sc
@@ -232,7 +232,7 @@ pub fn run() {
                 {
                     log::info!("Restored Stagecraft auth token from OS keychain");
                 }
-                app.manage(StagecraftState(sc));
+                app.manage(StagecraftState(std::sync::RwLock::new(sc)));
             }
 
             // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)
@@ -508,6 +508,9 @@ pub fn run() {
             commands::auth::auth_refresh_token,
             commands::auth::auth_get_status,
             commands::auth::auth_logout,
+            // App settings
+            commands::settings::get_stagecraft_base_url,
+            commands::settings::set_stagecraft_base_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

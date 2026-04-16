@@ -338,7 +338,7 @@ pub async fn orchestrate_manifest(
 
     // Inject the active workspace into the manifest if not already set (spec 092).
     if manifest.workspace_id.is_none()
-        && let Some(ref client) = stagecraft.0
+        && let Some(client) = stagecraft.current()
     {
         let ws = client.workspace_id();
         if !ws.is_empty() {

@@ -12,6 +12,7 @@ pub mod quick_pane;
 pub mod recovery;
 pub mod result;
 pub mod sandbox;
+pub mod settings;
 pub mod slash_commands;
 pub mod stagecraft_client;
 pub mod storage;

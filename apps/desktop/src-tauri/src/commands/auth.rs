@@ -299,9 +299,8 @@ pub async fn auth_start_login(
     app: tauri::AppHandle,
 ) -> AppResult<()> {
     let client = stagecraft
-        .0
-        .as_ref()
-        .ok_or("Stagecraft client not configured — set STAGECRAFT_BASE_URL")?;
+        .current()
+        .ok_or("Stagecraft server URL is not set. Click 'Server settings' to configure it.")?;
 
     // Generate PKCE materials
     let code_verifier = random_base64url(32);
@@ -406,8 +405,7 @@ pub async fn auth_handle_callback(
     };
 
     let client = stagecraft
-        .0
-        .as_ref()
+        .current()
         .ok_or("Stagecraft client not configured")?;
 
     // Exchange code + verifier for tokens
@@ -468,8 +466,7 @@ pub async fn auth_select_org(
     stagecraft: State<'_, StagecraftState>,
 ) -> AppResult<AuthResult> {
     let client = stagecraft
-        .0
-        .as_ref()
+        .current()
         .ok_or("Stagecraft client not configured")?;
 
     let body = serde_json::json!({
@@ -521,8 +518,7 @@ pub async fn auth_refresh_token(stagecraft: State<'_, StagecraftState>) -> AppRe
         keychain_get("refresh_token").ok_or("no refresh token stored in keychain")?;
 
     let client = stagecraft
-        .0
-        .as_ref()
+        .current()
         .ok_or("Stagecraft client not configured")?;
 
     let body = serde_json::json!({ "refreshToken": refresh_token });
@@ -686,8 +682,7 @@ pub async fn auth_switch_org(
     stagecraft: State<'_, StagecraftState>,
 ) -> AppResult<AuthResult> {
     let client = stagecraft
-        .0
-        .as_ref()
+        .current()
         .ok_or("Stagecraft client not configured")?;
 
     let body = serde_json::json!({ "orgId": org_id });
@@ -786,7 +781,7 @@ pub async fn auth_switch_org(
 pub async fn auth_logout(stagecraft: State<'_, StagecraftState>) -> AppResult<()> {
     keychain_delete("session");
     keychain_delete("refresh_token");
-    if let Some(client) = stagecraft.0.as_ref() {
+    if let Some(client) = stagecraft.current() {
         client.clear_auth();
     }
     Ok(())
