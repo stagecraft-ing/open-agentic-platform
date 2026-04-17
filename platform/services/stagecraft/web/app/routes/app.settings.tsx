@@ -3,6 +3,7 @@ import { Outlet, NavLink } from "react-router";
 const SETTINGS_NAV = [
   { to: "/app/settings", label: "General", end: true },
   { to: "/app/settings/connectors", label: "Connectors", end: false },
+  { to: "/app/settings/github-pat", label: "GitHub PAT", end: false },
 ];
 
 export default function SettingsLayout() {
