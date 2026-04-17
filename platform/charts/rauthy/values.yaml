@@ -58,21 +58,9 @@ resources:
     cpu: 250m
     memory: 512Mi
 
-# Enterprise OIDC upstream providers (spec 080 Phase 4).
-# Each entry configures Rauthy to federate to an upstream IdP.
-# Secrets (client_id, client_secret) should come from an existingSecret
-# or be set via --set at deploy time.
-#
-# Example:
-#   upstreamProviders:
-#     - name: "contoso-azure-ad"
-#       typ: "OIDC"
-#       issuer: "https://login.microsoftonline.com/{tenant-id}/v2.0"
-#       clientId: "..."
-#       existingSecret: "rauthy-upstream-contoso"
-#       existingSecretKey: "client-secret"
-#       rootCertificates: ""
-#       scopes: "openid profile email groups"
-#       adminClaimPath: "$.roles[?(@ == 'admin')]"
-#       adminClaimValue: ""
-upstreamProviders: []
+# Upstream auth providers are managed via Rauthy's admin API, not Helm
+# values. Rauthy 0.35 stores providers in its hiqlite DB; there is no
+# `[[upstream_auth_provider]]` TOML section in RauthyConfig.Vars. The
+# stagecraft Rauthy seeder (spec 106 FR-002) is the authoritative
+# provisioner — it runs as a Helm pre-install/pre-upgrade hook against
+# stagecraft's chart and calls POST/PUT /auth/v1/providers.

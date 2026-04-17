@@ -34,6 +34,9 @@ COPY web/build/server/ ./build/server/
 COPY scripts/migrate.mjs ./scripts/migrate.mjs
 COPY api/db/migrations/ ./api/db/migrations/
 
+# Rauthy seeder (spec 106 FR-002) — Helm pre-install/pre-upgrade hook.
+COPY scripts/seed-rauthy.mjs ./scripts/seed-rauthy.mjs
+
 ENV ENCORE_RUNTIME_LIB=/app/encore-runtime.node
 ENV NODE_ENV=production
 

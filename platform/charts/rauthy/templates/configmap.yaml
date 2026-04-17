@@ -8,28 +8,13 @@ data:
   config.toml: |
     # Minimal config — most settings provided via environment variables.
     # Rauthy >= 0.35.0 requires this file to exist and include [server].
+    #
+    # Upstream auth providers are NOT configured here. Rauthy 0.35 stores
+    # providers in its hiqlite DB and exposes them via the admin API only
+    # (there is no `[[upstream_auth_provider]]` TOML section in
+    # RauthyConfig.Vars — unknown keys are silently ignored). The stagecraft
+    # Rauthy seeder (spec 106 FR-002) creates and maintains providers via
+    # POST /auth/v1/providers/create and PUT /auth/v1/providers/{id}.
 
     [server]
     pub_url = {{ include "rauthy.pubUrl" . | quote }}
-
-    {{- range .Values.upstreamProviders }}
-    [[upstream_auth_provider]]
-    name = {{ .name | quote }}
-    typ = {{ .typ | default "OIDC" | quote }}
-    issuer = {{ .issuer | quote }}
-    client_id = "$UPSTREAM_{{ .name | upper | replace "-" "_" }}_CLIENT_ID"
-    client_secret = "$UPSTREAM_{{ .name | upper | replace "-" "_" }}_CLIENT_SECRET"
-    {{- if .rootCertificates }}
-    root_certificates = {{ .rootCertificates | quote }}
-    {{- end }}
-    {{- if .scopes }}
-    scope = {{ .scopes | quote }}
-    {{- end }}
-    {{- if .adminClaimPath }}
-    admin_claim_path = {{ .adminClaimPath | quote }}
-    {{- end }}
-    {{- if .adminClaimValue }}
-    admin_claim_value = {{ .adminClaimValue | quote }}
-    {{- end }}
-
-    {{- end }}

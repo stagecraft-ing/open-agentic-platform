@@ -224,6 +224,7 @@ PHASE2_READY=true
 MISSING=()
 
 for var in GITHUB_OAUTH_CLIENT_ID GITHUB_OAUTH_CLIENT_SECRET \
+           GITHUB_UPSTREAM_CLIENT_ID GITHUB_UPSTREAM_CLIENT_SECRET \
            GITHUB_APP_ID GITHUB_APP_PRIVATE_KEY_B64 \
            OIDC_SPA_CLIENT_ID OIDC_M2M_CLIENT_ID OIDC_M2M_CLIENT_SECRET \
            RAUTHY_CLIENT_ID RAUTHY_CLIENT_SECRET RAUTHY_ADMIN_TOKEN; do
@@ -249,9 +250,13 @@ if [ "$PHASE2_READY" = false ]; then
   echo "     - SPA client (public, authorization_code, redirect: https://${DOMAIN}/auth/callback)"
   echo "     - M2M client (confidential, client_credentials, scope: deployd:deploy)"
   echo "     - Server client (confidential, for backend OIDC)"
-  echo "  3. Create GitHub OAuth App at https://github.com/settings/developers"
-  echo "     - Homepage: https://${DOMAIN}"
-  echo "     - Callback: https://${DOMAIN}/auth/github/callback"
+  echo "  3. Create TWO GitHub OAuth Apps at https://github.com/settings/developers"
+  echo "     a) Stagecraft direct OAuth (GITHUB_OAUTH_CLIENT_ID/_SECRET)"
+  echo "        - Homepage: https://${DOMAIN}"
+  echo "        - Callback: https://${DOMAIN}/auth/github/callback"
+  echo "     b) Rauthy upstream provider (GITHUB_UPSTREAM_CLIENT_ID/_SECRET, spec 106)"
+  echo "        - Homepage: https://auth.${DOMAIN}"
+  echo "        - Callback: https://auth.${DOMAIN}/auth/v1/providers/callback"
   echo "  4. Create GitHub App at https://github.com/settings/apps/new"
   echo "     - Webhook URL: https://${DOMAIN}/api/github/webhook"
   echo "     - Webhook secret: $GITHUB_WEBHOOK_SECRET"
@@ -312,6 +317,8 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=RAUTHY_ADMIN_TOKEN="$RAUTHY_ADMIN_TOKEN" \
   --from-literal=GITHUB_OAUTH_CLIENT_ID="$GITHUB_OAUTH_CLIENT_ID" \
   --from-literal=GITHUB_OAUTH_CLIENT_SECRET="$GITHUB_OAUTH_CLIENT_SECRET" \
+  --from-literal=GITHUB_UPSTREAM_CLIENT_ID="$GITHUB_UPSTREAM_CLIENT_ID" \
+  --from-literal=GITHUB_UPSTREAM_CLIENT_SECRET="$GITHUB_UPSTREAM_CLIENT_SECRET" \
   --from-literal=GITHUB_APP_ID="$GITHUB_APP_ID" \
   --from-literal=GITHUB_APP_PRIVATE_KEY="$GITHUB_APP_PRIVATE_KEY" \
   --from-literal=GITHUB_WEBHOOK_SECRET="$GITHUB_WEBHOOK_SECRET" \

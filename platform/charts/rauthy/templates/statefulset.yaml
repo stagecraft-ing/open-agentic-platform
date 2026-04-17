@@ -102,19 +102,6 @@ spec:
               value: {{ include "rauthy.hqlNodes" . | quote }}
             - name: HQL_DATA_DIR
               value: "/data/hiqlite"
-            {{- range .Values.upstreamProviders }}
-            {{- if .clientId }}
-            - name: UPSTREAM_{{ .name | upper | replace "-" "_" }}_CLIENT_ID
-              value: {{ .clientId | quote }}
-            {{- end }}
-            {{- if .existingSecret }}
-            - name: UPSTREAM_{{ .name | upper | replace "-" "_" }}_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .existingSecret }}
-                  key: {{ .existingSecretKey | default "client-secret" }}
-            {{- end }}
-            {{- end }}
             {{- if .Values.raft.existingSecret }}
             - name: HQL_SECRET_RAFT
               valueFrom:
