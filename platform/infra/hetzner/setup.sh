@@ -55,10 +55,15 @@ set +a
 if [ "${1:-}" = "--clean" ]; then
   info "Clean start requested"
 
-  # Destroy Hetzner cluster if kubeconfig exists
+  # Destroy Hetzner cluster if kubeconfig exists. If destroy fails, bail out
+  # BEFORE clearing .env — otherwise the cluster's postgres keeps the old
+  # password while a fresh one lands in .env, and every subsequent deploy
+  # writes a stagecraft secret that can't authenticate (account_error in the
+  # OAuth callback, etc).
   if [ -f "$SCRIPT_DIR/kubeconfig" ]; then
     warn "Destroying existing cluster..."
-    hetzner-k3s delete --config "$SCRIPT_DIR/cluster.yaml" || true
+    hetzner-k3s delete --config "$SCRIPT_DIR/cluster.yaml" \
+      || err "hetzner-k3s delete failed; cluster still exists. Refusing to clear .env secrets (would drift from live postgres)."
     rm -f "$SCRIPT_DIR/kubeconfig"
     ok "Cluster destroyed and kubeconfig removed"
   else
