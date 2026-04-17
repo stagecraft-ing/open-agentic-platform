@@ -153,7 +153,7 @@ destroy-hetzner:
 # Inbound traffic to the cluster ingress is stolen into the local process.
 # Ctrl-C restores the pod as the traffic target.
 
-.PHONY: dev-stagecraft-hetzner dev-deployd-api-hetzner
+.PHONY: dev-stagecraft-hetzner dev-stagecraft-web-hetzner dev-deployd-api-hetzner
 
 dev-stagecraft-hetzner:
 	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
@@ -163,6 +163,15 @@ dev-stagecraft-hetzner:
 	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig \
 	mirrord exec -f $(HETZNER_ROOT)/mirrord/stagecraft.yaml -- \
 		node services/stagecraft/.encore/build/combined/combined/main.mjs
+
+# React Router dev server on :3000 with HMR, proxying Encore-owned paths to
+# the mirrord'd backend on :4000. Run `dev-stagecraft-hetzner` in another
+# terminal first so the Encore backend is listening.
+dev-stagecraft-web-hetzner:
+	@command -v node >/dev/null 2>&1 || { echo "node not found. Install Node.js 20+"; exit 1; }
+	cd services/stagecraft && npm install --silent
+	cd services/stagecraft && npm run gen
+	cd services/stagecraft/web && ENCORE_API_BASE_URL=http://localhost:4000 npx react-router dev
 
 dev-deployd-api-hetzner:
 	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
