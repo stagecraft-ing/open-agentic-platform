@@ -40,3 +40,20 @@ persistence:
 
 bootstrap:
   adminEmail: ""  # Injected by setup.sh via --set from $DOMAIN
+
+# Upstream auth providers are NOT declared here (spec 106 FR-001/FR-002).
+#
+# Rauthy 0.35 has no `upstream_auth_provider` config section — the field
+# does not exist on RauthyConfig.Vars (src/data/src/rauthy_config.rs) and
+# server startup has no bootstrap path that reads providers from config.
+# Unknown TOML keys are silently ignored, so any attempt to declare them
+# here is a no-op.
+#
+# Providers are created via `POST /auth/v1/providers` against Rauthy's
+# admin API. The stagecraft seeder (spec 106 FR-002) owns this and reads
+# GitHub OAuth App credentials from stagecraft-api-secrets env vars.
+# The chart's `[[upstream_auth_provider]]` template block in
+# templates/configmap.yaml and the matching UPSTREAM_*_CLIENT_ID/SECRET
+# env-var injection in templates/statefulset.yaml are dormant: they only
+# render when `upstreamProviders` is non-empty, which it isn't. They will
+# be removed when FR-002 lands.

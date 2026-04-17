@@ -201,36 +201,69 @@ moves to Rauthy's secret store and is rotated. Stagecraft no longer holds it.
 
 ### FR-001: Rauthy upstream provider configuration
 
-`platform/charts/rauthy/values-hetzner.yaml` declares GitHub as an upstream
-OIDC/OAuth provider with:
+**Amended 2026-04-17** after verifying Rauthy 0.35 source. Rauthy 0.35 has
+**no `upstream_auth_provider` section on `RauthyConfig.Vars`**
+(`src/data/src/rauthy_config.rs`) and the startup path in
+`src/bin/src/server.rs` has no bootstrap step that reads providers from
+config. Unknown TOML keys are silently ignored. The chart block in
+`platform/charts/rauthy/templates/configmap.yaml` rendering
+`[[upstream_auth_provider]]`, and the matching
+`UPSTREAM_<NAME>_CLIENT_ID/SECRET` env-var injection in
+`platform/charts/rauthy/templates/statefulset.yaml`, are dead code from
+spec 080 Phase 4 and do not provision anything. They render nothing when
+`upstreamProviders: []` and are removed in the FR-002 implementation PR.
 
-- `id: github`
-- `name: "GitHub"`
-- `typ: github` (Rauthy 0.35 supports a GitHub-specific adapter — see
-  `src/data/src/entity/auth_providers.rs:826-828` for the private-email fetch)
-- `client_id`, `client_secret_ref` → K8s secret reference, not inline
+The canonical GitHub upstream-provider shape is instead declared as the
+stagecraft seeder's input (FR-002):
+
+- `name: "github"` (Rauthy provider `name` acts as stable identifier)
+- `typ: "github"` (Rauthy 0.35 ships a GitHub-specific adapter — see
+  `src/data/src/entity/auth_providers.rs:706-831` for the private-email
+  fetch and `:826-828` for the GitHub branch)
+- `client_id` → stagecraft env var `GITHUB_UPSTREAM_CLIENT_ID`
+- `client_secret` → stagecraft env var `GITHUB_UPSTREAM_CLIENT_SECRET`
+  (referenced from `stagecraft-api-secrets`, AES-sealed in KeyVault)
 - `scope: "read:user user:email"`
 - `root_pem`: omitted (public CA)
-- `callback_url`: `https://auth.stagecraft.ing/auth/v1/providers/callback`
+- Rauthy callback URL to register with the GitHub OAuth App:
+  `https://<rauthy-host>/auth/v1/providers/callback`
 
-A new GitHub OAuth App is registered against Rauthy's callback URL. The
-existing `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET` secrets in
-`stagecraft-api-secrets` are deleted after the cutover.
+A new GitHub OAuth App is registered against Rauthy's callback URL.
+Its credentials land in `stagecraft-api-secrets` as the two env vars
+above. The existing `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`
+secrets are deleted after the cutover per FR-008.
 
 ### FR-002: Idempotent Rauthy seeder on stagecraft startup
 
 A new module `api/auth/rauthySeed.ts` runs inside stagecraft's service-init
 path. It:
 
-1. Ensures each of these custom user attributes exists via
+1. Ensures the **GitHub upstream auth provider** exists. `GET /auth/v1/providers`
+   to list; if no entry with `name = "github"`, `POST /auth/v1/providers`
+   with the FR-001 shape (`typ: github`, `client_id` / `client_secret`
+   from `GITHUB_UPSTREAM_CLIENT_ID` / `GITHUB_UPSTREAM_CLIENT_SECRET`,
+   `scope: "read:user user:email"`). If the entry exists but its
+   client_id / scope drift from the env vars, `PUT /auth/v1/providers/{id}`
+   to converge. This step runs before steps 2-5 because the upstream IDP
+   must be usable before the `oap` scope has anywhere to be requested
+   from.
+2. Ensures each of these custom user attributes exists via
    `POST /auth/v1/users/attr` (or 409 → no-op):
    `oap_user_id`, `oap_org_id`, `oap_org_slug`, `oap_workspace_id`,
    `github_login`, `idp_provider`, `idp_login`, `avatar_url`,
    `platform_role`.
-2. Ensures the custom scope `oap` exists and maps the attributes above into
+3. Ensures the custom scope `oap` exists and maps the attributes above into
    both access and ID tokens (`attr_include_access` and `attr_include_id`).
-3. Ensures the stagecraft OIDC client is allow-listed to request scope `oap`.
-4. Ensures the OPC OIDC client is allow-listed to request scope `oap`.
+4. Ensures the stagecraft OIDC client is allow-listed to request scope `oap`.
+5. Ensures the OPC OIDC client is allow-listed to request scope `oap`.
+
+As part of this PR, the dormant chart plumbing identified in FR-001 is
+removed: the `[[upstream_auth_provider]]` block in
+`platform/charts/rauthy/templates/configmap.yaml` and the
+`UPSTREAM_<NAME>_CLIENT_ID/SECRET` env-var injection in
+`platform/charts/rauthy/templates/statefulset.yaml`, plus the
+`upstreamProviders` sample in `values.yaml`. The chart no longer pretends
+to own provider config — the seeder does.
 
 Any non-2xx / non-409 response aborts stagecraft startup with a clear
 operator-facing log message. Seeder calls use `Authorization: API-Key` with
@@ -408,12 +441,18 @@ user OAuth.
 ## 7. Migration
 
 1. **Cut-in order** (single deploy, zero-downtime not required):
-   - Register the new GitHub OAuth App for Rauthy.
-   - Update `values-hetzner.yaml` with `upstreamProviders`; Helm-upgrade
-     Rauthy.
-   - Deploy stagecraft with: seeder active, new `/auth/rauthy/callback`
-     route, new membership resolver, PAT endpoints, both old and new login
-     entry points live.
+   - Register the new GitHub OAuth App for Rauthy. Callback URL:
+     `https://<rauthy-host>/auth/v1/providers/callback`.
+   - Seal `GITHUB_UPSTREAM_CLIENT_ID` / `GITHUB_UPSTREAM_CLIENT_SECRET`
+     into KeyVault-backed `stagecraft-api-secrets`.
+   - Helm-upgrade the Rauthy chart. No chart-values change is required
+     for the provider — FR-001's amendment moved provisioning off the
+     chart (the former `upstreamProviders` plumbing is removed as part
+     of FR-002's PR).
+   - Deploy stagecraft with: seeder active (creates the upstream
+     provider on first boot, then the scope/attrs/client grants), new
+     `/auth/rauthy/callback` route, new membership resolver, PAT
+     endpoints, both old and new login entry points live.
    - Smoke-test the new flow end-to-end.
    - Flip the web and OPC login entry points to the new flow.
    - Remove the old direct-GitHub callback and the `GITHUB_OAUTH_*` secrets
@@ -447,10 +486,15 @@ replace them. Specifically:
 
 ## 9. Open Questions
 
-- **Q1.** Does the stagecraft GitHub App manifest currently include
-  `Organization permissions: Members: read`? If not, existing installations
-  must re-approve on permission update. Confirm before FR-001 is deployed.
-  (User indicated yes, to be verified against the live app manifest.)
+- **Q1. RESOLVED (2026-04-17).** The stagecraft GitHub App manifest grants
+  `Organization permissions: Members: Read and write` and
+  `Administration: Read-only`. Installation-token membership reads work
+  without any manifest change; existing installations do **not** need to
+  re-approve. The app is also already subscribed to the `Organization`,
+  `Membership`, and `Member` webhook events — see FR-005 addendum below.
+  Account permissions include `Email addresses: Read-only`, which lets
+  Rauthy's upstream GitHub OAuth pull verified email without an explicit
+  `user:email` scope.
 - **Q2.** Should PAT re-validation run inside stagecraft's process or as a
   deployd-api cron? Current proposal is in-process; revisit if PAT volume
   grows beyond ~10k.
@@ -458,14 +502,41 @@ replace them. Specifically:
   the seeder — confirm during implementation by reading
   `src/api/src/scopes.rs` end-to-end.
 
+### FR-005 addendum: webhook-driven live membership sync
+
+Because the GitHub App is already subscribed to `Organization`, `Membership`,
+and `Member` events, membership state can be kept fresh without waiting for
+the user's next login:
+
+- `organization.member_removed` → mark the matching `org_memberships` row
+  `status = 'removed'`, revoke any active Rauthy sessions for that user
+  (re-using the `DELETE /auth/v1/sessions/{user_id}` path from FR-003).
+- `organization.member_added` / `organization.member_invited` → create or
+  reactivate the `org_memberships` row; on the user's next token refresh
+  the new `oap_*` attributes propagate into the JWT.
+- `membership.added` / `membership.removed` (team-level) → update any
+  team-to-role mappings (spec 080 Phase 3 surface).
+
+This is additive to the login-time resolver. Login remains authoritative;
+webhooks are a fast-path for revocation. The webhook handler lives in
+`api/github/webhook.ts` alongside existing installation-event handling.
+
 ## 10. Test Plan
 
 ### Seeder
-- [ ] Cold start: seeder creates all 9 attributes, the `oap` scope, and
-      grants it to stagecraft + OPC clients.
-- [ ] Warm start: seeder is idempotent; no duplicate writes.
+- [ ] Cold start: seeder creates the GitHub upstream provider, all 9
+      attributes, the `oap` scope, and grants it to stagecraft + OPC
+      clients.
+- [ ] Warm start: seeder is idempotent; no duplicate writes and no
+      provider mutation when env vars match the stored config.
+- [ ] Provider drift: changing `GITHUB_UPSTREAM_CLIENT_ID` triggers a
+      `PUT /auth/v1/providers/{id}` to converge; changing nothing does
+      not issue a PUT.
 - [ ] Rauthy down: seeder aborts startup with operator-actionable log.
 - [ ] Rauthy admin token wrong: seeder aborts with clear auth-error log.
+- [ ] Missing `GITHUB_UPSTREAM_CLIENT_ID` / `_SECRET`: seeder aborts
+      with a clear "upstream GitHub credentials missing" error, not a
+      downstream 4xx.
 
 ### OIDC flow
 - [ ] New user: web login with GitHub via Rauthy mints JWT #1 with
