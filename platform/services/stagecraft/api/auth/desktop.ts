@@ -1,16 +1,20 @@
 /**
- * Desktop (OPC) OAuth endpoints (spec 080 Phase 1).
+ * Desktop (OPC) OAuth endpoints (spec 080 Phase 1, rewired by spec 106 FR-004).
  *
- * Implements Authorization Code + PKCE for the Tauri desktop app.
- * OPC opens a browser to /auth/desktop/authorize, which redirects to GitHub.
- * After GitHub callback (handled in github.ts), OPC receives a deep-link
- * with a one-time auth code, which it exchanges here for tokens.
+ * The desktop flow now routes through Rauthy for *every* login (GitHub users
+ * included) — there is no direct-GitHub path anymore (spec 106 FR-008). OPC
+ * opens a browser to `/auth/desktop/authorize`, which issues a Rauthy
+ * authorize redirect with `idp_hint=github` (unless an enterprise OIDC
+ * provider is matched). The callback lands on `/auth/rauthy/callback`
+ * (spec 106 FR-004); that endpoint performs A2c membership resolution,
+ * mints the session (or stashes the Rauthy refresh token for multi-org
+ * selection), and deep-links back to OPC with a one-time auth code.
  *
  * Endpoints:
- *   GET  /auth/desktop/authorize   — initiate desktop PKCE flow
- *   POST /auth/desktop/token       — exchange auth code for tokens
+ *   GET  /auth/desktop/authorize   — initiate desktop PKCE flow (→ Rauthy)
+ *   POST /auth/desktop/token       — exchange auth code for pre-minted tokens
  *   POST /auth/desktop/org-select  — finalize org selection (multi-org)
- *   POST /auth/desktop/refresh     — refresh access token
+ *   POST /auth/desktop/refresh     — refresh access token via Rauthy
  */
 
 import { api, APIError } from "encore.dev/api";
@@ -18,23 +22,20 @@ import log from "encore.dev/log";
 import crypto from "crypto";
 import { applyRateLimit, checkRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
-import { desktopRefreshTokens, oidcProviders } from "../db/schema";
-import { eq, and, gt } from "drizzle-orm";
-import { issueRauthySession } from "./rauthy";
+import { oidcProviders } from "../db/schema";
+import { eq, and } from "drizzle-orm";
+import { buildAuthorizationUrl, refreshTokens } from "./rauthy";
 import {
   pendingDesktopFlows,
   pendingDesktopSessions,
   consumeDesktopSession,
   cleanupDesktopState,
-  type PendingDesktopSession,
 } from "./desktop-state";
-import {
-  githubOAuthClientId,
-  appBaseUrl,
-  pendingStates,
-} from "./github";
-import { buildAuthorizationUrl } from "./rauthy";
+import { appBaseUrl } from "./github";
+import { pendingRauthyStates } from "./rauthyCallback";
+import { finalizeDesktopRauthyOrg } from "./rauthyCallback";
 import { pendingOidcStates } from "./oidc";
+import { errorForLog } from "./errorLog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,9 +78,6 @@ interface DesktopRefreshResponse {
   expiresIn: number;
 }
 
-// Refresh token TTL: 14 days
-const REFRESH_TOKEN_TTL_MS = 14 * 24 * 60 * 60 * 1000;
-
 // ---------------------------------------------------------------------------
 // GET /auth/desktop/authorize — initiate desktop PKCE flow
 // ---------------------------------------------------------------------------
@@ -116,11 +114,10 @@ export const desktopAuthorize = api.raw(
 
     cleanupDesktopState();
 
-    // If an IdP hint is provided, try to resolve an enterprise OIDC provider
-    // and route through Rauthy instead of GitHub
+    // Enterprise OIDC hint — route through Rauthy's /oidc/callback which
+    // carries enterprise-IdP claim extraction + group-based membership.
     if (idpHint) {
       let providerRow;
-      // Check if it's a UUID (provider ID) or email domain
       if (idpHint.includes("@")) {
         const domain = idpHint.split("@")[1].toLowerCase();
         [providerRow] = await db
@@ -137,10 +134,6 @@ export const desktopAuthorize = api.raw(
       }
 
       if (providerRow) {
-        // Route through Rauthy's OIDC authorization endpoint.
-        // Register state in BOTH pendingDesktopFlows (so the OIDC callback
-        // detects this is a desktop flow) and pendingOidcStates (so the
-        // OIDC callback's CSRF validation succeeds).
         const rauthyState = crypto.randomBytes(32).toString("base64url");
         pendingDesktopFlows.set(rauthyState, {
           codeChallenge,
@@ -171,36 +164,37 @@ export const desktopAuthorize = api.raw(
       }
     }
 
-    // Default: GitHub OAuth flow
-    const githubState = crypto.randomBytes(32).toString("base64url");
-
-    // Store in BOTH maps:
-    // - pendingStates so github.ts callback accepts it
-    // - pendingDesktopFlows so github.ts detects it's a desktop flow
-    pendingStates.set(githubState, { createdAt: Date.now() });
-    pendingDesktopFlows.set(githubState, {
+    // Default: route through Rauthy with the GitHub upstream IdP. The
+    // unified /auth/rauthy/callback (spec 106 FR-004) detects desktop state
+    // via pendingDesktopFlows and finalises the deep-link back to OPC.
+    const rauthyState = crypto.randomBytes(32).toString("base64url");
+    pendingDesktopFlows.set(rauthyState, {
       codeChallenge,
       codeChallengeMethod,
       redirectUri,
       desktopState,
       createdAt: Date.now(),
     });
+    // The rauthyCallback handler also consults pendingRauthyStates to
+    // distinguish web vs desktop. Desktop flows MUST not be present there;
+    // the consumeDesktopFlow check is enough. We therefore deliberately do
+    // NOT register the state in pendingRauthyStates.
+    void pendingRauthyStates;
 
-    // Redirect to GitHub OAuth authorize
-    const params = new URLSearchParams({
-      client_id: githubOAuthClientId(),
-      redirect_uri: `${appBaseUrl()}/auth/github/callback`,
-      scope: "read:user read:org user:email",
-      state: githubState,
+    const authUrl = buildAuthorizationUrl({
+      redirectUri: `${appBaseUrl()}/auth/rauthy/callback`,
+      state: rauthyState,
+      scopes: ["openid", "profile", "email", "oap"],
+      idpHint: "github",
     });
 
-    resp.writeHead(302, { Location: `https://github.com/login/oauth/authorize?${params}` });
+    resp.writeHead(302, { Location: authUrl });
     resp.end();
   }
 );
 
 // ---------------------------------------------------------------------------
-// POST /auth/desktop/token — exchange one-time auth code for tokens
+// POST /auth/desktop/token — exchange one-time auth code for pre-minted tokens
 // ---------------------------------------------------------------------------
 
 interface DesktopTokenRequest {
@@ -212,7 +206,6 @@ interface DesktopTokenRequest {
 export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
   { expose: true, method: "POST", path: "/auth/desktop/token", auth: false },
   async (req) => {
-    // Rate limit typed endpoints by returning 429 via APIError
     const retryAfter = checkRateLimit("desktop-token-global");
     if (retryAfter !== null) {
       throw APIError.resourceExhausted(`Rate limited. Retry after ${retryAfter}s`);
@@ -250,7 +243,8 @@ export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
       avatarUrl: session.avatarUrl,
     };
 
-    // Multi-org: return org list for picker
+    // Multi-org: return org list for picker. Keep the session alive so
+    // desktopOrgSelect can pick up the stashed rauthyRefreshToken.
     if (session.matchedOrgs.length > 1) {
       const pendingId = crypto.randomBytes(32).toString("base64url");
       pendingDesktopSessions.set(pendingId, session);
@@ -269,13 +263,21 @@ export const desktopToken = api<DesktopTokenRequest, DesktopTokenResult>(
       };
     }
 
-    // Single org: issue tokens
-    const org = session.matchedOrgs[0];
-    const tokens = await issueDesktopTokens(session, org);
+    // Single-org: rauthyCallback pre-minted tokens during FR-004 step 6.
+    const accessToken = session.rauthyAccessToken;
+    const refreshToken = session.rauthyRefreshToken;
+    const expiresIn = session.rauthyExpiresIn;
+    if (!accessToken || !refreshToken || expiresIn === undefined) {
+      log.error("Desktop session missing pre-minted Rauthy tokens");
+      throw APIError.internal("Session is missing Rauthy tokens");
+    }
 
+    const org = session.matchedOrgs[0];
     return {
       type: "authenticated" as const,
-      ...tokens,
+      accessToken,
+      refreshToken,
+      expiresIn,
       user,
       org: {
         orgId: org.orgId,
@@ -317,11 +319,16 @@ export const desktopOrgSelect = api<DesktopOrgSelectRequest, DesktopTokenResult>
       throw APIError.invalidArgument("Selected org not in matched org list");
     }
 
-    const tokens = await issueDesktopTokens(session, org);
+    const tokens = await finalizeDesktopRauthyOrg(session, orgId);
+    if (!tokens) {
+      throw APIError.internal("Failed to mint Rauthy session for selected org");
+    }
 
     return {
       type: "authenticated" as const,
-      ...tokens,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresIn: tokens.expires_in,
       user: {
         id: session.userId,
         email: session.email,
@@ -343,7 +350,7 @@ export const desktopOrgSelect = api<DesktopOrgSelectRequest, DesktopTokenResult>
 );
 
 // ---------------------------------------------------------------------------
-// POST /auth/desktop/refresh — refresh access token using refresh token
+// POST /auth/desktop/refresh — refresh access token via Rauthy
 // ---------------------------------------------------------------------------
 
 interface DesktopRefreshRequest {
@@ -364,103 +371,16 @@ export const desktopRefresh = api<DesktopRefreshRequest, DesktopRefreshResponse>
       throw APIError.invalidArgument("Missing refreshToken");
     }
 
-    // Hash the token and look up in DB
-    const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
-
-    const [row] = await db
-      .select()
-      .from(desktopRefreshTokens)
-      .where(
-        and(
-          eq(desktopRefreshTokens.tokenHash, tokenHash),
-          gt(desktopRefreshTokens.expiresAt, new Date())
-        )
-      )
-      .limit(1);
-
-    if (!row) {
+    try {
+      const tokens = await refreshTokens(refreshToken);
+      return {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresIn: tokens.expires_in,
+      };
+    } catch (err) {
+      log.warn("Desktop refresh failed", { error: errorForLog(err) });
       throw APIError.unauthenticated("Invalid or expired refresh token");
     }
-
-    // Issue new Rauthy access token
-    const { accessToken, expiresIn } = await issueRauthySession({
-      rauthyUserId: row.rauthyUserId,
-      oapUserId: row.userId,
-      orgId: row.orgId,
-      orgSlug: row.orgSlug,
-      workspaceId: row.workspaceId,
-      githubLogin: row.githubLogin || undefined,
-      idpProvider: row.idpProvider || undefined,
-      idpLogin: row.idpLogin || undefined,
-      platformRole: row.platformRole,
-    });
-
-    // Rotate refresh token: delete old, create new
-    await db.delete(desktopRefreshTokens).where(eq(desktopRefreshTokens.id, row.id));
-
-    const newRefreshToken = crypto.randomBytes(48).toString("base64url");
-    const newTokenHash = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
-
-    await db.insert(desktopRefreshTokens).values({
-      tokenHash: newTokenHash,
-      userId: row.userId,
-      orgId: row.orgId,
-      workspaceId: row.workspaceId,
-      orgSlug: row.orgSlug,
-      githubLogin: row.githubLogin || "",
-      idpProvider: row.idpProvider || "",
-      idpLogin: row.idpLogin || "",
-      platformRole: row.platformRole,
-      rauthyUserId: row.rauthyUserId,
-      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
-    });
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-      expiresIn,
-    };
   }
 );
-
-// ---------------------------------------------------------------------------
-// Internal helper: issue Rauthy access token + create refresh token
-// ---------------------------------------------------------------------------
-
-async function issueDesktopTokens(
-  session: PendingDesktopSession,
-  org: PendingDesktopSession["matchedOrgs"][0]
-): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
-  // Issue Rauthy access token
-  const { accessToken, expiresIn } = await issueRauthySession({
-    rauthyUserId: session.rauthyUserId,
-    oapUserId: session.userId,
-    orgId: org.orgId,
-    orgSlug: org.orgSlug,
-    workspaceId: org.workspaceId,
-    githubLogin: session.githubLogin || undefined,
-    idpProvider: session.idpProvider,
-    idpLogin: session.idpLogin,
-    platformRole: org.platformRole,
-  });
-
-  // Generate and store refresh token
-  const refreshToken = crypto.randomBytes(48).toString("base64url");
-  const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
-
-  await db.insert(desktopRefreshTokens).values({
-    tokenHash,
-    userId: session.userId,
-    orgId: org.orgId,
-    workspaceId: org.workspaceId,
-    orgSlug: org.orgSlug,
-    githubLogin: session.githubLogin || "",
-    idpProvider: session.idpProvider || "",
-    idpLogin: session.idpLogin || "",
-    platformRole: org.platformRole,
-    rauthyUserId: session.rauthyUserId,
-    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
-  });
-
-  return { accessToken, refreshToken, expiresIn };
-}

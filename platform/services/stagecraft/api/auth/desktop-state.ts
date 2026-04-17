@@ -32,6 +32,13 @@ export interface PendingDesktopSession {
     platformRole: string;
   }>;
   createdAt: number;
+  // Spec 106 FR-004: Rauthy-minted tokens from the callback.
+  // Single-org path: access+refresh+expires populated from the post-attribute-write refresh.
+  // Multi-org path: only rauthyRefreshToken is populated; access/expires are minted after
+  // the user picks an org via finalizeDesktopRauthyOrg.
+  rauthyAccessToken?: string;
+  rauthyRefreshToken?: string;
+  rauthyExpiresIn?: number;
 }
 
 // Maps keyed by the GITHUB OAuth state (used in the callback)

@@ -31,9 +31,10 @@ import {
   buildAuthorizationUrl,
   exchangeCodeForTokens,
   provisionRauthyUser,
-  issueRauthySession,
   validateJwt,
+  type RauthyTokens,
 } from "./rauthy";
+import { mintSessionForOrg } from "./sessionMint";
 import { resolveOidcMemberships, type ResolvedOrg } from "./membership";
 import { appBaseUrl } from "./github";
 import {
@@ -77,6 +78,12 @@ export interface PendingOidcOrgData {
   idpLogin: string;
   avatarUrl: string;
   orgs: ResolvedOrg[];
+  /**
+   * Rauthy refresh token from the OIDC exchange. Stashed here so that
+   * `orgSelectComplete` (web) / desktop org-select can mint the post-pick
+   * JWT via `setRauthyUserAttributes + refreshTokens` (spec 106 FR-004).
+   */
+  rauthyRefreshToken: string;
   createdAt: number;
 }
 
@@ -426,6 +433,29 @@ export const oidcCallback = api.raw(
         }
 
         cleanupDesktopState();
+
+        // Single-org: mint immediately so the deep-link carries ready-to-use
+        // tokens. Multi-org: stash the refresh token and let desktopOrgSelect
+        // finalise after the user picks.
+        let sessionTokens: RauthyTokens | null = null;
+        if (matchedOrgs.length === 1) {
+          const org = matchedOrgs[0];
+          sessionTokens = await mintSessionForOrg(
+            {
+              rauthyUserId: rauthyUserId!,
+              oapUserId: user.id,
+              orgId: org.orgId,
+              orgSlug: org.orgSlug,
+              workspaceId: org.workspaceId,
+              idpProvider: provider.providerType,
+              idpLogin,
+              avatarUrl,
+              platformRole: org.platformRole,
+            },
+            rauthyTokens.refresh_token
+          );
+        }
+
         const authCode = storeDesktopSession({
           userId: user.id,
           rauthyUserId: rauthyUserId!,
@@ -445,6 +475,9 @@ export const oidcCallback = api.raw(
             platformRole: o.platformRole,
           })),
           createdAt: Date.now(),
+          rauthyAccessToken: sessionTokens?.access_token,
+          rauthyRefreshToken: sessionTokens?.refresh_token ?? rauthyTokens.refresh_token,
+          rauthyExpiresIn: sessionTokens?.expires_in,
         });
 
         const params = new URLSearchParams({
@@ -477,7 +510,7 @@ export const oidcCallback = api.raw(
 
       if (matchedOrgs.length === 1) {
         const org = matchedOrgs[0];
-        const sessionCookie = await buildOidcSessionCookie(
+        const cookies = await buildOidcSessionCookies(
           {
             id: user.id,
             rauthyUserId: rauthyUserId!,
@@ -487,11 +520,12 @@ export const oidcCallback = api.raw(
             idpLogin,
             avatarUrl,
           },
-          org
+          org,
+          rauthyTokens.refresh_token
         );
         resp.writeHead(302, {
           Location: "/app",
-          "Set-Cookie": sessionCookie,
+          "Set-Cookie": cookies,
         });
         resp.end();
         return;
@@ -509,6 +543,7 @@ export const oidcCallback = api.raw(
         idpLogin,
         avatarUrl,
         orgs: matchedOrgs,
+        rauthyRefreshToken: rauthyTokens.refresh_token,
         createdAt: Date.now(),
       });
 
@@ -647,9 +682,12 @@ async function jitProvisionUser(opts: {
 }
 
 /**
- * Build a Rauthy JWT session cookie for an OIDC-authenticated user.
+ * Build Rauthy `__session` + `__refresh` cookies for an OIDC-authenticated
+ * user. Spec 106 FR-004: custom claims are produced by the standard
+ * `setRauthyUserAttributes + refreshTokens` pair — never by admin-minted
+ * sessions.
  */
-async function buildOidcSessionCookie(
+export async function buildOidcSessionCookies(
   user: {
     id: string;
     rauthyUserId: string;
@@ -659,21 +697,28 @@ async function buildOidcSessionCookie(
     idpLogin: string;
     avatarUrl: string;
   },
-  org: ResolvedOrg
-): Promise<string> {
-  const { accessToken, expiresIn } = await issueRauthySession({
-    rauthyUserId: user.rauthyUserId,
-    oapUserId: user.id,
-    orgId: org.orgId,
-    orgSlug: org.orgSlug,
-    workspaceId: org.workspaceId,
-    idpProvider: user.idpProvider,
-    idpLogin: user.idpLogin,
-    avatarUrl: user.avatarUrl,
-    platformRole: org.platformRole,
-  });
+  org: ResolvedOrg,
+  rauthyRefreshToken: string
+): Promise<string[]> {
+  const tokens: RauthyTokens = await mintSessionForOrg(
+    {
+      rauthyUserId: user.rauthyUserId,
+      oapUserId: user.id,
+      orgId: org.orgId,
+      orgSlug: org.orgSlug,
+      workspaceId: org.workspaceId,
+      idpProvider: user.idpProvider,
+      idpLogin: user.idpLogin,
+      avatarUrl: user.avatarUrl,
+      platformRole: org.platformRole,
+    },
+    rauthyRefreshToken
+  );
 
-  const maxAge = Math.min(expiresIn, 14 * 24 * 60 * 60);
+  const maxAge = Math.min(tokens.expires_in, 14 * 24 * 60 * 60);
   const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
-  return `__session=${accessToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge};${secure}`;
+  return [
+    `__session=${tokens.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge};${secure}`,
+    `__refresh=${tokens.refresh_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${14 * 24 * 60 * 60};${secure}`,
+  ];
 }

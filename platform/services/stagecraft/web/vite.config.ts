@@ -27,6 +27,7 @@ const encoreProxyPaths = [
   "/internal",
   "/auth/oidc",
   "/auth/github",
+  "/auth/rauthy",
   "/auth/desktop",
   "/auth/pending-orgs",
   "/auth/user-orgs",

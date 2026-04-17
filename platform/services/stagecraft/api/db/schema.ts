@@ -9,7 +9,14 @@ import {
   pgEnum,
   jsonb,
   unique,
+  customType,
 } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer; notNull: true; default: false }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 export const roleEnum = pgEnum("role", ["user", "admin"]);
 export const sessionKindEnum = pgEnum("session_kind", ["user", "admin"]);
@@ -666,6 +673,28 @@ export const desktopRefreshTokens = pgTable("desktop_refresh_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// User GitHub Personal Access Tokens (spec 106 FR-005/FR-006)
+// ---------------------------------------------------------------------------
+
+export const userGithubPats = pgTable("user_github_pats", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull(),
+  tokenEnc: bytea("token_enc").notNull(),
+  tokenNonce: bytea("token_nonce").notNull(),
+  tokenPrefix: text("token_prefix").notNull(),
+  scopes: text("scopes").array().notNull().default([]),
+  isFineGrained: boolean("is_fine_grained").notNull().default(false),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
 });
 
 // ---------------------------------------------------------------------------
