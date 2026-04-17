@@ -107,7 +107,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!window.__TAURI__) return;
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) return;
     let unlisten: (() => void) | undefined;
     import("@tauri-apps/api/event").then(({ listen }) => {
       listen<{ text: string }>("quick-pane-submit", (event) => {

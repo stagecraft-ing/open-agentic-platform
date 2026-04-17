@@ -76,6 +76,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::auth::auth_refresh_token,
         crate::commands::auth::auth_get_status,
         crate::commands::auth::auth_logout,
+        crate::commands::auth::auth_take_pending_callback,
         // App settings (runtime-configurable Stagecraft URL)
         crate::commands::settings::get_stagecraft_base_url,
         crate::commands::settings::set_stagecraft_base_url,

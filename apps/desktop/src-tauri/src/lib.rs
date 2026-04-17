@@ -71,7 +71,7 @@ use commands::worktree_agents::{
 use process::ProcessRegistryState;
 use sidecars::SidecarState;
 use std::sync::Mutex;
-use tauri::{Emitter, Listener, Manager};
+use tauri::{Emitter, Manager};
 
 #[cfg(target_os = "macos")]
 use window_vibrancy::{NSVisualEffectMaterial, apply_vibrancy};
@@ -237,20 +237,42 @@ pub fn run() {
 
             // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)
             app.manage(commands::auth::AuthFlowState(std::sync::Mutex::new(None)));
+            // Buffer for deep-link auth callbacks that arrive before the webview
+            // has registered its 'auth-callback' listener (cold launch case).
+            app.manage(commands::auth::PendingAuthCallback::default());
 
-            // Listen for deep-link callbacks (OPC desktop OAuth flow, spec 080)
-            let handle_clone = app.handle().clone();
-            app.listen("deep-link://new-url", move |event: tauri::Event| {
-                let payload = event.payload();
-                // The payload is a JSON array of URL strings
-                if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload) {
-                    for url in urls {
-                        if url.starts_with("opc://auth/callback") {
-                            let _ = handle_clone.emit("auth-callback", &url);
+            // Listen for deep-link callbacks (OPC desktop OAuth flow, spec 080).
+            //
+            // Use the plugin's canonical on_open_url API. Emit `auth-callback` to
+            // the webview AND store the URL in managed state so the frontend can
+            // drain any URL that arrived before the listener was registered.
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let handle_clone = app.handle().clone();
+                let dispatch = move |urls: Vec<String>| {
+                    for s in urls {
+                        log::info!("deep-link received: {s}");
+                        if s.starts_with("opc://auth/callback") {
+                            if let Some(state) = handle_clone.try_state::<commands::auth::PendingAuthCallback>() {
+                                state.set(s.clone());
+                            }
+                            if let Err(e) = handle_clone.emit("auth-callback", &s) {
+                                log::error!("failed to emit auth-callback: {e}");
+                            }
                         }
                     }
+                };
+                let dispatch_live = dispatch.clone();
+                app.deep_link().on_open_url(move |event| {
+                    let urls = event.urls().into_iter().map(|u| u.to_string()).collect();
+                    dispatch_live(urls);
+                });
+                // Cold-launch: replay any URL captured before this listener was set.
+                if let Ok(Some(initial)) = app.deep_link().get_current() {
+                    log::info!("deep-link cold-start urls: {}", initial.len());
+                    dispatch(initial.into_iter().map(|u| u.to_string()).collect());
                 }
-            });
+            }
 
             // Initialize zoom state (Tauri 2 has no zoom getter; we track it here)
             app.manage(commands::window_ctrl::ZoomState::default());
@@ -508,6 +530,7 @@ pub fn run() {
             commands::auth::auth_refresh_token,
             commands::auth::auth_get_status,
             commands::auth::auth_logout,
+            commands::auth::auth_take_pending_callback,
             // App settings
             commands::settings::get_stagecraft_base_url,
             commands::settings::set_stagecraft_base_url,

@@ -67,22 +67,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Listen for deep-link auth callbacks
+  // Listen for deep-link auth callbacks (and drain any that arrived before
+  // this listener registered — e.g. cold-launch via opc:// URL).
   useEffect(() => {
-    if (!window.__TAURI__) return;
+    // Tauri 2 exposes internals under __TAURI_INTERNALS__; the legacy __TAURI__
+    // is only present in the web-mode shim. Detect either so we register the
+    // listener under the real runtime.
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) return;
     let unlisten: (() => void) | undefined;
+    const processCallback = async (url: string) => {
+      try {
+        setError(null);
+        const result = await api.authHandleCallback(url);
+        handleAuthResult(result);
+      } catch (err) {
+        setError(String(err));
+        setStatus('unauthenticated');
+      }
+    };
     (async () => {
       const { listen } = await import('@tauri-apps/api/event');
-      unlisten = await listen<string>('auth-callback', async (event) => {
-        try {
-          setError(null);
-          const result = await api.authHandleCallback(event.payload);
-          handleAuthResult(result);
-        } catch (err) {
-          setError(String(err));
-          setStatus('unauthenticated');
-        }
+      unlisten = await listen<string>('auth-callback', (event) => {
+        void processCallback(event.payload);
       });
+      // Drain any callback that was buffered before the listener registered.
+      try {
+        const pending = await api.authTakePendingCallback();
+        if (pending) await processCallback(pending);
+      } catch {
+        // No-op: the command is optional and missing state is fine.
+      }
     })();
     return () => { unlisten?.(); };
   }, []);

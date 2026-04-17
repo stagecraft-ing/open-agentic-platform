@@ -440,6 +440,19 @@ async authLogout() : Promise<Result<null, string>> {
 }
 },
 /**
+ * Drain any deep-link auth callback URL that was captured before the frontend
+ * registered its `auth-callback` listener (cold-launch). Returns `None` if
+ * there is nothing pending.
+ */
+async authTakePendingCallback() : Promise<Result<string | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("auth_take_pending_callback") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Return the base URL currently in effect (reflects the live client).
  */
 async getStagecraftBaseUrl() : Promise<Result<string, string>> {

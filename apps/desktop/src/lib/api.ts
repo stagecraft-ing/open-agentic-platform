@@ -536,6 +536,10 @@ export const api = {
     await apiCall<null>("auth_logout");
   },
 
+  async authTakePendingCallback(): Promise<string | null> {
+    return await apiCall<string | null>("auth_take_pending_callback");
+  },
+
   async authSwitchOrg(orgId: string): Promise<any> {
     return await apiCall<any>("auth_switch_org", { orgId });
   },

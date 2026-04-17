@@ -31,6 +31,23 @@ pub struct PkceFlow {
     pub started_at: std::time::Instant,
 }
 
+/// Buffer for a deep-link auth callback URL that arrived before the webview
+/// registered its 'auth-callback' listener (cold-launch race). The frontend
+/// drains this on mount via `auth_take_pending_callback`.
+#[derive(Default)]
+pub struct PendingAuthCallback(Mutex<Option<String>>);
+
+impl PendingAuthCallback {
+    pub fn set(&self, url: String) {
+        if let Ok(mut guard) = self.0.lock() {
+            *guard = Some(url);
+        }
+    }
+    pub fn take(&self) -> Option<String> {
+        self.0.lock().ok().and_then(|mut g| g.take())
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Public types (exposed to the frontend via specta)
 // ---------------------------------------------------------------------------
@@ -353,6 +370,7 @@ pub async fn auth_handle_callback(
     stagecraft: State<'_, StagecraftState>,
     flow: State<'_, AuthFlowState>,
 ) -> AppResult<AuthResult> {
+    log::info!("auth_handle_callback invoked for {url}");
     // Parse the URL for query params.
     // The URL has the form: opc://auth/callback?code=...&state=...
     // We extract the query string manually to avoid pulling in `url` crate.
@@ -773,6 +791,17 @@ pub async fn auth_switch_org(
             message: "Could not decode org context from new token".into(),
         }),
     }
+}
+
+/// Drain any deep-link auth callback URL that was captured before the frontend
+/// registered its `auth-callback` listener (cold-launch). Returns `None` if
+/// there is nothing pending.
+#[tauri::command]
+#[specta::specta]
+pub async fn auth_take_pending_callback(
+    pending: State<'_, PendingAuthCallback>,
+) -> AppResult<Option<String>> {
+    Ok(pending.take())
 }
 
 /// Clear all auth state — keychain entries and in-memory token.
