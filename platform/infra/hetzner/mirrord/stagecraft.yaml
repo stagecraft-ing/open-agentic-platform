@@ -19,14 +19,39 @@ target:
 
 feature:
   network:
-    # steal: only the local process sees inbound traffic; the pod stops
-    # receiving it while mirrord is attached. Flip to "mirror" to observe
-    # without diverting.
-    incoming: steal
+    # Steal only requests tagged with `x-stagecraft-dev: 1`. Without this
+    # filter, mirrord diverts EVERY inbound request — including kubelet's
+    # GET /healthz liveness/readiness probes. If Encore's local boot is
+    # still in progress (<1s), the stolen probe fails, k8s terminates the
+    # pod, and the mirrord agent loses its target with
+    #   "agent unexpectedly closed connection"
+    # followed by an Abort trap on the mirrord exec process.
+    #
+    # Vite's proxy and the SSR loader inject this header on every request
+    # that should reach the laptop (see web/vite.config.ts and
+    # web/app/lib/encore.server.ts). Kubelet probes don't carry it and
+    # continue to hit the pod's own Encore, keeping the target alive.
+    #
+    # Consequence: direct browser hits to https://stagecraft.ing no longer
+    # reach the laptop while this config is active — use localhost:3000
+    # for dev, or drop the filter for cluster-domain testing.
+    incoming:
+      mode: steal
+      http_filter:
+        header_filter: "x-stagecraft-dev: 1"
     # Outbound DNS + connections go through the pod's network, so
     # postgresql.stagecraft-system, nsqd.stagecraft-system, and rauthy.*
     # resolve exactly as they do in-cluster.
-    outgoing: true
+    #
+    # ignore_localhost: Encore's gateway (0.0.0.0:4000) forwards every
+    # request to its own internal api server on 127.0.0.1:<ephemeral>.
+    # With remote outgoing on, mirrord tunnels that connect() into the
+    # pod, where that ephemeral port is obviously not listening → 502
+    # on every request (including /healthz). Keep loopback local.
+    outgoing:
+      tcp: true
+      udp: true
+      ignore_localhost: true
     dns: true
 
   fs:
@@ -43,8 +68,12 @@ feature:
   # the pod's values point at in-container Linux paths (/encore/runtimes/...)
   # that don't exist locally; we inject host-appropriate values via
   # stagecraft-compile.sh's .stagecraft.env instead.
+  #
+  # APP_BASE_URL is also excluded so .stagecraft.env can override it for the
+  # localhost:3000 HMR dev flow; when the override is unset the compile
+  # script falls back to the pod's value, preserving the cluster-domain flow.
   env:
-    exclude: "ENCORE_RUNTIME_LIB;ENCORE_INFRA_CONFIG_PATH;ENCORE_APP_META_PATH"
+    exclude: "ENCORE_RUNTIME_LIB;ENCORE_INFRA_CONFIG_PATH;ENCORE_APP_META_PATH;APP_BASE_URL"
 
 # Sidecar-style: keep the Encore compiler/dev server's noisy logs quiet,
 # surface only mirrord warnings.

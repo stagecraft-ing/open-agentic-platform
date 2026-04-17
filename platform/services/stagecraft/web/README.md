@@ -48,7 +48,14 @@ make dev-stagecraft-web-hetzner
 
 Open http://localhost:3000. Frontend edits hot-reload; SSR loaders reach the mirrord'd Encore via `ENCORE_API_BASE_URL=http://localhost:4000`; browser-initiated hits to Encore-owned paths (`/api/*`, `/auth/oidc*`, `/auth/github*`, `/site`, `/v1/*`, ...) are proxied by vite.
 
-**Auth flow limitation.** Rauthy's OIDC redirect URIs are registered against the cluster domain (e.g. `https://${DOMAIN}/auth/oidc/callback`), not `localhost:3000`. Clicking sign-in leaves the dev origin: the browser lands on the cluster domain after the callback, and the session cookie is set there. For auth-requiring iteration, sign in on the cluster domain (which is still mirrord'd to your local :4000), or register `http://localhost:3000/auth/oidc/callback` as an additional redirect URI in Rauthy.
+**Selective steal.** Mirrord's steal filter (`infra/hetzner/mirrord/stagecraft.yaml`) only diverts requests carrying `x-stagecraft-dev: 1`, which vite injects on every proxied request. Without this filter, kubelet's `GET /healthz` probes on :4000 get stolen to the laptop — during the ~500ms Encore boot they fail, k8s terminates the pod, and the mirrord agent aborts with "agent unexpectedly closed connection". Consequence: while this config is active, browser hits to `https://${DOMAIN}` stay on the pod (production behaviour preserved); use `http://localhost:3000` for dev.
+
+**Auth flow on localhost.** `dev-stagecraft-hetzner` defaults `DEV_APP_BASE_URL=http://localhost:3000`, so OAuth/OIDC callbacks land on the dev origin. The compile script writes this into `.stagecraft.env` and `stagecraft.yaml` excludes `APP_BASE_URL` from mirrord's pod-env import so the override wins. Register the matching redirect URIs:
+
+- Rauthy `stagecraft-server` client → add `http://localhost:3000/auth/oidc/callback`
+- GitHub OAuth app → add `http://localhost:3000/auth/github/callback`
+
+To keep the pod's cluster-domain `APP_BASE_URL` instead (e.g. for testing the deployed origin), run `DEV_APP_BASE_URL= make dev-stagecraft-hetzner` — empty override forces the compile script's pod-env fallback.
 
 ## Build
 

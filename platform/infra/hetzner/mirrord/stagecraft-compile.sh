@@ -99,10 +99,59 @@ if [[ ! -f "$META_PATH" ]]; then
 fi
 echo "    ENCORE_APP_META_PATH=$META_PATH"
 
+# `encore build docker --config $CONFIG` augments the raw infra config with
+# `hosted_services`, `hosted_gateways`, and `cors` derived from the app's
+# compiled metadata, then bakes the result into the image at
+# /encore/infra.config.json. Without those three fields the runtime logs
+# "no api server or gateway to serve" and never binds :4000.
+#
+# Our transient build is killed before that augmented file materialises, so
+# we pull it straight out of the running pod — which is the canonical source
+# for this cluster anyway.
+KUBECONFIG_PATH="$SCRIPT_DIR/../kubeconfig"
+AUGMENTED_CONFIG="$APP_DIR/.encore/build/infra.config.augmented.json"
+echo "==> Fetching augmented infra config from cluster pod..."
+if ! KUBECONFIG="$KUBECONFIG_PATH" kubectl -n stagecraft-system exec deployment/stagecraft-api -- \
+     cat /encore/infra.config.json > "$AUGMENTED_CONFIG" 2>/dev/null; then
+  rm -f "$AUGMENTED_CONFIG"
+  cat >&2 <<EOF
+ERROR: could not fetch /encore/infra.config.json from the stagecraft-api pod.
+
+  Prereqs: KUBECONFIG=$KUBECONFIG_PATH must point at a cluster where
+  deployment/stagecraft-api exists in the stagecraft-system namespace and
+  is Ready. Verify with:
+
+      KUBECONFIG=$KUBECONFIG_PATH kubectl -n stagecraft-system get deploy stagecraft-api
+EOF
+  exit 1
+fi
+if [[ ! -s "$AUGMENTED_CONFIG" ]]; then
+  echo "ERROR: augmented infra config at $AUGMENTED_CONFIG is empty" >&2
+  exit 1
+fi
+echo "    ENCORE_INFRA_CONFIG_PATH=$AUGMENTED_CONFIG ($(wc -c <"$AUGMENTED_CONFIG" | tr -d ' ') bytes)"
+
+# APP_BASE_URL is what the backend uses to construct OAuth/OIDC redirect_uri
+# values sent to Rauthy and GitHub. The pod's value is https://stagecraft.ing,
+# which is correct for direct cluster-domain sign-in (mirrord still steals
+# the callback). For the localhost:3000 HMR dev flow the caller can export
+# DEV_APP_BASE_URL=http://localhost:3000 (and register that redirect URI on
+# the corresponding Rauthy/GitHub OAuth clients).
+APP_BASE_URL_OVERRIDE="${DEV_APP_BASE_URL:-}"
+if [[ -z "$APP_BASE_URL_OVERRIDE" ]]; then
+  APP_BASE_URL_OVERRIDE="$(KUBECONFIG="$KUBECONFIG_PATH" kubectl -n stagecraft-system exec deployment/stagecraft-api -- printenv APP_BASE_URL 2>/dev/null || true)"
+fi
+if [[ -z "$APP_BASE_URL_OVERRIDE" ]]; then
+  echo "ERROR: could not resolve APP_BASE_URL (set DEV_APP_BASE_URL or ensure pod has APP_BASE_URL)" >&2
+  exit 1
+fi
+echo "    APP_BASE_URL=$APP_BASE_URL_OVERRIDE"
+
 # Write a tiny env file the Makefile will source into mirrord exec.
 cat > "$SCRIPT_DIR/.stagecraft.env" <<EOF
 ENCORE_RUNTIME_LIB=$RUNTIME_CACHE
-ENCORE_INFRA_CONFIG_PATH=$APP_DIR/$CONFIG
+ENCORE_INFRA_CONFIG_PATH=$AUGMENTED_CONFIG
 ENCORE_APP_META_PATH=$META_PATH
+APP_BASE_URL=$APP_BASE_URL_OVERRIDE
 EOF
 echo "==> Ready. Bundle will bind to cluster infra (postgresql.stagecraft-system, nsqd.stagecraft-system)."

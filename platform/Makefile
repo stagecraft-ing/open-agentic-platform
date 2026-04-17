@@ -155,6 +155,16 @@ destroy-hetzner:
 
 .PHONY: dev-stagecraft-hetzner dev-stagecraft-web-hetzner dev-deployd-api-hetzner
 
+# Mirrord's http_filter (see infra/hetzner/mirrord/stagecraft.yaml) only
+# steals requests carrying `x-stagecraft-dev: 1`, which vite injects on
+# every proxied request. That keeps k8s liveness probes on the pod and
+# stops them from killing the target during Encore startup.
+#
+# DEV_APP_BASE_URL drives the OAuth/OIDC redirect_uri. Default it to the
+# HMR origin so the localhost:3000 flow works out of the box; override
+# with `DEV_APP_BASE_URL=... make dev-stagecraft-hetzner` if you want a
+# different origin (or unset it to fall back to the pod's APP_BASE_URL).
+dev-stagecraft-hetzner: export DEV_APP_BASE_URL ?= http://localhost:3000
 dev-stagecraft-hetzner:
 	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
 	cd services/stagecraft && npm install --silent
