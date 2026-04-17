@@ -9,6 +9,7 @@ import {
   projects,
   environments,
   githubInstallations,
+  orgMemberships,
   users,
   workspaces,
   auditLog,
@@ -475,9 +476,95 @@ async function handleOrganizationEvent(p: any): Promise<void> {
       github_user_id: ghUserId,
     });
   } else if (p.action === "member_added") {
-    log.info("Organization member added (will sync on next cron run)", {
-      github_user_id: p.membership?.user?.id,
-      org: p.organization?.login,
+    // Spec 106 FR-005 addendum: proactively upsert membership so the
+    // resolver DB reflects the add immediately, not on next login. Kept
+    // conservative — only writes when the user already exists in OAP;
+    // first-time users are still provisioned by /auth/rauthy/callback.
+    const ghUserId: number | undefined = p.membership?.user?.id;
+    const installId: number | undefined = p.installation?.id;
+    const githubOrgId: number | undefined = p.organization?.id;
+
+    if (!ghUserId) {
+      log.warn("organization.member_added: no user ID in payload");
+      return;
+    }
+
+    const [oapUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.githubUserId, ghUserId))
+      .limit(1);
+
+    if (!oapUser) {
+      log.info("Added user not known to OAP yet (will resolve on login)", {
+        github_user_id: ghUserId,
+        org: p.organization?.login,
+      });
+      return;
+    }
+
+    let orgId: string | null = null;
+    if (installId) {
+      const [inst] = await db
+        .select({ orgId: githubInstallations.orgId })
+        .from(githubInstallations)
+        .where(eq(githubInstallations.installationId, installId))
+        .limit(1);
+      orgId = inst?.orgId ?? null;
+    }
+
+    if (!orgId && githubOrgId) {
+      const [org] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.githubOrgId, githubOrgId))
+        .limit(1);
+      orgId = org?.id ?? null;
+    }
+
+    if (!orgId) {
+      log.warn("Could not resolve OAP org for member addition", {
+        github_user_id: ghUserId,
+        org: p.organization?.login,
+      });
+      return;
+    }
+
+    await db
+      .insert(orgMemberships)
+      .values({
+        userId: oapUser.id,
+        orgId,
+        source: "github",
+        platformRole: "member",
+        status: "active",
+        syncedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [orgMemberships.userId, orgMemberships.orgId],
+        set: {
+          status: "active",
+          syncedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+    await db.insert(auditLog).values({
+      actorUserId: SYSTEM_USER_ID,
+      action: "membership.added",
+      targetType: "user",
+      targetId: oapUser.id,
+      metadata: {
+        org_id: orgId,
+        reason: "github_membership_added",
+        github_user_id: ghUserId,
+      },
+    });
+
+    log.info("Upserted membership via webhook", {
+      userId: oapUser.id,
+      orgId,
+      github_user_id: ghUserId,
     });
   }
 }
