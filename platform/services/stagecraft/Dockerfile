@@ -30,6 +30,10 @@ COPY encore-runtime.node /app/encore-runtime.node
 COPY web/build/client/ ./build/client/
 COPY web/build/server/ ./build/server/
 
+# Migration runner + SQL files (consumed by the Helm pre-install/pre-upgrade Job)
+COPY scripts/migrate.mjs ./scripts/migrate.mjs
+COPY api/db/migrations/ ./api/db/migrations/
+
 ENV ENCORE_RUNTIME_LIB=/app/encore-runtime.node
 ENV NODE_ENV=production
 
