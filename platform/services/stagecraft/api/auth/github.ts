@@ -1,20 +1,15 @@
 /**
- * Legacy /auth/github entry points + org-switch endpoints (spec 106).
+ * Org selection + org-switch endpoints (spec 106).
  *
- * Spec 106 FR-004 replaced the direct-GitHub OAuth flow with the
- * Rauthy-native `/auth/rauthy` flow. The `/auth/github` routes here are
- * compatibility redirects that FR-008 deletes entirely.
- *
- * Org selection and org switching still live in this module because they
- * are IdP-agnostic (they dispatch across the Rauthy-native and enterprise
- * OIDC pending maps).
+ * Rauthy-native login lives in `./rauthy.ts` and `./rauthyCallback.ts`.
+ * This module owns the IdP-agnostic org-pick/switch surface that dispatches
+ * across the Rauthy-native and enterprise OIDC pending maps.
  */
 
 import { api, APIError } from "encore.dev/api";
 import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
-import { applyRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import { users, orgMemberships, organizations, workspaces } from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -30,10 +25,6 @@ import {
   finalizeRauthyOrgSelection,
 } from "./rauthyCallback";
 import { errorForLog } from "./errorLog";
-
-// Retained for FR-008 transition — deleted when the legacy routes go.
-export const githubOAuthClientId = secret("GITHUB_OAUTH_CLIENT_ID");
-export const githubOAuthClientSecret = secret("GITHUB_OAUTH_CLIENT_SECRET");
 
 // Base URL for constructing callback URLs (consumed by rauthyCallback).
 export const appBaseUrl = secret("APP_BASE_URL"); // e.g. https://stagecraft.localdev.online
@@ -83,43 +74,6 @@ export const getPendingOrgs = api.raw(
         })),
       })
     );
-  }
-);
-
-// ---------------------------------------------------------------------------
-// GET /auth/github — legacy entry, redirects to the Rauthy-native flow
-// ---------------------------------------------------------------------------
-//
-// Spec 106 FR-004 replaced the direct-GitHub OAuth flow with
-// `/auth/rauthy` → Rauthy → GitHub upstream IdP → `/auth/rauthy/callback`.
-// This redirect exists so any stale bookmark, email link, or OPC build that
-// still targets `/auth/github` continues to work until FR-008 deletes the
-// route entirely.
-
-export const githubLogin = api.raw(
-  { expose: true, method: "GET", path: "/auth/github", auth: false },
-  async (req, resp) => {
-    if (applyRateLimit(req, resp)) return;
-    resp.writeHead(302, { Location: "/auth/rauthy" });
-    resp.end();
-  }
-);
-
-// ---------------------------------------------------------------------------
-// GET /auth/github/callback — legacy direct-GitHub OAuth callback (spec 106)
-// ---------------------------------------------------------------------------
-//
-// The direct-GitHub flow cannot mint a Rauthy-issued JWT — Rauthy 0.35 has no
-// admin-mint endpoint (spec 106 FR-003). Any request that still lands here
-// predates the cutover or resulted from a stale bookmark; redirect to the
-// new Rauthy-native entry so the user lands in a working flow. FR-008
-// deletes this route entirely.
-
-export const githubCallback = api.raw(
-  { expose: true, method: "GET", path: "/auth/github/callback", auth: false },
-  async (_req, resp) => {
-    resp.writeHead(302, { Location: "/auth/rauthy" });
-    resp.end();
   }
 );
 

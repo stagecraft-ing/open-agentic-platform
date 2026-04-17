@@ -8,8 +8,8 @@
  *                               write OAP attributes, refresh to JWT #2,
  *                               set cookie (web) / deep-link opc:// (desktop).
  *
- * Replaces the spec 080 direct-GitHub callback. Spec 106 FR-008 removes the
- * residual /auth/github routes after the cutover.
+ * Replaces the spec 080 direct-GitHub callback; the legacy `/auth/github`
+ * routes were removed in spec 106 FR-008.
  */
 
 import { api } from "encore.dev/api";
