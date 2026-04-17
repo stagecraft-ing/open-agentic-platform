@@ -147,6 +147,30 @@ destroy-hetzner:
 	hetzner-k3s delete --config $(HETZNER_ROOT)/cluster.yaml
 
 # ============================================================
+# Hetzner — local dev loop via mirrord
+# ============================================================
+# Prereqs: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash
+# Inbound traffic to the cluster ingress is stolen into the local process.
+# Ctrl-C restores the pod as the traffic target.
+
+.PHONY: dev-stagecraft-hetzner dev-deployd-api-hetzner
+
+dev-stagecraft-hetzner:
+	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
+	cd services/stagecraft && npm install --silent
+	$(HETZNER_ROOT)/mirrord/stagecraft-compile.sh
+	set -a && . $(HETZNER_ROOT)/mirrord/.stagecraft.env && set +a && \
+	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig \
+	mirrord exec -f $(HETZNER_ROOT)/mirrord/stagecraft.yaml -- \
+		node services/stagecraft/.encore/build/combined/combined/main.mjs
+
+dev-deployd-api-hetzner:
+	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
+	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig \
+	mirrord exec -f $(HETZNER_ROOT)/mirrord/deployd-api.yaml -- \
+		cargo run --manifest-path services/deployd-api-rs/Cargo.toml
+
+# ============================================================
 # Docker build (generic — push to any registry)
 # ============================================================
 

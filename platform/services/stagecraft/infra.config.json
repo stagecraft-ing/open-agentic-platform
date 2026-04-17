@@ -23,7 +23,7 @@
   "pubsub": [
     {
       "type": "nsq",
-      "hosts": "nsqd:4150",
+      "hosts": "nsqd.stagecraft-system.svc.cluster.local:4150",
       "topics": {
         "uptime-transition": {
           "name": "uptime-transition",

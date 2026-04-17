@@ -3,3 +3,4 @@ kubeconfig
 *.tfstate.backup
 .terraform/
 .env
+mirrord/.stagecraft.env

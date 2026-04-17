@@ -1,0 +1,51 @@
+# mirrord config — local stagecraft (Encore.ts) against Hetzner cluster.
+#
+# Driven by `make dev-stagecraft-hetzner` from platform/. The Makefile:
+#   1. runs stagecraft-compile.sh, which produces a bundle bound to
+#      infra.config.hetzner.json (cluster PostgreSQL + NSQ hosts).
+#   2. exports ENCORE_RUNTIME_LIB + ENCORE_INFRA_CONFIG_PATH from .stagecraft.env
+#   3. runs `mirrord exec -f this-file -- node .encore/build/combined/combined/main.mjs`
+#
+# Do NOT use `encore run` here — it ignores infra.config.*.json and always
+# provisions ephemeral local PostgreSQL/NSQ, which defeats the purpose.
+#
+# Inbound HTTPS to https://${DOMAIN} flows through the cluster ingress, into
+# the stagecraft-api pod, and is stolen to the local node process on :4000.
+# OAuth/OIDC callbacks and GitHub webhooks work unchanged — Rauthy and the
+# GitHub App point at the cluster's public URL, which is still the ingress.
+target:
+  path: deployment/stagecraft-api
+  namespace: stagecraft-system
+
+feature:
+  network:
+    # steal: only the local process sees inbound traffic; the pod stops
+    # receiving it while mirrord is attached. Flip to "mirror" to observe
+    # without diverting.
+    incoming: steal
+    # Outbound DNS + connections go through the pod's network, so
+    # postgresql.stagecraft-system, nsqd.stagecraft-system, and rauthy.*
+    # resolve exactly as they do in-cluster.
+    outgoing: true
+    dns: true
+
+  fs:
+    # Local FS by default (node_modules, source tree, .encore cache stay
+    # on the laptop), but the secret-file mounts below are read from the pod.
+    mode: localwithoverrides
+    read_only:
+      - "^/mnt/secrets-store(/.*)?$"
+      - "^/var/run/secrets(/.*)?$"
+
+  # Pull the pod's env (stagecraft-api-secrets: DB_PASSWORD, STAGECRAFT_DB_URL,
+  # OIDC_*, GITHUB_*, SESSION_SECRET, DOMAIN, APP_BASE_URL, ...) into the
+  # local process. Exclude ENCORE_RUNTIME_LIB and ENCORE_INFRA_CONFIG_PATH —
+  # the pod's values point at in-container Linux paths (/encore/runtimes/...)
+  # that don't exist locally; we inject host-appropriate values via
+  # stagecraft-compile.sh's .stagecraft.env instead.
+  env:
+    exclude: "ENCORE_RUNTIME_LIB;ENCORE_INFRA_CONFIG_PATH;ENCORE_APP_META_PATH"
+
+# Sidecar-style: keep the Encore compiler/dev server's noisy logs quiet,
+# surface only mirrord warnings.
+telemetry: false
