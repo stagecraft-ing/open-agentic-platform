@@ -264,4 +264,4 @@ a pre-PR check, alongside the existing `make ci` step.
   in the recognised-command set. The spec deliberately narrows scope: we
   catch cargo/node-ecosystem drift, not every shell utility.
 - The parity rule is **asymmetric**: workflows MUST have Makefile mirrors,
-  Makefile-only targets (`make dev`, `make setup`, `make k8s-up`) are fine.
+  Makefile-only targets (`make dev`, `make setup`) are fine.

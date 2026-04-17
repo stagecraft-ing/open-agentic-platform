@@ -1,5 +1,5 @@
 # OAP Platform — Multi-Target Deployment
-# Usage: make deploy TARGET=azure|aws|gcp|do|hetzner|local
+# Usage: make deploy TARGET=azure|aws|gcp|do|hetzner
 
 TARGET ?= azure
 ENV    ?= dev
@@ -9,7 +9,6 @@ TF_ROOT      = infra/terraform
 TF_MODULES   = $(TF_ROOT)/modules
 CHARTS_ROOT  = charts
 HETZNER_ROOT = infra/hetzner
-LOCAL_ROOT   = infra/local
 
 # --- Terraform env paths (cloud targets) ---
 TF_CORE    = $(TF_ROOT)/envs/$(ENV)/core
@@ -146,36 +145,6 @@ docker-push-hetzner: docker-build-hetzner
 
 destroy-hetzner:
 	hetzner-k3s delete --config $(HETZNER_ROOT)/cluster.yaml
-
-# ============================================================
-# Local (k3d / kind)
-# ============================================================
-
-.PHONY: deploy-local destroy-local bootstrap-local
-
-LOCAL_RUNTIME ?= k3d
-
-bootstrap-local:
-	$(LOCAL_ROOT)/bootstrap.sh $(LOCAL_RUNTIME)
-
-deploy-local:
-	helm upgrade --install stagecraft $(CHARTS_ROOT)/stagecraft \
-		--namespace stagecraft-system \
-		-f $(CHARTS_ROOT)/stagecraft/values.yaml \
-		-f $(CHARTS_ROOT)/stagecraft/values-local.yaml \
-		--wait --timeout 300s
-	helm upgrade --install deployd-api $(CHARTS_ROOT)/deployd-api \
-		--namespace deployd-system \
-		-f $(CHARTS_ROOT)/deployd-api/values.yaml \
-		-f $(CHARTS_ROOT)/deployd-api/values-local.yaml \
-		--wait --timeout 300s
-
-destroy-local:
-ifeq ($(LOCAL_RUNTIME),k3d)
-	k3d cluster delete oap-local
-else
-	kind delete cluster --name oap-local
-endif
 
 # ============================================================
 # Docker build (generic — push to any registry)

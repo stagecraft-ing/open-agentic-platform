@@ -7,17 +7,12 @@
 # Platform services (optional, for org policy/auth work):
 #   make dev-platform   # start stagecraft + deployd-api in background
 #   make dev-all        # desktop + platform services
-#
-# Full K8s local cluster (staging fidelity):
-#   make k8s-up         # bootstrap k3d cluster and deploy everything
-#   make k8s-down       # tear down local cluster
 
 .PHONY: setup dev dev-platform dev-all stop \
         axiomregent axiomregent-all fetch-axiomregent fetch-axiomregent-check \
         registry spec-compile spec-tools \
         index index-check index-render \
         adapter-scopes \
-        k8s-up k8s-down \
         check-deps \
         ci ci-rust ci-tools ci-desktop ci-stagecraft ci-cross ci-parity
 
@@ -203,18 +198,6 @@ stop:
 	-@pkill -f "encore run" 2>/dev/null || true
 	-@pkill -f "deployd.api" 2>/dev/null || true
 	@echo "Done."
-
-# ============================================================
-# Local K8s Cluster (k3d)
-# ============================================================
-
-k8s-up:
-	@test -f platform/infra/local/.env || { echo "ERROR: Copy platform/infra/local/.env.example to .env first"; exit 1; }
-	cd platform && $(MAKE) bootstrap TARGET=local
-	cd platform && $(MAKE) deploy TARGET=local
-
-k8s-down:
-	cd platform && $(MAKE) destroy TARGET=local
 
 # ============================================================
 # Cloud deployment (delegates to platform/Makefile)
@@ -427,8 +410,6 @@ help:
 	@echo "  make ci-parity      Drift check: Makefile mirrors enforcing workflows (spec 104)"
 	@echo ""
 	@echo "Kubernetes:"
-	@echo "  make k8s-up         Bootstrap local k3d cluster + deploy"
-	@echo "  make k8s-down       Tear down local cluster"
 	@echo "  make deploy-azure   Deploy to Azure AKS"
 	@echo "  make deploy-aws     Deploy to AWS EKS"
 	@echo "  make deploy-hetzner Deploy to Hetzner K3s"

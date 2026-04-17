@@ -24,6 +24,14 @@ implements:
 
 # Feature Specification: Multi-Cloud Kubernetes Portability
 
+> **Post-implementation change (2026-04-16):** The local-dev k3d/kind bootstrap
+> (`platform/infra/local/`, `values-local.yaml`, `make k8s-up`/`k8s-down`,
+> `bootstrap-local`/`deploy-local`/`destroy-local` targets) has been removed.
+> Local development runs Encore/Tauri directly; there is no supported local
+> Kubernetes target. Tier 2 is now Hetzner K3s only. The sections below that
+> reference local k3d/kind, `values-local.yaml`, and the local migration phase
+> are kept as historical record.
+
 ## Purpose
 
 The platform's Kubernetes infrastructure was bootstrapped on Azure AKS with tight coupling to Azure-specific services: AKS for compute, Key Vault + CSI secrets driver for secrets, Azure AD Federated Identity for workload identity, and ACR for container images. While the application code is already cloud-agnostic (secrets are read from mounted files, no Azure SDK calls), the infrastructure layer prevents deployment to any other cloud or to bare-metal/VPS Kubernetes.

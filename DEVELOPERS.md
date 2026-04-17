@@ -60,17 +60,6 @@ See [`platform/services/stagecraft/api/auth/auth.ts:120-122`](platform/services/
 
 Stagecraft also exposes the Encore development dashboard at http://localhost:9400.
 
-## Local Kubernetes Cluster
-
-For staging-fidelity testing with k3d:
-
-```bash
-cp platform/infra/local/.env.example platform/infra/local/.env
-# Edit .env if needed (defaults work for local dev)
-make k8s-up    # bootstrap k3d cluster + deploy all services
-make k8s-down  # tear down
-```
-
 ## Package Managers
 
 - **Root workspace** uses **pnpm** (`apps/desktop/`, tools, crates)
