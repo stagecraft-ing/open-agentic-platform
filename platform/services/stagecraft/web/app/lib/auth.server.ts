@@ -41,6 +41,11 @@ interface JwtClaims {
 
 /**
  * Decode the JWT payload without cryptographic verification.
+ *
+ * Rauthy emits OAP custom claims under `payload.custom.*` (spec 106 FR-002).
+ * Legacy admin-mint tokens put the same keys at the top level; flatten
+ * either layout into the shape the rest of the SSR code expects.
+ *
  * Returns null if the token is malformed or expired.
  */
 function decodeJwtPayload(token: string): JwtClaims | null {
@@ -48,16 +53,45 @@ function decodeJwtPayload(token: string): JwtClaims | null {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
 
-    const payload = JSON.parse(
-      Buffer.from(parts[1], "base64url").toString()
-    ) as JwtClaims;
+    const raw = JSON.parse(Buffer.from(parts[1], "base64url").toString()) as Record<string, unknown>;
 
-    // Check expiry
-    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
+    const exp = typeof raw.exp === "number" ? raw.exp : 0;
+    if (!exp || exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
 
-    return payload;
+    const custom = (raw.custom as Record<string, unknown> | undefined) ?? {};
+    const pick = (key: string): string | undefined => {
+      const v = custom[key] ?? raw[key];
+      return typeof v === "string" && v.length > 0 ? v : undefined;
+    };
+
+    const oapUserId = pick("oap_user_id");
+    const oapOrgId = pick("oap_org_id");
+    const oapOrgSlug = pick("oap_org_slug");
+    const platformRole = pick("platform_role");
+    if (!oapUserId || !oapOrgId || !oapOrgSlug || !platformRole) {
+      return null;
+    }
+    if (platformRole !== "owner" && platformRole !== "admin" && platformRole !== "member") {
+      return null;
+    }
+
+    return {
+      sub: typeof raw.sub === "string" ? raw.sub : "",
+      oap_user_id: oapUserId,
+      oap_org_id: oapOrgId,
+      oap_org_slug: oapOrgSlug,
+      oap_workspace_id: pick("oap_workspace_id"),
+      github_login: pick("github_login"),
+      idp_provider: pick("idp_provider"),
+      idp_login: pick("idp_login"),
+      platform_role: platformRole,
+      email: pick("email"),
+      name: pick("name"),
+      exp,
+      iat: typeof raw.iat === "number" ? raw.iat : 0,
+    };
   } catch {
     return null;
   }
@@ -113,10 +147,7 @@ export async function requireAdmin(request: Request) {
   };
 }
 
-export function getCookieToken(
-  request: Request,
-  kind: "user" | "admin"
-): string | undefined {
+export function getCookieToken(request: Request, kind: "user" | "admin"): string | undefined {
   const cookies = parseCookie(request.headers.get("Cookie"));
   // Both user and admin sessions now use the same __session JWT
   return cookies[USER_COOKIE];
