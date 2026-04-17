@@ -28,6 +28,7 @@ import {
   pendingOidcOrgSelections,
   type PendingOidcOrgData,
 } from "./oidc";
+import { errorForLog } from "./errorLog";
 
 // GitHub OAuth App credentials (separate from the GitHub App)
 export const githubOAuthClientId = secret("GITHUB_OAUTH_CLIENT_ID");
@@ -235,7 +236,7 @@ export const githubCallback = api.raw(
         throw new Error("No access_token in GitHub response");
       }
     } catch (err) {
-      log.error("GitHub OAuth token exchange failed", { error: String(err) });
+      log.error("GitHub OAuth token exchange failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=token_failed" });
       resp.end();
       return;
@@ -258,7 +259,7 @@ export const githubCallback = api.raw(
       }
       email = resolvedEmail;
     } catch (err) {
-      log.error("GitHub API call failed", { error: String(err) });
+      log.error("GitHub API call failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=github_api_failed" });
       resp.end();
       return;
@@ -305,7 +306,7 @@ export const githubCallback = api.raw(
           },
         });
     } catch (err) {
-      log.error("Account creation/linking failed", { error: String(err) });
+      log.error("Account creation/linking failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=account_error" });
       resp.end();
       return;
@@ -319,7 +320,7 @@ export const githubCallback = api.raw(
         user.id
       );
     } catch (err) {
-      log.error("Org membership resolution failed", { error: String(err) });
+      log.error("Org membership resolution failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=membership_failed" });
       resp.end();
       return;
@@ -340,7 +341,7 @@ export const githubCallback = api.raw(
           .where(eq(users.id, user.id));
       }
     } catch (err) {
-      log.error("Rauthy provisioning failed", { error: String(err) });
+      log.error("Rauthy provisioning failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=rauthy_unavailable" });
       resp.end();
       return;
@@ -365,7 +366,7 @@ export const githubCallback = api.raw(
       });
     } catch (err) {
       // Audit/login-timestamp failures are non-fatal — log and continue
-      log.warn("Post-login bookkeeping failed (non-fatal)", { error: String(err) });
+      log.warn("Post-login bookkeeping failed (non-fatal)", { error: errorForLog(err) });
     }
 
     // Route based on matched orgs
@@ -421,7 +422,7 @@ export const githubCallback = api.raw(
       });
       resp.end();
     } catch (err) {
-      log.error("Session creation failed", { error: String(err) });
+      log.error("Session creation failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=oauth_failed" });
       resp.end();
     }
@@ -513,7 +514,7 @@ export const orgSelectComplete = api.raw(
       });
       resp.end();
     } catch (err) {
-      log.error("Org select complete failed", { error: String(err) });
+      log.error("Org select complete failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=session_expired" });
       resp.end();
     }
@@ -741,7 +742,7 @@ export const orgSwitchCookie = api.raw(
       });
       resp.end(JSON.stringify({ ok: true }));
     } catch (err) {
-      log.error("Org switch cookie failed", { error: String(err) });
+      log.error("Org switch cookie failed", { error: errorForLog(err) });
       resp.writeHead(500, { "Content-Type": "application/json" });
       resp.end(JSON.stringify({ error: "Failed to switch org" }));
     }
@@ -914,7 +915,7 @@ async function handleDesktopCallbackFlow(
     tokenData = (await tokenResp.json()) as GitHubAccessTokenResponse;
     if (!tokenData.access_token) throw new Error("No access_token in GitHub response");
   } catch (err) {
-    log.error("Desktop: GitHub token exchange failed", { error: String(err) });
+    log.error("Desktop: GitHub token exchange failed", { error: errorForLog(err) });
     return redirectError("token_failed");
   }
 
@@ -928,7 +929,7 @@ async function handleDesktopCallbackFlow(
     if (!resolvedEmail) return redirectError("no_email");
     email = resolvedEmail;
   } catch (err) {
-    log.error("Desktop: GitHub API call failed", { error: String(err) });
+    log.error("Desktop: GitHub API call failed", { error: errorForLog(err) });
     return redirectError("github_api_failed");
   }
 
@@ -972,7 +973,7 @@ async function handleDesktopCallbackFlow(
         },
       });
   } catch (err) {
-    log.error("Desktop: account creation/linking failed", { error: String(err) });
+    log.error("Desktop: account creation/linking failed", { error: errorForLog(err) });
     return redirectError("account_error");
   }
 
@@ -981,7 +982,7 @@ async function handleDesktopCallbackFlow(
   try {
     matchedOrgs = await resolveOrgMemberships(tokenData.access_token, user.id);
   } catch (err) {
-    log.error("Desktop: org membership resolution failed", { error: String(err) });
+    log.error("Desktop: org membership resolution failed", { error: errorForLog(err) });
     return redirectError("membership_failed");
   }
 
@@ -997,7 +998,7 @@ async function handleDesktopCallbackFlow(
       await db.update(users).set({ rauthyUserId }).where(eq(users.id, user.id));
     }
   } catch (err) {
-    log.error("Desktop: Rauthy provisioning failed", { error: String(err) });
+    log.error("Desktop: Rauthy provisioning failed", { error: errorForLog(err) });
     return redirectError("rauthy_unavailable");
   }
 
@@ -1012,7 +1013,7 @@ async function handleDesktopCallbackFlow(
       metadata: { github_login: ghUser.login, orgs_matched: matchedOrgs.length, source: "desktop" },
     });
   } catch (err) {
-    log.warn("Desktop: post-login bookkeeping failed (non-fatal)", { error: String(err) });
+    log.warn("Desktop: post-login bookkeeping failed (non-fatal)", { error: errorForLog(err) });
   }
 
   // No orgs matched

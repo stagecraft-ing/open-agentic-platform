@@ -12,6 +12,7 @@ import { db } from "../db/drizzle";
 import { auditLog, desktopRefreshTokens, users } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { revokeSession } from "./rauthy";
+import { errorForLog } from "./errorLog";
 
 export interface AuthSignoutResponse {
   ok: boolean;
@@ -43,7 +44,7 @@ export const signout = api(
       try {
         await revokeSession(user.rauthyUserId);
       } catch (err) {
-        log.warn("Failed to revoke Rauthy session on signout", { error: String(err) });
+        log.warn("Failed to revoke Rauthy session on signout", { error: errorForLog(err) });
       }
     }
 
@@ -78,7 +79,7 @@ export const adminSignout = api(
       try {
         await revokeSession(user.rauthyUserId);
       } catch (err) {
-        log.warn("Failed to revoke Rauthy session on admin signout", { error: String(err) });
+        log.warn("Failed to revoke Rauthy session on admin signout", { error: errorForLog(err) });
       }
     }
 

@@ -8,6 +8,7 @@
 import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { createVerify } from "crypto";
+import { errorForLog } from "./errorLog";
 
 // Rauthy configuration secrets
 export const rauthyUrl = secret("RAUTHY_URL");                     // e.g. https://rauthy.localdev.online
@@ -149,7 +150,7 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
 
     return payload;
   } catch (err) {
-    log.error("JWT validation error", { error: String(err) });
+    log.error("JWT validation error", { error: errorForLog(err) });
     return null;
   }
 }

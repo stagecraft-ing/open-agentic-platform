@@ -42,6 +42,7 @@ import {
   cleanupDesktopState,
   type PendingDesktopFlow,
 } from "./desktop-state";
+import { errorForLog } from "./errorLog";
 
 // ---------------------------------------------------------------------------
 // Ephemeral state for OIDC CSRF protection
@@ -252,7 +253,7 @@ export const oidcCallback = api.raw(
         `${appBaseUrl()}/auth/oidc/callback`
       );
     } catch (err) {
-      log.error("OIDC token exchange failed", { error: String(err) });
+      log.error("OIDC token exchange failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=token_failed" });
       resp.end();
       return;
@@ -274,7 +275,7 @@ export const oidcCallback = api.raw(
         Buffer.from(parts[1], "base64url").toString()
       );
     } catch (err) {
-      log.error("Failed to validate ID token", { error: String(err) });
+      log.error("Failed to validate ID token", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=token_failed" });
       resp.end();
       return;
@@ -349,7 +350,7 @@ export const oidcCallback = api.raw(
           },
         });
     } catch (err) {
-      log.error("OIDC account provisioning failed", { error: String(err) });
+      log.error("OIDC account provisioning failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=account_error" });
       resp.end();
       return;
@@ -365,7 +366,7 @@ export const oidcCallback = api.raw(
         groups
       );
     } catch (err) {
-      log.error("OIDC org membership resolution failed", { error: String(err) });
+      log.error("OIDC org membership resolution failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=membership_failed" });
       resp.end();
       return;
@@ -386,7 +387,7 @@ export const oidcCallback = api.raw(
           .where(eq(users.id, user.id));
       }
     } catch (err) {
-      log.error("Rauthy provisioning failed for OIDC user", { error: String(err) });
+      log.error("Rauthy provisioning failed for OIDC user", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=rauthy_unavailable" });
       resp.end();
       return;
@@ -408,7 +409,7 @@ export const oidcCallback = api.raw(
         },
       });
     } catch (err) {
-      log.warn("OIDC post-login bookkeeping failed (non-fatal)", { error: String(err) });
+      log.warn("OIDC post-login bookkeeping failed (non-fatal)", { error: errorForLog(err) });
     }
 
     // Desktop OIDC flow — redirect to opc:// deep-link instead of web session
@@ -456,7 +457,7 @@ export const oidcCallback = api.raw(
         resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
         resp.end();
       } catch (err) {
-        log.error("OIDC desktop session creation failed", { error: String(err) });
+        log.error("OIDC desktop session creation failed", { error: errorForLog(err) });
         const params = new URLSearchParams({ error: "oauth_failed", state: desktopFlow.desktopState });
         resp.writeHead(302, { Location: `${desktopFlow.redirectUri}?${params}` });
         resp.end();
@@ -518,7 +519,7 @@ export const oidcCallback = api.raw(
       });
       resp.end();
     } catch (err) {
-      log.error("OIDC session creation failed", { error: String(err) });
+      log.error("OIDC session creation failed", { error: errorForLog(err) });
       resp.writeHead(302, { Location: "/signin?error=oauth_failed" });
       resp.end();
     }
