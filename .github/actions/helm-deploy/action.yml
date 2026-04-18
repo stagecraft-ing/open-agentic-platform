@@ -78,7 +78,7 @@ runs:
     - name: Verify rollout
       shell: bash
       run: |
-        kubectl -n ${{ inputs.namespace }} rollout status deployment/${{ inputs.release-name }} --timeout=120s
+        kubectl -n ${{ inputs.namespace }} rollout status deployment/${{ inputs.app-label }} --timeout=120s
         kubectl -n ${{ inputs.namespace }} get pods -l app=${{ inputs.app-label }}
 
     - name: Debug failed deploy
