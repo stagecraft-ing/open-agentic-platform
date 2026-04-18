@@ -101,26 +101,35 @@ if helm status postgresql -n stagecraft-system >/dev/null 2>&1; then
   info "Verifying POSTGRES_PASSWORD authenticates against live postgres..."
   POSTGRES_PASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
   kubectl delete pod pg-auth-check -n stagecraft-system --ignore-not-found=true >/dev/null
-  if ! kubectl run pg-auth-check --rm --restart=Never --quiet \
+  # --rm requires an attached stream on newer kubectl; -i + </dev/null gives
+  # us attached stdin without a TTY (TTYs drop output on fast-exit pods).
+  if ! kubectl run pg-auth-check --rm -i --restart=Never --quiet \
        --namespace stagecraft-system \
        --image=bitnami/postgresql:latest \
        --env="PGPASSWORD=$POSTGRES_PASSWORD" \
        --command -- psql -h postgresql.stagecraft-system.svc.cluster.local \
-       -U stagecraft -d auth -tAc 'SELECT 1' >/dev/null 2>&1; then
-    cat >&2 <<EOF
+       -U stagecraft -d auth -tAc 'SELECT 1' </dev/null >/dev/null 2>&1; then
+    cat >&2 <<'EOF'
 ERROR: POSTGRES_PASSWORD in .env does NOT authenticate against postgresql-0.
 The live postgres still has its old password (persisted on its PVC) while
 .env has drifted. Pick one of:
 
-  a) Reset the DB user to match .env (dev clusters only; no data loss):
-       PG_SUPER=\$(kubectl -n stagecraft-system get secret postgresql \\
+  a) Reset the DB user to match .env (dev clusters only; no data loss).
+     Source .env first so bash and the DB use byte-identical values, and
+     pipe the SQL on stdin so psql's :'pass' substitution runs (it does
+     NOT run under `psql -c` with pure SQL, and shell-interpolating
+     '$POSTGRES_PASSWORD' into a SQL literal breaks on $, `, \, or ':
+
+       set -a; source .env; set +a
+       PG_SUPER=$(kubectl -n stagecraft-system get secret postgresql \
          -o jsonpath='{.data.postgres-password}' | base64 -d)
-       kubectl -n stagecraft-system exec postgresql-0 -- \\
-         env PGPASSWORD="\$PG_SUPER" psql -U postgres -c \\
-         "ALTER USER stagecraft WITH PASSWORD '\$POSTGRES_PASSWORD';"
+       printf "ALTER USER stagecraft WITH PASSWORD :'pass';\n" | \
+         kubectl -n stagecraft-system exec -i postgresql-0 -- \
+           env PGPASSWORD="$PG_SUPER" psql -U postgres \
+             -v ON_ERROR_STOP=1 -v pass="$POSTGRES_PASSWORD"
 
   b) Update .env POSTGRES_PASSWORD to what the DB actually has:
-       kubectl -n stagecraft-system get secret postgresql \\
+       kubectl -n stagecraft-system get secret postgresql \
          -o jsonpath='{.data.password}' | base64 -d
 EOF
     exit 1
