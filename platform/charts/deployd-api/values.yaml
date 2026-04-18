@@ -19,6 +19,11 @@ podLabels: {}
 
 resources: {}
 
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+
 secrets:
   enabled: true
   provider: "k8s"  # "k8s" | "eso" | "csi-azure"

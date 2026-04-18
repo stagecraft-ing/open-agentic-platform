@@ -79,6 +79,8 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: data
+              mountPath: /var/lib/deployd
       volumes:
         - name: secrets-store
           {{- if eq (default "k8s" .Values.secrets.provider) "csi-azure" }}
@@ -93,3 +95,10 @@ spec:
           {{- end }}
         - name: tmp
           emptyDir: {}
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: deployd-api-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
