@@ -33,8 +33,11 @@ import {
   type RauthyTokens,
 } from "./rauthy";
 import { mintSessionForOrg } from "./sessionMint";
-import { resolveMembership, type MembershipReason } from "./membershipResolver";
+import { resolveMembership } from "./membershipResolver";
+import { errorCodeForReason } from "./rauthyCallback-pure";
 import type { ResolvedOrg } from "./membership";
+
+export { errorCodeForReason } from "./rauthyCallback-pure";
 import { appBaseUrl } from "./github";
 import {
   consumeDesktopFlow,
@@ -92,27 +95,6 @@ function cleanupStalePendingOrgs() {
   const cutoff = Date.now() - PENDING_ORG_TTL_MS;
   for (const [key, val] of pendingRauthyOrgSelections) {
     if (val.createdAt < cutoff) pendingRauthyOrgSelections.delete(key);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Error-code mapping (spec 106 FR-006 Error codes table)
-// ---------------------------------------------------------------------------
-
-export function errorCodeForReason(reason: MembershipReason): string {
-  switch (reason) {
-    case "pat_required":
-      return "pat_required";
-    case "pat_invalid":
-      return "pat_invalid";
-    case "pat_saml_not_authorized":
-      return "pat_saml_not_authorized";
-    case "pat_rate_limited":
-      return "pat_rate_limited";
-    case "membership_api_failed":
-      return "membership_failed";
-    default:
-      return "no_orgs";
   }
 }
 

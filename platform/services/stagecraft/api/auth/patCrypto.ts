@@ -14,14 +14,12 @@
  * load the key from the secret on every call.
  */
 
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { secret } from "encore.dev/config";
+import { KEY_BYTES, encryptWithKey, decryptWithKey } from "./patCrypto-pure";
+
+export { encryptWithKey, decryptWithKey } from "./patCrypto-pure";
 
 const patEncryptionKey = secret("PAT_ENCRYPTION_KEY");
-
-const KEY_BYTES = 32; // AES-256
-const NONCE_BYTES = 12; // GCM recommended
-const TAG_BYTES = 16;
 
 function loadKey(): Buffer {
   const raw = patEncryptionKey();
@@ -36,41 +34,6 @@ function loadKey(): Buffer {
     );
   }
   return key;
-}
-
-export function encryptWithKey(
-  key: Buffer,
-  plaintext: string
-): { tokenEnc: Buffer; tokenNonce: Buffer } {
-  if (key.length !== KEY_BYTES) {
-    throw new Error(`encryption key must be ${KEY_BYTES} bytes (got ${key.length})`);
-  }
-  const nonce = randomBytes(NONCE_BYTES);
-  const cipher = createCipheriv("aes-256-gcm", key, nonce);
-  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return { tokenEnc: Buffer.concat([ciphertext, tag]), tokenNonce: nonce };
-}
-
-export function decryptWithKey(
-  key: Buffer,
-  tokenEnc: Buffer,
-  tokenNonce: Buffer
-): string {
-  if (key.length !== KEY_BYTES) {
-    throw new Error(`encryption key must be ${KEY_BYTES} bytes (got ${key.length})`);
-  }
-  if (tokenEnc.length <= TAG_BYTES) {
-    throw new Error("Stored PAT ciphertext is shorter than the GCM tag size");
-  }
-  if (tokenNonce.length !== NONCE_BYTES) {
-    throw new Error(`Stored PAT nonce is ${tokenNonce.length} bytes (expected ${NONCE_BYTES})`);
-  }
-  const ciphertext = tokenEnc.subarray(0, tokenEnc.length - TAG_BYTES);
-  const tag = tokenEnc.subarray(tokenEnc.length - TAG_BYTES);
-  const decipher = createDecipheriv("aes-256-gcm", key, tokenNonce);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf-8");
 }
 
 /** Encrypt a PAT using the PAT_ENCRYPTION_KEY secret. */

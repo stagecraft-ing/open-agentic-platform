@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { extractOapClaims } from "./rauthy";
+import { extractOapClaims } from "./rauthy-pure";
 
 describe("extractOapClaims", () => {
   test("reads claims from payload.custom.* (spec 106 FR-002 layout)", () => {

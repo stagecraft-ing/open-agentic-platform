@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { errorCodeForReason } from "./rauthyCallback";
+import { errorCodeForReason } from "./rauthyCallback-pure";
 
 describe("errorCodeForReason (spec 106 FR-004 error mapping)", () => {
   test("maps PAT-specific reasons to explicit user-facing codes", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { randomBytes } from "crypto";
-import { encryptWithKey, decryptWithKey } from "./patCrypto";
+import { encryptWithKey, decryptWithKey } from "./patCrypto-pure";
 
 describe("patCrypto (spec 106 FR-006)", () => {
   const key = randomBytes(32);
