@@ -11,7 +11,7 @@ use std::path::Path;
 ///
 /// `extra_known_paths` contains non-package paths that are valid implements
 /// targets (e.g. factory adapter directories). `repo_root` is used as a
-/// fallback to verify that declared paths exist on disk.
+/// fallback to verify that declared paths exist on disk (file or directory).
 pub fn build_traceability(
     specs: &[SpecRecord],
     packages: &[PackageRecord],
@@ -26,15 +26,17 @@ pub fn build_traceability(
 
     for spec in specs {
         for imp in &spec.implements {
-            // Validate the path exists: check packages, then adapters, then disk
+            // Validate the path exists: package, adapter, or any file/dir on disk.
+            // Files (Makefile, AGENTS.md, .github/workflows/*.yml, .claude/**/*.md)
+            // are valid governance targets — not every spec implements a whole crate.
             if !package_paths.contains(&imp.path)
                 && !extra_known_paths.contains(&imp.path)
-                && !repo_root.join(&imp.path).is_dir()
+                && !repo_root.join(&imp.path).exists()
             {
                 diagnostics.push(Diagnostic {
                     code: "I-101".into(),
                     message: format!(
-                        "spec {:?} declares implements path {:?} which is not a known package, adapter, or directory",
+                        "spec {:?} declares implements path {:?} which is not a known package, adapter, or existing file/directory",
                         spec.id, imp.path
                     ),
                     path: None,
