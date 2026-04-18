@@ -36,6 +36,11 @@ spec:
             capabilities:
               drop:
                 - ALL
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              rm -f /var/lib/deployd/data/state_machine/lock
+              exec /usr/local/bin/deployd-api
           ports:
             - containerPort: 8080
           env:
@@ -53,11 +58,17 @@ spec:
             - secretRef:
                 name: deployd-api-secrets
                 optional: true
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /healthz
               port: 8080
-            initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
@@ -65,7 +76,6 @@ spec:
             httpGet:
               path: /healthz
               port: 8080
-            initialDelaySeconds: 15
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3

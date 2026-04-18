@@ -67,7 +67,7 @@ runs:
         case "$STATUS" in
           pending-install|pending-upgrade|pending-rollback)
             echo "Release stuck in $STATUS — rolling back before retry."
-            helm rollback ${{ inputs.release-name }} --namespace ${{ inputs.namespace }} --no-hooks --force || \
+            helm rollback ${{ inputs.release-name }} --namespace ${{ inputs.namespace }} --no-hooks || \
               helm uninstall ${{ inputs.release-name }} --namespace ${{ inputs.namespace }}
             ;;
         esac
