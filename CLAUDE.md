@@ -71,6 +71,17 @@ All multi-step commands and agent workflows MUST follow the six rules defined in
 
 ## Build Commands
 
+Prefer the root `Makefile` for common flows; the raw cargo invocations below are the authoritative underlying commands.
+
+```bash
+# Primary entry points (Makefile)
+make setup        # install deps, build spec compiler + codebase indexer, compile both
+make dev          # start OPC desktop (Vite + Tauri, hot-reload)
+make dev-platform # stagecraft + deployd-api in background
+make ci           # full local CI parity (rust + tools + desktop + stagecraft)
+make registry     # recompile spec registry + codebase index
+```
+
 ```bash
 # Compile specs
 cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
