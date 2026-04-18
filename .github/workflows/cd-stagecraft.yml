@@ -29,7 +29,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
-  ENCORE_VERSION: '1.46.8'
+  ENCORE_VERSION: '1.56.6'
 
 jobs:
   # ── CI gate ────────────────────────────────────────────────
