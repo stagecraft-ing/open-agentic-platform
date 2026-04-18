@@ -1,6 +1,5 @@
 image:
-  # TODO: Set to your GHCR (or other registry) image path
-  repository: ghcr.io/your-org/open-agentic-platform/stagecraft
+  repository: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
   tag: latest
 
 imagePullSecrets:

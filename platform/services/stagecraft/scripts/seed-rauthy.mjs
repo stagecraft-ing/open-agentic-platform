@@ -325,7 +325,11 @@ async function main() {
   const started = Date.now();
   log(`Rauthy seeder starting — target ${RAUTHY_URL}`);
 
-  await ensureGithubProvider();
+  // Upstream GitHub auth provider is configured manually via the Rauthy admin
+  // UI. Rauthy 0.35 does not expose the provider list/create bulk API under
+  // /auth/v1/providers for API-Key callers, so ensureGithubProvider() is
+  // intentionally skipped here. See seed-rauthy.mjs history for the retired
+  // implementation.
   await ensureUserAttributes();
   await ensureOapScope();
   await ensureClientScopeGrants();

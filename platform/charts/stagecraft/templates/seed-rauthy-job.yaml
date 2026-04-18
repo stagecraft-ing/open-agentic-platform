@@ -1,3 +1,4 @@
+{{- if .Values.seedRauthy.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -33,7 +34,7 @@ spec:
         - name: seed-rauthy
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: IfNotPresent
-          command: ["node", "/app/scripts/seed-rauthy.mjs"]
+          command: ["node", "/workspace/platform/services/stagecraft/scripts/seed-rauthy.mjs"]
           envFrom:
             - secretRef:
                 name: stagecraft-api-secrets
@@ -57,3 +58,4 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+{{- end }}

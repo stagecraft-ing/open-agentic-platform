@@ -316,7 +316,7 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=GITHUB_APP_ID="$GITHUB_APP_ID" \
   --from-literal=GITHUB_APP_PRIVATE_KEY="$GITHUB_APP_PRIVATE_KEY" \
   --from-literal=GITHUB_WEBHOOK_SECRET="$GITHUB_WEBHOOK_SECRET" \
-  --from-literal=DB_PASSWORD="$POSTGRES_PASSWORD" \
+  --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
   --from-literal=STAGECRAFT_DB_URL="$STAGECRAFT_DB_URL" \
   --from-literal=SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}" \
   --dry-run=client -o yaml | kubectl apply -f -

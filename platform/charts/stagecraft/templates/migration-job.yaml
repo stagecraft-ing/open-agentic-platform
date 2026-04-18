@@ -31,10 +31,10 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: IfNotPresent
-          command: ["node", "/app/scripts/migrate.mjs"]
+          command: ["node", "/workspace/platform/services/stagecraft/scripts/migrate.mjs"]
           env:
             - name: MIGRATIONS_DIR
-              value: "/app/api/db/migrations"
+              value: "/workspace/platform/services/stagecraft/api/db/migrations"
           envFrom:
             - secretRef:
                 name: stagecraft-api-secrets

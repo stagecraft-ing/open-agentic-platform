@@ -15,6 +15,13 @@ serviceAccount:
   name: stagecraft-api-sa
   annotations: {}
 
+# Rauthy seed hook (spec 106 FR-002). Disabled by default until the GHCR
+# image ships the Rauthy 0.35 API compatibility fix; re-enable per-env in
+# values-<env>.yaml or via --set seedRauthy.enabled=true once the image
+# contains the updated scripts/seed-rauthy.mjs.
+seedRauthy:
+  enabled: false
+
 podLabels: {}
 
 secrets:
