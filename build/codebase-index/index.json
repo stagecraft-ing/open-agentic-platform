@@ -1,38 +1,13 @@
 {
   "build": {
-    "contentHash": "33cc79245ddee69f4c09d0e6e5238a9f5b4c1a850eafeb43901ea1bd915f4e06",
+    "contentHash": "a8efdf606624724a660704bad35db21d6d9e3c9470968bb904c531c8c6fb5a11",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
     "errors": [],
-    "warnings": [
-      {
-        "code": "I-101",
-        "message": "spec \"103-init-protocol-governed-reads\" declares implements path \".claude/rules/governed-artifact-reads.md\" which is not a known package, adapter, or directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"103-init-protocol-governed-reads\" declares implements path \"AGENTS.md\" which is not a known package, adapter, or directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"104-makefile-ci-parity-contract\" declares implements path \".claude/commands/validate-and-fix.md\" which is not a known package, adapter, or directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"104-makefile-ci-parity-contract\" declares implements path \".github/workflows/ci-parity.yml\" which is not a known package, adapter, or directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"104-makefile-ci-parity-contract\" declares implements path \"Makefile\" which is not a known package, adapter, or directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"105-scripts-to-binaries-migration\" declares implements path \"Makefile\" which is not a known package, adapter, or directory"
-      }
-    ]
+    "warnings": []
   },
   "factory": [
     {
@@ -2632,7 +2607,7 @@
           }
         ],
         "specId": "103-init-protocol-governed-reads",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2658,7 +2633,7 @@
           }
         ],
         "specId": "104-makefile-ci-parity-contract",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2679,7 +2654,25 @@
           }
         ],
         "specId": "105-scripts-to-binaries-migration",
-        "specStatus": "draft"
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "080",
+          "087"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/rauthy",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "106-rauthy-native-oidc-and-membership",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [],

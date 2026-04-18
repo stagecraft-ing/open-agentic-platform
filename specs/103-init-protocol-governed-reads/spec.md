@@ -1,8 +1,8 @@
 ---
 id: "103-init-protocol-governed-reads"
 title: "Init Protocol Governed Reads — Consumer Binaries Over Ad-Hoc Parsing"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-16"
 kind: governance

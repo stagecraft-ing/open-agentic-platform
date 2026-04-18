@@ -2,8 +2,8 @@
 id: "106-rauthy-native-oidc-and-membership"
 title: "Rauthy-Native OIDC + Layered Membership Resolution (App Installation + PAT)"
 feature_branch: "feat/106-rauthy-native-oidc-and-membership"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-17"
 kind: platform

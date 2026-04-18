@@ -1,8 +1,8 @@
 ---
 id: "105-scripts-to-binaries-migration"
 title: "Retire scripts/ — Migrate To Rust Binaries Or Make Recipes By Nature"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-16"
 kind: migration

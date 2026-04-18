@@ -1,8 +1,8 @@
 ---
 id: "104-makefile-ci-parity-contract"
 title: "Makefile as CI Parity Contract — Drift-Checked Local Mirror of GitHub Actions"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-16"
 kind: governance
