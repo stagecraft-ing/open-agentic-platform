@@ -39,7 +39,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              rm -f /var/lib/deployd/data/state_machine/lock
+              rm -rf /var/lib/deployd/data/*
               exec /usr/local/bin/deployd-api
           ports:
             - containerPort: 8080
