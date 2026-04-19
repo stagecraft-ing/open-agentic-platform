@@ -24,3 +24,9 @@ oidc:
   # Injected by setup.sh via --set from $DOMAIN
   deploydAudience: ""
   deploydScope: "deployd:deploy"
+
+# Rauthy seed hook (spec 106 FR-002). Declares the oap_* custom user
+# attributes and the `oap` scope. Without this, Rauthy's user_attr_values
+# INSERT hits a FOREIGN KEY violation because user_attr_config is empty.
+seedRauthy:
+  enabled: true

@@ -62,16 +62,19 @@ const ADMIN_AUTH = buildAdminAuthHeader();
 // Attribute names are stable identifiers consumed by `validateJwt` and the
 // membership resolver. Descriptions are for the Rauthy admin UI only.
 // ---------------------------------------------------------------------------
+// Rauthy 0.35 validates `desc` against `[a-zA-Z0-9À-ÿ-\s]{2,128}`. Keep these
+// strings free of punctuation beyond hyphens and whitespace — no parens,
+// pipes, slashes, dots, or colons — or the POST will 400 on every seed.
 const OAP_ATTRS = [
-  { name: "oap_user_id", desc: "OAP internal user id (uuid)" },
+  { name: "oap_user_id", desc: "OAP internal user id uuid" },
   { name: "oap_org_id", desc: "Selected OAP organisation id" },
   { name: "oap_org_slug", desc: "Selected OAP organisation slug" },
   { name: "oap_workspace_id", desc: "Active OAP workspace id" },
   { name: "github_login", desc: "GitHub handle from upstream IDP" },
-  { name: "idp_provider", desc: "Upstream IDP type (github|oidc|...)" },
-  { name: "idp_login", desc: "Upstream IDP login/display name" },
+  { name: "idp_provider", desc: "Upstream IDP type github or oidc" },
+  { name: "idp_login", desc: "Upstream IDP login or display name" },
   { name: "avatar_url", desc: "User avatar URL" },
-  { name: "platform_role", desc: "OAP platform role (owner|admin|member)" },
+  { name: "platform_role", desc: "OAP platform role owner admin or member" },
 ];
 
 const OAP_SCOPE = "oap";
