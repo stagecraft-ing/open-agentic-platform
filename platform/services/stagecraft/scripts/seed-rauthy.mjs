@@ -200,8 +200,11 @@ async function ensureUserAttributes() {
       log(`   created attr ${attr.name}`);
       continue;
     }
-    // 409 or any "already exists"-style error → idempotent no-op.
-    if (resp.status === 409 || /already exists|duplicate/i.test(resp.text)) {
+    // 409 or any "already exist(s)"-style error → idempotent no-op.
+    // Rauthy 0.35 returns `"User attribute config does already exist"` for
+    // duplicate POSTs — note no trailing `s` on `exist` — so the regex has
+    // to accept either form.
+    if (resp.status === 409 || /already\s+exists?|duplicate/i.test(resp.text)) {
       log(`   attr ${attr.name} already present`);
       continue;
     }
