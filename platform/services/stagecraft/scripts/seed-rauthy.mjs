@@ -264,11 +264,19 @@ async function ensureOapScope() {
 }
 
 // ---------------------------------------------------------------------------
-// Spec 107 — converge `redirect_uris` on stagecraft/OPC OIDC clients.
-// Runs before the scope-grant step so that scope grants target a client
-// with a correct URI allow-list. Merge-over-replace: existing URIs
-// (operator-added localhost entries, SAML test callbacks, etc.) are left
-// alone; only missing targets are appended.
+// Spec 107 — converge `redirect_uris` AND `flows_enabled` on the
+// stagecraft/OPC OIDC clients.
+//
+// `redirect_uris` were converged from spec 107; `flows_enabled` was added
+// after first-login broke with `400 'refresh_token' flow is not allowed for
+// this client` because `mintSessionForOrg` refreshes the Rauthy token right
+// after the code exchange (spec 106 FR-004 step "refresh #2"). A manually
+// created Rauthy client defaults to authorization_code only, so the seeder
+// MUST converge the flow list to avoid operator drift.
+//
+// Merge-over-replace on both fields: existing entries (operator-added
+// localhost URIs, password/client_credentials flows used by M2M scripts)
+// are left alone; only missing targets are appended.
 // ---------------------------------------------------------------------------
 
 function computeTargetRedirectUris(clientId) {
@@ -280,6 +288,16 @@ function computeTargetRedirectUris(clientId) {
   }
   if (clientId === OPC_CLIENT_ID) {
     return [OPC_REDIRECT_URI];
+  }
+  return [];
+}
+
+// Flow names come from Rauthy 0.35's `flows_enabled: Vec<String>`. Both the
+// stagecraft-server and OPC clients drive the spec 106 FR-004 callback which
+// does authorization_code + refresh_token, so both flows are required.
+function computeTargetFlowsEnabled(clientId) {
+  if (clientId === RAUTHY_CLIENT_ID || clientId === OPC_CLIENT_ID) {
+    return ["authorization_code", "refresh_token"];
   }
   return [];
 }
@@ -297,8 +315,8 @@ async function fetchClients() {
   return Array.isArray(list.json) ? list.json : [];
 }
 
-async function ensureClientRedirectUris() {
-  log("[4/6] Converging `redirect_uris` on stagecraft/OPC OIDC clients");
+async function ensureClientConfig() {
+  log("[4/6] Converging `redirect_uris` + `flows_enabled` on stagecraft/OPC OIDC clients");
 
   const clients = await fetchClients();
 
@@ -310,7 +328,7 @@ async function ensureClientRedirectUris() {
         `create it in the Rauthy admin UI before running the seeder`,
     );
   }
-  await convergeRedirectUris(server);
+  await convergeClient(server);
 
   // OPC — optional, warn-and-skip when missing
   if (OPC_CLIENT_ID) {
@@ -321,38 +339,47 @@ async function ensureClientRedirectUris() {
           `(desktop app may not be provisioned here)`,
       );
     } else {
-      await convergeRedirectUris(opc);
+      await convergeClient(opc);
     }
   }
 }
 
-async function convergeRedirectUris(client) {
-  const target = computeTargetRedirectUris(client.id);
-  if (target.length === 0) return;
+async function convergeClient(client) {
+  const targetUris = computeTargetRedirectUris(client.id);
+  const targetFlows = computeTargetFlowsEnabled(client.id);
+  if (targetUris.length === 0 && targetFlows.length === 0) return;
 
-  const existing = Array.isArray(client.redirect_uris)
+  const existingUris = Array.isArray(client.redirect_uris)
     ? client.redirect_uris
     : [];
-  const missing = diffRequired(existing, target);
-  if (missing.length === 0) {
+  const existingFlows = Array.isArray(client.flows_enabled)
+    ? client.flows_enabled
+    : [];
+  const missingUris = diffRequired(existingUris, targetUris);
+  const missingFlows = diffRequired(existingFlows, targetFlows);
+
+  if (missingUris.length === 0 && missingFlows.length === 0) {
     log(
-      `   client ${client.id} redirect_uris already cover target (${existing.length} entries)`,
+      `   client ${client.id} already covers target ` +
+        `(redirect_uris=${existingUris.length}, flows_enabled=${existingFlows.length})`,
     );
     return;
   }
 
   const update = await rauthy("PUT", `/auth/v1/clients/${client.id}`, {
     ...client,
-    redirect_uris: [...existing, ...missing],
+    redirect_uris: [...existingUris, ...missingUris],
+    flows_enabled: [...existingFlows, ...missingFlows],
   });
   if (!update.ok) {
     die(
-      `Failed to converge redirect_uris for ${client.id}: ${update.status} ${update.text.slice(0, 300)}`,
+      `Failed to converge client ${client.id}: ${update.status} ${update.text.slice(0, 300)}`,
     );
   }
-  log(
-    `   client ${client.id} redirect_uris converged (added ${missing.length}: ${missing.join(", ")})`,
-  );
+  const parts = [];
+  if (missingUris.length) parts.push(`redirect_uris +${missingUris.join(",")}`);
+  if (missingFlows.length) parts.push(`flows_enabled +${missingFlows.join(",")}`);
+  log(`   client ${client.id} converged (${parts.join("; ")})`);
 }
 
 // ---------------------------------------------------------------------------
@@ -424,12 +451,20 @@ async function validateSeed() {
   if (!server) {
     die(`Validation: stagecraft-server client ${RAUTHY_CLIENT_ID} missing after seed`);
   }
-  const required = computeTargetRedirectUris(RAUTHY_CLIENT_ID);
-  const existing = Array.isArray(server.redirect_uris) ? server.redirect_uris : [];
-  const stillMissing = diffRequired(existing, required);
-  if (stillMissing.length) {
+  const requiredUris = computeTargetRedirectUris(RAUTHY_CLIENT_ID);
+  const existingUris = Array.isArray(server.redirect_uris) ? server.redirect_uris : [];
+  const missingUris = diffRequired(existingUris, requiredUris);
+  if (missingUris.length) {
     die(
-      `Validation: redirect_uris for ${RAUTHY_CLIENT_ID} missing ${stillMissing.join(", ")} after seed`,
+      `Validation: redirect_uris for ${RAUTHY_CLIENT_ID} missing ${missingUris.join(", ")} after seed`,
+    );
+  }
+  const requiredFlows = computeTargetFlowsEnabled(RAUTHY_CLIENT_ID);
+  const existingFlows = Array.isArray(server.flows_enabled) ? server.flows_enabled : [];
+  const missingFlows = diffRequired(existingFlows, requiredFlows);
+  if (missingFlows.length) {
+    die(
+      `Validation: flows_enabled for ${RAUTHY_CLIENT_ID} missing ${missingFlows.join(", ")} after seed`,
     );
   }
 
@@ -450,7 +485,7 @@ async function main() {
   // implementation.
   await ensureUserAttributes();
   await ensureOapScope();
-  await ensureClientRedirectUris();
+  await ensureClientConfig();
   await ensureClientScopeGrants();
   await validateSeed();
 
