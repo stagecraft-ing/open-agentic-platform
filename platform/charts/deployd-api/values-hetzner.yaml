@@ -24,3 +24,9 @@ oidc:
   audience: ""
 
 requiredScope: "deployd:deploy"
+
+# Stealth stage: use emptyDir for hiqlite state. Deployment history is lost on
+# pod restart, which is acceptable pre-GA. Flip to true and set a size/class
+# when persistent deployment history is required.
+persistence:
+  enabled: false
