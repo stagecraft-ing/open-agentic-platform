@@ -54,6 +54,17 @@ spec:
               value: {{ include "rauthy.pubUrl" . | quote }}
             - name: RP_ORIGIN
               value: {{ printf "https://%s:443" (include "rauthy.pubUrl" .) | quote }}
+            # Rauthy defaults refresh-token `nbf` to `iat + access_token_lifetime - 60`
+            # so a freshly issued refresh token is deliberately "not valid yet" until
+            # the access token is about to expire (token_set.rs:389-394). The
+            # stagecraft spec 106 callback refreshes immediately after the code
+            # exchange to materialise the `oap` scope custom claims, which falls
+            # inside that lockout and fails with
+            #   401 JwtToken "Token is not valid yet"
+            # because refresh validation uses clock-skew=0 (validation.rs:70).
+            # Disable the nbf offset so refresh is valid from `iat` onwards.
+            - name: DISABLE_REFRESH_TOKEN_NBF
+              value: {{ .Values.access.disableRefreshTokenNbf | default true | quote }}
             {{- if .Values.raft.existingSecret }}
             - name: SECRET_RAFT
               valueFrom:

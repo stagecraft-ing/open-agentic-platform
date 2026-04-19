@@ -50,6 +50,15 @@ bootstrap:
   existingSecret: "rauthy-secrets"
   existingSecretKey: "admin-password"
 
+access:
+  # Rauthy defaults refresh-token `nbf = iat + access_token_lifetime - 60`,
+  # validated with clock-skew=0. Stagecraft's spec 106 callback refreshes
+  # immediately after the code exchange to materialise the `oap` scope
+  # custom claims, which lands inside that lockout and fails with
+  # `401 JwtToken "Token is not valid yet"`. Keep this `true` so refresh
+  # tokens are valid from `iat` onwards.
+  disableRefreshTokenNbf: true
+
 resources:
   requests:
     cpu: 50m
