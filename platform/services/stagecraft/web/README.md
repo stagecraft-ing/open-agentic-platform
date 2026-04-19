@@ -55,6 +55,8 @@ Open http://localhost:3000. Frontend edits hot-reload; SSR loaders reach the mir
 - Rauthy `stagecraft-server` client → add `http://localhost:3000/auth/oidc/callback` and `http://localhost:3000/auth/rauthy/callback`
 - Rauthy GitHub upstream provider → add `http://localhost:3000/auth/rauthy/callback` (spec 106)
 
+> **Note (spec 107).** Production redirect URIs (`${APP_BASE_URL}/auth/rauthy/callback` and `${APP_BASE_URL}/auth/oidc/callback`) are now managed automatically by `scripts/seed-rauthy.mjs` on every Helm release. The seeder merges these into the `stagecraft-server` client's allow-list without touching other entries, so the localhost URIs you add here for dev survive deploys. OPC's `opc://auth/callback` is similarly converged when `OPC_CLIENT_ID` is set.
+
 To keep the pod's cluster-domain `APP_BASE_URL` instead (e.g. for testing the deployed origin), run `DEV_APP_BASE_URL= make dev-stagecraft-hetzner` — empty override forces the compile script's pod-env fallback.
 
 ## Build
