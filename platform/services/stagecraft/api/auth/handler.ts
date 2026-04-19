@@ -95,13 +95,13 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
   }
 
   if (!token) {
-    throw new Error("No authentication token provided");
+    throw APIError.unauthenticated("No authentication token provided");
   }
 
   // Validate Rauthy JWT — the only accepted auth mechanism
   const claims = await validateJwt(token);
   if (!claims) {
-    throw new Error("Invalid or expired JWT");
+    throw APIError.unauthenticated("Invalid or expired JWT");
   }
 
   // FR-025: reject disabled users even if their JWT is still valid
