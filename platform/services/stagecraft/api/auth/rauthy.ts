@@ -286,28 +286,29 @@ export async function provisionRauthyUser(opts: {
 /**
  * Write the full OAP custom-attribute set for a Rauthy user.
  *
- * Uses `PUT /auth/v1/users/{id}/attr` which accepts
- * `{ values: { <attr_name>: <string_value> } }` (Rauthy 0.35). Called on
- * first login and whenever the user's org, workspace, or role context
- * changes. The attribute names must match the ones seeded in FR-002 and
- * the ones mapped by the `oap` scope.
+ * Uses `PUT /auth/v1/users/{id}/attr`. Rauthy 0.35 expects
+ * `UserAttrValuesUpdateRequest` = `{ values: [{ key, value }, ...] }` where
+ * `value` is any `serde_json::Value` (we send strings). Called on first
+ * login and whenever the user's org, workspace, or role context changes.
+ * The attribute keys must match the ones seeded in FR-002 and the ones
+ * mapped by the `oap` scope.
  */
 export async function setRauthyUserAttributes(rauthyUserId: string, attrs: OapUserAttributes): Promise<void> {
   const baseUrl = rauthyUrl();
   const adminAuth = buildRauthyAdminAuth();
 
-  // Rauthy stores attribute values as strings; empty strings are allowed.
-  const values: Record<string, string> = {
-    oap_user_id: attrs.oap_user_id,
-    oap_org_id: attrs.oap_org_id,
-    oap_org_slug: attrs.oap_org_slug,
-    oap_workspace_id: attrs.oap_workspace_id ?? "",
-    github_login: attrs.github_login ?? "",
-    idp_provider: attrs.idp_provider ?? "",
-    idp_login: attrs.idp_login ?? "",
-    avatar_url: attrs.avatar_url ?? "",
-    platform_role: attrs.platform_role,
-  };
+  // Rauthy stores attribute values as JSON; empty strings are allowed.
+  const values: Array<{ key: string; value: string }> = [
+    { key: "oap_user_id", value: attrs.oap_user_id },
+    { key: "oap_org_id", value: attrs.oap_org_id },
+    { key: "oap_org_slug", value: attrs.oap_org_slug },
+    { key: "oap_workspace_id", value: attrs.oap_workspace_id ?? "" },
+    { key: "github_login", value: attrs.github_login ?? "" },
+    { key: "idp_provider", value: attrs.idp_provider ?? "" },
+    { key: "idp_login", value: attrs.idp_login ?? "" },
+    { key: "avatar_url", value: attrs.avatar_url ?? "" },
+    { key: "platform_role", value: attrs.platform_role },
+  ];
 
   const resp = await fetch(`${baseUrl}/auth/v1/users/${rauthyUserId}/attr`, {
     method: "PUT",
