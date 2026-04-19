@@ -11,6 +11,9 @@ export interface PendingDesktopFlow {
   redirectUri: string;
   desktopState: string; // The state OPC sent (returned in the deep-link)
   createdAt: number;
+  // PKCE verifier for the stagecraft ↔ Rauthy leg (spec 106 sequence step 4).
+  // The `codeChallenge` field above is the OPC ↔ stagecraft PKCE.
+  rauthyCodeVerifier: string;
 }
 
 export interface PendingDesktopSession {

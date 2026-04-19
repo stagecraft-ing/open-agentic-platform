@@ -15,7 +15,7 @@
 
 import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
-import { createVerify } from "crypto";
+import { createHash, createVerify, randomBytes } from "crypto";
 import { errorForLog } from "./errorLog";
 import { extractOapClaims, type OapClaims } from "./rauthy-pure";
 
@@ -332,8 +332,16 @@ export async function setRauthyUserAttributes(rauthyUserId: string, attrs: OapUs
 /**
  * Exchange an authorization code for Rauthy tokens.
  * Used in the OAuth callback after Rauthy-driven login.
+ *
+ * Spec 106 sequence diagram step 4: the token exchange MUST carry the
+ * PKCE `code_verifier` that matches the `code_challenge` sent at the
+ * authorize step. The `stagecraft-server` Rauthy client requires PKCE.
  */
-export async function exchangeCodeForTokens(code: string, redirectUri: string): Promise<RauthyTokens> {
+export async function exchangeCodeForTokens(
+  code: string,
+  redirectUri: string,
+  codeVerifier?: string
+): Promise<RauthyTokens> {
   const baseUrl = rauthyUrl();
 
   const body = new URLSearchParams();
@@ -342,6 +350,7 @@ export async function exchangeCodeForTokens(code: string, redirectUri: string): 
   body.set("redirect_uri", redirectUri);
   body.set("client_id", rauthyClientId());
   body.set("client_secret", rauthyClientSecret());
+  if (codeVerifier) body.set("code_verifier", codeVerifier);
 
   const resp = await fetch(`${baseUrl}/auth/v1/oidc/token`, {
     method: "POST",
@@ -355,6 +364,16 @@ export async function exchangeCodeForTokens(code: string, redirectUri: string): 
   }
 
   return (await resp.json()) as RauthyTokens;
+}
+
+/**
+ * Generate an RFC 7636 PKCE pair (S256). The verifier is a 32-byte
+ * base64url-encoded random value; the challenge is `base64url(sha256(verifier))`.
+ */
+export function generatePkcePair(): { codeVerifier: string; codeChallenge: string } {
+  const codeVerifier = randomBytes(32).toString("base64url");
+  const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
+  return { codeVerifier, codeChallenge };
 }
 
 /**

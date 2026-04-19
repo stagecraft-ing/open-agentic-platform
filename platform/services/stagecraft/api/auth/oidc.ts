@@ -30,6 +30,7 @@ import { eq, and } from "drizzle-orm";
 import {
   buildAuthorizationUrl,
   exchangeCodeForTokens,
+  generatePkcePair,
   provisionRauthyUser,
   validateJwt,
   type RauthyTokens,
@@ -53,6 +54,7 @@ export interface PendingOidcState {
   providerId: string;
   orgId: string;
   createdAt: number;
+  codeVerifier: string;
 }
 
 export const pendingOidcStates = new Map<string, PendingOidcState>();
@@ -171,10 +173,12 @@ export const oidcLogin = api.raw(
 
     // Generate CSRF state with provider context
     const state = crypto.randomBytes(32).toString("base64url");
+    const { codeVerifier, codeChallenge } = generatePkcePair();
     pendingOidcStates.set(state, {
       providerId: providerRow.id,
       orgId: providerRow.orgId,
       createdAt: Date.now(),
+      codeVerifier,
     });
 
     // Build Rauthy authorization URL with upstream provider hint
@@ -183,6 +187,8 @@ export const oidcLogin = api.raw(
       redirectUri,
       state,
       scopes: providerRow.scopes.split(" ").filter(Boolean),
+      codeChallenge,
+      codeChallengeMethod: "S256",
     });
 
     // Append login_hint (email) and upstream_provider hint if available
@@ -257,7 +263,8 @@ export const oidcCallback = api.raw(
     try {
       rauthyTokens = await exchangeCodeForTokens(
         code,
-        `${appBaseUrl()}/auth/oidc/callback`
+        `${appBaseUrl()}/auth/oidc/callback`,
+        pendingState.codeVerifier
       );
     } catch (err) {
       log.error("OIDC token exchange failed", { error: errorForLog(err) });

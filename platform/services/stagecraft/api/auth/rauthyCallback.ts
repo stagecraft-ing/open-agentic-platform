@@ -29,6 +29,7 @@ import { eq, and } from "drizzle-orm";
 import {
   buildAuthorizationUrl,
   exchangeCodeForTokens,
+  generatePkcePair,
   provisionRauthyUser,
   type RauthyTokens,
 } from "./rauthy";
@@ -54,6 +55,7 @@ import { errorForLog } from "./errorLog";
 
 interface PendingRauthyState {
   createdAt: number;
+  codeVerifier: string;
 }
 
 /** CSRF state for /auth/rauthy web entry. */
@@ -109,13 +111,16 @@ export const rauthyLogin = api.raw(
     cleanupStaleStates();
 
     const state = crypto.randomBytes(32).toString("base64url");
-    pendingRauthyStates.set(state, { createdAt: Date.now() });
+    const { codeVerifier, codeChallenge } = generatePkcePair();
+    pendingRauthyStates.set(state, { createdAt: Date.now(), codeVerifier });
 
     const url = buildAuthorizationUrl({
       redirectUri: `${appBaseUrl()}/auth/rauthy/callback`,
       state,
       scopes: ["openid", "profile", "email", "oap"],
       idpHint: "github",
+      codeChallenge,
+      codeChallengeMethod: "S256",
     });
 
     resp.writeHead(302, { Location: url });
@@ -152,22 +157,25 @@ export const rauthyCallback = api.raw(
     // Detect flow type — desktop flows are registered in pendingDesktopFlows
     // by /auth/desktop/authorize; web flows come from /auth/rauthy.
     const desktopFlow = consumeDesktopFlow(state);
-    const isWebFlow = pendingRauthyStates.has(state);
+    const webFlowState = pendingRauthyStates.get(state);
 
-    if (!desktopFlow && !isWebFlow) {
+    if (!desktopFlow && !webFlowState) {
       resp.writeHead(400, { "Content-Type": "text/plain" });
       resp.end("Invalid or expired state parameter");
       return;
     }
 
-    if (isWebFlow) pendingRauthyStates.delete(state);
+    if (webFlowState) pendingRauthyStates.delete(state);
+
+    const codeVerifier = desktopFlow?.rauthyCodeVerifier ?? webFlowState?.codeVerifier;
 
     // Step 1: exchange code for JWT #1 + refresh #1
     let tokens: RauthyTokens;
     try {
       tokens = await exchangeCodeForTokens(
         code,
-        `${appBaseUrl()}/auth/rauthy/callback`
+        `${appBaseUrl()}/auth/rauthy/callback`,
+        codeVerifier
       );
     } catch (err) {
       log.error("Rauthy token exchange failed", { error: errorForLog(err) });

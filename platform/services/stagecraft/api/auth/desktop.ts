@@ -24,7 +24,7 @@ import { applyRateLimit, checkRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import { oidcProviders } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-import { buildAuthorizationUrl, refreshTokens } from "./rauthy";
+import { buildAuthorizationUrl, generatePkcePair, refreshTokens } from "./rauthy";
 import {
   pendingDesktopFlows,
   pendingDesktopSessions,
@@ -135,23 +135,28 @@ export const desktopAuthorize = api.raw(
 
       if (providerRow) {
         const rauthyState = crypto.randomBytes(32).toString("base64url");
+        const rauthyPkce = generatePkcePair();
         pendingDesktopFlows.set(rauthyState, {
           codeChallenge,
           codeChallengeMethod,
           redirectUri,
           desktopState,
           createdAt: Date.now(),
+          rauthyCodeVerifier: rauthyPkce.codeVerifier,
         });
         pendingOidcStates.set(rauthyState, {
           providerId: providerRow.id,
           orgId: providerRow.orgId,
           createdAt: Date.now(),
+          codeVerifier: rauthyPkce.codeVerifier,
         });
 
         const authUrl = buildAuthorizationUrl({
           redirectUri: `${appBaseUrl()}/auth/oidc/callback`,
           state: rauthyState,
           scopes: providerRow.scopes.split(" ").filter(Boolean),
+          codeChallenge: rauthyPkce.codeChallenge,
+          codeChallengeMethod: "S256",
         });
 
         const authUrlObj = new URL(authUrl);
@@ -168,12 +173,14 @@ export const desktopAuthorize = api.raw(
     // unified /auth/rauthy/callback (spec 106 FR-004) detects desktop state
     // via pendingDesktopFlows and finalises the deep-link back to OPC.
     const rauthyState = crypto.randomBytes(32).toString("base64url");
+    const rauthyPkce = generatePkcePair();
     pendingDesktopFlows.set(rauthyState, {
       codeChallenge,
       codeChallengeMethod,
       redirectUri,
       desktopState,
       createdAt: Date.now(),
+      rauthyCodeVerifier: rauthyPkce.codeVerifier,
     });
     // The rauthyCallback handler also consults pendingRauthyStates to
     // distinguish web vs desktop. Desktop flows MUST not be present there;
@@ -186,6 +193,8 @@ export const desktopAuthorize = api.raw(
       state: rauthyState,
       scopes: ["openid", "profile", "email", "oap"],
       idpHint: "github",
+      codeChallenge: rauthyPkce.codeChallenge,
+      codeChallengeMethod: "S256",
     });
 
     resp.writeHead(302, { Location: authUrl });
