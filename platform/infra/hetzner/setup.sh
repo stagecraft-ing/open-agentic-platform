@@ -348,18 +348,21 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   info "Syncing secrets to GitHub Actions..."
   KUBECONFIG_B64=$(base64 < "$KUBECONFIG_PATH" | tr -d '\n')
 
-  gh secret set KUBECONFIG_HETZNER --body "$KUBECONFIG_B64" 2>/dev/null && ok "KUBECONFIG_HETZNER synced" || warn "Failed to sync KUBECONFIG_HETZNER"
-  gh secret set WEBHOOK_SECRET --body "$GITHUB_WEBHOOK_SECRET" 2>/dev/null && ok "WEBHOOK_SECRET synced" || warn "Failed to sync WEBHOOK_SECRET"
+  # Pin --repo so multiple git remotes don't trigger an interactive picker.
+  GH_REPO="${GH_REPO:-stagecraft-ing/open-agentic-platform}"
+
+  gh secret set KUBECONFIG_HETZNER --repo "$GH_REPO" --body "$KUBECONFIG_B64" 2>/dev/null && ok "KUBECONFIG_HETZNER synced" || warn "Failed to sync KUBECONFIG_HETZNER"
+  gh secret set WEBHOOK_SECRET --repo "$GH_REPO" --body "$GITHUB_WEBHOOK_SECRET" 2>/dev/null && ok "WEBHOOK_SECRET synced" || warn "Failed to sync WEBHOOK_SECRET"
 
   if [ -n "${GHCR_PAT:-}" ]; then
-    gh secret set GHCR_PAT --body "$GHCR_PAT" 2>/dev/null && ok "GHCR_PAT synced" || warn "Failed to sync GHCR_PAT"
+    gh secret set GHCR_PAT --repo "$GH_REPO" --body "$GHCR_PAT" 2>/dev/null && ok "GHCR_PAT synced" || warn "Failed to sync GHCR_PAT"
   fi
 else
   warn "gh CLI not available or not authenticated — skipping GitHub Actions secret sync"
   echo "  To sync manually:"
-  echo "    gh secret set KUBECONFIG_HETZNER < <(base64 < $KUBECONFIG_PATH)"
-  echo "    gh secret set WEBHOOK_SECRET --body \"\$GITHUB_WEBHOOK_SECRET\""
-  echo "    gh secret set GHCR_PAT --body \"\$GHCR_PAT\""
+  echo "    gh secret set KUBECONFIG_HETZNER --repo stagecraft-ing/open-agentic-platform < <(base64 < $KUBECONFIG_PATH)"
+  echo "    gh secret set WEBHOOK_SECRET --repo stagecraft-ing/open-agentic-platform --body \"\$GITHUB_WEBHOOK_SECRET\""
+  echo "    gh secret set GHCR_PAT --repo stagecraft-ing/open-agentic-platform --body \"\$GHCR_PAT\""
 fi
 
 # ---------------------------------------------------------------------------
