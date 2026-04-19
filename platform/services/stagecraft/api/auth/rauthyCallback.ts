@@ -192,12 +192,27 @@ export const rauthyCallback = api.raw(
     const rauthySub = typeof idClaims.sub === "string" ? idClaims.sub : "";
     const email = typeof idClaims.email === "string" ? idClaims.email.toLowerCase() : "";
     const name = typeof idClaims.name === "string" ? idClaims.name : "";
-    const githubLogin = typeof idClaims.github_login === "string" ? idClaims.github_login : "";
     const avatarUrl = typeof idClaims.picture === "string" ? idClaims.picture : "";
-    // `preferred_username` is Rauthy's standard handle claim.
+    // `preferred_username` is Rauthy's standard handle claim. For the
+    // `/auth/rauthy` flow it is populated from the upstream GitHub login
+    // (the route hard-codes `idp_hint=github`).
     const idpLogin = typeof idClaims.preferred_username === "string"
       ? idClaims.preferred_username
-      : githubLogin;
+      : "";
+
+    // `github_login` is a custom OAP attribute emitted under `payload.custom.*`
+    // by the `oap` scope (spec 106 FR-002). On first login it is unpopulated
+    // because `setRauthyUserAttributes` runs only after membership resolution
+    // succeeds (`sessionMint.ts`). To break the chicken-and-egg, fall back to
+    // `preferred_username` which, for the GitHub-via-Rauthy path, already
+    // carries the GitHub handle. Top-level `github_login` is also accepted
+    // for legacy admin-mint sessions during the spec 106 cutover window.
+    const customClaims = (idClaims.custom as Record<string, unknown> | undefined) ?? {};
+    const githubLoginFromScope =
+      typeof customClaims.github_login === "string" ? customClaims.github_login : "";
+    const githubLoginTopLevel =
+      typeof idClaims.github_login === "string" ? idClaims.github_login : "";
+    const githubLogin = githubLoginFromScope || githubLoginTopLevel || idpLogin;
 
     if (!email || !rauthySub) {
       log.error("Rauthy ID token missing required claims", {
