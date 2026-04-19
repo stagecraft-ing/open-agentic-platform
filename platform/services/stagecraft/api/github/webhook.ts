@@ -300,7 +300,15 @@ async function handleInstallationEvent(p: any): Promise<void> {
       })
       .onConflictDoNothing(); // unique(org_id, slug)
 
-    // Upsert github_installations row
+    // Upsert github_installations row.
+    //
+    // Conflict target is github_org_id, not installation_id: on uninstall we
+    // soft-transition to state=deleted and keep the row, so a re-install on
+    // the same org creates a row with the same github_org_id but a new
+    // installation_id. Targeting installation_id would miss the stale
+    // deleted row and the INSERT would violate the github_org_id UNIQUE
+    // constraint instead. installationId is re-set here so the new GitHub
+    // installation ID is captured on re-install.
     await db
       .insert(githubInstallations)
       .values({
@@ -313,8 +321,10 @@ async function handleInstallationEvent(p: any): Promise<void> {
         installedBy,
       })
       .onConflictDoUpdate({
-        target: githubInstallations.installationId,
+        target: githubInstallations.githubOrgId,
         set: {
+          installationId: installId,
+          githubOrgLogin,
           installationState: "active",
           allowedRepos,
           orgId,
