@@ -45,7 +45,9 @@ jobs:
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
+          toolchain: '1.95.0'
           targets: ${{ matrix.target }}
+          components: clippy, rustfmt
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
@@ -96,7 +98,9 @@ jobs:
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
+          toolchain: '1.95.0'
           targets: aarch64-unknown-linux-gnu
+          components: clippy, rustfmt
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
@@ -159,7 +163,9 @@ jobs:
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
+          toolchain: '1.95.0'
           targets: ${{ matrix.target }}
+          components: clippy, rustfmt
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
