@@ -26,14 +26,20 @@ function getBaseUrl(request: Request): string {
 async function apiFetch(request: Request, path: string, init?: RequestInit) {
   const base = getBaseUrl(request);
   const cookie = request.headers.get("Cookie") ?? "";
-  const res = await fetch(`${base}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(cookie && { Cookie: cookie }),
-      ...init?.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${base}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookie && { Cookie: cookie }),
+        ...init?.headers,
+      },
+    });
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new Error(`Network error calling ${path}: ${cause}`);
+  }
   if (!res.ok) {
     const body = await res.text();
     throw new Error(body || `API error: ${res.status}`);

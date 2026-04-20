@@ -341,14 +341,30 @@ export const createProjectWithRepo = api(
     }
 
     // Broker a scoped installation token with permissions for repo init
-    const installToken = await brokerInstallationToken(
-      installation.installationId,
-      {
-        contents: "write",
-        administration: "write",
-        actions: "write",
+    let installToken: string;
+    try {
+      installToken = await brokerInstallationToken(
+        installation.installationId,
+        {
+          contents: "write",
+          administration: "write",
+          actions: "write",
+        }
+      );
+    } catch (err) {
+      const msg = String(err);
+      log.error("brokerInstallationToken failed", {
+        installationId: installation.installationId,
+        githubOrg: installation.githubOrgLogin,
+        error: msg,
+      });
+      if (msg.includes("permissions requested are not granted")) {
+        throw APIError.failedPrecondition(
+          `GitHub App installation on ${installation.githubOrgLogin} is missing required permissions (contents: write, administration: write). An org admin must update the app's permissions at github.com/organizations/${installation.githubOrgLogin}/settings/installations/${installation.installationId} and approve the changes.`
+        );
       }
-    );
+      throw APIError.internal(`Failed to obtain GitHub installation token: ${msg}`);
+    }
 
     // FR-008: Create GitHub repo
     let repoResult;

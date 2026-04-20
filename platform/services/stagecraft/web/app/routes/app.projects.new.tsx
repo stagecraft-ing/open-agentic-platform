@@ -52,17 +52,41 @@ export async function action({ request }: { request: Request }) {
     });
     return redirect(`/app/pipelines/${result.project.id}`);
   } catch (err) {
-    const msg = String(err);
-    if (msg.includes("already exists")) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("createProjectWithRepo failed", {
+      userId: user.userId,
+      orgSlug: user.orgSlug,
+      slug,
+      repoName,
+      adapter,
+      error: msg,
+    });
+
+    // Extract Encore APIError message from the JSON body apiFetch throws.
+    let backendMsg = msg;
+    try {
+      const parsed = JSON.parse(msg) as { message?: string; code?: string };
+      if (parsed.message) backendMsg = parsed.message;
+    } catch {
+      // msg wasn't JSON — leave it alone
+    }
+
+    if (backendMsg.includes("already exists")) {
       return { error: "A project or repository with that name already exists." };
     }
-    if (msg.includes("No active GitHub App")) {
-      return { error: "No GitHub App installation found for your org. Ask an admin to install the OAP GitHub App." };
+    if (backendMsg.includes("No active GitHub App")) {
+      return { error: "No GitHub App installation found for your org. Install the OAP GitHub App from the admin settings." };
     }
-    if (msg.includes("Insufficient permissions")) {
+    if (backendMsg.includes("missing required permissions")) {
+      return { error: backendMsg };
+    }
+    if (backendMsg.includes("Insufficient permissions") || backendMsg.includes("permission")) {
       return { error: "You don't have permission to create projects in this org." };
     }
-    return { error: "Failed to create project. Please try again." };
+    if (backendMsg.includes("No active workspace")) {
+      return { error: "No active workspace for your org. Ask your org admin to create a default workspace." };
+    }
+    return { error: `Failed to create project: ${backendMsg}` };
   }
 }
 
