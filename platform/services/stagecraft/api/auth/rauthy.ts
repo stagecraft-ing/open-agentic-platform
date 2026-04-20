@@ -15,7 +15,7 @@
 
 import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
-import { createHash, createVerify, randomBytes } from "crypto";
+import { createHash, createPublicKey, createVerify, randomBytes, verify as cryptoVerify } from "crypto";
 import { errorForLog } from "./errorLog";
 import { extractOapClaims, type OapClaims } from "./rauthy-pure";
 
@@ -93,10 +93,14 @@ export function buildRauthyAdminAuth(): string {
 interface JwkKey {
   kty: string;
   kid: string;
-  n?: string;
-  e?: string;
   alg?: string;
   use?: string;
+  // RSA
+  n?: string;
+  e?: string;
+  // OKP (Ed25519)
+  crv?: string;
+  x?: string;
 }
 
 let jwksCache: { keys: JwkKey[]; fetchedAt: number } | null = null;
@@ -161,22 +165,30 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
     const keys = await getJwks();
     const key = header.kid ? keys.find((k) => k.kid === header.kid) : keys.find((k) => k.alg === header.alg || k.use === "sig");
 
-    if (!key || key.kty !== "RSA" || !key.n || !key.e) {
-      log.warn("No matching JWKS key found", { kid: header.kid });
+    if (!key) {
+      log.warn("No matching JWKS key found", { kid: header.kid, alg: header.alg });
       return null;
     }
 
-    // Construct PEM from JWK components
-    const pubKey = jwkToPem(key);
-    const signatureInput = `${parts[0]}.${parts[1]}`;
+    const signatureInput = Buffer.from(`${parts[0]}.${parts[1]}`);
     const signature = Buffer.from(parts[2], "base64url");
 
-    const verifier = createVerify("RSA-SHA256");
-    verifier.update(signatureInput);
-    const valid = verifier.verify(pubKey, signature);
+    let valid = false;
+    if (header.alg === "RS256" && key.kty === "RSA" && key.n && key.e) {
+      const pubKey = jwkToPem(key);
+      const verifier = createVerify("RSA-SHA256");
+      verifier.update(signatureInput);
+      valid = verifier.verify(pubKey, signature);
+    } else if (header.alg === "EdDSA" && key.kty === "OKP" && key.crv === "Ed25519" && key.x) {
+      const pubKey = createPublicKey({ key: key as unknown as import("crypto").JsonWebKey, format: "jwk" });
+      valid = cryptoVerify(null, signatureInput, pubKey, signature);
+    } else {
+      log.warn("Unsupported JWT alg / JWK combination", { alg: header.alg, kty: key.kty, crv: key.crv });
+      return null;
+    }
 
     if (!valid) {
-      log.warn("JWT signature verification failed");
+      log.warn("JWT signature verification failed", { alg: header.alg, kty: key.kty });
       return null;
     }
 

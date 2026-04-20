@@ -12,7 +12,7 @@
 
 import { APIError } from "encore.dev/api";
 import { getJwks, rauthyUrl } from "./rauthy.js";
-import { createVerify } from "node:crypto";
+import { createPublicKey, createVerify, verify as cryptoVerify } from "node:crypto";
 import log from "encore.dev/log";
 
 /** Minimal claims expected in an M2M client_credentials JWT. */
@@ -88,28 +88,45 @@ async function validateM2mJwt(token: string): Promise<M2mClaims | null> {
       return null;
     }
 
-    // Verify RS256 signature using JWKS
+    // Verify signature using JWKS — supports RS256 (RSA) and EdDSA (Ed25519).
     const keys = await getJwks();
     const key = header.kid
       ? keys.find((k) => k.kid === header.kid)
       : keys.find((k) => k.alg === header.alg || k.use === "sig");
 
-    if (!key || key.kty !== "RSA" || !key.n || !key.e) {
-      log.warn("No matching JWKS key for M2M token", { kid: header.kid });
+    if (!key) {
+      log.warn("No matching JWKS key for M2M token", { kid: header.kid, alg: header.alg });
       return null;
     }
 
-    // Construct PEM from JWK components (n and e guaranteed by guard above)
-    const pubKey = jwkToPem({ n: key.n!, e: key.e! });
-    const signatureInput = `${parts[0]}.${parts[1]}`;
+    const signatureInput = Buffer.from(`${parts[0]}.${parts[1]}`);
     const signature = Buffer.from(parts[2], "base64url");
 
-    const verifier = createVerify("RSA-SHA256");
-    verifier.update(signatureInput);
-    const valid = verifier.verify(pubKey, signature);
+    let valid = false;
+    if (header.alg === "RS256" && key.kty === "RSA" && key.n && key.e) {
+      const pubKey = jwkToPem({ n: key.n, e: key.e });
+      const verifier = createVerify("RSA-SHA256");
+      verifier.update(signatureInput);
+      valid = verifier.verify(pubKey, signature);
+    } else if (
+      header.alg === "EdDSA" &&
+      key.kty === "OKP" &&
+      (key as { crv?: string }).crv === "Ed25519" &&
+      (key as { x?: string }).x
+    ) {
+      const pubKey = createPublicKey({ key: key as unknown as import("node:crypto").JsonWebKey, format: "jwk" });
+      valid = cryptoVerify(null, signatureInput, pubKey, signature);
+    } else {
+      log.warn("Unsupported M2M JWT alg / JWK combination", {
+        alg: header.alg,
+        kty: key.kty,
+        crv: (key as { crv?: string }).crv,
+      });
+      return null;
+    }
 
     if (!valid) {
-      log.warn("M2M JWT signature verification failed");
+      log.warn("M2M JWT signature verification failed", { alg: header.alg, kty: key.kty });
       return null;
     }
 
