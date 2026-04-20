@@ -8,7 +8,7 @@
       --factory-root factory \
       --org example-org \
       --auto-approve \
-      --scaffold-source ./upstream/aim-vue-node-template \
+      --scaffold-source ./upstream/template \
       --model opus \
       --extended-context \
       --thinking max \

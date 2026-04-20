@@ -16,13 +16,14 @@ schema_version: "1.0.0"
 upstreams:
 
   # ────────────────────────────────────────────────────────────────────────
-  # the_factory — upstream production factory (pipeline skills + security agents)
+  # goa-software-factory — upstream production factory (pipeline skills + security agents)
+  # Successor to the_factory, maintained in GovAlta-Pronghorn.
   # ────────────────────────────────────────────────────────────────────────
-  the_factory:
-    path: "~/upstream/the_factory"
-    remote: "upstream-org/the_factory"
-    last_synced_sha: "420ab9c2e20334d410d472cf7febe3fd076b065a"
-    last_synced_date: "2026-04-10"
+  goa-software-factory:
+    path: "/Users/bart/Dev2/goa-software-factory"
+    remote: "GovAlta-Pronghorn/goa-software-factory"
+    last_synced_sha: "b6f79bab1cf6326b7b4b823a37dc02e15f3a5410"
+    last_synced_date: "2026-04-20"
 
     exclude_patterns:
       # client-specific content
@@ -32,13 +33,12 @@ upstreams:
       - "Factory Agent/Controllers/api-web-standards.md"           # web standards
       - "Factory Agent/Controllers/api-standards-compliance.md"    # compliance docs
       - "Factory Agent/Requirements/Service/sitemap-template-*.json"  # sitemap templates
-      # Security agents (separate concern)
+      # Security agents (separate concern, has its own orchestrator bridge)
       - "Security Agent/"
+      - "Factory Agent/Security/"                                  # blue-security-orchestrator bridge to Security Agent
       - "eval_framework/"
       # Project metadata
       - ".github/"
-      - ".claude/"
-      - ".env.github"
       - ".project"
       - "README.md"
 
@@ -90,8 +90,11 @@ upstreams:
         layer: process
         notes: >
           Extract audience identification, journey mapping, sitemap derivation,
-          and variant determination logic. The_factory's 5-step sub-pipeline
-          maps to OAP's single service-designer agent.
+          and variant determination logic. Upstream's 5-step sub-pipeline
+          maps to OAP's single service-designer agent. The upstream is now
+          decomposed into 5 explicit sub-skills (see the per-skill mappings
+          below under Service Requirements Sub-Skills) — this top-level
+          orchestrator still coordinates them.
 
       - source: "Factory Agent/Orchestrator/factory-orchestration-s3.md"
         targets:
@@ -114,7 +117,7 @@ upstreams:
         relationship: restructured
         layer: process
         notes: >
-          Extract cross-stage consistency checks (FAC-S4-* rules). The_factory
+          Extract cross-stage consistency checks (FAC-S4-* rules). Upstream
           generates code in Stage 4; OAP produces only the Build Spec api section.
           Code generation rules go to adapter agents, not process stages. Gate
           blocker rules translate to S4-* checks in verification.schema.yaml.
@@ -126,7 +129,7 @@ upstreams:
         relationship: restructured
         layer: process
         notes: >
-          Same pattern as S4 — the_factory generates Vue components, OAP produces
+          Same pattern as S4 — upstream generates Vue components, OAP produces
           only the UI specification in the Build Spec.
 
       - source: "Factory Agent/Orchestrator/factory-orchestration-tm.md"
@@ -189,7 +192,7 @@ upstreams:
         notes: >
           Build-review coordination cycle. OAP's scaffolding-orchestrator serves
           a similar role but uses the verification contract for gating instead
-          of the_factory's inline review loop.
+          of the upstream's inline review loop.
 
       - source: "Factory Agent/Controllers/api-security.md"
         targets:
@@ -225,6 +228,17 @@ upstreams:
           layout conventions, accessibility rules. Ignore: client brand guidelines,
           ministry-specific theming.
 
+      - source: "Factory Agent/Client_Interface/content-specification.md"
+        targets:
+          - process/agents/ui-architect.md
+          - adapters/aim-vue-node/patterns/ui/component.md
+        relationship: extract-only
+        layer: process
+        notes: >
+          New in goa-software-factory: semantic content specification skill for
+          individual pages. Extract: content schema, information architecture
+          patterns. Informs the UI specification stage and component patterns.
+
       - source: "Factory Agent/Client_Interface/page-types/authenticated/"
         targets:
           - adapters/aim-vue-node/patterns/page-types/
@@ -243,7 +257,7 @@ upstreams:
           8 public page types. Partially covered by OAP adapter. Check for new
           page types that should be added.
 
-      # ── Service Requirements Sub-Agents ────────────────────────────────
+      # ── Service Requirements Orchestrator + Sub-Skills ─────────────────
 
       - source: "Factory Agent/Requirements/Service/service-requirements-orchestrator.md"
         targets:
@@ -255,6 +269,54 @@ upstreams:
           36KB orchestrator managing 5 sub-agents. OAP compresses this into a
           single stage + agent pair. Extract: audience derivation rules, journey
           map structure, sitemap derivation logic.
+
+      - source: "Factory Agent/Requirements/Service/audience-identification.md"
+        targets:
+          - process/agents/service-designer.md
+          - contract/schemas/stage-outputs/audiences.schema.json
+        relationship: extract-only
+        layer: process
+        notes: >
+          New decomposed sub-skill (formerly inline in orchestrator). Extract:
+          audience taxonomy rules, authentication-tier derivation. Feeds the
+          audiences.schema.json shape.
+
+      - source: "Factory Agent/Requirements/Service/audience-journey-map.md"
+        targets:
+          - process/agents/service-designer.md
+        relationship: extract-only
+        layer: process
+        notes: >
+          New decomposed sub-skill. Extract: journey map structure, step
+          taxonomy, touchpoint rules. Feeds service-designer's journey output.
+
+      - source: "Factory Agent/Requirements/Service/service-description.md"
+        targets:
+          - process/agents/service-designer.md
+        relationship: extract-only
+        layer: process
+        notes: >
+          New decomposed sub-skill. Extract: service framing, value proposition
+          patterns, scope boundaries.
+
+      - source: "Factory Agent/Requirements/Service/future-state.md"
+        targets:
+          - process/agents/service-designer.md
+        relationship: extract-only
+        layer: process
+        notes: >
+          New decomposed sub-skill. Extract: future-state modelling rules,
+          change impact framing.
+
+      - source: "Factory Agent/Requirements/Service/sitemap.md"
+        targets:
+          - process/agents/service-designer.md
+          - contract/schemas/stage-outputs/sitemap.schema.json
+        relationship: extract-only
+        layer: process
+        notes: >
+          New decomposed sub-skill. Extract: sitemap derivation rules,
+          variant-to-page mapping. Feeds the sitemap.schema.json shape.
 
       - source: "Factory Agent/Requirements/Service/page-type-catalog.md"
         targets:
@@ -308,13 +370,14 @@ upstreams:
 
 
   # ────────────────────────────────────────────────────────────────────────
-  # AIM-vue-node-template — upstream enterprise application scaffold
+  # template — upstream enterprise application scaffold
+  # Successor to AIM-vue-node-template, maintained in GovAlta-Pronghorn.
   # ────────────────────────────────────────────────────────────────────────
-  aim-vue-node-template:
-    path: "~/upstream/aim-vue-node-template"
-    remote: "upstream-org/aim-vue-node-template"
-    last_synced_sha: "9b83c1095013fd460b18745ef35987bd8d2de1b1"
-    last_synced_date: "2026-04-10"
+  template:
+    path: "/Users/bart/Dev2/template"
+    remote: "GovAlta-Pronghorn/template"
+    last_synced_sha: "e1de48c5e37abc614ebf9fd5baaf24018f48178d"
+    last_synced_date: "2026-04-20"
 
     exclude_patterns:
       # Application code (the scaffold itself, not adapter metadata)
@@ -327,11 +390,14 @@ upstreams:
       - "package-lock.json"
       - "dist/"
       - ".env*"
-      # Template orchestration (superseded by factory adapter)
-      - ".claude/orchestration/"
-      - "orchestration/skills/"
+      # Build/CI metadata
+      - ".github/"
+      # NOTE: orchestration/skills/ is NOT excluded — sub-skills are now mapped
+      # into adapter agents (see mappings below).
 
     mappings:
+
+      # ── Root-level template metadata ───────────────────────────────────
 
       - source: "orchestration/template-orchestrator.md"
         targets:
@@ -350,8 +416,9 @@ upstreams:
         relationship: diffable
         layer: adapter
         notes: >
-          Template metadata (name, version, supported features). Changes to
-          capability flags or version should propagate to the adapter manifest.
+          Template metadata (name, version, supported features, installed modules,
+          file ownership). Changes to capability flags or version should propagate
+          to the adapter manifest.
 
       - source: "CODEMAP.md"
         targets:
@@ -374,6 +441,78 @@ upstreams:
           Placeholder definitions that the configurer agent must fill and the
           trimmer agent must verify are gone. Changes here directly affect
           those two agents.
+
+      # ── Orchestration sub-skills (formerly excluded) ───────────────────
+      # The template now exposes 6 JIT-loaded sub-skills under
+      # orchestration/skills/. Each maps to an OAP adapter agent.
+
+      - source: "orchestration/skills/analyze.md"
+        targets:
+          - adapters/aim-vue-node/agents/configurer.md
+          - adapters/aim-vue-node/agents/trimmer.md
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          Phase 1 skill — structured inventory of template state (active apps,
+          modules, placeholders). Informs both configurer (expected state) and
+          trimmer (what to remove). Extract the inventory protocol; strip
+          upstream-specific module taxonomy.
+
+      - source: "orchestration/skills/configure.md"
+        targets:
+          - adapters/aim-vue-node/agents/configurer.md
+        relationship: diffable
+        layer: adapter
+        notes: >
+          Phase 3 skill — identity & configuration application. Directly
+          consumed by the adapter configurer agent. Extract: placeholder
+          resolution protocol, identity-token substitution rules, env-var
+          wiring. Strip upstream-specific naming conventions.
+
+      - source: "orchestration/skills/scaffold-feature.md"
+        targets:
+          - adapters/aim-vue-node/agents/api-scaffolder.md
+          - adapters/aim-vue-node/agents/ui-scaffolder.md
+        relationship: diffable
+        layer: adapter
+        notes: >
+          Phase 4 skill — feature scaffolding patterns for API + UI. Drives
+          both the api-scaffolder and ui-scaffolder agents. Extract: scaffold
+          step ordering, cross-app boundaries, module registration protocol.
+
+      - source: "orchestration/skills/trim.md"
+        targets:
+          - adapters/aim-vue-node/agents/trimmer.md
+        relationship: diffable
+        layer: adapter
+        notes: >
+          Phase 5 skill — variant-specific trimming rules (remove unused apps,
+          modules, placeholders). Directly consumed by the trimmer agent.
+          Extract: variant-to-subset mapping, safe-removal order, verification
+          checks.
+
+      - source: "orchestration/skills/validate.md"
+        targets:
+          - adapters/aim-vue-node/agents/reviewer.md
+          - adapters/aim-vue-node/validation/invariants.yaml
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          Phase 6 skill — quality checks & test coverage validation. Informs
+          the reviewer agent and the invariants catalog. Extract: check
+          categories, pass/fail criteria, evidence requirements.
+
+      - source: "orchestration/skills/code-quality.md"
+        targets:
+          - adapters/aim-vue-node/agents/reviewer.md
+          - adapters/aim-vue-node/validation/invariants.yaml
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          JIT-loaded code-quality skill (extracted from the template
+          orchestrator's Section 18). Covers ESLint, TypeScript, and test
+          coverage expectations. Feeds reviewer deficiency codes and
+          invariants around code-quality gates.
 
 # ---------------------------------------------------------------------------
 # OAP-native adapters — no external upstream, developed in-tree

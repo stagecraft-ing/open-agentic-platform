@@ -2,7 +2,7 @@
 # Adapter Manifest: AIM Vue+Node Enterprise Template
 # ============================================================================
 # This is a concrete example of what the first adapter (the current
-# AIM-vue-node-template) would declare about itself.
+# GovAlta-Pronghorn/template repository) would declare about itself.
 # ============================================================================
 
 schema_version: "1.0.0"

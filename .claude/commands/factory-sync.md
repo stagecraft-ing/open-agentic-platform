@@ -1,13 +1,17 @@
 ---
 name: factory-sync
-description: Detect, map, and translate upstream changes from the_factory and AIM-vue-node-template into OAP factory/
+description: Detect, map, and translate upstream changes from goa-software-factory and template into OAP factory/
 allowed-tools: Bash, Agent, Read, Edit, Write, Glob, Grep
-argument-hint: "[upstream-name] — optional: sync only one upstream (the_factory or aim-vue-node-template)"
+argument-hint: "[upstream-name] — optional: sync only one upstream (goa-software-factory or template)"
 ---
 
 # Factory Sync
 
 Translate upstream repository changes into OAP's factory/ three-layer architecture using the mapping manifest at `factory/upstream-map.yaml`.
+
+Active upstreams (per manifest):
+- `goa-software-factory` → `/Users/bart/Dev2/goa-software-factory` (GovAlta-Pronghorn/goa-software-factory). Successor to `the_factory`.
+- `template` → `/Users/bart/Dev2/template` (GovAlta-Pronghorn/template). Successor to `AIM-vue-node-template`.
 
 See: `specs/088-factory-upstream-sync/spec.md`
 
@@ -140,7 +144,7 @@ After user approval of the applied changes:
 
 ## Important Rules
 
-1. **Never modify upstream repos.** This command is read-only with respect to the_factory and AIM-vue-node-template.
+1. **Never modify upstream repos.** This command is read-only with respect to goa-software-factory and template.
 2. **Never skip checkpoints.** Both checkpoint gates (before apply, before SHA update) require explicit user approval.
 3. **Preserve OAP architecture.** Upstream changes to monolithic skill files must be decomposed into the correct OAP layers (process, contract, adapter). Never copy upstream content verbatim into OAP.
 4. **Strip client-specific content.** Upstream-specific references (ministry names, IdP vendor specifics, protected-level classifications, ASVS chapters) must not appear in OAP files. Translate the underlying pattern, not the upstream implementation.

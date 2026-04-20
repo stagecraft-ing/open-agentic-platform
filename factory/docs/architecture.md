@@ -107,7 +107,7 @@ If a session crashes, a new session reads the state file, skips completed work, 
 
 ## Comparison to Current System
 
-| Dimension | Current (the_factory + template) | Factory |
+| Dimension | Upstream (goa-software-factory + template) | Factory |
 |-----------|----------------------------------|--------|
 | Process/implementation coupling | Welded — factory references Express, Vue | Separated by contract schema |
 | Adding a new tech stack | Rewrite factory + template orchestrators | Create new adapter directory |

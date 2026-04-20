@@ -8,7 +8,7 @@ owner: bart
 created: "2026-04-10"
 summary: >
   Defines the protocol, mapping manifest, and tooling for translating updates
-  from upstream repositories (the_factory, AIM-vue-node-template) into OAP's
+  from upstream repositories (goa-software-factory, template) into OAP's
   factory/ three-layer architecture.
 depends_on:
   - "074"  # factory-ingestion
@@ -21,13 +21,17 @@ implements:
 
 ## 1. Problem Statement
 
-OAP's `factory/` directory was originally derived from two upstream sources:
+OAP's `factory/` directory is derived from two upstream sources maintained in
+the GovAlta-Pronghorn GitHub organization:
 
-- **the_factory** (`~/upstream/the_factory`, `upstream-org/the_factory`) — the
-  upstream production factory containing pipeline orchestration skills, controller agents,
-  page type definitions, security assessment agents, and an evaluation framework.
-- **AIM-vue-node-template** (`~/upstream/aim-vue-node-template`) — the upstream
-  enterprise application scaffold that the `aim-vue-node` adapter targets.
+- **goa-software-factory** (`/Users/bart/Dev2/goa-software-factory`,
+  `GovAlta-Pronghorn/goa-software-factory`) — the upstream production factory
+  containing pipeline orchestration skills, controller agents, page type
+  definitions, security assessment agents, and an evaluation framework.
+  Historically tracked as `the_factory`.
+- **template** (`/Users/bart/Dev2/template`, `GovAlta-Pronghorn/template`) —
+  the upstream enterprise application scaffold that the `aim-vue-node` adapter
+  targets. Historically tracked as `AIM-vue-node-template`.
 
 Both upstreams continue to evolve independently. When bugs are discovered during
 real pipeline runs, fixes land in the upstream repos first (where the runs
@@ -36,11 +40,12 @@ translation is reactive and manual — someone notices a pipeline failure, trace
 it to an upstream fix, and manually ports the change. This process is error-prone
 and creates a growing drift between upstream and OAP.
 
-The problem is compounded by **structural divergence**: the_factory uses a flat
-skill-file organization (`Factory Agent/Controllers/api-builder.md` at 55KB),
-while OAP uses a three-layer architecture (`process/stages/`, `contract/schemas/`,
-`adapters/{name}/patterns/`). A single upstream file often maps to 3-5 OAP files
-across different layers. Simple file copying or git subtree merges do not work.
+The problem is compounded by **structural divergence**: goa-software-factory
+uses a flat skill-file organization (`Factory Agent/Controllers/api-builder.md`
+at 55KB), while OAP uses a three-layer architecture (`process/stages/`,
+`contract/schemas/`, `adapters/{name}/patterns/`). A single upstream file often
+maps to 3-5 OAP files across different layers. Simple file copying or git
+subtree merges do not work.
 
 ## 2. Design Principles
 
@@ -50,9 +55,9 @@ across different layers. Simple file copying or git subtree merges do not work.
    `diffable` (structurally similar, can be diffed) or `restructured` (requires
    human judgment to translate).
 
-2. **Upstream-agnostic protocol.** The same process handles the_factory,
-   AIM-vue-node-template, and any future upstream. Each upstream is a named
-   entry in the mapping manifest with its own path, SHA tracking, and mappings.
+2. **Upstream-agnostic protocol.** The same process handles goa-software-factory,
+   template, and any future upstream. Each upstream is a named entry in the
+   mapping manifest with its own path, SHA tracking, and mappings.
 
 3. **Client-specific content is filtered.** Government client-specific content
    (ministry references, IdP-vendor specifics, protected-level classifications,
@@ -170,7 +175,7 @@ For each mapped change:
 
 ## 5. Exclusion Rules
 
-Content that is never translated from the_factory:
+Content that is never translated from goa-software-factory:
 
 | Category | Examples | Reason |
 |---|---|---|
@@ -181,7 +186,7 @@ Content that is never translated from the_factory:
 | Evaluation framework | eval_framework/, REDTEAM/ | Separate concern, Python-based |
 | Client web standards | api-web-standards.md, api-standards-compliance.md | Client policy documents |
 
-Content that is never translated from AIM-vue-node-template:
+Content that is never translated from template:
 
 | Category | Examples | Reason |
 |---|---|---|

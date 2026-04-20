@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d63fd46e6b1daa6f48106b611a2e9c7ae1f3087b136a80ae34d0dea54b460ebd",
+    "contentHash": "763d87957491fd2e169124dedb66ec3787d85dce8ffb984fb66838d53838b23a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -128,7 +128,7 @@
         "path": ".claude/commands/commit.md"
       },
       {
-        "description": "Detect, map, and translate upstream changes from the_factory and AIM-vue-node-template into OAP factory/",
+        "description": "Detect, map, and translate upstream changes from goa-software-factory and template into OAP factory/",
         "name": "factory-sync",
         "path": ".claude/commands/factory-sync.md"
       },
