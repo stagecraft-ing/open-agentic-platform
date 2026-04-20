@@ -103,22 +103,60 @@ interface JwkKey {
   x?: string;
 }
 
-let jwksCache: { keys: JwkKey[]; fetchedAt: number } | null = null;
+interface JwksAndIssuer {
+  keys: JwkKey[];
+  issuer: string;
+  fetchedAt: number;
+}
+
+let jwksCache: JwksAndIssuer | null = null;
 const JWKS_CACHE_TTL_MS = 3600_000; // 1 hour
 
-export async function getJwks(): Promise<JwkKey[]> {
+/**
+ * Fetch Rauthy's JWKS + canonical issuer via OIDC discovery.
+ *
+ * Previously this hit `/auth/v1/.well-known/jwks.json` which Rauthy 0.35 does
+ * not serve (JWKS lives at `/auth/v1/oidc/certs`). Discovery avoids pinning
+ * the path: we read `jwks_uri` and `issuer` from the discovery doc so any
+ * future Rauthy path/issuer change is picked up automatically. This matches
+ * what `deployd-api-rs/src/auth.rs` does for the same reason.
+ */
+async function fetchJwksAndIssuer(): Promise<JwksAndIssuer> {
+  const base = rauthyUrl().replace(/\/+$/, "");
+  const discoveryUrl = `${base}/auth/v1/.well-known/openid-configuration`;
+  const discoveryResp = await fetch(discoveryUrl);
+  if (!discoveryResp.ok) {
+    throw new Error(`Failed to fetch OIDC discovery: ${discoveryResp.status} ${discoveryUrl}`);
+  }
+  const discovery = (await discoveryResp.json()) as { jwks_uri?: string; issuer?: string };
+  if (!discovery.jwks_uri || !discovery.issuer) {
+    throw new Error("OIDC discovery is missing jwks_uri or issuer");
+  }
+
+  const jwksResp = await fetch(discovery.jwks_uri);
+  if (!jwksResp.ok) {
+    throw new Error(`Failed to fetch JWKS: ${jwksResp.status} ${discovery.jwks_uri}`);
+  }
+  const jwksBody = (await jwksResp.json()) as { keys: JwkKey[] };
+
+  return {
+    keys: jwksBody.keys,
+    issuer: discovery.issuer,
+    fetchedAt: Date.now(),
+  };
+}
+
+async function getJwksAndIssuer(): Promise<JwksAndIssuer> {
   if (jwksCache && Date.now() - jwksCache.fetchedAt < JWKS_CACHE_TTL_MS) {
-    return jwksCache.keys;
+    return jwksCache;
   }
+  jwksCache = await fetchJwksAndIssuer();
+  return jwksCache;
+}
 
-  const resp = await fetch(`${rauthyUrl()}/auth/v1/.well-known/jwks.json`);
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch JWKS: ${resp.status}`);
-  }
-
-  const data = (await resp.json()) as { keys: JwkKey[] };
-  jwksCache = { keys: data.keys, fetchedAt: Date.now() };
-  return data.keys;
+/** Backward-compat export for any external callers that only need the keys. */
+export async function getJwks(): Promise<JwkKey[]> {
+  return (await getJwksAndIssuer()).keys;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,13 +191,14 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
       return null;
     }
 
-    // Require and check issuer. Rauthy emits `iss` with a trailing slash
-    // (e.g. `https://auth.example/auth/v1/`); accept both shapes so a config
-    // drift on the trailing slash doesn't invalidate every session.
+    // Fetch JWKS and the canonical issuer from Rauthy's OIDC discovery doc.
+    // The issuer check uses the advertised value so a trailing-slash or path
+    // drift in RAUTHY_URL doesn't invalidate every session.
     const stripSlash = (s: string) => s.replace(/\/+$/, "");
-    const expectedIssuer = `${stripSlash(rauthyUrl())}/auth/v1`;
+    const { keys, issuer: expectedIssuer } = await getJwksAndIssuer();
     const tokenIssuer = typeof payload.iss === "string" ? stripSlash(payload.iss) : "";
-    if (!tokenIssuer || tokenIssuer !== expectedIssuer) {
+    const normalizedExpected = stripSlash(expectedIssuer);
+    if (!tokenIssuer || tokenIssuer !== normalizedExpected) {
       log.warn("JWT rejected: issuer mismatch", { iss: payload.iss, expected: expectedIssuer });
       return null;
     }
@@ -172,8 +211,7 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
       return null;
     }
 
-    // Verify signature using JWKS
-    const keys = await getJwks();
+    // Locate signing key by kid
     const key = header.kid ? keys.find((k) => k.kid === header.kid) : keys.find((k) => k.alg === header.alg || k.use === "sig");
 
     if (!key) {
