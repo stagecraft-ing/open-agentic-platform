@@ -11,16 +11,22 @@
 
 const DEFAULT_API_BASE = "http://localhost:4000";
 
-function getBaseUrl(request: Request): string {
-  try {
-    const url = new URL(request.url);
-    if (url.hostname === "origin") {
-      return process.env.ENCORE_API_BASE_URL ?? DEFAULT_API_BASE;
-    }
-    return url.origin;
-  } catch {
-    return process.env.ENCORE_API_BASE_URL ?? DEFAULT_API_BASE;
-  }
+/**
+ * Resolve the base URL for the SSR → Encore API hop.
+ *
+ * In production, the RR SSR runs in the same pod as the Encore API. Routing
+ * the call back out through the public hostname means a pointless trip
+ * through Cloudflare + ingress, and — if `x-forwarded-proto` is missing —
+ * reconstructs `request.url` as `http://…`, which Cloudflare then redirects
+ * to HTTPS, causing undici to drop the Cookie header on the scheme change.
+ * The result is a 401 for the inner call even though the outer request was
+ * perfectly authenticated.
+ *
+ * Prefer `ENCORE_API_BASE_URL` when set, otherwise always loop back via
+ * localhost:4000 (same pod). `request` is accepted for future use.
+ */
+function getBaseUrl(_request: Request): string {
+  return process.env.ENCORE_API_BASE_URL ?? DEFAULT_API_BASE;
 }
 
 async function apiFetch(request: Request, path: string, init?: RequestInit) {

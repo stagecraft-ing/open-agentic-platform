@@ -7,16 +7,12 @@
 
 const DEFAULT_API_BASE = "http://localhost:4000";
 
-function getBaseUrl(request: Request): string {
-  try {
-    const url = new URL(request.url);
-    if (url.hostname === "origin") {
-      return process.env.ENCORE_API_BASE_URL ?? DEFAULT_API_BASE;
-    }
-    return url.origin;
-  } catch {
-    return process.env.ENCORE_API_BASE_URL ?? DEFAULT_API_BASE;
-  }
+// SSR runs in the same pod as the Encore API. Calling back via the public
+// hostname is a pointless trip through Cloudflare + ingress and drops the
+// Cookie header when HTTP is upgraded to HTTPS mid-flight. Loop back via
+// localhost:4000 instead.
+function getBaseUrl(_request: Request): string {
+  return process.env.ENCORE_API_BASE_URL ?? DEFAULT_API_BASE;
 }
 
 export interface PatMetadata {
