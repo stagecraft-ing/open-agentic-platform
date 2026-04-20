@@ -292,6 +292,16 @@ export const createProjectWithRepo = api(
   async (req: CreateProjectWithRepoRequest): Promise<CreateProjectWithRepoResponse> => {
     const auth = getAuthData()!;
 
+    log.info("createProjectWithRepo invoked", {
+      userID: auth.userID,
+      orgId: auth.orgId,
+      workspaceId: auth.workspaceId,
+      platformRole: auth.platformRole,
+      slug: req.slug,
+      repoName: req.repoName,
+      adapter: req.adapter,
+    });
+
     // Validate inputs
     if (!req.name || !req.slug || !req.repoName || !req.adapter) {
       throw APIError.invalidArgument("name, slug, repoName, and adapter are required");

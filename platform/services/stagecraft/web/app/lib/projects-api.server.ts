@@ -26,9 +26,20 @@ function getBaseUrl(request: Request): string {
 async function apiFetch(request: Request, path: string, init?: RequestInit) {
   const base = getBaseUrl(request);
   const cookie = request.headers.get("Cookie") ?? "";
+  const fullUrl = `${base}${path}`;
+  const method = init?.method ?? "GET";
+  const hasSessionCookie = cookie.includes("__session=");
+  console.log("apiFetch outbound", {
+    method,
+    url: fullUrl,
+    requestUrl: request.url,
+    hasSessionCookie,
+    cookieLen: cookie.length,
+    envBase: process.env.ENCORE_API_BASE_URL ?? null,
+  });
   let res: Response;
   try {
-    res = await fetch(`${base}${path}`, {
+    res = await fetch(fullUrl, {
       ...init,
       headers: {
         "Content-Type": "application/json",
@@ -38,10 +49,17 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
     });
   } catch (err) {
     const cause = err instanceof Error ? err.message : String(err);
+    console.error("apiFetch network error", { method, url: fullUrl, cause });
     throw new Error(`Network error calling ${path}: ${cause}`);
   }
   if (!res.ok) {
     const body = await res.text();
+    console.error("apiFetch non-ok response", {
+      method,
+      url: fullUrl,
+      status: res.status,
+      bodyPreview: body.slice(0, 300),
+    });
     throw new Error(body || `API error: ${res.status}`);
   }
   return res.json();
