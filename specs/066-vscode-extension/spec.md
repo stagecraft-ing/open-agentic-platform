@@ -3,7 +3,7 @@ id: "066-vscode-extension"
 title: "VS Code Extension (Sidebar Webview)"
 feature_branch: "066-vscode-extension"
 status: approved
-implementation: n/a
+implementation: deferred
 kind: platform
 created: "2026-03-31"
 authors:
@@ -19,6 +19,15 @@ code_aliases:
 sources:
   - claudepal
 ---
+
+> **Deferred** — the repository is pre-alpha / stealth with no external
+> contributors or IDE users to serve. The spec is kept as approved
+> direction so the REST-contract shape (`GET /governance/status`,
+> `GET /sessions`, lockfile discovery, etc.) stays frozen against the
+> desktop Tauri backend. Resume when either a second OAP surface needs
+> to talk to the backend over that REST contract or an external
+> developer audience materialises. No `packages/vscode-extension/`
+> scaffold will be created in the meantime.
 
 # Feature Specification: VS Code Extension (Sidebar Webview)
 

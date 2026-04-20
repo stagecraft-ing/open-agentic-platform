@@ -2,7 +2,7 @@
 id: "100-post-convergence-remediation"
 title: "Post-Convergence Remediation"
 status: approved
-implementation: n/a
+implementation: complete
 owner: bart
 created: "2026-04-12"
 risk: high
@@ -96,3 +96,31 @@ Four-phase remediation ordered by blast radius.
 - AC-100-6: Spec registry contains specs 096–100
 - AC-100-7: spec-template.md produces V-001/V-002 compliant specs
 - AC-100-8: No thiserror or axum version drift across workspace
+
+## Implementation Status
+
+All four phases landed in commit `a04f312` (2026-04-12). Evidence:
+
+- **Phase 1.1** — `platform/infra/hetzner/.env` not present in working tree;
+  `platform/infra/hetzner/.gitignore` excludes `.env`.
+- **Phase 1.2** — `deployd-api-rs/src/config.rs` uses
+  `std::env::var("DEPLOYD_AUDIENCE").expect(...)` and
+  `std::env::var("DEPLOYD_REQUIRED_SCOPE").expect(...)`; boot fails if unset.
+- **Phase 2.1** — `apps/desktop/src-tauri/tauri.conf.json` CSP lacks
+  `unsafe-eval`; `assetProtocol.scope` narrowed to `$APPDATA/**`,
+  `$RESOURCE/**`.
+- **Phase 2.3** — hex-only `content_hash` and separator-rejecting
+  filename guards live in
+  `crates/factory-engine/src/artifact_store.rs` and
+  `crates/orchestrator/src/artifact.rs`.
+- **Phase 2.8** — `runAsNonRoot` + `allowPrivilegeEscalation: false` on
+  both `platform/charts/stagecraft/templates/deployment.yaml` and
+  `platform/charts/deployd-api/templates/deployment.yaml`.
+- **Phase 3.3/3.4** — `thiserror = "2"` in `crates/factory-contracts/Cargo.toml`;
+  `axum = "0.8"` in `crates/orchestrator/Cargo.toml`.
+- **Phase 3.5** — `specs/038-titor-tauri-command-wiring/spec.md` and
+  `specs/040-blockoli-semantic-search-wiring/spec.md` both carry
+  `superseded_by: "073-axiomregent-unification"`.
+- **Phase 4** — the catalog lives in §Phase 4 of this spec. Reintegration
+  of the 17 packages into the desktop shell is deliberately out of scope
+  for 100 and is tracked as ambient backlog.

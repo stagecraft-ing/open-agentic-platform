@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a8efdf606624724a660704bad35db21d6d9e3c9470968bb904c531c8c6fb5a11",
+    "contentHash": "d63fd46e6b1daa6f48106b611a2e9c7ae1f3087b136a80ae34d0dea54b460ebd",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -307,8 +307,6 @@
       ],
       "internalDeps": [
         "@opc/claude-code-bridge",
-        "@opc/mcp-client",
-        "@opc/types",
         "@opc/ui",
         "@opc/workspace-sdk"
       ],
@@ -876,20 +874,6 @@
         "src/index.ts"
       ],
       "externalDeps": [
-        "@tauri-apps/api",
-        "typescript"
-      ],
-      "kind": "npm-package",
-      "name": "@opc/mcp-client",
-      "path": "packages/mcp-client",
-      "specRef": "033-axiomregent-activation",
-      "version": "0.1.0"
-    },
-    {
-      "entryPoints": [
-        "src/index.ts"
-      ],
-      "externalDeps": [
         "@types/node",
         "typescript",
         "vitest"
@@ -1045,16 +1029,6 @@
       "name": "@opc/tool-renderer",
       "path": "packages/tool-renderer",
       "specRef": "050-tool-renderer-system",
-      "version": "0.1.0"
-    },
-    {
-      "entryPoints": [
-        "src/index.ts"
-      ],
-      "kind": "npm-package",
-      "name": "@opc/types",
-      "path": "packages/types",
-      "specRef": "032-opc-inspect-governance-wiring-mvp",
       "version": "0.1.0"
     },
     {
@@ -1716,28 +1690,12 @@
             "source": "cargo-metadata"
           },
           {
-            "name": "@opc/types",
-            "path": "packages/types",
-            "source": "cargo-metadata"
-          },
-          {
             "name": "@opc/ui",
             "path": "packages/ui",
             "source": "cargo-metadata"
           }
         ],
         "specId": "032-opc-inspect-governance-wiring-mvp",
-        "specStatus": "approved"
-      },
-      {
-        "implementingPaths": [
-          {
-            "name": "@opc/mcp-client",
-            "path": "packages/mcp-client",
-            "source": "cargo-metadata"
-          }
-        ],
-        "specId": "033-axiomregent-activation",
         "specStatus": "approved"
       },
       {
@@ -2673,9 +2631,32 @@
         ],
         "specId": "106-rauthy-native-oidc-and-membership",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "080",
+          "106"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/README.md",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "107-rauthy-client-redirect-convergence",
+        "specStatus": "approved"
       }
     ],
-    "orphanedSpecs": [],
+    "orphanedSpecs": [
+      "033-axiomregent-activation",
+      "066-vscode-extension",
+      "086-open-source-launch",
+      "100-post-convergence-remediation"
+    ],
     "untracedCode": [
       "grammars/tree-sitter-c",
       "grammars/tree-sitter-javascript",

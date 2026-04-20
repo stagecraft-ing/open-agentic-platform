@@ -3,7 +3,7 @@ id: "107-rauthy-client-redirect-convergence"
 title: "Rauthy OIDC Client Redirect URI Convergence"
 feature_branch: "feat/107-rauthy-client-redirect-convergence"
 status: approved
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-04-18"
 kind: platform
@@ -200,31 +200,50 @@ dev flows).
 ## 8. Test Plan
 
 ### Seeder
-- [ ] Cold start on empty Rauthy (client exists but without URIs):
+- [x] Cold start on empty Rauthy (client exists but without URIs):
       seeder PUTs with the target set; validation passes.
-- [ ] Warm start: seeder reports "already current" for every client.
-- [ ] `APP_BASE_URL` changes (prod → staging rebrand): next deploy
+- [x] Warm start: seeder reports "already current" for every client.
+- [x] `APP_BASE_URL` changes (prod → staging rebrand): next deploy
       appends the new URI; old URI stays (merge semantics).
-- [ ] `RAUTHY_CLIENT_ID` client missing: seeder aborts with a clear
+- [x] `RAUTHY_CLIENT_ID` client missing: seeder aborts with a clear
       "stagecraft-server client not found in Rauthy" error.
-- [ ] `OPC_CLIENT_ID` client missing: seeder logs a warning and
+- [x] `OPC_CLIENT_ID` client missing: seeder logs a warning and
       continues (non-fatal).
-- [ ] Rauthy returns a 5xx mid-run: seeder aborts with Rauthy status
+- [x] Rauthy returns a 5xx mid-run: seeder aborts with Rauthy status
       code included in the log.
 
 ### Login flow
-- [ ] After seeder run on a fresh Hetzner cluster, first GitHub login
+- [x] After seeder run on a fresh Hetzner cluster, first GitHub login
       via `https://stagecraft.ing/auth/rauthy` succeeds without manual
       admin-UI intervention.
-- [ ] OPC desktop PKCE flow lands on `opc://auth/callback` without a
+- [x] OPC desktop PKCE flow lands on `opc://auth/callback` without a
       manual redirect-URI add.
 
 ### Unit
-- [ ] `computeTargetRedirectUris("https://stagecraft.ing")` returns the
+- [x] `computeTargetRedirectUris("https://stagecraft.ing")` returns the
       two expected callbacks in a deterministic order.
-- [ ] `diffRequired(existing, target)` returns only missing entries.
-- [ ] Merge is idempotent on a client that already contains the target
+- [x] `diffRequired(existing, target)` returns only missing entries.
+- [x] Merge is idempotent on a client that already contains the target
       set plus operator extras.
+
+## Implementation Status
+
+Landed across commits:
+
+- `94fb795` — `feat(stagecraft): seeder owns Rauthy client redirect URIs (spec 107)`
+  added `computeTargetRedirectUris`, `convergeClient`, merge-over-replace
+  semantics, and the extended `validateSeed` re-read.
+- `aae87f8` — `fix(stagecraft): seeder also converges flows_enabled on Rauthy clients`
+  extended the same convergence step to cover `flows_enabled`
+  (`authorization_code` + `refresh_token`) after first-login broke on a
+  freshly-created client whose default flow list was
+  `authorization_code` only.
+- Subsequent Rauthy-adjacent hardening (`d59f847`, `0d7b8fd`, `7fef349`)
+  fixed EdDSA JWT acceptance and trailing-slash `iss` matching on the
+  validator side, unblocking the full spec 106 + 107 login path.
+
+See `platform/services/stagecraft/scripts/seed-rauthy.mjs` lines 269–475
+for the converged implementation.
 
 ## 9. Out of scope
 

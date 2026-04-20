@@ -3,7 +3,7 @@ id: "086-open-source-launch"
 title: "Open Source Launch Readiness"
 feature_branch: "feat/086-open-source-launch"
 status: approved
-implementation: n/a
+implementation: deferred
 kind: process
 created: "2026-04-08"
 authors:
@@ -19,6 +19,17 @@ code_aliases:
   - OPEN_SOURCE
   - OSS_LAUNCH
 ---
+
+> **Deferred** — partial progress has landed (`docs/ARCHITECTURE.md` is
+> authored, `README.md` is current, tags `v0.2.1` and `v0.2.2` exist),
+> but the remaining deliverables are all external-audience surface:
+> `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`,
+> and the `v0.1.0` GitHub Release. The repository is pre-alpha / stealth
+> with no external contributors per `README.md`, so these docs would go
+> stale before they are read. Resume the remaining deliverables when
+> the repo is prepared for a public announcement or the first external
+> contributor is onboarded. The acceptance criteria below remain the
+> definition of done.
 
 # 086 — Open Source Launch Readiness
 
