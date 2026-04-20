@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use axum::http::HeaderMap;
+use jsonwebtoken::jwk::JwkSet;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -36,26 +37,29 @@ pub async fn verify_jwt(
 
     // Decode header to find kid
     let header = decode_header(token)?;
-    let kid = header.kid.ok_or_else(|| anyhow!("Token missing kid"))?;
+    let kid = header
+        .kid
+        .as_ref()
+        .ok_or_else(|| anyhow!("Token missing kid"))?;
 
-    // Find matching key
-    let keys: serde_json::Value = serde_json::from_str(&jwks_json)?;
-    let key_entry = keys["keys"]
-        .as_array()
-        .and_then(|arr| arr.iter().find(|k| k["kid"].as_str() == Some(&kid)))
-        .ok_or_else(|| anyhow!("No matching key for kid: {}", kid))?;
+    // Parse JWKS and locate the key by kid. `from_jwk` handles both RSA and
+    // OKP (Ed25519) parameter shapes, so we don't hand-parse n/e or x/crv.
+    let jwks: JwkSet =
+        serde_json::from_str(&jwks_json).map_err(|e| anyhow!("Failed to parse JWKS: {e}"))?;
 
-    let n = key_entry["n"]
-        .as_str()
-        .ok_or_else(|| anyhow!("Missing n in JWK"))?;
-    let e = key_entry["e"]
-        .as_str()
-        .ok_or_else(|| anyhow!("Missing e in JWK"))?;
-    let decoding_key = DecodingKey::from_rsa_components(n, e)?;
+    let jwk = jwks
+        .find(kid)
+        .ok_or_else(|| anyhow!("No matching key for kid: {kid}"))?;
 
-    let mut validation = Validation::new(Algorithm::RS256);
+    let decoding_key = DecodingKey::from_jwk(jwk)
+        .map_err(|e| anyhow!("Failed to build decoding key from JWK: {e}"))?;
+
+    // Accept both RS256 and EdDSA — Rauthy signs with Ed25519 by default, but
+    // RSA keeps working for any rotated/legacy tokens still in flight. `decode`
+    // enforces that the token's header alg is in this allowlist.
+    let mut validation = Validation::new(Algorithm::EdDSA);
+    validation.algorithms = vec![Algorithm::RS256, Algorithm::EdDSA];
     validation.set_audience(&[audience]);
-    // Dynamically enforce the fetched issuer
     validation.set_issuer(&[&issuer]);
     validation.validate_exp = true;
 
