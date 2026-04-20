@@ -132,7 +132,10 @@ export async function getJwks(): Promise<JwkKey[]> {
 export async function validateJwt(token: string): Promise<OapClaims | null> {
   try {
     const parts = token.split(".");
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3) {
+      log.warn("JWT rejected: malformed token (expected 3 parts)", { parts: parts.length });
+      return null;
+    }
 
     const headerJson = Buffer.from(parts[0], "base64url").toString();
     const payloadJson = Buffer.from(parts[1], "base64url").toString();
@@ -144,13 +147,20 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
     };
 
     // Require and check expiry
-    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload.exp || payload.exp < now) {
+      log.warn("JWT rejected: expired or missing exp", { exp: payload.exp, now });
       return null;
     }
 
-    // Require and check issuer
-    const expectedIssuer = `${rauthyUrl()}/auth/v1`;
-    if (!payload.iss || payload.iss !== expectedIssuer) {
+    // Require and check issuer. Rauthy emits `iss` with a trailing slash
+    // (e.g. `https://auth.example/auth/v1/`); accept both shapes so a config
+    // drift on the trailing slash doesn't invalidate every session.
+    const stripSlash = (s: string) => s.replace(/\/+$/, "");
+    const expectedIssuer = `${stripSlash(rauthyUrl())}/auth/v1`;
+    const tokenIssuer = typeof payload.iss === "string" ? stripSlash(payload.iss) : "";
+    if (!tokenIssuer || tokenIssuer !== expectedIssuer) {
+      log.warn("JWT rejected: issuer mismatch", { iss: payload.iss, expected: expectedIssuer });
       return null;
     }
 
@@ -158,6 +168,7 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
     const expectedAud = rauthyClientId();
     const aud = Array.isArray(payload.aud) ? payload.aud : payload.aud ? [payload.aud] : [];
     if (!aud.includes(expectedAud)) {
+      log.warn("JWT rejected: audience mismatch", { aud, expected: expectedAud });
       return null;
     }
 
@@ -166,7 +177,11 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
     const key = header.kid ? keys.find((k) => k.kid === header.kid) : keys.find((k) => k.alg === header.alg || k.use === "sig");
 
     if (!key) {
-      log.warn("No matching JWKS key found", { kid: header.kid, alg: header.alg });
+      log.warn("JWT rejected: no matching JWKS key", {
+        kid: header.kid,
+        alg: header.alg,
+        jwksKids: keys.map((k) => k.kid),
+      });
       return null;
     }
 
@@ -183,18 +198,36 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
       const pubKey = createPublicKey({ key: key as unknown as import("crypto").JsonWebKey, format: "jwk" });
       valid = cryptoVerify(null, signatureInput, pubKey, signature);
     } else {
-      log.warn("Unsupported JWT alg / JWK combination", { alg: header.alg, kty: key.kty, crv: key.crv });
+      log.warn("JWT rejected: unsupported alg / JWK combination", {
+        alg: header.alg,
+        kty: key.kty,
+        crv: key.crv,
+      });
       return null;
     }
 
     if (!valid) {
-      log.warn("JWT signature verification failed", { alg: header.alg, kty: key.kty });
+      log.warn("JWT rejected: signature verification failed", {
+        alg: header.alg,
+        kty: key.kty,
+        kid: header.kid,
+      });
       return null;
     }
 
-    return extractOapClaims(payload);
+    const claims = extractOapClaims(payload);
+    if (!claims) {
+      const custom = (payload.custom as Record<string, unknown> | undefined) ?? {};
+      log.warn("JWT rejected: missing required OAP claims", {
+        hasCustom: payload.custom !== undefined,
+        customKeys: Object.keys(custom),
+        topLevelHasOapUserId: typeof payload.oap_user_id === "string",
+      });
+      return null;
+    }
+    return claims;
   } catch (err) {
-    log.error("JWT validation error", { error: errorForLog(err) });
+    log.error("JWT validation threw", { error: errorForLog(err) });
     return null;
   }
 }

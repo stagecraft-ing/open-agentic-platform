@@ -10,6 +10,7 @@
 
 import { Header, Gateway, APIError } from "encore.dev/api";
 import { authHandler } from "encore.dev/auth";
+import log from "encore.dev/log";
 import { validateJwt } from "./rauthy";
 import { db } from "../db/drizzle";
 import { users } from "../db/schema";
@@ -95,12 +96,20 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
   }
 
   if (!token) {
+    log.warn("auth handler: no token in Authorization header or __session cookie", {
+      hasAuthorization: Boolean(params.authorization),
+      hasCookie: Boolean(params.cookie),
+      cookieHasSession: params.cookie?.includes("__session=") ?? false,
+    });
     throw APIError.unauthenticated("No authentication token provided");
   }
 
   // Validate Rauthy JWT — the only accepted auth mechanism
   const claims = await validateJwt(token);
   if (!claims) {
+    // validateJwt logs the specific rejection reason; add the handler-level
+    // breadcrumb so the cause is easy to locate in the Encore log stream.
+    log.warn("auth handler: validateJwt returned null — see prior JWT rejected warning");
     throw APIError.unauthenticated("Invalid or expired JWT");
   }
 
