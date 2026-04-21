@@ -29,6 +29,7 @@ import { userGithubPats, auditLog } from "../db/schema";
 import { and, eq, isNull, lt } from "drizzle-orm";
 import { encryptPat, decryptPat } from "./patCrypto";
 import { errorForLog } from "./errorLog";
+import { classifyFormat, probeGitHub, tokenPrefix } from "./patProbe";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -55,73 +56,6 @@ export interface PatValidationResult {
   githubLogin?: string;
   /** When ok === false, the reason code (see spec 106 FR-006 error table). */
   reason?: "pat_invalid" | "pat_rate_limited" | "pat_saml_not_authorized";
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function classifyFormat(token: string): { isFineGrained: boolean } | null {
-  if (token.startsWith("github_pat_")) return { isFineGrained: true };
-  if (/^gh[psou]_/.test(token)) return { isFineGrained: false };
-  return null;
-}
-
-function tokenPrefix(token: string): string {
-  return token.slice(0, 8);
-}
-
-/**
- * Call GitHub with the PAT and capture the probe outcome.
- * Throws on network failure; returns a structured result otherwise so the
- * caller decides whether to store / revoke / rate-limit the row.
- */
-async function probeGitHub(token: string): Promise<
-  | {
-      ok: true;
-      githubLogin: string;
-      scopes: string[];
-    }
-  | {
-      ok: false;
-      reason: "pat_invalid" | "pat_rate_limited" | "pat_saml_not_authorized";
-    }
-> {
-  const resp = await fetch("https://api.github.com/user", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
-
-  if (resp.status === 401) {
-    return { ok: false, reason: "pat_invalid" };
-  }
-  if (resp.status === 429) {
-    return { ok: false, reason: "pat_rate_limited" };
-  }
-  if (resp.status === 403) {
-    const body = await resp.text();
-    if (/saml/i.test(body)) {
-      return { ok: false, reason: "pat_saml_not_authorized" };
-    }
-    return { ok: false, reason: "pat_invalid" };
-  }
-  if (!resp.ok) {
-    throw new Error(`GitHub /user returned ${resp.status}`);
-  }
-
-  const scopesHeader = resp.headers.get("x-oauth-scopes") ?? "";
-  const scopes = scopesHeader
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const body = (await resp.json()) as { login?: string };
-  const githubLogin = body.login ?? "";
-
-  return { ok: true, githubLogin, scopes };
 }
 
 // ---------------------------------------------------------------------------
