@@ -70,22 +70,155 @@ export async function upsertFactoryUpstreams(
   }) as Promise<{ upstream: FactoryUpstream }>;
 }
 
-export type FactorySyncResult = {
-  status: "ok" | "failed";
-  syncedAt: string;
-  counts: FactoryUpstreamCounts;
+export type FactorySyncTriggerResponse = {
+  syncRunId: string;
+  status: "pending" | "running";
+  queuedAt: string;
+};
+
+export type FactorySyncRunStatus = "pending" | "running" | "ok" | "failed";
+
+export type FactorySyncRun = {
+  id: string;
+  status: FactorySyncRunStatus;
+  triggeredBy: string;
   factorySha: string | null;
   templateSha: string | null;
+  counts: FactoryUpstreamCounts | null;
   error: string | null;
+  queuedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 };
 
 export async function syncFactoryUpstreams(
   request: Request
-): Promise<FactorySyncResult> {
+): Promise<FactorySyncTriggerResponse> {
   return apiFetch(request, "/api/factory/upstreams/sync", {
     method: "POST",
     body: "{}",
-  }) as Promise<FactorySyncResult>;
+  }) as Promise<FactorySyncTriggerResponse>;
+}
+
+export async function listFactorySyncRuns(request: Request) {
+  return apiFetch(request, "/api/factory/upstreams/sync") as Promise<{
+    runs: FactorySyncRun[];
+  }>;
+}
+
+export async function getFactorySyncRun(
+  request: Request,
+  id: string
+): Promise<FactorySyncRun> {
+  return apiFetch(
+    request,
+    `/api/factory/upstreams/sync/${encodeURIComponent(id)}`
+  ) as Promise<FactorySyncRun>;
+}
+
+// ---------------------------------------------------------------------------
+// Factory upstream PAT (spec 109 §6)
+// ---------------------------------------------------------------------------
+
+export type FactoryUpstreamPatMetadata = {
+  exists: boolean;
+  tokenPrefix?: string;
+  isFineGrained?: boolean;
+  scopes?: string[];
+  githubLogin?: string | null;
+  lastUsedAt?: string | null;
+  lastCheckedAt?: string;
+  createdAt?: string;
+};
+
+export type FactoryUpstreamPatValidation = {
+  ok: boolean;
+  tokenPrefix: string;
+  isFineGrained: boolean;
+  scopes: string[];
+  lastCheckedAt: string;
+  githubLogin?: string;
+  reason?: "pat_invalid" | "pat_rate_limited" | "pat_saml_not_authorized";
+};
+
+export async function getFactoryUpstreamPat(request: Request) {
+  return apiFetch(
+    request,
+    "/api/factory/upstreams/pat"
+  ) as Promise<FactoryUpstreamPatMetadata>;
+}
+
+export async function storeFactoryUpstreamPat(
+  request: Request,
+  token: string
+): Promise<FactoryUpstreamPatValidation> {
+  return apiFetch(request, "/api/factory/upstreams/pat", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  }) as Promise<FactoryUpstreamPatValidation>;
+}
+
+export async function revokeFactoryUpstreamPat(request: Request) {
+  return apiFetch(request, "/api/factory/upstreams/pat", {
+    method: "DELETE",
+  }) as Promise<{ revoked: boolean }>;
+}
+
+export async function validateFactoryUpstreamPat(
+  request: Request
+): Promise<FactoryUpstreamPatValidation> {
+  return apiFetch(request, "/api/factory/upstreams/pat/validate", {
+    method: "POST",
+    body: "{}",
+  }) as Promise<FactoryUpstreamPatValidation>;
+}
+
+// ---------------------------------------------------------------------------
+// Project PAT (spec 109 §6)
+// ---------------------------------------------------------------------------
+
+export type ProjectPatMetadata = FactoryUpstreamPatMetadata;
+export type ProjectPatValidation = FactoryUpstreamPatValidation;
+
+export async function getProjectPat(request: Request, projectId: string) {
+  return apiFetch(
+    request,
+    `/api/projects/${encodeURIComponent(projectId)}/pat`
+  ) as Promise<ProjectPatMetadata>;
+}
+
+export async function storeProjectPat(
+  request: Request,
+  projectId: string,
+  token: string
+): Promise<ProjectPatValidation> {
+  return apiFetch(
+    request,
+    `/api/projects/${encodeURIComponent(projectId)}/pat`,
+    {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }
+  ) as Promise<ProjectPatValidation>;
+}
+
+export async function revokeProjectPat(request: Request, projectId: string) {
+  return apiFetch(
+    request,
+    `/api/projects/${encodeURIComponent(projectId)}/pat`,
+    { method: "DELETE" }
+  ) as Promise<{ revoked: boolean }>;
+}
+
+export async function validateProjectPat(
+  request: Request,
+  projectId: string
+): Promise<ProjectPatValidation> {
+  return apiFetch(
+    request,
+    `/api/projects/${encodeURIComponent(projectId)}/pat/validate`,
+    { method: "POST", body: "{}" }
+  ) as Promise<ProjectPatValidation>;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,34 +1,49 @@
-import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
+import { Form, useActionData, useLoaderData, useNavigation, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
-  getPat,
-  storePat,
-  revokePat,
-  validatePat,
-  type PatMetadata,
-  type PatValidationResult,
-} from "../lib/pat-api.server";
+  getProjectPat,
+  storeProjectPat,
+  revokeProjectPat,
+  validateProjectPat,
+  type ProjectPatMetadata,
+  type ProjectPatValidation,
+} from "../lib/factory-api.server";
 
 /**
- * GitHub PAT settings page (spec 106 FR-007).
+ * Project GitHub PAT settings (spec 109 §6).
  *
- * Displays metadata for the current active PAT and supports paste/replace,
- * revoke, and revalidate. Never surfaces the token itself — only the prefix.
+ * Project-scoped credential used for repo clone/push/create against GitHub
+ * orgs that do NOT have the OAP App installed. Separate from the user PAT
+ * under /app/settings/github-pat (which is for membership resolution).
  */
 
 type ActionResult =
-  | { kind: "stored"; result: PatValidationResult }
-  | { kind: "validated"; result: PatValidationResult }
+  | { kind: "stored"; result: ProjectPatValidation }
+  | { kind: "validated"; result: ProjectPatValidation }
   | { kind: "revoked"; revoked: boolean }
   | { kind: "error"; message: string };
 
-export async function loader({ request }: { request: Request }) {
+export async function loader({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
-  const pat = await getPat(request).catch<PatMetadata>(() => ({ exists: false }));
+  const pat = await getProjectPat(request, params.projectId).catch<ProjectPatMetadata>(
+    () => ({ exists: false })
+  );
   return { pat };
 }
 
-export async function action({ request }: { request: Request }) {
+export async function action({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
   const form = await request.formData();
   const intent = form.get("intent");
@@ -37,17 +52,17 @@ export async function action({ request }: { request: Request }) {
     if (intent === "store") {
       const token = String(form.get("token") ?? "").trim();
       if (!token) return { kind: "error", message: "Paste a token before saving." };
-      const result = await storePat(request, token);
+      const result = await storeProjectPat(request, params.projectId, token);
       return { kind: "stored", result } satisfies ActionResult;
     }
 
     if (intent === "validate") {
-      const result = await validatePat(request);
+      const result = await validateProjectPat(request, params.projectId);
       return { kind: "validated", result } satisfies ActionResult;
     }
 
     if (intent === "revoke") {
-      const { revoked } = await revokePat(request);
+      const { revoked } = await revokeProjectPat(request, params.projectId);
       return { kind: "revoked", revoked } satisfies ActionResult;
     }
 
@@ -58,7 +73,7 @@ export async function action({ request }: { request: Request }) {
   }
 }
 
-function formatDate(s?: string): string {
+function formatDate(s?: string | null): string {
   if (!s) return "—";
   try {
     return new Date(s).toLocaleString();
@@ -74,19 +89,20 @@ function reasonLabel(reason?: string): string {
     case "pat_rate_limited":
       return "GitHub rate-limited the check. Try again in a few minutes.";
     case "pat_saml_not_authorized":
-      return "Token is not SAML-authorized for one or more orgs. Open the token on GitHub and enable SSO.";
+      return "Token is not SAML-authorized for the target org. Open the token on GitHub and enable SSO.";
     default:
       return "Token could not be validated.";
   }
 }
 
-export default function GithubPatSettings() {
-  const { pat } = useLoaderData() as { pat: PatMetadata };
+export default function ProjectGithubPatSettings() {
+  const { pat } = useLoaderData() as { pat: ProjectPatMetadata };
   const actionData = useActionData() as ActionResult | undefined;
   const nav = useNavigation();
+  const params = useParams();
   const busy = nav.state !== "idle";
 
-  const latestResult: PatValidationResult | undefined =
+  const latestResult: ProjectPatValidation | undefined =
     actionData && (actionData.kind === "stored" || actionData.kind === "validated")
       ? actionData.result
       : undefined;
@@ -97,13 +113,13 @@ export default function GithubPatSettings() {
     <div className="space-y-6 max-w-2xl">
       <header>
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-2">
-          GitHub Personal Access Token
+          Project GitHub Access Token
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          When your organisation has not installed the stagecraft GitHub App,
-          stagecraft uses your Personal Access Token to read org membership
-          during login. Tokens are encrypted at rest and are never shown back
-          to you after save.
+          Project-scoped GitHub credential used when this project's repo lives in
+          an org that does not have the OAP GitHub App installed. Tokens are
+          encrypted at rest, never shown after save, and are used only by the
+          platform to clone, push, and create repos for this project.
         </p>
       </header>
 
@@ -136,6 +152,11 @@ export default function GithubPatSettings() {
             <div className="text-gray-500 dark:text-gray-400">Format</div>
             <div className="col-span-2 text-gray-900 dark:text-gray-100">
               {pat.isFineGrained ? "Fine-grained" : "Classic"}
+            </div>
+
+            <div className="text-gray-500 dark:text-gray-400">GitHub user</div>
+            <div className="col-span-2 font-mono text-gray-900 dark:text-gray-100">
+              {pat.githubLogin ?? "—"}
             </div>
 
             <div className="text-gray-500 dark:text-gray-400">Scopes</div>
@@ -185,7 +206,8 @@ export default function GithubPatSettings() {
         </section>
       ) : (
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          No active token on file. Paste one below to enable the PAT fallback.
+          No project token on file. Paste one below to allow this project to
+          access repos outside the platform-installed GitHub org.
         </p>
       )}
 
@@ -194,20 +216,21 @@ export default function GithubPatSettings() {
           {hasActive ? "Replace token" : "Add token"}
         </h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Fine-grained tokens are preferred. Required: <code>read:org</code>{" "}
-          (classic) or the <em>Members — Read</em> org permission (fine-grained).
+          Fine-grained tokens are preferred. The token needs <em>Contents</em>
+          {" "}and <em>Administration</em> (for creating new repos) permissions on
+          the target org's repositories.
         </p>
 
         <Form method="post" className="space-y-3">
           <input type="hidden" name="intent" value="store" />
           <label className="block">
-            <span className="sr-only">GitHub PAT</span>
+            <span className="sr-only">Project GitHub PAT (project {params.projectId})</span>
             <input
               type="password"
               name="token"
               autoComplete="off"
               spellCheck={false}
-              placeholder="ghp_… or github_pat_…"
+              placeholder="github_pat_… or ghp_…"
               className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             />
           </label>

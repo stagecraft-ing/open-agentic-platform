@@ -1,24 +1,28 @@
 /**
- * Factory Overview (spec 108 Phase 3).
+ * Factory Overview (spec 108 Phase 3 + spec 109 §5 async sync).
  *
- * Live view of the org's upstream config + counts of the derived resources.
- * Admin users can trigger an inline sync via the Sync now button; the action
- * blocks on the sync worker and the loader re-reads the updated row after
- * redirect.
+ * Sync is now async. The action enqueues a run on FactorySyncRequestTopic
+ * and returns a sync_run_id; the page polls GET /api/factory/upstreams/sync/:id
+ * until the run terminates. Recent runs are surfaced in a table fed by
+ * GET /api/factory/upstreams/sync.
  */
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Form,
   Link,
-  redirect,
   useActionData,
   useLoaderData,
   useNavigation,
+  useRevalidator,
 } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
   getFactoryUpstreams,
+  listFactorySyncRuns,
   syncFactoryUpstreams,
+  type FactorySyncRun,
+  type FactorySyncTriggerResponse,
   type FactoryUpstream,
   type FactoryUpstreamCounts,
 } from "../lib/factory-api.server";
@@ -27,6 +31,7 @@ type LoaderData = {
   upstream: FactoryUpstream | null;
   counts: FactoryUpstreamCounts;
   canConfigure: boolean;
+  runs: FactorySyncRun[];
 };
 
 export async function loader({
@@ -35,30 +40,33 @@ export async function loader({
   request: Request;
 }): Promise<LoaderData> {
   const user = await requireUser(request);
-  const { upstream, counts } = await getFactoryUpstreams(request);
+  const [{ upstream, counts }, { runs }] = await Promise.all([
+    getFactoryUpstreams(request),
+    listFactorySyncRuns(request).catch(() => ({ runs: [] as FactorySyncRun[] })),
+  ]);
   const canConfigure =
     user.platformRole === "owner" || user.platformRole === "admin";
-  return { upstream, counts, canConfigure };
+  return { upstream, counts, canConfigure, runs };
 }
 
-type ActionData = { error?: string };
+type ActionData = {
+  error?: string;
+  triggered?: FactorySyncTriggerResponse;
+};
 
 export async function action({
   request,
 }: {
   request: Request;
-}): Promise<ActionData | Response> {
+}): Promise<ActionData> {
   const user = await requireUser(request);
   if (user.platformRole !== "owner" && user.platformRole !== "admin") {
     return { error: "Only org admins can run factory sync." };
   }
 
   try {
-    const result = await syncFactoryUpstreams(request);
-    if (result.status === "failed") {
-      return { error: result.error ?? "Sync failed." };
-    }
-    return redirect("/app/factory");
+    const triggered = await syncFactoryUpstreams(request);
+    return { triggered };
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "Sync failed.",
@@ -67,10 +75,19 @@ export async function action({
 }
 
 export default function FactoryOverview() {
-  const { upstream, counts, canConfigure } = useLoaderData<typeof loader>();
+  const { upstream, counts, canConfigure, runs } = useLoaderData<typeof loader>();
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
-  const isSyncing = navigation.state === "submitting";
+  const isSubmitting = navigation.state === "submitting";
+
+  const activeRun = useMemo(() => {
+    if (actionData?.triggered) {
+      return runs.find((r) => r.id === actionData.triggered!.syncRunId);
+    }
+    return runs.find((r) => r.status === "pending" || r.status === "running");
+  }, [runs, actionData]);
+
+  useSyncRunPolling(activeRun);
 
   return (
     <div className="space-y-6">
@@ -92,7 +109,8 @@ export default function FactoryOverview() {
           <div className="flex shrink-0 items-center gap-2">
             <SyncButton
               disabled={!canConfigure || !upstream}
-              isSyncing={isSyncing}
+              isSubmitting={isSubmitting}
+              activeRun={activeRun}
             />
             <Link
               to="/app/factory/upstreams"
@@ -125,7 +143,7 @@ export default function FactoryOverview() {
         <SyncStatus
           upstream={upstream}
           actionError={actionData?.error ?? null}
-          isSyncing={isSyncing}
+          activeRun={activeRun}
         />
       </section>
 
@@ -146,25 +164,45 @@ export default function FactoryOverview() {
           count={counts.processes}
         />
       </div>
+
+      <RecentRuns runs={runs} />
     </div>
   );
 }
 
+function useSyncRunPolling(activeRun: FactorySyncRun | undefined) {
+  const revalidator = useRevalidator();
+  useEffect(() => {
+    if (!activeRun) return;
+    if (activeRun.status !== "pending" && activeRun.status !== "running") return;
+    const handle = setInterval(() => {
+      revalidator.revalidate();
+    }, 2000);
+    return () => clearInterval(handle);
+  }, [activeRun, revalidator]);
+}
+
 function SyncButton({
   disabled,
-  isSyncing,
+  isSubmitting,
+  activeRun,
 }: {
   disabled: boolean;
-  isSyncing: boolean;
+  isSubmitting: boolean;
+  activeRun: FactorySyncRun | undefined;
 }) {
+  const inFlight =
+    isSubmitting ||
+    activeRun?.status === "pending" ||
+    activeRun?.status === "running";
   return (
     <Form method="post">
       <button
         type="submit"
-        disabled={disabled || isSyncing}
+        disabled={disabled || inFlight}
         className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isSyncing ? "Syncing…" : "Sync now"}
+        {inFlight ? "Syncing…" : "Sync now"}
       </button>
     </Form>
   );
@@ -213,11 +251,11 @@ function UpstreamCard({
 function SyncStatus({
   upstream,
   actionError,
-  isSyncing,
+  activeRun,
 }: {
   upstream: FactoryUpstream | null;
   actionError: string | null;
-  isSyncing: boolean;
+  activeRun: FactorySyncRun | undefined;
 }) {
   if (!upstream) {
     return (
@@ -227,9 +265,9 @@ function SyncStatus({
     );
   }
 
-  const effectiveStatus = isSyncing
-    ? "running"
-    : (actionError ? "failed" : upstream.lastSyncStatus ?? "pending");
+  const effectiveStatus =
+    activeRun?.status ??
+    (actionError ? "failed" : upstream.lastSyncStatus ?? "pending");
 
   const color =
     effectiveStatus === "ok"
@@ -238,7 +276,7 @@ function SyncStatus({
         ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
         : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800";
 
-  const errorMessage = actionError ?? upstream.lastSyncError;
+  const errorMessage = actionError ?? activeRun?.error ?? upstream.lastSyncError;
 
   return (
     <div
@@ -259,6 +297,88 @@ function SyncStatus({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function RecentRuns({ runs }: { runs: FactorySyncRun[] }) {
+  if (runs.length === 0) return null;
+  return (
+    <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
+      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+        Recent syncs
+      </h2>
+      <table className="mt-4 w-full text-xs">
+        <thead>
+          <tr className="text-left text-gray-500 dark:text-gray-400">
+            <th className="pb-2 font-medium">Status</th>
+            <th className="pb-2 font-medium">Queued</th>
+            <th className="pb-2 font-medium">Duration</th>
+            <th className="pb-2 font-medium">Factory</th>
+            <th className="pb-2 font-medium">Template</th>
+            <th className="pb-2 font-medium">Counts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {runs.map((run) => (
+            <RunRow key={run.id} run={run} />
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function RunRow({ run }: { run: FactorySyncRun }) {
+  const duration =
+    run.startedAt && run.completedAt
+      ? `${Math.round(
+          (new Date(run.completedAt).getTime() -
+            new Date(run.startedAt).getTime()) /
+            1000
+        )}s`
+      : run.status === "running"
+        ? "…"
+        : "—";
+
+  return (
+    <tr className="border-t border-gray-100 dark:border-gray-800">
+      <td className="py-2">
+        <StatusPill status={run.status} />
+      </td>
+      <td className="py-2 text-gray-600 dark:text-gray-400">
+        {new Date(run.queuedAt).toLocaleString()}
+      </td>
+      <td className="py-2 text-gray-600 dark:text-gray-400">{duration}</td>
+      <td className="py-2 font-mono text-gray-600 dark:text-gray-400">
+        {run.factorySha ? run.factorySha.slice(0, 7) : "—"}
+      </td>
+      <td className="py-2 font-mono text-gray-600 dark:text-gray-400">
+        {run.templateSha ? run.templateSha.slice(0, 7) : "—"}
+      </td>
+      <td className="py-2 font-mono text-gray-600 dark:text-gray-400">
+        {run.counts
+          ? `A ${run.counts.adapters} / C ${run.counts.contracts} / P ${run.counts.processes}`
+          : "—"}
+      </td>
+    </tr>
+  );
+}
+
+function StatusPill({ status }: { status: FactorySyncRun["status"] }) {
+  const cls =
+    status === "ok"
+      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+      : status === "failed"
+        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+        : status === "running"
+          ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300"
+          : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${cls}`}
+    >
+      {status}
+    </span>
   );
 }
 
