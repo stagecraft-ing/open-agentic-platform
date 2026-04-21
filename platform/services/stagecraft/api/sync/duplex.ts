@@ -12,6 +12,7 @@ import { getAuthData } from "~encore/auth";
 import log from "encore.dev/log";
 import { randomUUID } from "node:crypto";
 import type { SyncHandshake, ServerHello } from "./types";
+import { ENVELOPE_SCHEMA_VERSION } from "./types";
 import type { SessionMeta } from "./registry";
 import * as registry from "./registry";
 import {
@@ -44,6 +45,7 @@ export const duplex = api.streamInOut<
         .send({
           kind: "sync.nack",
           meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
             workspaceId: "",
@@ -63,6 +65,7 @@ export const duplex = api.streamInOut<
         .send({
           kind: "sync.nack",
           meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
             workspaceId,
@@ -106,6 +109,7 @@ export const duplex = api.streamInOut<
     const hello: ServerHello = {
       kind: "sync.hello",
       meta: {
+        v: ENVELOPE_SCHEMA_VERSION,
         eventId: randomUUID(),
         sentAt: new Date().toISOString(),
         workspaceId,
@@ -122,6 +126,7 @@ export const duplex = api.streamInOut<
         .send({
           kind: "sync.resync_required",
           meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
             workspaceId,
@@ -139,6 +144,7 @@ export const duplex = api.streamInOut<
         .sendTo(workspaceId, handshake.clientId, {
           kind: "sync.heartbeat",
           meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
             workspaceId,

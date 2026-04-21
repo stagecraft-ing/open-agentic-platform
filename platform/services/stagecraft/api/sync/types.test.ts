@@ -6,7 +6,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "execution.status",
-        meta: { eventId: "e1", sentAt: "2026-04-20T00:00:00Z" },
+        meta: { v: 1, eventId: "e1", sentAt: "2026-04-20T00:00:00Z" },
         projectId: "p1",
         executionId: "x1",
         status: "started",
@@ -18,7 +18,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "sync.heartbeat",
-        meta: { eventId: "e2", sentAt: "2026-04-20T00:00:00Z" },
+        meta: { v: 1, eventId: "e2", sentAt: "2026-04-20T00:00:00Z" },
       }),
     ).toBe(true);
   });
@@ -27,7 +27,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "server.secret.leak",
-        meta: { eventId: "e", sentAt: "x" },
+        meta: { v: 1, eventId: "e", sentAt: "x" },
       }),
     ).toBe(false);
   });
@@ -46,7 +46,35 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "sync.heartbeat",
-        meta: { eventId: 123, sentAt: "now" },
+        meta: { v: 1, eventId: 123, sentAt: "now" },
+      }),
+    ).toBe(false);
+  });
+
+  // Spec 087 §5.3 FR-SYNC-003: strict schema-version equality.
+  test("rejects envelopes missing schema version", () => {
+    expect(
+      isClientEnvelope({
+        kind: "sync.heartbeat",
+        meta: { eventId: "e", sentAt: "t" },
+      }),
+    ).toBe(false);
+  });
+
+  test("rejects envelopes with a different schema version", () => {
+    expect(
+      isClientEnvelope({
+        kind: "sync.heartbeat",
+        meta: { v: 2, eventId: "e", sentAt: "t" },
+      }),
+    ).toBe(false);
+  });
+
+  test("rejects envelopes with non-numeric schema version", () => {
+    expect(
+      isClientEnvelope({
+        kind: "sync.heartbeat",
+        meta: { v: "1", eventId: "e", sentAt: "t" },
       }),
     ).toBe(false);
   });

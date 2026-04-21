@@ -40,7 +40,20 @@ export interface SyncHandshake {
 // Common envelope metadata
 // ---------------------------------------------------------------------------
 
+/**
+ * Envelope schema version.
+ *
+ * Spec 087 §5.3 FR-SYNC-003: every envelope MUST carry a schema version. The
+ * current protocol is version 1; the guard in `isClientEnvelope` rejects any
+ * other value. Bumping this is a wire-format change and requires extending
+ * both the TypeScript literal and the runtime guard in lock-step.
+ */
+export type EnvelopeSchemaVersion = 1;
+export const ENVELOPE_SCHEMA_VERSION: EnvelopeSchemaVersion = 1;
+
 export interface EnvelopeMeta {
+  /** Schema version — required; strict equality enforced at the boundary. */
+  v: EnvelopeSchemaVersion;
   /** Unique event ID — UUID, set by sender. Used for ACK/NACK correlation. */
   eventId: string;
   /** ISO-8601 timestamp, set by sender. */
@@ -59,6 +72,12 @@ export interface EnvelopeMeta {
  * Desktop/OPC-originated events that Stagecraft should record or act on.
  * Each variant is a clearly-bounded desktop-authoritative signal — never a
  * control-plane mutation that would blur authority.
+ *
+ * INVARIANT (spec 087 §5.3):
+ *   Extending this union is a *governance act*, not a types change. Any new
+ *   variant MUST carry no control-plane authority (no policy/grant/deploy/
+ *   workspace state mutation). A variant that asserts authoritative server
+ *   state requires a spec amendment.
  */
 export type ClientEnvelope =
   | ClientExecutionStatus
@@ -315,7 +334,11 @@ export function isClientEnvelope(v: unknown): v is ClientEnvelope {
   if (typeof r.kind !== "string") return false;
   if (!CLIENT_KINDS.has(r.kind as ClientEnvelopeKind)) return false;
   if (!r.meta || typeof r.meta !== "object") return false;
-  const m = r.meta as { eventId?: unknown; sentAt?: unknown };
+  const m = r.meta as { eventId?: unknown; sentAt?: unknown; v?: unknown };
+  // Spec 087 §5.3 FR-SYNC-003: strict equality on schema version. A newer
+  // client sending v=2 is rejected as "invalid" rather than silently falling
+  // through a best-effort decoder.
+  if (m.v !== ENVELOPE_SCHEMA_VERSION) return false;
   return typeof m.eventId === "string" && typeof m.sentAt === "string";
 }
 

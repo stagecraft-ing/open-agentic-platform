@@ -24,6 +24,7 @@ import type {
   ServerNack,
   ServerMeta,
 } from "./types";
+import { ENVELOPE_SCHEMA_VERSION } from "./types";
 
 // Distributive Omit so Omit<UnionMember, "meta"> works variant-by-variant.
 type DistributiveOmit<T, K extends keyof T> = T extends unknown
@@ -142,6 +143,7 @@ export async function handleInbound(
 
 function mintMeta(workspaceId: string, correlationId?: string): ServerMeta {
   return {
+    v: ENVELOPE_SCHEMA_VERSION,
     eventId: randomUUID(),
     sentAt: new Date().toISOString(),
     correlationId,

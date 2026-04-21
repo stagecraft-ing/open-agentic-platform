@@ -6,6 +6,7 @@ function serverEvent(workspaceId: string, eventId: string, cursor: string): Serv
   return {
     kind: "factory.event",
     meta: {
+      v: 1,
       eventId,
       sentAt: "2026-04-20T00:00:00Z",
       workspaceId,
@@ -47,7 +48,7 @@ describe("inbox", () => {
       clientId: "c1",
       event: {
         kind: "sync.heartbeat",
-        meta: { eventId: "e1", sentAt: "t" },
+        meta: { v: 1, eventId: "e1", sentAt: "t" },
       },
       status: "accepted",
       receivedAt: new Date(),
@@ -57,7 +58,7 @@ describe("inbox", () => {
       clientId: "c1",
       event: {
         kind: "sync.heartbeat",
-        meta: { eventId: "e2", sentAt: "t" },
+        meta: { v: 1, eventId: "e2", sentAt: "t" },
       },
       status: "accepted",
       receivedAt: new Date(),

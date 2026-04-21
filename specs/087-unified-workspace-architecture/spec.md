@@ -6,9 +6,11 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-09"
+amended: "2026-04-20"
 summary: >
   Unified architecture connecting web and desktop planes into one system with
   a first-class knowledge intake domain and workspace-scoped entity hierarchy.
+  §5.3 adds the duplex sync substrate contract (FR-SYNC-001..010).
 code_aliases: ["UNIFIED_WORKSPACE"]
 depends_on:
   - "074"  # factory-ingestion
@@ -252,6 +254,73 @@ Connectors are workspace-scoped configuration objects. Adding a new connector ty
 ```
 
 A WebSocket relay on Stagecraft pushes events to connected OPC instances, scoped by workspace. OPC pushes state updates to Stagecraft via HTTP POST (fire-and-forget, best-effort — failures never block local execution).
+
+### 5.3 Duplex Sync Substrate
+
+> Added 2026-04-20. Supersedes the "HTTP POST + WebSocket push" model of §5.2 for new consumers. The legacy `workspaceEventStream` streamOut and `ingestOpcEvent` HTTP endpoint are retained during migration (see FR-SYNC-010).
+
+The canonical sync channel between Stagecraft and OPC is an **authenticated duplex WebSocket** at `POST /api/sync/duplex` (Encore `api.streamInOut`). A single bidirectional stream carries a disjoint pair of typed envelope unions — `ClientEnvelope` (desktop → server) and `ServerEnvelope` (server → desktop) — with workspace cursors, ACK/NACK semantics, and resync on reconnect.
+
+Implementation: `platform/services/stagecraft/api/sync/` — `types.ts`, `service.ts`, `duplex.ts`, `registry.ts`, `store.ts`, `relay.ts`.
+
+#### Authority Invariant (Type-System-Enforced)
+
+The envelope union encodes the §5.1 authority split in TypeScript:
+
+- `ClientEnvelope` variants carry **no control-plane authority**. They are desktop-authoritative signals: local execution progress, checkpoints, artifacts, runtime observations, audit *candidates*, and the three transport variants (`sync.ack`, `sync.heartbeat`, `sync.resync_request`).
+- `ServerEnvelope` variants carry all control-plane truth: `policy.updated`, `grant.updated`, `deploy.status`, `workspace.updated`, `project.updated`, `factory.event`, plus transport.
+- **Extension rule.** Adding a new `ClientEnvelope` variant is a **governance act**, not a types change. A variant that asserts authoritative server state (e.g. "policy override", "deploy trigger") requires a spec amendment; a variant that reports a local observation is within scope.
+
+`audit.candidate` is the one inbound variant that results in a durable write. Stagecraft normalises the action (`opc.` prefix), stamps `actor_user_id` from the authenticated JWT, and writes to `audit_log` — the desktop cannot forge the actor or the workspace.
+
+#### Functional Requirements
+
+| ID | Requirement | Severity | Status |
+|----|-------------|:--------:|:------:|
+| **FR-SYNC-001** | The stream MUST be opened with `auth: true`; `workspaceId` MUST be read from `getAuthData()`, never from the handshake. A handshake with no workspace in the auth token is NACKed and the stream closed. | correctness | shipped |
+| **FR-SYNC-002** | Before `registry.register`, the handler MUST verify the authenticated user holds an active membership for the workspace (`org_memberships.status = 'active'` OR a `project_members` row whose project is in that workspace). JWT-claimed `oap_workspace_id` alone is NOT sufficient. | **correctness — blocker** | not shipped |
+| **FR-SYNC-003** | Every envelope's `meta` MUST carry `v: 1`. The inbound guard enforces strict equality; mismatched or missing `v` is rejected as `invalid`. Bumping the protocol is a wire-format change: the `EnvelopeSchemaVersion` literal and the guard move together. | correctness | shipped |
+| **FR-SYNC-004** | `ClientAuditCandidate` MUST be written as `audit_log` with server-stamped `actor_user_id`, `workspaceId`, and `clientId`. Client-supplied timestamps and actors are ignored. | correctness | shipped |
+| **FR-SYNC-005** | The outbox and inbox MUST persist to Postgres (`sync_outbox(workspace_id, cursor, event_id, payload, created_at)`, `sync_outbox_delivery(workspace_id, event_id, client_id, acked_at)`, `sync_inbox(...)`). The in-memory stores in `store.ts` are a foundation; the interfaces (`OutboxStore`, `InboxStore`, `CursorIssuer`) exist specifically to accept a Drizzle-backed swap without touching `service.ts` or `duplex.ts`. | durability | not shipped |
+| **FR-SYNC-006** | When stagecraft runs with replicas > 1, `dispatchServerEvent` MUST fan out via PubSub (or equivalent) so every replica's local registry sees every workspace event. Without this, a producer on replica A does not reach a client connected to replica B. | correctness (multi-replica) | not shipped |
+| **FR-SYNC-007** | The broadcast loop MUST apply backpressure: a slow client MUST NOT stall other clients. Implementation options: per-client bounded send queue with drop policy, or concurrent sends with a per-client deadline. | liveness | not shipped |
+| **FR-SYNC-008** | Metrics MUST be exposed: `sync_connections_total`, `sync_events_inbound_total{kind,status}`, `sync_events_outbound_total{kind}`, `sync_ack_latency_seconds`. | observability | not shipped |
+| **FR-SYNC-009** | Inbound MUST be rate-limited per `clientId` (token-bucket, default 100/s, burst 200). Excess events are NACKed with `reason: "invalid"` and `detail: "rate_limited"`. | abuse resistance | not shipped |
+| **FR-SYNC-010** | The legacy `workspaceEventStream` streamOut + `ingestOpcEvent` HTTP POST path in `api/sync/sync.ts` MUST be decommissioned once `web/`, `apps/desktop`, and `packages/workspace-sdk` are migrated to the duplex. Coexistence is additive, not permanent. | hygiene | migration tracked |
+
+#### Retention Calculus (In-Memory Stores)
+
+The in-memory outbox cap is `MAX_OUTBOX_PER_WORKSPACE = 500` (`store.ts`). At a target workspace event rate of **~10 events/s** (factory progress + audit + periodic deploy/grant changes), this retains roughly **50 seconds** of history. At a burst rate of **50 events/s** (e.g., factory stage fan-out), retention falls to **10 seconds**.
+
+A client that reconnects after a gap greater than the retained window receives `sync.resync_required(reason: "cursor_gap")` and must refetch state via existing REST endpoints. This is acceptable while stagecraft deploys take single-digit seconds; it is NOT acceptable for deploys exceeding the retention window or for any scenario where in-flight state cannot be refetched. FR-SYNC-005 removes this constraint.
+
+The in-memory inbox cap is `MAX_INBOX_HISTORY = 1000` and is used only for debug/inspection; audit candidates are durably written regardless.
+
+#### Membership Gate Design (FR-SYNC-002)
+
+The gate is a single pre-`register` check inside `duplex.ts`:
+
+```ts
+const hasMembership = await membership.isActiveMember({
+  userId: auth.userID,
+  workspaceId,
+});
+if (!hasMembership) {
+  // NACK with reason: "unauthorized", detail: "no workspace membership"
+  await stream.close();
+  return;
+}
+```
+
+`membership.isActiveMember` resolves by joining `org_memberships` (for workspace-via-org) or `project_members` (for workspace-via-project). A permission grant that shrinks membership without rotating the JWT MUST take effect within the next connection; existing connections MAY remain until next handshake (documented as an accepted tradeoff).
+
+#### Schema Versioning Design (FR-SYNC-003)
+
+- `EnvelopeSchemaVersion = 1` is a TypeScript literal type exported from `types.ts`.
+- Every envelope sender writes `meta.v = ENVELOPE_SCHEMA_VERSION`.
+- The inbound guard `isClientEnvelope` rejects `m.v !== 1` as invalid.
+- Protocol bumps are lock-step: literal type + runtime guard update together, and the change is noted in this spec with a version compatibility matrix.
+- Future direction: when v2 ships, the server MAY accept both `1` and `2` for inbound and send `v` matching the client's announced version from the handshake. That is out of scope until there is a second version.
 
 ## 6. Identity Consolidation
 

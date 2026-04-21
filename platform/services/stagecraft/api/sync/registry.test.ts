@@ -56,6 +56,7 @@ function sampleEvent(
   return {
     kind: "sync.heartbeat",
     meta: {
+      v: 1,
       eventId: "evt-1",
       sentAt: "2026-04-20T00:00:00Z",
       workspaceId,
