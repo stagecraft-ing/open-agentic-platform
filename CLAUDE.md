@@ -29,11 +29,6 @@ crates/             — Rust library crates
   skill-factory/    — Skill and Command Factory (spec 071)
   tool-registry/    — ToolDef trait + registry with permission gates (spec 067)
   xray/             — Repository analysis: complexity scoring, call graphs, structural fingerprinting
-factory/            — Factory delivery engine
-  contract/         — Formal schemas: Build Spec, Adapter Manifest, Pipeline State, Verification
-  process/          — 7-stage pipeline: agents and stage definitions
-  adapters/         — Pluggable tech adapters (aim-vue-node, next-prisma, encore-react, rust-axum)
-  docs/             — Architecture, how-to, integration docs
 apps/desktop/       — Tauri v2 + React desktop app (TypeScript + Rust)
 platform/           — Organisational control plane (imported from stagecraft-ing/platform)
   services/

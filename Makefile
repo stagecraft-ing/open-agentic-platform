@@ -12,7 +12,6 @@
         axiomregent axiomregent-all fetch-axiomregent fetch-axiomregent-check \
         registry spec-compile spec-tools \
         index index-check index-render \
-        adapter-scopes \
         check-deps \
         ci ci-rust ci-tools ci-desktop ci-stagecraft ci-cross ci-parity
 
@@ -147,14 +146,13 @@ index-render:
 	./tools/codebase-indexer/target/release/codebase-indexer render
 
 # ============================================================
-# Adapter Scopes
+# Adapter Scopes (removed in spec 108 — see factory_adapters table)
 # ============================================================
-
-## Recompile build/adapter-scopes.json + platform/services/stagecraft/api/factory/adapter-scopes.json
-## from factory/adapters/*/manifest.yaml (spec 105 Phase 1, replaces scripts/compile-adapter-scopes.js).
-adapter-scopes:
-	cargo build --release --manifest-path tools/adapter-scopes-compiler/Cargo.toml
-	./tools/adapter-scopes-compiler/target/release/adapter-scopes-compiler
+# adapter-scopes.json was compiled from factory/adapters/*/manifest.yaml.
+# Spec 108 moves adapter manifests into the factory_adapters table, so the
+# offline compiler is obsolete; the bundled snapshot in
+# platform/services/stagecraft/api/factory/adapter-scopes.json is retained
+# as a static fallback until the Phase 3 sync worker populates the table.
 
 # ============================================================
 # Development — Desktop App
@@ -396,9 +394,6 @@ help:
 	@echo "  make index          Recompile codebase index"
 	@echo "  make index-check    Check if index is stale"
 	@echo "  make index-render   Render CODEBASE-INDEX.md from index"
-	@echo ""
-	@echo "Factory:"
-	@echo "  make adapter-scopes Compile adapter-scopes.json from factory/adapters/*/manifest.yaml"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
 	@echo "  make ci             Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft)"

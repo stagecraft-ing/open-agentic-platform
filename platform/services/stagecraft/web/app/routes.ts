@@ -13,7 +13,10 @@ export default [
   route("admin/signin", "routes/admin.signin.tsx"),
   route("app", "routes/app.tsx", [
     index("routes/app._index.tsx"),
-    route("factory", "routes/app.factory.tsx"),
+    route("factory", "routes/app.factory.tsx", [
+      index("routes/app.factory._index.tsx"),
+      route("upstreams", "routes/app.factory.upstreams.tsx"),
+    ]),
     route("projects/new", "routes/app.projects.new.tsx"),
     route("project/:projectId", "routes/app.project.$projectId.tsx", [
       index("routes/app.project.$projectId._index.tsx"),

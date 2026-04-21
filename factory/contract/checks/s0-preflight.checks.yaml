@@ -1,7 +1,0 @@
-# Stage s0-preflight — Pre-flight validation gate
-# Verifies that the pipeline state document exists before any agent work begins.
-checks:
-  - id: "S0-001-pipeline-state-exists"
-    type: "artifact-exists"
-    severity: "error"
-    artifact: ".factory/pipeline-state.json"

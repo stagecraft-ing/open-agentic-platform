@@ -747,3 +747,77 @@ export const oidcGroupRoleMappings = pgTable(
   },
   (t) => [unique().on(t.orgId, t.providerId, t.idpGroupId, t.targetScope, t.targetId)]
 );
+
+// ---------------------------------------------------------------------------
+// Factory as a first-class platform feature (spec 108)
+// ---------------------------------------------------------------------------
+// factory_upstreams is the one writable config per org — it replaces the
+// repo-rooted upstream-map.yaml. The three derived tables are replaced on
+// every sync run; only the latest snapshot per (org, name[, version]) is
+// retained.
+
+export const factoryUpstreams = pgTable("factory_upstreams", {
+  orgId: uuid("org_id").primaryKey(),
+  factorySource: text("factory_source").notNull(),
+  factoryRef: text("factory_ref").notNull().default("main"),
+  templateSource: text("template_source").notNull(),
+  templateRef: text("template_ref").notNull().default("main"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  lastSyncSha: jsonb("last_sync_sha"),
+  lastSyncStatus: text("last_sync_status"),
+  lastSyncError: text("last_sync_error"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const factoryAdapters = pgTable(
+  "factory_adapters",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    name: text("name").notNull(),
+    version: text("version").notNull(),
+    manifest: jsonb("manifest").notNull(),
+    sourceSha: text("source_sha").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.name)]
+);
+
+export const factoryContracts = pgTable(
+  "factory_contracts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    name: text("name").notNull(),
+    version: text("version").notNull(),
+    schema: jsonb("schema").notNull(),
+    sourceSha: text("source_sha").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.name, t.version)]
+);
+
+export const factoryProcesses = pgTable(
+  "factory_processes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    name: text("name").notNull(),
+    version: text("version").notNull(),
+    definition: jsonb("definition").notNull(),
+    sourceSha: text("source_sha").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.name, t.version)]
+);

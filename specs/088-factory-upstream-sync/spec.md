@@ -2,19 +2,21 @@
 id: "088-factory-upstream-sync"
 slug: factory-upstream-sync
 title: Factory Upstream Sync Protocol
-status: approved
+status: superseded
+superseded_by: "108"
 implementation: complete
 owner: bart
 created: "2026-04-10"
 summary: >
   Defines the protocol, mapping manifest, and tooling for translating updates
   from upstream repositories (goa-software-factory, template) into OAP's
-  factory/ three-layer architecture.
+  factory/ three-layer architecture. Superseded by spec 108: the translation
+  protocol in §5 is retained and lifted into the spec 108 sync worker, but
+  storage moves from the on-disk factory/ tree to PostgreSQL and the trigger
+  moves from the /factory-sync CLI command to the stagecraft UI.
 depends_on:
   - "074"  # factory-ingestion
   - "075"  # factory-workflow-engine
-implements:
-  - path: factory/adapters/aim-vue-node
 ---
 
 # 088 — Factory Upstream Sync Protocol

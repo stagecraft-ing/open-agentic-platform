@@ -239,6 +239,7 @@ export type OrgPermission =
   | "org:manage_billing"
   | "factory:init"
   | "factory:confirm"
+  | "factory:configure"
   | "deploy:production";
 
 const ORG_PERMISSION_MAP: Record<OrgPermission, Set<"owner" | "admin" | "member">> = {
@@ -249,6 +250,7 @@ const ORG_PERMISSION_MAP: Record<OrgPermission, Set<"owner" | "admin" | "member"
   "org:manage_billing": new Set(["owner"]),
   "factory:init": new Set(["owner", "admin", "member"]),
   "factory:confirm": new Set(["owner", "admin"]),
+  "factory:configure": new Set(["owner", "admin"]),
   "deploy:production": new Set(["owner"]),
 };
 
