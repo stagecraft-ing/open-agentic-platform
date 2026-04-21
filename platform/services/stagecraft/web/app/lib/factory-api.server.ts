@@ -87,3 +87,65 @@ export async function syncFactoryUpstreams(
     body: "{}",
   }) as Promise<FactorySyncResult>;
 }
+
+// ---------------------------------------------------------------------------
+// Spec 108 Phase 4 — read-only browsers.
+// ---------------------------------------------------------------------------
+
+export type FactoryResourceSummary = {
+  name: string;
+  version: string;
+  sourceSha: string;
+  syncedAt: string;
+};
+
+export type FactoryAdapterDetail = FactoryResourceSummary & {
+  manifest: unknown;
+};
+
+export type FactoryContractDetail = FactoryResourceSummary & {
+  schema: unknown;
+};
+
+export type FactoryProcessDetail = FactoryResourceSummary & {
+  definition: unknown;
+};
+
+export async function listFactoryAdapters(request: Request) {
+  return apiFetch(request, "/api/factory/adapters") as Promise<{
+    adapters: FactoryResourceSummary[];
+  }>;
+}
+
+export async function getFactoryAdapter(request: Request, name: string) {
+  return apiFetch(
+    request,
+    `/api/factory/adapters/${encodeURIComponent(name)}`
+  ) as Promise<FactoryAdapterDetail>;
+}
+
+export async function listFactoryContracts(request: Request) {
+  return apiFetch(request, "/api/factory/contracts") as Promise<{
+    contracts: FactoryResourceSummary[];
+  }>;
+}
+
+export async function getFactoryContract(request: Request, name: string) {
+  return apiFetch(
+    request,
+    `/api/factory/contracts/${encodeURIComponent(name)}`
+  ) as Promise<FactoryContractDetail>;
+}
+
+export async function listFactoryProcesses(request: Request) {
+  return apiFetch(request, "/api/factory/processes") as Promise<{
+    processes: FactoryResourceSummary[];
+  }>;
+}
+
+export async function getFactoryProcess(request: Request, name: string) {
+  return apiFetch(
+    request,
+    `/api/factory/processes/${encodeURIComponent(name)}`
+  ) as Promise<FactoryProcessDetail>;
+}

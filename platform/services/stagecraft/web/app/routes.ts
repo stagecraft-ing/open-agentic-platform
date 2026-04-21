@@ -16,6 +16,9 @@ export default [
     route("factory", "routes/app.factory.tsx", [
       index("routes/app.factory._index.tsx"),
       route("upstreams", "routes/app.factory.upstreams.tsx"),
+      route("adapters", "routes/app.factory.adapters.tsx"),
+      route("contracts", "routes/app.factory.contracts.tsx"),
+      route("processes", "routes/app.factory.processes.tsx"),
     ]),
     route("projects/new", "routes/app.projects.new.tsx"),
     route("project/:projectId", "routes/app.project.$projectId.tsx", [
