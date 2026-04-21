@@ -25,3 +25,25 @@ export const FactoryEventTopic = new Topic<FactoryPipelineEvent>(
     deliveryGuarantee: "at-least-once",
   }
 );
+
+// ---------------------------------------------------------------------------
+// Factory Upstream Sync Request Topic (spec 109 §5)
+//
+// Published by POST /api/factory/upstreams/sync, consumed by the sync
+// worker subscription. Carries only the run identifier — the worker loads
+// the upstream config and token from Postgres, so the message payload
+// stays immutable even if the org rotates its PAT mid-flight.
+// ---------------------------------------------------------------------------
+
+export interface FactorySyncRequest {
+  syncRunId: string;
+  orgId: string;
+  triggeredBy: string;
+}
+
+export const FactorySyncRequestTopic = new Topic<FactorySyncRequest>(
+  "factory-sync-request",
+  {
+    deliveryGuarantee: "at-least-once",
+  }
+);
