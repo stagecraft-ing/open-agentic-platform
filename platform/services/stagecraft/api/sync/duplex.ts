@@ -11,7 +11,12 @@ import { api } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
 import log from "encore.dev/log";
 import { randomUUID } from "node:crypto";
-import type { SyncHandshake, ServerHello } from "./types";
+import type {
+  SyncHandshake,
+  ServerHello,
+  ClientEnvelopeWire,
+  ServerEnvelopeWire,
+} from "./types";
 import { ENVELOPE_SCHEMA_VERSION } from "./types";
 import type { SessionMeta } from "./registry";
 import * as registry from "./registry";
@@ -28,8 +33,8 @@ const SERVER_STARTED_AT = new Date().toISOString();
 
 export const duplex = api.streamInOut<
   SyncHandshake,
-  import("./types").ClientEnvelope,
-  import("./types").ServerEnvelope
+  ClientEnvelopeWire,
+  ServerEnvelopeWire
 >(
   { expose: true, auth: true, path: "/api/sync/duplex" },
   async (handshake, stream) => {

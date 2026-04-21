@@ -49,6 +49,9 @@
             },
             "sync-relay": {
               "name": "sync-relay"
+            },
+            "sync-outbox-relay": {
+              "name": "sync-outbox-relay"
             }
           }
         }

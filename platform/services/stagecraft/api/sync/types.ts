@@ -316,6 +316,127 @@ export interface ServerHello {
 export type ClientEnvelopeKind = ClientEnvelope["kind"];
 export type ServerEnvelopeKind = ServerEnvelope["kind"];
 
+// ---------------------------------------------------------------------------
+// Wire-level interfaces for the Encore streaming boundary
+// ---------------------------------------------------------------------------
+//
+// Encore.ts's schema parser cannot walk a union-typed alias at an API boundary
+// (it expects a named interface). To keep the rich discriminated unions for
+// internal narrowing, we expose flat "fat" interfaces that enumerate every
+// possible field with optional typing. On the wire the JSON is identical —
+// optional keys are simply omitted for variants that don't use them.
+//
+// INVARIANT: every `ClientEnvelope` / `ServerEnvelope` variant must be
+// structurally assignable to its wire counterpart. The compile-time
+// assertions at the bottom of this block pin that — adding a variant without
+// widening the wire interface fails tsc.
+
+/** Flat counterpart of {@link ClientEnvelope} for the Encore stream boundary. */
+export interface ClientEnvelopeWire {
+  // Kinds are inlined rather than referencing `ClientEnvelopeKind`; Encore's
+  // schema parser cannot evaluate indexed-access types over a union alias.
+  kind:
+    | "execution.status"
+    | "checkpoint.created"
+    | "artifact.emitted"
+    | "runtime.observed"
+    | "agent.invocation"
+    | "audit.candidate"
+    | "sync.ack"
+    | "sync.resync_request"
+    | "sync.heartbeat";
+  meta: EnvelopeMeta;
+  projectId?: string;
+  executionId?: string;
+  status?: "started" | "progress" | "completed" | "failed" | "cancelled";
+  progressPct?: number;
+  message?: string;
+  checkpointId?: string;
+  label?: string;
+  commitSha?: string;
+  artifactType?: string;
+  contentHash?: string;
+  sizeBytes?: number;
+  storageRef?: string;
+  observation?:
+    | "degraded"
+    | "recovered"
+    | "disk_pressure"
+    | "network_loss"
+    | "online";
+  detail?: string;
+  agentId?: string;
+  toolCalls?: number;
+  durationMs?: number;
+  outcome?: "ok" | "error" | "policy_denied";
+  errorMessage?: string;
+  action?: string;
+  targetType?: string;
+  targetId?: string;
+  details?: Record<string, unknown>;
+  serverEventId?: string;
+  sinceCursor?: string;
+  reason?: string;
+}
+
+/** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
+export interface ServerEnvelopeWire {
+  kind:
+    | "policy.updated"
+    | "grant.updated"
+    | "deploy.status"
+    | "workspace.updated"
+    | "project.updated"
+    | "factory.event"
+    | "sync.ack"
+    | "sync.nack"
+    | "sync.resync_required"
+    | "sync.heartbeat"
+    | "sync.hello";
+  meta: ServerMeta;
+  policyBundleId?: string;
+  summary?: string;
+  userId?: string;
+  change?:
+    | "granted"
+    | "revoked"
+    | "modified"
+    | "renamed"
+    | "members_changed"
+    | "settings_changed"
+    | "created"
+    | "updated"
+    | "deleted"
+    | "repo_linked";
+  details?: Record<string, unknown>;
+  projectId?: string;
+  environmentId?: string;
+  status?: "queued" | "running" | "succeeded" | "failed" | "rolled_back";
+  detail?: string;
+  pipelineId?: string;
+  eventType?: string;
+  stageId?: string;
+  actor?: string;
+  clientEventId?: string;
+  reason?:
+    | "invalid"
+    | "unauthorized"
+    | "workspace_mismatch"
+    | "internal_error"
+    | "cursor_gap"
+    | "stale_cursor"
+    | "server_restart";
+  sessionId?: string;
+  serverStartedAt?: string;
+  cursorGap?: boolean;
+}
+
+// Compile-time assignability gates: every variant must fit the wire shape.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _clientWireAssignable: ClientEnvelopeWire = null as unknown as ClientEnvelope;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _serverWireAssignable: ServerEnvelopeWire = null as unknown as ServerEnvelope;
+
 const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind>([
   "execution.status",
   "checkpoint.created",
@@ -346,4 +467,4 @@ export function isClientEnvelope(v: unknown): v is ClientEnvelope {
 // Stream alias
 // ---------------------------------------------------------------------------
 
-export type SyncStream = StreamInOut<ClientEnvelope, ServerEnvelope>;
+export type SyncStream = StreamInOut<ClientEnvelopeWire, ServerEnvelopeWire>;
