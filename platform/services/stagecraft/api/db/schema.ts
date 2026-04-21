@@ -821,3 +821,78 @@ export const factoryProcesses = pgTable(
   },
   (t) => [unique().on(t.orgId, t.name, t.version)]
 );
+
+// ---------------------------------------------------------------------------
+// Spec 109 — Factory PAT broker + PubSub sync.
+// ---------------------------------------------------------------------------
+// Two parallel PAT surfaces sharing the same AES-256-GCM crypto helpers
+// (api/auth/patCrypto.ts). factory_upstream_pats authenticates the Factory
+// sync worker against the configured upstream repos; project_github_pats
+// authenticates repo operations against external (non-platform-org) repos.
+// Unlike user_github_pats, revoke is a hard delete — these are operational
+// credentials, audit history lives in audit_log.
+
+export const factoryUpstreamPats = pgTable("factory_upstream_pats", {
+  orgId: uuid("org_id").primaryKey(),
+  tokenEnc: bytea("token_enc").notNull(),
+  tokenNonce: bytea("token_nonce").notNull(),
+  tokenPrefix: text("token_prefix").notNull(),
+  scopes: text("scopes").array().notNull().default([]),
+  isFineGrained: boolean("is_fine_grained").notNull().default(false),
+  githubLogin: text("github_login"),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  createdBy: uuid("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const projectGithubPats = pgTable("project_github_pats", {
+  projectId: uuid("project_id").primaryKey(),
+  tokenEnc: bytea("token_enc").notNull(),
+  tokenNonce: bytea("token_nonce").notNull(),
+  tokenPrefix: text("token_prefix").notNull(),
+  scopes: text("scopes").array().notNull().default([]),
+  isFineGrained: boolean("is_fine_grained").notNull().default(false),
+  githubLogin: text("github_login"),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  createdBy: uuid("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const factorySyncRunStatusEnum = pgEnum("factory_sync_run_status", [
+  "pending",
+  "running",
+  "ok",
+  "failed",
+]);
+
+export const factorySyncRuns = pgTable("factory_sync_runs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull(),
+  status: factorySyncRunStatusEnum("status").notNull().default("pending"),
+  triggeredBy: uuid("triggered_by").notNull(),
+  factorySha: text("factory_sha"),
+  templateSha: text("template_sha"),
+  counts: jsonb("counts"),
+  error: text("error"),
+  queuedAt: timestamp("queued_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
