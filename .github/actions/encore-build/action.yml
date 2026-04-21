@@ -1,0 +1,70 @@
+name: Encore build (stagecraft)
+description: >
+  Composite action: build the React Router frontend, install a pinned Encore
+  CLI (cached), then run `encore build docker` against the given infra config.
+  Caller must run actions/checkout, actions/setup-node, and `npm ci` before
+  invoking this action.
+
+inputs:
+  working-directory:
+    description: Path to the stagecraft service root
+    required: false
+    default: platform/services/stagecraft
+  encore-version:
+    description: Encore CLI version to install
+    required: true
+  config:
+    description: Path to infra.config.*.json (relative to working-directory)
+    required: true
+  image-tag:
+    description: Full image reference to tag the built image with (e.g. ghcr.io/foo/bar:sha-abc or stagecraft-ci:pr-123)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Build frontend
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: cd web && npx react-router build
+
+    # Cache the installed Encore CLI to avoid hammering the installer on
+    # every build. Cache key is scoped by OS and version so a version bump
+    # invalidates cleanly.
+    - name: Cache Encore CLI
+      id: cache-encore
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+      with:
+        path: ~/.encore
+        key: encore-${{ runner.os }}-${{ inputs.encore-version }}
+
+    # Install from the CloudFront tarball directly rather than piping
+    # install.sh from encore.dev. The Vercel-fronted installer has
+    # intermittently returned 403s, and install.sh itself just downloads
+    # this same tarball. curl --retry covers transient edge failures.
+    - name: Install Encore CLI
+      if: steps.cache-encore.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        ENCORE_VERSION: ${{ inputs.encore-version }}
+      run: |
+        set -euo pipefail
+        install_dir="$HOME/.encore"
+        mkdir -p "$install_dir/bin"
+        url="https://d2f391esomvqpi.cloudfront.net/encore-${ENCORE_VERSION}-linux_amd64.tar.gz"
+        curl --fail --location --silent --show-error \
+          --retry 5 --retry-delay 5 --retry-all-errors \
+          --output "$install_dir/encore.tar.gz" "$url"
+        rm -rf "$install_dir/encore-go" "$install_dir/runtimes"
+        tar -C "$install_dir" -xzf "$install_dir/encore.tar.gz"
+        chmod +x "$install_dir"/bin/*
+        rm "$install_dir/encore.tar.gz"
+        "$install_dir/bin/encore" version
+
+    - name: Build Docker image (Encore)
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ~/.encore/bin/encore build docker \
+          --config ${{ inputs.config }} \
+          ${{ inputs.image-tag }}

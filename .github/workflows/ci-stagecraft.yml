@@ -1,4 +1,4 @@
-# CI for stagecraft: type-check and test.
+# CI for stagecraft: type-check, test, and Encore docker build.
 
 name: CI stagecraft
 
@@ -15,6 +15,9 @@ on:
 
 permissions:
   contents: read
+
+env:
+  ENCORE_VERSION: '1.56.6'
 
 jobs:
   check-and-test:
@@ -48,3 +51,30 @@ jobs:
       - name: Vitest
         run: npm test
         working-directory: platform/services/stagecraft
+
+  # Parity gate with cd-stagecraft.yml: run `encore build docker` against the
+  # production infra config so schema-parser errors and missing resource
+  # registrations fail the PR instead of the post-merge deploy.
+  encore-build:
+    runs-on: ubuntu-latest
+    name: encore build docker
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/services/stagecraft/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: platform/services/stagecraft
+
+      - name: Encore build (validate schema + infra config)
+        uses: ./.github/actions/encore-build
+        with:
+          encore-version: ${{ env.ENCORE_VERSION }}
+          config: ./infra.config.hetzner.json
+          image-tag: stagecraft-ci:${{ github.run_id }}

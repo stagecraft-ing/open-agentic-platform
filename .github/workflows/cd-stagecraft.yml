@@ -59,40 +59,6 @@ jobs:
         run: npm ci
         working-directory: platform/services/stagecraft
 
-      - name: Build frontend
-        run: cd web && npx react-router build
-        working-directory: platform/services/stagecraft
-
-      # Cache the installed Encore CLI to avoid hammering the installer on
-      # every build. Cache key is scoped by OS and version so a version bump
-      # invalidates cleanly.
-      - name: Cache Encore CLI
-        id: cache-encore
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: ~/.encore
-          key: encore-${{ runner.os }}-${{ env.ENCORE_VERSION }}
-
-      # Install from the CloudFront tarball directly rather than piping
-      # install.sh from encore.dev. The Vercel-fronted installer has
-      # intermittently returned 403s, and install.sh itself just downloads
-      # this same tarball. curl --retry covers transient edge failures.
-      - name: Install Encore CLI
-        if: steps.cache-encore.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          install_dir="$HOME/.encore"
-          mkdir -p "$install_dir/bin"
-          url="https://d2f391esomvqpi.cloudfront.net/encore-${ENCORE_VERSION}-linux_amd64.tar.gz"
-          curl --fail --location --silent --show-error \
-            --retry 5 --retry-delay 5 --retry-all-errors \
-            --output "$install_dir/encore.tar.gz" "$url"
-          rm -rf "$install_dir/encore-go" "$install_dir/runtimes"
-          tar -C "$install_dir" -xzf "$install_dir/encore.tar.gz"
-          chmod +x "$install_dir"/bin/*
-          rm "$install_dir/encore.tar.gz"
-          "$install_dir/bin/encore" version
-
       - name: Compute image tags
         id: meta
         run: |
@@ -100,12 +66,12 @@ jobs:
           echo "sha-tag=sha-${SHA_SHORT}" >> "$GITHUB_OUTPUT"
           echo "Building tags: sha-${SHA_SHORT}, latest"
 
-      - name: Build Docker image (Encore)
-        working-directory: platform/services/stagecraft
-        run: |
-          ~/.encore/bin/encore build docker \
-            --config ./infra.config.hetzner.json \
-            ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
+      - name: Encore build
+        uses: ./.github/actions/encore-build
+        with:
+          encore-version: ${{ env.ENCORE_VERSION }}
+          config: ./infra.config.hetzner.json
+          image-tag: ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
 
       - name: Tag as latest
         run: docker tag ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }} ${{ env.IMAGE }}:latest
