@@ -69,3 +69,21 @@ export async function upsertFactoryUpstreams(
     body: JSON.stringify(data),
   }) as Promise<{ upstream: FactoryUpstream }>;
 }
+
+export type FactorySyncResult = {
+  status: "ok" | "failed";
+  syncedAt: string;
+  counts: FactoryUpstreamCounts;
+  factorySha: string | null;
+  templateSha: string | null;
+  error: string | null;
+};
+
+export async function syncFactoryUpstreams(
+  request: Request
+): Promise<FactorySyncResult> {
+  return apiFetch(request, "/api/factory/upstreams/sync", {
+    method: "POST",
+    body: "{}",
+  }) as Promise<FactorySyncResult>;
+}

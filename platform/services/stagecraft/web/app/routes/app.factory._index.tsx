@@ -1,15 +1,24 @@
 /**
- * Factory Overview (spec 108 Phase 2).
+ * Factory Overview (spec 108 Phase 3).
  *
  * Live view of the org's upstream config + counts of the derived resources.
- * Sync action lands in Phase 3; this page only reads the stored config and
- * last-sync metadata.
+ * Admin users can trigger an inline sync via the Sync now button; the action
+ * blocks on the sync worker and the loader re-reads the updated row after
+ * redirect.
  */
 
-import { Link, useLoaderData } from "react-router";
+import {
+  Form,
+  Link,
+  redirect,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
   getFactoryUpstreams,
+  syncFactoryUpstreams,
   type FactoryUpstream,
   type FactoryUpstreamCounts,
 } from "../lib/factory-api.server";
@@ -20,7 +29,11 @@ type LoaderData = {
   canConfigure: boolean;
 };
 
-export async function loader({ request }: { request: Request }): Promise<LoaderData> {
+export async function loader({
+  request,
+}: {
+  request: Request;
+}): Promise<LoaderData> {
   const user = await requireUser(request);
   const { upstream, counts } = await getFactoryUpstreams(request);
   const canConfigure =
@@ -28,8 +41,36 @@ export async function loader({ request }: { request: Request }): Promise<LoaderD
   return { upstream, counts, canConfigure };
 }
 
+type ActionData = { error?: string };
+
+export async function action({
+  request,
+}: {
+  request: Request;
+}): Promise<ActionData | Response> {
+  const user = await requireUser(request);
+  if (user.platformRole !== "owner" && user.platformRole !== "admin") {
+    return { error: "Only org admins can run factory sync." };
+  }
+
+  try {
+    const result = await syncFactoryUpstreams(request);
+    if (result.status === "failed") {
+      return { error: result.error ?? "Sync failed." };
+    }
+    return redirect("/app/factory");
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Sync failed.",
+    };
+  }
+}
+
 export default function FactoryOverview() {
   const { upstream, counts, canConfigure } = useLoaderData<typeof loader>();
+  const actionData = useActionData<ActionData>();
+  const navigation = useNavigation();
+  const isSyncing = navigation.state === "submitting";
 
   return (
     <div className="space-y-6">
@@ -48,12 +89,18 @@ export default function FactoryOverview() {
               manifest.
             </p>
           </div>
-          <Link
-            to="/app/factory/upstreams"
-            className="inline-flex shrink-0 items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
-          >
-            {upstream ? "Edit" : canConfigure ? "Configure" : "View"}
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <SyncButton
+              disabled={!canConfigure || !upstream}
+              isSyncing={isSyncing}
+            />
+            <Link
+              to="/app/factory/upstreams"
+              className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              {upstream ? "Edit" : canConfigure ? "Configure" : "View"}
+            </Link>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -75,7 +122,11 @@ export default function FactoryOverview() {
           />
         </div>
 
-        <SyncStatus upstream={upstream} />
+        <SyncStatus
+          upstream={upstream}
+          actionError={actionData?.error ?? null}
+          isSyncing={isSyncing}
+        />
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -96,6 +147,26 @@ export default function FactoryOverview() {
         />
       </div>
     </div>
+  );
+}
+
+function SyncButton({
+  disabled,
+  isSyncing,
+}: {
+  disabled: boolean;
+  isSyncing: boolean;
+}) {
+  return (
+    <Form method="post">
+      <button
+        type="submit"
+        disabled={disabled || isSyncing}
+        className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isSyncing ? "Syncing…" : "Sync now"}
+      </button>
+    </Form>
   );
 }
 
@@ -139,42 +210,54 @@ function UpstreamCard({
   );
 }
 
-function SyncStatus({ upstream }: { upstream: FactoryUpstream | null }) {
+function SyncStatus({
+  upstream,
+  actionError,
+  isSyncing,
+}: {
+  upstream: FactoryUpstream | null;
+  actionError: string | null;
+  isSyncing: boolean;
+}) {
   if (!upstream) {
     return (
       <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        No upstream configured yet. Sync will run once upstreams are set.
+        No upstream configured yet. Configure sources before triggering sync.
       </div>
     );
   }
 
-  const status = upstream.lastSyncStatus ?? "pending";
+  const effectiveStatus = isSyncing
+    ? "running"
+    : (actionError ? "failed" : upstream.lastSyncStatus ?? "pending");
+
   const color =
-    status === "ok"
+    effectiveStatus === "ok"
       ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
-      : status === "failed"
+      : effectiveStatus === "failed"
         ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
         : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800";
 
+  const errorMessage = actionError ?? upstream.lastSyncError;
+
   return (
-    <div className={`mt-4 flex items-start gap-3 text-xs rounded border px-3 py-2 ${color}`}>
+    <div
+      className={`mt-4 flex items-start gap-3 text-xs rounded border px-3 py-2 ${color}`}
+    >
       <div className="flex-1">
         <div className="font-medium">
           Last sync:{" "}
           {upstream.lastSyncedAt
             ? new Date(upstream.lastSyncedAt).toLocaleString()
             : "never"}{" "}
-          — {status}
+          — {effectiveStatus}
         </div>
-        {upstream.lastSyncError ? (
+        {errorMessage ? (
           <div className="mt-1 font-mono text-[11px] break-all">
-            {upstream.lastSyncError}
+            {errorMessage}
           </div>
         ) : null}
       </div>
-      <span className="shrink-0 italic opacity-80">
-        Sync worker arrives in Phase 3.
-      </span>
     </div>
   );
 }
