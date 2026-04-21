@@ -72,8 +72,9 @@ pub async fn set_stagecraft_base_url(
     let trimmed = base_url.trim().trim_end_matches('/').to_string();
 
     // Validate non-empty values parse as http(s) URLs.
-    if !trimmed.is_empty()
-        && !(trimmed.starts_with("http://") || trimmed.starts_with("https://"))
+    if !(trimmed.is_empty()
+        || trimmed.starts_with("http://")
+        || trimmed.starts_with("https://"))
     {
         return Err("URL must start with http:// or https://".into());
     }

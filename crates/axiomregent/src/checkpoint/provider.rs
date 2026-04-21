@@ -493,7 +493,7 @@ impl CheckpointProvider {
             }
             // Top 10 extensions by count.
             let mut sorted: Vec<_> = ext_counts.into_iter().collect();
-            sorted.sort_by(|a, b| b.1.cmp(&a.1));
+            sorted.sort_by_key(|e| std::cmp::Reverse(e.1));
             sorted.truncate(10);
             let top_extensions: serde_json::Map<String, Value> = sorted
                 .into_iter()

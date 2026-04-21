@@ -86,7 +86,8 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
     };
 
     const VALID_STATUSES: &[&str] = &["draft", "approved", "superseded", "retired"];
-    const VALID_IMPLEMENTATIONS: &[&str] = &["pending", "in-progress", "complete", "n/a"];
+    const VALID_IMPLEMENTATIONS: &[&str] =
+        &["pending", "in-progress", "complete", "n/a", "deferred"];
 
     if let Some((fm, body)) = split_frontmatter_optional(&spec_raw) {
         if let Some(status) = fm.get("status").and_then(|v| v.as_str()) {
@@ -121,7 +122,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                     code: "W-007",
                     path: rel(repo_root, &spec_path),
                     message: format!(
-                        "implementation '{}' is not in the canonical enum (pending | in-progress | complete | n/a) per Feature 000",
+                        "implementation '{}' is not in the canonical enum (pending | in-progress | complete | n/a | deferred) per Feature 000",
                         impl_status
                     ),
                 });

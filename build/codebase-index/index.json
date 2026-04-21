@@ -1,88 +1,32 @@
 {
   "build": {
-    "contentHash": "763d87957491fd2e169124dedb66ec3787d85dce8ffb984fb66838d53838b23a",
+    "contentHash": "f1efb2e974646bc2af52f11d7e8e616e62150fbebc9481836d0e708a4fd883ef",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
     "errors": [],
-    "warnings": []
+    "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/aim-vue-node\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/encore-react\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/next-prisma\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/rust-axum\" which is not a known package, adapter, or existing file/directory"
+      }
+    ]
   },
-  "factory": [
-    {
-      "displayName": "AIM Vue+Node Enterprise Template",
-      "name": "aim-vue-node",
-      "path": "factory/adapters/aim-vue-node",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff"
-      ],
-      "stackLanguage": "typescript",
-      "stackRuntime": "node-24",
-      "targetStack": "aim-vue-node",
-      "version": "3.0.0"
-    },
-    {
-      "displayName": "Encore.ts + React Router Full-Stack",
-      "name": "encore-react",
-      "path": "factory/adapters/encore-react",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff"
-      ],
-      "stackLanguage": "typescript",
-      "stackRuntime": "node-20",
-      "targetStack": "encore-react",
-      "version": "1.0.0"
-    },
-    {
-      "displayName": "Next.js 15 + Prisma Full-Stack",
-      "name": "next-prisma",
-      "path": "factory/adapters/next-prisma",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff"
-      ],
-      "stackLanguage": "typescript",
-      "stackRuntime": "node-22",
-      "targetStack": "next-prisma",
-      "version": "1.0.0"
-    },
-    {
-      "displayName": "Rust Axum + SQLx Full-Stack",
-      "name": "rust-axum",
-      "path": "factory/adapters/rust-axum",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff"
-      ],
-      "stackLanguage": "rust",
-      "stackRuntime": "native",
-      "targetStack": "rust-axum",
-      "version": "1.0.0"
-    }
-  ],
+  "factory": [],
   "infrastructure": {
     "agents": [
       {
@@ -126,11 +70,6 @@
         "description": "Create a git commit with an impact-focused conventional commit message",
         "name": "commit",
         "path": ".claude/commands/commit.md"
-      },
-      {
-        "description": "Detect, map, and translate upstream changes from goa-software-factory and template into OAP factory/",
-        "name": "factory-sync",
-        "path": ".claude/commands/factory-sync.md"
       },
       {
         "description": "Execute a plan file step-by-step with progress tracking and phase checkpoints",
@@ -2301,20 +2240,6 @@
       },
       {
         "dependsOn": [
-          "074",
-          "075"
-        ],
-        "implementingPaths": [
-          {
-            "path": "factory/adapters/aim-vue-node",
-            "source": "spec-implements"
-          }
-        ],
-        "specId": "088-factory-upstream-sync",
-        "specStatus": "approved"
-      },
-      {
-        "dependsOn": [
           "033",
           "068"
         ],
@@ -2649,12 +2574,33 @@
         ],
         "specId": "107-rauthy-client-redirect-convergence",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075",
+          "087",
+          "088"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/factory/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "108-factory-as-platform-feature",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
       "033-axiomregent-activation",
       "066-vscode-extension",
       "086-open-source-launch",
+      "088-factory-upstream-sync",
       "100-post-convergence-remediation"
     ],
     "untracedCode": [

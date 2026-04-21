@@ -7,7 +7,8 @@ use std::path::Path;
 /// Default path relative to the repository root (current working directory).
 pub const DEFAULT_REGISTRY_REL_PATH: &str = "build/spec-registry/registry.json";
 pub const KNOWN_STATUSES: [&str; 4] = ["draft", "approved", "superseded", "retired"];
-pub const KNOWN_IMPLEMENTATIONS: [&str; 4] = ["pending", "in-progress", "complete", "n/a"];
+pub const KNOWN_IMPLEMENTATIONS: [&str; 5] =
+    ["pending", "in-progress", "complete", "n/a", "deferred"];
 
 /// `(status_name, count, sorted_feature_ids)` — one entry per known status.
 pub type StatusRow = (String, usize, Vec<String>);

@@ -66,7 +66,7 @@
         },
         "implementation": {
           "type": "string",
-          "enum": ["pending", "in-progress", "complete", "n/a"]
+          "enum": ["pending", "in-progress", "complete", "n/a", "deferred"]
         },
         "created": { "type": "string", "format": "date" },
         "summary": { "type": "string", "minLength": 1 },

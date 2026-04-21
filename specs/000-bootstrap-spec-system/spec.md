@@ -114,7 +114,7 @@ Every **feature spec** (`specs/*/spec.md`) MUST contain:
    - `id` — string, MUST equal `<NNN>-<kebab-name>` and match the parent directory name.
    - `title` — non-empty string.
    - `status` — enum string (`draft` \| `approved` \| `superseded` \| `retired`) — the design lifecycle status.
-   - `implementation` — optional enum string (`pending` \| `in-progress` \| `complete` \| `n/a`) — the implementation lifecycle status.
+   - `implementation` — optional enum string (`pending` \| `in-progress` \| `complete` \| `n/a` \| `deferred`) — the implementation lifecycle status.
    - `created` — ISO 8601 date string.
    - `summary` — single-line or folded summary string (required; compiled into the registry as a **normalized** field, not only as raw YAML).
 

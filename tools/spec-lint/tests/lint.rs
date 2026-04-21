@@ -143,7 +143,7 @@ summary: "x"
 fn w007_canonical_implementation_ok() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
-    for imp in &["pending", "in-progress", "complete", "n/a"] {
+    for imp in &["pending", "in-progress", "complete", "n/a", "deferred"] {
         let slug = format!("099-w7-{}", imp.replace('/', "-"));
         let feat = root.join(format!("specs/{}", slug));
         fs::create_dir_all(&feat).unwrap();

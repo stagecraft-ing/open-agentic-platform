@@ -136,10 +136,8 @@ impl GovernedExecutor for ProviderRegistryExecutor {
                         code,
                         message,
                         retryable,
-                    } => {
-                        if !retryable {
-                            return Err(format!("provider error [{code}]: {message}"));
-                        }
+                    } if !retryable => {
+                        return Err(format!("provider error [{code}]: {message}"));
                     }
                     _ => {}
                 },

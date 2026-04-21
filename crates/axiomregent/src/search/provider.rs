@@ -168,7 +168,7 @@ impl SearchProvider {
         // Build index entries pairing each block with its embedding
         let entries: Vec<IndexEntry> = all_blocks
             .into_iter()
-            .zip(vectors.into_iter())
+            .zip(vectors)
             .map(|(block, vector)| IndexEntry {
                 file_path: block.file_path,
                 block_type: block.block_type,

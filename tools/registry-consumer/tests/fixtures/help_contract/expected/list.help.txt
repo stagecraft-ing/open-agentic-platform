@@ -6,7 +6,7 @@ Options:
       --status <STATUS>
           
       --implementation <IMPLEMENTATION>
-          Filter by implementation lifecycle status [possible values: pending, in-progress, complete, n/a]
+          Filter by implementation lifecycle status [possible values: pending, in-progress, complete, n/a, deferred]
       --id-prefix <ID_PREFIX>
           
       --json

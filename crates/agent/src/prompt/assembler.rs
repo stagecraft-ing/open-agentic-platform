@@ -136,7 +136,8 @@ impl PromptAssembler {
     pub fn register_section(&mut self, section: PromptSection) {
         self.sections.push(section);
         // Re-sort so highest priority comes first.
-        self.sections.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.sections
+            .sort_by_key(|s| std::cmp::Reverse(s.priority));
     }
 
     /// Invalidate the cache entry for a named section (R-001 mitigation).
