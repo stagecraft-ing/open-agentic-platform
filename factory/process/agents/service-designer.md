@@ -102,6 +102,15 @@ Every page the application needs.
 }
 ```
 
+## Phase B → Phase C Dependency Gate
+
+Sitemap derivation and variant analysis (`sitemap.json`, `variant.json`) are **blocked until every audience identified in `audiences.json` has a validated journey entry in `journeys.json` written to disk**. Starting sitemap derivation with incomplete journeys produces an incomplete page inventory — the sitemap cannot enumerate every page a user needs to traverse if a journey for that audience does not yet exist.
+
+Before proceeding to Variant Derivation:
+1. Count audiences in `audiences.json`.
+2. Count distinct `audience` values in `journeys.json`.
+3. If counts do not match, identify the missing audiences and produce their journeys first.
+
 ## Variant Derivation
 
 Analyze the sitemap's `view_type` values:
@@ -120,3 +129,4 @@ After determining the variant, verify the selected adapter supports it. If the a
 3. **Page types are abstract** — "dashboard" means "overview page", not "a Vue component with cards."
 4. **Every use case should be reachable** — each UC should map to at least one page and journey step.
 5. **Assign page IDs** — stable, unique, used for cross-referencing in later stages.
+6. **Write artifacts to disk in sequence** — Produce `audiences.json` first and write it before starting journeys. Produce one journey entry per audience (batched) and write the full `journeys.json` before starting sitemap derivation. Do not hold full prior-artifact content in active context; re-read specific files from disk if downstream steps need detail.

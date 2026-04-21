@@ -12,6 +12,46 @@ IdP group memberships and role claims in the token are ignored for authorization
 decisions. This ensures that role changes take effect immediately (within one
 request) without requiring token re-issuance.
 
+### Email as the unique user identifier
+
+The IdP token's `email` claim is the unique user identifier linking IdP identity
+to the application user record. The `app_user.email` column carries a UNIQUE
+constraint. On successful IdP authentication:
+
+1. Look up `app_user` by email (case-insensitive match).
+2. If a record exists → populate session with that user's DB-resolved roles and
+   permissions.
+3. If no record exists → **do not auto-provision.** Return a zero-role session
+   and route the user to the not-authorised landing described below.
+
+Auto-provisioning from IdP tokens is an anti-pattern: it lets anyone with an
+organisational IdP account self-serve their way into the application. Onboarding
+must go through an explicit admin-mediated flow.
+
+### Zero-role denial
+
+A successfully authenticated user with zero effective roles is **denied access
+to all internal portal pages**. The landing surface for a zero-role session is
+a single not-authorised message with a sign-out affordance. Specifically:
+
+- No internal page content is rendered.
+- No navigation chrome (side menu, admin shortcuts) is rendered.
+- No functionality (buttons, actions, API calls) is exposed.
+
+"Zero effective roles" includes both the no-DB-record case above and the
+record-exists-but-no-role-assignment case. The UI check is an additional
+belt-and-braces guard — the authoritative deny happens at route middleware.
+
+### Server-constructed navigation
+
+Navigation items (side menu, primary nav, account menu) are constructed
+server-side from the user's effective permissions and returned with the session
+or via a dedicated endpoint. **Items the user lacks permission for are OMITTED
+from the response**, not rendered-then-hidden on the client. This prevents the
+client from "knowing" about admin routes when the user has no admin role, and
+removes a class of information leakage (inspecting the rendered DOM to discover
+hidden routes).
+
 ## Role & Permission Model
 
 ```
@@ -209,3 +249,6 @@ ALTER TABLE app_user ADD COLUMN role_version TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 7. **Admin role is protected.** Cannot be deleted. Last admin assignment cannot be removed.
 8. **Audit everything.** Role assignments, permission changes, role lifecycle events.
 9. **Hide unauthorized UI.** Navigation items and controls for functionality a user lacks permission for must be hidden — only admin sees all functionality.
+10. **Email is the user key.** IdP token `email` is the unique identifier linking IdP → app user. `app_user.email` carries a UNIQUE constraint. No auto-provisioning — unknown email = zero-role session.
+11. **Zero-role sessions are denied.** A session with zero effective roles renders only the not-authorised landing. No internal content, no nav chrome, no functionality. Denial is enforced at middleware (authoritative) and in the UI shell (belt-and-braces).
+12. **Server-constructed nav.** Navigation items are filtered server-side by effective permissions and OMITTED from the response when the user lacks access. Do not render-then-hide on the client.

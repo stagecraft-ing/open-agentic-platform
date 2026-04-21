@@ -2,9 +2,46 @@
 
 ## Convention
 
-A role list with user counts and an expandable permission toggle panel. Includes
-role creation, editing, and deletion with safety guards. Visible only to users
-with the `admin` role. Located under the Administration nav section.
+A **paginated** role list with user counts per role and click-to-open role
+detail. Includes role creation, editing, and deletion with safety guards, with
+the **complete permission catalogue** rendered on create/edit (every system
+permission listed, grouped by domain, with plain-English labels, individually
+togglable). Visible only to users with the `admin` role. Located under the
+Administration nav section.
+
+### Paginated list
+
+The roles list MUST be paginated even when small — consistency with the rest
+of the admin surface matters more than the row count in a particular project.
+List state carries the standard pagination quintuple: `page`, `pageSize`
+(default 10), `total`, `totalPages`, with column sort on `roleName` and
+`userCount`. The API service returns `{ data, total }`.
+
+The `userCount` column is computed server-side (join on `user_role`) — the
+client MUST NOT receive raw user lists just to count them. A role with many
+users must still render quickly.
+
+Clicking a role row opens its detail view (permissions + assigned users). The
+permission toggle modal shown in the template below is the detail surface for
+small catalogues; a dedicated detail page is acceptable as the catalogue grows.
+
+### Complete permission catalogue on create/edit
+
+When creating or editing a role, the permission panel MUST render **every
+permission in the system**, not just permissions the acting admin currently
+holds and not a "recommended" subset. Permissions are:
+
+- **Grouped by domain** (e.g., "Funding Requests", "Users", "Reports") —
+  domains come from the `permission.domain` column, sorted alphabetically.
+- **Labelled in plain English** — `permission.display_name`, not the
+  technical `permission.permission_key`.
+- **Individually togglable** — each permission has its own checkbox; no
+  bundled "grants" or pre-packaged sets.
+
+This is the operational surface that lets business admins tune access without
+code changes. Hiding permissions here means they can only be changed by a
+developer with DB access — which defeats the point of runtime role
+configuration.
 
 ## Template
 
@@ -200,3 +237,5 @@ onMounted(() => {
 7. **Destructive actions require confirmation.** Delete operations show a confirmation modal.
 8. **Immediate feedback.** Show success/error notification after every action.
 9. **Lookup table admin pattern.** This same CRUD pattern applies to all lookup table admin pages — list with search, create form, inline/modal editing, delete with confirmation.
+10. **Paginated list.** The roles list uses the standard pagination quintuple (`page`, `pageSize`, `total`, `totalPages`, sort) and the API returns `{ data, total }`. `userCount` is computed server-side — never send raw user lists to the client.
+11. **Complete permission catalogue on create/edit.** The permission panel shows every permission in the system, grouped by domain, with plain-English labels, individually togglable — no "recommended" subsets, no role-gated permission visibility.

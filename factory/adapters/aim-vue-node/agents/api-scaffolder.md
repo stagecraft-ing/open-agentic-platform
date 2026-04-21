@@ -70,3 +70,19 @@ These rules prevent the most common class of runtime failure: code that compiles
 15. **Enum values MUST match DDL CHECK constraints.** If the migration defines `CHECK (status IN ('draft', 'submitted', 'approved'))`, any TypeScript union type or Zod enum for that field must contain exactly those values — no more, no less.
 16. **Generate DDL column validation tests.** For each service, generate a DDL column validation test (see `patterns/api/ddl-validation.md`). On the FIRST service generated, also create the shared utility at `tests/utils/ddl-column-validator.ts`. These tests parse SQL strings at test time and verify every referenced column exists in the DDL — no database required.
 17. **Response shape consistency.** All paginated list operations must return the same envelope shape. If `buildPaginatedResponse()` returns `{ data, total, page, limit }`, every list endpoint must use it — no service returning `{ items, count }` while another returns `{ data, total }`.
+
+## Code Quality Rules
+
+18. **Pre-generation quality gate — read `eslint.config.mjs` first.** Before writing any service, controller, or route file, confirm the adapter's code-quality skill (`orchestration/skills/code-quality.md` per adapter manifest) has been loaded and `eslint.config.mjs` at project root has been read. The live config is the authoritative source; the skill is a curated summary. Key API rules:
+    - `await` every async call — floating promises are a hard lint error
+    - No `any` types in source files — use real types, `unknown`, or generics (`any` is OK only in `*.test.ts`)
+    - Prefix unused Express params with `_` (`_req: Request`, `_next: NextFunction`)
+    - Use `logger.info/warn/error` from `utils/logger.js` — `console.log/warn/error` is a hard lint error in source files
+    - Guard array access — `array[0]?.field` or an `if` check, never unguarded `array[0].field` (`noUncheckedIndexedAccess`)
+    Run `npx eslint {file} --max-warnings 0` after generating each file — do not accumulate lint errors for a batch fix.
+
+19. **TC-nnn test annotation.** When the factory Build Specification provides test case IDs, annotate each `it()` or `test()` with the corresponding ID as an inline comment on the `it(...)` line:
+    ```ts
+    it('returns 201 with valid input', async () => { // TC-003
+    ```
+    Multiple TCs: `// TC-003, TC-004`. Omit annotation in standalone mode (no Build Spec provided).

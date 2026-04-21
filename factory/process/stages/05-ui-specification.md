@@ -45,6 +45,13 @@ Populate the `ui` and remaining sections (integrations, notifications, audit, tr
 - Do not specify layouts, CSS, or responsive behavior. The adapter handles that via its page-type patterns.
 - Page types are abstract categories. "form" means "a page where users input data" — not "a Vue SFC with design system form components."
 
+## Pre-Handoff Gate
+
+Before producing the Stage Handoff Report, confirm S5-001, S5-002, S5-003, and S5-004 all have documented evidence. No Handoff Report may be produced while any check has FAIL status.
+
 ## Gate
 
-S5-001 through S5-003 must pass. After this gate, the Build Specification is frozen and handed to the adapter.
+S5-001 through S5-004 must pass. After this gate, the Build Specification is frozen and handed to the adapter.
+
+- S5-001 through S5-003: existing specification completeness and coverage checks
+- **S5-004**: Build Specification cross-consistency — every page in `ui.pages` references at least one operation in `api.resources`; every operation is either referenced from a page or flagged `api_only: true`; every operation referenced from a page traces to at least one test case from Stage 1.

@@ -36,6 +36,33 @@ You are a Data Architect. Using the entity model and business rules from Stage 1
 
 Write `requirements/data-model.json` following the `data_model` section of the Build Specification schema. This is the authoritative entity model consumed by Stage 4 (API spec) and by the adapter's data scaffolder.
 
+## Context Budget Awareness
+
+Stage 3 produces a single artifact but the artifact has several logical sections. Write them to disk progressively rather than holding every entity in context at once:
+
+1. Entities with fields and constraints (first pass — one batch per entity cluster).
+2. Relationships (reference fields, junction tables, on-delete behavior) — re-read entity section from disk if you need field names.
+3. Business-rule mappings and check constraints.
+4. Indexes.
+
+Write `.factory/stage-progress.json` after each section completes. On mid-session compaction, the orchestrator resumes from the next unwritten section by re-reading `requirements/data-model.json` and the progress file.
+
+Example `stage-progress.json`:
+
+```json
+{
+  "stage": 3,
+  "artifacts": {
+    "requirements/data-model.json": {
+      "entities": "complete",
+      "relationships": "complete",
+      "business_rules": "in_progress",
+      "indexes": "pending"
+    }
+  }
+}
+```
+
 ## What NOT to do
 
 - Do not generate DDL/SQL. The adapter's data scaffolder does that using its database dialect.

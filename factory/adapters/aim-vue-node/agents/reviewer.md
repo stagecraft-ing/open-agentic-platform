@@ -40,6 +40,8 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] Role deletion warns when role has active users and requires confirmation
 - [ ] All role/permission changes write audit entries
 - [ ] Admin lookup table pages provide full CRUD — read-only views are not acceptable
+- [ ] Mock user role strings match `requireRole()` and `hasRole()` calls exactly (case-sensitive). Every role string used in route guards has at least one mock user with that exact string. Template-default roles (`developer`, `admin`, `user`) must be replaced with the project's business roles.
+- [ ] Mock driver test (`packages/auth/src/drivers/mock.driver.test.ts`) assertions match the actual mock users in `mock.driver.ts` — user count, IDs, names, and roles are all consistent.
 
 ### UI Layer
 - [ ] Every Vue file uses `<script setup lang="ts">`
@@ -55,6 +57,47 @@ You review generated code for quality, consistency, and correctness. You are inv
 - [ ] Every FK has an index
 - [ ] TypeScript types match SQL columns
 - [ ] Zod schemas match TypeScript types
+
+### Code Quality (ESLint + TypeScript Strict)
+
+These checks mirror the live `eslint.config.mjs` and `tsconfig.json` strictness settings. Source files (`apps/*/src/**`, `packages/*/src/**`) MUST pass with zero warnings. Test files have relaxed rules by design.
+
+**Hard lint errors in source files:**
+- [ ] No `console.log` / `console.warn` / `console.error` — use `logger.info/warn/error` from `utils/logger.js`
+- [ ] No `any` types — use real types, `unknown`, or generics (`any` is permitted only in `*.test.ts`)
+- [ ] No floating promises — every async call is `await`ed (or explicitly `void`ed if fire-and-forget is intended)
+- [ ] No `await` on non-thenable values (`@typescript-eslint/await-thenable`)
+- [ ] Unused Express params are prefixed with `_` (`_req: Request`, `_next: NextFunction`)
+
+**TypeScript strict flags:**
+- [ ] `noUncheckedIndexedAccess` respected: array/object access uses `?.` or guarded with explicit `if` check — never unguarded `array[0].field`
+- [ ] Null/undefined access is guarded before property deref
+- [ ] Switch cases on union types are exhaustive (no missing branches)
+- [ ] Class members that override a parent use the `override` keyword
+
+**Vue-specific rules:**
+- [ ] GoA components use `slot="name"` (not `v-slot`) — `vue/no-deprecated-slot-attribute` is disabled for GoA
+- [ ] Native event handlers use hyphenated names; known exception `@_selectFile` on GoA file upload stays camelCase
+- [ ] Every store action that calls an async API is `await`ed at the call site
+
+**Incremental enforcement:**
+- [ ] Run `npx eslint {file} --max-warnings 0` on every generated file as it is produced — do NOT accumulate lint errors for a batch fix
+- [ ] Stage-wide gate: `npm run lint -- --max-warnings 0` passes before final validation
+
+**Test file relaxation (informational, not a failure):**
+- `any` is allowed in `*.test.ts` for mock flexibility
+- `no-console` is relaxed in tests to permit debug output
+- These relaxations are scoped by file pattern in `eslint.config.mjs` — do not import test-file relaxations into source.
+
+### Test Traceability (factory pipeline only)
+
+These checks apply only when the pipeline runs with a Build Specification that provides `test_cases[]`. In standalone mode, skip this section.
+
+- [ ] Every generated service/controller test `it(...)` line carries a `// TC-nnn` annotation matching a Build Spec test case
+- [ ] Every generated Vue component/store test `it(...)` line carries a `// TC-nnn` annotation
+- [ ] Every generated E2E spec `it(...)` line carries a `// UC-nnn` annotation (use case ID, not TC)
+- [ ] Multiple TCs allowed as `// TC-003, TC-004`
+- [ ] Produce `test-traceability-report.md` listing every TC-nnn / UC-nnn from the Build Spec and the generated test file/line that covers it — unreferenced TCs are a coverage gap, orphan annotations (TC not in Build Spec) are a drift error
 
 ### DDL Alignment (Critical — most common source of runtime failures)
 

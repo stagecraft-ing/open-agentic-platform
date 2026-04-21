@@ -253,3 +253,82 @@ invariants:
       pattern: "audit"
       scope: "apps/api-internal/src/services/role.service.ts"
     severity: "warning"
+
+  # ── Code Quality (ESLint + TypeScript Strict) ──────────────────────────
+  #
+  # These mirror the live eslint.config.mjs rules. Source files must pass
+  # with zero warnings. Test files have relaxed rules by design.
+
+  - id: "INV-027"
+    description: "No console.log / console.warn / console.error in source files"
+    check:
+      type: "grep-absent"
+      pattern: "console\\.(log|warn|error|debug|info)"
+      scope: "apps/*/src/"
+    severity: "error"
+    rationale: >
+      Source files must use the structured logger (utils/logger.js). console.*
+      bypasses log levels, structured fields, and transport destinations.
+      Allowed in *.test.ts via eslint override.
+
+  - id: "INV-028"
+    description: "No explicit 'any' types in non-test source files"
+    check:
+      type: "grep-absent"
+      pattern: ": any\\b|<any>|as any\\b"
+      scope: "apps/*/src/"
+    severity: "error"
+    rationale: >
+      'any' defeats TypeScript's type checking. Use real types, 'unknown',
+      or generics. 'any' is permitted only in *.test.ts for mock flexibility.
+
+  - id: "INV-029"
+    description: "No unhandled .then() without await (floating promise heuristic)"
+    check:
+      type: "grep-absent"
+      pattern: "^\\s*[a-zA-Z_][a-zA-Z0-9_]*\\.then\\("
+      scope: "apps/*/src/"
+    severity: "warning"
+    rationale: >
+      Floating promises are a hard ESLint error. This is a coarse heuristic
+      that flags bare .then() calls not assigned or awaited. The authoritative
+      check is ESLint no-floating-promises via INV-030.
+
+  - id: "INV-030"
+    description: "ESLint passes with zero warnings across the project"
+    check:
+      type: "command-succeeds"
+      pattern: "npm run lint -- --max-warnings 0"
+      scope: "."
+    severity: "error"
+    rationale: >
+      Authoritative code-quality gate. Every source file must pass the live
+      eslint.config.mjs at project root with zero warnings. Test files carry
+      relaxed rules via eslint overrides — source files do not.
+
+  - id: "INV-031"
+    description: "Mock user role strings are not template defaults"
+    check:
+      type: "grep-absent"
+      pattern: "roles:\\s*\\[['\"](developer|admin|user)['\"]\\]"
+      scope: "packages/auth/src/drivers/mock.driver.ts"
+    severity: "error"
+    rationale: >
+      Template-default roles (developer/admin/user) must be replaced with the
+      project's business roles before feature development begins. A mismatch
+      between mock users and the role strings used in requireRole()/hasRole()
+      guards means every authorization check fails silently (403 on API,
+      hidden UI elements).
+
+  - id: "INV-032"
+    description: "Mock driver test assertions match actual mock users"
+    check:
+      type: "command-succeeds"
+      pattern: "npm test -w packages/auth --run -- mock.driver.test"
+      scope: "."
+    severity: "error"
+    rationale: >
+      mock.driver.test.ts asserts the count, IDs, names, and roles of the
+      mock users. When the configurer updates mock users for the project's
+      business roles, this test must be updated in lockstep or npm test
+      fails stage-wide.

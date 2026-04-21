@@ -10,10 +10,10 @@ Raw DDL, no ORM. Idempotent where possible. All tables live in the `public` sche
 ```sql
 -- Migration: Create {entity} table
 -- Created: {timestamp}
+-- [Insert columns here per Build Spec field list — see Rules for type mappings]
 
 CREATE TABLE IF NOT EXISTS {table_name} (
     id UUID DEFAULT gen_random_uuid(),
-    {-- columns --}
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -98,3 +98,4 @@ CREATE INDEX ix_funding_request_status
 8. Use `NUMERIC(p,s)` for monetary values -- never float/real.
 9. One migration file per entity -- never bundle multiple tables.
 10. File naming: `{YYYYMMDDHHMMSS}_{entity_name}.sql`.
+11. **No inline comments inside SQL statements.** Do not place `--` or `/* */` comments between the opening keyword of a statement and its closing semicolon. Place all comments before or after the complete statement. Some database tools treat a `--` line inside a `CREATE TABLE` block as a statement terminator, producing silent truncation or syntax errors.

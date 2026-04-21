@@ -212,11 +212,14 @@ stage_gates:
           Every field name in API request/response shapes traces to a column
           in the data model. Shortened or renamed fields (e.g., 'status' for
           'application_status') are rejected — they cause SQL column name
-          mismatches that compile but fail at runtime.
+          mismatches that compile but fail at runtime. Produces a structured
+          JSON evidence artifact enumerating every API field and its
+          corresponding data-model column (or flagging unresolved fields).
         type: cross-reference
         source: ".factory/build-spec.yaml (api.resources.operations.*.request + response)"
         target: "requirements/entity-model.json"
         condition: "every field maps to a data model column under the declared naming convention"
+        evidence_artifact: ".factory/verification/field-column-alignment.json"
         severity: error
 
       - id: "S4-007"
@@ -224,11 +227,14 @@ stage_gates:
         description: >
           Every enumerated field in the API spec has values exactly matching the
           data model constraints. If the data model defines CHECK (col IN ('a','b','c')),
-          the spec's allowed values must be exactly ['a','b','c'].
+          the spec's allowed values must be exactly ['a','b','c']. Produces a
+          structured JSON evidence artifact listing every enumerated API field
+          with the data-model values and Build Spec values side-by-side.
         type: cross-reference
         source: ".factory/build-spec.yaml (fields with allowed_values)"
         target: "requirements/entity-model.json (constraint definitions)"
         condition: "exact set equality between spec enum values and data model constraints"
+        evidence_artifact: ".factory/verification/enum-alignment.json"
         severity: error
 
       - id: "S4-008"
@@ -263,6 +269,21 @@ stage_gates:
         type: artifact-content
         artifact: ".factory/build-spec.yaml"
         condition: "pages with page_type not in [error, login] have nav_section"
+
+      - id: "S5-004"
+        name: "Build Specification cross-consistency"
+        description: >
+          Every page in ui.pages references at least one operation in
+          api.resources. Every operation is either referenced from a page or
+          explicitly flagged api_only: true. Every operation referenced from a
+          page traces to at least one test case from Stage 1. This is the
+          Build Spec's internal-consistency gate before the specification is
+          frozen and handed to the adapter.
+        type: cross-reference
+        source: ".factory/build-spec.yaml (ui.pages + api.resources.operations)"
+        target: ".factory/build-spec.yaml + requirements/use-cases.json (test cases)"
+        condition: "every page references ≥1 operation AND every operation is page-reachable or api_only AND every page-reachable operation has ≥1 test case"
+        severity: error
 
 
 # ─────────────────────────────────────────────────────────────────────────────

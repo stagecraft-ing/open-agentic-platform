@@ -79,11 +79,21 @@ Pagination and response envelope patterns must be consistent:
 - Do not choose response formats (JSON vs XML). That's adapter-specific.
 - Do not specify middleware. That's adapter-specific.
 
+## Pre-Gate Checklist
+
+Before producing the Stage Handoff Report, confirm each cross-stage consistency check has produced documented evidence. The harness consumes evidence artifacts at the final validation gate — Stage 4 produces them now to make the trail auditable.
+
+1. **S4-006 (field-to-column traceability)** — Write `.factory/verification/field-column-alignment.json` enumerating every API field and its corresponding data-model column. Any unresolved field fails the gate.
+2. **S4-007 (enum value alignment)** — Write `.factory/verification/enum-alignment.json` listing every enumerated API field with the data-model enum values and the Build Spec enum values side-by-side. Mismatches fail the gate.
+3. **S4-008 (response shape consistency)** — Confirm every list operation uses the same pagination envelope. Record the envelope shape in the Build Spec and reject any operation that deviates.
+
+No Handoff Report may be produced while any S4 check has FAIL status. The harness re-runs these checks at final validation; evidence artifacts written here persist to that gate.
+
 ## Gate
 
 S4-001 through S4-008 must pass before Stage 5 begins.
 
 - S4-001 through S4-005: existing specification completeness checks
-- **S4-006**: Field-to-column traceability — every API field traces to a data model column
-- **S4-007**: Enum value alignment — every enumerated API field matches data model constraints exactly
+- **S4-006**: Field-to-column traceability — every API field traces to a data model column (evidence: `.factory/verification/field-column-alignment.json`)
+- **S4-007**: Enum value alignment — every enumerated API field matches data model constraints exactly (evidence: `.factory/verification/enum-alignment.json`)
 - **S4-008**: Response shape consistency — pagination envelopes are uniform across operations

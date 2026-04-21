@@ -23,7 +23,7 @@ upstreams:
     path: "/Users/bart/Dev2/goa-software-factory"
     remote: "GovAlta-Pronghorn/goa-software-factory"
     last_synced_sha: "b6f79bab1cf6326b7b4b823a37dc02e15f3a5410"
-    last_synced_date: "2026-04-20"
+    last_synced_date: "2026-04-21"
 
     exclude_patterns:
       # client-specific content
@@ -377,7 +377,7 @@ upstreams:
     path: "/Users/bart/Dev2/template"
     remote: "GovAlta-Pronghorn/template"
     last_synced_sha: "e1de48c5e37abc614ebf9fd5baaf24018f48178d"
-    last_synced_date: "2026-04-20"
+    last_synced_date: "2026-04-21"
 
     exclude_patterns:
       # Application code (the scaffold itself, not adapter metadata)
@@ -392,8 +392,16 @@ upstreams:
       - ".env*"
       # Build/CI metadata
       - ".github/"
+      # Template-level operational documentation — not adapter-relevant
+      - "docs/"
+      # Module source files — adapter metadata is captured by each module's
+      # manifest.json (mapped below); the files/ subtrees are scaffold source
+      # code that belongs to the template, not to the adapter layer.
+      - "modules/**/files/**"
       # NOTE: orchestration/skills/ is NOT excluded — sub-skills are now mapped
       # into adapter agents (see mappings below).
+      # NOTE: modules/**/manifest.json is NOT excluded — per-module adapter
+      # metadata is mapped below.
 
     mappings:
 
@@ -513,6 +521,22 @@ upstreams:
           orchestrator's Section 18). Covers ESLint, TypeScript, and test
           coverage expectations. Feeds reviewer deficiency codes and
           invariants around code-quality gates.
+
+      # ── Per-module manifests ──────────────────────────────────────────
+      # Module source files are excluded; their manifests are adapter-relevant.
+
+      - source: "modules/user-management/manifest.json"
+        targets:
+          - adapters/aim-vue-node/manifest.yaml
+          - adapters/aim-vue-node/patterns/api/authorization.md
+        relationship: extract-only
+        layer: adapter
+        notes: >
+          User-management module manifest. Declares the module's placeholders,
+          owned files, capability flags, and integration contract with the auth
+          package. Extract: capability flags that affect the adapter manifest,
+          integration contract changes that affect authorization patterns.
+          Ignore: file manifests (files/ subtrees are excluded).
 
 # ---------------------------------------------------------------------------
 # OAP-native adapters — no external upstream, developed in-tree

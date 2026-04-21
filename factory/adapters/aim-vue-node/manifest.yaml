@@ -29,8 +29,12 @@ stack:
 
   database:
     supported: ["postgresql"]
-    migration_tool: "custom-ddl"
+    migration_tool: "migration-runner"
+    migration_ownership: "factory"
     orm: "none"
+    schema_placeholder: "{{schema}}"
+    schema_env_var: "DB_SCHEMA"
+    schema_env_default: "app"
 
 capabilities:
   dual_stack: true
@@ -162,6 +166,10 @@ agents:
   trimmer: "agents/trimmer.md"
   reviewer: "agents/reviewer.md"
 
+skills_dir: "orchestration/skills/"
+skills:
+  code_quality: "orchestration/skills/code-quality.md"
+
 scaffold:
   source: "scaffold/"
   description: "Monorepo with apps/ (api, web) and packages/ (shared, config, auth). Module system for pluggable auth drivers and session stores. Government design system pre-installed."
@@ -198,6 +206,8 @@ scaffold:
 
 validation:
   invariants_file: "validation/invariants.yaml"
+  traceability_report: "test-traceability-report.md"
+  traceability_gates: ["FAC-S4-015", "FAC-S5-013"]
 
 dual_stack:
   audience_to_stack:

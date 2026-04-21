@@ -34,6 +34,37 @@ You are a Service Designer. Using the BRD and use cases from Stage 1, produce:
    - Only private-authenticated pages → `single-internal`
    - Both → `dual`
 
+## Work Unit Strategy
+
+Stage 2 outputs cluster into three phases with an enforced dependency gate between Phase B and Phase C.
+
+### Phase A — Foundation (1 batch)
+
+Produce `audiences.json` (every distinct user group with roles and auth method). Write to disk before Phase B begins.
+
+### Phase B — Journey Maps (one batch per audience)
+
+For each audience identified in Phase A, produce the journey entry in `journeys.json`. Batch size is one audience at a time. After each batch, append to `journeys.json` on disk and update `.factory/stage-progress.json`. Release the completed journey's content from active context before starting the next batch.
+
+### Phase B → Phase C Dependency Gate
+
+Sitemap and variant derivation are **blocked until every audience in `audiences.json` has a corresponding journey entry on disk in `journeys.json`**. Starting Phase C with incomplete journeys produces an incomplete page inventory.
+
+Before beginning Phase C:
+1. Count audiences in `audiences.json`.
+2. Count distinct `audience` values in `journeys.json`.
+3. If counts do not match, identify the missing audiences and produce their journeys first — do NOT start Phase C.
+
+### Phase C — Synthesis (sequential)
+
+Produce `sitemap.json` by enumerating every page referenced in journeys plus any pages implied by the entity model but not yet in a journey (e.g., admin pages). Derive `variant.json` from the sitemap's `view_type` values. Write each artifact to disk as it is produced.
+
+## Context Budget Awareness
+
+- Write each artifact to disk as it completes (`audiences.json` → per-audience journey append → `sitemap.json` → `variant.json`).
+- After writing, release the artifact's content from active context. If Phase C needs journey detail, re-read `journeys.json` from disk.
+- Write `.factory/stage-progress.json` after each phase and each Phase B batch. Track a `dependencyGate` object with `totalAudiences`, `journeyMapsWritten`, `journeyMapsRequired` so compaction recovery can tell whether Phase C is unblocked.
+
 ## Capability Validation
 
 After variant is determined, check the adapter manifest:

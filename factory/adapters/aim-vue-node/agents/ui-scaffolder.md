@@ -54,5 +54,22 @@ Up to 4 artifacts per page:
 4. Use `<script setup lang="ts">` — never Options API
 5. Pinia store only if state is shared. Local state stays in the component via `ref()`/`reactive()`.
 6. Every view must handle: loading state, error state, and empty/no-data state
-7. Internal pages use `goa-work-side-menu` layout; public pages use microsite header
+7. Internal pages render inside `AppLayout.vue`'s card container — do NOT add `goa-work-side-menu` inside individual view files. Views provide only their page content (typically `<div class="page-topbar"><h1>...</h1></div>` + `<div class="page-body">...</div>`). Navigation items are registered via `registerNavItem()` in `modules.ts`, consumed by the `useNavigation` composable, and passed to `AppLayout` via `primary-items`/`secondary-items`/`account-items`. Public pages use the microsite header layout.
 8. Do NOT modify files outside this page's scope (except appending route)
+
+## Code Quality Rules
+
+9. **Pre-generation quality gate — read `eslint.config.mjs` first.** Before writing any Vue view or Pinia store, confirm the adapter's code-quality skill has been loaded and `eslint.config.mjs` at project root has been read. Key UI rules:
+   - No `any` types in stores — use real types, `unknown`, or generics
+   - `await` every async store action — floating promises are a hard lint error
+   - Use `?.` for array/object access (`noUncheckedIndexedAccess`)
+   - Use `slot="name"` on GoA components (not `v-slot`) — the `vue/no-deprecated-slot-attribute` rule is disabled for GoA
+   - Hyphenated event names on native elements — known exception: `@_selectFile` on GoA file upload must stay camelCase
+   Run `npx eslint {file} --max-warnings 0` after generating each file.
+
+10. **Pagination for list pages.** For any store that calls a `GET /collection` endpoint, implement explicit pagination and filter state:
+    - State: `page`, `pageSize` (default 10), `total`, `totalPages` (computed), `filters`, `sortField`, `sortOrder`
+    - Methods: `fetchPage`, `setPage`, `setFilters` (resets `page` to 1), `setSort` (resets `page` to 1)
+    Only implement when the Build Spec operation is `read-collection`. Detail-only stores do not need pagination. The API service must return `{ data, total }` — verify `COUNT(*)` is included in the service SQL.
+
+11. **TC-nnn test annotation.** When the factory Build Specification provides test case IDs, annotate each `it()` in component and store tests with `// TC-nnn`. E2E test specs use `// UC-nnn`. Omit annotations in standalone mode (no Build Spec provided).

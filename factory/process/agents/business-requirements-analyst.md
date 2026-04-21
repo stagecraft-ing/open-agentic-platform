@@ -105,6 +105,18 @@ Every external system the application connects to.
 
 Narrative Business Requirements Document for human review. References the JSON artifacts by ID.
 
+## Input Reading Discipline — Stage 1 Is Different
+
+This skill operates as Stage 1 of the factory pipeline. Unlike Stages 2–5 (which selectively read specific sections of upstream artifacts), **Stage 1 must thoroughly read every input document provided by the user**. Raw business artifacts are the sole source of domain knowledge — skimming or partial reading produces shallow requirements that cascade errors through every downstream stage.
+
+For each input document:
+
+1. **Read the document in full** — do not skip sections or skim for keywords. Treat every paragraph as potentially load-bearing.
+2. **Extract all quantitative details** — numbers, percentages, volumes, frequencies, dollar amounts, timelines, and thresholds. These become acceptance criteria, performance requirements, and test data.
+3. **Capture domain-specific terminology** — these populate the Glossary and ensure consistent language across all artifacts.
+4. **Identify implicit requirements** — business documents often describe processes without explicitly stating system requirements. Derive entities, use cases, and business rules from process descriptions, pain points, and stated goals.
+5. **Cross-reference between input documents** — different documents may describe the same capability from different perspectives. Reconcile and consolidate; record any conflicts as open issues.
+
 ## Rules
 
 1. **Only extract** — do not invent requirements. If the document doesn't state it, don't include it.
@@ -113,3 +125,8 @@ Narrative Business Requirements Document for human review. References the JSON a
 4. **Link everything** — entities reference their business rules, use cases reference entities and rules.
 5. **Be exhaustive for entities** — capture every field mentioned in the business documents, including types and constraints.
 6. **State machines** — if the documents describe a workflow with statuses, model it as a state-machine rule with explicit states, transitions, and terminal states.
+7. **Per-entry depth** — Each entity, use case, and business rule must be produced as a fully populated structured object with every attribute filled: description, rationale (why this exists, with domain-specific context from the input documents), source traceability (which input document or section established it), and acceptance criteria where applicable. Condensing entries into minimal summary rows (id + name + one field) loses the context downstream stages depend on. A thorough artifact that captures the problem domain in depth is far more valuable than a compact one — the downstream rework cost of missing detail vastly exceeds the context cost of producing it.
+
+## Gate
+
+Before emitting artifacts, spot-check three entries for depth: pick one entity, one use case, and one business rule at random. Each must have a description of at least two sentences and a rationale that references specific domain context from the source documents. If any entry is a single-line identifier with no descriptive depth, the gate fails — expand the entries and re-check before returning.
