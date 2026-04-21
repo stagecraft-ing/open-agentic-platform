@@ -41,10 +41,7 @@ export async function loader({ request }: { request: Request }) {
 
 const NAV_ITEMS = [
   { to: "/app", label: "Dashboard", end: true },
-  { to: "/app/knowledge", label: "Knowledge", end: false },
-  { to: "/app/pipelines", label: "Pipelines", end: false },
-  { to: "/app/deploys", label: "Deploys", end: false },
-  { to: "/app/settings", label: "Settings", end: false },
+  { to: "/app/factory", label: "Factory", end: false },
 ];
 
 function OrgSwitcher({

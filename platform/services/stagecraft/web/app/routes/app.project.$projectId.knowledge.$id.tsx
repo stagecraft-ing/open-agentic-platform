@@ -14,11 +14,11 @@ export async function loader({
   params,
 }: {
   request: Request;
-  params: { id: string };
+  params: { projectId: string; id: string };
 }) {
   await requireUser(request);
   const { object } = await getKnowledgeObject(request, params.id);
-  return { object };
+  return { object, projectId: params.projectId };
 }
 
 export async function action({
@@ -26,7 +26,7 @@ export async function action({
   params,
 }: {
   request: Request;
-  params: { id: string };
+  params: { projectId: string; id: string };
 }) {
   await requireUser(request);
   const form = await request.formData();
@@ -47,7 +47,7 @@ export async function action({
 
   if (intent === "delete") {
     await deleteKnowledgeObject(request, params.id);
-    return redirect("/app/knowledge");
+    return redirect(`/app/project/${params.projectId}/knowledge`);
   }
 
   return null;
@@ -71,7 +71,10 @@ const STATE_COLORS: Record<string, string> = {
 const STATE_ORDER = ["imported", "extracting", "extracted", "classified", "available"];
 
 export default function KnowledgeObjectDetail() {
-  const { object } = useLoaderData() as { object: KnowledgeObjectRow };
+  const { object, projectId } = useLoaderData() as {
+    object: KnowledgeObjectRow;
+    projectId: string;
+  };
   const fetcher = useFetcher();
   const downloadFetcher = useFetcher();
 
@@ -90,7 +93,7 @@ export default function KnowledgeObjectDetail() {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 dark:text-gray-400">
         <Link
-          to="/app/knowledge"
+          to={`/app/project/${projectId}/knowledge`}
           className="hover:text-gray-700 dark:hover:text-gray-300"
         >
           Knowledge

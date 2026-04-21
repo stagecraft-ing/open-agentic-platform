@@ -50,7 +50,7 @@ export async function action({ request }: { request: Request }) {
       repoName,
       isPrivate,
     });
-    return redirect(`/app/pipelines/${result.project.id}`);
+    return redirect(`/app/project/${result.project.id}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("createProjectWithRepo failed", {
@@ -277,7 +277,7 @@ export default function NewProject() {
             {isSubmitting ? "Creating..." : "Create Project"}
           </button>
           <a
-            href="/app/pipelines"
+            href="/app"
             className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             Cancel

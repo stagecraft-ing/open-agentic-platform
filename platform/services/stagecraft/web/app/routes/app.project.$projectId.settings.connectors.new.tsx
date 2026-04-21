@@ -1,9 +1,15 @@
-import { Form, redirect, useActionData, useNavigation } from "react-router";
+import { Form, redirect, useActionData, useNavigation, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import { createConnector } from "../lib/workspace-api.server";
 import { useState } from "react";
 
-export async function action({ request }: { request: Request }) {
+export async function action({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
   const form = await request.formData();
 
@@ -46,7 +52,7 @@ export async function action({ request }: { request: Request }) {
       config: Object.keys(config).length > 0 ? config : undefined,
       syncSchedule,
     });
-    return redirect("/app/settings/connectors");
+    return redirect(`/app/project/${params.projectId}/settings/connectors`);
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "Failed to create connector",
@@ -77,6 +83,7 @@ export default function NewConnector() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const [selectedType, setSelectedType] = useState("sharepoint");
+  const { projectId } = useParams() as { projectId: string };
 
   return (
     <div className="max-w-2xl">
@@ -205,7 +212,7 @@ export default function NewConnector() {
             {isSubmitting ? "Creating..." : "Create Connector"}
           </button>
           <a
-            href="/app/settings/connectors"
+            href={`/app/project/${projectId}/settings/connectors`}
             className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           >
             Cancel

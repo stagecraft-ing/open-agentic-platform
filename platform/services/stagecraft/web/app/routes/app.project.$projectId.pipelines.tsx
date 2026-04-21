@@ -1,4 +1,4 @@
-import { useLoaderData, useFetcher, Link } from "react-router";
+import { useLoaderData, useFetcher, useOutletContext } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
   getFactoryStatus,
@@ -7,7 +7,6 @@ import {
   rejectFactoryStage,
   cancelPipeline,
 } from "../lib/workspace-api.server";
-import { getProject } from "../lib/projects-api.server";
 import { useState } from "react";
 
 const PIPELINE_STAGES = [
@@ -87,14 +86,6 @@ export async function loader({
 }) {
   await requireUser(request);
 
-  let project: { id: string; name: string; slug: string } | null = null;
-  try {
-    const pRes = await getProject(request, params.projectId);
-    project = pRes.project;
-  } catch {
-    // project may not exist
-  }
-
   let pipeline: FactoryStatus | null = null;
   try {
     const fRes = await getFactoryStatus(request, params.projectId);
@@ -118,7 +109,7 @@ export async function loader({
     // audit may not be available
   }
 
-  return { project, pipeline, auditEntries };
+  return { pipeline, auditEntries };
 }
 
 export async function action({
@@ -156,8 +147,7 @@ export async function action({
 }
 
 export default function PipelineDetail() {
-  const { project, pipeline, auditEntries } = useLoaderData() as {
-    project: { id: string; name: string; slug: string } | null;
+  const { pipeline, auditEntries } = useLoaderData() as {
     pipeline: FactoryStatus | null;
     auditEntries: Array<{
       id: string;
@@ -168,37 +158,12 @@ export default function PipelineDetail() {
       details: unknown;
     }>;
   };
-
-  if (!project) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400">Project not found.</p>
-        <Link
-          to="/app/pipelines"
-          className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 mt-2 inline-block"
-        >
-          Back to pipelines
-        </Link>
-      </div>
-    );
-  }
+  const { project } = useOutletContext<{
+    project: { id: string; name: string; slug: string };
+  }>();
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 dark:text-gray-400">
-        <Link
-          to="/app/pipelines"
-          className="hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          Pipelines
-        </Link>
-        <span className="mx-1">/</span>
-        <span className="text-gray-900 dark:text-gray-100">
-          {project.name}
-        </span>
-      </nav>
-
       {!pipeline ? (
         <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-12 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">

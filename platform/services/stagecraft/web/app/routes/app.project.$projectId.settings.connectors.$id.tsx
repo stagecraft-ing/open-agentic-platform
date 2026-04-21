@@ -6,6 +6,7 @@ import {
   redirect,
   useNavigation,
   Link,
+  useParams,
 } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
@@ -27,7 +28,7 @@ export async function loader({
   params,
 }: {
   request: Request;
-  params: { id: string };
+  params: { projectId: string; id: string };
 }) {
   await requireUser(request);
   const [connRes, runsRes] = await Promise.all([
@@ -42,7 +43,7 @@ export async function action({
   params,
 }: {
   request: Request;
-  params: { id: string };
+  params: { projectId: string; id: string };
 }) {
   await requireUser(request);
   const form = await request.formData();
@@ -82,7 +83,7 @@ export async function action({
   if (intent === "delete") {
     try {
       await deleteConnector(request, params.id);
-      return redirect("/app/settings/connectors");
+      return redirect(`/app/project/${params.projectId}/settings/connectors`);
     } catch (err) {
       return {
         error: err instanceof Error ? err.message : "Failed to delete",
@@ -160,6 +161,7 @@ export default function ConnectorDetail() {
   const isSubmitting = navigation.state === "submitting";
   const fetcher = useFetcher();
   const [showDelete, setShowDelete] = useState(false);
+  const { projectId } = useParams() as { projectId: string };
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -167,7 +169,7 @@ export default function ConnectorDetail() {
       <div className="flex items-center justify-between">
         <div>
           <Link
-            to="/app/settings/connectors"
+            to={`/app/project/${projectId}/settings/connectors`}
             className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             &larr; All connectors

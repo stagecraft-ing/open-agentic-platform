@@ -1,7 +1,6 @@
 import {
   type RouteConfig,
   index,
-  layout,
   route,
 } from "@react-router/dev/routes";
 
@@ -14,17 +13,21 @@ export default [
   route("admin/signin", "routes/admin.signin.tsx"),
   route("app", "routes/app.tsx", [
     index("routes/app._index.tsx"),
-    route("knowledge", "routes/app.knowledge.tsx"),
-    route("knowledge/:id", "routes/app.knowledge.$id.tsx"),
+    route("factory", "routes/app.factory.tsx"),
     route("projects/new", "routes/app.projects.new.tsx"),
-    route("pipelines", "routes/app.pipelines.tsx"),
-    route("pipelines/:projectId", "routes/app.pipelines.$projectId.tsx"),
-    route("deploys", "routes/app.deploys.tsx"),
-    route("settings", "routes/app.settings.tsx", [
-      index("routes/app.settings._index.tsx"),
-      route("connectors", "routes/app.settings.connectors.tsx"),
-      route("connectors/new", "routes/app.settings.connectors.new.tsx"),
-      route("connectors/:id", "routes/app.settings.connectors.$id.tsx"),
+    route("project/:projectId", "routes/app.project.$projectId.tsx", [
+      index("routes/app.project.$projectId._index.tsx"),
+      route("knowledge", "routes/app.project.$projectId.knowledge.tsx"),
+      route("knowledge/:id", "routes/app.project.$projectId.knowledge.$id.tsx"),
+      route("pipelines", "routes/app.project.$projectId.pipelines.tsx"),
+      route("deploys", "routes/app.project.$projectId.deploys.tsx"),
+      route("settings", "routes/app.project.$projectId.settings.tsx", [
+        index("routes/app.project.$projectId.settings._index.tsx"),
+        route("connectors", "routes/app.project.$projectId.settings.connectors.tsx"),
+        route("connectors/new", "routes/app.project.$projectId.settings.connectors.new.tsx"),
+        route("connectors/:id", "routes/app.project.$projectId.settings.connectors.$id.tsx"),
+        route("github-pat", "routes/app.project.$projectId.settings.github-pat.tsx"),
+      ]),
     ]),
   ]),
   route("admin", "routes/admin.tsx", [

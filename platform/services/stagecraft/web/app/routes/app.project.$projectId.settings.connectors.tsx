@@ -1,4 +1,4 @@
-import { useLoaderData, Link, useFetcher } from "react-router";
+import { useLoaderData, Link, useFetcher, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
   listConnectors,
@@ -55,6 +55,8 @@ export default function ConnectorList() {
     connectors: SourceConnectorRow[];
   };
   const fetcher = useFetcher();
+  const { projectId } = useParams() as { projectId: string };
+  const base = `/app/project/${projectId}/settings/connectors`;
 
   return (
     <div className="space-y-4">
@@ -63,7 +65,7 @@ export default function ConnectorList() {
           Source Connectors
         </h3>
         <Link
-          to="/app/settings/connectors/new"
+          to={`${base}/new`}
           className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           Add Connector
@@ -90,7 +92,7 @@ export default function ConnectorList() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Link
-                    to={`/app/settings/connectors/${c.id}`}
+                    to={`${base}/${c.id}`}
                     className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400"
                   >
                     {c.name}
@@ -119,7 +121,7 @@ export default function ConnectorList() {
                     </fetcher.Form>
                   )}
                   <Link
-                    to={`/app/settings/connectors/${c.id}`}
+                    to={`${base}/${c.id}`}
                     className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     Configure

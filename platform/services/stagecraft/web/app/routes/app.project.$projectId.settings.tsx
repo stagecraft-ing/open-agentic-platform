@@ -1,20 +1,23 @@
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useOutletContext } from "react-router";
 
-const SETTINGS_NAV = [
-  { to: "/app/settings", label: "General", end: true },
-  { to: "/app/settings/connectors", label: "Connectors", end: false },
-  { to: "/app/settings/github-pat", label: "GitHub PAT", end: false },
-];
+type ProjectCtx = {
+  project: { id: string; name: string; slug: string };
+};
 
 export default function SettingsLayout() {
+  const { project } = useOutletContext<ProjectCtx>();
+  const base = `/app/project/${project.id}/settings`;
+
+  const nav = [
+    { to: base, label: "General", end: true },
+    { to: `${base}/connectors`, label: "Connectors", end: false },
+    { to: `${base}/github-pat`, label: "GitHub PAT", end: false },
+  ];
+
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        Settings
-      </h2>
-
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-6">
-        {SETTINGS_NAV.map((item) => (
+        {nav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -32,7 +35,7 @@ export default function SettingsLayout() {
         ))}
       </div>
 
-      <Outlet />
+      <Outlet context={{ project }} />
     </div>
   );
 }

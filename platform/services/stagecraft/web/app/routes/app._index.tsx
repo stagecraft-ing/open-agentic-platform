@@ -1,249 +1,490 @@
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData, Link, useFetcher, useSearchParams } from "react-router";
+import { useState, useMemo } from "react";
 import { requireUser } from "../lib/auth.server";
-import {
-  getDefaultWorkspace,
-  listKnowledgeObjects,
-} from "../lib/workspace-api.server";
-import { listProjects } from "../lib/projects-api.server";
-import type {
-  KnowledgeObjectRow,
-  WorkspaceRow,
-} from "../lib/workspace-api.server";
+import { listProjects, deleteProject } from "../lib/projects-api.server";
+
+type ProjectRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  category?: string;
+  createdAt: string;
+  updatedAt?: string;
+};
 
 export async function loader({ request }: { request: Request }) {
-  await requireUser(request);
+  const user = await requireUser(request);
 
-  let workspace: WorkspaceRow | null = null;
-  let objects: KnowledgeObjectRow[] = [];
-  let projects: Array<{ id: string; name: string; slug: string }> = [];
-
+  let projects: ProjectRow[] = [];
   try {
-    const wsRes = await getDefaultWorkspace(request);
-    workspace = wsRes.workspace;
-  } catch {
-    // no workspace yet
-  }
-
-  try {
-    const koRes = await listKnowledgeObjects(request);
-    objects = koRes.objects;
-  } catch {
-    // knowledge service may not be ready
-  }
-
-  try {
-    const pRes = await listProjects(request);
-    projects = pRes.projects;
+    const res = await listProjects(request);
+    projects = res.projects as ProjectRow[];
   } catch {
     // projects service may not be ready
   }
 
-  return { workspace, objects, projects };
+  return { user, projects };
 }
 
-const STATE_COLORS: Record<string, string> = {
-  imported: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-  extracting: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  extracted: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  classified: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
-  available: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-};
+export async function action({ request }: { request: Request }) {
+  const user = await requireUser(request);
+  const form = await request.formData();
+  const intent = form.get("intent");
 
-export default function Dashboard() {
-  const { workspace, objects, projects } = useLoaderData() as {
-    workspace: WorkspaceRow | null;
-    objects: KnowledgeObjectRow[];
-    projects: Array<{ id: string; name: string; slug: string }>;
-  };
-
-  if (!workspace) {
-    return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-          No workspace found
-        </h3>
-        <p className="text-gray-500 dark:text-gray-400">
-          A default workspace will be created when you sign in with a GitHub
-          organization.
-        </p>
-      </div>
-    );
+  if (intent === "delete") {
+    const id = form.get("projectId") as string;
+    await deleteProject(request, id, user.userId);
+    return { deleted: id };
   }
 
-  // Compute stats
-  const stateCounts = objects.reduce(
-    (acc, o) => {
-      acc[o.state] = (acc[o.state] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
+  return null;
+}
+
+type Tab = "mine" | "shared" | "gallery";
+
+export default function Dashboard() {
+  const { projects } = useLoaderData() as { projects: ProjectRow[] };
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState<"grid" | "list">(
+    (searchParams.get("view") as "grid" | "list") ?? "list"
   );
-  const totalSize = objects.reduce((s, o) => s + (o.sizeBytes || 0), 0);
+  const [tab, setTab] = useState<Tab>("mine");
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    if (tab !== "mine") return [] as ProjectRow[];
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        (p.description ?? "").toLowerCase().includes(q)
+    );
+  }, [projects, query, tab]);
+
+  const counts = { mine: projects.length, shared: 0, gallery: 0 };
 
   return (
-    <div className="space-y-8">
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Projects" value={projects.length} />
-        <StatCard label="Knowledge Objects" value={objects.length} />
-        <StatCard
-          label="Available Docs"
-          value={stateCounts["available"] ?? 0}
+    <div className="space-y-6">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Manage your projects
+          </p>
+        </div>
+        <Link
+          to="/app/projects/new"
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        >
+          <PlusIcon className="w-4 h-4" />
+          Create New Project
+        </Link>
+      </header>
+
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search..."
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+        <ViewToggle view={view} onChange={setView} />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <TabButton
+          active={tab === "mine"}
+          onClick={() => setTab("mine")}
+          icon={<FolderIcon className="w-3.5 h-3.5" />}
+          label="My Projects"
+          count={counts.mine}
         />
-        <StatCard label="Total Size" value={formatBytes(totalSize)} />
+        <TabButton
+          active={tab === "shared"}
+          onClick={() => setTab("shared")}
+          icon={<UsersIcon className="w-3.5 h-3.5" />}
+          label="Shared Projects"
+          count={counts.shared}
+        />
+        <TabButton
+          active={tab === "gallery"}
+          onClick={() => setTab("gallery")}
+          icon={<SparklesIcon className="w-3.5 h-3.5" />}
+          label="Gallery"
+          count={counts.gallery}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent knowledge objects */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-              Recent Knowledge Objects
-            </h3>
-            <Link
-              to="/app/knowledge"
-              className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-            >
-              View all
-            </Link>
-          </div>
-          {objects.length === 0 ? (
-            <EmptyState message="No knowledge objects yet.">
-              <Link
-                to="/app/knowledge"
-                className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-              >
-                Upload your first document
-              </Link>
-            </EmptyState>
-          ) : (
-            <ul className="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              {objects.slice(0, 5).map((obj) => (
-                <li
-                  key={obj.id}
-                  className="px-4 py-3 bg-white dark:bg-gray-900 flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <Link
-                      to={`/app/knowledge/${obj.id}`}
-                      className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
-                    >
-                      {obj.filename}
-                    </Link>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {obj.mimeType} &middot; {formatBytes(obj.sizeBytes)}
-                    </span>
-                  </div>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATE_COLORS[obj.state] ?? "bg-gray-100 text-gray-800"}`}
-                  >
-                    {obj.state}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Projects */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-              Projects
-            </h3>
-            <Link
-              to="/app/pipelines"
-              className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-            >
-              View pipelines
-            </Link>
-          </div>
-          {projects.length === 0 ? (
-            <EmptyState message="No projects yet." />
-          ) : (
-            <ul className="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              {projects.slice(0, 5).map((p) => (
-                <li
-                  key={p.id}
-                  className="px-4 py-3 bg-white dark:bg-gray-900"
-                >
-                  <Link
-                    to={`/app/pipelines/${p.id}`}
-                    className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400"
-                  >
-                    {p.name}
-                  </Link>
-                  <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                    {p.slug}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      {/* Knowledge state distribution */}
-      {objects.length > 0 && (
-        <section>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-3">
-            Knowledge State Distribution
-          </h3>
-          <div className="flex gap-2 flex-wrap">
-            {Object.entries(stateCounts).map(([state, count]) => (
-              <span
-                key={state}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${STATE_COLORS[state] ?? "bg-gray-100 text-gray-800"}`}
-              >
-                {state}
-                <span className="font-bold">{count}</span>
-              </span>
-            ))}
-          </div>
-        </section>
+      {tab !== "mine" ? (
+        <EmptyPanel
+          title={tab === "shared" ? "No shared projects" : "Gallery coming soon"}
+          hint={
+            tab === "shared"
+              ? "Projects shared with you by other members will appear here."
+              : "A curated gallery of template projects will appear here."
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyPanel
+          title={query ? "No matches" : "No projects yet"}
+          hint={
+            query
+              ? "Try a different search term."
+              : "Create your first project to get started."
+          }
+        />
+      ) : view === "list" ? (
+        <ProjectListRows projects={filtered} />
+      ) : (
+        <ProjectGrid projects={filtered} />
       )}
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function ProjectListRows({ projects }: { projects: ProjectRow[] }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
-      <dt className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-        {label}
-      </dt>
-      <dd className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-        {value}
-      </dd>
+    <ul className="space-y-2">
+      {projects.map((p) => (
+        <ProjectRow key={p.id} project={p} />
+      ))}
+    </ul>
+  );
+}
+
+function ProjectRow({ project }: { project: ProjectRow }) {
+  const fetcher = useFetcher();
+  const deleting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "delete";
+
+  return (
+    <li
+      className={`group flex items-center gap-4 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60 hover:border-gray-300 dark:hover:border-gray-700 transition-colors ${
+        deleting ? "opacity-50" : ""
+      }`}
+    >
+      <div className="flex-shrink-0 w-14 h-14 rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-600">
+        <ImageIcon className="w-6 h-6" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <Link
+          to={`/app/project/${project.id}`}
+          className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+        >
+          {project.name}
+        </Link>
+        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <ClockIcon className="w-3 h-3" />
+          <span>Updated {formatRelativeTime(project.updatedAt ?? project.createdAt)}</span>
+        </div>
+        {project.description && (
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+            {project.description}
+          </p>
+        )}
+      </div>
+
+      {project.category && (
+        <span className="flex-shrink-0 inline-flex items-center rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+          {project.category}
+        </span>
+      )}
+
+      <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <IconButton
+          label="Duplicate"
+          onClick={() => {
+            /* TODO: duplicate project */
+          }}
+        >
+          <CopyIcon className="w-4 h-4" />
+        </IconButton>
+        <Link
+          to={`/app/project/${project.id}/settings`}
+          aria-label="Edit"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"
+        >
+          <PencilIcon className="w-4 h-4" />
+        </Link>
+        <fetcher.Form
+          method="post"
+          onSubmit={(e) => {
+            if (!confirm(`Delete project "${project.name}"?`)) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <input type="hidden" name="intent" value="delete" />
+          <input type="hidden" name="projectId" value={project.id} />
+          <button
+            type="submit"
+            aria-label="Delete"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-red-500 text-white hover:bg-red-600"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </fetcher.Form>
+      </div>
+    </li>
+  );
+}
+
+function ProjectGrid({ projects }: { projects: ProjectRow[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {projects.map((p) => (
+        <Link
+          key={p.id}
+          to={`/app/project/${p.id}`}
+          className="block border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900/60 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+        >
+          <div className="aspect-video rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-600 mb-3">
+            <ImageIcon className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+            {p.name}
+          </h3>
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <ClockIcon className="w-3 h-3" />
+            <span>Updated {formatRelativeTime(p.updatedAt ?? p.createdAt)}</span>
+          </div>
+          {p.description && (
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+              {p.description}
+            </p>
+          )}
+        </Link>
+      ))}
     </div>
   );
 }
 
-function EmptyState({
-  message,
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+        active
+          ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+      <span
+        className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-semibold ${
+          active
+            ? "bg-gray-700 text-gray-100 dark:bg-gray-700 dark:text-gray-100"
+            : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: "grid" | "list";
+  onChange: (v: "grid" | "list") => void;
+}) {
+  return (
+    <div className="inline-flex rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onChange("grid")}
+        aria-label="Grid view"
+        className={`px-2.5 py-2 text-sm ${
+          view === "grid"
+            ? "bg-teal-500 text-white"
+            : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+        }`}
+      >
+        <GridIcon className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("list")}
+        aria-label="List view"
+        className={`px-2.5 py-2 text-sm ${
+          view === "list"
+            ? "bg-teal-500 text-white"
+            : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+        }`}
+      >
+        <ListIcon className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+function IconButton({
+  label,
+  onClick,
   children,
 }: {
-  message: string;
-  children?: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-8 text-center">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{message}</p>
-      {children && <div className="mt-2">{children}</div>}
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyPanel({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg px-6 py-14 text-center">
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</p>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{hint}</p>
     </div>
   );
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const diffMs = Date.now() - then;
+  const diffSec = Math.round(diffMs / 1000);
+  const diffMin = Math.round(diffSec / 60);
+  const diffHr = Math.round(diffMin / 60);
+  const diffDay = Math.round(diffHr / 24);
+  const diffMo = Math.round(diffDay / 30);
+  const diffYr = Math.round(diffDay / 365);
+
+  if (diffSec < 45) return "just now";
+  if (diffMin < 60) return `about ${diffMin} minute${diffMin === 1 ? "" : "s"} ago`;
+  if (diffHr < 24) return `about ${diffHr} hour${diffHr === 1 ? "" : "s"} ago`;
+  if (diffDay < 30) return `about ${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+  if (diffMo < 12) return `about ${diffMo} month${diffMo === 1 ? "" : "s"} ago`;
+  return `about ${diffYr} year${diffYr === 1 ? "" : "s"} ago`;
+}
+
+// —————— Icons ——————
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+    </svg>
+  );
+}
+
+function GridIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zm0 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+    </svg>
+  );
+}
+
+function ListIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+function FolderIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+    </svg>
+  );
+}
+
+function UsersIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-4a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  );
+}
+
+function SparklesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.5 5.5L21 9l-5.5 2.5L13 17l-2.5-5.5L5 9l5.5-2.5L13 1z" />
+    </svg>
+  );
+}
+
+function ImageIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a2 2 0 012-2h2a2 2 0 012 2v3" />
+    </svg>
+  );
 }

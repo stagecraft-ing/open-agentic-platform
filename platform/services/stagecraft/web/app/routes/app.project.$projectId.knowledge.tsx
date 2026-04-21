@@ -12,7 +12,13 @@ import type {
 } from "../lib/workspace-api.server";
 import { useState, useRef } from "react";
 
-export async function loader({ request }: { request: Request }) {
+export async function loader({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
 
   const url = new URL(request.url);
@@ -24,6 +30,7 @@ export async function loader({ request }: { request: Request }) {
   ]);
 
   return {
+    projectId: params.projectId,
     objects: koRes.objects,
     connectors: connRes.connectors,
     stateFilter: stateFilter ?? "all",
@@ -67,11 +74,13 @@ const STATE_COLORS: Record<string, string> = {
 };
 
 export default function KnowledgeBrowser() {
-  const { objects, connectors, stateFilter } = useLoaderData() as {
+  const { projectId, objects, connectors, stateFilter } = useLoaderData() as {
+    projectId: string;
     objects: KnowledgeObjectRow[];
     connectors: SourceConnectorRow[];
     stateFilter: string;
   };
+  const base = `/app/project/${projectId}/knowledge`;
 
   return (
     <div className="space-y-6">
@@ -93,7 +102,7 @@ export default function KnowledgeBrowser() {
           return (
             <Link
               key={state}
-              to={state === "all" ? "/app/knowledge" : `/app/knowledge?state=${state}`}
+              to={state === "all" ? base : `${base}?state=${state}`}
               className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
@@ -151,7 +160,7 @@ export default function KnowledgeBrowser() {
                 >
                   <td className="px-4 py-3">
                     <Link
-                      to={`/app/knowledge/${obj.id}`}
+                      to={`${base}/${obj.id}`}
                       className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400"
                     >
                       {obj.filename}
@@ -248,7 +257,7 @@ function UploadButton() {
       formData.set("mimeType", file.type || "application/octet-stream");
       formData.set("contentHash", contentHash);
 
-      const uploadRes = await fetch("/app/knowledge", {
+      const uploadRes = await fetch(window.location.pathname, {
         method: "POST",
         body: formData,
       });
