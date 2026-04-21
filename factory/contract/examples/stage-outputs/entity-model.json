@@ -1,0 +1,285 @@
+{
+  "entities": [
+    {
+      "name": "Organization",
+      "description": "A women's shelter organization eligible to apply for provincial funding",
+      "fields": [
+        {
+          "name": "organizationId",
+          "type": "uuid",
+          "primary": true,
+          "required": true,
+          "default": "uuid"
+        },
+        {
+          "name": "organizationName",
+          "type": "string",
+          "required": true,
+          "max_length": 200
+        },
+        {
+          "name": "legalEntityType",
+          "type": "string",
+          "required": true,
+          "max_length": 100
+        },
+        {
+          "name": "yearEstablished",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "registrationNumber",
+          "type": "string",
+          "required": true,
+          "max_length": 50
+        },
+        {
+          "name": "websiteUrl",
+          "type": "string",
+          "required": false,
+          "max_length": 500
+        },
+        {
+          "name": "orgAddrCity",
+          "type": "string",
+          "required": true,
+          "max_length": 100
+        },
+        {
+          "name": "orgAddrProvince",
+          "type": "string",
+          "required": true,
+          "max_length": 50
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        }
+      ],
+      "business_rules": ["BR-003", "BR-005"]
+    },
+    {
+      "name": "FundingRequest",
+      "description": "A funding application submitted by a shelter organization for a specific fiscal year",
+      "fields": [
+        {
+          "name": "requestId",
+          "type": "uuid",
+          "primary": true,
+          "required": true,
+          "default": "uuid"
+        },
+        {
+          "name": "organizationId",
+          "type": "reference",
+          "required": true,
+          "ref_entity": "Organization",
+          "ref_field": "organizationId"
+        },
+        {
+          "name": "submittedBy",
+          "type": "reference",
+          "required": false,
+          "ref_entity": "PortalUser",
+          "ref_field": "userId"
+        },
+        {
+          "name": "requestType",
+          "type": "enum",
+          "required": true,
+          "enum_values": [
+            "base-funding-renewal",
+            "new-operational-funding",
+            "expanded-services",
+            "capital-maintenance"
+          ]
+        },
+        {
+          "name": "requestStatus",
+          "type": "enum",
+          "required": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "submitted",
+            "under-review",
+            "information-requested",
+            "evaluated",
+            "recommended",
+            "approved",
+            "denied",
+            "withdrawn"
+          ]
+        },
+        {
+          "name": "fiscalYear",
+          "type": "string",
+          "required": true,
+          "max_length": 9
+        },
+        {
+          "name": "requestedFundingAmount",
+          "type": "decimal",
+          "required": true,
+          "precision": 14,
+          "scale": 2
+        },
+        {
+          "name": "proposedProgramName",
+          "type": "string",
+          "required": true,
+          "max_length": 200
+        },
+        {
+          "name": "proposedStartDate",
+          "type": "date",
+          "required": false
+        },
+        {
+          "name": "justification",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "submissionDate",
+          "type": "timestamp",
+          "required": false
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        }
+      ],
+      "business_rules": ["BR-001", "BR-002", "BR-003", "BR-007"]
+    },
+    {
+      "name": "PortalUser",
+      "description": "A user who accesses the portal, either a shelter applicant or CFS staff member",
+      "fields": [
+        {
+          "name": "userId",
+          "type": "uuid",
+          "primary": true,
+          "required": true
+        },
+        {
+          "name": "userEmail",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "max_length": 200
+        },
+        {
+          "name": "userDisplayName",
+          "type": "string",
+          "required": true,
+          "max_length": 200
+        },
+        {
+          "name": "organizationId",
+          "type": "reference",
+          "required": false,
+          "ref_entity": "Organization",
+          "ref_field": "organizationId"
+        },
+        {
+          "name": "userIsActive",
+          "type": "boolean",
+          "required": true,
+          "default": true
+        },
+        {
+          "name": "userLastLogin",
+          "type": "timestamp",
+          "required": false
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        }
+      ],
+      "business_rules": ["BR-008"]
+    },
+    {
+      "name": "SupportingDocument",
+      "description": "A file attached to a funding request (e.g. budget spreadsheets, org charts, community evidence)",
+      "fields": [
+        {
+          "name": "documentId",
+          "type": "uuid",
+          "primary": true,
+          "required": true,
+          "default": "uuid"
+        },
+        {
+          "name": "requestId",
+          "type": "reference",
+          "required": true,
+          "ref_entity": "FundingRequest",
+          "ref_field": "requestId"
+        },
+        {
+          "name": "documentType",
+          "type": "string",
+          "required": true,
+          "max_length": 100
+        },
+        {
+          "name": "fileName",
+          "type": "string",
+          "required": true,
+          "max_length": 500
+        },
+        {
+          "name": "fileSizeBytes",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "mimeType",
+          "type": "string",
+          "required": true,
+          "max_length": 100
+        },
+        {
+          "name": "storageReference",
+          "type": "string",
+          "required": false,
+          "max_length": 500
+        },
+        {
+          "name": "uploadedAt",
+          "type": "timestamp",
+          "required": true,
+          "default": "now"
+        }
+      ],
+      "business_rules": ["BR-018"]
+    }
+  ]
+}

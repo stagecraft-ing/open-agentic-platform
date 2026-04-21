@@ -1,0 +1,246 @@
+# ============================================================================
+# Adapter Manifest: Encore.ts + React Router Full-Stack Template
+# ============================================================================
+
+schema_version: "1.0.0"
+
+adapter:
+  name: "encore-react"
+  display_name: "Encore.ts + React Router Full-Stack"
+  version: "1.0.0"
+  description: "Microservices backend with Encore.ts, full-stack React Router frontend with SSR, Drizzle ORM, TanStack Query, Tailwind CSS, session-based auth."
+
+stack:
+  language: "typescript"
+  runtime: "node-20"
+
+  backend:
+    framework: "encore-ts"
+    description: "Encore.ts microservices with typed api() endpoints, built-in pub/sub, cron jobs, and auto-generated client SDKs. Each service owns its database."
+
+  frontend:
+    framework: "react-router-7"
+    state_management: "tanstack-query"
+    design_system: "tailwind-css"
+    description: "React Router 7 with SSR, loaders for data fetching, actions for form mutations. TanStack React Query for client-side cache. Tailwind CSS for styling."
+
+  database:
+    supported: ["postgresql"]
+    migration_tool: "drizzle-kit"
+    orm: "drizzle"
+
+capabilities:
+  dual_stack: false
+  bff_pattern: false
+  single_stack: true
+  session_auth: true
+  token_auth: false
+  api_key_auth: false
+  module_system: false
+  file_uploads: false
+  background_jobs: true
+  realtime: false
+  email_notifications: false
+  audit_logging: true
+  direct_sql: false
+  orm_based: true
+  api_proxy: false
+
+  # Encore-specific capabilities
+  microservices: true
+  pub_sub: true
+  cron_jobs: true
+  auto_client_gen: true
+
+supported_auth:
+  - method: "session"
+    driver: "custom-argon2"
+    providers: []
+    description: "Built-in session auth with Argon2 password hashing, HTTP-only cookies, and DB-backed sessions."
+
+supported_session_stores:
+  - type: "postgresql"
+    description: "Sessions stored in auth service's PostgreSQL database via Drizzle ORM."
+
+commands:
+  install: "npm install"
+  compile: "npx tsc --noEmit"
+  test: "npm test"
+  lint: "npx prettier --check ."
+  dev: "npm run start"
+  format_check: "npx prettier --check ."
+  type_check: "npx tsc --noEmit"
+  gen_client: "encore gen client --output=./web/app/lib/client.ts --env=local"
+  feature_verify:
+    - "npx tsc --noEmit"
+    - "npm test"
+
+directory_conventions:
+  # Backend (per-service)
+  api_service: "api/{service}/{resource}.ts"
+  api_service_def: "api/{service}/encore.service.ts"
+  api_test: "api/{service}/{resource}.test.ts"
+  api_types: "api/{service}/types.ts"
+  api_schema: "api/db/schema.ts"
+  api_pub_sub: "api/{service}/events.ts"
+
+  # Frontend
+  ui_view: "web/app/routes/{route-path}.tsx"
+  ui_store: null  # TanStack Query inline, no separate store files
+  ui_route_config: "web/app/routes.ts"
+  ui_test: "web/app/routes/{route-path}.test.tsx"
+  ui_component: "web/app/components/{Name}.tsx"
+  ui_lib: "web/app/lib/{name}.ts"
+
+  # Data layer
+  migration: "api/{service}/migrations/{number}_{name}.sql"
+  schema_types: "api/db/schema.ts"
+
+  # Config
+  env_file: ".env"
+
+patterns:
+  api:
+    service: "patterns/api/service.md"
+    endpoint: "patterns/api/endpoint.md"
+    pub_sub: "patterns/api/pub-sub.md"
+    test: "patterns/api/test.md"
+  ui:
+    view: "patterns/ui/view.md"
+    loader: "patterns/ui/loader.md"
+    route: "patterns/ui/route.md"
+    test: "patterns/ui/test.md"
+  data:
+    migration: "patterns/data/migration.md"
+    schema: "patterns/data/schema.md"
+    query: "patterns/data/query.md"
+  page_types:
+    landing: "patterns/page-types/landing.md"
+    dashboard: "patterns/page-types/dashboard.md"
+    list: "patterns/page-types/list.md"
+    detail: "patterns/page-types/detail.md"
+    form: "patterns/page-types/form.md"
+    content: "patterns/page-types/content.md"
+    login: "patterns/page-types/login.md"
+    profile: "patterns/page-types/profile.md"
+
+agents:
+  api_scaffolder: "agents/api-scaffolder.md"
+  ui_scaffolder: "agents/ui-scaffolder.md"
+  data_scaffolder: "agents/data-scaffolder.md"
+  configurer: "agents/configurer.md"
+  trimmer: "agents/trimmer.md"
+
+scaffold:
+  source: "scaffold/"
+  description: "Encore.ts microservices monorepo with React Router frontend. Auth service, DB service, and web app pre-configured."
+  modules:
+    single-public:
+      - "auth"
+      - "db"
+      - "web"
+    single-internal:
+      - "auth"
+      - "db"
+      - "admin"
+      - "web"
+  setup_commands:
+    - "npm install"
+
+validation:
+  invariants:
+    - id: "INV-001"
+      description: "All API endpoints use Encore api() function"
+      check:
+        type: "grep-present"
+        pattern: "export const.*= api\\("
+        scope: "api/"
+      severity: "error"
+
+    - id: "INV-002"
+      description: "Every service has encore.service.ts"
+      check:
+        type: "command-succeeds"
+        pattern: "test $(find api/ -name 'encore.service.ts' | wc -l) -gt 0"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-003"
+      description: "No Express imports — Encore handles HTTP"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]express['\"]|require\\(['\"]express['\"]\\)"
+        scope: "api/"
+      severity: "error"
+
+    - id: "INV-004"
+      description: "Frontend uses React Router loaders, not useEffect for data"
+      check:
+        type: "grep-absent"
+        pattern: "useEffect.*fetch\\(|useEffect.*axios"
+        scope: "web/app/routes/"
+      severity: "warning"
+
+    - id: "INV-005"
+      description: "Drizzle schema defined in api/db/schema.ts"
+      check:
+        type: "file-exists"
+        pattern: "api/db/schema.ts"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-006"
+      description: "No raw pg pool imports — use Drizzle ORM"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]pg['\"]|new Pool\\("
+        scope: "api/"
+      severity: "error"
+
+    - id: "INV-007"
+      description: "Auth uses Argon2 for password hashing"
+      check:
+        type: "grep-present"
+        pattern: "argon2"
+        scope: "api/auth/"
+      severity: "error"
+
+    - id: "INV-008"
+      description: "Sessions stored in database, not JWT"
+      check:
+        type: "grep-absent"
+        pattern: "jsonwebtoken|jwt\\.sign"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-009"
+      description: "TypeScript compiles without errors"
+      check:
+        type: "command-succeeds"
+        pattern: "npx tsc --noEmit"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-010"
+      description: "All tests pass"
+      check:
+        type: "command-succeeds"
+        pattern: "npm test"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-011"
+      description: "No unfilled template placeholders in source files"
+      check:
+        type: "grep-absent"
+        pattern: "\\{\\{[A-Z_]+\\}\\}"
+        scope: "api/"
+      severity: "error"
+
+    - id: "INV-012"
+      description: "TanStack Query for client data — no SWR or Apollo"
+      check:
+        type: "grep-absent"
+        pattern: "from ['\"]swr['\"]|from ['\"]@apollo"
+        scope: "web/"
+      severity: "error"

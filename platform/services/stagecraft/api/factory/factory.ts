@@ -208,7 +208,7 @@ type InitResponse = {
 };
 
 export const initPipeline = api(
-  { expose: true, method: "POST", path: "/api/projects/:id/factory/init" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/init" },
   async (req: InitRequest): Promise<InitResponse> => {
     await verifyProjectInWorkspace(req.id, req.workspaceId);
 
@@ -356,7 +356,7 @@ type StatusResponse = {
 };
 
 export const getStatus = api(
-  { expose: true, method: "GET", path: "/api/projects/:id/factory/status" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/status" },
   async (req: { id: string; workspaceId: string }): Promise<StatusResponse> => {
     const pipeline = await getActivePipeline(req.id, req.workspaceId);
 
@@ -462,6 +462,7 @@ type ConfirmResponse = {
 export const confirmStage = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/stage/:stageId/confirm",
   },
@@ -558,6 +559,7 @@ type RejectResponse = {
 export const rejectStage = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/stage/:stageId/reject",
   },
@@ -654,7 +656,7 @@ type AuditResponse = {
 };
 
 export const getAudit = api(
-  { expose: true, method: "GET", path: "/api/projects/:id/factory/audit" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/audit" },
   async (req: AuditRequest): Promise<AuditResponse> => {
     const pipeline = await getActivePipeline(req.id, req.workspaceId);
     const limit = Math.min(req.limit ?? 100, 500);
@@ -710,7 +712,7 @@ type DeployResponse = {
 };
 
 export const triggerDeploy = api(
-  { expose: true, method: "POST", path: "/api/projects/:id/factory/deploy" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/deploy" },
   async (req: DeployRequest): Promise<DeployResponse> => {
     const pipeline = await getActivePipeline(req.id, req.workspaceId);
 
@@ -808,6 +810,7 @@ type StatusUpdateResponse = {
 export const updatePipelineStatus = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/status-update",
   },
@@ -915,6 +918,7 @@ type ScaffoldProgressResponse = {
 export const reportScaffoldProgress = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/scaffold-progress",
   },
@@ -1022,6 +1026,7 @@ type EventIngestionResponse = {
 export const ingestEvents = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/events",
   },
@@ -1068,6 +1073,7 @@ type TokenSpendRequest = {
 export const reportTokenSpend = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/token-spend",
   },
@@ -1156,6 +1162,7 @@ type CancelResponse = {
 export const cancelPipeline = api(
   {
     expose: true,
+    auth: true,
     method: "POST",
     path: "/api/projects/:id/factory/cancel",
   },
@@ -1232,7 +1239,7 @@ type RecordArtifactsResponse = {
 };
 
 export const recordArtifacts = api(
-  { expose: true, method: "POST", path: "/api/projects/:id/factory/artifacts" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/artifacts" },
   async (req: RecordArtifactsRequest): Promise<RecordArtifactsResponse> => {
     await verifyProjectInWorkspace(req.id, req.workspaceId);
 
@@ -1280,7 +1287,7 @@ type LookupArtifactsResponse = {
 };
 
 export const lookupArtifact = api(
-  { expose: true, method: "GET", path: "/api/projects/:id/factory/artifacts/lookup" },
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/artifacts/lookup" },
   async (req: LookupArtifactsRequest): Promise<LookupArtifactsResponse> => {
     await verifyProjectInWorkspace(req.id, req.workspaceId);
 
@@ -1343,7 +1350,7 @@ type WorkspaceRecordArtifactResponse = {
 };
 
 export const workspaceRecordArtifact = api(
-  { expose: true, method: "POST", path: "/api/workspaces/:workspace_id/artifacts" },
+  { expose: true, auth: true, method: "POST", path: "/api/workspaces/:workspace_id/artifacts" },
   async (req: WorkspaceRecordArtifactRequest): Promise<WorkspaceRecordArtifactResponse> => {
     if (req.workspaceId !== req.workspace_id) {
       throw APIError.invalidArgument("workspaceId must match path workspace_id");
@@ -1384,7 +1391,7 @@ type WorkspaceLookupArtifactResponse = {
 };
 
 export const workspaceLookupArtifact = api(
-  { expose: true, method: "GET", path: "/api/workspaces/:workspace_id/artifacts" },
+  { expose: true, auth: true, method: "GET", path: "/api/workspaces/:workspace_id/artifacts" },
   async (req: WorkspaceLookupArtifactRequest): Promise<WorkspaceLookupArtifactResponse> => {
     if (req.workspaceId !== req.workspace_id) {
       throw APIError.invalidArgument("workspaceId must match path workspace_id");
@@ -1444,7 +1451,7 @@ interface PromotionResult {
  * Spec 097 Slice 3.
  */
 export const createPromotion = api(
-  { expose: true, method: "POST", path: "/api/workspaces/:workspace_id/promotions" },
+  { expose: true, auth: true, method: "POST", path: "/api/workspaces/:workspace_id/promotions" },
   async (req: PromotionRequest): Promise<PromotionResult> => {
     const missingRecords: string[] = [];
 

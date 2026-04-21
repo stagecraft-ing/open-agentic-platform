@@ -1,0 +1,160 @@
+{
+  "variant": "dual",
+  "pages": [
+    {
+      "id": "public-home",
+      "title": "Home",
+      "path": "/",
+      "page_type": "landing",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false
+    },
+    {
+      "id": "public-login",
+      "title": "Sign In",
+      "path": "/login",
+      "page_type": "login",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false
+    },
+    {
+      "id": "public-about",
+      "title": "About",
+      "path": "/about",
+      "page_type": "content",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false
+    },
+    {
+      "id": "public-profile",
+      "title": "My Profile",
+      "path": "/profile",
+      "page_type": "profile",
+      "audience": "citizen",
+      "view_type": "public-authenticated",
+      "requires_auth": true
+    },
+    {
+      "id": "public-dashboard",
+      "title": "My Applications",
+      "path": "/dashboard",
+      "page_type": "dashboard",
+      "audience": "citizen",
+      "view_type": "public-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "list-funding-requests"
+      ]
+    },
+    {
+      "id": "public-application-new",
+      "title": "New Application",
+      "path": "/applications/new",
+      "page_type": "form",
+      "audience": "citizen",
+      "view_type": "public-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "get-organization"
+      ]
+    },
+    {
+      "id": "public-application-detail",
+      "title": "Application",
+      "path": "/applications/:id",
+      "page_type": "detail",
+      "audience": "citizen",
+      "view_type": "public-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "get-funding-request",
+        "transition-funding-request"
+      ]
+    },
+    {
+      "id": "internal-home",
+      "title": "Home",
+      "path": "/",
+      "page_type": "landing",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": false
+    },
+    {
+      "id": "internal-login",
+      "title": "Sign In",
+      "path": "/login",
+      "page_type": "login",
+      "audience": "staff",
+      "view_type": "public",
+      "requires_auth": false
+    },
+    {
+      "id": "internal-profile",
+      "title": "My Profile",
+      "path": "/profile",
+      "page_type": "profile",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true
+    },
+    {
+      "id": "internal-dashboard",
+      "title": "Applications Queue",
+      "path": "/dashboard",
+      "page_type": "list",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "list-funding-requests"
+      ]
+    },
+    {
+      "id": "internal-request-detail",
+      "title": "Application Detail",
+      "path": "/requests/:id",
+      "page_type": "detail",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "get-funding-request",
+        "get-assessment",
+        "list-decisions",
+        "transition-funding-request",
+        "score-assessment",
+        "create-decision"
+      ]
+    },
+    {
+      "id": "internal-community-map",
+      "title": "Community Map",
+      "path": "/community-map",
+      "page_type": "dashboard",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "list-lgas",
+        "get-lga-score"
+      ]
+    },
+    {
+      "id": "internal-admin-users",
+      "title": "User Management",
+      "path": "/admin/users",
+      "page_type": "list",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "data_sources": [
+        "list-users",
+        "assign-user-role"
+      ]
+    }
+  ]
+}

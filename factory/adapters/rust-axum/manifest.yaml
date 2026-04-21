@@ -1,0 +1,239 @@
+# ============================================================================
+# Adapter Manifest: Rust Axum + SQLx Full-Stack Template
+# ============================================================================
+
+schema_version: "1.0.0"
+
+adapter:
+  name: "rust-axum"
+  display_name: "Rust Axum + SQLx Full-Stack"
+  version: "1.0.0"
+  description: "Rust backend with Axum web framework, SQLx for compile-time checked SQL, Askama templates with HTMX for interactive server-rendered UI, session-based auth."
+
+stack:
+  language: "rust"
+  runtime: "native"
+
+  backend:
+    framework: "axum"
+    description: "Axum 0.8 with Tower middleware, extractors for typed request handling, compile-time checked SQL via SQLx, structured error handling with thiserror."
+
+  frontend:
+    framework: "askama-htmx"
+    state_management: "server-rendered"
+    design_system: "tailwind-css"
+    description: "Askama HTML templates with HTMX for dynamic interactions without client-side JavaScript. Tailwind CSS for styling. Server-rendered with progressive enhancement."
+
+  database:
+    supported: ["postgresql"]
+    migration_tool: "sqlx-migrate"
+    orm: "none"
+
+capabilities:
+  dual_stack: false
+  bff_pattern: false
+  single_stack: true
+  session_auth: true
+  token_auth: false
+  api_key_auth: false
+  module_system: false
+  file_uploads: true
+  background_jobs: true
+  realtime: false
+  email_notifications: false
+  audit_logging: true
+  direct_sql: true
+  orm_based: false
+  api_proxy: false
+
+supported_auth:
+  - method: "session"
+    driver: "tower-sessions"
+    providers: []
+    description: "tower-sessions with PostgreSQL session store, argon2 password hashing, CSRF protection via axum-csrf."
+
+supported_session_stores:
+  - type: "postgresql"
+    description: "tower-sessions-sqlx-store for PostgreSQL-backed sessions."
+
+commands:
+  install: "cargo build"
+  compile: "cargo build"
+  test: "cargo test"
+  lint: "cargo clippy -- -D warnings"
+  dev: "cargo watch -x run"
+  format_check: "cargo fmt -- --check"
+  type_check: "cargo build"
+  feature_verify:
+    - "cargo build"
+    - "cargo test"
+
+directory_conventions:
+  # Backend
+  api_handler: "src/handlers/{resource}.rs"
+  api_router: "src/routes/{resource}.rs"
+  api_service: "src/services/{resource}.rs"
+  api_types: "src/models/{entity}.rs"
+  api_test: "tests/{resource}_test.rs"
+  api_middleware: "src/middleware/{name}.rs"
+  api_error: "src/error.rs"
+
+  # Frontend (server-rendered templates)
+  ui_template: "templates/{resource}/{action}.html"
+  ui_partial: "templates/partials/{name}.html"
+  ui_layout: "templates/base.html"
+  ui_test: "tests/{resource}_ui_test.rs"
+
+  # Data layer
+  migration: "migrations/{timestamp}_{name}.sql"
+  model: "src/models/{entity}.rs"
+  seed: "src/db/seed.rs"
+
+  # Config
+  env_file: ".env"
+
+patterns:
+  api:
+    handler: "patterns/api/handler.md"
+    router: "patterns/api/router.md"
+    service: "patterns/api/service.md"
+    test: "patterns/api/test.md"
+  ui:
+    template: "patterns/ui/template.md"
+    partial: "patterns/ui/partial.md"
+    layout: "patterns/ui/layout.md"
+    test: "patterns/ui/test.md"
+  data:
+    migration: "patterns/data/migration.md"
+    model: "patterns/data/model.md"
+    query: "patterns/data/query.md"
+  page_types:
+    landing: "patterns/page-types/landing.md"
+    dashboard: "patterns/page-types/dashboard.md"
+    list: "patterns/page-types/list.md"
+    detail: "patterns/page-types/detail.md"
+    form: "patterns/page-types/form.md"
+    content: "patterns/page-types/content.md"
+    login: "patterns/page-types/login.md"
+    profile: "patterns/page-types/profile.md"
+
+agents:
+  api_scaffolder: "agents/api-scaffolder.md"
+  ui_scaffolder: "agents/ui-scaffolder.md"
+  data_scaffolder: "agents/data-scaffolder.md"
+  configurer: "agents/configurer.md"
+  trimmer: "agents/trimmer.md"
+
+scaffold:
+  source: "scaffold/"
+  description: "Rust Axum monolith with SQLx, Askama templates, HTMX, and Tailwind CSS. Auth, session management, and base layout pre-configured."
+  modules:
+    single-public:
+      - "auth"
+      - "handlers"
+      - "templates"
+    single-internal:
+      - "auth"
+      - "handlers"
+      - "admin"
+      - "templates"
+  setup_commands:
+    - "cargo build"
+
+validation:
+  invariants:
+    - id: "INV-001"
+      description: "No unwrap() in handler code — use proper error handling"
+      check:
+        type: "grep-absent"
+        pattern: "\\.unwrap\\(\\)"
+        scope: "src/handlers/"
+      severity: "error"
+
+    - id: "INV-002"
+      description: "All handlers return impl IntoResponse"
+      check:
+        type: "grep-present"
+        pattern: "impl IntoResponse|Response|Html<|Json<|Redirect"
+        scope: "src/handlers/"
+      severity: "error"
+
+    - id: "INV-003"
+      description: "No string-formatted SQL — use sqlx::query! or query_as! macros"
+      check:
+        type: "grep-absent"
+        pattern: "query\\(&format!|query\\(&String|execute\\(&format!"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-004"
+      description: "No ORM — SQLx only (no Diesel, no SeaORM)"
+      check:
+        type: "grep-absent"
+        pattern: "diesel|sea_orm|sea-orm"
+        scope: "Cargo.toml"
+      severity: "error"
+
+    - id: "INV-005"
+      description: "Askama templates — no Handlebars or Tera"
+      check:
+        type: "grep-absent"
+        pattern: "handlebars|tera"
+        scope: "Cargo.toml"
+      severity: "error"
+
+    - id: "INV-006"
+      description: "HTMX for interactivity — no client-side JS framework"
+      check:
+        type: "grep-absent"
+        pattern: "\"react\"|\"vue\"|\"svelte\"|\"angular\""
+        scope: "."
+      severity: "error"
+
+    - id: "INV-007"
+      description: "Argon2 for password hashing — no bcrypt or scrypt"
+      check:
+        type: "grep-present"
+        pattern: "argon2"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-008"
+      description: "Sessions stored in database — no JWT"
+      check:
+        type: "grep-absent"
+        pattern: "jsonwebtoken|jwt"
+        scope: "Cargo.toml"
+      severity: "error"
+
+    - id: "INV-009"
+      description: "Cargo compiles without errors"
+      check:
+        type: "command-succeeds"
+        pattern: "cargo build"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-010"
+      description: "All tests pass"
+      check:
+        type: "command-succeeds"
+        pattern: "cargo test"
+        scope: "."
+      severity: "error"
+
+    - id: "INV-011"
+      description: "No unfilled placeholders in source files"
+      check:
+        type: "grep-absent"
+        pattern: "\\{\\{[A-Z_]+\\}\\}"
+        scope: "src/"
+      severity: "error"
+
+    - id: "INV-012"
+      description: "Clippy passes with no warnings"
+      check:
+        type: "command-succeeds"
+        pattern: "cargo clippy -- -D warnings"
+        scope: "."
+      severity: "error"

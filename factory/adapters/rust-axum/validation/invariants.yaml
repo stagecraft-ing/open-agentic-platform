@@ -1,0 +1,116 @@
+# ============================================================================
+# Rust Axum + SQLx Adapter — Architecture Invariants
+# ============================================================================
+#
+# Machine-checkable rules. The verification harness runs these after scaffolding.
+#
+# Each rule: ID, description, check type, pattern/scope, severity.
+# ============================================================================
+
+invariants:
+
+  # ── Error Handling ─────────────────────────────────────────────────────
+
+  - id: "INV-001"
+    description: "No unwrap() in handler code — use proper error handling"
+    check:
+      type: "grep-absent"
+      pattern: "\\.unwrap\\(\\)"
+      scope: "src/handlers/"
+    severity: "error"
+
+  - id: "INV-002"
+    description: "All handlers return impl IntoResponse"
+    check:
+      type: "grep-present"
+      pattern: "impl IntoResponse|Response|Html<|Json<|Redirect"
+      scope: "src/handlers/"
+    severity: "error"
+
+  # ── Database ───────────────────────────────────────────────────────────
+
+  - id: "INV-003"
+    description: "No string-formatted SQL — use sqlx::query! or query_as! macros"
+    check:
+      type: "grep-absent"
+      pattern: "query\\(&format!|query\\(&String|execute\\(&format!"
+      scope: "src/"
+    severity: "error"
+
+  - id: "INV-004"
+    description: "No ORM — SQLx only (no Diesel, no SeaORM)"
+    check:
+      type: "grep-absent"
+      pattern: "diesel|sea_orm|sea-orm"
+      scope: "Cargo.toml"
+    severity: "error"
+
+  # ── Frontend ───────────────────────────────────────────────────────────
+
+  - id: "INV-005"
+    description: "Askama templates — no Handlebars or Tera"
+    check:
+      type: "grep-absent"
+      pattern: "handlebars|tera"
+      scope: "Cargo.toml"
+    severity: "error"
+
+  - id: "INV-006"
+    description: "HTMX for interactivity — no client-side JS framework"
+    check:
+      type: "grep-absent"
+      pattern: "\"react\"|\"vue\"|\"svelte\"|\"angular\""
+      scope: "."
+    severity: "error"
+
+  # ── Auth & Security ────────────────────────────────────────────────────
+
+  - id: "INV-007"
+    description: "Argon2 for password hashing — no bcrypt or scrypt"
+    check:
+      type: "grep-present"
+      pattern: "argon2"
+      scope: "src/"
+    severity: "error"
+
+  - id: "INV-008"
+    description: "Sessions stored in database — no JWT"
+    check:
+      type: "grep-absent"
+      pattern: "jsonwebtoken|jwt"
+      scope: "Cargo.toml"
+    severity: "error"
+
+  # ── Build & Quality ────────────────────────────────────────────────────
+
+  - id: "INV-009"
+    description: "Cargo compiles without errors"
+    check:
+      type: "command-succeeds"
+      pattern: "cargo build"
+      scope: "."
+    severity: "error"
+
+  - id: "INV-010"
+    description: "All tests pass"
+    check:
+      type: "command-succeeds"
+      pattern: "cargo test"
+      scope: "."
+    severity: "error"
+
+  - id: "INV-011"
+    description: "No unfilled placeholders in source files"
+    check:
+      type: "grep-absent"
+      pattern: "\\{\\{[A-Z_]+\\}\\}"
+      scope: "src/"
+    severity: "error"
+
+  - id: "INV-012"
+    description: "Clippy passes with no warnings"
+    check:
+      type: "command-succeeds"
+      pattern: "cargo clippy -- -D warnings"
+      scope: "."
+    severity: "error"
