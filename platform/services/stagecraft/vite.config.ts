@@ -23,6 +23,10 @@ export default defineConfig({
           __dirname,
           "./test/__mocks__/encore-log.ts",
         ),
+        "encore.dev/pubsub": path.resolve(
+          __dirname,
+          "./test/__mocks__/encore-pubsub.ts",
+        ),
       },
       // Integration tests that require Encore service infrastructure
       // (databases, service-to-service calls) must run via `encore test`.
