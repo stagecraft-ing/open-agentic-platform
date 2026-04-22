@@ -330,7 +330,7 @@ produce stay local. Secrets for provider access remain in the OS keychain
 3. Add `agent.catalog.snapshot` and `agent.catalog.updated` envelopes
    (desktop-side behind a feature flag in the stagecraft client).
    **Shipped 2026-04-22.** See §7.3 for the contract.
-4. Ship the web UI.
+4. Ship the web UI. **Shipped 2026-04-22.** See §7.4 for the contract.
 5. Flip the desktop flag; remote agents become visible.
 6. Write migration notes for users with existing local agents (they
    remain local; publishing them to remote is a one-click action in the
@@ -433,3 +433,50 @@ desktop that stays connected through a retire would otherwise never learn
 the agent is gone. The `agent.catalog.updated { status: "retired" }`
 envelope closes that gap — the desktop deletes the cache row on receipt
 and the next snapshot confirms by omission.
+
+### 7.4 Phase 4 — web UI contract
+
+Landed 2026-04-22. Adds the stagecraft-side authoring surface so workspace
+admins can create, edit, publish, retire, and audit agent definitions
+without touching the database or API by hand.
+
+**Routes** (registered under the `/app` layout in `web/app/routes.ts`):
+
+| Path | File | Purpose |
+|---|---|---|
+| `/app/workspace/agents` | `app.workspace.agents.tsx` | Section layout with an introductory header and `<Outlet />` |
+| `/app/workspace/agents` (index) | `app.workspace.agents._index.tsx` | Status-tabbed list (all/draft/published/retired) with client-side name/tag search |
+| `/app/workspace/agents/new` | `app.workspace.agents.new.tsx` | Create-draft form: name, Tier-1 frontmatter, body markdown |
+| `/app/workspace/agents/:agentId` | `app.workspace.agents.$agentId.tsx` | Detail view — editable for drafts, read-only otherwise; supports save (with `expected_content_hash` optimistic lock), retire, fork |
+| `/app/workspace/agents/:agentId/publish` | `app.workspace.agents.$agentId.publish.tsx` | Publish confirmation page — only drafts; redirects on success |
+| `/app/workspace/agents/:agentId/history` | `app.workspace.agents.$agentId.history.tsx` | Append-only `agent_catalog_audit` trail for a single agent |
+
+**API extension.** A new audit-list endpoint on the catalog module:
+
+```
+GET /api/agents/:id/audit
+```
+
+- Returns `{ entries: CatalogAuditEntry[] }` ordered by `created_at desc`,
+  capped at 500. Snake_cased payload (`agent_id`, `actor_user_id`,
+  `created_at`) to match the rest of the catalog API wire shape.
+- Authorisation layers on top of the same `requireWorkspaceAuth` → load
+  the catalog row under the workspace scope first, then query audit by
+  `(agent_id, workspace_id)`. "Cannot read the agent → cannot read its
+  audit."
+
+**Auth + RBAC posture.** SSR loaders call `requireUser` and forward the
+`__session` cookie to Encore. Write actions (publish, retire) reuse the
+API-side `requirePublishRole`, which accepts `owner` and `admin` platform
+roles. RBAC errors surface as APIError JSON and are unwrapped into the
+inline error banner on the publish/retire routes.
+
+**Optimistic locking.** The detail form carries `expected_content_hash`
+as a hidden input. Server-side `patchAgent` rejects on mismatch with a
+`content_hash mismatch` error, which the UI surfaces verbatim so the
+user knows another session edited the draft. The same hash drives the
+"hash changed" cache diff on the desktop side — the spec §6 invariant is
+single-sourced from `computeContentHash`.
+
+**Top-level nav.** `app.tsx` gains an "Agents" entry next to Dashboard
+and Factory; the existing org-switcher and workspace pill are unchanged.

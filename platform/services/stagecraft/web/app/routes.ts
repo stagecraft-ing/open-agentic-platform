@@ -21,6 +21,13 @@ export default [
       route("processes", "routes/app.factory.processes.tsx"),
     ]),
     route("projects/new", "routes/app.projects.new.tsx"),
+    route("workspace/agents", "routes/app.workspace.agents.tsx", [
+      index("routes/app.workspace.agents._index.tsx"),
+      route("new", "routes/app.workspace.agents.new.tsx"),
+      route(":agentId", "routes/app.workspace.agents.$agentId.tsx"),
+      route(":agentId/publish", "routes/app.workspace.agents.$agentId.publish.tsx"),
+      route(":agentId/history", "routes/app.workspace.agents.$agentId.history.tsx"),
+    ]),
     route("project/:projectId", "routes/app.project.$projectId.tsx", [
       index("routes/app.project.$projectId._index.tsx"),
       route("knowledge", "routes/app.project.$projectId.knowledge.tsx"),

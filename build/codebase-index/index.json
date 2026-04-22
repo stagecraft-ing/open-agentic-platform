@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d9f76b360091f615bc39ff11e8a2378ef44b21f633055c5d7f82bd553e0cc2c3",
+    "contentHash": "a34da7deb21366baf49227145d6900c9fa54730eeb36838d8b8ae589531d020d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11,10 +11,6 @@
       {
         "code": "I-101",
         "message": "spec \"110-stagecraft-to-opc-factory-trigger\" declares implements path \"apps/desktop/src/routes/factory\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },

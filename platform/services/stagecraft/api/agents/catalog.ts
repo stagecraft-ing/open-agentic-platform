@@ -79,6 +79,20 @@ type RetireAgentResponse = { agent: CatalogAgent };
 type ForkAgentRequest = { id: string; new_name: string };
 type ForkAgentResponse = { agent: CatalogAgent };
 
+export type CatalogAuditEntry = {
+  id: string;
+  agent_id: string;
+  workspace_id: string;
+  action: AgentCatalogAuditAction;
+  actor_user_id: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  created_at: string;
+};
+
+type ListAgentAuditRequest = { id: string };
+type ListAgentAuditResponse = { entries: CatalogAuditEntry[] };
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -493,6 +507,42 @@ export const retireAgent = api(
     await publishAgentCatalogUpdated(retired);
 
     return { agent: toWire(retired) };
+  },
+);
+
+export const listAgentAudit = api(
+  { expose: true, auth: true, method: "GET", path: "/api/agents/:id/audit" },
+  async (req: ListAgentAuditRequest): Promise<ListAgentAuditResponse> => {
+    const { workspaceId } = requireWorkspaceAuth();
+    // Authorise by loading the row under the workspace scope first — the
+    // audit rows themselves carry workspace_id but leaning on the catalog
+    // row guarantees "cannot query audit for an agent you cannot read".
+    await loadAgent(db, req.id, workspaceId);
+
+    const rows = await db
+      .select()
+      .from(agentCatalogAudit)
+      .where(
+        and(
+          eq(agentCatalogAudit.agentId, req.id),
+          eq(agentCatalogAudit.workspaceId, workspaceId),
+        ),
+      )
+      .orderBy(desc(agentCatalogAudit.createdAt))
+      .limit(500);
+
+    return {
+      entries: rows.map((r) => ({
+        id: r.id,
+        agent_id: r.agentId,
+        workspace_id: r.workspaceId,
+        action: r.action,
+        actor_user_id: r.actorUserId,
+        before: (r.before as Record<string, unknown> | null) ?? null,
+        after: (r.after as Record<string, unknown> | null) ?? null,
+        created_at: r.createdAt.toISOString(),
+      })),
+    };
   },
 );
 
