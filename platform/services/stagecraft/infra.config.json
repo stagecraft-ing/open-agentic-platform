@@ -52,6 +52,17 @@
             },
             "sync-outbox-relay": {
               "name": "sync-outbox-relay"
+            },
+            "factory-stream-relay": {
+              "name": "factory-stream-relay"
+            }
+          }
+        },
+        "factory-sync-request": {
+          "name": "factory-sync-request",
+          "subscriptions": {
+            "factory-sync-worker": {
+              "name": "factory-sync-worker"
             }
           }
         }
