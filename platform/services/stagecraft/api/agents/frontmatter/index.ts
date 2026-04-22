@@ -11,12 +11,16 @@
  * because the Rust `UnifiedFrontmatter` uses `#[serde(flatten)]` to preserve
  * unknown fields (`extra: HashMap<String, serde_json::Value>` — spec 054
  * FR-013) and `ts-rs` cannot express an open index signature on a named
- * struct. `CatalogFrontmatter` re-adds that openness on the wire side so
- * stagecraft can store arbitrary forward-compatible keys in JSONB without
- * the catalog API needing a codegen bump.
+ * struct.
+ *
+ * Encore's schema parser rejects an index signature combined with additional
+ * named fields on the same type (see spec 111 §2.1). To satisfy the parser
+ * while still preserving the Rust `extra` flatten map on the wire, the
+ * `CatalogFrontmatter` alias below is a plain `Record<string, unknown>` —
+ * an index signature on its own is accepted. The richly-typed
+ * `UnifiedFrontmatter` is still re-exported and can be used for typed
+ * internal access when a caller needs structured access to known fields.
  */
-
-import type { UnifiedFrontmatter } from "./UnifiedFrontmatter";
 
 export type { AgentType } from "./AgentType";
 export type { GovernanceRequirement } from "./GovernanceRequirement";
@@ -28,10 +32,9 @@ export type { UnifiedFrontmatter } from "./UnifiedFrontmatter";
 
 /**
  * Wire shape stored in `agent_catalog.frontmatter` (JSONB) and carried on
- * `agent.catalog.updated` envelopes. All `UnifiedFrontmatter` fields are
- * preserved with their Rust-side types; extra keys are allowed through an
- * open index signature to round-trip the Rust `extra` flatten map.
+ * `agent.catalog.updated` envelopes. Expressed as `Record<string, unknown>`
+ * so Encore's schema parser can handle it; the structured field set lives on
+ * the Rust side (`crates/agent-frontmatter::UnifiedFrontmatter`) and in the
+ * sibling `UnifiedFrontmatter.ts` generated mirror for typed consumers.
  */
-export type CatalogFrontmatter = UnifiedFrontmatter & {
-  [key: string]: unknown;
-};
+export type CatalogFrontmatter = Record<string, unknown>;

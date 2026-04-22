@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a34da7deb21366baf49227145d6900c9fa54730eeb36838d8b8ae589531d020d",
+    "contentHash": "3d55bbdfb26bcaf4c9ffbb0c31c0a8d53c664e034c05affea0d5108404536a70",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -2763,6 +2763,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "apps/desktop/src-tauri/src/commands/agents.rs",
             "source": "spec-implements"
           },
@@ -2772,6 +2776,10 @@
           },
           {
             "path": "apps/desktop/src-tauri/src/commands/sync_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/lib.rs",
             "source": "spec-implements"
           },
           {
