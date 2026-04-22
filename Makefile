@@ -13,6 +13,7 @@
         registry spec-compile spec-tools \
         index index-check index-render \
         check-deps \
+        agent-frontmatter-ts ci-agent-frontmatter-ts \
         ci ci-rust ci-tools ci-desktop ci-stagecraft ci-cross ci-parity
 
 # ============================================================
@@ -131,6 +132,41 @@ spec-tools:
 	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+
+# ============================================================
+# agent-frontmatter TS mirror (spec 111 §2.1, Phase 2)
+# ============================================================
+#
+# The `agent-frontmatter` crate (spec 054) owns the `UnifiedFrontmatter`
+# type. `cargo test` on that crate regenerates the TypeScript mirror
+# under platform/services/stagecraft/api/agents/frontmatter/ via ts-rs.
+# Two targets:
+#   agent-frontmatter-ts       regenerate the bindings (write-through)
+#   ci-agent-frontmatter-ts    regenerate + fail if the working tree drifts
+
+AGENT_FRONTMATTER_TS_DIR = platform/services/stagecraft/api/agents/frontmatter
+
+agent-frontmatter-ts:
+	cargo test --manifest-path crates/agent-frontmatter/Cargo.toml
+	@echo "==> agent-frontmatter TS mirror regenerated at $(AGENT_FRONTMATTER_TS_DIR)/"
+
+## CI drift gate: regenerate bindings, then require a clean working tree
+## for the generated dir. Any modified or untracked file means the Rust
+## type changed without a corresponding commit of the regenerated TS.
+ci-agent-frontmatter-ts:
+	cargo test --manifest-path crates/agent-frontmatter/Cargo.toml
+	@git diff --exit-code -- $(AGENT_FRONTMATTER_TS_DIR) || { \
+	    echo "ERROR: agent-frontmatter TS mirror has modified files."; \
+	    echo "Run 'make agent-frontmatter-ts' and commit the result."; \
+	    exit 1; \
+	}
+	@UNTRACKED=$$(git ls-files --others --exclude-standard -- $(AGENT_FRONTMATTER_TS_DIR)); \
+	 if [ -n "$$UNTRACKED" ]; then \
+	    echo "ERROR: agent-frontmatter TS mirror has untracked files:"; \
+	    echo "$$UNTRACKED"; \
+	    echo "A new #[derive(TS)] type was added without committing its generated .ts."; \
+	    exit 1; \
+	 fi
 
 # ============================================================
 # Codebase Index
@@ -336,7 +372,7 @@ ci-desktop:
 	pnpm --filter @opc/desktop exec tsc --noEmit
 	pnpm --filter @opc/desktop test
 
-ci-stagecraft:
+ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
 	@# CI=true forces vitest to run-once instead of TTY watch mode.
 	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test

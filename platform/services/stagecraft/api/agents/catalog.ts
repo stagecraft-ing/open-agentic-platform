@@ -21,17 +21,17 @@ import {
   type AgentCatalogStatus,
 } from "../db/schema";
 import { and, desc, eq, max, ne } from "drizzle-orm";
+import type { CatalogFrontmatter } from "./frontmatter";
 
 // ---------------------------------------------------------------------------
 // Wire types
 // ---------------------------------------------------------------------------
 
-/**
- * UnifiedFrontmatter (spec 054) shape is not yet mirrored as TS here —
- * the shared type generator is Phase 2 work. Accept any JSON object and
- * enforce shape at the Rust boundary later.
- */
-export type CatalogFrontmatter = Record<string, unknown>;
+// `CatalogFrontmatter` is the ts-rs-mirrored `UnifiedFrontmatter` (crate
+// `agent-frontmatter`, spec 054) plus an open index signature for the
+// flattened `extra` map — re-exported from `./frontmatter` so the Rust type
+// stays the single source of truth (spec 111 §2.1, Phase 2).
+export type { CatalogFrontmatter };
 
 export type CatalogAgent = {
   id: string;
@@ -101,8 +101,15 @@ function canonicalise(value: unknown): unknown {
   return value;
 }
 
+/**
+ * Content-addressable hash. Typed loosely on purpose: the stability
+ * invariant (spec 111 §6) is about canonical JSON serialisation of arbitrary
+ * object shapes, not about whether the input matches `CatalogFrontmatter`.
+ * The catalog API call-sites flow a typed `CatalogFrontmatter` in through
+ * this wider signature, which still accepts them via structural subtyping.
+ */
 export function computeContentHash(
-  frontmatter: CatalogFrontmatter,
+  frontmatter: Record<string, unknown>,
   bodyMarkdown: string,
 ): string {
   const canon = JSON.stringify({

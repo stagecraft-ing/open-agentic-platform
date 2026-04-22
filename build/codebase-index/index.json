@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "3815bfd23513e8c14193f10084bfa59b4305ff09423d8b64d07e5d9f50917b45",
+    "contentHash": "5eda6e736f52656868dfc183db7137959218396540ae87f6452295aa03c45f2f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -356,7 +356,8 @@
       "externalDeps": [
         "serde",
         "serde_json",
-        "serde_yaml"
+        "serde_yaml",
+        "ts-rs"
       ],
       "kind": "rust-lib",
       "name": "agent-frontmatter",
@@ -2762,6 +2763,10 @@
         ],
         "implementingPaths": [
           {
+            "path": ".cargo/config.toml",
+            "source": "spec-implements"
+          },
+          {
             "path": "apps/desktop/src-tauri/src/commands/agents.rs",
             "source": "spec-implements"
           },
@@ -2774,7 +2779,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/agent-frontmatter/tests/ts_bindings.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/agents/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/frontmatter/",
             "source": "spec-implements"
           },
           {

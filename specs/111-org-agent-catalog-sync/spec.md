@@ -24,12 +24,15 @@ depends_on:
 implements:
   - path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql
   - path: platform/services/stagecraft/api/agents/
+  - path: platform/services/stagecraft/api/agents/frontmatter/
   - path: platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
   - path: platform/services/stagecraft/api/sync/types.ts
   - path: platform/services/stagecraft/api/sync/relay.ts
   - path: apps/desktop/src-tauri/src/commands/agents.rs
   - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
   - path: crates/agent-frontmatter/src/types.rs
+  - path: crates/agent-frontmatter/tests/ts_bindings.rs
+  - path: .cargo/config.toml
 ---
 
 # 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC
@@ -318,7 +321,7 @@ produce stay local. Secrets for provider access remain in the OS keychain
 1. Migration 21; API endpoints without sync envelopes — admins can CRUD
    agents, but desktops don't receive them. **Shipped 2026-04-22.**
 2. Extend `agent-frontmatter` types for the JSONB round-trip (shared
-   type generator).
+   type generator). **Shipped 2026-04-22.** See §7.2 for the contract.
 3. Add `agent.catalog.snapshot` and `agent.catalog.updated` envelopes
    (desktop-side behind a feature flag in the stagecraft client).
 4. Ship the web UI.
@@ -326,3 +329,57 @@ produce stay local. Secrets for provider access remain in the OS keychain
 6. Write migration notes for users with existing local agents (they
    remain local; publishing them to remote is a one-click action in the
    desktop UI — generates a draft in stagecraft).
+
+### 7.2 Phase 2 — shared type generator contract
+
+`crates/agent-frontmatter/src/types.rs` owns the authoritative
+`UnifiedFrontmatter` shape. The TypeScript mirror lives under
+`platform/services/stagecraft/api/agents/frontmatter/`:
+
+```
+frontmatter/
+  AgentType.ts              (generated)
+  GovernanceRequirement.ts  (generated)
+  HookDeclaration.ts        (generated)
+  HookHandlerType.ts        (generated)
+  MutationCapability.ts     (generated)
+  SafetyTier.ts             (generated)
+  UnifiedFrontmatter.ts     (generated)
+  index.ts                  (hand-maintained — barrel + CatalogFrontmatter alias)
+```
+
+**Generator:** `ts-rs` (regular dep on `agent-frontmatter`). The derive
+fires on every `cargo test` run for the crate; files are written to the
+location pinned by `TS_RS_EXPORT_DIR` in repo-root `.cargo/config.toml`.
+
+**Contributor workflow for schema changes:**
+
+1. Edit the Rust types in `crates/agent-frontmatter/src/types.rs`.
+2. Run `make agent-frontmatter-ts` to regenerate the TS mirror.
+3. Commit the Rust and TS changes in the same PR.
+
+**CI drift gate:** `make ci-agent-frontmatter-ts` regenerates the
+mirror and fails if `git diff --exit-code` or an untracked-file scan
+shows a drift. Wired into `.github/workflows/ci-crates.yml` on the
+`agent-frontmatter` matrix slot, and into `make ci-stagecraft` locally
+(so `make ci` catches drift even during a stagecraft-only edit session).
+
+**Why `CatalogFrontmatter = UnifiedFrontmatter & { [key: string]: unknown }`:**
+the Rust type preserves unknown keys via `#[serde(flatten)] extra`
+(FR-013, spec 054). `ts-rs` can't express that on a named struct, so
+`index.ts` re-introduces an open index signature on the TS side. Strict
+fields stay strict; forward-compatible extras round-trip through JSONB
+without a codegen bump.
+
+**Why `computeContentHash` accepts `Record<string, unknown>`:** the
+hash-stability invariant (§6) is about canonical JSON serialisation of
+any shape, not whether the caller is typed as `CatalogFrontmatter`. The
+wider signature lets the stability tests feed minimal objects while the
+API endpoints still flow typed `CatalogFrontmatter` values in via
+structural subtyping.
+
+**JSONB round-trip guarantee.** `crates/agent-frontmatter/tests/ts_bindings.rs`
+asserts that a fully-populated `UnifiedFrontmatter` (including `extra`
+flatten keys, `SafetyTier::Tier2`, `AllowedTools::List`, and the `"*"`
+wildcard) serde-round-trips through `serde_json::Value` without losing
+or rewriting any field — the exact path taken on store and replay.

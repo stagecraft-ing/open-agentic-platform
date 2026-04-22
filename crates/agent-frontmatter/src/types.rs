@@ -2,9 +2,17 @@
 // Copyright (C) 2026 Bartek Kus
 
 //! Core types for the Unified Agent and Skill Frontmatter Schema (spec 054).
+//!
+//! Every public type in this module is mirrored into the stagecraft web
+//! service via `ts-rs`. The bindings are written to
+//! `platform/services/stagecraft/api/agents/frontmatter/` by the
+//! `export_bindings_*` tests (see `tests/export_bindings.rs`). This is the
+//! "shared type generator" called out in spec 111 §2.1 — to prevent drift,
+//! `make ci` regenerates the files and fails if git reports a diff.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use ts_rs::TS;
 
 // ---------------------------------------------------------------------------
 // AgentType — superset of SkillType (FR-004)
@@ -14,8 +22,9 @@ use std::collections::HashMap;
 ///
 /// - `prompt`, `agent`, `headless` correspond to the original `SkillType` variants.
 /// - `process` and `scaffold` are factory-specific (Tier 1 and Tier 2 respectively).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(export)]
 pub enum AgentType {
     #[default]
     Prompt,
@@ -32,8 +41,12 @@ pub enum AgentType {
 /// Safety tier classification for agents. Maps to `ToolTier` in `crates/agent/src/safety.rs`.
 ///
 /// Custom deserialization accepts both string (`"tier1"`) and integer (`1`) formats
-/// for backward compatibility with factory agents that use `tier: 1`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// for backward compatibility with factory agents that use `tier: 1`. The TS
+/// mirror only emits the canonical string form, because stagecraft always
+/// re-serialises via `serde_json` and never stores the integer variant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, TS)]
+#[ts(export)]
+#[ts(type = "\"tier1\" | \"tier2\" | \"tier3\"")]
 pub enum SafetyTier {
     Tier1,
     Tier2,
@@ -128,13 +141,17 @@ impl<'de> Deserialize<'de> for SafetyTier {
 /// - `Tier1` → `ReadOnly`
 /// - `Tier2` → `ReadWrite`
 /// - `Tier3` → `Full`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub enum MutationCapability {
     #[serde(rename = "read-only")]
+    #[ts(rename = "read-only")]
     ReadOnly,
     #[serde(rename = "read-write")]
+    #[ts(rename = "read-write")]
     ReadWrite,
     #[serde(rename = "full")]
+    #[ts(rename = "full")]
     Full,
 }
 
@@ -153,8 +170,10 @@ impl From<SafetyTier> for MutationCapability {
 // ---------------------------------------------------------------------------
 
 /// Governance requirement for agent execution. Connects to spec 098's `governance_mode`.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(export)]
+#[ts(rename_all = "lowercase")]
 pub enum GovernanceRequirement {
     #[default]
     None,
@@ -220,8 +239,10 @@ impl AllowedTools {
 // ---------------------------------------------------------------------------
 
 /// Handler type for hook declarations inside frontmatter.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(export)]
+#[ts(rename_all = "lowercase")]
 pub enum HookHandlerType {
     Bash,
     Agent,
@@ -229,13 +250,16 @@ pub enum HookHandlerType {
 }
 
 /// A single hook declaration inside an agent or skill's frontmatter.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct HookDeclaration {
     pub name: String,
     #[serde(rename = "type")]
+    #[ts(rename = "type")]
     pub handler_type: HookHandlerType,
     /// Optional condition expression (e.g. `"tool == 'Bash' && ..."`).
     #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
+    #[ts(rename = "if", optional = nullable)]
     pub condition: Option<String>,
     /// Command or template to execute.
     pub run: String,
@@ -248,9 +272,9 @@ pub struct HookDeclaration {
 /// Unified YAML frontmatter schema for all agent and skill definition files.
 ///
 /// Subsumes three formats:
-/// - Claude Code agents (`.claude/agents/*.md`)
-/// - Skills (`.claude/commands/*.md`)
-/// - Factory agents (`factory/process/agents/*.md`, `factory/adapters/*/agents/*.md`)
+/// - Claude Code agents under `.claude/agents/`
+/// - Skills under `.claude/commands/`
+/// - Factory agents under `factory/process/agents/` and `factory/adapters/<name>/agents/`
 ///
 /// Field aliases ensure backward compatibility (FR-012):
 /// - `id` → `name`
@@ -260,7 +284,16 @@ pub struct HookDeclaration {
 /// - `tier` (u8) → `safety_tier`
 ///
 /// Unknown fields are preserved via `serde(flatten)` for forward compatibility (FR-013).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// The TS mirror omits `extra`; stagecraft re-adds an open index signature
+/// in the `CatalogFrontmatter` alias in `frontmatter/index.ts` so JSONB
+/// round-trips stay loss-free.
+///
+/// NOTE on formatting: this docstring is verbatim-rendered into the generated
+/// TypeScript `UnifiedFrontmatter.ts` JSDoc. A literal `star-slash` sequence
+/// would close the JSDoc comment early and break TypeScript compilation, so
+/// path globs here are described in prose rather than with asterisks.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct UnifiedFrontmatter {
     // -- Tier 1: Identity (always parsed) --
     /// Unique identifier (kebab-case enforced by linter). Alias: `id`.
@@ -269,14 +302,17 @@ pub struct UnifiedFrontmatter {
 
     /// What the agent does. Minimum 50 characters recommended (linter check).
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub description: Option<String>,
 
     /// Execution type. Default: `prompt`.
     #[serde(rename = "type", default)]
+    #[ts(rename = "type")]
     pub agent_type: AgentType,
 
     /// LLM model identifier. Alias: `model_hint`.
     #[serde(default, alias = "model_hint", skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub model: Option<String>,
 
     /// Catalog tags (replaces `category`).
@@ -285,23 +321,32 @@ pub struct UnifiedFrontmatter {
 
     /// Human-friendly display name. Alias: `role`.
     #[serde(default, alias = "role", skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub display_name: Option<String>,
 
     /// Trigger condition for automatic routing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub trigger: Option<String>,
 
     // -- Tier 2: Capabilities (parsed on activation) --
     /// Tool allow-list. Alias: `tools`. Default: wildcard `"*"`.
+    /// On the wire this is either the string `"*"` (all tools) or a list of
+    /// tool names. The Rust `AllowedTools` enum is `#[serde(untagged)]`; the
+    /// TS mirror expresses that directly as a union literal so stagecraft
+    /// payloads round-trip through serde_json without an intermediate wrapper.
     #[serde(default, alias = "tools")]
+    #[ts(type = "\"*\" | string[]")]
     pub allowed_tools: AllowedTools,
 
     /// Safety tier classification. Alias: `tier` (accepts u8: 1/2/3).
     #[serde(default, alias = "tier", skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub safety_tier: Option<SafetyTier>,
 
     /// Mutation capability. Derived from `safety_tier` when absent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub mutation: Option<MutationCapability>,
 
     /// Hook declarations keyed by event name.
@@ -310,39 +355,48 @@ pub struct UnifiedFrontmatter {
 
     /// Governance requirement. Connects to spec 098.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub governance: Option<GovernanceRequirement>,
 
     /// Maximum spec risk level. Connects to spec 093.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub max_spec_risk: Option<String>,
 
     // -- Tier 3: Metadata (for tooling, never gates execution) --
     /// Semantic version.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub version: Option<String>,
 
     /// Attribution.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub author: Option<String>,
 
     /// Trigger ordering priority.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub priority: Option<i32>,
 
     /// Desktop display icon.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub icon: Option<String>,
 
     /// Factory pipeline stage number.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub stage: Option<u8>,
 
     /// Factory token budget hint.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub context_budget: Option<String>,
 
     /// Standards category filter (spec 055).
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
     pub standards_category: Option<String>,
 
     /// Standards tag filter (spec 055).
@@ -351,7 +405,14 @@ pub struct UnifiedFrontmatter {
 
     // -- Forward compatibility (FR-013) --
     /// Unknown fields preserved through parse-serialize round-trips.
+    ///
+    /// The derived TS counterpart skips this field; stagecraft re-injects the
+    /// behaviour via the hand-maintained `index.ts` barrel
+    /// (`UnifiedFrontmatter & { [key: string]: unknown }`). Keeping the Rust
+    /// side authoritative stops this from becoming a second extensibility
+    /// escape hatch on the TS side.
     #[serde(flatten)]
+    #[ts(skip)]
     pub extra: HashMap<String, serde_json::Value>,
 }
 

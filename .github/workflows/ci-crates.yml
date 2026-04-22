@@ -54,3 +54,11 @@ jobs:
         uses: ./.github/actions/rust-ci
         with:
           manifest-path: crates/${{ matrix.crate }}/Cargo.toml
+
+      # Spec 111 §2.1 Phase 2 — stagecraft's `CatalogFrontmatter` wraps a
+      # ts-rs mirror of the Rust `UnifiedFrontmatter`. `cargo test` on the
+      # crate auto-regenerates the TS files; this step fails the build if
+      # the committed mirror drifts from the Rust source of truth.
+      - name: agent-frontmatter TS drift gate
+        if: matrix.crate == 'agent-frontmatter'
+        run: make ci-agent-frontmatter-ts
