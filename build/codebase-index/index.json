@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1633bf292b8740a2dbed3b2b24021173e2c19f00cc9bd012382c2012a114d8f5",
+    "contentHash": "d79e8e2c68f1d6cb74176f06215308c318aa322d19bdf56dd33b262b9af52a0c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10,23 +10,92 @@
     "warnings": [
       {
         "code": "I-101",
-        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/aim-vue-node\" which is not a known package, adapter, or existing file/directory"
+        "message": "spec \"110-stagecraft-to-opc-factory-trigger\" declares implements path \"apps/desktop/src/routes/factory\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
-        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/encore-react\" which is not a known package, adapter, or existing file/directory"
+        "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/api/db/migrations/20_agent_catalog.up.sql\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
-        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/next-prisma\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory/adapters/rust-axum\" which is not a known package, adapter, or existing file/directory"
+        "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
-  "factory": [],
+  "factory": [
+    {
+      "displayName": "AIM Vue+Node GoA Enterprise Template",
+      "name": "aim-vue-node",
+      "path": "factory/adapters/aim-vue-node",
+      "phaseCoverage": [
+        "00-pre-flight",
+        "01-business-requirements",
+        "02-service-requirements",
+        "03-data-model",
+        "04-api-specification",
+        "05-ui-specification",
+        "06-adapter-handoff"
+      ],
+      "stackLanguage": "typescript",
+      "stackRuntime": "node-24",
+      "targetStack": "aim-vue-node",
+      "version": "3.0.0"
+    },
+    {
+      "displayName": "Encore.ts + React Router Full-Stack",
+      "name": "encore-react",
+      "path": "factory/adapters/encore-react",
+      "phaseCoverage": [
+        "00-pre-flight",
+        "01-business-requirements",
+        "02-service-requirements",
+        "03-data-model",
+        "04-api-specification",
+        "05-ui-specification",
+        "06-adapter-handoff"
+      ],
+      "stackLanguage": "typescript",
+      "stackRuntime": "node-20",
+      "targetStack": "encore-react",
+      "version": "1.0.0"
+    },
+    {
+      "displayName": "Next.js 15 + Prisma Full-Stack",
+      "name": "next-prisma",
+      "path": "factory/adapters/next-prisma",
+      "phaseCoverage": [
+        "00-pre-flight",
+        "01-business-requirements",
+        "02-service-requirements",
+        "03-data-model",
+        "04-api-specification",
+        "05-ui-specification",
+        "06-adapter-handoff"
+      ],
+      "stackLanguage": "typescript",
+      "stackRuntime": "node-22",
+      "targetStack": "next-prisma",
+      "version": "1.0.0"
+    },
+    {
+      "displayName": "Rust Axum + SQLx Full-Stack",
+      "name": "rust-axum",
+      "path": "factory/adapters/rust-axum",
+      "phaseCoverage": [
+        "00-pre-flight",
+        "01-business-requirements",
+        "02-service-requirements",
+        "03-data-model",
+        "04-api-specification",
+        "05-ui-specification",
+        "06-adapter-handoff"
+      ],
+      "stackLanguage": "rust",
+      "stackRuntime": "native",
+      "targetStack": "rust-axum",
+      "version": "1.0.0"
+    }
+  ],
   "infrastructure": {
     "agents": [
       {
@@ -2636,6 +2705,100 @@
           }
         ],
         "specId": "109-factory-pat-and-pubsub-sync",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "076",
+          "077",
+          "087",
+          "092",
+          "094",
+          "108",
+          "109"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/routes/factory",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/factory_run.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "packages/oap-ctl/src/cli.js",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "110-stagecraft-to-opc-factory-trigger",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "042",
+          "054",
+          "068",
+          "087",
+          "090",
+          "110"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/agents.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/agent-frontmatter/src/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/20_agent_catalog.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "111-org-agent-catalog-sync",
         "specStatus": "draft"
       }
     ],
