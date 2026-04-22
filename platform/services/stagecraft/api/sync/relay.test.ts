@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 // `dispatchServerEvent` writes to the outbox + registry; we want to assert the
 // envelope shape without hitting the real stores. `resolveKnowledgeBundlesForFactory`
 // hits the database and object store; stub it with a deterministic return.
+// The db modules pull in `encore.dev/storage/sqldb`, which requires the Encore
+// native runtime — stub them out so importing `relay.ts` does not detonate.
+vi.mock("../db/drizzle", () => ({ db: {} }));
+vi.mock("../db/schema", () => ({ projects: {} }));
+
 vi.mock("./service", () => ({
   dispatchServerEvent: vi.fn(async () => ({
     eventId: "evt-stub",
