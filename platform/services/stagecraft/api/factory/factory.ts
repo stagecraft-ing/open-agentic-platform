@@ -15,6 +15,7 @@ import {
 } from "../db/schema";
 import { and, eq, desc, gte, asc, sql } from "drizzle-orm";
 import { resolveKnowledgeForFactory } from "../knowledge/knowledge";
+import { publishFactoryRunRequest } from "../sync/relay";
 
 // ---------------------------------------------------------------------------
 // Known adapters (from factory/adapters/)
@@ -189,12 +190,28 @@ async function appendAudit(
 // FR-001: Factory Project Initialization
 // ---------------------------------------------------------------------------
 
+type PipelineSource = "opc-direct" | "stagecraft";
+
 type InitRequest = {
   id: string; // project ID (path param)
   adapter: string;
   business_docs?: BusinessDocRef[];
   knowledge_object_ids?: string[]; // spec 087: resolve workspace knowledge objects
   policy_overrides?: PolicyOverrides;
+  /**
+   * Trigger path for this pipeline (spec 110 §8 Rollout Phase 3).
+   *
+   *   - "opc-direct" (default): the caller runs the engine locally; no
+   *     factory.run.request envelope is dispatched. Preserves the legacy
+   *     flow for offline and OPC-originated runs.
+   *   - "stagecraft": stagecraft dispatches a `factory.run.request` through
+   *     the duplex channel so a connected OPC executes the run. Used by the
+   *     web Initialize button and `oap-ctl run factory`.
+   *
+   * Defaults to "opc-direct" while the flag is off by default (spec 110 §8
+   * Rollout Phase 3). Flipping the default is Rollout Phase 6.
+   */
+  source?: PipelineSource;
   actorUserId: string;
   workspaceId: string;
 };
@@ -204,6 +221,7 @@ type InitResponse = {
   adapter: string;
   policy_bundle_id: string;
   status: string;
+  source: PipelineSource;
   created_at: string;
 };
 
@@ -230,6 +248,8 @@ export const initPipeline = api(
 
     // Merge explicit business_docs with resolved knowledge objects
     const allDocs = [...(req.business_docs ?? []), ...knowledgeDocs];
+
+    const source: PipelineSource = req.source ?? "opc-direct";
 
     // All inserts in a single transaction to prevent orphaned rows
     const result = await db.transaction(async (tx) => {
@@ -268,6 +288,7 @@ export const initPipeline = api(
           adapterName: req.adapter,
           policyBundleId: bundle.id,
           previousPipelineId,
+          source,
         })
         .returning();
 
@@ -301,6 +322,7 @@ export const initPipeline = api(
             doc_count: allDocs.length,
             knowledge_object_ids: req.knowledge_object_ids ?? [],
             policy_bundle_id: bundle.id,
+            source,
           },
         },
         tx as unknown as typeof db,
@@ -314,14 +336,34 @@ export const initPipeline = api(
       pipeline_id: result.pipeline.id,
       event_type: "pipeline_initialized",
       actor: req.actorUserId,
-      details: { adapter: req.adapter, doc_count: allDocs.length },
+      details: { adapter: req.adapter, doc_count: allDocs.length, source },
     });
+
+    // Spec 110 §8 Rollout Phase 3: dispatch the duplex `factory.run.request`
+    // only when the trigger path was `stagecraft`. OPC-direct runs still
+    // execute the legacy local path; their envelope dispatch is a no-op.
+    if (source === "stagecraft") {
+      await publishFactoryRunRequest({
+        workspaceId: req.workspaceId,
+        projectId: req.id,
+        pipelineId: result.pipeline.id,
+        adapter: req.adapter,
+        actorUserId: req.actorUserId,
+        knowledgeObjectIds: req.knowledge_object_ids ?? [],
+        businessDocs: (req.business_docs ?? []).map((d) => ({
+          name: d.name,
+          storageRef: d.storage_ref,
+        })),
+        policyBundleId: result.bundle.id,
+      });
+    }
 
     return {
       pipeline_id: result.pipeline.id,
       adapter: result.pipeline.adapterName,
       policy_bundle_id: result.bundle.id,
       status: result.pipeline.status,
+      source,
       created_at: result.pipeline.createdAt.toISOString(),
     };
   }

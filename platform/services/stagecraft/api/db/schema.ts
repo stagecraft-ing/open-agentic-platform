@@ -399,6 +399,11 @@ export const factoryPipelines = pgTable("factory_pipelines", {
   policyBundleId: uuid("policy_bundle_id"),
   buildSpecHash: text("build_spec_hash"),
   previousPipelineId: uuid("previous_pipeline_id"),
+  // spec 110 §2 + §8 rollout — trigger source for this pipeline. CHECK
+  // constraint lives in migration 20; keep the literal union here aligned.
+  source: text("source").$type<"opc-direct" | "stagecraft">()
+    .notNull()
+    .default("opc-direct"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })

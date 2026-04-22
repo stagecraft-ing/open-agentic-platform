@@ -1392,3 +1392,78 @@ export async function resolveKnowledgeForFactory(
     storage_ref: o.storageKey,
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Resolve bound knowledge objects into full wire-level KnowledgeBundle
+// entries for the spec 110 factory.run.request envelope. Unlike
+// resolveKnowledgeForFactory this generates a presigned download URL so the
+// OPC consumer can materialise the blob locally before handing it to the
+// engine.
+// ---------------------------------------------------------------------------
+
+export type KnowledgeBundleEntry = {
+  objectId: string;
+  filename: string;
+  contentHash: string;
+  downloadUrl: string;
+};
+
+/**
+ * Presigned URL TTL for knowledge bundles dispatched on factory.run.request
+ * (spec 110 §2.3, open question 1). Short enough that a leaked URL expires
+ * quickly; long enough that a busy OPC can download the blob on a cold
+ * cache. Resync regenerates it if the run rides an outbox retry.
+ */
+const KNOWLEDGE_BUNDLE_URL_TTL_SECONDS = 15 * 60;
+
+export async function resolveKnowledgeBundlesForFactory(
+  workspaceId: string,
+  knowledgeObjectIds: string[]
+): Promise<KnowledgeBundleEntry[]> {
+  if (knowledgeObjectIds.length === 0) return [];
+
+  const objs = await db
+    .select({
+      id: knowledgeObjects.id,
+      filename: knowledgeObjects.filename,
+      storageKey: knowledgeObjects.storageKey,
+      contentHash: knowledgeObjects.contentHash,
+      state: knowledgeObjects.state,
+    })
+    .from(knowledgeObjects)
+    .where(
+      and(
+        inArray(knowledgeObjects.id, knowledgeObjectIds),
+        eq(knowledgeObjects.workspaceId, workspaceId)
+      )
+    );
+
+  if (objs.length !== knowledgeObjectIds.length) {
+    const found = new Set(objs.map((o) => o.id));
+    const missing = knowledgeObjectIds.filter((id) => !found.has(id));
+    throw APIError.invalidArgument(
+      `knowledge objects not found: ${missing.join(", ")}`
+    );
+  }
+
+  const notReady = objs.filter((o) => o.state !== "available");
+  if (notReady.length > 0) {
+    throw APIError.invalidArgument(
+      `knowledge objects not in 'available' state: ${notReady.map((o) => o.id).join(", ")}`
+    );
+  }
+
+  const bucket = await getWorkspaceBucket(workspaceId);
+  return Promise.all(
+    objs.map(async (o) => ({
+      objectId: o.id,
+      filename: o.filename,
+      contentHash: o.contentHash,
+      downloadUrl: await getPresignedDownloadUrl(
+        bucket,
+        o.storageKey,
+        KNOWLEDGE_BUNDLE_URL_TTL_SECONDS
+      ),
+    }))
+  );
+}
