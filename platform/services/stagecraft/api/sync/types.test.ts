@@ -122,4 +122,45 @@ describe("isClientEnvelope", () => {
       }),
     ).toBe(false);
   });
+
+  // spec 111 §2.3 — agent.catalog.fetch_request is a client observation
+  // (cache miss / hash mismatch / manual refresh); the server replies with
+  // a targeted agent.catalog.updated.
+  test("accepts a well-formed agent.catalog.fetch_request envelope", () => {
+    expect(
+      isClientEnvelope({
+        kind: "agent.catalog.fetch_request",
+        meta: { v: 1, eventId: "e-fetch", sentAt: "2026-04-22T00:00:00Z" },
+        workspaceId: "ws-1",
+        agentId: "a-1",
+        reason: "cache_miss",
+        observedAt: "2026-04-22T00:00:01Z",
+      }),
+    ).toBe(true);
+  });
+
+  // spec 111 §2.3: agent.catalog.updated is SERVER→CLIENT. The client-inbox
+  // guard must reject a forged one the same way it rejects factory.run.request.
+  test("rejects agent.catalog.updated on the client inbox", () => {
+    expect(
+      isClientEnvelope({
+        kind: "agent.catalog.updated",
+        meta: { v: 1, eventId: "e-forged", sentAt: "2026-04-22T00:00:00Z" },
+        agentId: "a-evil",
+        name: "triage",
+        version: 999,
+        status: "published",
+      }),
+    ).toBe(false);
+  });
+
+  test("rejects agent.catalog.snapshot on the client inbox", () => {
+    expect(
+      isClientEnvelope({
+        kind: "agent.catalog.snapshot",
+        meta: { v: 1, eventId: "e-forged2", sentAt: "2026-04-22T00:00:00Z" },
+        entries: [],
+      }),
+    ).toBe(false);
+  });
 });

@@ -22,6 +22,7 @@ import {
 } from "../db/schema";
 import { and, desc, eq, max, ne } from "drizzle-orm";
 import type { CatalogFrontmatter } from "./frontmatter";
+import { publishAgentCatalogUpdated } from "./relay";
 
 // ---------------------------------------------------------------------------
 // Wire types
@@ -439,6 +440,17 @@ export const publishAgent = api(
       return { published, retired };
     });
 
+    // Spec 111 §2.3 Phase 3 — broadcast the terminal-state rows to every OPC
+    // connected to the workspace. The broadcast runs after the transaction
+    // commits so a fan-out failure never leaves the catalog ahead of the
+    // wire. Emit retired first so a desktop with both envelopes inflight
+    // applies "retired → published" in an order its local cache merge
+    // semantics already handle (spec 111 §2.4).
+    if (result.retired) {
+      await publishAgentCatalogUpdated(result.retired);
+    }
+    await publishAgentCatalogUpdated(result.published);
+
     return {
       agent: toWire(result.published),
       ...(result.retired ? { retired: toWire(result.retired) } : {}),
@@ -477,6 +489,8 @@ export const retireAgent = api(
       );
       return row;
     });
+
+    await publishAgentCatalogUpdated(retired);
 
     return { agent: toWire(retired) };
   },

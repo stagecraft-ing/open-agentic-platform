@@ -14,6 +14,7 @@
  *   server -> client : ServerEnvelope   (outbox path)
  */
 import type { StreamInOut } from "encore.dev/api";
+import type { CatalogFrontmatter } from "../agents/frontmatter";
 
 // ---------------------------------------------------------------------------
 // Handshake
@@ -87,6 +88,7 @@ export type ClientEnvelope =
   | ClientAgentInvocation
   | ClientAuditCandidate
   | ClientFactoryRunAck
+  | ClientAgentCatalogFetchRequest
   | ClientAck
   | ClientResyncRequest
   | ClientHeartbeat;
@@ -184,6 +186,29 @@ export interface ClientFactoryRunAck {
   observedAt: string;
 }
 
+/**
+ * Desktop pulls the full body of an agent definition after a
+ * `agent.catalog.snapshot` shows a `content_hash` that disagrees with its
+ * local cache — or on explicit manual refresh (spec 111 §2.3). The server
+ * replies with a targeted `agent.catalog.updated` carrying the full
+ * frontmatter + body.
+ *
+ * This is an observation of local cache state, not a control-plane mutation,
+ * so it fits within the 087 §5.3 ClientEnvelope extension rule.
+ */
+export interface ClientAgentCatalogFetchRequest {
+  kind: "agent.catalog.fetch_request";
+  meta: EnvelopeMeta;
+  /** The workspace the desktop thinks owns the agent — used to cross-check
+   *  against the session's authenticated workspaceId. */
+  workspaceId: string;
+  /** Remote id returned in the snapshot entry. */
+  agentId: string;
+  reason: "cache_miss" | "hash_mismatch" | "manual_refresh";
+  /** ISO-8601 of when the desktop noticed the delta. */
+  observedAt: string;
+}
+
 /** Client acknowledging a previously-received server event. */
 export interface ClientAck {
   kind: "sync.ack";
@@ -224,6 +249,8 @@ export type ServerEnvelope =
   | ServerProjectUpdated
   | ServerFactoryEvent
   | ServerFactoryRunRequest
+  | ServerAgentCatalogUpdated
+  | ServerAgentCatalogSnapshot
   | ServerAck
   | ServerNack
   | ServerResyncRequired
@@ -358,6 +385,66 @@ export interface ServerFactoryRunRequest {
   deadlineAt: string;
 }
 
+/**
+ * Entry shape for {@link ServerAgentCatalogSnapshot}. The snapshot is a
+ * directory — names, versions, and content hashes only. Desktops compare
+ * each `contentHash` against their local cache and pull missing bodies via
+ * {@link ClientAgentCatalogFetchRequest} (spec 111 §2.3).
+ */
+export interface AgentCatalogSnapshotEntry {
+  agentId: string;
+  name: string;
+  version: number;
+  status: "published" | "retired";
+  contentHash: string;
+  updatedAt: string;
+}
+
+/**
+ * Stagecraft announces that an agent definition was published or retired
+ * (spec 111 §2.3). Carries the full frontmatter + body so connected OPCs
+ * can update their local caches in one round-trip. Also used as the
+ * targeted reply to a {@link ClientAgentCatalogFetchRequest}.
+ */
+export interface ServerAgentCatalogUpdated {
+  kind: "agent.catalog.updated";
+  meta: ServerMeta;
+  /** Remote id — stable across versions within a (workspace, name) pair. */
+  agentId: string;
+  /** Catalog key (kebab-case, unique per workspace). */
+  name: string;
+  /** Monotonic per (workspace, name). */
+  version: number;
+  /** `published` puts the agent into the active catalog;
+   *  `retired` removes it. Drafts never travel the wire. */
+  status: "published" | "retired";
+  /** sha-256 over canonical JSON of frontmatter + body (spec 111 §6). */
+  contentHash: string;
+  /** UnifiedFrontmatter mirrored from crates/agent-frontmatter. */
+  frontmatter: CatalogFrontmatter;
+  /** The agent's system prompt body. */
+  bodyMarkdown: string;
+  /** ISO-8601 of the underlying row's updated_at. */
+  updatedAt: string;
+}
+
+/**
+ * Full catalog replay on handshake or explicit resync (spec 111 §2.3). The
+ * snapshot is intentionally a directory — `entries` carry hashes only, not
+ * bodies. Desktops diff against their local cache and pull individual
+ * bodies via {@link ClientAgentCatalogFetchRequest} — this keeps reconnect
+ * storms bounded for workspaces with many large-prompt agents.
+ */
+export interface ServerAgentCatalogSnapshot {
+  kind: "agent.catalog.snapshot";
+  meta: ServerMeta;
+  /** Currently-published entries for the session's workspace. Retired
+   *  agents are excluded; the desktop infers removal from absence. */
+  entries: AgentCatalogSnapshotEntry[];
+  /** ISO-8601 of when the snapshot was built. Informational. */
+  generatedAt: string;
+}
+
 /** Server accepted a client event and recorded it. */
 export interface ServerAck {
   kind: "sync.ack";
@@ -431,6 +518,7 @@ export interface ClientEnvelopeWire {
     | "agent.invocation"
     | "audit.candidate"
     | "factory.run.ack"
+    | "agent.catalog.fetch_request"
     | "sync.ack"
     | "sync.resync_request"
     | "sync.heartbeat";
@@ -473,6 +561,9 @@ export interface ClientEnvelopeWire {
   accepted?: boolean;
   declineReason?: string;
   observedAt?: string;
+  // spec 111 §2.3 — agent.catalog.fetch_request fields (agentId is already
+  // declared above for agent.invocation; reason is already the open string).
+  workspaceId?: string;
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -485,6 +576,8 @@ export interface ServerEnvelopeWire {
     | "project.updated"
     | "factory.event"
     | "factory.run.request"
+    | "agent.catalog.updated"
+    | "agent.catalog.snapshot"
     | "sync.ack"
     | "sync.nack"
     | "sync.resync_required"
@@ -508,7 +601,14 @@ export interface ServerEnvelopeWire {
   details?: Record<string, unknown>;
   projectId?: string;
   environmentId?: string;
-  status?: "queued" | "running" | "succeeded" | "failed" | "rolled_back";
+  status?:
+    | "queued"
+    | "running"
+    | "succeeded"
+    | "failed"
+    | "rolled_back"
+    | "published"
+    | "retired";
   detail?: string;
   pipelineId?: string;
   eventType?: string;
@@ -533,6 +633,16 @@ export interface ServerEnvelopeWire {
   businessDocs?: EnvelopeBusinessDoc[];
   requestedAt?: string;
   deadlineAt?: string;
+  // spec 111 §2.3 — agent.catalog.updated / agent.catalog.snapshot fields
+  agentId?: string;
+  name?: string;
+  version?: number;
+  contentHash?: string;
+  frontmatter?: CatalogFrontmatter;
+  bodyMarkdown?: string;
+  updatedAt?: string;
+  entries?: AgentCatalogSnapshotEntry[];
+  generatedAt?: string;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.
@@ -549,6 +659,7 @@ const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind
   "agent.invocation",
   "audit.candidate",
   "factory.run.ack",
+  "agent.catalog.fetch_request",
   "sync.ack",
   "sync.resync_request",
   "sync.heartbeat",

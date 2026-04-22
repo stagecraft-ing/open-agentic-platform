@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5eda6e736f52656868dfc183db7137959218396540ae87f6452295aa03c45f2f",
+    "contentHash": "d9f76b360091f615bc39ff11e8a2378ef44b21f633055c5d7f82bd553e0cc2c3",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -2775,6 +2775,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "apps/desktop/src-tauri/src/commands/sync_client.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/agent-frontmatter/src/types.rs",
             "source": "spec-implements"
           },
@@ -2787,7 +2791,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/agents/frontmatter/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/relay.ts",
             "source": "spec-implements"
           },
           {
@@ -2795,7 +2807,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/sync/duplex.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
             "source": "spec-implements"
           },
           {

@@ -2166,6 +2166,15 @@ mod tests {
             business_docs: None,
             requested_at: None,
             deadline_at: None,
+            agent_id: None,
+            name: None,
+            version: None,
+            content_hash: None,
+            frontmatter: None,
+            body_markdown: None,
+            updated_at: None,
+            entries: None,
+            generated_at: None,
         };
         assert!(extract_factory_run(&env).is_none());
     }
@@ -2212,6 +2221,15 @@ mod tests {
             business_docs: None,
             requested_at: None,
             deadline_at: None,
+            agent_id: None,
+            name: None,
+            version: None,
+            content_hash: None,
+            frontmatter: None,
+            body_markdown: None,
+            updated_at: None,
+            entries: None,
+            generated_at: None,
         };
         let run = extract_factory_run(&env).unwrap();
         assert_eq!(run.pipeline_id, "pl-1");

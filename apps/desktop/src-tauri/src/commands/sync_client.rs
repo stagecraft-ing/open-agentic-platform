@@ -131,6 +131,44 @@ pub struct ServerEnvelopeWire {
     pub requested_at: Option<String>,
     #[serde(default)]
     pub deadline_at: Option<String>,
+    // spec 111 §2.3 — agent.catalog.updated / agent.catalog.snapshot fields.
+    // Bodies and frontmatter are decoded as `serde_json::Value` because the
+    // `CatalogFrontmatter` TS type is an `UnifiedFrontmatter & { [k]: unknown }`
+    // union whose `extra` flatten keys are opaque to the Rust decoder; the
+    // desktop cache preserves them through the JSONB round-trip.
+    #[serde(default)]
+    pub agent_id: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub version: Option<u32>,
+    #[serde(default)]
+    pub content_hash: Option<String>,
+    #[serde(default)]
+    pub frontmatter: Option<Value>,
+    #[serde(default)]
+    pub body_markdown: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub entries: Option<Vec<AgentCatalogSnapshotEntry>>,
+    #[serde(default)]
+    pub generated_at: Option<String>,
+}
+
+/// Mirror of {@link AgentCatalogSnapshotEntry} from stagecraft's
+/// `api/sync/types.ts`. The snapshot is a directory (hashes only) so the
+/// desktop can diff its local cache and pull bodies lazily via
+/// `agent.catalog.fetch_request` (spec 111 §2.3).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCatalogSnapshotEntry {
+    pub agent_id: String,
+    pub name: String,
+    pub version: u32,
+    pub status: String,
+    pub content_hash: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +198,8 @@ const SERVER_KINDS: &[&str] = &[
     "project.updated",
     "factory.event",
     "factory.run.request",
+    "agent.catalog.updated",
+    "agent.catalog.snapshot",
     "sync.ack",
     "sync.nack",
     "sync.resync_required",
@@ -219,6 +259,31 @@ pub enum OutboundFrame {
         #[serde(rename = "observedAt")]
         observed_at: String,
     },
+    /// Spec 111 §2.3 — desktop requests the full body of an agent whose hash
+    /// from the snapshot does not match its local cache. The stagecraft side
+    /// replies with a targeted `agent.catalog.updated`. Reason is a small
+    /// closed set so the server can log/aggregate cache-miss patterns.
+    #[serde(rename = "agent.catalog.fetch_request")]
+    AgentCatalogFetchRequest {
+        meta: EnvelopeMeta,
+        #[serde(rename = "workspaceId")]
+        workspace_id: String,
+        #[serde(rename = "agentId")]
+        agent_id: String,
+        reason: AgentCatalogFetchReason,
+        #[serde(rename = "observedAt")]
+        observed_at: String,
+    },
+}
+
+/// Reason enum for {@link OutboundFrame::AgentCatalogFetchRequest}. Mirrors
+/// the closed set in stagecraft's `ClientAgentCatalogFetchRequest.reason`.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentCatalogFetchReason {
+    CacheMiss,
+    HashMismatch,
+    ManualRefresh,
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +395,27 @@ impl SyncClientInner {
             return false;
         };
         tx.send(frame).await.is_ok()
+    }
+
+    /// Emit a typed `agent.catalog.fetch_request` frame (spec 111 §2.3).
+    /// Kept behind the catalog feature flag at the desktop caller site —
+    /// this function does not gate itself so tests can exercise the wire
+    /// path without flipping a flag. Returns `false` if the duplex stream
+    /// is not connected.
+    pub async fn send_agent_catalog_fetch_request(
+        &self,
+        workspace_id: &str,
+        agent_id: &str,
+        reason: AgentCatalogFetchReason,
+    ) -> bool {
+        let frame = OutboundFrame::AgentCatalogFetchRequest {
+            meta: new_meta(),
+            workspace_id: workspace_id.to_string(),
+            agent_id: agent_id.to_string(),
+            reason,
+            observed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
     }
 
     /// Emit a typed `factory.run.ack` frame (spec 110 §2.2). Returns `false`
@@ -743,6 +829,15 @@ mod tests {
             business_docs: None,
             requested_at: None,
             deadline_at: None,
+            agent_id: None,
+            name: None,
+            version: None,
+            content_hash: None,
+            frontmatter: None,
+            body_markdown: None,
+            updated_at: None,
+            entries: None,
+            generated_at: None,
         }
     }
 
@@ -943,6 +1038,144 @@ mod tests {
         let json = serde_json::to_value(&frame).unwrap();
         assert_eq!(json["accepted"], false);
         assert_eq!(json["declineReason"], "knowledge_hash_mismatch");
+    }
+
+    // spec 111 §2.3 — agent.catalog.{updated,snapshot} must be recognised as
+    // known SERVER→CLIENT kinds so the duplex consumer doesn't drop them.
+    #[test]
+    fn accepts_agent_catalog_kinds_at_v1() {
+        for kind in ["agent.catalog.updated", "agent.catalog.snapshot"] {
+            assert!(
+                is_server_envelope(&empty_envelope(kind, 1)),
+                "kind {kind} should pass the guard",
+            );
+        }
+    }
+
+    #[test]
+    fn agent_catalog_updated_deserializes_from_wire_json() {
+        // Triple-# raw delimiter so the JSON body "# body" (which contains a
+        // `"#` sequence) doesn't terminate the Rust raw literal early.
+        let raw = r###"{
+          "kind": "agent.catalog.updated",
+          "meta": {
+            "v": 1,
+            "eventId": "e-ag",
+            "sentAt": "2026-04-22T00:00:00Z",
+            "workspaceCursor": "cur-1",
+            "workspaceId": "ws-1"
+          },
+          "agentId": "a-1",
+          "name": "triage",
+          "version": 2,
+          "status": "published",
+          "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "frontmatter": {"name": "triage", "extra": {"k": "v"}},
+          "bodyMarkdown": "# body",
+          "updatedAt": "2026-04-22T00:05:00Z"
+        }"###;
+        let env: ServerEnvelopeWire = serde_json::from_str(raw).expect("deserialize");
+        assert!(is_server_envelope(&env));
+        assert_eq!(env.agent_id.as_deref(), Some("a-1"));
+        assert_eq!(env.name.as_deref(), Some("triage"));
+        assert_eq!(env.version, Some(2));
+        assert_eq!(env.status.as_deref(), Some("published"));
+        assert_eq!(env.body_markdown.as_deref(), Some("# body"));
+        // Frontmatter is decoded as serde_json::Value so the extra flatten
+        // keys round-trip opaquely on the desktop side.
+        assert_eq!(
+            env.frontmatter.as_ref().and_then(|v| v.get("name")),
+            Some(&Value::String("triage".into()))
+        );
+    }
+
+    #[test]
+    fn agent_catalog_snapshot_deserializes_directory_entries() {
+        let raw = r#"{
+          "kind": "agent.catalog.snapshot",
+          "meta": {
+            "v": 1,
+            "eventId": "e-snap",
+            "sentAt": "2026-04-22T00:00:00Z",
+            "workspaceCursor": "cur-2",
+            "workspaceId": "ws-1"
+          },
+          "entries": [
+            {
+              "agentId": "a-1",
+              "name": "triage",
+              "version": 2,
+              "status": "published",
+              "contentHash": "aaaa",
+              "updatedAt": "2026-04-22T00:05:00Z"
+            }
+          ],
+          "generatedAt": "2026-04-22T00:06:00Z"
+        }"#;
+        let env: ServerEnvelopeWire = serde_json::from_str(raw).expect("deserialize");
+        assert!(is_server_envelope(&env));
+        let entries = env.entries.as_ref().expect("entries present");
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].agent_id, "a-1");
+        assert_eq!(entries[0].status, "published");
+        assert_eq!(env.generated_at.as_deref(), Some("2026-04-22T00:06:00Z"));
+    }
+
+    #[test]
+    fn agent_catalog_fetch_request_serializes_to_camelcase_wire_shape() {
+        // Spec 111 §2.3 — reason is a closed set; verify the snake_case
+        // serde rename produces the expected wire strings.
+        let frame = OutboundFrame::AgentCatalogFetchRequest {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-04-22T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            workspace_id: "ws-1".into(),
+            agent_id: "a-1".into(),
+            reason: AgentCatalogFetchReason::HashMismatch,
+            observed_at: "2026-04-22T00:00:01Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "agent.catalog.fetch_request");
+        assert_eq!(json["workspaceId"], "ws-1");
+        assert_eq!(json["agentId"], "a-1");
+        assert_eq!(json["reason"], "hash_mismatch");
+        assert_eq!(json["observedAt"], "2026-04-22T00:00:01Z");
+        assert_eq!(json["meta"]["v"], 1);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn send_agent_catalog_fetch_request_emits_frame_when_connected() {
+        let inner = Arc::new(SyncClientInner::default());
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(8);
+        inner.set_outbound(Some(tx));
+
+        let sent = inner
+            .send_agent_catalog_fetch_request(
+                "ws-1",
+                "a-1",
+                AgentCatalogFetchReason::CacheMiss,
+            )
+            .await;
+        assert!(sent);
+
+        let frame = rx.recv().await.expect("frame on channel");
+        match frame {
+            OutboundFrame::AgentCatalogFetchRequest {
+                workspace_id,
+                agent_id,
+                reason,
+                ..
+            } => {
+                assert_eq!(workspace_id, "ws-1");
+                assert_eq!(agent_id, "a-1");
+                assert!(matches!(reason, AgentCatalogFetchReason::CacheMiss));
+            }
+            other => panic!("unexpected frame: {other:?}"),
+        }
     }
 
     #[tokio::test(flavor = "multi_thread")]

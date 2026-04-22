@@ -15,16 +15,19 @@
  */
 import log from "encore.dev/log";
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { auditLog } from "../db/schema";
+import { agentCatalog, auditLog } from "../db/schema";
 import type {
   ClientEnvelope,
   ServerEnvelope,
   ServerAck,
   ServerNack,
   ServerMeta,
+  ServerAgentCatalogUpdated,
 } from "./types";
 import { ENVELOPE_SCHEMA_VERSION } from "./types";
+import type { CatalogFrontmatter } from "../agents/frontmatter";
 
 // Distributive Omit so Omit<UnionMember, "meta"> works variant-by-variant.
 type DistributiveOmit<T, K extends keyof T> = T extends unknown
@@ -79,6 +82,22 @@ export async function handleInbound(
   if (evt.kind === "sync.resync_request") {
     await deliverResync(ctx, evt.sinceCursor);
     return { ok: true };
+  }
+
+  if (evt.kind === "agent.catalog.fetch_request") {
+    // Spec 111 §2.3: reply is a targeted agent.catalog.updated. The
+    // authenticated workspaceId from the session wins over whatever the
+    // client declared in `evt.workspaceId` — this prevents a cross-workspace
+    // probe from leaking entries through a mismatched session.
+    if (evt.workspaceId !== ctx.workspaceId) {
+      return {
+        ok: false,
+        reason: "workspace_mismatch",
+        detail: "fetch_request workspaceId does not match session",
+      };
+    }
+    const served = await serveAgentCatalogFetch(ctx, evt.agentId);
+    return served;
   }
 
   // For all other kinds, persist + log + audit where appropriate.
@@ -218,6 +237,74 @@ export async function dispatchServerEvent(
   });
 
   return { eventId: meta.eventId, cursor: meta.workspaceCursor, delivered: sent };
+}
+
+/**
+ * Send a server-originated event to a single connected client (instead of
+ * broadcasting). Used for direct replies — e.g. the targeted
+ * `agent.catalog.updated` response to an `agent.catalog.fetch_request`
+ * (spec 111 §2.3). The targeted send deliberately skips the outbox: the
+ * desktop already has a correlation-free path to re-request on reconnect
+ * via the snapshot, so durable replay of a single-client reply is wasted.
+ */
+export async function sendTargetedServerEvent(
+  workspaceId: string,
+  clientId: string,
+  event: ServerEnvelopeWithoutMeta,
+  opts: { correlationId?: string } = {},
+): Promise<boolean> {
+  const meta = mintMeta(workspaceId, opts.correlationId);
+  const full = { ...event, meta } as ServerEnvelope;
+  return registry.sendTo(workspaceId, clientId, full);
+}
+
+// ---------------------------------------------------------------------------
+// Agent catalog fetch request (spec 111 §2.3)
+// ---------------------------------------------------------------------------
+
+async function serveAgentCatalogFetch(
+  ctx: InboundContext,
+  agentId: string,
+): Promise<InboundResult> {
+  const [row] = await db
+    .select()
+    .from(agentCatalog)
+    .where(eq(agentCatalog.id, agentId))
+    .limit(1);
+
+  if (!row) {
+    return { ok: false, reason: "invalid", detail: "agent not found" };
+  }
+  if (row.workspaceId !== ctx.workspaceId) {
+    // Treat as workspace mismatch to avoid leaking membership across
+    // workspaces — same disposition as the declared-workspace check above.
+    return {
+      ok: false,
+      reason: "workspace_mismatch",
+      detail: "agent belongs to a different workspace",
+    };
+  }
+  if (row.status === "draft") {
+    return {
+      ok: false,
+      reason: "invalid",
+      detail: "agent is a draft; drafts never travel the catalog wire",
+    };
+  }
+
+  const event: Omit<ServerAgentCatalogUpdated, "meta"> = {
+    kind: "agent.catalog.updated",
+    agentId: row.id,
+    name: row.name,
+    version: row.version,
+    status: row.status as "published" | "retired",
+    contentHash: row.contentHash,
+    frontmatter: row.frontmatter as CatalogFrontmatter,
+    bodyMarkdown: row.bodyMarkdown,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+  await sendTargetedServerEvent(ctx.workspaceId, ctx.clientId, event);
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

@@ -24,12 +24,17 @@ depends_on:
 implements:
   - path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql
   - path: platform/services/stagecraft/api/agents/
+  - path: platform/services/stagecraft/api/agents/catalog.ts
+  - path: platform/services/stagecraft/api/agents/relay.ts
   - path: platform/services/stagecraft/api/agents/frontmatter/
   - path: platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
   - path: platform/services/stagecraft/api/sync/types.ts
+  - path: platform/services/stagecraft/api/sync/service.ts
+  - path: platform/services/stagecraft/api/sync/duplex.ts
   - path: platform/services/stagecraft/api/sync/relay.ts
   - path: apps/desktop/src-tauri/src/commands/agents.rs
   - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
+  - path: apps/desktop/src-tauri/src/commands/sync_client.rs
   - path: crates/agent-frontmatter/src/types.rs
   - path: crates/agent-frontmatter/tests/ts_bindings.rs
   - path: .cargo/config.toml
@@ -324,6 +329,7 @@ produce stay local. Secrets for provider access remain in the OS keychain
    type generator). **Shipped 2026-04-22.** See §7.2 for the contract.
 3. Add `agent.catalog.snapshot` and `agent.catalog.updated` envelopes
    (desktop-side behind a feature flag in the stagecraft client).
+   **Shipped 2026-04-22.** See §7.3 for the contract.
 4. Ship the web UI.
 5. Flip the desktop flag; remote agents become visible.
 6. Write migration notes for users with existing local agents (they
@@ -383,3 +389,47 @@ asserts that a fully-populated `UnifiedFrontmatter` (including `extra`
 flatten keys, `SafetyTier::Tier2`, `AllowedTools::List`, and the `"*"`
 wildcard) serde-round-trips through `serde_json::Value` without losing
 or rewriting any field — the exact path taken on store and replay.
+
+### 7.3 Phase 3 — duplex envelope contract
+
+Landed 2026-04-22. Wires the catalog to the duplex channel established in
+spec 087 §5.3 and exercised for factory in spec 110.
+
+**Outbound (stagecraft → OPC):**
+
+- `agent.catalog.updated` is broadcast on every publish and retire (including
+  the auto-retired prior row when a new version publishes). Also used as
+  the targeted reply to `agent.catalog.fetch_request`.
+- `agent.catalog.snapshot` is sent to a single client immediately after
+  `sync.hello` on every handshake. Contains a directory of published
+  entries (hashes, not bodies) so a reconnecting OPC can diff against its
+  local cache and pull only the deltas. Retired agents are absent — the
+  desktop infers removal from absence (§2.4).
+
+**Inbound (OPC → stagecraft):**
+
+- `agent.catalog.fetch_request` carries `(workspaceId, agentId, reason)`
+  where reason ∈ {`cache_miss`, `hash_mismatch`, `manual_refresh`}. The
+  handler lives in `api/sync/service.ts` (inline with `handleInbound`,
+  matching the audit-candidate pattern) — NOT in `api/agents/relay.ts`,
+  which is outbound-only to avoid a module cycle with `sync/service`.
+  The authenticated session's workspaceId wins over the claimed workspaceId;
+  a mismatch is NACK'd as `workspace_mismatch` so a cross-workspace probe
+  cannot leak membership. Drafts are NACK'd as `invalid` — they never
+  travel the wire.
+
+**Desktop posture during Phase 3:** the desktop's `sync_client.rs` recognises
+both `agent.catalog.{updated,snapshot}` as known kinds (wire-level decode),
+serialises the outbound `agent.catalog.fetch_request` frame, and has a typed
+helper `send_agent_catalog_fetch_request` on `SyncClientInner`. No handler
+is registered in the dispatch table during Phase 3 — cache integration and
+the UI-facing events land in Phase 5 behind the feature flag. The decode
+path must be live in Phase 3 so stagecraft can start emitting without the
+guard in `is_server_envelope` dropping the kinds.
+
+**Why broadcast retired rows too.** Absence-means-removed semantics (§2.4)
+only resolve on the next snapshot, which today fires at handshake. A
+desktop that stays connected through a retire would otherwise never learn
+the agent is gone. The `agent.catalog.updated { status: "retired" }`
+envelope closes that gap — the desktop deletes the cache row on receipt
+and the next snapshot confirms by omission.

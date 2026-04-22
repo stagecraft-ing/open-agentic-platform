@@ -27,6 +27,7 @@ import {
   type InboundContext,
 } from "./service";
 import { cursors } from "./store";
+import { sendAgentCatalogSnapshot } from "../agents/relay";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const SERVER_STARTED_AT = new Date().toISOString();
@@ -141,6 +142,18 @@ export const duplex = api.streamInOut<
         })
         .catch(() => undefined);
     }
+
+    // Spec 111 §2.3 Phase 3 — post-handshake catalog directory. Sent to every
+    // connecting OPC so a desktop that missed incremental updates can diff
+    // hashes against its local cache and pull only what changed. Fire-and-log:
+    // a DB hiccup here must not stop the duplex session from running.
+    void sendAgentCatalogSnapshot(workspaceId, handshake.clientId).catch((err) => {
+      log.warn("sync: agent.catalog.snapshot post-handshake send failed", {
+        workspaceId,
+        clientId: handshake.clientId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
 
     // Start a heartbeat so idle connections surface half-open sockets.
     let heartbeatAlive = true;
