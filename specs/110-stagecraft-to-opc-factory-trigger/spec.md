@@ -3,7 +3,7 @@ id: "110-stagecraft-to-opc-factory-trigger"
 slug: stagecraft-to-opc-factory-trigger
 title: Stagecraft-initiated Factory Run Trigger over the Duplex Channel
 status: draft
-implementation: in-progress
+implementation: complete
 owner: bart
 created: "2026-04-21"
 summary: >
@@ -348,7 +348,13 @@ not a footnote.
 5. **`oap-ctl run factory`** and the SSE endpoint
    (`GET /api/projects/:id/factory/stream`).
 6. **Flip the flag on by default.** `oap-ctl` and web both go through the
-   envelope path. OPC-direct remains available for offline workflows.
+   envelope path. OPC-direct remains available for offline workflows. The
+   TS-level default in `initPipeline` flips to `"stagecraft"`; the desktop's
+   `StagecraftClient::init_pipeline` dual-write pins `source: "opc-direct"`
+   explicitly to preserve the legacy local-exec flow and avoid a self-
+   dispatch loop back to the same OPC. The DB-column default stays
+   `"opc-direct"` as the safe fallback for future code paths that insert
+   without specifying source.
 
 ## 9. Dependencies already shipped
 

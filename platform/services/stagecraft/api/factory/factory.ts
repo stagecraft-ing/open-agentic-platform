@@ -199,17 +199,17 @@ type InitRequest = {
   knowledge_object_ids?: string[]; // spec 087: resolve workspace knowledge objects
   policy_overrides?: PolicyOverrides;
   /**
-   * Trigger path for this pipeline (spec 110 §8 Rollout Phase 3).
+   * Trigger path for this pipeline (spec 110 §8 Rollout Phase 6 — default
+   * flipped to `"stagecraft"`; OPC-direct remains available for offline
+   * workflows and for the desktop's dual-write path).
    *
-   *   - "opc-direct" (default): the caller runs the engine locally; no
-   *     factory.run.request envelope is dispatched. Preserves the legacy
-   *     flow for offline and OPC-originated runs.
-   *   - "stagecraft": stagecraft dispatches a `factory.run.request` through
-   *     the duplex channel so a connected OPC executes the run. Used by the
-   *     web Initialize button and `oap-ctl run factory`.
-   *
-   * Defaults to "opc-direct" while the flag is off by default (spec 110 §8
-   * Rollout Phase 3). Flipping the default is Rollout Phase 6.
+   *   - "stagecraft" (default): stagecraft dispatches a `factory.run.request`
+   *     through the duplex channel so a connected OPC executes the run.
+   *     Used by the web Initialize button and `oap-ctl run factory`.
+   *   - "opc-direct": the caller is already running the engine locally; no
+   *     envelope is dispatched. Callers on this path (notably the desktop's
+   *     `start_factory_pipeline` dual-write) MUST set this explicitly to
+   *     avoid a self-dispatch loop.
    */
   source?: PipelineSource;
   actorUserId: string;
@@ -249,7 +249,7 @@ export const initPipeline = api(
     // Merge explicit business_docs with resolved knowledge objects
     const allDocs = [...(req.business_docs ?? []), ...knowledgeDocs];
 
-    const source: PipelineSource = req.source ?? "opc-direct";
+    const source: PipelineSource = req.source ?? "stagecraft";
 
     // All inserts in a single transaction to prevent orphaned rows
     const result = await db.transaction(async (tx) => {

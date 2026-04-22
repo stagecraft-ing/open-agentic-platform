@@ -253,6 +253,7 @@ impl StagecraftClient {
             policy_overrides: None,
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
             workspace_id: self.workspace_id(),
+            source: "opc-direct",
         };
         let resp = self
             .authed_post(&url)
@@ -618,6 +619,11 @@ struct InitRequest {
     actor_user_id: String,
     #[serde(rename = "workspaceId")]
     workspace_id: String,
+    // Spec 110 §8 Phase 6: server default is now "stagecraft". The desktop's
+    // dual-write path is already running the engine locally, so it must pin
+    // `source` to "opc-direct" to prevent stagecraft from dispatching a
+    // `factory.run.request` envelope back to the same (or another) OPC.
+    source: &'static str,
 }
 
 #[derive(Clone, Serialize)]
