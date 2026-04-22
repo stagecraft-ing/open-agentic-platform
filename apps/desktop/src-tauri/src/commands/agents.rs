@@ -481,6 +481,31 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
     );
     let _ = conn.execute("ALTER TABLE agents ADD COLUMN tools TEXT", []);
 
+    // spec 111 §2.4 — remote catalog cache columns. `source` discriminates
+    // local authoring (the legacy path) from stagecraft-managed definitions
+    // sync'd over the duplex channel; the `remote_*` fields mirror the
+    // authoritative row so the desktop can diff snapshots without refetching
+    // bodies on every reconnect.
+    let _ = conn.execute(
+        "ALTER TABLE agents ADD COLUMN source TEXT NOT NULL DEFAULT 'local'",
+        [],
+    );
+    let _ = conn.execute("ALTER TABLE agents ADD COLUMN remote_agent_id TEXT", []);
+    let _ = conn.execute("ALTER TABLE agents ADD COLUMN remote_version INTEGER", []);
+    let _ = conn.execute(
+        "ALTER TABLE agents ADD COLUMN remote_content_hash TEXT",
+        [],
+    );
+    let _ = conn.execute("ALTER TABLE agents ADD COLUMN workspace_id TEXT", []);
+    let _ = conn.execute("ALTER TABLE agents ADD COLUMN frontmatter_json TEXT", []);
+    // Partial-unique index so upserts keyed on `remote_agent_id` are atomic
+    // while local rows (NULL remote_agent_id) remain unconstrained.
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS agents_remote_id_uniq
+         ON agents(remote_agent_id) WHERE remote_agent_id IS NOT NULL",
+        [],
+    )?;
+
     // Create agent_runs table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS agent_runs (

@@ -276,6 +276,15 @@ pub fn run() {
                     app.handle().clone(),
                     opc_instance_id,
                 );
+
+                // Spec 111 Phase 5: register the desktop catalog sync
+                // handlers only when the OPC_REMOTE_AGENT_CATALOG feature
+                // flag is set. The Phase 3 decode path stays live either
+                // way, so drifting a frame past an off flag just drops with
+                // a log — never a crash.
+                commands::agent_catalog_sync::register_agent_catalog_handlers(
+                    app.handle().clone(),
+                );
             }
 
             // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)

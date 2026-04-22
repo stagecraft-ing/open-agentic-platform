@@ -33,8 +33,10 @@ implements:
   - path: platform/services/stagecraft/api/sync/duplex.ts
   - path: platform/services/stagecraft/api/sync/relay.ts
   - path: apps/desktop/src-tauri/src/commands/agents.rs
+  - path: apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
   - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
   - path: apps/desktop/src-tauri/src/commands/sync_client.rs
+  - path: apps/desktop/src-tauri/src/lib.rs
   - path: crates/agent-frontmatter/src/types.rs
   - path: crates/agent-frontmatter/tests/ts_bindings.rs
   - path: .cargo/config.toml
@@ -332,6 +334,7 @@ produce stay local. Secrets for provider access remain in the OS keychain
    **Shipped 2026-04-22.** See §7.3 for the contract.
 4. Ship the web UI. **Shipped 2026-04-22.** See §7.4 for the contract.
 5. Flip the desktop flag; remote agents become visible.
+   **Shipped 2026-04-22.** See §7.5 for the contract.
 6. Write migration notes for users with existing local agents (they
    remain local; publishing them to remote is a one-click action in the
    desktop UI — generates a draft in stagecraft).
@@ -480,3 +483,91 @@ single-sourced from `computeContentHash`.
 
 **Top-level nav.** `app.tsx` gains an "Agents" entry next to Dashboard
 and Factory; the existing org-switcher and workspace pill are unchanged.
+
+### 7.5 Phase 5 — desktop cache + dispatch contract
+
+Landed 2026-04-22. Flips the OPC side from Phase 3's decode-only posture to
+a fully wired cache so stagecraft publish/retire events reach a connected
+desktop in near-real time. Gated by the `OPC_REMOTE_AGENT_CATALOG` env var
+so the default posture remains Phase 3 until operators explicitly opt in —
+the feature flag exists because the desktop UI for surfacing remote vs.
+local rows (§2.4 merge precedence) is a subsequent deliverable, and running
+Phase 5 without that UI would let remote rows appear as ordinary agents.
+
+**Desktop migration.** `agents::init_database` adds five tracking columns
+plus a JSONB mirror on the existing `agents` SQLite table:
+
+```sql
+ALTER TABLE agents ADD COLUMN source TEXT NOT NULL DEFAULT 'local';
+ALTER TABLE agents ADD COLUMN remote_agent_id TEXT;
+ALTER TABLE agents ADD COLUMN remote_version INTEGER;
+ALTER TABLE agents ADD COLUMN remote_content_hash TEXT;
+ALTER TABLE agents ADD COLUMN workspace_id TEXT;
+ALTER TABLE agents ADD COLUMN frontmatter_json TEXT;
+CREATE UNIQUE INDEX agents_remote_id_uniq
+    ON agents(remote_agent_id) WHERE remote_agent_id IS NOT NULL;
+```
+
+The partial index lets `remote_agent_id` be `NULL` on every legacy local
+row while giving the remote-keyed upsert an atomic conflict target. The
+`ON CONFLICT(remote_agent_id) WHERE remote_agent_id IS NOT NULL DO UPDATE`
+form repeats the predicate verbatim because SQLite binds the upsert target
+to the partial index only when the predicate matches literally.
+
+**Cache module.** `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs`
+owns the Phase 5 surface:
+
+- `feature_flag_enabled()` — env-var gate (`1|true|on|yes` enable; empty,
+  `0|false|off` disable).
+- `extract_remote_update(envelope)` — narrows a `ServerEnvelopeWire` to the
+  row shape the DB needs. Returns `None` on missing required fields or an
+  empty `workspace_id`, so a drifted server cannot poison the cache.
+- `upsert_remote_agent(conn, update)` — stamps `source = 'remote'`, pulls
+  `icon` and `model` out of frontmatter leniently (globe fallback for
+  icon, `sonnet` fallback for model), and upserts on the partial index.
+- `retire_remote_agent(conn, remote_agent_id)` — deletes by remote id.
+  Idempotent: a retire for an unknown id is a zero-row no-op.
+- `diff_snapshot(conn, workspace_id, entries)` — pure function returning a
+  `Vec<SnapshotAction>` of `Fetch { CacheMiss | HashMismatch }` for
+  drifted/missing rows and `Delete` for local rows absent from the
+  snapshot. Scoped per workspace so a multi-tenant desktop cannot leak
+  rows across workspaces. Non-`published` snapshot entries (which should
+  never appear but could from a drifted server) are skipped.
+
+**Dispatch handlers.** `register_agent_catalog_handlers(app)`:
+
+- No-ops (logs once) when the feature flag is off.
+- Installs `FnHandler` entries on `SyncClientState::dispatch_table()` for
+  `agent.catalog.updated` and `agent.catalog.snapshot` when enabled.
+- `agent.catalog.updated { published }` → upsert. `{ retired }` → delete.
+  Any other status logs a warning and drops the frame so an out-of-band
+  status string doesn't silently corrupt the cache.
+- `agent.catalog.snapshot` → runs the diff, applies deletions first (so a
+  reconnecting desktop settles monotonically), then spawns one async task
+  that emits an `agent.catalog.fetch_request` per action on the outbound
+  channel. A closed duplex drops pending fetches with a warn log — the
+  next snapshot re-requests.
+- Both handlers emit Tauri events (`agent-catalog-updated`,
+  `agent-catalog-snapshot`) with `{ workspaceId, ... }` payloads so the
+  frontend can refresh without polling.
+
+**Feature flag lifecycle.** `lib.rs` calls the registrar unconditionally;
+the gate lives inside so absence of the env var is a cheap info log rather
+than a conditional `manage()` call. Phase 3 decode stays live either way —
+when the flag is off, unknown-handler frames drop with the existing "no
+handler registered" log, never crashing the reader.
+
+### 7.6 Phase 5 verification surface
+
+Unit coverage in `agent_catalog_sync::tests` (13 cases):
+
+- Feature flag parsing (enabled/disabled strings).
+- Envelope projection (required fields, missing field, empty workspace id).
+- Upsert idempotency on repeated publishes (version + hash updated in
+  place, row count stays at 1).
+- Retire deletes only the targeted row; retire of unknown id is a no-op.
+- Partial unique index allows multiple local rows with `NULL`
+  `remote_agent_id`.
+- Snapshot diff classifies cache miss, hash mismatch, and absence-delete
+  independently; is scoped per workspace; skips retired snapshot entries.
+- Icon/model derivation from frontmatter with correct fallbacks.

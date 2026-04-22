@@ -1,3 +1,4 @@
+pub mod agent_catalog_sync;
 pub mod agents;
 pub mod analysis;
 pub mod auth;

@@ -278,7 +278,7 @@ pub enum OutboundFrame {
 
 /// Reason enum for {@link OutboundFrame::AgentCatalogFetchRequest}. Mirrors
 /// the closed set in stagecraft's `ClientAgentCatalogFetchRequest.reason`.
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentCatalogFetchReason {
     CacheMiss,
