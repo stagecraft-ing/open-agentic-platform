@@ -16,6 +16,7 @@ pub mod settings;
 pub mod slash_commands;
 pub mod stagecraft_client;
 pub mod storage;
+pub mod sync_client;
 pub mod updater;
 pub mod usage;
 pub mod window_ctrl;

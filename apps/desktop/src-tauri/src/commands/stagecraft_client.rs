@@ -142,6 +142,13 @@ impl StagecraftClient {
         &self.base_url
     }
 
+    /// Return the current auth token, if one is loaded. Primarily used by
+    /// the duplex sync consumer (spec 110 Phase 2) which needs to attach
+    /// it as a `Authorization: Bearer …` header on the WebSocket handshake.
+    pub fn auth_token(&self) -> Option<String> {
+        self.auth_token.read().ok().and_then(|g| g.clone())
+    }
+
     /// Clear all auth state (tokens, workspace, actor identity).
     pub fn clear_auth(&self) {
         *self.auth_token.write().unwrap() = None;

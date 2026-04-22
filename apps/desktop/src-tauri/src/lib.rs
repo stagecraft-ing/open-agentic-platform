@@ -57,6 +57,7 @@ use commands::orchestrator::{
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
 use commands::stagecraft_client::StagecraftState;
+use commands::sync_client::{SyncClientConfig, SyncClientState};
 use commands::storage::{
     storage_delete_row, storage_execute_sql, storage_insert_row, storage_list_tables,
     storage_read_table, storage_reset_database, storage_update_row,
@@ -232,6 +233,34 @@ pub fn run() {
                 {
                     log::info!("Restored Stagecraft auth token from OS keychain");
                 }
+
+                // Spec 110 Phase 2: duplex sync consumer. Only spawn when a
+                // base URL is configured AND a JWT is loaded — the stream
+                // requires auth. Reconnects are handled internally.
+                let sync_state = SyncClientState::new();
+                if let Some(ref client) = sc
+                    && let Some(token) = client.auth_token()
+                    && !base_url.is_empty()
+                {
+                    let config = SyncClientConfig {
+                        base_url: client.base_url().to_string(),
+                        client_id: std::env::var("OPC_SYNC_CLIENT_ID")
+                            .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()),
+                        client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+                        auth_token: token,
+                    };
+                    let handle = app.handle().clone();
+                    tauri::async_runtime::spawn(async move {
+                        let state = handle.state::<SyncClientState>();
+                        state.spawn(config).await;
+                    });
+                    log::info!("sync_client: duplex consumer starting");
+                } else {
+                    log::info!(
+                        "sync_client: duplex consumer disabled (no base URL or JWT yet)"
+                    );
+                }
+                app.manage(sync_state);
                 app.manage(StagecraftState(std::sync::RwLock::new(sc)));
             }
 
