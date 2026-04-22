@@ -6,8 +6,19 @@ import {
   confirmFactoryStage,
   rejectFactoryStage,
   cancelPipeline,
+  initFactoryPipeline,
+  listKnowledgeObjects,
+  listBindings,
 } from "../lib/workspace-api.server";
+import { getProject } from "../lib/projects-api.server";
 import { useState } from "react";
+
+const KNOWN_ADAPTERS = [
+  "aim-vue-node",
+  "next-prisma",
+  "rust-axum",
+  "encore-react",
+] as const;
 
 const PIPELINE_STAGES = [
   { id: "s0-preflight", label: "Pre-flight" },
@@ -86,9 +97,13 @@ export async function loader({
 }) {
   await requireUser(request);
 
+  // Resolve workspaceId from the project row — every Factory API call needs it.
+  const { project } = await getProject(request, params.projectId);
+  const workspaceId = (project as { workspaceId: string }).workspaceId;
+
   let pipeline: FactoryStatus | null = null;
   try {
-    const fRes = await getFactoryStatus(request, params.projectId);
+    const fRes = await getFactoryStatus(request, params.projectId, workspaceId);
     pipeline = fRes.pipeline as FactoryStatus | null;
   } catch {
     // no active pipeline
@@ -103,13 +118,43 @@ export async function loader({
     details: unknown;
   }> = [];
   try {
-    const aRes = await listFactoryAudit(request, params.projectId);
+    const aRes = await listFactoryAudit(request, params.projectId, workspaceId);
     auditEntries = aRes.entries;
   } catch {
     // audit may not be available
   }
 
-  return { pipeline, auditEntries };
+  // Load available knowledge objects + current bindings for the init form.
+  let availableKnowledge: Array<{
+    id: string;
+    filename: string;
+    state: string;
+  }> = [];
+  let boundKnowledgeIds: string[] = [];
+  if (!pipeline) {
+    try {
+      const [kRes, bRes] = await Promise.all([
+        listKnowledgeObjects(request),
+        listBindings(request, params.projectId),
+      ]);
+      availableKnowledge = (kRes.objects ?? []).map((o) => ({
+        id: o.id,
+        filename: o.filename,
+        state: o.state,
+      }));
+      boundKnowledgeIds = (bRes.bindings ?? []).map((b) => b.knowledgeObjectId);
+    } catch {
+      // knowledge surface unavailable — init form will render with no preselection.
+    }
+  }
+
+  return {
+    pipeline,
+    auditEntries,
+    workspaceId,
+    availableKnowledge,
+    boundKnowledgeIds,
+  };
 }
 
 export async function action({
@@ -122,24 +167,62 @@ export async function action({
   const user = await requireUser(request);
   const form = await request.formData();
   const intent = form.get("intent");
+  const workspaceId = form.get("workspaceId") as string;
+
+  if (!workspaceId) {
+    return { error: "workspaceId missing from form" };
+  }
+
+  if (intent === "init") {
+    const adapter = form.get("adapter") as string;
+    const knowledgeIds = form.getAll("knowledge_object_ids") as string[];
+    if (!adapter) return { error: "adapter is required" };
+    const res = await initFactoryPipeline(request, params.projectId, {
+      adapter,
+      actorUserId: user.userId,
+      workspaceId,
+      knowledge_object_ids: knowledgeIds.filter(Boolean),
+    });
+    return { initialized: res.pipeline_id };
+  }
 
   if (intent === "confirm") {
     const stageId = form.get("stageId") as string;
     const notes = form.get("notes") as string | null;
-    await confirmFactoryStage(request, params.projectId, stageId, user.userId, notes ?? undefined);
+    await confirmFactoryStage(
+      request,
+      params.projectId,
+      stageId,
+      user.userId,
+      workspaceId,
+      notes ?? undefined
+    );
     return { confirmed: stageId };
   }
 
   if (intent === "reject") {
     const stageId = form.get("stageId") as string;
-    const reason = form.get("reason") as string;
-    await rejectFactoryStage(request, params.projectId, stageId, user.userId, reason);
+    const feedback = form.get("feedback") as string;
+    await rejectFactoryStage(
+      request,
+      params.projectId,
+      stageId,
+      user.userId,
+      workspaceId,
+      feedback
+    );
     return { rejected: stageId };
   }
 
   if (intent === "cancel") {
     const reason = form.get("reason") as string | null;
-    await cancelPipeline(request, params.projectId, user.userId, reason ?? undefined);
+    await cancelPipeline(
+      request,
+      params.projectId,
+      user.userId,
+      workspaceId,
+      reason ?? undefined
+    );
     return { cancelled: true };
   }
 
@@ -147,7 +230,13 @@ export async function action({
 }
 
 export default function PipelineDetail() {
-  const { pipeline, auditEntries } = useLoaderData() as {
+  const {
+    pipeline,
+    auditEntries,
+    workspaceId,
+    availableKnowledge,
+    boundKnowledgeIds,
+  } = useLoaderData() as {
     pipeline: FactoryStatus | null;
     auditEntries: Array<{
       id: string;
@@ -157,6 +246,9 @@ export default function PipelineDetail() {
       stageId: string | null;
       details: unknown;
     }>;
+    workspaceId: string;
+    availableKnowledge: Array<{ id: string; filename: string; state: string }>;
+    boundKnowledgeIds: string[];
   };
   const { project } = useOutletContext<{
     project: { id: string; name: string; slug: string };
@@ -165,14 +257,11 @@ export default function PipelineDetail() {
   return (
     <div className="space-y-6">
       {!pipeline ? (
-        <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-12 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No active factory pipeline for this project.
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Initialize a pipeline from OPC desktop or via the API.
-          </p>
-        </div>
+        <InitPipelineForm
+          workspaceId={workspaceId}
+          availableKnowledge={availableKnowledge}
+          boundKnowledgeIds={boundKnowledgeIds}
+        />
       ) : (
         <>
           {/* Pipeline header */}
@@ -198,7 +287,9 @@ export default function PipelineDetail() {
               </div>
             </div>
 
-            {pipeline.status === "active" && <CancelButton />}
+            {pipeline.status === "active" && (
+              <CancelButton workspaceId={workspaceId} />
+            )}
           </div>
 
           {/* Stage progress visualization */}
@@ -277,6 +368,7 @@ export default function PipelineDetail() {
             <GateActions
               stageId={pipeline.current_stage}
               stageData={pipeline.stages[pipeline.current_stage]}
+              workspaceId={workspaceId}
             />
           )}
 
@@ -335,9 +427,11 @@ export default function PipelineDetail() {
 function GateActions({
   stageId,
   stageData,
+  workspaceId,
 }: {
   stageId: string;
   stageData?: StageData;
+  workspaceId: string;
 }) {
   const fetcher = useFetcher();
   const [showReject, setShowReject] = useState(false);
@@ -361,6 +455,7 @@ function GateActions({
         <fetcher.Form method="POST">
           <input type="hidden" name="intent" value="confirm" />
           <input type="hidden" name="stageId" value={stageId} />
+          <input type="hidden" name="workspaceId" value={workspaceId} />
           <button
             type="submit"
             disabled={fetcher.state !== "idle"}
@@ -382,10 +477,11 @@ function GateActions({
           <fetcher.Form method="POST" className="flex gap-2 items-start">
             <input type="hidden" name="intent" value="reject" />
             <input type="hidden" name="stageId" value={stageId} />
+            <input type="hidden" name="workspaceId" value={workspaceId} />
             <input
               type="text"
-              name="reason"
-              placeholder="Rejection reason..."
+              name="feedback"
+              placeholder="Rejection feedback..."
               required
               className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-800 dark:text-gray-100"
             />
@@ -410,7 +506,7 @@ function GateActions({
   );
 }
 
-function CancelButton() {
+function CancelButton({ workspaceId }: { workspaceId: string }) {
   const fetcher = useFetcher();
 
   return (
@@ -423,6 +519,7 @@ function CancelButton() {
       }}
     >
       <input type="hidden" name="intent" value="cancel" />
+      <input type="hidden" name="workspaceId" value={workspaceId} />
       <button
         type="submit"
         disabled={fetcher.state !== "idle"}
@@ -431,5 +528,135 @@ function CancelButton() {
         Cancel Pipeline
       </button>
     </fetcher.Form>
+  );
+}
+
+function InitPipelineForm({
+  workspaceId,
+  availableKnowledge,
+  boundKnowledgeIds,
+}: {
+  workspaceId: string;
+  availableKnowledge: Array<{ id: string; filename: string; state: string }>;
+  boundKnowledgeIds: string[];
+}) {
+  const fetcher = useFetcher();
+  const [adapter, setAdapter] = useState<string>(KNOWN_ADAPTERS[0]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    new Set(boundKnowledgeIds)
+  );
+
+  function toggle(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const submitting = fetcher.state !== "idle";
+
+  return (
+    <section className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 bg-white dark:bg-gray-900">
+      <header className="mb-4">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+          Initialize Factory Pipeline
+        </h2>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Pick an adapter and the knowledge objects this run should consume.
+          The pipeline runs in OPC desktop; progress streams back here.
+        </p>
+      </header>
+
+      <fetcher.Form method="POST" className="space-y-4">
+        <input type="hidden" name="intent" value="init" />
+        <input type="hidden" name="workspaceId" value={workspaceId} />
+
+        <div>
+          <label
+            htmlFor="adapter"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Adapter
+          </label>
+          <select
+            id="adapter"
+            name="adapter"
+            value={adapter}
+            onChange={(e) => setAdapter(e.target.value)}
+            className="block w-full max-w-sm rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-800 dark:text-gray-100"
+          >
+            {KNOWN_ADAPTERS.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Knowledge Objects
+          </span>
+          {availableKnowledge.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No knowledge objects in this workspace yet. Upload some from the{" "}
+              <span className="font-medium">Knowledge</span> tab first.
+            </p>
+          ) : (
+            <ul className="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
+              {availableKnowledge.map((obj) => {
+                const checked = selectedIds.has(obj.id);
+                return (
+                  <li
+                    key={obj.id}
+                    className="flex items-center gap-2 px-3 py-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      name="knowledge_object_ids"
+                      value={obj.id}
+                      checked={checked}
+                      onChange={() => toggle(obj.id)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-gray-900 dark:text-gray-100 font-mono text-xs truncate">
+                      {obj.filename}
+                    </span>
+                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                      {obj.state}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {selectedIds.size} selected. Pre-selected items are currently
+            bound to the project.
+          </p>
+        </div>
+
+        {fetcher.data &&
+          typeof fetcher.data === "object" &&
+          "error" in fetcher.data &&
+          fetcher.data.error ? (
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {String(fetcher.data.error)}
+          </p>
+        ) : null}
+
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {submitting ? "Starting…" : "Initialize Pipeline"}
+          </button>
+        </div>
+      </fetcher.Form>
+    </section>
   );
 }

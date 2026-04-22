@@ -224,18 +224,52 @@ export async function bindToProject(
 // Factory Pipelines
 // =========================================================================
 
-export async function getFactoryStatus(request: Request, projectId: string) {
+export async function getFactoryStatus(
+  request: Request,
+  projectId: string,
+  workspaceId: string
+) {
+  const qs = `?workspaceId=${encodeURIComponent(workspaceId)}`;
   return apiFetch(
     request,
-    `/api/projects/${projectId}/factory/status`
+    `/api/projects/${projectId}/factory/status${qs}`
   ) as Promise<{ pipeline: PipelineStatusRow | null }>;
 }
 
-export async function listFactoryAudit(request: Request, projectId: string) {
+export async function listFactoryAudit(
+  request: Request,
+  projectId: string,
+  workspaceId: string
+) {
+  const qs = `?workspaceId=${encodeURIComponent(workspaceId)}`;
   return apiFetch(
     request,
-    `/api/projects/${projectId}/factory/audit`
+    `/api/projects/${projectId}/factory/audit${qs}`
   ) as Promise<{ entries: FactoryAuditEntry[] }>;
+}
+
+export async function initFactoryPipeline(
+  request: Request,
+  projectId: string,
+  data: {
+    adapter: string;
+    actorUserId: string;
+    workspaceId: string;
+    business_docs?: Array<{ name: string; storage_ref: string }>;
+    knowledge_object_ids?: string[];
+    policy_overrides?: Record<string, unknown>;
+  }
+) {
+  return apiFetch(request, `/api/projects/${projectId}/factory/init`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<{
+    pipeline_id: string;
+    adapter: string;
+    policy_bundle_id: string;
+    status: string;
+    created_at: string;
+  }>;
 }
 
 export async function confirmFactoryStage(
@@ -243,12 +277,13 @@ export async function confirmFactoryStage(
   projectId: string,
   stageId: string,
   actorUserId: string,
+  workspaceId: string,
   notes?: string
 ) {
   return apiFetch(
     request,
     `/api/projects/${projectId}/factory/stage/${stageId}/confirm`,
-    { method: "POST", body: JSON.stringify({ actorUserId, notes }) }
+    { method: "POST", body: JSON.stringify({ actorUserId, notes, workspaceId }) }
   ) as Promise<{ stage: FactoryStageRow }>;
 }
 
@@ -257,12 +292,13 @@ export async function rejectFactoryStage(
   projectId: string,
   stageId: string,
   actorUserId: string,
-  reason: string
+  workspaceId: string,
+  feedback: string
 ) {
   return apiFetch(
     request,
     `/api/projects/${projectId}/factory/stage/${stageId}/reject`,
-    { method: "POST", body: JSON.stringify({ actorUserId, reason }) }
+    { method: "POST", body: JSON.stringify({ actorUserId, feedback, workspaceId }) }
   ) as Promise<{ stage: FactoryStageRow }>;
 }
 
@@ -270,11 +306,16 @@ export async function cancelPipeline(
   request: Request,
   projectId: string,
   actorUserId: string,
+  workspaceId: string,
   reason?: string
 ) {
   return apiFetch(request, `/api/projects/${projectId}/factory/cancel`, {
     method: "POST",
-    body: JSON.stringify({ actorUserId, reason: reason ?? "Cancelled from web UI" }),
+    body: JSON.stringify({
+      actorUserId,
+      workspaceId,
+      reason: reason ?? "Cancelled from web UI",
+    }),
   }) as Promise<{ pipeline: PipelineStatusRow }>;
 }
 
