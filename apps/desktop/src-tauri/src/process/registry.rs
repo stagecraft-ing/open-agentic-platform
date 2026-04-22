@@ -21,6 +21,12 @@ pub struct ProcessInfo {
     pub project_path: String,
     pub task: String,
     pub model: String,
+    /// Tab/execution session that owns this process (spec 110 §2.4).
+    /// Minted on tab creation; stable for the lifetime of the run. Used by
+    /// stagecraft's duplex stream to route `factory.run.ack` /
+    /// `execution.status` back to the originating request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
 }
 
 /// Information about a running process with handle
@@ -77,6 +83,7 @@ impl ProcessRegistry {
             project_path,
             task,
             model,
+            session_id: None,
         };
 
         self.register_process_internal(run_id, process_info, child)
@@ -105,6 +112,7 @@ impl ProcessRegistry {
             project_path,
             task,
             model,
+            session_id: None,
         };
 
         // For sidecar processes, we register without the child handle since it's managed differently
@@ -139,6 +147,7 @@ impl ProcessRegistry {
             project_path,
             task,
             model,
+            session_id: None,
         };
 
         // Register without child - Claude sessions use ClaudeProcessState for process management

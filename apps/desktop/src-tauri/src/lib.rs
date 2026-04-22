@@ -238,14 +238,18 @@ pub fn run() {
                 // base URL is configured AND a JWT is loaded — the stream
                 // requires auth. Reconnects are handled internally.
                 let sync_state = SyncClientState::new();
+                // Stable OPC instance identity used in factory.run.ack frames
+                // (spec 110 §2.2): reuse the sync client id so logs in the
+                // desktop and envelopes stagecraft receives are correlatable.
+                let opc_instance_id = std::env::var("OPC_SYNC_CLIENT_ID")
+                    .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string());
                 if let Some(ref client) = sc
                     && let Some(token) = client.auth_token()
                     && !base_url.is_empty()
                 {
                     let config = SyncClientConfig {
                         base_url: client.base_url().to_string(),
-                        client_id: std::env::var("OPC_SYNC_CLIENT_ID")
-                            .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()),
+                        client_id: opc_instance_id.clone(),
                         client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
                         auth_token: token,
                     };
@@ -262,6 +266,16 @@ pub fn run() {
                 }
                 app.manage(sync_state);
                 app.manage(StagecraftState(std::sync::RwLock::new(sc)));
+
+                // Spec 110 Phase 4: register the desktop handler for
+                // `factory.run.request`. Dead code until stagecraft flips the
+                // default `source` to `stagecraft` (Rollout Phase 6), but safe
+                // to register unconditionally — the dispatch table is empty
+                // for this kind otherwise.
+                commands::factory::register_factory_run_handler(
+                    app.handle().clone(),
+                    opc_instance_id,
+                );
             }
 
             // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)

@@ -9,6 +9,7 @@ use orchestrator::{
     promotion::SyncTracker,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, LazyLock, Mutex};
@@ -16,6 +17,9 @@ use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
 use super::stagecraft_client::{StagecraftClient, StagecraftState};
+use super::sync_client::{
+    FnHandler, KnowledgeBundle as WireKnowledgeBundle, ServerEnvelopeWire, SyncClientState,
+};
 
 // ---------------------------------------------------------------------------
 // Serde types — frontend-facing shapes (preserved for React compatibility)
@@ -216,6 +220,11 @@ struct FactoryRunContext {
     stagecraft_project_id: Option<String>,
     /// The Stagecraft-assigned pipeline ID, captured from init_pipeline response.
     stagecraft_pipeline_id: Mutex<Option<String>>,
+    /// Tab/execution session that owns this run (spec 110 §2.4). Minted on
+    /// tab creation for stagecraft-triggered runs; a fresh UUID for OPC-direct
+    /// runs. Surfaces back on `factory.run.ack` and on every `execution.status`
+    /// the run emits.
+    session_id: String,
 }
 
 #[derive(Clone, Debug)]
@@ -229,6 +238,15 @@ struct StageTracker {
 
 static FACTORY_RUNS: LazyLock<Mutex<HashMap<String, Arc<FactoryRunContext>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// Dedupe set for `factory.run.request` envelopes (spec 110 §2.1: exactly-once
+/// intent per pipeline_id). The server's outbox is at-least-once; the first
+/// envelope wins and subsequent retries for the same `pipeline_id` become
+/// no-ops. Entries live for the life of the OPC process — a retry after a
+/// process restart is treated as a fresh request (the prior run persisted its
+/// state to disk and stagecraft correlates by pipeline_id regardless).
+static FACTORY_RUN_REQUESTS_SEEN: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
 
 // ---------------------------------------------------------------------------
 // Process stage constants (the 6 Factory pipeline stages)
@@ -606,6 +624,7 @@ pub async fn start_factory_pipeline(
     adapter_name: String,
     business_doc_paths: Vec<String>,
     stagecraft_project_id: Option<String>,
+    session_id: Option<String>,
 ) -> Result<StartPipelineResponse, String> {
     let factory_root = resolve_factory_root()?;
     let project_path = PathBuf::from(&project_path);
@@ -686,6 +705,13 @@ pub async fn start_factory_pipeline(
         stage_status: Mutex::new(initial_stages),
         stagecraft_project_id: stagecraft_project_id.clone(),
         stagecraft_pipeline_id: Mutex::new(None),
+        // Tab/execution session (spec 110 §2.4). Stagecraft-triggered runs
+        // pass the minted id from the envelope handler; OPC-direct runs
+        // generate a fresh one so the invariant "every run has a session"
+        // holds uniformly.
+        session_id: session_id
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| Uuid::new_v4().to_string()),
     });
 
     FACTORY_RUNS
@@ -1596,4 +1622,601 @@ pub async fn resume_factory_pipeline(
     });
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge bundle materialisation (spec 110 §2.3)
+// ---------------------------------------------------------------------------
+
+/// Reasons a knowledge-bundle materialisation can fail. Each variant maps to
+/// a distinct decline_reason on `factory.run.ack` so stagecraft can record
+/// why the run never started.
+#[derive(Debug, thiserror::Error)]
+pub enum KnowledgeMaterializationError {
+    #[error("knowledge_hash_mismatch: expected {expected}, got {actual}")]
+    HashMismatch { expected: String, actual: String },
+    #[error("download failed for {object_id}: {source}")]
+    Download {
+        object_id: String,
+        #[source]
+        source: reqwest::Error,
+    },
+    #[error("cache I/O failed: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("invalid content hash {0}: must be lowercase hex sha-256")]
+    InvalidHash(String),
+}
+
+/// Resolve the OPC knowledge cache directory. Honours `OPC_CACHE_DIR` for
+/// tests and sandboxes; falls back to the platform cache dir + `/opc`.
+fn opc_cache_dir() -> PathBuf {
+    if let Ok(dir) = std::env::var("OPC_CACHE_DIR") {
+        return PathBuf::from(dir);
+    }
+    dirs::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("opc")
+}
+
+/// Content-addressable cache root for materialised knowledge blobs.
+pub fn knowledge_cache_dir() -> PathBuf {
+    opc_cache_dir().join("knowledge")
+}
+
+fn is_lowercase_hex_sha256(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn hash_file(path: &std::path::Path) -> std::io::Result<String> {
+    use std::io::Read;
+    let mut file = std::fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = file.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hex::encode(hasher.finalize()))
+}
+
+/// Materialise a single knowledge bundle to a local path. Enforces the
+/// content-hash trust boundary (§2.3): a mismatch fails the run.
+///
+/// Cache layout: `<cache_dir>/knowledge/<sha256>/<filename>`. Nesting under
+/// the hash lets different filenames coexist for the same content while still
+/// deduping by bytes.
+pub async fn materialize_knowledge_bundle(
+    bundle: &WireKnowledgeBundle,
+) -> Result<PathBuf, KnowledgeMaterializationError> {
+    materialize_knowledge_bundle_in(bundle, &knowledge_cache_dir()).await
+}
+
+/// Test-friendly variant: pins the cache root explicitly so unit tests can
+/// isolate themselves without mutating process-global env state.
+pub async fn materialize_knowledge_bundle_in(
+    bundle: &WireKnowledgeBundle,
+    cache_root: &std::path::Path,
+) -> Result<PathBuf, KnowledgeMaterializationError> {
+    if !is_lowercase_hex_sha256(&bundle.content_hash) {
+        return Err(KnowledgeMaterializationError::InvalidHash(
+            bundle.content_hash.clone(),
+        ));
+    }
+
+    let hash_dir = cache_root.join(&bundle.content_hash);
+    std::fs::create_dir_all(&hash_dir)?;
+    let cache_path = hash_dir.join(&bundle.filename);
+
+    // Cache hit — verify bytes haven't been tampered with since last write
+    // before we hand the path to the engine.
+    if cache_path.exists() {
+        let observed = hash_file(&cache_path)?;
+        if observed == bundle.content_hash {
+            return Ok(cache_path);
+        }
+        // Corrupted cache entry — remove and fall through to re-download.
+        let _ = std::fs::remove_file(&cache_path);
+    }
+
+    // Cache miss — download, stream-hash, write atomically.
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| KnowledgeMaterializationError::Download {
+            object_id: bundle.object_id.clone(),
+            source: e,
+        })?;
+
+    let bytes = client
+        .get(&bundle.download_url)
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(|e| KnowledgeMaterializationError::Download {
+            object_id: bundle.object_id.clone(),
+            source: e,
+        })?
+        .bytes()
+        .await
+        .map_err(|e| KnowledgeMaterializationError::Download {
+            object_id: bundle.object_id.clone(),
+            source: e,
+        })?;
+
+    let mut hasher = Sha256::new();
+    hasher.update(&bytes);
+    let observed = hex::encode(hasher.finalize());
+    if observed != bundle.content_hash {
+        return Err(KnowledgeMaterializationError::HashMismatch {
+            expected: bundle.content_hash.clone(),
+            actual: observed,
+        });
+    }
+
+    // Atomic write: land to a sibling temp file in the same directory, then
+    // rename. Avoids a half-written cache entry on crash.
+    let tmp = hash_dir.join(format!(".{}.partial", bundle.filename));
+    std::fs::write(&tmp, &bytes)?;
+    std::fs::rename(&tmp, &cache_path)?;
+
+    Ok(cache_path)
+}
+
+// ---------------------------------------------------------------------------
+// factory.run.request dispatch handler (spec 110 §2.1 + §8 Phase 4)
+// ---------------------------------------------------------------------------
+
+/// Minimal shape we extract from a `factory.run.request` envelope before
+/// dispatching it to the engine. Mirrors [`ServerEnvelopeWire`] but narrowed
+/// to the fields this handler actually reads.
+struct InboundFactoryRun {
+    pipeline_id: String,
+    project_id: String,
+    adapter: String,
+    knowledge: Vec<WireKnowledgeBundle>,
+}
+
+fn extract_factory_run(envelope: &ServerEnvelopeWire) -> Option<InboundFactoryRun> {
+    Some(InboundFactoryRun {
+        pipeline_id: envelope.pipeline_id.clone()?,
+        project_id: envelope.project_id.clone()?,
+        adapter: envelope.adapter.clone()?,
+        knowledge: envelope.knowledge.clone().unwrap_or_default(),
+    })
+}
+
+/// Register a `factory.run.request` handler on the given sync consumer
+/// dispatch table. Wires the desktop end of spec 110 §8 Phase 4.
+///
+/// The handler:
+///   - Dedupes by `pipeline_id` (§2.1 exactly-once intent).
+///   - Materialises attached knowledge bundles into the content-addressable
+///     cache and verifies each sha-256 (§2.3 trust boundary).
+///   - Mints a `session_id` per accepted request (§2.4 tab session).
+///   - Starts the local factory pipeline via `start_factory_pipeline` and
+///     passes the minted session id through so progress frames can carry it.
+///   - Emits `factory.run.ack` on the outbound channel — `accepted: true` on
+///     the happy path, `accepted: false` with a structured decline_reason on
+///     materialisation or engine start failures.
+pub fn register_factory_run_handler(app: AppHandle, opc_instance_id: String) {
+    let sync_state_present = app.try_state::<SyncClientState>().is_some();
+    if !sync_state_present {
+        log::warn!("register_factory_run_handler: SyncClientState not managed — skipping");
+        return;
+    }
+    let dispatch = app.state::<SyncClientState>().dispatch_table();
+
+    let app_for_handler = app.clone();
+    let handler = FnHandler(move |envelope: &ServerEnvelopeWire| {
+        let Some(run) = extract_factory_run(envelope) else {
+            log::warn!(
+                "factory.run.request missing required fields (pipeline_id/project_id/adapter) — ignoring"
+            );
+            return;
+        };
+
+        // Exactly-once dedupe by pipeline_id. A returning `true` from `insert`
+        // means this is the first time we've seen this pipeline_id.
+        let first_time = match FACTORY_RUN_REQUESTS_SEEN.lock() {
+            Ok(mut g) => g.insert(run.pipeline_id.clone()),
+            Err(_) => false,
+        };
+        if !first_time {
+            log::info!(
+                "factory.run.request duplicate for pipeline_id={} — ignored",
+                run.pipeline_id
+            );
+            return;
+        }
+
+        let session_id = Uuid::new_v4().to_string();
+        let app = app_for_handler.clone();
+        let opc_id = opc_instance_id.clone();
+        tauri::async_runtime::spawn(async move {
+            handle_factory_run_request(app, opc_id, session_id, run).await;
+        });
+    });
+
+    dispatch.register("factory.run.request", Arc::new(handler));
+    log::info!("sync_client: factory.run.request dispatch handler registered");
+}
+
+async fn handle_factory_run_request(
+    app: AppHandle,
+    opc_instance_id: String,
+    session_id: String,
+    run: InboundFactoryRun,
+) {
+    // Step 1: materialise knowledge bundles. Hash mismatch is a trust-boundary
+    // failure — decline the run and let stagecraft mark it failed.
+    let mut doc_paths = Vec::with_capacity(run.knowledge.len());
+    for bundle in &run.knowledge {
+        match materialize_knowledge_bundle(bundle).await {
+            Ok(p) => doc_paths.push(p.to_string_lossy().into_owned()),
+            Err(e) => {
+                let decline = match &e {
+                    KnowledgeMaterializationError::HashMismatch { .. } => {
+                        "knowledge_hash_mismatch".to_string()
+                    }
+                    _ => format!("knowledge_materialization_failed: {e}"),
+                };
+                log::warn!(
+                    "factory.run.request pipeline_id={} bundle={} failed: {e}",
+                    run.pipeline_id,
+                    bundle.object_id
+                );
+                send_factory_run_ack(
+                    &app,
+                    &run.pipeline_id,
+                    &session_id,
+                    &opc_instance_id,
+                    false,
+                    Some(decline),
+                );
+                return;
+            }
+        }
+    }
+
+    // Step 2: resolve a project_path. For the Phase 4 landing we use the
+    // OPC workspace-scoped scratch path `$OPC_CACHE_DIR/projects/<project_id>`
+    // when the frontend has no active project path. This keeps the envelope
+    // flow self-contained while a future phase wires project paths through
+    // the org catalog (spec 111).
+    let project_path = opc_cache_dir()
+        .join("projects")
+        .join(&run.project_id)
+        .to_string_lossy()
+        .into_owned();
+
+    // Step 3: start the pipeline with the minted session id.
+    let result = start_factory_pipeline(
+        app.clone(),
+        project_path,
+        run.adapter.clone(),
+        doc_paths,
+        Some(run.project_id.clone()),
+        Some(session_id.clone()),
+    )
+    .await;
+
+    match result {
+        Ok(_) => {
+            send_factory_run_ack(
+                &app,
+                &run.pipeline_id,
+                &session_id,
+                &opc_instance_id,
+                true,
+                None,
+            );
+        }
+        Err(e) => {
+            log::warn!(
+                "factory.run.request pipeline_id={} engine start failed: {e}",
+                run.pipeline_id
+            );
+            send_factory_run_ack(
+                &app,
+                &run.pipeline_id,
+                &session_id,
+                &opc_instance_id,
+                false,
+                Some(format!("engine_start_failed: {e}")),
+            );
+        }
+    }
+}
+
+/// Fire a `factory.run.ack` on the outbound channel. No-op when the duplex
+/// stream is not currently connected — the handler still executed so the
+/// dedupe marker persists and a reconnect won't re-trigger the same run.
+fn send_factory_run_ack(
+    app: &AppHandle,
+    pipeline_id: &str,
+    session_id: &str,
+    opc_instance_id: &str,
+    accepted: bool,
+    decline_reason: Option<String>,
+) {
+    let Some(sync) = app.try_state::<SyncClientState>() else {
+        log::warn!("send_factory_run_ack: SyncClientState not managed");
+        return;
+    };
+    let pipeline_id = pipeline_id.to_string();
+    let session_id = session_id.to_string();
+    let opc_instance_id = opc_instance_id.to_string();
+    let sync_handle = sync.handle();
+    tauri::async_runtime::spawn(async move {
+        let sent = sync_handle
+            .send_factory_run_ack(
+                &pipeline_id,
+                &session_id,
+                &opc_instance_id,
+                accepted,
+                decline_reason.clone(),
+            )
+            .await;
+        if !sent {
+            log::warn!(
+                "factory.run.ack not delivered (duplex disconnected) pipeline_id={}",
+                pipeline_id
+            );
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Tests (spec 110 Phase 4)
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{Router, body::Body, extract::State, http::StatusCode, response::Response, routing::get};
+    use std::net::SocketAddr;
+    use tokio::sync::oneshot;
+
+    fn sha256_hex(bytes: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        hex::encode(hasher.finalize())
+    }
+
+    #[test]
+    fn is_lowercase_hex_sha256_accepts_valid_hex() {
+        let ok = "a".repeat(64);
+        assert!(is_lowercase_hex_sha256(&ok));
+        assert!(is_lowercase_hex_sha256(&sha256_hex(b"hello")));
+    }
+
+    #[test]
+    fn is_lowercase_hex_sha256_rejects_bad_inputs() {
+        assert!(!is_lowercase_hex_sha256(""));
+        assert!(!is_lowercase_hex_sha256(&"a".repeat(63)));
+        assert!(!is_lowercase_hex_sha256(&"A".repeat(64)), "uppercase rejected");
+        assert!(!is_lowercase_hex_sha256(&"g".repeat(64)), "non-hex rejected");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn materialize_uses_cached_file_when_hash_matches() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache_root = tmp.path().join("knowledge");
+
+        let payload = b"canonical bytes";
+        let hash = sha256_hex(payload);
+        let cache_path = cache_root.join(&hash).join("doc.md");
+        std::fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+        std::fs::write(&cache_path, payload).unwrap();
+
+        let bundle = WireKnowledgeBundle {
+            object_id: "k1".into(),
+            filename: "doc.md".into(),
+            content_hash: hash.clone(),
+            // URL deliberately unreachable — a cache hit must not dial out.
+            download_url: "http://127.0.0.1:1/does-not-exist".into(),
+        };
+        let got = materialize_knowledge_bundle_in(&bundle, &cache_root)
+            .await
+            .unwrap();
+        assert_eq!(got, cache_path);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn materialize_rejects_invalid_hash() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bundle = WireKnowledgeBundle {
+            object_id: "k1".into(),
+            filename: "doc.md".into(),
+            content_hash: "not-a-sha256".into(),
+            download_url: "http://127.0.0.1:1".into(),
+        };
+        let err = materialize_knowledge_bundle_in(&bundle, tmp.path())
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            KnowledgeMaterializationError::InvalidHash(_)
+        ));
+    }
+
+    // Spin up a minimal axum server that serves a fixed byte body at /blob.
+    // Returns the bound address plus a shutdown signal; drop the signal to
+    // stop the server.
+    async fn spawn_blob_server(body: Vec<u8>) -> (SocketAddr, oneshot::Sender<()>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (tx, rx) = oneshot::channel::<()>();
+
+        async fn serve(State(body): State<Arc<Vec<u8>>>) -> Response {
+            Response::builder()
+                .status(StatusCode::OK)
+                .body(Body::from(body.as_ref().clone()))
+                .unwrap()
+        }
+
+        let app = Router::new()
+            .route("/blob", get(serve))
+            .with_state(Arc::new(body));
+
+        tokio::spawn(async move {
+            axum::serve(listener, app)
+                .with_graceful_shutdown(async {
+                    let _ = rx.await;
+                })
+                .await
+                .unwrap();
+        });
+        (addr, tx)
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn materialize_downloads_and_caches_on_miss() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache_root = tmp.path().join("knowledge");
+
+        let payload = b"streamed body".to_vec();
+        let hash = sha256_hex(&payload);
+        let (addr, _stop) = spawn_blob_server(payload.clone()).await;
+
+        let bundle = WireKnowledgeBundle {
+            object_id: "k1".into(),
+            filename: "doc.md".into(),
+            content_hash: hash.clone(),
+            download_url: format!("http://{addr}/blob"),
+        };
+
+        let got = materialize_knowledge_bundle_in(&bundle, &cache_root)
+            .await
+            .unwrap();
+        assert_eq!(std::fs::read(&got).unwrap(), payload);
+
+        // Second call must be a cache hit — the partial/temp file should be
+        // gone, only the canonical filename remains under the hash dir.
+        let second = materialize_knowledge_bundle_in(&bundle, &cache_root)
+            .await
+            .unwrap();
+        assert_eq!(second, got);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn materialize_fails_on_hash_mismatch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache_root = tmp.path().join("knowledge");
+
+        let payload = b"actual bytes".to_vec();
+        let (addr, _stop) = spawn_blob_server(payload).await;
+        // Claim a different (valid-shape) hash so the downloaded bytes fail
+        // verification. This is the trust-boundary case from spec 110 §2.3.
+        let bogus_hash = "0".repeat(64);
+        let bundle = WireKnowledgeBundle {
+            object_id: "k1".into(),
+            filename: "doc.md".into(),
+            content_hash: bogus_hash,
+            download_url: format!("http://{addr}/blob"),
+        };
+        let err = materialize_knowledge_bundle_in(&bundle, &cache_root)
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            KnowledgeMaterializationError::HashMismatch { .. }
+        ));
+    }
+
+    #[test]
+    fn extract_factory_run_requires_pipeline_project_adapter() {
+        // Missing pipeline_id — handler must reject (a malformed envelope
+        // slipped past the schema guard).
+        let env = ServerEnvelopeWire {
+            kind: "factory.run.request".into(),
+            meta: crate::commands::sync_client::ServerMeta {
+                v: 1,
+                event_id: "e".into(),
+                sent_at: "2026-04-21T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+                workspace_cursor: "c".into(),
+                workspace_id: "ws".into(),
+            },
+            policy_bundle_id: None,
+            summary: None,
+            user_id: None,
+            change: None,
+            details: None,
+            project_id: Some("p".into()),
+            environment_id: None,
+            status: None,
+            detail: None,
+            pipeline_id: None,
+            event_type: None,
+            stage_id: None,
+            actor: None,
+            client_event_id: None,
+            reason: None,
+            session_id: None,
+            server_started_at: None,
+            cursor_gap: None,
+            adapter: Some("rest".into()),
+            actor_user_id: None,
+            knowledge: None,
+            business_docs: None,
+            requested_at: None,
+            deadline_at: None,
+        };
+        assert!(extract_factory_run(&env).is_none());
+    }
+
+    #[test]
+    fn extract_factory_run_populates_on_complete_envelope() {
+        let env = ServerEnvelopeWire {
+            kind: "factory.run.request".into(),
+            meta: crate::commands::sync_client::ServerMeta {
+                v: 1,
+                event_id: "e".into(),
+                sent_at: "2026-04-21T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+                workspace_cursor: "c".into(),
+                workspace_id: "ws".into(),
+            },
+            policy_bundle_id: None,
+            summary: None,
+            user_id: None,
+            change: None,
+            details: None,
+            project_id: Some("proj-1".into()),
+            environment_id: None,
+            status: None,
+            detail: None,
+            pipeline_id: Some("pl-1".into()),
+            event_type: None,
+            stage_id: None,
+            actor: None,
+            client_event_id: None,
+            reason: None,
+            session_id: None,
+            server_started_at: None,
+            cursor_gap: None,
+            adapter: Some("rest".into()),
+            actor_user_id: None,
+            knowledge: Some(vec![WireKnowledgeBundle {
+                object_id: "k1".into(),
+                filename: "d.md".into(),
+                content_hash: "a".repeat(64),
+                download_url: "http://x/k1".into(),
+            }]),
+            business_docs: None,
+            requested_at: None,
+            deadline_at: None,
+        };
+        let run = extract_factory_run(&env).unwrap();
+        assert_eq!(run.pipeline_id, "pl-1");
+        assert_eq!(run.project_id, "proj-1");
+        assert_eq!(run.adapter, "rest");
+        assert_eq!(run.knowledge.len(), 1);
+    }
 }

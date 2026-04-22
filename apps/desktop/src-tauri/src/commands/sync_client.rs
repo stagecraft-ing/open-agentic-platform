@@ -178,12 +178,12 @@ pub fn is_server_envelope(raw: &ServerEnvelopeWire) -> bool {
 // Outbound frames (what the desktop can write back on the wire)
 // ---------------------------------------------------------------------------
 
-/// Minimal outbound envelope — only the variants this phase needs.
-/// Richer client variants (execution.status, audit.candidate, factory.run.ack)
-/// are added in later phases via their own typed constructors.
+/// Outbound envelope variants the consumer knows how to emit. Richer client
+/// variants (execution.status, audit.candidate) are added in later phases
+/// via their own typed constructors.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
-enum OutboundFrame {
+pub enum OutboundFrame {
     #[serde(rename = "sync.heartbeat")]
     Heartbeat { meta: EnvelopeMeta },
     #[serde(rename = "sync.ack")]
@@ -199,6 +199,25 @@ enum OutboundFrame {
         since_cursor: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         reason: Option<String>,
+    },
+    /// Spec 110 §2.2 — desktop observation that a `factory.run.request` was
+    /// received. Carries the minted tab `session_id` and the OPC instance id
+    /// so stagecraft can distinguish multiple desktops competing for the same
+    /// run (the first ack wins; others will receive `sync.nack`).
+    #[serde(rename = "factory.run.ack")]
+    FactoryRunAck {
+        meta: EnvelopeMeta,
+        #[serde(rename = "pipelineId")]
+        pipeline_id: String,
+        #[serde(rename = "sessionId")]
+        session_id: String,
+        #[serde(rename = "opcInstanceId")]
+        opc_instance_id: String,
+        accepted: bool,
+        #[serde(rename = "declineReason", skip_serializing_if = "Option::is_none")]
+        decline_reason: Option<String>,
+        #[serde(rename = "observedAt")]
+        observed_at: String,
     },
 }
 
@@ -279,19 +298,75 @@ pub struct SyncClientConfig {
     pub auth_token: String,
 }
 
+/// Shared inner state for the duplex consumer. Held in an `Arc` so external
+/// modules (e.g. the factory.run.request handler) can clone a handle and
+/// post `factory.run.ack` frames without touching the Tauri state registry
+/// on each call.
+#[derive(Default)]
+pub struct SyncClientInner {
+    dispatch: Arc<DispatchTable>,
+    last_cursor: Arc<RwLock<Option<String>>>,
+    /// Sender for the currently-connected duplex session. `None` whenever the
+    /// socket is disconnected; external callers treat a `None` as "best-effort
+    /// drop" rather than blocking.
+    outbound: RwLock<Option<mpsc::Sender<OutboundFrame>>>,
+}
+
+impl SyncClientInner {
+    fn set_outbound(&self, tx: Option<mpsc::Sender<OutboundFrame>>) {
+        if let Ok(mut g) = self.outbound.write() {
+            *g = tx;
+        }
+    }
+
+    fn current_outbound(&self) -> Option<mpsc::Sender<OutboundFrame>> {
+        self.outbound.read().ok().and_then(|g| g.clone())
+    }
+
+    /// Emit a pre-built outbound frame if the duplex stream is connected.
+    /// Returns `true` when the frame was queued on the outbound channel.
+    pub async fn send(&self, frame: OutboundFrame) -> bool {
+        let Some(tx) = self.current_outbound() else {
+            return false;
+        };
+        tx.send(frame).await.is_ok()
+    }
+
+    /// Emit a typed `factory.run.ack` frame (spec 110 §2.2). Returns `false`
+    /// when the duplex stream is not currently connected — callers log but
+    /// do not retry; the dedupe marker prevents re-ack on reconnect.
+    pub async fn send_factory_run_ack(
+        &self,
+        pipeline_id: &str,
+        session_id: &str,
+        opc_instance_id: &str,
+        accepted: bool,
+        decline_reason: Option<String>,
+    ) -> bool {
+        let frame = OutboundFrame::FactoryRunAck {
+            meta: new_meta(),
+            pipeline_id: pipeline_id.to_string(),
+            session_id: session_id.to_string(),
+            opc_instance_id: opc_instance_id.to_string(),
+            accepted,
+            decline_reason,
+            observed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+}
+
 /// Tauri-managed handle to the background duplex consumer.
 pub struct SyncClientState {
-    dispatch: Arc<DispatchTable>,
+    inner: Arc<SyncClientInner>,
     join: Mutex<Option<JoinHandle<()>>>,
-    last_cursor: Arc<RwLock<Option<String>>>,
 }
 
 impl Default for SyncClientState {
     fn default() -> Self {
         Self {
-            dispatch: Arc::new(DispatchTable::new()),
+            inner: Arc::new(SyncClientInner::default()),
             join: Mutex::new(None),
-            last_cursor: Arc::new(RwLock::new(None)),
         }
     }
 }
@@ -302,11 +377,21 @@ impl SyncClientState {
     }
 
     pub fn dispatch_table(&self) -> Arc<DispatchTable> {
-        self.dispatch.clone()
+        self.inner.dispatch.clone()
     }
 
     pub fn last_cursor(&self) -> Option<String> {
-        self.last_cursor.read().ok().and_then(|g| g.clone())
+        self.inner.last_cursor.read().ok().and_then(|g| g.clone())
+    }
+
+    /// Clone the inner handle. Callers hold it across async tasks without
+    /// touching `AppHandle` on every send.
+    ///
+    /// Named `handle()` rather than `inner()` because Tauri's `State<T>`
+    /// already exposes `.inner() -> &T`, which would shadow this method on
+    /// managed-state call sites.
+    pub fn handle(&self) -> Arc<SyncClientInner> {
+        self.inner.clone()
     }
 
     /// Spawn the background reconnect loop. Returns immediately. If an
@@ -316,10 +401,9 @@ impl SyncClientState {
         if let Some(prev) = guard.take() {
             prev.abort();
         }
-        let dispatch = self.dispatch.clone();
-        let last_cursor = self.last_cursor.clone();
+        let inner = self.inner.clone();
         let task = tokio::spawn(async move {
-            run_forever(config, dispatch, last_cursor).await;
+            run_forever(config, inner).await;
         });
         *guard = Some(task);
     }
@@ -341,15 +425,11 @@ const MIN_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(60);
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
 
-async fn run_forever(
-    config: SyncClientConfig,
-    dispatch: Arc<DispatchTable>,
-    last_cursor: Arc<RwLock<Option<String>>>,
-) {
+async fn run_forever(config: SyncClientConfig, inner: Arc<SyncClientInner>) {
     let mut backoff = MIN_BACKOFF;
     loop {
-        let cursor_snapshot = last_cursor.read().ok().and_then(|g| g.clone());
-        match connect_and_run(&config, cursor_snapshot, &dispatch, &last_cursor).await {
+        let cursor_snapshot = inner.last_cursor.read().ok().and_then(|g| g.clone());
+        match connect_and_run(&config, cursor_snapshot, &inner).await {
             Ok(()) => {
                 log::info!("sync_client: duplex stream closed cleanly — reconnecting");
                 backoff = MIN_BACKOFF;
@@ -361,6 +441,9 @@ async fn run_forever(
                 );
             }
         }
+        // Clear the outbound channel so external callers stop enqueuing
+        // frames onto a dead session while we wait to reconnect.
+        inner.set_outbound(None);
         tokio::time::sleep(backoff).await;
         backoff = std::cmp::min(backoff * 2, MAX_BACKOFF);
     }
@@ -412,8 +495,7 @@ type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 async fn connect_and_run(
     config: &SyncClientConfig,
     cursor: Option<String>,
-    dispatch: &Arc<DispatchTable>,
-    last_cursor: &Arc<RwLock<Option<String>>>,
+    inner: &Arc<SyncClientInner>,
 ) -> Result<(), String> {
     let url = build_duplex_url(&config.base_url, &config.client_id, cursor.as_deref());
     log::info!("sync_client: connecting to {url}");
@@ -437,16 +519,20 @@ async fn connect_and_run(
         config.client_id
     );
 
-    run_duplex_session(stream, dispatch, last_cursor).await
+    run_duplex_session(stream, inner).await
 }
 
 async fn run_duplex_session(
     stream: WsStream,
-    dispatch: &Arc<DispatchTable>,
-    last_cursor: &Arc<RwLock<Option<String>>>,
+    inner: &Arc<SyncClientInner>,
 ) -> Result<(), String> {
     let (mut sink, mut source) = stream.split();
     let (out_tx, mut out_rx) = mpsc::channel::<OutboundFrame>(32);
+    // Publish the sender so external handlers (factory.run.request, etc.)
+    // can emit acks while this session is alive.
+    inner.set_outbound(Some(out_tx.clone()));
+    let dispatch = &inner.dispatch;
+    let last_cursor = &inner.last_cursor;
 
     // Heartbeat producer — independent task so a slow server read doesn't
     // block outbound heartbeats.
@@ -511,6 +597,7 @@ async fn run_duplex_session(
     .await;
 
     heartbeat_task.abort();
+    inner.set_outbound(None);
     drop(out_tx);
     let _ = writer_task.await;
     read_result
@@ -799,5 +886,102 @@ mod tests {
         // Regression: a stray non-envelope frame must not crash the reader.
         let env: Result<ServerEnvelopeWire, _> = serde_json::from_str("{\"kind\":123}");
         assert!(env.is_err());
+    }
+
+    #[test]
+    fn factory_run_ack_serializes_to_camelcase_wire_shape() {
+        // Spec 110 §2.2: the wire shape must match stagecraft's
+        // ClientFactoryRunAck exactly — camelCase keys, the right `kind`,
+        // and optional fields omitted when unset.
+        let frame = OutboundFrame::FactoryRunAck {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-04-21T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            pipeline_id: "pl-1".into(),
+            session_id: "s-1".into(),
+            opc_instance_id: "opc-1".into(),
+            accepted: true,
+            decline_reason: None,
+            observed_at: "2026-04-21T00:00:01Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.ack");
+        assert_eq!(json["pipelineId"], "pl-1");
+        assert_eq!(json["sessionId"], "s-1");
+        assert_eq!(json["opcInstanceId"], "opc-1");
+        assert_eq!(json["accepted"], true);
+        assert!(
+            json.get("declineReason").is_none(),
+            "declineReason must be omitted when None"
+        );
+        assert_eq!(json["observedAt"], "2026-04-21T00:00:01Z");
+        assert_eq!(json["meta"]["v"], 1);
+        assert_eq!(json["meta"]["eventId"], "e1");
+    }
+
+    #[test]
+    fn factory_run_ack_include_decline_reason_when_rejected() {
+        let frame = OutboundFrame::FactoryRunAck {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-04-21T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            pipeline_id: "pl-1".into(),
+            session_id: "s-1".into(),
+            opc_instance_id: "opc-1".into(),
+            accepted: false,
+            decline_reason: Some("knowledge_hash_mismatch".into()),
+            observed_at: "2026-04-21T00:00:01Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["accepted"], false);
+        assert_eq!(json["declineReason"], "knowledge_hash_mismatch");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn send_without_active_session_returns_false() {
+        // External handlers call send() before the duplex stream connects.
+        // The contract is best-effort drop — return false, never block.
+        let inner = Arc::new(SyncClientInner::default());
+        let sent = inner
+            .send_factory_run_ack("pl", "sid", "opc", true, None)
+            .await;
+        assert!(!sent);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn send_with_active_session_enqueues_on_channel() {
+        let inner = Arc::new(SyncClientInner::default());
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(8);
+        inner.set_outbound(Some(tx));
+
+        let sent = inner
+            .send_factory_run_ack("pl", "sid", "opc", true, None)
+            .await;
+        assert!(sent);
+
+        let frame = rx.recv().await.expect("frame on channel");
+        match frame {
+            OutboundFrame::FactoryRunAck {
+                pipeline_id,
+                session_id,
+                opc_instance_id,
+                accepted,
+                ..
+            } => {
+                assert_eq!(pipeline_id, "pl");
+                assert_eq!(session_id, "sid");
+                assert_eq!(opc_instance_id, "opc");
+                assert!(accepted);
+            }
+            other => panic!("unexpected frame: {other:?}"),
+        }
     }
 }
