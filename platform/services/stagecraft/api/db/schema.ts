@@ -901,3 +901,55 @@ export const factorySyncRuns = pgTable("factory_sync_runs", {
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
 });
+
+// ---------------------------------------------------------------------------
+// Spec 111 — Org-managed Agent Catalog.
+// ---------------------------------------------------------------------------
+// Authoritative per-workspace agent definitions. `status` and `action` are
+// constrained as CHECK-backed TEXT in the migration; mirrored here as typed
+// string unions so drift between drizzle and SQL fails at the TS boundary.
+
+export type AgentCatalogStatus = "draft" | "published" | "retired";
+export type AgentCatalogAuditAction =
+  | "create"
+  | "edit"
+  | "publish"
+  | "retire"
+  | "fork";
+
+export const agentCatalog = pgTable(
+  "agent_catalog",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull(),
+    name: text("name").notNull(),
+    version: integer("version").notNull().default(1),
+    status: text("status").$type<AgentCatalogStatus>()
+      .notNull()
+      .default("draft"),
+    frontmatter: jsonb("frontmatter").notNull(),
+    bodyMarkdown: text("body_markdown").notNull(),
+    contentHash: text("content_hash").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.workspaceId, t.name, t.version)]
+);
+
+export const agentCatalogAudit = pgTable("agent_catalog_audit", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agentId: uuid("agent_id").notNull(),
+  workspaceId: uuid("workspace_id").notNull(),
+  action: text("action").$type<AgentCatalogAuditAction>().notNull(),
+  actorUserId: uuid("actor_user_id").notNull(),
+  before: jsonb("before"),
+  after: jsonb("after"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

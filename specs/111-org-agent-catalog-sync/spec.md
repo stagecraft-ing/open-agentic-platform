@@ -3,7 +3,7 @@ id: "111-org-agent-catalog-sync"
 slug: org-agent-catalog-sync
 title: Org-managed Agent Catalog Synced from Stagecraft to OPC
 status: draft
-implementation: pending
+implementation: in-progress
 owner: bart
 created: "2026-04-21"
 summary: >
@@ -22,7 +22,7 @@ depends_on:
   - "090"  # governance-non-optionality (no bypass of policy bundle)
   - "110"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
 implements:
-  - path: platform/services/stagecraft/api/db/migrations/20_agent_catalog.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql
   - path: platform/services/stagecraft/api/agents/
   - path: platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
   - path: platform/services/stagecraft/api/sync/types.ts
@@ -71,7 +71,9 @@ locally-created via the desktop UI) continue to work, but are marked
 
 ### 2.1 Data model
 
-New tables in stagecraft (migration 20):
+New tables in stagecraft (migration 21 — slot 20 was consumed by spec 110
+Phase 3 `factory_pipelines.source`; slot 21 is the first free index after
+the 2026-04-21 merge order):
 
 ```sql
 CREATE TABLE agent_catalog (
@@ -313,8 +315,8 @@ produce stay local. Secrets for provider access remain in the OS keychain
 
 ## 7. Rollout
 
-1. Migration 20; API endpoints without sync envelopes — admins can CRUD
-   agents, but desktops don't receive them.
+1. Migration 21; API endpoints without sync envelopes — admins can CRUD
+   agents, but desktops don't receive them. **Shipped 2026-04-22.**
 2. Extend `agent-frontmatter` types for the JSONB round-trip (shared
    type generator).
 3. Add `agent.catalog.snapshot` and `agent.catalog.updated` envelopes

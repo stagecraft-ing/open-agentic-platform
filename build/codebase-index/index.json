@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2589edd947764c220f3a15d9563468db8d22d13b694b080c72a20152141d7c34",
+    "contentHash": "3815bfd23513e8c14193f10084bfa59b4305ff09423d8b64d07e5d9f50917b45",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11,10 +11,6 @@
       {
         "code": "I-101",
         "message": "spec \"110-stagecraft-to-opc-factory-trigger\" declares implements path \"apps/desktop/src/routes/factory\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/api/db/migrations/20_agent_catalog.up.sql\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -2782,7 +2778,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/api/db/migrations/20_agent_catalog.up.sql",
+            "path": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql",
             "source": "spec-implements"
           },
           {
