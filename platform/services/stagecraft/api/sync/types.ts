@@ -86,6 +86,7 @@ export type ClientEnvelope =
   | ClientRuntimeObserved
   | ClientAgentInvocation
   | ClientAuditCandidate
+  | ClientFactoryRunAck
   | ClientAck
   | ClientResyncRequest
   | ClientHeartbeat;
@@ -158,6 +159,31 @@ export interface ClientAuditCandidate {
   details?: Record<string, unknown>;
 }
 
+/**
+ * Desktop observation that a `factory.run.request` was received (spec 110 §2.2).
+ *
+ * This is an OBSERVATION of local intent — it does not assert server state,
+ * so it fits within the 087 §5.3 extension rule for `ClientEnvelope`. The
+ * `accepted: false` path is how policy/local-state declines surface back to
+ * stagecraft.
+ */
+export interface ClientFactoryRunAck {
+  kind: "factory.run.ack";
+  meta: EnvelopeMeta;
+  /** Correlates to the `pipelineId` on the triggering `factory.run.request`. */
+  pipelineId: string;
+  /** Tab/execution session that accepted the request (spec 110 §2.4). */
+  sessionId: string;
+  /** Stable identifier for the OPC process that observed the request. */
+  opcInstanceId: string;
+  /** False when the desktop saw the request but declined it. */
+  accepted: boolean;
+  /** Present when `accepted === false`. Free-form, user-surfacable. */
+  declineReason?: string;
+  /** ISO-8601 timestamp of the observation. */
+  observedAt: string;
+}
+
 /** Client acknowledging a previously-received server event. */
 export interface ClientAck {
   kind: "sync.ack";
@@ -197,6 +223,7 @@ export type ServerEnvelope =
   | ServerWorkspaceUpdated
   | ServerProjectUpdated
   | ServerFactoryEvent
+  | ServerFactoryRunRequest
   | ServerAck
   | ServerNack
   | ServerResyncRequired
@@ -268,6 +295,67 @@ export interface ServerFactoryEvent {
   stageId?: string;
   actor?: string;
   details?: Record<string, unknown>;
+}
+
+/**
+ * Knowledge-bundle reference carried on a `factory.run.request` (spec 110 §2.3).
+ *
+ * The desktop resolves each entry against a content-addressable cache at
+ * `$OPC_CACHE_DIR/knowledge/<contentHash>` before passing local paths to the
+ * factory engine; the hash is the trust boundary (mismatch ⇒ run fails).
+ */
+export interface KnowledgeBundle {
+  /** Knowledge-object UUID on stagecraft. */
+  objectId: string;
+  /** Suggested local filename (preserves extension for the engine). */
+  filename: string;
+  /** sha-256 of the object body — authoritative cache key. */
+  contentHash: string;
+  /** Presigned URL with a short TTL (15 min); regenerated on resync. */
+  downloadUrl: string;
+}
+
+/**
+ * Business-doc reference carried on a `factory.run.request` (spec 110 §2.1).
+ *
+ * Distinct from the file-local `BusinessDocRef` in `api/factory/factory.ts`
+ * (which uses snake_case `storage_ref` to match HTTP shape); this is the
+ * wire-level camelCase form used on the envelope.
+ */
+export interface EnvelopeBusinessDoc {
+  name: string;
+  storageRef: string;
+}
+
+/**
+ * Stagecraft directs a connected OPC to start a locally-executed factory run
+ * (spec 110 §2.1).
+ *
+ * Authority invariant (087 §5.3): this IS a control-plane directive. The
+ * request originates from an authenticated stagecraft user; the desktop
+ * enforces its local policy bundle before acting and replies with
+ * `factory.run.ack` (`accepted: false`) when it declines. One OPC accepts;
+ * others receive `sync.nack` for the same `meta.eventId`.
+ */
+export interface ServerFactoryRunRequest {
+  kind: "factory.run.request";
+  meta: ServerMeta;
+  projectId: string;
+  pipelineId: string;
+  /** One of the KNOWN_ADAPTERS registered with the factory engine. */
+  adapter: string;
+  /** User who clicked Initialize (or invoked `oap-ctl run factory`). */
+  actorUserId: string;
+  /** Workspace knowledge objects attached to this run. */
+  knowledge: KnowledgeBundle[];
+  /** Explicit per-request doc uploads. Same shape as spec 108. */
+  businessDocs: EnvelopeBusinessDoc[];
+  /** Policy bundle id compiled server-side for this workspace. */
+  policyBundleId: string;
+  /** ISO-8601 when stagecraft dispatched the request. */
+  requestedAt: string;
+  /** ISO-8601 after which stagecraft will mark the pipeline `abandoned`. */
+  deadlineAt: string;
 }
 
 /** Server accepted a client event and recorded it. */
@@ -342,6 +430,7 @@ export interface ClientEnvelopeWire {
     | "runtime.observed"
     | "agent.invocation"
     | "audit.candidate"
+    | "factory.run.ack"
     | "sync.ack"
     | "sync.resync_request"
     | "sync.heartbeat";
@@ -377,6 +466,13 @@ export interface ClientEnvelopeWire {
   serverEventId?: string;
   sinceCursor?: string;
   reason?: string;
+  // spec 110 §2.2 — factory.run.ack fields
+  pipelineId?: string;
+  sessionId?: string;
+  opcInstanceId?: string;
+  accepted?: boolean;
+  declineReason?: string;
+  observedAt?: string;
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -388,6 +484,7 @@ export interface ServerEnvelopeWire {
     | "workspace.updated"
     | "project.updated"
     | "factory.event"
+    | "factory.run.request"
     | "sync.ack"
     | "sync.nack"
     | "sync.resync_required"
@@ -429,6 +526,13 @@ export interface ServerEnvelopeWire {
   sessionId?: string;
   serverStartedAt?: string;
   cursorGap?: boolean;
+  // spec 110 §2.1 — factory.run.request fields
+  adapter?: string;
+  actorUserId?: string;
+  knowledge?: KnowledgeBundle[];
+  businessDocs?: EnvelopeBusinessDoc[];
+  requestedAt?: string;
+  deadlineAt?: string;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.
@@ -444,6 +548,7 @@ const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind
   "runtime.observed",
   "agent.invocation",
   "audit.candidate",
+  "factory.run.ack",
   "sync.ack",
   "sync.resync_request",
   "sync.heartbeat",

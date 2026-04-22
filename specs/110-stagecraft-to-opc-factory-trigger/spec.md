@@ -3,7 +3,7 @@ id: "110-stagecraft-to-opc-factory-trigger"
 slug: stagecraft-to-opc-factory-trigger
 title: Stagecraft-initiated Factory Run Trigger over the Duplex Channel
 status: draft
-implementation: pending
+implementation: in-progress
 owner: bart
 created: "2026-04-21"
 summary: >
@@ -315,19 +315,45 @@ the request". Within scope per the extension rule.
 
 ## 8. Rollout
 
-1. Land the type additions (backwards compatible — new variants are
-   discriminated by `kind`, old clients silently ignore).
-2. Land the stagecraft `relay.publishFactoryRunRequest` and hook it into
+Revised 2026-04-21 after pre-implementation audit: the desktop has **no**
+duplex-stream consumer today (confirmed by grep across
+`apps/desktop/src-tauri/`). Original §10 claim "StagecraftClient reads the
+stream for bookkeeping" was wrong — the Rust-side `StagecraftClient` is
+HTTP-only. Bootstrapping the desktop consumer is the gating dependency,
+not a footnote.
+
+1. **Type additions.** Land `ServerFactoryRunRequest` +
+   `ClientFactoryRunAck` in `api/sync/types.ts` with widened wire
+   interfaces, `CLIENT_KINDS`, and unit tests that also assert directives
+   cannot slip through the client-inbox guard. Backwards compatible — new
+   variants are discriminated by `kind`, old clients silently ignore. No
+   runtime wiring yet.
+2. **Desktop duplex consumer bootstrap.** New
+   `apps/desktop/src-tauri/src/commands/sync_client.rs` that opens the
+   Encore `/api/sync/duplex` stream, performs the handshake, maintains
+   heartbeat + resync, and exposes a typed envelope-dispatch table. With
+   no registered handlers beyond heartbeat + logging, this is dead code
+   from the user's perspective but paves the path for §3–§5 and for spec
+   111. Sized as its own commit; covers what §10 originally hand-waved.
+3. **Stagecraft `relay.publishFactoryRunRequest`** and hook it into
    `initPipeline` *behind a feature flag* on the pipeline row (`source:
    "opc-direct" | "stagecraft"`). OPC-direct runs skip the envelope path.
-3. Land the desktop-side handler. With the flag off, it's dead code.
-4. Land `oap-ctl run factory` and the SSE endpoint.
-5. Flip the flag on by default; `oap-ctl` and web both go through the
+   Add a `source` column to `factory_pipelines` (migration — no existing
+   column per spec 108 schema).
+4. **Desktop-side handler.** Register the `factory.run.request` dispatch
+   in the consumer from §2, implement knowledge-bundle materialisation
+   (§2.3), plumb `session_id` through `FactoryRunContext` and the tab
+   state (§2.4), and emit `factory.run.ack`. With the flag off, still
+   dead code.
+5. **`oap-ctl run factory`** and the SSE endpoint
+   (`GET /api/projects/:id/factory/stream`).
+6. **Flip the flag on by default.** `oap-ctl` and web both go through the
    envelope path. OPC-direct remains available for offline workflows.
 
 ## 9. Dependencies already shipped
 
-- 087 §5.3 duplex channel (shipped, `api/sync/` module).
+- 087 §5.3 duplex channel on the **server** side (`api/sync/` module).
+  The desktop consumer is NOT yet shipped — see Rollout phase 2.
 - 108 Factory tables + `initPipeline` (shipped).
 - 109 PubSub pattern (shipped; we reuse the mental model, not the topic).
 - Knowledge object storage + presigned URLs (shipped in 087 Phase 2).
@@ -337,7 +363,17 @@ the request". Within scope per the extension rule.
 - `factory.event` already exists as a `ServerEnvelope` variant. **Do not**
   reuse it for run requests — it's an observation variant, not a
   directive. Keeping the two separate preserves the authority invariant.
-- The desktop's `StagecraftClient` currently reads the duplex stream only
-  for bookkeeping. Adding a dispatcher (match on `kind` → handler map) is
-  a small lift and sets the pattern for future `ServerEnvelope`
-  directives (spec 111's agent catalog push).
+- The desktop's `StagecraftClient` (`apps/desktop/src-tauri/src/commands/
+  stagecraft_client.rs`) is **HTTP-only** — 847 lines of REST calls, no
+  duplex reader. Rollout phase 2 introduces a sibling `sync_client.rs`
+  that owns the streaming connection. Mixing the two into one module
+  would confuse request/response semantics with long-lived-stream
+  semantics; keep them distinct.
+- The envelope-dispatch table on the desktop (phase 2) should be
+  extensible enough that spec 111's `agent.catalog.updated` directive can
+  register a handler with zero refactor — pattern is `HashMap<&'static
+  str, Arc<dyn EnvelopeHandler>>` or equivalent.
+- Unit tests in `api/sync/types.test.ts` MUST include a "forged
+  directive" case: a client synthesising `factory.run.request` on the
+  inbox must fail `isClientEnvelope`. This encodes the authority
+  invariant at the guard layer, not only at the schema layer.
