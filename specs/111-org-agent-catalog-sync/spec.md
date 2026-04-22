@@ -337,7 +337,8 @@ produce stay local. Secrets for provider access remain in the OS keychain
    **Shipped 2026-04-22.** See §7.5 for the contract.
 6. Write migration notes for users with existing local agents (they
    remain local; publishing them to remote is a one-click action in the
-   desktop UI — generates a draft in stagecraft).
+   desktop UI — generates a draft in stagecraft). **Shipped 2026-04-22.**
+   See §7.7 for the contract.
 
 ### 7.2 Phase 2 — shared type generator contract
 
@@ -571,3 +572,123 @@ Unit coverage in `agent_catalog_sync::tests` (13 cases):
 - Snapshot diff classifies cache miss, hash mismatch, and absence-delete
   independently; is scoped per workspace; skips retired snapshot entries.
 - Icon/model derivation from frontmatter with correct fallbacks.
+
+### 7.7 Phase 6 — local→remote publish contract
+
+Landed 2026-04-22. Closes the migration path for users whose agents
+predate the workspace catalog: a local SQLite row can seed a stagecraft
+draft with one click, without retyping the prompt into the web UI.
+
+**Authority posture unchanged.** Phase 6 does not grant the desktop the
+ability to *publish* — only to create a draft. Promoting the draft to
+`published` still flows through `POST /api/agents/:id/publish`, which
+requires `workspace:admin` (catalog.ts `requirePublishRole`). Non-admin
+users can seed content; a workspace admin still reviews before it fans
+out to other desktops via the Phase 3 envelopes.
+
+**Command surface.**
+
+```rust
+#[tauri::command]
+pub async fn publish_local_agent_to_workspace(
+    db: State<AgentDb>,
+    stagecraft: State<StagecraftState>,
+    agent_id: i64,
+) -> Result<PublishLocalAgentResult, String>;
+```
+
+Lives in `apps/desktop/src-tauri/src/commands/agent_catalog_publish.rs`.
+Returns a `web_path` (`/app/workspace/agents/<remote_id>`) so the
+frontend can open the stagecraft detail page directly — the user lands
+on the draft ready to publish.
+
+**Preconditions enforced by the command:**
+
+1. `StagecraftState` holds a configured client (base URL set).
+2. The client carries a Rauthy JWT (spec 087 Phase 5) — workspaceId is
+   read server-side from the `oap_workspace_id` claim, so the desktop
+   does not need to pass it in the body.
+3. The target row has `source = 'local'`. Publishing a row that is
+   already a remote cache entry is a no-op the UI shouldn't offer, and
+   the command rejects it explicitly so a mis-wired UI button cannot
+   echo a remote row back through a second draft.
+
+**Field mapping (local `agents` row → `CatalogFrontmatter` + body):**
+
+| Local column        | Frontmatter key / body position                |
+|---------------------|------------------------------------------------|
+| `name`              | `name` (slugified) + `display_name` (original) |
+| `icon`              | `icon`                                         |
+| `model`             | `model`                                        |
+| `default_task`      | `default_task` (extra field, JSONB-preserved)  |
+| `enable_file_write` | → `mutation`                                   |
+| `enable_network`    | → `mutation` (combined with `enable_file_write`)|
+| `hooks` (JSON blob) | `hooks` when parseable as JSON object; else dropped |
+| `system_prompt`     | `body_markdown`                                |
+| first non-empty line of `system_prompt` | `description`                |
+
+`safety_tier` is intentionally left unset on the draft. Local rows
+carry only coarse boolean flags; the user must review and pin a tier in
+the web UI before the admin publishes. This avoids laundering a Tier1
+default onto a prompt that should have been Tier2.
+
+**Slug normalisation.** Stagecraft's `/api/agents` enforces
+`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`. The desktop's free-form names flow
+through `slugify_agent_name`:
+
+- lowercase ASCII;
+- non-alphanumeric runs collapse to a single `-`;
+- leading/trailing `-` are stripped;
+- a leading digit is prefixed with `a-` so the regex anchor holds.
+
+Input without any alphanumerics returns a caller-surfaced error — the
+UI tells the user to rename the agent first rather than silently
+fabricating a slug.
+
+**Local row stays local.** The command does **not** touch the local
+row's `source` column. The workflow is:
+
+1. User clicks "Publish to workspace" on a local agent.
+2. Desktop creates the draft in stagecraft.
+3. User (or a workspace admin) reviews + publishes via the web UI.
+4. Published row fans back in via `agent.catalog.updated`.
+5. Phase 5 cache ingestion inserts it as a `source='remote'` row.
+6. Phase 3/5 merge semantics (§2.4) hide the `source='local'` copy in
+   the desktop catalog list, since the remote row now shadows it.
+
+The local copy is retained (not deleted) so a user who later leaves
+the workspace, or whose workspace retires the remote row, still has
+the original definition.
+
+**Migration notes for pre-existing local agents:**
+
+- Agents authored before spec 111 Phase 6 remain functional without
+  any action. They carry `source = 'local'` and continue to appear in
+  the desktop agent list exactly as before.
+- `.claude/agents/*.md` project files are `source='local'` with
+  sub-kind `file` (§2.4). Publishing these requires first importing
+  them into the desktop catalog via the existing "Import Agent" flow,
+  then running Publish to Workspace on the imported row.
+- Agents that collide by slug with an already-published workspace
+  agent will create a parallel draft (stagecraft's
+  `(workspace_id, name, version)` uniqueness permits multiple versions
+  per name; `nextVersion` picks `max+1`). The workspace admin decides
+  whether to publish the new version or retire it as a duplicate.
+- `safety_tier` review is required before publication — the linter
+  that runs on publish (§2.5) flags its absence, and the admin UI
+  surfaces the flag as a red banner.
+- Publishing does **not** export model API keys, keychain entries, or
+  OAuth tokens. Per §3, those stay on the originating desktop.
+
+**Unit coverage in `agent_catalog_publish::tests` (11 cases):**
+
+- Slug handles spaces, mixed case, non-alphanumeric collapse, and
+  edge inputs (digit-first, strip leading/trailing separators,
+  empty/alnum-free rejection).
+- Mapping populates Tier-1 fields (name, type, icon, model,
+  display_name, description-from-first-line).
+- Mutation derivation covers the four `(write, network)` quadrants;
+  network-only clamps to read-only.
+- `default_task` round-trips as an extra field; empty/`None` omits it.
+- `hooks` round-trip when valid JSON object; non-JSON drops silently.
+- Slug failure propagates up from `map_local_agent_to_payload`.

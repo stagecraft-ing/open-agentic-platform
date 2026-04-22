@@ -462,6 +462,8 @@ pub fn run() {
             fetch_github_agents,
             fetch_github_agent_content,
             import_agent_from_github,
+            // Workspace agent catalog (spec 111 Phase 6)
+            commands::agent_catalog_publish::publish_local_agent_to_workspace,
             // Workspace threading (spec 092)
             set_active_workspace,
             list_workspaces,

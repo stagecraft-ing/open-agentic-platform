@@ -535,6 +535,42 @@ impl StagecraftClient {
         resp.json().await.map_err(StagecraftError::Decode)
     }
 
+    // -- Spec 111 Phase 6: one-click local→remote agent publishing -----------
+
+    /// Create a draft in the workspace's agent catalog.
+    ///
+    /// The server scopes the draft to the workspaceId embedded in the Rauthy
+    /// JWT (see `requireWorkspaceAuth` in stagecraft's catalog.ts), so the
+    /// desktop only needs a valid Bearer token plus the payload. Returns the
+    /// new catalog row identifiers so the caller can link the user to the
+    /// web-UI publish page.
+    pub async fn create_agent_draft(
+        &self,
+        name: &str,
+        frontmatter: serde_json::Value,
+        body_markdown: &str,
+    ) -> Result<CreateAgentDraftResponse, StagecraftError> {
+        let url = format!("{}/api/agents", self.base_url);
+        let body = CreateAgentDraftRequest {
+            name: name.to_string(),
+            frontmatter,
+            body_markdown: body_markdown.to_string(),
+        };
+        let resp = self
+            .authed_post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
     // -- FR-008: Token Spend --------------------------------------------------
 
     pub async fn report_token_spend(
@@ -819,6 +855,35 @@ pub struct RecordArtifactsResponse {
 pub struct LookupArtifactResponse {
     pub found: bool,
     pub artifact: Option<ArtifactInfo>,
+}
+
+// ---------------------------------------------------------------------------
+// Agent catalog draft (spec 111 Phase 6)
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+struct CreateAgentDraftRequest {
+    name: String,
+    frontmatter: serde_json::Value,
+    body_markdown: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateAgentDraftResponse {
+    pub agent: CatalogAgentWire,
+}
+
+/// Subset of stagecraft's `CatalogAgent` that the desktop cares about after a
+/// draft create. Fields mirror the snake_cased wire shape defined in
+/// `catalog.ts`.
+#[derive(Debug, Deserialize)]
+pub struct CatalogAgentWire {
+    pub id: String,
+    pub workspace_id: String,
+    pub name: String,
+    pub version: u32,
+    pub status: String,
+    pub content_hash: String,
 }
 
 #[derive(Debug, Deserialize)]
