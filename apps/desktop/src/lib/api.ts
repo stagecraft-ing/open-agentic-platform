@@ -166,6 +166,19 @@ export interface AgentExport {
   };
 }
 
+/** Returned by `publish_local_agent_to_workspace` (spec 111 Phase 6). */
+export interface PublishLocalAgentResult {
+  local_agent_id: number;
+  remote_agent_id: string;
+  workspace_id: string;
+  name: string;
+  version: number;
+  status: string;
+  content_hash: string;
+  /** Relative path into the stagecraft web app — append to the configured base URL. */
+  web_path: string;
+}
+
 export interface GitHubAgentFile {
   name: string;
   path: string;
@@ -915,6 +928,19 @@ export const api = {
       return await apiCall<string>('export_agent', { id });
     } catch (error) {
       console.error("Failed to export agent:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Publishes a local agent to the stagecraft workspace as a draft (spec 111 Phase 6).
+   * Promoting the draft to published still flows through the RBAC-gated web UI.
+   */
+  async publishAgentToWorkspace(id: number): Promise<PublishLocalAgentResult> {
+    try {
+      return await apiCall<PublishLocalAgentResult>('publish_local_agent_to_workspace', { agentId: id });
+    } catch (error) {
+      console.error("Failed to publish agent to workspace:", error);
       throw error;
     }
   },

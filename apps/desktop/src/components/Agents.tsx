@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Loader2, Play, Clock, CheckCircle, XCircle, Trash2, Import, ChevronDown, ChevronRight, FileJson, Globe, Download, Plus, History, Edit } from 'lucide-react';
+import { Bot, Loader2, Play, Clock, CheckCircle, XCircle, Trash2, Import, ChevronDown, ChevronRight, FileJson, Globe, Download, Plus, History, Edit, UploadCloud } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import { Card } from '@opc/ui/card';
 import { Toast } from '@opc/ui/toast';
 import { api, type Agent, type AgentRunWithMetrics } from '@/lib/api';
 import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
+import { open as openExternal } from '@tauri-apps/plugin-shell';
 import { invoke } from '@tauri-apps/api/core';
 import { GitHubAgentBrowser } from '@/components/GitHubAgentBrowser';
 import { CreateAgent } from '@/components/CreateAgent';
@@ -156,6 +157,32 @@ export const Agents: React.FC = () => {
     } catch (error) {
       console.error('Failed to export agent:', error);
       setToast({ message: 'Failed to export agent', type: 'error' });
+    }
+  };
+
+  const handlePublishToWorkspace = async (agent: Agent) => {
+    if (!agent.id) {
+      setToast({ message: 'Agent ID is missing', type: 'error' });
+      return;
+    }
+    try {
+      const result = await api.publishAgentToWorkspace(agent.id);
+      const baseUrl = (await api.getStagecraftBaseUrl()).replace(/\/$/, '');
+      if (baseUrl) {
+        try {
+          await openExternal(`${baseUrl}${result.web_path}`);
+        } catch (openErr) {
+          console.warn('Failed to open stagecraft draft in browser:', openErr);
+        }
+      }
+      setToast({
+        message: `Draft created in workspace — open the web UI to review and publish`,
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('Failed to publish agent to workspace:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      setToast({ message: `Failed to publish: ${msg}`, type: 'error' });
     }
   };
 
@@ -371,7 +398,11 @@ export const Agents: React.FC = () => {
                               <Download className="w-4 h-4 mr-2" />
                               Export
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem onClick={() => handlePublishToWorkspace(agent)}>
+                              <UploadCloud className="w-4 h-4 mr-2" />
+                              Publish to workspace
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => {
                                 setAgentToDelete(agent);
                                 setShowDeleteDialog(true);
