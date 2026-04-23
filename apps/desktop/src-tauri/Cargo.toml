@@ -4,7 +4,7 @@
 
 [package]
 name = "opc"
-version = "0.2.2"
+version = "0.2.3"
 description = "GUI app and Toolkit for Claude Code"
 authors = ["mufeedvh", "123vviekr"]
 license = "AGPL-3.0"
