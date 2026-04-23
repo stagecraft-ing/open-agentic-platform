@@ -154,6 +154,35 @@ pub struct ServerEnvelopeWire {
     pub entries: Option<Vec<AgentCatalogSnapshotEntry>>,
     #[serde(default)]
     pub generated_at: Option<String>,
+    // spec 112 §7 — project.catalog.upsert fields.
+    #[serde(default)]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub workspace_id: Option<String>,
+    #[serde(default)]
+    pub factory_adapter_id: Option<String>,
+    #[serde(default)]
+    pub detection_level: Option<String>,
+    #[serde(default)]
+    pub repo: Option<ProjectCatalogRepo>,
+    #[serde(default)]
+    pub oap_deep_link: Option<String>,
+    #[serde(default)]
+    pub tombstone: Option<bool>,
+}
+
+/// Mirror of the {@link ServerProjectCatalogUpsert} `repo` sub-object
+/// from stagecraft's `api/sync/types.ts` (spec 112 §7).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCatalogRepo {
+    pub github_org: String,
+    pub repo_name: String,
+    pub default_branch: String,
+    pub clone_url: String,
+    pub html_url: String,
 }
 
 /// Mirror of {@link AgentCatalogSnapshotEntry} from stagecraft's
@@ -200,6 +229,7 @@ const SERVER_KINDS: &[&str] = &[
     "factory.run.request",
     "agent.catalog.updated",
     "agent.catalog.snapshot",
+    "project.catalog.upsert",
     "sync.ack",
     "sync.nack",
     "sync.resync_required",
@@ -838,6 +868,14 @@ mod tests {
             updated_at: None,
             entries: None,
             generated_at: None,
+            slug: None,
+            description: None,
+            workspace_id: None,
+            factory_adapter_id: None,
+            detection_level: None,
+            repo: None,
+            oap_deep_link: None,
+            tombstone: None,
         }
     }
 
@@ -849,12 +887,58 @@ mod tests {
             "sync.hello",
             "sync.heartbeat",
             "policy.updated",
+            "project.catalog.upsert",
         ] {
             assert!(
                 is_server_envelope(&empty_envelope(kind, 1)),
                 "kind {kind} should pass the guard",
             );
         }
+    }
+
+    #[test]
+    fn project_catalog_upsert_deserializes_from_wire_json() {
+        // Mirrors the shape stagecraft emits per spec 112 §7 — repo block
+        // with camelCase fields and optional detectionLevel.
+        let raw = r#"{
+          "kind": "project.catalog.upsert",
+          "meta": {
+            "v": 1,
+            "eventId": "e1",
+            "sentAt": "2026-04-23T00:00:00Z",
+            "workspaceCursor": "c-1",
+            "workspaceId": "ws-1"
+          },
+          "projectId": "p-1",
+          "workspaceId": "ws-1",
+          "name": "Portal",
+          "slug": "portal",
+          "description": "desc",
+          "factoryAdapterId": "adap-1",
+          "detectionLevel": "scaffold_only",
+          "repo": {
+            "githubOrg": "acme",
+            "repoName": "portal",
+            "defaultBranch": "main",
+            "cloneUrl": "https://github.com/acme/portal.git",
+            "htmlUrl": "https://github.com/acme/portal"
+          },
+          "oapDeepLink": "oap://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Fportal.git&level=scaffold_only",
+          "tombstone": false,
+          "updatedAt": "2026-04-23T00:00:01Z"
+        }"#;
+        let env: ServerEnvelopeWire = serde_json::from_str(raw).expect("parses");
+        assert!(is_server_envelope(&env));
+        assert_eq!(env.kind, "project.catalog.upsert");
+        assert_eq!(env.project_id.as_deref(), Some("p-1"));
+        assert_eq!(env.name.as_deref(), Some("Portal"));
+        assert_eq!(env.slug.as_deref(), Some("portal"));
+        assert_eq!(env.detection_level.as_deref(), Some("scaffold_only"));
+        assert_eq!(env.tombstone, Some(false));
+        let repo = env.repo.expect("repo present");
+        assert_eq!(repo.github_org, "acme");
+        assert_eq!(repo.repo_name, "portal");
+        assert_eq!(repo.default_branch, "main");
     }
 
     #[test]

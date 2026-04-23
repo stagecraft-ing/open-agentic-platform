@@ -2175,6 +2175,14 @@ mod tests {
             updated_at: None,
             entries: None,
             generated_at: None,
+            slug: None,
+            description: None,
+            workspace_id: None,
+            factory_adapter_id: None,
+            detection_level: None,
+            repo: None,
+            oap_deep_link: None,
+            tombstone: None,
         };
         assert!(extract_factory_run(&env).is_none());
     }
@@ -2230,6 +2238,14 @@ mod tests {
             updated_at: None,
             entries: None,
             generated_at: None,
+            slug: None,
+            description: None,
+            workspace_id: None,
+            factory_adapter_id: None,
+            detection_level: None,
+            repo: None,
+            oap_deep_link: None,
+            tombstone: None,
         };
         let run = extract_factory_run(&env).unwrap();
         assert_eq!(run.pipeline_id, "pl-1");

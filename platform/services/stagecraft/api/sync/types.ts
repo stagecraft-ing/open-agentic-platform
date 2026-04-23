@@ -251,6 +251,7 @@ export type ServerEnvelope =
   | ServerFactoryRunRequest
   | ServerAgentCatalogUpdated
   | ServerAgentCatalogSnapshot
+  | ServerProjectCatalogUpsert
   | ServerAck
   | ServerNack
   | ServerResyncRequired
@@ -443,6 +444,48 @@ export interface ServerAgentCatalogSnapshot {
   entries: AgentCatalogSnapshotEntry[];
   /** ISO-8601 of when the snapshot was built. Informational. */
   generatedAt: string;
+}
+
+/**
+ * Stagecraft announces that a workspace project was created/updated/deleted
+ * (spec 112 §7). Reuses the spec 111 sync pattern: one wire message carries
+ * everything OPC needs to surface the row in its "Projects" panel — no
+ * secondary round-trip. Deletions are expressed by the `tombstone` flag so
+ * desktops can prune local state without reconciling absence.
+ */
+export interface ServerProjectCatalogUpsert {
+  kind: "project.catalog.upsert";
+  meta: ServerMeta;
+  /** UUID of the workspace projects row. */
+  projectId: string;
+  workspaceId: string;
+  /** Human-friendly display name and URL slug. */
+  name: string;
+  slug: string;
+  description: string;
+  /** Factory adapter row id this project is bound to; null for pre-112 projects. */
+  factoryAdapterId: string | null;
+  /** One of the factory-project-detect levels, as inferred by stagecraft at create/import time. */
+  detectionLevel:
+    | "not_factory"
+    | "scaffold_only"
+    | "legacy_produced"
+    | "acp_produced"
+    | null;
+  /** Primary repo metadata — the desktop uses this to clone on first open. */
+  repo: {
+    githubOrg: string;
+    repoName: string;
+    defaultBranch: string;
+    cloneUrl: string;
+    htmlUrl: string;
+  } | null;
+  /** Canonical oap:// deep link for this project. */
+  oapDeepLink: string;
+  /** Marks the project as deleted — desktops drop it from local state. */
+  tombstone: boolean;
+  /** ISO-8601 of the underlying row's updated_at. */
+  updatedAt: string;
 }
 
 /** Server accepted a client event and recorded it. */
