@@ -10,11 +10,12 @@ use sha2::{Digest, Sha256};
 
 use crate::types::{UpdateError, UpdateInfo};
 
-/// GitHub owner/repo — update this before shipping.
-const GITHUB_REPO: &str = "YOUR_ORG/opc";
+/// GitHub owner/repo used for the user-agent and release lookup.
+const GITHUB_REPO: &str = "stagecraft-ing/open-agentic-platform";
 
 /// GitHub REST API endpoint for the latest release.
-const GITHUB_API_URL: &str = "https://api.github.com/repos/YOUR_ORG/opc/releases/latest";
+const GITHUB_API_URL: &str =
+    "https://api.github.com/repos/stagecraft-ing/open-agentic-platform/releases/latest";
 
 #[derive(serde::Deserialize)]
 struct GithubRelease {

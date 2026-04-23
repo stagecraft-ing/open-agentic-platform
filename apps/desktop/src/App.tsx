@@ -29,6 +29,7 @@ import { ProjectToolbar } from "@/components/ProjectToolbar";
 import { useTabState } from "@/hooks/useTabState";
 import { useAppLifecycle, useTrackEvent } from "@/hooks";
 import { StartupIntro } from "@/components/StartupIntro";
+import { UpdateBanner } from "@/components/UpdateBanner";
 
 type View = 
   | "welcome" 
@@ -415,7 +416,9 @@ function AppContent() {
         onMCPClick={() => createMCPTab()}
         onSettingsClick={() => createSettingsTab()}
       />
-      
+
+      <UpdateBanner />
+
       {/* Topbar - Commented out since navigation moved to titlebar */}
       {/* <Topbar
         onClaudeClick={() => createClaudeMdTab()}

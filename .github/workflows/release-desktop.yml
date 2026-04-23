@@ -295,3 +295,41 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
           configPath: ${{ matrix.config }}
+
+      # Consumed by the in-app updater (apps/desktop/src-tauri/src/commands/updater.rs).
+      # Emits a `<installer>.sha256` sidecar for the platform installer the updater
+      # downloads (DMG / NSIS setup.exe / AppImage) and attaches it to the release.
+      - name: Generate SHA-256 sidecars for installer assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          target_root="apps/desktop/src-tauri/target"
+          mapfile -t files < <(find "$target_root" -type f \( \
+            -path '*/release/bundle/dmg/*.dmg' -o \
+            -path '*/release/bundle/appimage/*.AppImage' -o \
+            -path '*/release/bundle/nsis/*.exe' \
+          \) 2>/dev/null)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::No installer artifact found under $target_root — updater sidecars cannot be generated."
+            exit 1
+          fi
+          hash_cmd=""
+          if command -v sha256sum >/dev/null 2>&1; then
+            hash_cmd="sha256sum"
+          elif command -v shasum >/dev/null 2>&1; then
+            hash_cmd="shasum -a 256"
+          else
+            echo "::error::Neither sha256sum nor shasum found on runner."
+            exit 1
+          fi
+          for f in "${files[@]}"; do
+            dir="$(dirname "$f")"
+            base="$(basename "$f")"
+            sha_file="${f}.sha256"
+            (cd "$dir" && $hash_cmd "$base") > "$sha_file"
+            echo "→ $(cat "$sha_file")"
+            gh release upload "$TAG" "$sha_file" --clobber --repo "$GITHUB_REPOSITORY"
+          done
