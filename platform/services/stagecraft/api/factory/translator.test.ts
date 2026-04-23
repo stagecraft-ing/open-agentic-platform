@@ -4,8 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   translateFactorySource,
+  translateLegacyManifest,
   translateTemplate,
   translateUpstreams,
+  type GoaSoftwareFactoryManifest,
+  type GoaWorkingState,
+  type FactoryAdapterRow,
 } from "./translator";
 
 async function writeTree(
@@ -231,5 +235,162 @@ describe("translateUpstreams", () => {
         templateSha: "e".repeat(40),
       })
     ).rejects.toThrow(/factory source/);
+  });
+});
+
+describe("translateLegacyManifest", () => {
+  const aimAdapter: FactoryAdapterRow = {
+    name: "aim-vue-node",
+    version: "3.0.0",
+    sourceSha: "a".repeat(40),
+  };
+
+  function fullyExecutedManifest(): GoaSoftwareFactoryManifest {
+    return {
+      pipelineStatus: "COMPLETE",
+      completedAt: "2026-04-22T00:00:00Z",
+      factoryInputs: {
+        clientTechStack: "Vue 3 + GoA Design System",
+        templateVariant: "dual",
+      },
+      stages: {
+        stage1_businessRequirements: {
+          status: "PASSED",
+          startedAt: "2026-04-21T13:16:00Z",
+          completedAt: "2026-04-21T13:32:00Z",
+          artifacts: [
+            "requirements/business_requirements_document.md",
+            "requirements/data_io_schema.json",
+          ],
+        },
+        stage2_serviceRequirements: {
+          status: "PASSED",
+          startedAt: "2026-04-21T13:35:00Z",
+          completedAt: "2026-04-21T14:15:00Z",
+        },
+        stage3_databaseDesign: {
+          status: "PASSED",
+          startedAt: "2026-04-21T14:48:00Z",
+          completedAt: "2026-04-21T15:05:00Z",
+        },
+        stage4_apiControllers: {
+          status: "PASSED",
+          startedAt: "2026-04-21T15:30:00Z",
+          completedAt: "2026-04-22T00:00:00Z",
+        },
+        stage5_clientInterface: {
+          status: "PASSED",
+          startedAt: "2026-04-21T18:00:00Z",
+          completedAt: "2026-04-21T22:15:00Z",
+        },
+      },
+    };
+  }
+
+  const workingState: GoaWorkingState = {
+    schemaVersion: "1.2",
+    completedAt: "2026-04-21T22:15:00Z",
+    templateVariant: "dual",
+  };
+
+  test("fully-complete manifest produces 7-stage completed pipeline-state", () => {
+    const out = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
+    expect(out.schema_version).toBe("1.0.0");
+    expect(out.pipeline.status).toBe("completed");
+    expect(out.pipeline.adapter.name).toBe("aim-vue-node");
+    expect(out.pipeline.adapter.version).toBe("3.0.0");
+    // Seven stages: pre-flight + 5 mapped + adapter-handoff.
+    expect(Object.keys(out.stages).sort()).toEqual(
+      [
+        "adapter-handoff",
+        "api-specification",
+        "business-requirements",
+        "data-model",
+        "pre-flight",
+        "service-requirements",
+        "ui-specification",
+      ]
+    );
+    for (const [, entry] of Object.entries(out.stages)) {
+      // adapter-handoff is pending without fileOwnership; every other stage
+      // must be completed when the legacy run was fully executed.
+      if (entry === out.stages["adapter-handoff"]) {
+        expect(entry.status).toBe("pending");
+      } else {
+        expect(entry.status).toBe("completed");
+      }
+    }
+  });
+
+  test("preserves stage completion timestamps and artefact references", () => {
+    const out = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
+    const br = out.stages["business-requirements"];
+    expect(br.started_at).toBe("2026-04-21T13:16:00Z");
+    expect(br.completed_at).toBe("2026-04-21T13:32:00Z");
+    expect(br.artifacts).toEqual([
+      {
+        path: "requirements/business_requirements_document.md",
+        type: "document",
+        hash: "",
+      },
+      {
+        path: "requirements/data_io_schema.json",
+        type: "data",
+        hash: "",
+      },
+    ]);
+  });
+
+  test("partial legacy manifest produces paused pipeline with per-stage status", () => {
+    const manifest = fullyExecutedManifest();
+    manifest.pipelineStatus = "IN_PROGRESS";
+    manifest.stages!.stage3_databaseDesign.status = "IN_PROGRESS";
+    delete manifest.stages!.stage3_databaseDesign.completedAt;
+    delete manifest.stages!.stage4_apiControllers;
+    delete manifest.stages!.stage5_clientInterface;
+
+    const out = translateLegacyManifest(manifest, workingState, [aimAdapter]);
+    expect(out.pipeline.status).toBe("paused");
+    expect(out.stages["business-requirements"].status).toBe("completed");
+    expect(out.stages["service-requirements"].status).toBe("completed");
+    expect(out.stages["data-model"].status).toBe("in_progress");
+    expect(out.stages["api-specification"].status).toBe("pending");
+    expect(out.stages["ui-specification"].status).toBe("pending");
+  });
+
+  test("synthesises adapter-handoff as completed when fileOwnership is present", () => {
+    const manifest = fullyExecutedManifest();
+    manifest.fileOwnership = {
+      "apps/public/src/views/Home.vue": "factory",
+    };
+    const out = translateLegacyManifest(manifest, workingState, [aimAdapter]);
+    expect(out.stages["adapter-handoff"].status).toBe("completed");
+  });
+
+  test("falls back to first adapter when no Vue hint matches", () => {
+    const manifest = fullyExecutedManifest();
+    manifest.factoryInputs = { clientTechStack: "React" };
+    const other: FactoryAdapterRow = { name: "rust-axum", version: "0.1.0" };
+    const out = translateLegacyManifest(manifest, workingState, [other, aimAdapter]);
+    expect(out.pipeline.adapter.name).toBe("rust-axum");
+  });
+
+  test("conservative fallback adapter when orgAdapters is empty", () => {
+    const out = translateLegacyManifest(fullyExecutedManifest(), workingState, []);
+    expect(out.pipeline.adapter).toEqual({ name: "aim-vue-node", version: "0.0.0" });
+  });
+
+  test("emits a unique pipeline.id per invocation", () => {
+    const a = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
+    const b = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
+    expect(a.pipeline.id).not.toBe(b.pipeline.id);
+    expect(a.pipeline.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+  });
+
+  test("defers build-spec unification — emits placeholder path+hash", () => {
+    const out = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
+    expect(out.pipeline.build_spec).toEqual({ path: "requirements/", hash: "" });
   });
 });

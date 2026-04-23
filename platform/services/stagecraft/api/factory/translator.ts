@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative, basename } from "node:path";
+import { randomUUID } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Spec 108 Phase 3 — deterministic translation from upstream repos to the
@@ -333,4 +334,284 @@ export async function translateUpstreams(opts: {
     processes: [factory.process],
     contracts: Array.from(byName.values()),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Legacy `goa-software-factory` manifest → ACP pipeline-state
+//
+// Spec 112 §3.4. Bridges the 5-stage legacy manifest produced by
+// `goa-software-factory` into a pipeline-state.schema.yaml-conformant
+// document that ACP consumers can read. Build Spec production is deferred:
+// the legacy split `requirements/{ui,api}/build-spec.json` stay on disk
+// and the first ACP run after translation emits a unified Build Spec
+// alongside them.
+//
+// This function is pure: it does not read the filesystem and does not
+// mutate its inputs. Callers own the upstream read (the detection crate's
+// structured report carries `legacyManifest`) and the downstream write
+// (the Import PR that adds `.factory/pipeline-state.json` to the repo).
+// ---------------------------------------------------------------------------
+
+export type GoaSoftwareFactoryManifest = {
+  pipelineStatus?: string;
+  completedAt?: string;
+  factoryInputs?: Record<string, unknown>;
+  stages?: Record<string, GoaStageEntry>;
+  fileOwnership?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type GoaStageEntry = {
+  status?: string;
+  startedAt?: string;
+  completedAt?: string;
+  outputDirectory?: string;
+  artifacts?: string[];
+  summary?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type GoaWorkingState = {
+  schemaVersion?: string;
+  lastCompletedStage?: string;
+  completedAt?: string;
+  templateVariant?: string;
+  factoryInputs?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type FactoryAdapterRow = {
+  name: string;
+  version: string;
+  sourceSha?: string;
+  manifest?: Record<string, unknown>;
+};
+
+// Schema-conformant output shape. Kept structural rather than importing a
+// generated type because the Rust-owned schema is the source of truth and
+// this codebase does not yet generate TS types from the YAML.
+export type PipelineStateDocument = {
+  schema_version: string;
+  pipeline: {
+    id: string;
+    factory_version: string;
+    started_at: string;
+    updated_at: string;
+    completed_at?: string;
+    status: "running" | "paused" | "completed" | "failed" | "cancelled";
+    adapter: { name: string; version: string };
+    build_spec: { path: string; hash: string };
+  };
+  stages: Record<string, PipelineStageEntry>;
+  audit?: Array<{
+    timestamp: string;
+    event:
+      | "stage_confirmed"
+      | "stage_rejected"
+      | "feature_flagged"
+      | "pipeline_paused"
+      | "pipeline_resumed"
+      | "adapter_overridden"
+      | "manual_fix_applied";
+    stage?: string;
+    details?: string;
+  }>;
+};
+
+export type PipelineStageEntry = {
+  status: "pending" | "in_progress" | "completed" | "failed" | "skipped";
+  started_at?: string;
+  completed_at?: string;
+  artifacts?: Array<{ path: string; type: string; hash: string }>;
+};
+
+// Legacy stage-key → ACP stage-id mapping (spec 112 §3.4).
+export const LEGACY_STAGE_MAP: ReadonlyArray<[string, string]> = [
+  ["stage1_businessRequirements", "business-requirements"],
+  ["stage2_serviceRequirements", "service-requirements"],
+  ["stage3_databaseDesign", "data-model"],
+  ["stage4_apiControllers", "api-specification"],
+  ["stage5_clientInterface", "ui-specification"],
+];
+
+// Status tokens the legacy manifest uses for terminal completion.
+const LEGACY_TERMINAL = new Set(["PASSED", "PASS", "COMPLETE", "COMPLETED"]);
+
+function mapLegacyStatus(
+  raw: string | undefined
+): PipelineStageEntry["status"] {
+  if (!raw) return "pending";
+  const up = raw.toUpperCase();
+  if (LEGACY_TERMINAL.has(up)) return "completed";
+  if (up === "FAILED" || up === "FAIL") return "failed";
+  if (up === "SKIPPED") return "skipped";
+  if (up === "IN_PROGRESS" || up === "RUNNING") return "in_progress";
+  return "pending";
+}
+
+function inferArtifactType(path: string): string {
+  const base = basename(path).toLowerCase();
+  if (base.endsWith(".schema.json") || base.endsWith(".schema.yaml")) {
+    return "schema";
+  }
+  if (base.endsWith("build-spec.json")) return "build-spec";
+  if (base.endsWith(".md") || base.endsWith(".docx")) return "document";
+  if (base.endsWith(".json")) return "data";
+  return "artifact";
+}
+
+function selectAdapter(
+  legacy: GoaSoftwareFactoryManifest,
+  orgAdapters: FactoryAdapterRow[]
+): { name: string; version: string } {
+  // Heuristic (deterministic): prefer an adapter matching the legacy
+  // factoryInputs.templateMode / templateVariant hint if one is available,
+  // else the first adapter in the supplied list, else a conservative fallback.
+  const inputs = legacy.factoryInputs ?? {};
+  const clientStack = typeof inputs.clientTechStack === "string"
+    ? inputs.clientTechStack.toLowerCase()
+    : "";
+  const preferred = orgAdapters.find((a) =>
+    clientStack.includes("vue") && a.name.toLowerCase().includes("vue")
+  );
+  const picked = preferred ?? orgAdapters[0];
+  if (picked) {
+    return { name: picked.name, version: picked.version };
+  }
+  return { name: "aim-vue-node", version: "0.0.0" };
+}
+
+function pickPipelineTimestamps(
+  legacy: GoaSoftwareFactoryManifest,
+  workingState: GoaWorkingState,
+  stageEntries: Array<[string, PipelineStageEntry]>
+): { started_at: string; updated_at: string; completed_at?: string } {
+  const started = stageEntries
+    .map(([, entry]) => entry.started_at)
+    .filter((s): s is string => Boolean(s))
+    .sort()[0];
+  const completedCandidates = [
+    legacy.completedAt,
+    workingState.completedAt,
+    ...stageEntries
+      .map(([, entry]) => entry.completed_at)
+      .filter((s): s is string => Boolean(s)),
+  ].filter((s): s is string => Boolean(s));
+  const completed = completedCandidates.sort().pop();
+  const fallback = new Date(0).toISOString();
+  const started_at = started ?? completed ?? fallback;
+  const updated_at = completed ?? started_at;
+  return {
+    started_at,
+    updated_at,
+    completed_at: completed,
+  };
+}
+
+/**
+ * Translate a legacy `goa-software-factory` manifest + working-state
+ * pair into an ACP `pipeline-state.schema.yaml`-conformant document.
+ *
+ * Pure. Idempotent for the same inputs modulo the generated pipeline
+ * UUID, which is fresh per invocation — callers that need stability
+ * (e.g. re-translation during Import preview) should persist the first
+ * result rather than regenerating.
+ */
+export function translateLegacyManifest(
+  legacy: GoaSoftwareFactoryManifest,
+  workingState: GoaWorkingState,
+  orgAdapters: FactoryAdapterRow[]
+): PipelineStateDocument {
+  const stages: Record<string, PipelineStageEntry> = {};
+  const stageEntries: Array<[string, PipelineStageEntry]> = [];
+
+  // pre-flight — synthesised as completed (legacy runs presuppose it).
+  const preflight: PipelineStageEntry = { status: "completed" };
+  stages["pre-flight"] = preflight;
+  stageEntries.push(["pre-flight", preflight]);
+
+  // Map the five numbered legacy stages.
+  const legacyStages = legacy.stages ?? {};
+  let anyMapped = false;
+  let anyIncomplete = false;
+  for (const [legacyKey, acpId] of LEGACY_STAGE_MAP) {
+    const raw = legacyStages[legacyKey];
+    if (!raw) {
+      const entry: PipelineStageEntry = { status: "pending" };
+      stages[acpId] = entry;
+      stageEntries.push([acpId, entry]);
+      anyIncomplete = true;
+      continue;
+    }
+    anyMapped = true;
+    const status = mapLegacyStatus(raw.status);
+    if (status !== "completed") anyIncomplete = true;
+    const entry: PipelineStageEntry = { status };
+    if (raw.startedAt) entry.started_at = raw.startedAt;
+    if (raw.completedAt) entry.completed_at = raw.completedAt;
+    if (Array.isArray(raw.artifacts) && raw.artifacts.length > 0) {
+      entry.artifacts = raw.artifacts.map((p) => ({
+        path: p,
+        type: inferArtifactType(p),
+        hash: "",
+      }));
+    }
+    stages[acpId] = entry;
+    stageEntries.push([acpId, entry]);
+  }
+
+  // adapter-handoff — synthesised from fileOwnership when present, else
+  // reported as pending. This is consistent with spec 112 §3.4.
+  const fileOwnership = legacy.fileOwnership;
+  const handoff: PipelineStageEntry =
+    fileOwnership && typeof fileOwnership === "object"
+      ? { status: "completed" }
+      : { status: "pending" };
+  stages["adapter-handoff"] = handoff;
+  stageEntries.push(["adapter-handoff", handoff]);
+
+  // Overall pipeline status.
+  let pipelineStatus: PipelineStateDocument["pipeline"]["status"];
+  const legacyPipelineStatus = String(legacy.pipelineStatus ?? "").toUpperCase();
+  if (!anyMapped || anyIncomplete) {
+    pipelineStatus = "paused";
+  } else if (legacyPipelineStatus === "COMPLETE") {
+    pipelineStatus = "completed";
+  } else {
+    pipelineStatus = "paused";
+  }
+
+  const ts = pickPipelineTimestamps(legacy, workingState, stageEntries);
+  const adapter = selectAdapter(legacy, orgAdapters);
+
+  const document: PipelineStateDocument = {
+    schema_version: "1.0.0",
+    pipeline: {
+      id: randomUUID(),
+      factory_version: "legacy-translated",
+      started_at: ts.started_at,
+      updated_at: ts.updated_at,
+      status: pipelineStatus,
+      adapter,
+      // Build Spec production is deferred. The legacy split
+      // build-specs remain in place as informational artefacts; the
+      // first ACP run emits a unified one. We encode this explicitly
+      // rather than guessing a synthetic hash.
+      build_spec: { path: "requirements/", hash: "" },
+    },
+    stages,
+    audit: [
+      {
+        timestamp: ts.updated_at,
+        event: "manual_fix_applied",
+        details: "translated-from-goa-software-factory-manifest",
+      },
+    ],
+  };
+
+  if (ts.completed_at && pipelineStatus === "completed") {
+    document.pipeline.completed_at = ts.completed_at;
+  }
+
+  return document;
 }
