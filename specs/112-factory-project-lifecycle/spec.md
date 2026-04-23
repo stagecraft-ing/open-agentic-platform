@@ -101,8 +101,12 @@ three converge on the same state representation: a
    ACP-natively, push to GitHub, register; OPC claims it when the user
    opens the local checkout.
 3. **Stagecraft Import** — paste a GitHub URL (or pick from App
-   installation); clone server-side, detect, translate legacy → ACP if
-   needed, register; OPC claims it on local open.
+   installation); clone server-side, detect, translate legacy → ACP,
+   register; OPC claims it on local open. **Scope bound:** Import
+   accepts only fully-executed legacy projects (all 5
+   `goa-software-factory` stages marked complete) and ACP-native (L2)
+   projects. In-progress legacy runs and non-factory repos are rejected
+   (§6.2).
 
 ### 2.2 Template-distributor discontinued
 
@@ -160,6 +164,7 @@ pub struct FactoryProject {
     pub pipeline_state: Option<PipelineState>,   // Some for L2; translated value for L1
     pub adapter_ref: Option<AdapterRef>,         // name + version from pipeline-state.adapter
     pub legacy_manifest: Option<serde_json::Value>, // L1 only — raw factory-manifest.json
+    pub legacy_complete: Option<bool>,           // L1 only — true iff all 5 legacy stages marked complete
 }
 
 pub fn detect(repo_root: &Path) -> FactoryProject;
@@ -173,6 +178,12 @@ Detection logic:
 | `requirements/audit/factory-manifest.json` + `requirements/audit/working-state.json` | LegacyProduced |
 | Scaffold-only signals (e.g. `template.json` with `templateName`, no pipeline-state, no legacy manifest) | ScaffoldOnly |
 | None of the above | NotFactory |
+
+For `LegacyProduced`, the crate also sets `legacy_complete = Some(true)`
+iff every stage key in `factory-manifest.json` reports a terminal
+completion status (schema: `completed` with a non-null
+`completedAt`); otherwise `Some(false)`. Detection reports the state
+truthfully; Import enforces the policy gate (§6.2).
 
 The crate is consumed by OPC (via a Tauri command) and by stagecraft (via
 a Node addon or by shelling the crate's CLI bin — see §6.2). Both paths
@@ -273,16 +284,38 @@ The cockpit reads pipeline-state (translated for L1) and shows:
   - *Register with workspace* — if the project is not yet bound to a
     stagecraft `projects` row, create the binding and dual-write.
 
-### 4.3 Artifact extraction as an ACP stage
+### 4.3 Artifact extraction as a birth-time step
 
-The existing `.artifacts/extract_artifacts.py` script (raw → extracted) is
-re-cast as a **pre-flight sub-step**, not a user-run Python script. A new
-Rust binary `crates/factory-artifacts/src/bin/extract.rs` replaces the
-Python version (matching the scripts-to-binaries direction of spec 105).
-The pre-flight stage in pipeline-state gains an `artifact_extraction`
-sub-artifact entry once it runs. `prestart-prompt.txt`, `start-prompt.txt`,
-`reconciliation-prompt.txt` (currently hand-authored per project) are
-retired; the corresponding behaviour is driven by the cockpit actions.
+The existing `.artifacts/extract_artifacts.py` script (raw → extracted)
+is replaced by a Rust binary `crates/factory-artifacts/src/bin/extract.rs`
+(matching the scripts-to-binaries direction of spec 105) and invoked
+**at project birth on stagecraft** (§5.2), not as an OPC pre-flight step.
+Rationale: the extractor needs only the uploaded raw documents and
+produces deterministic output; running it at Create time means the
+repo's first commit already contains `.artifacts/extracted/`, so the
+cockpit and the ACP engine never see a repo in a "raw-but-not-extracted"
+intermediate state.
+
+Storage split:
+
+- **Raw uploads** live in stagecraft's workspace-scoped bucket
+  (audit-durable, re-runnable). Binary originals do not enter git.
+- **Extracted outputs** live in the repo under `.artifacts/extracted/`
+  and travel with the code. An `.artifacts/extracted/manifest.json`
+  records the bucket-object-id → extracted-file mapping so Re-extract
+  (§4.2) can re-run deterministically from bucket state.
+
+The cockpit's **Re-extract** action runs the same binary locally on OPC
+against any raw content added post-birth (e.g. a new business doc
+dropped into a local `.artifacts/raw/` the user creates by hand) and
+commits the updated `.artifacts/extracted/` entries.
+
+Legacy prompt files (`prestart-prompt.txt`, `start-prompt.txt`,
+`reconciliation-prompt.txt`) are **not generated** by the Create path
+and are **not consumed** by the ACP engine. The `factory/` ACP
+specification is the sole execution target (§11 Non-Goals). Imported
+legacy projects retain their copies as historical artifacts; the engine
+ignores them.
 
 ## 5. Stagecraft Create Path
 
@@ -300,9 +333,12 @@ Form fields:
   `dual_stack: true` hides the `dual` option).
 - **Project identity** — name (slug), display name, description, GitHub
   owner (from the user's App installations; private-by-default).
-- **Optional seed inputs** — upload business documents into
-  `.artifacts/raw/` at generation time so pre-flight has something to
-  extract on first run.
+- **Seed inputs (optional)** — multifile upload of business documents
+  (individual files, or a `.artifacts/raw/`-shaped directory archive).
+  Raw uploads land in the workspace-scoped bucket; stagecraft runs the
+  extractor (§4.3) server-side; extracted outputs are written into
+  `.artifacts/extracted/` in the generated tree and committed in commit
+  #1. Binary originals remain in the bucket, not in git.
 
 ### 5.2 Backend — `api/projects/create.ts`
 
@@ -313,14 +349,24 @@ Flow:
 2. Resolve the adapter's scaffold source (e.g. a git ref in the `template`
    repo, pinned by the `factory_adapters.source_sha` column) and clone
    into a per-request temp dir.
-3. Run the adapter's scaffold entry point
-   (`<adapter>/scaffold/scripts/setup.ts` or equivalent — resolved from
-   the adapter manifest's `scaffold.entry_point` field, added in §8) with
-   the chosen variant and module profile.
+3. Run the adapter's scaffold entry point with the chosen variant and
+   module profile. **Runtime scope (MVP):** stagecraft executes only
+   Node-24 entry points shaped like the `template` repo's
+   `scripts/setup-app.ts` / `scripts/setup-dual-app.ts` (see §5.3 for
+   the concrete absorbed surface). Adapters declaring a
+   `scaffold.runtime` other than `node-24` are not Create-eligible via
+   the web UI; a later spec may lift this by dispatching non-Node-24
+   scaffolds to OPC over the spec 110 envelope.
 4. **Seed ACP state**: write `.factory/pipeline-state.json` at L0 shape
    per §3.5, with `pipeline.adapter` populated from the `factory_adapters`
-   row.
-5. If the user supplied seed inputs, write them under `.artifacts/raw/`.
+   row. Stagecraft is the sole author of this file; OPC never writes
+   commit #1.
+5. **Extract seed inputs (if any)**: store raw uploads in the
+   workspace-scoped bucket, invoke `factory-artifacts extract` against
+   them server-side, and write the extractor's output under
+   `.artifacts/extracted/` in the generated tree (plus an
+   `.artifacts/extracted/manifest.json` mapping bucket object ids to
+   extracted files). Raw binaries are **not** written into the repo.
 6. Create the GitHub repo via the org's App installation and push the
    generated tree with a single initial commit. Commit author is the
    stagecraft service identity; co-author is the user.
@@ -331,23 +377,72 @@ Flow:
 
 ### 5.3 What is absorbed from template-distributor
 
-Lift, discard the rest:
+Stagecraft's server-side scaffold scope is **exactly** the six operations
+that `template-distributor/src/server.ts` performs today. Line references
+point at the canonical implementation at the time this spec was drafted;
+the absorbing PR rewrites these in stagecraft idioms, it does not import
+the code.
 
-| Template-distributor capability | Where it lands in stagecraft |
-|---|---|
-| GitHub App OAuth | Already exists in stagecraft — no change |
-| Template repo clone + cache | `api/projects/scaffold/templateCache.ts` (per-workspace cache, keyed on `factory_adapters.source_sha`) |
-| Pre-build profiles (minimal/public/internal/dual) | Dropped — profiles are declared by the adapter manifest, not baked binaries |
-| Apply profile via `setup-app.ts` / `setup-dual-app.ts` | `api/projects/scaffold/runAdapterScaffold.ts` — invokes the adapter's declared entry point in a sandboxed Node subprocess |
-| Create GitHub repo (Octokit) | `api/projects/scaffold/githubRepoCreate.ts` |
-| Push generated tree | `api/projects/scaffold/githubPushInitial.ts` |
-| In-memory generation state tracking | Replaced with a `scaffold_jobs` table (UUID, status, stream of log events) |
-| Standalone web UI | Dropped — stagecraft's `/app/projects/new` owns the UX |
+| # | Template-distributor capability | Reference | Lands in stagecraft as |
+|---|---|---|---|
+| 1 | Template cache clone + `npm install` + upstream-SHA refresh | `ensureTemplateCache`, server.ts:329-375 | `api/projects/scaffold/templateCache.ts` (per-workspace cache, keyed on `factory_adapters.source_sha`) |
+| 2 | Profile prebuilds (minimal/public/internal/dual) | `ensurePrebuilts`, server.ts:377-446 | `api/projects/scaffold/prebuilds.ts` (warm-on-startup; declared profile set comes from the adapter manifest §8) |
+| 3 | Per-request scaffold: copy prebuilt + run `setup-*.ts` + `add-module.ts` for extras | server.ts:613-760 | `api/projects/scaffold/runAdapterScaffold.ts` (Node-24 subprocess in a per-request temp dir, concurrency-bounded) |
+| 4 | Create GitHub repo + grant team admin (with retry) | `createRepo` + `teams.addOrUpdateRepoPermissionsInOrg`, server.ts:865-897 | `api/projects/scaffold/githubRepoCreate.ts` |
+| 5 | Initial git commit + authed push to `main` | server.ts:899-927 | `api/projects/scaffold/githubPushInitial.ts` — uses the existing App installation token via `authedGitUrl` pattern (server.ts:285-300) |
+| 6 | Post-push cleanup of server-side working tree | server.ts:929-931 | Inlined in the scaffold handler; temp dir is dropped after successful push |
 
-The external `template-distributor` repo is archived; no code is imported
-directly. This spec's implementation phase re-writes the ~10 discrete
-operations above in TypeScript idioms that match the stagecraft codebase
-and respect its policy/audit fabric.
+**Net additions** (stagecraft-owned, not in template-distributor):
+
+- L0 `.factory/pipeline-state.json` seed written into the tree before
+  commit #1 (§5.2 step 4).
+- Server-side artifact extraction from bucket uploads into
+  `.artifacts/extracted/` (§5.2 step 5).
+- `scaffold_jobs` table replacing the Express app's in-memory map
+  (concurrency-safe, multi-tenant, audit-traceable).
+- `oap://` deep-link on the success response (§5.4).
+
+**Net drops:**
+
+- The standalone web UI (`template-distributor/public/*`) — stagecraft
+  `/app/projects/new` owns the UX.
+- OAuth login / session middleware (template-distributor server.ts:90-512) —
+  stagecraft already owns identity.
+- ZIP download (`/api/download-project`, server.ts:789-825) — stagecraft
+  does not offer a "download tree" path; the GitHub repo is the handoff.
+
+The external `template-distributor` repo is archived after Phase 8
+(§9). No code is imported directly.
+
+### 5.4 Stagecraft–OPC boundary
+
+This spec establishes a crisp temporal boundary between the two planes:
+
+- **Stagecraft owns repo birth.** Template clone/cache, profile prebuild,
+  module composition, Node-24 adapter scaffold, L0 pipeline-state seed,
+  server-side artifact extraction, GitHub repo creation with team
+  grants, initial commit + authed push. Post-push, stagecraft deletes
+  its working copy.
+- **OPC owns everything else.** Open, claim, cockpit actions (Run Stage
+  N, Reconcile, Re-extract, Register-with-workspace), all ACP engine
+  runs, all writes to `.factory/pipeline-state.json` after commit #1.
+  Dispatch from stagecraft uses the spec 110 envelope
+  (`factory.run.request` / `factory.run.ack`).
+
+Consequence: the **GitHub repo is the source-of-truth handoff**. After
+push, stagecraft returns `{ project_id, repo_url, clone_url,
+oap_deep_link }`. The `oap_deep_link` is an
+`oap://project/open?url=<clone_url>&project_id=<id>` URI that, when
+clicked on a machine with OPC installed, clones the repo locally and
+activates the Factory Cockpit (§4). The success page renders (a) the
+GitHub URL, (b) the deep link, and (c) an "install OPC" affordance
+visible when the user agent is not OPC and the deep link fails to
+resolve.
+
+No ongoing lifecycle operation executes on stagecraft. "Birth on
+stagecraft, life on OPC" is the invariant; a future spec may dispatch
+non-Node-24 births to OPC but will not move post-birth execution onto
+stagecraft.
 
 ## 6. Stagecraft Import Path
 
@@ -374,17 +469,25 @@ Flow:
    `.claude/rules/governed-artifact-reads.md` — no ad-hoc JSON parsing on
    the Node side.
 4. Branch on detection level:
-   - **NotFactory**: show "not a factory project" with an explicit
-     "Adopt" confirmation. Adopting writes an L0 `.factory/pipeline-state.json`
-     with a placeholder adapter the user must then pick; opens a PR
-     against the source repo (does not push to `main` directly).
-   - **ScaffoldOnly**: confirm the adapter match against
-     `factory_adapters` rows. If a match is found, register directly. If
-     not, prompt the user to select or reject.
-   - **LegacyProduced**: run `translateLegacyManifest` (§3.4). Preview
-     the translated pipeline-state to the user. On confirm, open a PR that
-     adds `.factory/pipeline-state.json` alongside the legacy manifest
-     files (which stay — they are never deleted by this flow).
+   - **NotFactory**: reject with "not a factory project". Import is for
+     factory-produced repos only. Adopting an unrelated repo as a
+     factory project belongs to a future "Adopt" spec with its own UX
+     and policy gates.
+   - **ScaffoldOnly**: reject. Scaffold-only is a transient birth state
+     owned by Create (§5); importing an unrun scaffold has nothing to
+     translate or register meaningfully. The user should Create fresh
+     or run the legacy pipeline upstream to completion before
+     importing.
+   - **LegacyProduced**: enforce `legacy_complete == true` (all 5
+     `goa-software-factory` stages marked complete in
+     `factory-manifest.json`). If incomplete, reject with a message
+     identifying which stages are incomplete and instructing the user
+     to finish the legacy run upstream before re-importing. If
+     complete, run `translateLegacyManifest` (§3.4), preview the
+     translated pipeline-state to the user, and on confirm open a PR
+     against the source repo adding `.factory/pipeline-state.json`
+     alongside the legacy manifest files (which stay — they are never
+     deleted by this flow).
    - **AcpProduced**: validate pipeline-state schema version, confirm
      adapter binding, register.
 5. Insert `projects` / `project_repos` rows. Emit `project.imported`
@@ -476,15 +579,28 @@ Each phase is independently mergeable and ends in a runnable state.
 - Land `api/projects/create.ts`, `api/projects/scaffold/*`, and the
   `/app/projects/new` route.
 - Absorb the six template-distributor operations listed in §5.3.
-- Exit criteria: creating a new project via the web UI produces a repo
-  whose HEAD contains `.factory/pipeline-state.json` (L0 seed) and is
-  registered in `projects`.
+- Exit criteria: creating a new project via the web UI produces a
+  GitHub repo whose **commit #1** contains (a)
+  `.factory/pipeline-state.json` at L0 shape with adapter identity
+  resolved from `factory_adapters`, (b) `.artifacts/extracted/`
+  populated from server-side extraction when the user supplied seed
+  inputs (plus the `manifest.json` bucket mapping), and (c) **no**
+  legacy prompt files (`prestart-prompt.txt`, `start-prompt.txt`,
+  `reconciliation-prompt.txt`). The API response includes
+  `{ project_id, repo_url, clone_url, oap_deep_link }` and the
+  `projects` row references the correct `factory_adapter_id`. Raw
+  uploads are retrievable from the workspace bucket.
 
 **Phase 6 — Stagecraft Import.**
 - Land `api/projects/import.ts` and the `/app/projects/import` route.
-- Exit criteria: importing cfs-womens-shelter via the web UI results in a
-  `projects` row with `detection_level = "legacy_produced"` and a PR
-  opened against the cfs repo adding `.factory/pipeline-state.json`.
+- Exit criteria: importing cfs-womens-shelter (fully executed — all 5
+  legacy stages marked complete) via the web UI produces a `projects`
+  row with `detection_level = "legacy_produced"` and a PR opened
+  against the cfs repo adding `.factory/pipeline-state.json`. Importing
+  an in-progress legacy project (any stage incomplete) is rejected at
+  step 4 with an actionable error naming the incomplete stages.
+  Importing a scaffold-only or non-factory repo is rejected. Importing
+  an L2 AcpProduced project registers without a PR.
 
 **Phase 7 — Workspace sync and OPC project list.**
 - Add `project.catalog.upsert` envelope variant; reuse the spec 111 sync
@@ -502,12 +618,18 @@ Each phase is independently mergeable and ends in a runnable state.
   only via stagecraft.
 
 **Phase 9 — Legacy prompt-file retirement.**
-- Remove `prestart-prompt.txt`, `start-prompt.txt`,
-  `reconciliation-prompt.txt` from factory-produced template outputs.
-- The cockpit actions (§4.2) now drive the equivalent behaviour.
-- Existing projects keep their copies until their next reconciliation run.
-- Exit criteria: newly created projects (post Phase 5) do not contain
-  these three files.
+- Confirm (already enforced by Phase 5 exit criteria) that
+  `prestart-prompt.txt`, `start-prompt.txt`, and
+  `reconciliation-prompt.txt` are absent from newly-created project
+  trees.
+- Update the `template` repo's `scripts/setup-app.ts` /
+  `scripts/setup-dual-app.ts` to stop emitting these three files.
+- Imported legacy projects retain their copies as historical artifacts;
+  the ACP engine does not read them. The `factory/` ACP specification
+  is the sole execution target.
+- Exit criteria: the `template` repo's setup scripts contain no
+  reference to the three prompt files, and a fresh scaffold (whether
+  invoked from stagecraft or directly) produces a tree without them.
 
 ## 10. Risks and Open Questions
 
@@ -520,14 +642,14 @@ Each phase is independently mergeable and ends in a runnable state.
   next factory run emits a new conformant Build Spec alongside them; the
   cockpit marks the legacy files as historical.
 
-- **Adapter scaffold entry-point portability.** §5.2 step 3 invokes the
-  adapter's declared scaffold entry point in a stagecraft-side Node
-  subprocess. The `aim-vue-node` adapter uses Node 24; other adapters
-  (e.g. `rust-axum`) need different runtimes. Stagecraft must gate
-  scaffold execution by workspace policy (`scaffold.runtime` must be on
-  an allowlist) and consider whether to shift this to an OPC-side
-  execution (reuses the spec 110 "stagecraft orchestrates, OPC executes"
-  invariant). Decision deferred to Phase 5 start.
+- **Adapter scaffold entry-point portability.** *Resolved.*
+  Stagecraft-side scaffold is Node-24-only and uses the `template`
+  repo's `setup-*.ts` shape (§5.2 step 3, §5.3, §5.4). Adapters
+  declaring any other `scaffold.runtime` are not Create-eligible via
+  the web UI. Non-Node-24 adapter outputs can still reach the platform
+  via Import of a fully-executed repo (§6.2). A future spec may lift
+  this bound by dispatching non-Node-24 scaffolds to OPC through the
+  spec 110 envelope without disturbing the post-birth invariant.
 
 - **Detection crate embedding in stagecraft.** §6.2 step 3 proposes a CLI
   invocation of the detection crate from Node. Alternative: build a
@@ -544,11 +666,22 @@ Each phase is independently mergeable and ends in a runnable state.
   tests will include a fixture that validates detection against a repo
   that contains neither.
 
-- **Legacy projects without `.artifacts/raw/`.** cfs-womens-shelter has
-  `.artifacts/raw/` with business documents. Not every legacy project
-  will — some were produced from transcripts pasted into a prompt.
-  Detection does not require `.artifacts/`; the cockpit's "Re-extract"
-  action becomes a no-op when `.artifacts/raw/` is absent.
+- **Legacy projects without `.artifacts/raw/`.** Not every legacy
+  project has raw inputs on disk — some were produced from transcripts
+  pasted into a prompt. Import accepts this: detection does not require
+  `.artifacts/`, and the cockpit's "Re-extract" action is a no-op when
+  `.artifacts/raw/` is absent. Imported projects are historical; new
+  extraction is only relevant after the user adds raw content post-
+  import.
+
+- **Orphan-repo recovery on partial Create failure.** If
+  `githubRepoCreate` succeeds but `githubPushInitial` fails, an empty
+  repo is left in the target org. The `scaffold_jobs` row captures the
+  partial state; stagecraft must implement an explicit policy —
+  preferred: automatic retry of the push (bounded), then on terminal
+  failure either delete the orphan repo or mark it `orphaned` with a
+  reclaim action in the admin UI. The Express predecessor leaves
+  orphans silently; this regression must be closed in Phase 5.
 
 ## 11. Non-Goals
 
@@ -562,6 +695,25 @@ Each phase is independently mergeable and ends in a runnable state.
   a separate spec.
 - **Factory run execution changes.** Runs continue to dispatch per spec
   110. This spec only adds lifecycle entry points, not runtime behaviour.
+- **Partial legacy imports.** Projects with an incomplete
+  `factory-manifest.json` (any of the 5 stages not marked complete)
+  are not importable. Users must finish the legacy run upstream in
+  `goa-software-factory` before importing. Rationale: translation of a
+  partial manifest produces a pipeline-state with holes the ACP engine
+  cannot reconcile from, and the platform has no interest in resuming
+  legacy execution.
+- **Single-prompt factory execution.** The legacy
+  `prestart-prompt.txt` / `start-prompt.txt` / `reconciliation-prompt.txt`
+  flow is not supported on any created or imported project. All
+  factory runs use the ACP 7-stage engine via the cockpit (§4.2) and
+  the spec 110 envelope. The `factory/` ACP specification is the sole
+  execution target; legacy prompt files, if present in imported repos,
+  are historical artifacts only.
+- **Adopt-unrelated-repo via Import.** Import accepts factory-produced
+  repos only (`LegacyProduced` with `legacy_complete == true`, or
+  `AcpProduced`). `NotFactory` and `ScaffoldOnly` are rejected.
+  Adopting an unrelated repo as a factory project belongs to a future
+  "Adopt" spec with its own UX and policy gates.
 
 ## 12. Glossary
 
