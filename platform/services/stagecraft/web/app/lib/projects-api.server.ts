@@ -172,6 +172,36 @@ export async function listFactoryAdapters(request: Request) {
   }>;
 }
 
+// Spec 112 §6.2 — factory project import.
+export async function importFactoryProject(
+  request: Request,
+  data: {
+    repoUrl: string;
+    name?: string;
+    slug?: string;
+    description?: string;
+    previewOnly?: boolean;
+  }
+) {
+  return apiFetch(request, "/api/projects/factory-import", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<{
+    projectId: string | null;
+    detectionLevel:
+      | "not_factory"
+      | "scaffold_only"
+      | "legacy_produced"
+      | "acp_produced";
+    repoUrl: string;
+    cloneUrl: string;
+    oapDeepLink: string | null;
+    translatorVersion: string | null;
+    translatedPreview?: Record<string, unknown>;
+    previewOnly: boolean;
+  }>;
+}
+
 // Repos
 
 export async function listProjectRepos(request: Request, projectId: string) {
