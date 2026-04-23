@@ -255,6 +255,22 @@ scaffold:
   setup_commands:
     - string                        # e.g., "npm install", "npx tsx scripts/setup-dual-app.ts"
 
+  # ── Spec 112 §8 additions ──────────────────────────────────────────────
+  # The fields below are required for an adapter to be Create-eligible via
+  # stagecraft's web UI (`/app/projects/new`). Import and OPC-driven runs
+  # do not require them.
+  entry_point: string               # Relative path to scaffold entry script, e.g., "scripts/setup-app.ts"
+  runtime: string                   # Execution runtime; stagecraft Create MVP accepts only "node-24"
+  args_schema: object               # JSON Schema for --args accepted by the entry point
+  profiles:                         # Declared variant/profile combinations
+    - name: string                  # e.g., "dual-saml-postgres"
+      variant: string               # Matches Build Spec project.variant
+      modules: [string]             # Module names activated for this profile
+      default: boolean
+  emits:                            # What scaffold produces, relative to project root
+    - path: string                  # e.g., "template.json", "apps/", ".factory/pipeline-state.json"
+      description: string           # Optional
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # VALIDATION

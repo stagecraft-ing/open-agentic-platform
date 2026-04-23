@@ -332,6 +332,7 @@ mod tests {
                 description: "Base scaffold".into(),
                 modules: std::collections::HashMap::new(),
                 setup_commands: vec![],
+                ..Default::default()
             },
             validation: Validation {
                 invariants: vec![],
@@ -476,6 +477,45 @@ mod tests {
         assert!(
             !report.compatible,
             "next-prisma should not be compatible with dual variant"
+        );
+    }
+
+    #[test]
+    fn test_aim_vue_node_declares_spec_112_scaffold_extension() {
+        // Spec 112 Phase 4 exit criteria: aim-vue-node's manifest declares the new
+        // scaffold block with entry_point, runtime, profiles, and emits populated.
+        let factory_root = std::path::Path::new("../../factory");
+        if !factory_root.exists() {
+            return;
+        }
+        let registry =
+            AdapterRegistry::discover(factory_root).expect("Failed to discover adapters");
+        let manifest = registry
+            .get("aim-vue-node")
+            .expect("aim-vue-node adapter should be discovered");
+        let scaffold = &manifest.scaffold;
+        assert_eq!(scaffold.entry_point.as_deref(), Some("scripts/setup-app.ts"));
+        assert_eq!(scaffold.runtime.as_deref(), Some("node-24"));
+        assert!(
+            scaffold.args_schema.is_some(),
+            "args_schema must be declared for Create-eligibility"
+        );
+        assert!(
+            !scaffold.profiles.is_empty(),
+            "scaffold.profiles must enumerate variant/profile combinations"
+        );
+        assert!(
+            scaffold.profiles.iter().any(|p| p.default),
+            "exactly one profile must be marked default"
+        );
+        let variants: std::collections::HashSet<_> =
+            scaffold.profiles.iter().map(|p| p.variant.as_str()).collect();
+        assert!(variants.contains("single-public"));
+        assert!(variants.contains("single-internal"));
+        assert!(variants.contains("dual"));
+        assert!(
+            scaffold.emits.iter().any(|e| e.path == ".factory/pipeline-state.json"),
+            "emits must advertise the .factory/pipeline-state.json L0 seed path"
         );
     }
 }

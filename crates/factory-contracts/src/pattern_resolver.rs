@@ -290,6 +290,7 @@ mod tests {
                 description: "Monorepo scaffold".into(),
                 modules: HashMap::new(),
                 setup_commands: vec![],
+                ..Default::default()
             },
             validation: Validation {
                 invariants: vec![],

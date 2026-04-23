@@ -1053,6 +1053,7 @@ mod tests {
                 description: "Base project".into(),
                 modules: HashMap::new(),
                 setup_commands: vec!["npm install".into()],
+                ..Default::default()
             },
             validation: Validation {
                 invariants: vec![],

@@ -196,6 +196,66 @@ scaffold:
     - "npm install"
     - "npx tsx scripts/setup-dual-app.ts --yes --clean"
 
+  # Spec 112 §8 — stagecraft Create surface.
+  entry_point: "scripts/setup-app.ts"
+  runtime: "node-24"
+  args_schema:
+    type: object
+    required: ["variant"]
+    properties:
+      variant:
+        type: string
+        enum: ["single-public", "single-internal", "dual"]
+      yes:
+        type: boolean
+        description: "Skip interactive confirmation prompts"
+      clean:
+        type: boolean
+        description: "Remove unused scaffold artefacts for the selected variant"
+  profiles:
+    - name: "single-public"
+      variant: "single-public"
+      modules:
+        - "security-core"
+        - "data-redis"
+        - "auth-core"
+        - "auth-mock"
+        - "auth-saml"
+        - "session-store-redis"
+    - name: "single-internal"
+      variant: "single-internal"
+      modules:
+        - "security-core"
+        - "data-postgres"
+        - "auth-core"
+        - "auth-mock"
+        - "auth-entra-id"
+        - "session-store-postgres"
+        - "service-auth"
+    - name: "dual"
+      variant: "dual"
+      default: true
+      modules:
+        - "security-core"
+        - "data-redis"
+        - "data-postgres"
+        - "auth-core"
+        - "auth-mock"
+        - "auth-saml"
+        - "auth-entra-id"
+        - "session-store-redis"
+        - "session-store-postgres"
+        - "service-auth"
+  emits:
+    - path: "template.json"
+      description: "Module inventory and fileOwnership for add-module / remove-module tooling"
+    - path: "apps/"
+      description: "Per-stack application folders (single vs. dual based on variant)"
+    - path: "packages/"
+      description: "Shared packages (config, types, auth, etc.)"
+    - path: ".factory/pipeline-state.json"
+      description: "L0 ACP pipeline-state seed written by stagecraft post-scaffold (not by the adapter itself)"
+
 validation:
   invariants_file: "validation/invariants.yaml"
 

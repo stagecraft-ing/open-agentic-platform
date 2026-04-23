@@ -368,11 +368,13 @@ pub struct Agents {
 
 // ── Scaffold ──────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Scaffold {
     /// Path to base project template, relative to adapter root (e.g., "scaffold/")
+    #[serde(default)]
     pub source: String,
     /// What the scaffold provides out of the box
+    #[serde(default)]
     pub description: String,
     /// Which modules to install per deployment variant (variant → list of module names)
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -380,6 +382,48 @@ pub struct Scaffold {
     /// Commands run after copying the scaffold, before feature scaffolding
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub setup_commands: Vec<String>,
+
+    // ── Spec 112 §8 additions ──────────────────────────────────────
+    /// Relative path to the scaffold entry script (e.g. "scripts/setup.ts"). Required by the
+    /// stagecraft Create path (spec 112 §5.3) — adapters without this field are not
+    /// Create-eligible via the web UI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entry_point: Option<String>,
+    /// Execution runtime (e.g. "node-24", "deno-2"). Stagecraft Create MVP runs only
+    /// `node-24` adapters; other runtimes are Import-only until a future spec.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<String>,
+    /// Optional JSON Schema (serde_json::Value) describing the --args accepted by the
+    /// entry point. Stagecraft validates user-supplied scaffold arguments against this
+    /// before invoking the entry point.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args_schema: Option<serde_json::Value>,
+    /// Declared variant/profile combinations. Stagecraft Create surfaces these as
+    /// dropdown options in `/app/projects/new`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub profiles: Vec<ScaffoldProfile>,
+    /// Paths the scaffold produces, relative to project root. Informational; used by
+    /// the absorbed template-distributor cache layer (spec 112 §5.3) for pre-warming.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub emits: Vec<ScaffoldEmit>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScaffoldProfile {
+    pub name: String,
+    /// Matches Build Spec `project.variant` (e.g. "single-public", "single-internal", "dual").
+    pub variant: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub modules: Vec<String>,
+    #[serde(default)]
+    pub default: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScaffoldEmit {
+    pub path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 // ── Validation ────────────────────────────────────────────────────────
