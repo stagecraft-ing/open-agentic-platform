@@ -2,13 +2,15 @@
 
 import { describe, expect, test } from "vitest";
 import { buildProjectCatalogUpsert } from "./projectCatalog";
+import { ENVELOPE_SCHEMA_VERSION, type ServerMeta } from "./types";
 
-const baseMeta = {
+const baseMeta: ServerMeta = {
+  v: ENVELOPE_SCHEMA_VERSION,
   eventId: "00000000-0000-0000-0000-000000000001",
+  sentAt: "2026-04-23T00:00:00.000Z",
   correlationId: "corr-1",
   workspaceCursor: "42",
   workspaceId: "ws-1",
-  issuedAt: "2026-04-23T00:00:00.000Z",
 };
 
 describe("buildProjectCatalogUpsert", () => {

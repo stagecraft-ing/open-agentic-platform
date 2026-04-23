@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "3d55bbdfb26bcaf4c9ffbb0c31c0a8d53c664e034c05affea0d5108404536a70",
+    "contentHash": "416eeb745d0a7df4f620b3d0679cf09051bee94e8e4e040b0b10a04fe3194995",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10,7 +10,7 @@
     "warnings": [
       {
         "code": "I-101",
-        "message": "spec \"110-stagecraft-to-opc-factory-trigger\" declares implements path \"apps/desktop/src/routes/factory\" which is not a known package, adapter, or existing file/directory"
+        "message": "spec \"112-factory-project-lifecycle\" declares implements path \"crates/factory-contracts/schemas/\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -471,6 +471,30 @@
       "name": "factory-engine",
       "path": "crates/factory-engine",
       "specRef": "075-factory-workflow-engine",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/factory-project-detect.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "chrono",
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "thiserror"
+      ],
+      "internalDeps": [
+        "factory-contracts"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "factory-project-detect",
+      "path": "crates/factory-project-detect",
+      "specRef": "112-factory-project-lifecycle",
       "version": "0.1.0"
     },
     {
@@ -2832,6 +2856,66 @@
           }
         ],
         "specId": "111-org-agent-catalog-sync",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075",
+          "087",
+          "094",
+          "108",
+          "110",
+          "111"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/factory_project.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/routes/factory/ProjectCockpit.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-contracts/schemas/",
+            "source": "spec-implements"
+          },
+          {
+            "name": "factory-project-detect",
+            "path": "crates/factory-project-detect",
+            "source": "cargo-metadata"
+          },
+          {
+            "path": "crates/factory-project-detect/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/import.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "112-factory-project-lifecycle",
         "specStatus": "draft"
       }
     ],

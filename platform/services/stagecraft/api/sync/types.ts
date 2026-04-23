@@ -621,6 +621,7 @@ export interface ServerEnvelopeWire {
     | "factory.run.request"
     | "agent.catalog.updated"
     | "agent.catalog.snapshot"
+    | "project.catalog.upsert"
     | "sync.ack"
     | "sync.nack"
     | "sync.resync_required"
@@ -686,6 +687,26 @@ export interface ServerEnvelopeWire {
   updatedAt?: string;
   entries?: AgentCatalogSnapshotEntry[];
   generatedAt?: string;
+  // spec 112 §7 — project.catalog.upsert fields (projectId, workspaceId,
+  // name, updatedAt are already declared above).
+  slug?: string;
+  description?: string;
+  factoryAdapterId?: string | null;
+  detectionLevel?:
+    | "not_factory"
+    | "scaffold_only"
+    | "legacy_produced"
+    | "acp_produced"
+    | null;
+  repo?: {
+    githubOrg: string;
+    repoName: string;
+    defaultBranch: string;
+    cloneUrl: string;
+    htmlUrl: string;
+  } | null;
+  oapDeepLink?: string;
+  tombstone?: boolean;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.
