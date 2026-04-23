@@ -46,6 +46,7 @@ use commands::factory::{
     get_factory_pipeline_status, list_factory_runs, reject_factory_stage, resume_factory_pipeline,
     skip_factory_step, start_factory_pipeline,
 };
+use commands::factory_project::detect_factory_project;
 use commands::keychain::{keychain_clear, keychain_retrieve, keychain_store};
 use commands::mcp::{
     mcp_add, mcp_add_from_claude_desktop, mcp_add_json, mcp_get, mcp_get_server_status, mcp_list,
@@ -483,6 +484,7 @@ pub fn run() {
             skip_factory_step,
             resume_factory_pipeline,
             cancel_factory_pipeline,
+            detect_factory_project,
             // Worktree agents (051)
             spawn_background_agent,
             list_background_agents,

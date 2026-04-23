@@ -90,6 +90,8 @@ orchestrator = { path = "../../../crates/orchestrator" }
 provider-registry = { path = "../../../crates/provider-registry", default-features = false, features = ["anthropic", "openai"] }
 policy-kernel = { package = "open_agentic_policy_kernel", path = "../../../crates/policy-kernel", default-features = false }
 factory-engine = { path = "../../../crates/factory-engine" }
+factory-contracts = { path = "../../../crates/factory-contracts" }
+factory-project-detect = { path = "../../../crates/factory-project-detect" }
 
 
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }

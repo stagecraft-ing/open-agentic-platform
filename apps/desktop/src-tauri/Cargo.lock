@@ -1923,6 +1923,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "factory-project-detect"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "factory-contracts",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4554,7 +4568,9 @@ dependencies = [
  "cocoa",
  "dirs 5.0.1",
  "env_logger",
+ "factory-contracts",
  "factory-engine",
+ "factory-project-detect",
  "featuregraph",
  "futures",
  "futures-util",
