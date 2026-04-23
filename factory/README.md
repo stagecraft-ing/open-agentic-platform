@@ -124,3 +124,7 @@ Spec 112 §5.4 makes the stagecraft ↔ OPC split explicit:
 ### Create path runtime (MVP)
 
 Stagecraft-side scaffold execution is Node-24-only, shaped after the `template` repo's `scripts/setup-*.ts` (spec 112 §5.2 step 3). Adapters declaring a `scaffold.runtime` other than `node-24` are not Create-eligible via the web UI in the MVP — their outputs reach the platform through Import of fully-executed repos. A follow-up spec will dispatch non-Node scaffolds to OPC over the spec 110 envelope without disturbing the post-birth invariant.
+
+### Legacy prompt files are retired
+
+Per spec 112 §11 Non-Goals and Phase 9: `prestart-prompt.txt`, `start-prompt.txt`, and `reconciliation-prompt.txt` are no longer part of the factory execution surface. The ACP 7-stage engine is the sole execution target; the `factory/` contract here is its specification. Newly-created projects (spec 112 §5) do not emit these files. Imported legacy projects may carry copies as historical artefacts — they are not read by any adapter, process, or engine in this tree. Removing the files from the upstream `template` repo's `scripts/setup-*.ts` is tracked there, not here — OAP does not own that repo.
