@@ -40,3 +40,13 @@ Test API endpoints by calling them directly as functions. Don't mock Encore infr
 ## Reference
 
 For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, middleware, validation, etc.), see [`docs/encore-ts-reference.md`](docs/encore-ts-reference.md).
+
+## Factory project scaffold
+
+Project creation and import live under `api/projects/`:
+
+- `create.ts` (spec 112 §5) — `POST /api/projects/factory-create`. ACP-native; writes commit #1 with a `.factory/pipeline-state.json` L0 seed, links the project to a `factory_adapters` row, and returns an `oap://` deep link.
+- `import.ts` (spec 112 §6) — `POST /api/projects/factory-import`. Clones the repo, shells the `factory-project-detect` CLI for a governed detection read, branches on the level (reject / translate / register), and emits a `project.imported` audit event.
+- `scaffold/` — the six absorbed operations (template cache, prebuilds, adapter scaffold runner, GitHub repo create, initial push, artefact extraction) plus pure helpers (`deepLink`, `seedPipelineState`, `pickProfile`).
+
+The `template-distributor` external service is retired — all scaffold work for newly-created factory projects happens in-process here under the org's existing GitHub App installation.
