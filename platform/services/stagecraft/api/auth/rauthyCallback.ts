@@ -36,6 +36,7 @@ import {
 import { mintSessionForOrg } from "./sessionMint";
 import { resolveMembership } from "./membershipResolver";
 import { errorCodeForReason } from "./rauthyCallback-pure";
+import { readIncumbentPlatformRole, type PlatformRole } from "./rauthy-pure";
 import type { ResolvedOrg } from "./membership";
 
 export { errorCodeForReason } from "./rauthyCallback-pure";
@@ -290,6 +291,16 @@ export const rauthyCallback = api.raw(
       return redirectError(resp, desktopFlow, "membership_failed");
     }
 
+    // Rauthy's `platform_role` user attribute is the source of truth for role
+    // elevation (spec 106 FR-002 + FR-005). If Rauthy already carries a role,
+    // apply it to every matched org and mirror it into org_memberships so
+    // admin/list UIs stay in sync with the JWT claim. On first login the
+    // attribute is unpopulated; mintSessionForOrg will seed it.
+    const incumbentRole = readIncumbentPlatformRole(idClaims);
+    if (incumbentRole && matched.orgs.length > 0) {
+      await applyIncumbentRole(user.id, matched.orgs, incumbentRole);
+    }
+
     // Bookkeeping (non-fatal).
     try {
       await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
@@ -460,6 +471,32 @@ async function findOrCreateUserByRauthySub(opts: {
     })
     .returning({ id: users.id, rauthyUserId: users.rauthyUserId });
   return created;
+}
+
+/**
+ * Mutate each ResolvedOrg and upsert org_memberships so the Rauthy-managed
+ * role is reflected everywhere stagecraft reads role state. The membership
+ * rows exist by this point (afterResolution inserted them) so a plain UPDATE
+ * is enough.
+ */
+async function applyIncumbentRole(
+  userId: string,
+  orgs: ResolvedOrg[],
+  role: PlatformRole
+): Promise<void> {
+  for (const org of orgs) {
+    org.platformRole = role;
+    await db
+      .update(orgMemberships)
+      .set({ platformRole: role, updatedAt: new Date() })
+      .where(
+        and(
+          eq(orgMemberships.userId, userId),
+          eq(orgMemberships.orgId, org.orgId),
+          eq(orgMemberships.status, "active")
+        )
+      );
+  }
 }
 
 // ---------------------------------------------------------------------------

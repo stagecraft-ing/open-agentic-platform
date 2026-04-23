@@ -180,7 +180,19 @@ export const storeProjectPat = api<
       };
     }
 
-    const { tokenEnc, tokenNonce } = encryptPat(token);
+    let tokenEnc: Buffer;
+    let tokenNonce: Buffer;
+    try {
+      ({ tokenEnc, tokenNonce } = encryptPat(token));
+    } catch (err) {
+      log.error("project PAT encryption failed", {
+        projectId: req.projectId,
+        error: errorForLog(err),
+      });
+      throw APIError.internal(
+        "PAT encryption is not configured (set the PAT_ENCRYPTION_KEY secret)"
+      );
+    }
 
     await db
       .insert(projectGithubPats)
@@ -379,7 +391,18 @@ export async function loadProjectPatToken(
 
   if (!row) return null;
 
-  const token = decryptPat(row.tokenEnc, row.tokenNonce);
+  let token: string;
+  try {
+    token = decryptPat(row.tokenEnc, row.tokenNonce);
+  } catch (err) {
+    log.error("project PAT decryption failed during load", {
+      projectId,
+      error: errorForLog(err),
+    });
+    throw new Error(
+      "project PAT could not be decrypted — check PAT_ENCRYPTION_KEY and that the stored nonce/ciphertext have not been tampered with"
+    );
+  }
   await db
     .update(projectGithubPats)
     .set({ lastUsedAt: new Date() })

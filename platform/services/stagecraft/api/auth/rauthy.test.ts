@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { extractOapClaims } from "./rauthy-pure";
+import { extractOapClaims, readIncumbentPlatformRole } from "./rauthy-pure";
 
 describe("extractOapClaims", () => {
   test("reads claims from payload.custom.* (spec 106 FR-002 layout)", () => {
@@ -101,5 +101,39 @@ describe("extractOapClaims", () => {
     };
 
     expect(extractOapClaims(payload)).toBeNull();
+  });
+});
+
+describe("readIncumbentPlatformRole", () => {
+  test("reads owner/admin/member from payload.custom.platform_role", () => {
+    for (const role of ["owner", "admin", "member"] as const) {
+      expect(
+        readIncumbentPlatformRole({ custom: { platform_role: role } })
+      ).toBe(role);
+    }
+  });
+
+  test("accepts the legacy top-level layout", () => {
+    expect(readIncumbentPlatformRole({ platform_role: "admin" })).toBe("admin");
+  });
+
+  test("custom.* wins over a top-level value", () => {
+    expect(
+      readIncumbentPlatformRole({
+        platform_role: "member",
+        custom: { platform_role: "owner" },
+      })
+    ).toBe("owner");
+  });
+
+  test("returns null when absent or unrecognised", () => {
+    expect(readIncumbentPlatformRole({})).toBeNull();
+    expect(readIncumbentPlatformRole({ custom: {} })).toBeNull();
+    expect(
+      readIncumbentPlatformRole({ custom: { platform_role: "" } })
+    ).toBeNull();
+    expect(
+      readIncumbentPlatformRole({ custom: { platform_role: "superuser" } })
+    ).toBeNull();
   });
 });

@@ -274,7 +274,10 @@ async function userPatStrategy(
   try {
     pat = decryptPat(patRow.tokenEnc, patRow.tokenNonce);
   } catch (err) {
-    log.error("PAT decryption failed", { userId, error: errorForLog(err) });
+    log.error(
+      "PAT decryption failed — check PAT_ENCRYPTION_KEY secret and stored ciphertext",
+      { userId, error: errorForLog(err) }
+    );
     return { matches: [], reason: "pat_invalid" };
   }
 

@@ -145,7 +145,19 @@ export const storePat = api<StorePatRequest, PatValidationResult>(
         and(eq(userGithubPats.userId, auth.userID), isNull(userGithubPats.revokedAt))
       );
 
-    const { tokenEnc, tokenNonce } = encryptPat(token);
+    let tokenEnc: Buffer;
+    let tokenNonce: Buffer;
+    try {
+      ({ tokenEnc, tokenNonce } = encryptPat(token));
+    } catch (err) {
+      log.error("PAT encryption failed", {
+        userId: auth.userID,
+        error: errorForLog(err),
+      });
+      throw APIError.internal(
+        "PAT encryption is not configured (set the PAT_ENCRYPTION_KEY secret)"
+      );
+    }
 
     await db.insert(userGithubPats).values({
       userId: auth.userID,

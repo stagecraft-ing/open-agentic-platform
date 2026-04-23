@@ -69,3 +69,23 @@ export function extractOapClaims(payload: Record<string, unknown>): OapClaims | 
     iat,
   };
 }
+
+export type PlatformRole = "owner" | "admin" | "member";
+
+/**
+ * Read the Rauthy-managed `platform_role` attribute from a raw JWT payload.
+ *
+ * Rauthy is the authoritative store for role elevation: an admin edits the
+ * `platform_role` user attribute in the Rauthy UI, and stagecraft respects
+ * that value on each login instead of hardcoding "member" for every resolved
+ * org. Returns null when the claim is absent or set to an unrecognised value
+ * (e.g. the first login before `setRauthyUserAttributes` has populated it).
+ */
+export function readIncumbentPlatformRole(
+  payload: Record<string, unknown>
+): PlatformRole | null {
+  const custom = (payload.custom as Record<string, unknown> | undefined) ?? {};
+  const raw = custom.platform_role ?? payload.platform_role;
+  if (raw === "owner" || raw === "admin" || raw === "member") return raw;
+  return null;
+}

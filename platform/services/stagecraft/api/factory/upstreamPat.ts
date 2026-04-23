@@ -136,7 +136,19 @@ export const storeFactoryUpstreamPat = api<
       };
     }
 
-    const { tokenEnc, tokenNonce } = encryptPat(token);
+    let tokenEnc: Buffer;
+    let tokenNonce: Buffer;
+    try {
+      ({ tokenEnc, tokenNonce } = encryptPat(token));
+    } catch (err) {
+      log.error("factory upstream PAT encryption failed", {
+        orgId: auth.orgId,
+        error: errorForLog(err),
+      });
+      throw APIError.internal(
+        "PAT encryption is not configured (set the PAT_ENCRYPTION_KEY secret)"
+      );
+    }
 
     await db
       .insert(factoryUpstreamPats)
@@ -336,7 +348,18 @@ export async function loadFactoryUpstreamPatToken(
 
   if (!row) return null;
 
-  const token = decryptPat(row.tokenEnc, row.tokenNonce);
+  let token: string;
+  try {
+    token = decryptPat(row.tokenEnc, row.tokenNonce);
+  } catch (err) {
+    log.error("factory upstream PAT decryption failed during load", {
+      orgId,
+      error: errorForLog(err),
+    });
+    throw new Error(
+      "factory upstream PAT could not be decrypted — check PAT_ENCRYPTION_KEY and that the stored nonce/ciphertext have not been tampered with"
+    );
+  }
   await db
     .update(factoryUpstreamPats)
     .set({ lastUsedAt: new Date() })
