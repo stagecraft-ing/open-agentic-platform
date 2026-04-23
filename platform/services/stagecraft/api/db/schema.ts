@@ -187,6 +187,10 @@ export const projects = pgTable(
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     description: text("description").notNull().default(""),
+    // Spec 112 §5.2 — link to the factory adapter this project was created
+    // from (or translated to, for imported legacy projects). Nullable so
+    // pre-spec-112 projects load without migration back-fill.
+    factoryAdapterId: uuid("factory_adapter_id"),
     createdBy: uuid("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -826,6 +830,38 @@ export const factoryProcesses = pgTable(
   },
   (t) => [unique().on(t.orgId, t.name, t.version)]
 );
+
+// ---------------------------------------------------------------------------
+// Spec 112 — Factory scaffold jobs.
+// Durable, concurrency-safe record of every Create request (replaces the
+// retired `template-distributor` service's in-memory job map).
+// ---------------------------------------------------------------------------
+
+export const scaffoldJobs = pgTable("scaffold_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull(),
+  workspaceId: uuid("workspace_id").notNull(),
+  projectId: uuid("project_id"),
+  factoryAdapterId: uuid("factory_adapter_id").notNull(),
+  requestedBy: uuid("requested_by").notNull(),
+  variant: text("variant").notNull(),
+  profileName: text("profile_name"),
+  status: text("status").notNull().default("pending"), // pending | running | succeeded | failed | orphaned
+  step: text("step"), // clone | prebuild | run-entry | seed-pipeline-state | push | cleanup
+  errorMessage: text("error_message"),
+  githubOrg: text("github_org"),
+  repoName: text("repo_name"),
+  cloneUrl: text("clone_url"),
+  commitSha: text("commit_sha"),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
 
 // ---------------------------------------------------------------------------
 // Spec 109 — Factory PAT broker + PubSub sync.

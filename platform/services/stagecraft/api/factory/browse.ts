@@ -18,6 +18,8 @@ import {
 // ---------------------------------------------------------------------------
 
 export type FactoryResourceSummary = {
+  /** Row UUID — spec 112 uses this to bind factory_adapters → projects. */
+  id?: string;
   name: string;
   version: string;
   sourceSha: string;
@@ -46,6 +48,7 @@ export const listAdapters = api(
     const auth = getAuthData()!;
     const rows = await db
       .select({
+        id: factoryAdapters.id,
         name: factoryAdapters.name,
         version: factoryAdapters.version,
         sourceSha: factoryAdapters.sourceSha,
@@ -57,6 +60,7 @@ export const listAdapters = api(
 
     return {
       adapters: rows.map((r) => ({
+        id: r.id,
         name: r.name,
         version: r.version,
         sourceSha: r.sourceSha,

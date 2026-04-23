@@ -1,104 +1,177 @@
 /**
- * Self-service project creation form (spec 080 Phase 2 — FR-006).
+ * Self-service project creation (spec 080 FR-006 → spec 112 §5.1).
  *
- * Authenticated org members can create a project with a GitHub repo,
- * adapter template, branch protection, and CI workflow.
+ * Lists factory adapters from the org's `factory_adapters` table and creates
+ * the project through the ACP-native `/api/projects/factory-create`
+ * endpoint, which writes commit #1 with a `.factory/pipeline-state.json`
+ * L0 seed and returns an `oap://` deep link for the success page to
+ * hand off to OPC.
  */
 
-import { Form, useActionData, useNavigation, redirect } from "react-router";
+import {
+  Form,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from "react-router";
 import { useState } from "react";
 import { requireUser } from "../lib/auth.server";
-import { createProjectWithRepo } from "../lib/projects-api.server";
+import {
+  createFactoryProject,
+  listFactoryAdapters,
+} from "../lib/projects-api.server";
 
-const ADAPTERS = [
-  { value: "aim-vue-node", label: "AIM Vue + Node", description: "Vue 3 frontend with Node.js API backend" },
-  { value: "encore-react", label: "Encore + React", description: "Encore.ts backend with React frontend" },
-  { value: "next-prisma", label: "Next.js + Prisma", description: "Next.js full-stack with Prisma ORM" },
-  { value: "rust-axum", label: "Rust Axum", description: "Rust backend with Axum framework" },
-] as const;
+type Variant = "single-public" | "single-internal" | "dual";
 
-export async function loader({ request }: { request: Request }) {
-  await requireUser(request);
-  return {};
+const VARIANTS: Array<{ value: Variant; label: string; description: string }> = [
+  {
+    value: "single-public",
+    label: "Single (public)",
+    description: "One stack served to citizens / external users.",
+  },
+  {
+    value: "single-internal",
+    label: "Single (internal)",
+    description: "One stack served to staff / internal users.",
+  },
+  {
+    value: "dual",
+    label: "Dual",
+    description: "Separate public + internal stacks with a BFF boundary.",
+  },
+];
+
+interface AdapterSummary {
+  id: string;
+  name: string;
+  version: string;
 }
 
-export async function action({ request }: { request: Request }) {
+interface LoaderData {
+  adapters: AdapterSummary[];
+}
+
+interface ActionSuccess {
+  projectId: string;
+  repoUrl: string;
+  cloneUrl: string;
+  oapDeepLink: string;
+  factoryAdapterId: string;
+}
+
+interface ActionFailure {
+  error: string;
+}
+
+type ActionResult = ActionSuccess | ActionFailure;
+
+export async function loader({ request }: { request: Request }): Promise<LoaderData> {
+  await requireUser(request);
+  try {
+    const { adapters } = await listFactoryAdapters(request);
+    return {
+      adapters: adapters
+        .filter((a): a is AdapterSummary & { id: string } => Boolean(a.id))
+        .map((a) => ({ id: a.id, name: a.name, version: a.version })),
+    };
+  } catch (err) {
+    console.error("listFactoryAdapters failed", err);
+    return { adapters: [] };
+  }
+}
+
+export async function action({ request }: { request: Request }): Promise<ActionResult> {
   const user = await requireUser(request);
   const formData = await request.formData();
 
-  const name = formData.get("name") as string;
-  const slug = formData.get("slug") as string;
-  const description = formData.get("description") as string;
-  const adapter = formData.get("adapter") as string;
-  const repoName = formData.get("repoName") as string;
+  const name = (formData.get("name") as string | null) ?? "";
+  const slug = (formData.get("slug") as string | null) ?? "";
+  const description = (formData.get("description") as string | null) ?? "";
+  const adapterId = (formData.get("adapterId") as string | null) ?? "";
+  const variant = (formData.get("variant") as string | null) ?? "dual";
+  const repoName = (formData.get("repoName") as string | null) ?? "";
   const isPrivate = formData.get("visibility") !== "public";
 
-  if (!name || !slug || !adapter || !repoName) {
+  if (!name || !slug || !adapterId || !repoName) {
     return { error: "Name, slug, adapter, and repository name are required." };
   }
-
   if (slug.length < 3 || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
-    return { error: "Slug must be at least 3 characters, lowercase alphanumeric with hyphens (e.g., my-project)." };
+    return {
+      error:
+        "Slug must be at least 3 characters, lowercase alphanumeric with hyphens (e.g., my-project).",
+    };
+  }
+  if (!["single-public", "single-internal", "dual"].includes(variant)) {
+    return { error: "Invalid variant selected." };
   }
 
   try {
-    const result = await createProjectWithRepo(request, {
+    const result = await createFactoryProject(request, {
       name,
       slug,
       description: description || undefined,
-      adapter,
+      adapterId,
+      variant: variant as Variant,
       repoName,
       isPrivate,
     });
-    return redirect(`/app/project/${result.project.id}`);
+    return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("createProjectWithRepo failed", {
+    console.error("createFactoryProject failed", {
       userId: user.userId,
       orgSlug: user.orgSlug,
       slug,
       repoName,
-      adapter,
+      adapterId,
       error: msg,
     });
-
-    // Extract Encore APIError message from the JSON body apiFetch throws.
     let backendMsg = msg;
     try {
-      const parsed = JSON.parse(msg) as { message?: string; code?: string };
+      const parsed = JSON.parse(msg) as { message?: string };
       if (parsed.message) backendMsg = parsed.message;
     } catch {
-      // msg wasn't JSON — leave it alone
+      /* leave msg alone */
     }
-
     if (backendMsg.includes("already exists")) {
       return { error: "A project or repository with that name already exists." };
     }
     if (backendMsg.includes("No active GitHub App")) {
-      return { error: "No GitHub App installation found for your org. Install the OAP GitHub App from the admin settings." };
-    }
-    if (backendMsg.includes("missing required permissions")) {
-      return { error: backendMsg };
+      return {
+        error:
+          "No GitHub App installation found for your org. Install the OAP GitHub App from the admin settings.",
+      };
     }
     if (backendMsg.includes("Insufficient permissions") || backendMsg.includes("permission")) {
       return { error: "You don't have permission to create projects in this org." };
     }
     if (backendMsg.includes("No active workspace")) {
-      return { error: "No active workspace for your org. Ask your org admin to create a default workspace." };
+      return {
+        error:
+          "No active workspace for your org. Ask your org admin to create a default workspace.",
+      };
+    }
+    if (backendMsg.includes("not supported by stagecraft Create")) {
+      return { error: backendMsg };
     }
     return { error: `Failed to create project: ${backendMsg}` };
   }
 }
 
-function slugify(name: string): string {
-  return name
+function slugify(value: string): string {
+  return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 }
 
+function isSuccess(data: ActionResult | undefined): data is ActionSuccess {
+  return Boolean(data && (data as ActionSuccess).projectId);
+}
+
 export default function NewProject() {
-  const actionData = useActionData() as { error?: string } | undefined;
+  const { adapters } = useLoaderData() as LoaderData;
+  const actionData = useActionData() as ActionResult | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const [name, setName] = useState("");
@@ -114,6 +187,26 @@ export default function NewProject() {
     if (!repoEdited) setRepoName(slugEdited ? slug : derived);
   };
 
+  if (isSuccess(actionData)) {
+    return <CreateSuccess data={actionData} />;
+  }
+
+  if (adapters.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Create New Project
+        </h2>
+        <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
+          <p className="text-sm text-yellow-900 dark:text-yellow-200">
+            No factory adapters are available for your org. Ask an admin to run
+            the factory upstream sync, then return to this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -121,18 +214,20 @@ export default function NewProject() {
           Create New Project
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Set up a new project with a GitHub repository, CI workflow, and deployment environments.
+          Scaffold a new project with a factory adapter, GitHub repo, and
+          pre-seeded ACP pipeline state.
         </p>
       </div>
 
-      {actionData?.error && (
+      {actionData && !isSuccess(actionData) && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
-          <p className="text-sm text-red-700 dark:text-red-400">{actionData.error}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">
+            {(actionData as ActionFailure).error}
+          </p>
         </div>
       )}
 
       <Form method="post" className="space-y-5">
-        {/* Project Name */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Project Name
@@ -149,7 +244,6 @@ export default function NewProject() {
           />
         </div>
 
-        {/* Slug */}
         <div>
           <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Slug
@@ -169,12 +263,8 @@ export default function NewProject() {
             placeholder="my-project"
             pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Lowercase letters, numbers, and hyphens. Used in URLs and namespaces.
-          </p>
         </div>
 
-        {/* Description */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Description
@@ -188,30 +278,49 @@ export default function NewProject() {
           />
         </div>
 
-        {/* Adapter Selection */}
+        <div>
+          <label htmlFor="adapterId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Factory Adapter
+          </label>
+          <select
+            name="adapterId"
+            id="adapterId"
+            required
+            defaultValue={adapters[0].id}
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          >
+            {adapters.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} @ {a.version}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Adapter Template
+            Variant
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {ADAPTERS.map((adapter) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {VARIANTS.map((variant) => (
               <label
-                key={adapter.value}
+                key={variant.value}
                 className="relative flex items-start border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20"
               >
                 <input
                   type="radio"
-                  name="adapter"
-                  value={adapter.value}
+                  name="variant"
+                  value={variant.value}
+                  defaultChecked={variant.value === "dual"}
                   required
                   className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300"
                 />
                 <div className="ml-3">
                   <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {adapter.label}
+                    {variant.label}
                   </span>
                   <span className="block text-xs text-gray-500 dark:text-gray-400">
-                    {adapter.description}
+                    {variant.description}
                   </span>
                 </div>
               </label>
@@ -219,7 +328,6 @@ export default function NewProject() {
           </div>
         </div>
 
-        {/* Repository Name */}
         <div>
           <label htmlFor="repoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Repository Name
@@ -230,16 +338,15 @@ export default function NewProject() {
             id="repoName"
             required
             value={repoName}
-            onChange={(e) => { setRepoName(e.target.value); setRepoEdited(true); }}
+            onChange={(e) => {
+              setRepoName(e.target.value);
+              setRepoEdited(true);
+            }}
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 font-mono focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             placeholder="my-project"
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            The GitHub repository will be created in your org with this name.
-          </p>
         </div>
 
-        {/* Visibility */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Visibility
@@ -267,7 +374,6 @@ export default function NewProject() {
           </div>
         </div>
 
-        {/* Submit */}
         <div className="flex items-center gap-4 pt-2">
           <button
             type="submit"
@@ -284,6 +390,57 @@ export default function NewProject() {
           </a>
         </div>
       </Form>
+    </div>
+  );
+}
+
+function CreateSuccess({ data }: { data: ActionSuccess }) {
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3">
+        <p className="text-sm text-green-800 dark:text-green-300">
+          Project created. Your GitHub repo now holds commit #1 with a
+          seeded <code>.factory/pipeline-state.json</code>.
+        </p>
+      </div>
+      <dl className="rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="grid grid-cols-[12rem_1fr] px-4 py-3">
+          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">GitHub repo</dt>
+          <dd className="text-sm text-indigo-600 dark:text-indigo-400">
+            <a href={data.repoUrl} target="_blank" rel="noreferrer">
+              {data.repoUrl}
+            </a>
+          </dd>
+        </div>
+        <div className="grid grid-cols-[12rem_1fr] px-4 py-3">
+          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Clone URL</dt>
+          <dd className="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
+            {data.cloneUrl}
+          </dd>
+        </div>
+        <div className="grid grid-cols-[12rem_1fr] px-4 py-3">
+          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Open in OPC</dt>
+          <dd>
+            <a
+              href={data.oapDeepLink}
+              className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Launch Factory Cockpit
+            </a>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
+              {data.oapDeepLink}
+            </p>
+          </dd>
+        </div>
+      </dl>
+      <div>
+        <a
+          href={`/app/project/${data.projectId}`}
+          className="text-sm text-indigo-600 dark:text-indigo-400"
+        >
+          Go to project dashboard →
+        </a>
+      </div>
     </div>
   );
 }

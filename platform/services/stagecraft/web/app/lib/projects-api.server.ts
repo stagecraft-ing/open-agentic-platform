@@ -134,6 +134,44 @@ export async function createProjectWithRepo(
   }>;
 }
 
+// Spec 112 §5.2 — ACP-native factory project creation.
+export async function createFactoryProject(
+  request: Request,
+  data: {
+    name: string;
+    slug: string;
+    description?: string;
+    adapterId: string;
+    variant: "single-public" | "single-internal" | "dual";
+    profileName?: string;
+    repoName: string;
+    isPrivate?: boolean;
+  }
+) {
+  return apiFetch(request, "/api/projects/factory-create", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<{
+    projectId: string;
+    repoUrl: string;
+    cloneUrl: string;
+    oapDeepLink: string;
+    scaffoldJobId: string;
+    factoryAdapterId: string;
+  }>;
+}
+
+export async function listFactoryAdapters(request: Request) {
+  return apiFetch(request, "/api/factory/adapters") as Promise<{
+    adapters: Array<{
+      id: string;
+      name: string;
+      version: string;
+      sourceSha: string;
+    }>;
+  }>;
+}
+
 // Repos
 
 export async function listProjectRepos(request: Request, projectId: string) {
