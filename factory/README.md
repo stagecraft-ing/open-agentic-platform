@@ -104,3 +104,23 @@ factory/
 > **Verification harness:** implemented in `crates/orchestrator/src/verify.rs`
 > (spec 075). Runs adapter-declared commands (compile, test, lint) after each
 > scaffolding step with retry on failure.
+
+## Platform Integration
+
+Specs 108 and 112 move Factory from in-tree files into a first-class platform feature. The three-layer architecture above is unchanged; physical storage and execution responsibilities are split:
+
+- **Contract schemas** — canonical compile-time home at `crates/factory-contracts/schemas/` (spec 112 §3.2). Rust consumers embed `SCHEMA_VERSION` as a compile-time const. Stagecraft mirrors the schemas per-org into the `factory_contracts` table for runtime policy lookups (spec 108 §3). The in-tree `contract/schemas/` tree here is superseded by spec 108 Phase 2.
+- **Adapters and processes** — persisted per-org in `factory_adapters` and `factory_processes`, synced from upstream by stagecraft (spec 108 §5). The in-tree `adapters/` and `process/` trees here are working areas, not the post-108 governance source of truth.
+
+### Execution boundary
+
+Spec 112 §5.4 makes the stagecraft ↔ OPC split explicit:
+
+- **Stagecraft is the birth tier** — template cache, adapter scaffold execution, L0 pipeline-state seed, server-side artifact extraction, GitHub repo creation, initial commit + push. After push, stagecraft drops its working copy.
+- **OPC is the life tier** — everything after commit #1: cockpit actions (Run Stage N, Reconcile, Re-extract), ACP engine runs, all subsequent writes to `.factory/pipeline-state.json`.
+
+**Invariant: birth on stagecraft, life on OPC.** Post-birth execution never moves back to stagecraft.
+
+### Create path runtime (MVP)
+
+Stagecraft-side scaffold execution is Node-24-only, shaped after the `template` repo's `scripts/setup-*.ts` (spec 112 §5.2 step 3). Adapters declaring a `scaffold.runtime` other than `node-24` are not Create-eligible via the web UI in the MVP — their outputs reach the platform through Import of fully-executed repos. A follow-up spec will dispatch non-Node scaffolds to OPC over the spec 110 envelope without disturbing the post-birth invariant.

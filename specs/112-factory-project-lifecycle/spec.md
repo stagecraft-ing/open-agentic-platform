@@ -411,8 +411,10 @@ the code.
 - ZIP download (`/api/download-project`, server.ts:789-825) — stagecraft
   does not offer a "download tree" path; the GitHub repo is the handoff.
 
-The external `template-distributor` repo is archived after Phase 8
-(§9). No code is imported directly.
+OAP does not import code from `template-distributor` — the absorbing
+PR rewrites the six operations above in stagecraft idioms. The
+external repo lives outside this project's control; §9 Phase 8
+describes what OAP retires on its side, not the upstream repo's fate.
 
 ### 5.4 Stagecraft–OPC boundary
 
@@ -576,6 +578,11 @@ Each phase is independently mergeable and ends in a runnable state.
   shows the new scaffold block and validates.
 
 **Phase 5 — Stagecraft Create.**
+- **Sequencing:** depends on spec 108 Phase 2 (schema landed,
+  `factory_adapters` table populated by a prior sync run). The
+  `projects` row references `factory_adapter_id`, and the adapter
+  scaffold source is resolved by joining on this table. Phase 5 must
+  not merge before 108 Phase 2 has shipped.
 - Land `api/projects/create.ts`, `api/projects/scaffold/*`, and the
   `/app/projects/new` route.
 - Absorb the six template-distributor operations listed in §5.3.
@@ -610,12 +617,16 @@ Each phase is independently mergeable and ends in a runnable state.
 - Exit criteria: creating or importing in stagecraft updates a connected
   OPC's project list without a restart.
 
-**Phase 8 — template-distributor retirement.**
-- Archive the external `template-distributor` GitHub repo.
-- Remove any remaining references from docs.
+**Phase 8 — template-distributor retirement (OAP-side).**
+- Remove remaining references to `template-distributor` from this
+  repo's docs, commands, and agent context files.
+- Stop invoking or linking to the external service from stagecraft,
+  OPC, or any pipeline. The absorbed scaffold path (§5.3) is the only
+  in-platform way to reach the same outcome.
 - Exit criteria: no repo-level or doc-level references to
-  template-distributor remain; the "Create Project" path is accessible
-  only via stagecraft.
+  template-distributor remain in OAP; the "Create Project" path is
+  accessible only via stagecraft. The fate of the external GitHub
+  repo is not governed by this spec — OAP does not own or control it.
 
 **Phase 9 — Legacy prompt-file retirement.**
 - Confirm (already enforced by Phase 5 exit criteria) that
