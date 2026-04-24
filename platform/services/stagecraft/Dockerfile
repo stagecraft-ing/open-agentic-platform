@@ -8,6 +8,11 @@
 #   2. Run `cd web && npx react-router build` to produce web/build/ if stale.
 #   3. Copy the encore runtime into the build context:
 #        cp ~/Library/Caches/encore/cache/bin/v1.56.5/linux/amd64/encore-runtime.node ./encore-runtime.node
+#   4. Build the Rust helpers and stage them into the build context:
+#        (cd ../../.. && cargo build --release --manifest-path crates/Cargo.toml \
+#            -p artifact-extract -p factory-project-detect)
+#        cp ../../../crates/target/release/artifact-extract ./artifact-extract
+#        cp ../../../crates/target/release/factory-project-detect ./factory-project-detect
 
 FROM node:22-slim AS deps
 WORKDIR /app
@@ -44,8 +49,18 @@ COPY api/db/migrations/ ./api/db/migrations/
 # Rauthy seeder (spec 106 FR-002) — Helm pre-install/pre-upgrade hook.
 COPY scripts/seed-rauthy.mjs ./scripts/seed-rauthy.mjs
 
+# Rust helpers shelled out to by the API:
+#   - artifact-extract (crates/artifact-extract)        — knowledge advance endpoint
+#   - factory-project-detect (crates/factory-project-detect) — project import endpoint
+# ARTIFACT_EXTRACT_BIN / FACTORY_PROJECT_DETECT_BIN in the chart point here.
+COPY artifact-extract /usr/local/bin/artifact-extract
+COPY factory-project-detect /usr/local/bin/factory-project-detect
+RUN chmod +x /usr/local/bin/artifact-extract /usr/local/bin/factory-project-detect
+
 ENV ENCORE_RUNTIME_LIB=/app/encore-runtime.node
 ENV NODE_ENV=production
+ENV ARTIFACT_EXTRACT_BIN=/usr/local/bin/artifact-extract
+ENV FACTORY_PROJECT_DETECT_BIN=/usr/local/bin/factory-project-detect
 
 EXPOSE 4000
 CMD ["node", "main.mjs"]

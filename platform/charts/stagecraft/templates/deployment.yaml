@@ -53,6 +53,14 @@ spec:
               value: "{{ .Values.secrets.mountPath }}/OIDC_M2M_CLIENT_ID"
             - name: OIDC_M2M_CLIENT_SECRET_FILE
               value: "{{ .Values.secrets.mountPath }}/OIDC_M2M_CLIENT_SECRET"
+            # Rust helpers baked into the runtime image. Paths are a build-
+            # time contract with the Dockerfile / encore-build action, not
+            # an operator choice — keep them in sync if the image layout
+            # ever changes.
+            - name: ARTIFACT_EXTRACT_BIN
+              value: /usr/local/bin/artifact-extract
+            - name: FACTORY_PROJECT_DETECT_BIN
+              value: /usr/local/bin/factory-project-detect
           envFrom:
             - secretRef:
                 name: stagecraft-api-secrets
