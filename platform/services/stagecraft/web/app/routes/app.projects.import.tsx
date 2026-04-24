@@ -7,14 +7,26 @@
  * On L1 import, returns the translator's preview for the user to
  * confirm before the platform opens a PR adding
  * `.factory/pipeline-state.json`.
+ *
+ * After a successful import, this route also lists the project's
+ * bound knowledge objects (drawn from `.artifacts/raw/` during import)
+ * and exposes a per-row "Advance to extracted" action that shells the
+ * artifact-extract CLI and transitions the row to `state=extracted`.
  */
 
-import { Form, useActionData, useNavigation } from "react-router";
-import { useState } from "react";
+import { Form, useActionData, useFetcher, useNavigation } from "react-router";
+import { useEffect, useState } from "react";
 import { requireUser } from "../lib/auth.server";
-import { importFactoryProject } from "../lib/projects-api.server";
+import {
+  advanceKnowledgeToExtracted,
+  importFactoryProject,
+  listProjectKnowledge,
+  type ImportedRawArtifact,
+  type ProjectKnowledgeObject,
+} from "../lib/projects-api.server";
 
 interface ActionSuccess {
+  kind: "import";
   projectId: string | null;
   detectionLevel:
     | "not_factory"
@@ -27,13 +39,22 @@ interface ActionSuccess {
   translatorVersion: string | null;
   translatedPreview?: Record<string, unknown>;
   previewOnly: boolean;
+  rawArtifacts: ImportedRawArtifact[];
+  rawArtifactsSkipped: number;
+}
+
+interface AdvanceSuccess {
+  kind: "advance";
+  projectId: string;
+  object: ProjectKnowledgeObject;
 }
 
 interface ActionFailure {
+  kind: "error";
   error: string;
 }
 
-type ActionResult = ActionSuccess | ActionFailure;
+type ActionResult = ActionSuccess | AdvanceSuccess | ActionFailure;
 
 export async function loader({ request }: { request: Request }) {
   await requireUser(request);
@@ -43,6 +64,34 @@ export async function loader({ request }: { request: Request }) {
 export async function action({ request }: { request: Request }): Promise<ActionResult> {
   const user = await requireUser(request);
   const formData = await request.formData();
+  const intent = (formData.get("intent") as string | null) ?? "import";
+
+  if (intent === "advance-extracted") {
+    const projectId = (formData.get("projectId") as string | null) ?? "";
+    const objectId = (formData.get("objectId") as string | null) ?? "";
+    if (!projectId || !objectId) {
+      return { kind: "error", error: "projectId and objectId are required" };
+    }
+    try {
+      const advance = await advanceKnowledgeToExtracted(
+        request,
+        projectId,
+        objectId
+      );
+      const list = await listProjectKnowledge(request, projectId);
+      const updated = list.objects.find((o) => o.id === advance.objectId);
+      if (!updated) {
+        return {
+          kind: "error",
+          error: "extraction succeeded but the object is no longer bound",
+        };
+      }
+      return { kind: "advance", projectId, object: updated };
+    } catch (err) {
+      return { kind: "error", error: formatError(err, user.userId) };
+    }
+  }
+
   const repoUrl = (formData.get("repoUrl") as string | null) ?? "";
   const name = (formData.get("name") as string | null) ?? "";
   const slug = (formData.get("slug") as string | null) ?? "";
@@ -50,7 +99,7 @@ export async function action({ request }: { request: Request }): Promise<ActionR
   const previewOnly = formData.get("action") === "preview";
 
   if (!repoUrl) {
-    return { error: "A GitHub repo URL is required." };
+    return { kind: "error", error: "A GitHub repo URL is required." };
   }
 
   try {
@@ -61,27 +110,36 @@ export async function action({ request }: { request: Request }): Promise<ActionR
       description: description || undefined,
       previewOnly,
     });
-    return result;
+    return { kind: "import", ...result };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("importFactoryProject failed", {
-      userId: user.userId,
-      repoUrl,
-      error: msg,
-    });
-    let backendMsg = msg;
-    try {
-      const parsed = JSON.parse(msg) as { message?: string };
-      if (parsed.message) backendMsg = parsed.message;
-    } catch {
-      /* not JSON */
-    }
-    return { error: backendMsg };
+    return { kind: "error", error: formatError(err, user.userId) };
   }
 }
 
-function isSuccess(data: ActionResult | undefined): data is ActionSuccess {
-  return Boolean(data && (data as ActionSuccess).detectionLevel);
+function formatError(err: unknown, userId: string): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("importFactoryProject action failed", { userId, error: msg });
+  try {
+    const parsed = JSON.parse(msg) as { message?: string };
+    if (parsed.message) return parsed.message;
+  } catch {
+    /* not JSON */
+  }
+  return msg;
+}
+
+function isImportSuccess(data: ActionResult | undefined): data is ActionSuccess {
+  return Boolean(data && data.kind === "import");
+}
+
+function isAdvanceSuccess(
+  data: ActionResult | undefined
+): data is AdvanceSuccess {
+  return Boolean(data && data.kind === "advance");
+}
+
+function isFailure(data: ActionResult | undefined): data is ActionFailure {
+  return Boolean(data && data.kind === "error");
 }
 
 export default function ImportProject() {
@@ -91,7 +149,7 @@ export default function ImportProject() {
   const [repoUrl, setRepoUrl] = useState("");
   const [name, setName] = useState("");
 
-  if (isSuccess(actionData) && !actionData.previewOnly) {
+  if (isImportSuccess(actionData) && !actionData.previewOnly) {
     return <ImportRegistered data={actionData} />;
   }
 
@@ -103,23 +161,26 @@ export default function ImportProject() {
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Register a factory-produced GitHub repo with this workspace. The
-          platform detects factory state before creating any rows.
+          platform detects factory state before creating any rows and
+          registers any <code>.artifacts/raw/</code> files as workspace
+          knowledge.
         </p>
       </div>
 
-      {actionData && !isSuccess(actionData) && (
+      {isFailure(actionData) && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
           <p className="text-sm text-red-700 dark:text-red-400">
-            {(actionData as ActionFailure).error}
+            {actionData.error}
           </p>
         </div>
       )}
 
-      {isSuccess(actionData) && actionData.previewOnly && (
+      {isImportSuccess(actionData) && actionData.previewOnly && (
         <ImportPreviewPanel data={actionData} />
       )}
 
       <Form method="post" className="space-y-5">
+        <input type="hidden" name="intent" value="import" />
         <div>
           <label htmlFor="repoUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             GitHub Repo URL
@@ -234,8 +295,27 @@ function ImportPreviewPanel({ data }: { data: ActionSuccess }) {
 }
 
 function ImportRegistered({ data }: { data: ActionSuccess }) {
+  // Seed knowledge list from the import response, then let per-row
+  // advance fetchers update individual rows in place.
+  const initialObjects: ProjectKnowledgeObject[] = data.rawArtifacts.map(
+    (a) => ({
+      id: a.objectId,
+      filename: a.filename,
+      mimeType: "",
+      sizeBytes: a.sizeBytes,
+      contentHash: a.contentHash,
+      state: "imported",
+      storageKey: "",
+      extractedStorageKey: null,
+      provenance: { sourcePath: `.artifacts/raw/${a.relativePath}` },
+      boundAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  );
+  const [objects, setObjects] = useState(initialObjects);
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div className="rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3">
         <p className="text-sm text-green-800 dark:text-green-300">
           Project imported. Detection level: <code>{data.detectionLevel}</code>.
@@ -243,6 +323,15 @@ function ImportRegistered({ data }: { data: ActionSuccess }) {
             <>
               {" "}
               Translated via <code>{data.translatorVersion}</code>.
+            </>
+          )}
+          {" "}
+          Registered {data.rawArtifacts.length} raw artifact
+          {data.rawArtifacts.length === 1 ? "" : "s"} as knowledge.
+          {data.rawArtifactsSkipped > 0 && (
+            <>
+              {" "}
+              ({data.rawArtifactsSkipped} skipped — see server logs.)
             </>
           )}
         </p>
@@ -274,6 +363,15 @@ function ImportRegistered({ data }: { data: ActionSuccess }) {
           </dd>
         </div>
       </dl>
+
+      {data.projectId && objects.length > 0 && (
+        <KnowledgeObjectsPanel
+          projectId={data.projectId}
+          objects={objects}
+          setObjects={setObjects}
+        />
+      )}
+
       {data.projectId && (
         <a
           href={`/app/project/${data.projectId}`}
@@ -284,4 +382,140 @@ function ImportRegistered({ data }: { data: ActionSuccess }) {
       )}
     </div>
   );
+}
+
+function KnowledgeObjectsPanel({
+  projectId,
+  objects,
+  setObjects,
+}: {
+  projectId: string;
+  objects: ProjectKnowledgeObject[];
+  setObjects: (next: ProjectKnowledgeObject[]) => void;
+}) {
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+          Raw artifacts
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Files discovered under <code>.artifacts/raw/</code>. Each file is
+          registered as a workspace knowledge object scoped to this project.
+          The <code>requirements/</code> folder is tracked separately as
+          factory pipeline output and does not appear here.
+        </p>
+      </div>
+      <ul className="divide-y divide-gray-200 dark:divide-gray-700 rounded-md border border-gray-200 dark:border-gray-700">
+        {objects.map((obj) => (
+          <ArtifactRow
+            key={obj.id}
+            projectId={projectId}
+            object={obj}
+            onUpdate={(updated) =>
+              setObjects(objects.map((o) => (o.id === updated.id ? updated : o)))
+            }
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ArtifactRow({
+  projectId,
+  object,
+  onUpdate,
+}: {
+  projectId: string;
+  object: ProjectKnowledgeObject;
+  onUpdate: (updated: ProjectKnowledgeObject) => void;
+}) {
+  const fetcher = useFetcher<ActionResult>();
+  const advancing = fetcher.state !== "idle";
+  const sourcePath =
+    typeof object.provenance?.sourcePath === "string"
+      ? object.provenance.sourcePath
+      : null;
+
+  useEffect(() => {
+    if (fetcher.data && fetcher.data.kind === "advance") {
+      onUpdate(fetcher.data.object);
+    }
+  }, [fetcher.data, onUpdate]);
+
+  const rowError =
+    fetcher.data && fetcher.data.kind === "error" ? fetcher.data.error : null;
+
+  return (
+    <li className="px-4 py-3 flex items-center gap-4">
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-mono text-gray-900 dark:text-gray-100 truncate">
+          {object.filename}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {formatBytes(object.sizeBytes)} · {object.contentHash.slice(0, 12)}
+          {sourcePath ? (
+            <>
+              {" "}· <code>{sourcePath}</code>
+            </>
+          ) : null}
+        </div>
+        {rowError && (
+          <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+            {rowError}
+          </div>
+        )}
+      </div>
+      <StateBadge state={object.state} />
+      <div className="shrink-0">
+        {object.state === "imported" ? (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="advance-extracted" />
+            <input type="hidden" name="projectId" value={projectId} />
+            <input type="hidden" name="objectId" value={object.id} />
+            <button
+              type="submit"
+              disabled={advancing}
+              className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {advancing ? "Extracting…" : "Advance to extracted"}
+            </button>
+          </fetcher.Form>
+        ) : object.state === "extracting" ? (
+          <span className="text-xs text-gray-500 dark:text-gray-400">…</span>
+        ) : (
+          <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function StateBadge({ state }: { state: string }) {
+  const classes: Record<string, string> = {
+    imported:
+      "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
+    extracting:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+    extracted:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+    classified:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200",
+    available:
+      "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+  };
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs font-medium ${classes[state] ?? classes.imported}`}
+    >
+      {state}
+    </span>
+  );
+}
+
+function formatBytes(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }

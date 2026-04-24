@@ -43,6 +43,10 @@ import {
   parseRepoUrlImpl,
   TRANSLATOR_VERSION as TRANSLATOR_VERSION_IMPL,
 } from "./importHelpers";
+import {
+  registerRawArtifactsFromRepo,
+  type RegisteredArtifact,
+} from "./importArtifacts";
 
 // ── Public types ────────────────────────────────────────────────────────
 
@@ -76,6 +80,20 @@ export interface ImportFactoryProjectResponse {
   /** L1 only — the translated pipeline-state the translator would commit. */
   translatedPreview?: Record<string, unknown>;
   previewOnly: boolean;
+  /**
+   * Summary of per-file knowledge_objects rows created from
+   * `.artifacts/raw/`. Empty when the imported repo has no raw artifacts
+   * or when `previewOnly=true`. The full rows are available through the
+   * knowledge-objects-for-project endpoint.
+   */
+  rawArtifacts: Array<{
+    objectId: string;
+    filename: string;
+    relativePath: string;
+    contentHash: string;
+    sizeBytes: number;
+  }>;
+  rawArtifactsSkipped: number;
 }
 
 // ── Detection-crate consumer interface ─────────────────────────────────
@@ -246,6 +264,7 @@ async function route(
         parsed,
         cloneUrl,
         repoUrl,
+        repoRoot,
         previewOnly
       );
 
@@ -295,6 +314,8 @@ async function importLegacy(
       translatorVersion: TRANSLATOR_VERSION,
       translatedPreview: translated as unknown as Record<string, unknown>,
       previewOnly: true,
+      rawArtifacts: [],
+      rawArtifactsSkipped: 0,
     };
   }
 
@@ -306,6 +327,14 @@ async function importLegacy(
     factoryAdapterId: adapterRow?.id ?? null,
     detectionLevel: "legacy_produced",
     translatorVersion: TRANSLATOR_VERSION,
+  });
+
+  const artifacts = await registerRawArtifactsSafe({
+    projectId: projectRow.id,
+    workspaceId: auth.workspaceId!,
+    boundBy: auth.userID,
+    repoRoot,
+    sourceRepo: `${parsed.owner}/${parsed.repo}`,
   });
 
   // The PR that adds `.factory/pipeline-state.json` to the imported repo
@@ -325,6 +354,8 @@ async function importLegacy(
     translatorVersion: TRANSLATOR_VERSION,
     translatedPreview: translated as unknown as Record<string, unknown>,
     previewOnly: false,
+    rawArtifacts: artifacts.registered.map(redactArtifact),
+    rawArtifactsSkipped: artifacts.skipped,
   };
 }
 
@@ -336,6 +367,7 @@ async function importAcp(
   parsed: { owner: string; repo: string },
   cloneUrl: string,
   repoUrl: string,
+  repoRoot: string,
   previewOnly: boolean
 ): Promise<ImportFactoryProjectResponse> {
   const schemaVersion = detection.pipeline_state?.schema_version;
@@ -358,6 +390,8 @@ async function importAcp(
       oapDeepLink: null,
       translatorVersion: null,
       previewOnly: true,
+      rawArtifacts: [],
+      rawArtifactsSkipped: 0,
     };
   }
 
@@ -369,6 +403,14 @@ async function importAcp(
     factoryAdapterId,
     detectionLevel: "acp_produced",
     translatorVersion: null,
+  });
+
+  const artifacts = await registerRawArtifactsSafe({
+    projectId: projectRow.id,
+    workspaceId: auth.workspaceId!,
+    boundBy: auth.userID,
+    repoRoot,
+    sourceRepo: `${parsed.owner}/${parsed.repo}`,
   });
 
   return {
@@ -383,6 +425,46 @@ async function importAcp(
     }),
     translatorVersion: null,
     previewOnly: false,
+    rawArtifacts: artifacts.registered.map(redactArtifact),
+    rawArtifactsSkipped: artifacts.skipped,
+  };
+}
+
+async function registerRawArtifactsSafe(input: {
+  projectId: string;
+  workspaceId: string;
+  boundBy: string;
+  repoRoot: string;
+  sourceRepo: string;
+}): Promise<{ registered: RegisteredArtifact[]; skipped: number }> {
+  try {
+    const result = await registerRawArtifactsFromRepo(input);
+    return {
+      registered: result.registered,
+      skipped: result.skipped.length,
+    };
+  } catch (err) {
+    log.error("registerRawArtifactsFromRepo failed — continuing import", {
+      projectId: input.projectId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { registered: [], skipped: 0 };
+  }
+}
+
+function redactArtifact(a: RegisteredArtifact): {
+  objectId: string;
+  filename: string;
+  relativePath: string;
+  contentHash: string;
+  sizeBytes: number;
+} {
+  return {
+    objectId: a.objectId,
+    filename: a.filename,
+    relativePath: a.relativePath,
+    contentHash: a.contentHash,
+    sizeBytes: a.sizeBytes,
   };
 }
 

@@ -132,3 +132,48 @@ export async function deleteObject(
   );
   log.info("object deleted", { bucket, key });
 }
+
+// ---------------------------------------------------------------------------
+// Server-side PUT (bypasses presigned URL flow)
+// ---------------------------------------------------------------------------
+//
+// Used by flows that land files in the workspace bucket without a browser
+// client — e.g. Import reads `.artifacts/raw/` from a cloned repo and
+// streams each file into the bucket directly. Extractor transitions also
+// use it to write the derived text output back under a deterministic key.
+
+export async function putObject(
+  bucket: string,
+  key: string,
+  body: Buffer,
+  contentType: string
+): Promise<void> {
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    })
+  );
+  log.info("object put", { bucket, key, size: body.length });
+}
+
+// ---------------------------------------------------------------------------
+// Server-side GET → Buffer
+// ---------------------------------------------------------------------------
+
+export async function getObject(bucket: string, key: string): Promise<Buffer> {
+  const res = await getClient().send(
+    new GetObjectCommand({ Bucket: bucket, Key: key })
+  );
+  const body = res.Body;
+  if (!body) {
+    throw new Error(`s3 GetObject returned empty body for ${bucket}/${key}`);
+  }
+  const chunks: Buffer[] = [];
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}

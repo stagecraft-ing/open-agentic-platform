@@ -6,7 +6,7 @@
 // loading the Encore native runtime.
 
 import { describe, expect, test } from "vitest";
-import { parseRepoUrlImpl, TRANSLATOR_VERSION } from "./importHelpers";
+import { guessMimeType, parseRepoUrlImpl, TRANSLATOR_VERSION } from "./importHelpers";
 
 describe("parseRepoUrlImpl", () => {
   test("accepts short form owner/repo", () => {
@@ -54,5 +54,32 @@ describe("parseRepoUrlImpl", () => {
 describe("TRANSLATOR_VERSION", () => {
   test("is a stable non-empty identifier", () => {
     expect(TRANSLATOR_VERSION).toBe("spec-112-v1");
+  });
+});
+
+describe("guessMimeType", () => {
+  test("maps office formats to their OOXML MIME types", () => {
+    expect(guessMimeType("foo.docx")).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    expect(guessMimeType("bar.XLSX")).toBe(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    expect(guessMimeType("baz.pptx")).toBe(
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    );
+  });
+
+  test("maps pdf, zip, and common text formats", () => {
+    expect(guessMimeType("x.pdf")).toBe("application/pdf");
+    expect(guessMimeType("x.zip")).toBe("application/zip");
+    expect(guessMimeType("x.json")).toBe("application/json");
+    expect(guessMimeType("notes.md")).toBe("text/markdown");
+    expect(guessMimeType("notes.txt")).toBe("text/plain");
+  });
+
+  test("falls back to octet-stream for unknown extensions", () => {
+    expect(guessMimeType("weird.xyz")).toBe("application/octet-stream");
+    expect(guessMimeType("no-extension")).toBe("application/octet-stream");
   });
 });

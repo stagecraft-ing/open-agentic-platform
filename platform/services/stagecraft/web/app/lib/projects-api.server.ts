@@ -173,6 +173,14 @@ export async function listFactoryAdapters(request: Request) {
 }
 
 // Spec 112 §6.2 — factory project import.
+export interface ImportedRawArtifact {
+  objectId: string;
+  filename: string;
+  relativePath: string;
+  contentHash: string;
+  sizeBytes: number;
+}
+
 export async function importFactoryProject(
   request: Request,
   data: {
@@ -199,6 +207,61 @@ export async function importFactoryProject(
     translatorVersion: string | null;
     translatedPreview?: Record<string, unknown>;
     previewOnly: boolean;
+    rawArtifacts: ImportedRawArtifact[];
+    rawArtifactsSkipped: number;
+  }>;
+}
+
+// Spec 087 Phase 2 + spec 112 §6 — per-project knowledge object views.
+export interface ProjectKnowledgeObject {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  contentHash: string;
+  state:
+    | "imported"
+    | "extracting"
+    | "extracted"
+    | "classified"
+    | "available";
+  storageKey: string;
+  extractedStorageKey: string | null;
+  provenance: Record<string, unknown>;
+  boundAt: string;
+  updatedAt: string;
+}
+
+export async function listProjectKnowledge(
+  request: Request,
+  projectId: string
+) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/knowledge`
+  ) as Promise<{ objects: ProjectKnowledgeObject[] }>;
+}
+
+export async function advanceKnowledgeToExtracted(
+  request: Request,
+  projectId: string,
+  objectId: string
+) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/knowledge/${objectId}/advance-extracted`,
+    { method: "POST" }
+  ) as Promise<{
+    objectId: string;
+    state: "extracted";
+    extractedStorageKey: string;
+    summary: {
+      ok: number;
+      cached: number;
+      error: number;
+      skip_unsupported: number;
+    };
+    extractorMessage: string;
   }>;
 }
 
