@@ -2,6 +2,7 @@
 members = [
     "agent",
     "agent-frontmatter",
+    "artifact-extract",
     "axiomregent",
     "factory-contracts",
     "factory-engine",

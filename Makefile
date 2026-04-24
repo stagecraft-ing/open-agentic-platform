@@ -274,6 +274,7 @@ ci: ci-rust ci-tools ci-desktop ci-stagecraft
 # Desktop uses different clippy flags and is handled in ci-desktop.
 # Tool crates have extra smoke/contract steps and are handled in ci-tools.
 CI_RUST_MANIFESTS = \
+    crates/artifact-extract/Cargo.toml \
     crates/axiomregent/Cargo.toml \
     crates/orchestrator/Cargo.toml \
     crates/policy-kernel/Cargo.toml \
