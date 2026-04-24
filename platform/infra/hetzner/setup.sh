@@ -77,6 +77,7 @@ if [ "${1:-}" = "--clean" ]; then
     RAUTHY_ENC_KEY_ID RAUTHY_ENC_KEY
     HIQLITE_SECRET_RAFT HIQLITE_SECRET_API
     GITHUB_WEBHOOK_SECRET
+    MINIO_ROOT_USER MINIO_ROOT_PASSWORD
   )
   for var in "${AUTO_SECRETS[@]}"; do
     sed -i.bak "s|^${var}=.*|${var}=|" "$ENV_FILE"
@@ -123,6 +124,12 @@ auto_fill RAUTHY_ENC_KEY       generate_enc_key
 auto_fill HIQLITE_SECRET_RAFT generate_secret
 auto_fill HIQLITE_SECRET_API  generate_secret
 auto_fill GITHUB_WEBHOOK_SECRET generate_secret
+
+# MinIO in-cluster object store. Root user must be >= 3 chars, password
+# must be >= 8 chars per the bitnami chart's validator.
+generate_minio_user() { openssl rand -hex 6; }
+auto_fill MINIO_ROOT_USER     generate_minio_user
+auto_fill MINIO_ROOT_PASSWORD generate_secret
 
 # Sync DB_PASSWORD = POSTGRES_PASSWORD
 export DB_PASSWORD="$POSTGRES_PASSWORD"
@@ -319,6 +326,10 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
   --from-literal=STAGECRAFT_DB_URL="$STAGECRAFT_DB_URL" \
   --from-literal=SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}" \
+  --from-literal=S3_ENDPOINT="http://minio.stagecraft-system.svc.cluster.local:9000" \
+  --from-literal=S3_REGION="us-east-1" \
+  --from-literal=S3_ACCESS_KEY="$MINIO_ROOT_USER" \
+  --from-literal=S3_SECRET_KEY="$MINIO_ROOT_PASSWORD" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 info "Deploying Stagecraft..."

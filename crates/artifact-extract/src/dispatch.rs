@@ -77,4 +77,32 @@ static TABLE: &[Row] = &[
             extract: crate::extractors::pbix::extract,
         },
     },
+    Row {
+        ext: ".md",
+        entry: DispatchEntry {
+            label: "Markdown Document",
+            extract: crate::extractors::text::extract,
+        },
+    },
+    Row {
+        ext: ".markdown",
+        entry: DispatchEntry {
+            label: "Markdown Document",
+            extract: crate::extractors::text::extract,
+        },
+    },
+    Row {
+        ext: ".txt",
+        entry: DispatchEntry {
+            label: "Plain Text Document",
+            extract: crate::extractors::text::extract,
+        },
+    },
+    Row {
+        ext: ".csv",
+        entry: DispatchEntry {
+            label: "CSV Document",
+            extract: crate::extractors::text::extract,
+        },
+    },
 ];

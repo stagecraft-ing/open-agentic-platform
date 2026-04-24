@@ -9,6 +9,8 @@
 import {
   S3Client,
   HeadObjectCommand,
+  HeadBucketCommand,
+  CreateBucketCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -47,19 +49,70 @@ function getClient(): S3Client {
 }
 
 // ---------------------------------------------------------------------------
+// Ensure bucket exists (idempotent)
+// ---------------------------------------------------------------------------
+//
+// Workspace creation records the bucket name in the DB but does not touch the
+// object store. On MinIO (and most S3-compatibles), the first upload targets
+// a bucket that may not exist yet. We materialise it here — Head→Create with
+// a best-effort CreateBucket that tolerates the 409 race when two requests
+// land simultaneously.
+
+const ensuredBuckets = new Set<string>();
+
+export async function ensureBucket(bucket: string): Promise<void> {
+  if (ensuredBuckets.has(bucket)) return;
+  const client = getClient();
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucket }));
+    ensuredBuckets.add(bucket);
+    return;
+  } catch (err: unknown) {
+    if (!isNotFoundLike(err)) throw err;
+  }
+  try {
+    await client.send(new CreateBucketCommand({ Bucket: bucket }));
+    log.info("bucket created", { bucket });
+  } catch (err: unknown) {
+    if (!isAlreadyOwnedLike(err)) throw err;
+  }
+  ensuredBuckets.add(bucket);
+}
+
+function isNotFoundLike(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const name = (err as { name?: string }).name ?? "";
+  const statusCode = (err as { $metadata?: { httpStatusCode?: number } }).$metadata
+    ?.httpStatusCode;
+  return name === "NotFound" || name === "NoSuchBucket" || statusCode === 404;
+}
+
+function isAlreadyOwnedLike(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const name = (err as { name?: string }).name ?? "";
+  return (
+    name === "BucketAlreadyOwnedByYou" || name === "BucketAlreadyExists"
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Presigned upload URL
 // ---------------------------------------------------------------------------
 
 export async function getPresignedUploadUrl(
   bucket: string,
   key: string,
-  contentType: string,
+  _contentType: string,
   expiresInSeconds = 3600
 ): Promise<string> {
+  await ensureBucket(bucket);
+  // Deliberately omit ContentType from the signed params: Safari (and some
+  // proxies) will rewrite the PUT's Content-Type header, breaking the
+  // signature. The server-recorded mimeType comes from the DB row set at
+  // request-upload time, not from whatever header S3 ends up storing.
   const cmd = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
-    ContentType: contentType,
   });
   const url = await getSignedUrl(getClient(), cmd, {
     expiresIn: expiresInSeconds,
@@ -148,6 +201,7 @@ export async function putObject(
   body: Buffer,
   contentType: string
 ): Promise<void> {
+  await ensureBucket(bucket);
   await getClient().send(
     new PutObjectCommand({
       Bucket: bucket,

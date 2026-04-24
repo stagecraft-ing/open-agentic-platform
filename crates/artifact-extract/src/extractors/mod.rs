@@ -10,6 +10,7 @@ pub mod json;
 pub mod pbix;
 pub mod pdf;
 pub mod pptx;
+pub mod text;
 pub mod xlsx;
 pub mod zip;
 

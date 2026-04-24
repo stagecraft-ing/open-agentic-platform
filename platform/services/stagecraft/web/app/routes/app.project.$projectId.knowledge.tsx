@@ -1,4 +1,4 @@
-import { useLoaderData, Link, useFetcher } from "react-router";
+import { useLoaderData, Link } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
   listKnowledgeObjects,
@@ -231,7 +231,6 @@ export default function KnowledgeBrowser() {
  * Flow: select file → compute SHA-256 → request presigned URL → PUT to S3 → confirm.
  */
 function UploadButton() {
-  const fetcher = useFetcher();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -244,13 +243,11 @@ function UploadButton() {
     setUploadError(null);
 
     try {
-      // Compute SHA-256 of the file
       const buffer = await file.arrayBuffer();
       const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const contentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
-      // Step 1: Request presigned upload URL
       const formData = new FormData();
       formData.set("intent", "request-upload");
       formData.set("filename", file.name);
@@ -263,27 +260,36 @@ function UploadButton() {
       });
 
       if (!uploadRes.ok) {
-        throw new Error("Failed to get upload URL");
+        throw new Error(`Failed to get upload URL (${uploadRes.status})`);
       }
 
       const { uploadUrl, objectId } = await uploadRes.json();
 
-      // Step 2: Upload directly to S3 via presigned URL
       const s3Res = await fetch(uploadUrl, {
         method: "PUT",
         body: buffer,
-        headers: { "Content-Type": file.type || "application/octet-stream" },
       });
 
       if (!s3Res.ok) {
-        throw new Error(`S3 upload failed: ${s3Res.status}`);
+        throw new Error(`S3 upload failed: ${s3Res.status} ${s3Res.statusText}`);
       }
 
-      // Step 3: Confirm upload
       const confirmForm = new FormData();
       confirmForm.set("intent", "confirm-upload");
       confirmForm.set("objectId", objectId);
-      fetcher.submit(confirmForm, { method: "POST" });
+      const confirmRes = await fetch(window.location.pathname, {
+        method: "POST",
+        body: confirmForm,
+      });
+
+      if (!confirmRes.ok) {
+        const body = await confirmRes.text();
+        throw new Error(
+          `Upload landed but confirm failed: ${confirmRes.status} ${body.slice(0, 200)}`
+        );
+      }
+
+      window.location.reload();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {

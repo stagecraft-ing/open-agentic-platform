@@ -375,9 +375,19 @@ export const getDownloadUrl = api(
     }
 
     const bucket = await getWorkspaceBucket(auth.workspaceId);
-    const downloadUrl = await getPresignedDownloadUrl(bucket, obj.storageKey);
-
-    return { downloadUrl };
+    try {
+      const downloadUrl = await getPresignedDownloadUrl(bucket, obj.storageKey);
+      return { downloadUrl };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error("getDownloadUrl: failed to generate presigned url", {
+        objectId: req.id,
+        bucket,
+        storageKey: obj.storageKey,
+        error: msg,
+      });
+      throw APIError.internal(`failed to generate download url: ${msg}`);
+    }
   }
 );
 

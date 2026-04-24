@@ -162,4 +162,30 @@ fi
 info "Installing NSQ..."
 kubectl apply -f "$SCRIPT_DIR/nsq.yaml"
 
+# --- MinIO (S3-compatible object store for knowledge intake) ---
+if helm status minio -n stagecraft-system >/dev/null 2>&1; then
+  info "MinIO already installed, skipping"
+else
+  info "Installing MinIO..."
+  MINIO_ROOT_USER="${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}"
+  MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}"
+
+  # Bitnami MinIO chart — single standalone node, cluster-internal only.
+  # No ingress: presigned URLs for browser uploads are issued by stagecraft
+  # against the S3 API (port 9000), proxied through stagecraft's own ingress
+  # if ever needed. Exposing MinIO directly would leak the signing surface.
+  helm upgrade --install minio oci://registry-1.docker.io/bitnamicharts/minio \
+    --namespace stagecraft-system \
+    --set auth.rootUser="$MINIO_ROOT_USER" \
+    --set auth.rootPassword="$MINIO_ROOT_PASSWORD" \
+    --set mode=standalone \
+    --set persistence.size=20Gi \
+    --set resources.requests.memory=256Mi \
+    --set resources.requests.cpu=100m \
+    --set resources.limits.memory=1Gi \
+    --set resources.limits.cpu=1000m \
+    --set service.type=ClusterIP \
+    --wait --timeout 300s
+fi
+
 info "Infrastructure bootstrap complete"
