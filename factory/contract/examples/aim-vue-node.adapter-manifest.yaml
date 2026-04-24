@@ -1,8 +1,9 @@
 # ============================================================================
 # Adapter Manifest: AIM Vue+Node GoA Template
 # ============================================================================
-# This is a concrete example of what the first adapter (the current
-# AIM-vue-node-template) would declare about itself.
+# This is a concrete example of what the first adapter (tracking the
+# upstream template at GovAlta-Pronghorn/template, renamed from the
+# legacy AIM-vue-node-template) would declare about itself.
 # ============================================================================
 
 schema_version: "1.0.0"

@@ -21,6 +21,7 @@ import {
   translateUpstreams,
   type TranslationResult,
 } from "./translator";
+import { loadOapOwnedContracts } from "./oapContracts";
 
 export type SyncPipelineInputs = {
   orgId: string;
@@ -94,12 +95,35 @@ async function cloneAndTranslate(
           token: inputs.token,
         },
         async (templateRepo) => {
-          const result = await translateUpstreams({
+          const upstream = await translateUpstreams({
             factorySourcePath: factoryRepo.path,
             factorySourceSha: factoryRepo.sha,
             templatePath: templateRepo.path,
             templateSha: templateRepo.sha,
           });
+
+          // Contract schemas are OAP-owned (spec 108 §3.2). The upstreams
+          // carry adapters + processes; schemas are merged from OAP's own
+          // tree so factory_contracts is populated regardless of what the
+          // upstream translators find.
+          const oapContracts = await loadOapOwnedContracts(
+            factoryRepo.sha.slice(0, 12),
+            factoryRepo.sha
+          );
+          const byName = new Map<string, TranslationResult["contracts"][number]>();
+          for (const c of [...oapContracts, ...upstream.contracts]) {
+            // OAP-owned schemas take precedence over any accidentally
+            // matching upstream schema name: the browser should show the
+            // governance source of truth.
+            if (!byName.has(c.name)) byName.set(c.name, c);
+          }
+
+          const result: TranslationResult = {
+            adapters: upstream.adapters,
+            processes: upstream.processes,
+            contracts: Array.from(byName.values()),
+          };
+
           return {
             result,
             factorySha: factoryRepo.sha,

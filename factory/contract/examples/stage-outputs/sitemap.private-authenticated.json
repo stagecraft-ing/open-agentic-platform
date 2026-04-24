@@ -1,0 +1,155 @@
+{
+  "$comment": "Variant baseline: staff-only internal portal (private-authenticated). Equivalent to goa-software-factory's sitemap-template-private-authenticated.json. Assumes staff auth (Entra ID), intranet-only access, and admin-heavy capabilities: review queues, user management, role management, reporting. Use when the derived variant is single-internal.",
+  "variant": "single-internal",
+  "pages": [
+    {
+      "id": "staff-dashboard",
+      "title": "Dashboard",
+      "path": "/",
+      "page_type": "dashboard",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer", "admin"],
+      "data_sources": [
+        { "operation_id": "get-staff-summary", "trigger": "on-load" }
+      ],
+      "nav": { "section": "main", "order": 1 }
+    },
+    {
+      "id": "staff-review-queue",
+      "title": "Review Queue",
+      "path": "/queue",
+      "page_type": "list",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer"],
+      "data_sources": [
+        { "operation_id": "list-applications-for-review", "trigger": "on-load" }
+      ],
+      "nav": { "section": "main", "order": 2 }
+    },
+    {
+      "id": "staff-application-detail",
+      "title": "Application",
+      "path": "/applications/:id",
+      "page_type": "detail",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer"],
+      "data_sources": [
+        { "operation_id": "get-application", "trigger": "on-load" }
+      ]
+    },
+    {
+      "id": "staff-application-decision",
+      "title": "Decision",
+      "path": "/applications/:id/decide",
+      "page_type": "form",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer"],
+      "data_sources": [
+        { "operation_id": "transition-application", "trigger": "on-submit" }
+      ]
+    },
+    {
+      "id": "staff-reports",
+      "title": "Reports",
+      "path": "/reports",
+      "page_type": "report-results",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer", "admin"],
+      "data_sources": [
+        { "operation_id": "generate-report", "trigger": "on-action" }
+      ],
+      "nav": { "section": "main", "order": 3 }
+    },
+    {
+      "id": "staff-admin-hub",
+      "title": "Admin",
+      "path": "/admin",
+      "page_type": "section-hub",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["admin"],
+      "nav": { "section": "main", "order": 4 }
+    },
+    {
+      "id": "staff-admin-users",
+      "title": "Users",
+      "path": "/admin/users",
+      "page_type": "user-management",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["admin"],
+      "data_sources": [
+        { "operation_id": "list-staff-users", "trigger": "on-load" }
+      ],
+      "nav": { "section": "admin", "order": 1 }
+    },
+    {
+      "id": "staff-admin-roles",
+      "title": "Roles",
+      "path": "/admin/roles",
+      "page_type": "permission-editor",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["admin"],
+      "data_sources": [
+        { "operation_id": "list-roles", "trigger": "on-load" }
+      ],
+      "nav": { "section": "admin", "order": 2 }
+    },
+    {
+      "id": "staff-settings",
+      "title": "Settings",
+      "path": "/settings",
+      "page_type": "settings-form",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer", "admin"],
+      "nav": { "section": "user", "order": 1 }
+    },
+    {
+      "id": "staff-profile",
+      "title": "My Profile",
+      "path": "/profile",
+      "page_type": "profile",
+      "audience": "staff",
+      "view_type": "private-authenticated",
+      "requires_auth": true,
+      "required_roles": ["reviewer", "admin"],
+      "nav": { "section": "user", "order": 2 }
+    }
+  ],
+  "nav": [
+    {
+      "section": "main",
+      "audience": "staff",
+      "label": "Main",
+      "pages": ["staff-dashboard", "staff-review-queue", "staff-reports", "staff-admin-hub"]
+    },
+    {
+      "section": "admin",
+      "audience": "staff",
+      "label": "Admin",
+      "pages": ["staff-admin-users", "staff-admin-roles"]
+    },
+    {
+      "section": "user",
+      "audience": "staff",
+      "label": "User",
+      "pages": ["staff-settings", "staff-profile"]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "$comment": "Variant baseline: public-only portal (citizen-facing, internet-exposed). Equivalent to goa-software-factory's sitemap-template-public.json. Used as a starting point by the service-designer agent when the derived variant is single-public.",
+  "variant": "single-public",
+  "pages": [
+    {
+      "id": "public-home",
+      "title": "Home",
+      "path": "/",
+      "page_type": "landing",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false,
+      "nav": { "section": "main", "order": 1 }
+    },
+    {
+      "id": "public-about",
+      "title": "About",
+      "path": "/about",
+      "page_type": "information",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false,
+      "nav": { "section": "main", "order": 2 }
+    },
+    {
+      "id": "public-start",
+      "title": "Get Started",
+      "path": "/get-started",
+      "page_type": "start",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false,
+      "nav": { "section": "main", "order": 3 }
+    },
+    {
+      "id": "public-contact",
+      "title": "Contact",
+      "path": "/contact",
+      "page_type": "contact",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false,
+      "nav": { "section": "main", "order": 4 }
+    },
+    {
+      "id": "public-privacy",
+      "title": "Privacy",
+      "path": "/privacy",
+      "page_type": "information",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false,
+      "nav": { "section": "footer", "order": 1 }
+    },
+    {
+      "id": "public-accessibility",
+      "title": "Accessibility",
+      "path": "/accessibility",
+      "page_type": "information",
+      "audience": "citizen",
+      "view_type": "public",
+      "requires_auth": false,
+      "nav": { "section": "footer", "order": 2 }
+    }
+  ],
+  "nav": [
+    {
+      "section": "main",
+      "audience": "citizen",
+      "label": "Main",
+      "pages": ["public-home", "public-about", "public-start", "public-contact"]
+    },
+    {
+      "section": "footer",
+      "audience": "citizen",
+      "label": "Footer",
+      "pages": ["public-privacy", "public-accessibility"]
+    }
+  ]
+}

@@ -8,7 +8,7 @@
       --factory-root factory \
       --org goa-cfs \
       --auto-approve \
-      --scaffold-source /Users/bart/Dev2/AIM-vue-node-template \
+      --scaffold-source /Users/bart/Dev2/template \
       --model opus \
       --extended-context \
       --thinking max \

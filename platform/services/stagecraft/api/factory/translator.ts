@@ -53,20 +53,32 @@ export type TranslationResult = {
 // ---------------------------------------------------------------------------
 
 // Paths are evaluated against the repo-relative path (POSIX separators).
+//
+// Excludes lifted from spec 088 §5, updated for upstream-map.yaml v2.0.0
+// (2026-04-24 — GovAlta-Pronghorn/goa-software-factory):
+//   - factory-orchestration-cd.md is NO LONGER excluded. It is a real
+//     optional stage file (Client Documentation) in the new upstream and
+//     the translator captures it via stageIdFromFilename.
+//   - sitemap-template-*.json are NO LONGER excluded. They are canonical
+//     variant baselines in the new upstream and are captured as JSON
+//     reference assets.
+//   - Factory Agent/Requirements/Client/ is NO LONGER excluded. Client
+//     Documentation sub-agents are captured as "client" requirements
+//     agents alongside System/ and Service/.
+//   - .claude/ is added to the exclude list (project tooling, not factory
+//     surface).
 const FACTORY_SOURCE_EXCLUDES: Array<(rel: string) => boolean> = [
   (p) => p === ".git" || p.startsWith(".git/"),
   (p) => p === ".github" || p.startsWith(".github/"),
-  (p) => p === "README.md" || p === ".project",
+  (p) => p === ".claude" || p.startsWith(".claude/"),
+  (p) => p === "README.md" || p === ".project" || p === ".env.github",
   (p) => p.startsWith("eval_framework/"),
   (p) => p.startsWith("REDTEAM/"),
   (p) => p.startsWith("Security Agent/"),
   (p) => p.startsWith("Factory Agent/Security/"),
   (p) => p.startsWith("Factory Agent/Orchestrator/scripts/"),
-  (p) => p === "Factory Agent/Orchestrator/factory-orchestration-cd.md",
-  (p) => p.startsWith("Factory Agent/Requirements/Client/"),
   (p) => p === "Factory Agent/Controllers/api-web-standards.md",
   (p) => p === "Factory Agent/Controllers/api-standards-compliance.md",
-  (p) => /^Factory Agent\/Requirements\/Service\/sitemap-template-.*\.json$/.test(p),
 ];
 
 const TEMPLATE_EXCLUDES: Array<(rel: string) => boolean> = [
@@ -123,7 +135,11 @@ async function readText(abs: string): Promise<string> {
 type CapturedFile = { path: string; body: string };
 
 function stageIdFromFilename(name: string): string | null {
-  const m = /^factory-orchestration-(s\d+|tm|xf)\.md$/.exec(name);
+  // s1..s5 — main 5-stage pipeline
+  // tm    — Template Mode detection (delegates Stages 4–5 to template)
+  // cd    — Client Documentation (optional, added in upstream-map v2.0.0)
+  // xf    — Pipeline completion / factory-manifest (added in upstream-map v2.0.0)
+  const m = /^factory-orchestration-(s\d+|tm|cd|xf)\.md$/.exec(name);
   return m ? m[1] : null;
 }
 
@@ -137,9 +153,12 @@ export async function translateFactorySource(
   const stages: Array<{ id: string; path: string; body: string }> = [];
   const controllers: CapturedFile[] = [];
   const clientInterface: CapturedFile[] = [];
-  const requirements: CapturedFile[] = [];
+  const requirementsSystem: CapturedFile[] = [];
+  const requirementsService: CapturedFile[] = [];
+  const requirementsClient: CapturedFile[] = [];
   const database: CapturedFile[] = [];
   const otherAgents: CapturedFile[] = [];
+  const references: CapturedFile[] = [];
   const contractFiles: CapturedFile[] = [];
   let rootOrchestrator: CapturedFile | null = null;
 
@@ -176,13 +195,32 @@ export async function translateFactorySource(
       continue;
     }
 
-    if (/^Factory Agent\/Requirements\/.+\.md$/.test(rel)) {
-      requirements.push({ path: rel, body: await readText(abs) });
+    if (/^Factory Agent\/Requirements\/System\/.+\.md$/.test(rel)) {
+      requirementsSystem.push({ path: rel, body: await readText(abs) });
+      continue;
+    }
+
+    if (/^Factory Agent\/Requirements\/Service\/.+\.md$/.test(rel)) {
+      requirementsService.push({ path: rel, body: await readText(abs) });
+      continue;
+    }
+
+    if (/^Factory Agent\/Requirements\/Client\/.+\.md$/.test(rel)) {
+      requirementsClient.push({ path: rel, body: await readText(abs) });
       continue;
     }
 
     if (/^Factory Agent\/Database\/.+\.md$/.test(rel)) {
       database.push({ path: rel, body: await readText(abs) });
+      continue;
+    }
+
+    // Load-bearing JSON reference assets (not schemas): sitemap variant
+    // templates and admin-interface base requirements. These are referenced
+    // by stage skills and need to travel through the sync so adapters and
+    // OPC cockpit actions can resolve them without re-cloning the factory.
+    if (/^Factory Agent\/Requirements\/(Service|System)\/.+\.json$/.test(rel)) {
+      references.push({ path: rel, body: await readText(abs) });
       continue;
     }
   }
@@ -192,9 +230,12 @@ export async function translateFactorySource(
     a.path.localeCompare(b.path);
   controllers.sort(sortByPath);
   clientInterface.sort(sortByPath);
-  requirements.sort(sortByPath);
+  requirementsSystem.sort(sortByPath);
+  requirementsService.sort(sortByPath);
+  requirementsClient.sort(sortByPath);
   database.sort(sortByPath);
   otherAgents.sort(sortByPath);
+  references.sort(sortByPath);
   contractFiles.sort(sortByPath);
 
   const process: ProcessTranslation = {
@@ -207,10 +248,18 @@ export async function translateFactorySource(
       agents: {
         controllers,
         client_interface: clientInterface,
-        requirements,
+        // Split Requirements/ into sub-buckets so consumers can tell
+        // business (System), service, and client-documentation agents
+        // apart without string-matching paths.
+        requirements: {
+          system: requirementsSystem,
+          service: requirementsService,
+          client: requirementsClient,
+        },
         database,
         other: otherAgents,
       },
+      references,
     },
   };
 

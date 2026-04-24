@@ -40,14 +40,16 @@ describe("translateFactorySource", () => {
       "Factory Agent/Orchestrator/factory-orchestration-s5.md": "s5 body",
       "Factory Agent/Orchestrator/factory-orchestration-tm.md": "tm body",
       "Factory Agent/Orchestrator/factory-orchestration-xf.md": "xf body",
-      "Factory Agent/Orchestrator/factory-orchestration-cd.md": "excluded client doc",
+      "Factory Agent/Orchestrator/factory-orchestration-cd.md": "cd body",
       "Factory Agent/Orchestrator/scripts/docx-generator.py": "excluded script",
       "Factory Agent/Controllers/api-builder.md": "builder body",
       "Factory Agent/Controllers/api-web-standards.md": "excluded standards",
       "Factory Agent/Controllers/api-standards-compliance.md": "excluded compliance",
+      "Factory Agent/Requirements/System/business-requirements.md": "system body",
       "Factory Agent/Requirements/Service/audience-identification.md": "audience body",
-      "Factory Agent/Requirements/Service/sitemap-template-v1.json": "excluded sitemap template",
-      "Factory Agent/Requirements/Client/ministry-x.md": "excluded client content",
+      "Factory Agent/Requirements/Service/sitemap-template-v1.json":
+        '{"variant":"public"}',
+      "Factory Agent/Requirements/Client/ministry-x.md": "client doc body",
       "Factory Agent/Database/database_architect.md": "db architect body",
       "Factory Agent/Client_Interface/design-system.md": "design body",
       "Security Agent/orchestration.md": "excluded security",
@@ -63,7 +65,7 @@ describe("translateFactorySource", () => {
     await rm(repo, { recursive: true, force: true });
   });
 
-  test("captures root orchestrator + all 7 stage files sorted by id", async () => {
+  test("captures root orchestrator + all 8 stage files sorted by id", async () => {
     const { process } = await translateFactorySource(repo, sha);
     expect(process.name).toBe("7-stage-build");
     expect(process.sourceSha).toBe(sha);
@@ -74,31 +76,53 @@ describe("translateFactorySource", () => {
     };
     expect(def.orchestrator.body).toContain("root orchestrator body");
 
+    // Alphabetical sort on id: cd < s1 < s2 < s3 < s4 < s5 < tm < xf.
     const ids = def.stages.map((s) => s.id);
-    expect(ids).toEqual(["s1", "s2", "s3", "s4", "s5", "tm", "xf"]);
+    expect(ids).toEqual(["cd", "s1", "s2", "s3", "s4", "s5", "tm", "xf"]);
   });
 
-  test("applies spec 088 §5 exclusions for client docs, security, evals", async () => {
+  test("applies upstream-map v2.0.0 exclusions for security, evals, GoA references", async () => {
     const { process } = await translateFactorySource(repo, sha);
     const def = process.definition as {
       stages: Array<{ path: string; body: string }>;
       agents: {
         controllers: Array<{ path: string }>;
-        requirements: Array<{ path: string }>;
+        requirements: {
+          system: Array<{ path: string }>;
+          service: Array<{ path: string }>;
+          client: Array<{ path: string }>;
+        };
       };
+      references: Array<{ path: string; body: string }>;
     };
 
     const bodies = JSON.stringify(def);
-    expect(bodies).not.toContain("excluded client doc");
+    // These remain excluded.
     expect(bodies).not.toContain("excluded standards");
     expect(bodies).not.toContain("excluded compliance");
     expect(bodies).not.toContain("excluded security");
     expect(bodies).not.toContain("excluded factory security");
     expect(bodies).not.toContain("excluded eval");
-    expect(bodies).not.toContain("excluded client content");
-    expect(bodies).not.toContain("excluded sitemap template");
     expect(bodies).not.toContain("excluded workflow");
     expect(bodies).not.toContain("excluded script");
+
+    // NEW in v2.0.0: Client Documentation is captured, not excluded.
+    expect(bodies).toContain("cd body");
+    expect(bodies).toContain("client doc body");
+    expect(def.agents.requirements.client.map((c) => c.path)).toEqual([
+      "Factory Agent/Requirements/Client/ministry-x.md",
+    ]);
+    expect(def.agents.requirements.system.map((c) => c.path)).toEqual([
+      "Factory Agent/Requirements/System/business-requirements.md",
+    ]);
+    expect(def.agents.requirements.service.map((c) => c.path)).toEqual([
+      "Factory Agent/Requirements/Service/audience-identification.md",
+    ]);
+
+    // NEW in v2.0.0: sitemap variant templates are load-bearing references.
+    expect(def.references.map((r) => r.path)).toEqual([
+      "Factory Agent/Requirements/Service/sitemap-template-v1.json",
+    ]);
 
     const ctrlPaths = def.agents.controllers.map((c) => c.path);
     expect(ctrlPaths).toContain("Factory Agent/Controllers/api-builder.md");
