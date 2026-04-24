@@ -68,3 +68,25 @@ runs:
         ~/.encore/bin/encore build docker \
           --config ${{ inputs.config }} \
           ${{ inputs.image-tag }}
+
+    # Factory upstream sync shells out to `git clone` (api/factory/clone.ts).
+    # `encore build docker` produces a Debian-based image without git, so we
+    # layer it on here and retag to the same ref. Keeps encore as the primary
+    # builder and adds ~50 MB for the git binary + HTTPS deps.
+    - name: Install git in image
+      shell: bash
+      run: |
+        work="$(mktemp -d)"
+        cat > "$work/Dockerfile" <<'EOF'
+        ARG BASE=scratch
+        FROM ${BASE}
+        USER root
+        RUN apt-get update \
+            && apt-get install -y --no-install-recommends git ca-certificates \
+            && rm -rf /var/lib/apt/lists/*
+        EOF
+        docker build \
+          --build-arg BASE=${{ inputs.image-tag }} \
+          -t ${{ inputs.image-tag }} \
+          "$work"
+        rm -rf "$work"

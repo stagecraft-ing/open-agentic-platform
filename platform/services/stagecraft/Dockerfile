@@ -17,6 +17,13 @@ RUN npm ci --omit=dev
 FROM node:22-slim
 WORKDIR /app
 
+# Factory upstream sync shells out to `git clone` (api/factory/clone.ts),
+# so the runtime needs a git binary. ca-certificates is pulled in as a
+# transitive dep for HTTPS clones.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Production node_modules only (~83 MB vs 197 MB)
 COPY --from=deps /app/node_modules ./node_modules
 
