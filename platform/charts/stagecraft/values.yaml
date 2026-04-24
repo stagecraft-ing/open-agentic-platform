@@ -42,6 +42,13 @@ secrets:
       remoteKey: oidc-m2m-client-id
     - key: OIDC_M2M_CLIENT_SECRET
       remoteKey: oidc-m2m-client-secret
+    # AES-256-GCM key for PAT-at-rest encryption (api/auth/patCrypto.ts).
+    # Must decode from base64 to exactly 32 bytes. Generate with:
+    #   openssl rand -base64 32
+    # Rotate only with care: existing factory_upstream_pats / project_pats
+    # rows become undecryptable if the key changes.
+    - key: PAT_ENCRYPTION_KEY
+      remoteKey: pat-encryption-key
 
 # Legacy Azure CSI driver opt-in (kept for backward compatibility)
 secretsMount:
