@@ -77,13 +77,22 @@ export default function Dashboard() {
             Manage your projects
           </p>
         </div>
-        <Link
-          to="/app/projects/new"
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Create New Project
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/app/projects/import"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Import Existing Project
+          </Link>
+          <Link
+            to="/app/projects/new"
+            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Create New Project
+          </Link>
+        </div>
       </header>
 
       <div className="flex items-center gap-3">
