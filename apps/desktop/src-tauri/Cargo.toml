@@ -100,6 +100,7 @@ tauri-plugin-deep-link = "2"
 tauri-plugin-persisted-scope = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-os = "2"
+url = { version = "2.5.8", default-features = false }
 
 # Dev-only: MCP bridge exposes the running app to AI assistants (Claude Code, Cursor, etc.)
 # via a WebSocket on port 9223. Excluded from Linux builds due to upstream glib conflicts.

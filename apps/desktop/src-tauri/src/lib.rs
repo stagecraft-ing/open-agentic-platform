@@ -294,11 +294,15 @@ pub fn run() {
             // has registered its 'auth-callback' listener (cold launch case).
             app.manage(commands::auth::PendingAuthCallback::default());
 
-            // Listen for deep-link callbacks (OPC desktop OAuth flow, spec 080).
+            // Listen for deep-link callbacks. Two schemes are routed here:
             //
-            // Use the plugin's canonical on_open_url API. Emit `auth-callback` to
-            // the webview AND store the URL in managed state so the frontend can
-            // drain any URL that arrived before the listener was registered.
+            //   opc://auth/callback        — OPC desktop OAuth (spec 080)
+            //   oap://project/open?...     — stagecraft Open-in-OPC handoff (spec 112 §6.3)
+            //
+            // Use the plugin's canonical on_open_url API. For each known
+            // scheme we emit a webview event AND (where the auth flow needs
+            // it) cache the URL in managed state so the frontend can drain
+            // any URL that arrived before its listener was registered.
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 let handle_clone = app.handle().clone();
@@ -311,6 +315,23 @@ pub fn run() {
                             }
                             if let Err(e) = handle_clone.emit("auth-callback", &s) {
                                 log::error!("failed to emit auth-callback: {e}");
+                            }
+                        } else if s.starts_with("oap://project/open") {
+                            match commands::project_open::parse_project_open_url(&s) {
+                                Ok(payload) => {
+                                    if let Err(e) =
+                                        handle_clone.emit("project-open-request", &payload)
+                                    {
+                                        log::error!(
+                                            "failed to emit project-open-request: {e}"
+                                        );
+                                    }
+                                }
+                                Err(e) => {
+                                    log::warn!(
+                                        "ignoring malformed oap://project/open URL: {e}"
+                                    );
+                                }
                             }
                         }
                     }
