@@ -1,9 +1,11 @@
 name: Encore build (stagecraft)
 description: >
-  Composite action: build the React Router frontend, install a pinned Encore
-  CLI (cached), then run `encore build docker` against the given infra config.
-  Caller must run actions/checkout, actions/setup-node, and `npm ci` before
-  invoking this action.
+  Composite action: build the React Router frontend, build the Rust runtime
+  helpers, stage them into a locally-tagged runtime base image, install a
+  pinned Encore CLI (cached), and run `encore build docker --base <base>`
+  to produce the final image in a single pass. Caller must run
+  actions/checkout, actions/setup-node, and `npm ci` before invoking this
+  action.
 
 inputs:
   working-directory:
@@ -27,6 +29,51 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: cd web && npx react-router build
+
+    # Rust helpers that stagecraft's API shells out to at runtime:
+    #   - artifact-extract        (knowledge advance endpoint)
+    #   - factory-project-detect  (project import endpoint)
+    # Built before the Encore image step so they can be baked into the
+    # runtime base image below. Missing-binary failures surface in-cluster
+    # as opaque `failed_precondition` errors, so treat this as part of the
+    # image contract.
+    - name: Rust toolchain
+      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+    - name: Cache Rust build (stagecraft helpers)
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      with:
+        workspaces: crates
+        shared-key: stagecraft-helpers
+
+    - name: Build Rust helpers
+      shell: bash
+      run: |
+        cargo build --release \
+          --manifest-path crates/Cargo.toml \
+          -p artifact-extract \
+          -p factory-project-detect
+
+    # Build the runtime base image. Encore's `--base` flag layers its
+    # compiled JS, native runtime, and the bundle_source tree on top of
+    # this image, so the base only needs to carry git, ca-certificates,
+    # and the two Rust helper binaries.
+    - name: Stage Rust helpers into build context
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        cp ${{ github.workspace }}/crates/target/release/artifact-extract       ./artifact-extract
+        cp ${{ github.workspace }}/crates/target/release/factory-project-detect ./factory-project-detect
+
+    - name: Build runtime base image
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        docker build \
+          --platform linux/amd64 \
+          -f Dockerfile.base \
+          -t stagecraft-base:${{ github.sha }} \
+          .
 
     # Cache the installed Encore CLI to avoid hammering the installer on
     # every build. Cache key is scoped by OS and version so a version bump
@@ -67,58 +114,5 @@ runs:
       run: |
         ~/.encore/bin/encore build docker \
           --config ${{ inputs.config }} \
+          --base stagecraft-base:${{ github.sha }} \
           ${{ inputs.image-tag }}
-
-    # Rust helpers that stagecraft's API shells out to at runtime:
-    #   - artifact-extract        (knowledge advance endpoint)
-    #   - factory-project-detect  (project import endpoint)
-    # Built once here so the post-encore layer can COPY them into the image
-    # alongside git. Missing-binary failures surface in-cluster as opaque
-    # `failed_precondition` errors, so treat this as part of the image.
-    - name: Rust toolchain
-      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-
-    - name: Cache Rust build (stagecraft helpers)
-      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
-      with:
-        workspaces: crates
-        shared-key: stagecraft-helpers
-
-    - name: Build Rust helpers
-      shell: bash
-      run: |
-        cargo build --release \
-          --manifest-path crates/Cargo.toml \
-          -p artifact-extract \
-          -p factory-project-detect
-
-    # Factory upstream sync shells out to `git clone` (api/factory/clone.ts).
-    # `encore build docker` produces a Debian-based image without git, so we
-    # layer it on here and retag to the same ref. Keeps encore as the primary
-    # builder and adds ~50 MB for the git binary + HTTPS deps. The Rust
-    # helpers built above are copied in the same layer so there is a single
-    # post-encore retag.
-    - name: Install git and Rust helpers in image
-      shell: bash
-      run: |
-        work="$(mktemp -d)"
-        cp crates/target/release/artifact-extract "$work/artifact-extract"
-        cp crates/target/release/factory-project-detect "$work/factory-project-detect"
-        cat > "$work/Dockerfile" <<'EOF'
-        ARG BASE=scratch
-        FROM ${BASE}
-        USER root
-        RUN apt-get update \
-            && apt-get install -y --no-install-recommends git ca-certificates \
-            && rm -rf /var/lib/apt/lists/*
-        COPY artifact-extract /usr/local/bin/artifact-extract
-        COPY factory-project-detect /usr/local/bin/factory-project-detect
-        RUN chmod +x /usr/local/bin/artifact-extract /usr/local/bin/factory-project-detect
-        ENV ARTIFACT_EXTRACT_BIN=/usr/local/bin/artifact-extract
-        ENV FACTORY_PROJECT_DETECT_BIN=/usr/local/bin/factory-project-detect
-        EOF
-        docker build \
-          --build-arg BASE=${{ inputs.image-tag }} \
-          -t ${{ inputs.image-tag }} \
-          "$work"
-        rm -rf "$work"

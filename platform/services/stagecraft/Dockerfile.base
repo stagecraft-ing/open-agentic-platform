@@ -1,0 +1,31 @@
+# Stagecraft runtime base image.
+#
+# Consumed by `encore build docker --base <this-image>`. Encore lays the
+# compiled main.mjs, the native runtime, and the bundled source tree
+# (bundle_source: true in encore.app) on top.
+#
+# This base carries only what Encore does NOT provide:
+#   - git + ca-certificates: api/factory/clone.ts shells out to `git clone`
+#   - artifact-extract:      knowledge advance endpoint (crates/artifact-extract)
+#   - factory-project-detect: project import endpoint (crates/factory-project-detect)
+#
+# The two helper binaries are expected in the build context alongside this
+# Dockerfile. Build them for linux/amd64 and stage them before `docker build`:
+#
+#   cargo build --release --manifest-path crates/Cargo.toml \
+#       -p artifact-extract -p factory-project-detect
+#   cp crates/target/release/artifact-extract       platform/services/stagecraft/
+#   cp crates/target/release/factory-project-detect platform/services/stagecraft/
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY artifact-extract        /usr/local/bin/artifact-extract
+COPY factory-project-detect  /usr/local/bin/factory-project-detect
+RUN chmod +x /usr/local/bin/artifact-extract /usr/local/bin/factory-project-detect
+
+ENV ARTIFACT_EXTRACT_BIN=/usr/local/bin/artifact-extract
+ENV FACTORY_PROJECT_DETECT_BIN=/usr/local/bin/factory-project-detect
