@@ -83,12 +83,19 @@ export async function listKnowledgeObjects(
 export async function getKnowledgeObject(request: Request, id: string) {
   return apiFetch(request, `/api/knowledge/objects/${id}`) as Promise<{
     object: KnowledgeObjectRow;
+    bindingsCount: number;
   }>;
 }
 
 export async function requestUpload(
   request: Request,
-  data: { filename: string; mimeType: string; contentHash: string }
+  data: {
+    filename: string;
+    mimeType: string;
+    contentHash: string;
+    sizeBytes: number;
+    sourcePath?: string;
+  }
 ) {
   return apiFetch(request, "/api/knowledge/upload", {
     method: "POST",
@@ -131,7 +138,7 @@ export async function deleteKnowledgeObject(
 ) {
   return apiFetch(request, `/api/knowledge/objects/${objectId}`, {
     method: "DELETE",
-  }) as Promise<{ deleted: boolean }>;
+  }) as Promise<{ deleted: boolean; bindingsRemoved: number }>;
 }
 
 // =========================================================================

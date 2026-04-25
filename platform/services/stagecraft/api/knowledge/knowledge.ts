@@ -169,7 +169,9 @@ export const getKnowledgeObject = api(
     method: "GET",
     path: "/api/knowledge/objects/:id",
   },
-  async (req: { id: string }): Promise<{ object: KnowledgeObjectRow }> => {
+  async (
+    req: { id: string }
+  ): Promise<{ object: KnowledgeObjectRow; bindingsCount: number }> => {
     const auth = getAuthData()!;
 
     const [row] = await db
@@ -187,7 +189,12 @@ export const getKnowledgeObject = api(
       throw APIError.notFound("knowledge object not found");
     }
 
-    return { object: row };
+    const bindings = await db
+      .select({ id: documentBindings.id })
+      .from(documentBindings)
+      .where(eq(documentBindings.knowledgeObjectId, req.id));
+
+    return { object: row, bindingsCount: bindings.length };
   }
 );
 
@@ -199,6 +206,12 @@ type RequestUploadRequest = {
   filename: string;
   mimeType: string;
   contentHash: string; // client-provided SHA-256 for dedup
+  sizeBytes: number; // client-known file size; verified against S3 HEAD on confirm
+  /**
+   * Optional folder-relative path for batch/folder uploads. Stored in
+   * provenance.sourceUri as `upload://<sourcePath>`; falls back to filename.
+   */
+  sourcePath?: string;
 };
 
 type RequestUploadResponse = {
@@ -225,12 +238,17 @@ export const requestUpload = api(
         "filename, mimeType, and contentHash are required"
       );
     }
+    if (typeof req.sizeBytes !== "number" || req.sizeBytes < 0) {
+      throw APIError.invalidArgument("sizeBytes must be a non-negative number");
+    }
 
     const bucket = await getWorkspaceBucket(auth.workspaceId);
     const objectId = randomUUID();
     const storageKey = `knowledge/${objectId}/${req.filename}`;
 
-    // Create the knowledge object record in "imported" state (pending upload)
+    // Create the knowledge object record in "imported" state (pending upload).
+    // sizeBytes is trusted from the client at request time and verified
+    // against S3 metadata on confirmUpload.
     await db.insert(knowledgeObjects).values({
       id: objectId,
       workspaceId: auth.workspaceId,
@@ -238,12 +256,12 @@ export const requestUpload = api(
       storageKey,
       filename: req.filename,
       mimeType: req.mimeType,
-      sizeBytes: 0, // updated on confirm
+      sizeBytes: req.sizeBytes,
       contentHash: req.contentHash,
       state: "imported",
       provenance: {
         sourceType: "upload",
-        sourceUri: `upload://${req.filename}`,
+        sourceUri: `upload://${req.sourcePath ?? req.filename}`,
         importedAt: new Date().toISOString(),
       },
     });
@@ -313,12 +331,18 @@ export const confirmUpload = api(
       );
     }
 
+    // Trust the client-reported sizeBytes from requestUpload, but overwrite
+    // with the S3 HEAD value when it disagrees and is non-zero. Some
+    // S3-compatible stores omit Content-Length on HEAD; in that case we keep
+    // the request-time size rather than clobbering it with 0.
+    const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+    if (meta.contentLength > 0 && meta.contentLength !== obj.sizeBytes) {
+      updateSet.sizeBytes = meta.contentLength;
+    }
+
     const [updated] = await db
       .update(knowledgeObjects)
-      .set({
-        sizeBytes: meta.contentLength,
-        updatedAt: new Date(),
-      })
+      .set(updateSet)
       .where(eq(knowledgeObjects.id, req.id))
       .returning();
 
@@ -328,14 +352,14 @@ export const confirmUpload = api(
       targetType: "knowledge_object",
       targetId: req.id,
       metadata: {
-        sizeBytes: meta.contentLength,
+        sizeBytes: updated.sizeBytes,
         contentType: meta.contentType,
       },
     });
 
     log.info("upload confirmed", {
       objectId: req.id,
-      sizeBytes: meta.contentLength,
+      sizeBytes: updated.sizeBytes,
     });
 
     return { object: updated };
@@ -487,7 +511,9 @@ export const deleteKnowledgeObject = api(
     method: "DELETE",
     path: "/api/knowledge/objects/:id",
   },
-  async (req: { id: string }): Promise<{ deleted: boolean }> => {
+  async (
+    req: { id: string }
+  ): Promise<{ deleted: boolean; bindingsRemoved: number }> => {
     const auth = getAuthData()!;
 
     const [obj] = await db
@@ -505,23 +531,29 @@ export const deleteKnowledgeObject = api(
       throw APIError.notFound("knowledge object not found");
     }
 
-    // NF-001: objects in "available" state are immutable
-    if (obj.state === "available") {
-      throw APIError.invalidArgument(
-        "cannot delete knowledge objects in 'available' state — they are immutable"
-      );
+    // Delete from object store. Best-effort: if the blob is already missing
+    // (e.g. a partially-uploaded object), continue with DB cleanup so the
+    // user is not stuck with a ghost row they cannot remove.
+    const bucket = await getWorkspaceBucket(auth.workspaceId);
+    try {
+      await deleteObject(bucket, obj.storageKey);
+    } catch (err) {
+      log.warn("deleteKnowledgeObject: object store delete failed, continuing", {
+        objectId: req.id,
+        storageKey: obj.storageKey,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
 
-    // Delete from object store
-    const bucket = await getWorkspaceBucket(auth.workspaceId);
-    await deleteObject(bucket, obj.storageKey);
-
-    // Remove any document bindings
-    await db
+    // Cascade: unbind from any projects that reference this object. Deleting
+    // an object in "available" state is allowed — downstream factory runs
+    // that try to re-resolve it will fail loudly with `invalidArgument`,
+    // which is preferable to silent staleness.
+    const removed = await db
       .delete(documentBindings)
-      .where(eq(documentBindings.knowledgeObjectId, req.id));
+      .where(eq(documentBindings.knowledgeObjectId, req.id))
+      .returning({ id: documentBindings.id });
 
-    // Delete the record
     await db
       .delete(knowledgeObjects)
       .where(eq(knowledgeObjects.id, req.id));
@@ -531,10 +563,14 @@ export const deleteKnowledgeObject = api(
       action: "knowledge.object_deleted",
       targetType: "knowledge_object",
       targetId: req.id,
-      metadata: { filename: obj.filename },
+      metadata: {
+        filename: obj.filename,
+        state: obj.state,
+        bindingsRemoved: removed.length,
+      },
     });
 
-    return { deleted: true };
+    return { deleted: true, bindingsRemoved: removed.length };
   }
 );
 

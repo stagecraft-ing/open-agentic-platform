@@ -60,7 +60,7 @@ export default function KnowledgeBrowser() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Knowledge Objects
         </h2>
-        <UploadButton />
+        <UploadControls />
       </div>
 
       {/* State filter tabs */}
@@ -198,119 +198,227 @@ export default function KnowledgeBrowser() {
   );
 }
 
+type UploadStatus = "pending" | "uploading" | "done" | "failed";
+
+type UploadItem = {
+  id: string;
+  name: string;
+  size: number;
+  status: UploadStatus;
+  error?: string;
+};
+
 /**
- * Upload button with client-side file handling.
- * Flow: select file → compute SHA-256 → request presigned URL → PUT to S3 → confirm.
+ * Upload controls: a "Document" button (single or multi-file) plus a
+ * "Folder" button (whole-directory). Both feed the same per-file pipeline:
+ * compute SHA-256 → request presigned URL → PUT to S3 → confirm. Files are
+ * processed with a small concurrency cap so the browser does not OOM on a
+ * folder full of large files.
  */
-function UploadButton() {
+const UPLOAD_CONCURRENCY = 3;
+
+function UploadControls() {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
+  const [items, setItems] = useState<UploadItem[]>([]);
+  const [running, setRunning] = useState(false);
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
 
-    setUploading(true);
-    setUploadError(null);
+    const initial: UploadItem[] = files.map((f, i) => ({
+      id: `${Date.now()}-${i}-${f.name}`,
+      name: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name,
+      size: f.size,
+      status: "pending",
+    }));
+    setItems(initial);
+    setRunning(true);
 
-    try {
-      const buffer = await file.arrayBuffer();
-      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const contentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    let cursor = 0;
+    let failures = 0;
+    const updateItem = (idx: number, patch: Partial<UploadItem>) =>
+      setItems((cur) => cur.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
-      // Call the Encore API directly. Going through the Remix action handler
-      // returns HTML in React Router v7 single-fetch (the action's JSON is
-      // only available on `.data` URLs), and `await res.json()` on HTML
-      // throws "The string did not match the expected pattern" on Safari.
-      // Same-origin fetch carries the __session cookie automatically.
-      const reqUploadRes = await fetch("/api/knowledge/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type || "application/octet-stream",
-          contentHash,
-        }),
-      });
-
-      if (!reqUploadRes.ok) {
-        const body = await reqUploadRes.text();
-        throw new Error(
-          `Failed to request upload (${reqUploadRes.status}): ${body.slice(0, 200)}`
-        );
-      }
-
-      const { uploadUrl, objectId } = (await reqUploadRes.json()) as {
-        uploadUrl: string;
-        objectId: string;
-      };
-
-      const s3Res = await fetch(uploadUrl, {
-        method: "PUT",
-        body: buffer,
-      });
-
-      if (!s3Res.ok) {
-        throw new Error(`S3 upload failed: ${s3Res.status} ${s3Res.statusText}`);
-      }
-
-      const confirmRes = await fetch(
-        `/api/knowledge/objects/${objectId}/confirm`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
+    async function worker() {
+      while (true) {
+        const idx = cursor++;
+        if (idx >= files.length) return;
+        const file = files[idx];
+        updateItem(idx, { status: "uploading" });
+        try {
+          await uploadOne(file);
+          updateItem(idx, { status: "done" });
+        } catch (err) {
+          failures++;
+          updateItem(idx, {
+            status: "failed",
+            error: err instanceof Error ? err.message : "Upload failed",
+          });
         }
-      );
-
-      if (!confirmRes.ok) {
-        const body = await confirmRes.text();
-        throw new Error(
-          `Upload landed but confirm failed (${confirmRes.status}): ${body.slice(0, 200)}`
-        );
       }
+    }
 
+    const workers = Array.from(
+      { length: Math.min(UPLOAD_CONCURRENCY, files.length) },
+      () => worker()
+    );
+    await Promise.all(workers);
+
+    setRunning(false);
+    if (fileRef.current) fileRef.current.value = "";
+    if (folderRef.current) folderRef.current.value = "";
+
+    // If everything succeeded, refresh so the new rows show in the table.
+    // Otherwise leave the failure panel visible so the user can read the
+    // errors and decide whether to retry.
+    if (failures === 0) {
       window.location.reload();
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
+
+  const completed = items.filter((i) => i.status === "done").length;
+  const failed = items.filter((i) => i.status === "failed").length;
+  const total = items.length;
 
   return (
     <div className="relative">
       <input
         ref={fileRef}
         type="file"
+        multiple
         className="hidden"
-        onChange={handleFileSelect}
+        onChange={handleFiles}
       />
-      <button
-        type="button"
-        disabled={uploading}
-        onClick={() => fileRef.current?.click()}
-        className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {uploading ? (
-          <>
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            Uploading...
-          </>
-        ) : (
-          "Upload Document"
-        )}
-      </button>
-      {uploadError && (
-        <p className="absolute top-full right-0 mt-1 text-xs text-red-600 dark:text-red-400">
-          {uploadError}
-        </p>
+      <input
+        ref={folderRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFiles}
+        {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={running}
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {running ? (
+            <>
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              {`Uploading ${completed}/${total}${failed ? ` · ${failed} failed` : ""}`}
+            </>
+          ) : (
+            "Upload Documents"
+          )}
+        </button>
+        <button
+          type="button"
+          disabled={running}
+          onClick={() => folderRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Upload Folder
+        </button>
+      </div>
+      {items.length > 0 && (
+        <div className="absolute top-full right-0 mt-2 w-96 max-h-72 overflow-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {items.map((it) => (
+              <li key={it.id} className="px-3 py-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-gray-700 dark:text-gray-300" title={it.name}>
+                    {it.name}
+                  </span>
+                  <UploadStatusBadge status={it.status} />
+                </div>
+                {it.error && (
+                  <p className="mt-1 text-red-600 dark:text-red-400 break-words">
+                    {it.error}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
+}
+
+function UploadStatusBadge({ status }: { status: UploadStatus }) {
+  const styles: Record<UploadStatus, string> = {
+    pending: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+    uploading: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    done: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+    failed: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${styles[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+/**
+ * Upload one file end-to-end. The fetch hits the Encore API directly rather
+ * than a Remix action — going through the action returns HTML under React
+ * Router v7 single-fetch, which breaks `res.json()` on Safari.
+ */
+async function uploadOne(file: File): Promise<void> {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const contentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  const sourcePath =
+    (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+
+  const reqUploadRes = await fetch("/api/knowledge/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: file.name,
+      mimeType: file.type || "application/octet-stream",
+      contentHash,
+      sizeBytes: file.size,
+      sourcePath,
+    }),
+  });
+  if (!reqUploadRes.ok) {
+    const body = await reqUploadRes.text();
+    throw new Error(
+      `Failed to request upload (${reqUploadRes.status}): ${body.slice(0, 200)}`
+    );
+  }
+  const { uploadUrl, objectId } = (await reqUploadRes.json()) as {
+    uploadUrl: string;
+    objectId: string;
+  };
+
+  const s3Res = await fetch(uploadUrl, { method: "PUT", body: buffer });
+  if (!s3Res.ok) {
+    throw new Error(`S3 upload failed: ${s3Res.status} ${s3Res.statusText}`);
+  }
+
+  const confirmRes = await fetch(
+    `/api/knowledge/objects/${objectId}/confirm`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }
+  );
+  if (!confirmRes.ok) {
+    const body = await confirmRes.text();
+    throw new Error(
+      `Upload landed but confirm failed (${confirmRes.status}): ${body.slice(0, 200)}`
+    );
+  }
 }
 
 function formatBytes(bytes: number): string {

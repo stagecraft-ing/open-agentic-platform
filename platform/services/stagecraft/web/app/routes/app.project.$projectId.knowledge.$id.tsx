@@ -1,4 +1,5 @@
 import { useLoaderData, useFetcher, Link } from "react-router";
+import { useState } from "react";
 import { requireUser } from "../lib/auth.server";
 import {
   getKnowledgeObject,
@@ -17,8 +18,8 @@ export async function loader({
   params: { projectId: string; id: string };
 }) {
   await requireUser(request);
-  const { object } = await getKnowledgeObject(request, params.id);
-  return { object, projectId: params.projectId };
+  const { object, bindingsCount } = await getKnowledgeObject(request, params.id);
+  return { object, bindingsCount, projectId: params.projectId };
 }
 
 export async function action({
@@ -71,15 +72,15 @@ const STATE_COLORS: Record<string, string> = {
 const STATE_ORDER = ["imported", "extracting", "extracted", "classified", "available"];
 
 export default function KnowledgeObjectDetail() {
-  const { object, projectId } = useLoaderData() as {
+  const { object, bindingsCount, projectId } = useLoaderData() as {
     object: KnowledgeObjectRow;
+    bindingsCount: number;
     projectId: string;
   };
   const fetcher = useFetcher();
   const downloadFetcher = useFetcher();
 
   const nextState = VALID_TRANSITIONS[object.state];
-  const canDelete = object.state !== "available";
   const provenance = object.provenance as {
     sourceType?: string;
     sourceUri?: string;
@@ -87,6 +88,23 @@ export default function KnowledgeObjectDetail() {
   };
 
   const downloadUrl = (downloadFetcher.data as any)?.downloadUrl;
+
+  function confirmDelete(e: React.FormEvent<HTMLFormElement>) {
+    const parts = [`Delete "${object.filename}"?`];
+    if (object.state === "available") {
+      parts.push(
+        `This object is in 'available' state — downstream factory runs that reference it will fail until re-bound.`
+      );
+    }
+    if (bindingsCount > 0) {
+      parts.push(
+        `It is currently bound to ${bindingsCount} project${bindingsCount === 1 ? "" : "s"}; all bindings will be removed.`
+      );
+    }
+    if (!confirm(parts.join("\n\n"))) {
+      e.preventDefault();
+    }
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -176,24 +194,20 @@ export default function KnowledgeObjectDetail() {
           </button>
         </downloadFetcher.Form>
 
-        {canDelete && (
-          <fetcher.Form
-            method="POST"
-            onSubmit={(e) => {
-              if (!confirm("Delete this knowledge object?")) {
-                e.preventDefault();
-              }
-            }}
+        <fetcher.Form method="POST" onSubmit={confirmDelete}>
+          <input type="hidden" name="intent" value="delete" />
+          <button
+            type="submit"
+            className="rounded-md border border-red-300 dark:border-red-700 px-3 py-2 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
-            <input type="hidden" name="intent" value="delete" />
-            <button
-              type="submit"
-              className="rounded-md border border-red-300 dark:border-red-700 px-3 py-2 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              Delete
-            </button>
-          </fetcher.Form>
-        )}
+            Delete
+            {bindingsCount > 0 && (
+              <span className="ml-1 text-xs opacity-75">
+                ({bindingsCount} binding{bindingsCount === 1 ? "" : "s"})
+              </span>
+            )}
+          </button>
+        </fetcher.Form>
       </div>
 
       {downloadUrl && (
@@ -211,6 +225,14 @@ export default function KnowledgeObjectDetail() {
           </a>
         </div>
       )}
+
+      <PreviewSection
+        objectId={object.id}
+        mimeType={object.mimeType}
+        sizeBytes={object.sizeBytes}
+        filename={object.filename}
+      />
+
 
       {/* Metadata */}
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -295,4 +317,105 @@ function formatBytes(bytes: number): string {
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+const PREVIEW_MAX_BYTES = 1024 * 1024; // 1 MB
+
+function isPreviewableMimeType(mime: string): boolean {
+  return (
+    mime.startsWith("text/") ||
+    mime === "application/json" ||
+    mime === "application/xml" ||
+    mime === "application/javascript" ||
+    mime === "application/x-yaml"
+  );
+}
+
+/**
+ * On-demand text preview. Hits the existing presigned-download endpoint and
+ * fetches the blob client-side, so no new server route is needed. Files
+ * larger than 1 MB or non-text MIME types fall through to the download
+ * link only.
+ */
+function PreviewSection({
+  objectId,
+  mimeType,
+  sizeBytes,
+  filename,
+}: {
+  objectId: string;
+  mimeType: string;
+  sizeBytes: number;
+  filename: string;
+}) {
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isPreviewableMimeType(mimeType)) {
+    return null;
+  }
+
+  const tooLarge = sizeBytes > PREVIEW_MAX_BYTES;
+
+  async function loadPreview() {
+    setLoading(true);
+    setError(null);
+    try {
+      const urlRes = await fetch(`/api/knowledge/objects/${objectId}/download`);
+      if (!urlRes.ok) {
+        throw new Error(`Failed to get download URL (${urlRes.status})`);
+      }
+      const { downloadUrl } = (await urlRes.json()) as { downloadUrl: string };
+
+      const blobRes = await fetch(downloadUrl, {
+        // Cap to PREVIEW_MAX_BYTES so we never pull huge files even if the
+        // size column lied (the byte-range honours whatever we ask for).
+        headers: { Range: `bytes=0-${PREVIEW_MAX_BYTES - 1}` },
+      });
+      if (!blobRes.ok && blobRes.status !== 206) {
+        throw new Error(`Preview fetch failed (${blobRes.status})`);
+      }
+      const text = await blobRes.text();
+      setContent(text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Preview failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+          Preview
+        </h3>
+        {content === null && (
+          <button
+            type="button"
+            onClick={loadPreview}
+            disabled={loading || tooLarge}
+            className="text-xs rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Loading…" : tooLarge ? "Too large to preview" : "Show"}
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400 mb-2">{error}</p>
+      )}
+      {content !== null && (
+        <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-96 whitespace-pre-wrap break-words">
+          {content}
+        </pre>
+      )}
+      {tooLarge && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {filename} is {formatBytes(sizeBytes)} — preview is capped at{" "}
+          {formatBytes(PREVIEW_MAX_BYTES)}. Use the download link instead.
+        </p>
+      )}
+    </section>
+  );
 }
