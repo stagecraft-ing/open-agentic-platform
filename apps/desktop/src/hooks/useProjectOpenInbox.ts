@@ -1,0 +1,178 @@
+// Spec 112 §6.3 — Open-in-OPC frontend listener.
+//
+// Subscribes to the `project-open-request` Tauri event emitted by the
+// Rust deep-link dispatcher when an `oap://project/open?...` URL
+// arrives. Maintains a single "pending handoff" slot (the latest
+// request wins; older unread requests are replaced) and resolves the
+// stagecraft bundle for it on demand.
+//
+// Wire shape mirrors `commands::project_open::ProjectOpenRequest`.
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiCall } from '@/lib/apiAdapter';
+
+export interface ProjectOpenRequest {
+  projectId: string;
+  cloneUrl: string;
+  level?: 'scaffold_only' | 'legacy_produced' | 'acp_produced';
+}
+
+export interface OapBundleProject {
+  id: string;
+  name: string;
+  slug: string;
+  workspaceId: string;
+  orgId: string;
+}
+
+export interface OapBundleRepo {
+  cloneUrl: string;
+  githubOrg: string;
+  repoName: string;
+  defaultBranch: string;
+}
+
+export interface OapBundleAdapter {
+  id: string;
+  name: string;
+  version: string;
+  sourceSha: string;
+  syncedAt: string;
+  manifest: unknown;
+}
+
+export interface OapBundleContract {
+  name: string;
+  version: string;
+  sourceSha: string;
+  syncedAt: string;
+  schema: unknown;
+}
+
+export interface OapBundleProcess {
+  name: string;
+  version: string;
+  sourceSha: string;
+  syncedAt: string;
+  definition: unknown;
+}
+
+export interface OapBundleAgent {
+  id: string;
+  name: string;
+  version: number;
+  status: string;
+  contentHash: string;
+  frontmatter: unknown;
+  bodyMarkdown: string;
+}
+
+export interface OapBundle {
+  project: OapBundleProject;
+  repo: OapBundleRepo | null;
+  deepLink: string | null;
+  adapter: OapBundleAdapter | null;
+  contracts: OapBundleContract[];
+  processes: OapBundleProcess[];
+  agents: OapBundleAgent[];
+}
+
+interface FetchBundleResponse {
+  ok: boolean;
+  bundle?: OapBundle;
+  error?: string;
+}
+
+export interface InboxState {
+  pending: ProjectOpenRequest | null;
+  bundle: OapBundle | null;
+  bundleLoading: boolean;
+  bundleError: string | null;
+}
+
+export interface InboxApi extends InboxState {
+  fetchBundle: () => Promise<void>;
+  dismiss: () => void;
+}
+
+const isTauri = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const w = window as unknown as {
+    __TAURI_INTERNALS__?: unknown;
+    __TAURI__?: unknown;
+  };
+  return Boolean(w.__TAURI_INTERNALS__ ?? w.__TAURI__);
+};
+
+export function useProjectOpenInbox(): InboxApi {
+  const [pending, setPending] = useState<ProjectOpenRequest | null>(null);
+  const [bundle, setBundle] = useState<OapBundle | null>(null);
+  const [bundleLoading, setBundleLoading] = useState(false);
+  const [bundleError, setBundleError] = useState<string | null>(null);
+  const lastProjectIdRef = useRef<string | null>(null);
+
+  // Subscribe to the deep-link event. The dispatcher in lib.rs emits
+  // {projectId, cloneUrl, level} per `parse_project_open_url`.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    void import('@tauri-apps/api/event').then(({ listen }) => {
+      if (cancelled) return;
+      void listen<ProjectOpenRequest>('project-open-request', (event) => {
+        const next = event.payload;
+        // Skip duplicate replays (cold-launch re-dispatches the same URL).
+        if (lastProjectIdRef.current === next.projectId && pending) return;
+        lastProjectIdRef.current = next.projectId;
+        setPending(next);
+        // Reset bundle slot when a new request arrives.
+        setBundle(null);
+        setBundleError(null);
+      }).then((fn) => {
+        unlisten = fn;
+      });
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchBundle = useCallback(async () => {
+    if (!pending) return;
+    setBundleLoading(true);
+    setBundleError(null);
+    try {
+      const resp = await apiCall<FetchBundleResponse>(
+        'fetch_project_oap_bundle',
+        { request: { project_id: pending.projectId } }
+      );
+      if (resp.ok && resp.bundle) {
+        setBundle(resp.bundle);
+      } else {
+        setBundleError(resp.error ?? 'unknown error fetching bundle');
+      }
+    } catch (err) {
+      setBundleError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBundleLoading(false);
+    }
+  }, [pending]);
+
+  const dismiss = useCallback(() => {
+    setPending(null);
+    setBundle(null);
+    setBundleError(null);
+    lastProjectIdRef.current = null;
+  }, []);
+
+  return {
+    pending,
+    bundle,
+    bundleLoading,
+    bundleError,
+    fetchBundle,
+    dismiss,
+  };
+}

@@ -30,6 +30,7 @@ import { useTabState } from "@/hooks/useTabState";
 import { useAppLifecycle, useTrackEvent } from "@/hooks";
 import { StartupIntro } from "@/components/StartupIntro";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { ProjectOpenInbox } from "@/components/factory/ProjectOpenInbox";
 
 type View = 
   | "welcome" 
@@ -418,6 +419,9 @@ function AppContent() {
       />
 
       <UpdateBanner />
+
+      {/* Spec 112 §6.3 — surface oap://project/open handoffs from stagecraft. */}
+      <ProjectOpenInbox />
 
       {/* Topbar - Commented out since navigation moved to titlebar */}
       {/* <Topbar
