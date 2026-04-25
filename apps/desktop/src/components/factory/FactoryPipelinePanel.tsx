@@ -1,4 +1,5 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
+// Spec 112 §6.3 — bundle prop carries the stagecraft handoff context.
 // Top-level Factory pipeline panel registered in TabContent.
 
 import React, { useState } from 'react';
@@ -6,6 +7,7 @@ import { Layers, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@opc/ui/badge';
 import { Button } from '@opc/ui/button';
+import type { OapBundle } from '@/types/factoryBundle';
 import { FactoryPipelineProvider, useFactoryPipeline } from './FactoryPipelineContext';
 import { PipelineSelector } from './PipelineSelector';
 import { PipelineDAG } from './PipelineDAG';
@@ -14,6 +16,7 @@ import { ArtifactInspector } from './ArtifactInspector';
 import { GateDialog } from './GateDialog';
 import { ScaffoldMonitor } from './ScaffoldMonitor';
 import { PipelineHistory } from './PipelineHistory';
+import { ProjectContextOverview } from './ProjectContextOverview';
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
@@ -40,7 +43,13 @@ type PanelView = 'pipeline' | 'history';
 
 // ── Inner panel (unwrapped from provider) ────────────────────────────────────
 
-function FactoryPipelinePanelInner({ projectPath }: { projectPath?: string }) {
+function FactoryPipelinePanelInner({
+  projectPath,
+  bundle,
+}: {
+  projectPath?: string;
+  bundle?: OapBundle;
+}) {
   const { state } = useFactoryPipeline();
   const [view, setView] = useState<PanelView>('pipeline');
 
@@ -54,7 +63,26 @@ function FactoryPipelinePanelInner({ projectPath }: { projectPath?: string }) {
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
         <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
-        <h1 className="text-sm font-semibold flex-1">Factory Pipeline</h1>
+        <h1 className="text-sm font-semibold flex-1 flex items-center gap-2 min-w-0">
+          <span className="shrink-0">Factory Pipeline</span>
+          {bundle && (
+            <span
+              className="font-mono text-xs text-muted-foreground truncate"
+              title={`${bundle.project.name} (${bundle.project.slug})`}
+            >
+              · {bundle.project.slug}
+            </span>
+          )}
+          {bundle?.adapter && (
+            <Badge
+              variant="outline"
+              className="text-[10px] font-mono shrink-0"
+              title={`Adapter ${bundle.adapter.name} v${bundle.adapter.version}`}
+            >
+              {bundle.adapter.name}
+            </Badge>
+          )}
+        </h1>
         {state.runId && (
           <span
             className="font-mono text-xs text-muted-foreground truncate max-w-[160px]"
@@ -113,10 +141,12 @@ function FactoryPipelinePanelInner({ projectPath }: { projectPath?: string }) {
               </div>
             )}
 
-            {/* Artifact inspector or empty state */}
+            {/* Artifact inspector, project-context overview, or empty state */}
             <div className="flex-1 min-h-0 overflow-hidden">
               {state.selectedStepId !== null ? (
                 <ArtifactInspector />
+              ) : bundle ? (
+                <ProjectContextOverview bundle={bundle} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground p-6 text-center">
                   <Layers className="h-8 w-8 opacity-20" />
@@ -138,12 +168,13 @@ function FactoryPipelinePanelInner({ projectPath }: { projectPath?: string }) {
 
 // ── Public export (wraps provider) ───────────────────────────────────────────
 
-export const FactoryPipelinePanel: React.FC<{ projectPath?: string }> = ({
-  projectPath,
-}) => {
+export const FactoryPipelinePanel: React.FC<{
+  projectPath?: string;
+  bundle?: OapBundle;
+}> = ({ projectPath, bundle }) => {
   return (
     <FactoryPipelineProvider>
-      <FactoryPipelinePanelInner projectPath={projectPath} />
+      <FactoryPipelinePanelInner projectPath={projectPath} bundle={bundle} />
     </FactoryPipelineProvider>
   );
 };

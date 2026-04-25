@@ -10,71 +10,30 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCall } from '@/lib/apiAdapter';
+import type {
+  OapBundle,
+  OapBundleAdapter,
+  OapBundleAgent,
+  OapBundleContract,
+  OapBundleProcess,
+  OapBundleProject,
+  OapBundleRepo,
+} from '@/types/factoryBundle';
+
+export type {
+  OapBundle,
+  OapBundleAdapter,
+  OapBundleAgent,
+  OapBundleContract,
+  OapBundleProcess,
+  OapBundleProject,
+  OapBundleRepo,
+};
 
 export interface ProjectOpenRequest {
   projectId: string;
   cloneUrl: string;
   level?: 'scaffold_only' | 'legacy_produced' | 'acp_produced';
-}
-
-export interface OapBundleProject {
-  id: string;
-  name: string;
-  slug: string;
-  workspaceId: string;
-  orgId: string;
-}
-
-export interface OapBundleRepo {
-  cloneUrl: string;
-  githubOrg: string;
-  repoName: string;
-  defaultBranch: string;
-}
-
-export interface OapBundleAdapter {
-  id: string;
-  name: string;
-  version: string;
-  sourceSha: string;
-  syncedAt: string;
-  manifest: unknown;
-}
-
-export interface OapBundleContract {
-  name: string;
-  version: string;
-  sourceSha: string;
-  syncedAt: string;
-  schema: unknown;
-}
-
-export interface OapBundleProcess {
-  name: string;
-  version: string;
-  sourceSha: string;
-  syncedAt: string;
-  definition: unknown;
-}
-
-export interface OapBundleAgent {
-  id: string;
-  name: string;
-  version: number;
-  status: string;
-  contentHash: string;
-  frontmatter: unknown;
-  bodyMarkdown: string;
-}
-
-export interface OapBundle {
-  project: OapBundleProject;
-  repo: OapBundleRepo | null;
-  deepLink: string | null;
-  adapter: OapBundleAdapter | null;
-  contracts: OapBundleContract[];
-  processes: OapBundleProcess[];
-  agents: OapBundleAgent[];
 }
 
 interface FetchBundleResponse {

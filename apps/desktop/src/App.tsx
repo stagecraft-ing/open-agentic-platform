@@ -422,8 +422,8 @@ function AppContent() {
 
       {/* Spec 112 §6.3 — surface oap://project/open handoffs from stagecraft. */}
       <ProjectOpenInbox
-        onOpenInFactory={(path) => {
-          createFactoryTab(path);
+        onOpenInFactory={(path, bundle) => {
+          createFactoryTab(path, bundle ?? undefined);
           if (view !== 'tabs') setView('tabs');
         }}
       />

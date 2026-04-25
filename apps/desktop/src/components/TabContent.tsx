@@ -432,7 +432,10 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
       case 'factory':
         return (
           <div className="h-full">
-            <FactoryPipelinePanel projectPath={tab.projectPath} />
+            <FactoryPipelinePanel
+              projectPath={tab.projectPath}
+              bundle={tab.factoryBundle}
+            />
           </div>
         );
 

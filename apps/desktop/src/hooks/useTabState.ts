@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useTabContext } from '@/contexts/TabContext';
 import { Tab } from '@/contexts/TabContext';
+import type { OapBundle } from '@/types/factoryBundle';
 
 interface UseTabStateReturn {
   // State
@@ -32,7 +33,7 @@ interface UseTabStateReturn {
   createCallGraphTab: (projectPath?: string) => string | null;
   createGitContextTab: (projectPath?: string) => string | null;
   createCheckpointTab: (projectPath?: string) => string | null;
-  createFactoryTab: (projectPath?: string) => string | null;
+  createFactoryTab: (projectPath?: string, bundle?: OapBundle) => string | null;
   createPortfolioTab: (projectPath?: string) => string | null;
   createPromotionTab: (projectPath?: string) => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
@@ -394,10 +395,13 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab, updateTab]);
 
-  const createFactoryTab = useCallback((projectPath?: string): string | null => {
+  const createFactoryTab = useCallback((projectPath?: string, bundle?: OapBundle): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'factory');
     if (existingTab) {
-      if (projectPath) updateTab(existingTab.id, { projectPath });
+      const updates: Partial<Tab> = {};
+      if (projectPath) updates.projectPath = projectPath;
+      if (bundle) updates.factoryBundle = bundle;
+      if (Object.keys(updates).length > 0) updateTab(existingTab.id, updates);
       setActiveTab(existingTab.id);
       return existingTab.id;
     }
@@ -405,6 +409,7 @@ export const useTabState = (): UseTabStateReturn => {
       type: 'factory',
       title: 'Factory',
       projectPath,
+      factoryBundle: bundle,
       status: 'idle',
       hasUnsavedChanges: false,
       icon: 'workflow'

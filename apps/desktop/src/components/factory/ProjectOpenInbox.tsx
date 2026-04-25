@@ -22,6 +22,7 @@ import { Badge } from '@opc/ui/badge';
 import { Button } from '@opc/ui/button';
 import { api } from '@/lib/api';
 import { useProjectOpenInbox } from '@/hooks/useProjectOpenInbox';
+import type { OapBundle } from '@/types/factoryBundle';
 
 const PROJECTS_SUBDIR = 'oap-projects';
 
@@ -31,12 +32,15 @@ function joinPath(parts: string[]): string {
 
 export interface ProjectOpenInboxProps {
   /**
-   * Called after a successful clone with the local working-tree path.
-   * App.tsx wires this to `createFactoryTab(path)` + view switch so the
-   * project lands in the existing factory tab flow. Optional — the
-   * inbox still surfaces the cloned path even when no callback is wired.
+   * Called after a successful clone with the local working-tree path
+   * and the resolved stagecraft bundle (adapter + contracts + processes
+   * + agents). App.tsx threads both into `createFactoryTab` so the
+   * cockpit can surface the bundle alongside the working tree. Bundle
+   * may be null if the user reaches this point without a successful
+   * resolve (defensive — UI keeps the Open button disabled until both
+   * are present).
    */
-  onOpenInFactory?: (path: string) => void;
+  onOpenInFactory?: (path: string, bundle: OapBundle | null) => void;
 }
 
 export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({
@@ -178,7 +182,7 @@ export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({
                 variant="default"
                 onClick={() => {
                   if (clone.path) {
-                    onOpenInFactory(clone.path);
+                    onOpenInFactory(clone.path, bundle);
                     dismiss();
                   }
                 }}
