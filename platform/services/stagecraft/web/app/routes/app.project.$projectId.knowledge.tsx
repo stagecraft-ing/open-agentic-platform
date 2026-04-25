@@ -3,8 +3,6 @@ import { requireUser } from "../lib/auth.server";
 import {
   listKnowledgeObjects,
   listConnectors,
-  requestUpload,
-  confirmUpload,
 } from "../lib/workspace-api.server";
 import type {
   KnowledgeObjectRow,
@@ -35,32 +33,6 @@ export async function loader({
     connectors: connRes.connectors,
     stateFilter: stateFilter ?? "all",
   };
-}
-
-export async function action({ request }: { request: Request }) {
-  await requireUser(request);
-  const form = await request.formData();
-  const intent = form.get("intent");
-
-  if (intent === "request-upload") {
-    const filename = form.get("filename") as string;
-    const mimeType = form.get("mimeType") as string;
-    const contentHash = form.get("contentHash") as string;
-    const res = await requestUpload(request, {
-      filename,
-      mimeType,
-      contentHash,
-    });
-    return { uploadUrl: res.uploadUrl, objectId: res.objectId };
-  }
-
-  if (intent === "confirm-upload") {
-    const objectId = form.get("objectId") as string;
-    await confirmUpload(request, objectId);
-    return { confirmed: true };
-  }
-
-  return null;
 }
 
 const STATES = ["all", "imported", "extracting", "extracted", "classified", "available"] as const;
@@ -248,22 +220,32 @@ function UploadButton() {
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const contentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
-      const formData = new FormData();
-      formData.set("intent", "request-upload");
-      formData.set("filename", file.name);
-      formData.set("mimeType", file.type || "application/octet-stream");
-      formData.set("contentHash", contentHash);
-
-      const uploadRes = await fetch(window.location.pathname, {
+      // Call the Encore API directly. Going through the Remix action handler
+      // returns HTML in React Router v7 single-fetch (the action's JSON is
+      // only available on `.data` URLs), and `await res.json()` on HTML
+      // throws "The string did not match the expected pattern" on Safari.
+      // Same-origin fetch carries the __session cookie automatically.
+      const reqUploadRes = await fetch("/api/knowledge/upload", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "application/octet-stream",
+          contentHash,
+        }),
       });
 
-      if (!uploadRes.ok) {
-        throw new Error(`Failed to get upload URL (${uploadRes.status})`);
+      if (!reqUploadRes.ok) {
+        const body = await reqUploadRes.text();
+        throw new Error(
+          `Failed to request upload (${reqUploadRes.status}): ${body.slice(0, 200)}`
+        );
       }
 
-      const { uploadUrl, objectId } = await uploadRes.json();
+      const { uploadUrl, objectId } = (await reqUploadRes.json()) as {
+        uploadUrl: string;
+        objectId: string;
+      };
 
       const s3Res = await fetch(uploadUrl, {
         method: "PUT",
@@ -274,18 +256,19 @@ function UploadButton() {
         throw new Error(`S3 upload failed: ${s3Res.status} ${s3Res.statusText}`);
       }
 
-      const confirmForm = new FormData();
-      confirmForm.set("intent", "confirm-upload");
-      confirmForm.set("objectId", objectId);
-      const confirmRes = await fetch(window.location.pathname, {
-        method: "POST",
-        body: confirmForm,
-      });
+      const confirmRes = await fetch(
+        `/api/knowledge/objects/${objectId}/confirm`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        }
+      );
 
       if (!confirmRes.ok) {
         const body = await confirmRes.text();
         throw new Error(
-          `Upload landed but confirm failed: ${confirmRes.status} ${body.slice(0, 200)}`
+          `Upload landed but confirm failed (${confirmRes.status}): ${body.slice(0, 200)}`
         );
       }
 
