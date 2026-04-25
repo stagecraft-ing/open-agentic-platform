@@ -12,10 +12,15 @@
 //! - `stage5_clientInterface`
 //!
 //! A stage counts as terminal-complete iff `status` is a recognised
-//! completion token (`PASSED`, `PASS`, `COMPLETE`, `COMPLETED`) **and**
-//! `completedAt` is a non-empty string. Non-stage sibling keys (e.g.
-//! `audit`, `clientDocumentation`) are ignored for completeness; they are
-//! supplementary artefacts, not gates.
+//! completion token (`PASSED`, `PASS`, `COMPLETE`, `COMPLETED`). The
+//! `goa-software-factory` writer records the per-stage completion
+//! timestamp in `requirements/audit/working-state.json` under
+//! `stageHistory[]`, not on the manifest stage object — so requiring
+//! `completedAt` here would reject every real factory output. The
+//! manifest-level `pipelineStatus`/`completedAt` plus the per-stage
+//! terminal status are the contract that gates completion. Non-stage
+//! sibling keys (e.g. `audit`, `clientDocumentation`) are ignored for
+//! completeness; they are supplementary artefacts, not gates.
 
 use serde::{Deserialize, Serialize};
 
@@ -68,14 +73,7 @@ fn is_stage_complete(stage: Option<&serde_json::Value>) -> bool {
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_ascii_uppercase();
-    if !TERMINAL_STATUS_TOKENS.contains(&status.as_str()) {
-        return false;
-    }
-    stage
-        .get("completedAt")
-        .and_then(|v| v.as_str())
-        .map(|s| !s.is_empty())
-        .unwrap_or(false)
+    TERMINAL_STATUS_TOKENS.contains(&status.as_str())
 }
 
 #[cfg(test)]
@@ -86,11 +84,11 @@ mod tests {
     fn complete_when_all_five_stages_pass() {
         let manifest = serde_json::json!({
             "stages": {
-                "stage1_businessRequirements": { "status": "PASSED", "completedAt": "2026-04-21T13:32:00Z" },
-                "stage2_serviceRequirements": { "status": "PASSED", "completedAt": "2026-04-21T14:15:00Z" },
-                "stage3_databaseDesign":      { "status": "passed", "completedAt": "2026-04-21T15:05:00Z" },
-                "stage4_apiControllers":      { "status": "COMPLETED", "completedAt": "2026-04-22T00:00:00Z" },
-                "stage5_clientInterface":     { "status": "PASS", "completedAt": "2026-04-21T22:15:00Z" }
+                "stage1_businessRequirements": { "status": "PASSED" },
+                "stage2_serviceRequirements": { "status": "PASSED" },
+                "stage3_databaseDesign":      { "status": "passed" },
+                "stage4_apiControllers":      { "status": "COMPLETED" },
+                "stage5_clientInterface":     { "status": "PASS" }
             }
         });
         let (complete, incomplete) = assess_completion(&manifest);
@@ -102,7 +100,7 @@ mod tests {
     fn missing_stage_is_incomplete() {
         let manifest = serde_json::json!({
             "stages": {
-                "stage1_businessRequirements": { "status": "PASSED", "completedAt": "2026-04-21T13:32:00Z" }
+                "stage1_businessRequirements": { "status": "PASSED" }
             }
         });
         let (complete, incomplete) = assess_completion(&manifest);
@@ -111,33 +109,38 @@ mod tests {
     }
 
     #[test]
-    fn status_without_completed_at_is_incomplete() {
+    fn completed_at_is_not_required_per_stage() {
+        // Real `goa-software-factory` output: only top-level
+        // `completedAt`; per-stage objects carry status + artifacts only.
         let manifest = serde_json::json!({
+            "completedAt": "2026-04-25T13:55:00Z",
+            "pipelineStatus": "COMPLETE",
             "stages": {
                 "stage1_businessRequirements": { "status": "PASSED" },
-                "stage2_serviceRequirements": { "status": "PASSED", "completedAt": "2026-04-21T14:15:00Z" },
-                "stage3_databaseDesign":      { "status": "PASSED", "completedAt": "2026-04-21T15:05:00Z" },
-                "stage4_apiControllers":      { "status": "PASSED", "completedAt": "2026-04-22T00:00:00Z" },
-                "stage5_clientInterface":     { "status": "PASSED", "completedAt": "2026-04-21T22:15:00Z" }
+                "stage2_serviceRequirements": { "status": "PASSED" },
+                "stage3_databaseDesign":      { "status": "PASSED" },
+                "stage4_apiControllers":      { "status": "PASSED" },
+                "stage5_clientInterface":     { "status": "PASSED" }
             }
         });
         let (complete, incomplete) = assess_completion(&manifest);
-        assert!(!complete);
-        assert_eq!(incomplete, vec!["stage1_businessRequirements"]);
+        assert!(complete);
+        assert!(incomplete.is_empty());
     }
 
     #[test]
     fn non_terminal_status_is_incomplete() {
         let manifest = serde_json::json!({
             "stages": {
-                "stage1_businessRequirements": { "status": "IN_PROGRESS", "completedAt": "" },
-                "stage2_serviceRequirements": { "status": "PASSED", "completedAt": "2026-04-21T14:15:00Z" },
-                "stage3_databaseDesign":      { "status": "PASSED", "completedAt": "2026-04-21T15:05:00Z" },
-                "stage4_apiControllers":      { "status": "PASSED", "completedAt": "2026-04-22T00:00:00Z" },
-                "stage5_clientInterface":     { "status": "PASSED", "completedAt": "2026-04-21T22:15:00Z" }
+                "stage1_businessRequirements": { "status": "IN_PROGRESS" },
+                "stage2_serviceRequirements": { "status": "PASSED" },
+                "stage3_databaseDesign":      { "status": "PASSED" },
+                "stage4_apiControllers":      { "status": "PASSED" },
+                "stage5_clientInterface":     { "status": "PASSED" }
             }
         });
-        let (complete, _) = assess_completion(&manifest);
+        let (complete, incomplete) = assess_completion(&manifest);
         assert!(!complete);
+        assert_eq!(incomplete, vec!["stage1_businessRequirements"]);
     }
 }

@@ -267,12 +267,13 @@ mod tests {
         let tmp = tempdir().unwrap();
         let manifest = serde_json::json!({
             "pipelineStatus": "COMPLETE",
+            "completedAt": "2026-04-22T01:00:00Z",
             "stages": {
-                "stage1_businessRequirements": { "status": "PASSED", "completedAt": "2026-04-21T13:32:00Z" },
-                "stage2_serviceRequirements": { "status": "PASSED", "completedAt": "2026-04-21T14:15:00Z" },
-                "stage3_databaseDesign":      { "status": "PASSED", "completedAt": "2026-04-21T15:05:00Z" },
-                "stage4_apiControllers":      { "status": "PASSED", "completedAt": "2026-04-22T00:00:00Z" },
-                "stage5_clientInterface":     { "status": "PASSED", "completedAt": "2026-04-21T22:15:00Z" }
+                "stage1_businessRequirements": { "status": "PASSED" },
+                "stage2_serviceRequirements": { "status": "PASSED" },
+                "stage3_databaseDesign":      { "status": "PASSED" },
+                "stage4_apiControllers":      { "status": "PASSED" },
+                "stage5_clientInterface":     { "status": "PASSED" }
             }
         });
         write(
@@ -303,7 +304,7 @@ mod tests {
         let tmp = tempdir().unwrap();
         let manifest = serde_json::json!({
             "stages": {
-                "stage1_businessRequirements": { "status": "PASSED", "completedAt": "2026-04-21T13:32:00Z" },
+                "stage1_businessRequirements": { "status": "PASSED" },
                 "stage2_serviceRequirements": { "status": "IN_PROGRESS" },
                 "stage3_databaseDesign":      { "status": "PENDING" },
                 "stage4_apiControllers":      { "status": "PENDING" },
