@@ -3,7 +3,7 @@ id: "111-org-agent-catalog-sync"
 slug: org-agent-catalog-sync
 title: Org-managed Agent Catalog Synced from Stagecraft to OPC
 status: draft
-implementation: in-progress
+implementation: complete
 owner: bart
 created: "2026-04-21"
 summary: >

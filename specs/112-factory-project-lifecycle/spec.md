@@ -42,6 +42,28 @@ implements:
 
 ## 1. Problem
 
+### 1.0 Provenance and end-to-end model
+
+Two upstream repositories produce every project we Import:
+
+- `GovAlta-Pronghorn/goa-software-factory` — the 5-stage AI factory (mirror
+  of `GovAlta-EMU/the_factory`).
+- `GovAlta-Pronghorn/template` — the scaffold template the factory writes
+  into.
+
+The same two upstreams also feed spec 108's **factory sync** that
+populates the org's `factory_adapters` / `factory_contracts` /
+`factory_processes` rows. Import and ACP are therefore not parallel
+pipelines — they are the same upstream projected twice: once as a
+fully-produced Stage-5 project (the Import target, e.g.
+`GovAlta-Pronghorn/cfs-emergency-family-violence-services-funding-request-portal`),
+once as the Adapters/Contracts/Processes (the modular flow the imported
+project is re-driven through after import). The lifecycle terminus is a
+deployd-api deployment via a future ACP "deploy" stage — out of scope for
+this spec (§11).
+
+### 1.1 What none of the prior specs answer
+
 Spec 108 made Factory a first-class platform feature (adapters / contracts /
 processes as stagecraft-owned entities). Spec 110 wired stagecraft-initiated
 run dispatch to OPC. Spec 111 established the workspace-scoped catalog
@@ -102,11 +124,15 @@ three converge on the same state representation: a
    opens the local checkout.
 3. **Stagecraft Import** — paste a GitHub URL (or pick from App
    installation); clone server-side, detect, translate legacy → ACP,
-   register; OPC claims it on local open. **Scope bound:** Import
-   accepts only fully-executed legacy projects (all 5
-   `goa-software-factory` stages marked complete) and ACP-native (L2)
-   projects. In-progress legacy runs and non-factory repos are rejected
-   (§6.2).
+   register; OPC claims it on local open. **Scope bound (MVP):** Import
+   accepts only fully-executed legacy projects — `LegacyProduced` with
+   `legacy_complete == true` (all 5 `goa-software-factory` stages marked
+   complete). ACP-native (L2) detection is retained for forward
+   compatibility but Import does not exercise it as a primary branch in
+   this spec; no upstream ACP producers exist in the wild yet (the only
+   path to an L2 repo today is re-cloning a project Create just produced
+   — see §11). Scaffold-only, in-progress legacy, and non-factory repos
+   are rejected (§6.2).
 
 ### 2.2 Template-distributor discontinued
 
@@ -276,13 +302,22 @@ The cockpit reads pipeline-state (translated for L1) and shows:
   against the workspace's current adapter version in `factory_adapters`.
 - **Actions** (each dispatches to the factory engine via the existing
   spec 110 envelope):
-  - *Run Stage N* — advance pipeline from current cursor.
+  - **Run next ACP stage** *(headline for imported L1 projects)* —
+    advance pipeline from the current cursor. For a freshly-imported
+    project, this is the first action the cockpit invites; it begins
+    the modular ACP flow from the earliest non-completed translated
+    stage and progresses toward the deployd-api terminus (§11).
   - *Reconcile* — spec-088-style drift reconciliation, incremental re-run
     from earliest dirty stage.
+  - *Run Stage N* — explicit per-stage advance (power-user form of
+    Run-next, retained for diagnosis and out-of-order replay).
   - *Re-extract artifacts* — run the prestart extractor on `.artifacts/raw/`
-    (see §4.3).
+    (see §4.3); no-op when raw inputs are absent (common for imported
+    legacy projects — see §10 risk).
   - *Register with workspace* — if the project is not yet bound to a
-    stagecraft `projects` row, create the binding and dual-write.
+    stagecraft `projects` row, create the binding and dual-write. Edge
+    case — Import already binds; relevant only for OPC Open of a
+    never-imported repo.
 
 ### 4.3 Artifact extraction as a birth-time step
 
@@ -490,14 +525,71 @@ Flow:
      against the source repo adding `.factory/pipeline-state.json`
      alongside the legacy manifest files (which stay — they are never
      deleted by this flow).
-   - **AcpProduced**: validate pipeline-state schema version, confirm
-     adapter binding, register.
+   - **AcpProduced**: *(forward-compat path; not the primary Import shape
+     — see §11.)* validate pipeline-state schema version, confirm adapter
+     binding, register without translation.
 5. Insert `projects` / `project_repos` rows. Emit `project.imported`
    audit event including the detection level and (for L1) the translator
    version.
 6. Return `{ project_id, detection_level, deep_link }` where `deep_link`
    is an `oap://` URI the user can click to hand off to OPC (which clones
    locally and surfaces the Factory Cockpit).
+
+### 6.3 Open-in-OPC handoff
+
+Once an Import succeeds, the stagecraft project menu surfaces an
+**Open in OPC** action. Clicking it does not move data over the wire —
+it triggers a resolution on OPC against state stagecraft already owns.
+The same handoff is what Create's deep link (§5.4) drives; Import simply
+reuses it once the imported project has a `projects` row and a
+translated `.factory/pipeline-state.json` in the source repo.
+
+1. **Deep link.** Stagecraft emits
+   `oap://project/open?project_id=<id>&workspace_id=<ws>&clone_url=<url>`.
+   The success page renders this link plus an "install OPC" affordance
+   for users without OPC installed.
+
+2. **Local clone.** OPC, on activation, clones `clone_url` locally if
+   not already present. The cloned repo carries
+   `.factory/pipeline-state.json` written by the Import PR (§6.2 step 4).
+
+3. **Bundle resolution.** OPC binds the local checkout to the workspace
+   via the existing duplex channel (spec 087) and resolves four things —
+   none of which travel on the wire as a new payload; they are reads
+   against state stagecraft already maintains:
+
+   - **Adapter** — the `factory_adapters` row referenced by
+     `projects.factory_adapter_id` (set by Import per §6.2 step 5 from
+     the translator's adapter resolution, or by Create per §5.2 step 7).
+   - **Contracts** — the org's `factory_contracts` rows synced via spec
+     108. OPC pulls them through the existing catalog envelope; no
+     per-project mirror.
+   - **Processes** — the org's `factory_processes` rows, same path.
+   - **Agents** — the workspace-scoped agent catalog from spec 111. The
+     set of agents bound to this project is the workspace catalog
+     filtered by the adapter's declared agent compatibility. Per-project
+     agent overrides are out of scope here; a future spec may introduce
+     them.
+
+4. **Cockpit activation.** OPC opens Factory Cockpit (§4.2) with the
+   L1-translated `pipeline-state.json` and the resolved bundle. The
+   cockpit's headline action for a freshly-imported project is **Run
+   next ACP stage** (§4.2) — the modular ACP flow begins from the
+   earliest non-completed translated stage.
+
+5. **First run dispatch.** When the user clicks Run next ACP stage, the
+   cockpit dispatches via the existing spec 110 `factory.run.request`
+   envelope. Nothing on the wire changes — the bundle is a resolution
+   on the OPC side, not a new envelope payload. Knowledge bundles and
+   business docs continue to materialise per spec 110 §2.3.
+
+The bundle is therefore deliberately small on the wire (deep link
+identifiers only) and large in OPC (adapter + contracts + processes +
+agents pulled from the catalog the workspace already syncs). The
+authority invariant from spec 087 holds: the GitHub repo is the
+source-of-truth handoff for project content; stagecraft is the
+source-of-truth handoff for governance state; OPC composes the two and
+runs.
 
 ## 7. State Authority and Sync
 
@@ -725,6 +817,25 @@ Each phase is independently mergeable and ends in a runnable state.
   `AcpProduced`). `NotFactory` and `ScaffoldOnly` are rejected.
   Adopting an unrelated repo as a factory project belongs to a future
   "Adopt" spec with its own UX and policy gates.
+
+- **Wide L2 Import.** Detection recognises `AcpProduced` (L2) and §6.2
+  registers it without translation, but L2 is not a primary Import
+  shape in this spec because no upstream ACP producers exist yet. The
+  only current path to an L2 repo is re-cloning a project Create just
+  produced — a corner case, not a use case. A future spec will widen
+  L2 Import once ACP producers are in the wild (e.g. organisations
+  publishing ACP-native templates, or downstream forks of projects
+  Create produced).
+
+- **Deployd-api terminal stage.** The lifecycle described here begins
+  at Import and ends when the cockpit hands the user a live ACP run
+  loop (§4.2, §6.3). The terminal **deploy** stage that pushes a
+  promoted build to `deployd-api-rs` infrastructure is referenced by
+  §1.0 as the lifecycle terminus but is not specified here — it
+  belongs in a follow-up spec that defines (a) the `deploy` ACP stage
+  identifier and contract, (b) the deployd-api dispatch envelope, and
+  (c) the promotion gate that decides when an imported project is
+  deploy-eligible.
 
 ## 12. Glossary
 
