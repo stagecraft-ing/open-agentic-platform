@@ -42,6 +42,7 @@ export type ProjectRow = {
   name: string;
   slug: string;
   description: string;
+  factoryAdapterId: string | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;

@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useLoaderData, Link } from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { getProject } from "../lib/projects-api.server";
+import { getProject, getProjectOapBundle } from "../lib/projects-api.server";
+import { OpenInOpcButton } from "../components/OpenInOpcButton";
 
 export async function loader({
   request,
@@ -11,12 +12,28 @@ export async function loader({
 }) {
   await requireUser(request);
   const { project } = await getProject(request, params.projectId);
-  return { project };
+
+  // Spec 112 §6.3 — best-effort bundle fetch so the layout can surface
+  // the "Open in OPC" deep link. A failure here (e.g. legacy projects
+  // pre-spec-112 with no factory binding) must not break the project
+  // page; we render the layout without the button instead.
+  let oapDeepLink: string | null = null;
+  let oapAdapterName: string | null = null;
+  try {
+    const bundle = await getProjectOapBundle(request, params.projectId);
+    oapDeepLink = bundle.deepLink;
+    oapAdapterName = bundle.adapter?.name ?? null;
+  } catch {
+    // swallow; the rest of the page still loads.
+  }
+  return { project, oapDeepLink, oapAdapterName };
 }
 
 export default function ProjectLayout() {
-  const { project } = useLoaderData() as {
+  const { project, oapDeepLink, oapAdapterName } = useLoaderData() as {
     project: { id: string; name: string; slug: string; description?: string };
+    oapDeepLink: string | null;
+    oapAdapterName: string | null;
   };
 
   const base = `/app/project/${project.id}`;
@@ -51,6 +68,9 @@ export default function ProjectLayout() {
             {project.slug}
           </p>
         </div>
+        {oapDeepLink && (
+          <OpenInOpcButton deepLink={oapDeepLink} adapterName={oapAdapterName} />
+        )}
       </header>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">

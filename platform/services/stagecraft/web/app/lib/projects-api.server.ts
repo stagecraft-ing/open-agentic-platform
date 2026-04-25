@@ -213,6 +213,62 @@ export async function importFactoryProject(
   }>;
 }
 
+// Spec 112 §6.3 — Open-in-OPC bundle for a project.
+export interface OapBundle {
+  project: {
+    id: string;
+    name: string;
+    slug: string;
+    workspaceId: string;
+    orgId: string;
+  };
+  repo: {
+    cloneUrl: string;
+    githubOrg: string;
+    repoName: string;
+    defaultBranch: string;
+  } | null;
+  deepLink: string | null;
+  adapter: {
+    id: string;
+    name: string;
+    version: string;
+    sourceSha: string;
+    syncedAt: string;
+    manifest: unknown;
+  } | null;
+  contracts: Array<{
+    name: string;
+    version: string;
+    sourceSha: string;
+    syncedAt: string;
+    schema: unknown;
+  }>;
+  processes: Array<{
+    name: string;
+    version: string;
+    sourceSha: string;
+    syncedAt: string;
+    definition: unknown;
+  }>;
+  agents: Array<{
+    id: string;
+    name: string;
+    version: number;
+    status: "published";
+    contentHash: string;
+    frontmatter: unknown;
+    bodyMarkdown: string;
+  }>;
+}
+
+export async function getProjectOapBundle(request: Request, projectId: string) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/oap-bundle`
+  ) as Promise<OapBundle>;
+}
+
 // Spec 087 Phase 2 + spec 112 §6 — per-project knowledge object views.
 export interface ProjectKnowledgeObject {
   id: string;
