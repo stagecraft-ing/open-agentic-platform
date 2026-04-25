@@ -189,6 +189,7 @@ export async function importFactoryProject(
     slug?: string;
     description?: string;
     previewOnly?: boolean;
+    githubPat?: string;
   }
 ) {
   return apiFetch(request, "/api/projects/factory-import", {

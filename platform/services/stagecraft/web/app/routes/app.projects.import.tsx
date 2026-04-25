@@ -96,6 +96,7 @@ export async function action({ request }: { request: Request }): Promise<ActionR
   const name = (formData.get("name") as string | null) ?? "";
   const slug = (formData.get("slug") as string | null) ?? "";
   const description = (formData.get("description") as string | null) ?? "";
+  const githubPat = (formData.get("githubPat") as string | null) ?? "";
   const previewOnly = formData.get("action") === "preview";
 
   if (!repoUrl) {
@@ -108,6 +109,7 @@ export async function action({ request }: { request: Request }): Promise<ActionR
       name: name || undefined,
       slug: slug || undefined,
       description: description || undefined,
+      githubPat: githubPat.trim() ? githubPat.trim() : undefined,
       previewOnly,
     });
     return { kind: "import", ...result };
@@ -196,7 +198,9 @@ export default function ImportProject() {
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            The repo must belong to a GitHub org your OAP App installation has access to.
+            If the OAP App is installed on the repo's GitHub org, leave the
+            PAT field below empty. Otherwise supply a PAT with repo access
+            as an escape hatch.
           </p>
         </div>
 
@@ -238,6 +242,30 @@ export default function ImportProject() {
             rows={2}
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           />
+        </div>
+
+        <div>
+          <label
+            htmlFor="githubPat"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            GitHub PAT (optional)
+          </label>
+          <input
+            type="password"
+            name="githubPat"
+            id="githubPat"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="ghp_… or github_pat_…"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Required only when the target GitHub org does not have the OAP
+            App installed (e.g. importing a repo from a partner org). The
+            token is validated against GitHub before any clone, then stored
+            encrypted under this project for subsequent operations.
+          </p>
         </div>
 
         <div className="flex items-center gap-3 pt-2">

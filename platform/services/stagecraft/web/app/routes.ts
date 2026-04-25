@@ -21,6 +21,7 @@ export default [
       route("processes", "routes/app.factory.processes.tsx"),
     ]),
     route("projects/new", "routes/app.projects.new.tsx"),
+    route("projects/import", "routes/app.projects.import.tsx"),
     route("workspace/agents", "routes/app.workspace.agents.tsx", [
       index("routes/app.workspace.agents._index.tsx"),
       route("new", "routes/app.workspace.agents.new.tsx"),

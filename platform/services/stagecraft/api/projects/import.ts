@@ -26,6 +26,7 @@ import {
   auditLog,
   factoryAdapters,
   githubInstallations,
+  projectGithubPats,
   projectMembers,
   projectRepos,
   projects,
@@ -33,6 +34,9 @@ import {
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
+import { encryptPat } from "../auth/patCrypto";
+import { classifyFormat, probeGitHub, tokenPrefix } from "../auth/patProbe";
+import { errorForLog } from "../auth/errorLog";
 import {
   translateLegacyManifest,
   type FactoryAdapterRow,
@@ -68,6 +72,30 @@ export interface ImportFactoryProjectRequest {
    * `previewOnly = true`.
    */
   previewOnly?: boolean;
+  /**
+   * Optional GitHub PAT escape hatch. Required only when the target repo
+   * lives in a GitHub org that does NOT have the OAP App installed for
+   * this OAP org. When supplied for an org that DOES have an installation,
+   * the installation token still wins (apps are revocable per-org and
+   * preferred). On a successful import, the PAT is persisted to
+   * `project_github_pats` so subsequent operations on this project resolve
+   * the same credential via the standard token resolver.
+   */
+  githubPat?: string;
+}
+
+type TokenSource = "github_installation" | "project_github_pat";
+
+interface ResolvedImportToken {
+  token: string;
+  source: TokenSource;
+  installation: { installationId: number; githubOrgLogin: string } | null;
+  patProbe?: {
+    tokenPrefix: string;
+    isFineGrained: boolean;
+    scopes: string[];
+    githubLogin: string;
+  };
 }
 
 export interface ImportFactoryProjectResponse {
@@ -180,26 +208,16 @@ export const importFactoryProject = api(
     }
 
     const parsed = parseRepoUrl(req.repoUrl);
-    const installation = await loadActiveInstallation(auth.orgId);
-    if (parsed.owner.toLowerCase() !== installation.githubOrgLogin.toLowerCase()) {
-      // Unknown repo owner: refuse instead of attempting unauthorised clone.
-      throw APIError.permissionDenied(
-        `Target repo owner "${parsed.owner}" does not match the org's active GitHub App installation ("${installation.githubOrgLogin}"). Install the OAP App on the correct org first.`
-      );
-    }
-    const token = await brokerInstallationToken(installation.installationId, {
-      contents: "write",
-      pull_requests: "write",
-    });
+    const resolved = await resolveImportToken(auth.orgId, parsed.owner, req.githubPat);
 
     const cloneUrl = `https://github.com/${parsed.owner}/${parsed.repo}.git`;
-    const repoRoot = await cloneRepo(token, parsed.owner, parsed.repo);
+    const repoRoot = await cloneRepo(resolved.token, parsed.owner, parsed.repo);
     try {
       const detection = await runDetectionBinary(repoRoot);
       return await route(
         detection,
         auth,
-        installation,
+        resolved,
         req,
         parsed,
         cloneUrl,
@@ -211,12 +229,110 @@ export const importFactoryProject = api(
   }
 );
 
+// ── Token resolution ────────────────────────────────────────────────────
+//
+// Precedence:
+//   1. If the target GitHub org has an active OAP App installation for
+//      this OAP org → broker an installation token (preferred — revocable
+//      per-org, no long-lived secret stored).
+//   2. Else if a PAT was supplied on the request → validate and use it.
+//   3. Else → reject with an actionable error directing the operator
+//      either to install the OAP App on the target org or supply a PAT.
+
+async function resolveImportToken(
+  orgId: string,
+  targetOwner: string,
+  pat: string | undefined
+): Promise<ResolvedImportToken> {
+  const installation = await findInstallationForOwner(orgId, targetOwner);
+  if (installation) {
+    const token = await brokerInstallationToken(installation.installationId, {
+      contents: "write",
+      pull_requests: "write",
+    });
+    return { token, source: "github_installation", installation };
+  }
+
+  const trimmed = (pat ?? "").trim();
+  if (!trimmed) {
+    throw APIError.failedPrecondition(
+      `No OAP GitHub App installation found for "${targetOwner}". ` +
+        "Either install the OAP App on that GitHub org, or supply a GitHub PAT with repo access on the import form."
+    );
+  }
+
+  const fmt = classifyFormat(trimmed);
+  if (!fmt) {
+    throw APIError.invalidArgument(
+      "Unrecognised PAT format. Expected a GitHub token (ghp_*, github_pat_*, ghs_*, gho_*, or ghu_*)."
+    );
+  }
+
+  let probe: Awaited<ReturnType<typeof probeGitHub>>;
+  try {
+    probe = await probeGitHub(trimmed);
+  } catch (err) {
+    log.warn("import PAT probe failed", { error: errorForLog(err) });
+    throw APIError.unavailable("Could not reach GitHub to validate the supplied PAT");
+  }
+
+  if (!probe.ok) {
+    const reason = probe.reason;
+    if (reason === "pat_invalid") {
+      throw APIError.invalidArgument("Supplied PAT is invalid or has insufficient scope.");
+    }
+    if (reason === "pat_rate_limited") {
+      throw APIError.unavailable("GitHub rate-limited the PAT validation. Retry shortly.");
+    }
+    if (reason === "pat_saml_not_authorized") {
+      throw APIError.permissionDenied(
+        "Supplied PAT is not SAML-authorized for the target GitHub org."
+      );
+    }
+    throw APIError.invalidArgument("Supplied PAT failed validation.");
+  }
+
+  return {
+    token: trimmed,
+    source: "project_github_pat",
+    installation: null,
+    patProbe: {
+      tokenPrefix: tokenPrefix(trimmed),
+      isFineGrained: fmt.isFineGrained,
+      scopes: probe.scopes,
+      githubLogin: probe.githubLogin,
+    },
+  };
+}
+
+async function findInstallationForOwner(
+  orgId: string,
+  targetOwner: string
+): Promise<{ installationId: number; githubOrgLogin: string } | null> {
+  const rows = await db
+    .select({
+      installationId: githubInstallations.installationId,
+      githubOrgLogin: githubInstallations.githubOrgLogin,
+    })
+    .from(githubInstallations)
+    .where(
+      and(
+        eq(githubInstallations.orgId, orgId),
+        eq(githubInstallations.installationState, "active")
+      )
+    );
+  const match = rows.find(
+    (r) => r.githubOrgLogin.toLowerCase() === targetOwner.toLowerCase()
+  );
+  return match ?? null;
+}
+
 // ── Routing by detection level ──────────────────────────────────────────
 
 async function route(
   detection: DetectionReport,
   auth: { orgId: string; userID: string; workspaceId?: string },
-  installation: { installationId: number; githubOrgLogin: string },
+  resolved: ResolvedImportToken,
   req: ImportFactoryProjectRequest,
   parsed: { owner: string; repo: string },
   cloneUrl: string,
@@ -246,7 +362,7 @@ async function route(
       return await importLegacy(
         detection,
         auth,
-        installation,
+        resolved,
         req,
         parsed,
         cloneUrl,
@@ -259,7 +375,7 @@ async function route(
       return await importAcp(
         detection,
         auth,
-        installation,
+        resolved,
         req,
         parsed,
         cloneUrl,
@@ -276,7 +392,7 @@ async function route(
 async function importLegacy(
   detection: DetectionReport,
   auth: { orgId: string; userID: string; workspaceId?: string },
-  installation: { installationId: number; githubOrgLogin: string },
+  resolved: ResolvedImportToken,
   req: ImportFactoryProjectRequest,
   parsed: { owner: string; repo: string },
   cloneUrl: string,
@@ -321,13 +437,15 @@ async function importLegacy(
 
   const projectRow = await insertImportedProject({
     auth,
-    installation,
+    resolved,
     req,
     parsed,
     factoryAdapterId: adapterRow?.id ?? null,
     detectionLevel: "legacy_produced",
     translatorVersion: TRANSLATOR_VERSION,
   });
+
+  await persistImportPatIfNeeded(projectRow.id, auth.userID, resolved, req.githubPat);
 
   const artifacts = await registerRawArtifactsSafe({
     projectId: projectRow.id,
@@ -362,7 +480,7 @@ async function importLegacy(
 async function importAcp(
   detection: DetectionReport,
   auth: { orgId: string; userID: string; workspaceId?: string },
-  installation: { installationId: number; githubOrgLogin: string },
+  resolved: ResolvedImportToken,
   req: ImportFactoryProjectRequest,
   parsed: { owner: string; repo: string },
   cloneUrl: string,
@@ -397,13 +515,15 @@ async function importAcp(
 
   const projectRow = await insertImportedProject({
     auth,
-    installation,
+    resolved,
     req,
     parsed,
     factoryAdapterId,
     detectionLevel: "acp_produced",
     translatorVersion: null,
   });
+
+  await persistImportPatIfNeeded(projectRow.id, auth.userID, resolved, req.githubPat);
 
   const artifacts = await registerRawArtifactsSafe({
     projectId: projectRow.id,
@@ -472,7 +592,7 @@ function redactArtifact(a: RegisteredArtifact): {
 
 async function insertImportedProject(input: {
   auth: { orgId: string; userID: string; workspaceId?: string };
-  installation: { installationId: number; githubOrgLogin: string };
+  resolved: ResolvedImportToken;
   req: ImportFactoryProjectRequest;
   parsed: { owner: string; repo: string };
   factoryAdapterId: string | null;
@@ -481,6 +601,9 @@ async function insertImportedProject(input: {
 }): Promise<{ id: string }> {
   const slug = input.req.slug ?? input.parsed.repo.toLowerCase();
   const name = input.req.name ?? input.parsed.repo;
+  const githubOrg =
+    input.resolved.installation?.githubOrgLogin ?? input.parsed.owner;
+  const githubInstallId = input.resolved.installation?.installationId ?? null;
   try {
     return await db.transaction(async (tx) => {
       const [p] = await tx
@@ -497,11 +620,11 @@ async function insertImportedProject(input: {
         .returning();
       await tx.insert(projectRepos).values({
         projectId: p.id,
-        githubOrg: input.installation.githubOrgLogin,
+        githubOrg,
         repoName: input.parsed.repo,
         defaultBranch: "main",
         isPrimary: true,
-        githubInstallId: input.installation.installationId,
+        githubInstallId,
       });
       await tx.insert(projectMembers).values({
         projectId: p.id,
@@ -516,12 +639,13 @@ async function insertImportedProject(input: {
         metadata: {
           name,
           slug,
-          githubOrg: input.installation.githubOrgLogin,
+          githubOrg,
           repoName: input.parsed.repo,
           detectionLevel: input.detectionLevel,
           factoryAdapterId: input.factoryAdapterId,
           translatorVersion: input.translatorVersion,
           workspaceId: input.auth.workspaceId,
+          tokenSource: input.resolved.source,
         },
       });
       return { id: p.id };
@@ -538,28 +662,77 @@ async function insertImportedProject(input: {
   }
 }
 
-async function loadActiveInstallation(
-  orgId: string
-): Promise<{ installationId: number; githubOrgLogin: string }> {
-  const [row] = await db
-    .select({
-      installationId: githubInstallations.installationId,
-      githubOrgLogin: githubInstallations.githubOrgLogin,
-    })
-    .from(githubInstallations)
-    .where(
-      and(
-        eq(githubInstallations.orgId, orgId),
-        eq(githubInstallations.installationState, "active")
-      )
-    )
-    .limit(1);
-  if (!row) {
-    throw APIError.failedPrecondition(
-      "No active GitHub App installation for this org."
-    );
+/**
+ * When the import was authenticated via PAT (no App installation on the
+ * target org), persist that PAT under `project_github_pats` so subsequent
+ * project operations resolve the same credential through the standard
+ * token resolver.
+ */
+async function persistImportPatIfNeeded(
+  projectId: string,
+  actorUserId: string,
+  resolved: ResolvedImportToken,
+  rawPat: string | undefined
+): Promise<void> {
+  if (resolved.source !== "project_github_pat") return;
+  const token = (rawPat ?? "").trim();
+  if (!token || !resolved.patProbe) return;
+
+  let tokenEnc: Buffer;
+  let tokenNonce: Buffer;
+  try {
+    ({ tokenEnc, tokenNonce } = encryptPat(token));
+  } catch (err) {
+    log.error("import PAT encryption failed — proceeding without persistence", {
+      projectId,
+      error: errorForLog(err),
+    });
+    return;
   }
-  return row;
+
+  const now = new Date();
+  await db
+    .insert(projectGithubPats)
+    .values({
+      projectId,
+      tokenEnc,
+      tokenNonce,
+      tokenPrefix: resolved.patProbe.tokenPrefix,
+      scopes: resolved.patProbe.scopes,
+      isFineGrained: resolved.patProbe.isFineGrained,
+      githubLogin: resolved.patProbe.githubLogin,
+      lastCheckedAt: now,
+      createdBy: actorUserId,
+    })
+    .onConflictDoUpdate({
+      target: projectGithubPats.projectId,
+      set: {
+        tokenEnc,
+        tokenNonce,
+        tokenPrefix: resolved.patProbe.tokenPrefix,
+        scopes: resolved.patProbe.scopes,
+        isFineGrained: resolved.patProbe.isFineGrained,
+        githubLogin: resolved.patProbe.githubLogin,
+        lastCheckedAt: now,
+        lastUsedAt: null,
+        createdBy: actorUserId,
+        updatedAt: now,
+      },
+    });
+
+  await db.insert(auditLog).values({
+    actorUserId,
+    action: "pat.project.stored",
+    targetType: "project_github_pats",
+    targetId: projectId,
+    metadata: {
+      origin: "project.imported",
+      prefix: resolved.patProbe.tokenPrefix,
+      is_fine_grained: resolved.patProbe.isFineGrained,
+      scopes: resolved.patProbe.scopes,
+      github_login: resolved.patProbe.githubLogin,
+    },
+  });
 }
 
 async function loadOrgAdapters(
