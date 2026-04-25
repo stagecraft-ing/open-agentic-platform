@@ -163,28 +163,51 @@ info "Installing NSQ..."
 kubectl apply -f "$SCRIPT_DIR/nsq.yaml"
 
 # --- MinIO (S3-compatible object store for knowledge intake) ---
+# Uses the official MinIO chart at charts.min.io (quay.io/minio images).
+# We deliberately avoid Bitnami's chart because Bitnami moved free MinIO
+# images behind a paywall in mid-2025 — `docker.io/bitnami/minio:*` tags
+# 404 today, leaving pods in ImagePullBackOff.
+MINIO_CHART_INSTALLED=false
 if helm status minio -n stagecraft-system >/dev/null 2>&1; then
-  info "MinIO already installed, skipping"
-else
-  info "Installing MinIO..."
+  CURRENT_CHART=$(helm list -n stagecraft-system -o json \
+    | grep -o '"chart":"minio-[^"]*"' | head -1 || true)
+  # The official chart's name is `minio-<ver>`; Bitnami's is the same prefix
+  # but pulls from a doomed registry. Re-install if the running pods are in
+  # ImagePullBackOff regardless of which chart is recorded.
+  if kubectl -n stagecraft-system get pods -l app=minio \
+       -o jsonpath='{.items[*].status.containerStatuses[*].state.waiting.reason}' 2>/dev/null \
+       | grep -q ImagePullBackOff; then
+    info "MinIO release exists but pods are in ImagePullBackOff — reinstalling"
+    helm uninstall minio -n stagecraft-system >/dev/null 2>&1 || true
+    kubectl -n stagecraft-system delete pvc -l release=minio --ignore-not-found=true >/dev/null 2>&1 || true
+  else
+    info "MinIO already installed (${CURRENT_CHART}), skipping"
+    MINIO_CHART_INSTALLED=true
+  fi
+fi
+
+if [ "$MINIO_CHART_INSTALLED" = false ]; then
+  info "Installing MinIO (official chart)..."
   MINIO_ROOT_USER="${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}"
   MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}"
 
-  # Bitnami MinIO chart — single standalone node, cluster-internal only.
-  # No ingress: presigned URLs for browser uploads are issued by stagecraft
-  # against the S3 API (port 9000), proxied through stagecraft's own ingress
-  # if ever needed. Exposing MinIO directly would leak the signing surface.
-  helm upgrade --install minio oci://registry-1.docker.io/bitnamicharts/minio \
+  helm repo add minio https://charts.min.io/ 2>/dev/null || true
+  helm repo update minio >/dev/null
+
+  # Standalone mode: single replica, single drive. Cluster-internal only;
+  # no ingress because presigned URLs are issued by stagecraft and the
+  # signing surface should not be reachable from the public internet.
+  helm upgrade --install minio minio/minio \
     --namespace stagecraft-system \
-    --set auth.rootUser="$MINIO_ROOT_USER" \
-    --set auth.rootPassword="$MINIO_ROOT_PASSWORD" \
+    --set rootUser="$MINIO_ROOT_USER" \
+    --set rootPassword="$MINIO_ROOT_PASSWORD" \
     --set mode=standalone \
+    --set replicas=1 \
     --set persistence.size=20Gi \
-    --set resources.requests.memory=256Mi \
+    --set resources.requests.memory=512Mi \
     --set resources.requests.cpu=100m \
-    --set resources.limits.memory=1Gi \
-    --set resources.limits.cpu=1000m \
     --set service.type=ClusterIP \
+    --set consoleService.type=ClusterIP \
     --wait --timeout 300s
 fi
 
