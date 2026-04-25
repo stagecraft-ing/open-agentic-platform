@@ -262,7 +262,7 @@ mod tests {
                 security_auditor: None,
             },
             scaffold: Scaffold {
-                source: "scaffold/".into(),
+                source: ScaffoldSource::Local("scaffold/".into()),
                 description: "Base".into(),
                 modules: HashMap::new(),
                 setup_commands: vec![],

@@ -99,25 +99,57 @@ pub fn run_preflight(
     // PF-003: Capability checks
     results.extend(check_capabilities(&build_spec, &manifest));
 
-    // PF-004: Scaffold directory exists
-    let scaffold_source = manifest
-        .get("scaffold")
-        .and_then(|s| s.get("source"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("scaffold/");
-    let scaffold_path = adapter_path.join(scaffold_source);
-    if scaffold_path.exists() {
-        results.push(CheckResult::pass(
-            "PF-004",
-            format!("Scaffold directory exists: {}", scaffold_path.display()),
-            Severity::Error,
-        ));
-    } else {
-        results.push(CheckResult::fail(
-            "PF-004",
-            format!("Scaffold not found: {}", scaffold_path.display()),
-            Severity::Warning,
-        ));
+    // PF-004: Scaffold source.
+    //
+    // Two shapes per adapter_manifest::ScaffoldSource:
+    //   • Local(path)      — vendored scaffold; verify the directory exists
+    //                        under the adapter root.
+    //   • Upstream {…}     — pointer-not-repo; stagecraft fetches and seeds
+    //                        the project at create/import time. OPC never
+    //                        resolves the pointer, so PF-004 is N/A.
+    let scaffold = manifest.get("scaffold").and_then(|s| s.get("source"));
+    match scaffold {
+        Some(serde_yaml::Value::String(path)) if !path.is_empty() => {
+            let scaffold_path = adapter_path.join(path);
+            if scaffold_path.exists() {
+                results.push(CheckResult::pass(
+                    "PF-004",
+                    format!("Scaffold directory exists: {}", scaffold_path.display()),
+                    Severity::Error,
+                ));
+            } else {
+                results.push(CheckResult::fail(
+                    "PF-004",
+                    format!("Scaffold not found: {}", scaffold_path.display()),
+                    Severity::Warning,
+                ));
+            }
+        }
+        Some(serde_yaml::Value::Mapping(_)) => {
+            results.push(CheckResult::pass(
+                "PF-004",
+                "Scaffold source is an upstream pointer; provisioning is stagecraft-owned"
+                    .to_string(),
+                Severity::Error,
+            ));
+        }
+        _ => {
+            // Treat missing/empty as the legacy default for back-compat.
+            let scaffold_path = adapter_path.join("scaffold/");
+            if scaffold_path.exists() {
+                results.push(CheckResult::pass(
+                    "PF-004",
+                    format!("Scaffold directory exists: {}", scaffold_path.display()),
+                    Severity::Error,
+                ));
+            } else {
+                results.push(CheckResult::fail(
+                    "PF-004",
+                    format!("Scaffold not found: {}", scaffold_path.display()),
+                    Severity::Warning,
+                ));
+            }
+        }
     }
 
     // PF-005: Required agent prompts exist

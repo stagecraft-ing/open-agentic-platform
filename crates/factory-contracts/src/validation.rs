@@ -234,11 +234,13 @@ fn validate_adapter_manifest_semantics(
         });
     }
 
-    // Scaffold source path must be non-empty
+    // Scaffold source must carry a usable identifier — either a non-empty
+    // local relative path (`Local`) or a non-empty upstream remote (`Upstream`).
     if manifest.scaffold.source.is_empty() {
         errors.push(ValidationError::Semantic {
             path: path.to_string(),
-            message: "Scaffold source path is empty".to_string(),
+            message: "Scaffold source is empty (set a local path or an upstream remote)"
+                .to_string(),
         });
     }
 

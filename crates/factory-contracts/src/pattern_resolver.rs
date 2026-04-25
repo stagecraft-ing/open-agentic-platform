@@ -286,7 +286,7 @@ mod tests {
                 security_auditor: None,
             },
             scaffold: Scaffold {
-                source: "scaffold/".into(),
+                source: ScaffoldSource::Local("scaffold/".into()),
                 description: "Monorepo scaffold".into(),
                 modules: HashMap::new(),
                 setup_commands: vec![],

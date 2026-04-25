@@ -368,11 +368,60 @@ pub struct Agents {
 
 // ── Scaffold ──────────────────────────────────────────────────────────
 
+/// How an adapter's base scaffold is sourced.
+///
+/// `Local` is the legacy shape — a relative path under the adapter root
+/// pointing at a vendored copy of the scaffold. `Upstream` is the spec 112
+/// §8 "pointer-not-repo" shape: the scaffold lives in an upstream git
+/// repo and stagecraft is the sole consumer that resolves and seeds it
+/// into the project repo at create-time. OPC's factory-engine never
+/// fetches an upstream scaffold; it operates on the seeded project.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ScaffoldSource {
+    /// Vendored local scaffold; relative path under the adapter root.
+    Local(String),
+    /// Upstream git pointer — resolved by stagecraft only.
+    Upstream {
+        kind: String,
+        remote: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        default_ref: Option<String>,
+    },
+}
+
+impl Default for ScaffoldSource {
+    fn default() -> Self {
+        ScaffoldSource::Local(String::new())
+    }
+}
+
+impl ScaffoldSource {
+    /// Returns the local relative path when present, or `None` for an
+    /// upstream pointer. Callers in OPC's execution layer should treat
+    /// `None` as "stagecraft has already provisioned the project; nothing
+    /// to copy locally."
+    pub fn as_local_path(&self) -> Option<&str> {
+        match self {
+            ScaffoldSource::Local(p) => Some(p.as_str()),
+            ScaffoldSource::Upstream { .. } => None,
+        }
+    }
+
+    /// True when the variant carries no usable source identifier.
+    pub fn is_empty(&self) -> bool {
+        match self {
+            ScaffoldSource::Local(p) => p.is_empty(),
+            ScaffoldSource::Upstream { remote, .. } => remote.is_empty(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Scaffold {
-    /// Path to base project template, relative to adapter root (e.g., "scaffold/")
+    /// How the base project template is sourced. See `ScaffoldSource`.
     #[serde(default)]
-    pub source: String,
+    pub source: ScaffoldSource,
     /// What the scaffold provides out of the box
     #[serde(default)]
     pub description: String,

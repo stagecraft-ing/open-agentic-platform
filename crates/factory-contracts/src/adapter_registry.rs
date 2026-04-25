@@ -328,7 +328,7 @@ mod tests {
                 security_auditor: None,
             },
             scaffold: Scaffold {
-                source: "scaffold/".into(),
+                source: ScaffoldSource::Local("scaffold/".into()),
                 description: "Base scaffold".into(),
                 modules: std::collections::HashMap::new(),
                 setup_commands: vec![],
