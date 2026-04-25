@@ -6,18 +6,54 @@
 // what OPC received: project, adapter, contract / process / agent counts.
 // The local clone + cockpit activation are separate next-step concerns.
 
-import React from 'react';
-import { Inbox, X, RefreshCw, AlertCircle, ExternalLink } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  Inbox,
+  X,
+  RefreshCw,
+  AlertCircle,
+  ExternalLink,
+  FolderDown,
+  CheckCircle2,
+} from 'lucide-react';
 import { Card } from '@opc/ui/card';
 import { Badge } from '@opc/ui/badge';
 import { Button } from '@opc/ui/button';
+import { api } from '@/lib/api';
 import { useProjectOpenInbox } from '@/hooks/useProjectOpenInbox';
+
+const PROJECTS_SUBDIR = 'oap-projects';
+
+function joinPath(parts: string[]): string {
+  return parts.filter(Boolean).join('/').replace(/\/+/g, '/');
+}
 
 export const ProjectOpenInbox: React.FC = () => {
   const inbox = useProjectOpenInbox();
-  const { pending, bundle, bundleLoading, bundleError, fetchBundle, dismiss } = inbox;
+  const {
+    pending,
+    bundle,
+    bundleLoading,
+    bundleError,
+    clone,
+    fetchBundle,
+    cloneProject,
+    dismiss,
+  } = inbox;
+
+  const [homeDir, setHomeDir] = useState<string | null>(null);
+  useEffect(() => {
+    void api
+      .getHomeDirectory()
+      .then((p) => setHomeDir(p))
+      .catch(() => setHomeDir(null));
+  }, []);
 
   if (!pending) return null;
+
+  const targetDir = bundle && homeDir
+    ? joinPath([homeDir, PROJECTS_SUBDIR, bundle.project.slug])
+    : null;
 
   return (
     <Card className="mx-3 my-2 p-3 border-indigo-500/40 bg-indigo-500/5">
@@ -68,6 +104,27 @@ export const ProjectOpenInbox: React.FC = () => {
             </div>
           )}
 
+          {clone.error && (
+            <div className="flex items-start gap-1.5 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span className="break-words">{clone.error}</span>
+            </div>
+          )}
+
+          {clone.path && (
+            <div className="flex items-start gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div className="space-y-0.5 min-w-0">
+                <div>
+                  {clone.alreadyCloned ? 'Already cloned at' : 'Cloned to'}
+                </div>
+                <div className="font-mono text-muted-foreground break-all">
+                  {clone.path}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 pt-1">
             {!bundle && (
               <Button
@@ -82,6 +139,24 @@ export const ProjectOpenInbox: React.FC = () => {
                   <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 )}
                 Resolve bundle
+              </Button>
+            )}
+            {bundle && !clone.path && (
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => targetDir && void cloneProject(targetDir)}
+                disabled={!targetDir || clone.loading}
+                title={
+                  targetDir ?? 'Waiting for home directory…'
+                }
+              >
+                {clone.loading ? (
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <FolderDown className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Clone locally
               </Button>
             )}
             <Button size="sm" variant="ghost" onClick={dismiss}>

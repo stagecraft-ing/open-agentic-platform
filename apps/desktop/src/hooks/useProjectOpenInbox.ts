@@ -83,15 +83,31 @@ interface FetchBundleResponse {
   error?: string;
 }
 
+interface CloneProjectResponse {
+  ok: boolean;
+  path: string;
+  alreadyCloned: boolean;
+  error?: string;
+}
+
+export interface CloneState {
+  loading: boolean;
+  path: string | null;
+  alreadyCloned: boolean;
+  error: string | null;
+}
+
 export interface InboxState {
   pending: ProjectOpenRequest | null;
   bundle: OapBundle | null;
   bundleLoading: boolean;
   bundleError: string | null;
+  clone: CloneState;
 }
 
 export interface InboxApi extends InboxState {
   fetchBundle: () => Promise<void>;
+  cloneProject: (targetDir: string) => Promise<void>;
   dismiss: () => void;
 }
 
@@ -104,11 +120,19 @@ const isTauri = (): boolean => {
   return Boolean(w.__TAURI_INTERNALS__ ?? w.__TAURI__);
 };
 
+const INITIAL_CLONE: CloneState = {
+  loading: false,
+  path: null,
+  alreadyCloned: false,
+  error: null,
+};
+
 export function useProjectOpenInbox(): InboxApi {
   const [pending, setPending] = useState<ProjectOpenRequest | null>(null);
   const [bundle, setBundle] = useState<OapBundle | null>(null);
   const [bundleLoading, setBundleLoading] = useState(false);
   const [bundleError, setBundleError] = useState<string | null>(null);
+  const [clone, setClone] = useState<CloneState>(INITIAL_CLONE);
   const lastProjectIdRef = useRef<string | null>(null);
 
   // Subscribe to the deep-link event. The dispatcher in lib.rs emits
@@ -125,9 +149,10 @@ export function useProjectOpenInbox(): InboxApi {
         if (lastProjectIdRef.current === next.projectId && pending) return;
         lastProjectIdRef.current = next.projectId;
         setPending(next);
-        // Reset bundle slot when a new request arrives.
+        // Reset bundle + clone slots when a new request arrives.
         setBundle(null);
         setBundleError(null);
+        setClone(INITIAL_CLONE);
       }).then((fn) => {
         unlisten = fn;
       });
@@ -160,10 +185,61 @@ export function useProjectOpenInbox(): InboxApi {
     }
   }, [pending]);
 
+  const cloneProject = useCallback(
+    async (targetDir: string) => {
+      // Prefer the bundle's repo info (post-resolve) for branch hint.
+      const cloneUrl = bundle?.repo?.cloneUrl ?? pending?.cloneUrl;
+      if (!cloneUrl) {
+        setClone({
+          ...INITIAL_CLONE,
+          error: 'No clone URL available for this handoff',
+        });
+        return;
+      }
+      setClone({ loading: true, path: null, alreadyCloned: false, error: null });
+      try {
+        const resp = await apiCall<CloneProjectResponse>(
+          'clone_project_from_bundle',
+          {
+            request: {
+              cloneUrl,
+              targetDir,
+              defaultBranch: bundle?.repo?.defaultBranch ?? null,
+            },
+          }
+        );
+        if (resp.ok) {
+          setClone({
+            loading: false,
+            path: resp.path,
+            alreadyCloned: resp.alreadyCloned,
+            error: null,
+          });
+        } else {
+          setClone({
+            loading: false,
+            path: null,
+            alreadyCloned: false,
+            error: resp.error ?? 'unknown clone error',
+          });
+        }
+      } catch (err) {
+        setClone({
+          loading: false,
+          path: null,
+          alreadyCloned: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+    [pending, bundle]
+  );
+
   const dismiss = useCallback(() => {
     setPending(null);
     setBundle(null);
     setBundleError(null);
+    setClone(INITIAL_CLONE);
     lastProjectIdRef.current = null;
   }, []);
 
@@ -172,7 +248,9 @@ export function useProjectOpenInbox(): InboxApi {
     bundle,
     bundleLoading,
     bundleError,
+    clone,
     fetchBundle,
+    cloneProject,
     dismiss,
   };
 }
