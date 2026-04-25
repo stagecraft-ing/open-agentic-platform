@@ -5,6 +5,11 @@ image:
 imagePullSecrets:
   - name: ghcr-pull-secret
 
+# Surface hiqlite internals at debug level so the next cold-start hang
+# reveals the stuck step — currently we only see "creating new file:
+# meta.hql" and then 5 minutes of silence before SIGKILL exit 137.
+rustLog: "info,hiqlite=debug,hiqlite_wal=debug"
+
 ingress:
   enabled: true
   className: nginx

@@ -66,7 +66,12 @@ spec:
               port: 8080
             periodSeconds: 5
             timeoutSeconds: 3
-            failureThreshold: 60
+            # 10 minutes total. Hiqlite's first-boot WAL+SQLite init is
+            # usually ~3s but has been observed hanging for 5+ minutes on
+            # cold-started Hetzner nodes — long enough to overrun the old
+            # 5-minute budget and SIGKILL before /healthz could bind.
+            # Bump this rather than chase a flaky one-shot.
+            failureThreshold: 120
           readinessProbe:
             httpGet:
               path: /healthz
