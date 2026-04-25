@@ -609,6 +609,35 @@ impl StagecraftClient {
         }
         Ok(())
     }
+
+    /// Spec 112 §6.3 — fetch the Open-in-OPC bundle for a project.
+    ///
+    /// Mirrors `GET /api/projects/:projectId/oap-bundle`. The bundle carries
+    /// everything OPC needs after activating an `oap://` deep link: project
+    /// + repo + adapter + the org's contracts/processes + the workspace's
+    /// published agent catalog. Workspace scoping is enforced server-side
+    /// via the Bearer token.
+    pub async fn get_project_oap_bundle(
+        &self,
+        project_id: &str,
+    ) -> Result<OapBundleResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/oap-bundle",
+            self.base_url, project_id
+        );
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -898,6 +927,84 @@ pub struct ArtifactInfo {
 }
 
 // ---------------------------------------------------------------------------
+// Spec 112 §6.3 — OPC bundle types (mirrors stagecraft's OapBundleResponse)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleProject {
+    pub id: String,
+    pub name: String,
+    pub slug: String,
+    pub workspace_id: String,
+    pub org_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleRepo {
+    pub clone_url: String,
+    pub github_org: String,
+    pub repo_name: String,
+    pub default_branch: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleAdapter {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub source_sha: String,
+    pub synced_at: String,
+    pub manifest: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleContract {
+    pub name: String,
+    pub version: String,
+    pub source_sha: String,
+    pub synced_at: String,
+    pub schema: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleProcess {
+    pub name: String,
+    pub version: String,
+    pub source_sha: String,
+    pub synced_at: String,
+    pub definition: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleAgent {
+    pub id: String,
+    pub name: String,
+    pub version: i64,
+    pub status: String,
+    pub content_hash: String,
+    pub frontmatter: serde_json::Value,
+    pub body_markdown: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OapBundleResponse {
+    pub project: OapBundleProject,
+    pub repo: Option<OapBundleRepo>,
+    pub deep_link: Option<String>,
+    pub adapter: Option<OapBundleAdapter>,
+    pub contracts: Vec<OapBundleContract>,
+    pub processes: Vec<OapBundleProcess>,
+    pub agents: Vec<OapBundleAgent>,
+}
+
+// ---------------------------------------------------------------------------
 // Error type
 // ---------------------------------------------------------------------------
 
@@ -920,5 +1027,98 @@ impl std::fmt::Display for StagecraftError {
             }
             Self::Decode(e) => write!(f, "stagecraft decode error: {e}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Spec 112 §6.3 — pin the wire format. The stagecraft endpoint
+    /// returns camelCase fields; the desktop's serde rename_all must
+    /// keep up. If this test starts failing, the TS side likely renamed
+    /// a field on `OapBundleResponse` and the desktop is decoding the
+    /// wrong shape.
+    #[test]
+    fn oap_bundle_response_decodes_camelcase_payload() {
+        let payload = r##"{
+            "project": {
+                "id": "p-1",
+                "name": "FV Portal",
+                "slug": "fv-portal",
+                "workspaceId": "ws-1",
+                "orgId": "org-1"
+            },
+            "repo": {
+                "cloneUrl": "https://github.com/acme/fv.git",
+                "githubOrg": "acme",
+                "repoName": "fv",
+                "defaultBranch": "main"
+            },
+            "deepLink": "oap://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffv.git",
+            "adapter": {
+                "id": "a-1",
+                "name": "aim-vue-node",
+                "version": "3.0.0",
+                "sourceSha": "abc",
+                "syncedAt": "2026-04-22T10:00:00.000Z",
+                "manifest": {"k":"v"}
+            },
+            "contracts": [{
+                "name": "build-spec",
+                "version": "1.0.0",
+                "sourceSha": "c1",
+                "syncedAt": "2026-04-22T10:00:00.000Z",
+                "schema": {}
+            }],
+            "processes": [],
+            "agents": [{
+                "id": "ag-1",
+                "name": "explorer",
+                "version": 2,
+                "status": "published",
+                "contentHash": "h1",
+                "frontmatter": {},
+                "bodyMarkdown": "# explorer"
+            }]
+        }"##;
+
+        let bundle: OapBundleResponse =
+            serde_json::from_str(payload).expect("valid bundle decodes");
+
+        assert_eq!(bundle.project.id, "p-1");
+        assert_eq!(bundle.project.workspace_id, "ws-1");
+        assert_eq!(bundle.repo.as_ref().unwrap().clone_url, "https://github.com/acme/fv.git");
+        assert!(bundle.deep_link.is_some());
+        assert_eq!(bundle.adapter.as_ref().unwrap().name, "aim-vue-node");
+        assert_eq!(bundle.contracts.len(), 1);
+        assert_eq!(bundle.processes.len(), 0);
+        assert_eq!(bundle.agents.len(), 1);
+        assert_eq!(bundle.agents[0].status, "published");
+    }
+
+    #[test]
+    fn oap_bundle_response_handles_null_repo_and_adapter() {
+        let payload = r##"{
+            "project": {
+                "id": "p-1",
+                "name": "Legacy",
+                "slug": "legacy",
+                "workspaceId": "ws-1",
+                "orgId": "org-1"
+            },
+            "repo": null,
+            "deepLink": null,
+            "adapter": null,
+            "contracts": [],
+            "processes": [],
+            "agents": []
+        }"##;
+
+        let bundle: OapBundleResponse =
+            serde_json::from_str(payload).expect("nulls decode");
+        assert!(bundle.repo.is_none());
+        assert!(bundle.deep_link.is_none());
+        assert!(bundle.adapter.is_none());
     }
 }
