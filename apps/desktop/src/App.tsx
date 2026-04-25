@@ -421,7 +421,12 @@ function AppContent() {
       <UpdateBanner />
 
       {/* Spec 112 §6.3 — surface oap://project/open handoffs from stagecraft. */}
-      <ProjectOpenInbox />
+      <ProjectOpenInbox
+        onOpenInFactory={(path) => {
+          createFactoryTab(path);
+          if (view !== 'tabs') setView('tabs');
+        }}
+      />
 
       {/* Topbar - Commented out since navigation moved to titlebar */}
       {/* <Topbar

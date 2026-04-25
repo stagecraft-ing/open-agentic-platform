@@ -15,6 +15,7 @@ import {
   ExternalLink,
   FolderDown,
   CheckCircle2,
+  Workflow,
 } from 'lucide-react';
 import { Card } from '@opc/ui/card';
 import { Badge } from '@opc/ui/badge';
@@ -28,7 +29,19 @@ function joinPath(parts: string[]): string {
   return parts.filter(Boolean).join('/').replace(/\/+/g, '/');
 }
 
-export const ProjectOpenInbox: React.FC = () => {
+export interface ProjectOpenInboxProps {
+  /**
+   * Called after a successful clone with the local working-tree path.
+   * App.tsx wires this to `createFactoryTab(path)` + view switch so the
+   * project lands in the existing factory tab flow. Optional — the
+   * inbox still surfaces the cloned path even when no callback is wired.
+   */
+  onOpenInFactory?: (path: string) => void;
+}
+
+export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({
+  onOpenInFactory,
+}) => {
   const inbox = useProjectOpenInbox();
   const {
     pending,
@@ -114,7 +127,7 @@ export const ProjectOpenInbox: React.FC = () => {
           {clone.path && (
             <div className="flex items-start gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <div className="space-y-0.5 min-w-0">
+              <div className="space-y-0.5 min-w-0 flex-1">
                 <div>
                   {clone.alreadyCloned ? 'Already cloned at' : 'Cloned to'}
                 </div>
@@ -157,6 +170,21 @@ export const ProjectOpenInbox: React.FC = () => {
                   <FolderDown className="h-3.5 w-3.5 mr-1.5" />
                 )}
                 Clone locally
+              </Button>
+            )}
+            {clone.path && onOpenInFactory && (
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => {
+                  if (clone.path) {
+                    onOpenInFactory(clone.path);
+                    dismiss();
+                  }
+                }}
+              >
+                <Workflow className="h-3.5 w-3.5 mr-1.5" />
+                Open in Factory tab
               </Button>
             )}
             <Button size="sm" variant="ghost" onClick={dismiss}>
