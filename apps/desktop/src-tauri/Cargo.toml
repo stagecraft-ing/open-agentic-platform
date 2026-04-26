@@ -6,7 +6,7 @@
 name = "opc"
 version = "0.2.4"
 description = "GUI app and Toolkit for Claude Code"
-authors = ["mufeedvh", "123vviekr"]
+authors = ["bartekus"]
 license = "AGPL-3.0"
 edition = "2024"
 default-run = "opc"

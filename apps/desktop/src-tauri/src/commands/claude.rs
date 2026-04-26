@@ -200,8 +200,8 @@ fn get_project_path_from_sessions(project_dir: &PathBuf) -> Result<String, Strin
 /// DEPRECATED: Use get_project_path_from_sessions instead when possible
 fn decode_project_path(encoded: &str) -> String {
     // This is a fallback - the encoding isn't reversible when paths contain hyphens
-    // For example: -Users-mufeedvh-dev-jsonl-viewer could be /Users/mufeedvh/dev/jsonl-viewer
-    // or /Users/mufeedvh/dev/jsonl/viewer
+    // For example: -Users-bartekus-dev-jsonl-viewer could be /Users/bartekus/dev/jsonl-viewer
+    // or /Users/bartekus/dev/jsonl/viewer
     encoded.replace('-', "/")
 }
 

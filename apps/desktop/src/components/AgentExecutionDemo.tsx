@@ -31,7 +31,7 @@ export const AgentExecutionDemo: React.FC = () => {
           type: "tool_use",
           name: "Edit",
           input: {
-            file_path: "/Users/mufeedvh/dev/jsonl-viewer/script.js",
+            file_path: "/Users/bartekus/dev/jsonl-viewer/script.js",
             new_string: "reader.onerror = () => reject(new Error('Failed to read file'));",
             old_string: "reader.onerror = e => reject(new Error('Failed to read file'));"
           }
@@ -46,7 +46,7 @@ export const AgentExecutionDemo: React.FC = () => {
       message: {
         content: [{
           type: "tool_result",
-          content: `The file /Users/mufeedvh/dev/jsonl-viewer/script.js has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
+          content: `The file /Users/bartekus/dev/jsonl-viewer/script.js has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
    220       readFileAsText(file) {
    221         return new Promise((resolve, reject) => {
    222           const reader = new FileReader();
@@ -92,7 +92,7 @@ export const AgentExecutionDemo: React.FC = () => {
           type: "tool_use",
           name: "Write",
           input: {
-            file_path: "/Users/mufeedvh/dev/jsonl-viewer/styles.css",
+            file_path: "/Users/bartekus/dev/jsonl-viewer/styles.css",
             content: `/* Reset and Base Styles */
 * {
     margin: 0;
