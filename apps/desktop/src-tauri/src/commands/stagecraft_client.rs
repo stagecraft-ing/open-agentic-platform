@@ -613,10 +613,10 @@ impl StagecraftClient {
     /// Spec 112 §6.3 — fetch the Open-in-OPC bundle for a project.
     ///
     /// Mirrors `GET /api/projects/:projectId/oap-bundle`. The bundle carries
-    /// everything OPC needs after activating an `oap://` deep link: project
-    /// + repo + adapter + the org's contracts/processes + the workspace's
-    /// published agent catalog. Workspace scoping is enforced server-side
-    /// via the Bearer token.
+    /// everything OPC needs after activating an `oap://` deep link: the
+    /// project, its repo, its adapter, the org's contracts and processes,
+    /// and the workspace's published agent catalog. Workspace scoping is
+    /// enforced server-side via the Bearer token.
     pub async fn get_project_oap_bundle(
         &self,
         project_id: &str,

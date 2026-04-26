@@ -236,9 +236,9 @@
           "type": "array",
           "items": {
             "type": "string",
-            "pattern": "^[0-9]{2}-[a-z][a-z0-9-]*$"
+            "pattern": "^[a-z0-9]{2}-[a-z][a-z0-9-]*$"
           },
-          "description": "Global pipeline stages from factory/process/stages/ (e.g. 00-pre-flight, 06-adapter-handoff)."
+          "description": "Global pipeline stages from factory/process/stages/. Numbered stages use a 2-digit prefix (00-pre-flight..06-adapter-handoff); conditional stages use a 2-letter prefix (e.g. cd-client-documentation)."
         },
         "displayName": {
           "type": "string",

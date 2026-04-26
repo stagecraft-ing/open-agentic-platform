@@ -112,10 +112,13 @@ definitions in `factory/process/stages/`.
 | `stackRuntime` | `stack.runtime` from manifest.yaml | Runtime environment |
 | `phaseCoverage` | `factory/process/stages/*.md` | Global pipeline stages (shared across all adapters) |
 
-> **Note:** Pipeline stages are global process definitions (`00-pre-flight` through
-> `06-adapter-handoff`), not per-adapter stage files. All adapters share the same
-> pipeline; individual adapter capabilities are expressed through the manifest's
-> `capabilities`, `agents`, and `patterns` sections, not through stage presence.
+> **Note:** Pipeline stages are global process definitions, not per-adapter stage
+> files. Numbered stages run the canonical 7-stage build (`00-pre-flight` through
+> `06-adapter-handoff`); conditional stages use a 2-letter prefix (e.g.
+> `cd-client-documentation`) and run with NOW/SKIP/DEFERRED scheduling. All
+> adapters share the same pipeline; individual adapter capabilities are
+> expressed through the manifest's `capabilities`, `agents`, and `patterns`
+> sections, not through stage presence.
 
 **Layer 4 — Tool & Infrastructure Inventory**
 

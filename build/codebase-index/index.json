@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "416eeb745d0a7df4f620b3d0679cf09051bee94e8e4e040b0b10a04fe3194995",
+    "contentHash": "921e2fdfa2c427265fe4d0e3fc7494d25144b78936d52dd8f65670f2b63c93de",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -26,12 +26,13 @@
         "03-data-model",
         "04-api-specification",
         "05-ui-specification",
-        "06-adapter-handoff"
+        "06-adapter-handoff",
+        "cd-client-documentation"
       ],
       "stackLanguage": "typescript",
       "stackRuntime": "node-24",
       "targetStack": "aim-vue-node",
-      "version": "3.0.0"
+      "version": "4.0.0"
     },
     {
       "displayName": "Encore.ts + React Router Full-Stack",
@@ -44,7 +45,8 @@
         "03-data-model",
         "04-api-specification",
         "05-ui-specification",
-        "06-adapter-handoff"
+        "06-adapter-handoff",
+        "cd-client-documentation"
       ],
       "stackLanguage": "typescript",
       "stackRuntime": "node-20",
@@ -62,7 +64,8 @@
         "03-data-model",
         "04-api-specification",
         "05-ui-specification",
-        "06-adapter-handoff"
+        "06-adapter-handoff",
+        "cd-client-documentation"
       ],
       "stackLanguage": "typescript",
       "stackRuntime": "node-22",
@@ -80,7 +83,8 @@
         "03-data-model",
         "04-api-specification",
         "05-ui-specification",
-        "06-adapter-handoff"
+        "06-adapter-handoff",
+        "cd-client-documentation"
       ],
       "stackLanguage": "rust",
       "stackRuntime": "native",
@@ -314,7 +318,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.2.2"
+      "version": "0.2.3"
     },
     {
       "edition": "2024",
@@ -359,6 +363,31 @@
       "name": "agent-frontmatter",
       "path": "crates/agent-frontmatter",
       "specRef": "054-agent-frontmatter-schema",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/artifact_extract.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "calamine",
+        "chrono",
+        "clap",
+        "pdf-extract",
+        "quick-xml",
+        "serde_json",
+        "tempfile",
+        "thiserror",
+        "walkdir",
+        "zip"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "artifact-extract",
+      "path": "crates/artifact-extract",
+      "specRef": "087-unified-architecture-domain-model",
       "version": "0.1.0"
     },
     {
@@ -1195,7 +1224,9 @@
         "prettier",
         "react",
         "react-dom",
+        "react-markdown",
         "react-router",
+        "remark-gfm",
         "tailwindcss",
         "typescript",
         "vite",
@@ -2303,6 +2334,16 @@
         ],
         "specId": "085-remote-control-cli",
         "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "name": "artifact-extract",
+            "path": "crates/artifact-extract",
+            "source": "cargo-metadata"
+          }
+        ],
+        "specId": "087-unified-architecture-domain-model"
       },
       {
         "dependsOn": [
