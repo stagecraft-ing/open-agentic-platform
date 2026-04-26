@@ -155,7 +155,7 @@ export async function createFactoryProject(
     projectId: string;
     repoUrl: string;
     cloneUrl: string;
-    oapDeepLink: string;
+    opcDeepLink: string;
     scaffoldJobId: string;
     factoryAdapterId: string;
   }>;
@@ -204,7 +204,7 @@ export async function importFactoryProject(
       | "acp_produced";
     repoUrl: string;
     cloneUrl: string;
-    oapDeepLink: string | null;
+    opcDeepLink: string | null;
     translatorVersion: string | null;
     translatedPreview?: Record<string, unknown>;
     previewOnly: boolean;
@@ -214,7 +214,7 @@ export async function importFactoryProject(
 }
 
 // Spec 112 §6.3 — Open-in-OPC bundle for a project.
-export interface OapBundle {
+export interface OpcBundle {
   project: {
     id: string;
     name: string;
@@ -262,11 +262,11 @@ export interface OapBundle {
   }>;
 }
 
-export async function getProjectOapBundle(request: Request, projectId: string) {
+export async function getProjectOpcBundle(request: Request, projectId: string) {
   return apiFetch(
     request,
-    `/api/projects/${projectId}/oap-bundle`
-  ) as Promise<OapBundle>;
+    `/api/projects/${projectId}/opc-bundle`
+  ) as Promise<OpcBundle>;
 }
 
 // Spec 087 Phase 2 + spec 112 §6 — per-project knowledge object views.

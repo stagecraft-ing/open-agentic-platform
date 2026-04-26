@@ -1,6 +1,6 @@
 // Spec 112 §6.3 — Open-in-OPC handoff bundle endpoint.
 //
-// Returns the resolution OPC needs after activating an `oap://` deep link:
+// Returns the resolution OPC needs after activating an `opc://` deep link:
 //   - project + primary repo (clone URL)
 //   - the precomputed deep link the stagecraft UI also surfaces
 //   - the factory_adapters row referenced by projects.factory_adapter_id
@@ -31,24 +31,24 @@ import {
   projects,
 } from "../db/schema";
 import {
-  buildOapBundle,
+  buildOpcBundle,
   type BundleContractInput,
   type BundleProcessInput,
-  type OapBundleResponse,
-} from "./oapBundleHelpers";
+  type OpcBundleResponse,
+} from "./opcBundleHelpers";
 
-interface OapBundleRequest {
+interface OpcBundleRequest {
   projectId: string;
 }
 
-export const getProjectOapBundle = api(
+export const getProjectOpcBundle = api(
   {
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/projects/:projectId/oap-bundle",
+    path: "/api/projects/:projectId/opc-bundle",
   },
-  async (req: OapBundleRequest): Promise<OapBundleResponse> => {
+  async (req: OpcBundleRequest): Promise<OpcBundleResponse> => {
     const auth = getAuthData()!;
 
     const [project] = await db
@@ -74,7 +74,7 @@ export const getProjectOapBundle = api(
         loadPublishedAgents(project.workspaceId),
       ]);
 
-    return buildOapBundle({
+    return buildOpcBundle({
       project: {
         id: project.id,
         name: project.name,

@@ -435,7 +435,7 @@ the code.
   `.artifacts/extracted/` (§5.2 step 5).
 - `scaffold_jobs` table replacing the Express app's in-memory map
   (concurrency-safe, multi-tenant, audit-traceable).
-- `oap://` deep-link on the success response (§5.4).
+- `opc://` deep-link on the success response (§5.4).
 
 **Net drops:**
 
@@ -468,8 +468,8 @@ This spec establishes a crisp temporal boundary between the two planes:
 
 Consequence: the **GitHub repo is the source-of-truth handoff**. After
 push, stagecraft returns `{ project_id, repo_url, clone_url,
-oap_deep_link }`. The `oap_deep_link` is an
-`oap://project/open?url=<clone_url>&project_id=<id>` URI that, when
+opc_deep_link }`. The `opc_deep_link` is an
+`opc://project/open?url=<clone_url>&project_id=<id>` URI that, when
 clicked on a machine with OPC installed, clones the repo locally and
 activates the Factory Cockpit (§4). The success page renders (a) the
 GitHub URL, (b) the deep link, and (c) an "install OPC" affordance
@@ -532,7 +532,7 @@ Flow:
    audit event including the detection level and (for L1) the translator
    version.
 6. Return `{ project_id, detection_level, deep_link }` where `deep_link`
-   is an `oap://` URI the user can click to hand off to OPC (which clones
+   is an `opc://` URI the user can click to hand off to OPC (which clones
    locally and surfaces the Factory Cockpit).
 
 ### 6.3 Open-in-OPC handoff
@@ -545,7 +545,7 @@ reuses it once the imported project has a `projects` row and a
 translated `.factory/pipeline-state.json` in the source repo.
 
 1. **Deep link.** Stagecraft emits
-   `oap://project/open?project_id=<id>&workspace_id=<ws>&clone_url=<url>`.
+   `opc://project/open?project_id=<id>&workspace_id=<ws>&clone_url=<url>`.
    The success page renders this link plus an "install OPC" affordance
    for users without OPC installed.
 
@@ -686,7 +686,7 @@ Each phase is independently mergeable and ends in a runnable state.
   inputs (plus the `manifest.json` bucket mapping), and (c) **no**
   legacy prompt files (`prestart-prompt.txt`, `start-prompt.txt`,
   `reconciliation-prompt.txt`). The API response includes
-  `{ project_id, repo_url, clone_url, oap_deep_link }` and the
+  `{ project_id, repo_url, clone_url, opc_deep_link }` and the
   `projects` row references the correct `factory_adapter_id`. Raw
   uploads are retrievable from the workspace bucket.
 

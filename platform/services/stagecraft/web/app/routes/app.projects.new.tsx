@@ -4,7 +4,7 @@
  * Lists factory adapters from the org's `factory_adapters` table and creates
  * the project through the ACP-native `/api/projects/factory-create`
  * endpoint, which writes commit #1 with a `.factory/pipeline-state.json`
- * L0 seed and returns an `oap://` deep link for the success page to
+ * L0 seed and returns an `opc://` deep link for the success page to
  * hand off to OPC.
  */
 
@@ -55,7 +55,7 @@ interface ActionSuccess {
   projectId: string;
   repoUrl: string;
   cloneUrl: string;
-  oapDeepLink: string;
+  opcDeepLink: string;
   factoryAdapterId: string;
 }
 
@@ -422,13 +422,13 @@ function CreateSuccess({ data }: { data: ActionSuccess }) {
           <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Open in OPC</dt>
           <dd>
             <a
-              href={data.oapDeepLink}
+              href={data.opcDeepLink}
               className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
             >
               Launch Factory Cockpit
             </a>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
-              {data.oapDeepLink}
+              {data.opcDeepLink}
             </p>
           </dd>
         </div>

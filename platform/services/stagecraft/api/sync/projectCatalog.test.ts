@@ -42,9 +42,9 @@ describe("buildProjectCatalogUpsert", () => {
       cloneUrl: "https://github.com/acme/my-portal.git",
       htmlUrl: "https://github.com/acme/my-portal",
     });
-    expect(env.oapDeepLink).toContain("oap://project/open");
-    expect(env.oapDeepLink).toContain("project_id=proj-1");
-    expect(env.oapDeepLink).toContain("level=scaffold_only");
+    expect(env.opcDeepLink).toContain("opc://project/open");
+    expect(env.opcDeepLink).toContain("project_id=proj-1");
+    expect(env.opcDeepLink).toContain("level=scaffold_only");
     expect(env.updatedAt).toBe("2026-04-22T12:00:00.000Z");
   });
 
@@ -68,7 +68,7 @@ describe("buildProjectCatalogUpsert", () => {
     expect(env.repo).toBeNull();
     expect(env.detectionLevel).toBeNull();
     // Deep link should not carry level=not_factory or level=null.
-    expect(env.oapDeepLink).not.toMatch(/level=/);
+    expect(env.opcDeepLink).not.toMatch(/level=/);
   });
 
   test("string updatedAt is passed through unchanged", () => {

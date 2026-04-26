@@ -55,7 +55,7 @@ export interface BundleAgentInput {
   bodyMarkdown: string;
 }
 
-export interface OapBundleProject {
+export interface OpcBundleProject {
   id: string;
   name: string;
   slug: string;
@@ -63,14 +63,14 @@ export interface OapBundleProject {
   orgId: string;
 }
 
-export interface OapBundleRepo {
+export interface OpcBundleRepo {
   cloneUrl: string;
   githubOrg: string;
   repoName: string;
   defaultBranch: string;
 }
 
-export interface OapBundleAdapter {
+export interface OpcBundleAdapter {
   id: string;
   name: string;
   version: string;
@@ -79,7 +79,7 @@ export interface OapBundleAdapter {
   manifest: unknown;
 }
 
-export interface OapBundleContract {
+export interface OpcBundleContract {
   name: string;
   version: string;
   sourceSha: string;
@@ -87,7 +87,7 @@ export interface OapBundleContract {
   schema: unknown;
 }
 
-export interface OapBundleProcess {
+export interface OpcBundleProcess {
   name: string;
   version: string;
   sourceSha: string;
@@ -95,7 +95,7 @@ export interface OapBundleProcess {
   definition: unknown;
 }
 
-export interface OapBundleAgent {
+export interface OpcBundleAgent {
   id: string;
   name: string;
   version: number;
@@ -105,14 +105,14 @@ export interface OapBundleAgent {
   bodyMarkdown: string;
 }
 
-export interface OapBundleResponse {
-  project: OapBundleProject;
-  repo: OapBundleRepo | null;
+export interface OpcBundleResponse {
+  project: OpcBundleProject;
+  repo: OpcBundleRepo | null;
   deepLink: string | null;
-  adapter: OapBundleAdapter | null;
-  contracts: OapBundleContract[];
-  processes: OapBundleProcess[];
-  agents: OapBundleAgent[];
+  adapter: OpcBundleAdapter | null;
+  contracts: OpcBundleContract[];
+  processes: OpcBundleProcess[];
+  agents: OpcBundleAgent[];
 }
 
 /**
@@ -120,14 +120,14 @@ export interface OapBundleResponse {
  * buildProjectOpenDeepLink with the project_id + clone URL the bundle
  * uses; OPC and the web UI both rely on the same string.
  */
-export function buildOapBundle(input: {
+export function buildOpcBundle(input: {
   project: BundleProjectInput;
   repo: BundleRepoInput | null;
   adapter: BundleAdapterInput | null;
   contracts: BundleContractInput[];
   processes: BundleProcessInput[];
   agents: BundleAgentInput[];
-}): OapBundleResponse {
+}): OpcBundleResponse {
   const repo = input.repo ? toBundleRepo(input.repo) : null;
   return {
     project: {
@@ -151,7 +151,7 @@ export function buildOapBundle(input: {
   };
 }
 
-function toBundleRepo(r: BundleRepoInput): OapBundleRepo {
+function toBundleRepo(r: BundleRepoInput): OpcBundleRepo {
   return {
     cloneUrl: cloneUrlFor(r.githubOrg, r.repoName),
     githubOrg: r.githubOrg,
@@ -160,7 +160,7 @@ function toBundleRepo(r: BundleRepoInput): OapBundleRepo {
   };
 }
 
-function toBundleAdapter(a: BundleAdapterInput): OapBundleAdapter {
+function toBundleAdapter(a: BundleAdapterInput): OpcBundleAdapter {
   return {
     id: a.id,
     name: a.name,
@@ -171,7 +171,7 @@ function toBundleAdapter(a: BundleAdapterInput): OapBundleAdapter {
   };
 }
 
-function toBundleContract(c: BundleContractInput): OapBundleContract {
+function toBundleContract(c: BundleContractInput): OpcBundleContract {
   return {
     name: c.name,
     version: c.version,
@@ -181,7 +181,7 @@ function toBundleContract(c: BundleContractInput): OapBundleContract {
   };
 }
 
-function toBundleProcess(p: BundleProcessInput): OapBundleProcess {
+function toBundleProcess(p: BundleProcessInput): OpcBundleProcess {
   return {
     name: p.name,
     version: p.version,
@@ -191,7 +191,7 @@ function toBundleProcess(p: BundleProcessInput): OapBundleProcess {
   };
 }
 
-function toBundleAgent(a: BundleAgentInput): OapBundleAgent {
+function toBundleAgent(a: BundleAgentInput): OpcBundleAgent {
   return {
     id: a.id,
     name: a.name,

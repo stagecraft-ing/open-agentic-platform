@@ -168,7 +168,7 @@ pub struct ServerEnvelopeWire {
     #[serde(default)]
     pub repo: Option<ProjectCatalogRepo>,
     #[serde(default)]
-    pub oap_deep_link: Option<String>,
+    pub opc_deep_link: Option<String>,
     #[serde(default)]
     pub tombstone: Option<bool>,
 }
@@ -874,7 +874,7 @@ mod tests {
             factory_adapter_id: None,
             detection_level: None,
             repo: None,
-            oap_deep_link: None,
+            opc_deep_link: None,
             tombstone: None,
         }
     }
@@ -923,7 +923,7 @@ mod tests {
             "cloneUrl": "https://github.com/acme/portal.git",
             "htmlUrl": "https://github.com/acme/portal"
           },
-          "oapDeepLink": "oap://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Fportal.git&level=scaffold_only",
+          "opcDeepLink": "opc://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Fportal.git&level=scaffold_only",
           "tombstone": false,
           "updatedAt": "2026-04-23T00:00:01Z"
         }"#;

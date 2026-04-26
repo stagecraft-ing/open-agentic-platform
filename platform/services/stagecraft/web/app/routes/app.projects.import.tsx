@@ -35,7 +35,7 @@ interface ActionSuccess {
     | "acp_produced";
   repoUrl: string;
   cloneUrl: string;
-  oapDeepLink: string | null;
+  opcDeepLink: string | null;
   translatorVersion: string | null;
   translatedPreview?: Record<string, unknown>;
   previewOnly: boolean;
@@ -376,9 +376,9 @@ function ImportRegistered({ data }: { data: ActionSuccess }) {
         <div className="grid grid-cols-[10rem_1fr] px-4 py-3">
           <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Open in OPC</dt>
           <dd>
-            {data.oapDeepLink ? (
+            {data.opcDeepLink ? (
               <a
-                href={data.oapDeepLink}
+                href={data.opcDeepLink}
                 className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
               >
                 Launch Factory Cockpit

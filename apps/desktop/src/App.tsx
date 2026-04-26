@@ -420,7 +420,7 @@ function AppContent() {
 
       <UpdateBanner />
 
-      {/* Spec 112 §6.3 — surface oap://project/open handoffs from stagecraft. */}
+      {/* Spec 112 §6.3 — surface opc://project/open handoffs from stagecraft. */}
       <ProjectOpenInbox
         onOpenInFactory={(path, bundle) => {
           createFactoryTab(path, bundle ?? undefined);

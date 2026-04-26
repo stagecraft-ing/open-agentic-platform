@@ -32,7 +32,7 @@ export interface ProjectCatalogEntry {
     cloneUrl: string;
     htmlUrl: string;
   } | null;
-  oapDeepLink: string;
+  opcDeepLink: string;
   updatedAt: string;
   /** Caller-managed: set when the repo is cloned locally. */
   localPath?: string;

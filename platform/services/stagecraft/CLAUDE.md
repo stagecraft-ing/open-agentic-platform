@@ -45,7 +45,7 @@ For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, midd
 
 Project creation and import live under `api/projects/`:
 
-- `create.ts` (spec 112 §5) — `POST /api/projects/factory-create`. ACP-native; writes commit #1 with a `.factory/pipeline-state.json` L0 seed, links the project to a `factory_adapters` row, and returns an `oap://` deep link.
+- `create.ts` (spec 112 §5) — `POST /api/projects/factory-create`. ACP-native; writes commit #1 with a `.factory/pipeline-state.json` L0 seed, links the project to a `factory_adapters` row, and returns an `opc://` deep link.
 - `import.ts` (spec 112 §6) — `POST /api/projects/factory-import`. Clones the repo, shells the `factory-project-detect` CLI for a governed detection read, branches on the level (reject / translate / register), and emits a `project.imported` audit event.
 - `scaffold/` — the six absorbed operations (template cache, prebuilds, adapter scaffold runner, GitHub repo create, initial push, artefact extraction) plus pure helpers (`deepLink`, `seedPipelineState`, `pickProfile`).
 

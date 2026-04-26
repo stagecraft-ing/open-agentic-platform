@@ -1,7 +1,7 @@
-// Spec 112 §5.4 — oap:// deep link generation.
+// Spec 112 §5.4 — opc:// deep link generation.
 //
 // Returned alongside `{ project_id, repo_url, clone_url }` on create and
-// import. OPC registers the `oap://` scheme at install time and, on
+// import. OPC registers the `opc://` scheme at install time and, on
 // click, clones the repo locally and activates the Factory Cockpit
 // (§4). The success page also renders the raw deep link so users on
 // machines without OPC can copy-paste it later.
@@ -19,5 +19,5 @@ export function buildProjectOpenDeepLink(input: DeepLinkInputs): string {
   if (input.detectionLevel) {
     params.set("level", input.detectionLevel);
   }
-  return `oap://project/open?${params.toString()}`;
+  return `opc://project/open?${params.toString()}`;
 }

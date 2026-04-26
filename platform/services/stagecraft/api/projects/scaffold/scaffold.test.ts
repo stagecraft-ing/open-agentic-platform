@@ -57,7 +57,7 @@ describe("buildProjectOpenDeepLink", () => {
       detectionLevel: "scaffold_only",
     });
     const url = new URL(link);
-    expect(url.protocol).toBe("oap:");
+    expect(url.protocol).toBe("opc:");
     expect(url.host).toBe("project");
     expect(url.pathname).toBe("/open");
     expect(url.searchParams.get("project_id")).toBe(

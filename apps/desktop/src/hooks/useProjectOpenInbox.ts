@@ -1,7 +1,7 @@
 // Spec 112 §6.3 — Open-in-OPC frontend listener.
 //
 // Subscribes to the `project-open-request` Tauri event emitted by the
-// Rust deep-link dispatcher when an `oap://project/open?...` URL
+// Rust deep-link dispatcher when an `opc://project/open?...` URL
 // arrives. Maintains a single "pending handoff" slot (the latest
 // request wins; older unread requests are replaced) and resolves the
 // stagecraft bundle for it on demand.
@@ -11,23 +11,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCall } from '@/lib/apiAdapter';
 import type {
-  OapBundle,
-  OapBundleAdapter,
-  OapBundleAgent,
-  OapBundleContract,
-  OapBundleProcess,
-  OapBundleProject,
-  OapBundleRepo,
+  OpcBundle,
+  OpcBundleAdapter,
+  OpcBundleAgent,
+  OpcBundleContract,
+  OpcBundleProcess,
+  OpcBundleProject,
+  OpcBundleRepo,
 } from '@/types/factoryBundle';
 
 export type {
-  OapBundle,
-  OapBundleAdapter,
-  OapBundleAgent,
-  OapBundleContract,
-  OapBundleProcess,
-  OapBundleProject,
-  OapBundleRepo,
+  OpcBundle,
+  OpcBundleAdapter,
+  OpcBundleAgent,
+  OpcBundleContract,
+  OpcBundleProcess,
+  OpcBundleProject,
+  OpcBundleRepo,
 };
 
 export interface ProjectOpenRequest {
@@ -38,7 +38,7 @@ export interface ProjectOpenRequest {
 
 interface FetchBundleResponse {
   ok: boolean;
-  bundle?: OapBundle;
+  bundle?: OpcBundle;
   error?: string;
 }
 
@@ -58,7 +58,7 @@ export interface CloneState {
 
 export interface InboxState {
   pending: ProjectOpenRequest | null;
-  bundle: OapBundle | null;
+  bundle: OpcBundle | null;
   bundleLoading: boolean;
   bundleError: string | null;
   clone: CloneState;
@@ -88,7 +88,7 @@ const INITIAL_CLONE: CloneState = {
 
 export function useProjectOpenInbox(): InboxApi {
   const [pending, setPending] = useState<ProjectOpenRequest | null>(null);
-  const [bundle, setBundle] = useState<OapBundle | null>(null);
+  const [bundle, setBundle] = useState<OpcBundle | null>(null);
   const [bundleLoading, setBundleLoading] = useState(false);
   const [bundleError, setBundleError] = useState<string | null>(null);
   const [clone, setClone] = useState<CloneState>(INITIAL_CLONE);
@@ -129,7 +129,7 @@ export function useProjectOpenInbox(): InboxApi {
     setBundleError(null);
     try {
       const resp = await apiCall<FetchBundleResponse>(
-        'fetch_project_oap_bundle',
+        'fetch_project_opc_bundle',
         { request: { project_id: pending.projectId } }
       );
       if (resp.ok && resp.bundle) {

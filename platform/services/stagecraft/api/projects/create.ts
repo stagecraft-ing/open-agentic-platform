@@ -5,7 +5,7 @@
 // L0 `.factory/pipeline-state.json` seed. Leaves the post-push
 // lifecycle to OPC (§5.4 boundary — "birth on stagecraft, life on OPC").
 //
-// Response shape includes `oap_deep_link` so the success page can hand
+// Response shape includes `opc_deep_link` so the success page can hand
 // off to a local OPC install with one click.
 
 import { api, APIError } from "encore.dev/api";
@@ -62,7 +62,7 @@ export interface CreateFactoryProjectResponse {
   projectId: string;
   repoUrl: string;
   cloneUrl: string;
-  oapDeepLink: string;
+  opcDeepLink: string;
   scaffoldJobId: string;
   factoryAdapterId: string;
 }
@@ -249,7 +249,7 @@ export const createFactoryProject = api(
       })
       .where(eq(scaffoldJobs.id, job.id));
 
-    const oapDeepLink = buildProjectOpenDeepLink({
+    const opcDeepLink = buildProjectOpenDeepLink({
       projectId: projectRow.id,
       cloneUrl: repoCreate.cloneUrl,
       detectionLevel: "scaffold_only",
@@ -266,7 +266,7 @@ export const createFactoryProject = api(
       projectId: projectRow.id,
       repoUrl: repoCreate.htmlUrl,
       cloneUrl: repoCreate.cloneUrl,
-      oapDeepLink,
+      opcDeepLink,
       scaffoldJobId: job.id,
       factoryAdapterId: adapter.id,
     };

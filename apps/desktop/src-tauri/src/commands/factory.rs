@@ -2181,7 +2181,7 @@ mod tests {
             factory_adapter_id: None,
             detection_level: None,
             repo: None,
-            oap_deep_link: None,
+            opc_deep_link: None,
             tombstone: None,
         };
         assert!(extract_factory_run(&env).is_none());
@@ -2244,7 +2244,7 @@ mod tests {
             factory_adapter_id: None,
             detection_level: None,
             repo: None,
-            oap_deep_link: None,
+            opc_deep_link: None,
             tombstone: None,
         };
         let run = extract_factory_run(&env).unwrap();

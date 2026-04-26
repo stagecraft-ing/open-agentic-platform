@@ -612,17 +612,17 @@ impl StagecraftClient {
 
     /// Spec 112 §6.3 — fetch the Open-in-OPC bundle for a project.
     ///
-    /// Mirrors `GET /api/projects/:projectId/oap-bundle`. The bundle carries
-    /// everything OPC needs after activating an `oap://` deep link: the
+    /// Mirrors `GET /api/projects/:projectId/opc-bundle`. The bundle carries
+    /// everything OPC needs after activating an `opc://` deep link: the
     /// project, its repo, its adapter, the org's contracts and processes,
     /// and the workspace's published agent catalog. Workspace scoping is
     /// enforced server-side via the Bearer token.
-    pub async fn get_project_oap_bundle(
+    pub async fn get_project_opc_bundle(
         &self,
         project_id: &str,
-    ) -> Result<OapBundleResponse, StagecraftError> {
+    ) -> Result<OpcBundleResponse, StagecraftError> {
         let url = format!(
-            "{}/api/projects/{}/oap-bundle",
+            "{}/api/projects/{}/opc-bundle",
             self.base_url, project_id
         );
         let resp = self
@@ -927,12 +927,12 @@ pub struct ArtifactInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Spec 112 §6.3 — OPC bundle types (mirrors stagecraft's OapBundleResponse)
+// Spec 112 §6.3 — OPC bundle types (mirrors stagecraft's OpcBundleResponse)
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleProject {
+pub struct OpcBundleProject {
     pub id: String,
     pub name: String,
     pub slug: String,
@@ -942,7 +942,7 @@ pub struct OapBundleProject {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleRepo {
+pub struct OpcBundleRepo {
     pub clone_url: String,
     pub github_org: String,
     pub repo_name: String,
@@ -951,7 +951,7 @@ pub struct OapBundleRepo {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleAdapter {
+pub struct OpcBundleAdapter {
     pub id: String,
     pub name: String,
     pub version: String,
@@ -962,7 +962,7 @@ pub struct OapBundleAdapter {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleContract {
+pub struct OpcBundleContract {
     pub name: String,
     pub version: String,
     pub source_sha: String,
@@ -972,7 +972,7 @@ pub struct OapBundleContract {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleProcess {
+pub struct OpcBundleProcess {
     pub name: String,
     pub version: String,
     pub source_sha: String,
@@ -982,7 +982,7 @@ pub struct OapBundleProcess {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleAgent {
+pub struct OpcBundleAgent {
     pub id: String,
     pub name: String,
     pub version: i64,
@@ -994,14 +994,14 @@ pub struct OapBundleAgent {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OapBundleResponse {
-    pub project: OapBundleProject,
-    pub repo: Option<OapBundleRepo>,
+pub struct OpcBundleResponse {
+    pub project: OpcBundleProject,
+    pub repo: Option<OpcBundleRepo>,
     pub deep_link: Option<String>,
-    pub adapter: Option<OapBundleAdapter>,
-    pub contracts: Vec<OapBundleContract>,
-    pub processes: Vec<OapBundleProcess>,
-    pub agents: Vec<OapBundleAgent>,
+    pub adapter: Option<OpcBundleAdapter>,
+    pub contracts: Vec<OpcBundleContract>,
+    pub processes: Vec<OpcBundleProcess>,
+    pub agents: Vec<OpcBundleAgent>,
 }
 
 // ---------------------------------------------------------------------------
@@ -1037,7 +1037,7 @@ mod tests {
     /// Spec 112 §6.3 — pin the wire format. The stagecraft endpoint
     /// returns camelCase fields; the desktop's serde rename_all must
     /// keep up. If this test starts failing, the TS side likely renamed
-    /// a field on `OapBundleResponse` and the desktop is decoding the
+    /// a field on `OpcBundleResponse` and the desktop is decoding the
     /// wrong shape.
     #[test]
     fn oap_bundle_response_decodes_camelcase_payload() {
@@ -1055,7 +1055,7 @@ mod tests {
                 "repoName": "fv",
                 "defaultBranch": "main"
             },
-            "deepLink": "oap://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffv.git",
+            "deepLink": "opc://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffv.git",
             "adapter": {
                 "id": "a-1",
                 "name": "aim-vue-node",
@@ -1083,7 +1083,7 @@ mod tests {
             }]
         }"##;
 
-        let bundle: OapBundleResponse =
+        let bundle: OpcBundleResponse =
             serde_json::from_str(payload).expect("valid bundle decodes");
 
         assert_eq!(bundle.project.id, "p-1");
@@ -1115,7 +1115,7 @@ mod tests {
             "agents": []
         }"##;
 
-        let bundle: OapBundleResponse =
+        let bundle: OpcBundleResponse =
             serde_json::from_str(payload).expect("nulls decode");
         assert!(bundle.repo.is_none());
         assert!(bundle.deep_link.is_none());

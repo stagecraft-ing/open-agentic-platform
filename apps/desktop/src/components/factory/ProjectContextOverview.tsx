@@ -9,7 +9,7 @@
 import React from 'react';
 import { Workflow, FileText, Settings2, Bot, Github } from 'lucide-react';
 import { Badge } from '@opc/ui/badge';
-import type { OapBundle } from '@/types/factoryBundle';
+import type { OpcBundle } from '@/types/factoryBundle';
 
 interface SectionProps {
   icon: React.ReactNode;
@@ -54,7 +54,7 @@ function ListItem({ name, version }: ListItemProps): React.ReactElement {
 }
 
 export interface ProjectContextOverviewProps {
-  bundle: OapBundle;
+  bundle: OpcBundle;
 }
 
 export const ProjectContextOverview: React.FC<ProjectContextOverviewProps> = ({

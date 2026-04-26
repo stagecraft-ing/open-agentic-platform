@@ -2,7 +2,7 @@
 // Spec 112 §6.3 — Open-in-OPC inbox banner.
 //
 // Renders a dismissible banner when stagecraft hands off a project to OPC
-// via an oap:// deep link. "Resolve" calls the bundle endpoint and shows
+// via an opc:// deep link. "Resolve" calls the bundle endpoint and shows
 // what OPC received: project, adapter, contract / process / agent counts.
 // The local clone + cockpit activation are separate next-step concerns.
 
@@ -22,7 +22,7 @@ import { Badge } from '@opc/ui/badge';
 import { Button } from '@opc/ui/button';
 import { api } from '@/lib/api';
 import { useProjectOpenInbox } from '@/hooks/useProjectOpenInbox';
-import type { OapBundle } from '@/types/factoryBundle';
+import type { OpcBundle } from '@/types/factoryBundle';
 
 const PROJECTS_SUBDIR = 'oap-projects';
 
@@ -40,7 +40,7 @@ export interface ProjectOpenInboxProps {
    * resolve (defensive — UI keeps the Open button disabled until both
    * are present).
    */
-  onOpenInFactory?: (path: string, bundle: OapBundle | null) => void;
+  onOpenInFactory?: (path: string, bundle: OpcBundle | null) => void;
 }
 
 export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({

@@ -7,7 +7,7 @@ import { Layers, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@opc/ui/badge';
 import { Button } from '@opc/ui/button';
-import type { OapBundle } from '@/types/factoryBundle';
+import type { OpcBundle } from '@/types/factoryBundle';
 import { FactoryPipelineProvider, useFactoryPipeline } from './FactoryPipelineContext';
 import { PipelineSelector } from './PipelineSelector';
 import { PipelineDAG } from './PipelineDAG';
@@ -48,7 +48,7 @@ function FactoryPipelinePanelInner({
   bundle,
 }: {
   projectPath?: string;
-  bundle?: OapBundle;
+  bundle?: OpcBundle;
 }) {
   const { state } = useFactoryPipeline();
   const [view, setView] = useState<PanelView>('pipeline');
@@ -170,7 +170,7 @@ function FactoryPipelinePanelInner({
 
 export const FactoryPipelinePanel: React.FC<{
   projectPath?: string;
-  bundle?: OapBundle;
+  bundle?: OpcBundle;
 }> = ({ projectPath, bundle }) => {
   return (
     <FactoryPipelineProvider>

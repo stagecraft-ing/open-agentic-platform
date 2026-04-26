@@ -103,7 +103,7 @@ export interface ImportFactoryProjectResponse {
   detectionLevel: ImportDetectionLevel;
   repoUrl: string;
   cloneUrl: string;
-  oapDeepLink: string | null;
+  opcDeepLink: string | null;
   translatorVersion: string | null;
   /** L1 only — the translated pipeline-state the translator would commit. */
   translatedPreview?: Record<string, unknown>;
@@ -426,7 +426,7 @@ async function importLegacy(
       detectionLevel: "legacy_produced",
       repoUrl,
       cloneUrl,
-      oapDeepLink: null,
+      opcDeepLink: null,
       translatorVersion: TRANSLATOR_VERSION,
       translatedPreview: translated as unknown as Record<string, unknown>,
       previewOnly: true,
@@ -464,7 +464,7 @@ async function importLegacy(
     detectionLevel: "legacy_produced",
     repoUrl,
     cloneUrl,
-    oapDeepLink: buildProjectOpenDeepLink({
+    opcDeepLink: buildProjectOpenDeepLink({
       projectId: projectRow.id,
       cloneUrl,
       detectionLevel: "legacy_produced",
@@ -505,7 +505,7 @@ async function importAcp(
       detectionLevel: "acp_produced",
       repoUrl,
       cloneUrl,
-      oapDeepLink: null,
+      opcDeepLink: null,
       translatorVersion: null,
       previewOnly: true,
       rawArtifacts: [],
@@ -538,7 +538,7 @@ async function importAcp(
     detectionLevel: "acp_produced",
     repoUrl,
     cloneUrl,
-    oapDeepLink: buildProjectOpenDeepLink({
+    opcDeepLink: buildProjectOpenDeepLink({
       projectId: projectRow.id,
       cloneUrl,
       detectionLevel: "acp_produced",

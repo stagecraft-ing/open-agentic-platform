@@ -79,7 +79,7 @@ describe('useProjectOpenInbox', () => {
           repoName: 'foo',
           defaultBranch: 'main',
         },
-        deepLink: 'oap://project/open?project_id=p1&url=…',
+        deepLink: 'opc://project/open?project_id=p1&url=…',
         adapter: null,
         contracts: [],
         processes: [],
@@ -99,7 +99,7 @@ describe('useProjectOpenInbox', () => {
       await result.current.fetchBundle();
     });
 
-    expect(apiCallMock).toHaveBeenCalledWith('fetch_project_oap_bundle', {
+    expect(apiCallMock).toHaveBeenCalledWith('fetch_project_opc_bundle', {
       request: { project_id: 'p1' },
     });
     expect(result.current.bundle?.project.slug).toBe('foo');

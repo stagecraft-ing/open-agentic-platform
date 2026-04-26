@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useCallback, useEffect, useRef } from 'react';
 import { TabPersistenceService } from '@/services/tabPersistence';
 import { SessionPersistenceService } from '@/services/sessionPersistence';
-import type { OapBundle } from '@/types/factoryBundle';
+import type { OpcBundle } from '@/types/factoryBundle';
 
 export interface Tab {
   id: string;
@@ -17,7 +17,7 @@ export interface Tab {
   initialProjectPath?: string; // for chat tabs
   projectPath?: string; // for agent-execution tabs
   /** Spec 112 §6.3 — OAP bundle (adapter + contracts + processes + agents) for factory tabs opened via the stagecraft handoff. */
-  factoryBundle?: OapBundle;
+  factoryBundle?: OpcBundle;
   status: 'active' | 'idle' | 'running' | 'complete' | 'error';
   hasUnsavedChanges: boolean;
   order: number;

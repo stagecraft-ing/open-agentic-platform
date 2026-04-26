@@ -20,7 +20,7 @@ function makeEntry(overrides: Partial<ProjectCatalogEntry> = {}): ProjectCatalog
       cloneUrl: 'https://github.com/acme/portal.git',
       htmlUrl: 'https://github.com/acme/portal',
     },
-    oapDeepLink: 'oap://project/open?project_id=p-1',
+    opcDeepLink: 'opc://project/open?project_id=p-1',
     updatedAt: '2026-04-23T00:00:00Z',
     ...overrides,
   };

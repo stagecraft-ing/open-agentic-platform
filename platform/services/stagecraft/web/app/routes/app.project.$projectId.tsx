@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useLoaderData, Link } from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { getProject, getProjectOapBundle } from "../lib/projects-api.server";
+import { getProject, getProjectOpcBundle } from "../lib/projects-api.server";
 import { OpenInOpcButton } from "../components/OpenInOpcButton";
 
 export async function loader({
@@ -17,23 +17,23 @@ export async function loader({
   // the "Open in OPC" deep link. A failure here (e.g. legacy projects
   // pre-spec-112 with no factory binding) must not break the project
   // page; we render the layout without the button instead.
-  let oapDeepLink: string | null = null;
-  let oapAdapterName: string | null = null;
+  let opcDeepLink: string | null = null;
+  let opcAdapterName: string | null = null;
   try {
-    const bundle = await getProjectOapBundle(request, params.projectId);
-    oapDeepLink = bundle.deepLink;
-    oapAdapterName = bundle.adapter?.name ?? null;
+    const bundle = await getProjectOpcBundle(request, params.projectId);
+    opcDeepLink = bundle.deepLink;
+    opcAdapterName = bundle.adapter?.name ?? null;
   } catch {
     // swallow; the rest of the page still loads.
   }
-  return { project, oapDeepLink, oapAdapterName };
+  return { project, opcDeepLink, opcAdapterName };
 }
 
 export default function ProjectLayout() {
-  const { project, oapDeepLink, oapAdapterName } = useLoaderData() as {
+  const { project, opcDeepLink, opcAdapterName } = useLoaderData() as {
     project: { id: string; name: string; slug: string; description?: string };
-    oapDeepLink: string | null;
-    oapAdapterName: string | null;
+    opcDeepLink: string | null;
+    opcAdapterName: string | null;
   };
 
   const base = `/app/project/${project.id}`;
@@ -68,8 +68,8 @@ export default function ProjectLayout() {
             {project.slug}
           </p>
         </div>
-        {oapDeepLink && (
-          <OpenInOpcButton deepLink={oapDeepLink} adapterName={oapAdapterName} />
+        {opcDeepLink && (
+          <OpenInOpcButton deepLink={opcDeepLink} adapterName={opcAdapterName} />
         )}
       </header>
 

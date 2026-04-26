@@ -45,7 +45,7 @@ export function buildProjectCatalogUpsert(
   const htmlUrl = input.repo
     ? `https://github.com/${input.repo.githubOrg}/${input.repo.repoName}`
     : "";
-  const oapDeepLink = buildProjectOpenDeepLink({
+  const opcDeepLink = buildProjectOpenDeepLink({
     projectId: input.project.id,
     cloneUrl,
     detectionLevel:
@@ -77,7 +77,7 @@ export function buildProjectCatalogUpsert(
           htmlUrl,
         }
       : null,
-    oapDeepLink,
+    opcDeepLink,
     tombstone: input.tombstone === true,
     updatedAt,
   };

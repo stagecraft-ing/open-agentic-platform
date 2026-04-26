@@ -7,9 +7,9 @@
 //!   crate. OPC invokes it when a user opens a folder (File → Open,
 //!   recents menu, or workspace-sync surfaced project) to decide whether
 //!   the Factory Cockpit should light up.
-//! - `fetch_project_oap_bundle` — Spec 112 §6.3. Fetches the
+//! - `fetch_project_opc_bundle` — Spec 112 §6.3. Fetches the
 //!   adapter/contracts/processes/agents bundle from stagecraft for a
-//!   project the user has activated via an `oap://` deep link or via the
+//!   project the user has activated via an `opc://` deep link or via the
 //!   workspace project list. The bundle is what populates the cockpit
 //!   on the OPC side.
 
@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::State;
 
-use super::stagecraft_client::{OapBundleResponse, StagecraftState};
+use super::stagecraft_client::{OpcBundleResponse, StagecraftState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetectRequest {
@@ -67,13 +67,13 @@ pub struct FetchBundleRequest {
 pub struct FetchBundleResponse {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bundle: Option<OapBundleResponse>,
+    pub bundle: Option<OpcBundleResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
 
 #[tauri::command]
-pub async fn fetch_project_oap_bundle(
+pub async fn fetch_project_opc_bundle(
     request: FetchBundleRequest,
     state: State<'_, StagecraftState>,
 ) -> Result<FetchBundleResponse, String> {
@@ -92,7 +92,7 @@ pub async fn fetch_project_oap_bundle(
         }
     };
 
-    match client.get_project_oap_bundle(&request.project_id).await {
+    match client.get_project_opc_bundle(&request.project_id).await {
         Ok(bundle) => Ok(FetchBundleResponse {
             ok: true,
             bundle: Some(bundle),

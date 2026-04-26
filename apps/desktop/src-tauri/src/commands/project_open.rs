@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-//! Spec 112 §6.3 — `oap://project/open?...` deep-link parser.
+//! Spec 112 §6.3 — `opc://project/open?...` deep-link parser.
 //!
 //! Stagecraft's `buildProjectOpenDeepLink` emits:
 //!
-//!   oap://project/open?project_id=<uuid>&url=<clone_url>[&level=<level>]
+//!   opc://project/open?project_id=<uuid>&url=<clone_url>[&level=<level>]
 //!
 //! When that URL arrives via `tauri-plugin-deep-link`, the lib.rs
 //! dispatcher routes it through `parse_project_open_url`, then emits the
 //! parsed payload to the webview as a `project-open-request` event. The
-//! frontend listener (out of scope here) calls `fetch_project_oap_bundle`
+//! frontend listener (out of scope here) calls `fetch_project_opc_bundle`
 //! and routes to the cockpit.
 //!
 //! The parser is the single point that turns wire shape into a typed
@@ -42,7 +42,7 @@ impl std::fmt::Display for DeepLinkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidUrl(s) => write!(f, "invalid URL: {s}"),
-            Self::WrongScheme(s) => write!(f, "expected scheme `oap`, got `{s}`"),
+            Self::WrongScheme(s) => write!(f, "expected scheme `opc`, got `{s}`"),
             Self::WrongPath(s) => write!(f, "expected path `project/open`, got `{s}`"),
             Self::MissingParam(p) => write!(f, "missing required query param `{p}`"),
         }
@@ -54,11 +54,11 @@ impl std::error::Error for DeepLinkError {}
 pub fn parse_project_open_url(raw: &str) -> Result<ProjectOpenRequest, DeepLinkError> {
     let url = Url::parse(raw).map_err(|e| DeepLinkError::InvalidUrl(e.to_string()))?;
 
-    if url.scheme() != "oap" {
+    if url.scheme() != "opc" {
         return Err(DeepLinkError::WrongScheme(url.scheme().to_string()));
     }
 
-    // For oap://project/open, host = "project", path = "/open".
+    // For opc://project/open, host = "project", path = "/open".
     let host = url.host_str().unwrap_or("");
     let path = url.path().trim_start_matches('/');
     if !(host == "project" && path == "open") {
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn parses_full_url_with_level() {
-        let raw = "oap://project/open?project_id=p1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffoo.git&level=legacy_produced";
+        let raw = "opc://project/open?project_id=p1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffoo.git&level=legacy_produced";
         let parsed = parse_project_open_url(raw).expect("parses");
         assert_eq!(parsed.project_id, "p1");
         assert_eq!(parsed.clone_url, "https://github.com/acme/foo.git");
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn parses_without_level_param() {
-        let raw = "oap://project/open?project_id=p1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffoo.git";
+        let raw = "opc://project/open?project_id=p1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffoo.git";
         let parsed = parse_project_open_url(raw).expect("parses");
         assert_eq!(parsed.project_id, "p1");
         assert!(parsed.level.is_none());
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn ignores_unknown_query_params() {
-        let raw = "oap://project/open?project_id=p1&url=https%3A%2F%2Fexample.com%2Ffoo&extra=xyz";
+        let raw = "opc://project/open?project_id=p1&url=https%3A%2F%2Fexample.com%2Ffoo&extra=xyz";
         let parsed = parse_project_open_url(raw).expect("parses");
         assert_eq!(parsed.project_id, "p1");
     }
@@ -125,21 +125,21 @@ mod tests {
 
     #[test]
     fn rejects_wrong_path() {
-        let raw = "oap://workspace/sync?project_id=p1&url=x";
+        let raw = "opc://workspace/sync?project_id=p1&url=x";
         let err = parse_project_open_url(raw).expect_err("rejects");
         assert!(matches!(err, DeepLinkError::WrongPath(_)));
     }
 
     #[test]
     fn rejects_missing_project_id() {
-        let raw = "oap://project/open?url=https%3A%2F%2Fexample.com";
+        let raw = "opc://project/open?url=https%3A%2F%2Fexample.com";
         let err = parse_project_open_url(raw).expect_err("rejects");
         assert!(matches!(err, DeepLinkError::MissingParam("project_id")));
     }
 
     #[test]
     fn rejects_missing_clone_url() {
-        let raw = "oap://project/open?project_id=p1";
+        let raw = "opc://project/open?project_id=p1";
         let err = parse_project_open_url(raw).expect_err("rejects");
         assert!(matches!(err, DeepLinkError::MissingParam("url")));
     }

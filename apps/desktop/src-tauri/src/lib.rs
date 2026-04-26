@@ -47,7 +47,7 @@ use commands::factory::{
     skip_factory_step, start_factory_pipeline,
 };
 use commands::factory_project::{
-    clone_project_from_bundle, detect_factory_project, fetch_project_oap_bundle,
+    clone_project_from_bundle, detect_factory_project, fetch_project_opc_bundle,
 };
 use commands::keychain::{keychain_clear, keychain_retrieve, keychain_store};
 use commands::mcp::{
@@ -296,13 +296,14 @@ pub fn run() {
             // has registered its 'auth-callback' listener (cold launch case).
             app.manage(commands::auth::PendingAuthCallback::default());
 
-            // Listen for deep-link callbacks. Two schemes are routed here:
+            // Listen for deep-link callbacks. The `opc://` scheme carries
+            // two paths:
             //
             //   opc://auth/callback        — OPC desktop OAuth (spec 080)
-            //   oap://project/open?...     — stagecraft Open-in-OPC handoff (spec 112 §6.3)
+            //   opc://project/open?...     — stagecraft Open-in-OPC handoff (spec 112 §6.3)
             //
             // Use the plugin's canonical on_open_url API. For each known
-            // scheme we emit a webview event AND (where the auth flow needs
+            // path we emit a webview event AND (where the auth flow needs
             // it) cache the URL in managed state so the frontend can drain
             // any URL that arrived before its listener was registered.
             {
@@ -318,7 +319,7 @@ pub fn run() {
                             if let Err(e) = handle_clone.emit("auth-callback", &s) {
                                 log::error!("failed to emit auth-callback: {e}");
                             }
-                        } else if s.starts_with("oap://project/open") {
+                        } else if s.starts_with("opc://project/open") {
                             match commands::project_open::parse_project_open_url(&s) {
                                 Ok(payload) => {
                                     if let Err(e) =
@@ -331,7 +332,7 @@ pub fn run() {
                                 }
                                 Err(e) => {
                                     log::warn!(
-                                        "ignoring malformed oap://project/open URL: {e}"
+                                        "ignoring malformed opc://project/open URL: {e}"
                                     );
                                 }
                             }
@@ -508,7 +509,7 @@ pub fn run() {
             resume_factory_pipeline,
             cancel_factory_pipeline,
             detect_factory_project,
-            fetch_project_oap_bundle,
+            fetch_project_opc_bundle,
             clone_project_from_bundle,
             // Worktree agents (051)
             spawn_background_agent,

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 // Spec 112 §6.3 — "Open in OPC" handoff button.
 //
-// Renders the precomputed `oap://` deep link as a click target plus a
+// Renders the precomputed `opc://` deep link as a click target plus a
 // small disclosure that:
 //   - shows the raw deep link (copy-paste fallback for users who
 //     haven't yet installed OPC),

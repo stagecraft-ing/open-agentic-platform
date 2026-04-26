@@ -5,7 +5,7 @@
 // stable contract.
 
 import { describe, expect, test } from "vitest";
-import { buildOapBundle, cloneUrlFor } from "./oapBundleHelpers";
+import { buildOpcBundle, cloneUrlFor } from "./opcBundleHelpers";
 
 const SYNCED = new Date("2026-04-22T10:00:00.000Z");
 
@@ -33,9 +33,9 @@ const baseAdapter = {
   manifest: { kind: "adapter", capabilities: { dual_stack: true } },
 };
 
-describe("buildOapBundle", () => {
+describe("buildOpcBundle", () => {
   test("composes a fully-populated bundle for an imported factory project", () => {
-    const bundle = buildOapBundle({
+    const bundle = buildOpcBundle({
       project: baseProject,
       repo: baseRepo,
       adapter: baseAdapter,
@@ -84,7 +84,7 @@ describe("buildOapBundle", () => {
       defaultBranch: "main",
     });
     expect(bundle.deepLink).toBe(
-      `oap://project/open?project_id=${baseProject.id}&url=${encodeURIComponent(
+      `opc://project/open?project_id=${baseProject.id}&url=${encodeURIComponent(
         bundle.repo!.cloneUrl
       )}`
     );
@@ -104,7 +104,7 @@ describe("buildOapBundle", () => {
   });
 
   test("nulls deep link and repo when no primary repo is bound", () => {
-    const bundle = buildOapBundle({
+    const bundle = buildOpcBundle({
       project: baseProject,
       repo: null,
       adapter: baseAdapter,
@@ -119,7 +119,7 @@ describe("buildOapBundle", () => {
   });
 
   test("nulls adapter for non-factory projects, still returns catalog rows", () => {
-    const bundle = buildOapBundle({
+    const bundle = buildOpcBundle({
       project: { ...baseProject, factoryAdapterId: null },
       repo: baseRepo,
       adapter: null,
@@ -142,7 +142,7 @@ describe("buildOapBundle", () => {
   });
 
   test("ISO-8601 stringification is consistent across resource families", () => {
-    const bundle = buildOapBundle({
+    const bundle = buildOpcBundle({
       project: baseProject,
       repo: baseRepo,
       adapter: baseAdapter,

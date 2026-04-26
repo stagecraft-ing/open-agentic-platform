@@ -480,8 +480,8 @@ export interface ServerProjectCatalogUpsert {
     cloneUrl: string;
     htmlUrl: string;
   } | null;
-  /** Canonical oap:// deep link for this project. */
-  oapDeepLink: string;
+  /** Canonical opc:// deep link for this project. */
+  opcDeepLink: string;
   /** Marks the project as deleted — desktops drop it from local state. */
   tombstone: boolean;
   /** ISO-8601 of the underlying row's updated_at. */
@@ -705,7 +705,7 @@ export interface ServerEnvelopeWire {
     cloneUrl: string;
     htmlUrl: string;
   } | null;
-  oapDeepLink?: string;
+  opcDeepLink?: string;
   tombstone?: boolean;
 }
 

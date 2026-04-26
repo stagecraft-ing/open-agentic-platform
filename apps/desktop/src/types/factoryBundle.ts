@@ -3,12 +3,12 @@
 // Resolved on the OPC side from state stagecraft already maintains
 // (factory_adapters, factory_contracts, factory_processes, agent
 // catalog). The bundle does not travel as a payload on the deep link;
-// it is fetched via `fetch_project_oap_bundle` after handoff.
+// it is fetched via `fetch_project_opc_bundle` after handoff.
 //
 // Types are extracted here so the Tab context, panel, and inbox hook
 // can share them without circular imports.
 
-export interface OapBundleProject {
+export interface OpcBundleProject {
   id: string;
   name: string;
   slug: string;
@@ -16,14 +16,14 @@ export interface OapBundleProject {
   orgId: string;
 }
 
-export interface OapBundleRepo {
+export interface OpcBundleRepo {
   cloneUrl: string;
   githubOrg: string;
   repoName: string;
   defaultBranch: string;
 }
 
-export interface OapBundleAdapter {
+export interface OpcBundleAdapter {
   id: string;
   name: string;
   version: string;
@@ -32,7 +32,7 @@ export interface OapBundleAdapter {
   manifest: unknown;
 }
 
-export interface OapBundleContract {
+export interface OpcBundleContract {
   name: string;
   version: string;
   sourceSha: string;
@@ -40,7 +40,7 @@ export interface OapBundleContract {
   schema: unknown;
 }
 
-export interface OapBundleProcess {
+export interface OpcBundleProcess {
   name: string;
   version: string;
   sourceSha: string;
@@ -48,7 +48,7 @@ export interface OapBundleProcess {
   definition: unknown;
 }
 
-export interface OapBundleAgent {
+export interface OpcBundleAgent {
   id: string;
   name: string;
   version: number;
@@ -58,12 +58,12 @@ export interface OapBundleAgent {
   bodyMarkdown: string;
 }
 
-export interface OapBundle {
-  project: OapBundleProject;
-  repo: OapBundleRepo | null;
+export interface OpcBundle {
+  project: OpcBundleProject;
+  repo: OpcBundleRepo | null;
   deepLink: string | null;
-  adapter: OapBundleAdapter | null;
-  contracts: OapBundleContract[];
-  processes: OapBundleProcess[];
-  agents: OapBundleAgent[];
+  adapter: OpcBundleAdapter | null;
+  contracts: OpcBundleContract[];
+  processes: OpcBundleProcess[];
+  agents: OpcBundleAgent[];
 }
