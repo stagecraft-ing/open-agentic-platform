@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ---------------------------------------------------------------------------
 // Spec 108 Phase 4 (UI follow-up). Reusable detail viewer for factory
@@ -245,12 +247,15 @@ function PreviewBody({ body, kind }: { body: string; kind: ArtifactBodyKind }) {
   }
 
   if (kind === "markdown") {
-    // No markdown renderer is wired up in stagecraft yet — preserving real
-    // newlines + readable wrapping is the minimum the spec asks for.
     return (
-      <pre className="artifact-body artifact-body--markdown whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-gray-800 dark:text-gray-200">
-        {body}
-      </pre>
+      <div className="artifact-body artifact-body--markdown text-sm leading-relaxed text-gray-800 dark:text-gray-200 break-words">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={MARKDOWN_COMPONENTS}
+        >
+          {body}
+        </ReactMarkdown>
+      </div>
     );
   }
 
@@ -317,6 +322,106 @@ function TabButton({
     </button>
   );
 }
+
+// Tailwind-styled overrides for ReactMarkdown. We don't pull in the
+// @tailwindcss/typography plugin — keeping the override map tight gives
+// us dark-theme parity with the surrounding panel and avoids adding a
+// plugin just for this one surface.
+const MARKDOWN_COMPONENTS: Parameters<typeof ReactMarkdown>[0]["components"] = {
+  h1: ({ node: _n, ...props }) => (
+    <h1
+      className="mt-4 mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100"
+      {...props}
+    />
+  ),
+  h2: ({ node: _n, ...props }) => (
+    <h2
+      className="mt-4 mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100"
+      {...props}
+    />
+  ),
+  h3: ({ node: _n, ...props }) => (
+    <h3
+      className="mt-3 mb-1.5 text-base font-semibold text-gray-900 dark:text-gray-100"
+      {...props}
+    />
+  ),
+  h4: ({ node: _n, ...props }) => (
+    <h4
+      className="mt-3 mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100"
+      {...props}
+    />
+  ),
+  p: ({ node: _n, ...props }) => <p className="my-2" {...props} />,
+  ul: ({ node: _n, ...props }) => (
+    <ul className="my-2 list-disc pl-5 space-y-0.5" {...props} />
+  ),
+  ol: ({ node: _n, ...props }) => (
+    <ol className="my-2 list-decimal pl-5 space-y-0.5" {...props} />
+  ),
+  li: ({ node: _n, ...props }) => <li className="leading-relaxed" {...props} />,
+  a: ({ node: _n, ...props }) => (
+    <a
+      className="text-indigo-600 dark:text-indigo-400 hover:underline"
+      target="_blank"
+      rel="noreferrer"
+      {...props}
+    />
+  ),
+  blockquote: ({ node: _n, ...props }) => (
+    <blockquote
+      className="my-2 border-l-4 border-gray-300 dark:border-gray-600 pl-3 text-gray-600 dark:text-gray-400 italic"
+      {...props}
+    />
+  ),
+  code: ({ node: _n, className, children, ...props }) => {
+    const isBlock = typeof className === "string" && className.startsWith("language-");
+    if (isBlock) {
+      return (
+        <code
+          className={`${className ?? ""} font-mono text-[12px]`}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code
+        className="rounded bg-gray-100 dark:bg-gray-800 px-1 py-0.5 font-mono text-[12px] text-gray-800 dark:text-gray-200"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
+  pre: ({ node: _n, ...props }) => (
+    <pre
+      className="my-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 p-3 text-[12px] leading-relaxed text-gray-800 dark:text-gray-200"
+      {...props}
+    />
+  ),
+  table: ({ node: _n, ...props }) => (
+    <div className="my-2 overflow-x-auto">
+      <table className="w-full border-collapse text-left text-[13px]" {...props} />
+    </div>
+  ),
+  thead: ({ node: _n, ...props }) => (
+    <thead className="border-b border-gray-300 dark:border-gray-600" {...props} />
+  ),
+  th: ({ node: _n, ...props }) => (
+    <th className="px-2 py-1 font-semibold text-gray-900 dark:text-gray-100" {...props} />
+  ),
+  td: ({ node: _n, ...props }) => (
+    <td
+      className="border-t border-gray-200 dark:border-gray-800 px-2 py-1 align-top"
+      {...props}
+    />
+  ),
+  hr: ({ node: _n, ...props }) => (
+    <hr className="my-3 border-gray-200 dark:border-gray-700" {...props} />
+  ),
+};
 
 function ProvRow({
   label,
