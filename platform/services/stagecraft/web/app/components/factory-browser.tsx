@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import type { FactoryResourceSummary } from "../lib/factory-api.server";
+import { ArtifactBodyViewer } from "./artifact-body-viewer";
 
 // ---------------------------------------------------------------------------
 // Spec 108 Phase 4 — shared list+detail browser used by the adapter, contract
@@ -126,58 +127,18 @@ function DetailPanel({
   detail: FactoryBrowserDetail;
   bodyLabel: string;
 }) {
-  const json = JSON.stringify(detail.body, null, 2);
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
-      <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h3 className="font-mono text-base font-semibold text-gray-900 dark:text-gray-100 break-all">
-            {detail.name}
-          </h3>
-          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
-            v{detail.version.slice(0, 12)}
-          </span>
-        </div>
-        <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
-          <ProvRow label="source sha" value={detail.sourceSha} mono />
-          <ProvRow
-            label="synced at"
-            value={new Date(detail.syncedAt).toLocaleString()}
-          />
-        </dl>
-      </div>
-      <div className="px-4 py-3">
-        <div className="text-[11px] uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400">
-          {bodyLabel}
-        </div>
-        <pre className="mt-2 max-h-[60vh] overflow-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 p-3 text-[11px] leading-relaxed text-gray-800 dark:text-gray-200">
-          {json}
-        </pre>
-      </div>
-    </div>
-  );
-}
-
-function ProvRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex gap-2 min-w-0">
-      <dt className="text-gray-500 dark:text-gray-400">{label}</dt>
-      <dd
-        className={`text-gray-900 dark:text-gray-200 truncate ${
-          mono ? "font-mono" : ""
-        }`}
-        title={value}
-      >
-        {value}
-      </dd>
+    <div className="max-h-[80vh]">
+      <ArtifactBodyViewer
+        artifact={{
+          name: detail.name,
+          version: detail.version,
+          sourceSha: detail.sourceSha,
+          syncedAt: detail.syncedAt,
+          body: detail.body,
+        }}
+        label={bodyLabel}
+      />
     </div>
   );
 }
