@@ -10,6 +10,7 @@ export default function SettingsLayout() {
 
   const nav = [
     { to: base, label: "General", end: true },
+    { to: `${base}/repos`, label: "Repositories", end: false },
     { to: `${base}/connectors`, label: "Connectors", end: false },
     { to: `${base}/github-pat`, label: "GitHub PAT", end: false },
   ];

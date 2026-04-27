@@ -49,6 +49,7 @@ export default [
       route("deploys", "routes/app.project.$projectId.deploys.tsx"),
       route("settings", "routes/app.project.$projectId.settings.tsx", [
         index("routes/app.project.$projectId.settings._index.tsx"),
+        route("repos", "routes/app.project.$projectId.settings.repos.tsx"),
         route("connectors", "routes/app.project.$projectId.settings.connectors.tsx"),
         route("connectors/new", "routes/app.project.$projectId.settings.connectors.new.tsx"),
         route("connectors/:id", "routes/app.project.$projectId.settings.connectors.$id.tsx"),

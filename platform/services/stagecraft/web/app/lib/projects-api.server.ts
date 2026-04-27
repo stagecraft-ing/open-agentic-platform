@@ -477,6 +477,18 @@ export async function removeProjectRepo(
   ) as Promise<{ ok: true }>;
 }
 
+export async function setPrimaryProjectRepo(
+  request: Request,
+  projectId: string,
+  repoId: string
+) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/repos/${repoId}/primary`,
+    { method: "POST" }
+  ) as Promise<{ repo: any }>;
+}
+
 // Environments
 
 export async function listEnvironments(request: Request, projectId: string) {

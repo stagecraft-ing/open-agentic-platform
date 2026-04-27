@@ -790,30 +790,120 @@ export const addProjectRepo = api(
       throw APIError.invalidArgument("githubOrg and repoName are required");
     }
 
-    const [repo] = await db
-      .insert(projectRepos)
-      .values({
-        projectId: req.projectId,
-        githubOrg: req.githubOrg,
-        repoName: req.repoName,
-        defaultBranch: req.defaultBranch ?? "main",
-        isPrimary: req.isPrimary ?? false,
-      })
-      .returning();
+    // When promoting a new repo to primary, demote any existing primary
+    // in the same transaction so the per-project "exactly one primary"
+    // invariant the dashboard relies on for `canClone` (spec 113 §FR-007)
+    // holds across the insert.
+    const repo = await db.transaction(async (tx) => {
+      if (req.isPrimary) {
+        await tx
+          .update(projectRepos)
+          .set({ isPrimary: false, updatedAt: new Date() })
+          .where(
+            and(
+              eq(projectRepos.projectId, req.projectId),
+              eq(projectRepos.isPrimary, true)
+            )
+          );
+      }
 
-    await db.insert(auditLog).values({
-      actorUserId: auth.userID,
-      action: "project_repo.add",
-      targetType: "project_repo",
-      targetId: repo.id,
-      metadata: {
-        projectId: req.projectId,
-        githubOrg: req.githubOrg,
-        repoName: req.repoName,
-      },
+      const [inserted] = await tx
+        .insert(projectRepos)
+        .values({
+          projectId: req.projectId,
+          githubOrg: req.githubOrg,
+          repoName: req.repoName,
+          defaultBranch: req.defaultBranch ?? "main",
+          isPrimary: req.isPrimary ?? false,
+        })
+        .returning();
+
+      await tx.insert(auditLog).values({
+        actorUserId: auth.userID,
+        action: "project_repo.add",
+        targetType: "project_repo",
+        targetId: inserted.id,
+        metadata: {
+          projectId: req.projectId,
+          githubOrg: req.githubOrg,
+          repoName: req.repoName,
+          isPrimary: req.isPrimary ?? false,
+        },
+      });
+
+      return inserted;
     });
 
     return { repo };
+  }
+);
+
+// Spec 113 follow-up — explicit primary swap for the multi-repo workflow
+// (dev / prod / experimental). Demotes the current primary and promotes
+// the requested row in one transaction so the dashboard's `canClone`
+// flag never observes a "no primary" or "two primaries" intermediate.
+export const setPrimaryProjectRepo = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/projects/:projectId/repos/:id/primary",
+  },
+  async (req: { projectId: string; id: string }): Promise<{ repo: RepoRow }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+
+    const [target] = await db
+      .select()
+      .from(projectRepos)
+      .where(
+        and(
+          eq(projectRepos.id, req.id),
+          eq(projectRepos.projectId, req.projectId)
+        )
+      )
+      .limit(1);
+
+    if (!target) {
+      throw APIError.notFound("repo not found");
+    }
+    if (target.isPrimary) {
+      return { repo: target };
+    }
+
+    const promoted = await db.transaction(async (tx) => {
+      await tx
+        .update(projectRepos)
+        .set({ isPrimary: false, updatedAt: new Date() })
+        .where(
+          and(
+            eq(projectRepos.projectId, req.projectId),
+            eq(projectRepos.isPrimary, true)
+          )
+        );
+
+      const [row] = await tx
+        .update(projectRepos)
+        .set({ isPrimary: true, updatedAt: new Date() })
+        .where(eq(projectRepos.id, req.id))
+        .returning();
+
+      await tx.insert(auditLog).values({
+        actorUserId: auth.userID,
+        action: "project_repo.set_primary",
+        targetType: "project_repo",
+        targetId: req.id,
+        metadata: {
+          projectId: req.projectId,
+          githubOrg: row.githubOrg,
+          repoName: row.repoName,
+        },
+      });
+
+      return row;
+    });
+
+    return { repo: promoted };
   }
 );
 
