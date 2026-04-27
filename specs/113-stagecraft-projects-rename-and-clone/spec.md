@@ -2,8 +2,8 @@
 id: "113-stagecraft-projects-rename-and-clone"
 slug: stagecraft-projects-rename-and-clone
 title: Stagecraft Projects Rename + In-Org Project Clone
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-26"
 risk: medium
