@@ -77,7 +77,7 @@ export async function action({ request }: { request: Request }) {
 
 type Tab = "mine" | "shared" | "gallery";
 
-export default function Dashboard() {
+export default function ProjectsIndex() {
   const { projects, destinationGithubOrgLogin } = useLoaderData() as LoaderData;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -118,7 +118,7 @@ export default function Dashboard() {
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-            Dashboard
+            Projects
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Manage your projects

@@ -40,7 +40,7 @@ export async function loader({ request }: { request: Request }) {
 }
 
 const NAV_ITEMS = [
-  { to: "/app", label: "Dashboard", end: true },
+  { to: "/app", label: "Projects", end: true },
   { to: "/app/factory", label: "Factory", end: false },
   { to: "/app/workspace/agents", label: "Agents", end: false },
 ];

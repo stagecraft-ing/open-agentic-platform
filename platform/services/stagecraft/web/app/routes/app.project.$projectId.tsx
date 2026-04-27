@@ -51,7 +51,7 @@ export default function ProjectLayout() {
         <div>
           <nav className="text-xs text-gray-500 dark:text-gray-400 mb-1">
             <Link to="/app" className="hover:text-gray-700 dark:hover:text-gray-300">
-              Dashboard
+              Projects
             </Link>
             <span className="mx-1">/</span>
             <span className="text-gray-700 dark:text-gray-300">{project.name}</span>
