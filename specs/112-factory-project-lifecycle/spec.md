@@ -23,6 +23,7 @@ depends_on:
   - "087"  # unified-workspace-architecture (duplex channel, workspace-as-atom)
   - "094"  # unified-artifact-store (where emitted artifacts land)
   - "108"  # factory-as-platform-feature (translator, factory_adapters/contracts/processes tables)
+  - "109"  # factory-pat-and-pubsub-sync (resolveProjectToken, project_github_pats, installation broker)
   - "110"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
   - "111"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
 implements:
@@ -31,10 +32,13 @@ implements:
   - path: platform/services/stagecraft/api/factory/translator.ts
   - path: platform/services/stagecraft/api/projects/create.ts
   - path: platform/services/stagecraft/api/projects/import.ts
+  - path: platform/services/stagecraft/api/projects/opcBundle.ts
+  - path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts
   - path: platform/services/stagecraft/api/projects/scaffold/
   - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
   - path: platform/services/stagecraft/web/app/routes/app.projects.import.tsx
   - path: apps/desktop/src-tauri/src/commands/factory_project.rs
+  - path: apps/desktop/src-tauri/src/commands/keychain.rs
   - path: apps/desktop/src/routes/factory/ProjectCockpit.tsx
 ---
 
@@ -448,7 +452,7 @@ the code.
 
 OAP does not import code from `template-distributor` — the absorbing
 PR rewrites the six operations above in stagecraft idioms. The
-external repo lives outside this project's control; §9 Phase 8
+external repo lives outside this project's control; §9 Phase 9
 describes what OAP retires on its side, not the upstream repo's fate.
 
 ### 5.4 Stagecraft–OPC boundary
@@ -480,6 +484,15 @@ No ongoing lifecycle operation executes on stagecraft. "Birth on
 stagecraft, life on OPC" is the invariant; a future spec may dispatch
 non-Node-24 births to OPC but will not move post-birth execution onto
 stagecraft.
+
+The clone-token mechanics described in §6.4 apply identically to the
+Create path: the success page's `opc_deep_link` resolves a fresh clone
+token at the moment OPC fetches the bundle (not at deep-link emission
+time), and OPC threads that token into the local clone subprocess and
+the factory engine launch. Create is in fact the easier case — for a
+just-created repo, the org's GitHub App installation is guaranteed
+present, so token resolution always lands on the installation-token
+branch (never the project-PAT fallback).
 
 ## 6. Stagecraft Import Path
 
@@ -549,14 +562,25 @@ translated `.factory/pipeline-state.json` in the source repo.
    The success page renders this link plus an "install OPC" affordance
    for users without OPC installed.
 
-2. **Local clone.** OPC, on activation, clones `clone_url` locally if
-   not already present. The cloned repo carries
-   `.factory/pipeline-state.json` written by the Import PR (§6.2 step 4).
+2. **Bundle fetch.** OPC fetches the bundle from
+   `GET /api/projects/:projectId/opc-bundle` *before* attempting any
+   clone. The bundle response carries (a) the four resolved entities
+   listed in step 3, and (b) a short-lived `clone_token` resolved per
+   §6.4. Fetching the bundle first means OPC never has to retry the
+   clone after a 401; the token is already in hand when the subprocess
+   spawns.
 
-3. **Bundle resolution.** OPC binds the local checkout to the workspace
-   via the existing duplex channel (spec 087) and resolves four things —
-   none of which travel on the wire as a new payload; they are reads
-   against state stagecraft already maintains:
+3. **Local clone.** OPC clones `clone_url` locally if not already
+   present, injecting the bundle's `clone_token` into the subprocess
+   per §6.4. The cloned repo carries `.factory/pipeline-state.json`
+   written by the Import PR (§6.2 step 4). Post-clone, OPC sets the
+   recorded `git remote origin` URL back to the bare HTTPS form so the
+   token does not sit in `.git/config`.
+
+4. **Bundle resolution.** OPC binds the local checkout to the workspace
+   via the existing duplex channel (spec 087) using the four entities
+   already retrieved in step 2 — none of which travel on the wire as a
+   new payload; they are reads against state stagecraft already maintains:
 
    - **Adapter** — the `factory_adapters` row referenced by
      `projects.factory_adapter_id` (set by Import per §6.2 step 5 from
@@ -571,25 +595,190 @@ translated `.factory/pipeline-state.json` in the source repo.
      agent overrides are out of scope here; a future spec may introduce
      them.
 
-4. **Cockpit activation.** OPC opens Factory Cockpit (§4.2) with the
+5. **Cockpit activation.** OPC opens Factory Cockpit (§4.2) with the
    L1-translated `pipeline-state.json` and the resolved bundle. The
    cockpit's headline action for a freshly-imported project is **Run
    next ACP stage** (§4.2) — the modular ACP flow begins from the
    earliest non-completed translated stage.
 
-5. **First run dispatch.** When the user clicks Run next ACP stage, the
+6. **First run dispatch.** When the user clicks Run next ACP stage, the
    cockpit dispatches via the existing spec 110 `factory.run.request`
-   envelope. Nothing on the wire changes — the bundle is a resolution
-   on the OPC side, not a new envelope payload. Knowledge bundles and
-   business docs continue to materialise per spec 110 §2.3.
+   envelope. The factory engine subprocess inherits a `GITHUB_TOKEN`
+   environment variable holding the current clone token (§6.4). The
+   spec 110 envelope payload itself does not carry the token — token
+   threading is an OPC-local concern. Knowledge bundles and business
+   docs continue to materialise per spec 110 §2.3.
 
-The bundle is therefore deliberately small on the wire (deep link
-identifiers only) and large in OPC (adapter + contracts + processes +
-agents pulled from the catalog the workspace already syncs). The
-authority invariant from spec 087 holds: the GitHub repo is the
-source-of-truth handoff for project content; stagecraft is the
-source-of-truth handoff for governance state; OPC composes the two and
-runs.
+The deep link is therefore deliberately small on the wire (identifiers
+only — never a token), and the bundle response is large (adapter +
+contracts + processes + agents pulled from the catalog the workspace
+already syncs, plus a short-lived clone token derived from spec 109
+state). The authority invariant from spec 087 holds: the GitHub repo
+is the source-of-truth handoff for project content; stagecraft is the
+source-of-truth handoff for governance state, including the
+authoritative long-lived PAT; OPC composes the two, holds only
+short-lived derived credentials, and runs.
+
+### 6.4 Bundle authentication and pipeline token threading
+
+The handoff bundle (Create §5.4 success page, Import §6.3 Open-in-OPC)
+is the only path by which OPC obtains the GitHub credentials it needs
+to (a) clone a private project repo, and (b) run the factory pipeline
+against GitHub-backed adapters/contracts. This subsection specifies
+how the credential travels — short-lived, derived, never the
+authoritative PAT.
+
+#### 6.4.1 Token shape and source
+
+The bundle carries a **clone token**, not a PAT. The clone token is
+whatever spec 109's `resolveProjectToken(orgId, projectId,
+targetGithubOrgLogin, { contents: "read", metadata: "read" })`
+returns — either:
+
+- A GitHub App **installation token** (TTL ~1h, revocable at the org
+  level, audited via spec 109 §8). Preferred path; always taken when
+  the target GitHub org has an active App installation for the OAP
+  org.
+- A **project PAT** loaded from `project_github_pats` (long-lived,
+  org-encrypted, used only when the target org has no App
+  installation — typically external-org imports). The PAT itself is
+  what the bundle returns in this branch; OAP cannot mint a derived
+  short-lived form of an arbitrary PAT.
+- `null` for public repos. OPC clones anonymously; the factory engine
+  runs with no `GITHUB_TOKEN` set and falls back to anonymous calls
+  (rate-limited).
+
+The bundle response surfaces both fields: `clone_token.value` and
+`clone_token.source` (one of `github_installation` |
+`project_github_pat` | `null`). OPC's refresh logic (§6.4.4) only
+fires for `github_installation` — PATs do not expire on a schedule.
+
+#### 6.4.2 Bundle endpoint extension
+
+`platform/services/stagecraft/api/projects/opcBundle.ts` is extended:
+
+```ts
+type OpcBundle = {
+  // existing fields: adapter, contracts, processes, agents, ...
+  clone_token: {
+    value: string;
+    source: "github_installation" | "project_github_pat";
+    expires_at: string | null;  // ISO-8601; null for project_github_pat
+  } | null;
+};
+```
+
+Implementation: the handler resolves `targetGithubOrgLogin` from the
+`project_repos.github_org` row, then calls `resolveProjectToken` with
+`{ contents: "read", metadata: "read" }`. On resolution failure (App
+broker timeout, PAT decrypt error), the bundle handler returns 503
+with an actionable error rather than degrading to `null` — silent
+degradation would surface as "private repo, anonymous clone failed"
+deep in the OPC subprocess.
+
+A separate **refresh endpoint** `GET /api/projects/:projectId/clone-token`
+returns just the `clone_token` field with the same resolution logic.
+OPC calls this when the cached token is within a refresh window
+(§6.4.4); fetching the full bundle on every refresh is wasteful.
+
+#### 6.4.3 OPC-side clone injection
+
+`apps/desktop/src-tauri/src/commands/factory_project.rs::clone_project_from_bundle`:
+
+- `CloneProjectRequest` gains a `github_token: Option<String>` field.
+- Before invoking `Command::new("git")`, the `clone_url` is rewritten
+  to `https://x-access-token:<token>@github.com/<owner>/<repo>.git`
+  for the subprocess only. The original `clone_url` is preserved.
+- The token MUST NOT be passed via `git config` or any persistent
+  state. Token-bearing URL is local to the `Command::new("git")` args
+  vector for one invocation.
+- Post-clone, `git remote set-url origin <bare_clone_url>` runs to
+  guarantee the token is not written into `.git/config` by the clone
+  itself. (Modern git does not write the URL back, but the explicit
+  reset is a belt-and-braces invariant.)
+- Error output from the subprocess MUST be scrubbed of any token
+  substring before logging or surfacing to the UI.
+
+#### 6.4.4 OPC-side persistence and refresh
+
+The clone token (NOT the long-lived PAT, even when the resolution
+source is `project_github_pat`) is stored in the OS keychain via the
+existing `apps/desktop/src-tauri/src/commands/keychain.rs` abstraction
+under the slot `github-clone-token:<project_id>`. Stored alongside is
+the `expires_at` value as a separate keychain entry
+`github-clone-token-expiry:<project_id>`, or as a JSON-encoded blob
+under one slot — implementation-defined.
+
+Refresh policy:
+
+- **Installation tokens** (1h TTL): OPC fetches a fresh token from
+  the refresh endpoint when the cached token has less than 5 minutes
+  of remaining TTL, or on any 401 response from a GitHub call made
+  through this token.
+- **Project PATs** (no TTL): OPC re-fetches only on 401. PATs that
+  fail are flagged in the cockpit with a "PAT may be invalid or
+  rotated" actionable error pointing the user at stagecraft's
+  `/app/project/:id/settings/github-pat` page.
+- **Workspace switch / OPC restart**: cached tokens persist across
+  restarts but are re-validated on first GitHub call after restart.
+
+The long-lived PAT NEVER crosses the Stagecraft → OPC boundary.
+When `clone_token.source == "project_github_pat"`, OPC holds a copy
+of the same long-lived secret that lives in
+`project_github_pats` — this is an explicit MVP compromise (§10).
+
+#### 6.4.5 Factory pipeline threading
+
+`crates/axiomregent/src/github/client.rs:9-31` already accepts
+`GITHUB_TOKEN` from the environment as a bearer token, with the
+existing precedence: `PLATFORM_GITHUB_TOKEN_URL` (broker URL) →
+`GITHUB_TOKEN` (raw token) → anonymous. No engine change is needed.
+
+When OPC launches the factory engine subprocess (per spec 110
+`factory.run.request` dispatch), it sets:
+
+```
+GITHUB_TOKEN=<clone_token.value>
+```
+
+in the subprocess environment, scoped to that subprocess only.
+`crates/factory-engine/` does not touch `GITHUB_TOKEN` directly; the
+engine launches axiomregent and inherits the env. Adapters (e.g.
+`aim-vue-node`) that shell out to `git` for sub-operations get the
+same env via standard subprocess inheritance.
+
+For long-running pipelines whose total runtime may exceed the
+installation-token TTL, OPC re-resolves the token between sequential
+factory-stage subprocesses. A single stage that exceeds 1h is out of
+scope for MVP (§10); the factory's seven ACP stages are designed to
+be sub-1h units, and adapters are expected to fan out work
+accordingly.
+
+#### 6.4.6 Audit and observability
+
+- **Stagecraft side**: every `resolveProjectToken` call already emits
+  the spec 109 §8 audit event (`project.token.resolved`) with
+  `{ orgId, projectId, source, requestor }`. OPC bundle fetches
+  reuse this — no new event type is introduced.
+- **OPC side**: token fetches and refreshes do not emit local audit
+  events. The Stagecraft-side trail is the authoritative record of
+  who minted what, when. OPC's only token-related observability is a
+  cockpit indicator showing the current token's source and (for
+  installation tokens) time-to-refresh.
+- **Token-bearing log scrubbing** is a workflow MUST: OPC log
+  formatters strip any `x-access-token:` URL fragment and any
+  `Authorization: Bearer …` header before persistence.
+
+#### 6.4.7 Public-repo path
+
+For repos with no installation and no PAT (`clone_token == null`),
+OPC clones anonymously. The factory engine runs without
+`GITHUB_TOKEN` and is rate-limited per GitHub's anonymous-API rules.
+The cockpit surfaces a banner inviting the user to register a PAT or
+install the OAP App if rate-limit errors begin to surface. This is
+the only path that a Stagecraft 503 (token resolution hard failure)
+must NOT be confused with — `null` is a valid resolution; 503 means
+the resolver itself failed.
 
 ## 7. State Authority and Sync
 
@@ -690,7 +879,34 @@ Each phase is independently mergeable and ends in a runnable state.
   `projects` row references the correct `factory_adapter_id`. Raw
   uploads are retrievable from the workspace bucket.
 
-**Phase 6 — Stagecraft Import.**
+**Phase 6 — Bundle authentication and pipeline token threading.**
+- **Sequencing:** depends on spec 109 (already shipped — `resolveProjectToken`,
+  `project_github_pats`, installation broker). Lands before Phase 7
+  (Stagecraft Import) because external-org Imports cannot clone
+  without a working PAT path; Create (Phase 5) can ship before this
+  phase only because the immediate post-Create clone of a just-pushed
+  repo runs in the same App-installation context that already exists.
+- Extend `platform/services/stagecraft/api/projects/opcBundle.ts` per
+  §6.4.2: bundle response gains `clone_token`; new
+  `GET /api/projects/:projectId/clone-token` refresh endpoint.
+- Extend `apps/desktop/src-tauri/src/commands/factory_project.rs`:
+  `CloneProjectRequest` gains `github_token: Option<String>`; URL
+  rewrite per §6.4.3; post-clone `git remote set-url` reset; log
+  scrubbing.
+- Extend `apps/desktop/src-tauri/src/commands/keychain.rs` with
+  `github-clone-token:<project_id>` slots and TTL handling.
+- OPC factory-engine launch path threads `GITHUB_TOKEN=<clone_token>`
+  into the subprocess env (§6.4.5).
+- Exit criteria: (a) cloning a private external-org repo with a
+  configured `project_github_pat` succeeds via the bundle path; (b)
+  `.git/config` contains no token after clone; (c) clone-subprocess
+  log output is scrubbed of token substrings; (d) factory engine
+  subprocess inherits `GITHUB_TOKEN`; (e) installation-token refresh
+  fires within 5 min of expiry; (f) on PAT 401, the cockpit surfaces
+  the actionable error pointing at
+  `/app/project/:id/settings/github-pat`.
+
+**Phase 7 — Stagecraft Import.**
 - Land `api/projects/import.ts` and the `/app/projects/import` route.
 - Exit criteria: importing cfs-womens-shelter (fully executed — all 5
   legacy stages marked complete) via the web UI produces a `projects`
@@ -701,7 +917,7 @@ Each phase is independently mergeable and ends in a runnable state.
   Importing a scaffold-only or non-factory repo is rejected. Importing
   an L2 AcpProduced project registers without a PR.
 
-**Phase 7 — Workspace sync and OPC project list.**
+**Phase 8 — Workspace sync and OPC project list.**
 - Add `project.catalog.upsert` envelope variant; reuse the spec 111 sync
   pattern.
 - Add a "Projects" panel in OPC showing workspace projects with local
@@ -709,7 +925,7 @@ Each phase is independently mergeable and ends in a runnable state.
 - Exit criteria: creating or importing in stagecraft updates a connected
   OPC's project list without a restart.
 
-**Phase 8 — template-distributor retirement (OAP-side).**
+**Phase 9 — template-distributor retirement (OAP-side).**
 - Remove remaining references to `template-distributor` from this
   repo's docs, commands, and agent context files.
 - Stop invoking or linking to the external service from stagecraft,
@@ -720,7 +936,7 @@ Each phase is independently mergeable and ends in a runnable state.
   accessible only via stagecraft. The fate of the external GitHub
   repo is not governed by this spec — OAP does not own or control it.
 
-**Phase 9 — Legacy prompt-file retirement.**
+**Phase 10 — Legacy prompt-file retirement.**
 - Confirm (already enforced by Phase 5 exit criteria) that
   `prestart-prompt.txt`, `start-prompt.txt`, and
   `reconciliation-prompt.txt` are absent from newly-created project
@@ -785,6 +1001,40 @@ Each phase is independently mergeable and ends in a runnable state.
   failure either delete the orphan repo or mark it `orphaned` with a
   reclaim action in the admin UI. The Express predecessor leaves
   orphans silently; this regression must be closed in Phase 5.
+
+- **Long-lived PAT crossing the Stagecraft → OPC boundary.** When
+  the resolution source is `project_github_pat` (external-org Import
+  with no App installation), §6.4.4 acknowledges OPC holds a copy of
+  the same long-lived secret that lives in `project_github_pats`.
+  This is an explicit MVP compromise — short-lived derivation of an
+  arbitrary user-supplied PAT is not possible without a GitHub API
+  affordance that does not exist. Mitigation: OPC keeps the PAT only
+  in OS keychain, never in plaintext config; rotation in Stagecraft's
+  `/app/project/:id/settings/github-pat` invalidates the OPC copy on
+  next 401. A future spec MAY introduce a Stagecraft-mediated
+  short-lived clone proxy (Stagecraft proxies git operations using
+  the PAT internally, returning a SAS-like URL to OPC) — out of
+  scope for MVP given the operational complexity.
+
+- **Token expiry mid-pipeline-stage.** Installation tokens have a 1h
+  TTL; a single factory-stage subprocess running close to or past
+  that boundary will see 401 responses from GitHub mid-flight.
+  §6.4.5 mitigates by re-resolving between sequential stages, which
+  covers the common case (sub-1h stages). Adapters that internally
+  perform multi-hour git operations are out of scope; a future spec
+  may add a token-refresh sidecar (file-watched token rotation, or a
+  SIGUSR1-style signal) so a long-running subprocess can pick up a
+  fresh token without restart.
+
+- **Token leak surface.** The token-bearing URL (`https://x-access-token:<t>@…`)
+  is the highest-risk artifact in this flow. §6.4.3 mandates that it
+  exists only in the `Command::new("git")` args vector for one
+  invocation. The Phase 6+ implementation MUST include unit tests
+  asserting (a) `.git/config` contains no token after clone, (b) any
+  log line generated by the clone subprocess is scrubbed of token
+  substrings, (c) the token field is not written to OPC's IndexedDB
+  state, only OS keychain. A regression on any of these is a
+  security incident.
 
 ## 11. Non-Goals
 
