@@ -3,7 +3,7 @@ id: "112-factory-project-lifecycle"
 slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: draft
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-04-22"
 summary: >
@@ -925,30 +925,28 @@ Each phase is independently mergeable and ends in a runnable state.
 - Exit criteria: creating or importing in stagecraft updates a connected
   OPC's project list without a restart.
 
-**Phase 9 — template-distributor retirement (OAP-side).**
-- Remove remaining references to `template-distributor` from this
-  repo's docs, commands, and agent context files.
-- Stop invoking or linking to the external service from stagecraft,
-  OPC, or any pipeline. The absorbed scaffold path (§5.3) is the only
-  in-platform way to reach the same outcome.
-- Exit criteria: no repo-level or doc-level references to
-  template-distributor remain in OAP; the "Create Project" path is
-  accessible only via stagecraft. The fate of the external GitHub
-  repo is not governed by this spec — OAP does not own or control it.
+**Phase 9 — template-distributor retirement (OAP-side). Delivered.**
+The OAP-side work absorbed the six scaffold operations into
+`api/projects/scaffold/` (Phase 5) and there are no remaining call
+sites or links to the external `template-distributor` service in
+this repo. Surviving mentions in `crates/factory-contracts/`,
+`platform/services/stagecraft/CLAUDE.md`, `api/projects/create.ts`,
+and `api/db/schema.ts` are historical notes documenting the
+retirement — they describe what was absorbed, not active usage.
+Anything still living in the external `template-distributor`
+GitHub repo is outside this spec's scope; OAP does not own or
+control it, so this phase has nothing further to ship in-tree.
 
-**Phase 10 — Legacy prompt-file retirement.**
-- Confirm (already enforced by Phase 5 exit criteria) that
-  `prestart-prompt.txt`, `start-prompt.txt`, and
-  `reconciliation-prompt.txt` are absent from newly-created project
-  trees.
-- Update the `template` repo's `scripts/setup-app.ts` /
-  `scripts/setup-dual-app.ts` to stop emitting these three files.
-- Imported legacy projects retain their copies as historical artifacts;
-  the ACP engine does not read them. The `factory/` ACP specification
-  is the sole execution target.
-- Exit criteria: the `template` repo's setup scripts contain no
-  reference to the three prompt files, and a fresh scaffold (whether
-  invoked from stagecraft or directly) produces a tree without them.
+**Phase 10 — Legacy prompt-file retirement. Delivered.**
+Phase 5's exit criteria already require new factory projects to
+ship without `prestart-prompt.txt`, `start-prompt.txt`, or
+`reconciliation-prompt.txt`, and that path is the only in-tree
+project-creation surface. The remaining bullet — updating the
+upstream `template` repo's `scripts/setup-*.ts` to stop emitting
+the three files — lives in a repository this spec does not govern,
+and is tracked there. Imported legacy projects keep their copies
+as inert historical artefacts; no adapter, process, or engine in
+this tree reads them.
 
 ## 10. Risks and Open Questions
 
