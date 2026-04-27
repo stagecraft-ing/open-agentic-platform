@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "921e2fdfa2c427265fe4d0e3fc7494d25144b78936d52dd8f65670f2b63c93de",
+    "contentHash": "bdf8f1e637cd02f470075b45b1e4c4966f9314db5677514f67db228c51fd603f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11,6 +11,18 @@
       {
         "code": "I-101",
         "message": "spec \"112-factory-project-lifecycle\" declares implements path \"crates/factory-contracts/schemas/\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/cloneHelpers.ts\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -318,7 +330,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.2.3"
+      "version": "0.2.4"
     },
     {
       "edition": "2024",
@@ -2906,12 +2918,17 @@
           "087",
           "094",
           "108",
+          "109",
           "110",
           "111"
         ],
         "implementingPaths": [
           {
             "path": "apps/desktop/src-tauri/src/commands/factory_project.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/commands/keychain.rs",
             "source": "spec-implements"
           },
           {
@@ -2944,6 +2961,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/projects/scaffold/",
             "source": "spec-implements"
           },
@@ -2957,6 +2982,46 @@
           }
         ],
         "specId": "112-factory-project-lifecycle",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "108",
+          "109",
+          "112"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/projects/clone.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/clone.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "113-stagecraft-projects-rename-and-clone",
         "specStatus": "draft"
       }
     ],

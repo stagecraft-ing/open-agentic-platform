@@ -17,12 +17,22 @@ const API_VERSION = "2022-11-28";
 // ---------------------------------------------------------------------------
 
 /**
+ * Result of a successful installation-token exchange. Spec 112 §6.4
+ * needs `expiresAt` to drive OPC-side refresh; existing callers that
+ * only care about the token destructure `.token`.
+ */
+export interface BrokeredInstallationToken {
+  token: string;
+  expiresAt: Date;
+}
+
+/**
  * Broker a scoped installation token for a given GitHub App installation.
  */
 export async function brokerInstallationToken(
   installationId: number,
   permissions: Record<string, string>
-): Promise<string> {
+): Promise<BrokeredInstallationToken> {
   const jwt = await signAppJwt();
 
   const resp = await fetch(
@@ -47,7 +57,7 @@ export async function brokerInstallationToken(
 
   const data = (await resp.json()) as { token: string; expires_at: string };
   log.info("Installation token issued", { installationId });
-  return data.token;
+  return { token: data.token, expiresAt: new Date(data.expires_at) };
 }
 
 // ---------------------------------------------------------------------------

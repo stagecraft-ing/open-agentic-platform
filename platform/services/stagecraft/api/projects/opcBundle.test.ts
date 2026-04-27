@@ -67,6 +67,7 @@ describe("buildOpcBundle", () => {
           bodyMarkdown: "# explorer",
         },
       ],
+      cloneToken: null,
     });
 
     expect(bundle.project).toEqual({
@@ -111,11 +112,13 @@ describe("buildOpcBundle", () => {
       contracts: [],
       processes: [],
       agents: [],
+      cloneToken: null,
     });
 
     expect(bundle.repo).toBeNull();
     expect(bundle.deepLink).toBeNull();
     expect(bundle.adapter).not.toBeNull();
+    expect(bundle.cloneToken).toBeNull();
   });
 
   test("nulls adapter for non-factory projects, still returns catalog rows", () => {
@@ -134,6 +137,7 @@ describe("buildOpcBundle", () => {
       ],
       processes: [],
       agents: [],
+      cloneToken: null,
     });
 
     expect(bundle.adapter).toBeNull();
@@ -165,11 +169,53 @@ describe("buildOpcBundle", () => {
         },
       ],
       agents: [],
+      cloneToken: null,
     });
 
     expect(bundle.adapter!.syncedAt).toBe(SYNCED.toISOString());
     expect(bundle.contracts[0].syncedAt).toBe(SYNCED.toISOString());
     expect(bundle.processes[0].syncedAt).toBe(SYNCED.toISOString());
+  });
+
+  test("propagates a github_installation clone token through the bundle", () => {
+    const bundle = buildOpcBundle({
+      project: baseProject,
+      repo: baseRepo,
+      adapter: baseAdapter,
+      contracts: [],
+      processes: [],
+      agents: [],
+      cloneToken: {
+        value: "ghs_FAKE_INSTALL_TOKEN",
+        source: "github_installation",
+        expiresAt: "2026-04-22T11:00:00.000Z",
+      },
+    });
+
+    expect(bundle.cloneToken).toEqual({
+      value: "ghs_FAKE_INSTALL_TOKEN",
+      source: "github_installation",
+      expiresAt: "2026-04-22T11:00:00.000Z",
+    });
+  });
+
+  test("propagates a project_github_pat clone token with null expiry", () => {
+    const bundle = buildOpcBundle({
+      project: baseProject,
+      repo: baseRepo,
+      adapter: baseAdapter,
+      contracts: [],
+      processes: [],
+      agents: [],
+      cloneToken: {
+        value: "ghp_FAKE_PAT",
+        source: "project_github_pat",
+        expiresAt: null,
+      },
+    });
+
+    expect(bundle.cloneToken?.source).toBe("project_github_pat");
+    expect(bundle.cloneToken?.expiresAt).toBeNull();
   });
 });
 

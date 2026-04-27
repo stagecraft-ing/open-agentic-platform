@@ -49,7 +49,10 @@ use commands::factory::{
 use commands::factory_project::{
     clone_project_from_bundle, detect_factory_project, fetch_project_opc_bundle,
 };
-use commands::keychain::{keychain_clear, keychain_retrieve, keychain_store};
+use commands::keychain::{
+    clone_token_clear, clone_token_load, clone_token_store, keychain_clear, keychain_retrieve,
+    keychain_store,
+};
 use commands::mcp::{
     mcp_add, mcp_add_from_claude_desktop, mcp_add_json, mcp_get, mcp_get_server_status, mcp_list,
     mcp_read_project_config, mcp_remove, mcp_reset_project_choices, mcp_save_project_config,
@@ -604,6 +607,10 @@ pub fn run() {
             keychain_store,
             keychain_retrieve,
             keychain_clear,
+            // Project clone tokens (spec 112 §6.4.4)
+            clone_token_store,
+            clone_token_load,
+            clone_token_clear,
             // Desktop OAuth (spec 080 Phase 1)
             commands::auth::auth_start_login,
             commands::auth::auth_handle_callback,

@@ -25,6 +25,12 @@ import { loadProjectPatToken } from "./projectPat";
 export type ResolvedProjectToken = {
   token: string;
   source: "github_installation" | "project_github_pat";
+  /**
+   * ISO-8601 expiry for installation tokens (~1h TTL); null for PATs
+   * which do not expire on a server-driven schedule. Spec 112 §6.4.4
+   * uses this to drive OPC's refresh window.
+   */
+  expiresAt: Date | null;
 } | null;
 
 export async function resolveProjectToken(args: {
@@ -50,11 +56,11 @@ export async function resolveProjectToken(args: {
 
   if (installation) {
     try {
-      const token = await brokerInstallationToken(
+      const { token, expiresAt } = await brokerInstallationToken(
         installation.installationId,
         args.permissions ?? { contents: "read", metadata: "read" }
       );
-      return { token, source: "github_installation" };
+      return { token, source: "github_installation", expiresAt };
     } catch (err) {
       log.warn(
         "project token: installation broker failed, falling back to project PAT",
@@ -65,7 +71,7 @@ export async function resolveProjectToken(args: {
 
   const patToken = await loadProjectPatToken(args.projectId);
   if (patToken) {
-    return { token: patToken, source: "project_github_pat" };
+    return { token: patToken, source: "project_github_pat", expiresAt: null };
   }
 
   return null;

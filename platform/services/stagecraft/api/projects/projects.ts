@@ -354,14 +354,14 @@ export const createProjectWithRepo = api(
     // Broker a scoped installation token with permissions for repo init
     let installToken: string;
     try {
-      installToken = await brokerInstallationToken(
+      ({ token: installToken } = await brokerInstallationToken(
         installation.installationId,
         {
           contents: "write",
           administration: "write",
           actions: "write",
         }
-      );
+      ));
     } catch (err) {
       const msg = String(err);
       log.error("brokerInstallationToken failed", {

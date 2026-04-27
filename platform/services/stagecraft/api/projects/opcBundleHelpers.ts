@@ -105,6 +105,26 @@ export interface OpcBundleAgent {
   bodyMarkdown: string;
 }
 
+/**
+ * Spec 112 §6.4 — short-lived clone token derived from spec 109 state.
+ *
+ * The bundle returns a token OPC threads into the git clone subprocess
+ * (`https://x-access-token:<value>@…`) and into the factory engine
+ * launch as `GITHUB_TOKEN`. The long-lived PAT itself never crosses
+ * Stagecraft → OPC except in the `project_github_pat` branch, where
+ * GitHub does not offer a derived short-lived form (§10 risk).
+ *
+ * `expiresAt` is set for `github_installation` (≈1h TTL) and null for
+ * `project_github_pat`. Public-anonymous resolution returns null at
+ * the field level — null means "clone anonymously", not "resolution
+ * failed". A resolver hard failure surfaces as 503 from the endpoint.
+ */
+export interface OpcBundleCloneToken {
+  value: string;
+  source: "github_installation" | "project_github_pat";
+  expiresAt: string | null;
+}
+
 export interface OpcBundleResponse {
   project: OpcBundleProject;
   repo: OpcBundleRepo | null;
@@ -113,12 +133,17 @@ export interface OpcBundleResponse {
   contracts: OpcBundleContract[];
   processes: OpcBundleProcess[];
   agents: OpcBundleAgent[];
+  cloneToken: OpcBundleCloneToken | null;
 }
 
 /**
  * Compose the bundle from raw DB rows. No I/O. Re-exposes
  * buildProjectOpenDeepLink with the project_id + clone URL the bundle
  * uses; OPC and the web UI both rely on the same string.
+ *
+ * `cloneToken` is resolved by the caller (the API handler) before
+ * invocation — keeping this helper pure means the unit tests can
+ * exercise shape-mapping without standing up the App-broker flow.
  */
 export function buildOpcBundle(input: {
   project: BundleProjectInput;
@@ -127,6 +152,7 @@ export function buildOpcBundle(input: {
   contracts: BundleContractInput[];
   processes: BundleProcessInput[];
   agents: BundleAgentInput[];
+  cloneToken: OpcBundleCloneToken | null;
 }): OpcBundleResponse {
   const repo = input.repo ? toBundleRepo(input.repo) : null;
   return {
@@ -148,6 +174,7 @@ export function buildOpcBundle(input: {
     contracts: input.contracts.map(toBundleContract),
     processes: input.processes.map(toBundleProcess),
     agents: input.agents.map(toBundleAgent),
+    cloneToken: input.cloneToken,
   };
 }
 

@@ -246,7 +246,7 @@ async function resolveImportToken(
 ): Promise<ResolvedImportToken> {
   const installation = await findInstallationForOwner(orgId, targetOwner);
   if (installation) {
-    const token = await brokerInstallationToken(installation.installationId, {
+    const { token } = await brokerInstallationToken(installation.installationId, {
       contents: "write",
       pull_requests: "write",
     });

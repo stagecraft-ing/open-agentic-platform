@@ -2285,8 +2285,18 @@ export const api = {
     await apiCall<void>("skip_factory_step", { runId, stepId });
   },
 
-  async resumeFactoryPipeline(runId: string, projectPath: string, adapterName: string): Promise<void> {
-    await apiCall<void>("resume_factory_pipeline", { runId, projectPath, adapterName });
+  async resumeFactoryPipeline(
+    runId: string,
+    projectPath: string,
+    adapterName: string,
+    stagecraftProjectId?: string
+  ): Promise<void> {
+    await apiCall<void>("resume_factory_pipeline", {
+      runId,
+      projectPath,
+      adapterName,
+      stagecraftProjectId,
+    });
   },
 
   async cancelFactoryPipeline(runId: string, reason: string): Promise<void> {

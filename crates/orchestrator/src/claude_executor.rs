@@ -92,6 +92,14 @@ pub struct ClaudeCodeExecutor {
     /// Base timeout in seconds for Deep-effort steps.
     /// Investigate = base/2, Quick = base/4.
     pub step_timeout_base_secs: u64,
+    /// Extra environment variables applied to each spawned `claude`
+    /// subprocess. Spec 112 §6.4.5 uses this slot to thread
+    /// `GITHUB_TOKEN=<clone-token>` into the factory pipeline so
+    /// axiomregent's GitHub client (which reads `GITHUB_TOKEN` from the
+    /// environment) authenticates as the project's installation token
+    /// or PAT without leaking the credential into OPC's process-wide
+    /// env. Empty by default.
+    extra_env: HashMap<String, String>,
 }
 
 impl ClaudeCodeExecutor {
@@ -117,6 +125,7 @@ impl ClaudeCodeExecutor {
             extended_context: false,
             thinking: None,
             step_timeout_base_secs: 300,
+            extra_env: HashMap::new(),
         }
     }
 
@@ -172,6 +181,18 @@ impl ClaudeCodeExecutor {
     /// Investigate = base/2, Quick = base/4.
     pub fn with_step_timeout(mut self, base_secs: u64) -> Self {
         self.step_timeout_base_secs = base_secs;
+        self
+    }
+
+    /// Spec 112 §6.4.5 — replace the per-subprocess extra env map.
+    ///
+    /// Applied via `cmd.env(k, v)` on each spawned `claude` invocation,
+    /// scoped to that subprocess only. OPC threads `GITHUB_TOKEN`
+    /// through this slot so axiomregent (running inside the spawned
+    /// `claude`) sees the project's clone token without OPC mutating
+    /// its own process-wide environment.
+    pub fn with_extra_env(mut self, env: HashMap<String, String>) -> Self {
+        self.extra_env = env;
         self
     }
 
@@ -272,6 +293,11 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         cmd.args(&args).current_dir(&self.project_path);
         if let Some(ref ws_id) = request.workspace_id {
             cmd.env("OPC_WORKSPACE_ID", ws_id);
+        }
+        // Spec 112 §6.4.5 — per-subprocess env (e.g. GITHUB_TOKEN). Applied
+        // here so the credential never enters OPC's process-wide env.
+        for (k, v) in &self.extra_env {
+            cmd.env(k, v);
         }
         let child = cmd
             .spawn()
@@ -453,6 +479,23 @@ mod tests {
         let out = parse_claude_output(json);
         assert_eq!(out.tokens_used, Some(150));
         assert_eq!(out.session_id.as_deref(), Some("abc-123"));
+    }
+
+    #[test]
+    fn with_extra_env_overrides_an_empty_default() {
+        let mut env = HashMap::new();
+        env.insert("GITHUB_TOKEN".into(), "ghs_FAKE".into());
+        let exec = ClaudeCodeExecutor::new(PathBuf::from(".")).with_extra_env(env);
+        // Field is private, but we can confirm via the builder's chained call:
+        // re-applying with_extra_env replaces the previous map entirely.
+        let replaced = exec.with_extra_env(HashMap::new());
+        assert!(replaced.extra_env.is_empty());
+    }
+
+    #[test]
+    fn extra_env_starts_empty_by_default() {
+        let exec = ClaudeCodeExecutor::new(PathBuf::from("."));
+        assert!(exec.extra_env.is_empty());
     }
 
     #[test]

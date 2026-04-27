@@ -16,10 +16,41 @@ use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
+use super::keychain::clone_token_load;
 use super::stagecraft_client::{StagecraftClient, StagecraftState};
 use super::sync_client::{
     FnHandler, KnowledgeBundle as WireKnowledgeBundle, ServerEnvelopeWire, SyncClientState,
 };
+
+/// Spec 112 §6.4.5 — load the project's clone token from the OS
+/// keychain and surface it as `{ GITHUB_TOKEN: <value> }` for the
+/// factory engine subprocess. Empty map when:
+///   * no `project_id` is supplied (local-only pipeline run, no
+///     stagecraft binding),
+///   * no clone token is stored (public repo, anonymous run), or
+///   * the keychain read errors (logged once, run continues
+///     anonymously — surfaces as 401 from GitHub if the run actually
+///     needs auth, and the cockpit's refresh path takes over).
+fn clone_token_env_for_project(project_id: Option<&str>) -> HashMap<String, String> {
+    let Some(pid) = project_id else {
+        return HashMap::new();
+    };
+    match clone_token_load(pid.to_string()) {
+        Ok(Some(stored)) => {
+            let mut env = HashMap::new();
+            env.insert("GITHUB_TOKEN".to_string(), stored.value);
+            env
+        }
+        Ok(None) => HashMap::new(),
+        Err(err) => {
+            eprintln!(
+                "[factory] clone token load failed for project {pid}: {err}; \
+                 starting run without GITHUB_TOKEN"
+            );
+            HashMap::new()
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Serde types — frontend-facing shapes (preserved for React compatibility)
@@ -769,6 +800,7 @@ pub async fn start_factory_pipeline(
     let manifest = start.manifest;
     let adapter_for_spawn = adapter_name.clone();
     let ctx_for_spawn = ctx.clone();
+    let project_id_for_spawn = stagecraft_project_id.clone();
     let sc_client: Option<StagecraftClient> = stagecraft_project_id
         .as_ref()
         .and_then(|_| app.try_state::<StagecraftState>())
@@ -806,11 +838,17 @@ pub async fn start_factory_pipeline(
         }
 
         // Build executor with agent prompt lookup.
+        // Spec 112 §6.4.5 — thread the project's clone token (if any) as
+        // GITHUB_TOKEN into every spawned `claude` subprocess so axiomregent
+        // authenticates against GitHub on the project's behalf without OPC's
+        // own env being mutated.
         let lookup = Arc::new(BridgeLookup(bridge.clone()));
+        let extra_env = clone_token_env_for_project(project_id_for_spawn.as_deref());
         let executor = Arc::new(
             ClaudeCodeExecutor::new(project_path.clone())
                 .with_prompt_lookup(lookup)
-                .with_max_turns(25),
+                .with_max_turns(25)
+                .with_extra_env(extra_env),
         );
 
         let options = DispatchOptions {
@@ -1524,6 +1562,7 @@ pub async fn resume_factory_pipeline(
     run_id: String,
     project_path: String,
     adapter_name: String,
+    stagecraft_project_id: Option<String>,
 ) -> Result<(), String> {
     let factory_root = resolve_factory_root()?;
     let project_path = PathBuf::from(&project_path)
@@ -1562,10 +1601,14 @@ pub async fn resume_factory_pipeline(
     let gate_handler = Arc::new(TauriGateHandler::new(app.clone()));
     let bridge = Arc::new(start.agent_bridge);
     let lookup = Arc::new(BridgeLookup(bridge.clone()));
+    // Spec 112 §6.4.5 — thread the project's clone token through resumed runs
+    // too, so re-entry after a pause does not silently downgrade to anon.
+    let extra_env = clone_token_env_for_project(stagecraft_project_id.as_deref());
     let executor = Arc::new(
         ClaudeCodeExecutor::new(project_path.clone())
             .with_prompt_lookup(lookup)
-            .with_max_turns(25),
+            .with_max_turns(25)
+            .with_extra_env(extra_env),
     );
 
     // Derive governance mode for resumed pipeline (098 Slice 2).

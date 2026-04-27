@@ -117,7 +117,7 @@ export const createFactoryProject = api(
 
     // ── 2. Resolve the GitHub App installation + token. ──────────────
     const installation = await loadActiveInstallation(auth.orgId);
-    const token = await brokerInstallationToken(installation.installationId, {
+    const { token } = await brokerInstallationToken(installation.installationId, {
       contents: "write",
       administration: "write",
       actions: "write",

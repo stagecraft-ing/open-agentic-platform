@@ -68,6 +68,10 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::keychain::keychain_store,
         crate::commands::keychain::keychain_retrieve,
         crate::commands::keychain::keychain_clear,
+        // Project clone tokens (spec 112 §6.4.4)
+        crate::commands::keychain::clone_token_store,
+        crate::commands::keychain::clone_token_load,
+        crate::commands::keychain::clone_token_clear,
         // Desktop OAuth (spec 080 Phase 1)
         crate::commands::auth::auth_start_login,
         crate::commands::auth::auth_handle_callback,

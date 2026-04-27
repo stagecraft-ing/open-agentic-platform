@@ -638,6 +638,34 @@ impl StagecraftClient {
         }
         resp.json().await.map_err(StagecraftError::Decode)
     }
+
+    /// Spec 112 §6.4.2 — refresh just the clone token.
+    ///
+    /// Cheaper than re-fetching the full bundle when an installation
+    /// token is within the 5-minute refresh window or when a 401
+    /// surfaces from a GitHub call. The response shape is a
+    /// `{ cloneToken: OpcBundleCloneToken | null }` envelope.
+    pub async fn refresh_project_clone_token(
+        &self,
+        project_id: &str,
+    ) -> Result<CloneTokenResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/clone-token",
+            self.base_url, project_id
+        );
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -992,6 +1020,19 @@ pub struct OpcBundleAgent {
     pub body_markdown: String,
 }
 
+/// Spec 112 §6.4 — short-lived clone token derived from spec 109 state.
+/// `expires_at` is set for `github_installation` (~1h TTL) and null for
+/// `project_github_pat`. The bundle returns `clone_token: None` for
+/// public repos (anonymous clone path); a hard-resolution failure on
+/// the stagecraft side surfaces as a 503 instead.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OpcBundleCloneToken {
+    pub value: String,
+    pub source: String,
+    pub expires_at: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OpcBundleResponse {
@@ -1002,6 +1043,15 @@ pub struct OpcBundleResponse {
     pub contracts: Vec<OpcBundleContract>,
     pub processes: Vec<OpcBundleProcess>,
     pub agents: Vec<OpcBundleAgent>,
+    pub clone_token: Option<OpcBundleCloneToken>,
+}
+
+/// Spec 112 §6.4.2 — refresh-endpoint response shape.
+/// Lightweight sibling of the bundle: just the token field.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CloneTokenResponse {
+    pub clone_token: Option<OpcBundleCloneToken>,
 }
 
 // ---------------------------------------------------------------------------
@@ -1080,7 +1130,12 @@ mod tests {
                 "contentHash": "h1",
                 "frontmatter": {},
                 "bodyMarkdown": "# explorer"
-            }]
+            }],
+            "cloneToken": {
+                "value": "ghs_FAKE_INSTALL_TOKEN",
+                "source": "github_installation",
+                "expiresAt": "2026-04-22T11:00:00.000Z"
+            }
         }"##;
 
         let bundle: OpcBundleResponse =
@@ -1095,6 +1150,10 @@ mod tests {
         assert_eq!(bundle.processes.len(), 0);
         assert_eq!(bundle.agents.len(), 1);
         assert_eq!(bundle.agents[0].status, "published");
+        let token = bundle.clone_token.as_ref().expect("clone token present");
+        assert_eq!(token.source, "github_installation");
+        assert_eq!(token.value, "ghs_FAKE_INSTALL_TOKEN");
+        assert_eq!(token.expires_at.as_deref(), Some("2026-04-22T11:00:00.000Z"));
     }
 
     #[test]
@@ -1112,7 +1171,8 @@ mod tests {
             "adapter": null,
             "contracts": [],
             "processes": [],
-            "agents": []
+            "agents": [],
+            "cloneToken": null
         }"##;
 
         let bundle: OpcBundleResponse =
@@ -1120,5 +1180,57 @@ mod tests {
         assert!(bundle.repo.is_none());
         assert!(bundle.deep_link.is_none());
         assert!(bundle.adapter.is_none());
+        assert!(bundle.clone_token.is_none());
+    }
+
+    #[test]
+    fn oap_bundle_response_decodes_pat_clone_token_with_null_expiry() {
+        let payload = r##"{
+            "project": {
+                "id": "p-1",
+                "name": "External",
+                "slug": "external",
+                "workspaceId": "ws-1",
+                "orgId": "org-1"
+            },
+            "repo": {
+                "cloneUrl": "https://github.com/external-org/foo.git",
+                "githubOrg": "external-org",
+                "repoName": "foo",
+                "defaultBranch": "main"
+            },
+            "deepLink": "opc://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Fexternal-org%2Ffoo.git",
+            "adapter": null,
+            "contracts": [],
+            "processes": [],
+            "agents": [],
+            "cloneToken": {
+                "value": "ghp_FAKE_PAT",
+                "source": "project_github_pat",
+                "expiresAt": null
+            }
+        }"##;
+
+        let bundle: OpcBundleResponse =
+            serde_json::from_str(payload).expect("PAT bundle decodes");
+        let token = bundle.clone_token.as_ref().expect("clone token present");
+        assert_eq!(token.source, "project_github_pat");
+        assert!(token.expires_at.is_none());
+    }
+
+    #[test]
+    fn clone_token_refresh_envelope_decodes() {
+        let payload = r##"{
+            "cloneToken": {
+                "value": "ghs_REFRESHED_TOKEN",
+                "source": "github_installation",
+                "expiresAt": "2026-04-22T12:00:00.000Z"
+            }
+        }"##;
+
+        let resp: CloneTokenResponse =
+            serde_json::from_str(payload).expect("refresh envelope decodes");
+        let token = resp.clone_token.expect("token present");
+        assert_eq!(token.value, "ghs_REFRESHED_TOKEN");
     }
 }

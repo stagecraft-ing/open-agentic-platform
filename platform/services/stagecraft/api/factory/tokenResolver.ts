@@ -52,7 +52,7 @@ export async function resolveFactoryUpstreamToken(
   if (!installation) return null;
 
   try {
-    const token = await brokerInstallationToken(installation.installationId, {
+    const { token } = await brokerInstallationToken(installation.installationId, {
       contents: "read",
       metadata: "read",
     });
