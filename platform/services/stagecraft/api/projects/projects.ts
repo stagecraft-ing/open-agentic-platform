@@ -11,8 +11,12 @@ import {
   projectMembers,
   githubInstallations,
   auditLog,
+  documentBindings,
+  knowledgeObjects,
+  factoryArtifacts,
+  factoryPipelines,
 } from "../db/schema";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql, inArray } from "drizzle-orm";
 import { hasOrgPermission } from "../auth/membership";
 import {
   brokerInstallationToken,
@@ -22,6 +26,7 @@ import {
   createOapWorkflow,
 } from "../github/repoInit";
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
+import { deleteObject } from "../knowledge/storage";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -317,15 +322,127 @@ export const deleteProject = api(
       throw APIError.notFound("project not found");
     }
 
-    await db.delete(projects).where(eq(projects.id, req.id));
+    // Resolve the workspace bucket so we can purge S3 keys after the SQL
+    // delete commits. A missing bucket name (legacy workspaces) downgrades
+    // the S3 sweep to a no-op rather than failing the delete.
+    const [ws] = await db
+      .select({ objectStoreBucket: workspaces.objectStoreBucket })
+      .from(workspaces)
+      .where(eq(workspaces.id, existing[0].workspaceId))
+      .limit(1);
+    const bucket = ws?.objectStoreBucket ?? null;
 
-    await db.insert(auditLog).values({
-      actorUserId: auth.userID,
-      action: "project.delete",
-      targetType: "project",
-      targetId: req.id,
-      metadata: { name: existing[0].name, slug: existing[0].slug },
+    // Knowledge objects bound only to this project. Workspace-scoped
+    // knowledge can be shared across projects via document_bindings, so
+    // we must NOT purge an object still referenced by another project.
+    const exclusiveKnowledge = await db
+      .select({
+        id: knowledgeObjects.id,
+        storageKey: knowledgeObjects.storageKey,
+        extractionOutput: knowledgeObjects.extractionOutput,
+      })
+      .from(knowledgeObjects)
+      .innerJoin(
+        documentBindings,
+        eq(documentBindings.knowledgeObjectId, knowledgeObjects.id)
+      )
+      .where(
+        and(
+          eq(documentBindings.projectId, req.id),
+          sql`not exists (
+            select 1 from ${documentBindings} db2
+            where db2.knowledge_object_id = ${knowledgeObjects.id}
+              and db2.project_id <> ${req.id}
+          )`
+        )
+      );
+
+    // Factory artifacts produced by this project's pipelines. The
+    // factory_pipelines → projects FK already CASCADEs the rows; this
+    // query just collects the storage_path values so the bytes don't
+    // outlive the rows.
+    const projectArtifacts = await db
+      .select({ storagePath: factoryArtifacts.storagePath })
+      .from(factoryArtifacts)
+      .innerJoin(
+        factoryPipelines,
+        eq(factoryPipelines.id, factoryArtifacts.pipelineId)
+      )
+      .where(eq(factoryPipelines.projectId, req.id));
+
+    const knowledgeIds = exclusiveKnowledge.map((k) => k.id);
+    const knowledgeKeys = new Set<string>();
+    for (const k of exclusiveKnowledge) {
+      knowledgeKeys.add(k.storageKey);
+      const extracted = readExtractedKey(k.extractionOutput);
+      if (extracted) knowledgeKeys.add(extracted);
+    }
+    const artifactKeys = new Set(projectArtifacts.map((a) => a.storagePath));
+
+    // SQL delete first. Project CASCADE cleans up the child rows
+    // (project_repos, environments, project_members, factory_pipelines,
+    // factory_artifacts, factory_policy_bundles, project_github_pats,
+    // document_bindings — the last via migration 23). Knowledge object
+    // rows are NOT cascaded (workspace-scoped) so we delete the now-
+    // exclusive set explicitly inside the same transaction.
+    await db.transaction(async (tx) => {
+      await tx.delete(projects).where(eq(projects.id, req.id));
+      if (knowledgeIds.length > 0) {
+        await tx
+          .delete(knowledgeObjects)
+          .where(inArray(knowledgeObjects.id, knowledgeIds));
+      }
+      await tx.insert(auditLog).values({
+        actorUserId: auth.userID,
+        action: "project.delete",
+        targetType: "project",
+        targetId: req.id,
+        metadata: {
+          name: existing[0].name,
+          slug: existing[0].slug,
+          purgedKnowledgeObjects: knowledgeIds.length,
+          purgedFactoryArtifacts: artifactKeys.size,
+          bucket,
+        },
+      });
     });
+
+    // S3 sweep runs after commit so a storage hiccup leaves orphaned
+    // bytes (recoverable via the admin purge-orphans endpoint) rather
+    // than rolling back a delete the user just confirmed. Per-key
+    // failures are logged and swallowed.
+    if (bucket) {
+      const allKeys = [...knowledgeKeys, ...artifactKeys];
+      let purged = 0;
+      let failed = 0;
+      for (const key of allKeys) {
+        try {
+          await deleteObject(bucket, key);
+          purged++;
+        } catch (err) {
+          failed++;
+          log.warn("project.delete: object purge failed", {
+            projectId: req.id,
+            bucket,
+            key,
+            err: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      log.info("project.delete: storage sweep done", {
+        projectId: req.id,
+        bucket,
+        purged,
+        failed,
+        candidateCount: allKeys.length,
+      });
+    } else if (knowledgeKeys.size + artifactKeys.size > 0) {
+      log.warn("project.delete: workspace has no bucket; storage sweep skipped", {
+        projectId: req.id,
+        workspaceId: existing[0].workspaceId,
+        candidateCount: knowledgeKeys.size + artifactKeys.size,
+      });
+    }
 
     // Spec 112 Phase 8 — broadcast a tombstone so connected OPCs prune
     // the row from their Projects panel without a restart. Fire-and-log.
@@ -353,6 +470,12 @@ export const deleteProject = api(
     return { ok: true };
   }
 );
+
+function readExtractedKey(extractionOutput: unknown): string | null {
+  if (!extractionOutput || typeof extractionOutput !== "object") return null;
+  const v = (extractionOutput as Record<string, unknown>).extractedStorageKey;
+  return typeof v === "string" ? v : null;
+}
 
 // ---------------------------------------------------------------------------
 // Self-Service Project Creation (spec 080 Phase 2 — FR-006)
