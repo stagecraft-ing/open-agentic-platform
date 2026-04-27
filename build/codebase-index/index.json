@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "bdf8f1e637cd02f470075b45b1e4c4966f9314db5677514f67db228c51fd603f",
+    "contentHash": "a6a525939151fd78243dbaef1f17d6caa10733db4c88aa29849b55e9549f5a0f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -22,7 +22,19 @@
       },
       {
         "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/cloneAvailability.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/cloneAvailability.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/cloneHelpers.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -3001,11 +3013,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/projects/cloneAvailability.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneAvailability.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/projects/cloneHelpers.ts",
             "source": "spec-implements"
           },
           {
             "path": "platform/services/stagecraft/api/projects/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx",
             "source": "spec-implements"
           },
           {

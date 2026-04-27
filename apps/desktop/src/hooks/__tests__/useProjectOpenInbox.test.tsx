@@ -162,6 +162,7 @@ describe('useProjectOpenInbox', () => {
         cloneUrl: 'https://github.com/acme/foo.git',
         targetDir: '/tmp/oap-projects/foo',
         defaultBranch: 'develop',
+        githubToken: null,
       },
     });
     expect(result.current.clone.path).toBe('/tmp/oap-projects/foo');

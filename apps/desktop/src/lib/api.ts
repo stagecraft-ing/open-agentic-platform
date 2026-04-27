@@ -1,5 +1,6 @@
 import { apiCall } from './apiAdapter';
 import type { HooksConfiguration } from '@/types/hooks';
+import type { StoredCloneToken } from '@/types/factoryBundle';
 
 /** Process type for tracking in ProcessRegistry */
 export type ProcessType = 
@@ -2303,4 +2304,42 @@ export const api = {
     await apiCall<void>("cancel_factory_pipeline", { runId, reason });
   },
 
+  // ── Spec 112 §6.4 — clone token persistence + refresh ──────────────────
+
+  async cloneTokenStore(
+    projectId: string,
+    value: string,
+    source: string,
+    expiresAt: string | null
+  ): Promise<void> {
+    await apiCall<void>("clone_token_store", {
+      projectId,
+      value,
+      source,
+      expiresAt,
+    });
+  },
+
+  async cloneTokenLoad(projectId: string): Promise<StoredCloneToken | null> {
+    const result = await apiCall<StoredCloneToken | null>("clone_token_load", {
+      projectId,
+    });
+    return result ?? null;
+  },
+
+  async cloneTokenClear(projectId: string): Promise<void> {
+    await apiCall<void>("clone_token_clear", { projectId });
+  },
+
+  async refreshCloneToken(projectId: string): Promise<RefreshCloneTokenResponse> {
+    return await apiCall<RefreshCloneTokenResponse>("refresh_clone_token", {
+      request: { projectId },
+    });
+  },
 };
+
+export interface RefreshCloneTokenResponse {
+  ok: boolean;
+  token?: StoredCloneToken;
+  error?: string;
+}

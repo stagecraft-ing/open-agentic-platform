@@ -48,6 +48,7 @@ use commands::factory::{
 };
 use commands::factory_project::{
     clone_project_from_bundle, detect_factory_project, fetch_project_opc_bundle,
+    refresh_clone_token,
 };
 use commands::keychain::{
     clone_token_clear, clone_token_load, clone_token_store, keychain_clear, keychain_retrieve,
@@ -514,6 +515,7 @@ pub fn run() {
             detect_factory_project,
             fetch_project_opc_bundle,
             clone_project_from_bundle,
+            refresh_clone_token,
             // Worktree agents (051)
             spawn_background_agent,
             list_background_agents,

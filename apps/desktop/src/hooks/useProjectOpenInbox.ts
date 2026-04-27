@@ -66,7 +66,13 @@ export interface InboxState {
 
 export interface InboxApi extends InboxState {
   fetchBundle: () => Promise<void>;
-  cloneProject: (targetDir: string) => Promise<void>;
+  /**
+   * Clone the handed-off repo to `targetDir`. When `githubToken` is
+   * supplied (spec 112 §6.4.3), the Tauri command rewrites the HTTPS
+   * URL to embed `x-access-token:<token>@…` for the subprocess only.
+   * Public-anon callers pass undefined.
+   */
+  cloneProject: (targetDir: string, githubToken?: string | null) => Promise<void>;
   dismiss: () => void;
 }
 
@@ -145,7 +151,7 @@ export function useProjectOpenInbox(): InboxApi {
   }, [pending]);
 
   const cloneProject = useCallback(
-    async (targetDir: string) => {
+    async (targetDir: string, githubToken?: string | null) => {
       // Prefer the bundle's repo info (post-resolve) for branch hint.
       const cloneUrl = bundle?.repo?.cloneUrl ?? pending?.cloneUrl;
       if (!cloneUrl) {
@@ -164,6 +170,7 @@ export function useProjectOpenInbox(): InboxApi {
               cloneUrl,
               targetDir,
               defaultBranch: bundle?.repo?.defaultBranch ?? null,
+              githubToken: githubToken ?? null,
             },
           }
         );

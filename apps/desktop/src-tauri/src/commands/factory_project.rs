@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::State;
 
+use super::keychain::{StoredCloneToken, clone_token_clear, clone_token_store};
 use super::stagecraft_client::{OpcBundleResponse, StagecraftState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -442,5 +443,110 @@ mod tests {
         let raw = "some unrelated error";
         assert_eq!(scrub_token(raw, None), raw);
         assert_eq!(scrub_token(raw, Some("")), raw);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Spec 112 §6.4.4 — clone-token refresh + persistence
+// ---------------------------------------------------------------------------
+//
+// `refresh_clone_token` is the single Tauri entry point the React refresh
+// loop calls. It fetches a fresh token from Stagecraft's
+// `GET /api/projects/:id/clone-token` and writes the result to the OS
+// keychain under the `github-clone-token:<project_id>` slot. When
+// Stagecraft returns null (public-anonymous resolution), the cached
+// keychain entry is cleared so the next factory run starts anonymous.
+//
+// Errors from Stagecraft (network, 401, 503) propagate as `Err(String)`
+// so the hook can distinguish "refresh failed, keep using cached
+// token" from "Stagecraft says no token available".
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefreshCloneTokenRequest {
+    pub project_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshCloneTokenResponse {
+    pub ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<StoredCloneToken>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn refresh_clone_token(
+    request: RefreshCloneTokenRequest,
+    state: State<'_, StagecraftState>,
+) -> Result<RefreshCloneTokenResponse, String> {
+    let client = match state.current() {
+        Some(c) => c,
+        None => {
+            return Ok(RefreshCloneTokenResponse {
+                ok: false,
+                token: None,
+                error: Some(
+                    "Stagecraft client is not configured. Set the stagecraft base URL \
+                     in OPC settings before refreshing clone tokens."
+                        .into(),
+                ),
+            });
+        }
+    };
+
+    let resp = match client.refresh_project_clone_token(&request.project_id).await {
+        Ok(r) => r,
+        Err(e) => {
+            return Ok(RefreshCloneTokenResponse {
+                ok: false,
+                token: None,
+                error: Some(e.to_string()),
+            });
+        }
+    };
+
+    match resp.clone_token {
+        Some(token) => {
+            let stored = StoredCloneToken {
+                value: token.value,
+                source: token.source,
+                expires_at: token.expires_at,
+            };
+            if let Err(e) = clone_token_store(
+                request.project_id.clone(),
+                stored.value.clone(),
+                stored.source.clone(),
+                stored.expires_at.clone(),
+            ) {
+                return Ok(RefreshCloneTokenResponse {
+                    ok: false,
+                    token: None,
+                    error: Some(format!("keychain persist failed: {e}")),
+                });
+            }
+            Ok(RefreshCloneTokenResponse {
+                ok: true,
+                token: Some(stored),
+                error: None,
+            })
+        }
+        None => {
+            // Stagecraft says: no token (public-anon path or repo-less project).
+            // Clear the cached slot so subsequent runs do not silently re-use a
+            // stale credential.
+            if let Err(e) = clone_token_clear(request.project_id.clone()) {
+                eprintln!(
+                    "[clone token] keychain clear failed for project {}: {e}",
+                    request.project_id
+                );
+            }
+            Ok(RefreshCloneTokenResponse {
+                ok: true,
+                token: None,
+                error: None,
+            })
+        }
     }
 }

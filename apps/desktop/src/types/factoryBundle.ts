@@ -58,6 +58,20 @@ export interface OpcBundleAgent {
   bodyMarkdown: string;
 }
 
+/**
+ * Spec 112 §6.4 — short-lived clone token derived from spec 109 state.
+ *
+ * `expiresAt` is set for `github_installation` (~1h TTL) and null for
+ * `project_github_pat`. The bundle returns `cloneToken: null` for
+ * public-anonymous repos. A hard-resolution failure on the stagecraft
+ * side surfaces as a 503 instead — never as a null clone token here.
+ */
+export interface OpcBundleCloneToken {
+  value: string;
+  source: 'github_installation' | 'project_github_pat';
+  expiresAt: string | null;
+}
+
 export interface OpcBundle {
   project: OpcBundleProject;
   repo: OpcBundleRepo | null;
@@ -66,4 +80,16 @@ export interface OpcBundle {
   contracts: OpcBundleContract[];
   processes: OpcBundleProcess[];
   agents: OpcBundleAgent[];
+  cloneToken: OpcBundleCloneToken | null;
+}
+
+/**
+ * Spec 112 §6.4.4 — keychain-persisted shape. Mirrors `StoredCloneToken`
+ * on the Rust side. The optional `expires_at` field uses snake_case to
+ * match the JSON-encoded blob the keychain stores; date is ISO-8601.
+ */
+export interface StoredCloneToken {
+  value: string;
+  source: string;
+  expires_at?: string | null;
 }
