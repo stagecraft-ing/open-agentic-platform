@@ -73,8 +73,27 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
 
 // Projects
 
+// Spec 113 §FR-039 — `hasPrimaryRepo` is computed server-side via an EXISTS
+// subquery so the projects index can hide the Clone affordance for projects
+// without a primary repo without a second round-trip.
+export interface ProjectListEntry {
+  id: string;
+  orgId: string;
+  workspaceId: string;
+  name: string;
+  slug: string;
+  description: string;
+  factoryAdapterId: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hasPrimaryRepo: boolean;
+}
+
 export async function listProjects(request: Request) {
-  return apiFetch(request, "/api/projects") as Promise<{ projects: any[] }>;
+  return apiFetch(request, "/api/projects") as Promise<{
+    projects: ProjectListEntry[];
+  }>;
 }
 
 export async function getProject(request: Request, id: string) {

@@ -12,7 +12,7 @@ import {
   githubInstallations,
   auditLog,
 } from "../db/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { hasOrgPermission } from "../auth/membership";
 import {
   brokerInstallationToken,
@@ -47,6 +47,13 @@ export type ProjectRow = {
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+};
+
+// Spec 113 §FR-039 — `listProjects` augments each project with a precomputed
+// flag so the SSR loader can hide the Clone affordance for projects with no
+// primary repo without an extra round-trip.
+export type ProjectListRow = ProjectRow & {
+  hasPrimaryRepo: boolean;
 };
 
 export type RepoRow = {
@@ -110,11 +117,31 @@ export const getOrg = api(
 
 export const listProjects = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects" },
-  async (): Promise<{ projects: ProjectRow[] }> => {
+  async (): Promise<{ projects: ProjectListRow[] }> => {
     const auth = getAuthData()!;
 
+    // Spec 113 §FR-039 — single-round-trip JOIN: each project is augmented
+    // with `hasPrimaryRepo` derived from an EXISTS subquery over
+    // `project_repos`. Lets the SSR loader compute `canClone` without a
+    // second batched call.
     const rows = await db
-      .select()
+      .select({
+        id: projects.id,
+        orgId: projects.orgId,
+        workspaceId: projects.workspaceId,
+        name: projects.name,
+        slug: projects.slug,
+        description: projects.description,
+        factoryAdapterId: projects.factoryAdapterId,
+        createdBy: projects.createdBy,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+        hasPrimaryRepo: sql<boolean>`exists (
+          select 1 from ${projectRepos}
+          where ${projectRepos.projectId} = ${projects.id}
+            and ${projectRepos.isPrimary} = true
+        )`,
+      })
       .from(projects)
       .where(eq(projects.workspaceId, auth.workspaceId))
       .orderBy(desc(projects.createdAt));

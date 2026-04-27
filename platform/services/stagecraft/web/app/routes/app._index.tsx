@@ -11,6 +11,10 @@ type ProjectRow = {
   category?: string;
   createdAt: string;
   updatedAt?: string;
+  // Spec 113 §FR-007 — `canClone` is `true` iff the source project has a
+  // primary `project_repos` row. Hides the Clone affordance for legacy
+  // projects without a repo binding.
+  canClone: boolean;
 };
 
 export async function loader({ request }: { request: Request }) {
@@ -19,7 +23,21 @@ export async function loader({ request }: { request: Request }) {
   let projects: ProjectRow[] = [];
   try {
     const res = await listProjects(request);
-    projects = res.projects as ProjectRow[];
+    projects = res.projects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      createdAt:
+        typeof p.createdAt === "string"
+          ? p.createdAt
+          : new Date(p.createdAt as unknown as string).toISOString(),
+      updatedAt:
+        typeof p.updatedAt === "string"
+          ? p.updatedAt
+          : new Date(p.updatedAt as unknown as string).toISOString(),
+      canClone: Boolean(p.hasPrimaryRepo),
+    }));
   } catch {
     // projects service may not be ready
   }
@@ -209,14 +227,16 @@ function ProjectRow({ project }: { project: ProjectRow }) {
       )}
 
       <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <IconButton
-          label="Duplicate"
-          onClick={() => {
-            /* TODO: duplicate project */
-          }}
-        >
-          <CopyIcon className="w-4 h-4" />
-        </IconButton>
+        {project.canClone && (
+          <IconButton
+            label="Clone"
+            onClick={() => {
+              /* TODO: open Clone dialog (spec 113 Phase 2) */
+            }}
+          >
+            <CopyIcon className="w-4 h-4" />
+          </IconButton>
+        )}
         <Link
           to={`/app/project/${project.id}/settings`}
           aria-label="Edit"
