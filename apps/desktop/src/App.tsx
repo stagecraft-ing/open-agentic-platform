@@ -59,6 +59,7 @@ function AppContent() {
     createMCPTab,
     createAgentsTab,
     createFactoryTab,
+    createWorkspaceProjectsTab,
   } = useTabState();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -413,6 +414,7 @@ function AppContent() {
       <CustomTitlebar
         onAgentsClick={() => createAgentsTab()}
         onFactoryClick={() => createFactoryTab()}
+        onWorkspaceProjectsClick={() => createWorkspaceProjectsTab()}
         onUsageClick={() => createUsageTab()}
         onMCPClick={() => createMCPTab()}
         onSettingsClick={() => createSettingsTab()}

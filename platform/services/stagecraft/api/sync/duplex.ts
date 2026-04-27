@@ -28,6 +28,7 @@ import {
 } from "./service";
 import { cursors } from "./store";
 import { sendAgentCatalogSnapshot } from "../agents/relay";
+import { sendProjectCatalogSnapshot } from "./projectCatalogRelay";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const SERVER_STARTED_AT = new Date().toISOString();
@@ -149,6 +150,17 @@ export const duplex = api.streamInOut<
     // a DB hiccup here must not stop the duplex session from running.
     void sendAgentCatalogSnapshot(workspaceId, handshake.clientId).catch((err) => {
       log.warn("sync: agent.catalog.snapshot post-handshake send failed", {
+        workspaceId,
+        clientId: handshake.clientId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
+
+    // Spec 112 Phase 8 — post-handshake project list, one upsert per row
+    // so the OPC's Projects panel renders without a follow-up round-trip.
+    // Same fire-and-log posture as the agent snapshot above.
+    void sendProjectCatalogSnapshot(workspaceId, handshake.clientId).catch((err) => {
+      log.warn("sync: project.catalog snapshot post-handshake send failed", {
         workspaceId,
         clientId: handshake.clientId,
         err: err instanceof Error ? err.message : String(err),

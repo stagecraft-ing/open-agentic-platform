@@ -33,6 +33,7 @@ import {
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
+import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
 import { encryptPat } from "../auth/patCrypto";
 import { classifyFormat, probeGitHub, tokenPrefix } from "../auth/patProbe";
@@ -712,7 +713,7 @@ async function insertImportedProject(input: {
     input.resolved.installation?.githubOrgLogin ?? input.parsed.owner;
   const githubInstallId = input.resolved.installation?.installationId ?? null;
   try {
-    return await db.transaction(async (tx) => {
+    const inserted = await db.transaction(async (tx) => {
       const [p] = await tx
         .insert(projects)
         .values({
@@ -755,8 +756,37 @@ async function insertImportedProject(input: {
           tokenSource: input.resolved.source,
         },
       });
-      return { id: p.id };
+      return p;
     });
+
+    // Spec 112 Phase 8 — broadcast the imported project to connected
+    // OPCs. Fire-and-log: a sync hiccup must not roll back an import the
+    // user just confirmed.
+    void publishProjectCatalogUpsert({
+      workspaceId: input.auth.workspaceId!,
+      project: {
+        id: inserted.id,
+        workspaceId: input.auth.workspaceId!,
+        name: inserted.name,
+        slug: inserted.slug,
+        description: inserted.description,
+        factoryAdapterId: input.factoryAdapterId,
+        detectionLevel: input.detectionLevel,
+        updatedAt: inserted.updatedAt,
+      },
+      repo: {
+        githubOrg,
+        repoName: input.parsed.repo,
+        defaultBranch: "main",
+      },
+    }).catch((err) => {
+      log.warn("import: catalog upsert broadcast failed", {
+        projectId: inserted.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
+
+    return { id: inserted.id };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/unique|duplicate/i.test(msg)) {

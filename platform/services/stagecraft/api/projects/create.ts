@@ -24,6 +24,7 @@ import {
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
+import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
 import { buildL0PipelineStateSeed } from "./scaffold/seedPipelineState";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
@@ -253,6 +254,33 @@ export const createFactoryProject = api(
       projectId: projectRow.id,
       cloneUrl: repoCreate.cloneUrl,
       detectionLevel: "scaffold_only",
+    });
+
+    // Spec 112 Phase 8 — broadcast the new project to connected OPCs so
+    // their Projects panel updates without a restart. Fire-and-log: a
+    // sync hiccup must not roll back the project the user just created.
+    void publishProjectCatalogUpsert({
+      workspaceId: auth.workspaceId!,
+      project: {
+        id: projectRow.id,
+        workspaceId: auth.workspaceId!,
+        name: projectRow.name,
+        slug: projectRow.slug,
+        description: projectRow.description,
+        factoryAdapterId: adapter.id,
+        detectionLevel: "scaffold_only",
+        updatedAt: projectRow.updatedAt,
+      },
+      repo: {
+        githubOrg: installation.githubOrgLogin,
+        repoName: req.repoName,
+        defaultBranch: repoCreate.defaultBranch,
+      },
+    }).catch((err) => {
+      log.warn("factory project create: catalog upsert broadcast failed", {
+        projectId: projectRow.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
     });
 
     log.info("factory project created", {

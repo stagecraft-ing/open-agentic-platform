@@ -5,7 +5,7 @@ import type { OpcBundle } from '@/types/factoryBundle';
 
 export interface Tab {
   id: string;
-  type: 'chat' | 'agent' | 'agents' | 'projects' | 'usage' | 'mcp' | 'settings' | 'claude-md' | 'claude-file' | 'agent-execution' | 'create-agent' | 'import-agent' | 'governance' | 'xray' | 'semantic-search' | 'call-graph' | 'git-context' | 'checkpoint' | 'factory' | 'portfolio' | 'promotion';
+  type: 'chat' | 'agent' | 'agents' | 'projects' | 'usage' | 'mcp' | 'settings' | 'claude-md' | 'claude-file' | 'agent-execution' | 'create-agent' | 'import-agent' | 'governance' | 'xray' | 'semantic-search' | 'call-graph' | 'git-context' | 'checkpoint' | 'factory' | 'portfolio' | 'promotion' | 'workspace-projects';
   title: string;
   sessionId?: string;  // for chat tabs
   sessionData?: any; // for chat tabs - stores full session object

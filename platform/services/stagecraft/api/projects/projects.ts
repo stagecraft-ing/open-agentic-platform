@@ -21,6 +21,7 @@ import {
   configureBranchProtection,
   createOapWorkflow,
 } from "../github/repoInit";
+import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -262,6 +263,29 @@ export const deleteProject = api(
       targetType: "project",
       targetId: req.id,
       metadata: { name: existing[0].name, slug: existing[0].slug },
+    });
+
+    // Spec 112 Phase 8 — broadcast a tombstone so connected OPCs prune
+    // the row from their Projects panel without a restart. Fire-and-log.
+    void publishProjectCatalogUpsert({
+      workspaceId: existing[0].workspaceId,
+      project: {
+        id: existing[0].id,
+        workspaceId: existing[0].workspaceId,
+        name: existing[0].name,
+        slug: existing[0].slug,
+        description: existing[0].description,
+        factoryAdapterId: existing[0].factoryAdapterId,
+        detectionLevel: null,
+        updatedAt: new Date(),
+      },
+      repo: null,
+      tombstone: true,
+    }).catch((err) => {
+      log.warn("project.delete: catalog tombstone broadcast failed", {
+        projectId: req.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
     });
 
     return { ok: true };

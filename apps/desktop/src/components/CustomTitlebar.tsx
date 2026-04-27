@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Minus, Square, X, Bot, BarChart3, Network, Factory } from 'lucide-react';
+import { Settings, Minus, Square, X, Bot, BarChart3, Network, Factory, FolderKanban } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { TooltipProvider, TooltipSimple } from '@opc/ui/tooltip-modern';
 
@@ -10,6 +10,7 @@ interface CustomTitlebarProps {
   onUsageClick?: () => void;
   onMCPClick?: () => void;
   onFactoryClick?: () => void;
+  onWorkspaceProjectsClick?: () => void;
 }
 
 export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
@@ -18,6 +19,7 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
   onUsageClick,
   onMCPClick,
   onFactoryClick,
+  onWorkspaceProjectsClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -131,6 +133,19 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
               className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
             >
               <Bot size={16} />
+            </motion.button>
+          </TooltipSimple>
+        )}
+
+        {onWorkspaceProjectsClick && (
+          <TooltipSimple content="Workspace Projects" side="bottom">
+            <motion.button
+              onClick={onWorkspaceProjectsClick}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors tauri-no-drag"
+            >
+              <FolderKanban size={16} />
             </motion.button>
           </TooltipSimple>
         )}

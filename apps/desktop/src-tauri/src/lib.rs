@@ -292,6 +292,15 @@ pub fn run() {
                 commands::agent_catalog_sync::register_agent_catalog_handlers(
                     app.handle().clone(),
                 );
+
+                // Spec 112 Phase 8: register the project catalog handler
+                // unconditionally — the panel's value is "the OPC project
+                // list updates without a restart", so there is no feature
+                // flag here. Same defensive posture as the agent handler:
+                // missing dependencies log and skip rather than crash.
+                commands::project_catalog_sync::register_project_catalog_handlers(
+                    app.handle().clone(),
+                );
             }
 
             // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)

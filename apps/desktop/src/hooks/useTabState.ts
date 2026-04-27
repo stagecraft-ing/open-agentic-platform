@@ -34,6 +34,7 @@ interface UseTabStateReturn {
   createGitContextTab: (projectPath?: string) => string | null;
   createCheckpointTab: (projectPath?: string) => string | null;
   createFactoryTab: (projectPath?: string, bundle?: OpcBundle) => string | null;
+  createWorkspaceProjectsTab: () => string | null;
   createPortfolioTab: (projectPath?: string) => string | null;
   createPromotionTab: (projectPath?: string) => string | null;
   closeTab: (id: string, force?: boolean) => Promise<boolean>;
@@ -416,6 +417,24 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab, updateTab]);
 
+  // Spec 112 Phase 8 — workspace projects panel. Single-instance tab; the
+  // panel renders the duplex-synced project list and lets the user open a
+  // row to clone (or jump to) the corresponding factory project.
+  const createWorkspaceProjectsTab = useCallback((): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'workspace-projects');
+    if (existingTab) {
+      setActiveTab(existingTab.id);
+      return existingTab.id;
+    }
+    return addTab({
+      type: 'workspace-projects',
+      title: 'Projects',
+      status: 'idle',
+      hasUnsavedChanges: false,
+      icon: 'folder',
+    });
+  }, [addTab, tabs, setActiveTab]);
+
   const createPortfolioTab = useCallback((projectPath?: string): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'portfolio');
     if (existingTab) {
@@ -550,6 +569,7 @@ export const useTabState = (): UseTabStateReturn => {
     createGitContextTab,
     createCheckpointTab,
     createFactoryTab,
+    createWorkspaceProjectsTab,
     createPortfolioTab,
     createPromotionTab,
     closeTab,

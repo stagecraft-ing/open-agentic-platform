@@ -1,0 +1,166 @@
+// Spec 112 §7 / Phase 8 — Project catalog sync relay (outbound only).
+//
+// Mirrors the spec 111 agent-catalog relay pattern. Two outbound paths:
+//
+//   create.ts / import.ts (post-insert)
+//     -> publishProjectCatalogUpsert(input)
+//        -> dispatchServerEvent(workspaceId, project.catalog.upsert)        // broadcast
+//
+//   handshake (duplex.ts)
+//     -> sendProjectCatalogSnapshot(workspaceId, clientId)
+//        -> sendTargetedServerEvent(workspaceId, clientId, project.catalog.upsert) per project
+//
+// Spec 112 §7 deliberately reuses one envelope for both live deltas
+// and the post-handshake replay — the desktop merges by `projectId`,
+// so a snapshot is just N upserts. Tombstones travel as upserts with
+// `tombstone: true`.
+
+import log from "encore.dev/log";
+import { eq } from "drizzle-orm";
+import { db } from "../db/drizzle";
+import { projectRepos, projects } from "../db/schema";
+import {
+  buildProjectCatalogUpsert,
+  type ProjectRepoForCatalog,
+  type ProjectRowForCatalog,
+} from "./projectCatalog";
+import { dispatchServerEvent, sendTargetedServerEvent } from "./service";
+
+export interface PublishProjectCatalogUpsertInput {
+  workspaceId: string;
+  project: ProjectRowForCatalog;
+  repo: ProjectRepoForCatalog | null;
+  tombstone?: boolean;
+}
+
+export interface PublishProjectCatalogUpsertResult {
+  eventId: string;
+  cursor: string;
+  delivered: number;
+}
+
+/**
+ * Broadcast a project upsert to every OPC connected to the workspace.
+ * Called from `createFactoryProject` and `importFactoryProject` after
+ * their DB transactions commit so the wire and the rows can never end
+ * up out of step.
+ */
+export async function publishProjectCatalogUpsert(
+  input: PublishProjectCatalogUpsertInput
+): Promise<PublishProjectCatalogUpsertResult> {
+  const event = buildProjectCatalogUpsert({
+    project: input.project,
+    repo: input.repo,
+    meta: { v: 1, eventId: "", sentAt: "", workspaceId: "", workspaceCursor: "" },
+    tombstone: input.tombstone === true,
+  });
+  // dispatchServerEvent stamps meta itself — strip the placeholder before handoff.
+  const { meta: _meta, ...withoutMeta } = event;
+  const result = await dispatchServerEvent(input.workspaceId, withoutMeta);
+  log.info("project.catalog: upsert broadcast dispatched", {
+    workspaceId: input.workspaceId,
+    projectId: input.project.id,
+    detectionLevel: input.project.detectionLevel,
+    tombstone: input.tombstone === true,
+    delivered: result.delivered,
+  });
+  return result;
+}
+
+/**
+ * Build the directory of projects in a workspace as one upsert per row.
+ * Each entry carries everything OPC needs to render its Projects panel
+ * without a follow-up round-trip — repo metadata, opc:// deep link, and
+ * a null `detectionLevel` (we don't persist the level on the row, so
+ * snapshots leave the desktop to reconcile on open). Tombstoned rows
+ * are excluded.
+ */
+export async function buildProjectCatalogSnapshotEntries(
+  workspaceId: string
+): Promise<
+  Array<{
+    project: ProjectRowForCatalog;
+    repo: ProjectRepoForCatalog | null;
+  }>
+> {
+  const projectRows = await db
+    .select({
+      id: projects.id,
+      workspaceId: projects.workspaceId,
+      name: projects.name,
+      slug: projects.slug,
+      description: projects.description,
+      factoryAdapterId: projects.factoryAdapterId,
+      updatedAt: projects.updatedAt,
+    })
+    .from(projects)
+    .where(eq(projects.workspaceId, workspaceId));
+
+  if (projectRows.length === 0) return [];
+
+  const repoRows = await db
+    .select({
+      projectId: projectRepos.projectId,
+      githubOrg: projectRepos.githubOrg,
+      repoName: projectRepos.repoName,
+      defaultBranch: projectRepos.defaultBranch,
+      isPrimary: projectRepos.isPrimary,
+    })
+    .from(projectRepos);
+
+  const reposByProject = new Map<string, ProjectRepoForCatalog>();
+  for (const row of repoRows) {
+    if (!row.isPrimary && reposByProject.has(row.projectId)) continue;
+    reposByProject.set(row.projectId, {
+      githubOrg: row.githubOrg,
+      repoName: row.repoName,
+      defaultBranch: row.defaultBranch,
+    });
+  }
+
+  return projectRows.map((row) => ({
+    project: {
+      id: row.id,
+      workspaceId: row.workspaceId,
+      name: row.name,
+      slug: row.slug,
+      description: row.description,
+      factoryAdapterId: row.factoryAdapterId,
+      detectionLevel: null,
+      updatedAt: row.updatedAt,
+    },
+    repo: reposByProject.get(row.id) ?? null,
+  }));
+}
+
+/**
+ * Send a targeted project catalog snapshot to a single client. Called
+ * from the duplex handshake after `sync.hello` so a reconnecting OPC
+ * sees the full project list before any incremental upserts arrive.
+ */
+export async function sendProjectCatalogSnapshot(
+  workspaceId: string,
+  clientId: string
+): Promise<{ delivered: number; entryCount: number }> {
+  const entries = await buildProjectCatalogSnapshotEntries(workspaceId);
+  let delivered = 0;
+  for (const entry of entries) {
+    const event = buildProjectCatalogUpsert({
+      project: entry.project,
+      repo: entry.repo,
+      meta: { v: 1, eventId: "", sentAt: "", workspaceId: "", workspaceCursor: "" },
+      tombstone: false,
+    });
+    const { meta: _meta, ...withoutMeta } = event;
+    const sent = await sendTargetedServerEvent(workspaceId, clientId, withoutMeta);
+    if (sent) delivered++;
+  }
+  log.info("project.catalog: snapshot sent on handshake", {
+    workspaceId,
+    clientId,
+    entryCount: entries.length,
+    delivered,
+  });
+  return { delivered, entryCount: entries.length };
+}
+

@@ -28,6 +28,7 @@ const CallGraphPanel = lazy(() => import('@/components/CallGraphPanel').then(m =
 const GitContextPanel = lazy(() => import('@/components/GitContextPanel').then(m => ({ default: m.GitContextPanel })));
 const CheckpointPanel = lazy(() => import('@/components/CheckpointPanel').then(m => ({ default: m.CheckpointPanel })));
 const FactoryPipelinePanel = lazy(() => import('@/components/factory/FactoryPipelinePanel').then(m => ({ default: m.FactoryPipelinePanel })));
+const WorkspaceProjectsPanel = lazy(() => import('@/routes/factory/WorkspaceProjectsPanel').then(m => ({ default: m.WorkspaceProjectsPanel })));
 const PortfolioPanel = lazy(() => import('@/components/PortfolioPanel').then(m => ({ default: m.PortfolioPanel })));
 const PromotionPanel = lazy(() => import('@/components/PromotionPanel').then(m => ({ default: m.PromotionPanel })));
 
@@ -436,6 +437,13 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
               projectPath={tab.projectPath}
               bundle={tab.factoryBundle}
             />
+          </div>
+        );
+
+      case 'workspace-projects':
+        return (
+          <div className="h-full">
+            <WorkspaceProjectsPanel />
           </div>
         );
 
