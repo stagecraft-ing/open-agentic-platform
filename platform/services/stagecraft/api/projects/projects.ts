@@ -137,11 +137,13 @@ export const listProjects = api(
   async (): Promise<ListProjectsResponse> => {
     const auth = getAuthData()!;
 
-    // Spec 113 §FR-039 — single-round-trip subquery: each project is
-    // augmented with `hasPrimaryRepo` and `primaryRepoName`. Lets the SSR
-    // loader compute `canClone` and pre-fill the dialog's repoName field
-    // without a second batched call.
-    const rows = await db
+    // Two-query shape (spec 113 §FR-039): pull projects, then pull
+    // primary repos for that workspace, JS-merge. Replaces an inline
+    // EXISTS subquery whose `${table.column} = true` rendering produced
+    // false negatives that hid the Clone affordance for freshly-imported
+    // projects. Matches projectCatalogRelay.ts which already used the
+    // same two-query pattern.
+    const projectRows = await db
       .select({
         id: projects.id,
         orgId: projects.orgId,
@@ -153,21 +155,36 @@ export const listProjects = api(
         createdBy: projects.createdBy,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
-        hasPrimaryRepo: sql<boolean>`exists (
-          select 1 from ${projectRepos}
-          where ${projectRepos.projectId} = ${projects.id}
-            and ${projectRepos.isPrimary} = true
-        )`,
-        primaryRepoName: sql<string | null>`(
-          select ${projectRepos.repoName} from ${projectRepos}
-          where ${projectRepos.projectId} = ${projects.id}
-            and ${projectRepos.isPrimary} = true
-          limit 1
-        )`,
       })
       .from(projects)
       .where(eq(projects.workspaceId, auth.workspaceId))
       .orderBy(desc(projects.createdAt));
+
+    const projectIds = projectRows.map((p) => p.id);
+    const primaryByProject = new Map<string, string>();
+    if (projectIds.length > 0) {
+      const repoRows = await db
+        .select({
+          projectId: projectRepos.projectId,
+          repoName: projectRepos.repoName,
+        })
+        .from(projectRepos)
+        .where(
+          and(
+            inArray(projectRepos.projectId, projectIds),
+            eq(projectRepos.isPrimary, true)
+          )
+        );
+      for (const r of repoRows) {
+        primaryByProject.set(r.projectId, r.repoName);
+      }
+    }
+
+    const rows: ProjectListRow[] = projectRows.map((p) => ({
+      ...p,
+      hasPrimaryRepo: primaryByProject.has(p.id),
+      primaryRepoName: primaryByProject.get(p.id) ?? null,
+    }));
 
     // Spec 113 §FR-008 — surface the destination GitHub org login so the
     // dialog can show it (read-only) without a second round-trip.
