@@ -178,6 +178,45 @@ impl StagecraftClient {
         req
     }
 
+    /// Spec 112 §6.3 — silent JWT refresh.
+    ///
+    /// Reads the persisted Rauthy refresh token from the OS keychain, exchanges
+    /// it at `/auth/desktop/refresh`, and rotates the in-memory + keychain
+    /// access/refresh pair. Returns Ok only when the new bearer is live;
+    /// callers retry the failing request once on success and surface the
+    /// original 401 on failure.
+    async fn refresh_jwt(&self) -> Result<(), StagecraftError> {
+        let refresh_token = keyring::Entry::new("dev.opc.stagecraft", "refresh_token")
+            .ok()
+            .and_then(|e| e.get_password().ok())
+            .ok_or_else(|| {
+                StagecraftError::Api(401, "no refresh_token in keychain".into())
+            })?;
+
+        let url = format!("{}/auth/desktop/refresh", self.base_url);
+        let body = serde_json::json!({ "refreshToken": refresh_token });
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        let data: RefreshTokenResponse =
+            resp.json().await.map_err(StagecraftError::Decode)?;
+        self.set_auth_token(&data.access_token);
+        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "refresh_token") {
+            let _ = entry.set_password(&data.refresh_token);
+        }
+        Ok(())
+    }
+
     // -- Workspace CRUD (spec 087) -------------------------------------------
 
     /// List workspaces for the authenticated user's org.
@@ -617,6 +656,10 @@ impl StagecraftClient {
     /// project, its repo, its adapter, the org's contracts and processes,
     /// and the workspace's published agent catalog. Workspace scoping is
     /// enforced server-side via the Bearer token.
+    ///
+    /// Auto-retries once on 401 by silently refreshing the Rauthy session
+    /// (refresh-token in the OS keychain) so an expired access token does
+    /// not surface to the user as a permanent inbox-banner failure.
     pub async fn get_project_opc_bundle(
         &self,
         project_id: &str,
@@ -625,18 +668,7 @@ impl StagecraftClient {
             "{}/api/projects/{}/opc-bundle",
             self.base_url, project_id
         );
-        let resp = self
-            .authed_get(&url)
-            .send()
-            .await
-            .map_err(StagecraftError::Network)?;
-        if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
-        }
-        resp.json().await.map_err(StagecraftError::Decode)
+        self.authed_json_get_with_refresh(&url).await
     }
 
     /// Spec 112 §6.4.2 — refresh just the clone token.
@@ -645,6 +677,8 @@ impl StagecraftClient {
     /// token is within the 5-minute refresh window or when a 401
     /// surfaces from a GitHub call. The response shape is a
     /// `{ cloneToken: OpcBundleCloneToken | null }` envelope.
+    ///
+    /// Same 401 → silent-refresh-and-retry as `get_project_opc_bundle`.
     pub async fn refresh_project_clone_token(
         &self,
         project_id: &str,
@@ -653,18 +687,68 @@ impl StagecraftClient {
             "{}/api/projects/{}/clone-token",
             self.base_url, project_id
         );
+        self.authed_json_get_with_refresh(&url).await
+    }
+
+    /// Internal: GET → JSON with one transparent retry on 401.
+    ///
+    /// On 401 the client attempts a Rauthy refresh-token exchange against
+    /// `/auth/desktop/refresh`. If the refresh succeeds, the original
+    /// request is replayed once with the new bearer; otherwise the original
+    /// 401 surfaces to the caller. Both retries log just the status to
+    /// avoid leaking response bodies to the structured logger.
+    async fn authed_json_get_with_refresh<T>(
+        &self,
+        url: &str,
+    ) -> Result<T, StagecraftError>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
         let resp = self
-            .authed_get(&url)
+            .authed_get(url)
             .send()
             .await
             .map_err(StagecraftError::Network)?;
-        if !resp.status().is_success() {
+        if resp.status().as_u16() != 401 {
+            if !resp.status().is_success() {
+                return Err(StagecraftError::Api(
+                    resp.status().as_u16(),
+                    resp.text().await.unwrap_or_default(),
+                ));
+            }
+            return resp.json().await.map_err(StagecraftError::Decode);
+        }
+
+        // 401: try to refresh once, then retry. Carry forward the
+        // original body so a refresh-failure still reports the meaningful
+        // error to the inbox banner.
+        let original_body = resp.text().await.unwrap_or_default();
+        if let Err(refresh_err) = self.refresh_jwt().await {
             return Err(StagecraftError::Api(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
+                401,
+                format!(
+                    "{} (refresh failed: {})",
+                    if original_body.is_empty() {
+                        "unauthenticated".to_string()
+                    } else {
+                        original_body
+                    },
+                    refresh_err
+                ),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        let retry = self
+            .authed_get(url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !retry.status().is_success() {
+            return Err(StagecraftError::Api(
+                retry.status().as_u16(),
+                retry.text().await.unwrap_or_default(),
+            ));
+        }
+        retry.json().await.map_err(StagecraftError::Decode)
     }
 }
 
@@ -1052,6 +1136,20 @@ pub struct OpcBundleResponse {
 #[serde(rename_all = "camelCase")]
 pub struct CloneTokenResponse {
     pub clone_token: Option<OpcBundleCloneToken>,
+}
+
+/// Internal-only: shape of `POST /auth/desktop/refresh`. Mirrors the
+/// `RefreshResponse` in `commands/auth.rs` but lives here so the client
+/// can drive a silent refresh on 401 without re-entering the auth
+/// command surface.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RefreshTokenResponse {
+    access_token: String,
+    refresh_token: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    expires_in: i64,
 }
 
 // ---------------------------------------------------------------------------
