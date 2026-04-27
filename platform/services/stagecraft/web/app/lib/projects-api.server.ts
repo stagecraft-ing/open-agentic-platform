@@ -181,6 +181,31 @@ export interface ImportedRawArtifact {
   sizeBytes: number;
 }
 
+// Spec 112 §6.1 — App-installation picker for the Stagecraft Import UI.
+export interface ImportInstallationRepo {
+  owner: string;
+  name: string;
+  fullName: string;
+  htmlUrl: string;
+  cloneUrl: string;
+  defaultBranch: string;
+  isPrivate: boolean;
+}
+
+export interface ImportInstallationEntry {
+  installationId: number;
+  githubOrgLogin: string;
+  error: string | null;
+  repos: ImportInstallationRepo[];
+}
+
+export async function listImportInstallations(request: Request) {
+  return apiFetch(
+    request,
+    "/api/projects/factory-import/installations"
+  ) as Promise<{ installations: ImportInstallationEntry[] }>;
+}
+
 export async function importFactoryProject(
   request: Request,
   data: {

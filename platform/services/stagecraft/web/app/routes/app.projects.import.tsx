@@ -14,13 +14,21 @@
  * artifact-extract CLI and transitions the row to `state=extracted`.
  */
 
-import { Form, useActionData, useFetcher, useNavigation } from "react-router";
-import { useEffect, useState } from "react";
+import {
+  Form,
+  useActionData,
+  useFetcher,
+  useLoaderData,
+  useNavigation,
+} from "react-router";
+import { useEffect, useMemo, useState } from "react";
 import { requireUser } from "../lib/auth.server";
 import {
   advanceKnowledgeToExtracted,
   importFactoryProject,
+  listImportInstallations,
   listProjectKnowledge,
+  type ImportInstallationEntry,
   type ImportedRawArtifact,
   type ProjectKnowledgeObject,
 } from "../lib/projects-api.server";
@@ -60,9 +68,21 @@ interface ActionFailure {
 
 type ActionResult = ActionSuccess | AdvanceSuccess | ActionFailure;
 
-export async function loader({ request }: { request: Request }) {
+interface LoaderData {
+  installations: ImportInstallationEntry[];
+  installationsError: string | null;
+}
+
+export async function loader({ request }: { request: Request }): Promise<LoaderData> {
   await requireUser(request);
-  return {};
+  try {
+    const { installations } = await listImportInstallations(request);
+    return { installations, installationsError: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("listImportInstallations failed", { error: message });
+    return { installations: [], installationsError: message };
+  }
 }
 
 export async function action({ request }: { request: Request }): Promise<ActionResult> {
@@ -148,12 +168,22 @@ function isFailure(data: ActionResult | undefined): data is ActionFailure {
   return Boolean(data && data.kind === "error");
 }
 
+type SourceMode = "installation" | "url";
+
 export default function ImportProject() {
   const actionData = useActionData() as ActionResult | undefined;
+  const { installations, installationsError } = useLoaderData() as LoaderData;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const [repoUrl, setRepoUrl] = useState("");
   const [name, setName] = useState("");
+  const totalInstallationRepos = useMemo(
+    () => installations.reduce((sum, inst) => sum + inst.repos.length, 0),
+    [installations]
+  );
+  const [sourceMode, setSourceMode] = useState<SourceMode>(
+    totalInstallationRepos > 0 ? "installation" : "url"
+  );
 
   if (isImportSuccess(actionData) && !actionData.previewOnly) {
     return <ImportRegistered data={actionData} />;
@@ -188,8 +218,75 @@ export default function ImportProject() {
       <Form method="post" className="space-y-5">
         <input type="hidden" name="intent" value="import" />
         <div>
-          <label htmlFor="repoUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Source
+          </span>
+          <div
+            className="mt-2 inline-flex rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden text-sm"
+            role="tablist"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceMode === "installation"}
+              onClick={() => setSourceMode("installation")}
+              disabled={totalInstallationRepos === 0}
+              className={`px-3 py-1.5 ${
+                sourceMode === "installation"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              Pick from installation
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceMode === "url"}
+              onClick={() => setSourceMode("url")}
+              className={`px-3 py-1.5 border-l border-gray-300 dark:border-gray-600 ${
+                sourceMode === "url"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+              }`}
+            >
+              Paste URL
+            </button>
+          </div>
+
+          {sourceMode === "installation" ? (
+            <InstallationPicker
+              installations={installations}
+              installationsError={installationsError}
+              repoUrl={repoUrl}
+              onSelect={(repo) => {
+                setRepoUrl(repo.htmlUrl);
+                if (!name) setName(repo.name);
+              }}
+            />
+          ) : (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Paste a GitHub URL when the target org has no OAP App
+              installation, or to import a repo the picker doesn't surface.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label
+            htmlFor="repoUrl"
+            className={`block text-sm font-medium ${
+              sourceMode === "installation"
+                ? "text-gray-500 dark:text-gray-400"
+                : "text-gray-700 dark:text-gray-300"
+            }`}
+          >
             GitHub Repo URL
+            {sourceMode === "installation" && (
+              <span className="ml-2 font-normal text-xs">
+                (auto-filled from selection)
+              </span>
+            )}
           </label>
           <input
             type="text"
@@ -199,13 +296,20 @@ export default function ImportProject() {
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             placeholder="https://github.com/acme/my-project"
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            readOnly={sourceMode === "installation"}
+            className={`mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 ${
+              sourceMode === "installation"
+                ? "bg-gray-50 dark:bg-gray-900"
+                : "bg-white dark:bg-gray-800"
+            }`}
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            If the OAP App is installed on the repo's GitHub org, leave the
-            PAT field below empty. Otherwise supply a PAT with repo access
-            as an escape hatch.
-          </p>
+          {sourceMode === "url" && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              If the OAP App is installed on the repo's GitHub org, leave the
+              PAT field below empty. Otherwise supply a PAT with repo access
+              as an escape hatch.
+            </p>
+          )}
         </div>
 
         <div>
@@ -587,6 +691,143 @@ function StateBadge({ state }: { state: string }) {
     >
       {state}
     </span>
+  );
+}
+
+function InstallationPicker({
+  installations,
+  installationsError,
+  repoUrl,
+  onSelect,
+}: {
+  installations: ImportInstallationEntry[];
+  installationsError: string | null;
+  repoUrl: string;
+  onSelect: (repo: {
+    fullName: string;
+    name: string;
+    htmlUrl: string;
+  }) => void;
+}) {
+  const [filter, setFilter] = useState("");
+
+  if (installationsError) {
+    return (
+      <div className="mt-3 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          Couldn't list installations: <code>{installationsError}</code>. Use
+          the "Paste URL" tab to import by URL instead.
+        </p>
+      </div>
+    );
+  }
+
+  if (installations.length === 0) {
+    return (
+      <div className="mt-3 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2">
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          No active OAP App installations registered for this org. Install the
+          OAP GitHub App on a target org, or use "Paste URL" with a PAT.
+        </p>
+      </div>
+    );
+  }
+
+  const needle = filter.trim().toLowerCase();
+  const filtered = installations
+    .map((inst) => ({
+      ...inst,
+      repos: needle
+        ? inst.repos.filter((r) => r.fullName.toLowerCase().includes(needle))
+        : inst.repos,
+    }))
+    .filter((inst) => inst.repos.length > 0 || inst.error);
+
+  return (
+    <div className="mt-3 space-y-3">
+      <input
+        type="search"
+        placeholder="Filter repos…"
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+      />
+      <div className="rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            No repos match "{filter}".
+          </div>
+        ) : (
+          filtered.map((inst) => (
+            <div key={inst.installationId}>
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                {inst.githubOrgLogin}
+                <span className="ml-2 normal-case font-normal text-gray-400 dark:text-gray-500">
+                  installation #{inst.installationId} ·{" "}
+                  {inst.repos.length} repo
+                  {inst.repos.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              {inst.error ? (
+                <div className="px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  Failed to list repos: <code>{inst.error}</code>
+                </div>
+              ) : (
+                <ul>
+                  {inst.repos.map((repo) => {
+                    const selected = repoUrl === repo.htmlUrl;
+                    return (
+                      <li
+                        key={repo.fullName}
+                        className={`px-3 py-2 flex items-center gap-3 cursor-pointer ${
+                          selected
+                            ? "bg-indigo-50 dark:bg-indigo-900/30"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                        }`}
+                        onClick={() =>
+                          onSelect({
+                            fullName: repo.fullName,
+                            name: repo.name,
+                            htmlUrl: repo.htmlUrl,
+                          })
+                        }
+                      >
+                        <input
+                          type="radio"
+                          name="repoPick"
+                          checked={selected}
+                          onChange={() =>
+                            onSelect({
+                              fullName: repo.fullName,
+                              name: repo.name,
+                              htmlUrl: repo.htmlUrl,
+                            })
+                          }
+                          className="text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-mono text-gray-900 dark:text-gray-100 truncate">
+                            {repo.fullName}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            default <code>{repo.defaultBranch}</code>
+                            {repo.isPrivate ? (
+                              <span className="ml-2 inline-flex rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                                private
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 

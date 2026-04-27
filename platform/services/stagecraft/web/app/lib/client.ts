@@ -458,12 +458,93 @@ export namespace agents {
         updatedAt: string
     }
 
+    export interface CatalogAgent {
+        id: string
+        "workspace_id": string
+        name: string
+        version: number
+        status: db.AgentCatalogStatus
+        frontmatter: frontmatter.CatalogFrontmatter
+        "body_markdown": string
+        "content_hash": string
+        "created_by": string
+        "created_at": string
+        "updated_at": string
+    }
+
+    export interface CatalogAuditEntry {
+        id: string
+        "agent_id": string
+        "workspace_id": string
+        action: db.AgentCatalogAuditAction
+        "actor_user_id": string
+        before: { [key: string]: any } | null
+        after: { [key: string]: any } | null
+        "created_at": string
+    }
+
+    export interface CreateAgentRequest {
+        name: string
+        frontmatter: frontmatter.CatalogFrontmatter
+        "body_markdown": string
+    }
+
+    export interface CreateAgentResponse {
+        agent: CatalogAgent
+    }
+
     export interface DeleteAgentPolicyResponse {
         ok: true
     }
 
+    export interface ForkAgentRequest {
+        "new_name": string
+    }
+
+    export interface ForkAgentResponse {
+        agent: CatalogAgent
+    }
+
+    export interface GetAgentResponse {
+        agent: CatalogAgent
+    }
+
+    export interface ListAgentAuditResponse {
+        entries: CatalogAuditEntry[]
+    }
+
     export interface ListAgentPoliciesResponse {
         policies: AgentPolicyRow[]
+    }
+
+    export interface ListAgentsRequest {
+        status?: db.AgentCatalogStatus
+    }
+
+    export interface ListAgentsResponse {
+        agents: CatalogAgent[]
+    }
+
+    export interface PatchAgentRequest {
+        frontmatter?: frontmatter.CatalogFrontmatter
+        "body_markdown"?: string
+        /**
+         * Optimistic lock: rejected if the current content_hash doesn't match.
+         */
+        "expected_content_hash"?: string
+    }
+
+    export interface PatchAgentResponse {
+        agent: CatalogAgent
+    }
+
+    export interface PublishAgentResponse {
+        agent: CatalogAgent
+        retired?: CatalogAgent
+    }
+
+    export interface RetireAgentResponse {
+        agent: CatalogAgent
     }
 
     export interface UpsertAgentPolicyRequest {
@@ -482,16 +563,42 @@ export namespace agents {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.createAgent = this.createAgent.bind(this)
             this.deleteAgentPolicy = this.deleteAgentPolicy.bind(this)
+            this.forkAgent = this.forkAgent.bind(this)
+            this.getAgent = this.getAgent.bind(this)
             this.isAgentAuthorized = this.isAgentAuthorized.bind(this)
+            this.listAgentAudit = this.listAgentAudit.bind(this)
             this.listAgentPolicies = this.listAgentPolicies.bind(this)
+            this.listAgents = this.listAgents.bind(this)
+            this.patchAgent = this.patchAgent.bind(this)
+            this.publishAgent = this.publishAgent.bind(this)
+            this.retireAgent = this.retireAgent.bind(this)
             this.upsertAgentPolicy = this.upsertAgentPolicy.bind(this)
+        }
+
+        public async createAgent(params: CreateAgentRequest): Promise<CreateAgentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/agents`, JSON.stringify(params))
+            return await resp.json() as CreateAgentResponse
         }
 
         public async deleteAgentPolicy(id: string): Promise<DeleteAgentPolicyResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("DELETE", `/admin/agent-policies/${encodeURIComponent(id)}`)
             return await resp.json() as DeleteAgentPolicyResponse
+        }
+
+        public async forkAgent(id: string, params: ForkAgentRequest): Promise<ForkAgentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/agents/${encodeURIComponent(id)}/fork`, JSON.stringify(params))
+            return await resp.json() as ForkAgentResponse
+        }
+
+        public async getAgent(id: string): Promise<GetAgentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/agents/${encodeURIComponent(id)}`)
+            return await resp.json() as GetAgentResponse
         }
 
         /**
@@ -508,10 +615,45 @@ export namespace agents {
             return await resp.json() as AgentAuthorizedResponse
         }
 
+        public async listAgentAudit(id: string): Promise<ListAgentAuditResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/agents/${encodeURIComponent(id)}/audit`)
+            return await resp.json() as ListAgentAuditResponse
+        }
+
         public async listAgentPolicies(): Promise<ListAgentPoliciesResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/admin/agent-policies`)
             return await resp.json() as ListAgentPoliciesResponse
+        }
+
+        public async listAgents(params: ListAgentsRequest): Promise<ListAgentsResponse> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                status: params.status === undefined ? undefined : String(params.status),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/agents`, undefined, {query})
+            return await resp.json() as ListAgentsResponse
+        }
+
+        public async patchAgent(id: string, params: PatchAgentRequest): Promise<PatchAgentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("PATCH", `/api/agents/${encodeURIComponent(id)}`, JSON.stringify(params))
+            return await resp.json() as PatchAgentResponse
+        }
+
+        public async publishAgent(id: string): Promise<PublishAgentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/agents/${encodeURIComponent(id)}/publish`)
+            return await resp.json() as PublishAgentResponse
+        }
+
+        public async retireAgent(id: string): Promise<RetireAgentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/agents/${encodeURIComponent(id)}/retire`)
+            return await resp.json() as RetireAgentResponse
         }
 
         public async upsertAgentPolicy(params: UpsertAgentPolicyRequest): Promise<UpsertAgentPolicyResponse> {
@@ -637,6 +779,33 @@ export namespace auth {
         avatarUrl: string
     }
 
+    export interface PatMetadata {
+        exists: boolean
+        tokenPrefix?: string
+        isFineGrained?: boolean
+        scopes?: string[]
+        lastUsedAt?: string
+        lastCheckedAt?: string
+        createdAt?: string
+    }
+
+    export interface PatValidationResult {
+        ok: boolean
+        tokenPrefix: string
+        isFineGrained: boolean
+        scopes: string[]
+        lastCheckedAt: string
+        githubLogin?: string
+        /**
+         * When ok === false, the reason code (see spec 106 FR-006 error table).
+         */
+        reason?: "pat_invalid" | "pat_rate_limited" | "pat_saml_not_authorized"
+    }
+
+    export interface StorePatRequest {
+        token: string
+    }
+
     export interface UserOrgRow {
         orgId: string
         orgSlug: string
@@ -653,9 +822,8 @@ export namespace auth {
             this.desktopOrgSelect = this.desktopOrgSelect.bind(this)
             this.desktopRefresh = this.desktopRefresh.bind(this)
             this.desktopToken = this.desktopToken.bind(this)
+            this.getPat = this.getPat.bind(this)
             this.getPendingOrgs = this.getPendingOrgs.bind(this)
-            this.githubCallback = this.githubCallback.bind(this)
-            this.githubLogin = this.githubLogin.bind(this)
             this.listUserOrgs = this.listUserOrgs.bind(this)
             this.oidcCallback = this.oidcCallback.bind(this)
             this.oidcDiscover = this.oidcDiscover.bind(this)
@@ -663,7 +831,12 @@ export namespace auth {
             this.orgSelectComplete = this.orgSelectComplete.bind(this)
             this.orgSwitch = this.orgSwitch.bind(this)
             this.orgSwitchCookie = this.orgSwitchCookie.bind(this)
+            this.rauthyCallback = this.rauthyCallback.bind(this)
+            this.rauthyLogin = this.rauthyLogin.bind(this)
+            this.revokePat = this.revokePat.bind(this)
             this.signout = this.signout.bind(this)
+            this.storePat = this.storePat.bind(this)
+            this.validatePat = this.validatePat.bind(this)
         }
 
         public async adminSignout(): Promise<AuthSignoutResponse> {
@@ -694,16 +867,14 @@ export namespace auth {
             return await resp.json() as DesktopTokenResult
         }
 
+        public async getPat(): Promise<PatMetadata> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/auth/pat`)
+            return await resp.json() as PatMetadata
+        }
+
         public async getPendingOrgs(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
             return this.baseClient.callAPI(method, `/auth/pending-orgs`, body, options)
-        }
-
-        public async githubCallback(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
-            return this.baseClient.callAPI(method, `/auth/github/callback`, body, options)
-        }
-
-        public async githubLogin(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
-            return this.baseClient.callAPI(method, `/auth/github`, body, options)
         }
 
         public async listUserOrgs(): Promise<{
@@ -751,9 +922,11 @@ export namespace auth {
 
         public async orgSwitch(params: {
     orgId: string
+    refreshToken: string
 }): Promise<{
     ok: true
     accessToken: string
+    refreshToken: string
     expiresIn: number
 }> {
             // Now make the actual call to the API
@@ -761,6 +934,7 @@ export namespace auth {
             return await resp.json() as {
     ok: true
     accessToken: string
+    refreshToken: string
     expiresIn: number
 }
         }
@@ -769,12 +943,48 @@ export namespace auth {
             return this.baseClient.callAPI(method, `/auth/org-switch/cookie`, body, options)
         }
 
+        public async rauthyCallback(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/auth/rauthy/callback`, body, options)
+        }
+
+        public async rauthyLogin(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/auth/rauthy`, body, options)
+        }
+
+        public async revokePat(): Promise<{
+    revoked: boolean
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/auth/pat`)
+            return await resp.json() as {
+    revoked: boolean
+}
+        }
+
         public async signout(): Promise<AuthSignoutResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/auth/signout`)
             return await resp.json() as AuthSignoutResponse
         }
+
+        public async storePat(params: StorePatRequest): Promise<PatValidationResult> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/auth/pat`, JSON.stringify(params))
+            return await resp.json() as PatValidationResult
+        }
+
+        public async validatePat(): Promise<PatValidationResult> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/auth/pat/validate`)
+            return await resp.json() as PatValidationResult
+        }
     }
+}
+
+export namespace db {
+    export type AgentCatalogAuditAction = "create" | "edit" | "publish" | "retire" | "fork"
+
+    export type AgentCatalogStatus = "draft" | "published" | "retired"
 }
 
 /**
@@ -879,11 +1089,138 @@ export namespace factory {
         ingested: number
     }
 
+    export interface FactoryAdapterDetail {
+        /**
+         * Row UUID — spec 112 uses this to bind factory_adapters → projects.
+         */
+        id?: string
+
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+        manifest: any
+    }
+
+    export interface FactoryContractDetail {
+        /**
+         * Row UUID — spec 112 uses this to bind factory_adapters → projects.
+         */
+        id?: string
+
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+        schema: any
+    }
+
+    export interface FactoryProcessDetail {
+        /**
+         * Row UUID — spec 112 uses this to bind factory_adapters → projects.
+         */
+        id?: string
+
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+        definition: any
+    }
+
+    export interface FactoryResourceSummary {
+        /**
+         * Row UUID — spec 112 uses this to bind factory_adapters → projects.
+         */
+        id?: string
+
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+    }
+
+    export interface FactorySyncRunView {
+        id: string
+        status: "pending" | "running" | "ok" | "failed"
+        triggeredBy: string
+        factorySha: string | null
+        templateSha: string | null
+        counts: {
+            adapters: number
+            contracts: number
+            processes: number
+        } | null
+        error: string | null
+        queuedAt: string
+        startedAt: string | null
+        completedAt: string | null
+    }
+
+    export interface FactoryUpstreamCounts {
+        adapters: number
+        contracts: number
+        processes: number
+    }
+
+    export interface FactoryUpstreamPatMetadata {
+        exists: boolean
+        tokenPrefix?: string
+        isFineGrained?: boolean
+        scopes?: string[]
+        githubLogin?: string | null
+        lastUsedAt?: string | null
+        lastCheckedAt?: string
+        createdAt?: string
+    }
+
+    export interface FactoryUpstreamPatValidationResult {
+        ok: boolean
+        tokenPrefix: string
+        isFineGrained: boolean
+        scopes: string[]
+        lastCheckedAt: string
+        githubLogin?: string
+        reason?: "pat_invalid" | "pat_rate_limited" | "pat_saml_not_authorized"
+    }
+
+    export interface FactoryUpstreamRow {
+        orgId: string
+        factorySource: string
+        factoryRef: string
+        templateSource: string
+        templateRef: string
+        lastSyncedAt: string | null
+        lastSyncSha: {
+            factory?: string
+            template?: string
+        } | null
+        lastSyncStatus: string | null
+        lastSyncError: string | null
+        createdAt: string
+        updatedAt: string
+    }
+
     export interface InitRequest {
         adapter: string
         "business_docs"?: BusinessDocRef[]
         "knowledge_object_ids"?: string[]
         "policy_overrides"?: PolicyOverrides
+        /**
+         * Trigger path for this pipeline (spec 110 §8 Rollout Phase 6 — default
+         * flipped to `"stagecraft"`; OPC-direct remains available for offline
+         * workflows and for the desktop's dual-write path).
+         * 
+         * - "stagecraft" (default): stagecraft dispatches a `factory.run.request`
+         * through the duplex channel so a connected OPC executes the run.
+         * Used by the web Initialize button and `oap-ctl run factory`.
+         * - "opc-direct": the caller is already running the engine locally; no
+         * envelope is dispatched. Callers on this path (notably the desktop's
+         * `start_factory_pipeline` dual-write) MUST set this explicitly to
+         * avoid a self-dispatch loop.
+         */
+        source?: PipelineSource
+
         actorUserId: string
         workspaceId: string
     }
@@ -893,6 +1230,7 @@ export namespace factory {
         adapter: string
         "policy_bundle_id": string
         status: string
+        source: PipelineSource
         "created_at": string
     }
 
@@ -921,6 +1259,8 @@ export namespace factory {
         timestamp: string
         payload?: { [key: string]: any }
     }
+
+    export type PipelineSource = "opc-direct" | "stagecraft"
 
     export interface PolicyOverrides {
         "max_retry_per_feature"?: number
@@ -1029,6 +1369,10 @@ export namespace factory {
         "audit_entry_id": string
     }
 
+    export interface StoreFactoryUpstreamPatRequest {
+        token: string
+    }
+
     export interface TokenSpendRequest {
         "run_id": string
         "stage_id": string
@@ -1036,6 +1380,19 @@ export namespace factory {
         "completion_tokens": number
         model: string
         workspaceId: string
+    }
+
+    export interface TriggerSyncResponse {
+        syncRunId: string
+        status: "pending" | "running"
+        queuedAt: string
+    }
+
+    export interface UpsertUpstreamRequest {
+        factorySource: string
+        factoryRef?: string
+        templateSource: string
+        templateRef?: string
     }
 
     export interface WorkspaceLookupArtifactRequest {
@@ -1079,17 +1436,33 @@ export namespace factory {
             this.cancelPipeline = this.cancelPipeline.bind(this)
             this.confirmStage = this.confirmStage.bind(this)
             this.createPromotion = this.createPromotion.bind(this)
+            this.factoryProjectStream = this.factoryProjectStream.bind(this)
+            this.getAdapter = this.getAdapter.bind(this)
             this.getAudit = this.getAudit.bind(this)
+            this.getContract = this.getContract.bind(this)
+            this.getFactorySyncRun = this.getFactorySyncRun.bind(this)
+            this.getFactoryUpstreamPat = this.getFactoryUpstreamPat.bind(this)
+            this.getProcess = this.getProcess.bind(this)
             this.getStatus = this.getStatus.bind(this)
+            this.getUpstreams = this.getUpstreams.bind(this)
             this.ingestEvents = this.ingestEvents.bind(this)
             this.initPipeline = this.initPipeline.bind(this)
+            this.listAdapters = this.listAdapters.bind(this)
+            this.listContracts = this.listContracts.bind(this)
+            this.listFactorySyncRuns = this.listFactorySyncRuns.bind(this)
+            this.listProcesses = this.listProcesses.bind(this)
             this.lookupArtifact = this.lookupArtifact.bind(this)
             this.recordArtifacts = this.recordArtifacts.bind(this)
             this.rejectStage = this.rejectStage.bind(this)
             this.reportScaffoldProgress = this.reportScaffoldProgress.bind(this)
             this.reportTokenSpend = this.reportTokenSpend.bind(this)
+            this.revokeFactoryUpstreamPat = this.revokeFactoryUpstreamPat.bind(this)
+            this.storeFactoryUpstreamPat = this.storeFactoryUpstreamPat.bind(this)
+            this.syncUpstreams = this.syncUpstreams.bind(this)
             this.triggerDeploy = this.triggerDeploy.bind(this)
             this.updatePipelineStatus = this.updatePipelineStatus.bind(this)
+            this.upsertUpstreams = this.upsertUpstreams.bind(this)
+            this.validateFactoryUpstreamPat = this.validateFactoryUpstreamPat.bind(this)
             this.workspaceLookupArtifact = this.workspaceLookupArtifact.bind(this)
             this.workspaceRecordArtifact = this.workspaceRecordArtifact.bind(this)
         }
@@ -1121,6 +1494,16 @@ export namespace factory {
             return await resp.json() as PromotionResult
         }
 
+        public async factoryProjectStream(method: "GET", id: string, body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
+            return this.baseClient.callAPI(method, `/api/projects/${encodeURIComponent(id)}/factory/stream`, body, options)
+        }
+
+        public async getAdapter(name: string): Promise<FactoryAdapterDetail> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/adapters/${encodeURIComponent(name)}`)
+            return await resp.json() as FactoryAdapterDetail
+        }
+
         public async getAudit(id: string, params: AuditRequest): Promise<AuditResponse> {
             // Convert our params into the objects we need for the request
             const query = makeRecord<string, string | string[]>({
@@ -1132,6 +1515,30 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(id)}/factory/audit`, undefined, {query})
             return await resp.json() as AuditResponse
+        }
+
+        public async getContract(name: string): Promise<FactoryContractDetail> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/contracts/${encodeURIComponent(name)}`)
+            return await resp.json() as FactoryContractDetail
+        }
+
+        public async getFactorySyncRun(id: string): Promise<FactorySyncRunView> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/upstreams/sync/${encodeURIComponent(id)}`)
+            return await resp.json() as FactorySyncRunView
+        }
+
+        public async getFactoryUpstreamPat(): Promise<FactoryUpstreamPatMetadata> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/upstreams/pat`)
+            return await resp.json() as FactoryUpstreamPatMetadata
+        }
+
+        public async getProcess(name: string): Promise<FactoryProcessDetail> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/processes/${encodeURIComponent(name)}`)
+            return await resp.json() as FactoryProcessDetail
         }
 
         public async getStatus(id: string, params: {
@@ -1147,6 +1554,18 @@ export namespace factory {
             return await resp.json() as StatusResponse
         }
 
+        public async getUpstreams(): Promise<{
+    upstream: FactoryUpstreamRow | null
+    counts: FactoryUpstreamCounts
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/upstreams`)
+            return await resp.json() as {
+    upstream: FactoryUpstreamRow | null
+    counts: FactoryUpstreamCounts
+}
+        }
+
         public async ingestEvents(id: string, params: EventIngestionRequest): Promise<EventIngestionResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/events`, JSON.stringify(params))
@@ -1157,6 +1576,46 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/init`, JSON.stringify(params))
             return await resp.json() as InitResponse
+        }
+
+        public async listAdapters(): Promise<{
+    adapters: FactoryResourceSummary[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/adapters`)
+            return await resp.json() as {
+    adapters: FactoryResourceSummary[]
+}
+        }
+
+        public async listContracts(): Promise<{
+    contracts: FactoryResourceSummary[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/contracts`)
+            return await resp.json() as {
+    contracts: FactoryResourceSummary[]
+}
+        }
+
+        public async listFactorySyncRuns(): Promise<{
+    runs: FactorySyncRunView[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/upstreams/sync`)
+            return await resp.json() as {
+    runs: FactorySyncRunView[]
+}
+        }
+
+        public async listProcesses(): Promise<{
+    processes: FactoryResourceSummary[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/processes`)
+            return await resp.json() as {
+    processes: FactoryResourceSummary[]
+}
         }
 
         public async lookupArtifact(id: string, params: LookupArtifactsRequest): Promise<LookupArtifactsResponse> {
@@ -1194,6 +1653,28 @@ export namespace factory {
             await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/token-spend`, JSON.stringify(params))
         }
 
+        public async revokeFactoryUpstreamPat(): Promise<{
+    revoked: boolean
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/api/factory/upstreams/pat`)
+            return await resp.json() as {
+    revoked: boolean
+}
+        }
+
+        public async storeFactoryUpstreamPat(params: StoreFactoryUpstreamPatRequest): Promise<FactoryUpstreamPatValidationResult> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/upstreams/pat`, JSON.stringify(params))
+            return await resp.json() as FactoryUpstreamPatValidationResult
+        }
+
+        public async syncUpstreams(): Promise<TriggerSyncResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/upstreams/sync`)
+            return await resp.json() as TriggerSyncResponse
+        }
+
         public async triggerDeploy(id: string, params: DeployRequest): Promise<DeployResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/deploy`, JSON.stringify(params))
@@ -1204,6 +1685,22 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(id)}/factory/status-update`, JSON.stringify(params))
             return await resp.json() as StatusUpdateResponse
+        }
+
+        public async upsertUpstreams(params: UpsertUpstreamRequest): Promise<{
+    upstream: FactoryUpstreamRow
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/upstreams`, JSON.stringify(params))
+            return await resp.json() as {
+    upstream: FactoryUpstreamRow
+}
+        }
+
+        public async validateFactoryUpstreamPat(): Promise<FactoryUpstreamPatValidationResult> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/upstreams/pat/validate`)
+            return await resp.json() as FactoryUpstreamPatValidationResult
         }
 
         public async workspaceLookupArtifact(workspace_id: string, params: WorkspaceLookupArtifactRequest): Promise<WorkspaceLookupArtifactResponse> {
@@ -1345,6 +1842,12 @@ export namespace knowledge {
         filename: string
         mimeType: string
         contentHash: string
+        sizeBytes: number
+        /**
+         * Optional folder-relative path for batch/folder uploads. Stored in
+         * provenance.sourceUri as `upload://<sourcePath>`; falls back to filename.
+         */
+        sourcePath?: string
     }
 
     export interface RequestUploadResponse {
@@ -1459,11 +1962,13 @@ export namespace knowledge {
 
         public async deleteKnowledgeObject(id: string): Promise<{
     deleted: boolean
+    bindingsRemoved: number
 }> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("DELETE", `/api/knowledge/objects/${encodeURIComponent(id)}`)
             return await resp.json() as {
     deleted: boolean
+    bindingsRemoved: number
 }
         }
 
@@ -1489,11 +1994,13 @@ export namespace knowledge {
 
         public async getKnowledgeObject(id: string): Promise<{
     object: KnowledgeObjectRow
+    bindingsCount: number
 }> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/api/knowledge/objects/${encodeURIComponent(id)}`)
             return await resp.json() as {
     object: KnowledgeObjectRow
+    bindingsCount: number
 }
         }
 
@@ -1726,11 +2233,81 @@ export namespace projects {
         isPrimary?: boolean
     }
 
+    export interface AdvanceKnowledgeToExtractedResponse {
+        objectId: string
+        state: "extracted"
+        extractedStorageKey: string
+        summary: {
+            ok: number
+            cached: number
+            error: number
+            "skip_unsupported": number
+        }
+        extractorMessage: string
+    }
+
+    export interface CloneTokenResponse {
+        cloneToken: OpcBundleCloneToken | null
+    }
+
     export interface CreateEnvironmentRequest {
         name: string
         kind?: "preview" | "development" | "staging" | "production"
         autoDeployBranch?: string
         requiresApproval?: boolean
+    }
+
+    export interface CreateFactoryProjectRequest {
+        /**
+         * Human-readable project name.
+         */
+        name: string
+
+        /**
+         * URL-safe slug, unique within the workspace.
+         */
+        slug: string
+
+        description?: string
+        /**
+         * UUID of a row in `factory_adapters` — the adapter to scaffold from.
+         */
+        adapterId: string
+
+        /**
+         * Matches Build Spec project.variant; one of "single-public" | "single-internal" | "dual".
+         */
+        variant: string
+
+        /**
+         * Optional explicit profile from adapter.scaffold.profiles.
+         */
+        profileName?: string
+
+        /**
+         * Optional --args forwarded to the adapter entry point.
+         */
+        args?: { [key: string]: any }
+
+        /**
+         * GitHub repo name (created under the org's active App installation).
+         */
+        repoName: string
+
+        isPrivate?: boolean
+        /**
+         * Seed uploads already staged in the workspace bucket (spec 112 §4.3).
+         */
+        seedInputs?: scaffold.ScaffoldSeedInput[]
+    }
+
+    export interface CreateFactoryProjectResponse {
+        projectId: string
+        repoUrl: string
+        cloneUrl: string
+        opcDeepLink: string
+        scaffoldJobId: string
+        factoryAdapterId: string
     }
 
     export interface CreateProjectRequest {
@@ -1767,6 +2344,113 @@ export namespace projects {
         updatedAt: string
     }
 
+    export type ImportDetectionLevel = "not_factory" | "scaffold_only" | "legacy_produced" | "acp_produced"
+
+    export interface ImportFactoryProjectRequest {
+        /**
+         * e.g. "https://github.com/acme/foo" or "acme/foo".
+         */
+        repoUrl: string
+
+        name?: string
+        slug?: string
+        description?: string
+        /**
+         * Dry-run mode: perform detection + translation preview but do not
+         * insert DB rows or open a PR. Returns the same shape with
+         * `previewOnly = true`.
+         */
+        previewOnly?: boolean
+
+        /**
+         * Optional GitHub PAT escape hatch. Required only when the target repo
+         * lives in a GitHub org that does NOT have the OAP App installed for
+         * this OAP org. When supplied for an org that DOES have an installation,
+         * the installation token still wins (apps are revocable per-org and
+         * preferred). On a successful import, the PAT is persisted to
+         * `project_github_pats` so subsequent operations on this project resolve
+         * the same credential via the standard token resolver.
+         */
+        githubPat?: string
+
+        /**
+         * Spec 112 §6.2 step 4 — when true, register the project but do not
+         * open the L1 translation PR. Useful for callers that want to
+         * inspect the translated pipeline-state and open the PR via a
+         * follow-up button, or for tests. Default: false (open the PR
+         * unless overridden).
+         */
+        skipPullRequest?: boolean
+    }
+
+    export interface ImportFactoryProjectResponse {
+        projectId: string | null
+        detectionLevel: ImportDetectionLevel
+        repoUrl: string
+        cloneUrl: string
+        opcDeepLink: string | null
+        translatorVersion: string | null
+        /**
+         * L1 only — the translated pipeline-state the translator would commit.
+         */
+        translatedPreview?: { [key: string]: any }
+
+        previewOnly: boolean
+        /**
+         * Summary of per-file knowledge_objects rows created from
+         * `.artifacts/raw/`. Empty when the imported repo has no raw artifacts
+         * or when `previewOnly=true`. The full rows are available through the
+         * knowledge-objects-for-project endpoint.
+         */
+        rawArtifacts: {
+            objectId: string
+            filename: string
+            relativePath: string
+            contentHash: string
+            sizeBytes: number
+        }[]
+
+        rawArtifactsSkipped: number
+        /**
+         * L1 only — URL of the PR opened against the source repo adding
+         * `.factory/pipeline-state.json`. `null` for previewOnly imports,
+         * for non-L1 detection levels, or when the caller suppressed PR
+         * creation via `skipPullRequest`. When PR creation fails after
+         * the project rows have been written, the project is kept and
+         * `pullRequestError` carries an actionable message.
+         */
+        pullRequestUrl: string | null
+
+        pullRequestError?: string
+    }
+
+    export interface ImportInstallationEntry {
+        installationId: number
+        githubOrgLogin: string
+        /**
+         * Set when listing the installation's repos failed (the row stays
+         * in the response so the UI can show "couldn't list — try the URL
+         * paste path"). Repos is empty in that case.
+         */
+        error: string | null
+
+        repos: ImportInstallationRepo[]
+    }
+
+    export interface ImportInstallationRepo {
+        owner: string
+        name: string
+        fullName: string
+        htmlUrl: string
+        cloneUrl: string
+        defaultBranch: string
+        isPrivate: boolean
+    }
+
+    export interface ListImportInstallationsResponse {
+        installations: ImportInstallationEntry[]
+    }
+
     export interface MemberRow {
         id: string
         projectId: string
@@ -1774,6 +2458,87 @@ export namespace projects {
         role: "viewer" | "developer" | "deployer" | "admin"
         createdAt: string
         updatedAt: string
+    }
+
+    export interface OpcBundleAdapter {
+        id: string
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+        manifest: any
+    }
+
+    export interface OpcBundleAgent {
+        id: string
+        name: string
+        version: number
+        status: "published"
+        contentHash: string
+        frontmatter: any
+        bodyMarkdown: string
+    }
+
+    /**
+     * Spec 112 §6.4 — short-lived clone token derived from spec 109 state.
+     * 
+     * The bundle returns a token OPC threads into the git clone subprocess
+     * (`https://x-access-token:<value>@…`) and into the factory engine
+     * launch as `GITHUB_TOKEN`. The long-lived PAT itself never crosses
+     * Stagecraft → OPC except in the `project_github_pat` branch, where
+     * GitHub does not offer a derived short-lived form (§10 risk).
+     * 
+     * `expiresAt` is set for `github_installation` (≈1h TTL) and null for
+     * `project_github_pat`. Public-anonymous resolution returns null at
+     * the field level — null means "clone anonymously", not "resolution
+     * failed". A resolver hard failure surfaces as 503 from the endpoint.
+     */
+    export interface OpcBundleCloneToken {
+        value: string
+        source: "github_installation" | "project_github_pat"
+        expiresAt: string | null
+    }
+
+    export interface OpcBundleContract {
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+        schema: any
+    }
+
+    export interface OpcBundleProcess {
+        name: string
+        version: string
+        sourceSha: string
+        syncedAt: string
+        definition: any
+    }
+
+    export interface OpcBundleProject {
+        id: string
+        name: string
+        slug: string
+        workspaceId: string
+        orgId: string
+    }
+
+    export interface OpcBundleRepo {
+        cloneUrl: string
+        githubOrg: string
+        repoName: string
+        defaultBranch: string
+    }
+
+    export interface OpcBundleResponse {
+        project: OpcBundleProject
+        repo: OpcBundleRepo | null
+        deepLink: string | null
+        adapter: OpcBundleAdapter | null
+        contracts: OpcBundleContract[]
+        processes: OpcBundleProcess[]
+        agents: OpcBundleAgent[]
+        cloneToken: OpcBundleCloneToken | null
     }
 
     export interface OrgRow {
@@ -1785,6 +2550,41 @@ export namespace projects {
         updatedAt: string
     }
 
+    export interface ProjectKnowledgeObject {
+        id: string
+        filename: string
+        mimeType: string
+        sizeBytes: number
+        contentHash: string
+        state: string
+        storageKey: string
+        extractedStorageKey: string | null
+        provenance: { [key: string]: any }
+        boundAt: string
+        updatedAt: string
+    }
+
+    export interface ProjectPatMetadata {
+        exists: boolean
+        tokenPrefix?: string
+        isFineGrained?: boolean
+        scopes?: string[]
+        githubLogin?: string | null
+        lastUsedAt?: string | null
+        lastCheckedAt?: string
+        createdAt?: string
+    }
+
+    export interface ProjectPatValidationResult {
+        ok: boolean
+        tokenPrefix: string
+        isFineGrained: boolean
+        scopes: string[]
+        lastCheckedAt: string
+        githubLogin?: string
+        reason?: "pat_invalid" | "pat_rate_limited" | "pat_saml_not_authorized"
+    }
+
     export interface ProjectRow {
         id: string
         orgId: string
@@ -1792,6 +2592,7 @@ export namespace projects {
         name: string
         slug: string
         description: string
+        factoryAdapterId: string | null
         createdBy: string | null
         createdAt: string
         updatedAt: string
@@ -1814,6 +2615,10 @@ export namespace projects {
         role: "viewer" | "developer" | "deployer" | "admin"
     }
 
+    export interface StoreProjectPatRequest {
+        token: string
+    }
+
     export interface UpdateProjectRequest {
         name?: string
         description?: string
@@ -1825,21 +2630,32 @@ export namespace projects {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.addProjectRepo = this.addProjectRepo.bind(this)
+            this.advanceKnowledgeToExtracted = this.advanceKnowledgeToExtracted.bind(this)
             this.createEnvironment = this.createEnvironment.bind(this)
+            this.createFactoryProject = this.createFactoryProject.bind(this)
             this.createProject = this.createProject.bind(this)
             this.createProjectWithRepo = this.createProjectWithRepo.bind(this)
             this.deleteEnvironment = this.deleteEnvironment.bind(this)
             this.deleteProject = this.deleteProject.bind(this)
             this.getOrg = this.getOrg.bind(this)
             this.getProject = this.getProject.bind(this)
+            this.getProjectOpcBundle = this.getProjectOpcBundle.bind(this)
+            this.getProjectPat = this.getProjectPat.bind(this)
+            this.importFactoryProject = this.importFactoryProject.bind(this)
             this.listEnvironments = this.listEnvironments.bind(this)
+            this.listImportInstallations = this.listImportInstallations.bind(this)
+            this.listProjectKnowledge = this.listProjectKnowledge.bind(this)
             this.listProjectMembers = this.listProjectMembers.bind(this)
             this.listProjectRepos = this.listProjectRepos.bind(this)
             this.listProjects = this.listProjects.bind(this)
+            this.refreshProjectCloneToken = this.refreshProjectCloneToken.bind(this)
             this.removeProjectMember = this.removeProjectMember.bind(this)
             this.removeProjectRepo = this.removeProjectRepo.bind(this)
+            this.revokeProjectPat = this.revokeProjectPat.bind(this)
             this.setProjectMember = this.setProjectMember.bind(this)
+            this.storeProjectPat = this.storeProjectPat.bind(this)
             this.updateProject = this.updateProject.bind(this)
+            this.validateProjectPat = this.validateProjectPat.bind(this)
         }
 
         public async addProjectRepo(projectId: string, params: AddRepoRequest): Promise<{
@@ -1852,6 +2668,12 @@ export namespace projects {
 }
         }
 
+        public async advanceKnowledgeToExtracted(projectId: string, objectId: string): Promise<AdvanceKnowledgeToExtractedResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/knowledge/${encodeURIComponent(objectId)}/advance-extracted`)
+            return await resp.json() as AdvanceKnowledgeToExtractedResponse
+        }
+
         public async createEnvironment(projectId: string, params: CreateEnvironmentRequest): Promise<{
     environment: EnvironmentRow
 }> {
@@ -1860,6 +2682,12 @@ export namespace projects {
             return await resp.json() as {
     environment: EnvironmentRow
 }
+        }
+
+        public async createFactoryProject(params: CreateFactoryProjectRequest): Promise<CreateFactoryProjectResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/factory-create`, JSON.stringify(params))
+            return await resp.json() as CreateFactoryProjectResponse
         }
 
         public async createProject(params: CreateProjectRequest): Promise<{
@@ -1918,6 +2746,24 @@ export namespace projects {
 }
         }
 
+        public async getProjectOpcBundle(projectId: string): Promise<OpcBundleResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/opc-bundle`)
+            return await resp.json() as OpcBundleResponse
+        }
+
+        public async getProjectPat(projectId: string): Promise<ProjectPatMetadata> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/pat`)
+            return await resp.json() as ProjectPatMetadata
+        }
+
+        public async importFactoryProject(params: ImportFactoryProjectRequest): Promise<ImportFactoryProjectResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/factory-import`, JSON.stringify(params))
+            return await resp.json() as ImportFactoryProjectResponse
+        }
+
         public async listEnvironments(projectId: string): Promise<{
     environments: EnvironmentRow[]
 }> {
@@ -1925,6 +2771,22 @@ export namespace projects {
             const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/envs`)
             return await resp.json() as {
     environments: EnvironmentRow[]
+}
+        }
+
+        public async listImportInstallations(): Promise<ListImportInstallationsResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/factory-import/installations`)
+            return await resp.json() as ListImportInstallationsResponse
+        }
+
+        public async listProjectKnowledge(projectId: string): Promise<{
+    objects: ProjectKnowledgeObject[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/knowledge`)
+            return await resp.json() as {
+    objects: ProjectKnowledgeObject[]
 }
         }
 
@@ -1958,6 +2820,12 @@ export namespace projects {
 }
         }
 
+        public async refreshProjectCloneToken(projectId: string): Promise<CloneTokenResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/clone-token`)
+            return await resp.json() as CloneTokenResponse
+        }
+
         public async removeProjectMember(projectId: string, userId: string): Promise<{
     ok: true
 }> {
@@ -1978,6 +2846,16 @@ export namespace projects {
 }
         }
 
+        public async revokeProjectPat(projectId: string): Promise<{
+    revoked: boolean
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("DELETE", `/api/projects/${encodeURIComponent(projectId)}/pat`)
+            return await resp.json() as {
+    revoked: boolean
+}
+        }
+
         public async setProjectMember(projectId: string, params: SetMemberRequest): Promise<{
     member: MemberRow
 }> {
@@ -1988,6 +2866,12 @@ export namespace projects {
 }
         }
 
+        public async storeProjectPat(projectId: string, params: StoreProjectPatRequest): Promise<ProjectPatValidationResult> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/pat`, JSON.stringify(params))
+            return await resp.json() as ProjectPatValidationResult
+        }
+
         public async updateProject(id: string, params: UpdateProjectRequest): Promise<{
     project: ProjectRow
 }> {
@@ -1996,6 +2880,12 @@ export namespace projects {
             return await resp.json() as {
     project: ProjectRow
 }
+        }
+
+        public async validateProjectPat(projectId: string): Promise<ProjectPatValidationResult> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/pat/validate`)
+            return await resp.json() as ProjectPatValidationResult
         }
     }
 }
@@ -2076,6 +2966,153 @@ export namespace site {
 
 export namespace sync {
     /**
+     * Entry shape for {@link ServerAgentCatalogSnapshot}. The snapshot is a
+     * directory — names, versions, and content hashes only. Desktops compare
+     * each `contentHash` against their local cache and pull missing bodies via
+     * {@link ClientAgentCatalogFetchRequest} (spec 111 §2.3).
+     */
+    export interface AgentCatalogSnapshotEntry {
+        agentId: string
+        name: string
+        version: number
+        status: "published" | "retired"
+        contentHash: string
+        updatedAt: string
+    }
+
+    /**
+     * Flat counterpart of {@link ClientEnvelope} for the Encore stream boundary.
+     */
+    export interface ClientEnvelopeWire {
+        /**
+         * Kinds are inlined rather than referencing `ClientEnvelopeKind`; Encore's
+         * schema parser cannot evaluate indexed-access types over a union alias.
+         */
+        kind: "execution.status" | "checkpoint.created" | "artifact.emitted" | "runtime.observed" | "agent.invocation" | "audit.candidate" | "factory.run.ack" | "agent.catalog.fetch_request" | "sync.ack" | "sync.resync_request" | "sync.heartbeat"
+
+        meta: EnvelopeMeta
+        projectId?: string
+        executionId?: string
+        status?: "started" | "progress" | "completed" | "failed" | "cancelled"
+        progressPct?: number
+        message?: string
+        checkpointId?: string
+        label?: string
+        commitSha?: string
+        artifactType?: string
+        contentHash?: string
+        sizeBytes?: number
+        storageRef?: string
+        observation?: "degraded" | "recovered" | "disk_pressure" | "network_loss" | "online"
+        detail?: string
+        agentId?: string
+        toolCalls?: number
+        durationMs?: number
+        outcome?: "ok" | "error" | "policy_denied"
+        errorMessage?: string
+        action?: string
+        targetType?: string
+        targetId?: string
+        details?: { [key: string]: any }
+        serverEventId?: string
+        sinceCursor?: string
+        reason?: string
+        /**
+         * spec 110 §2.2 — factory.run.ack fields
+         */
+        pipelineId?: string
+
+        sessionId?: string
+        opcInstanceId?: string
+        accepted?: boolean
+        declineReason?: string
+        observedAt?: string
+        /**
+         * spec 111 §2.3 — agent.catalog.fetch_request fields (agentId is already
+         * declared above for agent.invocation; reason is already the open string).
+         */
+        workspaceId?: string
+    }
+
+    /**
+     * Business-doc reference carried on a `factory.run.request` (spec 110 §2.1).
+     * 
+     * Distinct from the file-local `BusinessDocRef` in `api/factory/factory.ts`
+     * (which uses snake_case `storage_ref` to match HTTP shape); this is the
+     * wire-level camelCase form used on the envelope.
+     */
+    export interface EnvelopeBusinessDoc {
+        name: string
+        storageRef: string
+    }
+
+    export interface EnvelopeMeta {
+        /**
+         * Schema version — required; strict equality enforced at the boundary.
+         */
+        v: EnvelopeSchemaVersion
+
+        /**
+         * Unique event ID — UUID, set by sender. Used for ACK/NACK correlation.
+         */
+        eventId: string
+
+        /**
+         * ISO-8601 timestamp, set by sender.
+         */
+        sentAt: string
+
+        /**
+         * Optional correlation ID linking a response back to a request.
+         */
+        correlationId?: string
+
+        /**
+         * Optional causation ID linking this event to the event that produced it.
+         */
+        causationId?: string
+    }
+
+    /**
+     * Envelope schema version.
+     * 
+     * Spec 087 §5.3 FR-SYNC-003: every envelope MUST carry a schema version. The
+     * current protocol is version 1; the guard in `isClientEnvelope` rejects any
+     * other value. Bumping this is a wire-format change and requires extending
+     * both the TypeScript literal and the runtime guard in lock-step.
+     */
+    export type EnvelopeSchemaVersion = 1
+
+    /**
+     * Knowledge-bundle reference carried on a `factory.run.request` (spec 110 §2.3).
+     * 
+     * The desktop resolves each entry against a content-addressable cache at
+     * `$OPC_CACHE_DIR/knowledge/<contentHash>` before passing local paths to the
+     * factory engine; the hash is the trust boundary (mismatch ⇒ run fails).
+     */
+    export interface KnowledgeBundle {
+        /**
+         * Knowledge-object UUID on stagecraft.
+         */
+        objectId: string
+
+        /**
+         * Suggested local filename (preserves extension for the engine).
+         */
+        filename: string
+
+        /**
+         * sha-256 of the object body — authoritative cache key.
+         */
+        contentHash: string
+
+        /**
+         * Presigned URL with a short TTL (15 min); regenerated on resync.
+         */
+        downloadUrl: string
+    }
+
+    /**
      * Events pushed from OPC to Stagecraft.
      */
     export interface OpcInboundEvent {
@@ -2084,6 +3121,111 @@ export namespace sync {
         projectId: string
         timestamp: string
         payload: { [key: string]: any }
+    }
+
+    /**
+     * Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary.
+     */
+    export interface ServerEnvelopeWire {
+        kind: "policy.updated" | "grant.updated" | "deploy.status" | "workspace.updated" | "project.updated" | "factory.event" | "factory.run.request" | "agent.catalog.updated" | "agent.catalog.snapshot" | "project.catalog.upsert" | "sync.ack" | "sync.nack" | "sync.resync_required" | "sync.heartbeat" | "sync.hello"
+        meta: ServerMeta
+        policyBundleId?: string
+        summary?: string
+        userId?: string
+        change?: "granted" | "revoked" | "modified" | "renamed" | "members_changed" | "settings_changed" | "created" | "updated" | "deleted" | "repo_linked"
+        details?: { [key: string]: any }
+        projectId?: string
+        environmentId?: string
+        status?: "queued" | "running" | "succeeded" | "failed" | "rolled_back" | "published" | "retired"
+        detail?: string
+        pipelineId?: string
+        eventType?: string
+        stageId?: string
+        actor?: string
+        clientEventId?: string
+        reason?: "invalid" | "unauthorized" | "workspace_mismatch" | "internal_error" | "cursor_gap" | "stale_cursor" | "server_restart"
+        sessionId?: string
+        serverStartedAt?: string
+        cursorGap?: boolean
+        /**
+         * spec 110 §2.1 — factory.run.request fields
+         */
+        adapter?: string
+
+        actorUserId?: string
+        knowledge?: KnowledgeBundle[]
+        businessDocs?: EnvelopeBusinessDoc[]
+        requestedAt?: string
+        deadlineAt?: string
+        /**
+         * spec 111 §2.3 — agent.catalog.updated / agent.catalog.snapshot fields
+         */
+        agentId?: string
+
+        name?: string
+        version?: number
+        contentHash?: string
+        frontmatter?: frontmatter.CatalogFrontmatter
+        bodyMarkdown?: string
+        updatedAt?: string
+        entries?: AgentCatalogSnapshotEntry[]
+        generatedAt?: string
+        /**
+         * spec 112 §7 — project.catalog.upsert fields (projectId, workspaceId,
+         * name, updatedAt are already declared above).
+         */
+        slug?: string
+
+        description?: string
+        factoryAdapterId?: string | null
+        detectionLevel?: "not_factory" | "scaffold_only" | "legacy_produced" | "acp_produced" | null
+        repo?: {
+            githubOrg: string
+            repoName: string
+            defaultBranch: string
+            cloneUrl: string
+            htmlUrl: string
+        } | null
+        opcDeepLink?: string
+        tombstone?: boolean
+    }
+
+    export interface ServerMeta {
+        /**
+         * Monotonic cursor issued by the server for outbound events within a
+         * workspace. Clients MAY persist this and pass it back as
+         * `SyncHandshake.lastServerCursor` on reconnect.
+         * 
+         * This is best-effort in the in-memory implementation; a durable store
+         * is required before clients can safely rely on it for replay.
+         */
+        workspaceCursor: string
+
+        workspaceId: string
+        /**
+         * Schema version — required; strict equality enforced at the boundary.
+         */
+        v: EnvelopeSchemaVersion
+
+        /**
+         * Unique event ID — UUID, set by sender. Used for ACK/NACK correlation.
+         */
+        eventId: string
+
+        /**
+         * ISO-8601 timestamp, set by sender.
+         */
+        sentAt: string
+
+        /**
+         * Optional correlation ID linking a response back to a request.
+         */
+        correlationId?: string
+
+        /**
+         * Optional causation ID linking this event to the event that produced it.
+         */
+        causationId?: string
     }
 
     /**
@@ -2096,13 +3238,58 @@ export namespace sync {
         payload: { [key: string]: any }
     }
 
+    /**
+     * Sent by the client exactly once when opening the duplex stream.
+     */
+    export interface SyncHandshake {
+        /**
+         * Caller-generated UUID identifying this connection instance.
+         */
+        clientId: string
+
+        /**
+         * What kind of client is connecting.
+         */
+        clientKind: "desktop-opc" | "web-ui" | "agent-runner" | "unknown"
+
+        /**
+         * Client software version — informational, for compat/debug.
+         */
+        clientVersion?: string
+
+        /**
+         * Last server cursor the client observed, if any. The service MAY honour
+         * this to replay missed messages once a durable outbox is wired in.
+         */
+        lastServerCursor?: string
+
+        /**
+         * Optional capabilities declared by the client.
+         */
+        capabilities?: string[]
+    }
+
     export class ServiceClient {
         private baseClient: BaseClient
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.duplex = this.duplex.bind(this)
             this.ingestOpcEvent = this.ingestOpcEvent.bind(this)
             this.workspaceEventStream = this.workspaceEventStream.bind(this)
+        }
+
+        public async duplex(params: SyncHandshake): Promise<StreamInOut<ClientEnvelopeWire, ServerEnvelopeWire>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                capabilities:     params.capabilities?.map((v) => v),
+                clientId:         params.clientId,
+                clientKind:       String(params.clientKind),
+                clientVersion:    params.clientVersion,
+                lastServerCursor: params.lastServerCursor,
+            })
+
+            return await this.baseClient.createStreamInOut(`/api/sync/duplex`, {query})
         }
 
         public async ingestOpcEvent(params: OpcInboundEvent): Promise<{
@@ -2229,6 +3416,29 @@ export namespace frontend {
         public async reactrouter(method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "TRACE", rest: string[], body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
             return this.baseClient.callAPI(method, `/${rest.map(encodeURIComponent).join("/")}`, body, options)
         }
+    }
+}
+
+export namespace frontmatter {
+    /**
+     * Wire shape stored in `agent_catalog.frontmatter` (JSONB) and carried on
+     * `agent.catalog.updated` envelopes. Expressed as `Record<string, unknown>`
+     * so Encore's schema parser can handle it; the structured field set lives on
+     * the Rust side (`crates/agent-frontmatter::UnifiedFrontmatter`) and in the
+     * sibling `UnifiedFrontmatter.ts` generated mirror for typed consumers.
+     */
+    export type CatalogFrontmatter = { [key: string]: any }
+}
+
+export namespace scaffold {
+    export interface ScaffoldSeedInput {
+        bucketObjectId: string
+        filename: string
+        mimeType: string
+        /**
+         * SHA-256 of the raw bytes, captured at upload time.
+         */
+        contentHash: string
     }
 }
 
