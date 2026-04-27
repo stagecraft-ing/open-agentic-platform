@@ -190,6 +190,7 @@ export async function importFactoryProject(
     description?: string;
     previewOnly?: boolean;
     githubPat?: string;
+    skipPullRequest?: boolean;
   }
 ) {
   return apiFetch(request, "/api/projects/factory-import", {
@@ -210,6 +211,10 @@ export async function importFactoryProject(
     previewOnly: boolean;
     rawArtifacts: ImportedRawArtifact[];
     rawArtifactsSkipped: number;
+    /** L1 only — URL of the translation PR opened on the source repo. */
+    pullRequestUrl?: string | null;
+    /** L1 only — message when PR opening failed after registration. */
+    pullRequestError?: string;
   }>;
 }
 

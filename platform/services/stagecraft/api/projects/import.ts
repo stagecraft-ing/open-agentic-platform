@@ -51,6 +51,11 @@ import {
   registerRawArtifactsFromRepo,
   type RegisteredArtifact,
 } from "./importArtifacts";
+import {
+  buildImportPrBody,
+  openImportPullRequest,
+  OpenImportPrError,
+} from "./scaffold/githubOpenPr";
 
 // ── Public types ────────────────────────────────────────────────────────
 
@@ -82,6 +87,14 @@ export interface ImportFactoryProjectRequest {
    * the same credential via the standard token resolver.
    */
   githubPat?: string;
+  /**
+   * Spec 112 §6.2 step 4 — when true, register the project but do not
+   * open the L1 translation PR. Useful for callers that want to
+   * inspect the translated pipeline-state and open the PR via a
+   * follow-up button, or for tests. Default: false (open the PR
+   * unless overridden).
+   */
+  skipPullRequest?: boolean;
 }
 
 type TokenSource = "github_installation" | "project_github_pat";
@@ -122,6 +135,16 @@ export interface ImportFactoryProjectResponse {
     sizeBytes: number;
   }>;
   rawArtifactsSkipped: number;
+  /**
+   * L1 only — URL of the PR opened against the source repo adding
+   * `.factory/pipeline-state.json`. `null` for previewOnly imports,
+   * for non-L1 detection levels, or when the caller suppressed PR
+   * creation via `skipPullRequest`. When PR creation fails after
+   * the project rows have been written, the project is kept and
+   * `pullRequestError` carries an actionable message.
+   */
+  pullRequestUrl: string | null;
+  pullRequestError?: string;
 }
 
 // ── Detection-crate consumer interface ─────────────────────────────────
@@ -432,6 +455,7 @@ async function importLegacy(
       previewOnly: true,
       rawArtifacts: [],
       rawArtifactsSkipped: 0,
+      pullRequestUrl: null,
     };
   }
 
@@ -455,10 +479,39 @@ async function importLegacy(
     sourceRepo: `${parsed.owner}/${parsed.repo}`,
   });
 
-  // The PR that adds `.factory/pipeline-state.json` to the imported repo
-  // is prepared but not force-merged here — the follow-up GitHub flow is
-  // a separate operation (see spec 112 §6.2 step 4). The translated
-  // document is returned so callers can diff it client-side.
+  // Spec 112 §6.2 step 4 — open the PR adding the translated
+  // pipeline-state. Failures are non-fatal: the project is already
+  // registered, so we surface the error in the response so the caller
+  // can retry or open the PR by hand. The legacy manifest files are
+  // never touched by this flow.
+  const prResult = req.skipPullRequest
+    ? { pullRequestUrl: null as string | null, pullRequestError: undefined as string | undefined }
+    : await openTranslationPr({
+        token: resolved.token,
+        fullName: `${parsed.owner}/${parsed.repo}`,
+        baseBranch: "main",
+        translated,
+        translatorVersion: TRANSLATOR_VERSION,
+      });
+
+  if (prResult.pullRequestUrl) {
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "project.import.pr_opened",
+      targetType: "project",
+      targetId: projectRow.id,
+      metadata: {
+        pullRequestUrl: prResult.pullRequestUrl,
+        translatorVersion: TRANSLATOR_VERSION,
+      },
+    });
+  } else if (prResult.pullRequestError) {
+    log.warn("import: PR open failed (project still registered)", {
+      projectId: projectRow.id,
+      error: prResult.pullRequestError,
+    });
+  }
+
   return {
     projectId: projectRow.id,
     detectionLevel: "legacy_produced",
@@ -474,7 +527,59 @@ async function importLegacy(
     previewOnly: false,
     rawArtifacts: artifacts.registered.map(redactArtifact),
     rawArtifactsSkipped: artifacts.skipped,
+    pullRequestUrl: prResult.pullRequestUrl,
+    pullRequestError: prResult.pullRequestError,
   };
+}
+
+/**
+ * Spec 112 §6.2 step 4 — wrap the PR helper with a default-branch
+ * convention (main) and a deterministic head-branch name keyed on the
+ * minute the import ran. Errors are caught and surfaced as
+ * `pullRequestError` so the caller's response shape stays stable —
+ * the project rows are already persisted by the time we reach here,
+ * and rolling them back for a transient GitHub failure would be
+ * worse than leaving the user a "retry the PR" button.
+ */
+async function openTranslationPr(args: {
+  token: string;
+  fullName: string;
+  baseBranch: string;
+  translated: ReturnType<typeof translateLegacyManifest>;
+  translatorVersion: string;
+}): Promise<{ pullRequestUrl: string | null; pullRequestError?: string }> {
+  const stages = args.translated.stages ?? {};
+  const stageCount = Object.keys(stages).length;
+  // Minute-precision suffix: cheap idempotency on retry within a minute.
+  const suffix = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
+  const headBranch = `factory-import-${suffix}`;
+  try {
+    const result = await openImportPullRequest({
+      token: args.token,
+      fullName: args.fullName,
+      baseBranch: args.baseBranch,
+      headBranch,
+      filePath: ".factory/pipeline-state.json",
+      fileContent: `${JSON.stringify(args.translated, null, 2)}\n`,
+      commitMessage:
+        "chore(factory): add ACP-translated pipeline-state.json (spec 112 §6.2)",
+      prTitle: "Factory import: add `.factory/pipeline-state.json`",
+      prBody: buildImportPrBody({
+        detectionLevel: "legacy_produced",
+        translatorVersion: args.translatorVersion,
+        legacyStageCount: stageCount,
+      }),
+    });
+    return { pullRequestUrl: result.htmlUrl };
+  } catch (err) {
+    const message =
+      err instanceof OpenImportPrError
+        ? `${err.stage}: ${err.message}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    return { pullRequestUrl: null, pullRequestError: message };
+  }
 }
 
 async function importAcp(
@@ -510,6 +615,7 @@ async function importAcp(
       previewOnly: true,
       rawArtifacts: [],
       rawArtifactsSkipped: 0,
+      pullRequestUrl: null,
     };
   }
 
@@ -547,6 +653,7 @@ async function importAcp(
     previewOnly: false,
     rawArtifacts: artifacts.registered.map(redactArtifact),
     rawArtifactsSkipped: artifacts.skipped,
+    pullRequestUrl: null,
   };
 }
 

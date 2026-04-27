@@ -41,6 +41,10 @@ interface ActionSuccess {
   previewOnly: boolean;
   rawArtifacts: ImportedRawArtifact[];
   rawArtifactsSkipped: number;
+  /** L1 only — URL of the translation PR opened on the source repo. */
+  pullRequestUrl?: string | null;
+  /** L1 only — message when PR opening failed after registration. */
+  pullRequestError?: string;
 }
 
 interface AdvanceSuccess {
@@ -316,7 +320,16 @@ function ImportPreviewPanel({ data }: { data: ActionSuccess }) {
         </pre>
       )}
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        Press "Import project" to register and open the translation PR.
+        Press "Import project" to register the project and{" "}
+        {data.detectionLevel === "legacy_produced" ? (
+          <>
+            open a PR adding{" "}
+            <code className="text-[10px]">.factory/pipeline-state.json</code>{" "}
+            to the source repo.
+          </>
+        ) : (
+          <>register the ACP-native project without a translation PR.</>
+        )}
       </p>
     </div>
   );
@@ -390,6 +403,41 @@ function ImportRegistered({ data }: { data: ActionSuccess }) {
             )}
           </dd>
         </div>
+        {data.detectionLevel === "legacy_produced" && (
+          <div className="grid grid-cols-[10rem_1fr] px-4 py-3">
+            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Translation PR
+            </dt>
+            <dd className="text-sm">
+              {data.pullRequestUrl ? (
+                <a
+                  href={data.pullRequestUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-600 dark:text-indigo-400 underline"
+                >
+                  {data.pullRequestUrl}
+                </a>
+              ) : data.pullRequestError ? (
+                <span className="text-amber-700 dark:text-amber-400">
+                  PR opening failed:{" "}
+                  <code className="text-xs">{data.pullRequestError}</code>
+                  <br />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    The project is registered. Re-import to retry, or open
+                    the PR by hand: add{" "}
+                    <code>.factory/pipeline-state.json</code> on a branch off{" "}
+                    <code>main</code>.
+                  </span>
+                </span>
+              ) : (
+                <span className="text-gray-500 dark:text-gray-400">
+                  (PR creation skipped)
+                </span>
+              )}
+            </dd>
+          </div>
+        )}
       </dl>
 
       {data.projectId && objects.length > 0 && (
