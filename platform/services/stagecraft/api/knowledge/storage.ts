@@ -12,6 +12,7 @@ import {
   HeadBucketCommand,
   CreateBucketCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -184,6 +185,34 @@ export async function deleteObject(
     new DeleteObjectCommand({ Bucket: bucket, Key: key })
   );
   log.info("object deleted", { bucket, key });
+}
+
+// ---------------------------------------------------------------------------
+// List all keys under a bucket (paginated via continuation token)
+// ---------------------------------------------------------------------------
+//
+// Used by the org-admin orphan-storage purge endpoint: walk every key in the
+// workspace bucket, diff against DB-referenced keys, delete the unreferenced
+// remainder. Returned set is bounded by the bucket's actual size; the caller
+// is responsible for chunking deletes if the bucket is enormous.
+
+export async function listAllObjects(bucket: string): Promise<string[]> {
+  const keys: string[] = [];
+  let continuationToken: string | undefined;
+  while (true) {
+    const res = await getClient().send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        ContinuationToken: continuationToken,
+      })
+    );
+    for (const obj of res.Contents ?? []) {
+      if (obj.Key) keys.push(obj.Key);
+    }
+    if (!res.IsTruncated || !res.NextContinuationToken) break;
+    continuationToken = res.NextContinuationToken;
+  }
+  return keys;
 }
 
 // ---------------------------------------------------------------------------
