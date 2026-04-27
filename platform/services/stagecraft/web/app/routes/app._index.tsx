@@ -1,7 +1,11 @@
-import { useLoaderData, Link, useFetcher, useSearchParams } from "react-router";
+import { useLoaderData, Link, useFetcher, useNavigate, useSearchParams } from "react-router";
 import { useState, useMemo } from "react";
 import { requireUser } from "../lib/auth.server";
 import { listProjects, deleteProject } from "../lib/projects-api.server";
+import {
+  CloneProjectDialog,
+  type CloneSourceProject,
+} from "../components/CloneProjectDialog";
 
 type ProjectRow = {
   id: string;
@@ -15,14 +19,25 @@ type ProjectRow = {
   // primary `project_repos` row. Hides the Clone affordance for legacy
   // projects without a repo binding.
   canClone: boolean;
+  // Spec 113 §FR-009 — used to pre-fill the dialog's `repoName` field with
+  // `<sourceRepoName>-clone`.
+  primaryRepoName: string | null;
 };
 
-export async function loader({ request }: { request: Request }) {
+type LoaderData = {
+  user: Awaited<ReturnType<typeof requireUser>>;
+  projects: ProjectRow[];
+  destinationGithubOrgLogin: string | null;
+};
+
+export async function loader({ request }: { request: Request }): Promise<LoaderData> {
   const user = await requireUser(request);
 
   let projects: ProjectRow[] = [];
+  let destinationGithubOrgLogin: string | null = null;
   try {
     const res = await listProjects(request);
+    destinationGithubOrgLogin = res.destinationGithubOrgLogin;
     projects = res.projects.map((p) => ({
       id: p.id,
       name: p.name,
@@ -37,12 +52,13 @@ export async function loader({ request }: { request: Request }) {
           ? p.updatedAt
           : new Date(p.updatedAt as unknown as string).toISOString(),
       canClone: Boolean(p.hasPrimaryRepo),
+      primaryRepoName: p.primaryRepoName ?? null,
     }));
   } catch {
     // projects service may not be ready
   }
 
-  return { user, projects };
+  return { user, projects, destinationGithubOrgLogin };
 }
 
 export async function action({ request }: { request: Request }) {
@@ -62,13 +78,15 @@ export async function action({ request }: { request: Request }) {
 type Tab = "mine" | "shared" | "gallery";
 
 export default function Dashboard() {
-  const { projects } = useLoaderData() as { projects: ProjectRow[] };
+  const { projects, destinationGithubOrgLogin } = useLoaderData() as LoaderData;
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [view, setView] = useState<"grid" | "list">(
     (searchParams.get("view") as "grid" | "list") ?? "list"
   );
   const [tab, setTab] = useState<Tab>("mine");
   const [query, setQuery] = useState("");
+  const [cloneSource, setCloneSource] = useState<CloneSourceProject | null>(null);
 
   const filtered = useMemo(() => {
     if (tab !== "mine") return [] as ProjectRow[];
@@ -81,6 +99,17 @@ export default function Dashboard() {
         (p.description ?? "").toLowerCase().includes(q)
     );
   }, [projects, query, tab]);
+
+  function openClone(p: ProjectRow) {
+    if (!p.canClone || !p.primaryRepoName || !destinationGithubOrgLogin) return;
+    setCloneSource({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      destinationGithubOrgLogin,
+      sourceRepoName: p.primaryRepoName,
+    });
+  }
 
   const counts = { mine: projects.length, shared: 0, gallery: 0 };
 
@@ -170,25 +199,48 @@ export default function Dashboard() {
           }
         />
       ) : view === "list" ? (
-        <ProjectListRows projects={filtered} />
+        <ProjectListRows projects={filtered} onClone={openClone} />
       ) : (
-        <ProjectGrid projects={filtered} />
+        <ProjectGrid projects={filtered} onClone={openClone} />
+      )}
+
+      {cloneSource && (
+        <CloneProjectDialog
+          source={cloneSource}
+          onClose={() => setCloneSource(null)}
+          onSubmitted={(resp) => {
+            setCloneSource(null);
+            navigate(`/app/project/${resp.projectId}`);
+          }}
+        />
       )}
     </div>
   );
 }
 
-function ProjectListRows({ projects }: { projects: ProjectRow[] }) {
+function ProjectListRows({
+  projects,
+  onClone,
+}: {
+  projects: ProjectRow[];
+  onClone: (p: ProjectRow) => void;
+}) {
   return (
     <ul className="space-y-2">
       {projects.map((p) => (
-        <ProjectRow key={p.id} project={p} />
+        <ProjectRow key={p.id} project={p} onClone={() => onClone(p)} />
       ))}
     </ul>
   );
 }
 
-function ProjectRow({ project }: { project: ProjectRow }) {
+function ProjectRow({
+  project,
+  onClone,
+}: {
+  project: ProjectRow;
+  onClone: () => void;
+}) {
   const fetcher = useFetcher();
   const deleting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "delete";
 
@@ -228,12 +280,7 @@ function ProjectRow({ project }: { project: ProjectRow }) {
 
       <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {project.canClone && (
-          <IconButton
-            label="Clone"
-            onClick={() => {
-              /* TODO: open Clone dialog (spec 113 Phase 2) */
-            }}
-          >
+          <IconButton label="Clone" onClick={onClone}>
             <CopyIcon className="w-4 h-4" />
           </IconButton>
         )}
@@ -267,31 +314,55 @@ function ProjectRow({ project }: { project: ProjectRow }) {
   );
 }
 
-function ProjectGrid({ projects }: { projects: ProjectRow[] }) {
+function ProjectGrid({
+  projects,
+  onClone,
+}: {
+  projects: ProjectRow[];
+  onClone: (p: ProjectRow) => void;
+}) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {projects.map((p) => (
-        <Link
+        // Spec 113 §FR-006 — grid card grows row affordances. The card
+        // itself remains a Link to the detail page; the Clone button is
+        // a sibling overlay that stops propagation so the click does not
+        // navigate.
+        <div
           key={p.id}
-          to={`/app/project/${p.id}`}
-          className="block border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900/60 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+          className="group relative block border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
         >
-          <div className="aspect-video rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-600 mb-3">
-            <ImageIcon className="w-8 h-8" />
-          </div>
-          <h3 className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-            {p.name}
-          </h3>
-          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <ClockIcon className="w-3 h-3" />
-            <span>Updated {formatRelativeTime(p.updatedAt ?? p.createdAt)}</span>
-          </div>
-          {p.description && (
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-              {p.description}
-            </p>
+          <Link
+            to={`/app/project/${p.id}`}
+            className="block p-4"
+          >
+            <div className="aspect-video rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-600 mb-3">
+              <ImageIcon className="w-8 h-8" />
+            </div>
+            <h3 className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+              {p.name}
+            </h3>
+            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <ClockIcon className="w-3 h-3" />
+              <span>Updated {formatRelativeTime(p.updatedAt ?? p.createdAt)}</span>
+            </div>
+            {p.description && (
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                {p.description}
+              </p>
+            )}
+          </Link>
+          {p.canClone && (
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <IconButton
+                label="Clone"
+                onClick={() => onClone(p)}
+              >
+                <CopyIcon className="w-4 h-4" />
+              </IconButton>
+            </div>
           )}
-        </Link>
+        </div>
       ))}
     </div>
   );

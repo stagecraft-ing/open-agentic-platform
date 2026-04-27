@@ -22,6 +22,18 @@ export default [
     ]),
     route("projects/new", "routes/app.projects.new.tsx"),
     route("projects/import", "routes/app.projects.import.tsx"),
+    // Spec 113 — resource routes for the Clone Project dialog. The dialog
+    // runs in the browser so it cannot call Encore directly (cookies don't
+    // forward); these routes proxy through the SSR layer where
+    // `apiFetch` injects the user's session cookie.
+    route(
+      "projects/clone-availability",
+      "routes/app.projects.clone-availability.tsx"
+    ),
+    route(
+      "projects/:sourceProjectId/clone",
+      "routes/app.projects.$sourceProjectId.clone.tsx"
+    ),
     route("workspace/agents", "routes/app.workspace.agents.tsx", [
       index("routes/app.workspace.agents._index.tsx"),
       route("new", "routes/app.workspace.agents.new.tsx"),

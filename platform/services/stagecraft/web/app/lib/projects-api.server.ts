@@ -75,7 +75,8 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
 
 // Spec 113 §FR-039 — `hasPrimaryRepo` is computed server-side via an EXISTS
 // subquery so the projects index can hide the Clone affordance for projects
-// without a primary repo without a second round-trip.
+// without a primary repo without a second round-trip. `primaryRepoName`
+// drives the dialog's `<sourceRepoName>-clone` pre-fill.
 export interface ProjectListEntry {
   id: string;
   orgId: string;
@@ -88,11 +89,13 @@ export interface ProjectListEntry {
   createdAt: string;
   updatedAt: string;
   hasPrimaryRepo: boolean;
+  primaryRepoName: string | null;
 }
 
 export async function listProjects(request: Request) {
   return apiFetch(request, "/api/projects") as Promise<{
     projects: ProjectListEntry[];
+    destinationGithubOrgLogin: string | null;
   }>;
 }
 
@@ -127,6 +130,71 @@ export async function deleteProject(
     `/api/projects/${id}?actorUserId=${encodeURIComponent(actorUserId)}`,
     { method: "DELETE" }
   ) as Promise<{ ok: true }>;
+}
+
+// Spec 113 — Clone Project (availability + submit).
+
+export type CloneAvailabilityState =
+  | "available"
+  | "unavailable"
+  | "invalid"
+  | "unverifiable";
+
+export type CloneAvailabilityReason =
+  | "format"
+  | "exists"
+  | "rate_limited"
+  | "no_installation"
+  | "transient_error";
+
+export interface CloneAvailabilityVerdict {
+  value: string;
+  state: CloneAvailabilityState;
+  reason?: CloneAvailabilityReason;
+  retryAfterSec?: number;
+}
+
+export interface CloneAvailabilityResponse {
+  repoName?: CloneAvailabilityVerdict;
+  slug?: CloneAvailabilityVerdict;
+}
+
+export async function checkCloneAvailability(
+  request: Request,
+  params: { repoName?: string; slug?: string; workspaceId?: string }
+) {
+  const qs = new URLSearchParams();
+  if (params.repoName !== undefined) qs.set("repoName", params.repoName);
+  if (params.slug !== undefined) qs.set("slug", params.slug);
+  if (params.workspaceId !== undefined)
+    qs.set("workspaceId", params.workspaceId);
+  return apiFetch(
+    request,
+    `/api/projects/clone/check-availability?${qs.toString()}`
+  ) as Promise<CloneAvailabilityResponse>;
+}
+
+export interface CloneProjectResponse {
+  projectId: string;
+  name: string;
+  slug: string;
+  repoFullName: string;
+  defaultBranch: string;
+  opcDeepLink: string | null;
+  rawArtifactsCopied: number;
+  rawArtifactsSkipped: number;
+  durationMs: number;
+}
+
+export async function cloneProject(
+  request: Request,
+  sourceProjectId: string,
+  body: { name?: string; slug?: string; repoName?: string }
+) {
+  return apiFetch(request, `/api/projects/${sourceProjectId}/clone`, {
+    method: "POST",
+    body: JSON.stringify({ ...body, sourceProjectId }),
+  }) as Promise<CloneProjectResponse>;
 }
 
 // Self-service project creation (spec 080 Phase 2)

@@ -51,10 +51,22 @@ export type ProjectRow = {
 
 // Spec 113 §FR-039 — `listProjects` augments each project with a precomputed
 // flag so the SSR loader can hide the Clone affordance for projects with no
-// primary repo without an extra round-trip.
+// primary repo without an extra round-trip. `primaryRepoName` is the source
+// of the dialog's `<sourceRepoName>-clone` pre-fill (FR-009).
 export type ProjectListRow = ProjectRow & {
   hasPrimaryRepo: boolean;
+  primaryRepoName: string | null;
 };
+
+export interface ListProjectsResponse {
+  projects: ProjectListRow[];
+  /**
+   * The OAP-current-org's active GitHub App installation login. Null when
+   * the org has no active installation. The Clone Project dialog renders
+   * this as a read-only field so the user knows where the new repo lands.
+   */
+  destinationGithubOrgLogin: string | null;
+}
 
 export type RepoRow = {
   id: string;
@@ -117,13 +129,13 @@ export const getOrg = api(
 
 export const listProjects = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects" },
-  async (): Promise<{ projects: ProjectListRow[] }> => {
+  async (): Promise<ListProjectsResponse> => {
     const auth = getAuthData()!;
 
-    // Spec 113 §FR-039 — single-round-trip JOIN: each project is augmented
-    // with `hasPrimaryRepo` derived from an EXISTS subquery over
-    // `project_repos`. Lets the SSR loader compute `canClone` without a
-    // second batched call.
+    // Spec 113 §FR-039 — single-round-trip subquery: each project is
+    // augmented with `hasPrimaryRepo` and `primaryRepoName`. Lets the SSR
+    // loader compute `canClone` and pre-fill the dialog's repoName field
+    // without a second batched call.
     const rows = await db
       .select({
         id: projects.id,
@@ -141,11 +153,34 @@ export const listProjects = api(
           where ${projectRepos.projectId} = ${projects.id}
             and ${projectRepos.isPrimary} = true
         )`,
+        primaryRepoName: sql<string | null>`(
+          select ${projectRepos.repoName} from ${projectRepos}
+          where ${projectRepos.projectId} = ${projects.id}
+            and ${projectRepos.isPrimary} = true
+          limit 1
+        )`,
       })
       .from(projects)
       .where(eq(projects.workspaceId, auth.workspaceId))
       .orderBy(desc(projects.createdAt));
-    return { projects: rows };
+
+    // Spec 113 §FR-008 — surface the destination GitHub org login so the
+    // dialog can show it (read-only) without a second round-trip.
+    const [destInstallation] = await db
+      .select({ githubOrgLogin: githubInstallations.githubOrgLogin })
+      .from(githubInstallations)
+      .where(
+        and(
+          eq(githubInstallations.orgId, auth.orgId),
+          eq(githubInstallations.installationState, "active")
+        )
+      )
+      .limit(1);
+
+    return {
+      projects: rows,
+      destinationGithubOrgLogin: destInstallation?.githubOrgLogin ?? null,
+    };
   }
 );
 
