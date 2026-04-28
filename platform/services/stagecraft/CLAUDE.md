@@ -87,7 +87,6 @@ Entry points (the four "what to call from the rest of the codebase" surfaces):
 
 Env knobs:
 
-- `STAGECRAFT_EXTRACT_WORKER_CONCURRENCY` — Subscription max-concurrency (default 8)
 - `STAGECRAFT_EXTRACT_STALE_AFTER_SEC` — sweeper cutoff (default 600)
 - `STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES` — auto-retry cap before manual Retry needed (default 2)
 - `STAGECRAFT_EXTRACT_EAGER_BUFFER_BYTES` — worker eager-load threshold (default 4MB)

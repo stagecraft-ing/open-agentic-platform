@@ -15,15 +15,6 @@ import {
 // into the dispatch table before any message can arrive.
 import "./extractors";
 
-const DEFAULT_MAX_CONCURRENCY = 8;
-
-function maxConcurrency(): number {
-  const v = process.env.STAGECRAFT_EXTRACT_WORKER_CONCURRENCY;
-  if (!v) return DEFAULT_MAX_CONCURRENCY;
-  const n = Number.parseInt(v, 10);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_CONCURRENCY;
-}
-
 async function handleExtractionRequest(
   req: KnowledgeExtractionRequest,
 ): Promise<void> {
@@ -42,12 +33,15 @@ async function handleExtractionRequest(
   }
 }
 
+// Encore parses Subscription config at build time and only accepts literal
+// integers for `maxConcurrency`. We omit it here and rely on Encore's
+// default fan-out; runtime back-pressure is handled by the per-run CAS +
+// the day-aggregate cost gate inside `runExtractionWork`.
 const _extractionWorker = new Subscription(
   KnowledgeExtractionRequestTopic,
   "knowledge-extraction-worker",
   {
     handler: handleExtractionRequest,
-    maxConcurrency: maxConcurrency(),
   },
 );
 void _extractionWorker;
