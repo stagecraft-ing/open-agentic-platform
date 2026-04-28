@@ -1,15 +1,26 @@
 // Spec 115 FR-017 — workspace policy slice that gates extractor invocations.
 //
-// Phase 0 ships the type, the deterministic-only fallback, and a stub
-// `resolveExtractionPolicy` that always returns the fallback. Phase 2
-// (task T040 + T041) replaces the stub with a real loader that reads
-// `build/policy/workspaces/{workspaceId}.json` (compiled by the
-// policy-kernel) with a 30s in-memory cache.
+// The policy compiler (spec 047 / crates/policy-kernel) emits per-workspace
+// JSON snapshots at `build/policy/workspaces/{workspaceId}.json`. This
+// resolver reads them on demand with a 30s in-memory cache and falls back
+// to the deterministic-only policy when no snapshot exists for the
+// workspace yet (brand-new workspaces, bundle-pending state per spec §4
+// edge cases).
 //
-// The fallback is what brand-new workspaces and bundle-pending workspaces
-// receive (spec §4 edge case "No policy bundle resolved for the
-// workspace"). Vision off, audio off, $0 ceilings — agent extractors
-// fail closed under it.
+// Snapshot shape:
+//   {
+//     "visionAllowed":      bool,
+//     "audioAllowed":       bool,
+//     "modelPin":           string?    // optional Anthropic model id
+//     "costCeilingUsdPerCall": number,
+//     "costCeilingUsdPerDay":  number
+//   }
+// Anything else → schema mismatch → fall back to deterministic-only and
+// log a warning.
+
+import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
+import log from "encore.dev/log";
 
 // ---------------------------------------------------------------------------
 // Type
@@ -48,20 +59,95 @@ export const DEFAULT_DETERMINISTIC_ONLY_POLICY: ExtractionPolicy = {
 };
 
 // ---------------------------------------------------------------------------
-// Resolver (Phase 0 stub)
+// Resolver
 // ---------------------------------------------------------------------------
 
+const CACHE_TTL_MS = 30_000;
+
+type CacheEntry = {
+  policy: ExtractionPolicy;
+  loadedAt: number;
+};
+
+const cache = new Map<string, CacheEntry>();
+
+function getPolicyDir(): string {
+  if (process.env.STAGECRAFT_EXTRACT_POLICY_DIR) {
+    return process.env.STAGECRAFT_EXTRACT_POLICY_DIR;
+  }
+  // Default location matches the policy compiler output (spec 047): the
+  // monorepo `build/` directory, walked up from the stagecraft module.
+  return path.resolve(process.cwd(), "build", "policy", "workspaces");
+}
+
+function isPolicyShape(v: unknown): v is Omit<ExtractionPolicy, "source"> {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  if (typeof o.visionAllowed !== "boolean") return false;
+  if (typeof o.audioAllowed !== "boolean") return false;
+  if (typeof o.costCeilingUsdPerCall !== "number") return false;
+  if (typeof o.costCeilingUsdPerDay !== "number") return false;
+  if (o.modelPin != null && typeof o.modelPin !== "string") return false;
+  return true;
+}
+
+async function loadPolicySnapshot(
+  workspaceId: string,
+): Promise<ExtractionPolicy | null> {
+  const filePath = path.join(getPolicyDir(), `${workspaceId}.json`);
+  try {
+    await stat(filePath);
+  } catch {
+    return null;
+  }
+  try {
+    const buf = await readFile(filePath, "utf8");
+    const parsed = JSON.parse(buf);
+    if (!isPolicyShape(parsed)) {
+      log.warn("extraction policy snapshot schema mismatch; using fallback", {
+        workspaceId,
+        path: filePath,
+      });
+      return null;
+    }
+    return {
+      visionAllowed: parsed.visionAllowed,
+      audioAllowed: parsed.audioAllowed,
+      modelPin: parsed.modelPin,
+      costCeilingUsdPerCall: parsed.costCeilingUsdPerCall,
+      costCeilingUsdPerDay: parsed.costCeilingUsdPerDay,
+      source: "compiled_bundle",
+    };
+  } catch (err) {
+    log.warn("extraction policy snapshot read failed; using fallback", {
+      workspaceId,
+      path: filePath,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
 /**
- * Returns the policy slice for a workspace. Phase 0 always returns the
- * deterministic-only fallback regardless of workspaceId. Phase 2 replaces
- * this with the real bundle loader.
- *
- * Async signature is intentional even at the stub stage so callers don't
- * have to migrate when the real loader (which reads from disk + caches)
- * lands.
+ * Returns the policy slice for a workspace. 30s in-memory cache; stale or
+ * missing snapshot → deterministic-only fallback (FR-017 / spec §4 edge
+ * "No policy bundle resolved for the workspace").
  */
 export async function resolveExtractionPolicy(
-  _workspaceId: string,
+  workspaceId: string,
 ): Promise<ExtractionPolicy> {
-  return DEFAULT_DETERMINISTIC_ONLY_POLICY;
+  const now = Date.now();
+  const cached = cache.get(workspaceId);
+  if (cached && now - cached.loadedAt < CACHE_TTL_MS) {
+    return cached.policy;
+  }
+  const loaded = await loadPolicySnapshot(workspaceId);
+  const policy = loaded ?? DEFAULT_DETERMINISTIC_ONLY_POLICY;
+  cache.set(workspaceId, { policy, loadedAt: now });
+  return policy;
+}
+
+/** Visible for tests. */
+export function _resetExtractionPolicyCacheForTesting(): void {
+  cache.clear();
 }

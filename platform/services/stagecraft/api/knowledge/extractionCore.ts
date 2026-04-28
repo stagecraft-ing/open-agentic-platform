@@ -447,24 +447,40 @@ export async function runExtractionWork(args: {
     ws.bucket,
   );
 
-  // Phase 1a: dispatch is empty. Pick will return null; the worker fails
-  // closed with the right code so the operator-facing message is honest.
   const dispatch = pickExtractor(input, policy);
   if (!dispatch) {
-    const code: ExtractionFailureCode =
-      policy.source === "default_fallback" && hasUnimplementedFallback(policy)
-        ? "policy_pending"
-        : "extractor_not_implemented";
+    // Differentiate the failure by why no extractor matched.
+    // - default_fallback policy with no compiled bundle → `policy_pending`
+    //   (a future bundle compile may unblock this).
+    // - real compiled bundle that disables vision/audio → `policy_denied`.
+    // - real bundle, all enabled, but mime is genuinely unsupported →
+    //   `extractor_not_implemented` (e.g. audio while T046 is unimplemented).
+    let code: ExtractionFailureCode;
+    let message: string;
+    if (policy.source === "default_fallback") {
+      code = "policy_pending";
+      message =
+        "no policy bundle compiled for this workspace; agent extractors blocked";
+    } else if (
+      mimeRequiresAgent(input.mimeType) &&
+      ((!policy.visionAllowed && isVisionMime(input.mimeType)) ||
+        (!policy.audioAllowed && isAudioMime(input.mimeType)))
+    ) {
+      code = "policy_denied";
+      message = `policy disallows ${
+        isAudioMime(input.mimeType) ? "audio" : "vision"
+      } extraction for ${input.mimeType}`;
+    } else {
+      code = "extractor_not_implemented";
+      message = `no extractor registered for mime ${input.mimeType}`;
+    }
     await markRunFailedInternal({
       runId: run.id,
       knowledgeObjectId: run.knowledgeObjectId,
       workspaceId: run.workspaceId,
       error: {
         code,
-        message:
-          code === "policy_pending"
-            ? "no policy bundle compiled for this workspace; agent extractors blocked"
-            : "no extractor registered for this mime type and policy",
+        message,
         extractorKind: null,
         attemptedAt: new Date().toISOString(),
       },
@@ -850,17 +866,23 @@ function mapExtractorThrowToError(
   };
 }
 
-function hasUnimplementedFallback(policy: ExtractionPolicy): boolean {
-  // Policy fallback that disallows everything is the spec's signal that
-  // the workspace is "policy_pending" — vision/audio off and zero ceilings
-  // means no agent extractor can run, and Phase 1a has no deterministic
-  // extractors registered yet, so the failure is policy-shaped.
-  return (
-    !policy.visionAllowed &&
-    !policy.audioAllowed &&
-    policy.costCeilingUsdPerCall === 0 &&
-    policy.costCeilingUsdPerDay === 0
-  );
+function isVisionMime(mime: string): boolean {
+  if (mime.startsWith("image/")) return true;
+  // PDFs that fell through deterministic-pdf-embedded reach the agent
+  // dispatch path; vision is the gating policy for them too.
+  if (mime === "application/pdf") return true;
+  return false;
+}
+
+function isAudioMime(mime: string): boolean {
+  return mime.startsWith("audio/");
+}
+
+function mimeRequiresAgent(mime: string): boolean {
+  // Best-effort: any mime not handled by a deterministic extractor needs
+  // an agent. The dispatcher walked the registry already; we only call
+  // this when no extractor matched.
+  return isVisionMime(mime) || isAudioMime(mime);
 }
 
 // ---------------------------------------------------------------------------
