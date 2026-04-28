@@ -11,6 +11,9 @@ import {
   KnowledgeExtractionRequestTopic,
   type KnowledgeExtractionRequest,
 } from "./extractionEvents";
+// Side-effect import: registers every deterministic / agent extractor
+// into the dispatch table before any message can arrive.
+import "./extractors";
 
 const DEFAULT_MAX_CONCURRENCY = 8;
 

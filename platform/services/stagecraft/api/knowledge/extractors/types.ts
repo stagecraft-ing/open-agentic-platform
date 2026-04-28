@@ -36,6 +36,14 @@ export type ExtractorInput = {
    * they need ranged access (e.g. PDF page-by-page).
    */
   downloadUrl: string;
+  /**
+   * Workspace S3 bucket name. Extractors that need ranged or large reads
+   * use `loadBytes(bucket, storageKey)` against the in-process storage
+   * helper rather than re-deriving credentials from the presigned URL.
+   */
+  bucket: string;
+  /** S3 object key inside `bucket`. */
+  storageKey: string;
 };
 
 // ---------------------------------------------------------------------------

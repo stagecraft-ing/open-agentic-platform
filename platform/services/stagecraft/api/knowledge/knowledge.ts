@@ -17,8 +17,9 @@ import {
   projects,
   auditLog,
   syncRuns,
+  knowledgeExtractionRuns,
 } from "../db/schema";
-import { and, eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray, sql } from "drizzle-orm";
 import {
   getPresignedUploadUrl,
   getPresignedDownloadUrl,
@@ -47,8 +48,26 @@ type KnowledgeObjectRow = {
   extractionOutput: unknown;
   classification: unknown;
   provenance: unknown;
+  /** Spec 115 FR-025 — populated when the most recent extraction failed. */
+  lastExtractionError: unknown;
   createdAt: Date;
   updatedAt: Date;
+};
+
+/**
+ * Spec 115 FR-030 — denormalised "latest run" surface so the dashboard
+ * does not need a second round-trip to render the status badge / extractor
+ * footer / Retry banner.
+ */
+type LatestExtractionRun = {
+  status: string;
+  extractorKind: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
+};
+
+type KnowledgeObjectListRow = KnowledgeObjectRow & {
+  latestRun: LatestExtractionRun | null;
 };
 
 type SourceConnectorRow = {
@@ -136,7 +155,7 @@ export const listKnowledgeObjects = api(
   },
   async (req: {
     state?: string;
-  }): Promise<{ objects: KnowledgeObjectRow[] }> => {
+  }): Promise<{ objects: KnowledgeObjectListRow[] }> => {
     const auth = getAuthData()!;
 
     if (!auth.workspaceId) {
@@ -154,7 +173,48 @@ export const listKnowledgeObjects = api(
       .where(and(...conditions))
       .orderBy(desc(knowledgeObjects.createdAt));
 
-    return { objects: rows };
+    if (rows.length === 0) {
+      return { objects: [] };
+    }
+
+    // Spec 115 FR-030 — fetch the most-recent extraction run per object in
+    // one query. DISTINCT ON keeps it indexed against the
+    // (knowledgeObjectId, queuedAt DESC) covering index from migration 25.
+    const objectIds = rows.map((r) => r.id);
+    const latestRuns = await db.execute<{
+      knowledge_object_id: string;
+      status: string;
+      extractor_kind: string | null;
+      completed_at: Date | null;
+      duration_ms: number | null;
+    }>(sql`
+      SELECT DISTINCT ON (knowledge_object_id)
+        knowledge_object_id,
+        status,
+        extractor_kind,
+        completed_at,
+        duration_ms
+      FROM knowledge_extraction_runs
+      WHERE knowledge_object_id = ANY(${objectIds})
+      ORDER BY knowledge_object_id, queued_at DESC
+    `);
+
+    const runsByObjectId = new Map<string, LatestExtractionRun>();
+    for (const r of latestRuns.rows) {
+      runsByObjectId.set(r.knowledge_object_id, {
+        status: r.status,
+        extractorKind: r.extractor_kind,
+        completedAt: r.completed_at ? r.completed_at.toISOString() : null,
+        durationMs: r.duration_ms,
+      });
+    }
+
+    const objects: KnowledgeObjectListRow[] = rows.map((row) => ({
+      ...row,
+      latestRun: runsByObjectId.get(row.id) ?? null,
+    }));
+
+    return { objects };
   }
 );
 
@@ -171,7 +231,10 @@ export const getKnowledgeObject = api(
   },
   async (
     req: { id: string }
-  ): Promise<{ object: KnowledgeObjectRow; bindingsCount: number }> => {
+  ): Promise<{
+    object: KnowledgeObjectListRow;
+    bindingsCount: number;
+  }> => {
     const auth = getAuthData()!;
 
     const [row] = await db
@@ -194,7 +257,34 @@ export const getKnowledgeObject = api(
       .from(documentBindings)
       .where(eq(documentBindings.knowledgeObjectId, req.id));
 
-    return { object: row, bindingsCount: bindings.length };
+    // Spec 115 FR-030 — denormalise the most recent extraction run.
+    const [latest] = await db
+      .select({
+        status: knowledgeExtractionRuns.status,
+        extractorKind: knowledgeExtractionRuns.extractorKind,
+        completedAt: knowledgeExtractionRuns.completedAt,
+        durationMs: knowledgeExtractionRuns.durationMs,
+      })
+      .from(knowledgeExtractionRuns)
+      .where(eq(knowledgeExtractionRuns.knowledgeObjectId, req.id))
+      .orderBy(desc(knowledgeExtractionRuns.queuedAt))
+      .limit(1);
+
+    const latestRun: LatestExtractionRun | null = latest
+      ? {
+          status: latest.status,
+          extractorKind: latest.extractorKind,
+          completedAt: latest.completedAt
+            ? latest.completedAt.toISOString()
+            : null,
+          durationMs: latest.durationMs,
+        }
+      : null;
+
+    return {
+      object: { ...row, latestRun },
+      bindingsCount: bindings.length,
+    };
   }
 );
 

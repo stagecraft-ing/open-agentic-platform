@@ -55,6 +55,8 @@ function fakeInput(args: Partial<ExtractorInput> = {}): ExtractorInput {
     contentHash: "h",
     buffer: null,
     downloadUrl: "",
+    bucket: "ws-1-bucket",
+    storageKey: "knowledge/ko-1/doc.txt",
     ...args,
   };
 }

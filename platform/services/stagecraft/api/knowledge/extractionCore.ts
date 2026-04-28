@@ -47,6 +47,11 @@ import {
   pickExtractorVersion,
   type DispatchResult,
 } from "./extractors/dispatch";
+// Side-effect import populates the dispatch registry with the
+// deterministic + agent extractors. enqueueExtraction calls
+// pickExtractorVersion at queue time, so the registry must be live
+// before the very first enqueue, not just before the worker fires.
+import "./extractors";
 import {
   ExtractorError,
   type ExtractorContext,
@@ -54,7 +59,7 @@ import {
   type ExtractorLogger,
   type TokenSpendReporter,
 } from "./extractors/types";
-import { getPresignedDownloadUrl } from "./storage";
+import { getObject, getPresignedDownloadUrl, sniffMimeType } from "./storage";
 import {
   KnowledgeExtractionRequestTopic,
 } from "./extractionEvents";
@@ -185,6 +190,8 @@ export async function enqueueExtraction(
     contentHash: obj.contentHash,
     buffer: null,
     downloadUrl: "",
+    bucket: "",
+    storageKey: obj.storageKey,
   };
   const versionInfo = pickExtractorVersion(dummyInput, policy);
 
@@ -381,8 +388,64 @@ export async function runExtractionWork(args: {
     });
   }
 
-  // Build the extractor input (presigned URL; eagerly load buffer if small).
-  const input: ExtractorInput = await buildExtractorInput(obj);
+  // Resolve workspace bucket once; needed for sniff + extractor input.
+  const { workspaces } = await import("../db/schema");
+  const [ws] = await db
+    .select({ bucket: workspaces.objectStoreBucket })
+    .from(workspaces)
+    .where(eq(workspaces.id, obj.workspaceId))
+    .limit(1);
+  if (!ws) {
+    await markRunFailedInternal({
+      runId: run.id,
+      knowledgeObjectId: run.knowledgeObjectId,
+      workspaceId: run.workspaceId,
+      error: {
+        code: "object_missing",
+        message: `workspace ${obj.workspaceId} not found`,
+        extractorKind: null,
+        attemptedAt: new Date().toISOString(),
+      },
+    });
+    return;
+  }
+
+  // Mime sniff (FR-014). Reconcile declared mime against the magic
+  // signature; on mismatch the sniffed value wins and we update the row.
+  let resolvedMime = obj.mimeType;
+  try {
+    const sniff = await sniffMimeType({
+      bucket: ws.bucket,
+      storageKey: obj.storageKey,
+      declaredMime: obj.mimeType,
+      sizeBytes: obj.sizeBytes,
+    });
+    resolvedMime = sniff.mimeType;
+    if (sniff.mismatched) {
+      log.warn("mime_mismatch", {
+        runId: run.id,
+        objectId: obj.id,
+        declared: obj.mimeType,
+        sniffed: sniff.sniffedAs,
+      });
+      await db
+        .update(knowledgeObjects)
+        .set({ mimeType: resolvedMime, updatedAt: new Date() })
+        .where(eq(knowledgeObjects.id, obj.id));
+    }
+  } catch (err) {
+    log.warn("mime sniff failed; falling back to declared", {
+      runId: run.id,
+      objectId: obj.id,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // Build the extractor input (eagerly load buffer when small enough).
+  const input: ExtractorInput = await buildExtractorInput(
+    { ...obj, mimeType: resolvedMime },
+    ws.bucket,
+  );
 
   // Phase 1a: dispatch is empty. Pick will return null; the worker fails
   // closed with the right code so the operator-facing message is honest.
@@ -713,10 +776,25 @@ export async function sweepStaleExtractionRuns(now: Date = new Date()): Promise<
 
 async function buildExtractorInput(
   obj: typeof knowledgeObjects.$inferSelect,
+  bucket: string,
 ): Promise<ExtractorInput> {
-  // Resolve workspace bucket lazily to avoid an extra query when small
-  // objects are eager-loaded via getObject inline.
-  const downloadUrl = await downloadUrlFor(obj);
+  const eagerThreshold = getEagerBufferThreshold();
+  let buffer: Buffer | null = null;
+  if (obj.sizeBytes > 0 && obj.sizeBytes <= eagerThreshold) {
+    try {
+      buffer = await getObject(bucket, obj.storageKey);
+    } catch (err) {
+      log.warn("buildExtractorInput: eager load failed; using URL", {
+        objectId: obj.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  const downloadUrl = await getPresignedDownloadUrl(
+    bucket,
+    obj.storageKey,
+    3600,
+  );
   return {
     knowledgeObjectId: obj.id,
     workspaceId: obj.workspaceId,
@@ -724,26 +802,11 @@ async function buildExtractorInput(
     mimeType: obj.mimeType,
     sizeBytes: obj.sizeBytes,
     contentHash: obj.contentHash,
-    buffer: null, // Phase 1b/2 extractors load eagerly when sizeBytes ≤ threshold
+    buffer,
     downloadUrl,
+    bucket,
+    storageKey: obj.storageKey,
   };
-}
-
-async function downloadUrlFor(
-  obj: typeof knowledgeObjects.$inferSelect,
-): Promise<string> {
-  const { workspaces } = await import("../db/schema");
-  const [ws] = await db
-    .select({ bucket: workspaces.objectStoreBucket })
-    .from(workspaces)
-    .where(eq(workspaces.id, obj.workspaceId))
-    .limit(1);
-  if (!ws) {
-    throw new Error(
-      `downloadUrlFor: workspace ${obj.workspaceId} not found for object ${obj.id}`,
-    );
-  }
-  return getPresignedDownloadUrl(ws.bucket, obj.storageKey, 3600);
 }
 
 function makeExtractorLogger(

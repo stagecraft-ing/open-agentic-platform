@@ -260,3 +260,83 @@ export async function getObject(bucket: string, key: string): Promise<Buffer> {
   }
   return Buffer.concat(chunks);
 }
+
+// ---------------------------------------------------------------------------
+// Server-side ranged GET → Buffer (Spec 115 FR-014)
+// ---------------------------------------------------------------------------
+
+export async function getObjectRange(
+  bucket: string,
+  key: string,
+  startByte: number,
+  endByte: number
+): Promise<Buffer> {
+  const res = await getClient().send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Range: `bytes=${startByte}-${endByte}`,
+    })
+  );
+  const body = res.Body;
+  if (!body) {
+    throw new Error(`s3 GetObject ranged body empty for ${bucket}/${key}`);
+  }
+  const chunks: Buffer[] = [];
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+// ---------------------------------------------------------------------------
+// Magic-number sniff (Spec 115 FR-014)
+// ---------------------------------------------------------------------------
+//
+// Reads the first 4KB of a stored object via ranged GET and reconciles the
+// declared mime type against the bytes' magic-number signature. On
+// disagreement the sniffed value wins — clients lie, and routing
+// `image/jpeg-actually-html` to the vision model would burn tokens for
+// nothing. Skips the sniff (returns the declared type) when sizeBytes is
+// below the sample window, since for files that small the cost of a wrong
+// dispatch is also small.
+//
+// The pure detector + reconciliation logic lives in `magic.ts` so it can be
+// unit-tested without the Encore native runtime. This wrapper only adds the
+// S3 round-trip.
+
+import { MAGIC_SNIFF_BYTES, reconcileSniffedMime } from "./magic";
+export { detectMimeFromMagic } from "./magic";
+
+export type SniffResult = {
+  /** The mime that should be used for dispatch — either the declared or sniffed value. */
+  mimeType: string;
+  /** True when sniffing changed the answer; the worker logs `mime_mismatch` in that case. */
+  mismatched: boolean;
+  /** The sniffed type if a signature matched; null when the signature was unrecognised. */
+  sniffedAs: string | null;
+};
+
+export async function sniffMimeType(args: {
+  bucket: string;
+  storageKey: string;
+  declaredMime: string;
+  sizeBytes: number;
+}): Promise<SniffResult> {
+  if (args.sizeBytes < MAGIC_SNIFF_BYTES) {
+    return reconcileSniffedMime({
+      declaredMime: args.declaredMime,
+      sample: null,
+    });
+  }
+  const sample = await getObjectRange(
+    args.bucket,
+    args.storageKey,
+    0,
+    MAGIC_SNIFF_BYTES - 1
+  );
+  return reconcileSniffedMime({
+    declaredMime: args.declaredMime,
+    sample,
+  });
+}
