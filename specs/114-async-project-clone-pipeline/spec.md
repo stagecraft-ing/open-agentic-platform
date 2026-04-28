@@ -2,8 +2,8 @@
 id: "114-async-project-clone-pipeline"
 title: "Async Project Clone Pipeline"
 feature_branch: "feat/114-async-project-clone-pipeline"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-27"
 kind: platform
