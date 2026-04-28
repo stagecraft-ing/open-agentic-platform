@@ -9,6 +9,7 @@ import {
   pgEnum,
   jsonb,
   unique,
+  index,
   customType,
 } from "drizzle-orm/pg-core";
 
@@ -937,6 +938,52 @@ export const factorySyncRuns = pgTable("factory_sync_runs", {
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
 });
+
+// ---------------------------------------------------------------------------
+// Spec 114 — Async Project Clone Pipeline.
+// ---------------------------------------------------------------------------
+// Run row driving the queue → worker → poll lifecycle for spec 113 clones.
+// Same enum shape as factory_sync_runs (pending/running/ok/failed) but
+// distinct so the typed status doesn't bleed across domains.
+
+export const projectCloneRunStatusEnum = pgEnum("project_clone_run_status", [
+  "pending",
+  "running",
+  "ok",
+  "failed",
+]);
+
+export const projectCloneRuns = pgTable(
+  "project_clone_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceProjectId: uuid("source_project_id").notNull(),
+    workspaceId: uuid("workspace_id").notNull(),
+    orgId: uuid("org_id").notNull(),
+    triggeredBy: uuid("triggered_by").notNull(),
+    status: projectCloneRunStatusEnum("status").notNull().default("pending"),
+    requestedName: text("requested_name"),
+    requestedSlug: text("requested_slug"),
+    requestedRepoName: text("requested_repo_name"),
+    finalName: text("final_name"),
+    finalSlug: text("final_slug"),
+    finalRepoName: text("final_repo_name"),
+    defaultBranch: text("default_branch"),
+    destRepoFullName: text("dest_repo_full_name"),
+    projectId: uuid("project_id"),
+    opcDeepLink: text("opc_deep_link"),
+    rawArtifactsCopied: integer("raw_artifacts_copied"),
+    rawArtifactsSkipped: integer("raw_artifacts_skipped"),
+    durationMs: integer("duration_ms"),
+    error: text("error"),
+    queuedAt: timestamp("queued_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("idx_project_clone_runs_workspace_queued").on(t.workspaceId, t.queuedAt)],
+);
 
 // ---------------------------------------------------------------------------
 // Spec 111 — Org-managed Agent Catalog.

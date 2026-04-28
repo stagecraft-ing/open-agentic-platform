@@ -1,12 +1,16 @@
 // Spec 113 §FR-008..FR-016 — Clone Project dialog.
+// Spec 114 §5.4 — submit returns a job id; the dialog then polls the
+// run-status SSR proxy until terminal state.
 //
 // Pre-fills `name = "<source.name> (clone)"`, `slug = "<source.slug>-clone"`,
 // `repoName = "<sourceRepoName>-clone"`. Each editable field runs a
 // debounced (300ms) availability check via the SSR proxy
 // (/app/projects/clone-availability) and renders one of five indicator
 // states. Submit is disabled while either field is in `checking`,
-// `unavailable`, or `invalid`. Submit POSTs to the SSR proxy
-// (/app/projects/{id}/clone) and surfaces typed errors inline.
+// `unavailable`, or `invalid`. Submit POSTs to /app/projects/{id}/clone,
+// receives `{ cloneJobId }`, then polls
+// /app/projects/clone-runs/{cloneJobId} every ~1.5s until status is
+// `ok` (navigate) or `failed` (surface typed error inline).
 //
 // Pre-fill values that match the server's defaults are silently suffix-
 // uniquified server-side; user-typed values that conflict surface as
@@ -16,8 +20,27 @@ import { useEffect, useRef, useState } from "react";
 import type {
   CloneAvailabilityResponse,
   CloneAvailabilityVerdict,
-  CloneProjectResponse,
+  CloneJobAccepted,
+  CloneRunStatus,
 } from "../lib/projects-api.server";
+
+/**
+ * Spec 114 §5.4 — shape passed to `onSubmitted` once a clone reaches
+ * terminal `ok`. Mirrors the worker-recorded final values so the caller
+ * can navigate with truth, not the user-typed request.
+ */
+export interface CloneSubmitOutcome {
+  projectId: string;
+  finalName: string;
+  finalSlug: string;
+  repoFullName: string | null;
+  opcDeepLink: string | null;
+}
+
+const POLL_INTERVAL_MS = 1500;
+const POLL_JITTER_MS = 250;
+const POLL_MAX_5XX = 4;
+const POLL_BACKOFF_MS = [1500, 3000, 6000, 12000];
 
 export type CloneSourceProject = {
   id: string;
@@ -61,7 +84,7 @@ export function CloneProjectDialog({
 }: {
   source: CloneSourceProject;
   onClose: () => void;
-  onSubmitted: (resp: CloneProjectResponse) => void;
+  onSubmitted: (outcome: CloneSubmitOutcome) => void;
 }) {
   const defaultName = `${source.name} (clone)`;
   const defaultSlug = `${source.slug}-clone`;
@@ -76,6 +99,8 @@ export function CloneProjectDialog({
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pollElapsedSec, setPollElapsedSec] = useState(0);
+  const pollAbort = useRef<AbortController | null>(null);
 
   const slugDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repoNameDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -169,11 +194,12 @@ export function CloneProjectDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Submit ──────────────────────────────────────────────────────────
+  // ── Submit + poll ───────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
     setSubmitting(true);
+    setPollElapsedSec(0);
     try {
       const resp = await fetch(`/app/projects/${source.id}/clone`, {
         method: "POST",
@@ -186,17 +212,57 @@ export function CloneProjectDialog({
       const body = await resp.json();
       if (!resp.ok) {
         setSubmitError(
-          (body as { error?: string }).error ?? `HTTP ${resp.status}`
+          (body as { error?: string }).error ?? `HTTP ${resp.status}`,
         );
         setSubmitting(false);
         return;
       }
-      onSubmitted(body as CloneProjectResponse);
+      const accepted = body as CloneJobAccepted;
+      const ctrl = new AbortController();
+      pollAbort.current = ctrl;
+      const startedAt = Date.now();
+      const timer = setInterval(() => {
+        setPollElapsedSec(Math.floor((Date.now() - startedAt) / 1000));
+      }, 1000);
+      try {
+        const terminal = await pollUntilTerminal(
+          accepted.cloneJobId,
+          ctrl.signal,
+        );
+        clearInterval(timer);
+        if (terminal.status === "ok" && terminal.projectId) {
+          onSubmitted({
+            projectId: terminal.projectId,
+            finalName: terminal.finalName ?? name,
+            finalSlug: terminal.finalSlug ?? slug,
+            repoFullName: terminal.repoFullName,
+            opcDeepLink: terminal.opcDeepLink,
+          });
+          return;
+        }
+        // failed
+        setSubmitError(
+          terminal.error ?? "Clone failed for an unknown reason.",
+        );
+        setSubmitting(false);
+      } catch (err) {
+        clearInterval(timer);
+        setSubmitError(err instanceof Error ? err.message : String(err));
+        setSubmitting(false);
+      }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : String(err));
       setSubmitting(false);
     }
   }
+
+  // Cancel any in-flight polling on unmount so an aborted dialog doesn't
+  // leak a fetch loop.
+  useEffect(() => {
+    return () => {
+      if (pollAbort.current) pollAbort.current.abort();
+    };
+  }, []);
 
   const submittable =
     !submitting &&
@@ -312,7 +378,11 @@ export function CloneProjectDialog({
             disabled={!submittable}
             className="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? "Cloning…" : "Clone project"}
+            {submitting
+              ? pollElapsedSec > 0
+                ? `Cloning… (${pollElapsedSec}s)`
+                : "Cloning…"
+              : "Clone project"}
           </button>
         </div>
       </form>
@@ -416,4 +486,72 @@ function Field({
       {children}
     </label>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Spec 114 §FR-015..FR-019 — terminal-state polling.
+// ---------------------------------------------------------------------------
+
+async function pollUntilTerminal(
+  cloneJobId: string,
+  signal: AbortSignal,
+): Promise<CloneRunStatus> {
+  let consecutive5xx = 0;
+  while (true) {
+    if (signal.aborted) throw new Error("polling aborted");
+    let resp: Response;
+    try {
+      resp = await fetch(
+        `/app/projects/clone-runs/${encodeURIComponent(cloneJobId)}`,
+        { signal, headers: { Accept: "application/json" } },
+      );
+    } catch (err) {
+      if (signal.aborted) throw err;
+      // Network blip — treat as transient and retry with backoff.
+      consecutive5xx++;
+      if (consecutive5xx > POLL_MAX_5XX) {
+        throw new Error("Lost contact with server while polling clone status.");
+      }
+      await sleep(POLL_BACKOFF_MS[consecutive5xx - 1] ?? 12000, signal);
+      continue;
+    }
+    if (resp.status >= 500) {
+      consecutive5xx++;
+      if (consecutive5xx > POLL_MAX_5XX) {
+        throw new Error("Server kept returning 5xx while polling clone status.");
+      }
+      await sleep(POLL_BACKOFF_MS[consecutive5xx - 1] ?? 12000, signal);
+      continue;
+    }
+    if (!resp.ok) {
+      const body = (await resp.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? `HTTP ${resp.status}`);
+    }
+    consecutive5xx = 0;
+    const status = (await resp.json()) as CloneRunStatus;
+    if (status.status === "ok" || status.status === "failed") {
+      return status;
+    }
+    const jitter = Math.floor((Math.random() - 0.5) * 2 * POLL_JITTER_MS);
+    await sleep(POLL_INTERVAL_MS + jitter, signal);
+  }
+}
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new Error("aborted"));
+      return;
+    }
+    const t = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(t);
+      signal.removeEventListener("abort", onAbort);
+      reject(new Error("aborted"));
+    };
+    signal.addEventListener("abort", onAbort);
+  });
 }

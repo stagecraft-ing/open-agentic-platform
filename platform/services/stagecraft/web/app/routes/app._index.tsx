@@ -208,9 +208,9 @@ export default function ProjectsIndex() {
         <CloneProjectDialog
           source={cloneSource}
           onClose={() => setCloneSource(null)}
-          onSubmitted={(resp) => {
+          onSubmitted={(outcome) => {
             setCloneSource(null);
-            navigate(`/app/project/${resp.projectId}`);
+            navigate(`/app/project/${outcome.projectId}`);
           }}
         />
       )}

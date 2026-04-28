@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dd5792afdecb48917f3bac92d258f920fa7a3081cadcf0a7c0d4d6e3bba496f0",
+    "contentHash": "3ffa62a7ee4c6d3e07a063f316f5f29acd6eff1997a5e09bb9d9a78dc6706b57",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3027,6 +3027,61 @@
         ],
         "specId": "113-stagecraft-projects-rename-and-clone",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "109",
+          "112",
+          "113"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/clone.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneCore.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneEvents.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneRunStatus.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "114-async-project-clone-pipeline",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [

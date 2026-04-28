@@ -174,16 +174,32 @@ export async function checkCloneAvailability(
   ) as Promise<CloneAvailabilityResponse>;
 }
 
-export interface CloneProjectResponse {
-  projectId: string;
-  name: string;
-  slug: string;
-  repoFullName: string;
-  defaultBranch: string;
+/**
+ * Spec 114 §5.1 — the submit endpoint now queues and returns a job id.
+ * The dialog polls `getCloneRunStatus` until the run is terminal.
+ */
+export interface CloneJobAccepted {
+  cloneJobId: string;
+  status: "queued";
+}
+
+export interface CloneRunStatus {
+  cloneJobId: string;
+  status: "pending" | "running" | "ok" | "failed";
+  sourceProjectId: string;
+  queuedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  projectId: string | null;
+  finalName: string | null;
+  finalSlug: string | null;
+  repoFullName: string | null;
+  defaultBranch: string | null;
   opcDeepLink: string | null;
-  rawArtifactsCopied: number;
-  rawArtifactsSkipped: number;
-  durationMs: number;
+  rawArtifactsCopied: number | null;
+  rawArtifactsSkipped: number | null;
+  durationMs: number | null;
+  error: string | null;
 }
 
 export async function cloneProject(
@@ -194,7 +210,17 @@ export async function cloneProject(
   return apiFetch(request, `/api/projects/${sourceProjectId}/clone`, {
     method: "POST",
     body: JSON.stringify({ ...body, sourceProjectId }),
-  }) as Promise<CloneProjectResponse>;
+  }) as Promise<CloneJobAccepted>;
+}
+
+export async function getCloneRunStatus(
+  request: Request,
+  cloneJobId: string
+) {
+  return apiFetch(
+    request,
+    `/api/projects/clone/runs/${encodeURIComponent(cloneJobId)}`
+  ) as Promise<CloneRunStatus>;
 }
 
 // Self-service project creation (spec 080 Phase 2)
