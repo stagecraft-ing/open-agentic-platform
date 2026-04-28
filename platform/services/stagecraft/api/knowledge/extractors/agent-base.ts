@@ -76,13 +76,24 @@ type MessagesCreateResponse = {
 let cachedClient: AnthropicClientShape | null = null;
 
 async function loadAnthropicSdk(): Promise<new (opts: { apiKey: string }) => AnthropicClientShape> {
-  // Dynamic import so the static analyzer does not eagerly resolve the
-  // SDK's very large declaration graph. Cast through `unknown` to keep
-  // the surface narrow.
-  const mod = (await import("@anthropic-ai/sdk")) as unknown as {
-    default: new (opts: { apiKey: string }) => AnthropicClientShape;
-  };
-  return mod.default;
+  // The Anthropic SDK exposes a ~25k-line type tree. Both `tsc` and
+  // encore's tsparser will walk it on any static `import "@anthropic-ai/sdk"`,
+  // and encore's pass takes 25+ minutes (effectively hangs `encore build
+  // docker`). We work around it by using `createRequire` with a
+  // runtime-computed module id so the static analyzer cannot follow the
+  // resolution chain. The runtime cost is identical — Node still loads
+  // the package on first call.
+  const { createRequire } = await import("node:module");
+  const requireFn = createRequire(import.meta.url);
+  const moduleId = ["@anthropic-ai", "sdk"].join("/");
+  const mod = requireFn(moduleId) as {
+    default?: new (opts: { apiKey: string }) => AnthropicClientShape;
+  } & (new (opts: { apiKey: string }) => AnthropicClientShape);
+  // CommonJS interop: SDK exports default = class. Some bundles surface
+  // the class directly on the namespace.
+  return (mod.default ?? (mod as unknown)) as new (opts: {
+    apiKey: string;
+  }) => AnthropicClientShape;
 }
 
 export async function getAnthropicClient(): Promise<unknown> {
