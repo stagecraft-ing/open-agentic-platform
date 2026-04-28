@@ -6,6 +6,7 @@ import {
   boolean,
   integer,
   bigint,
+  numeric,
   pgEnum,
   jsonb,
   unique,
@@ -549,6 +550,9 @@ export const knowledgeObjects = pgTable("knowledge_objects", {
   extractionOutput: jsonb("extraction_output"),
   classification: jsonb("classification"),
   provenance: jsonb("provenance").notNull(),
+  // Spec 115 FR-025 — populated on extraction failure; reverted to NULL on
+  // successful retry. Shape: { code, message, extractorKind, attemptedAt }.
+  lastExtractionError: jsonb("last_extraction_error"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -1036,3 +1040,56 @@ export const agentCatalogAudit = pgTable("agent_catalog_audit", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Spec 115 — Knowledge Extraction Pipeline.
+// ---------------------------------------------------------------------------
+// One row per extraction attempt. Drives the Topic + Subscription worker
+// that walks `imported → extracting → extracted` automatically. Idempotency
+// key (workspace_id, content_hash, extractor_version) is enforced in
+// extractionCore.ts, not as a SQL UNIQUE — same key may recur after a 24h
+// window so retries against the same content remain possible.
+
+export const knowledgeExtractionRunStatusEnum = pgEnum(
+  "knowledge_extraction_run_status",
+  ["pending", "running", "completed", "failed", "abandoned"],
+);
+
+export const knowledgeExtractionRuns = pgTable(
+  "knowledge_extraction_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    knowledgeObjectId: uuid("knowledge_object_id").notNull(),
+    workspaceId: uuid("workspace_id").notNull(),
+    status: knowledgeExtractionRunStatusEnum("status")
+      .notNull()
+      .default("pending"),
+    extractorKind: text("extractor_kind"),
+    extractorVersion: text("extractor_version"),
+    agentRun: jsonb("agent_run"),
+    tokenSpend: jsonb("token_spend"),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 6 }),
+    error: jsonb("error"),
+    attempts: integer("attempts").notNull().default(0),
+    queuedAt: timestamp("queued_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    runningAt: timestamp("running_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    durationMs: integer("duration_ms"),
+  },
+  (t) => [
+    index("idx_knowledge_extraction_runs_workspace_status").on(
+      t.workspaceId,
+      t.status,
+    ),
+    index("idx_knowledge_extraction_runs_object_queued").on(
+      t.knowledgeObjectId,
+      t.queuedAt,
+    ),
+    index("idx_knowledge_extraction_runs_workspace_completed").on(
+      t.workspaceId,
+      t.completedAt,
+    ),
+  ],
+);
