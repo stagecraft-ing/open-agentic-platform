@@ -58,7 +58,7 @@ export const agentImageVisionExtractor: Extractor = {
     input: ExtractorInput,
     ctx: ExtractorContext,
   ): Promise<ExtractionOutput> {
-    const client = getAnthropicClient();
+    const client = await getAnthropicClient();
     const modelId = pickModelId(ctx.policy);
     const prompt = getExtractionPrompt(PROMPT_KIND);
 

@@ -1,22 +1,19 @@
 // Spec 115 §5 / FR-017 — FR-021 — agent-extractor shared infrastructure.
 //
-// All agent-kind extractors share three responsibilities and one
-// boundary:
-//   - resolve the workspace policy slice (already done by the worker
-//     before dispatch — exposed here as `assertPolicy*` helpers)
-//   - apply the per-call cost ceiling (FR-018) before any network call
-//   - apply the per-day cost ceiling (FR-019) before any network call
-//   - drive the Anthropic SDK with prompt caching enabled (Spec 115
-//     §5.4), enforce the no-tool-bearing-call invariant (FR-021),
-//     and return a populated `agentRun` block on success
-//
-// The Anthropic client is created per-worker via `getAnthropicClient`
-// (cached at module scope) so concurrent agent extractions share a
-// connection pool sized to STAGECRAFT_EXTRACT_WORKER_CONCURRENCY.
+// The Anthropic SDK has a very large type graph; encore's tsparser walks
+// every reachable type at build time and chokes on it. We keep the SDK
+// confined to this single file and expose only narrowly-typed entry
+// points so the rest of the extraction surface (agent-pdf-vision.ts,
+// agent-image-vision.ts) stays parser-friendly. Concretely:
+//   - `runAgentMessage` accepts content as an opaque `unknown[]` and
+//     forwards it untouched to `messages.create`. The SDK validates at
+//     runtime; mistakes there fail loudly. Type safety inside this
+//     module relies on the local declarations below.
+//   - `getAnthropicClient` returns `unknown` so callers can pass it
+//     through without dragging the SDK type tree into their files.
 
 import { createHash } from "node:crypto";
 import { and, eq, gte, sql } from "drizzle-orm";
-import Anthropic from "@anthropic-ai/sdk";
 import log from "encore.dev/log";
 import { secret } from "encore.dev/config";
 import { db } from "../../db/drizzle";
@@ -51,25 +48,53 @@ export {
 export const DEFAULT_MODEL_ID = "claude-sonnet-4-6";
 
 // ---------------------------------------------------------------------------
-// Anthropic client (cached, pool sized to worker concurrency)
+// Anthropic client (cached). The SDK is loaded via dynamic import so the
+// encore tsparser does NOT walk the full type tree at build time. The
+// returned value is intentionally `unknown` from the public interface;
+// inside this file we cast to `AnthropicClientShape` for the few methods
+// we actually call.
 // ---------------------------------------------------------------------------
 
 const anthropicApiKey = secret("ANTHROPIC_API_KEY");
 
-let cachedClient: Anthropic | null = null;
+interface AnthropicClientShape {
+  messages: {
+    create: (params: Record<string, unknown>) => Promise<MessagesCreateResponse>;
+  };
+}
 
-export function getAnthropicClient(): Anthropic {
-  if (!cachedClient) {
-    cachedClient = new Anthropic({
-      apiKey: anthropicApiKey(),
-    });
-  }
+type MessagesCreateResponse = {
+  content: Array<{ type: string; text?: string }>;
+  usage: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+  };
+};
+
+let cachedClient: AnthropicClientShape | null = null;
+
+async function loadAnthropicSdk(): Promise<new (opts: { apiKey: string }) => AnthropicClientShape> {
+  // Dynamic import so the static analyzer does not eagerly resolve the
+  // SDK's very large declaration graph. Cast through `unknown` to keep
+  // the surface narrow.
+  const mod = (await import("@anthropic-ai/sdk")) as unknown as {
+    default: new (opts: { apiKey: string }) => AnthropicClientShape;
+  };
+  return mod.default;
+}
+
+export async function getAnthropicClient(): Promise<unknown> {
+  if (cachedClient) return cachedClient;
+  const Ctor = await loadAnthropicSdk();
+  cachedClient = new Ctor({ apiKey: anthropicApiKey() });
   return cachedClient;
 }
 
 /** Visible for tests — the test transport overrides the cached client. */
-export function _setAnthropicClientForTesting(client: Anthropic | null): void {
-  cachedClient = client;
+export function _setAnthropicClientForTesting(client: unknown): void {
+  cachedClient = client as AnthropicClientShape | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,11 +173,20 @@ export async function applyCostGates(args: CostGateArgs): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export type AgentMessageArgs = {
-  client: Anthropic;
+  /**
+   * Anthropic SDK client returned by `getAnthropicClient` (cast to
+   * `unknown` to keep the SDK type tree out of the encore parser graph).
+   */
+  client: unknown;
   modelId: string;
   prompt: AssembledPrompt;
-  /** User-content blocks: text + image/document inputs, etc. */
-  content: Anthropic.Messages.ContentBlockParam[];
+  /**
+   * User-content blocks. The shape MUST match Anthropic's
+   * `ContentBlockParam` (text + image + document) but we type as
+   * `unknown[]` so the SDK type tree does not propagate through the
+   * extraction codebase. Mistakes here surface as 400s from the API.
+   */
+  content: unknown[];
   /** Estimated tokens for cost gating, set by the extractor. */
   estimate: CostEstimateInput;
   /** Workspace + extractor kind for the gate + audit. */
@@ -184,13 +218,14 @@ export async function runAgentMessage(
   // FR-021 fail-closed.
   assertNoTools({}, args.extractorKind);
 
+  const client = args.client as AnthropicClientShape;
   const startedAt = Date.now();
-  const response = await args.client.messages.create({
+  const response = await client.messages.create({
     model: args.modelId,
     max_tokens: args.maxOutputTokens ?? 4096,
     system: [
       {
-        type: "text" as const,
+        type: "text",
         text: args.prompt.system,
         // Prompt caching for the system block. Stagecraft sees high
         // repeat-rate on the system prompt across uploads in the same
@@ -200,7 +235,7 @@ export async function runAgentMessage(
     ],
     messages: [
       {
-        role: "user" as const,
+        role: "user",
         content: args.content,
       },
     ],
@@ -208,10 +243,8 @@ export async function runAgentMessage(
   const durationMs = Date.now() - startedAt;
 
   const text = response.content
-    .filter(
-      (block): block is Anthropic.Messages.TextBlock => block.type === "text",
-    )
-    .map((b) => b.text)
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((b) => b.text as string)
     .join("\n")
     .trim();
 
