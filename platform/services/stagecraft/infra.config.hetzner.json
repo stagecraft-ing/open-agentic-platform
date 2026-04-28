@@ -65,6 +65,14 @@
               "name": "factory-sync-worker"
             }
           }
+        },
+        "project-clone-request": {
+          "name": "project-clone-request",
+          "subscriptions": {
+            "project-clone-worker": {
+              "name": "project-clone-worker"
+            }
+          }
         }
       }
     }
