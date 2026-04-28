@@ -52,3 +52,47 @@ Project creation and import live under `api/projects/`:
 - `scaffold/` — the six absorbed operations (template cache, prebuilds, adapter scaffold runner, GitHub repo create, initial push, artefact extraction) plus pure helpers (`deepLink`, `seedPipelineState`, `pickProfile`).
 
 The `template-distributor` external service is retired — all scaffold work for newly-created factory projects happens in-process here under the org's existing GitHub App installation.
+
+## Knowledge extraction pipeline (spec 115)
+
+Replaces the manual click-walk on `imported → extracting → extracted` with an
+automatic, agent-aware pipeline. Mirrors the spec 114 clone-pipeline shape
+(Topic + Subscription + run-row + CAS + staleness sweeper).
+
+Module map:
+
+- `api/knowledge/extractionEvents.ts` — `KnowledgeExtractionRequestTopic` (PubSub, at-least-once)
+- `api/knowledge/extractionCore.ts` — `enqueueExtraction`, `runExtractionWork`, `markRunFailed`, `sweepStaleExtractionRuns`
+- `api/knowledge/extractionWorker.ts` — Subscription wrapper, drives `runExtractionWork`
+- `api/knowledge/scheduler.ts` — `extraction-staleness-sweeper` cron (60s)
+- `api/knowledge/extractionPolicy.ts` — workspace policy slice resolver (loads `build/policy/workspaces/{ws}.json`, 30s cache, deterministic-only fallback)
+- `api/knowledge/extractionOutput.ts` — Zod-validated `ExtractionOutput` contract (FR-016)
+- `api/knowledge/prompts.ts` — versioned prompt registry; `promptFingerprint = sha256(kind|version|system)` (FR-020)
+- `api/knowledge/magic.ts` — pure mime-sniff + reconcile (FR-014); `storage.sniffMimeType` is the S3-backed wrapper
+- `api/knowledge/extractors/`
+  - `dispatch.ts` — registry + `pickExtractor` (FR-011)
+  - `types.ts` — `Extractor` interface + `ExtractorError` (FR-015)
+  - `deterministic-text.ts`, `deterministic-pdf-embedded.ts`, `deterministic-docx.ts`
+  - `agent-base.ts` — Anthropic client + cost gates + `runAgentMessage` with prompt caching (FR-017–FR-021)
+  - `agent-pdf-vision.ts`, `agent-image-vision.ts`
+  - `agent-cost-helpers.ts` — pure cost estimator + `assertNoTools` (FR-018, FR-021)
+  - `index.ts` — registers every extractor cheapest-first; side-effect imported by `extractionCore` and `extractionWorker`
+
+Entry points (the four "what to call from the rest of the codebase" surfaces):
+
+- `enqueueExtraction({ knowledgeObjectId, workspaceId, reason })` — call from any path that lands a row in `imported` (today: `confirmUpload`, `executeSyncRun`).
+- `runExtractionWork({ extractionRunId })` — invoked by the Subscription; tests can drive it directly with a real DB.
+- `pickExtractor(input, policy)` — synchronous; returns `null` when no extractor matches.
+- `retryExtraction` endpoint at `POST /api/knowledge/objects/:id/retry-extraction` — operator re-enqueue for failed objects.
+
+Env knobs:
+
+- `STAGECRAFT_EXTRACT_WORKER_CONCURRENCY` — Subscription max-concurrency (default 8)
+- `STAGECRAFT_EXTRACT_STALE_AFTER_SEC` — sweeper cutoff (default 600)
+- `STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES` — auto-retry cap before manual Retry needed (default 2)
+- `STAGECRAFT_EXTRACT_EAGER_BUFFER_BYTES` — worker eager-load threshold (default 4MB)
+- `STAGECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS` — embedded-text PDF threshold (default 80)
+- `STAGECRAFT_EXTRACT_LEGACY_TRANSITION` — set to `"true"` to re-enable the legacy click-walk endpoint for incident response (FR-027)
+- `STAGECRAFT_EXTRACT_POLICY_DIR` — override for compiled policy snapshot dir (default `build/policy/workspaces`)
+- `STAGECRAFT_EXTRACT_PRICE_*_USD_PER_MTOK` — Anthropic pricing overrides for the cost estimator
+- `ANTHROPIC_API_KEY` — required secret; agent extractors fail closed without it

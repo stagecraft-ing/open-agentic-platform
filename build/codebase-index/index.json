@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "78799e23c4fcb8195aef66e2b34c685433966c2ef7013965147d18fb82ed5725",
+    "contentHash": "0fbb245cd2a0732acca136194af01a94a606b113303c92f52cebf9cd0bcfb03c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15,34 +15,6 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/db/migrations/NN_add_extraction_runs.up.sql\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/knowledge/extractionCore.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/knowledge/extractionEvents.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/knowledge/extractionWorker.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/knowledge/extractors/agent.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/knowledge/extractors/deterministic.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"115-knowledge-extraction-pipeline\" declares implements path \"platform/services/stagecraft/api/knowledge/extractors/dispatch.ts\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -1235,6 +1207,7 @@
     },
     {
       "externalDeps": [
+        "@anthropic-ai/sdk",
         "@aws-sdk/client-s3",
         "@aws-sdk/s3-request-presigner",
         "@react-router/dev",
@@ -1244,6 +1217,7 @@
         "@tanstack/react-query",
         "@types/luxon",
         "@types/node",
+        "@types/pdf-parse",
         "@types/react",
         "@types/react-dom",
         "drizzle-kit",
@@ -1252,6 +1226,8 @@
         "isbot",
         "knex",
         "luxon",
+        "mammoth",
+        "pdf-parse",
         "pg",
         "prettier",
         "react",
@@ -3109,7 +3085,7 @@
           }
         ],
         "specId": "114-async-project-clone-pipeline",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -3120,7 +3096,11 @@
         ],
         "implementingPaths": [
           {
-            "path": "platform/services/stagecraft/api/db/migrations/NN_add_extraction_runs.up.sql",
+            "path": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
             "source": "spec-implements"
           },
           {
@@ -3136,15 +3116,39 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts",
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/api/knowledge/extractors/agent.ts",
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts",
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic.ts",
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts",
             "source": "spec-implements"
           },
           {
@@ -3152,7 +3156,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/index.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/types.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/knowledge/knowledge.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/magic.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/prompts.ts",
             "source": "spec-implements"
           },
           {
@@ -3165,7 +3185,7 @@
           }
         ],
         "specId": "115-knowledge-extraction-pipeline",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

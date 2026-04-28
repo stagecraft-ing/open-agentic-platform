@@ -2,8 +2,8 @@
 id: "115-knowledge-extraction-pipeline"
 slug: knowledge-extraction-pipeline
 title: Knowledge Extraction Pipeline
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-27"
 risk: high
@@ -25,14 +25,25 @@ depends_on:
   - "087"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
   - "114"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
 implements:
-  - path: platform/services/stagecraft/api/db/migrations/NN_add_extraction_runs.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql
   - path: platform/services/stagecraft/api/knowledge/extractionEvents.ts
   - path: platform/services/stagecraft/api/knowledge/extractionWorker.ts
   - path: platform/services/stagecraft/api/knowledge/extractionCore.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/agent.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/dispatch.ts
   - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
+  - path: platform/services/stagecraft/api/knowledge/extractionPolicy.ts
+  - path: platform/services/stagecraft/api/knowledge/auditActions.ts
+  - path: platform/services/stagecraft/api/knowledge/prompts.ts
+  - path: platform/services/stagecraft/api/knowledge/magic.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/types.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/dispatch.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/index.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/agent-base.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts
+  - path: platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts
   - path: platform/services/stagecraft/api/knowledge/knowledge.ts
   - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
   - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx
