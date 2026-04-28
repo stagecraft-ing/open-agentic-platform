@@ -58,7 +58,7 @@ export const agentPdfVisionExtractor: Extractor = {
     input: ExtractorInput,
     ctx: ExtractorContext,
   ): Promise<ExtractionOutput> {
-    const client = await getAnthropicClient();
+    const client = getAnthropicClient();
     const modelId = pickModelId(ctx.policy);
     const prompt = getExtractionPrompt(PROMPT_KIND);
 

@@ -48,14 +48,21 @@ export {
 export const DEFAULT_MODEL_ID = "claude-sonnet-4-6";
 
 // ---------------------------------------------------------------------------
-// Anthropic client (cached). The SDK is loaded via dynamic import so the
-// encore tsparser does NOT walk the full type tree at build time. The
-// returned value is intentionally `unknown` from the public interface;
-// inside this file we cast to `AnthropicClientShape` for the few methods
-// we actually call.
+// Anthropic HTTP client.
 // ---------------------------------------------------------------------------
+//
+// We hand-roll a minimal client over `fetch` instead of using
+// `@anthropic-ai/sdk`. The SDK exposes a ~25k-line type tree that hangs
+// encore's tsparser indefinitely (>25 min on `encore build docker`). The
+// surface we actually need is one HTTP call; the tradeoff favours a
+// 60-line wrapper over an unbuildable docker image.
+//
+// Tests override `_setAnthropicClientForTesting` with a fake transport
+// that returns deterministic `MessagesCreateResponse` shapes.
 
 const anthropicApiKey = secret("ANTHROPIC_API_KEY");
+const ANTHROPIC_API_BASE = "https://api.anthropic.com";
+const ANTHROPIC_VERSION = "2023-06-01";
 
 interface AnthropicClientShape {
   messages: {
@@ -73,33 +80,48 @@ type MessagesCreateResponse = {
   };
 };
 
-let cachedClient: AnthropicClientShape | null = null;
-
-async function loadAnthropicSdk(): Promise<new (opts: { apiKey: string }) => AnthropicClientShape> {
-  // The Anthropic SDK exposes a ~25k-line type tree. Both `tsc` and
-  // encore's tsparser will walk it on any static `import "@anthropic-ai/sdk"`,
-  // and encore's pass takes 25+ minutes (effectively hangs `encore build
-  // docker`). We work around it by using `createRequire` with a
-  // runtime-computed module id so the static analyzer cannot follow the
-  // resolution chain. The runtime cost is identical — Node still loads
-  // the package on first call.
-  const { createRequire } = await import("node:module");
-  const requireFn = createRequire(import.meta.url);
-  const moduleId = ["@anthropic-ai", "sdk"].join("/");
-  const mod = requireFn(moduleId) as {
-    default?: new (opts: { apiKey: string }) => AnthropicClientShape;
-  } & (new (opts: { apiKey: string }) => AnthropicClientShape);
-  // CommonJS interop: SDK exports default = class. Some bundles surface
-  // the class directly on the namespace.
-  return (mod.default ?? (mod as unknown)) as new (opts: {
-    apiKey: string;
-  }) => AnthropicClientShape;
+class AnthropicHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: string,
+  ) {
+    super(`anthropic http ${status}: ${body.slice(0, 200)}`);
+    this.name = "AnthropicHttpError";
+  }
 }
 
-export async function getAnthropicClient(): Promise<unknown> {
+function makeHttpClient(apiKey: string): AnthropicClientShape {
+  return {
+    messages: {
+      async create(params: Record<string, unknown>): Promise<MessagesCreateResponse> {
+        const res = await fetch(`${ANTHROPIC_API_BASE}/v1/messages`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": ANTHROPIC_VERSION,
+            // Prompt caching for the system block requires this beta header
+            // until Anthropic GAs it. Stagecraft tracks the GA migration in
+            // a follow-up task; if/when removal lands, the cache_control
+            // field on the system block is silently ignored.
+            "anthropic-beta": "prompt-caching-2024-07-31",
+          },
+          body: JSON.stringify(params),
+        });
+        if (!res.ok) {
+          throw new AnthropicHttpError(res.status, await res.text());
+        }
+        return (await res.json()) as MessagesCreateResponse;
+      },
+    },
+  };
+}
+
+let cachedClient: AnthropicClientShape | null = null;
+
+export function getAnthropicClient(): unknown {
   if (cachedClient) return cachedClient;
-  const Ctor = await loadAnthropicSdk();
-  cachedClient = new Ctor({ apiKey: anthropicApiKey() });
+  cachedClient = makeHttpClient(anthropicApiKey());
   return cachedClient;
 }
 
