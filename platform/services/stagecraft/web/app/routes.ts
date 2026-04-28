@@ -34,6 +34,10 @@ export default [
       "projects/:sourceProjectId/clone",
       "routes/app.projects.$sourceProjectId.clone.tsx"
     ),
+    route(
+      "projects/clone-runs/:cloneJobId",
+      "routes/app.projects.clone-runs.$cloneJobId.tsx"
+    ),
     route("workspace/agents", "routes/app.workspace.agents.tsx", [
       index("routes/app.workspace.agents._index.tsx"),
       route("new", "routes/app.workspace.agents.new.tsx"),
