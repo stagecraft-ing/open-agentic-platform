@@ -135,13 +135,18 @@ deploy-hetzner:
 		-f $(CHARTS_ROOT)/deployd-api/values-hetzner.yaml \
 		--wait --timeout 300s
 
+# GHCR namespace owned by the GitHub org that hosts this repo. The
+# `-hetzner` targets push the images that values-hetzner.yaml pulls,
+# i.e. ghcr.io/stagecraft-ing/open-agentic-platform/{deployd-api,stagecraft}.
+HETZNER_REGISTRY ?= ghcr.io/stagecraft-ing/open-agentic-platform
+
 docker-build-hetzner:
-	cd services/deployd-api-rs && docker build -t ghcr.io/open-agentic-platform/deployd-api:latest .
-	cd services/stagecraft && encore build docker --config ./infra.config.hetzner.json ghcr.io/open-agentic-platform/stagecraft:latest
+	cd services/deployd-api-rs && docker build -t $(HETZNER_REGISTRY)/deployd-api:latest .
+	cd services/stagecraft && encore build docker --config ./infra.config.hetzner.json $(HETZNER_REGISTRY)/stagecraft:latest
 
 docker-push-hetzner: docker-build-hetzner
-	docker push ghcr.io/open-agentic-platform/deployd-api:latest
-	docker push ghcr.io/open-agentic-platform/stagecraft:latest
+	docker push $(HETZNER_REGISTRY)/deployd-api:latest
+	docker push $(HETZNER_REGISTRY)/stagecraft:latest
 
 destroy-hetzner:
 	hetzner-k3s delete --config $(HETZNER_ROOT)/cluster.yaml
