@@ -1,4 +1,4 @@
-import { useLoaderData, useFetcher, Link } from "react-router";
+import { useLoaderData, useFetcher, Link, useSearchParams } from "react-router";
 import { useState } from "react";
 import { requireUser } from "../lib/auth.server";
 import {
@@ -6,6 +6,7 @@ import {
   getDownloadUrl,
   transitionKnowledgeState,
   deleteKnowledgeObject,
+  retryExtraction,
 } from "../lib/workspace-api.server";
 import type { KnowledgeObjectRow } from "../lib/workspace-api.server";
 import { redirect } from "react-router";
@@ -34,11 +35,21 @@ export async function action({
   const intent = form.get("intent");
 
   if (intent === "transition") {
+    // Spec 115 FR-027 — legacy click-walk only available behind ?debug=1
+    // and the server-side env gate. The button is rendered only in debug
+    // mode, but the action handler still respects whatever the API
+    // returns.
     const targetState = form.get("targetState") as string;
     const res = await transitionKnowledgeState(request, params.id, {
       targetState,
     });
     return { object: res.object };
+  }
+
+  if (intent === "retry") {
+    // Spec 115 FR-010 — operator re-enqueues a failed extraction.
+    const res = await retryExtraction(request, params.id);
+    return { retry: res };
   }
 
   if (intent === "download") {
@@ -79,15 +90,27 @@ export default function KnowledgeObjectDetail() {
   };
   const fetcher = useFetcher();
   const downloadFetcher = useFetcher();
+  const retryFetcher = useFetcher();
+  const [searchParams] = useSearchParams();
 
-  const nextState = VALID_TRANSITIONS[object.state];
+  // Spec 115 FR-028 — the legacy click-walk is only visible when the URL
+  // carries ?debug=1. Default builds never render the Advance button.
+  const debugMode = searchParams.get("debug") === "1";
+
+  const nextState = debugMode ? VALID_TRANSITIONS[object.state] : null;
   const provenance = object.provenance as {
     sourceType?: string;
     sourceUri?: string;
     importedAt?: string;
   };
 
-  const downloadUrl = (downloadFetcher.data as any)?.downloadUrl;
+  const extractorMeta = (object.extractionOutput as
+    | { extractor?: { kind?: string; version?: string; agentRun?: { modelId?: string; costUsd?: number } } }
+    | null
+    | undefined)?.extractor;
+
+  const downloadUrl = (downloadFetcher.data as { downloadUrl?: string } | undefined)?.downloadUrl;
+  const retryResult = (retryFetcher.data as { retry?: { runId: string } } | undefined)?.retry;
 
   function confirmDelete(e: React.FormEvent<HTMLFormElement>) {
     const parts = [`Delete "${object.filename}"?`];
@@ -167,8 +190,54 @@ export default function KnowledgeObjectDetail() {
         })}
       </div>
 
+      {/* Spec 115 FR-028 — extraction status + Retry banner. Visible
+          whenever the most recent run failed; the button reuses the
+          fetcher action handler. */}
+      {object.lastExtractionError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg p-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+              Extraction failed
+            </p>
+            <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+              <code className="font-mono text-xs">
+                {object.lastExtractionError.code}
+              </code>
+              {object.lastExtractionError.extractorKind && (
+                <>
+                  {" "}via{" "}
+                  <code className="font-mono text-xs">
+                    {object.lastExtractionError.extractorKind}
+                  </code>
+                </>
+              )}
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1 break-words">
+              {object.lastExtractionError.message}
+            </p>
+          </div>
+          <retryFetcher.Form method="POST">
+            <input type="hidden" name="intent" value="retry" />
+            <button
+              type="submit"
+              disabled={retryFetcher.state !== "idle"}
+              className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {retryFetcher.state !== "idle" ? "Retrying…" : "Retry extraction"}
+            </button>
+          </retryFetcher.Form>
+          {retryResult && (
+            <p className="text-xs text-red-700 dark:text-red-300">
+              Re-enqueued (run id <code className="font-mono">{retryResult.runId}</code>).
+              The status badge will update once the worker picks it up.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-3">
+        {/* FR-028: the legacy Advance button only appears in debug mode. */}
         {nextState && (
           <fetcher.Form method="POST">
             <input type="hidden" name="intent" value="transition" />
@@ -176,9 +245,10 @@ export default function KnowledgeObjectDetail() {
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              title="Legacy debug-only state walk (FR-027)"
             >
-              Advance to {nextState}
+              [debug] Advance to {nextState}
             </button>
           </fetcher.Form>
         )}
@@ -263,10 +333,32 @@ export default function KnowledgeObjectDetail() {
 
       {/* Extraction output */}
       {object.extractionOutput && (
-        <section>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-2">
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
             Extraction Output
           </h3>
+          {/* Spec 115 FR-028 — extractor footer. */}
+          {extractorMeta && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Extracted by{" "}
+              <code className="font-mono">{extractorMeta.kind}</code>
+              {extractorMeta.version ? ` v${extractorMeta.version}` : ""}
+              {object.latestRun?.durationMs != null && (
+                <> in {object.latestRun.durationMs} ms</>
+              )}
+              {extractorMeta.agentRun?.modelId && (
+                <>
+                  {" "}via{" "}
+                  <code className="font-mono">
+                    {extractorMeta.agentRun.modelId}
+                  </code>
+                  {extractorMeta.agentRun.costUsd != null && (
+                    <> ({"$"}{extractorMeta.agentRun.costUsd.toFixed(4)})</>
+                  )}
+                </>
+              )}
+            </p>
+          )}
           <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-64">
             {JSON.stringify(object.extractionOutput, null, 2)}
           </pre>

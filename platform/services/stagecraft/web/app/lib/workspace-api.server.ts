@@ -141,6 +141,18 @@ export async function deleteKnowledgeObject(
   }) as Promise<{ deleted: boolean; bindingsRemoved: number }>;
 }
 
+/** Spec 115 FR-010 — operator re-enqueue for an extraction that failed. */
+export async function retryExtraction(request: Request, objectId: string) {
+  return apiFetch(
+    request,
+    `/api/knowledge/objects/${objectId}/retry-extraction`,
+    {
+      method: "POST",
+      body: "{}",
+    },
+  ) as Promise<{ runId: string; outcome: "enqueued" | "deduped" }>;
+}
+
 // =========================================================================
 // Source Connectors
 // =========================================================================
@@ -351,6 +363,20 @@ export type WorkspaceRow = {
   updatedAt: string;
 };
 
+export type LatestExtractionRun = {
+  status: string;
+  extractorKind: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
+};
+
+export type LastExtractionError = {
+  code: string;
+  message: string;
+  extractorKind: string | null;
+  attemptedAt: string;
+};
+
 export type KnowledgeObjectRow = {
   id: string;
   workspaceId: string;
@@ -363,6 +389,10 @@ export type KnowledgeObjectRow = {
   state: string;
   extractionOutput: unknown;
   classification: unknown;
+  /** Spec 115 FR-025 — populated when the most recent extraction failed. */
+  lastExtractionError: LastExtractionError | null;
+  /** Spec 115 FR-030 — denormalised most-recent extraction run. */
+  latestRun: LatestExtractionRun | null;
   provenance: {
     sourceType: string;
     sourceUri: string;

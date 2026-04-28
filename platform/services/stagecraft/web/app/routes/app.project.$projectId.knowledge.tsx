@@ -150,6 +150,24 @@ export default function KnowledgeBrowser() {
                     >
                       {obj.state}
                     </span>
+                    {/* Spec 115 FR-028 — failure indicator on rows whose
+                        most recent extraction failed. */}
+                    {obj.lastExtractionError && (
+                      <span
+                        className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                        title={obj.lastExtractionError.message}
+                      >
+                        failed: {obj.lastExtractionError.code}
+                      </span>
+                    )}
+                    {/* Spec 115 FR-030 — show the extractor that produced
+                        the most recent successful run. */}
+                    {!obj.lastExtractionError &&
+                      obj.latestRun?.extractorKind && (
+                        <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
+                          via {obj.latestRun.extractorKind}
+                        </span>
+                      )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {obj.provenance?.sourceType ?? "unknown"}
