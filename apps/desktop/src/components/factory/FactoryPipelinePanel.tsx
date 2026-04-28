@@ -123,7 +123,7 @@ function FactoryPipelinePanelInner({
             )}
           >
             {/* Selector at top */}
-            <PipelineSelector projectPath={projectPath} />
+            <PipelineSelector projectPath={projectPath} bundle={bundle} />
 
             {/* DAG fills remaining height */}
             <PipelineDAG />

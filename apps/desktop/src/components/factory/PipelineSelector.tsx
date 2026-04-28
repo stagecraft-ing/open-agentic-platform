@@ -1,28 +1,105 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
 // Pipeline selector — start a new pipeline or display the running run ID.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FolderOpen, Play, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
+import { exists, readDir } from '@tauri-apps/plugin-fs';
+import type { OpcBundle } from '@/types/factoryBundle';
 import { useFactoryPipeline } from './FactoryPipelineContext';
+
+const ADAPTER_FALLBACK = 'next-prisma';
+const RAW_ARTIFACTS_SUBDIR = '.artifacts/raw';
+const BUSINESS_DOC_EXTENSIONS = new Set(['md', 'txt', 'pdf', 'docx']);
 
 interface PipelineSelectorProps {
   projectPath?: string;
+  bundle?: OpcBundle;
 }
 
-export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath }) => {
+function joinPath(parent: string, child: string): string {
+  const sep = parent.includes('\\') && !parent.includes('/') ? '\\' : '/';
+  return parent.endsWith(sep) ? `${parent}${child}` : `${parent}${sep}${child}`;
+}
+
+function hasBusinessDocExt(name: string): boolean {
+  const dot = name.lastIndexOf('.');
+  if (dot < 0) return false;
+  return BUSINESS_DOC_EXTENSIONS.has(name.slice(dot + 1).toLowerCase());
+}
+
+export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
+  projectPath,
+  bundle,
+}) => {
   const { state, startPipeline, cancelPipeline } = useFactoryPipeline();
 
-  const [adapterName, setAdapterName] = useState('next-prisma');
+  const initialAdapter = bundle?.adapter?.name ?? ADAPTER_FALLBACK;
+  const [adapterName, setAdapterName] = useState(initialAdapter);
   const [businessDocs, setBusinessDocs] = useState<string[]>([]);
+  const [rawArtifactsDir, setRawArtifactsDir] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 
+  // Resync adapter when the bundle resolves (e.g. after deep-link handoff).
+  useEffect(() => {
+    const next = bundle?.adapter?.name;
+    if (next) setAdapterName(next);
+  }, [bundle?.adapter?.name]);
+
+  // Auto-discover Business Documents from the project's hydrated raw
+  // artefacts. Spec 113 / spec 087: clone & import write business inputs
+  // into `<project>/.artifacts/raw/`. Pre-populating that here means a
+  // freshly cloned project can start its pipeline without manual picking.
+  useEffect(() => {
+    let cancelled = false;
+    if (!projectPath) {
+      setBusinessDocs([]);
+      setRawArtifactsDir(null);
+      return;
+    }
+    const dir = joinPath(projectPath, RAW_ARTIFACTS_SUBDIR);
+    (async () => {
+      try {
+        if (!(await exists(dir))) {
+          if (!cancelled) {
+            setRawArtifactsDir(null);
+            setBusinessDocs([]);
+          }
+          return;
+        }
+        const entries = await readDir(dir);
+        const picks: string[] = [];
+        for (const entry of entries) {
+          if (entry.isDirectory) continue;
+          if (!hasBusinessDocExt(entry.name)) continue;
+          picks.push(joinPath(dir, entry.name));
+        }
+        if (!cancelled) {
+          setRawArtifactsDir(dir);
+          setBusinessDocs(picks);
+        }
+      } catch {
+        if (!cancelled) {
+          setRawArtifactsDir(null);
+          setBusinessDocs([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectPath]);
+
   const handlePickDocs = async () => {
+    // Open the picker inside `.artifacts/raw/` when present so the native
+    // macOS dialog displays the hydrated documents directly. The dot-prefix
+    // on the parent is irrelevant once the dialog is already inside it.
+    const defaultPath = rawArtifactsDir ?? projectPath ?? undefined;
     const selected = await open({
       multiple: true,
-      defaultPath: projectPath || undefined,
+      defaultPath,
       filters: [
         {
           name: 'Business Documents',
@@ -39,7 +116,11 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath 
     if (starting) return;
     setStarting(true);
     try {
-      await startPipeline(projectPath ?? '', adapterName.trim() || 'next-prisma', businessDocs);
+      await startPipeline(
+        projectPath ?? '',
+        adapterName.trim() || ADAPTER_FALLBACK,
+        businessDocs,
+      );
     } finally {
       setStarting(false);
     }
@@ -99,7 +180,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({ projectPath 
         <Input
           value={adapterName}
           onChange={(e) => setAdapterName(e.target.value)}
-          placeholder="next-prisma"
+          placeholder={ADAPTER_FALLBACK}
           className="h-8 text-xs"
           disabled={starting}
         />

@@ -15,10 +15,17 @@ interface SectionProps {
   icon: React.ReactNode;
   title: string;
   count: number;
+  emptyLabel?: string;
   children?: React.ReactNode;
 }
 
-function Section({ icon, title, count, children }: SectionProps): React.ReactElement {
+function Section({
+  icon,
+  title,
+  count,
+  emptyLabel,
+  children,
+}: SectionProps): React.ReactElement {
   return (
     <section className="space-y-1.5">
       <header className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -29,7 +36,9 @@ function Section({ icon, title, count, children }: SectionProps): React.ReactEle
         </Badge>
       </header>
       {count === 0 ? (
-        <div className="text-xs text-muted-foreground italic pl-6">none</div>
+        <div className="text-xs text-muted-foreground italic pl-6">
+          {emptyLabel ?? 'none'}
+        </div>
       ) : (
         <ul className="space-y-0.5 pl-6">{children}</ul>
       )}
@@ -127,6 +136,7 @@ export const ProjectContextOverview: React.FC<ProjectContextOverviewProps> = ({
           icon={<Bot className="h-3.5 w-3.5" />}
           title="Agents"
           count={bundle.agents.length}
+          emptyLabel="No agents published in this workspace yet — sync the org agent catalog (spec 111) to populate."
         >
           {bundle.agents.map((a) => (
             <ListItem key={a.id} name={a.name} version={a.version} />
