@@ -30,6 +30,8 @@ import { randomUUID } from "crypto";
 import { getConnectorImpl } from "./connectors";
 import type { SyncContext, SyncedObject } from "./connectors";
 import { broadcastToWorkspace } from "../sync/sync";
+import { enqueueExtraction } from "./extractionCore";
+import { KNOWLEDGE_EXTRACTION_RETRY_REQUESTED } from "./auditActions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -447,6 +449,22 @@ export const confirmUpload = api(
       },
     });
 
+    // Spec 115 FR-008 — automatic extraction. Enqueue happens after the
+    // audit insert; failure to enqueue MUST NOT roll back the upload (the
+    // bytes are already in S3). The Retry endpoint re-enqueues if needed.
+    try {
+      await enqueueExtraction({
+        knowledgeObjectId: req.id,
+        workspaceId: auth.workspaceId,
+        reason: "upload_confirmed",
+      });
+    } catch (err) {
+      log.error("confirmUpload: enqueueExtraction failed; upload kept", {
+        objectId: req.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+
     log.info("upload confirmed", {
       objectId: req.id,
       sizeBytes: updated.sizeBytes,
@@ -535,6 +553,16 @@ export const transitionState = api(
   ): Promise<{ object: KnowledgeObjectRow }> => {
     const auth = getAuthData()!;
 
+    // Spec 115 FR-027 — the legacy click-walk endpoint is gated off in
+    // default builds. Operators flip the env to "true" during incident
+    // response only; every successful legacy call is tagged with
+    // `legacy_path = true` in the audit row so usage shows up in reports.
+    if (process.env.STAGECRAFT_EXTRACT_LEGACY_TRANSITION !== "true") {
+      throw APIError.failedPrecondition(
+        "legacy_transition_disabled: use POST /api/knowledge/objects/:id/retry-extraction or rely on the automatic pipeline",
+      );
+    }
+
     const [obj] = await db
       .select()
       .from(knowledgeObjects)
@@ -583,11 +611,82 @@ export const transitionState = api(
       metadata: {
         from: obj.state,
         to: req.targetState,
+        legacy_path: true,
       },
     });
 
     return { object: updated };
   }
+);
+
+// ---------------------------------------------------------------------------
+// Spec 115 FR-010 — Retry extraction
+// ---------------------------------------------------------------------------
+//
+// Operator-initiated re-enqueue of the extraction pipeline for an object
+// whose previous attempt failed. Refuses with `not_failed` when
+// `lastExtractionError` is null. The dispatcher re-resolves at run time so
+// a Retry against a deterministic failure routes to the agent path when
+// policy allows — Retry never re-runs the failing extractor verbatim.
+
+export const retryExtraction = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/knowledge/objects/:id/retry-extraction",
+  },
+  async (
+    req: { id: string },
+  ): Promise<{ runId: string; outcome: "enqueued" | "deduped" }> => {
+    const auth = getAuthData()!;
+    if (!auth.workspaceId) {
+      throw APIError.invalidArgument("workspace context required");
+    }
+
+    const [obj] = await db
+      .select({
+        id: knowledgeObjects.id,
+        workspaceId: knowledgeObjects.workspaceId,
+        lastExtractionError: knowledgeObjects.lastExtractionError,
+      })
+      .from(knowledgeObjects)
+      .where(
+        and(
+          eq(knowledgeObjects.id, req.id),
+          eq(knowledgeObjects.workspaceId, auth.workspaceId),
+        ),
+      )
+      .limit(1);
+    if (!obj) {
+      throw APIError.notFound("knowledge object not found");
+    }
+    if (obj.lastExtractionError == null) {
+      throw APIError.failedPrecondition(
+        "not_failed: object has no lastExtractionError; nothing to retry",
+      );
+    }
+
+    const result = await enqueueExtraction({
+      knowledgeObjectId: obj.id,
+      workspaceId: obj.workspaceId,
+      reason: "retry",
+    });
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: KNOWLEDGE_EXTRACTION_RETRY_REQUESTED,
+      targetType: "knowledge_object",
+      targetId: req.id,
+      metadata: {
+        runId: result.runId,
+        outcome: result.outcome,
+        previousError: obj.lastExtractionError,
+      },
+    });
+
+    return result;
+  },
 );
 
 // ---------------------------------------------------------------------------
@@ -1203,6 +1302,11 @@ export async function executeSyncRun(
           )
           .limit(1);
 
+        // Spec 115 FR-009 — track which rows are newly inserted or had a
+        // content-hash change so we can enqueue extraction for them after
+        // the sync transaction.
+        let enqueueObjectId: string | null = null;
+
         if (existing) {
           if (existing.contentHash === obj.contentHash) {
             skipped++;
@@ -1217,24 +1321,46 @@ export async function executeSyncRun(
               mimeType: obj.mimeType,
               provenance: obj.provenance,
               state: "imported",
+              extractionOutput: null,
+              lastExtractionError: null,
               updatedAt: new Date(),
             })
             .where(eq(knowledgeObjects.id, existing.id));
+          enqueueObjectId = existing.id;
           updated++;
         } else {
-          // Create new knowledge object
-          await db.insert(knowledgeObjects).values({
-            workspaceId,
-            connectorId,
-            storageKey: obj.storageKey,
-            filename: obj.filename,
-            mimeType: obj.mimeType,
-            sizeBytes: obj.sizeBytes,
-            contentHash: obj.contentHash,
-            state: "imported",
-            provenance: obj.provenance,
-          });
+          const [created_] = await db
+            .insert(knowledgeObjects)
+            .values({
+              workspaceId,
+              connectorId,
+              storageKey: obj.storageKey,
+              filename: obj.filename,
+              mimeType: obj.mimeType,
+              sizeBytes: obj.sizeBytes,
+              contentHash: obj.contentHash,
+              state: "imported",
+              provenance: obj.provenance,
+            })
+            .returning({ id: knowledgeObjects.id });
+          enqueueObjectId = created_.id;
           created++;
+        }
+
+        if (enqueueObjectId) {
+          try {
+            await enqueueExtraction({
+              knowledgeObjectId: enqueueObjectId,
+              workspaceId,
+              reason: "connector_sync",
+            });
+          } catch (err) {
+            log.warn("connector sync: enqueueExtraction failed; row kept", {
+              connectorId,
+              objectId: enqueueObjectId,
+              err: err instanceof Error ? err.message : String(err),
+            });
+          }
         }
       }
 
