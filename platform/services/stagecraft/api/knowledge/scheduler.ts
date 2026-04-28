@@ -19,6 +19,7 @@ import { db } from "../db/drizzle";
 import { sourceConnectors, syncRuns, workspaces } from "../db/schema";
 import { and, eq, desc, isNotNull } from "drizzle-orm";
 import { executeSyncRun } from "./knowledge";
+import { sweepStaleExtractionRuns } from "./extractionCore";
 
 // ---------------------------------------------------------------------------
 // Schedule interval parser
@@ -142,11 +143,52 @@ export const runScheduledSyncs = api(
 );
 
 // ---------------------------------------------------------------------------
-// Register the cron job — runs every 15 minutes
+// Spec 115 FR-006 — staleness sweeper for the extraction worker.
+// ---------------------------------------------------------------------------
+//
+// Runs every minute. Picks up any `knowledge_extraction_runs` row in
+// `running` state whose `running_at` is older than
+// STAGECRAFT_EXTRACT_STALE_AFTER_SEC (default 600s) and flips it to
+// `failed` with `worker_crashed`, reverting the corresponding object to
+// `imported`. Closes the recovery loop for worker crashes mid-extraction
+// so a single crash never permanently strands an object.
+
+export const runExtractionStalenessSweep = api(
+  {
+    expose: false,
+    method: "POST",
+    path: "/internal/knowledge/extraction-staleness-sweep",
+  },
+  async (): Promise<void> => {
+    try {
+      const result = await sweepStaleExtractionRuns();
+      if (result.swept > 0) {
+        log.info("extraction staleness sweep: rows recovered", {
+          swept: result.swept,
+        });
+      }
+    } catch (err) {
+      log.error("extraction staleness sweep failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Register the cron jobs
 // ---------------------------------------------------------------------------
 
-const _ = new CronJob("connector-sync-scheduler", {
+const _connectorSync = new CronJob("connector-sync-scheduler", {
   title: "Connector Sync Scheduler",
   every: "15m",
   endpoint: runScheduledSyncs,
 });
+void _connectorSync;
+
+const _extractionSweeper = new CronJob("extraction-staleness-sweeper", {
+  title: "Knowledge Extraction Staleness Sweeper",
+  every: "1m",
+  endpoint: runExtractionStalenessSweep,
+});
+void _extractionSweeper;

@@ -73,6 +73,14 @@
               "name": "project-clone-worker"
             }
           }
+        },
+        "knowledge-extraction-request": {
+          "name": "knowledge-extraction-request",
+          "subscriptions": {
+            "knowledge-extraction-worker": {
+              "name": "knowledge-extraction-worker"
+            }
+          }
         }
       }
     }
