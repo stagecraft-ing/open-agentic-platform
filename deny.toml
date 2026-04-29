@@ -12,7 +12,64 @@
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/RustSec/advisory-db"]
 yanked = "warn"
-ignore = []
+
+# Ignored advisories — all maintenance-status (no CVE, no unsound, no
+# yanked). Each entry names the chain and the upstream blocker.
+# Vulnerabilities and unsound advisories MUST NOT appear here.
+# Revisit annually or when the named upstream ships a release.
+ignore = [
+    # Bincode 2.x — author ceased development permanently after a
+    # doxxing/harassment incident; considers v1.3.3 a complete artifact
+    # and v2.x stable. No security defect; no successor named for our
+    # use case. Pulled by hiqlite v0.13.1 (latest) → cryptr → bincode.
+    # Revisit when hiqlite migrates off bincode 2.x (no public plan).
+    { id = "RUSTSEC-2025-0141", reason = "bincode 2.x archived; hiqlite 0.13 (latest) pins it; no security issue" },
+
+    # paste — original author archived the crate. `pastey` is a
+    # drop-in fork. Three transitive pulls in our graph: rav1e (image
+    # codec via ravif → image), tokenizers (HF tokenizers via fastembed),
+    # kd-tree (axiomregent semantic search). Replacing one leaves the
+    # others. Revisit when fastembed/tokenizers/rav1e migrate to pastey.
+    { id = "RUSTSEC-2024-0436", reason = "paste archived; pastey is a fork; pulled transitively by image/tokenizers/kd-tree" },
+
+    # fxhash — replaced by rustc-hash upstream. Reachable only via
+    # tauri-utils 2.8.3 → kuchikiki 0.8.8 (Tauri's HTML5 selectors
+    # fork) → selectors 0.24 → fxhash. Build-time only.
+    # Revisit when Tauri's kuchikiki fork bumps selectors.
+    { id = "RUSTSEC-2025-0057", reason = "fxhash unmaintained; pinned by Tauri's kuchikiki HTML5 fork" },
+
+    # proc-macro-error — replaced by proc-macro-error2. Reachable only
+    # via Tauri's Linux-tray stack: tray-icon → libappindicator →
+    # gtk 0.18 → glib-macros 0.18. Linux build only.
+    # Revisit when Tauri's tray-icon migrates to gtk4 / proc-macro-error2.
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error unmaintained; pinned by Tauri's libappindicator (Linux tray)" },
+
+    # gtk-rs GTK3 bindings (10 sibling crates: gtk, atk, gdk, gdk-pixbuf,
+    # plus *-sys variants) — superseded by gtk4-rs. Reachable only via
+    # Tauri's tray-icon → libappindicator → gtk 0.18 stack. Linux build
+    # only. Revisit when Tauri's tray-icon migrates to gtk4 (tracked
+    # in tauri-apps/tao#999 and similar).
+    { id = "RUSTSEC-2024-0411", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0412", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0413", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0414", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0415", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0416", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0417", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0418", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0419", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+    { id = "RUSTSEC-2024-0420", reason = "gtk-rs GTK3 deprecated; pinned by Tauri's libappindicator (Linux tray)" },
+
+    # unic-* — Unicode crate family unmaintained; superseded by `icu`.
+    # Reachable only via tauri-utils 2.8.3 → urlpattern 0.3.0 →
+    # idna_adapter → unic. Build-time only. Revisit when Tauri bumps
+    # urlpattern from 0.3 to 0.6+ (which dropped the unic dep).
+    { id = "RUSTSEC-2025-0075", reason = "unic-char-range unmaintained; pinned by Tauri's urlpattern 0.3" },
+    { id = "RUSTSEC-2025-0080", reason = "unic-common unmaintained; pinned by Tauri's urlpattern 0.3" },
+    { id = "RUSTSEC-2025-0081", reason = "unic-char-property unmaintained; pinned by Tauri's urlpattern 0.3" },
+    { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version unmaintained; pinned by Tauri's urlpattern 0.3" },
+    { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident unmaintained; pinned by Tauri's urlpattern 0.3" },
+]
 
 [bans]
 # The single most common foot-gun in Rust workspaces — multiple major
@@ -45,6 +102,7 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "BSL-1.0",                # Boost Software License — permissive (e.g. clipboard-win, error-code via Tauri Windows clipboard)
     "ISC",
     "Unicode-3.0",
     "CC0-1.0",

@@ -2,6 +2,8 @@
 name = "deployd-api"
 version = "0.1.0"
 edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false   # internal workspace crate; binaries ship via release workflows, not crates.io
 
 [[bin]]
 name = "deployd-api"

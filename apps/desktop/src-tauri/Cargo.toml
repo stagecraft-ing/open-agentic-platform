@@ -7,7 +7,8 @@ name = "opc"
 version = "0.2.4"
 description = "GUI app and Toolkit for Claude Code"
 authors = ["bartekus"]
-license = "AGPL-3.0"
+license = "AGPL-3.0-or-later"
+publish = false   # internal workspace crate; binaries ship via release workflows, not crates.io
 edition = "2024"
 default-run = "opc"
 
