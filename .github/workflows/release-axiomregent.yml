@@ -161,15 +161,31 @@ jobs:
       - name: List artifacts
         run: ls -lh dist/
 
-      # Spec 117 — CycloneDX SBOM scoped to the axiomregent crate's source
-      # tree so syft can read Cargo.toml + Cargo.lock for crate-level
-      # component data. The smoke run (axiomregent-v0.0.0-attestation-smoke)
-      # showed `path: dist/` produces an empty SBOM because release binaries
-      # are stripped and contain no recoverable crate metadata.
+      # Spec 117 — CycloneDX SBOM. The crates/ workspace lockfile
+      # (crates/Cargo.lock) is gitignored — see .gitignore — so a fresh CI
+      # checkout has no Cargo.lock for syft's rust-cargo-lock-cataloger to
+      # walk. Generate it deterministically from the workspace manifest
+      # before the scan. `--offline` keeps the step fast and avoids registry
+      # round-trips; cargo only resolves the dep graph already pinned in
+      # Cargo.toml constraints. Without this step syft returns
+      # `components: 0` (smoke #1, #2, #3 all hit this).
+      - name: Rust toolchain (lockfile generation)
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Generate workspace Cargo.lock for SBOM scan
+        run: cargo generate-lockfile --manifest-path crates/Cargo.toml
+
+      # Scan the whole workspace, not just axiomregent's source tree, so
+      # syft sees crates/Cargo.lock (one level above the member crate).
+      # The SBOM lists every workspace member's transitive dependencies —
+      # accurate reflection of what a built axiomregent binary actually
+      # links against (orchestrator, policy-kernel, etc.).
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
         with:
-          path: crates/axiomregent
+          path: crates
           format: cyclonedx-json
           output-file: dist/sbom-axiomregent.cdx.json
 
