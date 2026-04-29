@@ -167,7 +167,7 @@ jobs:
       # showed `path: dist/` produces an empty SBOM because release binaries
       # are stripped and contain no recoverable crate metadata.
       - name: Generate SBOM (CycloneDX)
-        uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
         with:
           path: crates/axiomregent
           format: cyclonedx-json
