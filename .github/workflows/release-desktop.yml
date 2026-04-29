@@ -1,7 +1,17 @@
+# Spec: 037-cross-platform-axiomregent
+# Spec: 086-open-source-launch
+# Spec: 117-release-artifact-attestations
+#
 # Release desktop app bundles for all platforms.
 # Triggered by pushing a version tag (e.g. v0.2.1).
 # Builds sidecar binaries first, then uses Tauri Action to produce
 # platform installers and upload them to a GitHub Release.
+#
+# Each installer (DMG / AppImage / NSIS .exe) ships with:
+#   - a per-target CycloneDX SBOM (spec 117)
+#   - a SLSA build-provenance attestation (spec 117)
+#   - an existing .sha256 sidecar consumed by the in-app updater
+# Verify with `gh attestation verify <installer> --repo <owner>/<repo>`.
 
 name: Release Desktop
 
@@ -156,12 +166,17 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     name: release / ${{ matrix.target }}
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      id-token: write       # spec 117 — Sigstore identity
+      attestations: write   # spec 117 — provenance attestation upload
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
         with:
           toolchain: '1.95.0'
           targets: ${{ matrix.target }}
@@ -295,6 +310,48 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
           configPath: ${{ matrix.config }}
+
+      # Spec 117 — collect installer paths for SBOM/attestation steps.
+      - name: Locate installer artifacts
+        id: installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          target_root="apps/desktop/src-tauri/target"
+          # Multi-line output via GITHUB_OUTPUT heredoc.
+          {
+            echo "paths<<INSTALLERS_EOF"
+            find "$target_root" -type f \( \
+              -path '*/release/bundle/dmg/*.dmg' -o \
+              -path '*/release/bundle/appimage/*.AppImage' -o \
+              -path '*/release/bundle/nsis/*.exe' \
+            \) 2>/dev/null
+            echo "INSTALLERS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Spec 117 — CycloneDX SBOM scoped to the Tauri target dir for this triple.
+      - name: Generate desktop SBOM (CycloneDX)
+        uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
+        with:
+          path: apps/desktop/src-tauri/target
+          format: cyclonedx-json
+          output-file: apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
+
+      # Spec 117 — provenance attestation per installer file produced this run.
+      - name: Attest installer provenance
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: ${{ steps.installers.outputs.paths }}
+
+      # Spec 117 — attach the SBOM to the release alongside the installers.
+      - name: Upload SBOM to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release upload "$TAG" \
+            "apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
+            --clobber --repo "$GITHUB_REPOSITORY"
 
       # Consumed by the in-app updater (apps/desktop/src-tauri/src/commands/updater.rs).
       # Emits a `<installer>.sha256` sidecar for the platform installer the updater
