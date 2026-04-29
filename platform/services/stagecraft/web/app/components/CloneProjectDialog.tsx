@@ -99,6 +99,9 @@ export function CloneProjectDialog({
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitErrorDetail, setSubmitErrorDetail] = useState<string | null>(
+    null,
+  );
   const [pollElapsedSec, setPollElapsedSec] = useState(0);
   const pollAbort = useRef<AbortController | null>(null);
 
@@ -198,6 +201,7 @@ export function CloneProjectDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
+    setSubmitErrorDetail(null);
     setSubmitting(true);
     setPollElapsedSec(0);
     try {
@@ -244,6 +248,7 @@ export function CloneProjectDialog({
         setSubmitError(
           terminal.error ?? "Clone failed for an unknown reason.",
         );
+        setSubmitErrorDetail(terminal.errorDetail);
         setSubmitting(false);
       } catch (err) {
         clearInterval(timer);
@@ -359,8 +364,13 @@ export function CloneProjectDialog({
         </div>
 
         {submitError && (
-          <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-            {submitError}
+          <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300 space-y-2">
+            <div>{submitError}</div>
+            {submitErrorDetail && (
+              <pre className="whitespace-pre-wrap break-words text-xs font-mono text-red-800 dark:text-red-200 bg-red-100/60 dark:bg-red-950/40 rounded px-2 py-1 max-h-40 overflow-auto">
+                {submitErrorDetail}
+              </pre>
+            )}
           </div>
         )}
 

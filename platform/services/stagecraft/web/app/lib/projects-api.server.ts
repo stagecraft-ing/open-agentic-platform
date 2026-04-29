@@ -200,6 +200,7 @@ export interface CloneRunStatus {
   rawArtifactsSkipped: number | null;
   durationMs: number | null;
   error: string | null;
+  errorDetail: string | null;
 }
 
 export async function cloneProject(

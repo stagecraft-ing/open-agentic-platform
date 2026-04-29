@@ -31,6 +31,7 @@ export type CloneRunStatusResponse = {
   rawArtifactsSkipped: number | null;
   durationMs: number | null;
   error: string | null;
+  errorDetail: string | null;
 };
 
 export const getCloneRunStatus = api(
@@ -79,6 +80,7 @@ export const getCloneRunStatus = api(
       rawArtifactsSkipped: row.rawArtifactsSkipped,
       durationMs: row.durationMs,
       error: row.error,
+      errorDetail: row.errorDetail,
     };
   },
 );

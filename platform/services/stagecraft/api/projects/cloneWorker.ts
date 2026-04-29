@@ -105,6 +105,7 @@ async function handleCloneRequest(req: ProjectCloneRequest): Promise<void> {
       .set({
         status: "failed",
         error: code,
+        errorDetail: message.slice(0, 4000),
         completedAt: new Date(),
       })
       .where(eq(projectCloneRuns.id, row.id));

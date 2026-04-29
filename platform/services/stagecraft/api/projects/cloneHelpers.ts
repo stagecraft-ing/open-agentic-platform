@@ -96,6 +96,19 @@ export function isOverSizeCap(args: {
 
 export type RunCmdResult = { stdout: string; stderr: string };
 
+/**
+ * Redact `x-access-token:<TOKEN>` (and a few other obvious credential
+ * shapes) from any string that may carry the result of a shell invocation
+ * with auth in argv. Belt-and-suspenders: argv values like
+ *   https://x-access-token:ghs_xxx@github.com/owner/repo.git
+ * leak into Error messages and stderr otherwise.
+ */
+export function redactSecrets(s: string): string {
+  return s
+    .replace(/x-access-token:[^@\s]+@/g, "x-access-token:***@")
+    .replace(/(https?:\/\/)[^:@\s/]+:[^@\s]+@/g, "$1***:***@");
+}
+
 export function runCmd(
   bin: string,
   args: string[],
@@ -114,12 +127,13 @@ export function runCmd(
       const stdout = Buffer.concat(out).toString("utf8");
       const stderr = Buffer.concat(err).toString("utf8");
       if (code === 0) resolve({ stdout, stderr });
-      else
+      else {
+        const safeArgs = args.map(redactSecrets).join(" ");
+        const safeOutput = redactSecrets(stderr || stdout);
         reject(
-          new Error(
-            `${bin} ${args.join(" ")} exited ${code}: ${stderr || stdout}`
-          )
+          new Error(`${bin} ${safeArgs} exited ${code}: ${safeOutput}`)
         );
+      }
     });
     proc.on("error", reject);
   });

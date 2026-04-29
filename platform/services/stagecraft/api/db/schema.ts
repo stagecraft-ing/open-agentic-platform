@@ -980,6 +980,7 @@ export const projectCloneRuns = pgTable(
     rawArtifactsSkipped: integer("raw_artifacts_skipped"),
     durationMs: integer("duration_ms"),
     error: text("error"),
+    errorDetail: text("error_detail"),
     queuedAt: timestamp("queued_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
