@@ -1,3 +1,6 @@
+# Spec: 033-axiomregent-activation
+# Spec: 073-axiomregent-unification
+#
 # CI for axiomregent MCP server: check, clippy, and test.
 
 name: CI axiomregent

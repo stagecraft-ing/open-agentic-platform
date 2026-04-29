@@ -1,4 +1,11 @@
-# T014: machine-check emitted JSON against Feature 000 schemas (see specs/001-spec-compiler-mvp/tasks.md).
+# Spec: 001-spec-compiler-mvp
+# Spec: 002-registry-consumer-mvp
+# Spec: 006-conformance-lint-mvp
+#
+# Machine-check emitted JSON against Feature 000 schemas (see
+# specs/001-spec-compiler-mvp/tasks.md task T014). Plus registry-consumer
+# contract subsets, spec-lint, codebase-indexer compile + tests, and policy
+# compiler tests.
 
 name: Spec conformance
 

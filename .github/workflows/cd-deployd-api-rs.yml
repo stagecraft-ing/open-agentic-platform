@@ -1,3 +1,5 @@
+# Spec: 078-platform-completion-plan
+#
 # CD for deployd-api-rs: build Docker image, push to GHCR, deploy to Hetzner K3s.
 #
 # Required GitHub secrets:

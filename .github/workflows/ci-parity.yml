@@ -1,6 +1,8 @@
-# CI Parity Check (spec 104): asserts the root Makefile's `ci` targets mirror
-# the `run:` blocks in every enforcing GitHub Actions workflow. Additive to,
-# not a replacement for, the per-workflow validation gates.
+# Spec: 104-makefile-ci-parity-contract
+#
+# CI Parity Check: asserts the root Makefile's `ci` targets mirror the `run:`
+# blocks in every enforcing GitHub Actions workflow. Additive to, not a
+# replacement for, the per-workflow validation gates.
 
 name: CI Parity
 

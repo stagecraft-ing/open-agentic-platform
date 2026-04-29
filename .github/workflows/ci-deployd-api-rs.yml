@@ -1,3 +1,5 @@
+# Spec: 078-platform-completion-plan
+#
 # CI for deployd-api-rs: check, clippy, and test.
 
 name: CI deployd-api-rs

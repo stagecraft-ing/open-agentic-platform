@@ -1,3 +1,6 @@
+# Spec: 077-stagecraft-factory-api
+# Spec: 078-platform-completion-plan
+#
 # CD for stagecraft: build Docker image, push to GHCR, deploy to Hetzner K3s.
 #
 # Required GitHub secrets:

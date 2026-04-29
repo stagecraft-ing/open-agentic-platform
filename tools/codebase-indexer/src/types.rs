@@ -3,7 +3,8 @@
 use serde::{Deserialize, Serialize};
 
 /// Schema version — compile-time contract between the indexer and the JSON Schema.
-pub const SCHEMA_VERSION: &str = "1.0.0";
+/// Bumped to 1.1.0 in spec 118 (additive: optional `workflowTraceability` block).
+pub const SCHEMA_VERSION: &str = "1.1.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -17,6 +18,10 @@ pub struct CodebaseIndex {
     pub traceability: Traceability,
     pub factory: Vec<AdapterRecord>,
     pub infrastructure: Infrastructure,
+    /// Spec 118 — workflow-to-spec traceability (Layer 5).
+    /// Optional during the schema 1.1 rollout; consumers tolerate absence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub workflow_traceability: Vec<WorkflowTrace>,
     pub diagnostics: Diagnostics,
 }
 
@@ -149,6 +154,25 @@ pub struct NamedEntry {
     pub path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+// ── Layer 5: Workflow-to-Spec Traceability (spec 118) ───────────────────────
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowTrace {
+    pub path: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub specs: Vec<String>,
+    pub source: WorkflowTraceSource,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum WorkflowTraceSource {
+    Header,
+    Allowlist,
+    Unmapped,
 }
 
 // ── Diagnostics ─────────────────────────────────────────────────────────────

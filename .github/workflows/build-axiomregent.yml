@@ -1,4 +1,6 @@
-# Feature 037: Build axiomregent sidecar binaries for all supported platforms.
+# Spec: 037-cross-platform-axiomregent
+#
+# Build axiomregent sidecar binaries for all supported platforms.
 # Produces binaries compatible with Tauri's externalBin bundling convention.
 
 name: Build axiomregent binaries

@@ -1,3 +1,5 @@
+# Spec: 047-governance-control-plane
+#
 # CI for policy-kernel: check, clippy, and test.
 
 name: CI policy-kernel

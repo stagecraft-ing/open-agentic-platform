@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "06545f6780b4a9f66147758ad7f85e84c95e1ddd46aaf0d958ea2982b1fbd0e1",
+    "contentHash": "524ec439fe2ef19465d707ee4450fd7a7c9b246dc3328c415b19e9a99a5f6c9b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15,14 +15,6 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"116-supply-chain-policy-gates\" declares implements path \".github/workflows/ci-supply-chain.yml\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"116-supply-chain-policy-gates\" declares implements path \"deny.toml\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -1417,7 +1409,7 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "traceability": {
     "mappings": [
       {
@@ -3279,5 +3271,156 @@
       "grammars/tree-sitter-rust",
       "grammars/tree-sitter-typescript"
     ]
-  }
+  },
+  "workflowTraceability": [
+    {
+      "path": ".github/workflows/ai-changelog.yml",
+      "source": "header",
+      "specs": [
+        "085-remote-control-cli"
+      ]
+    },
+    {
+      "path": ".github/workflows/ai-pr-review.yml",
+      "source": "header",
+      "specs": [
+        "085-remote-control-cli"
+      ]
+    },
+    {
+      "path": ".github/workflows/build-axiomregent.yml",
+      "source": "header",
+      "specs": [
+        "037-cross-platform-axiomregent"
+      ]
+    },
+    {
+      "path": ".github/workflows/cd-deployd-api-rs.yml",
+      "source": "header",
+      "specs": [
+        "078-platform-completion-plan"
+      ]
+    },
+    {
+      "path": ".github/workflows/cd-stagecraft.yml",
+      "source": "header",
+      "specs": [
+        "077-stagecraft-factory-api",
+        "078-platform-completion-plan"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-axiomregent.yml",
+      "source": "header",
+      "specs": [
+        "033-axiomregent-activation",
+        "073-axiomregent-unification"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-codebase-index.yml",
+      "source": "header",
+      "specs": [
+        "101-codebase-index-mvp",
+        "103-init-protocol-governed-reads"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-crates.yml",
+      "source": "header",
+      "specs": [
+        "067-tool-definition-registry",
+        "071-skill-command-factory",
+        "075-factory-workflow-engine",
+        "054-agent-frontmatter-schema",
+        "042-multi-provider-agent-registry"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-deployd-api-rs.yml",
+      "source": "header",
+      "specs": [
+        "078-platform-completion-plan"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-desktop.yml",
+      "source": "header",
+      "specs": [
+        "037-cross-platform-axiomregent",
+        "086-open-source-launch"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-orchestrator.yml",
+      "source": "header",
+      "specs": [
+        "004-spec-to-execution-bridge-mvp",
+        "044-multi-agent-orchestration"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-parity.yml",
+      "source": "header",
+      "specs": [
+        "104-makefile-ci-parity-contract"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-policy-kernel.yml",
+      "source": "header",
+      "specs": [
+        "047-governance-control-plane"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-stagecraft.yml",
+      "source": "header",
+      "specs": [
+        "077-stagecraft-factory-api",
+        "087-unified-workspace-architecture"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-supply-chain.yml",
+      "source": "header",
+      "specs": [
+        "116-supply-chain-policy-gates"
+      ]
+    },
+    {
+      "path": ".github/workflows/release-axiomregent.yml",
+      "source": "header",
+      "specs": [
+        "037-cross-platform-axiomregent",
+        "117-release-artifact-attestations"
+      ]
+    },
+    {
+      "path": ".github/workflows/release-desktop.yml",
+      "source": "header",
+      "specs": [
+        "037-cross-platform-axiomregent",
+        "086-open-source-launch",
+        "117-release-artifact-attestations"
+      ]
+    },
+    {
+      "path": ".github/workflows/release-tools.yml",
+      "source": "header",
+      "specs": [
+        "086-open-source-launch",
+        "117-release-artifact-attestations"
+      ]
+    },
+    {
+      "path": ".github/workflows/spec-conformance.yml",
+      "source": "header",
+      "specs": [
+        "001-spec-compiler-mvp",
+        "002-registry-consumer-mvp",
+        "006-conformance-lint-mvp"
+      ]
+    }
+  ]
 }

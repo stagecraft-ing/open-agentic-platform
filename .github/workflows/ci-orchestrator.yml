@@ -1,3 +1,6 @@
+# Spec: 004-spec-to-execution-bridge-mvp
+# Spec: 044-multi-agent-orchestration
+#
 # CI for orchestrator: check, clippy, and test.
 
 name: CI orchestrator

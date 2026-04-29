@@ -1,0 +1,11 @@
+# Workflow-to-spec traceability allowlist (spec 118).
+#
+# Each entry below documents a workflow file that has no `# Spec: NNN-slug`
+# header and is intentionally exempt. The optional `spec` field links the
+# workflow to a backing spec without forcing the comment edit; if set, the
+# scanner treats the entry the same as a header for index purposes.
+#
+# Empty by default — every workflow currently in .github/workflows/ has a
+# `# Spec:` header line. Add entries here if/when a workflow has no
+# spec-shaped backing (pure ops automation, dependabot auto-merge, etc.).
+allowlist = []

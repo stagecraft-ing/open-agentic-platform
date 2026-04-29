@@ -222,6 +222,30 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
             .collect::<Vec<_>>(),
     );
 
+    // Layer 5: Workflow-to-Spec Traceability (spec 118)
+    if !index.workflow_traceability.is_empty() {
+        out.push_str(&format!(
+            "## Layer 5: CI Workflow Traceability ({} total)\n\n",
+            index.workflow_traceability.len()
+        ));
+        out.push_str("| Workflow | Specs | Source |\n");
+        out.push_str("|----------|-------|--------|\n");
+        for trace in &index.workflow_traceability {
+            let specs = if trace.specs.is_empty() {
+                "—".to_string()
+            } else {
+                trace.specs.join(", ")
+            };
+            let source = match trace.source {
+                crate::types::WorkflowTraceSource::Header => "header",
+                crate::types::WorkflowTraceSource::Allowlist => "allowlist",
+                crate::types::WorkflowTraceSource::Unmapped => "unmapped",
+            };
+            out.push_str(&format!("| `{}` | {} | {} |\n", trace.path, specs, source));
+        }
+        out.push('\n');
+    }
+
     // Diagnostics
     let total_diags = index.diagnostics.warnings.len() + index.diagnostics.errors.len();
     if total_diags > 0 {
