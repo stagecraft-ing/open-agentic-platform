@@ -188,7 +188,7 @@ jobs:
           shared-key: release-${{ matrix.target }}
 
       - uses: pnpm/action-setup@4f4305e1fe60ad818b8ae6fc4a697cc47eab0b2d # v6
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: pnpm
@@ -334,7 +334,7 @@ jobs:
       # component coverage. Stripped release binaries (the prior `target/`
       # scope) yielded an empty SBOM in the axiomregent smoke run.
       - name: Generate desktop SBOM (CycloneDX)
-        uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.17.8
         with:
           path: apps/desktop
           format: cyclonedx-json
