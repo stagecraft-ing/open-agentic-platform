@@ -1,5 +1,6 @@
 [package]
 name = "open_agentic_codebase_indexer"
+publish = false   # internal workspace crate; binaries ship via release workflows, not crates.io
 version = "0.1.0"
 edition = "2024"
 description = "Codebase indexer per specs/101-codebase-index-mvp — emits index.json + build-meta.json"
