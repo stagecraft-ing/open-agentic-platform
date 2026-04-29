@@ -26,7 +26,6 @@ export interface SessionMintContext {
   oapUserId: string;
   orgId: string;
   orgSlug: string;
-  workspaceId: string;
   githubLogin?: string;
   idpProvider?: string;
   idpLogin?: string;
@@ -46,7 +45,6 @@ export async function mintSessionForOrg(
     oap_user_id: ctx.oapUserId,
     oap_org_id: ctx.orgId,
     oap_org_slug: ctx.orgSlug,
-    oap_workspace_id: ctx.workspaceId,
     github_login: ctx.githubLogin,
     idp_provider: ctx.idpProvider ?? (ctx.githubLogin ? "github" : ""),
     idp_login: ctx.idpLogin ?? ctx.githubLogin ?? "",

@@ -587,8 +587,10 @@ export const factoryArtifacts = pgTable("factory_artifacts", {
   contentHash: text("content_hash").notNull(),
   storagePath: text("storage_path").notNull(),
   sizeBytes: integer("size_bytes").notNull().default(0),
-  // Workspace scoping (spec 094 Slice 5).
-  workspaceId: uuid("workspace_id"),
+  // Project scoping (spec 094 Slice 5; renamed from workspace_id by spec 119
+  // Phase C). Nullable — pre-collapse rows carry an orphan UUID that no
+  // longer resolves to anything.
+  projectId: uuid("project_id"),
   // Provenance: which agent produced this artifact (spec 094 Slice 5).
   producerAgent: text("producer_agent"),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -605,9 +607,12 @@ export const promotionStatusEnum = pgEnum("promotion_status", [
   "revoked",
 ]);
 
+// Spec 119 Phase C — workspace_id renamed to project_id. Pre-collapse rows
+// carry an orphan UUID that no longer resolves; new writes use the real
+// destination project.
 export const promotions = pgTable("promotions", {
   id: uuid("id").defaultRandom().primaryKey(),
-  workspaceId: uuid("workspace_id").notNull(),
+  projectId: uuid("project_id").notNull(),
   pipelineId: uuid("pipeline_id").notNull(),
   workflowId: text("workflow_id").notNull(),
   status: promotionStatusEnum("status").notNull().default("promoted"),
@@ -650,7 +655,6 @@ export const desktopRefreshTokens = pgTable("desktop_refresh_tokens", {
   tokenHash: text("token_hash").notNull().unique(),
   userId: uuid("user_id").notNull(),
   orgId: uuid("org_id").notNull(),
-  workspaceId: text("workspace_id").notNull().default(""),
   orgSlug: text("org_slug").notNull().default(""),
   githubLogin: text("github_login").default(""),
   idpProvider: text("idp_provider").notNull().default(""),
@@ -819,7 +823,6 @@ export const factoryProcesses = pgTable(
 export const scaffoldJobs = pgTable("scaffold_jobs", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull(),
-  workspaceId: uuid("workspace_id").notNull(),
   projectId: uuid("project_id"),
   factoryAdapterId: uuid("factory_adapter_id").notNull(),
   requestedBy: uuid("requested_by").notNull(),
@@ -968,9 +971,10 @@ export const projectCloneRuns = pgTable(
 // ---------------------------------------------------------------------------
 // Spec 111 — Org-managed Agent Catalog.
 // ---------------------------------------------------------------------------
-// Authoritative per-workspace agent definitions. `status` and `action` are
-// constrained as CHECK-backed TEXT in the migration; mirrored here as typed
-// string unions so drift between drizzle and SQL fails at the TS boundary.
+// Authoritative per-project agent definitions (renamed from per-workspace by
+// spec 119 Phase C). `status` and `action` are constrained as CHECK-backed
+// TEXT in the migration; mirrored here as typed string unions so drift
+// between drizzle and SQL fails at the TS boundary.
 
 export type AgentCatalogStatus = "draft" | "published" | "retired";
 export type AgentCatalogAuditAction =
@@ -984,7 +988,7 @@ export const agentCatalog = pgTable(
   "agent_catalog",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id").notNull(),
+    projectId: uuid("project_id").notNull(),
     name: text("name").notNull(),
     version: integer("version").notNull().default(1),
     status: text("status").$type<AgentCatalogStatus>()
@@ -1001,13 +1005,13 @@ export const agentCatalog = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [unique().on(t.workspaceId, t.name, t.version)]
+  (t) => [unique().on(t.projectId, t.name, t.version)]
 );
 
 export const agentCatalogAudit = pgTable("agent_catalog_audit", {
   id: uuid("id").defaultRandom().primaryKey(),
   agentId: uuid("agent_id").notNull(),
-  workspaceId: uuid("workspace_id").notNull(),
+  projectId: uuid("project_id").notNull(),
   action: text("action").$type<AgentCatalogAuditAction>().notNull(),
   actorUserId: uuid("actor_user_id").notNull(),
   before: jsonb("before"),

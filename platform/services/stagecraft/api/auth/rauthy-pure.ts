@@ -10,13 +10,16 @@
  * Stagecraft-visible claim shape. Rauthy emits custom scope attributes under
  * `payload.custom.*`; legacy top-level layouts are still accepted for the
  * spec 106 cutover window.
+ *
+ * Spec 119: workspace collapsed into project. The JWT no longer carries an
+ * active-workspace claim — orgId scopes the session, projectId is supplied
+ * per-request by API path/body.
  */
 export interface OapClaims {
   sub: string; // Rauthy user ID
   oap_user_id: string; // internal OAP user ID
   oap_org_id: string; // selected org ID
   oap_org_slug: string; // org slug
-  oap_workspace_id?: string; // active workspace ID
   github_login?: string; // GitHub handle (absent for enterprise IdP users)
   idp_provider?: string; // identity provider type (github | azure-ad | okta | etc.)
   idp_login?: string; // provider-specific login/display name
@@ -59,7 +62,6 @@ export function extractOapClaims(payload: Record<string, unknown>): OapClaims | 
     oap_user_id: oapUserId,
     oap_org_id: oapOrgId,
     oap_org_slug: oapOrgSlug,
-    oap_workspace_id: read("oap_workspace_id"),
     github_login: read("github_login"),
     idp_provider: read("idp_provider"),
     idp_login: read("idp_login"),

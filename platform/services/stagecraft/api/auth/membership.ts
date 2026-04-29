@@ -16,7 +16,6 @@ import {
   organizations,
   projectMembers,
   users,
-  workspaces,
 } from "../db/schema";
 import { eq, and, notInArray, inArray, sql } from "drizzle-orm";
 
@@ -30,10 +29,11 @@ interface GitHubOrg {
   role: string; // "admin" | "member"
 }
 
+// Spec 119: workspace collapsed into project. Resolved orgs no longer carry
+// an active-workspace id; per-request projectId supplies project scope.
 export interface ResolvedOrg {
   orgId: string;
   orgSlug: string;
-  workspaceId: string;
   githubOrgLogin: string;    // empty for enterprise OIDC orgs
   orgDisplayName: string;    // best display name (githubOrgLogin || org name || orgSlug)
   platformRole: "owner" | "admin" | "member";
@@ -145,7 +145,7 @@ export async function resolveOrgMemberships(
   const matchedOrgs: ResolvedOrg[] = [];
   const matchedOrgIds: string[] = [];
 
-  // 3. Upsert org_memberships for each match and resolve default workspace
+  // 3. Upsert org_memberships for each match.
   for (const row of matchedRows) {
     const ghOrg = ghOrgs.find((o) => o.id === row.installGithubOrgId);
     if (!ghOrg) continue;
@@ -171,19 +171,9 @@ export async function resolveOrgMemberships(
         },
       });
 
-    // Resolve the default workspace for this org
-    const [ws] = await db
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(
-        and(eq(workspaces.orgId, row.orgId), eq(workspaces.slug, "default"))
-      )
-      .limit(1);
-
     matchedOrgs.push({
       orgId: row.orgId,
       orgSlug: row.orgSlug,
-      workspaceId: ws?.id ?? "",
       githubOrgLogin: ghOrg.login,
       orgDisplayName: ghOrg.login || row.orgSlug,
       platformRole: "member",
@@ -438,13 +428,6 @@ export async function resolveOidcMemberships(
     return [];
   }
 
-  // Resolve the default workspace for this org
-  const [ws] = await db
-    .select({ id: workspaces.id })
-    .from(workspaces)
-    .where(and(eq(workspaces.orgId, org.id), eq(workspaces.slug, "default")))
-    .limit(1);
-
   // Start with default member role
   let resolvedPlatformRole: "owner" | "admin" | "member" = "member";
 
@@ -524,7 +507,6 @@ export async function resolveOidcMemberships(
     {
       orgId: org.id,
       orgSlug: org.slug,
-      workspaceId: ws?.id ?? "",
       githubOrgLogin: "",
       orgDisplayName: org.name || org.slug,
       platformRole: resolvedPlatformRole,

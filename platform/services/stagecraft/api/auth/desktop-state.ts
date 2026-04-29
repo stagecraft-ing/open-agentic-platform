@@ -26,10 +26,11 @@ export interface PendingDesktopSession {
   idpLogin: string;          // provider-specific display name
   avatarUrl: string;
   codeChallenge: string; // Passed through from PendingDesktopFlow for PKCE verification
+  // Spec 119: workspace collapsed into project; matched orgs no longer carry
+  // an active-workspace id. Project scope is per-request after login.
   matchedOrgs: Array<{
     orgId: string;
     orgSlug: string;
-    workspaceId: string;
     githubOrgLogin: string;  // empty for enterprise orgs
     orgDisplayName: string;  // best display name (githubOrgLogin || orgSlug)
     platformRole: string;

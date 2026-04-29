@@ -23,7 +23,6 @@ import {
   userIdentities,
   organizations,
   oidcProviders,
-  workspaces,
   auditLog,
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -453,7 +452,6 @@ export const oidcCallback = api.raw(
               oapUserId: user.id,
               orgId: org.orgId,
               orgSlug: org.orgSlug,
-              workspaceId: org.workspaceId,
               idpProvider: provider.providerType,
               idpLogin,
               avatarUrl,
@@ -476,7 +474,6 @@ export const oidcCallback = api.raw(
           matchedOrgs: matchedOrgs.map((o) => ({
             orgId: o.orgId,
             orgSlug: o.orgSlug,
-            workspaceId: o.workspaceId,
             githubOrgLogin: o.githubOrgLogin,
             orgDisplayName: o.orgDisplayName,
             platformRole: o.platformRole,
@@ -713,7 +710,6 @@ export async function buildOidcSessionCookies(
       oapUserId: user.id,
       orgId: org.orgId,
       orgSlug: org.orgSlug,
-      workspaceId: org.workspaceId,
       idpProvider: user.idpProvider,
       idpLogin: user.idpLogin,
       avatarUrl: user.avatarUrl,

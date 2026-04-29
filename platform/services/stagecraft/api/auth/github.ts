@@ -11,7 +11,7 @@ import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
 import { db } from "../db/drizzle";
-import { users, orgMemberships, organizations, workspaces } from "../db/schema";
+import { users, orgMemberships, organizations } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { getUserOrgRole } from "./membership";
 import { type RauthyTokens } from "./rauthy";
@@ -244,14 +244,6 @@ export const orgSwitch = api(
       throw APIError.notFound("Organization not found");
     }
 
-    const [ws] = await db
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(
-        and(eq(workspaces.orgId, req.orgId), eq(workspaces.slug, "default"))
-      )
-      .limit(1);
-
     // Write OAP attributes and refresh — Rauthy emits the new org context
     // under `custom.oap_*` on the returned access + ID tokens.
     let tokens: RauthyTokens;
@@ -262,7 +254,6 @@ export const orgSwitch = api(
           oapUserId: user.id,
           orgId: req.orgId,
           orgSlug: org.slug,
-          workspaceId: ws?.id ?? "",
           githubLogin: user.githubLogin || undefined,
           idpProvider: auth.idpProvider,
           idpLogin: auth.idpLogin,
@@ -403,12 +394,6 @@ export const orgSwitchCookie = api.raw(
       .where(eq(organizations.id, orgId))
       .limit(1);
 
-    const [ws] = await db
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(and(eq(workspaces.orgId, orgId), eq(workspaces.slug, "default")))
-      .limit(1);
-
     try {
       const tokens = await mintSessionForOrg(
         {
@@ -416,7 +401,6 @@ export const orgSwitchCookie = api.raw(
           oapUserId: user.id,
           orgId,
           orgSlug: org?.slug ?? "",
-          workspaceId: ws?.id ?? "",
           githubLogin: user.githubLogin || undefined,
           idpProvider: auth.idpProvider,
           idpLogin: auth.idpLogin,

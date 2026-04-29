@@ -4,19 +4,17 @@ import log from "encore.dev/log";
 import { db } from "../db/drizzle";
 import {
   organizations,
-  workspaces,
   projects,
   projectRepos,
   environments,
   projectMembers,
   githubInstallations,
   auditLog,
-  documentBindings,
   knowledgeObjects,
   factoryArtifacts,
   factoryPipelines,
 } from "../db/schema";
-import { and, eq, desc, sql, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import { hasOrgPermission } from "../auth/membership";
 import {
   brokerInstallationToken,
@@ -44,10 +42,10 @@ export type OrgRow = {
 export type ProjectRow = {
   id: string;
   orgId: string;
-  workspaceId: string;
   name: string;
   slug: string;
   description: string;
+  objectStoreBucket: string;
   factoryAdapterId: string | null;
   createdBy: string | null;
   createdAt: Date;
@@ -138,26 +136,26 @@ export const listProjects = api(
     const auth = getAuthData()!;
 
     // Two-query shape (spec 113 §FR-039): pull projects, then pull
-    // primary repos for that workspace, JS-merge. Replaces an inline
-    // EXISTS subquery whose `${table.column} = true` rendering produced
-    // false negatives that hid the Clone affordance for freshly-imported
+    // primary repos for that org, JS-merge. Replaces an inline EXISTS
+    // subquery whose `${table.column} = true` rendering produced false
+    // negatives that hid the Clone affordance for freshly-imported
     // projects. Matches projectCatalogRelay.ts which already used the
     // same two-query pattern.
     const projectRows = await db
       .select({
         id: projects.id,
         orgId: projects.orgId,
-        workspaceId: projects.workspaceId,
         name: projects.name,
         slug: projects.slug,
         description: projects.description,
+        objectStoreBucket: projects.objectStoreBucket,
         factoryAdapterId: projects.factoryAdapterId,
         createdBy: projects.createdBy,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
       })
       .from(projects)
-      .where(eq(projects.workspaceId, auth.workspaceId))
+      .where(eq(projects.orgId, auth.orgId))
       .orderBy(desc(projects.createdAt));
 
     const projectIds = projectRows.map((p) => p.id);
@@ -215,7 +213,7 @@ export const getProject = api(
       .select()
       .from(projects)
       .where(
-        and(eq(projects.id, req.id), eq(projects.workspaceId, auth.workspaceId))
+        and(eq(projects.id, req.id), eq(projects.orgId, auth.orgId))
       )
       .limit(1);
 
@@ -241,14 +239,18 @@ export const createProject = api(
       throw APIError.invalidArgument("name and slug are required");
     }
 
+    // Spec 119 §4.2 — every project owns its own bucket. Deterministic
+    // derivation (matches the pre-collapse `oap-<org>-<workspace>` shape).
+    const objectStoreBucket = `oap-${auth.orgSlug || "unknown"}-${req.slug}`;
+
     const [project] = await db
       .insert(projects)
       .values({
         orgId: auth.orgId,
-        workspaceId: auth.workspaceId,
         name: req.name,
         slug: req.slug,
         description: req.description ?? "",
+        objectStoreBucket,
         createdBy: auth.userID,
       })
       .returning();
@@ -258,7 +260,7 @@ export const createProject = api(
       action: "project.create",
       targetType: "project",
       targetId: project.id,
-      metadata: { name: req.name, slug: req.slug, workspaceId: auth.workspaceId },
+      metadata: { name: req.name, slug: req.slug, orgId: auth.orgId },
     });
 
     // Auto-add creator as project admin
@@ -287,7 +289,7 @@ export const updateProject = api(
       .select()
       .from(projects)
       .where(
-        and(eq(projects.id, req.id), eq(projects.workspaceId, auth.workspaceId))
+        and(eq(projects.id, req.id), eq(projects.orgId, auth.orgId))
       )
       .limit(1);
 
@@ -331,7 +333,7 @@ export const deleteProject = api(
       .select()
       .from(projects)
       .where(
-        and(eq(projects.id, req.id), eq(projects.workspaceId, auth.workspaceId))
+        and(eq(projects.id, req.id), eq(projects.orgId, auth.orgId))
       )
       .limit(1);
 
@@ -339,40 +341,20 @@ export const deleteProject = api(
       throw APIError.notFound("project not found");
     }
 
-    // Resolve the workspace bucket so we can purge S3 keys after the SQL
-    // delete commits. A missing bucket name (legacy workspaces) downgrades
-    // the S3 sweep to a no-op rather than failing the delete.
-    const [ws] = await db
-      .select({ objectStoreBucket: workspaces.objectStoreBucket })
-      .from(workspaces)
-      .where(eq(workspaces.id, existing[0].workspaceId))
-      .limit(1);
-    const bucket = ws?.objectStoreBucket ?? null;
+    // Spec 119 §4.2 — bucket lives directly on the project row.
+    const bucket = existing[0].objectStoreBucket;
 
-    // Knowledge objects bound only to this project. Workspace-scoped
-    // knowledge can be shared across projects via document_bindings, so
-    // we must NOT purge an object still referenced by another project.
-    const exclusiveKnowledge = await db
+    // Spec 119 §6.2 — knowledge objects are project-scoped (no longer
+    // shareable via document_bindings). Every knowledge object owned by
+    // this project is in scope for purge.
+    const ownedKnowledge = await db
       .select({
         id: knowledgeObjects.id,
         storageKey: knowledgeObjects.storageKey,
         extractionOutput: knowledgeObjects.extractionOutput,
       })
       .from(knowledgeObjects)
-      .innerJoin(
-        documentBindings,
-        eq(documentBindings.knowledgeObjectId, knowledgeObjects.id)
-      )
-      .where(
-        and(
-          eq(documentBindings.projectId, req.id),
-          sql`not exists (
-            select 1 from ${documentBindings} db2
-            where db2.knowledge_object_id = ${knowledgeObjects.id}
-              and db2.project_id <> ${req.id}
-          )`
-        )
-      );
+      .where(eq(knowledgeObjects.projectId, req.id));
 
     // Factory artifacts produced by this project's pipelines. The
     // factory_pipelines → projects FK already CASCADEs the rows; this
@@ -387,9 +369,9 @@ export const deleteProject = api(
       )
       .where(eq(factoryPipelines.projectId, req.id));
 
-    const knowledgeIds = exclusiveKnowledge.map((k) => k.id);
+    const knowledgeIds = ownedKnowledge.map((k) => k.id);
     const knowledgeKeys = new Set<string>();
-    for (const k of exclusiveKnowledge) {
+    for (const k of ownedKnowledge) {
       knowledgeKeys.add(k.storageKey);
       const extracted = readExtractedKey(k.extractionOutput);
       if (extracted) knowledgeKeys.add(extracted);
@@ -398,10 +380,10 @@ export const deleteProject = api(
 
     // SQL delete first. Project CASCADE cleans up the child rows
     // (project_repos, environments, project_members, factory_pipelines,
-    // factory_artifacts, factory_policy_bundles, project_github_pats,
-    // document_bindings — the last via migration 23). Knowledge object
-    // rows are NOT cascaded (workspace-scoped) so we delete the now-
-    // exclusive set explicitly inside the same transaction.
+    // factory_artifacts, factory_policy_bundles, project_github_pats).
+    // Knowledge object rows reference projects without ON DELETE CASCADE,
+    // so we delete the project's owned set explicitly inside the same
+    // transaction.
     await db.transaction(async (tx) => {
       await tx.delete(projects).where(eq(projects.id, req.id));
       if (knowledgeIds.length > 0) {
@@ -428,46 +410,38 @@ export const deleteProject = api(
     // bytes (recoverable via the admin purge-orphans endpoint) rather
     // than rolling back a delete the user just confirmed. Per-key
     // failures are logged and swallowed.
-    if (bucket) {
-      const allKeys = [...knowledgeKeys, ...artifactKeys];
-      let purged = 0;
-      let failed = 0;
-      for (const key of allKeys) {
-        try {
-          await deleteObject(bucket, key);
-          purged++;
-        } catch (err) {
-          failed++;
-          log.warn("project.delete: object purge failed", {
-            projectId: req.id,
-            bucket,
-            key,
-            err: err instanceof Error ? err.message : String(err),
-          });
-        }
+    const allKeys = [...knowledgeKeys, ...artifactKeys];
+    let purged = 0;
+    let failed = 0;
+    for (const key of allKeys) {
+      try {
+        await deleteObject(bucket, key);
+        purged++;
+      } catch (err) {
+        failed++;
+        log.warn("project.delete: object purge failed", {
+          projectId: req.id,
+          bucket,
+          key,
+          err: err instanceof Error ? err.message : String(err),
+        });
       }
-      log.info("project.delete: storage sweep done", {
-        projectId: req.id,
-        bucket,
-        purged,
-        failed,
-        candidateCount: allKeys.length,
-      });
-    } else if (knowledgeKeys.size + artifactKeys.size > 0) {
-      log.warn("project.delete: workspace has no bucket; storage sweep skipped", {
-        projectId: req.id,
-        workspaceId: existing[0].workspaceId,
-        candidateCount: knowledgeKeys.size + artifactKeys.size,
-      });
     }
+    log.info("project.delete: storage sweep done", {
+      projectId: req.id,
+      bucket,
+      purged,
+      failed,
+      candidateCount: allKeys.length,
+    });
 
     // Spec 112 Phase 8 — broadcast a tombstone so connected OPCs prune
     // the row from their Projects panel without a restart. Fire-and-log.
     void publishProjectCatalogUpsert({
-      workspaceId: existing[0].workspaceId,
+      orgId: existing[0].orgId,
       project: {
         id: existing[0].id,
-        workspaceId: existing[0].workspaceId,
+        orgId: existing[0].orgId,
         name: existing[0].name,
         slug: existing[0].slug,
         description: existing[0].description,
@@ -522,7 +496,6 @@ export const createProjectWithRepo = api(
     log.info("createProjectWithRepo invoked", {
       userID: auth.userID,
       orgId: auth.orgId,
-      workspaceId: auth.workspaceId,
       platformRole: auth.platformRole,
       slug: req.slug,
       repoName: req.repoName,
@@ -547,13 +520,6 @@ export const createProjectWithRepo = api(
     // FR-007: Check org-level permission
     if (!hasOrgPermission(auth.platformRole, "project:create")) {
       throw APIError.permissionDenied("Insufficient permissions to create projects in this org");
-    }
-
-    // Validate workspace context
-    if (!auth.workspaceId) {
-      throw APIError.failedPrecondition(
-        "No active workspace. Contact your org admin to set up a default workspace."
-      );
     }
 
     // Look up the active GitHub App installation for this org
@@ -639,16 +605,19 @@ export const createProjectWithRepo = api(
     let envRows: EnvironmentRow[];
 
     try {
+      // Spec 119 §4.2 — every project owns its bucket.
+      const objectStoreBucket = `oap-${auth.orgSlug || "unknown"}-${req.slug}`;
+
       const txResult = await db.transaction(async (tx) => {
         // Insert project
         const [projectRow] = await tx
           .insert(projects)
           .values({
             orgId: auth.orgId,
-            workspaceId: auth.workspaceId,
             name: req.name,
             slug: req.slug,
             description: req.description ?? "",
+            objectStoreBucket,
             createdBy: auth.userID,
           })
           .returning();
@@ -715,7 +684,7 @@ export const createProjectWithRepo = api(
             repoName: req.repoName,
             githubOrg: installation.githubOrgLogin,
             githubRepoUrl: repoResult.htmlUrl,
-            workspaceId: auth.workspaceId,
+            orgId: auth.orgId,
           },
         });
 
@@ -729,7 +698,7 @@ export const createProjectWithRepo = api(
       const msg = String(err);
       if (msg.includes("unique") || msg.includes("duplicate")) {
         throw APIError.alreadyExists(
-          "A project with that slug already exists in this workspace"
+          "A project with that slug already exists in this organization"
         );
       }
       log.error("Project DB transaction failed after GitHub repo creation", {
@@ -755,13 +724,13 @@ export const createProjectWithRepo = api(
 
 async function verifyProjectOwnership(
   projectId: string,
-  workspaceId: string
+  orgId: string
 ): Promise<void> {
   const [row] = await db
     .select({ id: projects.id })
     .from(projects)
     .where(
-      and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId))
+      and(eq(projects.id, projectId), eq(projects.orgId, orgId))
     )
     .limit(1);
 
@@ -778,7 +747,7 @@ export const listProjectRepos = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects/:projectId/repos" },
   async (req: { projectId: string }): Promise<{ repos: RepoRow[] }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const rows = await db
       .select()
@@ -801,7 +770,7 @@ export const addProjectRepo = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/repos" },
   async (req: AddRepoRequest): Promise<{ repo: RepoRow }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     if (!req.githubOrg || !req.repoName) {
       throw APIError.invalidArgument("githubOrg and repoName are required");
@@ -868,7 +837,7 @@ export const setPrimaryProjectRepo = api(
   },
   async (req: { projectId: string; id: string }): Promise<{ repo: RepoRow }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const [target] = await db
       .select()
@@ -936,7 +905,7 @@ export const removeProjectRepo = api(
     id: string;
   }): Promise<{ ok: true }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const existing = await db
       .select()
@@ -981,7 +950,7 @@ export const listEnvironments = api(
     projectId: string;
   }): Promise<{ environments: EnvironmentRow[] }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const rows = await db
       .select()
@@ -1006,7 +975,7 @@ export const createEnvironment = api(
     req: CreateEnvironmentRequest
   ): Promise<{ environment: EnvironmentRow }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     if (!req.name) {
       throw APIError.invalidArgument("name is required");
@@ -1065,7 +1034,7 @@ export const deleteEnvironment = api(
     id: string;
   }): Promise<{ ok: true }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const existing = await db
       .select()
@@ -1107,7 +1076,7 @@ export const listProjectMembers = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects/:projectId/members" },
   async (req: { projectId: string }): Promise<{ members: MemberRow[] }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const rows = await db
       .select()
@@ -1128,7 +1097,7 @@ export const setProjectMember = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/members" },
   async (req: SetMemberRequest): Promise<{ member: MemberRow }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     if (!req.userId || !req.role) {
       throw APIError.invalidArgument("userId and role are required");
@@ -1195,7 +1164,7 @@ export const removeProjectMember = api(
     userId: string;
   }): Promise<{ ok: true }> => {
     const auth = getAuthData()!;
-    await verifyProjectOwnership(req.projectId, auth.workspaceId);
+    await verifyProjectOwnership(req.projectId, auth.orgId);
 
     const existing = await db
       .select()

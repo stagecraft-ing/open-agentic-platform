@@ -52,12 +52,14 @@ export interface RauthyTokens {
  * The OAP custom-attribute set written to a Rauthy user. Keys map 1:1 onto
  * the attributes declared by the FR-002 seeder and onto the `oap` scope
  * `attr_include_access` / `attr_include_id` list.
+ *
+ * Spec 119: workspace collapsed into project. `oap_workspace_id` was removed
+ * from the JWT — projectId is supplied per-request by API path/body.
  */
 export interface OapUserAttributes {
   oap_user_id: string;
   oap_org_id: string;
   oap_org_slug: string;
-  oap_workspace_id?: string;
   github_login?: string;
   idp_provider?: string;
   idp_login?: string;
@@ -385,7 +387,6 @@ export async function setRauthyUserAttributes(rauthyUserId: string, attrs: OapUs
     { key: "oap_user_id", value: attrs.oap_user_id },
     { key: "oap_org_id", value: attrs.oap_org_id },
     { key: "oap_org_slug", value: attrs.oap_org_slug },
-    { key: "oap_workspace_id", value: attrs.oap_workspace_id ?? "" },
     { key: "github_login", value: attrs.github_login ?? "" },
     { key: "idp_provider", value: attrs.idp_provider ?? "" },
     { key: "idp_login", value: attrs.idp_login ?? "" },
@@ -530,7 +531,6 @@ export async function issueRauthySession(_opts: {
   oapUserId: string;
   orgId: string;
   orgSlug: string;
-  workspaceId: string;
   githubLogin?: string;
   idpProvider?: string;
   idpLogin?: string;

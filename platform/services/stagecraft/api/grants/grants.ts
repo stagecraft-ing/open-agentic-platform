@@ -1,13 +1,13 @@
 import { api, APIError, Header } from "encore.dev/api";
 import { validateM2mRequest } from "../auth/m2mAuth.js";
 import { db } from "../db/drizzle";
-import { workspaceGrants } from "../db/schema";
+import { projectGrants } from "../db/schema";
 import { and, eq } from "drizzle-orm";
 
 type GrantsRequest = {
   authorization: Header<"Authorization">;
   userId: string;
-  workspaceId: string;
+  projectId: string;
 };
 
 type GrantsResponse = {
@@ -18,23 +18,23 @@ type GrantsResponse = {
 };
 
 /**
- * Seam C: Serve workspace-scoped permission grants to OPC desktop app.
- * GET /api/grants/:userId/:workspaceId — M2M bearer token auth (OIDC JWT or static fallback).
+ * Spec 119 §6.4 — Serve project-scoped permission grants to OPC desktop app.
+ * GET /api/grants/:userId/:projectId — M2M bearer token auth (OIDC JWT or static fallback).
  *
- * Returns the grant row if found, otherwise returns sensible defaults (read-only, tier 1).
+ * Returns the grant row if found, otherwise restrictive defaults (read-only, tier 1).
  */
 export const getGrants = api(
-  { expose: true, method: "GET", path: "/api/grants/:userId/:workspaceId" },
+  { expose: true, method: "GET", path: "/api/grants/:userId/:projectId" },
   async (req: GrantsRequest): Promise<GrantsResponse> => {
     await validateM2mRequest(req.authorization, "platform:grants:read");
 
     const rows = await db
       .select()
-      .from(workspaceGrants)
+      .from(projectGrants)
       .where(
         and(
-          eq(workspaceGrants.userId, req.userId),
-          eq(workspaceGrants.workspaceId, req.workspaceId)
+          eq(projectGrants.userId, req.userId),
+          eq(projectGrants.projectId, req.projectId)
         )
       )
       .limit(1);

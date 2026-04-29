@@ -35,7 +35,6 @@ import {
   orgMemberships,
   organizations,
   userGithubPats,
-  workspaces,
 } from "../db/schema";
 import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { signAppJwt } from "../github/appJwt";
@@ -377,24 +376,13 @@ async function loadActiveInstallations(): Promise<InstallationInfo[]> {
 }
 
 async function buildResolvedOrgs(matches: MembershipMatch[]): Promise<ResolvedOrg[]> {
-  const out: ResolvedOrg[] = [];
-  for (const m of matches) {
-    const [ws] = await db
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(and(eq(workspaces.orgId, m.orgId), eq(workspaces.slug, "default")))
-      .limit(1);
-
-    out.push({
-      orgId: m.orgId,
-      orgSlug: m.orgSlug,
-      workspaceId: ws?.id ?? "",
-      githubOrgLogin: m.githubOrgLogin,
-      orgDisplayName: m.githubOrgLogin || m.orgSlug,
-      platformRole: "member",
-    });
-  }
-  return out;
+  return matches.map((m) => ({
+    orgId: m.orgId,
+    orgSlug: m.orgSlug,
+    githubOrgLogin: m.githubOrgLogin,
+    orgDisplayName: m.githubOrgLogin || m.orgSlug,
+    platformRole: "member",
+  }));
 }
 
 /**

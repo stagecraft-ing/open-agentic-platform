@@ -21,7 +21,6 @@ import {
   users,
   userIdentities,
   organizations,
-  workspaces,
   auditLog,
   orgMemberships,
 } from "../db/schema";
@@ -336,7 +335,6 @@ export const rauthyCallback = api.raw(
             oapUserId: user.id,
             orgId: org.orgId,
             orgSlug: org.orgSlug,
-            workspaceId: org.workspaceId,
             githubLogin: githubLogin || undefined,
             idpProvider: "github",
             idpLogin: idpLogin || githubLogin,
@@ -602,7 +600,6 @@ function makeDesktopSession(opts: MakeDesktopOpts): PendingDesktopSession {
         {
           orgId: opts.org.orgId,
           orgSlug: opts.org.orgSlug,
-          workspaceId: opts.org.workspaceId,
           githubOrgLogin: opts.org.githubOrgLogin,
           orgDisplayName: opts.org.orgDisplayName,
           platformRole: opts.org.platformRole,
@@ -611,7 +608,6 @@ function makeDesktopSession(opts: MakeDesktopOpts): PendingDesktopSession {
     : (opts.orgs ?? []).map((o) => ({
         orgId: o.orgId,
         orgSlug: o.orgSlug,
-        workspaceId: o.workspaceId,
         githubOrgLogin: o.githubOrgLogin,
         orgDisplayName: o.orgDisplayName,
         platformRole: o.platformRole,
@@ -686,11 +682,6 @@ export async function finalizeRauthyOrgSelection(
     .from(organizations)
     .where(eq(organizations.id, org.orgId))
     .limit(1);
-  const [ws] = await db
-    .select({ id: workspaces.id })
-    .from(workspaces)
-    .where(and(eq(workspaces.orgId, org.orgId), eq(workspaces.slug, "default")))
-    .limit(1);
 
   const tokens = await mintSessionForOrg(
     {
@@ -698,7 +689,6 @@ export async function finalizeRauthyOrgSelection(
       oapUserId: data.userId,
       orgId: org.orgId,
       orgSlug: orgRow?.slug ?? org.orgSlug,
-      workspaceId: ws?.id ?? org.workspaceId,
       githubLogin: data.githubLogin || undefined,
       idpProvider: data.idpProvider,
       idpLogin: data.idpLogin,
@@ -732,7 +722,6 @@ export async function finalizeDesktopRauthyOrg(
       oapUserId: session.userId,
       orgId: org.orgId,
       orgSlug: org.orgSlug,
-      workspaceId: org.workspaceId,
       githubLogin: session.githubLogin || undefined,
       idpProvider: session.idpProvider,
       idpLogin: session.idpLogin,
