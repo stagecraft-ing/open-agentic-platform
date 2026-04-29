@@ -1,0 +1,66 @@
+# Spec: 101-codebase-index-mvp
+#
+# Diagnostic workflow for issue #46 — captures the Linux/CI side of the
+# codebase-indexer's per-input file hash dump so it can be diff'd against
+# the macOS dev-machine equivalent. Runs only on workflow_dispatch.
+#
+# Usage:
+#   gh workflow run debug-indexer-inputs.yml --ref <branch>
+#   # then download the artifact and `diff` against a local dump:
+#   gh run download <run-id> --name indexer-inputs-linux --dir /tmp/inputs-linux
+#   diff /tmp/inputs-mac.tsv /tmp/inputs-linux/inputs.tsv | head
+#
+# Expected to be deleted once #46 is fixed.
+
+name: Debug indexer inputs (issue #46)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    name: dump-inputs / linux
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          shared-key: codebase-indexer
+
+      - name: Build codebase-indexer
+        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+
+      - name: Dump input file list + per-file hashes
+        run: ./tools/codebase-indexer/target/release/codebase-indexer dump-inputs > inputs.tsv
+
+      - name: Show dump head + tail + line count
+        run: |
+          echo "=== line count ==="
+          wc -l inputs.tsv
+          echo ""
+          echo "=== head ==="
+          head -5 inputs.tsv
+          echo ""
+          echo "=== tail ==="
+          tail -5 inputs.tsv
+
+      - name: Upload dump artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: indexer-inputs-linux
+          path: inputs.tsv
+          retention-days: 7

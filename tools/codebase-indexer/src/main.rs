@@ -32,6 +32,13 @@ enum Command {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
+    /// Dump every input file's path + content hash (sorted). Diagnostic for
+    /// cross-platform hash divergence (issue #46).
+    DumpInputs {
+        /// Repository root (default: current directory)
+        #[arg(long)]
+        repo: Option<PathBuf>,
+    },
 }
 
 fn main() {
@@ -70,6 +77,16 @@ fn main() {
                         open_agentic_codebase_indexer::IndexError::Stale { .. } => 2,
                         _ => 3,
                     }
+                }
+            }
+        }
+        Command::DumpInputs { repo } => {
+            let root = repo.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
+            match open_agentic_codebase_indexer::dump_inputs(&root) {
+                Ok(()) => 0,
+                Err(e) => {
+                    eprintln!("codebase-indexer: {e}");
+                    3
                 }
             }
         }
