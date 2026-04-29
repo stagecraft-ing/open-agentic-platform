@@ -19,7 +19,7 @@ serde_yaml = "0.9"
 thiserror = "2"
 tokio = { version = "1", features = ["process", "time", "sync", "macros", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-sha2 = "0.10"
+sha2 = "0.11"
 jsonschema = "0.28"
 regex = "1"
 walkdir = "2"
