@@ -28,7 +28,11 @@ deny = []
 skip = []
 
 [licenses]
-# Permissive licenses we accept by default.
+# cargo-deny v0.16 removed the explicit `deny` list (see EmbarkStudios/
+# cargo-deny#611). Effective behaviour is now: anything not in `allow`
+# is denied. GPL-family / AGPL / LGPL are deliberately omitted from
+# `allow`, which is incompatible with the desktop bundle's distribution
+# model.
 allow = [
     "MIT",
     "Apache-2.0",
@@ -42,18 +46,6 @@ allow = [
     "Zlib",
     "MPL-2.0",
     "OpenSSL",
-]
-# Hard block. GPL-family is incompatible with the desktop bundle's
-# distribution model.
-deny = [
-    "GPL-1.0",
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-1.0",
-    "AGPL-3.0",
-    "LGPL-2.0",
-    "LGPL-2.1",
-    "LGPL-3.0",
 ]
 confidence-threshold = 0.93
 

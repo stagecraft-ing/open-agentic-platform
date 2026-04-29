@@ -66,10 +66,14 @@ Makefile per spec 104.
   the pnpm workspace (apps/desktop + packages/) and `npm audit` for
   `platform/services/stagecraft`. Both scoped to `--audit-level=high` (warn
   on moderate, block on high/critical).
-- **Staged enforcement.** First 30 days after merge: gate is warn-only
-  (`continue-on-error: true`, advisory list rendered as a job summary). On
-  day 30: a follow-up PR flips both legs to blocking. The 30-day window
-  exists to triage the initial advisory backlog, not as a permanent posture.
+- **Staged enforcement.** First 30 days after merge: gate is warn-only.
+  Each audit step inspects the `SUPPLY_CHAIN_BLOCKING` repo variable; when
+  unset it soft-fails with a `::warning::` annotation (matching the
+  Makefile's `|| true` mirror) so violations surface as advisories rather
+  than blocking the workflow. On day 30, flipping the variable to `true`
+  promotes the same step to blocking — no code change required. The 30-day
+  window exists to triage the initial advisory backlog, not as a permanent
+  posture.
 - **Local mirror at parity.** A new `make ci-supply-chain` target invokes
   the same checks. `make ci` composes it. `ci-parity-check` validates the
   workflow ↔ Makefile mirror.
@@ -174,15 +178,23 @@ values produce false positives on dual-licensed crates.
   (`0 12 * * 1`) so advisory-db updates surface even on a quiet week.
 - Three independent jobs (`cargo-deny`, `pnpm-audit`, `npm-audit-stagecraft`)
   run in parallel.
-- Each job has `continue-on-error: ${{ vars.SUPPLY_CHAIN_BLOCKING != 'true' }}`
-  so the warn-window flip is a one-line repo-variable change, not a code
-  change.
+- Each audit step reads `BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}`. When
+  the variable is `true`, a non-zero exit propagates and the job fails;
+  otherwise the step soft-fails with a `::warning::` annotation. The
+  warn-window flip is a one-line repo-variable change, not a code change.
+- The repository has no top-level `Cargo.toml`; the `cargo-deny` step
+  iterates the same Rust manifests CI compiles (workspace
+  `crates/Cargo.toml` plus standalone tool / desktop / deployd-api
+  manifests). The Makefile mirrors the same list via
+  `SUPPLY_CHAIN_RUST_MANIFESTS`.
+- `cargo-deny` is pinned to `^0.19` (≥ 0.19 is required to parse RustSec
+  advisories that use CVSS v4.0 vectors).
 - Each job uploads its raw output as a workflow artifact for triage.
 
-Day-30 promotion is a single PR setting the `SUPPLY_CHAIN_BLOCKING` repo
-variable to `true` and dropping the `continue-on-error` block from the
-workflow file (or leaving it — the variable gate is sufficient, but
-removing dead conditionals is preferred).
+Day-30 promotion is a single repo-variable change setting
+`SUPPLY_CHAIN_BLOCKING=true`. No workflow edit is required; the existing
+step-level guard becomes a strict gate. A clean-up PR may drop the dead
+`else` branch of each guard at that point.
 
 ## 6. Makefile Shape
 
@@ -193,15 +205,31 @@ ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
 	@echo ""
 	@echo "==> ci-supply-chain: all gates passed."
 
+# No top-level Cargo.toml: iterate every Rust manifest CI compiles.
+SUPPLY_CHAIN_RUST_MANIFESTS = \
+    crates/Cargo.toml \
+    platform/services/deployd-api-rs/Cargo.toml \
+    apps/desktop/src-tauri/Cargo.toml \
+    tools/spec-compiler/Cargo.toml \
+    tools/registry-consumer/Cargo.toml \
+    tools/spec-lint/Cargo.toml \
+    tools/codebase-indexer/Cargo.toml \
+    tools/policy-compiler/Cargo.toml \
+    tools/adapter-scopes-compiler/Cargo.toml \
+    tools/ci-parity-check/Cargo.toml \
+    tools/shared/frontmatter/Cargo.toml
+
 ci-supply-chain-cargo:
-	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked
-	cargo deny check
+	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
+	@for m in $(SUPPLY_CHAIN_RUST_MANIFESTS); do \
+	    cargo deny --manifest-path $$m check || true; \
+	done   # warn-only until 2026-05-28
 
 ci-supply-chain-pnpm:
-	pnpm audit --audit-level=high
+	pnpm audit --audit-level=high || true
 
 ci-supply-chain-npm:
-	cd platform/services/stagecraft && npm audit --audit-level=high
+	cd platform/services/stagecraft && npm audit --audit-level=high || true
 ```
 
 `ci` is updated to `ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-supply-chain`.
@@ -250,8 +278,10 @@ ci-supply-chain-npm:
 
 A calendar entry is set for 2026-05-28. The follow-up PR:
 
-1. Sets repo variable `SUPPLY_CHAIN_BLOCKING=true`.
-2. Drops the `continue-on-error` conditional from the three jobs.
+1. Sets repo variable `SUPPLY_CHAIN_BLOCKING=true` (immediately enforces
+   blocking — no code change required).
+2. Optionally drops the dead `else` branch of each step-level guard now
+   that the warn path is unreachable.
 3. Updates this spec's `implementation` field to `complete` and changes the
    header note from "warn-only window" to "blocking gate".
 4. Closes the calendar marker.

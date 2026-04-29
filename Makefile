@@ -405,10 +405,28 @@ ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
 	@echo ""
 	@echo "==> ci-supply-chain: all gates passed."
 
+# cargo-deny scans every Rust manifest. No top-level Cargo.toml exists,
+# so iterate; the workspace `crates/Cargo.toml` covers all 16 member crates.
+SUPPLY_CHAIN_RUST_MANIFESTS = \
+    crates/Cargo.toml \
+    platform/services/deployd-api-rs/Cargo.toml \
+    apps/desktop/src-tauri/Cargo.toml \
+    tools/spec-compiler/Cargo.toml \
+    tools/registry-consumer/Cargo.toml \
+    tools/spec-lint/Cargo.toml \
+    tools/codebase-indexer/Cargo.toml \
+    tools/policy-compiler/Cargo.toml \
+    tools/adapter-scopes-compiler/Cargo.toml \
+    tools/ci-parity-check/Cargo.toml \
+    tools/shared/frontmatter/Cargo.toml
+
 ci-supply-chain-cargo:
 	@echo "==> ci-supply-chain: cargo-deny"
-	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.16'
-	cargo deny check || true   # warn-only until 2026-05-28 (spec 116 §9)
+	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
+	@for m in $(SUPPLY_CHAIN_RUST_MANIFESTS); do \
+	    echo "  cargo deny --manifest-path $$m check"; \
+	    cargo deny --manifest-path $$m check || true; \
+	done   # warn-only until 2026-05-28 (spec 116 §9)
 
 ci-supply-chain-pnpm:
 	@echo "==> ci-supply-chain: pnpm audit"
