@@ -189,8 +189,8 @@ importers:
         specifier: ^0.34.2
         version: 0.34.5
       typescript:
-        specifier: ~5.6.2
-        version: 5.6.3
+        specifier: ~6.0.3
+        version: 6.0.3
       vite:
         specifier: ^6.0.3
         version: 6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -215,8 +215,8 @@ importers:
         specifier: ^22.15.30
         version: 22.19.15
       typescript:
-        specifier: ~5.6.2
-        version: 5.6.3
+        specifier: ~6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.0.5
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.15)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -231,8 +231,8 @@ importers:
         specifier: ^22.15.30
         version: 22.19.15
       typescript:
-        specifier: ^5.0.0
-        version: 5.6.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/coherence-scoring:
     devDependencies:
@@ -240,8 +240,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -252,8 +252,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -264,8 +264,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -276,8 +276,8 @@ importers:
         specifier: ^24.12.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -292,8 +292,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -308,8 +308,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -320,8 +320,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -334,8 +334,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -346,8 +346,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -362,8 +362,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -393,8 +393,8 @@ importers:
         specifier: ^22.15.30
         version: 22.19.15
       typescript:
-        specifier: ^5.0.0
-        version: 5.6.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.0.5
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.15)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -415,8 +415,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -431,8 +431,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -450,8 +450,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.28
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -524,8 +524,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -538,8 +538,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -554,8 +554,8 @@ importers:
         specifier: ^24.5.0
         version: 24.12.0
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.0)(jiti@2.6.1)(jsdom@29.1.0)(lightningcss@1.32.0)(yaml@2.8.3)
@@ -3951,13 +3951,8 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  typescript@5.6.3:
-    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -8143,9 +8138,7 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  typescript@5.6.3: {}
-
-  typescript@5.9.3: {}
+  typescript@6.0.3: {}
 
   undici-types@5.26.5: {}
 
