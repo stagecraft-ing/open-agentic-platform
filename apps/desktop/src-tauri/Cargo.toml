@@ -51,7 +51,7 @@ specta-typescript = "=0.0.9"
 hex = "0.4"
 tokio = { version = "1", features = ["full"] }
 rusqlite = { version = "0.39", features = ["bundled"] }
-dirs = "5"
+dirs = "6"
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 log = "0.4"
@@ -69,13 +69,13 @@ tempfile = "3"
 which = "7"
 sha2 = "0.10"
 zstd = "0.13"
-uuid = { version = "1.6", features = ["v4", "serde"] }
+uuid = { version = "1.23", features = ["v4", "serde"] }
 walkdir = "2"
 serde_yaml = "0.9"
 axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "cors"] }
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 futures-util = "0.3"
 image = "0.25"
 similar = { version = "2", features = ["unicode", "text"] }
@@ -107,7 +107,7 @@ url = { version = "2.5.8", default-features = false }
 # Made optional so it isn't linked during `cargo test` (avoids WebView2 COM DLL issues
 # in headless test environments). Enable with: cargo tauri dev --features mcp-dev
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
-tauri-plugin-mcp-bridge = { version = "0.2", optional = true }
+tauri-plugin-mcp-bridge = { version = "0.11", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 window-vibrancy = "0.5"
