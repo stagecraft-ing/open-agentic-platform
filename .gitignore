@@ -14,6 +14,8 @@ plans/
 # only the workspace-root lockfile is authoritative.
 Cargo.lock
 !crates/Cargo.lock
+# Platform service binary: commit lockfile for reproducible CI and direct CVE pinning
+!platform/services/deployd-api-rs/Cargo.lock
 # Binary crates under tools/: commit lockfiles for reproducible CI (see tools/*/README.md)
 !tools/spec-compiler/Cargo.lock
 !tools/registry-consumer/Cargo.lock
