@@ -329,11 +329,14 @@ jobs:
             echo "INSTALLERS_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # Spec 117 — CycloneDX SBOM scoped to the Tauri target dir for this triple.
+      # Spec 117 — CycloneDX SBOM scoped to the desktop source tree so syft
+      # can read Cargo.toml/Cargo.lock and the npm workspace root for full
+      # component coverage. Stripped release binaries (the prior `target/`
+      # scope) yielded an empty SBOM in the axiomregent smoke run.
       - name: Generate desktop SBOM (CycloneDX)
         uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
         with:
-          path: apps/desktop/src-tauri/target
+          path: apps/desktop
           format: cyclonedx-json
           output-file: apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 

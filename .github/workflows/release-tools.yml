@@ -195,11 +195,20 @@ jobs:
 
           ls -lh ../release/
 
-      # Spec 117 — SBOM scoped to the staged dist/ (covers every tool binary).
+      # Spec 117 — SBOM scoped to the tools/ source tree so syft reads each
+      # tool's Cargo.toml + the shared frontmatter Cargo.toml for crate-level
+      # component data. Scanning the staged dist/ binaries (the prior scope)
+      # produces an empty SBOM because release binaries are stripped.
+      - name: Checkout source for SBOM scan
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.resolve-tag.outputs.ref }}
+          path: src
+
       - name: Generate tools SBOM (CycloneDX)
         uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
         with:
-          path: dist/
+          path: src/tools
           format: cyclonedx-json
           output-file: release/sbom-tools.cdx.json
 
