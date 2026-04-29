@@ -28,7 +28,7 @@ axum = { version = "0.8", features = ["macros"] }
 dashmap = "5"
 futures-util = "0.3"
 async-stream = "0.3"
-cron = "0.13"
+cron = "0.16"
 chrono = { version = "0.4", features = ["serde"] }
 sha2 = "0.10"
 regex = "1"
