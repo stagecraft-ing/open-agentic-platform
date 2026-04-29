@@ -56,6 +56,16 @@ jobs:
         with:
           encore-version: ${{ env.ENCORE_VERSION }}
 
+      # Encore parses every service before codegen runs, and `web/api.gateway.ts`
+      # registers `api.static({ dir: "./build/client/assets" })`. The parser
+      # fails fast if that directory is missing, so the React Router build
+      # MUST land before the codegen step below. Same first step as the
+      # encore-build composite action.
+      - name: Build frontend
+        shell: bash
+        working-directory: platform/services/stagecraft
+        run: cd web && npx react-router build
+
       # M3 fix — populate encore.gen via real codegen.
       # `encore build docker` parses every service before any Docker work
       # begins, writing encore.gen as a side effect. We launch the build
