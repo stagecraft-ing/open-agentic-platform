@@ -5,9 +5,18 @@ use serde::Serialize;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+
+fn hex_lower(bytes: &[u8]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        write!(&mut s, "{b:02x}").expect("write to String");
+    }
+    s
+}
 
 const COMPILER_ID: &str = "open-agentic-spec-compiler";
 const SPEC_VERSION: &str = "1.3.0";
@@ -421,7 +430,7 @@ fn compute_content_hash(repo_root: &Path, spec_paths: &[PathBuf]) -> Result<Stri
     for (_, buf) in pieces {
         hasher.update(&buf);
     }
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(hex_lower(&hasher.finalize()))
 }
 
 fn normalize_text(s: &str) -> Vec<u8> {
@@ -688,7 +697,7 @@ fn parse_factory_project(
     hasher.update(rel.as_bytes());
     hasher.update([0u8]);
     hasher.update(&normalized);
-    let content_hash = format!("{:x}", hasher.finalize());
+    let content_hash = hex_lower(&hasher.finalize());
 
     // Check for sibling pipeline-state.json to extract adapter and status.
     let factory_dir = spec_path.parent().unwrap_or(Path::new("."));
