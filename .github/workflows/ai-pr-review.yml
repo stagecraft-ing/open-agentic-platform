@@ -23,7 +23,10 @@ permissions:
   pull-requests: write
 
 env:
-  CLAUDE_CLI_VERSION: '2.1.88'
+  # Pinned to the npm `stable` dist-tag value at time of pin. The 2.1.88
+  # value previously here was never published — the version sequence skips
+  # numbers as releases are pulled. Bump in lockstep with ai-changelog.yml.
+  CLAUDE_CLI_VERSION: '2.1.116'
   DIFF_SIZE_CAP: '2000'
 
 jobs:
