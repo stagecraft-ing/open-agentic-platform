@@ -152,8 +152,8 @@ importers:
         specifier: ^4.1.8
         version: 4.2.2
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.3.6
+        version: 4.3.6
       zustand:
         specifier: ^5.0.6
         version: 5.0.12(@types/react@18.3.28)(react@18.3.1)
@@ -4231,6 +4231,9 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
   zustand@5.0.12:
     resolution: {integrity: sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g==}
@@ -8583,7 +8586,10 @@ snapshots:
 
   yaml@2.8.3: {}
 
-  zod@3.25.76: {}
+  zod@3.25.76:
+    optional: true
+
+  zod@4.3.6: {}
 
   zustand@5.0.12(@types/react@18.3.28)(react@18.3.1):
     optionalDependencies:
