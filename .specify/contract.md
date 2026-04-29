@@ -23,6 +23,10 @@ This file is a **short normative summary** of Feature `000-bootstrap-spec-system
 - `.specify/` holds **templates, scripts, and constitution**—workflow support, not the authoritative spec library.
 - Workflow scripts live under `.specify/scripts/bash/`; templates under `.specify/templates/`.
 
+## Amendment convention
+
+- A spec may **amend** earlier specs in place (refining narrative or invariants without superseding them) by carrying `amends: [<id>, ...]`. Amended specs carry `amended: <date>` and `amendment_record: <amender-id>` plus an in-body callout. This is distinct from supersession (`status: superseded` + `superseded_by:`), which marks a direction change. Formal definition lives in spec 000 under "Amendment frontmatter convention".
+
 ## Next step
 
 Read the full contract: `specs/000-bootstrap-spec-system/spec.md`.

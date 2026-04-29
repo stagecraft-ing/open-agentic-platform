@@ -1,17 +1,20 @@
 ---
 id: "087-unified-workspace-architecture"
 slug: unified-workspace-architecture
-title: Unified Workspace Architecture
+title: Unified Project Architecture
 status: approved
 implementation: complete
 owner: bart
 created: "2026-04-09"
-amended: "2026-04-20"
+amended: "2026-04-29"
+amendment_record: "119"
 summary: >
   Unified architecture connecting web and desktop planes into one system with
-  a first-class knowledge intake domain and workspace-scoped entity hierarchy.
-  §5.3 adds the duplex sync substrate contract (FR-SYNC-001..010).
-code_aliases: ["UNIFIED_WORKSPACE"]
+  a first-class knowledge intake domain and project-scoped entity hierarchy.
+  §5.3 adds the duplex sync substrate contract (FR-SYNC-001..010). Originally
+  authored as "Unified Workspace Architecture" (2026-04-09); amended by spec
+  119 (2026-04-29) when the workspace layer was collapsed into project.
+code_aliases: ["UNIFIED_PROJECT"]
 depends_on:
   - "074"  # factory-ingestion
   - "075"  # factory-workflow-engine
@@ -23,15 +26,17 @@ depends_on:
 risk: high
 ---
 
-# 087 — Unified Workspace Architecture
+# 087 — Unified Project Architecture
+
+> **Amended by spec 119 (2026-04-29):** the unit of identity, governance, collaboration, knowledge intake, and factory execution described in this spec is now `project`, not `workspace`. The workspace layer was originally introduced (in this spec, 2026-04-09) as a multi-project governance container with a shared knowledge corpus; spec 119 collapsed it into project after the clone pipeline (specs 113, 114) displaced the cross-project knowledge-sharing case. The narrative below has been updated. Schema diagrams in §9 are retained as historical record; the canonical post-amendment schema is in spec 119 §4. Code alias renamed `UNIFIED_WORKSPACE` → `UNIFIED_PROJECT`.
 
 ## 1. Problem Statement
 
-Open Agentic Platform has two user-facing planes (web and desktop), a delivery engine (factory), and an organisational control plane (stagecraft). All are individually functional but architecturally siloed: separate auth paths, separate state models, and no shared workspace abstraction. Users experience three tools rather than one system.
+Open Agentic Platform has two user-facing planes (web and desktop), a delivery engine (factory), and an organisational control plane (stagecraft). All are individually functional but architecturally siloed: separate auth paths, separate state models, and no shared project abstraction. Users experience three tools rather than one system.
 
-Additionally, the business documents that feed factory pipelines are treated as loose attachments rather than a first-class knowledge substrate. Documents may arrive from direct upload, SharePoint, or other enterprise sources, but there is no normalisation layer, no provenance model, and no workspace-scoped knowledge domain.
+Additionally, the business documents that feed factory pipelines are treated as loose attachments rather than a first-class knowledge substrate. Documents may arrive from direct upload, SharePoint, or other enterprise sources, but there is no normalisation layer, no provenance model, and no project-scoped knowledge domain.
 
-This spec defines the unified architecture that makes the two planes parts of one system, elevates knowledge intake to a first-class workspace domain, and positions the factory as an execution artifact that transforms workspace knowledge into project output.
+This spec defines the unified architecture that makes the two planes parts of one system, elevates knowledge intake to a first-class project domain, and positions the factory as an execution artifact that transforms project knowledge into project output.
 
 ## 2. Core Model
 
@@ -39,15 +44,13 @@ This spec defines the unified architecture that makes the two planes parts of on
 
 ```
 GitHub Organization (trust anchor)
-  └── Workspace (operational container)
+  └── Project (operational container)
         ├── Identity & Membership
         │     ├── members[] (via GitHub org membership + RBAC roles)
         │     └── service accounts[] (M2M tokens)
         │
-        ├── Projects[]
-        │     ├── repos[] (GitHub repositories)
-        │     ├── environments[] (preview / dev / staging / prod)
-        │     └── document_bindings[] → Knowledge Objects
+        ├── Repos[] (GitHub repositories — primary + auxiliary)
+        ├── Environments[] (preview / dev / staging / prod)
         │
         ├── Knowledge Intake
         │     ├── source_connectors[] (upload, SharePoint, S3, Azure Blob, GCS)
@@ -55,9 +58,9 @@ GitHub Organization (trust anchor)
         │     ├── extraction_state[] (OCR, classification, structured output)
         │     └── provenance[] (source origin, sync state, version history)
         │
-        ├── Factories[]
-        │     ├── scoped to: workspace + project
-        │     ├── consumes: selected knowledge_objects
+        ├── Factory
+        │     ├── scoped to: project
+        │     ├── consumes: project knowledge_objects
         │     └── produces: project artifacts + repository changes
         │
         ├── Policy Bundle (compiled governance rules)
@@ -69,23 +72,22 @@ GitHub Organization (trust anchor)
 
 ### 2.2 Key Relationships
 
-- A **Workspace** is scoped to exactly one GitHub Organization (the trust anchor).
-- A **Project** belongs to one Workspace and is associated with one or more GitHub repositories.
-- **Knowledge Objects** belong to the Workspace, not to any specific project. They exist independently of projects and may be consumed by multiple factories across multiple projects.
-- A **Factory** is scoped to a workspace + project pair. It consumes selected Knowledge Objects from the workspace and produces project artifacts.
-- **Document Bindings** link Knowledge Objects to Projects. A project may bind to many Knowledge Objects; a Knowledge Object may be bound to many projects.
-- The **Policy Bundle** is workspace-scoped and includes factory policy shards.
+- A **Project** is scoped to exactly one GitHub Organization (the trust anchor).
+- A **Project** owns one or more GitHub repositories.
+- **Knowledge Objects** belong to the Project. Cross-project use happens via the clone pipeline (specs 113, 114), which copies knowledge into the destination project — a successor model to the workspace-shared corpus originally proposed in this spec.
+- A **Factory** is scoped to a project. It consumes the project's Knowledge Objects and produces project artifacts.
+- The **Policy Bundle** is project-scoped and includes factory policy shards.
 
-### 2.3 Workspace Definition
+### 2.3 Project Definition
 
-> The workspace is the unit of identity, governance, collaboration, and knowledge intake. Business documents may enter through direct upload or enterprise connectors such as SharePoint, but are normalised into workspace object storage with provenance preserved. Projects then bind code repositories to selected workspace knowledge, while factories act as the execution artifact that transforms that knowledge into software outcomes across the desktop and web planes.
+> The project is the unit of identity, governance, collaboration, and knowledge intake. Business documents may enter through direct upload or enterprise connectors such as SharePoint, but are normalised into the project's object storage with provenance preserved. Code repositories bind to the project; factories act as the execution artifact that transforms project knowledge into software outcomes across the desktop and web planes.
 
-A Workspace is the unit of:
+A Project is the unit of:
 - **Billing** — token spend, compute, storage
 - **Governance** — policy bundle scope
 - **Collaboration** — team membership boundary
 - **Knowledge** — canonical document substrate
-- **Factory execution** — one active factory per project within a workspace
+- **Factory execution** — one active factory per project
 
 ## 3. Two Planes, One System
 
@@ -96,11 +98,11 @@ A Workspace is the unit of:
 The web plane is the governance, management, and collaboration surface. It is read-heavy: observe, govern, approve, configure.
 
 **Owns:**
-1. Identity and onboarding — GitHub OAuth, Rauthy sessions, org discovery, workspace creation
-2. Workspace administration — team invites, role assignment, billing, usage dashboards
+1. Identity and onboarding — GitHub OAuth, Rauthy sessions, org discovery, project creation
+2. Project administration — team invites, role assignment, billing, usage dashboards
 3. Project lifecycle — create project, link repos, configure environments, set auto-deploy rules
 4. Knowledge intake — connector configuration, document import, extraction monitoring, object browsing
-5. Pipeline overview — read-only dashboard of active factory pipelines across the workspace
+5. Pipeline overview — read-only dashboard of active factory pipelines across projects in the org
 6. Gate approval (web) — approve/reject factory stages from the browser (for stakeholders without OPC)
 7. Deploy promotion — promote builds between environments, trigger rollbacks
 8. Audit and compliance — full audit trail viewer, export, retention policies
@@ -133,9 +135,9 @@ The desktop plane is the execution surface. It is write-heavy: execute, generate
 
 ### 3.2 Factory Position
 
-The Factory is the execution artifact of the workspace:
-- Scoped by workspace and project
-- Fed by selected workspace knowledge objects
+The Factory is the execution artifact of the project:
+- Scoped by project
+- Fed by the project's knowledge objects
 - Executed locally on the desktop plane
 - Observed and governed through the web plane
 
@@ -146,7 +148,7 @@ Factory initiation can happen from either plane, but execution always happens on
 ### 4.1 Architecture
 
 ```
-External Sources                    Workspace
+External Sources                    Project
 ┌──────────────┐                   ┌──────────────────────────────┐
 │  Direct      │──── upload ──────→│                              │
 │  Upload      │                   │   Canonical Object Store     │
@@ -177,17 +179,17 @@ External Sources                    Workspace
 
 ### 4.2 Design Principles
 
-1. **Canonical storage, not pass-through.** All documents are materialised into the workspace's S3-compatible object store regardless of source. S3 is the normalisation layer, not just "where uploads go."
+1. **Canonical storage, not pass-through.** All documents are materialised into the project's S3-compatible object store regardless of source. S3 is the normalisation layer, not just "where uploads go."
 
-2. **Connectors are origins, not authorities.** SharePoint, Azure Blob, GCS, etc. are external knowledge sources. After intake, the platform treats documents as workspace knowledge objects in canonical storage. This prevents split-brain document models.
+2. **Connectors are origins, not authorities.** SharePoint, Azure Blob, GCS, etc. are external knowledge sources. After intake, the platform treats documents as project knowledge objects in canonical storage. This prevents split-brain document models.
 
 3. **Provenance is preserved.** Every knowledge object carries provenance metadata linking back to its source connector, original URI, sync timestamp, and version. This enables re-sync, audit, and traceability without keeping the external source as a live dependency.
 
-4. **Workspace-scoped, not project-scoped.** Knowledge objects belong to the workspace and may be consumed by multiple projects and factories. Documents may be imported before a project exists, reused across factories, or bound to new projects later. Projects bind to knowledge objects via explicit document bindings.
+4. **Project-scoped, not cross-project.** Knowledge objects belong to one project. Cross-project use happens via the clone pipeline (specs 113, 114), which copies knowledge into the destination project. The original spec proposed cross-project sharing via `document_bindings`; that table was retired by spec 119 along with the workspace layer.
 
 5. **Extraction is a pipeline stage.** After intake, documents pass through extraction (OCR, text extraction), classification (by platform concern: client, API, data, infra), and structured output generation. This state is tracked per knowledge object.
 
-6. **Factory consumes normalised knowledge.** A factory's document input is a selection of knowledge objects from the workspace store. The factory does not know or care whether a document came from upload or SharePoint — it operates over a consistent document model.
+6. **Factory consumes normalised knowledge.** A factory's document input is a selection of knowledge objects from the project store. The factory does not know or care whether a document came from upload or SharePoint — it operates over a consistent document model.
 
 ### 4.3 Knowledge Object Lifecycle
 
@@ -215,7 +217,7 @@ A knowledge object in state `available` can be bound to a project and selected a
 | `s3` | IAM role or access key | Scheduled | Bucket/prefix scoped |
 | `gcs` | Service account | Scheduled | Bucket/prefix scoped |
 
-Connectors are workspace-scoped configuration objects. Adding a new connector type requires implementing a single `SourceConnector` trait/interface — no changes to the core knowledge object model.
+Connectors are project-scoped configuration objects. Adding a new connector type requires implementing a single `SourceConnector` trait/interface — no changes to the core knowledge object model.
 
 ## 5. Sync Protocol
 
@@ -231,6 +233,8 @@ Connectors are workspace-scoped configuration objects. Adding a new connector ty
 | Artifact content | Desktop (OPC) | Desktop → Web (hashes + upload) |
 | Checkpoint state | Desktop (OPC) | Local only |
 | Local git state | Desktop (OPC) | Local only |
+
+> **Per spec 119:** sync envelopes carry `projectId` rather than `workspaceId`. The wire-format symbol rename is part of the spec 119 migration; the authority split itself is unchanged.
 
 ### 5.2 Communication
 
@@ -253,13 +257,13 @@ Connectors are workspace-scoped configuration objects. Adding a new connector ty
 └──────────────┘                           └──────────────┘
 ```
 
-A WebSocket relay on Stagecraft pushes events to connected OPC instances, scoped by workspace. OPC pushes state updates to Stagecraft via HTTP POST (fire-and-forget, best-effort — failures never block local execution).
+A WebSocket relay on Stagecraft pushes events to connected OPC instances, scoped by project. OPC pushes state updates to Stagecraft via HTTP POST (fire-and-forget, best-effort — failures never block local execution).
 
 ### 5.3 Duplex Sync Substrate
 
-> Added 2026-04-20. Supersedes the "HTTP POST + WebSocket push" model of §5.2 for new consumers. The legacy `workspaceEventStream` streamOut and `ingestOpcEvent` HTTP endpoint are retained during migration (see FR-SYNC-010).
+> Added 2026-04-20. Supersedes the "HTTP POST + WebSocket push" model of §5.2 for new consumers. The legacy `projectEventStream` streamOut and `ingestOpcEvent` HTTP endpoint are retained during migration (see FR-SYNC-010). Envelope and cursor identifier names use project-scoped form per spec 119; the substrate's authority split and protocol are unchanged.
 
-The canonical sync channel between Stagecraft and OPC is an **authenticated duplex WebSocket** at `POST /api/sync/duplex` (Encore `api.streamInOut`). A single bidirectional stream carries a disjoint pair of typed envelope unions — `ClientEnvelope` (desktop → server) and `ServerEnvelope` (server → desktop) — with workspace cursors, ACK/NACK semantics, and resync on reconnect.
+The canonical sync channel between Stagecraft and OPC is an **authenticated duplex WebSocket** at `POST /api/sync/duplex` (Encore `api.streamInOut`). A single bidirectional stream carries a disjoint pair of typed envelope unions — `ClientEnvelope` (desktop → server) and `ServerEnvelope` (server → desktop) — with project cursors, ACK/NACK semantics, and resync on reconnect.
 
 Implementation: `platform/services/stagecraft/api/sync/` — `types.ts`, `service.ts`, `duplex.ts`, `registry.ts`, `store.ts`, `relay.ts`.
 
@@ -268,29 +272,29 @@ Implementation: `platform/services/stagecraft/api/sync/` — `types.ts`, `servic
 The envelope union encodes the §5.1 authority split in TypeScript:
 
 - `ClientEnvelope` variants carry **no control-plane authority**. They are desktop-authoritative signals: local execution progress, checkpoints, artifacts, runtime observations, audit *candidates*, and the three transport variants (`sync.ack`, `sync.heartbeat`, `sync.resync_request`).
-- `ServerEnvelope` variants carry all control-plane truth: `policy.updated`, `grant.updated`, `deploy.status`, `workspace.updated`, `project.updated`, `factory.event`, plus transport.
+- `ServerEnvelope` variants carry all control-plane truth: `policy.updated`, `grant.updated`, `deploy.status`, `project.updated`, `factory.event`, plus transport. (The original 087 §5.3 also listed `workspace.updated`; spec 119 retired the workspace entity, and the variant collapses into `project.updated`.)
 - **Extension rule.** Adding a new `ClientEnvelope` variant is a **governance act**, not a types change. A variant that asserts authoritative server state (e.g. "policy override", "deploy trigger") requires a spec amendment; a variant that reports a local observation is within scope.
 
-`audit.candidate` is the one inbound variant that results in a durable write. Stagecraft normalises the action (`opc.` prefix), stamps `actor_user_id` from the authenticated JWT, and writes to `audit_log` — the desktop cannot forge the actor or the workspace.
+`audit.candidate` is the one inbound variant that results in a durable write. Stagecraft normalises the action (`opc.` prefix), stamps `actor_user_id` from the authenticated JWT, and writes to `audit_log` — the desktop cannot forge the actor or the project.
 
 #### Functional Requirements
 
 | ID | Requirement | Severity | Status |
 |----|-------------|:--------:|:------:|
-| **FR-SYNC-001** | The stream MUST be opened with `auth: true`; `workspaceId` MUST be read from `getAuthData()`, never from the handshake. A handshake with no workspace in the auth token is NACKed and the stream closed. | correctness | shipped |
-| **FR-SYNC-002** | Before `registry.register`, the handler MUST verify the authenticated user holds an active membership for the workspace (`org_memberships.status = 'active'` OR a `project_members` row whose project is in that workspace). JWT-claimed `oap_workspace_id` alone is NOT sufficient. | **correctness — blocker** | not shipped |
+| **FR-SYNC-001** | The stream MUST be opened with `auth: true`; `projectId` MUST be read from `getAuthData()`, never from the handshake. A handshake with no project in the auth token is NACKed and the stream closed. | correctness | shipped |
+| **FR-SYNC-002** | Before `registry.register`, the handler MUST verify the authenticated user holds an active membership for the project (a `project_members` row for that user/project, OR `org_memberships.status = 'active'` for an org-level member). JWT-claimed `oap_project_id` alone is NOT sufficient. | **correctness — blocker** | not shipped |
 | **FR-SYNC-003** | Every envelope's `meta` MUST carry `v: 1`. The inbound guard enforces strict equality; mismatched or missing `v` is rejected as `invalid`. Bumping the protocol is a wire-format change: the `EnvelopeSchemaVersion` literal and the guard move together. | correctness | shipped |
-| **FR-SYNC-004** | `ClientAuditCandidate` MUST be written as `audit_log` with server-stamped `actor_user_id`, `workspaceId`, and `clientId`. Client-supplied timestamps and actors are ignored. | correctness | shipped |
-| **FR-SYNC-005** | The outbox and inbox MUST persist to Postgres (`sync_outbox(workspace_id, cursor, event_id, payload, created_at)`, `sync_outbox_delivery(workspace_id, event_id, client_id, acked_at)`, `sync_inbox(...)`). The in-memory stores in `store.ts` are a foundation; the interfaces (`OutboxStore`, `InboxStore`, `CursorIssuer`) exist specifically to accept a Drizzle-backed swap without touching `service.ts` or `duplex.ts`. | durability | not shipped |
-| **FR-SYNC-006** | When stagecraft runs with replicas > 1, `dispatchServerEvent` MUST fan out via PubSub (or equivalent) so every replica's local registry sees every workspace event. Without this, a producer on replica A does not reach a client connected to replica B. | correctness (multi-replica) | not shipped |
+| **FR-SYNC-004** | `ClientAuditCandidate` MUST be written as `audit_log` with server-stamped `actor_user_id`, `projectId`, and `clientId`. Client-supplied timestamps and actors are ignored. | correctness | shipped |
+| **FR-SYNC-005** | The outbox and inbox MUST persist to Postgres (`sync_outbox(project_id, cursor, event_id, payload, created_at)`, `sync_outbox_delivery(project_id, event_id, client_id, acked_at)`, `sync_inbox(...)`). The in-memory stores in `store.ts` are a foundation; the interfaces (`OutboxStore`, `InboxStore`, `CursorIssuer`) exist specifically to accept a Drizzle-backed swap without touching `service.ts` or `duplex.ts`. | durability | not shipped |
+| **FR-SYNC-006** | When stagecraft runs with replicas > 1, `dispatchServerEvent` MUST fan out via PubSub (or equivalent) so every replica's local registry sees every project event. Without this, a producer on replica A does not reach a client connected to replica B. | correctness (multi-replica) | not shipped |
 | **FR-SYNC-007** | The broadcast loop MUST apply backpressure: a slow client MUST NOT stall other clients. Implementation options: per-client bounded send queue with drop policy, or concurrent sends with a per-client deadline. | liveness | not shipped |
 | **FR-SYNC-008** | Metrics MUST be exposed: `sync_connections_total`, `sync_events_inbound_total{kind,status}`, `sync_events_outbound_total{kind}`, `sync_ack_latency_seconds`. | observability | not shipped |
 | **FR-SYNC-009** | Inbound MUST be rate-limited per `clientId` (token-bucket, default 100/s, burst 200). Excess events are NACKed with `reason: "invalid"` and `detail: "rate_limited"`. | abuse resistance | not shipped |
-| **FR-SYNC-010** | The legacy `workspaceEventStream` streamOut + `ingestOpcEvent` HTTP POST path in `api/sync/sync.ts` MUST be decommissioned once `web/`, `apps/desktop`, and `packages/workspace-sdk` are migrated to the duplex. Coexistence is additive, not permanent. | hygiene | migration tracked |
+| **FR-SYNC-010** | The legacy `projectEventStream` streamOut + `ingestOpcEvent` HTTP POST path in `api/sync/sync.ts` MUST be decommissioned once `web/`, `apps/desktop`, and `packages/project-sdk` are migrated to the duplex. Coexistence is additive, not permanent. | hygiene | migration tracked |
 
 #### Retention Calculus (In-Memory Stores)
 
-The in-memory outbox cap is `MAX_OUTBOX_PER_WORKSPACE = 500` (`store.ts`). At a target workspace event rate of **~10 events/s** (factory progress + audit + periodic deploy/grant changes), this retains roughly **50 seconds** of history. At a burst rate of **50 events/s** (e.g., factory stage fan-out), retention falls to **10 seconds**.
+The in-memory outbox cap is `MAX_OUTBOX_PER_PROJECT = 500` (`store.ts`). At a target project event rate of **~10 events/s** (factory progress + audit + periodic deploy/grant changes), this retains roughly **50 seconds** of history. At a burst rate of **50 events/s** (e.g., factory stage fan-out), retention falls to **10 seconds**.
 
 A client that reconnects after a gap greater than the retained window receives `sync.resync_required(reason: "cursor_gap")` and must refetch state via existing REST endpoints. This is acceptable while stagecraft deploys take single-digit seconds; it is NOT acceptable for deploys exceeding the retention window or for any scenario where in-flight state cannot be refetched. FR-SYNC-005 removes this constraint.
 
@@ -303,16 +307,16 @@ The gate is a single pre-`register` check inside `duplex.ts`:
 ```ts
 const hasMembership = await membership.isActiveMember({
   userId: auth.userID,
-  workspaceId,
+  projectId,
 });
 if (!hasMembership) {
-  // NACK with reason: "unauthorized", detail: "no workspace membership"
+  // NACK with reason: "unauthorized", detail: "no project membership"
   await stream.close();
   return;
 }
 ```
 
-`membership.isActiveMember` resolves by joining `org_memberships` (for workspace-via-org) or `project_members` (for workspace-via-project). A permission grant that shrinks membership without rotating the JWT MUST take effect within the next connection; existing connections MAY remain until next handshake (documented as an accepted tradeoff).
+`membership.isActiveMember` resolves by joining `project_members` (direct project membership) or `org_memberships` (for org-level members with implicit access). A permission grant that shrinks membership without rotating the JWT MUST take effect within the next connection; existing connections MAY remain until next handshake (documented as an accepted tradeoff).
 
 #### Schema Versioning Design (FR-SYNC-003)
 
@@ -332,8 +336,8 @@ Rauthy                   ──→ Session tokens (JWT) for both planes
 ```
 
 One identity, two sessions:
-- **Web session:** Rauthy-issued JWT in browser cookie, workspace-scoped
-- **Desktop session:** Rauthy-issued JWT in OS keychain, workspace-scoped
+- **Web session:** Rauthy-issued JWT in browser cookie, project-scoped
+- **Desktop session:** Rauthy-issued JWT in OS keychain, project-scoped
 - Both obtained via GitHub OAuth (web redirects to browser, desktop uses `opc://` deep-link callback)
 
 Password-based auth is removed once Rauthy is fully wired (spec 080).
@@ -344,29 +348,29 @@ Password-based auth is removed once Rauthy is fully wired (spec 080).
 packages/
   @opc/ui/                ← shared React component library (exists)
   @opc/types/             ← shared TypeScript types (exists)
-  @opc/workspace-sdk/     ← NEW: workspace domain client
-    ├── workspace.ts       — Workspace, Project, KnowledgeObject types
+  @opc/project-sdk/       ← NEW: project domain client (originally @opc/workspace-sdk; renamed by spec 119)
+    ├── project.ts         — Project, KnowledgeObject types
     ├── knowledge.ts       — Knowledge intake types and state machine
     ├── factory.ts         — Factory pipeline state machine
     ├── sync.ts            — WebSocket + HTTP sync protocol
     └── auth.ts            — Token management (Rauthy JWT)
 ```
 
-`@opc/workspace-sdk` is consumed by both the Stagecraft web UI and the OPC React frontend, ensuring identical domain models and state rendering across planes.
+`@opc/project-sdk` is consumed by both the Stagecraft web UI and the OPC React frontend, ensuring identical domain models and state rendering across planes.
 
 ## 8. Implementation Phases
 
-### Phase 1: Workspace Foundation
+### Phase 1: Project Foundation
 
-- Add `workspaces` table to Stagecraft schema
-- Workspace CRUD endpoints
-- Replace `DEFAULT_ORG_ID` with workspace-scoped queries across all Stagecraft endpoints
-- Add workspace sync to OPC's `StagecraftClient`
-- Create `@opc/workspace-sdk` package with core types
+- Add `projects` table to Stagecraft schema (originally proposed `workspaces` + `projects`; collapsed to a single `projects` table by spec 119)
+- Project CRUD endpoints
+- Replace `DEFAULT_ORG_ID` with project-scoped queries across all Stagecraft endpoints
+- Add project sync to OPC's `StagecraftClient`
+- Create `@opc/project-sdk` package with core types
 
 ### Phase 2: Knowledge Intake Domain
 
-- Add `knowledge_objects`, `source_connectors`, `document_bindings` tables
+- Add `knowledge_objects`, `source_connectors` tables (originally also included `document_bindings`; retired by spec 119 along with the workspace layer)
 - Knowledge object CRUD + upload endpoint
 - S3-compatible object store integration (MinIO for local dev, S3/Azure Blob for prod)
 - Extraction pipeline (OCR, text extraction, classification)
@@ -376,7 +380,7 @@ packages/
 ### Phase 3: Web UI + Sync Channel
 
 - Stagecraft web UI (React SPA sharing `@opc/ui`)
-- WebSocket relay on Stagecraft (workspace-scoped event channel)
+- WebSocket relay on Stagecraft (project-scoped event channel)
 - OPC WebSocket client for real-time updates
 - Factory pipeline dashboard (web)
 - Knowledge object browser and selection UI (web)
@@ -387,7 +391,7 @@ packages/
 - `SourceConnector` trait/interface with pluggable implementations
 - SharePoint Online connector (Microsoft Graph API, OAuth2, delta sync)
 - Upload connector (finalise as the reference implementation)
-- Connector configuration UI in workspace settings
+- Connector configuration UI in project settings
 - Scheduled sync with change detection
 
 ### Phase 5: Identity + Governance Hardening
@@ -395,12 +399,15 @@ packages/
 - Remove password auth from Stagecraft
 - OIDC JWT enforcement on all seams (A, B, C, D) per spec 082
 - OS keychain storage for desktop session
-- Unified RBAC model in `@opc/workspace-sdk`
+- Unified RBAC model in `@opc/project-sdk`
 
 ## 9. Database Schema Additions (Stagecraft)
 
+> **Historical record (2026-04-09):** the schema below was the original proposal in this spec. Spec 119 (2026-04-29) collapsed `workspaces` into `projects`, retired `document_bindings`, and renamed `workspace_id` → `project_id` on `source_connectors`, `knowledge_objects`, and downstream consumers. The canonical post-amendment schema lives in spec 119 §4. The original SQL is retained verbatim below for traceability.
+
 ```sql
 -- Workspace: operational container scoped to a GitHub org
+-- (Retired by spec 119; properties moved onto `projects`.)
 CREATE TABLE workspaces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id),
@@ -413,6 +420,7 @@ CREATE TABLE workspaces (
 );
 
 -- Source connector: external knowledge source configuration
+-- (Spec 119: workspace_id renamed to project_id.)
 CREATE TABLE source_connectors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL REFERENCES workspaces(id),
@@ -427,6 +435,7 @@ CREATE TABLE source_connectors (
 );
 
 -- Knowledge object: canonical normalised document in workspace store
+-- (Spec 119: workspace_id renamed to project_id; CAS uniqueness now keyed on project_id.)
 CREATE TABLE knowledge_objects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL REFERENCES workspaces(id),
@@ -445,6 +454,7 @@ CREATE TABLE knowledge_objects (
 );
 
 -- Document binding: links knowledge objects to projects
+-- (Retired by spec 119; cross-project sharing displaced by clone copy.)
 CREATE TABLE document_bindings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
@@ -461,21 +471,21 @@ CREATE TABLE document_bindings (
 - **NF-002:** The object store must be S3-compatible (MinIO for local dev, any S3-compatible provider for production).
 - **NF-003:** Adding a new connector type requires implementing one trait/interface and registering it — no changes to the knowledge object model or factory integration.
 - **NF-004:** OPC must function fully offline. Platform connectivity is optional for all execution operations. Sync happens opportunistically when connectivity is available.
-- **NF-005:** The WebSocket relay must be workspace-scoped. An OPC instance only receives events for workspaces it is authenticated to.
-- **NF-006:** Factory policy shards are workspace-scoped and travel with the pipeline — they must not require live platform connectivity during execution.
+- **NF-005:** The WebSocket relay must be project-scoped. An OPC instance only receives events for projects it is authenticated to.
+- **NF-006:** Factory policy shards are project-scoped and travel with the pipeline — they must not require live platform connectivity during execution.
 
 ## 11. End-State Model Summary
 
 ```
 GitHub org          = trust anchor
-Workspace           = operational container (identity, governance,
-                      collaboration, knowledge intake)
-Project             = product/code unit (repos + environment bindings)
-Knowledge store     = canonical workspace document substrate
-Factory             = execution artifact that transforms workspace
+Project             = operational container (identity, governance,
+                      collaboration, knowledge intake, repos,
+                      environments, factory execution)
+Knowledge store     = canonical project document substrate
+Factory             = execution artifact that transforms project
                       knowledge into project output
 Desktop (OPC)       = execution plane
 Web (stagecraft.ing)= governance and management plane
 ```
 
-The factory is not merely turning prompts into code. It is operating over a governed body of workspace knowledge.
+The factory is not merely turning prompts into code. It is operating over a governed body of project knowledge. Cross-project knowledge use happens via the clone pipeline (specs 113, 114), which copies into the destination — superseding the original 087 model where multiple projects shared a workspace knowledge corpus via `document_bindings`.

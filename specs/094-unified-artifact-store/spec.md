@@ -5,6 +5,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-11"
+amended: "2026-04-29"
+amendment_record: "119"
 risk: high
 depends_on:
   - "082"
@@ -23,6 +25,8 @@ implements:
 # 094 — Unified Artifact Store with Provenance
 
 Parent plan: [089 Governed Convergence Plan](../089-governed-convergence-plan/spec.md)
+
+> **Amended by spec 119 (2026-04-29):** the unit of governance referenced as `workspace`/`workspace_id` in this spec is now `project`/`project_id`. The artifact-store contract is unchanged; only the scope identifier renames. See spec 119 for the migration record.
 
 ## Problem
 
@@ -47,7 +51,7 @@ Specific gaps:
 Unify the stores: `ArtifactManager` remains the ephemeral workspace, but completed
 artifacts are promoted to `LocalArtifactStore` (CAS) with rich metadata in SQLite.
 Provenance lineage tracks producer/consumer relationships. Platform recording enables
-cross-workspace artifact discovery.
+cross-project artifact discovery.
 
 ## Implementation Slices
 
@@ -83,7 +87,7 @@ pub struct ArtifactRecord {
     pub filename: String,
     pub step_id: String,
     pub workflow_id: String,
-    pub workspace_id: Option<String>,
+    pub project_id: Option<String>,
     pub created_at: String,
     pub size_bytes: u64,
     pub content_type: Option<String>,
@@ -92,7 +96,7 @@ pub struct ArtifactRecord {
 ```
 
 Store metadata in a SQLite `artifact_records` table alongside CAS blobs.
-Query support: lookup by content_hash, by workflow_id, by workspace_id.
+Query support: lookup by content_hash, by workflow_id, by project_id.
 
 **Files**: `crates/factory-engine/src/artifact_store.rs`
 
@@ -123,8 +127,8 @@ Query support: "which steps consumed this artifact?" and "what produced this?"
 After step completion + CAS storage, POST artifact metadata to Stagecraft.
 
 New Stagecraft endpoints:
-- `POST /api/workspaces/:id/artifacts` — record artifact metadata
-- `GET /api/workspaces/:id/artifacts?content_hash=X` — cache-hit lookup
+- `POST /api/projects/:id/artifacts` — record artifact metadata
+- `GET /api/projects/:id/artifacts?content_hash=X` — cache-hit lookup
 
 Activates spec 082 Phase 3 (cross-run persistence).
 

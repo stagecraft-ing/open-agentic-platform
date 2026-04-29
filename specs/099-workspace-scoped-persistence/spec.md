@@ -1,28 +1,34 @@
 ---
 id: "099-workspace-scoped-persistence"
-title: "Workspace-Scoped Persistence"
+title: "Project-Scoped Persistence"
 status: approved
 implementation: complete
 owner: bart
 created: "2026-04-11"
+amended: "2026-04-29"
+amendment_record: "119"
 risk: medium
 depends_on:
   - "092"
   - "094"
   - "097"
-code_aliases: ["WORKSPACE_SCOPED_PERSISTENCE"]
+code_aliases: ["PROJECT_SCOPED_PERSISTENCE"]
 implements:
   - path: crates/orchestrator
   - path: crates/run
 summary: >
-  Make persistence workspace-native and sync-trackable. Replace fire-and-forget
+  Make persistence project-native and sync-trackable. Replace fire-and-forget
   Stagecraft calls with tracked acknowledgement, update SyncStatus in the
-  promotion check, and add workspace_id columns to workflow persistence stores.
+  promotion check, and add project_id columns to workflow persistence stores.
+  Originally authored against workspace_id; amended by spec 119 when workspace
+  was collapsed into project.
 ---
 
-# 099 — Workspace-Scoped Persistence
+# 099 — Project-Scoped Persistence
 
 Parent plan: [089 Governed Convergence](../089-governed-convergence-plan/plan.md) — Phase 5
+
+> **Amended by spec 119 (2026-04-29):** the persistence scope identifier is now `project_id`, not `workspace_id`. Code alias `WORKSPACE_SCOPED_PERSISTENCE` → `PROJECT_SCOPED_PERSISTENCE`. The persistence and sync-tracking contract is unchanged; only the scope identifier renames. See spec 119 for the migration record.
 
 ## Problem
 
@@ -34,16 +40,16 @@ Two persistence subsystems fail to serve the governed execution model:
    `RecordArtifactsResponse { recorded }` return values are discarded inside spawned tasks.
    Consequently, all workflows complete as `CompletedLocal` regardless of actual sync state.
 
-2. **Workflow stores lack workspace_id.** The `workflows` table in both `sqlite_state.rs` and
-   `hiqlite_store.rs` has no `workspace_id` column. Workspace_id lives only in the
+2. **Workflow stores lack project_id.** The `workflows` table in both `sqlite_state.rs` and
+   `hiqlite_store.rs` has no `project_id` column. Project_id lives only in the
    `WorkflowState.metadata` JSON bag, making it impossible to efficiently query "all runs for
-   workspace X" at the storage layer. The artifact store at `artifact.rs` already has
-   `workspace_id TEXT` + index, proving the pattern works.
+   project X" at the storage layer. The artifact store at `artifact.rs` already has
+   `project_id TEXT` + index, proving the pattern works.
 
 ## Solution
 
 Replace fire-and-forget with tracked acknowledgement, plumb real SyncStatus into the promotion
-check, and add workspace_id as a first-class column in both persistence stores.
+check, and add project_id as a first-class column in both persistence stores.
 
 ### Slice 1: SyncTracker struct + factory integration
 
@@ -90,54 +96,54 @@ In `factory.rs`, pass the per-run `SyncTracker` through `DispatchOptions.sync_tr
 
 **Files**: `crates/orchestrator/src/lib.rs`, `apps/desktop/src-tauri/src/commands/factory.rs`
 
-### Slice 3: workspace_id column in SQLite store
+### Slice 3: project_id column in SQLite store
 
 Follow the proven `PRAGMA table_info` migration pattern from `sqlite_state.rs` lines 130-156:
 
 ```rust
-let has_ws_id: bool = /* PRAGMA table_info(workflows) check */;
-if !has_ws_id {
+let has_proj_id: bool = /* PRAGMA table_info(workflows) check */;
+if !has_proj_id {
     conn.execute_batch(
-        "ALTER TABLE workflows ADD COLUMN workspace_id TEXT;
-         CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id);"
+        "ALTER TABLE workflows ADD COLUMN project_id TEXT;
+         CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id);"
     );
 }
 ```
 
-In `write_workflow_state_sync`, extract `workspace_id` from `state.metadata["workspace_id"]`
-and populate the column. Update INSERT/UPSERT SQL to include `workspace_id`.
+In `write_workflow_state_sync`, extract `project_id` from `state.metadata["project_id"]`
+and populate the column. Update INSERT/UPSERT SQL to include `project_id`.
 
 **Files**: `crates/orchestrator/src/sqlite_state.rs`
 
-### Slice 4: workspace_id column in Hiqlite store
+### Slice 4: project_id column in Hiqlite store
 
 Apply idempotent `ALTER TABLE` in `migrate()` (following pattern from
 `axiomregent/src/db/mod.rs:139`):
 
 ```rust
 let _ = self.client.execute(
-    Cow::Borrowed("ALTER TABLE workflows ADD COLUMN workspace_id TEXT"),
+    Cow::Borrowed("ALTER TABLE workflows ADD COLUMN project_id TEXT"),
     vec![],
 ).await;
 ```
 
-Update `write_workflow_state` INSERT SQL to include `workspace_id`.
+Update `write_workflow_state` INSERT SQL to include `project_id`.
 
 **Files**: `crates/orchestrator/src/hiqlite_store.rs`
 
-### Slice 5: list_workflows_by_workspace query + Tauri command
+### Slice 5: list_workflows_by_project query + Tauri command
 
 Add query method to both stores:
 ```rust
-async fn list_workflows_by_workspace(
-    &self, workspace_id: &str, limit: Option<u32>,
+async fn list_workflows_by_project(
+    &self, project_id: &str, limit: Option<u32>,
 ) -> Result<Vec<WorkflowStateSummary>, OrchestratorError>;
 ```
 
-Add `WorkflowStateSummary` struct (workflow_id, name, status, started_at, workspace_id) to
+Add `WorkflowStateSummary` struct (workflow_id, name, status, started_at, project_id) to
 avoid loading all steps per workflow.
 
-Add Tauri command `list_workspace_workflows` and register in `lib.rs` invoke_handler.
+Add Tauri command `list_project_workflows` and register in `lib.rs` invoke_handler.
 
 **Files**: `crates/orchestrator/src/sqlite_state.rs`, `crates/orchestrator/src/hiqlite_store.rs`,
 `apps/desktop/src-tauri/src/commands/orchestrator.rs`, `apps/desktop/src-tauri/src/lib.rs`
@@ -147,6 +153,6 @@ Add Tauri command `list_workspace_workflows` and register in `lib.rs` invoke_han
 - **SC-099-1**: `SyncTracker` collects event ingestion and artifact recording acknowledgements from Stagecraft responses
 - **SC-099-2**: `SyncStatus` passed to `check_promotion_eligibility` reflects actual Stagecraft sync state, not hardcoded defaults
 - **SC-099-3**: Workflows that successfully sync events and artifacts are marked `Completed` (not `CompletedLocal`)
-- **SC-099-4**: `workflows` table in SQLite store has `workspace_id TEXT` column with index, populated on write
-- **SC-099-5**: `workflows` table in Hiqlite store has `workspace_id TEXT` column, populated on write
-- **SC-099-6**: `list_workflows_by_workspace()` returns workflows filtered by workspace_id
+- **SC-099-4**: `workflows` table in SQLite store has `project_id TEXT` column with index, populated on write
+- **SC-099-5**: `workflows` table in Hiqlite store has `project_id TEXT` column, populated on write
+- **SC-099-6**: `list_workflows_by_project()` returns workflows filtered by project_id

@@ -6,6 +6,8 @@ status: approved
 implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
+amended: "2026-04-29"
+amendment_record: "119"
 ratified: "2026-03-22"
 authors:
   - "open-agentic-platform"
@@ -14,6 +16,8 @@ summary: >
   Foundational contract: authored truth lives only in markdown (with YAML frontmatter
   blocks permitted inside .md); machine-consumable truth is compiler-emitted JSON only;
   full markdown → registry compilation from day one; no standalone authored YAML.
+  Amended by spec 119 to formally introduce the `amends:` and `amendment_record:`
+  frontmatter convention.
 ---
 
 # Feature Specification: Bootstrap spec system
@@ -124,6 +128,33 @@ Every **feature spec** (`specs/*/spec.md`) MUST contain:
    - **Success Criteria** with measurable outcomes.
 
 Other authored markdown (e.g. plans, checklists) SHOULD include minimal frontmatter with `id`, `title`, `created` when they are tied to a feature directory.
+
+## Amendment frontmatter convention *(introduced by spec 119, 2026-04-29)*
+
+A spec may amend one or more earlier specs **in place** (modifying their narrative or invariants without superseding them) by carrying an `amends:` field and a corresponding date. Amended specs carry `amendment_record:` pointing back at the amender. This convention is distinct from supersession (`status: superseded` + `superseded_by:`), which is used when a spec abandons direction rather than refines it.
+
+**Amender frontmatter:**
+
+```yaml
+amends:
+  - "087"
+  - "092"
+```
+
+A list of spec ids that this spec amends in place. Each listed spec MUST receive corresponding `amended:` and `amendment_record:` frontmatter and a callout in its body identifying the amender.
+
+**Amended spec frontmatter:**
+
+```yaml
+amended: "2026-04-29"
+amendment_record: "119"
+```
+
+`amended:` is an ISO 8601 date marking when the amendment was applied. `amendment_record:` is the spec id that records the amendment's rationale, schema diff, and migration plan. The amended spec stays operative on the parts not covered by the amendment record; the amendment record is consulted for the parts that are.
+
+**Mutual exclusion.** `amends:` is mutually exclusive with `superseded_by:` on the same spec. A spec that fully replaces another uses `superseded_by:` on the old spec, not `amends:`.
+
+**Compiler treatment.** The spec compiler emits both fields verbatim and does not modify the amended spec's `status` or `implementation` fields. Spec lint MAY warn on dangling references (an `amends:` entry without matching `amendment_record:` on the target, or vice versa); enforcement may be promoted to blocking in a later amendment after the convention is exercised by at least one further amendment beyond spec 119.
 
 ## Minimum viable compiled JSON registry contract
 
