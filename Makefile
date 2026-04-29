@@ -14,7 +14,7 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
-        ci ci-rust ci-tools ci-desktop ci-desktop-cross ci-stagecraft \
+        ci ci-rust ci-tools ci-desktop ci-stagecraft \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-cross ci-parity
 
@@ -393,16 +393,6 @@ ci-desktop:
 	pnpm --filter @opc/desktop exec tsc --noEmit
 	pnpm --filter @opc/desktop test
 
-# M7 — cross-target `cargo check` for src-tauri. Opt-in (not part of `make ci`)
-# because local runs require `rustup target add x86_64-unknown-linux-gnu` and
-# `rustup target add x86_64-pc-windows-msvc`. CI runs natively on each OS via
-# the matrix in ci-desktop.yml.
-ci-desktop-cross:
-	@for t in x86_64-unknown-linux-gnu x86_64-pc-windows-msvc; do \
-	    echo "==> ci-desktop-cross: $$t"; \
-	    cargo check --target $$t --manifest-path apps/desktop/src-tauri/Cargo.toml || exit 1; \
-	done
-
 ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
 	@# CI=true forces vitest to run-once instead of TTY watch mode.
@@ -514,7 +504,6 @@ help:
 	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
 	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
 	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"
-	@echo "  make ci-desktop-cross   apps/desktop cargo check across release-target matrix (opt-in)"
 	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
 	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; warn-only until 2026-05-28)"
 	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"
