@@ -179,15 +179,27 @@ ci-agent-frontmatter-ts:
 # ============================================================
 # Codebase Index
 # ============================================================
+#
+# All three targets ensure the binary is current before invoking it. A
+# stale binary built against an older source tree silently produces a
+# different content hash than the same source compiled fresh — that
+# masquerades as a cross-platform determinism bug (see issue #46
+# investigation). Rebuilding before each invocation costs nothing on
+# warm cargo cache.
 
-index:
-	./tools/codebase-indexer/target/release/codebase-indexer compile
+CODEBASE_INDEXER_BIN = tools/codebase-indexer/target/release/codebase-indexer
 
-index-check:
-	./tools/codebase-indexer/target/release/codebase-indexer check
+$(CODEBASE_INDEXER_BIN): tools/codebase-indexer/Cargo.toml tools/codebase-indexer/src/*.rs
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
 
-index-render:
-	./tools/codebase-indexer/target/release/codebase-indexer render
+index: $(CODEBASE_INDEXER_BIN)
+	./$(CODEBASE_INDEXER_BIN) compile
+
+index-check: $(CODEBASE_INDEXER_BIN)
+	./$(CODEBASE_INDEXER_BIN) check
+
+index-render: $(CODEBASE_INDEXER_BIN)
+	./$(CODEBASE_INDEXER_BIN) render
 
 # ============================================================
 # Adapter Scopes (removed in spec 108 — see factory_adapters table)

@@ -245,6 +245,54 @@ pub fn check(repo_root: &Path) -> Result<(), IndexError> {
     Ok(())
 }
 
+/// Diagnostic for issue #46 — print every input file's repo-relative path
+/// and its normalized-content sha256 (sorted by path), so dumps from
+/// different platforms can be diffed to find the first divergent line.
+///
+/// Output format: `<rel-path>\t<sha256-hex>\n`. Sorted lexicographically by
+/// path.  Stable across runs on the same platform; expected to be stable
+/// across platforms (the bug we're trying to find).
+pub fn dump_inputs(repo_root: &Path) -> Result<(), IndexError> {
+    use sha2::{Digest, Sha256};
+    let rust_toml_paths = manifest::discover_rust_crates(repo_root);
+    let npm_json_paths = manifest::discover_npm_packages(repo_root);
+    let mut input_files = collect_input_files(repo_root, &rust_toml_paths, &npm_json_paths);
+    input_files.sort();
+    input_files.dedup();
+
+    let mut lines: Vec<(String, String)> = Vec::new();
+    for path in &input_files {
+        if !path.is_file() {
+            continue;
+        }
+        let raw = fs::read_to_string(path)?;
+        // Apply the same normalization as compute_content_hash: strip BOM,
+        // CRLF/CR -> LF.
+        let normalized = raw
+            .strip_prefix('\u{feff}')
+            .unwrap_or(&raw)
+            .replace("\r\n", "\n")
+            .replace('\r', "\n");
+        let mut hasher = Sha256::new();
+        hasher.update(normalized.as_bytes());
+        let digest = format!("{:x}", hasher.finalize());
+        let rel = path
+            .strip_prefix(repo_root)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .replace('\\', "/");
+        lines.push((rel, digest));
+    }
+
+    // Sort exactly the same way compute_content_hash sorts.
+    lines.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (rel, digest) in lines {
+        println!("{rel}\t{digest}");
+    }
+    Ok(())
+}
+
 /// Render CODEBASE-INDEX.md from existing index.json.
 pub fn render_to_file(repo_root: &Path) -> Result<(), IndexError> {
     let index_path = repo_root.join("build/codebase-index/index.json");
