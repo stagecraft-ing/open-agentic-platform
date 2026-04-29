@@ -45,9 +45,15 @@ runs:
   steps:
     - name: Set up kubeconfig
       shell: bash
+      # L7: kubeconfig flows through KUBECONFIG_B64 env (not the inline
+      # `${{ inputs.kubeconfig-b64 }}` reference) so secret masking propagates
+      # through the composite-action boundary the same way it does at the
+      # top-level workflow scope.
+      env:
+        KUBECONFIG_B64: ${{ inputs.kubeconfig-b64 }}
       run: |
         mkdir -p ~/.kube
-        printf '%s' "${{ inputs.kubeconfig-b64 }}" | base64 -d > ~/.kube/config
+        printf '%s' "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
 
     - name: Ensure GHCR pull secret

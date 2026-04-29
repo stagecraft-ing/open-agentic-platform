@@ -8,6 +8,7 @@ pub mod render;
 pub mod schema;
 pub mod spec_scanner;
 pub mod types;
+pub mod workflows;
 pub mod xref;
 
 use serde_json::{Map, Value, json};
@@ -144,6 +145,12 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
 
     let infrastructure = infra::scan_infrastructure(repo_root);
 
+    // ── Layer 5: Workflow-to-spec traceability (spec 118) ────────────────
+
+    let wf_scan = workflows::scan_workflows(repo_root);
+    all_diagnostics.extend(wf_scan.diagnostics);
+    let workflow_traceability = wf_scan.traces;
+
     // ── Collect input files for content hash ─────────────────────────────
 
     let input_files = collect_input_files(repo_root, &rust_toml_paths, &npm_json_paths);
@@ -179,6 +186,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
         traceability,
         factory: factory_adapters,
         infrastructure,
+        workflow_traceability,
         diagnostics: Diagnostics { warnings, errors },
     };
 
@@ -337,6 +345,26 @@ fn collect_input_files(
                 }
             }
         }
+    }
+
+    // .github/workflows/ (spec 118 — header changes affect Layer 5).
+    let workflows_dir = repo_root.join(".github/workflows");
+    if workflows_dir.is_dir() {
+        if let Ok(dir) = fs::read_dir(&workflows_dir) {
+            for ent in dir.flatten() {
+                let p = ent.path();
+                let ext = p.extension().and_then(|e| e.to_str());
+                if p.is_file() && (ext == Some("yml") || ext == Some("yaml")) {
+                    files.push(p);
+                }
+            }
+        }
+    }
+
+    // Workflow allowlist (spec 118).
+    let allowlist = repo_root.join("tools/codebase-indexer/workflow-allowlist.toml");
+    if allowlist.is_file() {
+        files.push(allowlist);
     }
 
     files.sort();

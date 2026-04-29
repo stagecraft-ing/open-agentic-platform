@@ -34,6 +34,7 @@ struct Step {
 /// Keep in sync with spec 104 §2.2.
 pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-axiomregent.yml",
+    "ci-codebase-index.yml",
     "ci-crates.yml",
     "ci-deployd-api-rs.yml",
     "ci-desktop.yml",
@@ -316,9 +317,33 @@ pub fn significant_tokens(line: &str) -> Vec<String> {
             i += 1;
             continue;
         }
+        // GitHub Actions matrix/expression substitution (`${{ matrix.x }}`)
+        // can't possibly be a literal token in the Makefile. Strip the three
+        // whitespace-split fragments together so the Makefile recipe (which
+        // uses `$$VAR` or an explicit list) is still considered a valid mirror.
+        if w == "${{" {
+            // Skip until we see the closing `}}`.
+            let mut j = i + 1;
+            while j < words.len() && words[j] != "}}" {
+                j += 1;
+            }
+            i = j + 1;
+            continue;
+        }
         // Flags that consume the next token as their value.
         if matches!(w, "--manifest-path" | "--target" | "--all" | "--filter") {
             if let Some(v) = words.get(i + 1) {
+                // If the value is a `${{ … }}` expression, skip the flag entirely
+                // — it can't be mirrored as a literal token. The Makefile is
+                // expected to provide an equivalent loop or per-target recipe.
+                if *v == "${{" {
+                    let mut j = i + 2;
+                    while j < words.len() && words[j] != "}}" {
+                        j += 1;
+                    }
+                    i = j + 1;
+                    continue;
+                }
                 out.push(w.to_string());
                 out.push((*v).to_string());
                 i += 2;
@@ -382,6 +407,34 @@ mod tests {
         // Shell var assignment with $() subshell — not a direct command.
         let t = significant_tokens("CARGO_VERSION=$(grep '^version' apps/desktop/src-tauri/Cargo.toml)");
         assert!(t.is_empty());
+    }
+
+    #[test]
+    fn tokens_strip_matrix_expression_value() {
+        let t = significant_tokens(
+            "cargo check --target ${{ matrix.target }} --manifest-path apps/desktop/src-tauri/Cargo.toml",
+        );
+        assert!(t.contains(&"cargo".into()));
+        assert!(t.contains(&"--manifest-path".into()));
+        assert!(t.contains(&"apps/desktop/src-tauri/Cargo.toml".into()));
+        // The matrix expression and its sigils MUST NOT leak into the output.
+        for forbidden in ["${{", "matrix.target", "}}"] {
+            assert!(
+                !t.iter().any(|tok| tok == forbidden),
+                "found forbidden token {forbidden:?} in {t:?}",
+            );
+        }
+    }
+
+    #[test]
+    fn tokens_strip_matrix_expression_standalone() {
+        let t = significant_tokens(
+            "cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml",
+        );
+        for forbidden in ["${{", "matrix.target", "}}"] {
+            assert!(!t.iter().any(|tok| tok == forbidden));
+        }
+        assert!(t.contains(&"crates/axiomregent/Cargo.toml".into()));
     }
 
     #[test]

@@ -1,3 +1,5 @@
+# Spec: 047-governance-control-plane
+#
 # CI for policy-kernel: check, clippy, and test.
 
 name: CI policy-kernel
@@ -22,6 +24,7 @@ jobs:
   check-and-test:
     runs-on: ubuntu-latest
     name: check + clippy + test
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -30,3 +33,4 @@ jobs:
         uses: ./.github/actions/rust-ci
         with:
           manifest-path: crates/policy-kernel/Cargo.toml
+          cache-shared-key: policy-kernel

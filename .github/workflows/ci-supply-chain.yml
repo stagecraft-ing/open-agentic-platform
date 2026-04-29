@@ -1,0 +1,164 @@
+# Spec: 116-supply-chain-policy-gates
+#
+# Supply-chain gates: cargo-deny across every Rust manifest, plus pnpm/npm
+# audit at the package-manager layer. Mirrored in Makefile `ci-supply-chain`.
+#
+# Posture (until 2026-05-28):
+#   - 30-day warn window: each audit step soft-fails (exit 0 with a
+#     `::warning::` annotation) so violations surface as advisories
+#     rather than blocking the workflow. Mirrors `|| true` in the
+#     Makefile.
+#   - On 2026-05-28 a follow-up PR sets `vars.SUPPLY_CHAIN_BLOCKING=true`
+#     (via a repo variable). The audit steps then propagate non-zero
+#     exit codes and the gate becomes blocking.
+#
+# Cron: Monday 12:00 UTC pulls a fresh advisory-db even on a quiet week.
+
+name: CI supply-chain
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+      - '**/package-lock.json'
+      - 'deny.toml'
+      - '.github/workflows/ci-supply-chain.yml'
+  pull_request:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+      - '**/package-lock.json'
+      - 'deny.toml'
+      - '.github/workflows/ci-supply-chain.yml'
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-deny:
+    runs-on: ubuntu-latest
+    name: cargo-deny / advisories + bans + licenses + sources
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Cache advisory-db
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cargo/advisory-db
+          key: advisory-db-${{ github.run_id }}
+          restore-keys: advisory-db-
+
+      - name: Install cargo-deny
+        # 0.19 added support for CVSS v4.0 advisories (now common in
+        # RustSec); 0.16 fails to parse the advisory-db on first hit.
+        run: cargo install cargo-deny --locked --version '^0.19'
+
+      # No top-level Cargo.toml: iterate over every Rust manifest the
+      # rest of CI compiles. Workspace `crates/Cargo.toml` covers all 16
+      # member crates in one pass.
+      - name: Run cargo-deny
+        env:
+          BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}
+        run: |
+          set -u
+          manifests=(
+            crates/Cargo.toml
+            platform/services/deployd-api-rs/Cargo.toml
+            apps/desktop/src-tauri/Cargo.toml
+            tools/spec-compiler/Cargo.toml
+            tools/registry-consumer/Cargo.toml
+            tools/spec-lint/Cargo.toml
+            tools/codebase-indexer/Cargo.toml
+            tools/policy-compiler/Cargo.toml
+            tools/adapter-scopes-compiler/Cargo.toml
+            tools/ci-parity-check/Cargo.toml
+            tools/shared/frontmatter/Cargo.toml
+          )
+          rc=0
+          for m in "${manifests[@]}"; do
+            echo "::group::cargo deny check ($m)"
+            if ! cargo deny --manifest-path "$m" check; then
+              rc=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$rc" -ne 0 ]; then
+            if [ "$BLOCKING" = "true" ]; then
+              exit 1
+            fi
+            echo "::warning::cargo-deny advisories present (warn-only window until 2026-05-28)"
+          fi
+
+  pnpm-audit:
+    runs-on: ubuntu-latest
+    name: pnpm-audit / desktop + packages
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: pnpm/action-setup@4f4305e1fe60ad818b8ae6fc4a697cc47eab0b2d # v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit
+        env:
+          BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}
+        run: |
+          if [ "$BLOCKING" = "true" ]; then
+            pnpm audit --audit-level=high
+          else
+            pnpm audit --audit-level=high \
+              || echo "::warning::pnpm audit advisories present (warn-only window until 2026-05-28)"
+          fi
+
+  npm-audit-stagecraft:
+    runs-on: ubuntu-latest
+    name: npm-audit / stagecraft
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/services/stagecraft/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+        working-directory: platform/services/stagecraft
+
+      - name: npm audit
+        working-directory: platform/services/stagecraft
+        env:
+          BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}
+        run: |
+          if [ "$BLOCKING" = "true" ]; then
+            npm audit --audit-level=high
+          else
+            npm audit --audit-level=high \
+              || echo "::warning::npm audit advisories present (warn-only window until 2026-05-28)"
+          fi

@@ -38,7 +38,9 @@ runs:
     # as opaque `failed_precondition` errors, so treat this as part of the
     # image contract.
     - name: Rust toolchain
-      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+      with:
+        toolchain: '1.95.0'
 
     - name: Cache Rust build (stagecraft helpers)
       uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
@@ -75,44 +77,18 @@ runs:
           -t stagecraft-base:${{ github.sha }} \
           .
 
-    # Cache the installed Encore CLI to avoid hammering the installer on
-    # every build. Cache key is scoped by OS and version so a version bump
-    # invalidates cleanly.
-    - name: Cache Encore CLI
-      id: cache-encore
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-      with:
-        path: ~/.encore
-        key: encore-${{ runner.os }}-${{ inputs.encore-version }}
-
-    # Install from the CloudFront tarball directly rather than piping
-    # install.sh from encore.dev. The Vercel-fronted installer has
-    # intermittently returned 403s, and install.sh itself just downloads
-    # this same tarball. curl --retry covers transient edge failures.
+    # Install Encore CLI via the dedicated composite action (DRY with
+    # ci-stagecraft typecheck which needs the same install for codegen).
     - name: Install Encore CLI
-      if: steps.cache-encore.outputs.cache-hit != 'true'
-      shell: bash
-      env:
-        ENCORE_VERSION: ${{ inputs.encore-version }}
-      run: |
-        set -euo pipefail
-        install_dir="$HOME/.encore"
-        mkdir -p "$install_dir/bin"
-        url="https://d2f391esomvqpi.cloudfront.net/encore-${ENCORE_VERSION}-linux_amd64.tar.gz"
-        curl --fail --location --silent --show-error \
-          --retry 5 --retry-delay 5 --retry-all-errors \
-          --output "$install_dir/encore.tar.gz" "$url"
-        rm -rf "$install_dir/encore-go" "$install_dir/runtimes"
-        tar -C "$install_dir" -xzf "$install_dir/encore.tar.gz"
-        chmod +x "$install_dir"/bin/*
-        rm "$install_dir/encore.tar.gz"
-        "$install_dir/bin/encore" version
+      uses: ./.github/actions/encore-install
+      with:
+        encore-version: ${{ inputs.encore-version }}
 
     - name: Build Docker image (Encore)
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        ~/.encore/bin/encore build docker \
+        encore build docker \
           --config ${{ inputs.config }} \
           --base stagecraft-base:${{ github.sha }} \
           ${{ inputs.image-tag }}

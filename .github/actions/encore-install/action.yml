@@ -1,0 +1,44 @@
+name: Encore CLI install
+description: >
+  Install + cache the pinned Encore CLI version. Extracted from encore-build
+  so the typecheck job (which doesn't build a Docker image) can also reuse
+  the install path. Direct CloudFront tarball install — see encore-build
+  for the rationale.
+
+inputs:
+  encore-version:
+    description: Encore CLI version to install
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Encore CLI
+      id: cache-encore
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+      with:
+        path: ~/.encore
+        key: encore-${{ runner.os }}-${{ runner.arch }}-${{ inputs.encore-version }}
+
+    - name: Install Encore CLI
+      if: steps.cache-encore.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        ENCORE_VERSION: ${{ inputs.encore-version }}
+      run: |
+        set -euo pipefail
+        install_dir="$HOME/.encore"
+        mkdir -p "$install_dir/bin"
+        url="https://d2f391esomvqpi.cloudfront.net/encore-${ENCORE_VERSION}-linux_amd64.tar.gz"
+        curl --fail --location --silent --show-error \
+          --retry 5 --retry-delay 5 --retry-all-errors \
+          --output "$install_dir/encore.tar.gz" "$url"
+        rm -rf "$install_dir/encore-go" "$install_dir/runtimes"
+        tar -C "$install_dir" -xzf "$install_dir/encore.tar.gz"
+        chmod +x "$install_dir"/bin/*
+        rm "$install_dir/encore.tar.gz"
+        "$install_dir/bin/encore" version
+
+    - name: Add Encore to PATH
+      shell: bash
+      run: echo "$HOME/.encore/bin" >> "$GITHUB_PATH"

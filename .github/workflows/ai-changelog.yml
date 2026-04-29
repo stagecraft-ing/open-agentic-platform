@@ -1,6 +1,11 @@
-# AI-Powered Changelog Generation
-# Backing spec: 085 (remote-control-cli)
-# Uses Claude CLI to generate structured changelogs from commit history.
+# Spec: 085-remote-control-cli
+#
+# AI-Powered Changelog Generation. Uses Claude CLI to generate structured
+# changelogs from commit history.
+#
+# Hardening notes (ci-hardening branch):
+#   - H3: commit list passed via stdin instead of `$(cat …)` interpolation.
+#   - H4: Claude CLI version pinned via env var (CLAUDE_CLI_VERSION).
 
 name: AI Changelog
 
@@ -11,9 +16,14 @@ on:
 permissions:
   contents: write
 
+env:
+  CLAUDE_CLI_VERSION: '2.1.88'
+
 jobs:
   changelog:
     runs-on: ubuntu-latest
+    name: changelog / generate + attach
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -24,41 +34,47 @@ jobs:
         id: prev_tag
         run: |
           PREV=$(git tag --sort=-creatordate | head -2 | tail -1)
-          echo "tag=$PREV" >> $GITHUB_OUTPUT
+          echo "tag=$PREV" >> "$GITHUB_OUTPUT"
 
       - name: Get commit log
-        run: |
-          git log ${{ steps.prev_tag.outputs.tag }}..HEAD --oneline --no-merges > /tmp/commits.txt
+        env:
+          PREV_TAG: ${{ steps.prev_tag.outputs.tag }}
+        run: git log "${PREV_TAG}..HEAD" --oneline --no-merges > /tmp/commits.txt
 
       - name: Install Claude CLI
-        run: npm install -g @anthropic-ai/claude-code@1.0.3
+        run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CLI_VERSION}"
 
+      # H3 fix: prelude is in -p; commit list arrives via stdin so backticks
+      # or $(...) in commit messages are never evaluated by the shell.
       - name: Generate changelog
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude -p "Generate a changelog from these commits. Group into sections:
+          set -o pipefail
+          PROMPT='Generate a changelog from the commits provided on stdin. Group into sections:
           ## Features
           ## Fixes
           ## Infrastructure
           ## Documentation
 
           Each entry should be a bullet point with a concise description.
-          Skip merge commits and trivial changes.
-
-          Commits:
-          $(cat /tmp/commits.txt)" --output-format text > /tmp/changelog.md 2>/dev/null || echo "Changelog generation failed" > /tmp/changelog.md
+          Skip merge commits and trivial changes.'
+          claude -p "$PROMPT" --output-format text < /tmp/commits.txt > /tmp/changelog.md \
+            || echo "Changelog generation failed" > /tmp/changelog.md
 
       - name: Update release body
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          EXISTING=$(gh release view ${{ github.event.release.tag_name }} --json body -q .body)
-          echo "$EXISTING" > /tmp/release-body.md
-          echo "" >> /tmp/release-body.md
-          echo "---" >> /tmp/release-body.md
-          echo "" >> /tmp/release-body.md
-          echo "## Auto-Generated Changelog" >> /tmp/release-body.md
-          echo "" >> /tmp/release-body.md
-          cat /tmp/changelog.md >> /tmp/release-body.md
-          gh release edit ${{ github.event.release.tag_name }} --notes-file /tmp/release-body.md
+          EXISTING=$(gh release view "$RELEASE_TAG" --json body -q .body)
+          {
+            printf '%s\n' "$EXISTING"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Auto-Generated Changelog"
+            echo ""
+            cat /tmp/changelog.md
+          } > /tmp/release-body.md
+          gh release edit "$RELEASE_TAG" --notes-file /tmp/release-body.md

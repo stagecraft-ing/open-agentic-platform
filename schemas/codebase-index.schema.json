@@ -9,8 +9,8 @@
   "properties": {
     "schemaVersion": {
       "type": "string",
-      "const": "1.0.0",
-      "description": "Schema version. Bump on breaking changes."
+      "const": "1.1.0",
+      "description": "Schema version. 1.1.0 adds optional workflowTraceability (spec 118)."
     },
     "build": {
       "type": "object",
@@ -112,6 +112,11 @@
           "items": { "$ref": "#/$defs/diagnostic" }
         }
       }
+    },
+    "workflowTraceability": {
+      "description": "Layer 5: workflow-to-spec traceability (spec 118). Optional.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/workflowTrace" }
     }
   },
   "$defs": {
@@ -317,6 +322,29 @@
         "path": {
           "type": "string",
           "description": "Repo-relative path related to the diagnostic."
+        }
+      }
+    },
+    "workflowTrace": {
+      "description": "A single .github/workflows/*.yml file paired with the spec(s) it implements (spec 118).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "source"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative path to the workflow file."
+        },
+        "specs": {
+          "type": "array",
+          "description": "Spec ids declared via `# Spec: NNN-slug` header or via the allowlist.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "source": {
+          "type": "string",
+          "enum": ["header", "allowlist", "unmapped"],
+          "description": "Where the spec id came from. `unmapped` emits diagnostic I-105."
         }
       }
     }

@@ -1,5 +1,12 @@
+# Spec: 037-cross-platform-axiomregent
+# Spec: 117-release-artifact-attestations
+#
 # Release axiomregent MCP server as standalone OS-specific binaries.
 # Triggered by pushing an axiomregent version tag (e.g. axiomregent-v0.1.0).
+#
+# Each binary ships with a CycloneDX SBOM and a SLSA build-provenance
+# attestation per spec 117 (M2). Verify with:
+#   gh attestation verify <file> --repo <owner>/<repo>
 
 name: Release axiomregent
 
@@ -125,6 +132,11 @@ jobs:
     needs: [build, build-linux-arm64]
     runs-on: ubuntu-latest
     name: publish release
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write       # spec 117 — Sigstore identity
+      attestations: write   # spec 117 — provenance attestation upload
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -148,6 +160,24 @@ jobs:
 
       - name: List artifacts
         run: ls -lh dist/
+
+      # Spec 117 — CycloneDX SBOM for the release artifact set.
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
+        with:
+          path: dist/
+          format: cyclonedx-json
+          output-file: dist/sbom-axiomregent.cdx.json
+
+      # Spec 117 — SLSA build-provenance attestation per binary.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: |
+            dist/axiomregent-aarch64-apple-darwin
+            dist/axiomregent-x86_64-unknown-linux-gnu
+            dist/axiomregent-aarch64-unknown-linux-gnu
+            dist/axiomregent-x86_64-pc-windows-msvc.exe
 
       - name: Create GitHub Release
         env:

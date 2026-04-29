@@ -14,7 +14,9 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
-        ci ci-rust ci-tools ci-desktop ci-stagecraft ci-cross ci-parity
+        ci ci-rust ci-tools ci-desktop ci-desktop-cross ci-stagecraft \
+        ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
+        ci-cross ci-parity
 
 # ============================================================
 # Prerequisites check
@@ -60,7 +62,13 @@ setup: check-deps
 # axiomregent sidecar binary
 # ============================================================
 
-AXIOMREGENT_REPO   ?= stagecraft-ing/open-agentic-platform
+# Default repo for `gh release download`. Auto-detected from the local
+# git remote when possible; otherwise falls back to the canonical path so
+# fresh clones from a fork still resolve to the upstream releases.
+AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's#.*github.com[:/](.+)\.git#\1#' | sed -E 's#.*github.com[:/](.+)$$#\1#' | head -1)
+ifeq ($(AXIOMREGENT_REPO),)
+AXIOMREGENT_REPO   := stagecraft-ing/open-agentic-platform
+endif
 AXIOMREGENT_BINDIR = apps/desktop/src-tauri/binaries
 
 axiomregent:
@@ -230,7 +238,7 @@ dev-all:
 stop:
 	@echo "==> Stopping background services..."
 	-@pkill -f "encore run" 2>/dev/null || true
-	-@pkill -f "deployd.api" 2>/dev/null || true
+	-@pkill -f "deployd-api" 2>/dev/null || true   # literal binary name; the prior `deployd.api` regex matched any character in place of `-`.
 	@echo "Done."
 
 # ============================================================
@@ -266,7 +274,7 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci: ci-rust ci-tools ci-desktop ci-stagecraft
+ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-supply-chain
 	@echo ""
 	@echo "==> Local CI parity: all gates passed."
 
@@ -373,10 +381,60 @@ ci-desktop:
 	pnpm --filter @opc/desktop exec tsc --noEmit
 	pnpm --filter @opc/desktop test
 
+# M7 — cross-target `cargo check` for src-tauri. Opt-in (not part of `make ci`)
+# because local runs require `rustup target add x86_64-unknown-linux-gnu` and
+# `rustup target add x86_64-pc-windows-msvc`. CI runs natively on each OS via
+# the matrix in ci-desktop.yml.
+ci-desktop-cross:
+	@for t in x86_64-unknown-linux-gnu x86_64-pc-windows-msvc; do \
+	    echo "==> ci-desktop-cross: $$t"; \
+	    cargo check --target $$t --manifest-path apps/desktop/src-tauri/Cargo.toml || exit 1; \
+	done
+
 ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
 	@# CI=true forces vitest to run-once instead of TTY watch mode.
 	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
+
+# ============================================================
+# Supply chain (spec 116) — mirrors .github/workflows/ci-supply-chain.yml.
+# Posture: warn-only until 2026-05-28; promote by removing `|| true` lines.
+# ============================================================
+
+ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
+	@echo ""
+	@echo "==> ci-supply-chain: all gates passed."
+
+# cargo-deny scans every Rust manifest. No top-level Cargo.toml exists,
+# so iterate; the workspace `crates/Cargo.toml` covers all 16 member crates.
+SUPPLY_CHAIN_RUST_MANIFESTS = \
+    crates/Cargo.toml \
+    platform/services/deployd-api-rs/Cargo.toml \
+    apps/desktop/src-tauri/Cargo.toml \
+    tools/spec-compiler/Cargo.toml \
+    tools/registry-consumer/Cargo.toml \
+    tools/spec-lint/Cargo.toml \
+    tools/codebase-indexer/Cargo.toml \
+    tools/policy-compiler/Cargo.toml \
+    tools/adapter-scopes-compiler/Cargo.toml \
+    tools/ci-parity-check/Cargo.toml \
+    tools/shared/frontmatter/Cargo.toml
+
+ci-supply-chain-cargo:
+	@echo "==> ci-supply-chain: cargo-deny"
+	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
+	@for m in $(SUPPLY_CHAIN_RUST_MANIFESTS); do \
+	    echo "  cargo deny --manifest-path $$m check"; \
+	    cargo deny --manifest-path $$m check || true; \
+	done   # warn-only until 2026-05-28 (spec 116 §9)
+
+ci-supply-chain-pnpm:
+	@echo "==> ci-supply-chain: pnpm audit"
+	pnpm audit --audit-level=high || true   # warn-only until 2026-05-28
+
+ci-supply-chain-npm:
+	@echo "==> ci-supply-chain: npm audit (stagecraft)"
+	cd platform/services/stagecraft && npm audit --audit-level=high || true   # warn-only until 2026-05-28
 
 # axiomregent cross-target matrix (build-axiomregent.yml). Opt-in.
 # Prerequisite per target: rustup target add <triple>
@@ -403,6 +461,9 @@ ci-parity:
 # Utility
 # ============================================================
 
+## Remove build outputs the spec/index compilers and the desktop bundle write.
+## Does NOT clean cargo target dirs under crates/ or tools/ — use
+## `cargo clean --manifest-path <path>` for those (preserves cargo cache by default).
 clean:
 	@echo "==> Cleaning build artifacts..."
 	rm -rf build/spec-registry
@@ -423,23 +484,29 @@ help:
 	@echo "  make stop           Stop background platform services"
 	@echo ""
 	@echo "Specs:"
-	@echo "  make registry       Recompile spec registry + codebase index"
-	@echo "  make spec-compile   Recompile spec registry only"
-	@echo "  make spec-tools     Build all spec CLI tools"
+	@echo "  make registry             Recompile spec registry + codebase index"
+	@echo "  make spec-compile         Recompile spec registry only"
+	@echo "  make spec-tools           Build all spec CLI tools"
 	@echo ""
 	@echo "Index:"
-	@echo "  make index          Recompile codebase index"
-	@echo "  make index-check    Check if index is stale"
-	@echo "  make index-render   Render CODEBASE-INDEX.md from index"
+	@echo "  make index                Recompile codebase index"
+	@echo "  make index-check          Check if index is stale"
+	@echo "  make index-render         Render CODEBASE-INDEX.md from index"
+	@echo ""
+	@echo "agent-frontmatter (ts-rs mirror, spec 111):"
+	@echo "  make agent-frontmatter-ts     Regenerate the TS bindings (write-through)"
+	@echo "  make ci-agent-frontmatter-ts  Regenerate + fail if working tree drifts"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
-	@echo "  make ci             Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft)"
-	@echo "  make ci-rust        All Rust manifests: check + clippy -D warnings + test"
-	@echo "  make ci-tools       Spec tool crates + registry-consumer contract subsets + staleness gate"
-	@echo "  make ci-desktop     apps/desktop rust + version alignment + tsc + vitest"
-	@echo "  make ci-stagecraft  platform/services/stagecraft: npm ci + tsc + vitest"
-	@echo "  make ci-cross       axiomregent cross-target matrix (opt-in; requires rustup targets)"
-	@echo "  make ci-parity      Drift check: Makefile mirrors enforcing workflows (spec 104)"
+	@echo "  make ci                 Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain)"
+	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
+	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
+	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"
+	@echo "  make ci-desktop-cross   apps/desktop cargo check across release-target matrix (opt-in)"
+	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
+	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; warn-only until 2026-05-28)"
+	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"
+	@echo "  make ci-parity          Drift check: Makefile mirrors enforcing workflows (spec 104)"
 	@echo ""
 	@echo "Kubernetes:"
 	@echo "  make deploy-azure   Deploy to Azure AKS"

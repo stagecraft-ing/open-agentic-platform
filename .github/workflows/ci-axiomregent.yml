@@ -1,3 +1,6 @@
+# Spec: 033-axiomregent-activation
+# Spec: 073-axiomregent-unification
+#
 # CI for axiomregent MCP server: check, clippy, and test.
 
 name: CI axiomregent
@@ -42,6 +45,7 @@ jobs:
         with:
           manifest-path: crates/axiomregent/Cargo.toml
           cache-workspaces: crates/axiomregent
+          cache-shared-key: axiomregent
 
       - name: cargo test (policy-kernel)
         run: cargo test --manifest-path crates/policy-kernel/Cargo.toml

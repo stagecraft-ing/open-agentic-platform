@@ -1,4 +1,6 @@
-# Feature 037: Build axiomregent sidecar binaries for all supported platforms.
+# Spec: 037-cross-platform-axiomregent
+#
+# Build axiomregent sidecar binaries for all supported platforms.
 # Produces binaries compatible with Tauri's externalBin bundling convention.
 
 name: Build axiomregent binaries
@@ -45,17 +47,21 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.target }}
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
         with:
+          toolchain: '1.95.0'
           targets: ${{ matrix.target }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          shared-key: build-axiomregent-${{ matrix.target }}
 
       - name: Build axiomregent
         run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml
@@ -91,17 +97,21 @@ jobs:
   build-linux-arm64:
     runs-on: ubuntu-24.04
     name: aarch64-unknown-linux-gnu
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
         with:
+          toolchain: '1.95.0'
           targets: aarch64-unknown-linux-gnu
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          shared-key: build-axiomregent-aarch64-unknown-linux-gnu
 
       - name: Install cross-compilation tools and OpenSSL
         uses: ./.github/actions/linux-arm64-cross
