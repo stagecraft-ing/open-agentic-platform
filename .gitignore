@@ -5,9 +5,15 @@ debug/
 target/
 plans/
 
-# Remove Cargo.lock from gitignore if creating an executable, leave it for libraries
-# More information here https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
+# Workspace policy (spec 116): every member of the `crates/` workspace
+# declares `publish = false`, so it's effectively all-binaries — commit
+# the workspace lockfile for reproducible CI and direct CVE pinning.
+# The default Rust library convention to gitignore Cargo.lock does not
+# apply here. Per-member Cargo.lock files (e.g. crates/<member>/Cargo.lock
+# left behind by cargo invocations from inside member dirs) stay ignored:
+# only the workspace-root lockfile is authoritative.
 Cargo.lock
+!crates/Cargo.lock
 # Binary crates under tools/: commit lockfiles for reproducible CI (see tools/*/README.md)
 !tools/spec-compiler/Cargo.lock
 !tools/registry-consumer/Cargo.lock
