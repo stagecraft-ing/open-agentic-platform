@@ -16,6 +16,9 @@ name: Debug indexer inputs (issue #46)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'fix/indexer-hash-determinism'
 
 permissions:
   contents: read
