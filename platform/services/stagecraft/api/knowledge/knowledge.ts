@@ -123,7 +123,7 @@ async function getWorkspaceBucket(workspaceId: string): Promise<string> {
   return ws.objectStoreBucket;
 }
 
-async function verifyProjectInWorkspace(
+async function verifyProjectInScope(
   projectId: string,
   workspaceId: string
 ): Promise<void> {
@@ -1462,7 +1462,7 @@ export const listBindings = api(
   }): Promise<{ bindings: DocumentBindingRow[] }> => {
     const auth = getAuthData()!;
 
-    await verifyProjectInWorkspace(req.projectId, auth.workspaceId);
+    await verifyProjectInScope(req.projectId, auth.workspaceId);
 
     const rows = await db
       .select()
@@ -1492,7 +1492,7 @@ export const bindToProject = api(
   async (req: BindRequest): Promise<{ bindings: DocumentBindingRow[] }> => {
     const auth = getAuthData()!;
 
-    await verifyProjectInWorkspace(req.projectId, auth.workspaceId);
+    await verifyProjectInScope(req.projectId, auth.workspaceId);
 
     if (!req.knowledgeObjectIds || req.knowledgeObjectIds.length === 0) {
       throw APIError.invalidArgument("knowledgeObjectIds required");
@@ -1563,7 +1563,7 @@ export const unbindFromProject = api(
   async (req: UnbindRequest): Promise<{ deleted: boolean }> => {
     const auth = getAuthData()!;
 
-    await verifyProjectInWorkspace(req.projectId, auth.workspaceId);
+    await verifyProjectInScope(req.projectId, auth.workspaceId);
 
     const [binding] = await db
       .select()

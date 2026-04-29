@@ -86,21 +86,28 @@ export const sessions = pgTable("sessions", {
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
 });
 
-export const workspaceGrants = pgTable("workspace_grants", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull(),
-  workspaceId: text("workspace_id").notNull(),
-  enableFileRead: boolean("enable_file_read").notNull().default(true),
-  enableFileWrite: boolean("enable_file_write").notNull().default(true),
-  enableNetwork: boolean("enable_network").notNull().default(true),
-  maxTier: integer("max_tier").notNull().default(2),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+// Spec 119 §6.4 — replaces workspace_grants. user × project tuple gates
+// runtime tool permissions for OPC governance; project_members.role gates
+// coarse access independently.
+export const projectGrants = pgTable(
+  "project_grants",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    enableFileRead: boolean("enable_file_read").notNull().default(true),
+    enableFileWrite: boolean("enable_file_write").notNull().default(true),
+    enableNetwork: boolean("enable_network").notNull().default(true),
+    maxTier: integer("max_tier").notNull().default(2),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.projectId)]
+);
 
 export const agentPolicies = pgTable("agent_policies", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -155,29 +162,7 @@ export const organizations = pgTable("organizations", {
 });
 
 // ---------------------------------------------------------------------------
-// Workspaces (spec 087)
-// ---------------------------------------------------------------------------
-
-export const workspaces = pgTable(
-  "workspaces",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    orgId: uuid("org_id").notNull(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
-    objectStoreBucket: text("object_store_bucket").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [unique().on(t.orgId, t.slug)]
-);
-
-// ---------------------------------------------------------------------------
-// Projects
+// Projects (spec 119 — top-level governance unit under organization)
 // ---------------------------------------------------------------------------
 
 export const projects = pgTable(
@@ -185,10 +170,13 @@ export const projects = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     orgId: uuid("org_id").notNull(),
-    workspaceId: uuid("workspace_id").notNull(),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     description: text("description").notNull().default(""),
+    // Spec 119 §4.2 — promoted from workspaces.object_store_bucket. Each
+    // project owns its own S3-compatible bucket for the knowledge corpus
+    // and factory artifacts.
+    objectStoreBucket: text("object_store_bucket").notNull(),
     // Spec 112 §5.2 — link to the factory adapter this project was created
     // from (or translated to, for imported legacy projects). Nullable so
     // pre-spec-112 projects load without migration back-fill.
@@ -201,7 +189,7 @@ export const projects = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [unique().on(t.workspaceId, t.slug)]
+  (t) => [unique().on(t.orgId, t.slug)]
 );
 
 // ---------------------------------------------------------------------------
@@ -522,7 +510,7 @@ export const knowledgeObjectStateEnum = pgEnum("knowledge_object_state", [
 
 export const sourceConnectors = pgTable("source_connectors", {
   id: uuid("id").defaultRandom().primaryKey(),
-  workspaceId: uuid("workspace_id").notNull(),
+  projectId: uuid("project_id").notNull(),
   type: connectorTypeEnum("type").notNull(),
   name: text("name").notNull(),
   configEncrypted: jsonb("config_encrypted"),
@@ -539,7 +527,7 @@ export const sourceConnectors = pgTable("source_connectors", {
 
 export const knowledgeObjects = pgTable("knowledge_objects", {
   id: uuid("id").defaultRandom().primaryKey(),
-  workspaceId: uuid("workspace_id").notNull(),
+  projectId: uuid("project_id").notNull(),
   connectorId: uuid("connector_id"),
   storageKey: text("storage_key").notNull(),
   filename: text("filename").notNull(),
@@ -561,20 +549,6 @@ export const knowledgeObjects = pgTable("knowledge_objects", {
     .defaultNow(),
 });
 
-export const documentBindings = pgTable(
-  "document_bindings",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    projectId: uuid("project_id").notNull(),
-    knowledgeObjectId: uuid("knowledge_object_id").notNull(),
-    boundBy: uuid("bound_by").notNull(),
-    boundAt: timestamp("bound_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [unique().on(t.projectId, t.knowledgeObjectId)]
-);
-
 // ---------------------------------------------------------------------------
 // Sync Runs (spec 087 Phase 4)
 // ---------------------------------------------------------------------------
@@ -588,7 +562,7 @@ export const syncRunStatusEnum = pgEnum("sync_run_status", [
 export const syncRuns = pgTable("sync_runs", {
   id: uuid("id").defaultRandom().primaryKey(),
   connectorId: uuid("connector_id").notNull(),
-  workspaceId: uuid("workspace_id").notNull(),
+  projectId: uuid("project_id").notNull(),
   status: syncRunStatusEnum("status").notNull().default("running"),
   objectsCreated: integer("objects_created").notNull().default(0),
   objectsUpdated: integer("objects_updated").notNull().default(0),
@@ -962,7 +936,6 @@ export const projectCloneRuns = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     sourceProjectId: uuid("source_project_id").notNull(),
-    workspaceId: uuid("workspace_id").notNull(),
     orgId: uuid("org_id").notNull(),
     triggeredBy: uuid("triggered_by").notNull(),
     status: projectCloneRunStatusEnum("status").notNull().default("pending"),
@@ -974,6 +947,8 @@ export const projectCloneRuns = pgTable(
     finalRepoName: text("final_repo_name"),
     defaultBranch: text("default_branch"),
     destRepoFullName: text("dest_repo_full_name"),
+    // Spec 119: workspace_id dropped — org_id captures listing scope; the
+    // (nullable) project_id below is the destination project once created.
     projectId: uuid("project_id"),
     opcDeepLink: text("opc_deep_link"),
     rawArtifactsCopied: integer("raw_artifacts_copied"),
@@ -987,7 +962,7 @@ export const projectCloneRuns = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
-  (t) => [index("idx_project_clone_runs_workspace_queued").on(t.workspaceId, t.queuedAt)],
+  (t) => [index("idx_project_clone_runs_org_queued").on(t.orgId, t.queuedAt)],
 );
 
 // ---------------------------------------------------------------------------
@@ -1047,9 +1022,10 @@ export const agentCatalogAudit = pgTable("agent_catalog_audit", {
 // ---------------------------------------------------------------------------
 // One row per extraction attempt. Drives the Topic + Subscription worker
 // that walks `imported → extracting → extracted` automatically. Idempotency
-// key (workspace_id, content_hash, extractor_version) is enforced in
-// extractionCore.ts, not as a SQL UNIQUE — same key may recur after a 24h
-// window so retries against the same content remain possible.
+// key (project_id, content_hash, extractor_version) — spec 119 collapsed
+// the legacy workspace scope into project — is enforced in extractionCore.ts,
+// not as a SQL UNIQUE: same key may recur after a 24h window so retries
+// against the same content remain possible.
 
 export const knowledgeExtractionRunStatusEnum = pgEnum(
   "knowledge_extraction_run_status",
@@ -1061,7 +1037,7 @@ export const knowledgeExtractionRuns = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     knowledgeObjectId: uuid("knowledge_object_id").notNull(),
-    workspaceId: uuid("workspace_id").notNull(),
+    projectId: uuid("project_id").notNull(),
     status: knowledgeExtractionRunStatusEnum("status")
       .notNull()
       .default("pending"),
@@ -1080,16 +1056,16 @@ export const knowledgeExtractionRuns = pgTable(
     durationMs: integer("duration_ms"),
   },
   (t) => [
-    index("idx_knowledge_extraction_runs_workspace_status").on(
-      t.workspaceId,
+    index("idx_knowledge_extraction_runs_project_status").on(
+      t.projectId,
       t.status,
     ),
     index("idx_knowledge_extraction_runs_object_queued").on(
       t.knowledgeObjectId,
       t.queuedAt,
     ),
-    index("idx_knowledge_extraction_runs_workspace_completed").on(
-      t.workspaceId,
+    index("idx_knowledge_extraction_runs_project_completed").on(
+      t.projectId,
       t.completedAt,
     ),
   ],

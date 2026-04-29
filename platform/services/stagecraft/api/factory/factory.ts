@@ -125,7 +125,7 @@ type AuditEntry = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function verifyProjectInWorkspace(
+async function verifyProjectInScope(
   projectId: string,
   workspaceId: string
 ): Promise<void> {
@@ -145,7 +145,7 @@ async function getActivePipeline(
   workspaceId: string
 ): Promise<PipelineRow> {
   // Workspace-scoped: verify project belongs to workspace
-  await verifyProjectInWorkspace(projectId, workspaceId);
+  await verifyProjectInScope(projectId, workspaceId);
 
   const rows = await db
     .select()
@@ -228,7 +228,7 @@ type InitResponse = {
 export const initPipeline = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/init" },
   async (req: InitRequest): Promise<InitResponse> => {
-    await verifyProjectInWorkspace(req.id, req.workspaceId);
+    await verifyProjectInScope(req.id, req.workspaceId);
 
     // Validate adapter
     if (!KNOWN_ADAPTERS.includes(req.adapter as typeof KNOWN_ADAPTERS[number])) {
@@ -1283,7 +1283,7 @@ type RecordArtifactsResponse = {
 export const recordArtifacts = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/artifacts" },
   async (req: RecordArtifactsRequest): Promise<RecordArtifactsResponse> => {
-    await verifyProjectInWorkspace(req.id, req.workspaceId);
+    await verifyProjectInScope(req.id, req.workspaceId);
 
     if (!req.artifacts || req.artifacts.length === 0) {
       return { recorded: 0 };
@@ -1331,7 +1331,7 @@ type LookupArtifactsResponse = {
 export const lookupArtifact = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/artifacts/lookup" },
   async (req: LookupArtifactsRequest): Promise<LookupArtifactsResponse> => {
-    await verifyProjectInWorkspace(req.id, req.workspaceId);
+    await verifyProjectInScope(req.id, req.workspaceId);
 
     const rows = await db
       .select()
