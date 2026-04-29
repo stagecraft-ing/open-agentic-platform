@@ -45,6 +45,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.target }}
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -57,6 +58,8 @@ jobs:
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          shared-key: build-axiomregent-${{ matrix.target }}
 
       - name: Build axiomregent
         run: cargo build --release --target ${{ matrix.target }} --manifest-path crates/axiomregent/Cargo.toml
@@ -92,6 +95,7 @@ jobs:
   build-linux-arm64:
     runs-on: ubuntu-24.04
     name: aarch64-unknown-linux-gnu
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -104,6 +108,8 @@ jobs:
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          shared-key: build-axiomregent-aarch64-unknown-linux-gnu
 
       - name: Install cross-compilation tools and OpenSSL
         uses: ./.github/actions/linux-arm64-cross

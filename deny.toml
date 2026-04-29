@@ -1,0 +1,65 @@
+# cargo-deny policy bundle. Spec 116.
+#
+# Authoring rules:
+#   - This file is human-edited markdown-friendly TOML.
+#   - cargo-deny is the only consumer.
+#   - During the 30-day warn window after merge (until 2026-05-28), the
+#     ci-supply-chain.yml workflow runs `continue-on-error: true` so violations
+#     surface as advisory annotations rather than blocking PRs. After
+#     promotion, the gate becomes blocking.
+
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/RustSec/advisory-db"]
+yanked = "warn"
+ignore = []
+
+[bans]
+# The single most common foot-gun in Rust workspaces — multiple major
+# versions of the same crate dragged in via different paths.
+multiple-versions = "warn"
+wildcards = "deny"
+# Crates we have explicitly chosen NOT to use. Empty on day 1; populate
+# via follow-up PRs as architectural decisions land (e.g. "use tracing,
+# not log").
+deny = []
+# Skip multiple-version warnings for these crates (use sparingly,
+# document why with an inline comment).
+skip = []
+
+[licenses]
+# Permissive licenses we accept by default.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "CC0-1.0",
+    "Zlib",
+    "MPL-2.0",
+    "OpenSSL",
+]
+# Hard block. GPL-family is incompatible with the desktop bundle's
+# distribution model.
+deny = [
+    "GPL-1.0",
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-1.0",
+    "AGPL-3.0",
+    "LGPL-2.0",
+    "LGPL-2.1",
+    "LGPL-3.0",
+]
+confidence-threshold = 0.93
+
+[sources]
+# Block crates from sources other than crates.io and github.com unless
+# explicitly allowlisted (e.g. a vendored grammar fork).
+unknown-registry = "deny"
+unknown-git = "warn"
+allow-git = []

@@ -42,6 +42,7 @@ jobs:
         with:
           manifest-path: crates/axiomregent/Cargo.toml
           cache-workspaces: crates/axiomregent
+          cache-shared-key: axiomregent
 
       - name: cargo test (policy-kernel)
         run: cargo test --manifest-path crates/policy-kernel/Cargo.toml

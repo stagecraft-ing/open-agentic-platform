@@ -46,6 +46,7 @@ jobs:
           - standards-loader
     runs-on: ubuntu-latest
     name: ${{ matrix.crate }}
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -54,6 +55,7 @@ jobs:
         uses: ./.github/actions/rust-ci
         with:
           manifest-path: crates/${{ matrix.crate }}/Cargo.toml
+          cache-shared-key: ci-crates-${{ matrix.crate }}
 
       # Spec 111 §2.1 Phase 2 — stagecraft's `CatalogFrontmatter` wraps a
       # ts-rs mirror of the Rust `UnifiedFrontmatter`. `cargo test` on the

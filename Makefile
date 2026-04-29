@@ -14,7 +14,9 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
-        ci ci-rust ci-tools ci-desktop ci-stagecraft ci-cross ci-parity
+        ci ci-rust ci-tools ci-desktop ci-desktop-cross ci-stagecraft \
+        ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
+        ci-cross ci-parity
 
 # ============================================================
 # Prerequisites check
@@ -266,7 +268,7 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci: ci-rust ci-tools ci-desktop ci-stagecraft
+ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-supply-chain
 	@echo ""
 	@echo "==> Local CI parity: all gates passed."
 
@@ -373,10 +375,42 @@ ci-desktop:
 	pnpm --filter @opc/desktop exec tsc --noEmit
 	pnpm --filter @opc/desktop test
 
+# M7 — cross-target `cargo check` for src-tauri. Opt-in (not part of `make ci`)
+# because local runs require `rustup target add x86_64-unknown-linux-gnu` and
+# `rustup target add x86_64-pc-windows-msvc`. CI runs natively on each OS via
+# the matrix in ci-desktop.yml.
+ci-desktop-cross:
+	@for t in x86_64-unknown-linux-gnu x86_64-pc-windows-msvc; do \
+	    echo "==> ci-desktop-cross: $$t"; \
+	    cargo check --target $$t --manifest-path apps/desktop/src-tauri/Cargo.toml || exit 1; \
+	done
+
 ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
 	@# CI=true forces vitest to run-once instead of TTY watch mode.
 	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
+
+# ============================================================
+# Supply chain (spec 116) — mirrors .github/workflows/ci-supply-chain.yml.
+# Posture: warn-only until 2026-05-28; promote by removing `|| true` lines.
+# ============================================================
+
+ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
+	@echo ""
+	@echo "==> ci-supply-chain: all gates passed."
+
+ci-supply-chain-cargo:
+	@echo "==> ci-supply-chain: cargo-deny"
+	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.16'
+	cargo deny check || true   # warn-only until 2026-05-28 (spec 116 §9)
+
+ci-supply-chain-pnpm:
+	@echo "==> ci-supply-chain: pnpm audit"
+	pnpm audit --audit-level=high || true   # warn-only until 2026-05-28
+
+ci-supply-chain-npm:
+	@echo "==> ci-supply-chain: npm audit (stagecraft)"
+	cd platform/services/stagecraft && npm audit --audit-level=high || true   # warn-only until 2026-05-28
 
 # axiomregent cross-target matrix (build-axiomregent.yml). Opt-in.
 # Prerequisite per target: rustup target add <triple>
@@ -433,13 +467,15 @@ help:
 	@echo "  make index-render   Render CODEBASE-INDEX.md from index"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
-	@echo "  make ci             Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft)"
-	@echo "  make ci-rust        All Rust manifests: check + clippy -D warnings + test"
-	@echo "  make ci-tools       Spec tool crates + registry-consumer contract subsets + staleness gate"
-	@echo "  make ci-desktop     apps/desktop rust + version alignment + tsc + vitest"
-	@echo "  make ci-stagecraft  platform/services/stagecraft: npm ci + tsc + vitest"
-	@echo "  make ci-cross       axiomregent cross-target matrix (opt-in; requires rustup targets)"
-	@echo "  make ci-parity      Drift check: Makefile mirrors enforcing workflows (spec 104)"
+	@echo "  make ci                 Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain)"
+	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
+	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
+	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"
+	@echo "  make ci-desktop-cross   apps/desktop cargo check across release-target matrix (opt-in)"
+	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
+	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; warn-only until 2026-05-28)"
+	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"
+	@echo "  make ci-parity          Drift check: Makefile mirrors enforcing workflows (spec 104)"
 	@echo ""
 	@echo "Kubernetes:"
 	@echo "  make deploy-azure   Deploy to Azure AKS"
