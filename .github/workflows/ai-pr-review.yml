@@ -1,22 +1,37 @@
-# AI-Powered PR Review
-# Backing spec: 085 (remote-control-cli)
-# Uses Claude CLI to review diffs for bugs, security issues, and spec compliance.
+# Spec: 085-remote-control-cli
+#
+# AI-Powered PR Review. Uses Claude CLI to review diffs for bugs, security
+# issues, and spec compliance.
+#
+# Hardening notes (ci-hardening branch):
+#   - H3: diff payload is passed to Claude via stdin instead of `$(cat …)`
+#     interpolation, eliminating shell-evaluation of backticks/$( ) inside
+#     contributor-controlled diff content.
+#   - H4: Claude CLI version pinned via env var (CLAUDE_CLI_VERSION) so
+#     dependabot bumps land in one place.
+#   - M6: draft PRs are skipped to avoid burning Anthropic tokens on WIP.
 
 name: AI PR Review
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review]
 
 permissions:
   contents: read
   pull-requests: write
 
+env:
+  CLAUDE_CLI_VERSION: '2.1.88'
+  DIFF_SIZE_CAP: '2000'
+
 jobs:
   ai-review:
     runs-on: ubuntu-latest
-    # Only run if diff is manageable (< 2000 lines)
+    name: ai-review / diff scan
+    timeout-minutes: 10
+    if: github.event.pull_request.draft == false
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -27,50 +42,56 @@ jobs:
         id: diff
         run: |
           DIFF_LINES=$(git diff origin/main...HEAD --stat | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo "0")
-          echo "lines=$DIFF_LINES" >> $GITHUB_OUTPUT
-          if [ "$DIFF_LINES" -gt "2000" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+          echo "lines=$DIFF_LINES" >> "$GITHUB_OUTPUT"
+          if [ "$DIFF_LINES" -gt "$DIFF_SIZE_CAP" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate diff
         if: steps.diff.outputs.skip != 'true'
-        run: |
-          git diff origin/main...HEAD > /tmp/pr-diff.txt
+        run: git diff origin/main...HEAD > /tmp/pr-diff.txt
 
       - name: Install Claude CLI
         if: steps.diff.outputs.skip != 'true'
-        run: npm install -g @anthropic-ai/claude-code@1.0.3
+        run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CLI_VERSION}"
 
+      # H3 fix: prompt prelude is fed via -p; the diff is piped to stdin.
+      # No shell interpolation of contributor-controlled content occurs.
       - name: Run AI Review
         if: steps.diff.outputs.skip != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude -p "You are reviewing a pull request for the Open Agentic Platform. Review this diff for:
+          set -o pipefail
+          PROMPT='You are reviewing a pull request for the Open Agentic Platform. The diff is provided on stdin. Review it for:
           1. Bugs and logic errors
           2. Security vulnerabilities (OWASP top 10)
-          3. Spec compliance (check Feature: annotations match code_aliases in specs/)
+          3. Spec compliance (check that Feature: annotations match code_aliases in specs/)
           4. Performance concerns
 
-          Be concise. Focus on issues, not praise. Format as markdown with ## sections.
-
-          $(cat /tmp/pr-diff.txt)" --output-format text > /tmp/review.md 2>/dev/null || echo "Review generation failed" > /tmp/review.md
+          Be concise. Focus on issues, not praise. Format as markdown with ## sections.'
+          claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md \
+            || echo "Review generation failed" > /tmp/review.md
 
       - name: Post review comment
         if: steps.diff.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_LINES: ${{ steps.diff.outputs.lines }}
         run: |
-          echo "## AI Code Review" > /tmp/comment.md
-          echo "" >> /tmp/comment.md
-          cat /tmp/review.md >> /tmp/comment.md
-          echo "" >> /tmp/comment.md
-          echo "---" >> /tmp/comment.md
-          echo "_Automated review by Claude. Diff size: ${{ steps.diff.outputs.lines }} lines._" >> /tmp/comment.md
-          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment.md
+          {
+            echo "## AI Code Review"
+            echo ""
+            cat /tmp/review.md
+            echo ""
+            echo "---"
+            echo "_Automated review by Claude. Diff size: ${DIFF_LINES} lines._"
+          } > /tmp/comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
 
       - name: Skip notice
         if: steps.diff.outputs.skip == 'true'
-        run: echo "::notice::Skipping AI review — diff exceeds 2000 lines (${{ steps.diff.outputs.lines }})"
+        run: echo "::notice::Skipping AI review — diff exceeds ${DIFF_SIZE_CAP} lines (${{ steps.diff.outputs.lines }})"

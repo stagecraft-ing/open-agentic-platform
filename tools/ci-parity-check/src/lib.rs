@@ -34,6 +34,7 @@ struct Step {
 /// Keep in sync with spec 104 §2.2.
 pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-axiomregent.yml",
+    "ci-codebase-index.yml",
     "ci-crates.yml",
     "ci-deployd-api-rs.yml",
     "ci-desktop.yml",

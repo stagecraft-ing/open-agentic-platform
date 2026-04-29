@@ -1,0 +1,62 @@
+# Spec: 101-codebase-index-mvp
+# Spec: 103-init-protocol-governed-reads
+#
+# Codebase-index staleness gate. The committed `build/codebase-index/index.json`
+# hashes inputs across crates/, apps/, packages/, platform/services/**, and
+# tools/. This gate fails the build if any of those inputs changed without
+# `codebase-indexer compile` being re-run and the result committed.
+#
+# Why a dedicated workflow: spec-conformance.yml was the previous home, but
+# its path filter was scoped to tools/, specs/, build/ — so a PR adding a new
+# crate or renaming a package could land with a stale index. (Finding H2 in
+# the ci-hardening branch plan.)
+
+name: CI codebase-index
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'platform/services/**'
+      - 'tools/codebase-indexer/**'
+      - 'build/codebase-index/**'
+      - 'specs/**'
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'platform/services/**'
+      - 'tools/codebase-indexer/**'
+      - 'build/codebase-index/**'
+      - 'specs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  staleness:
+    runs-on: ubuntu-latest
+    name: codebase-index / staleness check
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Build codebase-indexer
+        uses: ./.github/actions/rust-ci
+        with:
+          manifest-path: tools/codebase-indexer/Cargo.toml
+          cache-shared-key: codebase-indexer
+
+      - name: Compile codebase-indexer release binary
+        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+
+      - name: Staleness check (committed artifact)
+        run: ./tools/codebase-indexer/target/release/codebase-indexer check
