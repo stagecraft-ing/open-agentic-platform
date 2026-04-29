@@ -107,7 +107,7 @@ url = { version = "2.5.8", default-features = false }
 # Made optional so it isn't linked during `cargo test` (avoids WebView2 COM DLL issues
 # in headless test environments). Enable with: cargo tauri dev --features mcp-dev
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
-tauri-plugin-mcp-bridge = { version = "0.2", optional = true }
+tauri-plugin-mcp-bridge = { version = "0.11", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 window-vibrancy = "0.5"
