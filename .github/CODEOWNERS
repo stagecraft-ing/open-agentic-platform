@@ -1,0 +1,39 @@
+# CODEOWNERS — required-reviewer routing.
+#
+# Format: <path-glob> <@owner1> <@owner2>
+# GitHub auto-requests owners as reviewers on PRs touching the matching paths.
+#
+# Single-developer repo: every path resolves to @bartlomiejkus. The file
+# exists primarily to make spec-touching and contract-touching paths a
+# load-bearing review surface as collaborators come online, and to give the
+# registry-consumer contract checklist (in pull_request_template.md) a real
+# enforcement hook.
+
+# Default — every PR gets the maintainer as a reviewer.
+*                                       @bartlomiejkus
+
+# Spec spine and constitution — review these for contract drift.
+/specs/                                 @bartlomiejkus
+/.specify/                              @bartlomiejkus
+
+# Registry-consumer contract surface — the PR template's contract checklist
+# applies here. Reviewers should expand the collapsed checklist.
+/tools/registry-consumer/               @bartlomiejkus
+/tools/spec-compiler/                   @bartlomiejkus
+/tools/spec-lint/                       @bartlomiejkus
+/tools/codebase-indexer/                @bartlomiejkus
+/tools/ci-parity-check/                 @bartlomiejkus
+
+# Governance + policy — high-impact surface.
+/crates/policy-kernel/                  @bartlomiejkus
+/tools/policy-compiler/                 @bartlomiejkus
+
+# CI + release plumbing — touching these affects every PR.
+/.github/                               @bartlomiejkus
+/Makefile                               @bartlomiejkus
+/rust-toolchain.toml                    @bartlomiejkus
+/deny.toml                              @bartlomiejkus
+
+# Platform services — coordinate with the platform-owner once the
+# co-maintainer onboards.
+/platform/                              @bartlomiejkus

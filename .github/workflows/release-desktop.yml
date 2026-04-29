@@ -271,7 +271,7 @@ jobs:
           tagName: ${{ steps.tag.outputs.tag }}
           releaseName: 'OPC ${{ steps.tag.outputs.tag }}'
           releaseBody: |
-            See the [changelog](https://github.com/stagecraft-ing/open-agentic-platform/commits/${{ steps.tag.outputs.tag }}) for details.
+            See the [changelog](https://github.com/${{ github.repository }}/commits/${{ steps.tag.outputs.tag }}) for details.
 
             ## Downloads
             | Platform | File |
@@ -298,7 +298,7 @@ jobs:
           tagName: ${{ steps.tag.outputs.tag }}
           releaseName: 'OPC ${{ steps.tag.outputs.tag }}'
           releaseBody: |
-            See the [changelog](https://github.com/stagecraft-ing/open-agentic-platform/commits/${{ steps.tag.outputs.tag }}) for details.
+            See the [changelog](https://github.com/${{ github.repository }}/commits/${{ steps.tag.outputs.tag }}) for details.
 
             ## Downloads
             | Platform | File |

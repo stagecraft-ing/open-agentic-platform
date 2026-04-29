@@ -28,7 +28,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft
+  # ghcr.io repo path is derived from github.repository (lowercased per OCI
+  # registry rules) so a repo rename doesn't require a workflow edit.
+  IMAGE: ghcr.io/${{ github.repository }}/stagecraft
   ENCORE_VERSION: '1.56.6'
 
 jobs:

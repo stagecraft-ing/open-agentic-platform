@@ -29,7 +29,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
+  # ghcr.io repo path is derived from github.repository so a repo rename
+  # doesn't require a workflow edit. Lowercased per OCI registry rules.
+  IMAGE: ghcr.io/${{ github.repository }}/deployd-api
 
 jobs:
   # -- CI gate ---------------------------------------------------------------

@@ -62,7 +62,13 @@ setup: check-deps
 # axiomregent sidecar binary
 # ============================================================
 
-AXIOMREGENT_REPO   ?= stagecraft-ing/open-agentic-platform
+# Default repo for `gh release download`. Auto-detected from the local
+# git remote when possible; otherwise falls back to the canonical path so
+# fresh clones from a fork still resolve to the upstream releases.
+AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's#.*github.com[:/](.+)\.git#\1#' | sed -E 's#.*github.com[:/](.+)$$#\1#' | head -1)
+ifeq ($(AXIOMREGENT_REPO),)
+AXIOMREGENT_REPO   := stagecraft-ing/open-agentic-platform
+endif
 AXIOMREGENT_BINDIR = apps/desktop/src-tauri/binaries
 
 axiomregent:
@@ -232,7 +238,7 @@ dev-all:
 stop:
 	@echo "==> Stopping background services..."
 	-@pkill -f "encore run" 2>/dev/null || true
-	-@pkill -f "deployd.api" 2>/dev/null || true
+	-@pkill -f "deployd-api" 2>/dev/null || true   # literal binary name; the prior `deployd.api` regex matched any character in place of `-`.
 	@echo "Done."
 
 # ============================================================
@@ -437,6 +443,9 @@ ci-parity:
 # Utility
 # ============================================================
 
+## Remove build outputs the spec/index compilers and the desktop bundle write.
+## Does NOT clean cargo target dirs under crates/ or tools/ — use
+## `cargo clean --manifest-path <path>` for those (preserves cargo cache by default).
 clean:
 	@echo "==> Cleaning build artifacts..."
 	rm -rf build/spec-registry
@@ -457,14 +466,18 @@ help:
 	@echo "  make stop           Stop background platform services"
 	@echo ""
 	@echo "Specs:"
-	@echo "  make registry       Recompile spec registry + codebase index"
-	@echo "  make spec-compile   Recompile spec registry only"
-	@echo "  make spec-tools     Build all spec CLI tools"
+	@echo "  make registry             Recompile spec registry + codebase index"
+	@echo "  make spec-compile         Recompile spec registry only"
+	@echo "  make spec-tools           Build all spec CLI tools"
 	@echo ""
 	@echo "Index:"
-	@echo "  make index          Recompile codebase index"
-	@echo "  make index-check    Check if index is stale"
-	@echo "  make index-render   Render CODEBASE-INDEX.md from index"
+	@echo "  make index                Recompile codebase index"
+	@echo "  make index-check          Check if index is stale"
+	@echo "  make index-render         Render CODEBASE-INDEX.md from index"
+	@echo ""
+	@echo "agent-frontmatter (ts-rs mirror, spec 111):"
+	@echo "  make agent-frontmatter-ts     Regenerate the TS bindings (write-through)"
+	@echo "  make ci-agent-frontmatter-ts  Regenerate + fail if working tree drifts"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
 	@echo "  make ci                 Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain)"
