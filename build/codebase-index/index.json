@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0fbb245cd2a0732acca136194af01a94a606b113303c92f52cebf9cd0bcfb03c",
+    "contentHash": "06545f6780b4a9f66147758ad7f85e84c95e1ddd46aaf0d958ea2982b1fbd0e1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15,6 +15,14 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"116-supply-chain-policy-gates\" declares implements path \".github/workflows/ci-supply-chain.yml\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"116-supply-chain-policy-gates\" declares implements path \"deny.toml\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -1207,7 +1215,6 @@
     },
     {
       "externalDeps": [
-        "@anthropic-ai/sdk",
         "@aws-sdk/client-s3",
         "@aws-sdk/s3-request-presigner",
         "@react-router/dev",
@@ -3186,6 +3193,76 @@
         ],
         "specId": "115-knowledge-extraction-pipeline",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "047",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci-supply-chain.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "deny.toml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "116-supply-chain-policy-gates",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "037",
+          "086",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/release-axiomregent.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-desktop.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-tools.yml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "117-release-artifact-attestations",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "101",
+          "103"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows",
+            "source": "spec-implements"
+          },
+          {
+            "path": "build/codebase-index/CODEBASE-INDEX.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "118-workflow-spec-traceability",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
