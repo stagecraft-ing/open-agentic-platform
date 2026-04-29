@@ -34,7 +34,7 @@ env:
   # ghcr.io repo path is derived from github.repository (lowercased per OCI
   # registry rules) so a repo rename doesn't require a workflow edit.
   IMAGE: ghcr.io/${{ github.repository }}/stagecraft
-  ENCORE_VERSION: '1.56.6'
+  ENCORE_VERSION: '1.56.7'
 
 jobs:
   # ── CI gate ────────────────────────────────────────────────
