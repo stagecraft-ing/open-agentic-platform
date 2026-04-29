@@ -233,6 +233,17 @@ the Sigstore Rekor log).
      in some directory shapes. Local syft 1.43.0 against the same path
      returned 661 components. Action MUST be pinned to v0.24.0+ (ships
      syft 1.30+).
+  3. After the action bump, smoke #3
+     (`axiomregent-v0.0.2-attestation-smoke`) STILL returned 0 components.
+     Root cause: `crates/Cargo.lock` is gitignored (Rust convention for
+     library workspaces — see project `.gitignore` line 10), so a fresh CI
+     checkout has no lockfile for syft's `rust-cargo-lock-cataloger` to
+     walk. Local repros showed 661 components only because the developer's
+     working tree had a cached `target/` directory. Workflows that scan a
+     workspace member crate MUST run `cargo generate-lockfile
+     --manifest-path <workspace>/Cargo.toml` before the SBOM step, and
+     scan the workspace root (where the lockfile lands) — not the member
+     crate. axiomregent now scans `crates/` rather than `crates/axiomregent`.
 
 ## 7. Risks and Mitigations
 
