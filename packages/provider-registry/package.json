@@ -31,8 +31,8 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.1019.0",
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@aws-sdk/client-bedrock-runtime": "^3.1039.0",
     "@google/generative-ai": "^0.24.1",
     "@opc/claude-code-bridge": "workspace:*",
     "@opc/permission-system": "workspace:*",
