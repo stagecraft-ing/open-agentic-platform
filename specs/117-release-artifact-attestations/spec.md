@@ -219,6 +219,14 @@ the Sigstore Rekor log).
 - **AC-6:** SBOM components count > 0 for every emitted SBOM
   (sanity check that the action ran against a populated artifact dir).
 
+  **Lesson from `axiomregent-v0.0.0-attestation-smoke` (2026-04-29):**
+  pointing `anchore/sbom-action` at the staged `dist/` of stripped release
+  binaries yields a zero-component SBOM because syft cannot recover crate
+  metadata from stripped Rust binaries. The fix is to scope `path:` to the
+  source tree (e.g. `crates/axiomregent`, `apps/desktop`, `tools/`) where
+  `Cargo.toml` and `Cargo.lock` give syft something to enumerate. Captured
+  here so this isn't re-discovered in a future bring-up.
+
 ## 7. Risks and Mitigations
 
 - **Risk:** `attest-build-provenance` requires

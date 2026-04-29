@@ -161,11 +161,15 @@ jobs:
       - name: List artifacts
         run: ls -lh dist/
 
-      # Spec 117 — CycloneDX SBOM for the release artifact set.
+      # Spec 117 — CycloneDX SBOM scoped to the axiomregent crate's source
+      # tree so syft can read Cargo.toml + Cargo.lock for crate-level
+      # component data. The smoke run (axiomregent-v0.0.0-attestation-smoke)
+      # showed `path: dist/` produces an empty SBOM because release binaries
+      # are stripped and contain no recoverable crate metadata.
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.8
         with:
-          path: dist/
+          path: crates/axiomregent
           format: cyclonedx-json
           output-file: dist/sbom-axiomregent.cdx.json
 
