@@ -261,6 +261,7 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
           contents: "write",
           administration: "write",
           metadata: "read",
+          workflows: "write",
         },
       ));
     } catch (err) {

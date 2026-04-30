@@ -553,6 +553,7 @@ export const createProjectWithRepo = api(
           contents: "write",
           administration: "write",
           actions: "write",
+          workflows: "write",
         }
       ));
     } catch (err) {

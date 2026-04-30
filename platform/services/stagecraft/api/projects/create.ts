@@ -117,6 +117,7 @@ export const createFactoryProject = api(
       contents: "write",
       administration: "write",
       actions: "write",
+      workflows: "write",
     });
 
     // ── 3. Insert a pending scaffold_jobs row. ───────────────────────
