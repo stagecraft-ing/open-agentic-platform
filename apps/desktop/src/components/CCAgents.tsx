@@ -55,7 +55,7 @@ interface CCAgentsProps {
 // Available icons for agents - now using all icons from IconPicker
 export const AGENT_ICONS = ICON_MAP;
 
-export type AgentIconName = keyof typeof AGENT_ICONS;
+export type AgentIconName = string;
 
 /**
  * CCAgents component for managing Claude Code agents

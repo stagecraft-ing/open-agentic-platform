@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7088202e1bd266fd25e329238fc7b2ecf6bbfc140926734fcbd50b03ac14c54e",
+    "contentHash": "689d28686ff2698231a9523d657dd6965f2209ef58344951812a464914df4026",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -326,7 +326,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.2.4"
+      "version": "0.2.5"
     },
     {
       "edition": "2024",
@@ -450,7 +450,7 @@
       "name": "axiomregent",
       "path": "crates/axiomregent",
       "specRef": "073-axiomregent-unification",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "edition": "2024",
@@ -2774,7 +2774,7 @@
           }
         ],
         "specId": "109-factory-pat-and-pubsub-sync",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2822,7 +2822,7 @@
           }
         ],
         "specId": "110-stagecraft-to-opc-factory-trigger",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2908,7 +2908,7 @@
           }
         ],
         "specId": "111-org-agent-catalog-sync",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2981,7 +2981,7 @@
           }
         ],
         "specId": "112-factory-project-lifecycle",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

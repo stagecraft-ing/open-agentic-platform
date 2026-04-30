@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Github, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { GithubIcon } from '@/components/icons/GithubIcon';
 import { Button } from '@opc/ui/button';
 import { Card } from '@opc/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,7 +49,7 @@ export function LoginScreen() {
               </>
             ) : (
               <>
-                <Github className="w-4 h-4" />
+                <GithubIcon className="w-4 h-4" />
                 Sign in with GitHub
               </>
             )}
