@@ -65,7 +65,7 @@ setup: check-deps
 # Default repo for `gh release download`. Auto-detected from the local
 # git remote when possible; otherwise falls back to the canonical path so
 # fresh clones from a fork still resolve to the upstream releases.
-AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's#.*github.com[:/](.+)\.git#\1#' | sed -E 's#.*github.com[:/](.+)$$#\1#' | head -1)
+AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's,.*github.com[:/](.+)\.git,\1,' | sed -E 's,.*github.com[:/](.+)$$,\1,' | head -1)
 ifeq ($(AXIOMREGENT_REPO),)
 AXIOMREGENT_REPO   := stagecraft-ing/open-agentic-platform
 endif
