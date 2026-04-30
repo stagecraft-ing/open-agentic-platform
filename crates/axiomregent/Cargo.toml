@@ -32,7 +32,7 @@ lz4_flex = "0.11"
 tar = "0.4.44"
 log = "0.4.29"
 env_logger = "0.11"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 octocrab = "0.41"
 urlencoding = "2"
 hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "dlock", "listen_notify_local", "cache"] }
