@@ -75,11 +75,27 @@ export const FactoryPipelineProvider: React.FC<{
   // ── Tauri event listeners ──────────────────────────────────────────────────
 
   useEffect(() => {
+    // StrictMode (and HMR) re-runs effects: the cleanup fires before
+    // `setupListeners` finishes its first awaited `listen()`, so the
+    // unlisteners array is still empty when cleanup reads it. Without
+    // a cancelled flag we leak listeners across reruns and end up with
+    // two callbacks per event — visible as doubled lines in the live
+    // output. The flag lets each awaited registration unsubscribe
+    // itself if the effect already cleaned up.
+    let cancelled = false;
     const unlisteners: UnlistenFn[] = [];
+
+    const track = (un: UnlistenFn) => {
+      if (cancelled) {
+        un();
+      } else {
+        unlisteners.push(un);
+      }
+    };
 
     async function setupListeners() {
       // factory:step_started
-      unlisteners.push(
+      track(
         await listen<FactoryStepStartedEvent>('factory:step_started', (event) => {
           const { stepId } = event.payload;
           // Clear output when a new step starts
@@ -96,7 +112,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:step_completed
-      unlisteners.push(
+      track(
         await listen<FactoryStepCompletedEvent>(
           'factory:step_completed',
           (event) => {
@@ -120,7 +136,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:step_failed
-      unlisteners.push(
+      track(
         await listen<FactoryStepFailedEvent>('factory:step_failed', (event) => {
           const { stepId } = event.payload;
           setState((prev) => ({
@@ -133,7 +149,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:gate_reached
-      unlisteners.push(
+      track(
         await listen<FactoryGateReachedEvent>(
           'factory:gate_reached',
           (event) => {
@@ -160,7 +176,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:scaffold_progress
-      unlisteners.push(
+      track(
         await listen<FactoryScaffoldProgressEvent>(
           'factory:scaffold_progress',
           (event) => {
@@ -261,7 +277,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:token_update
-      unlisteners.push(
+      track(
         await listen<{ runId: string; stageId: string; promptTokens: number; completionTokens: number }>(
           'factory:token_update',
           (event) => {
@@ -317,7 +333,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:agent_output — stream lines into agentOutput state
-      unlisteners.push(
+      track(
         await listen<FactoryAgentOutputEvent>('factory:agent_output', (event) => {
           const { stepId, line } = event.payload;
           const entry: AgentOutputLine = {
@@ -336,7 +352,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:workflow_started — FR-009: initialize DAG display
-      unlisteners.push(
+      track(
         await listen<{ runId: string }>('factory:workflow_started', (event) => {
           const { runId } = event.payload;
           setAgentOutput([]);
@@ -352,7 +368,7 @@ export const FactoryPipelineProvider: React.FC<{
       // factory:workflow_failed — flip to 'failed' so the badge stops
       // claiming the run is still processing, mark any stage that was
       // in flight as failed, and record the error in the audit trail.
-      unlisteners.push(
+      track(
         await listen<{ runId: string; error?: string; phase?: string }>(
           'factory:workflow_failed',
           (event) => {
@@ -380,7 +396,7 @@ export const FactoryPipelineProvider: React.FC<{
       );
 
       // factory:workflow_completed — terminal success.
-      unlisteners.push(
+      track(
         await listen<{ runId: string; totalSteps?: number; totalTokens?: number }>(
           'factory:workflow_completed',
           (_event) => {
@@ -399,7 +415,7 @@ export const FactoryPipelineProvider: React.FC<{
 
       // factory:workflow_cancelled — backend confirms cancel; mirror to
       // 'failed' (no separate cancelled phase) and clear any open gate.
-      unlisteners.push(
+      track(
         await listen<{ runId: string; reason?: string }>(
           'factory:workflow_cancelled',
           (event) => {
@@ -430,6 +446,7 @@ export const FactoryPipelineProvider: React.FC<{
     });
 
     return () => {
+      cancelled = true;
       unlisteners.forEach((unlisten) => unlisten());
     };
   }, []);

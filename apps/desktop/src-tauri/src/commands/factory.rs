@@ -254,13 +254,20 @@ impl GateHandler for TauriGateHandler {
             let mut pending = self.pending.lock().map_err(|e| e.to_string())?;
             pending.insert(step_id.to_string(), tx);
         }
+        // The TS-side `FactoryGateReachedEvent` expects `stageId` /
+        // `stageName` (matching the rest of the gate-confirm API surface).
+        // When emitting `stepId` here, the React listener destructured
+        // undefined, the dialog title rendered without a stage name, and
+        // Confirm POSTed an empty `stage_id` so `gate_handler.approve("")`
+        // never matched the pending oneshot. Emit the right field names
+        // so the same step id round-trips back through `confirm_factory_stage`.
         self.app
             .emit(
                 "factory:gate_reached",
                 &serde_json::json!({
-                    "stepId": step_id,
+                    "stageId": step_id,
+                    "stageName": label.unwrap_or(step_id),
                     "gateType": "checkpoint",
-                    "label": label,
                 }),
             )
             .map_err(|e| format!("emit gate_reached failed: {e}"))?;
@@ -278,7 +285,8 @@ impl GateHandler for TauriGateHandler {
             .emit(
                 "factory:gate_reached",
                 &serde_json::json!({
-                    "stepId": step_id,
+                    "stageId": step_id,
+                    "stageName": step_id,
                     "gateType": "approval",
                     "timeoutMs": timeout_ms,
                 }),
@@ -921,7 +929,12 @@ pub async fn start_factory_pipeline(
                 .with_prompt_lookup(lookup)
                 .with_max_turns(25)
                 .with_extra_env(extra_env)
-                .with_step_event_handler(step_event_handler),
+                .with_step_event_handler(step_event_handler)
+                // Default base is 300s, which scales to Quick=75s — empirically
+                // too tight for s0-preflight (reads 30 docx + verification +
+                // report write). 900s gives Deep=15m, Investigate=7.5m,
+                // Quick=3.75m, which fits the observed Phase 1 stages.
+                .with_step_timeout(900),
         );
 
         let options = DispatchOptions {
@@ -1691,7 +1704,9 @@ pub async fn resume_factory_pipeline(
             .with_prompt_lookup(lookup)
             .with_max_turns(25)
             .with_extra_env(extra_env)
-            .with_step_event_handler(step_event_handler),
+            .with_step_event_handler(step_event_handler)
+            // Match start_factory_pipeline's bumped budget (default 300 → 900).
+            .with_step_timeout(900),
     );
 
     // Derive governance mode for resumed pipeline (098 Slice 2).
