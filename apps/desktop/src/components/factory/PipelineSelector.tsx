@@ -2,7 +2,7 @@
 // Pipeline selector — start a new pipeline or display the running run ID.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { FolderOpen, FolderTree, Play, Square } from 'lucide-react';
+import { FolderOpen, FolderTree, Play, PlayCircle, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -65,7 +65,8 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   projectPath,
   bundle,
 }) => {
-  const { state, startPipeline, cancelPipeline } = useFactoryPipeline();
+  const { state, startPipeline, cancelPipeline, resumePipeline } =
+    useFactoryPipeline();
 
   const initialAdapter = bundle?.adapter?.name ?? ADAPTER_FALLBACK;
   const [adapterName, setAdapterName] = useState(initialAdapter);
@@ -252,6 +253,8 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   const isIdle = state.phase === 'idle';
 
   const [cancelling, setCancelling] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
   const handleCancel = async () => {
     if (cancelling) return;
@@ -263,30 +266,68 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     }
   };
 
+  const handleResume = async () => {
+    if (resuming) return;
+    setResuming(true);
+    setResumeError(null);
+    try {
+      await resumePipeline({
+        adapterName: bundle?.adapter?.name ?? adapterName,
+        stagecraftProjectId: bundle?.project?.id,
+      });
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : 'Resume failed');
+    } finally {
+      setResuming(false);
+    }
+  };
+
   if (!isIdle) {
     // Active pipeline — show run metadata + cancel button.
     const isActive = state.phase === 'process' || state.phase === 'scaffolding';
+    const isPaused = state.phase === 'paused';
     return (
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium shrink-0">
-            Run
-          </span>
-          <span className="font-mono text-xs truncate text-foreground">
-            {state.runId ?? '—'}
-          </span>
+      <div className="flex flex-col gap-1 px-3 py-2 border-b border-border">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium shrink-0">
+              Run
+            </span>
+            <span className="font-mono text-xs truncate text-foreground">
+              {state.runId ?? '—'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isActive && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-6 text-xs gap-1"
+                onClick={handleCancel}
+                disabled={cancelling}
+              >
+                <Square className="h-3 w-3" />
+                {cancelling ? 'Cancelling…' : 'Cancel'}
+              </Button>
+            )}
+            {isPaused && (
+              <Button
+                size="sm"
+                className="h-6 text-xs gap-1"
+                onClick={handleResume}
+                disabled={resuming}
+                title="Resume from the last completed stage"
+              >
+                <PlayCircle className="h-3 w-3" />
+                {resuming ? 'Resuming…' : 'Resume'}
+              </Button>
+            )}
+          </div>
         </div>
-        {isActive && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="h-6 text-xs gap-1 shrink-0"
-            onClick={handleCancel}
-            disabled={cancelling}
-          >
-            <Square className="h-3 w-3" />
-            {cancelling ? 'Cancelling…' : 'Cancel'}
-          </Button>
+        {resumeError && (
+          <p className="text-xs text-destructive break-words" role="alert">
+            {resumeError}
+          </p>
         )}
       </div>
     );

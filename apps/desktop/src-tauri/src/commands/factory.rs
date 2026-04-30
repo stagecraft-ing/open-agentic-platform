@@ -132,11 +132,17 @@ pub struct StartPipelineResponse {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PipelineStatusResponse {
     pub run_id: String,
-    pub phase: String, // "idle" | "process" | "scaffolding" | "complete" | "failed"
+    pub phase: String, // "idle" | "process" | "scaffolding" | "complete" | "failed" | "paused"
     pub stages: Vec<StageInfo>,
     pub scaffolding: Option<ScaffoldingInfo>,
     pub total_tokens: u64,
     pub audit_trail: Vec<AuditEntry>,
+    /// Adapter recorded at run start (live runs) or read from `state.json`
+    /// (disk fallback). Empty for legacy runs that pre-date state.json
+    /// being written before terminal phases. The desktop UI uses this to
+    /// resume the run without depending on a separate adapter prop.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -204,6 +210,17 @@ pub struct PipelineRunSummary {
     pub completed_at: Option<String>,
     pub phase: String,
     pub total_tokens: u64,
+    /// Count of process stages with at least one output file on disk.
+    /// Surfaced in the Pipeline History table so the user can see how far
+    /// each run got without selecting it.
+    #[serde(default)]
+    pub stages_completed: u32,
+    #[serde(default)]
+    pub stages_total: u32,
+    /// Display name of the highest-index completed stage; `None` when no
+    /// stage produced an output yet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_completed_stage: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -598,6 +615,75 @@ fn resolve_factory_root() -> Result<PathBuf, String> {
     Err("factory/ directory not found. Ensure the repository contains a factory/ directory with adapters/".into())
 }
 
+/// Persist the run-level summary (`state.json`) used by `list_factory_runs`
+/// to surface the run in Pipeline History. Called at run start, on phase
+/// transitions, and on terminal success/failure so a partial run does not
+/// disappear from history. Errors are intentionally swallowed — disk
+/// persistence is best-effort and must never poison the in-memory dispatch.
+fn persist_run_state(ctx: &FactoryRunContext, phase: &str) {
+    let started_at = ctx
+        .audit_trail
+        .lock()
+        .ok()
+        .and_then(|trail| trail.first().map(|e| e.timestamp.clone()))
+        .unwrap_or_else(now_iso);
+    let total_tokens = ctx
+        .pipeline_state
+        .lock()
+        .map(|ps| ps.total_tokens)
+        .unwrap_or(0);
+    let completed_at = if phase == "complete" || phase == "failed" {
+        Some(now_iso())
+    } else {
+        None
+    };
+    // Snapshot stage progress so the history view can render "N/6 — Last
+    // stage" without re-walking disk. `stage_status` is the authoritative
+    // tracker for completed stages while the run is live; the disk fallback
+    // (`list_factory_runs` for runs without state.json) recomputes from
+    // artifact presence.
+    let (stages_completed, last_completed_stage) = {
+        let trackers = ctx.stage_status.lock().ok();
+        let mut completed = 0u32;
+        let mut last: Option<String> = None;
+        if let Some(trackers) = trackers {
+            for (id, name) in PROCESS_STAGES {
+                if let Some(t) = trackers.get(*id) {
+                    if t.status == "completed" {
+                        completed += 1;
+                        last = Some(name.to_string());
+                    }
+                }
+            }
+        }
+        (completed, last)
+    };
+    let summary = PipelineRunSummary {
+        run_id: ctx.run_id.to_string(),
+        adapter: ctx.adapter_name.clone(),
+        project_path: ctx.project_path.to_string_lossy().into(),
+        started_at,
+        completed_at,
+        phase: phase.to_string(),
+        total_tokens,
+        stages_completed,
+        stages_total: PROCESS_STAGES.len() as u32,
+        last_completed_stage,
+    };
+    let dir = ctx
+        .project_path
+        .join(".factory")
+        .join("runs")
+        .join(ctx.run_id.to_string());
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let path = dir.join("state.json");
+    if let Ok(json) = serde_json::to_string_pretty(&summary) {
+        let _ = std::fs::write(&path, json);
+    }
+}
+
 /// Build a PipelineStatusResponse from the live run context.
 fn build_status_response(ctx: &FactoryRunContext) -> PipelineStatusResponse {
     let pipeline_state = ctx.pipeline_state.lock().unwrap();
@@ -712,6 +798,7 @@ fn build_status_response(ctx: &FactoryRunContext) -> PipelineStatusResponse {
         scaffolding,
         total_tokens: pipeline_state.total_tokens,
         audit_trail: audit_trail.clone(),
+        adapter: Some(ctx.adapter_name.clone()),
     }
 }
 
@@ -825,6 +912,11 @@ pub async fn start_factory_pipeline(
         .lock()
         .map_err(|e| e.to_string())?
         .insert(run_id_str.clone(), ctx.clone());
+
+    // Persist an initial state.json so the run shows up in Pipeline History
+    // even before Phase 1 finishes. Updated on phase transitions and on
+    // terminal success/failure inside the dispatch task.
+    persist_run_state(&ctx, "process");
 
     // Dual-write: register pipeline with Stagecraft (fire-and-forget).
     if let Some(sc_project_id) = &stagecraft_project_id {
@@ -963,6 +1055,7 @@ pub async fn start_factory_pipeline(
             Err(e) => {
                 log::error!("factory phase 1 dispatch failed for run {run_id}: {e}");
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
+                persist_run_state(&ctx_for_spawn, "failed");
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                     sc_update_status(
                         &sc,
@@ -1009,6 +1102,7 @@ pub async fn start_factory_pipeline(
             let phase1_tokens: u64 = summary1.steps.iter().filter_map(|s| s.tokens_used).sum();
             ps.add_tokens(phase1_tokens);
         }
+        persist_run_state(&ctx_for_spawn, "scaffolding");
 
         app_handle
             .emit(
@@ -1096,6 +1190,8 @@ pub async fn start_factory_pipeline(
                 Err(e) => {
                     log::error!("factory transition_to_scaffolding failed for run {run_id}: {e}");
                     ps.mark_failed();
+                    drop(ps);
+                    persist_run_state(&ctx_for_spawn, "failed");
                     if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                         sc_update_status(
                             &sc,
@@ -1201,6 +1297,7 @@ pub async fn start_factory_pipeline(
             Err(e) => {
                 log::error!("factory phase 2 dispatch failed for run {run_id}: {e}");
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
+                persist_run_state(&ctx_for_spawn, "failed");
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                     sc_update_status(
                         &sc,
@@ -1259,29 +1356,12 @@ pub async fn start_factory_pipeline(
             let _ = ps.save_to_file(&state_path);
         }
 
-        // Also write a state.json for list_factory_runs discovery.
-        let summary_path = project_path
-            .join(".factory")
-            .join("runs")
-            .join(run_id.to_string())
-            .join("state.json");
-        let run_summary = PipelineRunSummary {
-            run_id: run_id.to_string(),
-            adapter: adapter_for_spawn,
-            project_path: project_path.to_string_lossy().into(),
-            started_at: now_iso(),
-            completed_at: Some(now_iso()),
-            phase: "complete".into(),
-            total_tokens: ctx_for_spawn
-                .pipeline_state
-                .lock()
-                .map(|ps| ps.total_tokens)
-                .unwrap_or(0),
-        };
-        let _ = std::fs::write(
-            &summary_path,
-            serde_json::to_string_pretty(&run_summary).unwrap_or_default(),
-        );
+        // Refresh state.json so list_factory_runs reports the terminal phase
+        // and final token total. `persist_run_state` reads phase + tokens
+        // straight off the run context (uses the started_at preserved in the
+        // audit trail), so the helper deliberately ignores `adapter_for_spawn`.
+        let _ = adapter_for_spawn;
+        persist_run_state(&ctx_for_spawn, "complete");
 
         // Dual-write: report Phase 2 (scaffolding) token spend and scaffold progress to Stagecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
@@ -1361,16 +1441,149 @@ pub async fn start_factory_pipeline(
 }
 
 /// Return the current status of a pipeline run.
+///
+/// Resolution order:
+/// 1. In-memory `FACTORY_RUNS` (live or just-completed run).
+/// 2. Disk fallback — when `project_path` is supplied, reconstruct a status
+///    from `<project_path>/.factory/runs/<run_id>/` so Pipeline History can
+///    hydrate runs that aren't loaded in memory (after restart, or runs
+///    started by a different process).
 #[tauri::command]
-pub async fn get_factory_pipeline_status(run_id: String) -> Result<PipelineStatusResponse, String> {
-    let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
-    if let Some(ctx) = runs.get(&run_id) {
-        return Ok(build_status_response(ctx));
+pub async fn get_factory_pipeline_status(
+    run_id: String,
+    project_path: Option<String>,
+) -> Result<PipelineStatusResponse, String> {
+    {
+        let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
+        if let Some(ctx) = runs.get(&run_id) {
+            return Ok(build_status_response(ctx));
+        }
     }
 
-    // Fallback: try loading persisted state from disk for completed runs.
-    // Walk known artifact directories to find the pipeline-state.json.
+    if let Some(pp) = project_path {
+        if let Some(resp) = build_status_response_from_disk(&run_id, &pp) {
+            return Ok(resp);
+        }
+    }
+
     Err(format!("run not found: {run_id}"))
+}
+
+/// Reconstruct a PipelineStatusResponse from on-disk artifacts. Used when
+/// the run isn't in `FACTORY_RUNS` — e.g. after an OPC restart, or for runs
+/// authored by a different process. Returns `None` when there isn't enough
+/// state on disk to identify the run.
+fn build_status_response_from_disk(
+    run_id: &str,
+    project_path: &str,
+) -> Option<PipelineStatusResponse> {
+    let run_dir = std::path::Path::new(project_path)
+        .join(".factory")
+        .join("runs")
+        .join(run_id);
+    if !run_dir.exists() {
+        return None;
+    }
+
+    // Read state.json if available — gives us run-level phase + total tokens.
+    let state_summary: Option<PipelineRunSummary> = std::fs::read_to_string(run_dir.join("state.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok());
+
+    // Read summary.json (orchestrator's RunSummary) for per-step token counts.
+    // Optional — falls back to 0 when missing or malformed.
+    let step_tokens: HashMap<String, u64> = std::fs::read_to_string(run_dir.join("summary.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|v| v.get("steps").cloned())
+        .and_then(|steps| steps.as_array().cloned())
+        .map(|arr| {
+            arr.into_iter()
+                .filter_map(|s| {
+                    let id = s.get("step_id")?.as_str()?.to_string();
+                    let tokens = s.get("tokens_used").and_then(|t| t.as_u64()).unwrap_or(0);
+                    Some((id, tokens))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let stages: Vec<StageInfo> = PROCESS_STAGES
+        .iter()
+        .map(|(id, name)| {
+            let stage_dir = run_dir.join(id);
+            let mut artifacts: Vec<String> = Vec::new();
+            let mut completed = false;
+            if stage_dir.exists() {
+                if let Ok(entries) = std::fs::read_dir(&stage_dir) {
+                    for entry in entries.flatten() {
+                        if entry.path().is_file() {
+                            if let Some(name) = entry.file_name().to_str() {
+                                artifacts.push(name.to_string());
+                            }
+                        }
+                    }
+                }
+                completed = !artifacts.is_empty();
+            }
+            StageInfo {
+                id: id.to_string(),
+                name: name.to_string(),
+                status: if completed { "completed".into() } else { "pending".into() },
+                token_spend: step_tokens.get(*id).copied().unwrap_or(0),
+                artifacts,
+                started_at: None,
+                completed_at: None,
+            }
+        })
+        .collect();
+
+    let all_done = stages.iter().all(|s| s.status == "completed");
+    let phase = state_summary
+        .as_ref()
+        .map(|s| {
+            // A `state.json` saying `process` for a run that's not in
+            // FACTORY_RUNS is stale — the dispatch task already exited.
+            // Promote those to `paused` so the UI offers Resume rather than
+            // claiming the run is still ticking.
+            if s.phase == "process" || s.phase == "scaffolding" {
+                "paused".to_string()
+            } else {
+                s.phase.clone()
+            }
+        })
+        .unwrap_or_else(|| {
+            // Infer phase from stage completeness when state.json is absent
+            // (legacy runs predating the early-write helper).
+            if all_done {
+                "complete".to_string()
+            } else {
+                "paused".to_string()
+            }
+        });
+    let total_tokens = state_summary
+        .as_ref()
+        .map(|s| s.total_tokens)
+        .filter(|t| *t > 0)
+        .unwrap_or_else(|| stages.iter().map(|s| s.token_spend).sum());
+
+    let adapter = state_summary.as_ref().and_then(|s| {
+        if s.adapter.is_empty() {
+            None
+        } else {
+            Some(s.adapter.clone())
+        }
+    });
+
+    Some(PipelineStatusResponse {
+        run_id: run_id.to_string(),
+        phase,
+        stages,
+        scaffolding: None,
+        total_tokens,
+        audit_trail: vec![],
+        adapter,
+    })
 }
 
 /// Confirm a gate stage. Resolves the pending oneshot in TauriGateHandler.
@@ -1498,6 +1711,8 @@ pub async fn cancel_factory_pipeline(
             feedback: None,
         });
 
+        persist_run_state(ctx, "failed");
+
         ctx.stagecraft_project_id.clone()
     };
 
@@ -1526,7 +1741,35 @@ pub async fn cancel_factory_pipeline(
     Ok(())
 }
 
-/// List all Factory pipeline runs by scanning `<project_path>/.factory/runs/*/state.json`.
+/// Scan a single run directory for completed-stage progress. A stage is
+/// considered complete when its sub-directory holds at least one regular
+/// file. Matches the heuristic used by `build_status_response_from_disk`
+/// and the orchestrator's resume detector.
+fn scan_disk_progress(run_dir: &std::path::Path) -> (u32, Option<String>) {
+    let mut completed = 0u32;
+    let mut last: Option<String> = None;
+    for (id, name) in PROCESS_STAGES {
+        let sd = run_dir.join(id);
+        if !sd.is_dir() {
+            continue;
+        }
+        let has_output = std::fs::read_dir(&sd)
+            .map(|it| it.flatten().any(|e| e.path().is_file()))
+            .unwrap_or(false);
+        if has_output {
+            completed += 1;
+            last = Some(name.to_string());
+        }
+    }
+    (completed, last)
+}
+
+/// List all Factory pipeline runs under `<project_path>/.factory/runs/`.
+///
+/// Prefers `state.json` (written by the desktop dispatch loop), and falls
+/// back to a `manifest.yaml`-only synthesis so legacy runs and runs that
+/// died before reaching the first state-write still appear in history and
+/// can be selected for resume.
 #[tauri::command]
 pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSummary>, String> {
     let runs_dir = std::path::Path::new(&project_path)
@@ -1542,17 +1785,83 @@ pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSu
 
     let mut summaries = Vec::new();
     for entry in entries.flatten() {
-        let state_path = entry.path().join("state.json");
-        if !state_path.exists() {
+        let dir = entry.path();
+        if !dir.is_dir() {
             continue;
         }
-        let text = match std::fs::read_to_string(&state_path) {
-            Ok(t) => t,
-            Err(_) => continue,
+        let run_id = match dir.file_name().and_then(|n| n.to_str()) {
+            Some(s) => s.to_string(),
+            None => continue,
         };
-        if let Ok(summary) = serde_json::from_str::<PipelineRunSummary>(&text) {
-            summaries.push(summary);
+
+        // Walk stage subdirs once — used both to refine state.json (which
+        // may be stale between phase transitions) and to synthesise the
+        // legacy fallback path below.
+        let (stages_completed, last_completed_stage) = scan_disk_progress(&dir);
+
+        // Primary: state.json from the desktop dispatcher.
+        let state_path = dir.join("state.json");
+        if state_path.exists() {
+            if let Ok(text) = std::fs::read_to_string(&state_path) {
+                if let Ok(mut summary) = serde_json::from_str::<PipelineRunSummary>(&text) {
+                    // Disk truth wins over the snapshot — `state.json` is
+                    // refreshed on phase boundaries, but stage outputs land
+                    // continuously. Fix-ups also paper over old state.json
+                    // files that pre-date the progress fields.
+                    summary.stages_total = PROCESS_STAGES.len() as u32;
+                    if stages_completed > summary.stages_completed {
+                        summary.stages_completed = stages_completed;
+                    }
+                    if summary.last_completed_stage.is_none() {
+                        summary.last_completed_stage = last_completed_stage.clone();
+                    }
+                    summaries.push(summary);
+                    continue;
+                }
+            }
         }
+
+        // Fallback: manifest.yaml-only run (no state.json yet, or written by
+        // a non-desktop tool). Build a minimal summary from disk so the run
+        // is still selectable and resumable from Pipeline History.
+        let manifest_path = dir.join("manifest.yaml");
+        if !manifest_path.exists() {
+            continue;
+        }
+
+        let started_at = std::fs::metadata(&manifest_path)
+            .and_then(|m| m.created().or_else(|_| m.modified()))
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| {
+                chrono::DateTime::<chrono::Utc>::from_timestamp(d.as_secs() as i64, 0)
+                    .unwrap_or_else(chrono::Utc::now)
+                    .format("%Y-%m-%dT%H:%M:%SZ")
+                    .to_string()
+            })
+            .unwrap_or_else(now_iso);
+
+        let stages_total = PROCESS_STAGES.len() as u32;
+        let all_stages_done = stages_completed == stages_total;
+
+        summaries.push(PipelineRunSummary {
+            run_id,
+            adapter: String::new(), // unknown for legacy runs
+            project_path: project_path.clone(),
+            started_at,
+            completed_at: None,
+            // Disk-only runs are not running anywhere — surface as `paused`
+            // so the UI offers Resume and stops claiming the run is active.
+            phase: if all_stages_done {
+                "complete".into()
+            } else {
+                "paused".into()
+            },
+            total_tokens: 0,
+            stages_completed,
+            stages_total,
+            last_completed_stage,
+        });
     }
 
     summaries.sort_by(|a, b| b.started_at.cmp(&a.started_at));
@@ -1560,20 +1869,33 @@ pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSu
 }
 
 /// List artifact files for a given run/step combination.
+///
+/// Resolution order for the artifact directory:
+/// 1. Live `FACTORY_RUNS` entry's project path.
+/// 2. Caller-supplied `project_path` (used by Pipeline History when the run
+///    is hydrated from disk and isn't in `FACTORY_RUNS`).
+/// 3. Legacy `~/.oap/artifacts/<run_id>/<step_id>` cache.
 #[tauri::command]
 pub async fn get_factory_artifacts(
     run_id: String,
     step_id: String,
+    project_path: Option<String>,
 ) -> Result<Vec<ArtifactInfo>, String> {
     // Resolve project path from live context if available.
-    let project_path = FACTORY_RUNS
+    let live_path = FACTORY_RUNS
         .lock()
         .map_err(|e| e.to_string())?
         .get(&run_id)
         .map(|ctx| ctx.project_path.clone());
 
-    let base = if let Some(p) = project_path {
+    let base = if let Some(p) = live_path {
         p.join(".factory").join("runs").join(&run_id).join(&step_id)
+    } else if let Some(p) = project_path.as_ref().filter(|s| !s.is_empty()) {
+        PathBuf::from(p)
+            .join(".factory")
+            .join("runs")
+            .join(&run_id)
+            .join(&step_id)
     } else {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
         PathBuf::from(home)

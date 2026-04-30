@@ -31,6 +31,7 @@ const PHASE_BADGE_VARIANT: Record<
   scaffolding: 'default',
   complete: 'secondary',
   failed: 'destructive',
+  paused: 'outline',
 };
 
 const PHASE_LABEL: Record<string, string> = {
@@ -39,6 +40,7 @@ const PHASE_LABEL: Record<string, string> = {
   scaffolding: 'Scaffolding',
   complete: 'Complete',
   failed: 'Failed',
+  paused: 'Paused',
 };
 
 type PanelView = 'pipeline' | 'history';
@@ -64,7 +66,7 @@ function FactoryPipelinePanelInner({
   const showScaffoldMonitor = state.phase === 'scaffolding' && state.scaffolding !== null;
   // Active pipelines own the panel — switching projects mid-run would orphan
   // the running orchestrator and tangle artifact persistence. Block the swap
-  // until the run reaches a terminal phase (idle / complete / failed).
+  // until the run reaches a terminal phase (idle / complete / failed / paused).
   const pipelineActive = state.phase === 'process' || state.phase === 'scaffolding';
   // Phase 1 (process) gets a terminal-style live output panel in the right
   // pane. We also keep it visible on 'failed' so any output that streamed
@@ -159,7 +161,7 @@ function FactoryPipelinePanelInner({
       {/* View: History */}
       {view === 'history' && (
         <div className="flex-1 min-h-0 overflow-auto">
-          <PipelineHistory projectPath={projectPath} />
+          <PipelineHistory projectPath={projectPath} bundle={bundle} />
         </div>
       )}
 

@@ -134,7 +134,17 @@ export const TokenDashboard: React.FC<{ compact?: boolean }> = ({
   compact = false,
 }) => {
   const { state } = useFactoryPipeline();
-  const { tokenSpend } = state;
+  // Always derive the running total from per-stage spend. The accumulator on
+  // `state.tokenSpend.totalTokens` only updates from `step_completed` events;
+  // when the panel is hydrated from a snapshot (history selection, app
+  // restart) the per-stage values are populated from disk but there is no
+  // event stream to bump the global. Summing here keeps the dashboard
+  // consistent with the per-stage badges in the DAG.
+  const stageTotal = state.stages.reduce((sum, s) => sum + s.tokenSpend, 0);
+  const tokenSpend = {
+    ...state.tokenSpend,
+    totalTokens: Math.max(state.tokenSpend.totalTokens, stageTotal),
+  };
 
   if (compact) {
     return (

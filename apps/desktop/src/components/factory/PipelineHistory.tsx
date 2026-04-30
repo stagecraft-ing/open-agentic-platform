@@ -10,12 +10,15 @@ import {
   SkipForward,
   Play,
   Loader2,
+  PlayCircle,
 } from 'lucide-react';
+import { Button } from '@opc/ui/button';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { apiCall } from '@/lib/apiAdapter';
 import { useFactoryPipeline } from './FactoryPipelineContext';
 import type { PipelineRun, AuditEntry, FactoryPhase } from './types';
+import type { OpcBundle } from '@/types/factoryBundle';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +49,7 @@ const PHASE_BADGE: Record<FactoryPhase, { label: string; className: string }> = 
   scaffolding: { label: 'Scaffolding', className: 'bg-blue-500/20 text-blue-400' },
   complete:    { label: 'Complete',    className: 'bg-green-500/20 text-green-400' },
   failed:      { label: 'Failed',      className: 'bg-red-500/20 text-red-400' },
+  paused:      { label: 'Paused',      className: 'bg-amber-500/20 text-amber-400' },
 };
 
 const StatusBadge: React.FC<{ phase: FactoryPhase }> = ({ phase }) => {
@@ -185,6 +189,7 @@ const RunList: React.FC<RunListProps> = ({ runs, selectedRunId, onSelect }) => {
             <th className="text-left py-1.5 px-2 font-medium">Run</th>
             <th className="text-left py-1.5 px-2 font-medium">Adapter</th>
             <th className="text-left py-1.5 px-2 font-medium">Started</th>
+            <th className="text-left py-1.5 px-2 font-medium">Progress</th>
             <th className="text-left py-1.5 px-2 font-medium">Duration</th>
             <th className="text-left py-1.5 px-2 font-medium">Status</th>
             <th className="text-right py-1.5 px-2 font-medium">Tokens</th>
@@ -193,6 +198,10 @@ const RunList: React.FC<RunListProps> = ({ runs, selectedRunId, onSelect }) => {
         <tbody>
           {runs.map((run) => {
             const isSelected = run.runId === selectedRunId;
+            const progressPct =
+              run.stagesTotal > 0
+                ? Math.round((run.stagesCompleted / run.stagesTotal) * 100)
+                : 0;
             return (
               <tr
                 key={run.runId}
@@ -208,7 +217,9 @@ const RunList: React.FC<RunListProps> = ({ runs, selectedRunId, onSelect }) => {
                   {truncateRunId(run.runId)}
                 </td>
                 <td className="py-1.5 px-2 text-foreground/80 truncate max-w-[80px]">
-                  {run.adapter}
+                  {run.adapter || (
+                    <span className="text-muted-foreground italic">—</span>
+                  )}
                 </td>
                 <td className="py-1.5 px-2 text-muted-foreground">
                   <span
@@ -218,6 +229,30 @@ const RunList: React.FC<RunListProps> = ({ runs, selectedRunId, onSelect }) => {
                       addSuffix: true,
                     })}
                   </span>
+                </td>
+                <td className="py-1.5 px-2 text-muted-foreground min-w-[140px]">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono tabular-nums shrink-0">
+                      {run.stagesCompleted}/{run.stagesTotal}
+                    </span>
+                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden min-w-[40px]">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all',
+                          progressPct === 100
+                            ? 'bg-green-500'
+                            : 'bg-blue-500/70',
+                        )}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <span
+                      className="truncate max-w-[120px] text-foreground/70"
+                      title={run.lastCompletedStage ?? ''}
+                    >
+                      {run.lastCompletedStage ?? '—'}
+                    </span>
+                  </div>
                 </td>
                 <td className="py-1.5 px-2 text-muted-foreground font-mono tabular-nums">
                   {formatDuration(run.duration)}
@@ -239,9 +274,10 @@ const RunList: React.FC<RunListProps> = ({ runs, selectedRunId, onSelect }) => {
 
 // ── PipelineHistory ───────────────────────────────────────────────────────────
 
-export const PipelineHistory: React.FC<{ projectPath?: string }> = ({
-  projectPath,
-}) => {
+export const PipelineHistory: React.FC<{
+  projectPath?: string;
+  bundle?: OpcBundle;
+}> = ({ projectPath, bundle }) => {
   const { state, loadPipelineStatus } = useFactoryPipeline();
 
   const [runs, setRuns] = useState<PipelineRun[]>([]);
@@ -249,16 +285,41 @@ export const PipelineHistory: React.FC<{ projectPath?: string }> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [loadingRun, setLoadingRun] = useState(false);
+  const [resumingRunId, setResumingRunId] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
-  // Load run list when projectPath changes.
+  // Load run list when projectPath changes. The Rust struct serializes its
+  // fields as snake_case (no `#[serde(rename_all)]`), so we normalise into
+  // the camelCase `PipelineRun` shape the rest of the panel expects.
   const fetchRuns = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await apiCall<PipelineRun[]>('list_factory_runs', {
+      const raw = await apiCall<any[]>('list_factory_runs', {
         projectPath: projectPath ?? '',
       });
-      setRuns(result ?? []);
+      const mapped: PipelineRun[] = (raw ?? []).map((r) => ({
+        runId: r.run_id ?? r.runId,
+        adapter: r.adapter ?? '',
+        projectPath: r.project_path ?? r.projectPath ?? '',
+        startedAt: r.started_at ?? r.startedAt ?? '',
+        completedAt: r.completed_at ?? r.completedAt,
+        duration:
+          r.completed_at && r.started_at
+            ? Math.max(
+                0,
+                new Date(r.completed_at).getTime() -
+                  new Date(r.started_at).getTime(),
+              )
+            : undefined,
+        phase: (r.phase ?? 'idle') as PipelineRun['phase'],
+        totalTokens: r.total_tokens ?? r.totalTokens ?? 0,
+        stagesCompleted: r.stages_completed ?? r.stagesCompleted ?? 0,
+        stagesTotal: r.stages_total ?? r.stagesTotal ?? 6,
+        lastCompletedStage:
+          r.last_completed_stage ?? r.lastCompletedStage ?? null,
+      }));
+      setRuns(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load runs');
     } finally {
@@ -281,17 +342,51 @@ export const PipelineHistory: React.FC<{ projectPath?: string }> = ({
       setSelectedRunId(runId);
       setLoadingRun(true);
       try {
-        await loadPipelineStatus(runId);
+        const run = runs.find((r) => r.runId === runId);
+        await loadPipelineStatus(runId, run?.projectPath ?? projectPath);
       } finally {
         setLoadingRun(false);
       }
     },
-    [selectedRunId, loadPipelineStatus],
+    [selectedRunId, loadPipelineStatus, runs, projectPath],
   );
 
   // Use the audit trail from the currently-loaded context state, which was
   // populated by loadPipelineStatus for the selected run.
   const auditEntries = selectedRunId != null ? state.auditTrail : [];
+
+  const selectedRun = runs.find((r) => r.runId === selectedRunId) ?? null;
+  const adapterName = selectedRun?.adapter ?? bundle?.adapter?.name ?? null;
+  const resumeProjectPath = selectedRun?.projectPath ?? projectPath ?? null;
+  const canResume =
+    selectedRun != null &&
+    selectedRun.phase !== 'complete' &&
+    adapterName != null &&
+    resumeProjectPath != null;
+
+  const handleResume = useCallback(async () => {
+    if (selectedRunId == null || !canResume) return;
+    setResumeError(null);
+    setResumingRunId(selectedRunId);
+    try {
+      await apiCall<void>('resume_factory_pipeline', {
+        runId: selectedRunId,
+        projectPath: resumeProjectPath,
+        adapterName,
+        stagecraftProjectId: bundle?.project?.id ?? null,
+      });
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : 'Resume failed');
+    } finally {
+      setResumingRunId(null);
+    }
+  }, [
+    selectedRunId,
+    canResume,
+    resumeProjectPath,
+    adapterName,
+    bundle?.project?.id,
+  ]);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -341,12 +436,34 @@ export const PipelineHistory: React.FC<{ projectPath?: string }> = ({
           </div>
         ) : (
           <>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-              Audit Trail
-              <span className="ml-1.5 font-mono font-normal normal-case text-muted-foreground/60">
-                {truncateRunId(selectedRunId)}
-              </span>
-            </h3>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Audit Trail
+                <span className="ml-1.5 font-mono font-normal normal-case text-muted-foreground/60">
+                  {truncateRunId(selectedRunId)}
+                </span>
+              </h3>
+              {canResume && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  disabled={resumingRunId === selectedRunId}
+                  onClick={handleResume}
+                  title={`Resume run from the last completed stage using adapter ${adapterName}`}
+                >
+                  {resumingRunId === selectedRunId ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  Resume
+                </Button>
+              )}
+            </div>
+            {resumeError != null && (
+              <p className="text-xs text-red-400 mb-2">{resumeError}</p>
+            )}
             <AuditTrail entries={auditEntries} />
           </>
         )}

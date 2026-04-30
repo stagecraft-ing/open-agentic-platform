@@ -44,8 +44,12 @@ interface FactoryPipelineContextType {
   rejectStage: (stageId: string, feedback: string) => Promise<void>;
   skipStep: (stepId: string) => Promise<void>;
   cancelPipeline: (reason: string) => Promise<void>;
+  resumePipeline: (args: {
+    adapterName?: string;
+    stagecraftProjectId?: string;
+  }) => Promise<void>;
   selectStep: (stepId: string | null) => void;
-  loadPipelineStatus: (runId: string) => Promise<void>;
+  loadPipelineStatus: (runId: string, projectPath?: string) => Promise<void>;
   loadArtifacts: (stepId: string) => Promise<ArtifactEntry[]>;
   dismissGate: () => void;
 }
@@ -117,20 +121,52 @@ export const FactoryPipelineProvider: React.FC<{
           'factory:step_completed',
           (event) => {
             const { stepId, artifacts, tokenSpend } = event.payload;
-            setState((prev) => ({
-              ...prev,
-              stages: prev.stages.map((s) =>
-                s.id === stepId
-                  ? {
-                      ...s,
-                      status: 'completed',
-                      completedAt: nowIso(),
-                      artifacts,
-                      tokenSpend: s.tokenSpend + tokenSpend,
-                    }
-                  : s,
-              ),
-            }));
+            setState((prev) => {
+              const stageEntry = prev.stages.find((s) => s.id === stepId);
+              const stageName = stageEntry?.name ?? stepId;
+              const existingTokenStage = prev.tokenSpend.stages.find(
+                (s) => s.stageId === stepId,
+              );
+              const updatedTokenStages = existingTokenStage
+                ? prev.tokenSpend.stages.map((s) =>
+                    s.stageId === stepId
+                      ? {
+                          ...s,
+                          completionTokens: s.completionTokens + tokenSpend,
+                          totalTokens: s.totalTokens + tokenSpend,
+                        }
+                      : s,
+                  )
+                : [
+                    ...prev.tokenSpend.stages,
+                    {
+                      stageId: stepId,
+                      stageName,
+                      promptTokens: 0,
+                      completionTokens: tokenSpend,
+                      totalTokens: tokenSpend,
+                    },
+                  ];
+              return {
+                ...prev,
+                stages: prev.stages.map((s) =>
+                  s.id === stepId
+                    ? {
+                        ...s,
+                        status: 'completed',
+                        completedAt: nowIso(),
+                        artifacts,
+                        tokenSpend: s.tokenSpend + tokenSpend,
+                      }
+                    : s,
+                ),
+                tokenSpend: {
+                  ...prev.tokenSpend,
+                  stages: updatedTokenStages,
+                  totalTokens: prev.tokenSpend.totalTokens + tokenSpend,
+                },
+              };
+            });
           },
         ),
       );
@@ -480,6 +516,8 @@ export const FactoryPipelineProvider: React.FC<{
           runId,
           phase: 'process',
           auditTrail: [auditEntry],
+          projectPath,
+          adapter: adapterName,
         };
       });
 
@@ -561,17 +599,25 @@ export const FactoryPipelineProvider: React.FC<{
   }, []);
 
   const loadPipelineStatus = useCallback(
-    async (runId: string): Promise<void> => {
+    async (runId: string, projectPath?: string): Promise<void> => {
       // Tauri command returns snake_case fields; map to our camelCase state.
-      const resp = await apiCall<any>('get_factory_pipeline_status', { runId });
+      // `projectPath` lets the backend reconstruct the response from disk
+      // when the run is no longer in the in-memory FACTORY_RUNS map (after
+      // OPC restart, or when selecting a historical run).
+      const resp = await apiCall<any>('get_factory_pipeline_status', {
+        runId,
+        projectPath,
+      });
+      // Reset agent output — a hydrated paused run has no live stream.
+      setAgentOutput([]);
       setState((prev) => ({
-        ...prev,
+        ...createInitialPipelineState(),
         runId: resp.run_id ?? runId,
         phase: resp.phase ?? prev.phase,
-        stages: (resp.stages ?? []).map((s: any) => ({
+        stages: (resp.stages ?? []).map((s: any, idx: number) => ({
           id: s.id,
           name: s.name,
-          index: prev.stages.find((ps) => ps.id === s.id)?.index ?? 0,
+          index: prev.stages.find((ps) => ps.id === s.id)?.index ?? idx,
           status: s.status,
           startedAt: s.started_at,
           completedAt: s.completed_at,
@@ -579,8 +625,9 @@ export const FactoryPipelineProvider: React.FC<{
           artifacts: s.artifacts ?? [],
         })),
         tokenSpend: {
-          ...prev.tokenSpend,
+          stages: [],
           totalTokens: resp.total_tokens ?? 0,
+          budgetLimit: null,
         },
         auditTrail: (resp.audit_trail ?? []).map((a: any) => ({
           timestamp: a.timestamp,
@@ -589,8 +636,8 @@ export const FactoryPipelineProvider: React.FC<{
           details: a.details,
           feedback: a.feedback,
         })),
-        // Preserve locally-cached artifacts already loaded this session.
-        artifacts: prev.artifacts,
+        projectPath: projectPath ?? prev.projectPath ?? null,
+        adapter: resp.adapter ?? prev.adapter ?? null,
       }));
     },
     [],
@@ -601,9 +648,15 @@ export const FactoryPipelineProvider: React.FC<{
       const runId = state.runId;
       if (!runId) return [];
 
+      // Pass the projectPath captured at start/load time so the backend can
+      // resolve `<projectPath>/.factory/runs/<runId>/<stepId>/` for runs that
+      // are no longer in `FACTORY_RUNS`. Without this the backend falls back
+      // to the (empty) `~/.oap/artifacts/<runId>/<stepId>` cache and the
+      // inspector renders "No artifacts for this stage".
       const entries = await apiCall<ArtifactEntry[]>('get_factory_artifacts', {
         runId,
         stepId,
+        projectPath: state.projectPath ?? undefined,
       });
 
       setState((prev) => {
@@ -614,7 +667,34 @@ export const FactoryPipelineProvider: React.FC<{
 
       return entries;
     },
-    [state.runId],
+    [state.runId, state.projectPath],
+  );
+
+  const resumePipeline = useCallback(
+    async (args: {
+      adapterName?: string;
+      stagecraftProjectId?: string;
+    }): Promise<void> => {
+      const runId = state.runId;
+      const projectPath = state.projectPath;
+      const adapterName = args.adapterName ?? state.adapter ?? '';
+      if (!runId || !projectPath || !adapterName) {
+        throw new Error(
+          'Resume requires runId, projectPath, and adapterName — supply an adapter via the project bundle or run state.',
+        );
+      }
+      await apiCall<void>('resume_factory_pipeline', {
+        runId,
+        projectPath,
+        adapterName,
+        stagecraftProjectId: args.stagecraftProjectId ?? null,
+      });
+      // Flip immediately so the UI stops showing Resume while the dispatch
+      // task spins up. The first `factory:step_started` event will refine
+      // the per-stage status; until then, the run is marked active.
+      setState((prev) => ({ ...prev, phase: 'process' }));
+    },
+    [state.runId, state.projectPath, state.adapter],
   );
 
   const dismissGate = useCallback((): void => {
@@ -631,6 +711,7 @@ export const FactoryPipelineProvider: React.FC<{
     rejectStage,
     skipStep,
     cancelPipeline,
+    resumePipeline,
     selectStep,
     loadPipelineStatus,
     loadArtifacts,

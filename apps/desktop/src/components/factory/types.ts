@@ -1,8 +1,20 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
 // TypeScript types for the Factory Pipeline panel.
 
-/** Pipeline execution phase. */
-export type FactoryPhase = 'idle' | 'process' | 'scaffolding' | 'complete' | 'failed';
+/** Pipeline execution phase.
+ *
+ * `paused` means the run was hydrated from disk and is not actively
+ * running. It enables Resume in place of Cancel and suppresses the live
+ * output panel. The backend uses it for runs loaded from `state.json` /
+ * manifest-only directories that aren't in `FACTORY_RUNS`.
+ */
+export type FactoryPhase =
+  | 'idle'
+  | 'process'
+  | 'scaffolding'
+  | 'complete'
+  | 'failed'
+  | 'paused';
 
 /** Visual status for a stage or step node. */
 export type StageStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'awaiting_gate' | 'skipped';
@@ -96,7 +108,7 @@ export interface ArtifactEntry {
   mimeType: 'markdown' | 'json' | 'yaml' | 'text' | 'unknown';
 }
 
-/** A completed pipeline run. */
+/** A pipeline run summary surfaced in the history list. */
 export interface PipelineRun {
   runId: string;
   adapter: string;
@@ -106,6 +118,12 @@ export interface PipelineRun {
   duration?: number;
   phase: FactoryPhase;
   totalTokens: number;
+  /** Count of process stages with at least one output artifact on disk. */
+  stagesCompleted: number;
+  /** Total declared process stages — currently always 6. */
+  stagesTotal: number;
+  /** Display name of the highest-index completed process stage. */
+  lastCompletedStage: string | null;
 }
 
 /** Audit trail entry. */
@@ -128,6 +146,14 @@ export interface FactoryPipelineState {
   artifacts: Map<string, ArtifactEntry[]>;
   gateAction: GateAction | null;
   auditTrail: AuditEntry[];
+  /** Project filesystem path tied to this run. Set by `loadPipelineStatus`
+   * for disk-loaded runs and used by Resume / artifact lookups so they work
+   * after the run has fallen out of `FACTORY_RUNS`. */
+  projectPath: string | null;
+  /** Adapter recorded in the run's `state.json`. Empty for legacy runs that
+   * predate the early state-write — Resume falls back to the bundle adapter
+   * when present. */
+  adapter: string | null;
 }
 
 // ── Tauri event payloads ─────────────────────────────────────────────
@@ -194,13 +220,17 @@ export interface AgentOutputLine {
 
 // ── Process stage constants ──────────────────────────────────────────
 
+// Stage ids must match the backend constants in
+// apps/desktop/src-tauri/src/commands/factory.rs (PROCESS_STAGES). Events
+// `factory:step_started` / `step_completed` / `gate_reached` arrive with these
+// full ids; if they drift the DAG never advances out of `pending`.
 export const PROCESS_STAGES: { id: string; name: string }[] = [
-  { id: 's0', name: 'Pre-flight' },
-  { id: 's1', name: 'Business Requirements' },
-  { id: 's2', name: 'Service Requirements' },
-  { id: 's3', name: 'Data Model' },
-  { id: 's4', name: 'API Specification' },
-  { id: 's5', name: 'UI Specification' },
+  { id: 's0-preflight', name: 'Pre-flight' },
+  { id: 's1-business-requirements', name: 'Business Requirements' },
+  { id: 's2-service-requirements', name: 'Service Requirements' },
+  { id: 's3-data-model', name: 'Data Model' },
+  { id: 's4-api-specification', name: 'API Specification' },
+  { id: 's5-ui-specification', name: 'UI Specification' },
 ];
 
 export const SCAFFOLD_CATEGORY_LABELS: Record<ScaffoldCategory, string> = {
@@ -231,5 +261,7 @@ export function createInitialPipelineState(): FactoryPipelineState {
     artifacts: new Map(),
     gateAction: null,
     auditTrail: [],
+    projectPath: null,
+    adapter: null,
   };
 }
