@@ -106,8 +106,20 @@ fn load_agents_from_dir(
             source: e,
         })?;
 
-        let agent = parse_agent_file(&path, &contents, default_tier, default_model_hint)?;
-        agents.push(agent);
+        // One bad agent file must not erase the whole bridge — log and skip.
+        // Without this the `?` propagation lets a single InvalidFrontmatter
+        // collapse the registry, which downstream surfaces as the misleading
+        // `agent not found: <first-step-agent>` from the orchestrator's
+        // dispatch loop.
+        match parse_agent_file(&path, &contents, default_tier, default_model_hint) {
+            Ok(agent) => agents.push(agent),
+            Err(e) => {
+                eprintln!(
+                    "[factory-contracts] skipping agent file {}: {e}",
+                    path.display()
+                );
+            }
+        }
     }
 
     agents.sort_by(|a, b| a.id.cmp(&b.id));

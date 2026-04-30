@@ -348,6 +348,81 @@ export const FactoryPipelineProvider: React.FC<{
           }));
         }),
       );
+
+      // factory:workflow_failed — flip to 'failed' so the badge stops
+      // claiming the run is still processing, mark any stage that was
+      // in flight as failed, and record the error in the audit trail.
+      unlisteners.push(
+        await listen<{ runId: string; error?: string; phase?: string }>(
+          'factory:workflow_failed',
+          (event) => {
+            const { error, phase } = event.payload;
+            setState((prev) => ({
+              ...prev,
+              phase: 'failed',
+              gateAction: null,
+              stages: prev.stages.map((s) =>
+                s.status === 'in_progress' ? { ...s, status: 'failed' } : s,
+              ),
+              auditTrail: [
+                ...prev.auditTrail,
+                {
+                  timestamp: nowIso(),
+                  action: 'pipeline_failed',
+                  details: error
+                    ? `${phase ?? 'pipeline'}: ${error}`
+                    : phase ?? undefined,
+                },
+              ],
+            }));
+          },
+        ),
+      );
+
+      // factory:workflow_completed — terminal success.
+      unlisteners.push(
+        await listen<{ runId: string; totalSteps?: number; totalTokens?: number }>(
+          'factory:workflow_completed',
+          (_event) => {
+            setState((prev) => ({
+              ...prev,
+              phase: 'complete',
+              gateAction: null,
+              auditTrail: [
+                ...prev.auditTrail,
+                { timestamp: nowIso(), action: 'pipeline_completed' },
+              ],
+            }));
+          },
+        ),
+      );
+
+      // factory:workflow_cancelled — backend confirms cancel; mirror to
+      // 'failed' (no separate cancelled phase) and clear any open gate.
+      unlisteners.push(
+        await listen<{ runId: string; reason?: string }>(
+          'factory:workflow_cancelled',
+          (event) => {
+            const { reason } = event.payload;
+            setState((prev) => ({
+              ...prev,
+              phase: 'failed',
+              gateAction: null,
+              stages: prev.stages.map((s) =>
+                s.status === 'in_progress' ? { ...s, status: 'failed' } : s,
+              ),
+              auditTrail: [
+                ...prev.auditTrail,
+                {
+                  timestamp: nowIso(),
+                  action: 'pipeline_failed',
+                  details: reason ? `cancelled: ${reason}` : 'cancelled',
+                },
+              ],
+            }));
+          },
+        ),
+      );
     }
 
     setupListeners().catch((err) => {

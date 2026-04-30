@@ -67,11 +67,23 @@ function FactoryPipelinePanelInner({
   // until the run reaches a terminal phase (idle / complete / failed).
   const pipelineActive = state.phase === 'process' || state.phase === 'scaffolding';
   // Phase 1 (process) gets a terminal-style live output panel in the right
-  // pane. Scaffolding already shows its own LiveAgentOutput inside
+  // pane. We also keep it visible on 'failed' so any output that streamed
+  // before the crash survives, and so the failure banner has somewhere to
+  // anchor. Scaffolding already shows its own LiveAgentOutput inside
   // ScaffoldMonitor, so we only wire it up here for the pre-scaffold stages.
-  const showLiveOutput = state.phase === 'process';
+  const showLiveOutput = state.phase === 'process' || state.phase === 'failed';
   const activeStepId =
     state.stages.find((s) => s.status === 'in_progress')?.id ?? null;
+  // Last failure recorded in the audit trail — surfaced as a banner above
+  // the live output when phase === 'failed'. The orchestrator emits its
+  // OrchestratorError into `details`; the entry timestamp tells the user
+  // when the run died.
+  const lastFailure =
+    state.phase === 'failed'
+      ? [...state.auditTrail]
+          .reverse()
+          .find((e) => e.action === 'pipeline_failed')
+      : undefined;
 
   const handleOpenedFromPicker = useCallback(
     (path: string, nextBundle: OpcBundle) => {
@@ -199,12 +211,28 @@ function FactoryPipelinePanelInner({
                   variant="fullscreen"
                 />
               ) : showLiveOutput ? (
-                <div className="flex-1 min-h-0 p-3">
-                  <LiveAgentOutput
-                    lines={agentOutput}
-                    activeStepId={activeStepId}
-                    fill
-                  />
+                <div className="flex-1 min-h-0 p-3 flex flex-col gap-3">
+                  {lastFailure && (
+                    <div
+                      className="shrink-0 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+                      role="alert"
+                    >
+                      <div className="font-semibold mb-1">Pipeline failed</div>
+                      <div className="font-mono whitespace-pre-wrap break-words">
+                        {lastFailure.details ?? '(no detail recorded)'}
+                      </div>
+                      <div className="mt-1 opacity-70">
+                        {lastFailure.timestamp}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex-1 min-h-0">
+                    <LiveAgentOutput
+                      lines={agentOutput}
+                      activeStepId={activeStepId}
+                      fill
+                    />
+                  </div>
                 </div>
               ) : (
                 <ProjectContextOverview bundle={bundle} />

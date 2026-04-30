@@ -1,6 +1,5 @@
 ---
 id: pipeline-orchestrator
-name: Factory Pipeline Orchestrator
 description: >
   Coordinates the end-to-end pipeline. Invokes stage agents in sequence, runs
   verification gates, manages pipeline state, handles Stage 2's internal

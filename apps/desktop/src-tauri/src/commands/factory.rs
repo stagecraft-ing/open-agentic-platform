@@ -948,6 +948,7 @@ pub async fn start_factory_pipeline(
         {
             Ok(s) => s,
             Err(e) => {
+                log::error!("factory phase 1 dispatch failed for run {run_id}: {e}");
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                     sc_update_status(
@@ -1044,6 +1045,7 @@ pub async fn start_factory_pipeline(
         if !build_spec_path.exists() {
             ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
             let err_msg = format!("Build Spec not found at {}", build_spec_path.display());
+            log::error!("factory transition failed for run {run_id}: {err_msg}");
             if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                 sc_update_status(
                     &sc,
@@ -1079,6 +1081,7 @@ pub async fn start_factory_pipeline(
             ) {
                 Ok(t) => t,
                 Err(e) => {
+                    log::error!("factory transition_to_scaffolding failed for run {run_id}: {e}");
                     ps.mark_failed();
                     if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                         sc_update_status(
@@ -1134,6 +1137,7 @@ pub async fn start_factory_pipeline(
         if let Err(e) = materialize_run_directory(&am, run_id, &transition.manifest) {
             ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
             let err_msg = format!("materialize phase 2 failed: {e}");
+            log::error!("factory phase 2 materialize failed for run {run_id}: {err_msg}");
             if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                 sc_update_status(
                     &sc,
@@ -1182,6 +1186,7 @@ pub async fn start_factory_pipeline(
         {
             Ok(s) => s,
             Err(e) => {
+                log::error!("factory phase 2 dispatch failed for run {run_id}: {e}");
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                     sc_update_status(
@@ -1729,6 +1734,7 @@ pub async fn resume_factory_pipeline(
                     .ok();
             }
             Err(e) => {
+                log::error!("factory dispatch failed for run {run_id}: {e}");
                 app_handle
                     .emit(
                         "factory:workflow_failed",
