@@ -111,7 +111,10 @@ export interface ArtifactEntry {
 /** A pipeline run summary surfaced in the history list. */
 export interface PipelineRun {
   runId: string;
-  adapter: string;
+  /** Adapter recorded in `state.json`, or `null` for legacy manifest-only
+   * runs that pre-date early state persistence. The history table renders
+   * `null` as `—`; Resume falls back to the bundle adapter. */
+  adapter: string | null;
   projectPath: string;
   startedAt: string;
   completedAt?: string;

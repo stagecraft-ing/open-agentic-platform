@@ -300,7 +300,10 @@ export const PipelineHistory: React.FC<{
       });
       const mapped: PipelineRun[] = (raw ?? []).map((r) => ({
         runId: r.run_id ?? r.runId,
-        adapter: r.adapter ?? '',
+        // Normalise empty strings to null. Legacy manifest-only runs come back
+        // with `adapter: ""` from Rust; downstream code uses `??` to fall back
+        // to the bundle adapter, which only triggers on null/undefined.
+        adapter: (r.adapter ?? '') || null,
         projectPath: r.project_path ?? r.projectPath ?? '',
         startedAt: r.started_at ?? r.startedAt ?? '',
         completedAt: r.completed_at ?? r.completedAt,
@@ -376,7 +379,16 @@ export const PipelineHistory: React.FC<{
         stagecraftProjectId: bundle?.project?.id ?? null,
       });
     } catch (err) {
-      setResumeError(err instanceof Error ? err.message : 'Resume failed');
+      // Tauri's `invoke` rejects with the raw string returned by the Rust
+      // `Result::Err` branch — not an `Error` instance — so we must accept
+      // both shapes or the user only sees the generic fallback message.
+      setResumeError(
+        typeof err === 'string'
+          ? err
+          : err instanceof Error
+            ? err.message
+            : 'Resume failed',
+      );
     } finally {
       setResumingRunId(null);
     }

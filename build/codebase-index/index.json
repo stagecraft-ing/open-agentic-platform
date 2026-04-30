@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4b8c88f98e7e77195dafd56116b657949c0e00652f02cb3eaf76cd9ac9959b6b",
+    "contentHash": "4eff77baf3f3cc907dee5c4cdd417c2b63dcb700b92f8c451429d859ceeb1c07",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -330,7 +330,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.2.7"
+      "version": "0.2.8"
     },
     {
       "edition": "2024",

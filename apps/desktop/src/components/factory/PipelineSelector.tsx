@@ -276,7 +276,15 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
         stagecraftProjectId: bundle?.project?.id,
       });
     } catch (err) {
-      setResumeError(err instanceof Error ? err.message : 'Resume failed');
+      // Tauri's `invoke` rejects with the raw string from the Rust `Err`
+      // branch — not an `Error` — so we accept both shapes here.
+      setResumeError(
+        typeof err === 'string'
+          ? err
+          : err instanceof Error
+            ? err.message
+            : 'Resume failed',
+      );
     } finally {
       setResuming(false);
     }

@@ -648,11 +648,11 @@ fn persist_run_state(ctx: &FactoryRunContext, phase: &str) {
         let mut last: Option<String> = None;
         if let Some(trackers) = trackers {
             for (id, name) in PROCESS_STAGES {
-                if let Some(t) = trackers.get(*id) {
-                    if t.status == "completed" {
-                        completed += 1;
-                        last = Some(name.to_string());
-                    }
+                if let Some(t) = trackers.get(*id)
+                    && t.status == "completed"
+                {
+                    completed += 1;
+                    last = Some(name.to_string());
                 }
             }
         }
@@ -1460,10 +1460,10 @@ pub async fn get_factory_pipeline_status(
         }
     }
 
-    if let Some(pp) = project_path {
-        if let Some(resp) = build_status_response_from_disk(&run_id, &pp) {
-            return Ok(resp);
-        }
+    if let Some(pp) = project_path
+        && let Some(resp) = build_status_response_from_disk(&run_id, &pp)
+    {
+        return Ok(resp);
     }
 
     Err(format!("run not found: {run_id}"))
@@ -1517,10 +1517,10 @@ fn build_status_response_from_disk(
             if stage_dir.exists() {
                 if let Ok(entries) = std::fs::read_dir(&stage_dir) {
                     for entry in entries.flatten() {
-                        if entry.path().is_file() {
-                            if let Some(name) = entry.file_name().to_str() {
-                                artifacts.push(name.to_string());
-                            }
+                        if entry.path().is_file()
+                            && let Some(name) = entry.file_name().to_str()
+                        {
+                            artifacts.push(name.to_string());
                         }
                     }
                 }
@@ -1741,6 +1741,36 @@ pub async fn cancel_factory_pipeline(
     Ok(())
 }
 
+/// Extract the adapter name from a run's `manifest.yaml`. Used for legacy
+/// runs that pre-date `state.json` persistence — the manifest is the only
+/// on-disk record of which adapter generated the workflow.
+///
+/// `manifest_gen.rs` embeds the adapter name into every step instruction as
+/// a literal `Adapter: <name>` line (see e.g. `manifest_gen.rs:159`). This
+/// function scans each step's instruction for that token, so it works for
+/// both process and scaffold manifests without coupling to a top-level
+/// metadata field that legacy manifests do not have.
+fn adapter_from_manifest(manifest_path: &std::path::Path) -> Option<String> {
+    let text = std::fs::read_to_string(manifest_path).ok()?;
+    let value: serde_yaml::Value = serde_yaml::from_str(&text).ok()?;
+    let steps = value.get("steps")?.as_sequence()?;
+    for step in steps {
+        let Some(instruction) = step.get("instruction").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        for line in instruction.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("Adapter:") {
+                let name = rest.trim();
+                if !name.is_empty() {
+                    return Some(name.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Scan a single run directory for completed-stage progress. A stage is
 /// considered complete when its sub-directory holds at least one regular
 /// file. Matches the heuristic used by `build_status_response_from_disk`
@@ -1801,24 +1831,23 @@ pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSu
 
         // Primary: state.json from the desktop dispatcher.
         let state_path = dir.join("state.json");
-        if state_path.exists() {
-            if let Ok(text) = std::fs::read_to_string(&state_path) {
-                if let Ok(mut summary) = serde_json::from_str::<PipelineRunSummary>(&text) {
-                    // Disk truth wins over the snapshot — `state.json` is
-                    // refreshed on phase boundaries, but stage outputs land
-                    // continuously. Fix-ups also paper over old state.json
-                    // files that pre-date the progress fields.
-                    summary.stages_total = PROCESS_STAGES.len() as u32;
-                    if stages_completed > summary.stages_completed {
-                        summary.stages_completed = stages_completed;
-                    }
-                    if summary.last_completed_stage.is_none() {
-                        summary.last_completed_stage = last_completed_stage.clone();
-                    }
-                    summaries.push(summary);
-                    continue;
-                }
+        if state_path.exists()
+            && let Ok(text) = std::fs::read_to_string(&state_path)
+            && let Ok(mut summary) = serde_json::from_str::<PipelineRunSummary>(&text)
+        {
+            // Disk truth wins over the snapshot — `state.json` is refreshed
+            // on phase boundaries, but stage outputs land continuously.
+            // Fix-ups also paper over old state.json files that pre-date the
+            // progress fields.
+            summary.stages_total = PROCESS_STAGES.len() as u32;
+            if stages_completed > summary.stages_completed {
+                summary.stages_completed = stages_completed;
             }
+            if summary.last_completed_stage.is_none() {
+                summary.last_completed_stage = last_completed_stage.clone();
+            }
+            summaries.push(summary);
+            continue;
         }
 
         // Fallback: manifest.yaml-only run (no state.json yet, or written by
@@ -1846,7 +1875,11 @@ pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSu
 
         summaries.push(PipelineRunSummary {
             run_id,
-            adapter: String::new(), // unknown for legacy runs
+            // Recover adapter name from the manifest's instruction text so
+            // legacy manifest-only runs are still resumable from history.
+            // Falls back to empty when the manifest is malformed or missing
+            // the adapter line — Resume then surfaces a clear error.
+            adapter: adapter_from_manifest(&manifest_path).unwrap_or_default(),
             project_path: project_path.clone(),
             started_at,
             completed_at: None,
@@ -1982,6 +2015,26 @@ pub async fn resume_factory_pipeline(
         .canonicalize()
         .map_err(|e| format!("resolve project path failed: {e}"))?;
     let run_uuid = Uuid::parse_str(&run_id).map_err(|e| format!("invalid run_id: {e}"))?;
+
+    // Defence in depth: if the caller didn't resolve an adapter (legacy
+    // history rows from before the frontend fix, or unusual deep-link state),
+    // try to recover it from the run's `manifest.yaml`. `start_pipeline("",
+    // ...)` would otherwise fail with `AdapterNotFound { name: "" }`.
+    let adapter_name = if adapter_name.trim().is_empty() {
+        let manifest_path = project_path
+            .join(".factory")
+            .join("runs")
+            .join(&run_id)
+            .join("manifest.yaml");
+        adapter_from_manifest(&manifest_path).ok_or_else(|| {
+            format!(
+                "resume failed: adapter name is empty and could not be recovered from {}",
+                manifest_path.display()
+            )
+        })?
+    } else {
+        adapter_name
+    };
 
     let config = FactoryEngineConfig {
         factory_root: factory_root.clone(),
