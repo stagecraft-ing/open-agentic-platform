@@ -6,6 +6,8 @@
  * in without touching the streaming endpoint or the service layer.
  *
  * NOTE: none of the methods here persist across stagecraft restarts.
+ *
+ * Spec 119: scope key is `orgId`.
  */
 import log from "encore.dev/log";
 import type { ClientEnvelope, ServerEnvelope } from "./types";
@@ -17,7 +19,7 @@ import type { ClientEnvelope, ServerEnvelope } from "./types";
 export type InboundStatus = "accepted" | "rejected";
 
 export interface InboundRecord {
-  workspaceId: string;
+  orgId: string;
   clientId: string;
   event: ClientEnvelope;
   status: InboundStatus;
@@ -33,11 +35,11 @@ export interface InboxStore {
 }
 
 // ---------------------------------------------------------------------------
-// Outbox — server-originated events queued for a workspace
+// Outbox — server-originated events queued for an org
 // ---------------------------------------------------------------------------
 
 export interface OutboundRecord {
-  workspaceId: string;
+  orgId: string;
   event: ServerEnvelope;
   createdAt: Date;
   /** Client IDs that have ACKed this event. */
@@ -49,25 +51,25 @@ export interface OutboxStore {
   recordOutbound(record: OutboundRecord): Promise<void>;
   /** Load pending events for a client since a cursor. */
   loadPendingForClient(
-    workspaceId: string,
+    orgId: string,
     clientId: string,
     sinceCursor?: string,
   ): Promise<ServerEnvelope[]>;
   /** Mark that a client ACKed a specific event. */
   markAcked(
-    workspaceId: string,
+    orgId: string,
     serverEventId: string,
     clientId: string,
   ): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
-// Cursor issuer — monotonic per workspace
+// Cursor issuer — monotonic per org
 // ---------------------------------------------------------------------------
 
 export interface CursorIssuer {
-  next(workspaceId: string): string;
-  peek(workspaceId: string): string | undefined;
+  next(orgId: string): string;
+  peek(orgId: string): string | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +77,7 @@ export interface CursorIssuer {
 // ---------------------------------------------------------------------------
 
 const MAX_INBOX_HISTORY = 1_000;
-const MAX_OUTBOX_PER_WORKSPACE = 500;
+const MAX_OUTBOX_PER_ORG = 500;
 
 class InMemoryInbox implements InboxStore {
   private readonly ring: InboundRecord[] = [];
@@ -97,33 +99,33 @@ class InMemoryInbox implements InboxStore {
 }
 
 class InMemoryOutbox implements OutboxStore {
-  // workspaceId -> ordered records
-  private readonly byWorkspace: Map<string, OutboundRecord[]> = new Map();
+  // orgId -> ordered records
+  private readonly byOrg: Map<string, OutboundRecord[]> = new Map();
 
   async recordOutbound(record: OutboundRecord): Promise<void> {
-    let bucket = this.byWorkspace.get(record.workspaceId);
+    let bucket = this.byOrg.get(record.orgId);
     if (!bucket) {
       bucket = [];
-      this.byWorkspace.set(record.workspaceId, bucket);
+      this.byOrg.set(record.orgId, bucket);
     }
     bucket.push(record);
-    if (bucket.length > MAX_OUTBOX_PER_WORKSPACE) {
-      bucket.splice(0, bucket.length - MAX_OUTBOX_PER_WORKSPACE);
+    if (bucket.length > MAX_OUTBOX_PER_ORG) {
+      bucket.splice(0, bucket.length - MAX_OUTBOX_PER_ORG);
     }
   }
 
   async loadPendingForClient(
-    workspaceId: string,
+    orgId: string,
     clientId: string,
     sinceCursor?: string,
   ): Promise<ServerEnvelope[]> {
-    const bucket = this.byWorkspace.get(workspaceId);
+    const bucket = this.byOrg.get(orgId);
     if (!bucket) return [];
 
     // Find the starting index: first record whose cursor is strictly > sinceCursor.
     let startIdx = 0;
     if (sinceCursor !== undefined) {
-      const idx = bucket.findIndex((r) => r.event.meta.workspaceCursor === sinceCursor);
+      const idx = bucket.findIndex((r) => r.event.meta.orgCursor === sinceCursor);
       startIdx = idx >= 0 ? idx + 1 : 0;
     }
 
@@ -136,11 +138,11 @@ class InMemoryOutbox implements OutboxStore {
   }
 
   async markAcked(
-    workspaceId: string,
+    orgId: string,
     serverEventId: string,
     clientId: string,
   ): Promise<void> {
-    const bucket = this.byWorkspace.get(workspaceId);
+    const bucket = this.byOrg.get(orgId);
     if (!bucket) return;
     for (const rec of bucket) {
       if (rec.event.meta.eventId === serverEventId) {
@@ -149,30 +151,30 @@ class InMemoryOutbox implements OutboxStore {
       }
     }
     log.debug("sync: ack for unknown server event", {
-      workspaceId,
+      orgId,
       serverEventId,
       clientId,
     });
   }
 
   __reset(): void {
-    this.byWorkspace.clear();
+    this.byOrg.clear();
   }
 }
 
 class MonotonicCursorIssuer implements CursorIssuer {
   private readonly counters: Map<string, bigint> = new Map();
 
-  next(workspaceId: string): string {
-    const prev = this.counters.get(workspaceId) ?? 0n;
+  next(orgId: string): string {
+    const prev = this.counters.get(orgId) ?? 0n;
     const curr = prev + 1n;
-    this.counters.set(workspaceId, curr);
+    this.counters.set(orgId, curr);
     // Pad so lexicographic ordering matches numeric ordering up to 10^18.
     return curr.toString().padStart(19, "0");
   }
 
-  peek(workspaceId: string): string | undefined {
-    const v = this.counters.get(workspaceId);
+  peek(orgId: string): string | undefined {
+    const v = this.counters.get(orgId);
     return v === undefined ? undefined : v.toString().padStart(19, "0");
   }
 

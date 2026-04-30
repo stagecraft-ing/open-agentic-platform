@@ -15,7 +15,7 @@ import type { ProjectCatalogEntry } from '@/routes/factory/ProjectsPanel';
 
 interface ProjectCatalogUpsertEventPayload {
   projectId: string;
-  workspaceId: string;
+  orgId: string;
   name: string;
   slug: string;
   description: string;
@@ -55,7 +55,7 @@ export const useProjectCatalogStore = create<ProjectCatalogState>()(
         }
         const entry: ProjectCatalogEntry = {
           projectId: payload.projectId,
-          workspaceId: payload.workspaceId,
+          orgId: payload.orgId,
           name: payload.name,
           slug: payload.slug,
           description: payload.description,

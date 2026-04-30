@@ -1,15 +1,15 @@
 /**
- * Sync service (spec 087 Phase 3).
+ * Sync service (spec 087 Phase 3, amended by spec 119).
  *
  * Provides:
- *  1. WebSocket relay (streamOut) — pushes workspace-scoped events to connected
+ *  1. WebSocket relay (streamOut) — pushes org-scoped events to connected
  *     web and OPC clients.
  *  2. OPC event ingestion (HTTP POST) — receives desktop→web events.
  *  3. PubSub subscriber on FactoryEventTopic — fans out pipeline events to
- *     connected workspace streams.
+ *     connected org streams.
  *
- * All streams are keyed by workspaceId. A connecting client must be
- * authenticated and carry a workspace context in their auth token.
+ * All streams are keyed by orgId. A connecting client must be authenticated
+ * and carry an org context in their auth token.
  */
 
 import { api, APIError, type StreamOut } from "encore.dev/api";
@@ -27,7 +27,7 @@ import { auditLog } from "../db/schema";
 /** Events pushed from Stagecraft to connected clients (web UI, OPC). */
 interface SyncEvent {
   type: string;
-  workspaceId: string;
+  orgId: string;
   timestamp: string;
   payload: Record<string, unknown>;
 }
@@ -35,49 +35,49 @@ interface SyncEvent {
 /** Events pushed from OPC to Stagecraft. */
 interface OpcInboundEvent {
   type: string;
-  workspaceId: string;
+  orgId: string;
   projectId: string;
   timestamp: string;
   payload: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
-// In-memory stream registry (workspace → connected clients)
+// In-memory stream registry (org → connected clients)
 // ---------------------------------------------------------------------------
 
 // TODO: Process-local — for horizontal scale-out, replace with Redis pub/sub
 // or Encore's built-in pub/sub fan-out to relay across instances.
-const workspaceStreams = new Map<string, Set<StreamOut<SyncEvent>>>();
+const orgStreams = new Map<string, Set<StreamOut<SyncEvent>>>();
 
-function registerStream(wsId: string, stream: StreamOut<SyncEvent>) {
-  if (!workspaceStreams.has(wsId)) {
-    workspaceStreams.set(wsId, new Set());
+function registerStream(orgId: string, stream: StreamOut<SyncEvent>) {
+  if (!orgStreams.has(orgId)) {
+    orgStreams.set(orgId, new Set());
   }
-  workspaceStreams.get(wsId)!.add(stream);
+  orgStreams.get(orgId)!.add(stream);
   log.info("stream registered", {
-    workspaceId: wsId,
-    activeStreams: workspaceStreams.get(wsId)!.size,
+    orgId,
+    activeStreams: orgStreams.get(orgId)!.size,
   });
 }
 
-function unregisterStream(wsId: string, stream: StreamOut<SyncEvent>) {
-  const set = workspaceStreams.get(wsId);
+function unregisterStream(orgId: string, stream: StreamOut<SyncEvent>) {
+  const set = orgStreams.get(orgId);
   if (set) {
     set.delete(stream);
-    if (set.size === 0) workspaceStreams.delete(wsId);
+    if (set.size === 0) orgStreams.delete(orgId);
   }
   log.info("stream unregistered", {
-    workspaceId: wsId,
+    orgId,
     activeStreams: set?.size ?? 0,
   });
 }
 
-/** Broadcast an event to all streams connected to a workspace. */
-export function broadcastToWorkspace(
-  workspaceId: string,
+/** Broadcast an event to all streams connected to an org. */
+export function broadcastToOrg(
+  orgId: string,
   event: SyncEvent
 ): void {
-  const streams = workspaceStreams.get(workspaceId);
+  const streams = orgStreams.get(orgId);
   if (!streams || streams.size === 0) return;
 
   for (const stream of streams) {
@@ -89,30 +89,30 @@ export function broadcastToWorkspace(
 }
 
 // ---------------------------------------------------------------------------
-// WebSocket relay — workspace-scoped event stream (NF-005)
+// WebSocket relay — org-scoped event stream (NF-005)
 // ---------------------------------------------------------------------------
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export const workspaceEventStream = api.streamOut<SyncEvent>(
+export const orgEventStream = api.streamOut<SyncEvent>(
   { path: "/api/sync/events", expose: true, auth: true },
   async (stream) => {
     const auth = getAuthData()!;
-    const wsId = auth.workspaceId;
+    const orgId = auth.orgId;
 
-    if (!wsId) {
+    if (!orgId) {
       await stream.send({
         type: "error",
-        workspaceId: "",
+        orgId: "",
         timestamp: new Date().toISOString(),
-        payload: { message: "workspace context required" },
+        payload: { message: "org context required" },
       });
       return;
     }
 
-    registerStream(wsId, stream);
+    registerStream(orgId, stream);
 
     try {
       // Keep the handler alive with a heartbeat loop.
@@ -122,7 +122,7 @@ export const workspaceEventStream = api.streamOut<SyncEvent>(
         await sleep(30_000);
         await stream.send({
           type: "heartbeat",
-          workspaceId: wsId,
+          orgId,
           timestamp: new Date().toISOString(),
           payload: {},
         });
@@ -130,7 +130,7 @@ export const workspaceEventStream = api.streamOut<SyncEvent>(
     } catch {
       // Client disconnected — expected
     } finally {
-      unregisterStream(wsId, stream);
+      unregisterStream(orgId, stream);
     }
   }
 );
@@ -144,13 +144,13 @@ export const ingestOpcEvent = api(
   async (req: OpcInboundEvent): Promise<{ accepted: boolean }> => {
     const auth = getAuthData()!;
 
-    if (!auth.workspaceId) {
-      throw APIError.invalidArgument("workspace context required");
+    if (!auth.orgId) {
+      throw APIError.invalidArgument("org context required");
     }
 
-    // Verify the event targets the authenticated workspace
-    if (req.workspaceId !== auth.workspaceId) {
-      throw APIError.permissionDenied("workspace mismatch");
+    // Verify the event targets the authenticated org
+    if (req.orgId !== auth.orgId) {
+      throw APIError.permissionDenied("org mismatch");
     }
 
     // Record audit events to the audit log
@@ -164,10 +164,10 @@ export const ingestOpcEvent = api(
       });
     }
 
-    // Broadcast to any connected web UI clients watching this workspace
-    broadcastToWorkspace(req.workspaceId, {
+    // Broadcast to any connected web UI clients watching this org
+    broadcastToOrg(req.orgId, {
       type: req.type,
-      workspaceId: req.workspaceId,
+      orgId: req.orgId,
       timestamp: req.timestamp || new Date().toISOString(),
       payload: {
         ...req.payload,
@@ -178,7 +178,7 @@ export const ingestOpcEvent = api(
 
     log.info("opc event ingested", {
       type: req.type,
-      workspaceId: req.workspaceId,
+      orgId: req.orgId,
       projectId: req.projectId,
     });
 
@@ -192,17 +192,13 @@ export const ingestOpcEvent = api(
 
 const _ = new Subscription(FactoryEventTopic, "sync-relay", {
   handler: async (event) => {
-    // Resolve workspace ID from the project — factory events carry project_id
-    // but not workspace_id. For efficiency, we broadcast to all workspaces
-    // that have active streams and let the client filter. In practice, a
-    // project belongs to exactly one workspace.
-    //
-    // Look up all connected workspaces and check if the project matches.
-    // For now, broadcast the event with the project_id and let clients
-    // that care about this pipeline pick it up.
+    // Resolve org ID from the project — factory events carry project_id
+    // but not org_id. For efficiency, we broadcast to all orgs that have
+    // active streams and let the client filter. In practice, a project
+    // belongs to exactly one org.
     const syncEvent: SyncEvent = {
       type: "pipeline_event",
-      workspaceId: "", // filled per-stream below
+      orgId: "", // filled per-stream below
       timestamp: new Date().toISOString(),
       payload: {
         pipelineId: event.pipeline_id,
@@ -214,13 +210,13 @@ const _ = new Subscription(FactoryEventTopic, "sync-relay", {
       },
     };
 
-    // Fan out to all connected workspaces — each stream is scoped and
-    // the client can filter by projectId. In a scaled deployment this
-    // would use a project→workspace lookup cache.
-    for (const [wsId, streams] of workspaceStreams) {
-      const wsEvent = { ...syncEvent, workspaceId: wsId };
+    // Fan out to all connected orgs — each stream is scoped and the
+    // client can filter by projectId. In a scaled deployment this would
+    // use a project→org lookup cache.
+    for (const [orgId, streams] of orgStreams) {
+      const orgEvent = { ...syncEvent, orgId };
       for (const stream of streams) {
-        stream.send(wsEvent).catch(() => {
+        stream.send(orgEvent).catch(() => {
           streams.delete(stream);
         });
       }
@@ -229,7 +225,7 @@ const _ = new Subscription(FactoryEventTopic, "sync-relay", {
     log.info("factory event relayed", {
       pipelineId: event.pipeline_id,
       eventType: event.event_type,
-      streamCount: workspaceStreams.size,
+      streamCount: orgStreams.size,
     });
   },
 });

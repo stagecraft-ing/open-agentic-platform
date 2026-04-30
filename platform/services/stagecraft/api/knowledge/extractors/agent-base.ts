@@ -136,13 +136,13 @@ export function _setAnthropicClientForTesting(client: unknown): void {
 
 /**
  * FR-019 — sum of `cost_usd` for runs whose `completed_at >= today UTC
- * midnight` for this workspace. Runs that are still `pending` or
+ * midnight` for this project. Runs that are still `pending` or
  * `running` are intentionally NOT counted; their cost is only known on
  * completion. This matches the spec's "we don't abort an in-flight call"
  * decision.
  */
 export async function getDayAggregateCostUsd(
-  workspaceId: string,
+  projectId: string,
   now: Date = new Date(),
 ): Promise<number> {
   const utcMidnight = new Date(
@@ -153,7 +153,7 @@ export async function getDayAggregateCostUsd(
     .from(knowledgeExtractionRuns)
     .where(
       and(
-        eq(knowledgeExtractionRuns.workspaceId, workspaceId),
+        eq(knowledgeExtractionRuns.projectId, projectId),
         gte(knowledgeExtractionRuns.completedAt, utcMidnight),
       ),
     );
@@ -164,7 +164,7 @@ export async function getDayAggregateCostUsd(
 
 export type CostGateArgs = {
   policy: ExtractionPolicy;
-  workspaceId: string;
+  projectId: string;
   extractorKind: string;
   estimate: CostEstimateInput;
 };
@@ -185,7 +185,7 @@ export async function applyCostGates(args: CostGateArgs): Promise<void> {
       )} exceeds per-call ceiling $${args.policy.costCeilingUsdPerCall.toFixed(4)}`,
     });
   }
-  const dayTotal = await getDayAggregateCostUsd(args.workspaceId);
+  const dayTotal = await getDayAggregateCostUsd(args.projectId);
   if (dayTotal + estimate > args.policy.costCeilingUsdPerDay) {
     const tomorrow = nextUtcMidnightIso();
     throw new ExtractorError({
@@ -222,9 +222,9 @@ export type AgentMessageArgs = {
   content: unknown[];
   /** Estimated tokens for cost gating, set by the extractor. */
   estimate: CostEstimateInput;
-  /** Workspace + extractor kind for the gate + audit. */
+  /** Project + extractor kind for the gate + audit. */
   policy: ExtractionPolicy;
-  workspaceId: string;
+  projectId: string;
   extractorKind: string;
   reportTokenSpend: TokenSpendReporter;
   /** Optional override for max output tokens (default 4096). */
@@ -243,7 +243,7 @@ export async function runAgentMessage(
   // Pre-flight cost gates — no HTTP call if either fails.
   await applyCostGates({
     policy: args.policy,
-    workspaceId: args.workspaceId,
+    projectId: args.projectId,
     extractorKind: args.extractorKind,
     estimate: args.estimate,
   });

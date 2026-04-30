@@ -155,10 +155,10 @@ impl SqliteWorkflowStore {
             );
         }
 
-        // Migration: add `workspace_id` column to `workflows` table for
-        // workspace-scoped queries (099 Slice 3).  Idempotent — mirrors the
+        // Migration: add `project_id` column to `workflows` table for
+        // project-scoped queries (099 Slice 3 (project-scoped per spec 119)).  Idempotent — mirrors the
         // `scope` migration pattern above.
-        let has_workspace_id: bool = conn
+        let has_project_id: bool = conn
             .prepare("PRAGMA table_info(workflows)")
             .and_then(|mut stmt| {
                 let rows = stmt.query_map([], |row| {
@@ -167,7 +167,7 @@ impl SqliteWorkflowStore {
                 })?;
                 let mut found = false;
                 for name in rows {
-                    if name.map(|n| n == "workspace_id").unwrap_or(false) {
+                    if name.map(|n| n == "project_id").unwrap_or(false) {
                         found = true;
                         break;
                     }
@@ -176,10 +176,10 @@ impl SqliteWorkflowStore {
             })
             .unwrap_or(false);
 
-        if !has_workspace_id {
+        if !has_project_id {
             let _ = conn.execute_batch(
-                "ALTER TABLE workflows ADD COLUMN workspace_id TEXT;
-                 CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id);",
+                "ALTER TABLE workflows ADD COLUMN project_id TEXT;
+                 CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id);",
             );
         }
 
@@ -212,17 +212,17 @@ impl SqliteWorkflowStore {
             })?)
         };
 
-        // Extract workspace_id from metadata for the dedicated column (099 Slice 3).
-        let workspace_id = state
+        // Extract project_id from metadata for the dedicated column (099 Slice 3, renamed by spec 119).
+        let project_id = state
             .metadata
-            .get("workspace_id")
+            .get("project_id")
             .and_then(|v| v.as_str())
             .map(String::from);
 
         tx.execute(
             r#"
             INSERT INTO workflows (
-              workflow_id, workflow_name, status, started_at, completed_at, metadata, workspace_id
+              workflow_id, workflow_name, status, started_at, completed_at, metadata, project_id
             )
             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)
             ON CONFLICT(workflow_id) DO UPDATE SET
@@ -231,7 +231,7 @@ impl SqliteWorkflowStore {
               started_at    = excluded.started_at,
               completed_at  = excluded.completed_at,
               metadata      = excluded.metadata,
-              workspace_id  = excluded.workspace_id
+              project_id    = excluded.project_id
             "#,
             params![
                 wf_id_str,
@@ -239,7 +239,7 @@ impl SqliteWorkflowStore {
                 status_str,
                 state.started_at,
                 metadata_json,
-                workspace_id
+                project_id
             ],
         )
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -665,14 +665,14 @@ impl SqliteWorkflowStore {
 // ---------------------------------------------------------------------------
 
 impl SqliteWorkflowStore {
-    /// List workflow summaries for a given workspace_id (099 Slice 5).
-    pub async fn list_workflows_by_workspace(
+    /// List workflow summaries for a given project_id (099 Slice 5 (project-scoped per spec 119)).
+    pub async fn list_workflows_by_project(
         &self,
-        workspace_id: &str,
+        project_id: &str,
         limit: Option<u32>,
     ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
         let conn = Arc::clone(&self.conn);
-        let ws_id = workspace_id.to_string();
+        let proj_id = project_id.to_string();
         let lim = limit.unwrap_or(50) as i64;
         tokio::task::spawn_blocking(move || {
             let guard = conn
@@ -682,27 +682,27 @@ impl SqliteWorkflowStore {
                 })?;
             let mut stmt = guard
                 .prepare(
-                    "SELECT workflow_id, workflow_name, status, started_at, workspace_id
+                    "SELECT workflow_id, workflow_name, status, started_at, project_id
                      FROM workflows
-                     WHERE workspace_id = ?1
+                     WHERE project_id = ?1
                      ORDER BY started_at DESC
                      LIMIT ?2",
                 )
                 .map_err(|e| OrchestratorError::StatePersistence {
-                    reason: format!("prepare list_workflows_by_workspace: {e}"),
+                    reason: format!("prepare list_workflows_by_project: {e}"),
                 })?;
             let rows = stmt
-                .query_map(rusqlite::params![ws_id, lim], |row| {
+                .query_map(rusqlite::params![proj_id, lim], |row| {
                     Ok(crate::state::WorkflowStateSummary {
                         workflow_id: row.get(0)?,
                         workflow_name: row.get(1)?,
                         status: row.get(2)?,
                         started_at: row.get(3)?,
-                        workspace_id: row.get(4)?,
+                        project_id: row.get(4)?,
                     })
                 })
                 .map_err(|e| OrchestratorError::StatePersistence {
-                    reason: format!("query list_workflows_by_workspace: {e}"),
+                    reason: format!("query list_workflows_by_project: {e}"),
                 })?;
             let mut results = Vec::new();
             for row in rows {

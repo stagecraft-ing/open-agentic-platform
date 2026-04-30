@@ -1,15 +1,15 @@
-// Spec 112 §7 — helpers for building `project.catalog.upsert` envelopes.
+// Spec 112 §7 (amended by spec 119) — helpers for building
+// `project.catalog.upsert` envelopes.
 //
 // Keeps the construction logic pure so it can be tested without the
 // Encore runtime. Callers (sync relay + create/import endpoints) wire
-// this into their outbound path on a per-workspace basis.
+// this into their outbound path on a per-org basis.
 
 import { buildProjectOpenDeepLink } from "../projects/scaffold/deepLink";
 import type { ServerProjectCatalogUpsert } from "./types";
 
 export interface ProjectRowForCatalog {
   id: string;
-  workspaceId: string;
   name: string;
   slug: string;
   description: string;
@@ -62,7 +62,6 @@ export function buildProjectCatalogUpsert(
     kind: "project.catalog.upsert",
     meta: input.meta,
     projectId: input.project.id,
-    workspaceId: input.project.workspaceId,
     name: input.project.name,
     slug: input.project.slug,
     description: input.project.description,

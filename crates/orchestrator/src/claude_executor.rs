@@ -291,8 +291,8 @@ impl GovernedExecutor for ClaudeCodeExecutor {
 
         let mut cmd = tokio::process::Command::new("claude");
         cmd.args(&args).current_dir(&self.project_path);
-        if let Some(ref ws_id) = request.workspace_id {
-            cmd.env("OPC_WORKSPACE_ID", ws_id);
+        if let Some(ref proj_id) = request.project_id {
+            cmd.env("OPC_PROJECT_ID", proj_id);
         }
         // Spec 112 §6.4.5 — per-subprocess env (e.g. GITHUB_TOKEN). Applied
         // here so the credential never enters OPC's process-wide env.
@@ -567,7 +567,7 @@ mod tests {
             input_artifacts: vec![],
             output_artifacts: vec![],
             resume_session_id: None,
-            workspace_id: None,
+            project_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);
@@ -602,7 +602,7 @@ mod tests {
             input_artifacts: vec![],
             output_artifacts: vec![],
             resume_session_id: None,
-            workspace_id: None,
+            project_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);
@@ -632,7 +632,7 @@ mod tests {
             input_artifacts: vec![],
             output_artifacts: vec![],
             resume_session_id: None,
-            workspace_id: None,
+            project_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);
@@ -651,7 +651,7 @@ mod tests {
             input_artifacts: vec![],
             output_artifacts: vec![],
             resume_session_id: None,
-            workspace_id: None,
+            project_id: None,
         };
 
         let prompt = executor.build_system_prompt(&req);

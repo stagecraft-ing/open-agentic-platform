@@ -1,4 +1,4 @@
-// Spec 115 §5 — heavy-lifting logic for the extraction worker.
+// Spec 115 §5 (amended by spec 119) — heavy-lifting logic for the extraction worker.
 //
 // This module is the only place that mutates `knowledge_extraction_runs`
 // and the only place that advances `knowledge_objects.state` outside the
@@ -7,8 +7,8 @@
 //
 //   - `enqueueExtraction(...)` — FR-003. Inserts a `pending` run row +
 //     publishes the topic + handles enqueue-failure recovery. Idempotency
-//     key is `(workspaceId, contentHash, extractorVersion)` over the last
-//     24h, mirroring the spec 114 dedupe model.
+//     key is `(projectId, contentHash, extractorVersion)` over the last
+//     24h (spec 119 collapsed the legacy workspace scope into project).
 //   - `runExtractionWork(...)` — FR-004. The worker calls this once it has
 //     CAS-claimed a row. CAS-transitions the object to `extracting`, picks
 //     an extractor, runs it, validates the typed output, advances the
@@ -27,8 +27,9 @@ import {
   auditLog,
   knowledgeExtractionRuns,
   knowledgeObjects,
+  projects,
 } from "../db/schema";
-import { broadcastToWorkspace } from "../sync/sync";
+import { broadcastToOrg } from "../sync/sync";
 import {
   KNOWLEDGE_EXTRACTED,
   KNOWLEDGE_EXTRACTION_FAILED,
@@ -40,12 +41,10 @@ import {
 } from "./extractionOutput";
 import {
   resolveExtractionPolicy,
-  type ExtractionPolicy,
 } from "./extractionPolicy";
 import {
   pickExtractor,
   pickExtractorVersion,
-  type DispatchResult,
 } from "./extractors/dispatch";
 // Side-effect import populates the dispatch registry with the
 // deterministic + agent extractors. enqueueExtraction calls
@@ -70,7 +69,7 @@ import {
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
-// FR-003: idempotency window — the same (workspace, contentHash, version)
+// FR-003: idempotency window — the same (project, contentHash, version)
 // key dedupes only against runs queued in the last 24h. Older runs
 // (failed or completed) do not block a fresh enqueue, so an operator-
 // driven re-extract a week later still works.
@@ -131,7 +130,7 @@ export type StoredExtractionError = {
 
 export type EnqueueExtractionArgs = {
   knowledgeObjectId: string;
-  workspaceId: string;
+  projectId: string;
   reason: "upload_confirmed" | "connector_sync" | "retry" | string;
 };
 
@@ -140,7 +139,7 @@ export type EnqueueExtractionResult = {
   /**
    * `enqueued` = a fresh row was inserted and a topic message published.
    * `deduped` = an existing non-failed run within the idempotency window
-   *   matched the (workspace, contentHash, extractorVersion) key; we
+   *   matched the (project, contentHash, extractorVersion) key; we
    *   returned its id without inserting.
    */
   outcome: "enqueued" | "deduped";
@@ -153,7 +152,7 @@ export async function enqueueExtraction(
   const [obj] = await db
     .select({
       id: knowledgeObjects.id,
-      workspaceId: knowledgeObjects.workspaceId,
+      projectId: knowledgeObjects.projectId,
       filename: knowledgeObjects.filename,
       mimeType: knowledgeObjects.mimeType,
       sizeBytes: knowledgeObjects.sizeBytes,
@@ -168,9 +167,9 @@ export async function enqueueExtraction(
       `enqueueExtraction: knowledge object ${args.knowledgeObjectId} not found`,
     );
   }
-  if (obj.workspaceId !== args.workspaceId) {
+  if (obj.projectId !== args.projectId) {
     throw new Error(
-      `enqueueExtraction: workspace mismatch for object ${args.knowledgeObjectId}`,
+      `enqueueExtraction: project mismatch for object ${args.knowledgeObjectId}`,
     );
   }
 
@@ -180,10 +179,10 @@ export async function enqueueExtraction(
   //    enough to dedupe back-to-back enqueues during the unimplemented
   //    window — when the extractor lands, fresh enqueues will pick its
   //    real version and produce a fresh run.
-  const policy = await resolveExtractionPolicy(args.workspaceId);
+  const policy = await resolveExtractionPolicy(args.projectId);
   const dummyInput: ExtractorInput = {
     knowledgeObjectId: obj.id,
-    workspaceId: obj.workspaceId,
+    projectId: obj.projectId,
     filename: obj.filename,
     mimeType: obj.mimeType,
     sizeBytes: obj.sizeBytes,
@@ -196,7 +195,7 @@ export async function enqueueExtraction(
   const versionInfo = pickExtractorVersion(dummyInput, policy);
 
   // 3. Idempotency: any non-failed run in the last 24h with the same
-  //    (workspace, contentHash, extractorVersion) wins.
+  //    (project, contentHash, extractorVersion) wins.
   const sinceMs = Date.now() - IDEMPOTENCY_WINDOW_MS;
   const existing = await db
     .select({
@@ -210,7 +209,7 @@ export async function enqueueExtraction(
     )
     .where(
       and(
-        eq(knowledgeExtractionRuns.workspaceId, args.workspaceId),
+        eq(knowledgeExtractionRuns.projectId, args.projectId),
         eq(knowledgeObjects.contentHash, obj.contentHash),
         eq(knowledgeExtractionRuns.extractorVersion, versionInfo.version),
         gte(knowledgeExtractionRuns.queuedAt, new Date(sinceMs)),
@@ -239,7 +238,7 @@ export async function enqueueExtraction(
     .insert(knowledgeExtractionRuns)
     .values({
       knowledgeObjectId: args.knowledgeObjectId,
-      workspaceId: args.workspaceId,
+      projectId: args.projectId,
       status: "pending",
       extractorKind: versionInfo.kind,
       extractorVersion: versionInfo.version,
@@ -311,7 +310,7 @@ export async function runExtractionWork(args: {
     .returning({
       id: knowledgeExtractionRuns.id,
       knowledgeObjectId: knowledgeExtractionRuns.knowledgeObjectId,
-      workspaceId: knowledgeExtractionRuns.workspaceId,
+      projectId: knowledgeExtractionRuns.projectId,
       attempts: knowledgeExtractionRuns.attempts,
     });
 
@@ -335,7 +334,7 @@ export async function runExtractionWork(args: {
     await markRunFailedInternal({
       runId: run.id,
       knowledgeObjectId: run.knowledgeObjectId,
-      workspaceId: run.workspaceId,
+      projectId: run.projectId,
       error: {
         code: "auto_retry_exhausted",
         message: `auto-retry cap of ${getMaxAutoRetries()} exhausted`,
@@ -370,7 +369,7 @@ export async function runExtractionWork(args: {
     return;
   }
 
-  const policy = await resolveExtractionPolicy(run.workspaceId);
+  const policy = await resolveExtractionPolicy(run.projectId);
 
   // Advance the object to `extracting` (FR-004). If it's already past
   // `imported` (e.g. operator manual transition while the message was in
@@ -380,7 +379,7 @@ export async function runExtractionWork(args: {
       .update(knowledgeObjects)
       .set({ state: "extracting", updatedAt: new Date() })
       .where(eq(knowledgeObjects.id, obj.id));
-    broadcastObjectUpdated(obj.workspaceId, {
+    await broadcastObjectUpdated(obj.projectId, {
       objectId: obj.id,
       state: "extracting",
       hasExtractionOutput: obj.extractionOutput != null,
@@ -388,21 +387,20 @@ export async function runExtractionWork(args: {
     });
   }
 
-  // Resolve workspace bucket once; needed for sniff + extractor input.
-  const { workspaces } = await import("../db/schema");
-  const [ws] = await db
-    .select({ bucket: workspaces.objectStoreBucket })
-    .from(workspaces)
-    .where(eq(workspaces.id, obj.workspaceId))
+  // Resolve project bucket once; needed for sniff + extractor input.
+  const [project] = await db
+    .select({ bucket: projects.objectStoreBucket })
+    .from(projects)
+    .where(eq(projects.id, obj.projectId))
     .limit(1);
-  if (!ws) {
+  if (!project) {
     await markRunFailedInternal({
       runId: run.id,
       knowledgeObjectId: run.knowledgeObjectId,
-      workspaceId: run.workspaceId,
+      projectId: run.projectId,
       error: {
         code: "object_missing",
-        message: `workspace ${obj.workspaceId} not found`,
+        message: `project ${obj.projectId} not found`,
         extractorKind: null,
         attemptedAt: new Date().toISOString(),
       },
@@ -415,7 +413,7 @@ export async function runExtractionWork(args: {
   let resolvedMime = obj.mimeType;
   try {
     const sniff = await sniffMimeType({
-      bucket: ws.bucket,
+      bucket: project.bucket,
       storageKey: obj.storageKey,
       declaredMime: obj.mimeType,
       sizeBytes: obj.sizeBytes,
@@ -444,23 +442,18 @@ export async function runExtractionWork(args: {
   // Build the extractor input (eagerly load buffer when small enough).
   const input: ExtractorInput = await buildExtractorInput(
     { ...obj, mimeType: resolvedMime },
-    ws.bucket,
+    project.bucket,
   );
 
   const dispatch = pickExtractor(input, policy);
   if (!dispatch) {
     // Differentiate the failure by why no extractor matched.
-    // - default_fallback policy with no compiled bundle → `policy_pending`
-    //   (a future bundle compile may unblock this).
-    // - real compiled bundle that disables vision/audio → `policy_denied`.
-    // - real bundle, all enabled, but mime is genuinely unsupported →
-    //   `extractor_not_implemented` (e.g. audio while T046 is unimplemented).
     let code: ExtractionFailureCode;
     let message: string;
     if (policy.source === "default_fallback") {
       code = "policy_pending";
       message =
-        "no policy bundle compiled for this workspace; agent extractors blocked";
+        "no policy bundle compiled for this project; agent extractors blocked";
     } else if (
       mimeRequiresAgent(input.mimeType) &&
       ((!policy.visionAllowed && isVisionMime(input.mimeType)) ||
@@ -477,7 +470,7 @@ export async function runExtractionWork(args: {
     await markRunFailedInternal({
       runId: run.id,
       knowledgeObjectId: run.knowledgeObjectId,
-      workspaceId: run.workspaceId,
+      projectId: run.projectId,
       error: {
         code,
         message,
@@ -528,7 +521,7 @@ export async function runExtractionWork(args: {
     await markRunFailedInternal({
       runId: run.id,
       knowledgeObjectId: run.knowledgeObjectId,
-      workspaceId: run.workspaceId,
+      projectId: run.projectId,
       error: failure,
     });
     return;
@@ -593,6 +586,7 @@ export async function runExtractionWork(args: {
         extractorKind: dispatch.kind,
         extractorVersion: dispatch.version,
         durationMs,
+        projectId: obj.projectId,
       };
       if (output.extractor.agentRun) {
         auditMeta.modelId = output.extractor.agentRun.modelId;
@@ -620,7 +614,7 @@ export async function runExtractionWork(args: {
     await markRunFailedInternal({
       runId: run.id,
       knowledgeObjectId: run.knowledgeObjectId,
-      workspaceId: run.workspaceId,
+      projectId: run.projectId,
       error: {
         code: "extractor_failed",
         message: `commit failed: ${message}`,
@@ -632,7 +626,7 @@ export async function runExtractionWork(args: {
   }
 
   if (succeeded) {
-    broadcastObjectUpdated(obj.workspaceId, {
+    await broadcastObjectUpdated(obj.projectId, {
       objectId: obj.id,
       state: "extracted",
       hasExtractionOutput: true,
@@ -652,7 +646,7 @@ export async function markRunFailed(args: {
   const [row] = await db
     .select({
       knowledgeObjectId: knowledgeExtractionRuns.knowledgeObjectId,
-      workspaceId: knowledgeExtractionRuns.workspaceId,
+      projectId: knowledgeExtractionRuns.projectId,
       status: knowledgeExtractionRuns.status,
     })
     .from(knowledgeExtractionRuns)
@@ -664,7 +658,7 @@ export async function markRunFailed(args: {
   await markRunFailedInternal({
     runId: args.runId,
     knowledgeObjectId: row.knowledgeObjectId,
-    workspaceId: row.workspaceId,
+    projectId: row.projectId,
     error: args.error,
   });
 }
@@ -672,7 +666,7 @@ export async function markRunFailed(args: {
 async function markRunFailedInternal(args: {
   runId: string;
   knowledgeObjectId: string;
-  workspaceId: string;
+  projectId: string;
   error: StoredExtractionError;
 }): Promise<void> {
   const completedAt = new Date();
@@ -720,11 +714,12 @@ async function markRunFailedInternal(args: {
         code: args.error.code,
         message: args.error.message,
         extractorKind: args.error.extractorKind,
+        projectId: args.projectId,
       },
     });
   });
 
-  broadcastObjectUpdated(args.workspaceId, {
+  await broadcastObjectUpdated(args.projectId, {
     objectId: args.knowledgeObjectId,
     state: "imported",
     hasExtractionOutput: false,
@@ -751,7 +746,7 @@ export async function sweepStaleExtractionRuns(now: Date = new Date()): Promise<
     .select({
       id: knowledgeExtractionRuns.id,
       knowledgeObjectId: knowledgeExtractionRuns.knowledgeObjectId,
-      workspaceId: knowledgeExtractionRuns.workspaceId,
+      projectId: knowledgeExtractionRuns.projectId,
       extractorKind: knowledgeExtractionRuns.extractorKind,
     })
     .from(knowledgeExtractionRuns)
@@ -770,7 +765,7 @@ export async function sweepStaleExtractionRuns(now: Date = new Date()): Promise<
     await markRunFailedInternal({
       runId: row.id,
       knowledgeObjectId: row.knowledgeObjectId,
-      workspaceId: row.workspaceId,
+      projectId: row.projectId,
       error: {
         code: "worker_crashed",
         message: `run was running > ${staleAfterSec}s without completion`,
@@ -813,7 +808,7 @@ async function buildExtractorInput(
   );
   return {
     knowledgeObjectId: obj.id,
-    workspaceId: obj.workspaceId,
+    projectId: obj.projectId,
     filename: obj.filename,
     mimeType: obj.mimeType,
     sizeBytes: obj.sizeBytes,
@@ -896,14 +891,32 @@ export type KnowledgeObjectUpdatedPayload = {
   lastExtractionError: { code: ExtractionFailureCode } | null;
 };
 
-function broadcastObjectUpdated(
-  workspaceId: string,
+async function broadcastObjectUpdated(
+  projectId: string,
   payload: KnowledgeObjectUpdatedPayload,
-): void {
-  broadcastToWorkspace(workspaceId, {
+): Promise<void> {
+  // Resolve the org for the broadcast key. If the project has been
+  // deleted between the work and the broadcast, log and drop the event —
+  // an audit row already records the run's terminal state.
+  const [project] = await db
+    .select({ orgId: projects.orgId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!project) {
+    log.warn("broadcastObjectUpdated: project not found, dropping event", {
+      projectId,
+      objectId: payload.objectId,
+    });
+    return;
+  }
+  broadcastToOrg(project.orgId, {
     type: "knowledge.object.updated",
-    workspaceId,
+    orgId: project.orgId,
     timestamp: new Date().toISOString(),
-    payload: payload as unknown as Record<string, unknown>,
+    payload: {
+      ...payload,
+      projectId,
+    } as unknown as Record<string, unknown>,
   });
 }

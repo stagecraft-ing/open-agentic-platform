@@ -5,6 +5,9 @@
  * Adding a new server-originated event type means:
  *   1. Define the envelope variant in `types.ts`.
  *   2. Subscribe to the producing topic here and call `dispatchServerEvent`.
+ *
+ * Spec 119: scope key is `orgId`; per-event projectId
+ * carries on each variant for desktop-side filtering.
  */
 import { Subscription } from "encore.dev/pubsub";
 import log from "encore.dev/log";
@@ -17,31 +20,31 @@ import { resolveKnowledgeBundlesForFactory } from "../knowledge/knowledge";
 import type { EnvelopeBusinessDoc } from "./types";
 
 // ---------------------------------------------------------------------------
-// project_id -> workspace_id cache (TTL 5 min)
+// project_id -> org_id cache (TTL 5 min)
 // ---------------------------------------------------------------------------
 
-const PROJECT_WORKSPACE_TTL_MS = 5 * 60_000;
-const projectWorkspaceCache = new Map<
+const PROJECT_ORG_TTL_MS = 5 * 60_000;
+const projectOrgCache = new Map<
   string,
-  { workspaceId: string | null; fetchedAt: number }
+  { orgId: string | null; fetchedAt: number }
 >();
 
-async function resolveWorkspaceId(projectId: string): Promise<string | null> {
+async function resolveOrgId(projectId: string): Promise<string | null> {
   const now = Date.now();
-  const cached = projectWorkspaceCache.get(projectId);
-  if (cached && now - cached.fetchedAt < PROJECT_WORKSPACE_TTL_MS) {
-    return cached.workspaceId;
+  const cached = projectOrgCache.get(projectId);
+  if (cached && now - cached.fetchedAt < PROJECT_ORG_TTL_MS) {
+    return cached.orgId;
   }
 
   const [row] = await db
-    .select({ workspaceId: projects.workspaceId })
+    .select({ orgId: projects.orgId })
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
 
-  const workspaceId = row?.workspaceId ?? null;
-  projectWorkspaceCache.set(projectId, { workspaceId, fetchedAt: now });
-  return workspaceId;
+  const orgId = row?.orgId ?? null;
+  projectOrgCache.set(projectId, { orgId, fetchedAt: now });
+  return orgId;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,8 +53,8 @@ async function resolveWorkspaceId(projectId: string): Promise<string | null> {
 
 const _factorySub = new Subscription(FactoryEventTopic, "sync-outbox-relay", {
   handler: async (event) => {
-    const workspaceId = await resolveWorkspaceId(event.project_id);
-    if (!workspaceId) {
+    const orgId = await resolveOrgId(event.project_id);
+    if (!orgId) {
       log.warn("sync.relay: factory event with unknown project — skipping", {
         projectId: event.project_id,
         pipelineId: event.pipeline_id,
@@ -59,7 +62,7 @@ const _factorySub = new Subscription(FactoryEventTopic, "sync-outbox-relay", {
       return;
     }
 
-    await dispatchServerEvent(workspaceId, {
+    await dispatchServerEvent(orgId, {
       kind: "factory.event",
       pipelineId: event.pipeline_id,
       projectId: event.project_id,
@@ -85,7 +88,7 @@ const _factorySub = new Subscription(FactoryEventTopic, "sync-outbox-relay", {
 const FACTORY_RUN_DEADLINE_MS = 60 * 60 * 1000;
 
 export interface PublishFactoryRunRequestInput {
-  workspaceId: string;
+  orgId: string;
   projectId: string;
   pipelineId: string;
   adapter: string;
@@ -102,10 +105,11 @@ export interface PublishFactoryRunRequestResult {
 }
 
 /**
- * Dispatch a `factory.run.request` to the workspace's connected OPCs (spec
- * 110 §2.1). Resolves attached knowledge object ids into presigned-URL
- * bundles before minting the envelope, so a desktop consumer can materialise
- * the blobs into its local cache without a second round-trip.
+ * Dispatch a `factory.run.request` to the org's connected OPCs (spec
+ * 110 §2.1, amended by spec 119). Resolves attached knowledge object ids
+ * into presigned-URL bundles before minting the envelope, so a desktop
+ * consumer can materialise the blobs into its local cache without a second
+ * round-trip.
  *
  * Callers (factory.initPipeline) MUST gate this on
  * `pipeline.source === "stagecraft"` — OPC-direct runs do not use the
@@ -115,14 +119,14 @@ export async function publishFactoryRunRequest(
   input: PublishFactoryRunRequestInput
 ): Promise<PublishFactoryRunRequestResult> {
   const knowledge = await resolveKnowledgeBundlesForFactory(
-    input.workspaceId,
+    input.projectId,
     input.knowledgeObjectIds
   );
 
   const now = new Date();
   const deadline = new Date(now.getTime() + FACTORY_RUN_DEADLINE_MS);
 
-  const result = await dispatchServerEvent(input.workspaceId, {
+  const result = await dispatchServerEvent(input.orgId, {
     kind: "factory.run.request",
     projectId: input.projectId,
     pipelineId: input.pipelineId,
@@ -136,7 +140,7 @@ export async function publishFactoryRunRequest(
   });
 
   log.info("sync.relay: factory.run.request dispatched", {
-    workspaceId: input.workspaceId,
+    orgId: input.orgId,
     pipelineId: input.pipelineId,
     adapter: input.adapter,
     knowledgeCount: knowledge.length,

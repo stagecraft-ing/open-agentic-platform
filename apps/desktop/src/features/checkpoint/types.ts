@@ -12,8 +12,8 @@ export interface CheckpointInfo {
   total_bytes: number;
   created_at: string; // ISO 8601
   metadata: string | null;
-  /** Workspace context (spec 092). */
-  workspace_id?: string | null;
+  /** Org context (spec 119). */
+  org_id?: string | null;
   /** Git branch name at creation time (spec 095). */
   branch_name?: string | null;
   /** Orchestrator run ID (spec 095). */

@@ -16,7 +16,7 @@ import { Subscription } from "encore.dev/pubsub";
 import log from "encore.dev/log";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { githubInstallations, projectCloneRuns } from "../db/schema";
+import { githubInstallations, organizations, projectCloneRuns } from "../db/schema";
 import { brokerInstallationToken } from "../github/repoInit";
 import { deleteGithubRepo } from "./cloneHelpers";
 import {
@@ -59,11 +59,16 @@ async function handleCloneRequest(req: ProjectCloneRequest): Promise<void> {
   }
 
   try {
+    const [org] = await db
+      .select({ slug: organizations.slug })
+      .from(organizations)
+      .where(eq(organizations.id, row.orgId))
+      .limit(1);
     const result = await runCloneWork({
       runId: row.id,
       sourceProjectId: row.sourceProjectId,
-      workspaceId: row.workspaceId,
       orgId: row.orgId,
+      orgSlug: org?.slug ?? "unknown",
       triggeredBy: row.triggeredBy,
       requestedName: row.requestedName,
       requestedSlug: row.requestedSlug,

@@ -127,12 +127,12 @@ type AuditEntry = {
 
 async function verifyProjectInScope(
   projectId: string,
-  workspaceId: string
+  orgId: string
 ): Promise<void> {
   const rows = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId)))
+    .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
     .limit(1);
 
   if (rows.length === 0) {
@@ -142,10 +142,10 @@ async function verifyProjectInScope(
 
 async function getActivePipeline(
   projectId: string,
-  workspaceId: string
+  orgId: string
 ): Promise<PipelineRow> {
-  // Workspace-scoped: verify project belongs to workspace
-  await verifyProjectInScope(projectId, workspaceId);
+  // Org-scoped: verify project belongs to caller's org (spec 119).
+  await verifyProjectInScope(projectId, orgId);
 
   const rows = await db
     .select()
@@ -196,7 +196,7 @@ type InitRequest = {
   id: string; // project ID (path param)
   adapter: string;
   business_docs?: BusinessDocRef[];
-  knowledge_object_ids?: string[]; // spec 087: resolve workspace knowledge objects
+  knowledge_object_ids?: string[]; // spec 087: resolve project knowledge objects
   policy_overrides?: PolicyOverrides;
   /**
    * Trigger path for this pipeline (spec 110 §8 Rollout Phase 6 — default
@@ -213,7 +213,7 @@ type InitRequest = {
    */
   source?: PipelineSource;
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type InitResponse = {
@@ -228,7 +228,7 @@ type InitResponse = {
 export const initPipeline = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/init" },
   async (req: InitRequest): Promise<InitResponse> => {
-    await verifyProjectInScope(req.id, req.workspaceId);
+    await verifyProjectInScope(req.id, req.orgId);
 
     // Validate adapter
     if (!KNOWN_ADAPTERS.includes(req.adapter as typeof KNOWN_ADAPTERS[number])) {
@@ -241,7 +241,7 @@ export const initPipeline = api(
     let knowledgeDocs: BusinessDocRef[] = [];
     if (req.knowledge_object_ids && req.knowledge_object_ids.length > 0) {
       knowledgeDocs = await resolveKnowledgeForFactory(
-        req.workspaceId,
+        req.id,
         req.knowledge_object_ids
       );
     }
@@ -344,7 +344,7 @@ export const initPipeline = api(
     // execute the legacy local path; their envelope dispatch is a no-op.
     if (source === "stagecraft") {
       await publishFactoryRunRequest({
-        workspaceId: req.workspaceId,
+        orgId: req.orgId,
         projectId: req.id,
         pipelineId: result.pipeline.id,
         adapter: req.adapter,
@@ -399,8 +399,8 @@ type StatusResponse = {
 
 export const getStatus = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/status" },
-  async (req: { id: string; workspaceId: string }): Promise<StatusResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+  async (req: { id: string; orgId: string }): Promise<StatusResponse> => {
+    const pipeline = await getActivePipeline(req.id, req.orgId);
 
     // Stages
     const stageRows = await db
@@ -491,7 +491,7 @@ type ConfirmRequest = {
   stageId: string;
   notes?: string;
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type ConfirmResponse = {
@@ -509,7 +509,7 @@ export const confirmStage = api(
     path: "/api/projects/:id/factory/stage/:stageId/confirm",
   },
   async (req: ConfirmRequest): Promise<ConfirmResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
     const now = new Date();
 
     // Find stage
@@ -587,7 +587,7 @@ type RejectRequest = {
   stageId: string;
   feedback: string;
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type RejectResponse = {
@@ -606,7 +606,7 @@ export const rejectStage = api(
     path: "/api/projects/:id/factory/stage/:stageId/reject",
   },
   async (req: RejectRequest): Promise<RejectResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
     const now = new Date();
 
     if (!req.feedback) {
@@ -687,7 +687,7 @@ export const rejectStage = api(
 
 type AuditRequest = {
   id: string;
-  workspaceId: string;
+  orgId: string;
   from?: string; // ISO date string
   limit?: number;
 };
@@ -700,7 +700,7 @@ type AuditResponse = {
 export const getAudit = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/audit" },
   async (req: AuditRequest): Promise<AuditResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
     const limit = Math.min(req.limit ?? 100, 500);
 
     const conditions = [eq(factoryAuditLog.pipelineId, pipeline.id)];
@@ -744,7 +744,7 @@ type DeployRequest = {
   git_ref: string;
   registry_image?: string;
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type DeployResponse = {
@@ -756,7 +756,7 @@ type DeployResponse = {
 export const triggerDeploy = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/deploy" },
   async (req: DeployRequest): Promise<DeployResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
 
     if (pipeline.status !== "completed") {
       throw APIError.failedPrecondition(
@@ -840,7 +840,7 @@ type StatusUpdateRequest = {
   error?: string;
   phase?: "process" | "scaffold";
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type StatusUpdateResponse = {
@@ -857,7 +857,7 @@ export const updatePipelineStatus = api(
     path: "/api/projects/:id/factory/status-update",
   },
   async (req: StatusUpdateRequest): Promise<StatusUpdateResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
 
     // Guard: cannot update a terminal pipeline
     if (pipeline.status === "completed" || pipeline.status === "failed") {
@@ -949,7 +949,7 @@ type ScaffoldProgressRequest = {
   pipeline_id: string;
   features: ScaffoldFeatureReport[];
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type ScaffoldProgressResponse = {
@@ -965,7 +965,7 @@ export const reportScaffoldProgress = api(
     path: "/api/projects/:id/factory/scaffold-progress",
   },
   async (req: ScaffoldProgressRequest): Promise<ScaffoldProgressResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
 
     if (!req.features || req.features.length === 0) {
       throw APIError.invalidArgument("features array must not be empty");
@@ -1058,7 +1058,7 @@ type EventIngestionRequest = {
   id: string; // project ID (path param)
   pipeline_id: string;
   events: OrchestratorEvent[];
-  workspaceId: string;
+  orgId: string;
 };
 
 type EventIngestionResponse = {
@@ -1073,7 +1073,7 @@ export const ingestEvents = api(
     path: "/api/projects/:id/factory/events",
   },
   async (req: EventIngestionRequest): Promise<EventIngestionResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
 
     if (!req.events || req.events.length === 0) {
       throw APIError.invalidArgument("events array must not be empty");
@@ -1109,7 +1109,7 @@ type TokenSpendRequest = {
   prompt_tokens: number;
   completion_tokens: number;
   model: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 export const reportTokenSpend = api(
@@ -1120,7 +1120,7 @@ export const reportTokenSpend = api(
     path: "/api/projects/:id/factory/token-spend",
   },
   async (req: TokenSpendRequest): Promise<void> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
 
     // Idempotency check: skip if this run_id + stage_id combo was already recorded
     const [existing] = await db
@@ -1192,7 +1192,7 @@ type CancelRequest = {
   id: string; // project ID (path param)
   reason: string;
   actorUserId: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type CancelResponse = {
@@ -1209,7 +1209,7 @@ export const cancelPipeline = api(
     path: "/api/projects/:id/factory/cancel",
   },
   async (req: CancelRequest): Promise<CancelResponse> => {
-    const pipeline = await getActivePipeline(req.id, req.workspaceId);
+    const pipeline = await getActivePipeline(req.id, req.orgId);
     const now = new Date();
 
     if (!req.reason) {
@@ -1273,7 +1273,7 @@ type RecordArtifactsRequest = {
     storage_path: string;
     size_bytes: number;
   }>;
-  workspaceId: string;
+  orgId: string;
 };
 
 type RecordArtifactsResponse = {
@@ -1283,7 +1283,7 @@ type RecordArtifactsResponse = {
 export const recordArtifacts = api(
   { expose: true, auth: true, method: "POST", path: "/api/projects/:id/factory/artifacts" },
   async (req: RecordArtifactsRequest): Promise<RecordArtifactsResponse> => {
-    await verifyProjectInScope(req.id, req.workspaceId);
+    await verifyProjectInScope(req.id, req.orgId);
 
     if (!req.artifacts || req.artifacts.length === 0) {
       return { recorded: 0 };
@@ -1312,7 +1312,7 @@ type LookupArtifactsRequest = {
   id: string; // project ID (path param)
   content_hash: string;
   stage_id: string;
-  workspaceId: string;
+  orgId: string;
 };
 
 type LookupArtifactsResponse = {
@@ -1331,7 +1331,7 @@ type LookupArtifactsResponse = {
 export const lookupArtifact = api(
   { expose: true, auth: true, method: "GET", path: "/api/projects/:id/factory/artifacts/lookup" },
   async (req: LookupArtifactsRequest): Promise<LookupArtifactsResponse> => {
-    await verifyProjectInScope(req.id, req.workspaceId);
+    await verifyProjectInScope(req.id, req.orgId);
 
     const rows = await db
       .select()
@@ -1372,11 +1372,12 @@ export const lookupArtifact = api(
 );
 
 // ---------------------------------------------------------------------------
-// Workspace-scoped artifact recording (spec 094 Slice 5)
+// Project-scoped artifact recording (spec 094 Slice 5; renamed from
+// workspace-scoped by spec 119 Phase C)
 // ---------------------------------------------------------------------------
 
-type WorkspaceRecordArtifactRequest = {
-  workspace_id: string; // path param
+type ProjectRecordArtifactRequest = {
+  projectId: string; // path param
   content_hash: string;
   filename: string;
   step_id: string;
@@ -1384,20 +1385,15 @@ type WorkspaceRecordArtifactRequest = {
   size_bytes: number;
   content_type?: string;
   producer_agent?: string;
-  workspaceId: string; // body: must match path param
 };
 
-type WorkspaceRecordArtifactResponse = {
+type ProjectRecordArtifactResponse = {
   recorded: boolean;
 };
 
-export const workspaceRecordArtifact = api(
-  { expose: true, auth: true, method: "POST", path: "/api/workspaces/:workspace_id/artifacts" },
-  async (req: WorkspaceRecordArtifactRequest): Promise<WorkspaceRecordArtifactResponse> => {
-    if (req.workspaceId !== req.workspace_id) {
-      throw APIError.invalidArgument("workspaceId must match path workspace_id");
-    }
-
+export const projectRecordArtifact = api(
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/artifacts" },
+  async (req: ProjectRecordArtifactRequest): Promise<ProjectRecordArtifactResponse> => {
     await db.insert(factoryArtifacts).values({
       pipelineId: req.workflow_id, // reuse pipelineId for workflow_id
       stageId: req.step_id,
@@ -1405,7 +1401,7 @@ export const workspaceRecordArtifact = api(
       contentHash: req.content_hash,
       storagePath: req.filename,
       sizeBytes: req.size_bytes,
-      workspaceId: req.workspace_id,
+      projectId: req.projectId,
       producerAgent: req.producer_agent ?? null,
     });
 
@@ -1413,13 +1409,12 @@ export const workspaceRecordArtifact = api(
   }
 );
 
-type WorkspaceLookupArtifactRequest = {
-  workspace_id: string; // path param
+type ProjectLookupArtifactRequest = {
+  projectId: string; // path param
   content_hash: string;
-  workspaceId: string;
 };
 
-type WorkspaceLookupArtifactResponse = {
+type ProjectLookupArtifactResponse = {
   found: boolean;
   artifacts: Array<{
     workflow_id: string;
@@ -1432,19 +1427,15 @@ type WorkspaceLookupArtifactResponse = {
   }>;
 };
 
-export const workspaceLookupArtifact = api(
-  { expose: true, auth: true, method: "GET", path: "/api/workspaces/:workspace_id/artifacts" },
-  async (req: WorkspaceLookupArtifactRequest): Promise<WorkspaceLookupArtifactResponse> => {
-    if (req.workspaceId !== req.workspace_id) {
-      throw APIError.invalidArgument("workspaceId must match path workspace_id");
-    }
-
+export const projectLookupArtifact = api(
+  { expose: true, auth: true, method: "GET", path: "/api/projects/:projectId/artifacts" },
+  async (req: ProjectLookupArtifactRequest): Promise<ProjectLookupArtifactResponse> => {
     const rows = await db
       .select()
       .from(factoryArtifacts)
       .where(
         and(
-          eq(factoryArtifacts.workspaceId, req.workspace_id),
+          eq(factoryArtifacts.projectId, req.projectId),
           eq(factoryArtifacts.contentHash, req.content_hash)
         )
       )
@@ -1471,7 +1462,7 @@ export const workspaceLookupArtifact = api(
 // ---------------------------------------------------------------------------
 
 interface PromotionRequest {
-  workspace_id: string;
+  projectId: string;
   workflowId: string;
   pipelineId: string;
   promotedBy?: string;
@@ -1486,18 +1477,17 @@ interface PromotionResult {
 /**
  * Validate a completed pipeline run for promotion eligibility.
  *
- * Checks that the pipeline belongs to the workspace, all stages have records,
- * artifacts are present, and the audit log has a completion event. If all checks
- * pass, creates a promotion record.
- *
- * Spec 097 Slice 3.
+ * Checks that the pipeline belongs to the project, all stages have records,
+ * artifacts are present, and the audit log has a completion event. If all
+ * checks pass, creates a promotion record. Spec 097 Slice 3 (renamed from
+ * workspace-scoped to project-scoped by spec 119 Phase C).
  */
 export const createPromotion = api(
-  { expose: true, auth: true, method: "POST", path: "/api/workspaces/:workspace_id/promotions" },
+  { expose: true, auth: true, method: "POST", path: "/api/projects/:projectId/promotions" },
   async (req: PromotionRequest): Promise<PromotionResult> => {
     const missingRecords: string[] = [];
 
-    // 1. Check pipeline exists and belongs to workspace (via project)
+    // 1. Check pipeline exists and belongs to project
     const [pipeline] = await db
       .select()
       .from(factoryPipelines)
@@ -1508,15 +1498,8 @@ export const createPromotion = api(
       throw APIError.notFound(`Pipeline ${req.pipelineId} not found`);
     }
 
-    // Verify project belongs to workspace
-    const [project] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, pipeline.projectId))
-      .limit(1);
-
-    if (!project || project.workspaceId !== req.workspace_id) {
-      throw APIError.permissionDenied("Pipeline does not belong to this workspace");
+    if (pipeline.projectId !== req.projectId) {
+      throw APIError.permissionDenied("Pipeline does not belong to this project");
     }
 
     // 2. Check all expected stages have records
@@ -1573,7 +1556,7 @@ export const createPromotion = api(
     const [promotion] = await db
       .insert(promotions)
       .values({
-        workspaceId: req.workspace_id,
+        projectId: req.projectId,
         pipelineId: req.pipelineId,
         workflowId: req.workflowId,
         promotedBy: req.promotedBy ?? null,

@@ -98,23 +98,23 @@ impl HiqliteWorkflowStore {
                 })?;
         }
 
-        // Migration: add workspace_id column to workflows (099 Slice 4).
+        // Migration: add project_id column to workflows (099 Slice 4 (project-scoped per spec 119)).
         // Idempotent — ALTER TABLE ADD COLUMN fails if column already exists;
         // we ignore the error.
         let _ = self
             .client
             .execute(
-                Cow::Borrowed("ALTER TABLE workflows ADD COLUMN workspace_id TEXT"),
+                Cow::Borrowed("ALTER TABLE workflows ADD COLUMN project_id TEXT"),
                 vec![],
             )
             .await;
 
-        // Index for workspace-scoped queries (099 Slice 4).
+        // Index for project-scoped queries (099 Slice 4).
         let _ = self
             .client
             .execute(
                 Cow::Borrowed(
-                    "CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id)",
+                    "CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id)",
                 ),
                 vec![],
             )
@@ -123,26 +123,26 @@ impl HiqliteWorkflowStore {
         Ok(())
     }
 
-    /// List workflow summaries for a given workspace_id (099 Slice 5).
-    pub async fn list_workflows_by_workspace(
+    /// List workflow summaries for a given project_id (099 Slice 5 (project-scoped per spec 119)).
+    pub async fn list_workflows_by_project(
         &self,
-        workspace_id: &str,
+        project_id: &str,
         limit: Option<u32>,
     ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
         let lim = limit.unwrap_or(50) as i64;
-        let rows: Vec<WorkspaceSummaryRow> = self
+        let rows: Vec<ProjectSummaryRow> = self
             .client
             .query_as(
-                "SELECT workflow_id, workflow_name, status, started_at, workspace_id
+                "SELECT workflow_id, workflow_name, status, started_at, project_id
                  FROM workflows
-                 WHERE workspace_id = $1
+                 WHERE project_id = $1
                  ORDER BY started_at DESC
                  LIMIT $2",
-                vec![Param::Text(workspace_id.to_string()), Param::Integer(lim)],
+                vec![Param::Text(project_id.to_string()), Param::Integer(lim)],
             )
             .await
             .map_err(|e| OrchestratorError::StatePersistence {
-                reason: format!("list_workflows_by_workspace: {e}"),
+                reason: format!("list_workflows_by_project: {e}"),
             })?;
         Ok(rows
             .into_iter()
@@ -151,7 +151,7 @@ impl HiqliteWorkflowStore {
                 workflow_name: r.workflow_name,
                 status: r.status,
                 started_at: r.started_at,
-                workspace_id: r.workspace_id,
+                project_id: r.project_id,
             })
             .collect())
     }
@@ -175,16 +175,16 @@ impl WorkflowStore for HiqliteWorkflowStore {
         // Build transaction: upsert workflow + delete old steps + insert new steps
         let mut queries: Vec<(Cow<'static, str>, Params)> = Vec::new();
 
-        // Extract workspace_id from metadata for the dedicated column (099 Slice 4).
-        let workspace_id = state
+        // Extract project_id from metadata for the dedicated column (099 Slice 4, renamed by spec 119).
+        let project_id = state
             .metadata
-            .get("workspace_id")
+            .get("project_id")
             .and_then(|v| v.as_str())
             .map(String::from);
 
         queries.push((
             Cow::Borrowed(
-                r#"INSERT INTO workflows (workflow_id, workflow_name, status, started_at, completed_at, metadata, workspace_id)
+                r#"INSERT INTO workflows (workflow_id, workflow_name, status, started_at, completed_at, metadata, project_id)
                    VALUES ($1, $2, $3, $4, NULL, $5, $6)
                    ON CONFLICT(workflow_id) DO UPDATE SET
                      workflow_name = excluded.workflow_name,
@@ -192,7 +192,7 @@ impl WorkflowStore for HiqliteWorkflowStore {
                      started_at    = excluded.started_at,
                      completed_at  = excluded.completed_at,
                      metadata      = excluded.metadata,
-                     workspace_id  = excluded.workspace_id"#,
+                     project_id    = excluded.project_id"#,
             ),
             vec![
                 Param::Text(wf_id_str.clone()),
@@ -202,7 +202,7 @@ impl WorkflowStore for HiqliteWorkflowStore {
                 metadata_json
                     .map(Param::Text)
                     .unwrap_or(Param::Null),
-                workspace_id
+                project_id
                     .map(Param::Text)
                     .unwrap_or(Param::Null),
             ],
@@ -519,12 +519,12 @@ impl EventNotifier for HiqliteEventNotifier {
 // ---------------------------------------------------------------------------
 
 #[derive(serde::Deserialize)]
-struct WorkspaceSummaryRow {
+struct ProjectSummaryRow {
     workflow_id: String,
     workflow_name: String,
     status: String,
     started_at: String,
-    workspace_id: Option<String>,
+    project_id: Option<String>,
 }
 
 #[derive(serde::Deserialize)]

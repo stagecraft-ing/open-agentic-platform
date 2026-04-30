@@ -199,8 +199,8 @@ pub struct DispatchRequest {
     pub output_artifacts: Vec<PathBuf>,
     /// If set, resume this claude session instead of starting fresh.
     pub resume_session_id: Option<String>,
-    /// Active workspace ID for this execution (spec 092).
-    pub workspace_id: Option<String>,
+    /// Active project ID for this execution (spec 119).
+    pub project_id: Option<String>,
 }
 
 #[async_trait]
@@ -319,7 +319,7 @@ async fn dispatch_with_verify(
     input_paths: &[PathBuf],
     output_paths: &[PathBuf],
     project_root: Option<&Path>,
-    workspace_id: Option<&str>,
+    project_id: Option<&str>,
 ) -> Result<StepMetrics, OrchestratorError> {
     let max_retries = step.max_retries.unwrap_or(3);
     let mut attempt = 0u32;
@@ -340,7 +340,7 @@ async fn dispatch_with_verify(
             input_artifacts: input_paths.to_vec(),
             output_artifacts: output_paths.to_vec(),
             resume_session_id: resume_session_id.clone(),
-            workspace_id: workspace_id.map(str::to_owned),
+            project_id: project_id.map(str::to_owned),
         };
 
         let result = executor.dispatch_step(request).await.map_err(|reason| {
@@ -1230,7 +1230,7 @@ pub async fn dispatch_manifest(
             &input_paths,
             &output_paths,
             options.project_root.as_deref(),
-            manifest.workspace_id.as_deref(),
+            manifest.project_id.as_deref(),
         )
         .await
         {
@@ -1383,9 +1383,9 @@ fn check_promotion_from_metadata(
 
     let mut reasons = Vec::new();
 
-    // Non-persisted path has no workspace_id in DispatchOptions,
+    // Non-persisted path has no project_id in DispatchOptions,
     // so always flag as missing.
-    reasons.push("no workspace_id (non-persisted dispatch path)".to_string());
+    reasons.push("no project_id (non-persisted dispatch path)".to_string());
 
     if !governance_active {
         reasons.push(format!("governance mode is '{gm}', expected 'governed'"));
@@ -1408,7 +1408,7 @@ fn check_promotion_from_metadata(
 
     promotion::PromotionCheck {
         workflow_id: run_id.to_string(),
-        workspace_id: None,
+        project_id: None,
         governance_active,
         events_synced: sync_status.events_synced,
         artifacts_recorded: sync_status.artifacts_recorded,
@@ -1424,7 +1424,7 @@ fn record_artifact_metadata(
     output_hashes: &HashMap<String, String>,
     step: &manifest::WorkflowStep,
     run_id: Uuid,
-    workspace_id: Option<&str>,
+    project_id: Option<&str>,
     output_paths: &[PathBuf],
 ) {
     let store = match store.lock() {
@@ -1452,7 +1452,7 @@ fn record_artifact_metadata(
             filename: filename.clone(),
             step_id: step.id.clone(),
             workflow_id: run_id.to_string(),
-            workspace_id: workspace_id.map(String::from),
+            project_id: project_id.map(String::from),
             created_at: now.clone(),
             size_bytes: size,
             content_type: None,
@@ -1520,8 +1520,8 @@ pub async fn dispatch_manifest_persisted(
         .collect();
 
     let mut wf_metadata = serde_json::Map::new();
-    if let Some(ref ws_id) = manifest.workspace_id {
-        wf_metadata.insert("workspace_id".to_string(), JsonValue::String(ws_id.clone()));
+    if let Some(ref proj_id) = manifest.project_id {
+        wf_metadata.insert("project_id".to_string(), JsonValue::String(proj_id.clone()));
     }
     // Thread governance_mode from DispatchOptions into persisted metadata (098 Slice 2).
     if let Some(ref gm) = options.governance_mode {
@@ -1995,7 +1995,7 @@ pub async fn dispatch_manifest_persisted(
             &input_paths,
             &output_paths,
             options.project_root.as_deref(),
-            manifest.workspace_id.as_deref(),
+            manifest.project_id.as_deref(),
         )
         .await
         {
@@ -2031,16 +2031,16 @@ pub async fn dispatch_manifest_persisted(
                     // Record artifact metadata and provenance (094 Slices 3-4).
                     #[cfg(feature = "local-sqlite")]
                     if let Some(ref meta_store) = options.artifact_metadata {
-                        let ws_id = wf_state
+                        let proj_id = wf_state
                             .metadata
-                            .get("workspace_id")
+                            .get("project_id")
                             .and_then(|v| v.as_str());
                         record_artifact_metadata(
                             meta_store,
                             &step_output_hashes[idx],
                             step,
                             run_id,
-                            ws_id,
+                            proj_id,
                             &output_paths,
                         );
                     }
@@ -2304,7 +2304,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
-            workspace_id: None,
+            project_id: None,
         };
         let rd = materialize_run_directory(&am, run_id, &m).unwrap();
         assert!(rd.join("manifest.yaml").exists());
@@ -2357,7 +2357,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         // Persisted state with first two steps completed, third still pending.
@@ -2436,7 +2436,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         // No steps are marked completed in the state, so there is no resume plan yet.
@@ -2462,7 +2462,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
-            workspace_id: None,
+            project_id: None,
         };
 
         let plan = detect_resume_plan_for_run(&artifact_base, run_id, &manifest).unwrap();
@@ -2502,7 +2502,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         let path = state_file_path_for_run(&artifact_base, run_id);
@@ -2568,7 +2568,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         // Write summary.json with s1 succeeded, s2 failed — no state.json.
@@ -2649,7 +2649,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         // Materialize run dir and create the expected artifact for step-01.
@@ -2707,7 +2707,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         let run_dir = materialize_run_directory(&am, run_id, &manifest).unwrap();
@@ -2810,7 +2810,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
-            workspace_id: None,
+            project_id: None,
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
 
@@ -2855,7 +2855,7 @@ mod tests {
                 post_verify: None,
                 max_retries: None,
             }],
-            workspace_id: None,
+            project_id: None,
         };
         materialize_run_directory(&am, run_id, &manifest).unwrap();
 
@@ -3018,7 +3018,7 @@ steps:
                 post_verify: None,
                 max_retries: None,
             }],
-            workspace_id: Some("ws-test-098".into()),
+            project_id: Some("ws-test-098".into()),
         };
 
         materialize_run_directory(&am, run_id, &manifest).unwrap();

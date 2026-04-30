@@ -5,13 +5,6 @@
  * and sync event posting. Consumed by OPC desktop and the web UI.
  */
 
-import type {
-  Workspace,
-  CreateWorkspaceRequest,
-  UpdateWorkspaceRequest,
-  ListWorkspacesResponse,
-  GetWorkspaceResponse,
-} from "./workspace";
 
 import type {
   KnowledgeObject,
@@ -35,27 +28,21 @@ export interface StagecraftClientOptions {
 }
 
 export interface StagecraftClient {
-  // -- Workspaces --
-  listWorkspaces(): Promise<ListWorkspacesResponse>;
-  getWorkspace(id: string): Promise<GetWorkspaceResponse>;
-  createWorkspace(req: CreateWorkspaceRequest): Promise<Workspace>;
-  updateWorkspace(id: string, req: UpdateWorkspaceRequest): Promise<Workspace>;
-
   // -- Knowledge objects --
-  listKnowledgeObjects(workspaceId: string): Promise<KnowledgeObject[]>;
-  getKnowledgeObject(workspaceId: string, id: string): Promise<KnowledgeObject>;
-  deleteKnowledgeObject(workspaceId: string, id: string): Promise<void>;
-  requestUpload(workspaceId: string, filename: string, mimeType: string): Promise<{ uploadUrl: string; objectId: string }>;
-  confirmUpload(workspaceId: string, objectId: string): Promise<KnowledgeObject>;
+  listKnowledgeObjects(projectId: string): Promise<KnowledgeObject[]>;
+  getKnowledgeObject(projectId: string, id: string): Promise<KnowledgeObject>;
+  deleteKnowledgeObject(projectId: string, id: string): Promise<void>;
+  requestUpload(projectId: string, filename: string, mimeType: string): Promise<{ uploadUrl: string; objectId: string }>;
+  confirmUpload(projectId: string, objectId: string): Promise<KnowledgeObject>;
 
   // -- Connectors --
-  listConnectors(workspaceId: string): Promise<SourceConnector[]>;
-  getConnector(workspaceId: string, id: string): Promise<SourceConnector>;
-  createConnector(workspaceId: string, req: CreateConnectorRequest): Promise<SourceConnector>;
-  deleteConnector(workspaceId: string, id: string): Promise<void>;
-  testConnection(workspaceId: string, id: string): Promise<{ ok: boolean; error?: string }>;
-  triggerSync(workspaceId: string, connectorId: string): Promise<SyncRun>;
-  listSyncRuns(workspaceId: string, connectorId: string): Promise<SyncRun[]>;
+  listConnectors(projectId: string): Promise<SourceConnector[]>;
+  getConnector(projectId: string, id: string): Promise<SourceConnector>;
+  createConnector(projectId: string, req: CreateConnectorRequest): Promise<SourceConnector>;
+  deleteConnector(projectId: string, id: string): Promise<void>;
+  testConnection(projectId: string, id: string): Promise<{ ok: boolean; error?: string }>;
+  triggerSync(projectId: string, connectorId: string): Promise<SyncRun>;
+  listSyncRuns(projectId: string, connectorId: string): Promise<SyncRun[]>;
 
   // -- Bindings --
   listBindings(projectId: string): Promise<DocumentBinding[]>;
@@ -99,39 +86,33 @@ export function createStagecraftClient(opts: StagecraftClientOptions): Stagecraf
   }
 
   return {
-    // -- Workspaces --
-    listWorkspaces: () => request<ListWorkspacesResponse>("GET", "/api/workspaces"),
-    getWorkspace: (id) => request<GetWorkspaceResponse>("GET", `/api/workspaces/${id}`),
-    createWorkspace: (req) => request<Workspace>("POST", "/api/workspaces", req),
-    updateWorkspace: (id, req) => request<Workspace>("PUT", `/api/workspaces/${id}`, req),
-
     // -- Knowledge objects --
-    listKnowledgeObjects: (wsId) =>
-      request<KnowledgeObject[]>("GET", `/api/workspaces/${wsId}/knowledge`),
-    getKnowledgeObject: (wsId, id) =>
-      request<KnowledgeObject>("GET", `/api/workspaces/${wsId}/knowledge/${id}`),
-    deleteKnowledgeObject: (wsId, id) =>
-      request<void>("DELETE", `/api/workspaces/${wsId}/knowledge/${id}`),
-    requestUpload: (wsId, filename, mimeType) =>
-      request("POST", `/api/workspaces/${wsId}/knowledge/upload`, { filename, mimeType }),
-    confirmUpload: (wsId, objectId) =>
-      request<KnowledgeObject>("POST", `/api/workspaces/${wsId}/knowledge/${objectId}/confirm`),
+    listKnowledgeObjects: (projectId) =>
+      request<KnowledgeObject[]>("GET", `/api/projects/${projectId}/knowledge/objects`),
+    getKnowledgeObject: (projectId, id) =>
+      request<KnowledgeObject>("GET", `/api/projects/${projectId}/knowledge/objects/${id}`),
+    deleteKnowledgeObject: (projectId, id) =>
+      request<void>("DELETE", `/api/projects/${projectId}/knowledge/objects/${id}`),
+    requestUpload: (projectId, filename, mimeType) =>
+      request("POST", `/api/projects/${projectId}/knowledge/objects/upload`, { filename, mimeType }),
+    confirmUpload: (projectId, objectId) =>
+      request<KnowledgeObject>("POST", `/api/projects/${projectId}/knowledge/objects/${objectId}/confirm`),
 
     // -- Connectors --
-    listConnectors: (wsId) =>
-      request<SourceConnector[]>("GET", `/api/workspaces/${wsId}/connectors`),
-    getConnector: (wsId, id) =>
-      request<SourceConnector>("GET", `/api/workspaces/${wsId}/connectors/${id}`),
-    createConnector: (wsId, req) =>
-      request<SourceConnector>("POST", `/api/workspaces/${wsId}/connectors`, req),
-    deleteConnector: (wsId, id) =>
-      request<void>("DELETE", `/api/workspaces/${wsId}/connectors/${id}`),
-    testConnection: (wsId, id) =>
-      request("POST", `/api/workspaces/${wsId}/connectors/${id}/test`),
-    triggerSync: (wsId, connectorId) =>
-      request<SyncRun>("POST", `/api/workspaces/${wsId}/connectors/${connectorId}/sync`),
-    listSyncRuns: (wsId, connectorId) =>
-      request<SyncRun[]>("GET", `/api/workspaces/${wsId}/connectors/${connectorId}/runs`),
+    listConnectors: (projectId) =>
+      request<SourceConnector[]>("GET", `/api/projects/${projectId}/knowledge/connectors`),
+    getConnector: (projectId, id) =>
+      request<SourceConnector>("GET", `/api/projects/${projectId}/knowledge/connectors/${id}`),
+    createConnector: (projectId, req) =>
+      request<SourceConnector>("POST", `/api/projects/${projectId}/knowledge/connectors`, req),
+    deleteConnector: (projectId, id) =>
+      request<void>("DELETE", `/api/projects/${projectId}/knowledge/connectors/${id}`),
+    testConnection: (projectId, id) =>
+      request("POST", `/api/projects/${projectId}/knowledge/connectors/${id}/test`),
+    triggerSync: (projectId, connectorId) =>
+      request<SyncRun>("POST", `/api/projects/${projectId}/knowledge/connectors/${connectorId}/sync`),
+    listSyncRuns: (projectId, connectorId) =>
+      request<SyncRun[]>("GET", `/api/projects/${projectId}/knowledge/connectors/${connectorId}/runs`),
 
     // -- Bindings --
     listBindings: (projectId) =>

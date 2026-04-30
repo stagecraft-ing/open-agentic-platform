@@ -171,7 +171,7 @@ export interface AgentExport {
 export interface PublishLocalAgentResult {
   local_agent_id: number;
   remote_agent_id: string;
-  workspace_id: string;
+  org_id: string;
   name: string;
   version: number;
   status: string;

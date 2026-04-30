@@ -80,7 +80,7 @@ async fn fetch_platform_grants() -> Option<String> {
     let user_id = std::env::var("OPC_USER_ID")
         .ok()
         .filter(|v| !v.is_empty())?;
-    let workspace_id = std::env::var("OPC_WORKSPACE_ID")
+    let org_id = std::env::var("OPC_WORKSPACE_ID")
         .ok()
         .filter(|v| !v.is_empty())?;
 
@@ -88,7 +88,7 @@ async fn fetch_platform_grants() -> Option<String> {
         "{}/grants/{}/{}",
         api_url.trim_end_matches('/'),
         user_id,
-        workspace_id
+        org_id
     );
 
     let client = reqwest::Client::builder()

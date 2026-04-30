@@ -677,14 +677,14 @@ pub async fn start_factory_pipeline(
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
 
-    // Get workspace_id from StagecraftClient (set by set_active_workspace) — spec 092.
-    let workspace_id: Option<String> = app
+    // Get org/project id from StagecraftClient (set by set_active_workspace) — spec 092.
+    let org_id: Option<String> = app
         .try_state::<StagecraftState>()
-        .and_then(|s| s.current().map(|c| c.workspace_id()))
+        .and_then(|s| s.current().map(|c| c.org_id()))
         .filter(|s| !s.is_empty());
 
     let start = engine
-        .start_pipeline(&adapter_name, &doc_paths, workspace_id.clone())
+        .start_pipeline(&adapter_name, &doc_paths, org_id.clone())
         .map_err(|e| e.to_string())?;
 
     let run_id = start.run_id;
@@ -1002,7 +1002,7 @@ pub async fn start_factory_pipeline(
                 &build_spec_path,
                 &mut ps,
                 None, // org_override
-                workspace_id.clone(),
+                org_id.clone(),
             ) {
                 Ok(t) => t,
                 Err(e) => {
@@ -1578,14 +1578,14 @@ pub async fn resume_factory_pipeline(
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
 
-    // Get workspace_id from StagecraftClient for resumed pipelines (spec 092).
-    let workspace_id: Option<String> = app
+    // Get org/project id from StagecraftClient for resumed pipelines (spec 092).
+    let org_id: Option<String> = app
         .try_state::<StagecraftState>()
-        .and_then(|s| s.current().map(|c| c.workspace_id()))
+        .and_then(|s| s.current().map(|c| c.org_id()))
         .filter(|s| !s.is_empty());
 
     let start = engine
-        .start_pipeline(&adapter_name, &[], workspace_id)
+        .start_pipeline(&adapter_name, &[], org_id)
         .map_err(|e| e.to_string())?;
 
     let artifact_dir = project_path.join(".factory").join("runs");
@@ -2182,8 +2182,8 @@ mod tests {
                 sent_at: "2026-04-21T00:00:00Z".into(),
                 correlation_id: None,
                 causation_id: None,
-                workspace_cursor: "c".into(),
-                workspace_id: "ws".into(),
+                org_cursor: "c".into(),
+                org_id: "org-1".into(),
             },
             policy_bundle_id: None,
             summary: None,
@@ -2220,7 +2220,7 @@ mod tests {
             generated_at: None,
             slug: None,
             description: None,
-            workspace_id: None,
+            org_id: None,
             factory_adapter_id: None,
             detection_level: None,
             repo: None,
@@ -2240,8 +2240,8 @@ mod tests {
                 sent_at: "2026-04-21T00:00:00Z".into(),
                 correlation_id: None,
                 causation_id: None,
-                workspace_cursor: "c".into(),
-                workspace_id: "ws".into(),
+                org_cursor: "c".into(),
+                org_id: "org-1".into(),
             },
             policy_bundle_id: None,
             summary: None,
@@ -2283,7 +2283,7 @@ mod tests {
             generated_at: None,
             slug: None,
             description: None,
-            workspace_id: None,
+            org_id: None,
             factory_adapter_id: None,
             detection_level: None,
             repo: None,

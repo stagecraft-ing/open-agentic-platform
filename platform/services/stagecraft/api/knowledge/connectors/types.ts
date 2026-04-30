@@ -14,9 +14,9 @@
 export interface SyncContext {
   /** Connector row ID. */
   connectorId: string;
-  /** Workspace ID the connector belongs to. */
-  workspaceId: string;
-  /** S3-compatible bucket for this workspace. */
+  /** Project ID the connector belongs to (spec 119). */
+  projectId: string;
+  /** S3-compatible bucket for this project. */
   bucket: string;
   /** Connector-specific config (from source_connectors.config_encrypted). */
   config: Record<string, unknown>;

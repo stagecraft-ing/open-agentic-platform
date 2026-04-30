@@ -79,7 +79,7 @@ export const agentPdfVisionExtractor: Extractor = {
       modelId,
       prompt,
       policy: ctx.policy,
-      workspaceId: input.workspaceId,
+      projectId: input.projectId,
       extractorKind: KIND,
       reportTokenSpend: ctx.reportTokenSpend,
       estimate: {

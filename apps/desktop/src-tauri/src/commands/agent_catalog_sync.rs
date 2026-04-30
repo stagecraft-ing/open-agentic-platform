@@ -65,7 +65,7 @@ pub fn feature_flag_enabled() -> bool {
 /// DB writes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemoteAgentUpdate {
-    pub workspace_id: String,
+    pub org_id: String,
     pub remote_agent_id: String,
     pub name: String,
     pub version: u32,
@@ -79,8 +79,8 @@ pub struct RemoteAgentUpdate {
 /// a required field is missing — a drifted server that sends an incomplete
 /// `agent.catalog.updated` should not crash the dispatcher.
 pub fn extract_remote_update(env: &ServerEnvelopeWire) -> Option<RemoteAgentUpdate> {
-    let workspace_id = env.meta.workspace_id.clone();
-    if workspace_id.is_empty() {
+    let org_id = env.meta.org_id.clone();
+    if org_id.is_empty() {
         return None;
     }
     let remote_agent_id = env.agent_id.clone()?;
@@ -94,7 +94,7 @@ pub fn extract_remote_update(env: &ServerEnvelopeWire) -> Option<RemoteAgentUpda
         None => "{}".to_string(),
     };
     Some(RemoteAgentUpdate {
-        workspace_id,
+        org_id,
         remote_agent_id,
         name,
         version,
@@ -129,7 +129,7 @@ fn model_from_frontmatter(fm: &JsonValue) -> String {
 
 /// Apply a published `agent.catalog.updated` to the cache. Upserts the row
 /// keyed on `remote_agent_id` and stamps the `source = 'remote'`,
-/// workspace_id, remote_version, and content_hash columns so snapshot diffs
+/// org_id, remote_version, and content_hash columns so snapshot diffs
 /// can detect drift without refetching bodies.
 pub fn upsert_remote_agent(
     conn: &Connection,
@@ -150,7 +150,7 @@ pub fn upsert_remote_agent(
              name, icon, system_prompt, model,
              enable_file_read, enable_file_write, enable_network,
              source, remote_agent_id, remote_version, remote_content_hash,
-             workspace_id, frontmatter_json
+             org_id, frontmatter_json
          ) VALUES (?1, ?2, ?3, ?4, 1, 1, 0, 'remote', ?5, ?6, ?7, ?8, ?9)
          ON CONFLICT(remote_agent_id) WHERE remote_agent_id IS NOT NULL DO UPDATE SET
              name                 = excluded.name,
@@ -160,7 +160,7 @@ pub fn upsert_remote_agent(
              source               = 'remote',
              remote_version       = excluded.remote_version,
              remote_content_hash  = excluded.remote_content_hash,
-             workspace_id         = excluded.workspace_id,
+             org_id         = excluded.org_id,
              frontmatter_json     = excluded.frontmatter_json,
              updated_at           = CURRENT_TIMESTAMP",
         params![
@@ -171,7 +171,7 @@ pub fn upsert_remote_agent(
             update.remote_agent_id,
             update.version as i64,
             update.content_hash,
-            update.workspace_id,
+            update.org_id,
             update.frontmatter_json,
         ],
     )?;
@@ -213,7 +213,7 @@ pub enum SnapshotAction {
 /// but stale).
 pub fn diff_snapshot(
     conn: &Connection,
-    workspace_id: &str,
+    org_id: &str,
     entries: &[AgentCatalogSnapshotEntry],
 ) -> Result<Vec<SnapshotAction>, rusqlite::Error> {
     use std::collections::{HashMap, HashSet};
@@ -223,9 +223,9 @@ pub fn diff_snapshot(
         let mut stmt = conn.prepare(
             "SELECT remote_agent_id, COALESCE(remote_content_hash, '')
              FROM agents
-             WHERE source = 'remote' AND workspace_id = ?1",
+             WHERE source = 'remote' AND org_id = ?1",
         )?;
-        let rows = stmt.query_map(params![workspace_id], |row| {
+        let rows = stmt.query_map(params![org_id], |row| {
             let id: Option<String> = row.get(0)?;
             let hash: String = row.get(1)?;
             Ok((id, hash))
@@ -351,7 +351,7 @@ fn on_catalog_updated(app: AppHandle, env: &ServerEnvelopeWire) {
     match result {
         Ok(_) => {
             let payload = serde_json::json!({
-                "workspaceId": update.workspace_id,
+                "orgId": update.org_id,
                 "remoteAgentId": update.remote_agent_id,
                 "status": update.status,
                 "version": update.version,
@@ -368,9 +368,9 @@ fn on_catalog_updated(app: AppHandle, env: &ServerEnvelopeWire) {
 }
 
 fn on_catalog_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
-    let workspace_id = env.meta.workspace_id.clone();
-    if workspace_id.is_empty() {
-        warn!("agent.catalog.snapshot missing workspace id — ignored");
+    let org_id = env.meta.org_id.clone();
+    if org_id.is_empty() {
+        warn!("agent.catalog.snapshot missing org id — ignored");
         return;
     }
     let entries = env.entries.clone().unwrap_or_default();
@@ -385,7 +385,7 @@ fn on_catalog_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
             warn!("agent.catalog.snapshot: agents DB mutex poisoned — ignored");
             return;
         };
-        match diff_snapshot(&conn, &workspace_id, &entries) {
+        match diff_snapshot(&conn, &org_id, &entries) {
             Ok(a) => a,
             Err(e) => {
                 warn!("agent.catalog.snapshot: diff failed: {e}");
@@ -423,11 +423,11 @@ fn on_catalog_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
         && let Some(sync) = app.try_state::<SyncClientState>()
     {
         let sync_handle = sync.handle();
-        let workspace_for_task = workspace_id.clone();
+        let _org_for_task = org_id.clone();
         tauri::async_runtime::spawn(async move {
             for (agent_id, reason) in fetches {
                 let sent = sync_handle
-                    .send_agent_catalog_fetch_request(&workspace_for_task, &agent_id, reason)
+                    .send_agent_catalog_fetch_request(&agent_id, reason)
                     .await;
                 if !sent {
                     warn!(
@@ -439,7 +439,7 @@ fn on_catalog_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
     }
 
     let payload = serde_json::json!({
-        "workspaceId": workspace_id,
+        "orgId": org_id,
         "entryCount": entries.len(),
         "deleted": deletes.len(),
     });
@@ -480,7 +480,7 @@ mod tests {
                  remote_agent_id TEXT,
                  remote_version INTEGER,
                  remote_content_hash TEXT,
-                 workspace_id TEXT,
+                 org_id TEXT,
                  frontmatter_json TEXT,
                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -500,7 +500,7 @@ mod tests {
         status: &str,
     ) -> RemoteAgentUpdate {
         RemoteAgentUpdate {
-            workspace_id: "ws-1".into(),
+            org_id: "org-1".into(),
             remote_agent_id: agent_id.into(),
             name: name.into(),
             version,
@@ -523,8 +523,8 @@ mod tests {
                 "v": 1,
                 "eventId": "e1",
                 "sentAt": "2026-04-22T00:00:00Z",
-                "workspaceCursor": "cur-1",
-                "workspaceId": "ws-1"
+                "orgCursor": "cur-1",
+                "orgId": "org-1"
             }
         });
         let mut merged = wrapped.as_object().unwrap().clone();
@@ -576,7 +576,7 @@ mod tests {
             }),
         );
         let u = extract_remote_update(&env).expect("parses");
-        assert_eq!(u.workspace_id, "ws-1");
+        assert_eq!(u.org_id, "org-1");
         assert_eq!(u.remote_agent_id, "a-1");
         assert_eq!(u.name, "triage");
         assert_eq!(u.version, 3);
@@ -620,8 +620,8 @@ mod tests {
             sent_at: "2026-04-22T00:00:00Z".into(),
             correlation_id: None,
             causation_id: None,
-            workspace_cursor: "cur-1".into(),
-            workspace_id: "".into(),
+            org_cursor: "cur-1".into(),
+            org_id: "".into(),
         };
         assert!(extract_remote_update(&env).is_none());
     }
@@ -647,7 +647,7 @@ mod tests {
 
         let (version, hash, source, workspace): (i64, String, String, String) = conn
             .query_row(
-                "SELECT remote_version, remote_content_hash, source, workspace_id
+                "SELECT remote_version, remote_content_hash, source, org_id
                  FROM agents WHERE remote_agent_id = 'a-1'",
                 [],
                 |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
@@ -656,7 +656,7 @@ mod tests {
         assert_eq!(version, 2);
         assert_eq!(hash, "h-2");
         assert_eq!(source, "remote");
-        assert_eq!(workspace, "ws-1");
+        assert_eq!(workspace, "org-1");
     }
 
     #[test]
@@ -742,7 +742,7 @@ mod tests {
             entry("a-2", "reviewer", 2, "published", "h-new"),
             entry("a-4", "new-agent", 1, "published", "h-fresh"),
         ];
-        let mut actions = diff_snapshot(&conn, "ws-1", &snap).unwrap();
+        let mut actions = diff_snapshot(&conn, "org-1", &snap).unwrap();
         actions.sort_by(|a, b| format!("{a:?}").cmp(&format!("{b:?}")));
 
         assert_eq!(actions.len(), 3, "expected mismatch, miss, delete");
@@ -777,13 +777,13 @@ mod tests {
     fn diff_snapshot_ignores_rows_from_other_workspaces() {
         let conn = in_memory_agents_db();
         let mut other = mk_update("a-1", "triage", 1, "h-1", "published");
-        other.workspace_id = "ws-2".into();
+        other.org_id = "org-2".into();
         upsert_remote_agent(&conn, &other).unwrap();
 
-        let actions = diff_snapshot(&conn, "ws-1", &[]).unwrap();
+        let actions = diff_snapshot(&conn, "org-1", &[]).unwrap();
         assert!(
             actions.is_empty(),
-            "rows in ws-2 must not show up in a ws-1 diff"
+            "rows in org-2 must not show up in an org-1 diff"
         );
     }
 
@@ -793,7 +793,7 @@ mod tests {
         // Retired entries shouldn't appear in a real snapshot, but a drifted
         // server could include one. We must not request its body.
         let snap = vec![entry("a-1", "triage", 1, "retired", "h-1")];
-        let actions = diff_snapshot(&conn, "ws-1", &snap).unwrap();
+        let actions = diff_snapshot(&conn, "org-1", &snap).unwrap();
         assert!(actions.is_empty());
     }
 

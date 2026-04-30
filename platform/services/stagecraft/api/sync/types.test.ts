@@ -1,12 +1,16 @@
 import { describe, expect, test } from "vitest";
-import { isClientEnvelope } from "./types";
+import { ENVELOPE_SCHEMA_VERSION, isClientEnvelope } from "./types";
 
 describe("isClientEnvelope", () => {
   test("accepts a well-formed execution.status envelope", () => {
     expect(
       isClientEnvelope({
         kind: "execution.status",
-        meta: { v: 1, eventId: "e1", sentAt: "2026-04-20T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e1",
+          sentAt: "2026-04-20T00:00:00Z",
+        },
         projectId: "p1",
         executionId: "x1",
         status: "started",
@@ -18,7 +22,11 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "sync.heartbeat",
-        meta: { v: 1, eventId: "e2", sentAt: "2026-04-20T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e2",
+          sentAt: "2026-04-20T00:00:00Z",
+        },
       }),
     ).toBe(true);
   });
@@ -27,7 +35,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "server.secret.leak",
-        meta: { v: 1, eventId: "e", sentAt: "x" },
+        meta: { v: ENVELOPE_SCHEMA_VERSION, eventId: "e", sentAt: "x" },
       }),
     ).toBe(false);
   });
@@ -46,7 +54,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "sync.heartbeat",
-        meta: { v: 1, eventId: 123, sentAt: "now" },
+        meta: { v: ENVELOPE_SCHEMA_VERSION, eventId: 123, sentAt: "now" },
       }),
     ).toBe(false);
   });
@@ -65,7 +73,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "sync.heartbeat",
-        meta: { v: 2, eventId: "e", sentAt: "t" },
+        meta: { v: 99, eventId: "e", sentAt: "t" },
       }),
     ).toBe(false);
   });
@@ -74,7 +82,7 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "sync.heartbeat",
-        meta: { v: "1", eventId: "e", sentAt: "t" },
+        meta: { v: String(ENVELOPE_SCHEMA_VERSION), eventId: "e", sentAt: "t" },
       }),
     ).toBe(false);
   });
@@ -84,7 +92,11 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "factory.run.ack",
-        meta: { v: 1, eventId: "e-ack", sentAt: "2026-04-21T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e-ack",
+          sentAt: "2026-04-21T00:00:00Z",
+        },
         pipelineId: "pl-1",
         sessionId: "sess-1",
         opcInstanceId: "opc-1",
@@ -98,7 +110,11 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "factory.run.ack",
-        meta: { v: 1, eventId: "e-ack-2", sentAt: "2026-04-21T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e-ack-2",
+          sentAt: "2026-04-21T00:00:00Z",
+        },
         pipelineId: "pl-2",
         sessionId: "sess-2",
         opcInstanceId: "opc-1",
@@ -116,22 +132,29 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "factory.run.request",
-        meta: { v: 1, eventId: "e-forged", sentAt: "2026-04-21T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e-forged",
+          sentAt: "2026-04-21T00:00:00Z",
+        },
         projectId: "p1",
         pipelineId: "pl-x",
       }),
     ).toBe(false);
   });
 
-  // spec 111 §2.3 — agent.catalog.fetch_request is a client observation
-  // (cache miss / hash mismatch / manual refresh); the server replies with
-  // a targeted agent.catalog.updated.
+  // spec 111 §2.3 (amended by spec 119) — agent.catalog.fetch_request is a
+  // client observation (cache miss / hash mismatch / manual refresh); the
+  // server replies with a targeted agent.catalog.updated.
   test("accepts a well-formed agent.catalog.fetch_request envelope", () => {
     expect(
       isClientEnvelope({
         kind: "agent.catalog.fetch_request",
-        meta: { v: 1, eventId: "e-fetch", sentAt: "2026-04-22T00:00:00Z" },
-        workspaceId: "ws-1",
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e-fetch",
+          sentAt: "2026-04-22T00:00:00Z",
+        },
         agentId: "a-1",
         reason: "cache_miss",
         observedAt: "2026-04-22T00:00:01Z",
@@ -145,7 +168,11 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "agent.catalog.updated",
-        meta: { v: 1, eventId: "e-forged", sentAt: "2026-04-22T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e-forged",
+          sentAt: "2026-04-22T00:00:00Z",
+        },
         agentId: "a-evil",
         name: "triage",
         version: 999,
@@ -158,7 +185,11 @@ describe("isClientEnvelope", () => {
     expect(
       isClientEnvelope({
         kind: "agent.catalog.snapshot",
-        meta: { v: 1, eventId: "e-forged2", sentAt: "2026-04-22T00:00:00Z" },
+        meta: {
+          v: ENVELOPE_SCHEMA_VERSION,
+          eventId: "e-forged2",
+          sentAt: "2026-04-22T00:00:00Z",
+        },
         entries: [],
       }),
     ).toBe(false);

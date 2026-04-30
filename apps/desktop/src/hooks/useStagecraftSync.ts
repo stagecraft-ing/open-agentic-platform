@@ -14,8 +14,8 @@ export interface StagecraftSyncOptions {
   baseUrl: string | null;
   /** Auth token for the WebSocket connection. */
   token: string | null;
-  /** Active workspace ID — connection is only opened when set. */
-  workspaceId: string | null;
+  /** Active org ID — connection is only opened when set. */
+  orgId: string | null;
   /** Called for each incoming workspace event. */
   onEvent?: (event: WorkspaceEvent) => void;
 }
@@ -30,7 +30,7 @@ const INITIAL_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 30_000;
 
 export function useStagecraftSync(opts: StagecraftSyncOptions): StagecraftSyncState {
-  const { baseUrl, token, workspaceId, onEvent } = opts;
+  const { baseUrl, token, orgId, onEvent } = opts;
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const backoffRef = useRef(INITIAL_BACKOFF_MS);
@@ -39,7 +39,7 @@ export function useStagecraftSync(opts: StagecraftSyncOptions): StagecraftSyncSt
   onEventRef.current = onEvent;
 
   useEffect(() => {
-    if (!baseUrl || !token || !workspaceId) {
+    if (!baseUrl || !token || !orgId) {
       // Not configured — close any existing connection.
       wsRef.current?.close();
       wsRef.current = null;
@@ -55,7 +55,7 @@ export function useStagecraftSync(opts: StagecraftSyncOptions): StagecraftSyncSt
       const wsUrl = baseUrl!
         .replace(/^http/, "ws")
         .replace(/\/$/, "");
-      const url = `${wsUrl}/api/sync/events?workspaceId=${encodeURIComponent(workspaceId!)}&token=${encodeURIComponent(token!)}`;
+      const url = `${wsUrl}/api/sync/events?orgId=${encodeURIComponent(orgId!)}&token=${encodeURIComponent(token!)}`;
 
       const ws = new WebSocket(url);
       wsRef.current = ws;
@@ -99,7 +99,7 @@ export function useStagecraftSync(opts: StagecraftSyncOptions): StagecraftSyncSt
       wsRef.current = null;
       setConnected(false);
     };
-  }, [baseUrl, token, workspaceId]);
+  }, [baseUrl, token, orgId]);
 
   const postOpcEvent = useCallback(
     async (event: OpcEvent) => {

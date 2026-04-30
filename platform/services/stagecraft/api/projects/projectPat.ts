@@ -55,10 +55,10 @@ async function requireProjectAdmin(
   auth: ReturnType<typeof getAuthData> extends infer T ? NonNullable<T> : never
 ): Promise<void> {
   const [project] = await db
-    .select({ id: projects.id, workspaceId: projects.workspaceId })
+    .select({ id: projects.id })
     .from(projects)
     .where(
-      and(eq(projects.id, projectId), eq(projects.workspaceId, auth.workspaceId))
+      and(eq(projects.id, projectId), eq(projects.orgId, auth.orgId))
     )
     .limit(1);
 

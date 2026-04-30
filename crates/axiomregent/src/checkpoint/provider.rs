@@ -83,7 +83,7 @@ impl ToolProvider for CheckpointProvider {
                     "type": "object",
                     "properties": {
                         "repo_root": { "type": "string" },
-                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" },
+                        "project_id": { "type": "string", "description": "Optional project ID to filter checkpoints" },
                         "branch_name": { "type": "string", "description": "Optional git branch name to filter checkpoints (095)" },
                         "run_id": { "type": "string", "description": "Optional run ID to filter checkpoints (095)" }
                     },
@@ -97,7 +97,7 @@ impl ToolProvider for CheckpointProvider {
                     "type": "object",
                     "properties": {
                         "repo_root": { "type": "string" },
-                        "workspace_id": { "type": "string", "description": "Optional workspace ID to filter checkpoints" },
+                        "project_id": { "type": "string", "description": "Optional project ID to filter checkpoints" },
                         "branch_name": { "type": "string", "description": "Optional git branch name to filter checkpoints (095)" },
                         "run_id": { "type": "string", "description": "Optional run ID to filter checkpoints (095)" }
                     },
@@ -269,11 +269,11 @@ impl ToolProvider for CheckpointProvider {
                     Some(v) => v,
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
                 };
-                let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
+                let project_id = args.get("project_id").and_then(|v| v.as_str());
                 let branch_name = args.get("branch_name").and_then(|v| v.as_str());
                 let run_id = args.get("run_id").and_then(|v| v.as_str());
                 Some(
-                    self.do_list(repo_root, workspace_id, branch_name, run_id)
+                    self.do_list(repo_root, project_id, branch_name, run_id)
                         .await,
                 )
             }
@@ -283,11 +283,11 @@ impl ToolProvider for CheckpointProvider {
                     Some(v) => v,
                     None => return Some(Err(anyhow::anyhow!("repo_root required"))),
                 };
-                let workspace_id = args.get("workspace_id").and_then(|v| v.as_str());
+                let project_id = args.get("project_id").and_then(|v| v.as_str());
                 let branch_name = args.get("branch_name").and_then(|v| v.as_str());
                 let run_id = args.get("run_id").and_then(|v| v.as_str());
                 Some(
-                    self.do_timeline(repo_root, workspace_id, branch_name, run_id)
+                    self.do_timeline(repo_root, project_id, branch_name, run_id)
                         .await,
                 )
             }
@@ -533,7 +533,7 @@ impl CheckpointProvider {
             total_bytes: total_bytes as i64,
             created_at: now,
             metadata: None,
-            workspace_id: std::env::var("OPC_WORKSPACE_ID")
+            project_id: std::env::var("OPC_PROJECT_ID")
                 .ok()
                 .filter(|v| !v.is_empty()),
             branch_name,
@@ -598,11 +598,11 @@ impl CheckpointProvider {
     async fn do_list(
         &self,
         repo_root: &str,
-        workspace_id: Option<&str>,
+        project_id: Option<&str>,
         branch_name: Option<&str>,
         run_id: Option<&str>,
     ) -> anyhow::Result<Value> {
-        let mut checkpoints = self.store.list_checkpoints(repo_root, workspace_id).await?;
+        let mut checkpoints = self.store.list_checkpoints(repo_root, project_id).await?;
         // Client-side filtering for branch_name and run_id (095 Slice 3).
         if let Some(branch) = branch_name {
             checkpoints.retain(|cp| cp.branch_name.as_deref() == Some(branch));
@@ -616,11 +616,11 @@ impl CheckpointProvider {
     async fn do_timeline(
         &self,
         repo_root: &str,
-        workspace_id: Option<&str>,
+        project_id: Option<&str>,
         branch_name: Option<&str>,
         run_id: Option<&str>,
     ) -> anyhow::Result<Value> {
-        let mut timeline = self.store.get_timeline(repo_root, workspace_id).await?;
+        let mut timeline = self.store.get_timeline(repo_root, project_id).await?;
         // Client-side filtering for branch_name and run_id (095 Slice 3).
         if let Some(branch) = branch_name {
             timeline.retain(|node| node.branch_name.as_deref() == Some(branch));

@@ -41,7 +41,7 @@ import type {
 export interface CreateFactoryProjectRequest {
   /** Human-readable project name. */
   name: string;
-  /** URL-safe slug, unique within the workspace. */
+  /** URL-safe slug, unique within the org. */
   slug: string;
   description?: string;
   /** UUID of a row in `factory_adapters` — the adapter to scaffold from. */
@@ -55,7 +55,7 @@ export interface CreateFactoryProjectRequest {
   /** GitHub repo name (created under the org's active App installation). */
   repoName: string;
   isPrivate?: boolean;
-  /** Seed uploads already staged in the workspace bucket (spec 112 §4.3). */
+  /** Seed uploads already staged in the project bucket (spec 112 §4.3). */
   seedInputs?: ScaffoldSeedInput[];
 }
 
@@ -86,11 +86,6 @@ export const createFactoryProject = api(
     if (!hasOrgPermission(auth.platformRole, "project:create")) {
       throw APIError.permissionDenied(
         "Insufficient permissions to create projects in this org"
-      );
-    }
-    if (!auth.workspaceId) {
-      throw APIError.failedPrecondition(
-        "No active workspace. Contact your org admin to set up a default workspace."
       );
     }
 
@@ -129,7 +124,6 @@ export const createFactoryProject = api(
       .insert(scaffoldJobs)
       .values({
         orgId: auth.orgId,
-        workspaceId: auth.workspaceId,
         factoryAdapterId: adapter.id,
         requestedBy: auth.userID,
         variant: req.variant,
@@ -175,10 +169,12 @@ export const createFactoryProject = api(
           .insert(projects)
           .values({
             orgId: auth.orgId,
-            workspaceId: auth.workspaceId!,
             name: req.name,
             slug: req.slug,
             description: req.description ?? "",
+            // Spec 119 §4.2 — each project owns its bucket. Naming
+            // mirrors the create-on-projects.ts convention.
+            objectStoreBucket: `oap-${auth.orgSlug || "unknown"}-${req.slug}`,
             factoryAdapterId: adapter.id,
             createdBy: auth.userID,
           })
@@ -216,7 +212,7 @@ export const createFactoryProject = api(
               schema_version: pipelineStateSeed.schema_version,
               pipeline_id: pipelineStateSeed.pipeline.id,
             },
-            workspaceId: auth.workspaceId,
+            orgId: auth.orgId,
           },
         });
         return { project: p };
@@ -231,7 +227,7 @@ export const createFactoryProject = api(
       });
       if (String(err).match(/unique|duplicate/i)) {
         throw APIError.alreadyExists(
-          "A project with that slug already exists in this workspace"
+          "A project with that slug already exists in this org"
         );
       }
       throw APIError.internal("Failed to create project records");
@@ -260,10 +256,9 @@ export const createFactoryProject = api(
     // their Projects panel updates without a restart. Fire-and-log: a
     // sync hiccup must not roll back the project the user just created.
     void publishProjectCatalogUpsert({
-      workspaceId: auth.workspaceId!,
+      orgId: auth.orgId,
       project: {
         id: projectRow.id,
-        workspaceId: auth.workspaceId!,
         name: projectRow.name,
         slug: projectRow.slug,
         description: projectRow.description,

@@ -5,19 +5,22 @@
  *   - `handleInbound`   : called by the duplex endpoint for each client event.
  *                         Validates, records, ACKs or NACKs.
  *   - `dispatchServerEvent` : called by producers (factory subscriber, policy
- *                         updates, etc) to push an authoritative event to a
- *                         workspace's connected clients.
+ *                         updates, etc) to push an authoritative event to an
+ *                         org's connected clients.
  *   - `publishAck` / `publishNack` : helpers for ACK/NACK responses.
  *
  * This layer is the only place that talks to both the registry and the
  * outbox/inbox stores, and it is the only place that mints cursors for the
  * outbound path.
+ *
+ * Spec 119: scope key is `orgId`; per-event projectId
+ * stays on each variant for project-scoped routing.
  */
 import log from "encore.dev/log";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { agentCatalog, auditLog } from "../db/schema";
+import { agentCatalog, auditLog, projects } from "../db/schema";
 import type {
   ClientEnvelope,
   ServerEnvelope,
@@ -43,10 +46,9 @@ import { inbox, outbox, cursors } from "./store";
 // ---------------------------------------------------------------------------
 
 export interface InboundContext {
-  workspaceId: string;
+  orgId: string;
   clientId: string;
   userId: string;
-  orgId: string;
 }
 
 export type InboundResult =
@@ -59,7 +61,7 @@ export async function handleInbound(
 ): Promise<InboundResult> {
   if (!isClientEnvelope(raw)) {
     log.warn("sync: rejected malformed client envelope", {
-      workspaceId: ctx.workspaceId,
+      orgId: ctx.orgId,
       clientId: ctx.clientId,
     });
     return { ok: false, reason: "invalid", detail: "malformed envelope" };
@@ -69,13 +71,13 @@ export async function handleInbound(
 
   // Heartbeats and ACKs get lightweight handling — no inbox write.
   if (evt.kind === "sync.heartbeat") {
-    const session = registry.get(ctx.workspaceId, ctx.clientId);
+    const session = registry.get(ctx.orgId, ctx.clientId);
     if (session) session.meta.lastHeartbeatAt = new Date();
     return { ok: true };
   }
 
   if (evt.kind === "sync.ack") {
-    await outbox.markAcked(ctx.workspaceId, evt.serverEventId, ctx.clientId);
+    await outbox.markAcked(ctx.orgId, evt.serverEventId, ctx.clientId);
     return { ok: true };
   }
 
@@ -85,17 +87,11 @@ export async function handleInbound(
   }
 
   if (evt.kind === "agent.catalog.fetch_request") {
-    // Spec 111 §2.3: reply is a targeted agent.catalog.updated. The
-    // authenticated workspaceId from the session wins over whatever the
-    // client declared in `evt.workspaceId` — this prevents a cross-workspace
-    // probe from leaking entries through a mismatched session.
-    if (evt.workspaceId !== ctx.workspaceId) {
-      return {
-        ok: false,
-        reason: "workspace_mismatch",
-        detail: "fetch_request workspaceId does not match session",
-      };
-    }
+    // Spec 111 §2.3 (amended by spec 119): reply is a targeted
+    // agent.catalog.updated. The server resolves the agent's project from
+    // the catalog row and verifies it belongs to the session's org —
+    // preventing a cross-org probe from leaking entries through a
+    // mismatched session.
     const served = await serveAgentCatalogFetch(ctx, evt.agentId);
     return served;
   }
@@ -103,7 +99,7 @@ export async function handleInbound(
   // For all other kinds, persist + log + audit where appropriate.
   try {
     await inbox.recordInbound({
-      workspaceId: ctx.workspaceId,
+      orgId: ctx.orgId,
       clientId: ctx.clientId,
       event: evt,
       status: "accepted",
@@ -122,14 +118,14 @@ export async function handleInbound(
         metadata: {
           ...(evt.details ?? {}),
           clientId: ctx.clientId,
-          workspaceId: ctx.workspaceId,
+          orgId: ctx.orgId,
           clientEventId: evt.meta.eventId,
         },
       });
     }
 
     log.info("sync: inbound accepted", {
-      workspaceId: ctx.workspaceId,
+      orgId: ctx.orgId,
       clientId: ctx.clientId,
       kind: evt.kind,
       eventId: evt.meta.eventId,
@@ -137,14 +133,14 @@ export async function handleInbound(
     return { ok: true };
   } catch (err) {
     log.error("sync: inbound processing failed", {
-      workspaceId: ctx.workspaceId,
+      orgId: ctx.orgId,
       clientId: ctx.clientId,
       kind: evt.kind,
       err: err instanceof Error ? err.message : String(err),
     });
     await inbox
       .recordInbound({
-        workspaceId: ctx.workspaceId,
+        orgId: ctx.orgId,
         clientId: ctx.clientId,
         event: evt,
         status: "rejected",
@@ -160,14 +156,14 @@ export async function handleInbound(
 // ACK / NACK publishing
 // ---------------------------------------------------------------------------
 
-function mintMeta(workspaceId: string, correlationId?: string): ServerMeta {
+function mintMeta(orgId: string, correlationId?: string): ServerMeta {
   return {
     v: ENVELOPE_SCHEMA_VERSION,
     eventId: randomUUID(),
     sentAt: new Date().toISOString(),
     correlationId,
-    workspaceId,
-    workspaceCursor: cursors.next(workspaceId),
+    orgId,
+    orgCursor: cursors.next(orgId),
   };
 }
 
@@ -177,10 +173,10 @@ export async function publishAck(
 ): Promise<void> {
   const ack: ServerAck = {
     kind: "sync.ack",
-    meta: mintMeta(ctx.workspaceId, clientEventId),
+    meta: mintMeta(ctx.orgId, clientEventId),
     clientEventId,
   };
-  await registry.sendTo(ctx.workspaceId, ctx.clientId, ack);
+  await registry.sendTo(ctx.orgId, ctx.clientId, ack);
 }
 
 export async function publishNack(
@@ -191,12 +187,12 @@ export async function publishNack(
 ): Promise<void> {
   const nack: ServerNack = {
     kind: "sync.nack",
-    meta: mintMeta(ctx.workspaceId, clientEventId),
+    meta: mintMeta(ctx.orgId, clientEventId),
     clientEventId,
     reason,
     detail,
   };
-  await registry.sendTo(ctx.workspaceId, ctx.clientId, nack);
+  await registry.sendTo(ctx.orgId, ctx.clientId, nack);
 }
 
 // ---------------------------------------------------------------------------
@@ -204,39 +200,39 @@ export async function publishNack(
 // ---------------------------------------------------------------------------
 
 /**
- * Dispatch a server-originated event to a workspace. The caller supplies the
+ * Dispatch a server-originated event to an org. The caller supplies the
  * event without `meta` — this function stamps it with the cursor and IDs,
  * records it in the outbox, and fans it out to connected clients.
  */
 export async function dispatchServerEvent(
-  workspaceId: string,
+  orgId: string,
   event: ServerEnvelopeWithoutMeta,
   opts: { excludeClientId?: string; correlationId?: string } = {},
 ): Promise<{ eventId: string; cursor: string; delivered: number }> {
-  const meta = mintMeta(workspaceId, opts.correlationId);
+  const meta = mintMeta(orgId, opts.correlationId);
   // Cast is safe: we've just minted meta that satisfies ServerMeta for every variant.
   const full = { ...event, meta } as ServerEnvelope;
 
   await outbox.recordOutbound({
-    workspaceId,
+    orgId,
     event: full,
     createdAt: new Date(),
     ackedBy: new Set(),
   });
 
-  const { sent } = await registry.broadcastWorkspace(workspaceId, full, {
+  const { sent } = await registry.broadcastOrg(orgId, full, {
     excludeClientId: opts.excludeClientId,
   });
 
   log.info("sync: server event dispatched", {
-    workspaceId,
+    orgId,
     kind: full.kind,
     eventId: meta.eventId,
-    cursor: meta.workspaceCursor,
+    cursor: meta.orgCursor,
     delivered: sent,
   });
 
-  return { eventId: meta.eventId, cursor: meta.workspaceCursor, delivered: sent };
+  return { eventId: meta.eventId, cursor: meta.orgCursor, delivered: sent };
 }
 
 /**
@@ -248,18 +244,18 @@ export async function dispatchServerEvent(
  * via the snapshot, so durable replay of a single-client reply is wasted.
  */
 export async function sendTargetedServerEvent(
-  workspaceId: string,
+  orgId: string,
   clientId: string,
   event: ServerEnvelopeWithoutMeta,
   opts: { correlationId?: string } = {},
 ): Promise<boolean> {
-  const meta = mintMeta(workspaceId, opts.correlationId);
+  const meta = mintMeta(orgId, opts.correlationId);
   const full = { ...event, meta } as ServerEnvelope;
-  return registry.sendTo(workspaceId, clientId, full);
+  return registry.sendTo(orgId, clientId, full);
 }
 
 // ---------------------------------------------------------------------------
-// Agent catalog fetch request (spec 111 §2.3)
+// Agent catalog fetch request (spec 111 §2.3, amended by spec 119)
 // ---------------------------------------------------------------------------
 
 async function serveAgentCatalogFetch(
@@ -275,13 +271,17 @@ async function serveAgentCatalogFetch(
   if (!row) {
     return { ok: false, reason: "invalid", detail: "agent not found" };
   }
-  if (row.workspaceId !== ctx.workspaceId) {
-    // Treat as workspace mismatch to avoid leaking membership across
-    // workspaces — same disposition as the declared-workspace check above.
+  // Verify the agent's project belongs to the session's org.
+  const [project] = await db
+    .select({ orgId: projects.orgId })
+    .from(projects)
+    .where(eq(projects.id, row.projectId))
+    .limit(1);
+  if (!project || project.orgId !== ctx.orgId) {
     return {
       ok: false,
-      reason: "workspace_mismatch",
-      detail: "agent belongs to a different workspace",
+      reason: "org_mismatch",
+      detail: "agent belongs to a different org",
     };
   }
   if (row.status === "draft") {
@@ -295,6 +295,7 @@ async function serveAgentCatalogFetch(
   const event: Omit<ServerAgentCatalogUpdated, "meta"> = {
     kind: "agent.catalog.updated",
     agentId: row.id,
+    projectId: row.projectId,
     name: row.name,
     version: row.version,
     status: row.status as "published" | "retired",
@@ -303,7 +304,7 @@ async function serveAgentCatalogFetch(
     bodyMarkdown: row.bodyMarkdown,
     updatedAt: row.updatedAt.toISOString(),
   };
-  await sendTargetedServerEvent(ctx.workspaceId, ctx.clientId, event);
+  await sendTargetedServerEvent(ctx.orgId, ctx.clientId, event);
   return { ok: true };
 }
 
@@ -316,20 +317,20 @@ async function deliverResync(
   sinceCursor: string | undefined,
 ): Promise<void> {
   const pending = await outbox.loadPendingForClient(
-    ctx.workspaceId,
+    ctx.orgId,
     ctx.clientId,
     sinceCursor,
   );
 
   log.info("sync: delivering resync", {
-    workspaceId: ctx.workspaceId,
+    orgId: ctx.orgId,
     clientId: ctx.clientId,
     pendingCount: pending.length,
     sinceCursor,
   });
 
   for (const evt of pending) {
-    const ok = await registry.sendTo(ctx.workspaceId, ctx.clientId, evt);
+    const ok = await registry.sendTo(ctx.orgId, ctx.clientId, evt);
     if (!ok) break;
   }
 }

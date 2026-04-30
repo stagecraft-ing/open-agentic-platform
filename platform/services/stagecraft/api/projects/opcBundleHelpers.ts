@@ -10,7 +10,6 @@ export interface BundleProjectInput {
   id: string;
   name: string;
   slug: string;
-  workspaceId: string;
   orgId: string;
   factoryAdapterId: string | null;
 }
@@ -59,7 +58,6 @@ export interface OpcBundleProject {
   id: string;
   name: string;
   slug: string;
-  workspaceId: string;
   orgId: string;
 }
 
@@ -160,7 +158,6 @@ export function buildOpcBundle(input: {
       id: input.project.id,
       name: input.project.name,
       slug: input.project.slug,
-      workspaceId: input.project.workspaceId,
       orgId: input.project.orgId,
     },
     repo,

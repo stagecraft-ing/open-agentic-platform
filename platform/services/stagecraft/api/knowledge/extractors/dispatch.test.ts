@@ -48,7 +48,7 @@ function fakeExtractor(args: {
 function fakeInput(args: Partial<ExtractorInput> = {}): ExtractorInput {
   return {
     knowledgeObjectId: "ko-1",
-    workspaceId: "ws-1",
+    projectId: "proj-1",
     filename: "doc.txt",
     mimeType: "text/plain",
     sizeBytes: 1000,

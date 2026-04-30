@@ -1,8 +1,8 @@
-// Spec 114 §5.3 — clone run status endpoint.
+// Spec 114 §5.3 — clone run status endpoint (amended by spec 119).
 //
 // The dialog polls this every ~1.5s after submitting a clone, until the
-// run reaches `ok` or `failed`. The endpoint is workspace-scoped, never
-// mutates state, never audits, and never consumes any retry budget.
+// run reaches `ok` or `failed`. The endpoint is org-scoped, never mutates
+// state, never audits, and never consumes any retry budget.
 
 import { api, APIError } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
@@ -43,11 +43,6 @@ export const getCloneRunStatus = api(
   },
   async (req: CloneRunStatusRequest): Promise<CloneRunStatusResponse> => {
     const auth = getAuthData()!;
-    if (!auth.workspaceId) {
-      throw APIError.failedPrecondition(
-        "No active workspace. Contact your org admin to set up a default workspace.",
-      );
-    }
 
     const [row] = await db
       .select()
@@ -55,7 +50,7 @@ export const getCloneRunStatus = api(
       .where(
         and(
           eq(projectCloneRuns.id, req.cloneJobId),
-          eq(projectCloneRuns.workspaceId, auth.workspaceId),
+          eq(projectCloneRuns.orgId, auth.orgId),
         ),
       )
       .limit(1);

@@ -57,16 +57,16 @@ pub fn to_stagecraft_stage_id(local_id: &str) -> &str {
 /// Thin HTTP wrapper around the Stagecraft Platform API.
 ///
 /// Held as Tauri managed state so all commands share one connection pool.
-/// Workspace-aware: carries workspace_id and a Rauthy JWT for authenticated
-/// workspace endpoints (spec 087 Phase 5). The JWT is stored in the OS
+/// Org-aware: carries the active org ID and a Rauthy JWT for authenticated
+/// platform endpoints (spec 087 Phase 5, renamed by spec 119). The JWT is stored in the OS
 /// keychain via the `keychain` module.
 pub struct StagecraftClient {
     client: Client,
     base_url: String,
     /// Default actor identity sent on mutating requests.
     actor_user_id: RwLock<String>,
-    /// Active workspace ID (set at runtime after auth).
-    workspace_id: RwLock<String>,
+    /// Active org ID (set at runtime after auth).
+    org_id: RwLock<String>,
     /// Rauthy JWT for authenticated endpoints (loaded from OS keychain).
     auth_token: RwLock<Option<String>>,
 }
@@ -77,7 +77,7 @@ impl Clone for StagecraftClient {
             client: self.client.clone(),
             base_url: self.base_url.clone(),
             actor_user_id: RwLock::new(self.actor_user_id.read().unwrap().clone()),
-            workspace_id: RwLock::new(self.workspace_id.read().unwrap().clone()),
+            org_id: RwLock::new(self.org_id.read().unwrap().clone()),
             auth_token: RwLock::new(self.auth_token.read().unwrap().clone()),
         }
     }
@@ -97,19 +97,19 @@ impl StagecraftClient {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
             actor_user_id: RwLock::new(actor_user_id.to_string()),
-            workspace_id: RwLock::new(String::new()),
+            org_id: RwLock::new(String::new()),
             auth_token: RwLock::new(None),
         })
     }
 
-    /// Set the active workspace ID (called after workspace selection).
-    pub fn set_workspace_id(&self, id: &str) {
-        *self.workspace_id.write().unwrap() = id.to_string();
+    /// Set the active org ID (called after auth).
+    pub fn set_org_id(&self, id: &str) {
+        *self.org_id.write().unwrap() = id.to_string();
     }
 
-    /// Get the active workspace ID.
-    pub fn workspace_id(&self) -> String {
-        self.workspace_id.read().unwrap().clone()
+    /// Get the active org ID.
+    pub fn org_id(&self) -> String {
+        self.org_id.read().unwrap().clone()
     }
 
     /// Set the auth token (Rauthy JWT) and persist to OS keychain.
@@ -152,7 +152,7 @@ impl StagecraftClient {
     /// Clear all auth state (tokens, workspace, actor identity).
     pub fn clear_auth(&self) {
         *self.auth_token.write().unwrap() = None;
-        *self.workspace_id.write().unwrap() = String::new();
+        *self.org_id.write().unwrap() = String::new();
         if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
             let _ = entry.delete_credential();
         }
@@ -236,12 +236,12 @@ impl StagecraftClient {
         resp.json().await.map_err(StagecraftError::Decode)
     }
 
-    /// Get a single workspace by ID.
+    /// Get a single workspace by ID (legacy endpoint, kept for API compat).
     pub async fn get_workspace(
         &self,
-        workspace_id: &str,
+        org_id: &str,
     ) -> Result<GetWorkspaceResponse, StagecraftError> {
-        let url = format!("{}/api/workspaces/{}", self.base_url, workspace_id);
+        let url = format!("{}/api/workspaces/{}", self.base_url, org_id);
         let resp = self
             .authed_get(&url)
             .send()
@@ -291,7 +291,7 @@ impl StagecraftClient {
             },
             policy_overrides: None,
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
             source: "opc-direct",
         };
         let resp = self
@@ -325,7 +325,7 @@ impl StagecraftClient {
         let body = ConfirmRequest {
             notes: notes.map(String::from),
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -358,7 +358,7 @@ impl StagecraftClient {
         let body = RejectRequest {
             feedback: feedback.into(),
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -397,7 +397,7 @@ impl StagecraftClient {
             error: error.map(String::from),
             phase: phase.map(String::from),
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -430,7 +430,7 @@ impl StagecraftClient {
             pipeline_id: pipeline_id.into(),
             features: features.to_vec(),
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -461,7 +461,7 @@ impl StagecraftClient {
         let body = CancelRequest {
             reason: reason.into(),
             actor_user_id: self.actor_user_id.read().unwrap().clone(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -493,7 +493,7 @@ impl StagecraftClient {
         let body = EventIngestionRequest {
             pipeline_id: pipeline_id.into(),
             events: events.to_vec(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -527,7 +527,7 @@ impl StagecraftClient {
             pipeline_id: pipeline_id.into(),
             stage_id: stage_id.into(),
             artifacts: artifacts.to_vec(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -553,12 +553,11 @@ impl StagecraftClient {
         stage_id: &str,
     ) -> Result<LookupArtifactResponse, StagecraftError> {
         let url = format!(
-            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}&workspaceId={}",
+            "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}",
             self.base_url,
             project_id,
             content_hash,
             stage_id,
-            self.workspace_id()
         );
         let resp = self
             .authed_get(&url)
@@ -576,10 +575,10 @@ impl StagecraftClient {
 
     // -- Spec 111 Phase 6: one-click local→remote agent publishing -----------
 
-    /// Create a draft in the workspace's agent catalog.
+    /// Create a draft in the org's agent catalog.
     ///
-    /// The server scopes the draft to the workspaceId embedded in the Rauthy
-    /// JWT (see `requireWorkspaceAuth` in stagecraft's catalog.ts), so the
+    /// The server scopes the draft to the orgId embedded in the Rauthy
+    /// JWT (see auth middleware in stagecraft's catalog.ts), so the
     /// desktop only needs a valid Bearer token plus the payload. Returns the
     /// new catalog row identifiers so the caller can link the user to the
     /// web-UI publish page.
@@ -632,7 +631,7 @@ impl StagecraftClient {
             prompt_tokens,
             completion_tokens,
             model: model.into(),
-            workspace_id: self.workspace_id(),
+            org_id: self.org_id(),
         };
         let resp = self
             .authed_post(&url)
@@ -794,8 +793,8 @@ struct InitRequest {
     policy_overrides: Option<PolicyOverrides>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
     // Spec 110 §8 Phase 6: server default is now "stagecraft". The desktop's
     // dual-write path is already running the engine locally, so it must pin
     // `source` to "opc-direct" to prevent stagecraft from dispatching a
@@ -830,8 +829,8 @@ struct ConfirmRequest {
     notes: Option<String>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -847,8 +846,8 @@ struct RejectRequest {
     feedback: String,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -872,8 +871,8 @@ struct StatusUpdateRequest {
     phase: Option<String>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -906,8 +905,8 @@ struct ScaffoldProgressRequest {
     features: Vec<ScaffoldFeatureReport>,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -921,8 +920,8 @@ struct CancelRequest {
     reason: String,
     #[serde(rename = "actorUserId")]
     actor_user_id: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -946,8 +945,8 @@ pub struct OrchestratorEventReport {
 struct EventIngestionRequest {
     pipeline_id: String,
     events: Vec<OrchestratorEventReport>,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -962,8 +961,8 @@ struct TokenSpendRequest {
     prompt_tokens: u64,
     completion_tokens: u64,
     model: String,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -983,8 +982,8 @@ struct RecordArtifactsRequest {
     pipeline_id: String,
     stage_id: String,
     artifacts: Vec<ArtifactRecord>,
-    #[serde(rename = "workspaceId")]
-    workspace_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1020,7 +1019,7 @@ pub struct CreateAgentDraftResponse {
 #[derive(Debug, Deserialize)]
 pub struct CatalogAgentWire {
     pub id: String,
-    pub workspace_id: String,
+    pub org_id: String,
     pub name: String,
     pub version: u32,
     pub status: String,
@@ -1048,7 +1047,6 @@ pub struct OpcBundleProject {
     pub id: String,
     pub name: String,
     pub slug: String,
-    pub workspace_id: String,
     pub org_id: String,
 }
 
@@ -1194,7 +1192,6 @@ mod tests {
                 "id": "p-1",
                 "name": "FV Portal",
                 "slug": "fv-portal",
-                "workspaceId": "ws-1",
                 "orgId": "org-1"
             },
             "repo": {
@@ -1240,7 +1237,7 @@ mod tests {
             serde_json::from_str(payload).expect("valid bundle decodes");
 
         assert_eq!(bundle.project.id, "p-1");
-        assert_eq!(bundle.project.workspace_id, "ws-1");
+        assert_eq!(bundle.project.org_id, "org-1");
         assert_eq!(bundle.repo.as_ref().unwrap().clone_url, "https://github.com/acme/fv.git");
         assert!(bundle.deep_link.is_some());
         assert_eq!(bundle.adapter.as_ref().unwrap().name, "aim-vue-node");
@@ -1261,7 +1258,6 @@ mod tests {
                 "id": "p-1",
                 "name": "Legacy",
                 "slug": "legacy",
-                "workspaceId": "ws-1",
                 "orgId": "org-1"
             },
             "repo": null,
@@ -1288,7 +1284,6 @@ mod tests {
                 "id": "p-1",
                 "name": "External",
                 "slug": "external",
-                "workspaceId": "ws-1",
                 "orgId": "org-1"
             },
             "repo": {

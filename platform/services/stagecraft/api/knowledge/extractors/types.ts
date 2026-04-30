@@ -19,7 +19,8 @@ import type { ExtractionPolicy } from "../extractionPolicy";
  */
 export type ExtractorInput = {
   knowledgeObjectId: string;
-  workspaceId: string;
+  /** Spec 119: knowledge objects are project-scoped. */
+  projectId: string;
   filename: string;
   // Mime type AFTER magic-number sniff (FR-014). Trustworthy.
   mimeType: string;
@@ -37,7 +38,7 @@ export type ExtractorInput = {
    */
   downloadUrl: string;
   /**
-   * Workspace S3 bucket name. Extractors that need ranged or large reads
+   * Project S3 bucket name. Extractors that need ranged or large reads
    * use `loadBytes(bucket, storageKey)` against the in-process storage
    * helper rather than re-deriving credentials from the presigned URL.
    */

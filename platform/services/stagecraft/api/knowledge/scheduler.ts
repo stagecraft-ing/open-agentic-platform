@@ -16,7 +16,7 @@ import { api } from "encore.dev/api";
 import { CronJob } from "encore.dev/cron";
 import log from "encore.dev/log";
 import { db } from "../db/drizzle";
-import { sourceConnectors, syncRuns, workspaces } from "../db/schema";
+import { sourceConnectors, syncRuns, projects } from "../db/schema";
 import { and, eq, desc, isNotNull } from "drizzle-orm";
 import { executeSyncRun } from "./knowledge";
 import { sweepStaleExtractionRuns } from "./extractionCore";
@@ -95,14 +95,17 @@ export const runScheduledSyncs = api(
 
       if (running) continue;
 
-      // Resolve workspace bucket
-      const [ws] = await db
-        .select({ objectStoreBucket: workspaces.objectStoreBucket })
-        .from(workspaces)
-        .where(eq(workspaces.id, conn.workspaceId))
+      // Resolve project bucket + org for the broadcast key.
+      const [project] = await db
+        .select({
+          orgId: projects.orgId,
+          objectStoreBucket: projects.objectStoreBucket,
+        })
+        .from(projects)
+        .where(eq(projects.id, conn.projectId))
         .limit(1);
 
-      if (!ws) continue;
+      if (!project) continue;
 
       // Get the last successful delta token
       const [lastRun] = await db
@@ -120,8 +123,9 @@ export const runScheduledSyncs = api(
       try {
         await executeSyncRun(
           conn.id,
-          conn.workspaceId,
-          ws.objectStoreBucket,
+          conn.projectId,
+          project.orgId,
+          project.objectStoreBucket,
           conn.type,
           (conn.configEncrypted as Record<string, unknown>) ?? {},
           lastRun?.deltaToken ?? null,

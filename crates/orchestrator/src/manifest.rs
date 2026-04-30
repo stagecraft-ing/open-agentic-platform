@@ -12,9 +12,9 @@ use std::path::Path;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct WorkflowManifest {
     pub steps: Vec<WorkflowStep>,
-    /// Workspace context for this workflow (spec 092).
+    /// Project context for this workflow (spec 119).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub workspace_id: Option<String>,
+    pub project_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -256,7 +256,7 @@ mod tests {
                     vec!["review_output.md"],
                 ),
             ],
-            workspace_id: None,
+            project_id: None,
         };
         let order = m.validate_and_order().unwrap();
         assert_eq!(order, vec![0, 1, 2]);
@@ -269,7 +269,7 @@ mod tests {
                 sample_step("a", "x", vec!["b/out.md"], vec!["out.md"]),
                 sample_step("b", "y", vec!["a/out.md"], vec!["out.md"]),
             ],
-            workspace_id: None,
+            project_id: None,
         };
         assert!(matches!(
             m.validate_and_order(),
@@ -284,7 +284,7 @@ mod tests {
                 sample_step("s1", "a", vec![], vec!["x.md"]),
                 sample_step("s2", "b", vec![], vec!["x.md"]),
             ],
-            workspace_id: None,
+            project_id: None,
         };
         // same filename different step dirs — allowed
         assert!(m.validate_and_order().is_ok());
@@ -294,7 +294,7 @@ mod tests {
                 sample_step("s1", "a", vec![], vec!["dup.md", "dup.md"]),
                 sample_step("s2", "b", vec![], vec!["out.md"]),
             ],
-            workspace_id: None,
+            project_id: None,
         };
         assert!(m2.validate_and_order().is_err());
     }

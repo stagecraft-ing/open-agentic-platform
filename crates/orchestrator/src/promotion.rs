@@ -107,7 +107,7 @@ impl SyncTracker {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromotionCheck {
     pub workflow_id: String,
-    pub workspace_id: Option<String>,
+    pub project_id: Option<String>,
     pub governance_active: bool,
     pub events_synced: bool,
     pub artifacts_recorded: bool,
@@ -118,7 +118,7 @@ pub struct PromotionCheck {
 /// Check whether a completed workflow run is eligible for platform promotion.
 ///
 /// A run is eligible when all five criteria are met:
-/// 1. `workspace_id` is present in workflow metadata
+/// 1. `project_id` is present in workflow metadata
 /// 2. Governance was active during the run (not bypassed)
 /// 3. All events were acknowledged by platform
 /// 4. All artifacts were recorded to platform
@@ -127,9 +127,9 @@ pub fn check_promotion_eligibility(
     state: &WorkflowState,
     sync_status: &SyncStatus,
 ) -> PromotionCheck {
-    let workspace_id = state
+    let project_id = state
         .metadata
-        .get("workspace_id")
+        .get("project_id")
         .and_then(|v| v.as_str())
         .map(String::from);
 
@@ -149,8 +149,8 @@ pub fn check_promotion_eligibility(
 
     let mut reasons: Vec<String> = Vec::new();
 
-    if workspace_id.is_none() {
-        reasons.push("workspace_id not present in workflow metadata".into());
+    if project_id.is_none() {
+        reasons.push("project_id not present in workflow metadata".into());
     }
     if !governance_active {
         reasons.push("governance was bypassed during this run".into());
@@ -184,7 +184,7 @@ pub fn check_promotion_eligibility(
 
     PromotionCheck {
         workflow_id: state.workflow_id.to_string(),
-        workspace_id,
+        project_id,
         governance_active,
         events_synced: sync_status.events_synced,
         artifacts_recorded: sync_status.artifacts_recorded,
@@ -200,10 +200,10 @@ mod tests {
     use serde_json::Value as JsonValue;
     use uuid::Uuid;
 
-    fn make_completed_state(workspace_id: Option<&str>, governance_mode: &str) -> WorkflowState {
+    fn make_completed_state(project_id: Option<&str>, governance_mode: &str) -> WorkflowState {
         let mut meta = serde_json::Map::new();
-        if let Some(ws) = workspace_id {
-            meta.insert("workspace_id".into(), JsonValue::String(ws.into()));
+        if let Some(ws) = project_id {
+            meta.insert("project_id".into(), JsonValue::String(ws.into()));
         }
         meta.insert(
             "governance_mode".into(),
@@ -241,7 +241,7 @@ mod tests {
         assert_eq!(check.eligibility, PromotionEligibility::Eligible);
         assert!(check.governance_active);
         assert!(check.all_steps_completed);
-        assert_eq!(check.workspace_id, Some("ws-001".into()));
+        assert_eq!(check.project_id, Some("ws-001".into()));
     }
 
     #[test]
@@ -256,7 +256,7 @@ mod tests {
         let check = check_promotion_eligibility(&state, &sync);
         match &check.eligibility {
             PromotionEligibility::Ineligible { reasons } => {
-                assert!(reasons.iter().any(|r| r.contains("workspace_id")));
+                assert!(reasons.iter().any(|r| r.contains("project_id")));
             }
             PromotionEligibility::Eligible => panic!("expected ineligible"),
         }
@@ -347,7 +347,7 @@ mod tests {
     fn sc098_3_ineligible_when_governance_mode_missing() {
         // Simulate a workflow where governance_mode was never written to metadata.
         let mut meta = serde_json::Map::new();
-        meta.insert("workspace_id".into(), JsonValue::String("ws-001".into()));
+        meta.insert("project_id".into(), JsonValue::String("ws-001".into()));
         // Note: no "governance_mode" key — previously this would pass as "unknown" != "bypass"
 
         let mut state = WorkflowState::new(
@@ -502,7 +502,7 @@ mod tests {
     #[test]
     fn sc097_3_empty_steps_vacuously_complete() {
         let mut meta = serde_json::Map::new();
-        meta.insert("workspace_id".into(), JsonValue::String("ws-001".into()));
+        meta.insert("project_id".into(), JsonValue::String("ws-001".into()));
         meta.insert(
             "governance_mode".into(),
             JsonValue::String("governed".into()),

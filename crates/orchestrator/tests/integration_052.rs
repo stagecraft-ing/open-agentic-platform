@@ -65,7 +65,7 @@ fn integration_052_crash_resume_from_state_file() {
                 max_retries: None,
             },
         ],
-        workspace_id: None,
+        project_id: None,
     };
 
     // Simulate a run where the first two steps have completed and a crash occurs
@@ -273,7 +273,7 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         },
     )
     .unwrap();
@@ -317,7 +317,7 @@ async fn integration_052_full_stack_dispatch_persist_crash_resume_sse() {
                 max_retries: None,
             },
         ],
-        workspace_id: None,
+        project_id: None,
     };
 
     let mut agents = HashSet::new();

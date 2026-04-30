@@ -4,14 +4,16 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 /**
- * Directory where policy bundle JSON files are stored (one per workspace).
- * Mount a config volume here in production, or set POLICY_BUNDLE_DIR env var.
+ * Directory where policy bundle JSON files are stored (one per project).
+ * Spec 119 §4.5 renamed the on-disk layout to
+ * `build/policy/projects/{projectId}.json`. Mount a config volume here in
+ * production, or set POLICY_BUNDLE_DIR env var.
  */
 const BUNDLE_DIR = process.env.POLICY_BUNDLE_DIR ?? "/var/lib/stagecraft/policy-bundles";
 
 type PolicyBundleRequest = {
   authorization: Header<"Authorization">;
-  workspaceId: string;
+  projectId: string;
 };
 
 type PolicyBundleResponse = {
@@ -21,22 +23,22 @@ type PolicyBundleResponse = {
 
 /**
  * Seam A: Serve compiled policy bundles to OPC axiomregent.
- * GET /api/policy-bundle/:workspaceId — M2M bearer token auth (OIDC JWT or static fallback).
+ * GET /api/policy-bundle/:projectId — M2M bearer token auth (OIDC JWT or static fallback).
  */
 export const getPolicyBundle = api(
-  { expose: true, method: "GET", path: "/api/policy-bundle/:workspaceId" },
+  { expose: true, method: "GET", path: "/api/policy-bundle/:projectId" },
   async (req: PolicyBundleRequest): Promise<PolicyBundleResponse> => {
     await validateM2mRequest(req.authorization, "platform:policy:read");
 
-    // Validate workspaceId to prevent path traversal (082 Phase 2).
-    if (!/^[a-zA-Z0-9_-]+$/.test(req.workspaceId)) {
-      throw APIError.invalidArgument("invalid workspace ID");
+    // Validate projectId to prevent path traversal (082 Phase 2).
+    if (!/^[a-zA-Z0-9_-]+$/.test(req.projectId)) {
+      throw APIError.invalidArgument("invalid project ID");
     }
 
-    const filePath = path.join(BUNDLE_DIR, `${req.workspaceId}.json`);
+    const filePath = path.join(BUNDLE_DIR, `${req.projectId}.json`);
 
     if (!fs.existsSync(filePath)) {
-      throw APIError.notFound(`no policy bundle for workspace ${req.workspaceId}`);
+      throw APIError.notFound(`no policy bundle for project ${req.projectId}`);
     }
 
     const raw = fs.readFileSync(filePath, "utf-8");

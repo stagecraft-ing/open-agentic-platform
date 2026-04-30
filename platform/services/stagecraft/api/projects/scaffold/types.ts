@@ -30,7 +30,6 @@ export interface AdapterScaffoldBlock {
 
 export interface ScaffoldRequest {
   orgId: string;
-  workspaceId: string;
   requestedBy: string;
   adapter: ScaffoldAdapterRef;
   /** One of the adapter's declared variants; validated against args_schema. */
@@ -42,7 +41,7 @@ export interface ScaffoldRequest {
   isPrivate: boolean;
   /** Additional free-form --args to pass through to the entry point. */
   args?: Record<string, unknown>;
-  /** Seed inputs uploaded into the workspace bucket (spec 112 §4.3). */
+  /** Seed inputs uploaded into the project bucket (spec 112 §4.3). */
   seedInputs?: ScaffoldSeedInput[];
 }
 

@@ -65,7 +65,7 @@ Module map:
 - `api/knowledge/extractionCore.ts` — `enqueueExtraction`, `runExtractionWork`, `markRunFailed`, `sweepStaleExtractionRuns`
 - `api/knowledge/extractionWorker.ts` — Subscription wrapper, drives `runExtractionWork`
 - `api/knowledge/scheduler.ts` — `extraction-staleness-sweeper` cron (60s)
-- `api/knowledge/extractionPolicy.ts` — workspace policy slice resolver (loads `build/policy/workspaces/{ws}.json`, 30s cache, deterministic-only fallback)
+- `api/knowledge/extractionPolicy.ts` — project policy slice resolver (loads `build/policy/projects/{projectId}.json`, 30s cache, deterministic-only fallback). Spec 119 §4.5 renamed the on-disk layout from per-workspace to per-project.
 - `api/knowledge/extractionOutput.ts` — Zod-validated `ExtractionOutput` contract (FR-016)
 - `api/knowledge/prompts.ts` — versioned prompt registry; `promptFingerprint = sha256(kind|version|system)` (FR-020)
 - `api/knowledge/magic.ts` — pure mime-sniff + reconcile (FR-014); `storage.sniffMimeType` is the S3-backed wrapper
@@ -80,10 +80,10 @@ Module map:
 
 Entry points (the four "what to call from the rest of the codebase" surfaces):
 
-- `enqueueExtraction({ knowledgeObjectId, workspaceId, reason })` — call from any path that lands a row in `imported` (today: `confirmUpload`, `executeSyncRun`).
+- `enqueueExtraction({ knowledgeObjectId, projectId, reason })` — call from any path that lands a row in `imported` (today: `confirmUpload`, `executeSyncRun`). Spec 119 collapsed the legacy workspace scope into project.
 - `runExtractionWork({ extractionRunId })` — invoked by the Subscription; tests can drive it directly with a real DB.
 - `pickExtractor(input, policy)` — synchronous; returns `null` when no extractor matches.
-- `retryExtraction` endpoint at `POST /api/knowledge/objects/:id/retry-extraction` — operator re-enqueue for failed objects.
+- `retryExtraction` endpoint at `POST /api/projects/:projectId/knowledge/objects/:id/retry-extraction` — operator re-enqueue for failed objects.
 
 Env knobs:
 
@@ -92,6 +92,6 @@ Env knobs:
 - `STAGECRAFT_EXTRACT_EAGER_BUFFER_BYTES` — worker eager-load threshold (default 4MB)
 - `STAGECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS` — embedded-text PDF threshold (default 80)
 - `STAGECRAFT_EXTRACT_LEGACY_TRANSITION` — set to `"true"` to re-enable the legacy click-walk endpoint for incident response (FR-027)
-- `STAGECRAFT_EXTRACT_POLICY_DIR` — override for compiled policy snapshot dir (default `build/policy/workspaces`)
+- `STAGECRAFT_EXTRACT_POLICY_DIR` — override for compiled policy snapshot dir (default `build/policy/projects`; spec 119 §4.5)
 - `STAGECRAFT_EXTRACT_PRICE_*_USD_PER_MTOK` — Anthropic pricing overrides for the cost estimator
 - `ANTHROPIC_API_KEY` — required secret; agent extractors fail closed without it

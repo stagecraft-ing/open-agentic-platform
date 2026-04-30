@@ -240,7 +240,7 @@ pub struct ArtifactRecord {
     pub filename: String,
     pub step_id: String,
     pub workflow_id: String,
-    pub workspace_id: Option<String>,
+    pub project_id: Option<String>,
     pub created_at: String,
     pub size_bytes: u64,
     pub content_type: Option<String>,
@@ -290,7 +290,7 @@ impl ArtifactMetadataStore {
                 filename TEXT NOT NULL,
                 step_id TEXT NOT NULL,
                 workflow_id TEXT NOT NULL,
-                workspace_id TEXT,
+                project_id TEXT,
                 created_at TEXT NOT NULL,
                 size_bytes INTEGER NOT NULL,
                 content_type TEXT,
@@ -306,8 +306,8 @@ impl ArtifactMetadataStore {
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (content_hash, relationship, workflow_id, step_id)
             );
-            CREATE INDEX IF NOT EXISTS idx_artifact_workspace
-                ON artifact_records(workspace_id);
+            CREATE INDEX IF NOT EXISTS idx_artifact_project
+                ON artifact_records(project_id);
             CREATE INDEX IF NOT EXISTS idx_artifact_workflow
                 ON artifact_records(workflow_id);
             CREATE INDEX IF NOT EXISTS idx_lineage_hash
@@ -320,7 +320,7 @@ impl ArtifactMetadataStore {
     pub fn record_artifact(&self, record: &ArtifactRecord) -> rusqlite::Result<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO artifact_records
-             (content_hash, filename, step_id, workflow_id, workspace_id,
+             (content_hash, filename, step_id, workflow_id, project_id,
               created_at, size_bytes, content_type, producer_agent)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![
@@ -328,7 +328,7 @@ impl ArtifactMetadataStore {
                 record.filename,
                 record.step_id,
                 record.workflow_id,
-                record.workspace_id,
+                record.project_id,
                 record.created_at,
                 record.size_bytes as i64,
                 record.content_type,
@@ -359,7 +359,7 @@ impl ArtifactMetadataStore {
     /// Look up artifacts by content hash.
     pub fn find_by_hash(&self, content_hash: &str) -> rusqlite::Result<Vec<ArtifactRecord>> {
         let mut stmt = self.conn.prepare(
-            "SELECT content_hash, filename, step_id, workflow_id, workspace_id,
+            "SELECT content_hash, filename, step_id, workflow_id, project_id,
                     created_at, size_bytes, content_type, producer_agent
              FROM artifact_records WHERE content_hash = ?1",
         )?;
@@ -369,7 +369,7 @@ impl ArtifactMetadataStore {
                 filename: row.get(1)?,
                 step_id: row.get(2)?,
                 workflow_id: row.get(3)?,
-                workspace_id: row.get(4)?,
+                project_id: row.get(4)?,
                 created_at: row.get(5)?,
                 size_bytes: row.get::<_, i64>(6)? as u64,
                 content_type: row.get(7)?,
@@ -382,7 +382,7 @@ impl ArtifactMetadataStore {
     /// Look up artifacts by workflow ID.
     pub fn find_by_workflow(&self, workflow_id: &str) -> rusqlite::Result<Vec<ArtifactRecord>> {
         let mut stmt = self.conn.prepare(
-            "SELECT content_hash, filename, step_id, workflow_id, workspace_id,
+            "SELECT content_hash, filename, step_id, workflow_id, project_id,
                     created_at, size_bytes, content_type, producer_agent
              FROM artifact_records WHERE workflow_id = ?1 ORDER BY created_at",
         )?;
@@ -392,7 +392,7 @@ impl ArtifactMetadataStore {
                 filename: row.get(1)?,
                 step_id: row.get(2)?,
                 workflow_id: row.get(3)?,
-                workspace_id: row.get(4)?,
+                project_id: row.get(4)?,
                 created_at: row.get(5)?,
                 size_bytes: row.get::<_, i64>(6)? as u64,
                 content_type: row.get(7)?,
@@ -426,20 +426,20 @@ impl ArtifactMetadataStore {
         rows.collect()
     }
 
-    /// Look up artifacts by workspace ID.
-    pub fn find_by_workspace(&self, workspace_id: &str) -> rusqlite::Result<Vec<ArtifactRecord>> {
+    /// Look up artifacts by project ID.
+    pub fn find_by_project(&self, project_id: &str) -> rusqlite::Result<Vec<ArtifactRecord>> {
         let mut stmt = self.conn.prepare(
-            "SELECT content_hash, filename, step_id, workflow_id, workspace_id,
+            "SELECT content_hash, filename, step_id, workflow_id, project_id,
                     created_at, size_bytes, content_type, producer_agent
-             FROM artifact_records WHERE workspace_id = ?1 ORDER BY created_at",
+             FROM artifact_records WHERE project_id = ?1 ORDER BY created_at",
         )?;
-        let rows = stmt.query_map([workspace_id], |row| {
+        let rows = stmt.query_map([project_id], |row| {
             Ok(ArtifactRecord {
                 content_hash: row.get(0)?,
                 filename: row.get(1)?,
                 step_id: row.get(2)?,
                 workflow_id: row.get(3)?,
-                workspace_id: row.get(4)?,
+                project_id: row.get(4)?,
                 created_at: row.get(5)?,
                 size_bytes: row.get::<_, i64>(6)? as u64,
                 content_type: row.get(7)?,
@@ -672,7 +672,7 @@ mod tests {
             filename: "output.md".into(),
             step_id: "step-01".into(),
             workflow_id: "wf-001".into(),
-            workspace_id: Some("ws-001".into()),
+            project_id: Some("ws-001".into()),
             created_at: "2026-04-11T00:00:00Z".into(),
             size_bytes: 1024,
             content_type: Some("text/markdown".into()),
@@ -683,7 +683,7 @@ mod tests {
         let found = store.find_by_hash("abc123").unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].filename, "output.md");
-        assert_eq!(found[0].workspace_id.as_deref(), Some("ws-001"));
+        assert_eq!(found[0].project_id.as_deref(), Some("ws-001"));
 
         let by_wf = store.find_by_workflow("wf-001").unwrap();
         assert_eq!(by_wf.len(), 1);
@@ -724,11 +724,11 @@ mod tests {
         assert_eq!(lineage[1].relationship, LineageRelation::ConsumedBy);
     }
 
-    // -- find_by_workspace, upsert, dedup, cross-workflow (094 Slices 3-4) --
+    // -- find_by_project, upsert, dedup, cross-workflow (094 Slices 3-4) --
 
     #[cfg(feature = "local-sqlite")]
     #[test]
-    fn sc094_3_find_by_workspace() {
+    fn sc094_3_find_by_project() {
         let dir = tempfile::TempDir::new().unwrap();
         let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
 
@@ -737,7 +737,7 @@ mod tests {
             filename: "out.md".into(),
             step_id: "s1".into(),
             workflow_id: "wf-1".into(),
-            workspace_id: Some("ws-A".into()),
+            project_id: Some("ws-A".into()),
             created_at: "2026-04-12T00:00:00Z".into(),
             size_bytes: 100,
             content_type: None,
@@ -754,23 +754,23 @@ mod tests {
         let mut r3 = base.clone();
         r3.content_hash = "h3".into();
         r3.workflow_id = "wf-3".into();
-        r3.workspace_id = Some("ws-B".into());
+        r3.project_id = Some("ws-B".into());
         store.record_artifact(&r3).unwrap();
 
-        let ws_a = store.find_by_workspace("ws-A").unwrap();
-        assert_eq!(ws_a.len(), 2);
+        let proj_a = store.find_by_project("ws-A").unwrap();
+        assert_eq!(proj_a.len(), 2);
         assert!(
-            ws_a.iter()
-                .all(|r| r.workspace_id.as_deref() == Some("ws-A"))
+            proj_a.iter()
+                .all(|r| r.project_id.as_deref() == Some("ws-A"))
         );
     }
 
     #[cfg(feature = "local-sqlite")]
     #[test]
-    fn sc094_3_find_by_workspace_empty() {
+    fn sc094_3_find_by_project_empty() {
         let dir = tempfile::TempDir::new().unwrap();
         let store = ArtifactMetadataStore::open(&dir.path().join("meta.db")).unwrap();
-        assert!(store.find_by_workspace("nonexistent").unwrap().is_empty());
+        assert!(store.find_by_project("nonexistent").unwrap().is_empty());
     }
 
     #[cfg(feature = "local-sqlite")]
@@ -784,7 +784,7 @@ mod tests {
             filename: "out.md".into(),
             step_id: "s1".into(),
             workflow_id: "wf-1".into(),
-            workspace_id: None,
+            project_id: None,
             created_at: "2026-04-12T00:00:00Z".into(),
             size_bytes: 100,
             content_type: None,
@@ -834,7 +834,7 @@ mod tests {
             filename: "out.md".into(),
             step_id: "s1".into(),
             workflow_id: "wf-1".into(),
-            workspace_id: None,
+            project_id: None,
             created_at: "2026-04-12T00:00:00Z".into(),
             size_bytes: 100,
             content_type: None,

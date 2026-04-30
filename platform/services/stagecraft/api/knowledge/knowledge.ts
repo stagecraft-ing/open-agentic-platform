@@ -1,7 +1,12 @@
 /**
- * Knowledge intake service (spec 087 Phase 2).
+ * Knowledge intake service (spec 087 Phase 2, amended by spec 119).
  *
- * Manages knowledge objects, source connectors, and document bindings.
+ * Manages knowledge objects and source connectors. Both are project-
+ * scoped after the workspace collapse (spec 119 §4.3). The
+ * document_bindings table is dropped — a knowledge object lives in
+ * exactly one project, and clone duplicates the row into the
+ * destination project (spec 113/114).
+ *
  * Upload flow: request presigned URL → client uploads to S3 → confirm upload.
  */
 
@@ -12,8 +17,6 @@ import { db } from "../db/drizzle";
 import {
   knowledgeObjects,
   sourceConnectors,
-  documentBindings,
-  workspaces,
   projects,
   auditLog,
   syncRuns,
@@ -28,8 +31,8 @@ import {
 } from "./storage";
 import { randomUUID } from "crypto";
 import { getConnectorImpl } from "./connectors";
-import type { SyncContext, SyncedObject } from "./connectors";
-import { broadcastToWorkspace } from "../sync/sync";
+import type { SyncContext } from "./connectors";
+import { broadcastToOrg } from "../sync/sync";
 import { enqueueExtraction } from "./extractionCore";
 import { KNOWLEDGE_EXTRACTION_RETRY_REQUESTED } from "./auditActions";
 
@@ -39,7 +42,7 @@ import { KNOWLEDGE_EXTRACTION_RETRY_REQUESTED } from "./auditActions";
 
 type KnowledgeObjectRow = {
   id: string;
-  workspaceId: string;
+  projectId: string;
   connectorId: string | null;
   storageKey: string;
   filename: string;
@@ -74,7 +77,7 @@ type KnowledgeObjectListRow = KnowledgeObjectRow & {
 
 type SourceConnectorRow = {
   id: string;
-  workspaceId: string;
+  projectId: string;
   type: string;
   name: string;
   syncSchedule: string | null;
@@ -84,18 +87,10 @@ type SourceConnectorRow = {
   updatedAt: Date;
 };
 
-type DocumentBindingRow = {
-  id: string;
-  projectId: string;
-  knowledgeObjectId: string;
-  boundBy: string;
-  boundAt: Date;
-};
-
 type SyncRunRow = {
   id: string;
   connectorId: string;
-  workspaceId: string;
+  projectId: string;
   status: string;
   objectsCreated: number;
   objectsUpdated: number;
@@ -110,34 +105,30 @@ type SyncRunRow = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function getWorkspaceBucket(workspaceId: string): Promise<string> {
-  const [ws] = await db
-    .select({ objectStoreBucket: workspaces.objectStoreBucket })
-    .from(workspaces)
-    .where(eq(workspaces.id, workspaceId))
-    .limit(1);
-
-  if (!ws) {
-    throw APIError.notFound("workspace not found");
-  }
-  return ws.objectStoreBucket;
+interface ProjectScope {
+  projectId: string;
+  orgId: string;
+  bucket: string;
 }
 
-async function verifyProjectInScope(
+async function loadProjectScope(
   projectId: string,
-  workspaceId: string
-): Promise<void> {
+  callerOrgId: string,
+): Promise<ProjectScope> {
   const [p] = await db
-    .select({ id: projects.id })
+    .select({
+      id: projects.id,
+      orgId: projects.orgId,
+      bucket: projects.objectStoreBucket,
+    })
     .from(projects)
-    .where(
-      and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId))
-    )
+    .where(and(eq(projects.id, projectId), eq(projects.orgId, callerOrgId)))
     .limit(1);
 
   if (!p) {
-    throw APIError.notFound("project not found in workspace");
+    throw APIError.notFound("project not found");
   }
+  return { projectId: p.id, orgId: p.orgId, bucket: p.bucket };
 }
 
 // =========================================================================
@@ -145,7 +136,7 @@ async function verifyProjectInScope(
 // =========================================================================
 
 // ---------------------------------------------------------------------------
-// List knowledge objects in workspace
+// List knowledge objects in a project
 // ---------------------------------------------------------------------------
 
 export const listKnowledgeObjects = api(
@@ -153,18 +144,16 @@ export const listKnowledgeObjects = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/knowledge/objects",
+    path: "/api/projects/:projectId/knowledge/objects",
   },
   async (req: {
+    projectId: string;
     state?: string;
   }): Promise<{ objects: KnowledgeObjectListRow[] }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
-    if (!auth.workspaceId) {
-      throw APIError.invalidArgument("workspace context required");
-    }
-
-    const conditions = [eq(knowledgeObjects.workspaceId, auth.workspaceId)];
+    const conditions = [eq(knowledgeObjects.projectId, scope.projectId)];
     if (req.state) {
       conditions.push(eq(knowledgeObjects.state, req.state as any));
     }
@@ -229,15 +218,15 @@ export const getKnowledgeObject = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/knowledge/objects/:id",
+    path: "/api/projects/:projectId/knowledge/objects/:id",
   },
   async (
-    req: { id: string }
+    req: { projectId: string; id: string }
   ): Promise<{
     object: KnowledgeObjectListRow;
-    bindingsCount: number;
   }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [row] = await db
       .select()
@@ -245,7 +234,7 @@ export const getKnowledgeObject = api(
       .where(
         and(
           eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
+          eq(knowledgeObjects.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -253,11 +242,6 @@ export const getKnowledgeObject = api(
     if (!row) {
       throw APIError.notFound("knowledge object not found");
     }
-
-    const bindings = await db
-      .select({ id: documentBindings.id })
-      .from(documentBindings)
-      .where(eq(documentBindings.knowledgeObjectId, req.id));
 
     // Spec 115 FR-030 — denormalise the most recent extraction run.
     const [latest] = await db
@@ -285,7 +269,6 @@ export const getKnowledgeObject = api(
 
     return {
       object: { ...row, latestRun },
-      bindingsCount: bindings.length,
     };
   }
 );
@@ -295,6 +278,7 @@ export const getKnowledgeObject = api(
 // ---------------------------------------------------------------------------
 
 type RequestUploadRequest = {
+  projectId: string;
   filename: string;
   mimeType: string;
   contentHash: string; // client-provided SHA-256 for dedup
@@ -317,14 +301,12 @@ export const requestUpload = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/upload",
+    path: "/api/projects/:projectId/knowledge/upload",
   },
   async (req: RequestUploadRequest): Promise<RequestUploadResponse> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
-    if (!auth.workspaceId) {
-      throw APIError.invalidArgument("workspace context required");
-    }
     if (!req.filename || !req.mimeType || !req.contentHash) {
       throw APIError.invalidArgument(
         "filename, mimeType, and contentHash are required"
@@ -334,7 +316,6 @@ export const requestUpload = api(
       throw APIError.invalidArgument("sizeBytes must be a non-negative number");
     }
 
-    const bucket = await getWorkspaceBucket(auth.workspaceId);
     const objectId = randomUUID();
     const storageKey = `knowledge/${objectId}/${req.filename}`;
 
@@ -343,7 +324,7 @@ export const requestUpload = api(
     // against S3 metadata on confirmUpload.
     await db.insert(knowledgeObjects).values({
       id: objectId,
-      workspaceId: auth.workspaceId,
+      projectId: scope.projectId,
       connectorId: null, // direct upload — no connector
       storageKey,
       filename: req.filename,
@@ -359,7 +340,7 @@ export const requestUpload = api(
     });
 
     const uploadUrl = await getPresignedUploadUrl(
-      bucket,
+      scope.bucket,
       storageKey,
       req.mimeType
     );
@@ -369,7 +350,11 @@ export const requestUpload = api(
       action: "knowledge.upload_requested",
       targetType: "knowledge_object",
       targetId: objectId,
-      metadata: { filename: req.filename, mimeType: req.mimeType },
+      metadata: {
+        filename: req.filename,
+        mimeType: req.mimeType,
+        projectId: scope.projectId,
+      },
     });
 
     log.info("upload requested", { objectId, filename: req.filename });
@@ -387,10 +372,14 @@ export const confirmUpload = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/objects/:id/confirm",
+    path: "/api/projects/:projectId/knowledge/objects/:id/confirm",
   },
-  async (req: { id: string }): Promise<{ object: KnowledgeObjectRow }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ object: KnowledgeObjectRow }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [obj] = await db
       .select()
@@ -398,7 +387,7 @@ export const confirmUpload = api(
       .where(
         and(
           eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
+          eq(knowledgeObjects.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -414,8 +403,7 @@ export const confirmUpload = api(
     }
 
     // Verify the object actually exists in S3
-    const bucket = await getWorkspaceBucket(auth.workspaceId);
-    const meta = await headObject(bucket, obj.storageKey);
+    const meta = await headObject(scope.bucket, obj.storageKey);
 
     if (!meta) {
       throw APIError.invalidArgument(
@@ -446,6 +434,7 @@ export const confirmUpload = api(
       metadata: {
         sizeBytes: updated.sizeBytes,
         contentType: meta.contentType,
+        projectId: scope.projectId,
       },
     });
 
@@ -455,7 +444,7 @@ export const confirmUpload = api(
     try {
       await enqueueExtraction({
         knowledgeObjectId: req.id,
-        workspaceId: auth.workspaceId,
+        projectId: scope.projectId,
         reason: "upload_confirmed",
       });
     } catch (err) {
@@ -483,21 +472,24 @@ export const getDownloadUrl = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/knowledge/objects/:id/download",
+    path: "/api/projects/:projectId/knowledge/objects/:id/download",
   },
-  async (req: { id: string }): Promise<{ downloadUrl: string }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ downloadUrl: string }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [obj] = await db
       .select({
         storageKey: knowledgeObjects.storageKey,
-        workspaceId: knowledgeObjects.workspaceId,
       })
       .from(knowledgeObjects)
       .where(
         and(
           eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
+          eq(knowledgeObjects.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -506,15 +498,17 @@ export const getDownloadUrl = api(
       throw APIError.notFound("knowledge object not found");
     }
 
-    const bucket = await getWorkspaceBucket(auth.workspaceId);
     try {
-      const downloadUrl = await getPresignedDownloadUrl(bucket, obj.storageKey);
+      const downloadUrl = await getPresignedDownloadUrl(
+        scope.bucket,
+        obj.storageKey,
+      );
       return { downloadUrl };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       log.error("getDownloadUrl: failed to generate presigned url", {
         objectId: req.id,
-        bucket,
+        bucket: scope.bucket,
         storageKey: obj.storageKey,
         error: msg,
       });
@@ -524,7 +518,7 @@ export const getDownloadUrl = api(
 );
 
 // ---------------------------------------------------------------------------
-// Transition knowledge object state
+// Transition knowledge object state (legacy, gated off)
 // ---------------------------------------------------------------------------
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -535,6 +529,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 };
 
 type TransitionStateRequest = {
+  projectId: string;
   id: string;
   targetState: string;
   extractionOutput?: Record<string, unknown>;
@@ -546,12 +541,13 @@ export const transitionState = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/objects/:id/transition",
+    path: "/api/projects/:projectId/knowledge/objects/:id/transition",
   },
   async (
     req: TransitionStateRequest
   ): Promise<{ object: KnowledgeObjectRow }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     // Spec 115 FR-027 — the legacy click-walk endpoint is gated off in
     // default builds. Operators flip the env to "true" during incident
@@ -559,7 +555,7 @@ export const transitionState = api(
     // `legacy_path = true` in the audit row so usage shows up in reports.
     if (process.env.STAGECRAFT_EXTRACT_LEGACY_TRANSITION !== "true") {
       throw APIError.failedPrecondition(
-        "legacy_transition_disabled: use POST /api/knowledge/objects/:id/retry-extraction or rely on the automatic pipeline",
+        "legacy_transition_disabled: use POST /api/projects/:projectId/knowledge/objects/:id/retry-extraction or rely on the automatic pipeline",
       );
     }
 
@@ -569,7 +565,7 @@ export const transitionState = api(
       .where(
         and(
           eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
+          eq(knowledgeObjects.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -612,6 +608,7 @@ export const transitionState = api(
         from: obj.state,
         to: req.targetState,
         legacy_path: true,
+        projectId: scope.projectId,
       },
     });
 
@@ -634,27 +631,25 @@ export const retryExtraction = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/objects/:id/retry-extraction",
+    path: "/api/projects/:projectId/knowledge/objects/:id/retry-extraction",
   },
   async (
-    req: { id: string },
+    req: { projectId: string; id: string },
   ): Promise<{ runId: string; outcome: "enqueued" | "deduped" }> => {
     const auth = getAuthData()!;
-    if (!auth.workspaceId) {
-      throw APIError.invalidArgument("workspace context required");
-    }
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [obj] = await db
       .select({
         id: knowledgeObjects.id,
-        workspaceId: knowledgeObjects.workspaceId,
+        projectId: knowledgeObjects.projectId,
         lastExtractionError: knowledgeObjects.lastExtractionError,
       })
       .from(knowledgeObjects)
       .where(
         and(
           eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId),
+          eq(knowledgeObjects.projectId, scope.projectId),
         ),
       )
       .limit(1);
@@ -669,7 +664,7 @@ export const retryExtraction = api(
 
     const result = await enqueueExtraction({
       knowledgeObjectId: obj.id,
-      workspaceId: obj.workspaceId,
+      projectId: obj.projectId,
       reason: "retry",
     });
 
@@ -682,6 +677,7 @@ export const retryExtraction = api(
         runId: result.runId,
         outcome: result.outcome,
         previousError: obj.lastExtractionError,
+        projectId: scope.projectId,
       },
     });
 
@@ -698,12 +694,13 @@ export const deleteKnowledgeObject = api(
     expose: true,
     auth: true,
     method: "DELETE",
-    path: "/api/knowledge/objects/:id",
+    path: "/api/projects/:projectId/knowledge/objects/:id",
   },
   async (
-    req: { id: string }
-  ): Promise<{ deleted: boolean; bindingsRemoved: number }> => {
+    req: { projectId: string; id: string }
+  ): Promise<{ deleted: boolean }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [obj] = await db
       .select()
@@ -711,7 +708,7 @@ export const deleteKnowledgeObject = api(
       .where(
         and(
           eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
+          eq(knowledgeObjects.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -723,9 +720,8 @@ export const deleteKnowledgeObject = api(
     // Delete from object store. Best-effort: if the blob is already missing
     // (e.g. a partially-uploaded object), continue with DB cleanup so the
     // user is not stuck with a ghost row they cannot remove.
-    const bucket = await getWorkspaceBucket(auth.workspaceId);
     try {
-      await deleteObject(bucket, obj.storageKey);
+      await deleteObject(scope.bucket, obj.storageKey);
     } catch (err) {
       log.warn("deleteKnowledgeObject: object store delete failed, continuing", {
         objectId: req.id,
@@ -733,15 +729,6 @@ export const deleteKnowledgeObject = api(
         error: err instanceof Error ? err.message : String(err),
       });
     }
-
-    // Cascade: unbind from any projects that reference this object. Deleting
-    // an object in "available" state is allowed — downstream factory runs
-    // that try to re-resolve it will fail loudly with `invalidArgument`,
-    // which is preferable to silent staleness.
-    const removed = await db
-      .delete(documentBindings)
-      .where(eq(documentBindings.knowledgeObjectId, req.id))
-      .returning({ id: documentBindings.id });
 
     await db
       .delete(knowledgeObjects)
@@ -755,11 +742,11 @@ export const deleteKnowledgeObject = api(
       metadata: {
         filename: obj.filename,
         state: obj.state,
-        bindingsRemoved: removed.length,
+        projectId: scope.projectId,
       },
     });
 
-    return { deleted: true, bindingsRemoved: removed.length };
+    return { deleted: true };
   }
 );
 
@@ -768,7 +755,7 @@ export const deleteKnowledgeObject = api(
 // =========================================================================
 
 // ---------------------------------------------------------------------------
-// List connectors for workspace
+// List connectors for a project
 // ---------------------------------------------------------------------------
 
 export const listConnectors = api(
@@ -776,15 +763,18 @@ export const listConnectors = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/knowledge/connectors",
+    path: "/api/projects/:projectId/knowledge/connectors",
   },
-  async (): Promise<{ connectors: SourceConnectorRow[] }> => {
+  async (req: {
+    projectId: string;
+  }): Promise<{ connectors: SourceConnectorRow[] }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const rows = await db
       .select({
         id: sourceConnectors.id,
-        workspaceId: sourceConnectors.workspaceId,
+        projectId: sourceConnectors.projectId,
         type: sourceConnectors.type,
         name: sourceConnectors.name,
         syncSchedule: sourceConnectors.syncSchedule,
@@ -794,7 +784,7 @@ export const listConnectors = api(
         updatedAt: sourceConnectors.updatedAt,
       })
       .from(sourceConnectors)
-      .where(eq(sourceConnectors.workspaceId, auth.workspaceId))
+      .where(eq(sourceConnectors.projectId, scope.projectId))
       .orderBy(desc(sourceConnectors.createdAt));
 
     return { connectors: rows };
@@ -806,6 +796,7 @@ export const listConnectors = api(
 // ---------------------------------------------------------------------------
 
 type CreateConnectorRequest = {
+  projectId: string;
   type: string;
   name: string;
   config?: Record<string, unknown>;
@@ -817,16 +808,14 @@ export const createConnector = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/connectors",
+    path: "/api/projects/:projectId/knowledge/connectors",
   },
   async (
     req: CreateConnectorRequest
   ): Promise<{ connector: SourceConnectorRow }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
-    if (!auth.workspaceId) {
-      throw APIError.invalidArgument("workspace context required");
-    }
     if (!req.type || !req.name) {
       throw APIError.invalidArgument("type and name are required");
     }
@@ -852,7 +841,7 @@ export const createConnector = api(
     const [connector] = await db
       .insert(sourceConnectors)
       .values({
-        workspaceId: auth.workspaceId,
+        projectId: scope.projectId,
         type: req.type as any,
         name: req.name,
         configEncrypted: req.config ?? null,
@@ -865,13 +854,17 @@ export const createConnector = api(
       action: "knowledge.connector_created",
       targetType: "source_connector",
       targetId: connector.id,
-      metadata: { type: req.type, name: req.name },
+      metadata: {
+        type: req.type,
+        name: req.name,
+        projectId: scope.projectId,
+      },
     });
 
     return {
       connector: {
         id: connector.id,
-        workspaceId: connector.workspaceId,
+        projectId: connector.projectId,
         type: connector.type,
         name: connector.name,
         syncSchedule: connector.syncSchedule,
@@ -893,10 +886,14 @@ export const deleteConnector = api(
     expose: true,
     auth: true,
     method: "DELETE",
-    path: "/api/knowledge/connectors/:id",
+    path: "/api/projects/:projectId/knowledge/connectors/:id",
   },
-  async (req: { id: string }): Promise<{ deleted: boolean }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ deleted: boolean }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [conn] = await db
       .select()
@@ -904,7 +901,7 @@ export const deleteConnector = api(
       .where(
         and(
           eq(sourceConnectors.id, req.id),
-          eq(sourceConnectors.workspaceId, auth.workspaceId)
+          eq(sourceConnectors.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -935,7 +932,7 @@ export const deleteConnector = api(
       action: "knowledge.connector_deleted",
       targetType: "source_connector",
       targetId: req.id,
-      metadata: { name: conn.name },
+      metadata: { name: conn.name, projectId: scope.projectId },
     });
 
     return { deleted: true };
@@ -951,15 +948,19 @@ export const getConnector = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/knowledge/connectors/:id",
+    path: "/api/projects/:projectId/knowledge/connectors/:id",
   },
-  async (req: { id: string }): Promise<{ connector: SourceConnectorRow }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ connector: SourceConnectorRow }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [row] = await db
       .select({
         id: sourceConnectors.id,
-        workspaceId: sourceConnectors.workspaceId,
+        projectId: sourceConnectors.projectId,
         type: sourceConnectors.type,
         name: sourceConnectors.name,
         syncSchedule: sourceConnectors.syncSchedule,
@@ -972,7 +973,7 @@ export const getConnector = api(
       .where(
         and(
           eq(sourceConnectors.id, req.id),
-          eq(sourceConnectors.workspaceId, auth.workspaceId)
+          eq(sourceConnectors.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -990,6 +991,7 @@ export const getConnector = api(
 // ---------------------------------------------------------------------------
 
 type UpdateConnectorRequest = {
+  projectId: string;
   id: string;
   name?: string;
   config?: Record<string, unknown>;
@@ -1002,12 +1004,13 @@ export const updateConnector = api(
     expose: true,
     auth: true,
     method: "PATCH",
-    path: "/api/knowledge/connectors/:id",
+    path: "/api/projects/:projectId/knowledge/connectors/:id",
   },
   async (
     req: UpdateConnectorRequest
   ): Promise<{ connector: SourceConnectorRow }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [existing] = await db
       .select()
@@ -1015,7 +1018,7 @@ export const updateConnector = api(
       .where(
         and(
           eq(sourceConnectors.id, req.id),
-          eq(sourceConnectors.workspaceId, auth.workspaceId)
+          eq(sourceConnectors.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -1061,13 +1064,16 @@ export const updateConnector = api(
       action: "knowledge.connector_updated",
       targetType: "source_connector",
       targetId: req.id,
-      metadata: { fields: Object.keys(updates).filter((k) => k !== "updatedAt") },
+      metadata: {
+        fields: Object.keys(updates).filter((k) => k !== "updatedAt"),
+        projectId: scope.projectId,
+      },
     });
 
     return {
       connector: {
         id: updated.id,
-        workspaceId: updated.workspaceId,
+        projectId: updated.projectId,
         type: updated.type,
         name: updated.name,
         syncSchedule: updated.syncSchedule,
@@ -1089,10 +1095,14 @@ export const testConnectorConnection = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/connectors/:id/test",
+    path: "/api/projects/:projectId/knowledge/connectors/:id/test",
   },
-  async (req: { id: string }): Promise<{ success: boolean; error?: string }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ success: boolean; error?: string }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [conn] = await db
       .select()
@@ -1100,7 +1110,7 @@ export const testConnectorConnection = api(
       .where(
         and(
           eq(sourceConnectors.id, req.id),
-          eq(sourceConnectors.workspaceId, auth.workspaceId)
+          eq(sourceConnectors.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -1135,10 +1145,14 @@ export const triggerSync = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/knowledge/connectors/:id/sync",
+    path: "/api/projects/:projectId/knowledge/connectors/:id/sync",
   },
-  async (req: { id: string }): Promise<{ syncRunId: string }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ syncRunId: string }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
     const [conn] = await db
       .select()
@@ -1146,7 +1160,7 @@ export const triggerSync = api(
       .where(
         and(
           eq(sourceConnectors.id, req.id),
-          eq(sourceConnectors.workspaceId, auth.workspaceId)
+          eq(sourceConnectors.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -1167,8 +1181,6 @@ export const triggerSync = api(
       );
     }
 
-    const bucket = await getWorkspaceBucket(auth.workspaceId);
-
     // Get the last successful delta token
     const [lastRun] = await db
       .select({ deltaToken: syncRuns.deltaToken })
@@ -1184,8 +1196,9 @@ export const triggerSync = api(
 
     const syncRunId = await executeSyncRun(
       conn.id,
-      auth.workspaceId,
-      bucket,
+      scope.projectId,
+      scope.orgId,
+      scope.bucket,
       conn.type,
       (conn.configEncrypted as Record<string, unknown>) ?? {},
       lastRun?.deltaToken ?? null,
@@ -1205,19 +1218,23 @@ export const listSyncRuns = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/knowledge/connectors/:id/sync-runs",
+    path: "/api/projects/:projectId/knowledge/connectors/:id/sync-runs",
   },
-  async (req: { id: string }): Promise<{ runs: SyncRunRow[] }> => {
+  async (req: {
+    projectId: string;
+    id: string;
+  }): Promise<{ runs: SyncRunRow[] }> => {
     const auth = getAuthData()!;
+    const scope = await loadProjectScope(req.projectId, auth.orgId);
 
-    // Verify the connector belongs to this workspace
+    // Verify the connector belongs to this project
     const [conn] = await db
       .select({ id: sourceConnectors.id })
       .from(sourceConnectors)
       .where(
         and(
           eq(sourceConnectors.id, req.id),
-          eq(sourceConnectors.workspaceId, auth.workspaceId)
+          eq(sourceConnectors.projectId, scope.projectId)
         )
       )
       .limit(1);
@@ -1243,7 +1260,8 @@ export const listSyncRuns = api(
 
 export async function executeSyncRun(
   connectorId: string,
-  workspaceId: string,
+  projectId: string,
+  orgId: string,
   bucket: string,
   connectorType: string,
   config: Record<string, unknown>,
@@ -1260,14 +1278,14 @@ export async function executeSyncRun(
     .insert(syncRuns)
     .values({
       connectorId,
-      workspaceId,
+      projectId,
       status: "running",
     })
     .returning();
 
   const ctx: SyncContext = {
     connectorId,
-    workspaceId,
+    projectId,
     bucket,
     config,
     previousDeltaToken,
@@ -1295,7 +1313,7 @@ export async function executeSyncRun(
           .from(knowledgeObjects)
           .where(
             and(
-              eq(knowledgeObjects.workspaceId, workspaceId),
+              eq(knowledgeObjects.projectId, projectId),
               eq(knowledgeObjects.connectorId, connectorId),
               eq(knowledgeObjects.storageKey, obj.storageKey)
             )
@@ -1332,7 +1350,7 @@ export async function executeSyncRun(
           const [created_] = await db
             .insert(knowledgeObjects)
             .values({
-              workspaceId,
+              projectId,
               connectorId,
               storageKey: obj.storageKey,
               filename: obj.filename,
@@ -1351,7 +1369,7 @@ export async function executeSyncRun(
           try {
             await enqueueExtraction({
               knowledgeObjectId: enqueueObjectId,
-              workspaceId,
+              projectId,
               reason: "connector_sync",
             });
           } catch (err) {
@@ -1389,16 +1407,17 @@ export async function executeSyncRun(
         action: "knowledge.sync_completed",
         targetType: "source_connector",
         targetId: connectorId,
-        metadata: { syncRunId: run.id, created, updated, skipped },
+        metadata: { syncRunId: run.id, created, updated, skipped, projectId },
       });
 
-      // Broadcast sync completion to connected clients
-      broadcastToWorkspace(workspaceId, {
+      // Broadcast sync completion to connected clients in the org
+      broadcastToOrg(orgId, {
         type: "connector_sync_complete",
-        workspaceId,
+        orgId,
         timestamp: new Date().toISOString(),
         payload: {
           connectorId,
+          projectId,
           syncRunId: run.id,
           objectsCreated: created,
           objectsUpdated: updated,
@@ -1443,166 +1462,13 @@ export async function executeSyncRun(
 }
 
 // =========================================================================
-// DOCUMENT BINDINGS
-// =========================================================================
-
-// ---------------------------------------------------------------------------
-// List bindings for a project
-// ---------------------------------------------------------------------------
-
-export const listBindings = api(
-  {
-    expose: true,
-    auth: true,
-    method: "GET",
-    path: "/api/knowledge/bindings/:projectId",
-  },
-  async (req: {
-    projectId: string;
-  }): Promise<{ bindings: DocumentBindingRow[] }> => {
-    const auth = getAuthData()!;
-
-    await verifyProjectInScope(req.projectId, auth.workspaceId);
-
-    const rows = await db
-      .select()
-      .from(documentBindings)
-      .where(eq(documentBindings.projectId, req.projectId));
-
-    return { bindings: rows };
-  }
-);
-
-// ---------------------------------------------------------------------------
-// Bind knowledge objects to a project
-// ---------------------------------------------------------------------------
-
-type BindRequest = {
-  projectId: string;
-  knowledgeObjectIds: string[];
-};
-
-export const bindToProject = api(
-  {
-    expose: true,
-    auth: true,
-    method: "POST",
-    path: "/api/knowledge/bindings/:projectId",
-  },
-  async (req: BindRequest): Promise<{ bindings: DocumentBindingRow[] }> => {
-    const auth = getAuthData()!;
-
-    await verifyProjectInScope(req.projectId, auth.workspaceId);
-
-    if (!req.knowledgeObjectIds || req.knowledgeObjectIds.length === 0) {
-      throw APIError.invalidArgument("knowledgeObjectIds required");
-    }
-
-    // Verify all knowledge objects belong to this workspace
-    const objs = await db
-      .select({ id: knowledgeObjects.id })
-      .from(knowledgeObjects)
-      .where(
-        and(
-          inArray(knowledgeObjects.id, req.knowledgeObjectIds),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
-        )
-      );
-
-    if (objs.length !== req.knowledgeObjectIds.length) {
-      throw APIError.invalidArgument(
-        "some knowledge objects not found in workspace"
-      );
-    }
-
-    const created: DocumentBindingRow[] = [];
-    for (const koId of req.knowledgeObjectIds) {
-      const [binding] = await db
-        .insert(documentBindings)
-        .values({
-          projectId: req.projectId,
-          knowledgeObjectId: koId,
-          boundBy: auth.userID,
-        })
-        .onConflictDoNothing()
-        .returning();
-
-      if (binding) {
-        created.push(binding);
-      }
-    }
-
-    await db.insert(auditLog).values({
-      actorUserId: auth.userID,
-      action: "knowledge.objects_bound",
-      targetType: "project",
-      targetId: req.projectId,
-      metadata: { knowledgeObjectIds: req.knowledgeObjectIds },
-    });
-
-    return { bindings: created };
-  }
-);
-
-// ---------------------------------------------------------------------------
-// Unbind a knowledge object from a project
-// ---------------------------------------------------------------------------
-
-type UnbindRequest = {
-  projectId: string;
-  knowledgeObjectId: string;
-};
-
-export const unbindFromProject = api(
-  {
-    expose: true,
-    auth: true,
-    method: "DELETE",
-    path: "/api/knowledge/bindings/:projectId/:knowledgeObjectId",
-  },
-  async (req: UnbindRequest): Promise<{ deleted: boolean }> => {
-    const auth = getAuthData()!;
-
-    await verifyProjectInScope(req.projectId, auth.workspaceId);
-
-    const [binding] = await db
-      .select()
-      .from(documentBindings)
-      .where(
-        and(
-          eq(documentBindings.projectId, req.projectId),
-          eq(documentBindings.knowledgeObjectId, req.knowledgeObjectId)
-        )
-      )
-      .limit(1);
-
-    if (!binding) {
-      throw APIError.notFound("binding not found");
-    }
-
-    await db
-      .delete(documentBindings)
-      .where(eq(documentBindings.id, binding.id));
-
-    await db.insert(auditLog).values({
-      actorUserId: auth.userID,
-      action: "knowledge.object_unbound",
-      targetType: "project",
-      targetId: req.projectId,
-      metadata: { knowledgeObjectId: req.knowledgeObjectId },
-    });
-
-    return { deleted: true };
-  }
-);
-
-// =========================================================================
 // FACTORY INTEGRATION
 // =========================================================================
 
 // ---------------------------------------------------------------------------
-// Resolve bound knowledge objects into factory business doc references.
+// Resolve project knowledge objects into factory business doc references.
 // Called by factory initPipeline when knowledge_object_ids are provided.
+// Spec 119: knowledge is project-scoped; bindings table dropped.
 // ---------------------------------------------------------------------------
 
 export type FactoryDocRef = {
@@ -1611,7 +1477,7 @@ export type FactoryDocRef = {
 };
 
 export async function resolveKnowledgeForFactory(
-  workspaceId: string,
+  projectId: string,
   knowledgeObjectIds: string[]
 ): Promise<FactoryDocRef[]> {
   if (knowledgeObjectIds.length === 0) return [];
@@ -1622,22 +1488,22 @@ export async function resolveKnowledgeForFactory(
       filename: knowledgeObjects.filename,
       storageKey: knowledgeObjects.storageKey,
       state: knowledgeObjects.state,
-      workspaceId: knowledgeObjects.workspaceId,
+      projectId: knowledgeObjects.projectId,
     })
     .from(knowledgeObjects)
     .where(
       and(
         inArray(knowledgeObjects.id, knowledgeObjectIds),
-        eq(knowledgeObjects.workspaceId, workspaceId)
+        eq(knowledgeObjects.projectId, projectId)
       )
     );
 
-  // Verify all requested objects exist
+  // Verify all requested objects exist in this project
   if (objs.length !== knowledgeObjectIds.length) {
     const found = new Set(objs.map((o) => o.id));
     const missing = knowledgeObjectIds.filter((id) => !found.has(id));
     throw APIError.invalidArgument(
-      `knowledge objects not found: ${missing.join(", ")}`
+      `knowledge objects not found in project: ${missing.join(", ")}`
     );
   }
 
@@ -1656,7 +1522,7 @@ export async function resolveKnowledgeForFactory(
 }
 
 // ---------------------------------------------------------------------------
-// Resolve bound knowledge objects into full wire-level KnowledgeBundle
+// Resolve project knowledge objects into full wire-level KnowledgeBundle
 // entries for the spec 110 factory.run.request envelope. Unlike
 // resolveKnowledgeForFactory this generates a presigned download URL so the
 // OPC consumer can materialise the blob locally before handing it to the
@@ -1679,7 +1545,7 @@ export type KnowledgeBundleEntry = {
 const KNOWLEDGE_BUNDLE_URL_TTL_SECONDS = 15 * 60;
 
 export async function resolveKnowledgeBundlesForFactory(
-  workspaceId: string,
+  projectId: string,
   knowledgeObjectIds: string[]
 ): Promise<KnowledgeBundleEntry[]> {
   if (knowledgeObjectIds.length === 0) return [];
@@ -1696,7 +1562,7 @@ export async function resolveKnowledgeBundlesForFactory(
     .where(
       and(
         inArray(knowledgeObjects.id, knowledgeObjectIds),
-        eq(knowledgeObjects.workspaceId, workspaceId)
+        eq(knowledgeObjects.projectId, projectId)
       )
     );
 
@@ -1704,7 +1570,7 @@ export async function resolveKnowledgeBundlesForFactory(
     const found = new Set(objs.map((o) => o.id));
     const missing = knowledgeObjectIds.filter((id) => !found.has(id));
     throw APIError.invalidArgument(
-      `knowledge objects not found: ${missing.join(", ")}`
+      `knowledge objects not found in project: ${missing.join(", ")}`
     );
   }
 
@@ -1715,14 +1581,23 @@ export async function resolveKnowledgeBundlesForFactory(
     );
   }
 
-  const bucket = await getWorkspaceBucket(workspaceId);
+  // Resolve the project's bucket once; all objects share it.
+  const [project] = await db
+    .select({ bucket: projects.objectStoreBucket })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!project) {
+    throw APIError.notFound("project not found");
+  }
+
   return Promise.all(
     objs.map(async (o) => ({
       objectId: o.id,
       filename: o.filename,
       contentHash: o.contentHash,
       downloadUrl: await getPresignedDownloadUrl(
-        bucket,
+        project.bucket,
         o.storageKey,
         KNOWLEDGE_BUNDLE_URL_TTL_SECONDS
       ),

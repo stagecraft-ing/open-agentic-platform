@@ -496,7 +496,11 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
         "ALTER TABLE agents ADD COLUMN remote_content_hash TEXT",
         [],
     );
-    let _ = conn.execute("ALTER TABLE agents ADD COLUMN workspace_id TEXT", []);
+    // Spec 119: the duplex session key is org_id. The local agent cache
+    // stores rows by their owning org so a reconnect with a different org
+    // sees a fresh slate. The column was previously named after the legacy
+    // workspace primitive; new installs land directly on the org name.
+    let _ = conn.execute("ALTER TABLE agents ADD COLUMN org_id TEXT", []);
     let _ = conn.execute("ALTER TABLE agents ADD COLUMN frontmatter_json TEXT", []);
     // Partial-unique index so upserts keyed on `remote_agent_id` are atomic
     // while local rows (NULL remote_agent_id) remain unconstrained.
@@ -2393,9 +2397,9 @@ pub async fn load_agent_session_history(
 // Workspace threading (spec 092)
 // ---------------------------------------------------------------------------
 
-/// Set the active workspace for governed execution.
+/// Set the active org for governed execution (spec 119 — renamed from set_active_workspace).
 ///
-/// Propagates the workspace ID to:
+/// Propagates the org ID to:
 /// 1. The in-process `StagecraftClient` (for API calls)
 /// 2. The `OPC_WORKSPACE_ID` process env var (picked up by child Claude processes)
 /// 3. A `workspace-changed` frontend event
@@ -2403,14 +2407,14 @@ pub async fn load_agent_session_history(
 #[tauri::command]
 pub async fn set_active_workspace(
     app: AppHandle,
-    workspace_id: String,
+    org_id: String,
     stagecraft: State<'_, StagecraftState>,
 ) -> Result<String, String> {
-    info!("set_active_workspace: {}", workspace_id);
+    info!("set_active_workspace: {}", org_id);
 
     // Propagate to StagecraftClient if present.
     if let Some(client) = stagecraft.current() {
-        client.set_workspace_id(&workspace_id);
+        client.set_org_id(&org_id);
     }
 
     // Set process-level env var so all child Claude processes inherit it.
@@ -2418,17 +2422,17 @@ pub async fn set_active_workspace(
     // OPC_WORKSPACE_ID between this set and the next Claude process spawn.
     #[allow(unsafe_code)]
     unsafe {
-        std::env::set_var("OPC_WORKSPACE_ID", &workspace_id);
+        std::env::set_var("OPC_WORKSPACE_ID", &org_id);
     }
 
-    // Eagerly refresh grants so the new workspace policy is cached.
+    // Eagerly refresh grants so the new org policy is cached.
     let _grants = crate::governed_claude::grants_json_platform_or_default().await;
 
     // Notify the frontend.
-    app.emit("workspace-changed", &workspace_id)
+    app.emit("workspace-changed", &org_id)
         .map_err(|e| format!("Failed to emit workspace-changed event: {}", e))?;
 
-    Ok(workspace_id)
+    Ok(org_id)
 }
 
 /// List all workspaces available to the authenticated user.

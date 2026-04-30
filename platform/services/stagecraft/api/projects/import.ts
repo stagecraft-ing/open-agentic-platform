@@ -225,11 +225,6 @@ export const importFactoryProject = api(
         "Insufficient permissions to import projects in this org"
       );
     }
-    if (!auth.workspaceId) {
-      throw APIError.failedPrecondition(
-        "No active workspace. Contact your org admin to set up a default workspace."
-      );
-    }
 
     const parsed = parseRepoUrl(req.repoUrl);
     const resolved = await resolveImportToken(auth.orgId, parsed.owner, req.githubPat);
@@ -355,7 +350,7 @@ async function findInstallationForOwner(
 
 async function route(
   detection: DetectionReport,
-  auth: { orgId: string; userID: string; workspaceId?: string },
+  auth: { orgId: string; orgSlug: string; userID: string },
   resolved: ResolvedImportToken,
   req: ImportFactoryProjectRequest,
   parsed: { owner: string; repo: string },
@@ -415,7 +410,7 @@ async function route(
 
 async function importLegacy(
   detection: DetectionReport,
-  auth: { orgId: string; userID: string; workspaceId?: string },
+  auth: { orgId: string; orgSlug: string; userID: string },
   resolved: ResolvedImportToken,
   req: ImportFactoryProjectRequest,
   parsed: { owner: string; repo: string },
@@ -474,7 +469,7 @@ async function importLegacy(
 
   const artifacts = await registerRawArtifactsSafe({
     projectId: projectRow.id,
-    workspaceId: auth.workspaceId!,
+    orgId: auth.orgId,
     boundBy: auth.userID,
     repoRoot,
     sourceRepo: `${parsed.owner}/${parsed.repo}`,
@@ -585,7 +580,7 @@ async function openTranslationPr(args: {
 
 async function importAcp(
   detection: DetectionReport,
-  auth: { orgId: string; userID: string; workspaceId?: string },
+  auth: { orgId: string; orgSlug: string; userID: string },
   resolved: ResolvedImportToken,
   req: ImportFactoryProjectRequest,
   parsed: { owner: string; repo: string },
@@ -634,7 +629,7 @@ async function importAcp(
 
   const artifacts = await registerRawArtifactsSafe({
     projectId: projectRow.id,
-    workspaceId: auth.workspaceId!,
+    orgId: auth.orgId,
     boundBy: auth.userID,
     repoRoot,
     sourceRepo: `${parsed.owner}/${parsed.repo}`,
@@ -660,7 +655,7 @@ async function importAcp(
 
 async function registerRawArtifactsSafe(input: {
   projectId: string;
-  workspaceId: string;
+  orgId: string;
   boundBy: string;
   repoRoot: string;
   sourceRepo: string;
@@ -699,7 +694,7 @@ function redactArtifact(a: RegisteredArtifact): {
 // ── DB helpers ──────────────────────────────────────────────────────────
 
 async function insertImportedProject(input: {
-  auth: { orgId: string; userID: string; workspaceId?: string };
+  auth: { orgId: string; orgSlug: string; userID: string };
   resolved: ResolvedImportToken;
   req: ImportFactoryProjectRequest;
   parsed: { owner: string; repo: string };
@@ -718,10 +713,12 @@ async function insertImportedProject(input: {
         .insert(projects)
         .values({
           orgId: input.auth.orgId,
-          workspaceId: input.auth.workspaceId!,
           name,
           slug,
           description: input.req.description ?? "",
+          // Spec 119 §4.2 — each project owns its bucket. Naming
+          // mirrors the create endpoint convention.
+          objectStoreBucket: `oap-${input.auth.orgSlug || "unknown"}-${slug}`,
           factoryAdapterId: input.factoryAdapterId,
           createdBy: input.auth.userID,
         })
@@ -752,7 +749,7 @@ async function insertImportedProject(input: {
           detectionLevel: input.detectionLevel,
           factoryAdapterId: input.factoryAdapterId,
           translatorVersion: input.translatorVersion,
-          workspaceId: input.auth.workspaceId,
+          orgId: input.auth.orgId,
           tokenSource: input.resolved.source,
         },
       });
@@ -763,10 +760,9 @@ async function insertImportedProject(input: {
     // OPCs. Fire-and-log: a sync hiccup must not roll back an import the
     // user just confirmed.
     void publishProjectCatalogUpsert({
-      workspaceId: input.auth.workspaceId!,
+      orgId: input.auth.orgId,
       project: {
         id: inserted.id,
-        workspaceId: input.auth.workspaceId!,
         name: inserted.name,
         slug: inserted.slug,
         description: inserted.description,
@@ -791,7 +787,7 @@ async function insertImportedProject(input: {
     const msg = err instanceof Error ? err.message : String(err);
     if (/unique|duplicate/i.test(msg)) {
       throw APIError.alreadyExists(
-        "A project with that slug already exists in this workspace"
+        "A project with that slug already exists in this org"
       );
     }
     log.error("importFactoryProject DB transaction failed", { error: msg });

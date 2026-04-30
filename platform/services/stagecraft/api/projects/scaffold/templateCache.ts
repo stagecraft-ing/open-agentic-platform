@@ -3,8 +3,8 @@
 // The cache key is `factory_adapters.source_sha` (immutable per snapshot).
 // A cache hit returns the on-disk path; a miss clones the adapter's
 // upstream source repo, runs `npm install`, and records the resolved
-// commit SHA against the cache key. The cache is per-workspace so that
-// workspace-scoped org identity/secrets never cross tenants.
+// commit SHA against the cache key. The cache is per-org so that
+// org-scoped identity/secrets never cross tenants.
 
 import { join } from "node:path";
 import { mkdir, access, writeFile, readFile, rm } from "node:fs/promises";
@@ -20,9 +20,9 @@ export interface TemplateCacheEntry {
 }
 
 export interface TemplateCacheOptions {
-  /** Workspace-scoped root. Defaults to tmpdir for tests. */
+  /** Org-scoped root. Defaults to tmpdir for tests. */
   root?: string;
-  workspaceId: string;
+  orgId: string;
 }
 
 export async function ensureTemplateCache(
@@ -31,7 +31,7 @@ export async function ensureTemplateCache(
   opts: TemplateCacheOptions
 ): Promise<TemplateCacheEntry> {
   const rootDir = opts.root ?? join(tmpdir(), "stagecraft-scaffold-cache");
-  const cacheDir = join(rootDir, opts.workspaceId, adapterName, sourceSha);
+  const cacheDir = join(rootDir, opts.orgId, adapterName, sourceSha);
   const metaPath = join(cacheDir, ".cache-meta.json");
 
   // Cache hit?

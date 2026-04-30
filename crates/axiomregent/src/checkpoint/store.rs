@@ -46,7 +46,7 @@ impl CheckpointStore {
                     "INSERT INTO checkpoints \
                      (checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                       state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                      workspace_id, branch_name, run_id) \
+                      project_id, branch_name, run_id) \
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
                 ),
                 vec![
@@ -71,7 +71,7 @@ impl CheckpointStore {
                         .clone()
                         .map(Param::Text)
                         .unwrap_or(Param::Null),
-                    info.workspace_id
+                    info.project_id
                         .clone()
                         .map(Param::Text)
                         .unwrap_or(Param::Null),
@@ -162,7 +162,7 @@ impl CheckpointStore {
             .query_as(
                 "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                  state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                 workspace_id, branch_name, run_id \
+                 project_id, branch_name, run_id \
                  FROM checkpoints WHERE checkpoint_id = $1",
                 vec![Param::Text(checkpoint_id.to_string())],
             )
@@ -172,25 +172,25 @@ impl CheckpointStore {
 
     /// List all checkpoints for a repository root, newest first.
     ///
-    /// When `workspace_id` is `Some`, only checkpoints with a matching
-    /// `workspace_id` are returned. `None` returns all checkpoints for the repo.
+    /// When `project_id` is `Some`, only checkpoints with a matching
+    /// `project_id` are returned. `None` returns all checkpoints for the repo.
     pub async fn list_checkpoints(
         &self,
         repo_root: &str,
-        workspace_id: Option<&str>,
+        project_id: Option<&str>,
     ) -> Result<Vec<CheckpointInfo>> {
-        match workspace_id {
-            Some(wid) => self
+        match project_id {
+            Some(pid) => self
                 .client
                 .query_as(
                     "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                          state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                         workspace_id, branch_name, run_id \
-                         FROM checkpoints WHERE repo_root = $1 AND workspace_id = $2 \
+                         project_id, branch_name, run_id \
+                         FROM checkpoints WHERE repo_root = $1 AND project_id = $2 \
                          ORDER BY created_at DESC",
                     vec![
                         Param::Text(repo_root.to_string()),
-                        Param::Text(wid.to_string()),
+                        Param::Text(pid.to_string()),
                     ],
                 )
                 .await
@@ -200,7 +200,7 @@ impl CheckpointStore {
                 .query_as(
                     "SELECT checkpoint_id, repo_root, parent_id, label, head_sha, fingerprint, \
                          state_hash, merkle_root, file_count, total_bytes, created_at, metadata, \
-                         workspace_id, branch_name, run_id \
+                         project_id, branch_name, run_id \
                          FROM checkpoints WHERE repo_root = $1 ORDER BY created_at DESC",
                     vec![Param::Text(repo_root.to_string())],
                 )
@@ -300,14 +300,14 @@ impl CheckpointStore {
     ///
     /// The "current" checkpoint is the most-recently-created one (first in the
     /// list returned by [`list_checkpoints`], which orders by `created_at DESC`).
-    /// When `workspace_id` is `Some`, the graph is restricted to checkpoints
-    /// belonging to that workspace.
+    /// When `project_id` is `Some`, the graph is restricted to checkpoints
+    /// belonging to that project.
     pub async fn get_timeline(
         &self,
         repo_root: &str,
-        workspace_id: Option<&str>,
+        project_id: Option<&str>,
     ) -> Result<Vec<TimelineNode>> {
-        let checkpoints = self.list_checkpoints(repo_root, workspace_id).await?;
+        let checkpoints = self.list_checkpoints(repo_root, project_id).await?;
 
         let mut children_map: HashMap<String, Vec<String>> = HashMap::new();
         for cp in &checkpoints {
@@ -377,7 +377,7 @@ impl CheckpointStore {
             total_bytes: source.total_bytes,
             created_at: now,
             metadata: source.metadata,
-            workspace_id: source.workspace_id,
+            project_id: source.project_id,
             branch_name: source.branch_name,
             run_id: source.run_id,
         };
@@ -463,7 +463,7 @@ mod tests {
             total_bytes: 0,
             created_at: "2026-04-12T00:00:00Z".to_string(),
             metadata: None,
-            workspace_id: None,
+            project_id: None,
             branch_name: None,
             run_id: None,
         }
@@ -488,7 +488,7 @@ mod tests {
         let (_dir, store) = make_test_store().await;
         let mut info = make_info("cp-1", "/repo");
         info.head_sha = Some("abc123".into());
-        info.workspace_id = Some("ws-1".into());
+        info.project_id = Some("ws-1".into());
         info.branch_name = Some("main".into());
         info.run_id = Some("run-42".into());
         info.label = Some("initial".into());
@@ -505,7 +505,7 @@ mod tests {
         assert_eq!(loaded.checkpoint_id, "cp-1");
         assert_eq!(loaded.repo_root, "/repo");
         assert_eq!(loaded.head_sha.as_deref(), Some("abc123"));
-        assert_eq!(loaded.workspace_id.as_deref(), Some("ws-1"));
+        assert_eq!(loaded.project_id.as_deref(), Some("ws-1"));
         assert_eq!(loaded.branch_name.as_deref(), Some("main"));
         assert_eq!(loaded.run_id.as_deref(), Some("run-42"));
         assert_eq!(loaded.label.as_deref(), Some("initial"));
@@ -621,26 +621,26 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sc095_2_list_filtered_by_workspace() {
+    async fn sc095_2_list_filtered_by_project() {
         let (_dir, store) = make_test_store().await;
 
         let mut info1 = make_info("cp-w1a", "/repo");
-        info1.workspace_id = Some("ws-1".into());
+        info1.project_id = Some("ws-1".into());
         info1.created_at = "2026-04-12T00:00:00Z".into();
         store.create_checkpoint(&info1, &[]).await.unwrap();
 
         let mut info2 = make_info("cp-w1b", "/repo");
-        info2.workspace_id = Some("ws-1".into());
+        info2.project_id = Some("ws-1".into());
         info2.created_at = "2026-04-12T00:01:00Z".into();
         store.create_checkpoint(&info2, &[]).await.unwrap();
 
         let mut info3 = make_info("cp-w2", "/repo");
-        info3.workspace_id = Some("ws-2".into());
+        info3.project_id = Some("ws-2".into());
         info3.created_at = "2026-04-12T00:02:00Z".into();
         store.create_checkpoint(&info3, &[]).await.unwrap();
 
-        let ws1 = store.list_checkpoints("/repo", Some("ws-1")).await.unwrap();
-        assert_eq!(ws1.len(), 2);
+        let proj1 = store.list_checkpoints("/repo", Some("ws-1")).await.unwrap();
+        assert_eq!(proj1.len(), 2);
 
         let all = store.list_checkpoints("/repo", None).await.unwrap();
         assert_eq!(all.len(), 3);
@@ -795,16 +795,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sc095_5_timeline_workspace_scoped() {
+    async fn sc095_5_timeline_project_scoped() {
         let (_dir, store) = make_test_store().await;
 
         let mut c1 = make_info("cw-1", "/repo");
-        c1.workspace_id = Some("ws-A".into());
+        c1.project_id = Some("ws-A".into());
         c1.created_at = "2026-04-12T00:00:00Z".into();
         store.create_checkpoint(&c1, &[]).await.unwrap();
 
         let mut c2 = make_info("cw-2", "/repo");
-        c2.workspace_id = Some("ws-B".into());
+        c2.project_id = Some("ws-B".into());
         c2.created_at = "2026-04-12T00:01:00Z".into();
         store.create_checkpoint(&c2, &[]).await.unwrap();
 

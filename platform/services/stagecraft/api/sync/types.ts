@@ -1,13 +1,17 @@
 /**
  * Outbox / Inbox Sync Protocol — typed envelopes.
  *
- * Authority boundaries (per spec 087):
- *   - Stagecraft is authoritative for identity, workspace, policy, grants,
+ * Authority boundaries (per spec 087, amended by spec 119):
+ *   - Stagecraft is authoritative for identity, project, policy, grants,
  *     deployment/governance state, audit envelopes.
  *   - Desktop/OPC is authoritative for local execution progress, checkpoints,
  *     local agent/tool runs, local runtime observations.
  *
  * Sync is application/event-layer, NOT database replication.
+ *
+ * Spec 119: the session key is `orgId`. A connected OPC observes every
+ * project in its org; project-scoped events carry `projectId` for desktop-
+ * side filtering.
  *
  * Message flow:
  *   client -> server : ClientEnvelope   (inbox path)
@@ -45,12 +49,13 @@ export interface SyncHandshake {
  * Envelope schema version.
  *
  * Spec 087 §5.3 FR-SYNC-003: every envelope MUST carry a schema version. The
- * current protocol is version 1; the guard in `isClientEnvelope` rejects any
- * other value. Bumping this is a wire-format change and requires extending
- * both the TypeScript literal and the runtime guard in lock-step.
+ * current protocol is version 2 (spec 119 collapsed workspace → org as the
+ * session key). The guard in `isClientEnvelope` rejects any other value.
+ * Bumping this is a wire-format change and requires extending both the
+ * TypeScript literal and the runtime guard in lock-step.
  */
-export type EnvelopeSchemaVersion = 1;
-export const ENVELOPE_SCHEMA_VERSION: EnvelopeSchemaVersion = 1;
+export type EnvelopeSchemaVersion = 2;
+export const ENVELOPE_SCHEMA_VERSION: EnvelopeSchemaVersion = 2;
 
 export interface EnvelopeMeta {
   /** Schema version — required; strict equality enforced at the boundary. */
@@ -74,10 +79,10 @@ export interface EnvelopeMeta {
  * Each variant is a clearly-bounded desktop-authoritative signal — never a
  * control-plane mutation that would blur authority.
  *
- * INVARIANT (spec 087 §5.3):
+ * INVARIANT (spec 087 §5.3, amended by spec 119):
  *   Extending this union is a *governance act*, not a types change. Any new
  *   variant MUST carry no control-plane authority (no policy/grant/deploy/
- *   workspace state mutation). A variant that asserts authoritative server
+ *   org/project state mutation). A variant that asserts authoritative server
  *   state requires a spec amendment.
  */
 export type ClientEnvelope =
@@ -189,19 +194,17 @@ export interface ClientFactoryRunAck {
 /**
  * Desktop pulls the full body of an agent definition after a
  * `agent.catalog.snapshot` shows a `content_hash` that disagrees with its
- * local cache — or on explicit manual refresh (spec 111 §2.3). The server
- * replies with a targeted `agent.catalog.updated` carrying the full
- * frontmatter + body.
+ * local cache — or on explicit manual refresh (spec 111 §2.3, amended by
+ * spec 119 to be project-scoped). The server replies with a targeted
+ * `agent.catalog.updated` carrying the full frontmatter + body.
  *
- * This is an observation of local cache state, not a control-plane mutation,
- * so it fits within the 087 §5.3 ClientEnvelope extension rule.
+ * The server resolves the agent's project from the catalog row and
+ * verifies the project belongs to the session's authenticated org; the
+ * desktop does not send a redundant cross-check field.
  */
 export interface ClientAgentCatalogFetchRequest {
   kind: "agent.catalog.fetch_request";
   meta: EnvelopeMeta;
-  /** The workspace the desktop thinks owns the agent — used to cross-check
-   *  against the session's authenticated workspaceId. */
-  workspaceId: string;
   /** Remote id returned in the snapshot entry. */
   agentId: string;
   reason: "cache_miss" | "hash_mismatch" | "manual_refresh";
@@ -245,7 +248,6 @@ export type ServerEnvelope =
   | ServerPolicyUpdated
   | ServerGrantUpdated
   | ServerDeployStatus
-  | ServerWorkspaceUpdated
   | ServerProjectUpdated
   | ServerFactoryEvent
   | ServerFactoryRunRequest
@@ -260,15 +262,15 @@ export type ServerEnvelope =
 
 export interface ServerMeta extends EnvelopeMeta {
   /**
-   * Monotonic cursor issued by the server for outbound events within a
-   * workspace. Clients MAY persist this and pass it back as
+   * Monotonic cursor issued by the server for outbound events within an
+   * org. Clients MAY persist this and pass it back as
    * `SyncHandshake.lastServerCursor` on reconnect.
    *
    * This is best-effort in the in-memory implementation; a durable store
    * is required before clients can safely rely on it for replay.
    */
-  workspaceCursor: string;
-  workspaceId: string;
+  orgCursor: string;
+  orgId: string;
 }
 
 export interface ServerPolicyUpdated {
@@ -293,13 +295,6 @@ export interface ServerDeployStatus {
   environmentId: string;
   status: "queued" | "running" | "succeeded" | "failed" | "rolled_back";
   detail?: string;
-}
-
-export interface ServerWorkspaceUpdated {
-  kind: "workspace.updated";
-  meta: ServerMeta;
-  change: "renamed" | "members_changed" | "settings_changed";
-  details?: Record<string, unknown>;
 }
 
 export interface ServerProjectUpdated {
@@ -374,11 +369,11 @@ export interface ServerFactoryRunRequest {
   adapter: string;
   /** User who clicked Initialize (or invoked `oap-ctl run factory`). */
   actorUserId: string;
-  /** Workspace knowledge objects attached to this run. */
+  /** Project knowledge objects attached to this run. */
   knowledge: KnowledgeBundle[];
   /** Explicit per-request doc uploads. Same shape as spec 108. */
   businessDocs: EnvelopeBusinessDoc[];
-  /** Policy bundle id compiled server-side for this workspace. */
+  /** Policy bundle id compiled server-side for this project. */
   policyBundleId: string;
   /** ISO-8601 when stagecraft dispatched the request. */
   requestedAt: string;
@@ -394,6 +389,8 @@ export interface ServerFactoryRunRequest {
  */
 export interface AgentCatalogSnapshotEntry {
   agentId: string;
+  /** Project the agent belongs to (spec 119 — agents are project-scoped). */
+  projectId: string;
   name: string;
   version: number;
   status: "published" | "retired";
@@ -403,18 +400,21 @@ export interface AgentCatalogSnapshotEntry {
 
 /**
  * Stagecraft announces that an agent definition was published or retired
- * (spec 111 §2.3). Carries the full frontmatter + body so connected OPCs
- * can update their local caches in one round-trip. Also used as the
- * targeted reply to a {@link ClientAgentCatalogFetchRequest}.
+ * (spec 111 §2.3, amended by spec 119 to be project-scoped). Carries the
+ * full frontmatter + body so connected OPCs can update their local caches
+ * in one round-trip. Also used as the targeted reply to a
+ * {@link ClientAgentCatalogFetchRequest}.
  */
 export interface ServerAgentCatalogUpdated {
   kind: "agent.catalog.updated";
   meta: ServerMeta;
-  /** Remote id — stable across versions within a (workspace, name) pair. */
+  /** Remote id — stable across versions within a (project, name) pair. */
   agentId: string;
-  /** Catalog key (kebab-case, unique per workspace). */
+  /** Project that owns the agent. */
+  projectId: string;
+  /** Catalog key (kebab-case, unique per project). */
   name: string;
-  /** Monotonic per (workspace, name). */
+  /** Monotonic per (project, name). */
   version: number;
   /** `published` puts the agent into the active catalog;
    *  `retired` removes it. Drafts never travel the wire. */
@@ -430,24 +430,26 @@ export interface ServerAgentCatalogUpdated {
 }
 
 /**
- * Full catalog replay on handshake or explicit resync (spec 111 §2.3). The
- * snapshot is intentionally a directory — `entries` carry hashes only, not
- * bodies. Desktops diff against their local cache and pull individual
+ * Full catalog replay on handshake or explicit resync (spec 111 §2.3,
+ * amended by spec 119 to span every project in the session's org). The
+ * snapshot is intentionally a directory — `entries` carry hashes only,
+ * not bodies. Desktops diff against their local cache and pull individual
  * bodies via {@link ClientAgentCatalogFetchRequest} — this keeps reconnect
- * storms bounded for workspaces with many large-prompt agents.
+ * storms bounded for orgs with many large-prompt agents.
  */
 export interface ServerAgentCatalogSnapshot {
   kind: "agent.catalog.snapshot";
   meta: ServerMeta;
-  /** Currently-published entries for the session's workspace. Retired
-   *  agents are excluded; the desktop infers removal from absence. */
+  /** Currently-published entries across every project in the session's
+   *  org. Retired agents are excluded; the desktop infers removal from
+   *  absence. */
   entries: AgentCatalogSnapshotEntry[];
   /** ISO-8601 of when the snapshot was built. Informational. */
   generatedAt: string;
 }
 
 /**
- * Stagecraft announces that a workspace project was created/updated/deleted
+ * Stagecraft announces that a project was created/updated/deleted
  * (spec 112 §7). Reuses the spec 111 sync pattern: one wire message carries
  * everything OPC needs to surface the row in its "Projects" panel — no
  * secondary round-trip. Deletions are expressed by the `tombstone` flag so
@@ -456,9 +458,8 @@ export interface ServerAgentCatalogSnapshot {
 export interface ServerProjectCatalogUpsert {
   kind: "project.catalog.upsert";
   meta: ServerMeta;
-  /** UUID of the workspace projects row. */
+  /** UUID of the projects row. */
   projectId: string;
-  workspaceId: string;
   /** Human-friendly display name and URL slug. */
   name: string;
   slug: string;
@@ -496,12 +497,12 @@ export interface ServerAck {
   clientEventId: string;
 }
 
-/** Server rejected a client event — validation/auth/workspace mismatch. */
+/** Server rejected a client event — validation/auth/org mismatch. */
 export interface ServerNack {
   kind: "sync.nack";
   meta: ServerMeta;
   clientEventId: string;
-  reason: "invalid" | "unauthorized" | "workspace_mismatch" | "internal_error";
+  reason: "invalid" | "unauthorized" | "org_mismatch" | "internal_error";
   detail?: string;
 }
 
@@ -604,9 +605,6 @@ export interface ClientEnvelopeWire {
   accepted?: boolean;
   declineReason?: string;
   observedAt?: string;
-  // spec 111 §2.3 — agent.catalog.fetch_request fields (agentId is already
-  // declared above for agent.invocation; reason is already the open string).
-  workspaceId?: string;
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -615,7 +613,6 @@ export interface ServerEnvelopeWire {
     | "policy.updated"
     | "grant.updated"
     | "deploy.status"
-    | "workspace.updated"
     | "project.updated"
     | "factory.event"
     | "factory.run.request"
@@ -635,9 +632,6 @@ export interface ServerEnvelopeWire {
     | "granted"
     | "revoked"
     | "modified"
-    | "renamed"
-    | "members_changed"
-    | "settings_changed"
     | "created"
     | "updated"
     | "deleted"
@@ -662,7 +656,7 @@ export interface ServerEnvelopeWire {
   reason?:
     | "invalid"
     | "unauthorized"
-    | "workspace_mismatch"
+    | "org_mismatch"
     | "internal_error"
     | "cursor_gap"
     | "stale_cursor"
@@ -687,8 +681,8 @@ export interface ServerEnvelopeWire {
   updatedAt?: string;
   entries?: AgentCatalogSnapshotEntry[];
   generatedAt?: string;
-  // spec 112 §7 — project.catalog.upsert fields (projectId, workspaceId,
-  // name, updatedAt are already declared above).
+  // spec 112 §7 — project.catalog.upsert fields (projectId, name, updatedAt
+  // are already declared above).
   slug?: string;
   description?: string;
   factoryAdapterId?: string | null;
@@ -737,7 +731,7 @@ export function isClientEnvelope(v: unknown): v is ClientEnvelope {
   if (!r.meta || typeof r.meta !== "object") return false;
   const m = r.meta as { eventId?: unknown; sentAt?: unknown; v?: unknown };
   // Spec 087 §5.3 FR-SYNC-003: strict equality on schema version. A newer
-  // client sending v=2 is rejected as "invalid" rather than silently falling
+  // client sending v=3 is rejected as "invalid" rather than silently falling
   // through a best-effort decoder.
   if (m.v !== ENVELOPE_SCHEMA_VERSION) return false;
   return typeof m.eventId === "string" && typeof m.sentAt === "string";

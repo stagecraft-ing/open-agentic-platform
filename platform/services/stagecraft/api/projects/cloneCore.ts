@@ -94,8 +94,9 @@ export class CloneWorkerError extends Error {
 export interface CloneWorkArgs {
   runId: string;
   sourceProjectId: string;
-  workspaceId: string;
   orgId: string;
+  /** Used to derive the new project's `object_store_bucket` (spec 119 §4.2). */
+  orgSlug: string;
   triggeredBy: string;
   requestedName: string | null;
   requestedSlug: string | null;
@@ -129,7 +130,6 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
       slug: projects.slug,
       description: projects.description,
       factoryAdapterId: projects.factoryAdapterId,
-      workspaceId: projects.workspaceId,
       orgId: projects.orgId,
     })
     .from(projects)
@@ -310,7 +310,7 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
     }
 
     const finalSlug = await resolveFinalSlug({
-      workspaceId: args.workspaceId,
+      orgId: args.orgId,
       baseSlug,
       userTyped: !slugIsDefault && userSlug ? userSlug : null,
     });
@@ -376,10 +376,13 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
           .insert(projects)
           .values({
             orgId: args.orgId,
-            workspaceId: args.workspaceId,
             name: finalName,
             slug: finalSlug,
             description: source.description ?? "",
+            // Spec 119 §4.2 — each project owns its own S3-compatible
+            // bucket. Mirrors the naming convention used by the create
+            // and import endpoints.
+            objectStoreBucket: `oap-${args.orgSlug || "unknown"}-${finalSlug}`,
             factoryAdapterId: source.factoryAdapterId,
             createdBy: args.triggeredBy,
           })
@@ -410,7 +413,7 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
       if (/unique|duplicate/i.test(msg)) {
         throw new CloneWorkerError(
           "slug_taken",
-          `slug "${finalSlug}" already exists in this workspace`,
+          `slug "${finalSlug}" already exists in this org`,
         );
       }
       throw new CloneWorkerError(
@@ -431,7 +434,7 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
       cleanupWorktree = wt;
       const result = await registerRawArtifactsFromRepo({
         projectId: projectRow.id,
-        workspaceId: args.workspaceId,
+        orgId: args.orgId,
         boundBy: args.triggeredBy,
         repoRoot: wt,
         sourceRepo: `${sourceRepo.githubOrg}/${sourceRepo.repoName}`,
@@ -468,17 +471,16 @@ export async function runCloneWork(args: CloneWorkArgs): Promise<CloneWorkResult
         rawArtifactsCopied: rawCopied,
         rawArtifactsSkipped: rawSkipped,
         durationMs,
-        workspaceId: args.workspaceId,
+        orgId: args.orgId,
         cloneJobId: args.runId,
       } as Record<string, unknown>,
     });
 
     // Spec 112 phase 8 — fire-and-log catalog upsert broadcast.
     void publishProjectCatalogUpsert({
-      workspaceId: args.workspaceId,
+      orgId: args.orgId,
       project: {
         id: projectRow.id,
-        workspaceId: args.workspaceId,
         name: finalName,
         slug: finalSlug,
         description: source.description ?? "",
@@ -589,25 +591,25 @@ async function resolveFinalRepoName(args: {
 }
 
 /**
- * Spec 113 FR-030 — slug resolution against the workspace's
- * (workspace_id, slug) index.
+ * Spec 113 FR-030 (amended by spec 119) — slug resolution against the
+ * org's (org_id, slug) index.
  */
 async function resolveFinalSlug(args: {
-  workspaceId: string;
+  orgId: string;
   baseSlug: string;
   userTyped: string | null;
 }): Promise<string> {
   if (args.userTyped !== null) {
-    const probe = await checkSlugAvailable(args.workspaceId, args.userTyped);
+    const probe = await checkSlugAvailable(args.orgId, args.userTyped);
     if (probe.state === "available") return args.userTyped;
     throw new CloneWorkerError(
       "slug_taken",
-      `project slug "${args.userTyped}" already exists in this workspace`,
+      `project slug "${args.userTyped}" already exists in this org`,
     );
   }
   for (let i = 0; i < MAX_SUFFIX_ATTEMPTS; i++) {
     const candidate = suffixCandidate(args.baseSlug, i);
-    const probe = await checkSlugAvailable(args.workspaceId, candidate);
+    const probe = await checkSlugAvailable(args.orgId, candidate);
     if (probe.state === "available") return candidate;
   }
   throw new CloneWorkerError(

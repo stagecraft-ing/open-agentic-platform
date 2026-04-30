@@ -1,4 +1,4 @@
-// Spec 112 §6.3 — Open-in-OPC handoff bundle endpoint.
+// Spec 112 §6.3 (amended by spec 119) — Open-in-OPC handoff bundle endpoint.
 //
 // Returns the resolution OPC needs after activating an `opc://` deep link:
 //   - project + primary repo (clone URL)
@@ -7,18 +7,17 @@
 //     (null for non-factory projects — the endpoint still works)
 //   - org-scoped factory_contracts and factory_processes (latest sync per
 //     name, mirroring the spec 108 browser behaviour)
-//   - workspace-scoped agent catalog (status='published')
+//   - project-scoped agent catalog (status='published')
 //   - a short-lived clone token (spec 112 §6.4) OPC threads into both
 //     the git clone subprocess and the factory engine launch
 //
 // Per-project agent overrides and adapter-declared agent compatibility
 // filters are out of scope here (spec 112 §6.3 step 3, "Agents") — the
-// bundle returns the workspace's full published catalog and lets OPC
+// bundle returns the project's full published catalog and lets OPC
 // decide. A future spec will narrow this.
 //
-// Authority posture: workspace-scoped via getAuthData(). Org-scoped
-// catalog tables are read with the project's orgId, not the caller's
-// (these match for in-workspace callers).
+// Authority posture: org-scoped via getAuthData(). The project must
+// belong to the caller's org.
 
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
@@ -61,7 +60,7 @@ export const getProjectOpcBundle = api(
       .select()
       .from(projects)
       .where(
-        and(eq(projects.id, req.projectId), eq(projects.workspaceId, auth.workspaceId))
+        and(eq(projects.id, req.projectId), eq(projects.orgId, auth.orgId))
       )
       .limit(1);
 
@@ -77,7 +76,7 @@ export const getProjectOpcBundle = api(
           : Promise.resolve(null),
         loadLatestContracts(project.orgId),
         loadLatestProcesses(project.orgId),
-        loadPublishedAgents(project.workspaceId),
+        loadPublishedAgents(project.id),
       ]);
 
     const cloneToken = await resolveCloneTokenForBundle({
@@ -92,7 +91,6 @@ export const getProjectOpcBundle = api(
         id: project.id,
         name: project.name,
         slug: project.slug,
-        workspaceId: project.workspaceId,
         orgId: project.orgId,
         factoryAdapterId: project.factoryAdapterId,
       },
@@ -136,7 +134,7 @@ export const refreshProjectCloneToken = api(
       })
       .from(projects)
       .where(
-        and(eq(projects.id, req.projectId), eq(projects.workspaceId, auth.workspaceId))
+        and(eq(projects.id, req.projectId), eq(projects.orgId, auth.orgId))
       )
       .limit(1);
 
@@ -295,12 +293,12 @@ async function loadLatestProcesses(orgId: string): Promise<BundleProcessInput[]>
   }));
 }
 
-async function loadPublishedAgents(workspaceId: string) {
+async function loadPublishedAgents(projectId: string) {
   const rows = await db
     .select()
     .from(agentCatalog)
     .where(
-      and(eq(agentCatalog.workspaceId, workspaceId), eq(agentCatalog.status, "published"))
+      and(eq(agentCatalog.projectId, projectId), eq(agentCatalog.status, "published"))
     )
     .orderBy(asc(agentCatalog.name));
 

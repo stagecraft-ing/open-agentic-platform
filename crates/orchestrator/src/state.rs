@@ -84,7 +84,7 @@ pub struct WorkflowStateSummary {
     pub workflow_name: String,
     pub status: String,
     pub started_at: String,
-    pub workspace_id: Option<String>,
+    pub project_id: Option<String>,
 }
 
 /// JSON state file schema (FR-001, FR-002, FR-007, SC-006).
@@ -492,7 +492,7 @@ mod tests {
                     max_retries: None,
                 },
             ],
-            workspace_id: None,
+            project_id: None,
         };
 
         state.attach_gates_from_manifest(&manifest);

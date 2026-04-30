@@ -4,7 +4,7 @@
 
 //! Agent execution identity — immutable tuple recorded in all proof-chain records.
 //!
-//! FR-031: Every agent session has a unique (`agent_id`, `session_id`, `workspace_id`).
+//! FR-031: Every agent session has a unique (`agent_id`, `session_id`, `project_id`).
 //! FR-036: Identity is immutable for the duration of a pipeline run.
 
 use serde::{Deserialize, Serialize};
@@ -20,17 +20,17 @@ pub struct AgentIdentity {
     pub agent_id: String,
     /// Unique session identifier for this execution.
     pub session_id: String,
-    /// Workspace scope in which the agent operates.
-    pub workspace_id: String,
+    /// Project scope in which the agent operates.
+    pub project_id: String,
 }
 
 impl AgentIdentity {
     /// Create a new identity with an auto-generated session ID.
-    pub fn new(agent_id: impl Into<String>, workspace_id: impl Into<String>) -> Self {
+    pub fn new(agent_id: impl Into<String>, project_id: impl Into<String>) -> Self {
         Self {
             agent_id: agent_id.into(),
             session_id: Uuid::new_v4().to_string(),
-            workspace_id: workspace_id.into(),
+            project_id: project_id.into(),
         }
     }
 
@@ -38,20 +38,20 @@ impl AgentIdentity {
     pub fn with_session(
         agent_id: impl Into<String>,
         session_id: impl Into<String>,
-        workspace_id: impl Into<String>,
+        project_id: impl Into<String>,
     ) -> Self {
         Self {
             agent_id: agent_id.into(),
             session_id: session_id.into(),
-            workspace_id: workspace_id.into(),
+            project_id: project_id.into(),
         }
     }
 
     /// Format the identity tuple for inclusion in proof-chain records.
     pub fn to_proof_context(&self) -> String {
         format!(
-            "agent_id={},session_id={},workspace_id={}",
-            self.agent_id, self.session_id, self.workspace_id
+            "agent_id={},session_id={},project_id={}",
+            self.agent_id, self.session_id, self.project_id
         )
     }
 }
@@ -74,7 +74,7 @@ mod tests {
         let ctx = id.to_proof_context();
         assert!(ctx.contains("agent_id=test-agent"));
         assert!(ctx.contains("session_id=sess-123"));
-        assert!(ctx.contains("workspace_id=ws-456"));
+        assert!(ctx.contains("project_id=ws-456"));
     }
 
     #[test]

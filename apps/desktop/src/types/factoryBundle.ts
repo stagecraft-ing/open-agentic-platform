@@ -12,7 +12,6 @@ export interface OpcBundleProject {
   id: string;
   name: string;
   slug: string;
-  workspaceId: string;
   orgId: string;
 }
 

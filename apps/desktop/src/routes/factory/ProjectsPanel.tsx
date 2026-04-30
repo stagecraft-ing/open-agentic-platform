@@ -14,7 +14,7 @@ import { Card } from '@opc/ui/card';
 
 export interface ProjectCatalogEntry {
   projectId: string;
-  workspaceId: string;
+  orgId: string;
   name: string;
   slug: string;
   description: string;

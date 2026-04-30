@@ -9,7 +9,7 @@ interface PromotionSurfaceProps {
 }
 
 export const PromotionSurface: React.FC<PromotionSurfaceProps> = ({ projectPath }) => {
-  const [workspaceId, setWorkspaceId] = useState('');
+  const [orgId, setOrgId] = useState('');
   const { state, load, reset } = usePromotionData();
   const autoLoaded = useRef(false);
   const busy = state.status === 'loading';
@@ -21,7 +21,7 @@ export const PromotionSurface: React.FC<PromotionSurfaceProps> = ({ projectPath 
       // Use the last path segment as a workspace ID hint.
       const segments = projectPath.replace(/\/+$/, '').split('/');
       const hint = segments[segments.length - 1] || projectPath;
-      setWorkspaceId(hint);
+      setOrgId(hint);
     }
   }, [projectPath]);
 
@@ -38,12 +38,12 @@ export const PromotionSurface: React.FC<PromotionSurfaceProps> = ({ projectPath 
       <div className="flex items-center gap-2">
         <input
           type="text"
-          value={workspaceId}
-          onChange={e => setWorkspaceId(e.target.value)}
-          placeholder="Workspace ID"
+          value={orgId}
+          onChange={e => setOrgId(e.target.value)}
+          placeholder="Org ID"
           className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
         />
-        <Button size="sm" onClick={() => void load(workspaceId)} disabled={busy || !workspaceId.trim()}>
+        <Button size="sm" onClick={() => void load(orgId)} disabled={busy || !orgId.trim()}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
         </Button>
         {state.status !== 'idle' && (
@@ -62,7 +62,7 @@ export const PromotionSurface: React.FC<PromotionSurfaceProps> = ({ projectPath 
         <div className="flex-1 overflow-auto space-y-2">
           {state.workflows.length === 0 ? (
             <div className="text-sm text-muted-foreground py-8 text-center">
-              No workflows found for this workspace.
+              No workflows found for this org.
             </div>
           ) : (
             state.workflows.map(wf => (

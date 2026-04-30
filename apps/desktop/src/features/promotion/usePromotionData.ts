@@ -6,7 +6,7 @@ export interface WorkflowStateSummary {
   workflow_name: string;
   status: string;
   started_at: string;
-  workspace_id: string | null;
+  org_id: string | null;
 }
 
 export type PromotionState =
@@ -22,12 +22,12 @@ export function usePromotionData() {
     setState({ status: 'idle' });
   }, []);
 
-  const load = useCallback(async (workspaceId: string) => {
+  const load = useCallback(async (orgId: string) => {
     setState({ status: 'loading' });
     try {
       const workflows = await apiCall<WorkflowStateSummary[]>(
         'list_workspace_workflows',
-        { workspaceId: workspaceId.trim(), limit: 50 },
+        { orgId: orgId.trim(), limit: 50 },
       );
       setState({ status: 'success', workflows });
     } catch (err) {

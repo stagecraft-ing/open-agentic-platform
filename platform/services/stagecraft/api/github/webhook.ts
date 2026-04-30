@@ -11,7 +11,6 @@ import {
   githubInstallations,
   orgMemberships,
   users,
-  workspaces,
   auditLog,
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -289,16 +288,10 @@ async function handleInstallationEvent(p: any): Promise<void> {
       }
     }
 
-    // Ensure a default workspace exists for the org (spec 080 — resolveOrgMemberships needs it)
-    await db
-      .insert(workspaces)
-      .values({
-        orgId,
-        name: "Default",
-        slug: "default",
-        objectStoreBucket: `oap-${githubOrgLogin.toLowerCase()}-default`,
-      })
-      .onConflictDoNothing(); // unique(org_id, slug)
+    // Spec 119 collapsed workspace into project; org membership no longer
+    // requires a default workspace row. Project creation lands later via
+    // factory-create / factory-import / clone, each of which provisions
+    // its own bucket per spec 119 §4.2.
 
     // Upsert github_installations row.
     //

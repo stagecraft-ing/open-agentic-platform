@@ -1,16 +1,18 @@
 /**
  * Org-admin storage purge.
  *
- * Walks the workspace's object-store bucket, diffs every key against the
+ * Walks the project's object-store bucket, diffs every key against the
  * union of DB-referenced storage keys, and deletes the unreferenced
  * remainder. Recovers bytes left behind when a project delete partially
- * failed (S3 sweep error, pre-cascade migration, manual SQL deletes,
- * legacy direct uploads).
+ * failed (S3 sweep error, manual SQL deletes, legacy direct uploads).
  *
  * Owner/admin-only. Defaults to dry-run so the caller can preview what
  * would be deleted before committing. Every invocation lands in
  * audit_log with the manifest counts so this is also a recoverable
  * trail.
+ *
+ * Spec 119: project is the unit that owns the bucket; this endpoint is
+ * keyed on `projectId` (formerly per-workspace).
  */
 
 import { api, APIError } from "encore.dev/api";
@@ -23,18 +25,13 @@ import {
   factoryPipelines,
   knowledgeObjects,
   projects,
-  workspaces,
 } from "../db/schema";
 import { and, eq } from "drizzle-orm";
 import { deleteObject, listAllObjects } from "../knowledge/storage";
 
 interface PurgeOrphansRequest {
-  /**
-   * Optional workspace target. Defaults to the caller's active workspace.
-   * If supplied, it MUST belong to the caller's org or the request is
-   * rejected.
-   */
-  workspaceId?: string;
+  /** Project the caller wants to purge. MUST belong to the caller's org. */
+  projectId: string;
   /**
    * Default true. When true, no objects are deleted; the response carries
    * the orphan list so an operator can review before re-running with
@@ -49,7 +46,7 @@ interface PurgeOrphansRequest {
 }
 
 interface PurgeOrphansResponse {
-  workspaceId: string;
+  projectId: string;
   bucket: string;
   totalKeys: number;
   referencedKeys: number;
@@ -73,33 +70,26 @@ export const purgeOrphanStorage = api(
     if (auth.platformRole !== "owner" && auth.platformRole !== "admin") {
       throw APIError.permissionDenied("Owner or admin role required");
     }
-
-    const targetWorkspaceId = req.workspaceId ?? auth.workspaceId;
-    if (!targetWorkspaceId) {
-      throw APIError.invalidArgument("workspaceId is required");
+    if (!req.projectId) {
+      throw APIError.invalidArgument("projectId is required");
     }
 
-    const [ws] = await db
+    const [project] = await db
       .select({
-        id: workspaces.id,
-        orgId: workspaces.orgId,
-        objectStoreBucket: workspaces.objectStoreBucket,
+        id: projects.id,
+        orgId: projects.orgId,
+        objectStoreBucket: projects.objectStoreBucket,
       })
-      .from(workspaces)
-      .where(eq(workspaces.id, targetWorkspaceId))
+      .from(projects)
+      .where(and(eq(projects.id, req.projectId), eq(projects.orgId, auth.orgId)))
       .limit(1);
 
-    if (!ws) {
-      throw APIError.notFound("workspace not found");
+    if (!project) {
+      throw APIError.notFound("project not found");
     }
-    if (ws.orgId !== auth.orgId) {
-      throw APIError.permissionDenied(
-        "Cannot purge storage for another organization's workspace"
-      );
-    }
-    if (!ws.objectStoreBucket) {
+    if (!project.objectStoreBucket) {
       throw APIError.failedPrecondition(
-        "Workspace has no object store bucket configured"
+        "Project has no object store bucket configured"
       );
     }
 
@@ -109,23 +99,21 @@ export const purgeOrphanStorage = api(
     // ── Gather referenced keys ────────────────────────────────────────
     const referenced = new Set<string>();
 
-    // knowledge_objects (workspace-scoped) — primary + extracted derivative.
+    // knowledge_objects (project-scoped) — primary + extracted derivative.
     const koRows = await db
       .select({
         storageKey: knowledgeObjects.storageKey,
         extractionOutput: knowledgeObjects.extractionOutput,
       })
       .from(knowledgeObjects)
-      .where(eq(knowledgeObjects.workspaceId, targetWorkspaceId));
+      .where(eq(knowledgeObjects.projectId, project.id));
     for (const k of koRows) {
       referenced.add(k.storageKey);
       const e = readExtractedKey(k.extractionOutput);
       if (e) referenced.add(e);
     }
 
-    // factory_artifacts produced by pipelines whose project lives in this
-    // workspace. Workspace_id on factory_artifacts is nullable on legacy
-    // rows, so route through the project to be safe.
+    // factory_artifacts produced by pipelines under this project.
     const faRows = await db
       .select({ storagePath: factoryArtifacts.storagePath })
       .from(factoryArtifacts)
@@ -133,8 +121,7 @@ export const purgeOrphanStorage = api(
         factoryPipelines,
         eq(factoryPipelines.id, factoryArtifacts.pipelineId)
       )
-      .innerJoin(projects, eq(projects.id, factoryPipelines.projectId))
-      .where(eq(projects.workspaceId, targetWorkspaceId));
+      .where(eq(factoryPipelines.projectId, project.id));
     for (const a of faRows) {
       referenced.add(a.storagePath);
     }
@@ -142,13 +129,13 @@ export const purgeOrphanStorage = api(
     // ── Walk the bucket ───────────────────────────────────────────────
     let allKeys: string[];
     try {
-      allKeys = await listAllObjects(ws.objectStoreBucket);
+      allKeys = await listAllObjects(project.objectStoreBucket);
     } catch (err) {
       log.error("purgeOrphanStorage: list bucket failed", {
-        bucket: ws.objectStoreBucket,
+        bucket: project.objectStoreBucket,
         err: err instanceof Error ? err.message : String(err),
       });
-      throw APIError.internal("Failed to list workspace bucket");
+      throw APIError.internal("Failed to list project bucket");
     }
 
     const orphans = allKeys.filter((k) => !referenced.has(k));
@@ -159,12 +146,12 @@ export const purgeOrphanStorage = api(
     if (!dryRun) {
       for (const key of orphans) {
         try {
-          await deleteObject(ws.objectStoreBucket, key);
+          await deleteObject(project.objectStoreBucket, key);
           purged++;
         } catch (err) {
           failed++;
           log.warn("purgeOrphanStorage: delete failed", {
-            bucket: ws.objectStoreBucket,
+            bucket: project.objectStoreBucket,
             key,
             err: err instanceof Error ? err.message : String(err),
           });
@@ -175,10 +162,10 @@ export const purgeOrphanStorage = api(
     await db.insert(auditLog).values({
       actorUserId: auth.userID,
       action: "admin.storage.purge_orphans",
-      targetType: "workspace",
-      targetId: ws.id,
+      targetType: "project",
+      targetId: project.id,
       metadata: {
-        bucket: ws.objectStoreBucket,
+        bucket: project.objectStoreBucket,
         totalKeys: allKeys.length,
         referencedKeys: referenced.size,
         orphanKeys: orphans.length,
@@ -189,8 +176,8 @@ export const purgeOrphanStorage = api(
     });
 
     log.info("purgeOrphanStorage done", {
-      workspaceId: ws.id,
-      bucket: ws.objectStoreBucket,
+      projectId: project.id,
+      bucket: project.objectStoreBucket,
       totalKeys: allKeys.length,
       referenced: referenced.size,
       orphans: orphans.length,
@@ -200,8 +187,8 @@ export const purgeOrphanStorage = api(
     });
 
     return {
-      workspaceId: ws.id,
-      bucket: ws.objectStoreBucket,
+      projectId: project.id,
+      bucket: project.objectStoreBucket,
       totalKeys: allKeys.length,
       referencedKeys: referenced.size,
       orphanKeys: orphans.length,

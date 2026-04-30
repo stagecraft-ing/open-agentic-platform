@@ -20,20 +20,21 @@ Platform services use **npm** (not pnpm). They are excluded from the root `pnpm-
 
 ## Database
 
-Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/api/db/schema.ts`:
+Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/api/db/schema.ts`. Spec 119 (2026-04-29) collapsed the workspace abstraction into project; the entity hierarchy is now `organization → project → repo`.
+
 - `users` — accounts with roles (user/admin), email, password hash
 - `sessions` — session tokens with 14-day TTL, user/admin kinds
 - `audit_log` — append-only audit trail (actor, action, target, metadata JSONB)
 - `organizations` — top-level org (name, slug, GitHub identity)
-- `workspaces` — operational container scoped to a GitHub org (org_id, name, slug, object_store_bucket). The workspace is the unit of identity, governance, collaboration, knowledge intake, and factory execution (spec 087).
-- `projects` — unit of work within a workspace (workspace_id, org_id, name, slug)
+- `projects` — top-level unit of governance under organization (org_id, name, slug, description, object_store_bucket, factory_adapter_id). Owns the storage bucket, knowledge corpus, source connectors, sync runs, runtime threading, permission grants, factory adapter binding, environments, and members.
 - `project_repos` — GitHub repo links (project_id, github_org, repo_name, default_branch)
 - `environments` — deployment targets (project_id, name, kind, k8s_namespace, auto_deploy_branch)
 - `project_members` — team access (project_id, user_id, role: viewer/developer/deployer/admin)
-- `source_connectors` — external knowledge sources (workspace_id, type: upload/sharepoint/s3/azure-blob/gcs, config, sync schedule) (spec 087 Phase 2)
-- `knowledge_objects` — canonical normalised documents in workspace object store (workspace_id, storage_key, filename, mime_type, content_hash, state lifecycle: imported→extracting→extracted→classified→available, provenance JSONB) (spec 087 Phase 2)
-- `document_bindings` — links knowledge objects to projects (project_id, knowledge_object_id, bound_by) (spec 087 Phase 2)
-- `sync_runs` — connector sync execution history (connector_id, workspace_id, status: running/completed/failed, objects_created/updated/skipped, delta_token for incremental sync) (spec 087 Phase 4)
+- `project_grants` — runtime tool permissions for OPC governance (user_id, project_id, enable_file_read/write, enable_network, max_tier). Replaces the prior workspace_grants table per spec 119 §6.4.
+- `source_connectors` — external knowledge sources (project_id, type: upload/sharepoint/s3/azure-blob/gcs, config, sync schedule) (spec 087 Phase 2)
+- `knowledge_objects` — canonical normalised documents in the project object store (project_id, storage_key, filename, mime_type, content_hash, state lifecycle: imported→extracting→extracted→classified→available, provenance JSONB) (spec 087 Phase 2)
+- `sync_runs` — connector sync execution history (connector_id, project_id, status: running/completed/failed, objects_created/updated/skipped, delta_token for incremental sync) (spec 087 Phase 4)
+- `agent_catalog` / `agent_catalog_audit` — project-scoped agent definitions (spec 111, amended by spec 119)
 
 ## Identity
 
@@ -72,10 +73,11 @@ make tf-destroy   # Tear down everything
 
 ## Key Integration Points with OPC
 
-- **Policy bundle serving** — stagecraft can serve compiled policy bundles to axiomregent over HTTP
-- **Audit streaming** — axiomregent can POST audit records to stagecraft's `audit_log` table
-- **Permission grants** — stagecraft auth can provide workspace-scoped grants to the desktop app
-- **Agent authorization** — stagecraft can validate agent execution against org-level policies
+- **Policy bundle serving** — stagecraft can serve compiled policy bundles to axiomregent over HTTP at `/api/policy-bundle/:projectId` (renamed from per-workspace by spec 119 §4.5).
+- **Audit streaming** — axiomregent can POST audit records to stagecraft's `audit_log` table.
+- **Permission grants** — stagecraft auth can provide project-scoped grants (`project_grants`) to the desktop app.
+- **Agent authorization** — stagecraft can validate agent execution against org-level policies.
+- **Duplex sync** — `/api/sync/duplex` is org-scoped; one OPC connection observes every project in the user's org. Per-event `projectId` carries on each variant for desktop-side filtering.
 
 ## Policy Rules
 

@@ -53,8 +53,9 @@ export interface RauthyTokens {
  * the attributes declared by the FR-002 seeder and onto the `oap` scope
  * `attr_include_access` / `attr_include_id` list.
  *
- * Spec 119: workspace collapsed into project. `oap_workspace_id` was removed
- * from the JWT — projectId is supplied per-request by API path/body.
+ * Spec 119: workspace collapsed into project. The legacy oap workspace
+ * claim was removed from the JWT — projectId is supplied per-request by
+ * API path/body and verified against `oap_org_id`.
  */
 export interface OapUserAttributes {
   oap_user_id: string;

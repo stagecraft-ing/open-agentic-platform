@@ -36,9 +36,9 @@ pub struct CheckpointInfo {
     pub total_bytes: i64,
     pub created_at: String,
     pub metadata: Option<String>,
-    /// Workspace context for this checkpoint (spec 092).
+    /// Project context for this checkpoint (spec 119).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub workspace_id: Option<String>,
+    pub project_id: Option<String>,
     /// Git branch name at checkpoint creation time (spec 095 Slice 3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub branch_name: Option<String>,

@@ -122,7 +122,7 @@ pub fn generate_process_manifest(
     adapter: &AdapterManifest,
     business_doc_paths: &[impl AsRef<Path>],
     _factory_root: &Path,
-    workspace_id: Option<String>,
+    project_id: Option<String>,
 ) -> Result<WorkflowManifest, FactoryError> {
     let stages = process_stages();
     let mut steps = Vec::with_capacity(stages.len());
@@ -174,7 +174,7 @@ pub fn generate_process_manifest(
 
     Ok(WorkflowManifest {
         steps,
-        workspace_id,
+        project_id,
     })
 }
 
@@ -193,7 +193,7 @@ pub fn generate_scaffold_manifest(
     build_spec: &BuildSpec,
     adapter: &AdapterManifest,
     factory_root: &Path,
-    workspace_id: Option<String>,
+    project_id: Option<String>,
 ) -> Result<WorkflowManifest, FactoryError> {
     let adapter_root = factory_root.join("adapters").join(&adapter.adapter.name);
     let resolver = PatternResolver::new(&adapter_root, adapter.clone());
@@ -744,7 +744,7 @@ pub fn generate_scaffold_manifest(
 
     Ok(WorkflowManifest {
         steps,
-        workspace_id,
+        project_id,
     })
 }
 
@@ -947,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn workspace_id_threads_through_process_manifest() {
+    fn project_id_threads_through_process_manifest() {
         let adapter = test_adapter();
         let manifest = generate_process_manifest(
             &adapter,
@@ -956,11 +956,11 @@ mod tests {
             Some("ws-test-092".into()),
         )
         .unwrap();
-        assert_eq!(manifest.workspace_id, Some("ws-test-092".into()));
+        assert_eq!(manifest.project_id, Some("ws-test-092".into()));
     }
 
     #[test]
-    fn workspace_id_none_when_omitted() {
+    fn project_id_none_when_omitted() {
         let adapter = test_adapter();
         let manifest = generate_process_manifest(
             &adapter,
@@ -969,7 +969,7 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(manifest.workspace_id, None);
+        assert_eq!(manifest.project_id, None);
     }
 
     fn test_adapter() -> AdapterManifest {

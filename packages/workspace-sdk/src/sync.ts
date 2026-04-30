@@ -18,11 +18,11 @@ export type WorkspaceEventType =
   | "connector_sync_complete"
   | "member_added"
   | "member_removed"
-  | "workspace_updated";
+  | "project_updated";
 
 export interface WorkspaceEvent {
   type: WorkspaceEventType;
-  workspaceId: string;
+  orgId: string;
   timestamp: string;
   payload: Record<string, unknown>;
 }
@@ -40,7 +40,7 @@ export type OpcEventType =
 
 export interface OpcEvent {
   type: OpcEventType;
-  workspaceId: string;
+  orgId: string;
   projectId: string;
   timestamp: string;
   payload: Record<string, unknown>;

@@ -62,31 +62,24 @@ export const cloneProject = api(
         "Insufficient permissions to clone projects in this org",
       );
     }
-    if (!auth.workspaceId) {
-      throw APIError.failedPrecondition(
-        "No active workspace. Contact your org admin to set up a default workspace.",
-      );
-    }
-
-    // Source project existence + workspace scope. The worker will re-load
+    // Source project existence + org scope. The worker will re-load
     // these rows; we validate up front so the dialog gets a synchronous
     // 4xx for the obvious permission shapes instead of a queued failure.
     const [source] = await db
       .select({
         id: projects.id,
-        workspaceId: projects.workspaceId,
         orgId: projects.orgId,
       })
       .from(projects)
       .where(
         and(
           eq(projects.id, req.sourceProjectId),
-          eq(projects.workspaceId, auth.workspaceId),
+          eq(projects.orgId, auth.orgId),
         ),
       )
       .limit(1);
     if (!source) {
-      throw APIError.notFound("source project not found in this workspace");
+      throw APIError.notFound("source project not found in this org");
     }
 
     const [sourceRepo] = await db
@@ -130,7 +123,6 @@ export const cloneProject = api(
       .insert(projectCloneRuns)
       .values({
         sourceProjectId: source.id,
-        workspaceId: auth.workspaceId,
         orgId: auth.orgId,
         triggeredBy: auth.userID,
         status: "pending",

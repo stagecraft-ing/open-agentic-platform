@@ -124,17 +124,17 @@ export const __testing = {
 };
 
 // ---------------------------------------------------------------------------
-// Project workspace gate
+// Project org gate (spec 119)
 // ---------------------------------------------------------------------------
 
-async function assertProjectInWorkspace(
+async function assertProjectInOrg(
   projectId: string,
-  workspaceId: string,
+  orgId: string,
 ): Promise<void> {
   const rows = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId)))
+    .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
     .limit(1);
   if (rows.length === 0) {
     throw APIError.notFound("project not found");
@@ -221,9 +221,9 @@ export const factoryProjectStream = api.raw(
   },
   async (req, res) => {
     const auth = getAuthData()!;
-    if (!auth.workspaceId) {
+    if (!auth.orgId) {
       res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "workspace context required" }));
+      res.end(JSON.stringify({ error: "org context required" }));
       return;
     }
 
@@ -242,7 +242,7 @@ export const factoryProjectStream = api.raw(
     }
 
     try {
-      await assertProjectInWorkspace(projectId, auth.workspaceId);
+      await assertProjectInOrg(projectId, auth.orgId);
     } catch (err) {
       const code = err instanceof APIError && err.code === "not_found" ? 404 : 500;
       res.writeHead(code, { "Content-Type": "application/json" });
@@ -303,7 +303,7 @@ export const factoryProjectStream = api.raw(
     registerSubscriber(projectId, subscriber);
     log.info("factory stream: subscriber registered", {
       projectId,
-      workspaceId: auth.workspaceId,
+      orgId: auth.orgId,
       total: subscriberCountForProject(projectId),
     });
 

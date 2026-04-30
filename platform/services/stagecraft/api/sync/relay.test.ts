@@ -53,7 +53,7 @@ describe("publishFactoryRunRequest", () => {
     ]);
 
     const result = await publishFactoryRunRequest({
-      workspaceId: "ws-1",
+      orgId: "org-1",
       projectId: "p-1",
       pipelineId: "pl-1",
       adapter: "encore-react",
@@ -69,11 +69,11 @@ describe("publishFactoryRunRequest", () => {
       delivered: 1,
     });
 
-    expect(resolveMock).toHaveBeenCalledWith("ws-1", ["ko-1"]);
+    expect(resolveMock).toHaveBeenCalledWith("p-1", ["ko-1"]);
     expect(dispatchMock).toHaveBeenCalledTimes(1);
 
-    const [workspaceId, envelope] = dispatchMock.mock.calls[0];
-    expect(workspaceId).toBe("ws-1");
+    const [orgId, envelope] = dispatchMock.mock.calls[0];
+    expect(orgId).toBe("org-1");
 
     expect(envelope.kind).toBe("factory.run.request");
     expect(envelope.projectId).toBe("p-1");
@@ -103,7 +103,7 @@ describe("publishFactoryRunRequest", () => {
 
   test("dispatches with an empty knowledge array when no objects attached", async () => {
     await publishFactoryRunRequest({
-      workspaceId: "ws-2",
+      orgId: "org-2",
       projectId: "p-2",
       pipelineId: "pl-2",
       adapter: "rust-axum",
@@ -113,7 +113,7 @@ describe("publishFactoryRunRequest", () => {
       policyBundleId: "pb-2",
     });
 
-    expect(resolveMock).toHaveBeenCalledWith("ws-2", []);
+    expect(resolveMock).toHaveBeenCalledWith("p-2", []);
     const [, envelope] = dispatchMock.mock.calls[0];
     expect(envelope.knowledge).toEqual([]);
     expect(envelope.businessDocs).toEqual([]);
@@ -124,7 +124,7 @@ describe("publishFactoryRunRequest", () => {
 
     await expect(
       publishFactoryRunRequest({
-        workspaceId: "ws-3",
+        orgId: "org-3",
         projectId: "p-3",
         pipelineId: "pl-3",
         adapter: "next-prisma",

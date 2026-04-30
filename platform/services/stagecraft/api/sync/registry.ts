@@ -1,7 +1,7 @@
 /**
- * Sync connection registry — workspace + client scoped, in-memory, process-local.
+ * Sync connection registry — org + client scoped, in-memory, process-local.
  *
- * Structure: workspaceId -> clientId -> Session
+ * Structure: orgId -> clientId -> Session
  *
  * This is runtime state only. It is NOT a source of truth. Membership,
  * authority, and audit all live in the Postgres control plane.
@@ -10,16 +10,17 @@
  * events must fan out via PubSub/Redis to all replicas; each replica then
  * consults its own local registry. The service layer is structured so the
  * registry boundary is the only place that needs to learn about that.
+ *
+ * Spec 119: scope key is `orgId`.
  */
 import log from "encore.dev/log";
 import type { ServerEnvelope, SyncStream } from "./types";
 
 export interface SessionMeta {
-  workspaceId: string;
+  orgId: string;
   clientId: string;
   clientKind: string;
   userId: string;
-  orgId: string;
   connectedAt: Date;
   lastHeartbeatAt: Date;
   /** Monotonic cursor of the last outbound event sent to this client. */
@@ -31,15 +32,15 @@ export interface Session {
   stream: SyncStream;
 }
 
-// workspaceId -> clientId -> Session
-const workspaces: Map<string, Map<string, Session>> = new Map();
+// orgId -> clientId -> Session
+const orgs: Map<string, Map<string, Session>> = new Map();
 
 export function register(session: Session): void {
-  const { workspaceId, clientId } = session.meta;
-  let clients = workspaces.get(workspaceId);
+  const { orgId, clientId } = session.meta;
+  let clients = orgs.get(orgId);
   if (!clients) {
     clients = new Map();
-    workspaces.set(workspaceId, clients);
+    orgs.set(orgId, clients);
   }
 
   const existing = clients.get(clientId);
@@ -47,89 +48,89 @@ export function register(session: Session): void {
     // Replace any stale session for the same clientId. Close the old stream
     // best-effort so the old transport tears down cleanly.
     existing.stream.close().catch(() => undefined);
-    log.info("sync: replacing stale session", { workspaceId, clientId });
+    log.info("sync: replacing stale session", { orgId, clientId });
   }
 
   clients.set(clientId, session);
   log.info("sync: session registered", {
-    workspaceId,
+    orgId,
     clientId,
     clientKind: session.meta.clientKind,
     userId: session.meta.userId,
-    workspaceSessions: clients.size,
+    orgSessions: clients.size,
   });
 }
 
-export function unregister(workspaceId: string, clientId: string): void {
-  const clients = workspaces.get(workspaceId);
+export function unregister(orgId: string, clientId: string): void {
+  const clients = orgs.get(orgId);
   if (!clients) return;
   if (clients.delete(clientId)) {
     log.info("sync: session unregistered", {
-      workspaceId,
+      orgId,
       clientId,
       remaining: clients.size,
     });
   }
-  if (clients.size === 0) workspaces.delete(workspaceId);
+  if (clients.size === 0) orgs.delete(orgId);
 }
 
-export function get(workspaceId: string, clientId: string): Session | undefined {
-  return workspaces.get(workspaceId)?.get(clientId);
+export function get(orgId: string, clientId: string): Session | undefined {
+  return orgs.get(orgId)?.get(clientId);
 }
 
-export function listWorkspace(workspaceId: string): Session[] {
-  const clients = workspaces.get(workspaceId);
+export function listOrg(orgId: string): Session[] {
+  const clients = orgs.get(orgId);
   return clients ? Array.from(clients.values()) : [];
 }
 
-export function workspaceCount(): number {
-  return workspaces.size;
+export function orgCount(): number {
+  return orgs.size;
 }
 
-export function sessionCount(workspaceId?: string): number {
-  if (workspaceId) return workspaces.get(workspaceId)?.size ?? 0;
+export function sessionCount(orgId?: string): number {
+  if (orgId) return orgs.get(orgId)?.size ?? 0;
   let total = 0;
-  for (const clients of workspaces.values()) total += clients.size;
+  for (const clients of orgs.values()) total += clients.size;
   return total;
 }
 
 /**
- * Send to a single client in a workspace. Returns true if sent, false if the
+ * Send to a single client in an org. Returns true if sent, false if the
  * client is not connected or the send failed (in which case the session is
  * pruned).
  */
 export async function sendTo(
-  workspaceId: string,
+  orgId: string,
   clientId: string,
   event: ServerEnvelope,
 ): Promise<boolean> {
-  const session = get(workspaceId, clientId);
+  const session = get(orgId, clientId);
   if (!session) return false;
   try {
     await session.stream.send(event);
-    session.meta.lastSentCursor = event.meta.workspaceCursor;
+    session.meta.lastSentCursor = event.meta.orgCursor;
     return true;
   } catch (err) {
     log.warn("sync: send failed, pruning session", {
-      workspaceId,
+      orgId,
       clientId,
       err: err instanceof Error ? err.message : String(err),
     });
-    unregister(workspaceId, clientId);
+    unregister(orgId, clientId);
     return false;
   }
 }
 
 /**
- * Broadcast to every client in a workspace. Optionally exclude one clientId
+ * Broadcast to every client in an org. Optionally exclude one clientId
  * (useful to avoid echoing a client's own event back to it).
  */
-export async function broadcastWorkspace(
-  workspaceId: string,
+export async function broadcastOrg(
+  orgId: string,
   event: ServerEnvelope,
   opts: { excludeClientId?: string } = {},
 ): Promise<{ sent: number; pruned: number }> {
-  const clients = workspaces.get(workspaceId);
+  const clients = orgs.get(orgId);
   if (!clients || clients.size === 0) return { sent: 0, pruned: 0 };
 
   let sent = 0;
@@ -140,12 +141,12 @@ export async function broadcastWorkspace(
     if (opts.excludeClientId && clientId === opts.excludeClientId) continue;
     try {
       await session.stream.send(event);
-      session.meta.lastSentCursor = event.meta.workspaceCursor;
+      session.meta.lastSentCursor = event.meta.orgCursor;
       sent++;
     } catch (err) {
       dead.push(clientId);
       log.warn("sync: broadcast send failed", {
-        workspaceId,
+        orgId,
         clientId,
         err: err instanceof Error ? err.message : String(err),
       });
@@ -153,7 +154,7 @@ export async function broadcastWorkspace(
   }
 
   for (const clientId of dead) {
-    unregister(workspaceId, clientId);
+    unregister(orgId, clientId);
     pruned++;
   }
 
@@ -162,5 +163,5 @@ export async function broadcastWorkspace(
 
 /** Test-only helper — wipes the registry between tests. */
 export function __resetForTests(): void {
-  workspaces.clear();
+  orgs.clear();
 }

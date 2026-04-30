@@ -1,4 +1,5 @@
-// Spec 112 §7 — unit tests for the project.catalog.upsert envelope builder.
+// Spec 112 §7 (amended by spec 119) — unit tests for the
+// project.catalog.upsert envelope builder.
 
 import { describe, expect, test } from "vitest";
 import { buildProjectCatalogUpsert } from "./projectCatalog";
@@ -9,8 +10,8 @@ const baseMeta: ServerMeta = {
   eventId: "00000000-0000-0000-0000-000000000001",
   sentAt: "2026-04-23T00:00:00.000Z",
   correlationId: "corr-1",
-  workspaceCursor: "42",
-  workspaceId: "ws-1",
+  orgCursor: "42",
+  orgId: "org-1",
 };
 
 describe("buildProjectCatalogUpsert", () => {
@@ -18,7 +19,6 @@ describe("buildProjectCatalogUpsert", () => {
     const env = buildProjectCatalogUpsert({
       project: {
         id: "proj-1",
-        workspaceId: "ws-1",
         name: "My Portal",
         slug: "my-portal",
         description: "desc",
@@ -31,7 +31,6 @@ describe("buildProjectCatalogUpsert", () => {
     });
     expect(env.kind).toBe("project.catalog.upsert");
     expect(env.projectId).toBe("proj-1");
-    expect(env.workspaceId).toBe("ws-1");
     expect(env.factoryAdapterId).toBe("adap-1");
     expect(env.detectionLevel).toBe("scaffold_only");
     expect(env.tombstone).toBe(false);
@@ -52,7 +51,6 @@ describe("buildProjectCatalogUpsert", () => {
     const env = buildProjectCatalogUpsert({
       project: {
         id: "proj-2",
-        workspaceId: "ws-1",
         name: "Closed",
         slug: "closed",
         description: "",
@@ -75,7 +73,6 @@ describe("buildProjectCatalogUpsert", () => {
     const env = buildProjectCatalogUpsert({
       project: {
         id: "proj-3",
-        workspaceId: "ws-1",
         name: "p",
         slug: "p",
         description: "",

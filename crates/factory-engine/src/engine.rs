@@ -93,7 +93,7 @@ impl FactoryEngine {
         &self,
         adapter_name: &str,
         business_doc_paths: &[PathBuf],
-        workspace_id: Option<String>,
+        project_id: Option<String>,
     ) -> Result<PipelineStartResult, FactoryError> {
         let adapter = self.adapter_registry.get(adapter_name).ok_or_else(|| {
             FactoryError::AdapterNotFound {
@@ -108,7 +108,7 @@ impl FactoryEngine {
             adapter,
             business_doc_paths,
             &self.config.factory_root,
-            workspace_id,
+            project_id,
         )?;
 
         // Create agent bridge.
@@ -143,7 +143,7 @@ impl FactoryEngine {
         build_spec_path: &Path,
         pipeline_state: &mut FactoryPipelineState,
         org_override: Option<&str>,
-        workspace_id: Option<String>,
+        project_id: Option<String>,
     ) -> Result<PhaseTransitionResult, FactoryError> {
         let adapter = self.adapter_registry.get(adapter_name).ok_or_else(|| {
             FactoryError::AdapterNotFound {
@@ -188,7 +188,7 @@ impl FactoryEngine {
             &build_spec,
             adapter,
             &self.config.factory_root,
-            workspace_id,
+            project_id,
         )?;
 
         Ok(PhaseTransitionResult {

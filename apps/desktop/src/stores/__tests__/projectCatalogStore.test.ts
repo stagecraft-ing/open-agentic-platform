@@ -12,7 +12,7 @@ import {
 
 const baseEvent = {
   projectId: 'p-1',
-  workspaceId: 'ws-1',
+  orgId: 'org-1',
   name: 'Alpha',
   slug: 'alpha',
   description: 'first project',

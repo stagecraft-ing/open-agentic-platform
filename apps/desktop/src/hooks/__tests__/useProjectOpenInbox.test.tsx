@@ -72,7 +72,7 @@ describe('useProjectOpenInbox', () => {
     apiCallMock.mockResolvedValueOnce({
       ok: true,
       bundle: {
-        project: { id: 'p1', name: 'Foo', slug: 'foo', workspaceId: 'ws', orgId: 'org' },
+        project: { id: 'p1', name: 'Foo', slug: 'foo', orgId: 'org' },
         repo: {
           cloneUrl: 'https://github.com/acme/foo.git',
           githubOrg: 'acme',
@@ -126,7 +126,7 @@ describe('useProjectOpenInbox', () => {
       .mockResolvedValueOnce({
         ok: true,
         bundle: {
-          project: { id: 'p1', name: 'Foo', slug: 'foo', workspaceId: 'ws', orgId: 'org' },
+          project: { id: 'p1', name: 'Foo', slug: 'foo', orgId: 'org' },
           repo: {
             cloneUrl: 'https://github.com/acme/foo.git',
             githubOrg: 'acme',

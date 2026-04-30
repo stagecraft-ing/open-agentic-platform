@@ -1,14 +1,15 @@
-// Spec 112 §7 / Phase 8 — Project catalog sync relay (outbound only).
+// Spec 112 §7 / Phase 8 (amended by spec 119) — Project catalog sync relay
+// (outbound only).
 //
 // Mirrors the spec 111 agent-catalog relay pattern. Two outbound paths:
 //
 //   create.ts / import.ts (post-insert)
 //     -> publishProjectCatalogUpsert(input)
-//        -> dispatchServerEvent(workspaceId, project.catalog.upsert)        // broadcast
+//        -> dispatchServerEvent(orgId, project.catalog.upsert)        // broadcast
 //
 //   handshake (duplex.ts)
-//     -> sendProjectCatalogSnapshot(workspaceId, clientId)
-//        -> sendTargetedServerEvent(workspaceId, clientId, project.catalog.upsert) per project
+//     -> sendProjectCatalogSnapshot(orgId, clientId)
+//        -> sendTargetedServerEvent(orgId, clientId, project.catalog.upsert) per project
 //
 // Spec 112 §7 deliberately reuses one envelope for both live deltas
 // and the post-handshake replay — the desktop merges by `projectId`,
@@ -25,9 +26,10 @@ import {
   type ProjectRowForCatalog,
 } from "./projectCatalog";
 import { dispatchServerEvent, sendTargetedServerEvent } from "./service";
+import { ENVELOPE_SCHEMA_VERSION } from "./types";
 
 export interface PublishProjectCatalogUpsertInput {
-  workspaceId: string;
+  orgId: string;
   project: ProjectRowForCatalog;
   repo: ProjectRepoForCatalog | null;
   tombstone?: boolean;
@@ -40,7 +42,7 @@ export interface PublishProjectCatalogUpsertResult {
 }
 
 /**
- * Broadcast a project upsert to every OPC connected to the workspace.
+ * Broadcast a project upsert to every OPC connected to the org.
  * Called from `createFactoryProject` and `importFactoryProject` after
  * their DB transactions commit so the wire and the rows can never end
  * up out of step.
@@ -51,14 +53,20 @@ export async function publishProjectCatalogUpsert(
   const event = buildProjectCatalogUpsert({
     project: input.project,
     repo: input.repo,
-    meta: { v: 1, eventId: "", sentAt: "", workspaceId: "", workspaceCursor: "" },
+    meta: {
+      v: ENVELOPE_SCHEMA_VERSION,
+      eventId: "",
+      sentAt: "",
+      orgId: "",
+      orgCursor: "",
+    },
     tombstone: input.tombstone === true,
   });
   // dispatchServerEvent stamps meta itself — strip the placeholder before handoff.
   const { meta: _meta, ...withoutMeta } = event;
-  const result = await dispatchServerEvent(input.workspaceId, withoutMeta);
+  const result = await dispatchServerEvent(input.orgId, withoutMeta);
   log.info("project.catalog: upsert broadcast dispatched", {
-    workspaceId: input.workspaceId,
+    orgId: input.orgId,
     projectId: input.project.id,
     detectionLevel: input.project.detectionLevel,
     tombstone: input.tombstone === true,
@@ -68,7 +76,7 @@ export async function publishProjectCatalogUpsert(
 }
 
 /**
- * Build the directory of projects in a workspace as one upsert per row.
+ * Build the directory of projects in an org as one upsert per row.
  * Each entry carries everything OPC needs to render its Projects panel
  * without a follow-up round-trip — repo metadata, opc:// deep link, and
  * a null `detectionLevel` (we don't persist the level on the row, so
@@ -76,7 +84,7 @@ export async function publishProjectCatalogUpsert(
  * are excluded.
  */
 export async function buildProjectCatalogSnapshotEntries(
-  workspaceId: string
+  orgId: string
 ): Promise<
   Array<{
     project: ProjectRowForCatalog;
@@ -86,7 +94,6 @@ export async function buildProjectCatalogSnapshotEntries(
   const projectRows = await db
     .select({
       id: projects.id,
-      workspaceId: projects.workspaceId,
       name: projects.name,
       slug: projects.slug,
       description: projects.description,
@@ -94,7 +101,7 @@ export async function buildProjectCatalogSnapshotEntries(
       updatedAt: projects.updatedAt,
     })
     .from(projects)
-    .where(eq(projects.workspaceId, workspaceId));
+    .where(eq(projects.orgId, orgId));
 
   if (projectRows.length === 0) return [];
 
@@ -121,7 +128,6 @@ export async function buildProjectCatalogSnapshotEntries(
   return projectRows.map((row) => ({
     project: {
       id: row.id,
-      workspaceId: row.workspaceId,
       name: row.name,
       slug: row.slug,
       description: row.description,
@@ -139,28 +145,33 @@ export async function buildProjectCatalogSnapshotEntries(
  * sees the full project list before any incremental upserts arrive.
  */
 export async function sendProjectCatalogSnapshot(
-  workspaceId: string,
+  orgId: string,
   clientId: string
 ): Promise<{ delivered: number; entryCount: number }> {
-  const entries = await buildProjectCatalogSnapshotEntries(workspaceId);
+  const entries = await buildProjectCatalogSnapshotEntries(orgId);
   let delivered = 0;
   for (const entry of entries) {
     const event = buildProjectCatalogUpsert({
       project: entry.project,
       repo: entry.repo,
-      meta: { v: 1, eventId: "", sentAt: "", workspaceId: "", workspaceCursor: "" },
+      meta: {
+        v: ENVELOPE_SCHEMA_VERSION,
+        eventId: "",
+        sentAt: "",
+        orgId: "",
+        orgCursor: "",
+      },
       tombstone: false,
     });
     const { meta: _meta, ...withoutMeta } = event;
-    const sent = await sendTargetedServerEvent(workspaceId, clientId, withoutMeta);
+    const sent = await sendTargetedServerEvent(orgId, clientId, withoutMeta);
     if (sent) delivered++;
   }
   log.info("project.catalog: snapshot sent on handshake", {
-    workspaceId,
+    orgId,
     clientId,
     entryCount: entries.length,
     delivered,
   });
   return { delivered, entryCount: entries.length };
 }
-

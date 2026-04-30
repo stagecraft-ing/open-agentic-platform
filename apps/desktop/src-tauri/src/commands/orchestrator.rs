@@ -161,7 +161,7 @@ impl RealGovernedExecutor {
             input_artifacts: request.input_artifacts.clone(),
             output_artifacts: request.output_artifacts.clone(),
             resume_session_id: None,
-            workspace_id: request.workspace_id.clone(),
+            project_id: request.project_id.clone(),
         };
 
         executor.dispatch_step(provider_request).await
@@ -218,8 +218,8 @@ impl RealGovernedExecutor {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        if let Some(ref ws_id) = request.workspace_id {
-            cmd.env("OPC_WORKSPACE_ID", ws_id);
+        if let Some(ref pid) = request.project_id {
+            cmd.env("OPC_WORKSPACE_ID", pid);
         }
 
         let mut child = cmd
@@ -336,13 +336,13 @@ pub async fn orchestrate_manifest(
     let mut manifest: WorkflowManifest =
         serde_yaml::from_str(&manifest_text).map_err(|e| format!("parse manifest failed: {e}"))?;
 
-    // Inject the active workspace into the manifest if not already set (spec 092).
-    if manifest.workspace_id.is_none()
+    // Inject the active org/project id into the manifest if not already set (spec 092).
+    if manifest.project_id.is_none()
         && let Some(client) = stagecraft.current()
     {
-        let ws = client.workspace_id();
+        let ws = client.org_id();
         if !ws.is_empty() {
-            manifest.workspace_id = Some(ws);
+            manifest.project_id = Some(ws);
         }
     }
 
@@ -430,10 +430,10 @@ pub async fn orchestrate_manifest(
     Ok(summary)
 }
 
-/// List workflow summaries for a given workspace (099 Slice 5).
+/// List workflow summaries for a given org/project (099 Slice 5, spec 119).
 #[tauri::command]
 pub async fn list_workspace_workflows(
-    workspace_id: String,
+    org_id: String,
     limit: Option<u32>,
 ) -> Result<Vec<orchestrator::WorkflowStateSummary>, String> {
     // Use the default SQLite store location
@@ -449,7 +449,7 @@ pub async fn list_workspace_workflows(
         orchestrator::sqlite_state::SqliteWorkflowStore::open(std::path::Path::new(&store_path))
             .map_err(|e| format!("open workflow store: {e}"))?;
     store
-        .list_workflows_by_workspace(&workspace_id, limit)
+        .list_workflows_by_project(&org_id, limit)
         .await
         .map_err(|e| e.to_string())
 }

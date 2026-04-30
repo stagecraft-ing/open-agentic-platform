@@ -36,7 +36,7 @@ pub const EVENT_PROJECT_CATALOG_UPSERT: &str = "project-catalog-upsert";
 #[serde(rename_all = "camelCase")]
 pub struct ProjectCatalogUpsertEvent {
     pub project_id: String,
-    pub workspace_id: String,
+    pub org_id: String,
     pub name: String,
     pub slug: String,
     pub description: String,
@@ -53,15 +53,15 @@ pub struct ProjectCatalogUpsertEvent {
 /// that emits an incomplete frame should not crash the dispatcher.
 pub fn extract_upsert(env: &ServerEnvelopeWire) -> Option<ProjectCatalogUpsertEvent> {
     let project_id = env.project_id.clone()?;
-    let workspace_id = env
-        .workspace_id
+    let org_id = env
+        .org_id
         .clone()
         .or_else(|| {
-            // Fall back to the meta workspace id if the payload omits the
+            // Fall back to the meta org id if the payload omits the
             // explicit field. Both stagecraft snapshots and live broadcasts
             // populate the payload form, but accepting the meta form keeps
             // the parser tolerant.
-            let m = &env.meta.workspace_id;
+            let m = &env.meta.org_id;
             if m.is_empty() { None } else { Some(m.clone()) }
         })?;
     let name = env.name.clone()?;
@@ -76,7 +76,7 @@ pub fn extract_upsert(env: &ServerEnvelopeWire) -> Option<ProjectCatalogUpsertEv
 
     Some(ProjectCatalogUpsertEvent {
         project_id,
-        workspace_id,
+        org_id,
         name,
         slug,
         description,
@@ -133,8 +133,8 @@ mod tests {
                 "v": 1,
                 "eventId": "e1",
                 "sentAt": "2026-04-27T00:00:00Z",
-                "workspaceCursor": "cur-1",
-                "workspaceId": "ws-1"
+                "orgCursor": "cur-1",
+                "orgId": "org-1"
             }
         })
         .as_object()
@@ -154,7 +154,7 @@ mod tests {
             "project.catalog.upsert",
             json!({
                 "projectId": "p-1",
-                "workspaceId": "ws-1",
+                "orgId": "org-1",
                 "name": "Alpha",
                 "slug": "alpha",
                 "description": "first",
@@ -174,7 +174,7 @@ mod tests {
         );
         let u = extract_upsert(&env).expect("parses");
         assert_eq!(u.project_id, "p-1");
-        assert_eq!(u.workspace_id, "ws-1");
+        assert_eq!(u.org_id, "org-1");
         assert_eq!(u.name, "Alpha");
         assert_eq!(u.slug, "alpha");
         assert_eq!(u.factory_adapter_id.as_deref(), Some("ad-1"));
@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn extract_upsert_falls_back_to_meta_workspace_id() {
+    fn extract_upsert_falls_back_to_meta_org_id() {
         let mut env = server_envelope(
             "project.catalog.upsert",
             json!({
@@ -195,10 +195,10 @@ mod tests {
                 "tombstone": false
             }),
         );
-        // Drop the payload workspaceId so the meta fallback kicks in.
-        env.workspace_id = None;
+        // Drop the payload orgId so the meta fallback kicks in.
+        env.org_id = None;
         let u = extract_upsert(&env).expect("parses with meta fallback");
-        assert_eq!(u.workspace_id, "ws-1");
+        assert_eq!(u.org_id, "org-1");
     }
 
     #[test]
@@ -207,14 +207,14 @@ mod tests {
             "project.catalog.upsert",
             json!({
                 "name": "Alpha",
-                "workspaceId": "ws-1"
+                "orgId": "org-1"
             }),
         );
         assert!(extract_upsert(&env).is_none());
     }
 
     #[test]
-    fn extract_upsert_rejects_empty_workspace_in_meta_and_payload() {
+    fn extract_upsert_rejects_empty_org_in_meta_and_payload() {
         let mut env = server_envelope(
             "project.catalog.upsert",
             json!({
@@ -222,15 +222,15 @@ mod tests {
                 "name": "Alpha"
             }),
         );
-        env.workspace_id = None;
+        env.org_id = None;
         env.meta = ServerMeta {
             v: 1,
             event_id: "e1".into(),
             sent_at: "2026-04-27T00:00:00Z".into(),
             correlation_id: None,
             causation_id: None,
-            workspace_cursor: "cur-1".into(),
-            workspace_id: "".into(),
+            org_cursor: "cur-1".into(),
+            org_id: "".into(),
         };
         assert!(extract_upsert(&env).is_none());
     }
@@ -241,7 +241,7 @@ mod tests {
             "project.catalog.upsert",
             json!({
                 "projectId": "p-1",
-                "workspaceId": "ws-1",
+                "orgId": "org-1",
                 "name": "Alpha",
                 "tombstone": true
             }),

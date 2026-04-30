@@ -12,7 +12,6 @@ describe("extractOapClaims", () => {
         oap_user_id: "oap-user-1",
         oap_org_id: "org-1",
         oap_org_slug: "acme",
-        oap_workspace_id: "ws-1",
         github_login: "alice",
         idp_provider: "github",
         idp_login: "alice",
@@ -26,7 +25,6 @@ describe("extractOapClaims", () => {
     expect(claims!.oap_user_id).toBe("oap-user-1");
     expect(claims!.oap_org_id).toBe("org-1");
     expect(claims!.oap_org_slug).toBe("acme");
-    expect(claims!.oap_workspace_id).toBe("ws-1");
     expect(claims!.github_login).toBe("alice");
     expect(claims!.platform_role).toBe("member");
     expect(claims!.sub).toBe("rauthy-user-1");

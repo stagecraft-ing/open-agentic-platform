@@ -7,7 +7,7 @@ afterEach(() => cleanup());
 function makeEntry(overrides: Partial<ProjectCatalogEntry> = {}): ProjectCatalogEntry {
   return {
     projectId: overrides.projectId ?? 'p-1',
-    workspaceId: 'ws-1',
+    orgId: 'org-1',
     name: overrides.name ?? 'Portal',
     slug: overrides.slug ?? 'portal',
     description: overrides.description ?? '',

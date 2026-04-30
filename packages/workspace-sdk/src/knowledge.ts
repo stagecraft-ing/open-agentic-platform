@@ -23,7 +23,7 @@ export type KnowledgeObjectState =
 
 export interface KnowledgeObject {
   id: string;
-  workspaceId: string;
+  projectId: string;
   connectorId: string | null;
   storageKey: string;
   filename: string;
@@ -61,7 +61,7 @@ export type ConnectorStatus = "active" | "paused" | "error" | "disabled";
 
 export interface SourceConnector {
   id: string;
-  workspaceId: string;
+  projectId: string;
   type: ConnectorType;
   name: string;
   syncSchedule: string | null;
@@ -92,7 +92,7 @@ export type SyncRunStatus = "running" | "completed" | "failed";
 export interface SyncRun {
   id: string;
   connectorId: string;
-  workspaceId: string;
+  projectId: string;
   status: SyncRunStatus;
   objectsCreated: number;
   objectsUpdated: number;

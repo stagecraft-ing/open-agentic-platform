@@ -1,27 +1,30 @@
 /**
- * Spec 111 Phase 3 — Agent catalog sync relay (outbound only).
+ * Spec 111 Phase 3 (amended by spec 119) — Agent catalog sync relay
+ * (outbound only).
  *
  * Two outbound paths:
  *
  *   publishAgent / retireAgent (catalog.ts)
  *     -> publishAgentCatalogUpdated(row)
- *        -> dispatchServerEvent(workspaceId, agent.catalog.updated)      // broadcast
+ *        -> dispatchServerEvent(orgId, agent.catalog.updated)            // broadcast to org
  *
  *   handshake (duplex.ts)
- *     -> sendAgentCatalogSnapshot(workspaceId, clientId)                 // targeted
- *        -> sendTargetedServerEvent(workspaceId, clientId, agent.catalog.snapshot)
+ *     -> sendAgentCatalogSnapshot(orgId, clientId)                      // targeted
+ *        -> sendTargetedServerEvent(orgId, clientId, agent.catalog.snapshot)
  *
- * The snapshot is a directory (hashes only, no bodies). Desktops pull full
- * bodies for cache misses via `agent.catalog.fetch_request` — served by
- * `serveAgentCatalogFetch` in sync/service.ts (layered there to keep the
- * inbound handler close to handleInbound, matching the audit-candidate
- * pattern). This module deliberately owns outbound only.
+ * The snapshot is a directory (hashes only, no bodies) that spans every
+ * project in the session's org. Desktops pull full bodies for cache misses
+ * via `agent.catalog.fetch_request` — served by `serveAgentCatalogFetch` in
+ * sync/service.ts (layered there to keep the inbound handler close to
+ * handleInbound, matching the audit-candidate pattern). This module
+ * deliberately owns outbound only.
  */
 import log from "encore.dev/log";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   agentCatalog,
+  projects,
   type AgentCatalogStatus,
 } from "../db/schema";
 import {
@@ -59,6 +62,7 @@ function buildUpdatedEvent(
   return {
     kind: "agent.catalog.updated",
     agentId: row.id,
+    projectId: row.projectId,
     name: row.name,
     version: row.version,
     status: row.status as "published" | "retired",
@@ -67,6 +71,15 @@ function buildUpdatedEvent(
     bodyMarkdown: row.bodyMarkdown,
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+async function resolveOrgIdForProject(projectId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ orgId: projects.orgId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  return row?.orgId ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,17 +94,28 @@ export interface PublishAgentCatalogUpdatedResult {
 
 /**
  * Broadcast a published or retired agent to every OPC connected to the
- * workspace. Called from `publishAgent` and `retireAgent` after their DB
- * transactions commit — order matters, so a failed broadcast never leaves
- * the catalog and the wire out of step.
+ * project's org. Called from `publishAgent` and `retireAgent` after their
+ * DB transactions commit — order matters, so a failed broadcast never
+ * leaves the catalog and the wire out of step.
  */
 export async function publishAgentCatalogUpdated(
   row: AgentRow,
 ): Promise<PublishAgentCatalogUpdatedResult> {
+  const orgId = await resolveOrgIdForProject(row.projectId);
+  if (!orgId) {
+    log.error("agent.catalog: cannot resolve org for project — broadcast skipped", {
+      agentId: row.id,
+      projectId: row.projectId,
+    });
+    throw new Error(
+      `cannot resolve org for project ${row.projectId}; agent broadcast aborted`,
+    );
+  }
   const event = buildUpdatedEvent(row);
-  const result = await dispatchServerEvent(row.workspaceId, event);
+  const result = await dispatchServerEvent(orgId, event);
   log.info("agent.catalog: updated broadcast dispatched", {
-    workspaceId: row.workspaceId,
+    orgId,
+    projectId: row.projectId,
     agentId: row.id,
     name: row.name,
     version: row.version,
@@ -106,17 +130,18 @@ export async function publishAgentCatalogUpdated(
 // ---------------------------------------------------------------------------
 
 /**
- * Build the directory of currently-published agents for a workspace. Returns
- * hashes only — the bodies are pulled lazily by the desktop via
- * `agent.catalog.fetch_request` (spec 111 §2.3). Retired agents are excluded
- * so the desktop infers removal from absence, which matches §2.4.
+ * Build the directory of currently-published agents across every project in
+ * an org. Returns hashes only — the bodies are pulled lazily by the desktop
+ * via `agent.catalog.fetch_request` (spec 111 §2.3). Retired agents are
+ * excluded so the desktop infers removal from absence, which matches §2.4.
  */
 export async function buildAgentCatalogSnapshotEntries(
-  workspaceId: string,
+  orgId: string,
 ): Promise<AgentCatalogSnapshotEntry[]> {
   const rows = await db
     .select({
       id: agentCatalog.id,
+      projectId: agentCatalog.projectId,
       name: agentCatalog.name,
       version: agentCatalog.version,
       status: agentCatalog.status,
@@ -124,15 +149,17 @@ export async function buildAgentCatalogSnapshotEntries(
       updatedAt: agentCatalog.updatedAt,
     })
     .from(agentCatalog)
+    .innerJoin(projects, eq(projects.id, agentCatalog.projectId))
     .where(
       and(
-        eq(agentCatalog.workspaceId, workspaceId),
+        eq(projects.orgId, orgId),
         eq(agentCatalog.status, "published" as AgentCatalogStatus),
       ),
     );
 
   return rows.map((r) => ({
     agentId: r.id,
+    projectId: r.projectId,
     name: r.name,
     version: r.version,
     status: r.status as "published",
@@ -147,22 +174,21 @@ export async function buildAgentCatalogSnapshotEntries(
  * diff against its local cache before any catalog deltas stream in.
  */
 export async function sendAgentCatalogSnapshot(
-  workspaceId: string,
+  orgId: string,
   clientId: string,
 ): Promise<boolean> {
-  const entries = await buildAgentCatalogSnapshotEntries(workspaceId);
+  const entries = await buildAgentCatalogSnapshotEntries(orgId);
   const event: Omit<ServerAgentCatalogSnapshot, "meta"> = {
     kind: "agent.catalog.snapshot",
     entries,
     generatedAt: new Date().toISOString(),
   };
-  const sent = await sendTargetedServerEvent(workspaceId, clientId, event);
+  const sent = await sendTargetedServerEvent(orgId, clientId, event);
   log.info("agent.catalog: snapshot sent on handshake", {
-    workspaceId,
+    orgId,
     clientId,
     entryCount: entries.length,
     delivered: sent,
   });
   return sent;
 }
-

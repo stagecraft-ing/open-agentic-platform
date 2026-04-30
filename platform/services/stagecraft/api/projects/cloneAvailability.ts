@@ -1,11 +1,11 @@
 /**
- * Spec 113 Phase 1a — Clone availability endpoint.
+ * Spec 113 Phase 1a — Clone availability endpoint (amended by spec 119).
  *
  * `GET /api/projects/clone/check-availability` answers two yes/no questions
  * for the Clone Project dialog:
  *
  *   1. Is `repoName` free under the destination GitHub org?
- *   2. Is `slug` free under `(workspaceId, slug)` in `projects`?
+ *   2. Is `slug` free under `(orgId, slug)` in `projects`?
  *
  * The endpoint is read-only, idempotent, never audits, never consumes a
  * retry budget. Format validation runs first so invalid inputs never cost
@@ -42,14 +42,14 @@ export type {
 // ---------------------------------------------------------------------------
 
 export async function checkSlugAvailable(
-  workspaceId: string,
+  orgId: string,
   slug: string
 ): Promise<{ state: AvailabilityState; reason?: AvailabilityReason }> {
   const rows = await db
     .select({ id: projects.id })
     .from(projects)
     .where(
-      and(eq(projects.workspaceId, workspaceId), eq(projects.slug, slug))
+      and(eq(projects.orgId, orgId), eq(projects.slug, slug))
     )
     .limit(1);
   if (rows.length === 0) return { state: "available" };
@@ -63,7 +63,6 @@ export async function checkSlugAvailable(
 interface CheckAvailabilityRequest {
   repoName?: string;
   slug?: string;
-  workspaceId?: string;
 }
 
 export const checkCloneAvailability = api(
@@ -75,20 +74,10 @@ export const checkCloneAvailability = api(
   },
   async (req: CheckAvailabilityRequest): Promise<CheckAvailabilityResponse> => {
     const auth = getAuthData()!;
-    const workspaceId = req.workspaceId ?? auth.workspaceId;
 
     if (!req.repoName && !req.slug) {
       throw APIError.invalidArgument(
         "at least one of repoName or slug must be provided"
-      );
-    }
-
-    // FR-018 — workspace scoping. Cross-workspace checks would let a member
-    // of org A probe slug uniqueness in workspace B without context-switching;
-    // refuse rather than silently widen scope.
-    if (workspaceId !== auth.workspaceId) {
-      throw APIError.permissionDenied(
-        "workspaceId must match the caller's active workspace"
       );
     }
 
@@ -101,7 +90,7 @@ export const checkCloneAvailability = api(
       if (!isValidProjectSlug(req.slug)) {
         out.slug = { value: req.slug, state: "invalid", reason: "format" };
       } else {
-        const verdict = await checkSlugAvailable(workspaceId, req.slug);
+        const verdict = await checkSlugAvailable(auth.orgId, req.slug);
         out.slug = { value: req.slug, ...verdict };
       }
     }

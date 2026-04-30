@@ -67,8 +67,8 @@ pub struct ServerMeta {
     pub correlation_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub causation_id: Option<String>,
-    pub workspace_cursor: String,
-    pub workspace_id: String,
+    pub org_cursor: String,
+    pub org_id: String,
 }
 
 /// Flat counterpart of `ServerEnvelopeWire` in
@@ -160,7 +160,7 @@ pub struct ServerEnvelopeWire {
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
-    pub workspace_id: Option<String>,
+    pub org_id: Option<String>,
     #[serde(default)]
     pub factory_adapter_id: Option<String>,
     #[serde(default)]
@@ -296,8 +296,6 @@ pub enum OutboundFrame {
     #[serde(rename = "agent.catalog.fetch_request")]
     AgentCatalogFetchRequest {
         meta: EnvelopeMeta,
-        #[serde(rename = "workspaceId")]
-        workspace_id: String,
         #[serde(rename = "agentId")]
         agent_id: String,
         reason: AgentCatalogFetchReason,
@@ -434,13 +432,11 @@ impl SyncClientInner {
     /// is not connected.
     pub async fn send_agent_catalog_fetch_request(
         &self,
-        workspace_id: &str,
         agent_id: &str,
         reason: AgentCatalogFetchReason,
     ) -> bool {
         let frame = OutboundFrame::AgentCatalogFetchRequest {
             meta: new_meta(),
-            workspace_id: workspace_id.to_string(),
             agent_id: agent_id.to_string(),
             reason,
             observed_at: chrono::Utc::now().to_rfc3339(),
@@ -742,11 +738,11 @@ async fn handle_text_frame(
         return;
     }
 
-    // Update the last observed workspace cursor so we can resume on reconnect.
-    if !envelope.meta.workspace_cursor.is_empty()
+    // Update the last observed org cursor so we can resume on reconnect.
+    if !envelope.meta.org_cursor.is_empty()
         && let Ok(mut g) = last_cursor.write()
     {
-        *g = Some(envelope.meta.workspace_cursor.clone());
+        *g = Some(envelope.meta.org_cursor.clone());
     }
 
     match envelope.kind.as_str() {
@@ -826,8 +822,8 @@ mod tests {
             sent_at: "2026-04-21T00:00:00Z".into(),
             correlation_id: None,
             causation_id: None,
-            workspace_cursor: cursor.into(),
-            workspace_id: "ws-1".into(),
+            org_cursor: cursor.into(),
+            org_id: "org-1".into(),
         }
     }
 
@@ -870,7 +866,7 @@ mod tests {
             generated_at: None,
             slug: None,
             description: None,
-            workspace_id: None,
+            org_id: None,
             factory_adapter_id: None,
             detection_level: None,
             repo: None,
@@ -906,11 +902,11 @@ mod tests {
             "v": 1,
             "eventId": "e1",
             "sentAt": "2026-04-23T00:00:00Z",
-            "workspaceCursor": "c-1",
-            "workspaceId": "ws-1"
+            "orgCursor": "c-1",
+            "orgId": "org-1"
           },
           "projectId": "p-1",
-          "workspaceId": "ws-1",
+          "orgId": "org-1",
           "name": "Portal",
           "slug": "portal",
           "description": "desc",
@@ -961,8 +957,8 @@ mod tests {
             "v": 1,
             "eventId": "e1",
             "sentAt": "2026-04-21T00:00:00Z",
-            "workspaceCursor": "cur-42",
-            "workspaceId": "ws-1"
+            "orgCursor": "cur-42",
+            "orgId": "org-1"
           },
           "projectId": "p1",
           "pipelineId": "pl-1",
@@ -990,7 +986,7 @@ mod tests {
             env.knowledge.as_ref().unwrap()[0].content_hash,
             "abc".to_string()
         );
-        assert_eq!(env.meta.workspace_cursor, "cur-42");
+        assert_eq!(env.meta.org_cursor, "cur-42");
     }
 
     #[test]
@@ -1146,8 +1142,8 @@ mod tests {
             "v": 1,
             "eventId": "e-ag",
             "sentAt": "2026-04-22T00:00:00Z",
-            "workspaceCursor": "cur-1",
-            "workspaceId": "ws-1"
+            "orgCursor": "cur-1",
+            "orgId": "org-1"
           },
           "agentId": "a-1",
           "name": "triage",
@@ -1181,8 +1177,8 @@ mod tests {
             "v": 1,
             "eventId": "e-snap",
             "sentAt": "2026-04-22T00:00:00Z",
-            "workspaceCursor": "cur-2",
-            "workspaceId": "ws-1"
+            "orgCursor": "cur-2",
+            "orgId": "org-1"
           },
           "entries": [
             {
@@ -1217,14 +1213,12 @@ mod tests {
                 correlation_id: None,
                 causation_id: None,
             },
-            workspace_id: "ws-1".into(),
             agent_id: "a-1".into(),
             reason: AgentCatalogFetchReason::HashMismatch,
             observed_at: "2026-04-22T00:00:01Z".into(),
         };
         let json = serde_json::to_value(&frame).unwrap();
         assert_eq!(json["kind"], "agent.catalog.fetch_request");
-        assert_eq!(json["workspaceId"], "ws-1");
         assert_eq!(json["agentId"], "a-1");
         assert_eq!(json["reason"], "hash_mismatch");
         assert_eq!(json["observedAt"], "2026-04-22T00:00:01Z");
@@ -1239,7 +1233,6 @@ mod tests {
 
         let sent = inner
             .send_agent_catalog_fetch_request(
-                "ws-1",
                 "a-1",
                 AgentCatalogFetchReason::CacheMiss,
             )
@@ -1249,12 +1242,10 @@ mod tests {
         let frame = rx.recv().await.expect("frame on channel");
         match frame {
             OutboundFrame::AgentCatalogFetchRequest {
-                workspace_id,
                 agent_id,
                 reason,
                 ..
             } => {
-                assert_eq!(workspace_id, "ws-1");
                 assert_eq!(agent_id, "a-1");
                 assert!(matches!(reason, AgentCatalogFetchReason::CacheMiss));
             }

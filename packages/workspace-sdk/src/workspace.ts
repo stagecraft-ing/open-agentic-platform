@@ -5,21 +5,9 @@
  * knowledge intake, and factory execution.
  */
 
-import type { PlatformRole } from "./auth";
-
 // ---------------------------------------------------------------------------
 // Core entities
 // ---------------------------------------------------------------------------
-
-export interface Workspace {
-  id: string;
-  orgId: string;
-  name: string;
-  slug: string;
-  objectStoreBucket: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface Organization {
   id: string;
@@ -34,7 +22,6 @@ export interface Organization {
 export interface Project {
   id: string;
   orgId: string;
-  workspaceId: string;
   name: string;
   slug: string;
   description: string;
@@ -79,35 +66,3 @@ export interface ProjectMember {
 
 export type ProjectMemberRole = "viewer" | "developer" | "deployer" | "admin";
 
-// ---------------------------------------------------------------------------
-// Workspace membership
-// ---------------------------------------------------------------------------
-
-export interface WorkspaceMember {
-  userId: string;
-  orgId: string;
-  platformRole: PlatformRole;
-  githubLogin: string;
-  avatarUrl?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Request / Response types for workspace CRUD
-// ---------------------------------------------------------------------------
-
-export interface CreateWorkspaceRequest {
-  name: string;
-  slug: string;
-}
-
-export interface UpdateWorkspaceRequest {
-  name?: string;
-}
-
-export interface ListWorkspacesResponse {
-  workspaces: Workspace[];
-}
-
-export interface GetWorkspaceResponse {
-  workspace: Workspace;
-}

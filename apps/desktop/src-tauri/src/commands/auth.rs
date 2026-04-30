@@ -460,7 +460,7 @@ pub async fn auth_handle_callback(
             client.set_auth_token(&data.access_token);
             keychain_set("session", &data.access_token);
             keychain_set("refresh_token", &data.refresh_token);
-            client.set_workspace_id(&data.org.org_id);
+            client.set_org_id(&data.org.org_id);
             Ok(AuthResult::Authenticated {
                 user: data.user.into(),
                 org: data.org.into(),
@@ -517,7 +517,7 @@ pub async fn auth_select_org(
     client.set_auth_token(&data.access_token);
     keychain_set("session", &data.access_token);
     keychain_set("refresh_token", &data.refresh_token);
-    client.set_workspace_id(&data.org.org_id);
+    client.set_org_id(&data.org.org_id);
 
     Ok(AuthResult::Authenticated {
         user: data.user.into(),

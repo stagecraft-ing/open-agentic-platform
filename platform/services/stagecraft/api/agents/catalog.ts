@@ -1,13 +1,17 @@
 /**
- * Spec 111 Phase 1 — Org-managed Agent Catalog CRUD.
+ * Spec 111 Phase 1 (amended by spec 119) — Project-managed Agent Catalog CRUD.
  *
- * Authoritative per-workspace agent definitions. Drafts mutate in place
+ * Authoritative per-project agent definitions. Drafts mutate in place
  * (bumping `content_hash`); publication promotes a draft to the next
  * version and auto-retires the prior published row for the same
- * (workspace_id, name). Retirement is a status flip; no hard delete.
+ * (project_id, name). Retirement is a status flip; no hard delete.
  *
  * Phase 1 is CRUD only — the duplex envelopes that push published state
  * to connected OPCs land in Phase 3 (see spec 111 §7 Rollout).
+ *
+ * Spec 119: agents are project-scoped. Every endpoint either takes a
+ * `:projectId` path param or resolves the project via the row's `:id`,
+ * and the caller's org is verified against `projects.org_id`.
  */
 
 import { createHash } from "node:crypto";
@@ -17,6 +21,7 @@ import { db } from "../db/drizzle";
 import {
   agentCatalog,
   agentCatalogAudit,
+  projects,
   type AgentCatalogAuditAction,
   type AgentCatalogStatus,
 } from "../db/schema";
@@ -36,7 +41,7 @@ export type { CatalogFrontmatter };
 
 export type CatalogAgent = {
   id: string;
-  workspace_id: string;
+  project_id: string;
   name: string;
   version: number;
   status: AgentCatalogStatus;
@@ -49,13 +54,14 @@ export type CatalogAgent = {
 };
 
 type CreateAgentRequest = {
+  projectId: string;
   name: string;
   frontmatter: CatalogFrontmatter;
   body_markdown: string;
 };
 type CreateAgentResponse = { agent: CatalogAgent };
 
-type ListAgentsRequest = { status?: AgentCatalogStatus };
+type ListAgentsRequest = { projectId: string; status?: AgentCatalogStatus };
 type ListAgentsResponse = { agents: CatalogAgent[] };
 
 type GetAgentRequest = { id: string };
@@ -82,7 +88,7 @@ type ForkAgentResponse = { agent: CatalogAgent };
 export type CatalogAuditEntry = {
   id: string;
   agent_id: string;
-  workspace_id: string;
+  project_id: string;
   action: AgentCatalogAuditAction;
   actor_user_id: string;
   before: Record<string, unknown> | null;
@@ -139,7 +145,7 @@ type AgentRow = typeof agentCatalog.$inferSelect;
 function toWire(row: AgentRow): CatalogAgent {
   return {
     id: row.id,
-    workspace_id: row.workspaceId,
+    project_id: row.projectId,
     name: row.name,
     version: row.version,
     status: row.status,
@@ -160,7 +166,7 @@ function toWire(row: AgentRow): CatalogAgent {
 function auditSnapshot(row: AgentRow): Record<string, unknown> {
   return {
     id: row.id,
-    workspace_id: row.workspaceId,
+    project_id: row.projectId,
     name: row.name,
     version: row.version,
     status: row.status,
@@ -173,7 +179,7 @@ function auditSnapshot(row: AgentRow): Record<string, unknown> {
 async function recordAudit(
   entry: {
     agentId: string;
-    workspaceId: string;
+    projectId: string;
     action: AgentCatalogAuditAction;
     actorUserId: string;
     before?: AgentRow | null;
@@ -183,7 +189,7 @@ async function recordAudit(
 ): Promise<void> {
   await tx.insert(agentCatalogAudit).values({
     agentId: entry.agentId,
-    workspaceId: entry.workspaceId,
+    projectId: entry.projectId,
     action: entry.action,
     actorUserId: entry.actorUserId,
     before: entry.before ? auditSnapshot(entry.before) : null,
@@ -191,16 +197,27 @@ async function recordAudit(
   });
 }
 
-function requireWorkspaceAuth(): { userId: string; workspaceId: string; platformRole: string } {
-  const auth = getAuthData()!;
-  if (!auth.workspaceId) {
-    throw APIError.failedPrecondition(
-      "no active workspace for this session; pick a workspace first",
-    );
+/** Verify the project exists and belongs to the caller's org; throw 404 if not. */
+async function verifyProjectInOrg(projectId: string, orgId: string): Promise<void> {
+  const [row] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
+    .limit(1);
+  if (!row) {
+    throw APIError.notFound("project not found");
   }
+}
+
+function requireOrgAuth(): {
+  userId: string;
+  orgId: string;
+  platformRole: string;
+} {
+  const auth = getAuthData()!;
   return {
     userId: auth.userID,
-    workspaceId: auth.workspaceId,
+    orgId: auth.orgId,
     platformRole: auth.platformRole,
   };
 }
@@ -208,7 +225,7 @@ function requireWorkspaceAuth(): { userId: string; workspaceId: string; platform
 function requirePublishRole(platformRole: string) {
   if (platformRole !== "owner" && platformRole !== "admin") {
     throw APIError.permissionDenied(
-      "publishing or retiring agents requires workspace admin",
+      "publishing or retiring agents requires org admin",
     );
   }
 }
@@ -216,12 +233,12 @@ function requirePublishRole(platformRole: string) {
 async function loadAgent(
   tx: typeof db,
   id: string,
-  workspaceId: string,
+  projectId: string,
 ): Promise<AgentRow> {
   const rows = await tx
     .select()
     .from(agentCatalog)
-    .where(and(eq(agentCatalog.id, id), eq(agentCatalog.workspaceId, workspaceId)))
+    .where(and(eq(agentCatalog.id, id), eq(agentCatalog.projectId, projectId)))
     .limit(1);
   if (rows.length === 0) {
     throw APIError.notFound("agent not found");
@@ -229,16 +246,33 @@ async function loadAgent(
   return rows[0];
 }
 
+/** Resolve an agent id → its project, asserting the project lives in the caller's org. */
+async function resolveAgentProject(
+  agentId: string,
+  orgId: string,
+): Promise<string> {
+  const [row] = await db
+    .select({ projectId: agentCatalog.projectId })
+    .from(agentCatalog)
+    .where(eq(agentCatalog.id, agentId))
+    .limit(1);
+  if (!row) {
+    throw APIError.notFound("agent not found");
+  }
+  await verifyProjectInOrg(row.projectId, orgId);
+  return row.projectId;
+}
+
 async function nextVersion(
   tx: typeof db,
-  workspaceId: string,
+  projectId: string,
   name: string,
 ): Promise<number> {
   const [row] = await tx
     .select({ max: max(agentCatalog.version) })
     .from(agentCatalog)
     .where(
-      and(eq(agentCatalog.workspaceId, workspaceId), eq(agentCatalog.name, name)),
+      and(eq(agentCatalog.projectId, projectId), eq(agentCatalog.name, name)),
     );
   return (row?.max ?? 0) + 1;
 }
@@ -248,7 +282,12 @@ async function nextVersion(
 // ---------------------------------------------------------------------------
 
 export const createAgent = api(
-  { expose: true, auth: true, method: "POST", path: "/api/agents" },
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/projects/:projectId/agents",
+  },
   async (req: CreateAgentRequest): Promise<CreateAgentResponse> => {
     if (!KEBAB_CASE.test(req.name)) {
       throw APIError.invalidArgument(
@@ -259,15 +298,20 @@ export const createAgent = api(
       throw APIError.invalidArgument("body_markdown is required");
     }
 
-    const { userId, workspaceId } = requireWorkspaceAuth();
+    const { userId, orgId } = requireOrgAuth();
+    await verifyProjectInOrg(req.projectId, orgId);
     const hash = computeContentHash(req.frontmatter, req.body_markdown);
 
     const inserted = await db.transaction(async (tx) => {
-      const version = await nextVersion(tx as unknown as typeof db, workspaceId, req.name);
+      const version = await nextVersion(
+        tx as unknown as typeof db,
+        req.projectId,
+        req.name,
+      );
       const [row] = await tx
         .insert(agentCatalog)
         .values({
-          workspaceId,
+          projectId: req.projectId,
           name: req.name,
           version,
           status: "draft",
@@ -280,7 +324,7 @@ export const createAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          workspaceId,
+          projectId: req.projectId,
           action: "create",
           actorUserId: userId,
           after: row,
@@ -295,16 +339,22 @@ export const createAgent = api(
 );
 
 export const listAgents = api(
-  { expose: true, auth: true, method: "GET", path: "/api/agents" },
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/projects/:projectId/agents",
+  },
   async (req: ListAgentsRequest): Promise<ListAgentsResponse> => {
-    const { workspaceId } = requireWorkspaceAuth();
+    const { orgId } = requireOrgAuth();
+    await verifyProjectInOrg(req.projectId, orgId);
 
     const where = req.status
       ? and(
-          eq(agentCatalog.workspaceId, workspaceId),
+          eq(agentCatalog.projectId, req.projectId),
           eq(agentCatalog.status, req.status),
         )
-      : eq(agentCatalog.workspaceId, workspaceId);
+      : eq(agentCatalog.projectId, req.projectId);
 
     const rows = await db
       .select()
@@ -320,8 +370,9 @@ export const listAgents = api(
 export const getAgent = api(
   { expose: true, auth: true, method: "GET", path: "/api/agents/:id" },
   async (req: GetAgentRequest): Promise<GetAgentResponse> => {
-    const { workspaceId } = requireWorkspaceAuth();
-    const row = await loadAgent(db, req.id, workspaceId);
+    const { orgId } = requireOrgAuth();
+    const projectId = await resolveAgentProject(req.id, orgId);
+    const row = await loadAgent(db, req.id, projectId);
     return { agent: toWire(row) };
   },
 );
@@ -329,10 +380,11 @@ export const getAgent = api(
 export const patchAgent = api(
   { expose: true, auth: true, method: "PATCH", path: "/api/agents/:id" },
   async (req: PatchAgentRequest): Promise<PatchAgentResponse> => {
-    const { userId, workspaceId } = requireWorkspaceAuth();
+    const { userId, orgId } = requireOrgAuth();
+    const projectId = await resolveAgentProject(req.id, orgId);
 
     const updated = await db.transaction(async (tx) => {
-      const existing = await loadAgent(tx as unknown as typeof db, req.id, workspaceId);
+      const existing = await loadAgent(tx as unknown as typeof db, req.id, projectId);
       if (existing.status !== "draft") {
         throw APIError.failedPrecondition(
           `only drafts may be edited (agent is ${existing.status})`,
@@ -366,7 +418,7 @@ export const patchAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          workspaceId,
+          projectId,
           action: "edit",
           actorUserId: userId,
           before: existing,
@@ -384,11 +436,12 @@ export const patchAgent = api(
 export const publishAgent = api(
   { expose: true, auth: true, method: "POST", path: "/api/agents/:id/publish" },
   async (req: PublishAgentRequest): Promise<PublishAgentResponse> => {
-    const { userId, workspaceId, platformRole } = requireWorkspaceAuth();
+    const { userId, orgId, platformRole } = requireOrgAuth();
     requirePublishRole(platformRole);
+    const projectId = await resolveAgentProject(req.id, orgId);
 
     const result = await db.transaction(async (tx) => {
-      const existing = await loadAgent(tx as unknown as typeof db, req.id, workspaceId);
+      const existing = await loadAgent(tx as unknown as typeof db, req.id, projectId);
       if (existing.status !== "draft") {
         throw APIError.failedPrecondition(
           `only drafts may be published (agent is ${existing.status})`,
@@ -396,13 +449,13 @@ export const publishAgent = api(
       }
 
       // Auto-retire any currently-published sibling for the same
-      // (workspace, name). Keeps "published" a single active row per name.
+      // (project, name). Keeps "published" a single active row per name.
       const priorPublished = await tx
         .select()
         .from(agentCatalog)
         .where(
           and(
-            eq(agentCatalog.workspaceId, workspaceId),
+            eq(agentCatalog.projectId, projectId),
             eq(agentCatalog.name, existing.name),
             eq(agentCatalog.status, "published"),
             ne(agentCatalog.id, existing.id),
@@ -419,7 +472,7 @@ export const publishAgent = api(
         await recordAudit(
           {
             agentId: row.id,
-            workspaceId,
+            projectId,
             action: "retire",
             actorUserId: userId,
             before: prior,
@@ -442,7 +495,7 @@ export const publishAgent = api(
       await recordAudit(
         {
           agentId: published.id,
-          workspaceId,
+          projectId,
           action: "publish",
           actorUserId: userId,
           before: existing,
@@ -454,12 +507,12 @@ export const publishAgent = api(
       return { published, retired };
     });
 
-    // Spec 111 §2.3 Phase 3 — broadcast the terminal-state rows to every OPC
-    // connected to the workspace. The broadcast runs after the transaction
-    // commits so a fan-out failure never leaves the catalog ahead of the
-    // wire. Emit retired first so a desktop with both envelopes inflight
-    // applies "retired → published" in an order its local cache merge
-    // semantics already handle (spec 111 §2.4).
+    // Spec 111 §2.3 Phase 3 (amended by spec 119) — broadcast the
+    // terminal-state rows to every OPC connected to the org. The
+    // broadcast runs after the transaction commits so a fan-out failure
+    // never leaves the catalog ahead of the wire. Emit retired first so
+    // a desktop with both envelopes inflight applies "retired → published"
+    // in an order its local cache merge semantics already handle.
     if (result.retired) {
       await publishAgentCatalogUpdated(result.retired);
     }
@@ -475,11 +528,12 @@ export const publishAgent = api(
 export const retireAgent = api(
   { expose: true, auth: true, method: "POST", path: "/api/agents/:id/retire" },
   async (req: RetireAgentRequest): Promise<RetireAgentResponse> => {
-    const { userId, workspaceId, platformRole } = requireWorkspaceAuth();
+    const { userId, orgId, platformRole } = requireOrgAuth();
     requirePublishRole(platformRole);
+    const projectId = await resolveAgentProject(req.id, orgId);
 
     const retired = await db.transaction(async (tx) => {
-      const existing = await loadAgent(tx as unknown as typeof db, req.id, workspaceId);
+      const existing = await loadAgent(tx as unknown as typeof db, req.id, projectId);
       if (existing.status !== "published") {
         throw APIError.failedPrecondition(
           `only published agents may be retired (agent is ${existing.status})`,
@@ -493,7 +547,7 @@ export const retireAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          workspaceId,
+          projectId,
           action: "retire",
           actorUserId: userId,
           before: existing,
@@ -513,11 +567,12 @@ export const retireAgent = api(
 export const listAgentAudit = api(
   { expose: true, auth: true, method: "GET", path: "/api/agents/:id/audit" },
   async (req: ListAgentAuditRequest): Promise<ListAgentAuditResponse> => {
-    const { workspaceId } = requireWorkspaceAuth();
-    // Authorise by loading the row under the workspace scope first — the
-    // audit rows themselves carry workspace_id but leaning on the catalog
+    const { orgId } = requireOrgAuth();
+    const projectId = await resolveAgentProject(req.id, orgId);
+    // Authorise by loading the row under the project scope first — the
+    // audit rows themselves carry project_id but leaning on the catalog
     // row guarantees "cannot query audit for an agent you cannot read".
-    await loadAgent(db, req.id, workspaceId);
+    await loadAgent(db, req.id, projectId);
 
     const rows = await db
       .select()
@@ -525,7 +580,7 @@ export const listAgentAudit = api(
       .where(
         and(
           eq(agentCatalogAudit.agentId, req.id),
-          eq(agentCatalogAudit.workspaceId, workspaceId),
+          eq(agentCatalogAudit.projectId, projectId),
         ),
       )
       .orderBy(desc(agentCatalogAudit.createdAt))
@@ -535,7 +590,7 @@ export const listAgentAudit = api(
       entries: rows.map((r) => ({
         id: r.id,
         agent_id: r.agentId,
-        workspace_id: r.workspaceId,
+        project_id: r.projectId,
         action: r.action,
         actor_user_id: r.actorUserId,
         before: (r.before as Record<string, unknown> | null) ?? null,
@@ -554,10 +609,11 @@ export const forkAgent = api(
         `new_name must be kebab-case (matching ${KEBAB_CASE.source})`,
       );
     }
-    const { userId, workspaceId } = requireWorkspaceAuth();
+    const { userId, orgId } = requireOrgAuth();
+    const projectId = await resolveAgentProject(req.id, orgId);
 
     const forked = await db.transaction(async (tx) => {
-      const source = await loadAgent(tx as unknown as typeof db, req.id, workspaceId);
+      const source = await loadAgent(tx as unknown as typeof db, req.id, projectId);
       if (source.name === req.new_name) {
         throw APIError.invalidArgument(
           "new_name must differ from the source agent's name",
@@ -566,7 +622,7 @@ export const forkAgent = api(
 
       const version = await nextVersion(
         tx as unknown as typeof db,
-        workspaceId,
+        projectId,
         req.new_name,
       );
       const frontmatter = source.frontmatter as CatalogFrontmatter;
@@ -575,7 +631,7 @@ export const forkAgent = api(
       const [row] = await tx
         .insert(agentCatalog)
         .values({
-          workspaceId,
+          projectId,
           name: req.new_name,
           version,
           status: "draft",
@@ -589,7 +645,7 @@ export const forkAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          workspaceId,
+          projectId,
           action: "fork",
           actorUserId: userId,
           before: source,

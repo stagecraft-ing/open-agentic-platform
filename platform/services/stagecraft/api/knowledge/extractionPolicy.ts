@@ -1,10 +1,10 @@
-// Spec 115 FR-017 — workspace policy slice that gates extractor invocations.
+// Spec 115 FR-017 — project policy slice that gates extractor invocations.
 //
-// The policy compiler (spec 047 / crates/policy-kernel) emits per-workspace
-// JSON snapshots at `build/policy/workspaces/{workspaceId}.json`. This
+// The policy compiler (spec 047 / crates/policy-kernel) emits per-project
+// JSON snapshots at `build/policy/projects/{projectId}.json`. This
 // resolver reads them on demand with a 30s in-memory cache and falls back
 // to the deterministic-only policy when no snapshot exists for the
-// workspace yet (brand-new workspaces, bundle-pending state per spec §4
+// project yet (brand-new projects, bundle-pending state per spec §4
 // edge cases).
 //
 // Snapshot shape:
@@ -32,7 +32,7 @@ export type ExtractionPolicy = {
   /**
    * Pinned model id for agent extractors. When unset, the agent extractor
    * falls back to its own default. Pinning makes `promptFingerprint`
-   * stable across workspaces.
+   * stable across projects.
    */
   modelPin?: string;
   /** Per-call USD ceiling (FR-018). Pre-flight estimate must fit under this. */
@@ -77,7 +77,7 @@ function getPolicyDir(): string {
   }
   // Default location matches the policy compiler output (spec 047): the
   // monorepo `build/` directory, walked up from the stagecraft module.
-  return path.resolve(process.cwd(), "build", "policy", "workspaces");
+  return path.resolve(process.cwd(), "build", "policy", "projects");
 }
 
 function isPolicyShape(v: unknown): v is Omit<ExtractionPolicy, "source"> {
@@ -92,9 +92,9 @@ function isPolicyShape(v: unknown): v is Omit<ExtractionPolicy, "source"> {
 }
 
 async function loadPolicySnapshot(
-  workspaceId: string,
+  projectId: string,
 ): Promise<ExtractionPolicy | null> {
-  const filePath = path.join(getPolicyDir(), `${workspaceId}.json`);
+  const filePath = path.join(getPolicyDir(), `${projectId}.json`);
   try {
     await stat(filePath);
   } catch {
@@ -105,7 +105,7 @@ async function loadPolicySnapshot(
     const parsed = JSON.parse(buf);
     if (!isPolicyShape(parsed)) {
       log.warn("extraction policy snapshot schema mismatch; using fallback", {
-        workspaceId,
+        projectId,
         path: filePath,
       });
       return null;
@@ -120,7 +120,7 @@ async function loadPolicySnapshot(
     };
   } catch (err) {
     log.warn("extraction policy snapshot read failed; using fallback", {
-      workspaceId,
+      projectId,
       path: filePath,
       err: err instanceof Error ? err.message : String(err),
     });
@@ -129,21 +129,21 @@ async function loadPolicySnapshot(
 }
 
 /**
- * Returns the policy slice for a workspace. 30s in-memory cache; stale or
+ * Returns the policy slice for a project. 30s in-memory cache; stale or
  * missing snapshot → deterministic-only fallback (FR-017 / spec §4 edge
- * "No policy bundle resolved for the workspace").
+ * "No policy bundle resolved for the project").
  */
 export async function resolveExtractionPolicy(
-  workspaceId: string,
+  projectId: string,
 ): Promise<ExtractionPolicy> {
   const now = Date.now();
-  const cached = cache.get(workspaceId);
+  const cached = cache.get(projectId);
   if (cached && now - cached.loadedAt < CACHE_TTL_MS) {
     return cached.policy;
   }
-  const loaded = await loadPolicySnapshot(workspaceId);
+  const loaded = await loadPolicySnapshot(projectId);
   const policy = loaded ?? DEFAULT_DETERMINISTIC_ONLY_POLICY;
-  cache.set(workspaceId, { policy, loadedAt: now });
+  cache.set(projectId, { policy, loadedAt: now });
   return policy;
 }
 

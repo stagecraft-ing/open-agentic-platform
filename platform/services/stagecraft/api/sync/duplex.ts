@@ -4,8 +4,10 @@
  *   WebSocket /api/sync/duplex?clientId=…&clientKind=…&lastServerCursor=…
  *
  * The handshake carries the caller-chosen clientId and clientKind. The
- * authenticated workspaceId is taken from the Rauthy JWT — NOT from the
- * handshake — so a client cannot subscribe to a workspace it does not own.
+ * authenticated orgId is taken from the Rauthy JWT — NOT from the
+ * handshake — so a client cannot subscribe to an org it does not own.
+ *
+ * Spec 119: scope key is `orgId`.
  */
 import { api } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
@@ -41,10 +43,10 @@ export const duplex = api.streamInOut<
   { expose: true, auth: true, path: "/api/sync/duplex" },
   async (handshake, stream) => {
     const auth = getAuthData()!;
-    const workspaceId = auth.workspaceId;
+    const orgId = auth.orgId;
 
-    if (!workspaceId) {
-      log.warn("sync: handshake rejected — no workspace in auth context", {
+    if (!orgId) {
+      log.warn("sync: handshake rejected — no org in auth context", {
         userId: auth.userID,
         clientId: handshake.clientId,
       });
@@ -55,12 +57,12 @@ export const duplex = api.streamInOut<
             v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
-            workspaceId: "",
-            workspaceCursor: "",
+            orgId: "",
+            orgCursor: "",
           },
           clientEventId: "",
           reason: "unauthorized",
-          detail: "no workspace context in auth token",
+          detail: "no org context in auth token",
         })
         .catch(() => undefined);
       await stream.close();
@@ -75,8 +77,8 @@ export const duplex = api.streamInOut<
             v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
-            workspaceId,
-            workspaceCursor: "",
+            orgId,
+            orgCursor: "",
           },
           clientEventId: "",
           reason: "invalid",
@@ -88,26 +90,24 @@ export const duplex = api.streamInOut<
     }
 
     const sessionMeta: SessionMeta = {
-      workspaceId,
+      orgId,
       clientId: handshake.clientId,
       clientKind: handshake.clientKind ?? "unknown",
       userId: auth.userID,
-      orgId: auth.orgId,
       connectedAt: new Date(),
       lastHeartbeatAt: new Date(),
     };
     registry.register({ meta: sessionMeta, stream });
 
     const ctx: InboundContext = {
-      workspaceId,
+      orgId,
       clientId: handshake.clientId,
       userId: auth.userID,
-      orgId: auth.orgId,
     };
 
     // Greet the client with a ServerHello so it sees the current cursor and
     // session ID before any other traffic.
-    const lastCursor = cursors.peek(workspaceId);
+    const lastCursor = cursors.peek(orgId);
     const cursorGap =
       handshake.lastServerCursor !== undefined &&
       lastCursor !== undefined &&
@@ -119,10 +119,10 @@ export const duplex = api.streamInOut<
         v: ENVELOPE_SCHEMA_VERSION,
         eventId: randomUUID(),
         sentAt: new Date().toISOString(),
-        workspaceId,
-        workspaceCursor: lastCursor ?? cursors.next(workspaceId),
+        orgId,
+        orgCursor: lastCursor ?? cursors.next(orgId),
       },
-      sessionId: `${workspaceId}:${handshake.clientId}`,
+      sessionId: `${orgId}:${handshake.clientId}`,
       serverStartedAt: SERVER_STARTED_AT,
       cursorGap,
     };
@@ -136,32 +136,34 @@ export const duplex = api.streamInOut<
             v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
-            workspaceId,
-            workspaceCursor: cursors.next(workspaceId),
+            orgId,
+            orgCursor: cursors.next(orgId),
           },
           reason: "cursor_gap",
         })
         .catch(() => undefined);
     }
 
-    // Spec 111 §2.3 Phase 3 — post-handshake catalog directory. Sent to every
+    // Spec 111 §2.3 Phase 3 (amended by spec 119) — post-handshake catalog
+    // directory spans every project in the session's org. Sent to every
     // connecting OPC so a desktop that missed incremental updates can diff
-    // hashes against its local cache and pull only what changed. Fire-and-log:
-    // a DB hiccup here must not stop the duplex session from running.
-    void sendAgentCatalogSnapshot(workspaceId, handshake.clientId).catch((err) => {
+    // hashes against its local cache and pull only what changed.
+    // Fire-and-log: a DB hiccup here must not stop the duplex session.
+    void sendAgentCatalogSnapshot(orgId, handshake.clientId).catch((err) => {
       log.warn("sync: agent.catalog.snapshot post-handshake send failed", {
-        workspaceId,
+        orgId,
         clientId: handshake.clientId,
         err: err instanceof Error ? err.message : String(err),
       });
     });
 
-    // Spec 112 Phase 8 — post-handshake project list, one upsert per row
-    // so the OPC's Projects panel renders without a follow-up round-trip.
-    // Same fire-and-log posture as the agent snapshot above.
-    void sendProjectCatalogSnapshot(workspaceId, handshake.clientId).catch((err) => {
+    // Spec 112 Phase 8 (amended by spec 119) — post-handshake project list,
+    // one upsert per row across the org so the OPC's Projects panel renders
+    // without a follow-up round-trip. Same fire-and-log posture as the
+    // agent snapshot above.
+    void sendProjectCatalogSnapshot(orgId, handshake.clientId).catch((err) => {
       log.warn("sync: project.catalog snapshot post-handshake send failed", {
-        workspaceId,
+        orgId,
         clientId: handshake.clientId,
         err: err instanceof Error ? err.message : String(err),
       });
@@ -171,14 +173,14 @@ export const duplex = api.streamInOut<
     let heartbeatAlive = true;
     const heartbeatTimer = setInterval(() => {
       registry
-        .sendTo(workspaceId, handshake.clientId, {
+        .sendTo(orgId, handshake.clientId, {
           kind: "sync.heartbeat",
           meta: {
             v: ENVELOPE_SCHEMA_VERSION,
             eventId: randomUUID(),
             sentAt: new Date().toISOString(),
-            workspaceId,
-            workspaceCursor: cursors.peek(workspaceId) ?? "",
+            orgId,
+            orgCursor: cursors.peek(orgId) ?? "",
           },
         })
         .then((ok) => {
@@ -217,13 +219,13 @@ export const duplex = api.streamInOut<
       }
     } catch (err) {
       log.warn("sync: duplex stream error", {
-        workspaceId,
+        orgId,
         clientId: handshake.clientId,
         err: err instanceof Error ? err.message : String(err),
       });
     } finally {
       clearInterval(heartbeatTimer);
-      registry.unregister(workspaceId, handshake.clientId);
+      registry.unregister(orgId, handshake.clientId);
     }
   },
 );

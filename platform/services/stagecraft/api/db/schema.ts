@@ -587,9 +587,9 @@ export const factoryArtifacts = pgTable("factory_artifacts", {
   contentHash: text("content_hash").notNull(),
   storagePath: text("storage_path").notNull(),
   sizeBytes: integer("size_bytes").notNull().default(0),
-  // Project scoping (spec 094 Slice 5; renamed from workspace_id by spec 119
-  // Phase C). Nullable — pre-collapse rows carry an orphan UUID that no
-  // longer resolves to anything.
+  // Project scoping (spec 094 Slice 5; the prior workspace-keyed column was
+  // renamed by spec 119 Phase C). Nullable — pre-collapse rows carry an
+  // orphan UUID that no longer resolves to anything.
   projectId: uuid("project_id"),
   // Provenance: which agent produced this artifact (spec 094 Slice 5).
   producerAgent: text("producer_agent"),
@@ -607,7 +607,7 @@ export const promotionStatusEnum = pgEnum("promotion_status", [
   "revoked",
 ]);
 
-// Spec 119 Phase C — workspace_id renamed to project_id. Pre-collapse rows
+// Spec 119 Phase C — promotions are now project-scoped. Pre-collapse rows
 // carry an orphan UUID that no longer resolves; new writes use the real
 // destination project.
 export const promotions = pgTable("promotions", {
@@ -950,8 +950,8 @@ export const projectCloneRuns = pgTable(
     finalRepoName: text("final_repo_name"),
     defaultBranch: text("default_branch"),
     destRepoFullName: text("dest_repo_full_name"),
-    // Spec 119: workspace_id dropped — org_id captures listing scope; the
-    // (nullable) project_id below is the destination project once created.
+    // Spec 119 — org_id captures listing scope; the (nullable) project_id
+    // below is the destination project once created.
     projectId: uuid("project_id"),
     opcDeepLink: text("opc_deep_link"),
     rawArtifactsCopied: integer("raw_artifacts_copied"),

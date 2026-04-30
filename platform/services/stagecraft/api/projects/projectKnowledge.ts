@@ -1,8 +1,8 @@
-// Spec 087 Phase 2 + spec 112 §6 — project-scoped knowledge views and the
-// per-artifact "Advance to extracted" transition.
+// Spec 087 Phase 2 + spec 112 §6 (amended by spec 119) — project-scoped
+// knowledge views and the per-artifact "Advance to extracted" transition.
 //
 // These endpoints sit in the projects service (not `knowledge/`) because
-// they are keyed on a project id and enforce project-in-workspace scoping
+// they are keyed on a project id and enforce project-in-org scoping
 // before touching knowledge rows.
 
 import { spawn } from "node:child_process";
@@ -16,10 +16,8 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   auditLog,
-  documentBindings,
   knowledgeObjects,
   projects,
-  workspaces,
 } from "../db/schema";
 import { getObject, putObject } from "../knowledge/storage";
 
@@ -35,7 +33,7 @@ export interface ProjectKnowledgeObject {
   storageKey: string;
   extractedStorageKey: string | null;
   provenance: Record<string, unknown>;
-  boundAt: string;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -52,7 +50,7 @@ export const listProjectKnowledge = api(
     projectId: string;
   }): Promise<{ objects: ProjectKnowledgeObject[] }> => {
     const auth = getAuthData()!;
-    await assertProjectInWorkspace(req.projectId, auth.workspaceId);
+    await assertProjectInOrg(req.projectId, auth.orgId);
 
     const rows = await db
       .select({
@@ -65,16 +63,12 @@ export const listProjectKnowledge = api(
         storageKey: knowledgeObjects.storageKey,
         extractionOutput: knowledgeObjects.extractionOutput,
         provenance: knowledgeObjects.provenance,
+        createdAt: knowledgeObjects.createdAt,
         updatedAt: knowledgeObjects.updatedAt,
-        boundAt: documentBindings.boundAt,
       })
-      .from(documentBindings)
-      .innerJoin(
-        knowledgeObjects,
-        eq(knowledgeObjects.id, documentBindings.knowledgeObjectId)
-      )
-      .where(eq(documentBindings.projectId, req.projectId))
-      .orderBy(desc(documentBindings.boundAt));
+      .from(knowledgeObjects)
+      .where(eq(knowledgeObjects.projectId, req.projectId))
+      .orderBy(desc(knowledgeObjects.createdAt));
 
     return {
       objects: rows.map((r) => ({
@@ -87,7 +81,7 @@ export const listProjectKnowledge = api(
         storageKey: r.storageKey,
         extractedStorageKey: readExtractedKey(r.extractionOutput),
         provenance: (r.provenance ?? {}) as Record<string, unknown>,
-        boundAt: r.boundAt.toISOString(),
+        createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
       })),
     };
@@ -127,34 +121,29 @@ export const advanceKnowledgeToExtracted = api(
     objectId: string;
   }): Promise<AdvanceKnowledgeToExtractedResponse> => {
     const auth = getAuthData()!;
-    await assertProjectInWorkspace(req.projectId, auth.workspaceId);
+    await assertProjectInOrg(req.projectId, auth.orgId);
 
     const [obj] = await db
       .select({
         id: knowledgeObjects.id,
-        workspaceId: knowledgeObjects.workspaceId,
+        projectId: knowledgeObjects.projectId,
         storageKey: knowledgeObjects.storageKey,
         filename: knowledgeObjects.filename,
         mimeType: knowledgeObjects.mimeType,
         state: knowledgeObjects.state,
       })
       .from(knowledgeObjects)
-      .innerJoin(
-        documentBindings,
-        eq(documentBindings.knowledgeObjectId, knowledgeObjects.id)
-      )
       .where(
         and(
           eq(knowledgeObjects.id, req.objectId),
-          eq(documentBindings.projectId, req.projectId),
-          eq(knowledgeObjects.workspaceId, auth.workspaceId)
+          eq(knowledgeObjects.projectId, req.projectId)
         )
       )
       .limit(1);
 
     if (!obj) {
       throw APIError.notFound(
-        "knowledge object not bound to this project"
+        "knowledge object not found in this project"
       );
     }
     if (obj.state !== "imported") {
@@ -163,7 +152,7 @@ export const advanceKnowledgeToExtracted = api(
       );
     }
 
-    const bucket = await loadWorkspaceBucket(obj.workspaceId);
+    const bucket = await loadProjectBucket(obj.projectId);
 
     // Move imported → extracting before shelling out so concurrent callers
     // see the in-flight transition.
@@ -276,32 +265,32 @@ export const advanceKnowledgeToExtracted = api(
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-async function assertProjectInWorkspace(
+async function assertProjectInOrg(
   projectId: string,
-  workspaceId: string
+  orgId: string
 ): Promise<void> {
   const [p] = await db
     .select({ id: projects.id })
     .from(projects)
     .where(
-      and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId))
+      and(eq(projects.id, projectId), eq(projects.orgId, orgId))
     )
     .limit(1);
   if (!p) {
-    throw APIError.notFound("project not found in workspace");
+    throw APIError.notFound("project not found in org");
   }
 }
 
-async function loadWorkspaceBucket(workspaceId: string): Promise<string> {
-  const [ws] = await db
-    .select({ bucket: workspaces.objectStoreBucket })
-    .from(workspaces)
-    .where(eq(workspaces.id, workspaceId))
+async function loadProjectBucket(projectId: string): Promise<string> {
+  const [p] = await db
+    .select({ bucket: projects.objectStoreBucket })
+    .from(projects)
+    .where(eq(projects.id, projectId))
     .limit(1);
-  if (!ws) {
-    throw APIError.notFound("workspace not found");
+  if (!p) {
+    throw APIError.notFound("project not found");
   }
-  return ws.bucket;
+  return p.bucket;
 }
 
 function artifactExtractBinary(): string {

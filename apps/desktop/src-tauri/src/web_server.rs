@@ -248,7 +248,7 @@ pub struct ClaudeExecutionRequest {
     pub model: Option<String>,
     pub session_id: Option<String>,
     pub command_type: String, // "execute", "continue", or "resume"
-    pub workspace_id: Option<String>,
+    pub org_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -509,7 +509,7 @@ async fn claude_websocket_handler(socket: WebSocket, state: AppState) {
                                         request.model.unwrap_or_default(),
                                         session_id_clone.clone(),
                                         state_clone.clone(),
-                                        request.workspace_id.clone(),
+                                        request.org_id.clone(),
                                     )
                                     .await
                                 }
@@ -521,7 +521,7 @@ async fn claude_websocket_handler(socket: WebSocket, state: AppState) {
                                         request.model.unwrap_or_default(),
                                         session_id_clone.clone(),
                                         state_clone.clone(),
-                                        request.workspace_id.clone(),
+                                        request.org_id.clone(),
                                     )
                                     .await
                                 }
@@ -534,7 +534,7 @@ async fn claude_websocket_handler(socket: WebSocket, state: AppState) {
                                         request.model.unwrap_or_default(),
                                         session_id_clone.clone(),
                                         state_clone.clone(),
-                                        request.workspace_id.clone(),
+                                        request.org_id.clone(),
                                     )
                                     .await
                                 }
@@ -629,7 +629,7 @@ async fn execute_claude_command(
     model: String,
     session_id: String,
     state: AppState,
-    workspace_id: Option<String>,
+    org_id: Option<String>,
 ) -> Result<(), String> {
     use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::process::Command;
@@ -694,8 +694,8 @@ async fn execute_claude_command(
     cmd.current_dir(&project_path);
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
-    if let Some(ref ws_id) = workspace_id {
-        cmd.env("OPC_WORKSPACE_ID", ws_id);
+    if let Some(ref oid) = org_id {
+        cmd.env("OPC_WORKSPACE_ID", oid);
     }
 
     // Spawn Claude process
@@ -769,7 +769,7 @@ async fn continue_claude_command(
     model: String,
     session_id: String,
     state: AppState,
-    workspace_id: Option<String>,
+    org_id: Option<String>,
 ) -> Result<(), String> {
     use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::process::Command;
@@ -817,8 +817,8 @@ async fn continue_claude_command(
     cmd.current_dir(&project_path);
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
-    if let Some(ref ws_id) = workspace_id {
-        cmd.env("OPC_WORKSPACE_ID", ws_id);
+    if let Some(ref oid) = org_id {
+        cmd.env("OPC_WORKSPACE_ID", oid);
     }
 
     // Spawn and stream output
@@ -863,7 +863,7 @@ async fn resume_claude_command(
     model: String,
     session_id: String,
     state: AppState,
-    workspace_id: Option<String>,
+    org_id: Option<String>,
 ) -> Result<(), String> {
     use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::process::Command;
@@ -927,8 +927,8 @@ async fn resume_claude_command(
     cmd.current_dir(&project_path);
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
-    if let Some(ref ws_id) = workspace_id {
-        cmd.env("OPC_WORKSPACE_ID", ws_id);
+    if let Some(ref oid) = org_id {
+        cmd.env("OPC_WORKSPACE_ID", oid);
     }
 
     // Spawn and stream output

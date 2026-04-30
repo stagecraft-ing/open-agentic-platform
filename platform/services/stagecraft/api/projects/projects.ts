@@ -441,7 +441,6 @@ export const deleteProject = api(
       orgId: existing[0].orgId,
       project: {
         id: existing[0].id,
-        orgId: existing[0].orgId,
         name: existing[0].name,
         slug: existing[0].slug,
         description: existing[0].description,
