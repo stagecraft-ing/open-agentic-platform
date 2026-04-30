@@ -23,10 +23,10 @@
     "drizzle-kit": "^0.31.10",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.1.13",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vite": "^8.0.10",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^2.1.9"
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1039.0",

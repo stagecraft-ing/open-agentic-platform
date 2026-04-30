@@ -7,7 +7,8 @@
 // empty placeholder.
 
 import React from 'react';
-import { Workflow, FileText, Settings2, Bot, Github } from 'lucide-react';
+import { Workflow, FileText, Settings2, Bot } from 'lucide-react';
+import { GithubIcon } from '@/components/icons/GithubIcon';
 import { Badge } from '@opc/ui/badge';
 import type { OpcBundle } from '@/types/factoryBundle';
 
@@ -82,7 +83,7 @@ export const ProjectContextOverview: React.FC<ProjectContextOverviewProps> = ({
           </div>
           {bundle.repo && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-              <Github className="h-3 w-3" />
+              <GithubIcon className="h-3 w-3" />
               <span className="truncate">
                 {bundle.repo.githubOrg}/{bundle.repo.repoName}
               </span>

@@ -4,6 +4,7 @@
 // "clone & open" actions wired to the existing factory tab handler.
 
 import React, { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Card } from '@opc/ui/card';
 import { useTabState } from '@/hooks/useTabState';
 import {
@@ -14,7 +15,7 @@ import {
 import { ProjectsPanel, type ProjectCatalogEntry } from './ProjectsPanel';
 
 export const WorkspaceProjectsPanel: React.FC = () => {
-  const projects = useProjectCatalogStore(selectProjectsList);
+  const projects = useProjectCatalogStore(useShallow(selectProjectsList));
   const hydrated = useProjectCatalogStore((s) => s.hydrated);
   const { createFactoryTab } = useTabState();
 

@@ -348,6 +348,7 @@ jobs:
 
       # Spec 117 — attach the SBOM to the release alongside the installers.
       - name: Upload SBOM to release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}

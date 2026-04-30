@@ -1273,7 +1273,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
               <motion.div
                 key={virtualItem.key}
                 data-index={virtualItem.index}
-                ref={(el) => el && rowVirtualizer.measureElement(el)}
+                ref={(el) => { if (el) rowVirtualizer.measureElement(el); }}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
