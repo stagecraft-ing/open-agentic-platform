@@ -5,8 +5,8 @@ use factory_engine::{
 };
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, ClaudeCodeExecutor, DispatchOptions, GateHandler,
-    detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory,
-    promotion::SyncTracker,
+    StepEvent, StepEventHandler, detect_resume_plan_for_run, dispatch_manifest,
+    materialize_run_directory, promotion::SyncTracker,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -48,6 +48,74 @@ fn clone_token_env_for_project(project_id: Option<&str>) -> HashMap<String, Stri
                  starting run without GITHUB_TOKEN"
             );
             HashMap::new()
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Step event handler — bridges orchestrator's StepEvent stream to Tauri events
+// so the desktop UI can render terminal-style live output during execution.
+// Mirrors the existing `factory:*` event surface the React side already
+// listens for in FactoryPipelineContext.
+// ---------------------------------------------------------------------------
+
+struct TauriStepEventHandler {
+    app: AppHandle,
+    run_id: String,
+}
+
+impl TauriStepEventHandler {
+    fn new(app: AppHandle, run_id: String) -> Self {
+        Self { app, run_id }
+    }
+}
+
+impl StepEventHandler for TauriStepEventHandler {
+    fn handle(&self, event: StepEvent) {
+        match event {
+            StepEvent::StepStarted { step_id } => {
+                let _ = self.app.emit(
+                    "factory:step_started",
+                    &serde_json::json!({
+                        "runId": self.run_id,
+                        "stepId": step_id,
+                    }),
+                );
+            }
+            StepEvent::AgentOutput { step_id, line } => {
+                let _ = self.app.emit(
+                    "factory:agent_output",
+                    &serde_json::json!({
+                        "runId": self.run_id,
+                        "stepId": step_id,
+                        "line": line,
+                    }),
+                );
+            }
+            StepEvent::StepCompleted {
+                step_id,
+                tokens_used,
+            } => {
+                let _ = self.app.emit(
+                    "factory:step_completed",
+                    &serde_json::json!({
+                        "runId": self.run_id,
+                        "stepId": step_id,
+                        "tokenSpend": tokens_used.unwrap_or(0),
+                        "artifacts": Vec::<String>::new(),
+                    }),
+                );
+            }
+            StepEvent::StepFailed { step_id, error } => {
+                let _ = self.app.emit(
+                    "factory:step_failed",
+                    &serde_json::json!({
+                        "runId": self.run_id,
+                        "stepId": step_id,
+                        "error": error,
+                    }),
+                );
+            }
         }
     }
 }
@@ -844,11 +912,16 @@ pub async fn start_factory_pipeline(
         // own env being mutated.
         let lookup = Arc::new(BridgeLookup(bridge.clone()));
         let extra_env = clone_token_env_for_project(project_id_for_spawn.as_deref());
+        let step_event_handler: Arc<dyn StepEventHandler> = Arc::new(TauriStepEventHandler::new(
+            app_handle.clone(),
+            run_id.to_string(),
+        ));
         let executor = Arc::new(
             ClaudeCodeExecutor::new(project_path.clone())
                 .with_prompt_lookup(lookup)
                 .with_max_turns(25)
-                .with_extra_env(extra_env),
+                .with_extra_env(extra_env)
+                .with_step_event_handler(step_event_handler),
         );
 
         let options = DispatchOptions {
@@ -1604,11 +1677,16 @@ pub async fn resume_factory_pipeline(
     // Spec 112 §6.4.5 — thread the project's clone token through resumed runs
     // too, so re-entry after a pause does not silently downgrade to anon.
     let extra_env = clone_token_env_for_project(stagecraft_project_id.as_deref());
+    let step_event_handler: Arc<dyn StepEventHandler> = Arc::new(TauriStepEventHandler::new(
+        app.clone(),
+        run_uuid.to_string(),
+    ));
     let executor = Arc::new(
         ClaudeCodeExecutor::new(project_path.clone())
             .with_prompt_lookup(lookup)
             .with_max_turns(25)
-            .with_extra_env(extra_env),
+            .with_extra_env(extra_env)
+            .with_step_event_handler(step_event_handler),
     );
 
     // Derive governance mode for resumed pipeline (098 Slice 2).

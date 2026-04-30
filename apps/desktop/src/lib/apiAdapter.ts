@@ -133,18 +133,17 @@ async function restApiCall<T>(endpoint: string, params?: any): Promise<T> {
  */
 export async function apiCall<T>(command: string, params?: any): Promise<T> {
   const isWeb = !detectEnvironment();
-  
+
   if (!isWeb) {
-    // Tauri environment - try invoke
+    // Tauri environment — propagate errors directly. The REST fallback below
+    // can never resolve in a packaged Tauri shell (no API server is bound to
+    // `tauri://localhost`), and silently retrying it just replaces the real
+    // Rust error with WebKit's "The string did not match the expected pattern"
+    // when `fetch`/`URL` reject the synthetic request.
     console.log(`[Tauri] Calling: ${command}`, params);
-    try {
-      return await invoke<T>(command, params);
-    } catch (error) {
-      console.warn(`[Tauri] invoke failed, falling back to web mode:`, error);
-      // Fall through to web mode
-    }
+    return await invoke<T>(command, params);
   }
-  
+
   // Web environment - use REST API
   console.log(`[Web] Calling: ${command}`, params);
   

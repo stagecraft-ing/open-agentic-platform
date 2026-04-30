@@ -1,16 +1,18 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
 // Pipeline selector — start a new pipeline or display the running run ID.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FolderOpen, FolderTree, Play, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists, readDir } from '@tauri-apps/plugin-fs';
+import { api } from '@/lib/api';
 import type { OpcBundle } from '@/types/factoryBundle';
 import { useFactoryPipeline } from './FactoryPipelineContext';
 
 const ADAPTER_FALLBACK = 'next-prisma';
+const PROJECTS_SUBDIR = 'oap-projects';
 const RAW_ARTIFACTS_SUBDIR = '.artifacts/raw';
 const BUSINESS_DOC_EXTENSIONS = new Set(['md', 'txt', 'pdf', 'docx']);
 // Hard cap on recursive folder walks. Business document corpora are small;
@@ -72,6 +74,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   const [starting, setStarting] = useState(false);
   const [pickingFolder, setPickingFolder] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [homeDir, setHomeDir] = useState<string | null>(null);
 
   // Resync adapter when the bundle resolves (e.g. after deep-link handoff).
   useEffect(() => {
@@ -79,18 +82,52 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     if (next) setAdapterName(next);
   }, [bundle?.adapter?.name]);
 
+  // Lazy-load the home directory once. Used to derive a fallback project path
+  // (`<homeDir>/oap-projects/<slug>`) when the panel is opened with a bundle
+  // but the parent tab lost its `projectPath` (e.g. dev reload — the
+  // tab-persistence layer historically dropped `factoryBundle`, so a re-issued
+  // handoff could land on a stale tab whose projectPath was never refreshed).
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .getHomeDirectory()
+      .then((p) => {
+        if (!cancelled) setHomeDir(p || null);
+      })
+      .catch(() => {
+        if (!cancelled) setHomeDir(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Effective project path: prop wins; otherwise derive from the bundle's
+  // canonical clone target. ProjectOpenInbox uses the same `<homeDir>/
+  // oap-projects/<slug>` shape, so the derivation matches what `Clone locally`
+  // would have produced.
+  const effectiveProjectPath = useMemo(() => {
+    const fromProp = projectPath?.trim();
+    if (fromProp) return fromProp;
+    const slug = bundle?.project?.slug;
+    if (homeDir && slug) {
+      return joinPath(joinPath(homeDir, PROJECTS_SUBDIR), slug);
+    }
+    return '';
+  }, [projectPath, bundle?.project?.slug, homeDir]);
+
   // Auto-discover Business Documents from the project's hydrated raw
   // artefacts. Spec 113 / spec 087: clone & import write business inputs
   // into `<project>/.artifacts/raw/`. Pre-populating that here means a
   // freshly cloned project can start its pipeline without manual picking.
   useEffect(() => {
     let cancelled = false;
-    if (!projectPath) {
+    if (!effectiveProjectPath) {
       setBusinessDocs([]);
       setRawArtifactsDir(null);
       return;
     }
-    const dir = joinPath(projectPath, RAW_ARTIFACTS_SUBDIR);
+    const dir = joinPath(effectiveProjectPath, RAW_ARTIFACTS_SUBDIR);
     (async () => {
       try {
         if (!(await exists(dir))) {
@@ -121,13 +158,13 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [projectPath]);
+  }, [effectiveProjectPath]);
 
   const handlePickDocs = async () => {
     // Open the picker inside `.artifacts/raw/` when present so the native
     // macOS dialog displays the hydrated documents directly. The dot-prefix
     // on the parent is irrelevant once the dialog is already inside it.
-    const defaultPath = rawArtifactsDir ?? projectPath ?? undefined;
+    const defaultPath = rawArtifactsDir ?? effectiveProjectPath ?? undefined;
     const selected = await open({
       multiple: true,
       defaultPath,
@@ -152,7 +189,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     if (pickingFolder) return;
     setPickingFolder(true);
     try {
-      const defaultPath = rawArtifactsDir ?? projectPath ?? undefined;
+      const defaultPath = rawArtifactsDir ?? effectiveProjectPath ?? undefined;
       const selected = await open({
         multiple: true,
         directory: true,
@@ -188,12 +225,19 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   const handleStart = async () => {
     if (starting) return;
     setStartError(null);
+    if (!effectiveProjectPath) {
+      setStartError(
+        'Cannot start pipeline: no project path resolved. Open this project from the stagecraft handoff (Open in OPC) or the Projects tab so OPC knows where the local clone lives.',
+      );
+      return;
+    }
     setStarting(true);
     try {
       await startPipeline(
-        projectPath ?? '',
+        effectiveProjectPath,
         adapterName.trim() || ADAPTER_FALLBACK,
         businessDocs,
+        bundle?.project?.id,
       );
     } catch (err) {
       // The Tauri command swallows errors silently — surface them inline so
@@ -311,7 +355,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
       <Button
         className="w-full h-8 text-xs gap-2"
         onClick={handleStart}
-        disabled={starting || !adapterName.trim()}
+        disabled={starting || !adapterName.trim() || !effectiveProjectPath}
       >
         <Play className="h-3.5 w-3.5" />
         {starting ? 'Starting…' : 'Start Pipeline'}

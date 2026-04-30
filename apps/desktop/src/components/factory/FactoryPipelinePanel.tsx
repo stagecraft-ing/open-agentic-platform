@@ -2,8 +2,8 @@
 // Spec 112 §6.3 — bundle prop carries the stagecraft handoff context.
 // Top-level Factory pipeline panel registered in TabContent.
 
-import React, { useState } from 'react';
-import { Layers, History } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { FolderOpen, History, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@opc/ui/badge';
 import { Button } from '@opc/ui/button';
@@ -17,6 +17,8 @@ import { GateDialog } from './GateDialog';
 import { ScaffoldMonitor } from './ScaffoldMonitor';
 import { PipelineHistory } from './PipelineHistory';
 import { ProjectContextOverview } from './ProjectContextOverview';
+import { FactoryProjectPicker } from './FactoryProjectPicker';
+import { LiveAgentOutput } from './LiveAgentOutput';
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
@@ -46,17 +48,38 @@ type PanelView = 'pipeline' | 'history';
 function FactoryPipelinePanelInner({
   projectPath,
   bundle,
+  onOpenProject,
 }: {
   projectPath?: string;
   bundle?: OpcBundle;
+  onOpenProject: (path: string, bundle: OpcBundle) => void;
 }) {
-  const { state } = useFactoryPipeline();
+  const { state, agentOutput } = useFactoryPipeline();
   const [view, setView] = useState<PanelView>('pipeline');
+  const [showPicker, setShowPicker] = useState(false);
 
   const phaseVariant = PHASE_BADGE_VARIANT[state.phase] ?? 'outline';
   const phaseLabel = PHASE_LABEL[state.phase] ?? state.phase;
 
   const showScaffoldMonitor = state.phase === 'scaffolding' && state.scaffolding !== null;
+  // Active pipelines own the panel — switching projects mid-run would orphan
+  // the running orchestrator and tangle artifact persistence. Block the swap
+  // until the run reaches a terminal phase (idle / complete / failed).
+  const pipelineActive = state.phase === 'process' || state.phase === 'scaffolding';
+  // Phase 1 (process) gets a terminal-style live output panel in the right
+  // pane. Scaffolding already shows its own LiveAgentOutput inside
+  // ScaffoldMonitor, so we only wire it up here for the pre-scaffold stages.
+  const showLiveOutput = state.phase === 'process';
+  const activeStepId =
+    state.stages.find((s) => s.status === 'in_progress')?.id ?? null;
+
+  const handleOpenedFromPicker = useCallback(
+    (path: string, nextBundle: OpcBundle) => {
+      setShowPicker(false);
+      onOpenProject(path, nextBundle);
+    },
+    [onOpenProject],
+  );
 
   return (
     <div className="h-full flex flex-col text-foreground relative">
@@ -94,6 +117,22 @@ function FactoryPipelinePanelInner({
         <Badge variant={phaseVariant} className="shrink-0 text-xs">
           {phaseLabel}
         </Badge>
+        {bundle && (
+          <Button
+            variant={showPicker ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setShowPicker((v) => !v)}
+            disabled={pipelineActive}
+            title={
+              pipelineActive
+                ? 'Cannot switch project while a pipeline is running'
+                : 'Switch project…'
+            }
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+          </Button>
+        )}
         <Button
           variant={view === 'history' ? 'secondary' : 'ghost'}
           size="icon"
@@ -141,19 +180,34 @@ function FactoryPipelinePanelInner({
               </div>
             )}
 
-            {/* Artifact inspector, project-context overview, or empty state */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            {/* Right-pane content stack. Priority:
+                  1. Selected step → ArtifactInspector
+                  2. User toggled picker OR no bundle → FactoryProjectPicker
+                  3. Phase 1 active → LiveAgentOutput (terminal-style)
+                  4. Bundle present, idle/terminal phase → ProjectContextOverview
+                The Phase 1 terminal slots in only when the pipeline is
+                actually running so we don't replace the project overview the
+                user expects to see between runs. */}
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
               {state.selectedStepId !== null ? (
                 <ArtifactInspector />
-              ) : bundle ? (
-                <ProjectContextOverview bundle={bundle} />
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground p-6 text-center">
-                  <Layers className="h-8 w-8 opacity-20" />
-                  <p className="text-sm">
-                    Select a pipeline stage to inspect its artifacts.
-                  </p>
+              ) : showPicker || !bundle ? (
+                <FactoryProjectPicker
+                  onOpened={handleOpenedFromPicker}
+                  activeProjectId={bundle?.project?.id}
+                  onCancel={bundle ? () => setShowPicker(false) : undefined}
+                  variant="fullscreen"
+                />
+              ) : showLiveOutput ? (
+                <div className="flex-1 min-h-0 p-3">
+                  <LiveAgentOutput
+                    lines={agentOutput}
+                    activeStepId={activeStepId}
+                    fill
+                  />
                 </div>
+              ) : (
+                <ProjectContextOverview bundle={bundle} />
               )}
             </div>
           </div>
@@ -168,13 +222,36 @@ function FactoryPipelinePanelInner({
 
 // ── Public export (wraps provider) ───────────────────────────────────────────
 
-export const FactoryPipelinePanel: React.FC<{
+export interface FactoryPipelinePanelProps {
   projectPath?: string;
   bundle?: OpcBundle;
-}> = ({ projectPath, bundle }) => {
+  /**
+   * Called when the user opens a project from the in-panel picker. The
+   * caller (TabContent) updates the surrounding factory tab so the panel
+   * re-renders with the new bundle/projectPath. When this prop is omitted
+   * the picker still resolves+clones but the parent tab will not update —
+   * useful only for tests.
+   */
+  onOpenProject?: (path: string, bundle: OpcBundle) => void;
+}
+
+export const FactoryPipelinePanel: React.FC<FactoryPipelinePanelProps> = ({
+  projectPath,
+  bundle,
+  onOpenProject,
+}) => {
+  // Re-key the provider on the active project id so switching projects gives
+  // the pipeline state a clean slate (run id, stage tracker, audit trail).
+  // Without this, a stale runId from the previous project would leak into the
+  // header even though the bundle and projectPath have already changed.
+  const providerKey = bundle?.project?.id ?? 'no-project';
   return (
-    <FactoryPipelineProvider>
-      <FactoryPipelinePanelInner projectPath={projectPath} bundle={bundle} />
+    <FactoryPipelineProvider key={providerKey}>
+      <FactoryPipelinePanelInner
+        projectPath={projectPath}
+        bundle={bundle}
+        onOpenProject={onOpenProject ?? (() => {})}
+      />
     </FactoryPipelineProvider>
   );
 };

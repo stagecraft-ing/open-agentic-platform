@@ -350,6 +350,44 @@ async keychainClear(user: string | null) : Promise<Result<null, string>> {
 }
 },
 /**
+ * Store a project's clone token in the OS keychain.
+ */
+async cloneTokenStore(projectId: string, value: string, source: string, expiresAt: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clone_token_store", { projectId, value, source, expiresAt }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Retrieve a project's clone token. Returns None if no token is
+ * stored for this project. A stored payload that fails to decode is
+ * treated as a hard error so the cockpit can re-fetch from the
+ * bundle endpoint instead of silently re-using a corrupt slot.
+ */
+async cloneTokenLoad(projectId: string) : Promise<Result<StoredCloneToken | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clone_token_load", { projectId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Clear a project's clone token (e.g. on workspace switch, project
+ * deletion, or after a 401 + refresh cycle that invalidates the
+ * previous credential).
+ */
+async cloneTokenClear(projectId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clone_token_clear", { projectId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Start the desktop OAuth login flow.
  * 
  * Generates a PKCE challenge, stores the flow in managed state, then opens
@@ -527,6 +565,12 @@ active: boolean;
  */
 method: string | null }
 export type SidecarPorts = { axiomregent: number | null }
+/**
+ * Persisted shape of a clone token. Mirrors `OpcBundleCloneToken` on
+ * the wire side; `expires_at` is a string so we don't drag a date type
+ * into the keychain layer (the value is whatever Stagecraft returned).
+ */
+export type StoredCloneToken = { value: string; source: string; expires_at?: string | null }
 /**
  * Per-tool tier assignments for governance UI (Feature 036).
  */

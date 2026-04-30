@@ -436,6 +436,13 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
             <FactoryPipelinePanel
               projectPath={tab.projectPath}
               bundle={tab.factoryBundle}
+              onOpenProject={(path, nextBundle) => {
+                updateTab(tab.id, {
+                  projectPath: path,
+                  factoryBundle: nextBundle,
+                  title: nextBundle.project.name || 'Factory',
+                });
+              }}
             />
           </div>
         );

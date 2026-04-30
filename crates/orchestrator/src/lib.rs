@@ -41,7 +41,8 @@ pub use artifact::{
     DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
 };
 pub use claude_executor::{
-    AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, ThinkingLevel,
+    AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, StepEvent, StepEventHandler,
+    ThinkingLevel,
 };
 pub use cli_gate::{AutoApproveGateHandler, CliGateHandler};
 pub use effort::{EffortLevel, classify_from_task};

@@ -6,12 +6,12 @@ import { ChevronDown, ChevronRight, Eye, Wrench, SkipForward } from 'lucide-reac
 import { Button } from '@opc/ui/button';
 import { cn } from '@/lib/utils';
 import { useFactoryPipeline } from './FactoryPipelineContext';
+import { LiveAgentOutput } from './LiveAgentOutput';
 import {
   SCAFFOLD_CATEGORY_LABELS,
   ScaffoldCategory,
   ScaffoldCategoryProgress,
   ScaffoldStep,
-  AgentOutputLine,
 } from './types';
 
 // ── Category order ────────────────────────────────────────────────────────────
@@ -236,53 +236,6 @@ const FailedStepExpander: React.FC<FailedStepExpanderProps> = ({
           </div>
         );
       })}
-    </div>
-  );
-};
-
-// ── LiveAgentOutput ───────────────────────────────────────────────────────────
-
-interface LiveAgentOutputProps {
-  lines: AgentOutputLine[];
-}
-
-const LiveAgentOutput: React.FC<LiveAgentOutputProps> = ({ lines }) => {
-  const bottomRef = React.useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom when new lines arrive
-  React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [lines]);
-
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        Live Agent Output
-      </p>
-      <div
-        className={cn(
-          'rounded font-mono text-xs p-2 overflow-y-auto',
-          'bg-zinc-950 border border-zinc-800',
-          'h-[200px]',
-        )}
-      >
-        {lines.length === 0 ? (
-          <span className="text-zinc-500">Waiting for agent output...</span>
-        ) : (
-          lines.map((entry, i) => {
-            const time = entry.timestamp.slice(11, 19); // HH:MM:SS
-            return (
-              <div key={i} className="flex gap-2 leading-5">
-                <span className="text-zinc-600 shrink-0 select-none">
-                  {time}
-                </span>
-                <span className="text-green-400 break-all">{entry.line}</span>
-              </div>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
-      </div>
     </div>
   );
 };

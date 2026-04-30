@@ -6,7 +6,9 @@ use crate::{DispatchRequest, DispatchResult, GovernedExecutor};
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::process::Stdio;
 use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 /// Thinking effort level for the `claude` CLI `--effort` flag.
 /// Controls extended thinking budget (independent of the orchestrator's
@@ -63,6 +65,42 @@ pub trait StandardsResolver: Send + Sync {
     fn resolve_for_agent(&self, agent_id: &str) -> Option<String>;
 }
 
+/// Live execution events emitted by [`ClaudeCodeExecutor`] while a step
+/// runs. Wired by callers (e.g. the desktop Tauri layer) to relay the
+/// pipeline's progress to a UI without waiting for the subprocess to
+/// finish — see spec 076 "Live Agent Output".
+#[derive(Debug, Clone)]
+pub enum StepEvent {
+    /// Fired once at the start of `dispatch_step`, before the `claude`
+    /// subprocess spawns.
+    StepStarted { step_id: String },
+    /// One human-readable line extracted from the subprocess's
+    /// `--output-format stream-json` stream. Surface text from
+    /// `assistant` frames, tool-use names, thinking markers, and a
+    /// session-init banner. The exact framing format is opaque to the
+    /// caller; treat it as terminal-style log output.
+    AgentOutput { step_id: String, line: String },
+    /// Fired exactly once per step on success, after the subprocess
+    /// exits cleanly and its result frame has been parsed.
+    StepCompleted {
+        step_id: String,
+        tokens_used: Option<u64>,
+    },
+    /// Fired exactly once per step on failure (non-zero exit, timeout,
+    /// IO error). The `error` string mirrors the value returned from
+    /// `dispatch_step` so the UI's failure summary matches the Result.
+    StepFailed { step_id: String, error: String },
+}
+
+/// Callback trait for receiving [`StepEvent`]s during dispatch. Hand a
+/// concrete implementation to [`ClaudeCodeExecutor::with_step_event_handler`].
+/// Implementations MUST be quick and non-blocking — handlers are invoked
+/// from the dispatch hot path (every line of subprocess stdout, plus
+/// start/finish), so blocking on a slow channel will stall the pipeline.
+pub trait StepEventHandler: Send + Sync {
+    fn handle(&self, event: StepEvent);
+}
+
 /// Executes workflow steps by spawning the `claude` CLI process.
 ///
 /// Builds a system prompt from the registered agent domain prompt (if any)
@@ -100,6 +138,14 @@ pub struct ClaudeCodeExecutor {
     /// or PAT without leaking the credential into OPC's process-wide
     /// env. Empty by default.
     extra_env: HashMap<String, String>,
+    /// Optional sink for live execution events (start, per-line agent
+    /// output, completion, failure). When set, the executor switches
+    /// the `claude` CLI to `--output-format stream-json --verbose` so
+    /// it can forward each NDJSON frame as it arrives. When unset, the
+    /// executor uses the legacy single-shot `--output-format json`
+    /// invocation — back-compat for callers and tests that don't care
+    /// about live progress.
+    step_event_handler: Option<Arc<dyn StepEventHandler>>,
 }
 
 impl ClaudeCodeExecutor {
@@ -126,6 +172,7 @@ impl ClaudeCodeExecutor {
             thinking: None,
             step_timeout_base_secs: 300,
             extra_env: HashMap::new(),
+            step_event_handler: None,
         }
     }
 
@@ -196,6 +243,15 @@ impl ClaudeCodeExecutor {
         self
     }
 
+    /// Attach a [`StepEventHandler`] that receives live progress events
+    /// (start, agent output lines, completion, failure) as the executor
+    /// runs. Setting a handler switches the underlying `claude` CLI to
+    /// streaming NDJSON output so events surface in real time.
+    pub fn with_step_event_handler(mut self, handler: Arc<dyn StepEventHandler>) -> Self {
+        self.step_event_handler = Some(handler);
+        self
+    }
+
     /// Build the combined system prompt for a request.
     ///
     /// Composition order: [domain prompt] \n\n [standards] \n\n [step prompt]
@@ -249,15 +305,29 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         };
         let step_timeout = tokio::time::Duration::from_secs(timeout_secs);
 
+        // Streaming mode: when a handler is registered the executor uses
+        // `--output-format stream-json --verbose` so each NDJSON frame can
+        // be forwarded to the UI as it arrives. parse_claude_output already
+        // tolerates either single-shot or streamed output (it picks the
+        // last `"type":"result"` line either way), so the post-process path
+        // is identical.
+        let streaming = self.step_event_handler.is_some();
         let mut args = vec![
             "--print".to_string(),
             "--output-format".to_string(),
-            "json".to_string(),
-            "--max-turns".to_string(),
-            max_turns_str.clone(),
-            "--allowedTools".to_string(),
-            tools_arg.clone(),
+            if streaming {
+                "stream-json".to_string()
+            } else {
+                "json".to_string()
+            },
         ];
+        if streaming {
+            args.push("--verbose".to_string());
+        }
+        args.push("--max-turns".to_string());
+        args.push(max_turns_str.clone());
+        args.push("--allowedTools".to_string());
+        args.push(tools_arg.clone());
 
         if let Some(ref model) = self.model {
             args.push("--model".to_string());
@@ -289,6 +359,13 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             args.push(user_message.clone());
         }
 
+        let step_id = request.step_id.clone();
+        if let Some(ref handler) = self.step_event_handler {
+            handler.handle(StepEvent::StepStarted {
+                step_id: step_id.clone(),
+            });
+        }
+
         let mut cmd = tokio::process::Command::new("claude");
         cmd.args(&args).current_dir(&self.project_path);
         if let Some(ref proj_id) = request.project_id {
@@ -299,32 +376,68 @@ impl GovernedExecutor for ClaudeCodeExecutor {
         for (k, v) in &self.extra_env {
             cmd.env(k, v);
         }
+
+        let dispatch_result = if streaming {
+            self.dispatch_streaming(cmd, &step_id, step_timeout).await
+        } else {
+            self.dispatch_buffered(cmd, &step_id, step_timeout).await
+        };
+
+        match dispatch_result {
+            Ok(result) => {
+                if let Some(ref handler) = self.step_event_handler {
+                    handler.handle(StepEvent::StepCompleted {
+                        step_id: step_id.clone(),
+                        tokens_used: result.tokens_used,
+                    });
+                }
+                Ok(result)
+            }
+            Err(e) => {
+                if let Some(ref handler) = self.step_event_handler {
+                    handler.handle(StepEvent::StepFailed {
+                        step_id: step_id.clone(),
+                        error: e.clone(),
+                    });
+                }
+                Err(e)
+            }
+        }
+    }
+}
+
+impl ClaudeCodeExecutor {
+    /// Legacy buffered path — kept for callers that don't register a
+    /// step-event handler (notably the orchestrator's own tests). Mirrors
+    /// the pre-streaming behaviour exactly.
+    async fn dispatch_buffered(
+        &self,
+        mut cmd: tokio::process::Command,
+        step_id: &str,
+        step_timeout: tokio::time::Duration,
+    ) -> Result<DispatchResult, String> {
         let child = cmd
             .spawn()
             .map_err(|e| format!("failed to spawn claude: {e}"))?;
 
         let output = {
-            // Wrap the child in an Option so we can either extract the output or
-            // kill the process on timeout without a borrow-after-move issue.
             let mut child_opt = Some(child);
             let sleep = tokio::time::sleep(step_timeout);
             tokio::pin!(sleep);
             tokio::select! {
                 result = async {
-                    // Safety: child_opt is Some here; we move it out exactly once.
                     child_opt.take().unwrap().wait_with_output().await
                 } => {
                     result.map_err(|e| format!("failed to wait for claude process: {e}"))?
                 }
                 _ = &mut sleep => {
-                    // Kill the remaining child if it wasn't already consumed.
                     if let Some(mut c) = child_opt.take() {
                         let _ = c.kill().await;
                     }
                     return Err(format!(
                         "claude process timed out after {} seconds for step '{}'",
                         step_timeout.as_secs(),
-                        request.step_id,
+                        step_id,
                     ));
                 }
             }
@@ -337,13 +450,9 @@ impl GovernedExecutor for ClaudeCodeExecutor {
                 .map_or_else(|| "unknown".to_string(), |c| c.to_string());
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-
-            // claude --print --output-format json writes its response to stdout,
-            // not stderr. Include a stdout excerpt so the failure reason is visible.
             let detail = if !stderr.is_empty() {
                 stderr
             } else if !stdout.is_empty() {
-                // Truncate to avoid flooding logs with full JSON responses.
                 let max = 1024;
                 if stdout.len() > max {
                     format!("{}… (truncated)", &stdout[..max])
@@ -368,6 +477,232 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             num_turns: parsed.num_turns,
             governance_mode: None,
         })
+    }
+
+    /// Streaming path — pipes stdout/stderr, reads stdout line-by-line as
+    /// the subprocess runs, and forwards human-readable summaries through
+    /// the registered [`StepEventHandler`]. The full stdout buffer is also
+    /// retained so the existing `parse_claude_output` post-processing
+    /// (tokens, session id, cost) still has the final `result` frame to
+    /// work with.
+    async fn dispatch_streaming(
+        &self,
+        mut cmd: tokio::process::Command,
+        step_id: &str,
+        step_timeout: tokio::time::Duration,
+    ) -> Result<DispatchResult, String> {
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("failed to spawn claude: {e}"))?;
+
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| "claude stdout was not piped".to_string())?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| "claude stderr was not piped".to_string())?;
+
+        let mut stdout_lines = BufReader::new(stdout).lines();
+        let mut stderr_lines = BufReader::new(stderr).lines();
+        let mut stdout_buf = String::new();
+        let mut stderr_buf = String::new();
+        let handler = self.step_event_handler.clone();
+
+        let sleep = tokio::time::sleep(step_timeout);
+        tokio::pin!(sleep);
+
+        let mut stdout_done = false;
+        let mut stderr_done = false;
+
+        let exit_status = loop {
+            tokio::select! {
+                line = stdout_lines.next_line(), if !stdout_done => {
+                    match line {
+                        Ok(Some(l)) => {
+                            stdout_buf.push_str(&l);
+                            stdout_buf.push('\n');
+                            if let Some(ref h) = handler
+                                && let Some(formatted) = format_stream_json_line(&l) {
+                                h.handle(StepEvent::AgentOutput {
+                                    step_id: step_id.to_string(),
+                                    line: formatted,
+                                });
+                            }
+                        }
+                        Ok(None) => stdout_done = true,
+                        Err(e) => {
+                            let _ = child.kill().await;
+                            return Err(format!("claude stdout read failed: {e}"));
+                        }
+                    }
+                }
+                line = stderr_lines.next_line(), if !stderr_done => {
+                    match line {
+                        Ok(Some(l)) => {
+                            stderr_buf.push_str(&l);
+                            stderr_buf.push('\n');
+                        }
+                        Ok(None) => stderr_done = true,
+                        Err(_) => stderr_done = true,
+                    }
+                }
+                status = child.wait(), if stdout_done && stderr_done => {
+                    break status.map_err(|e| format!("claude wait failed: {e}"))?;
+                }
+                _ = &mut sleep => {
+                    let _ = child.kill().await;
+                    return Err(format!(
+                        "claude process timed out after {} seconds for step '{}'",
+                        step_timeout.as_secs(),
+                        step_id,
+                    ));
+                }
+            }
+        };
+
+        if !exit_status.success() {
+            let code = exit_status
+                .code()
+                .map_or_else(|| "unknown".to_string(), |c| c.to_string());
+            let stderr_trim = stderr_buf.trim().to_string();
+            let stdout_trim = stdout_buf.trim().to_string();
+            let detail = if !stderr_trim.is_empty() {
+                stderr_trim
+            } else if !stdout_trim.is_empty() {
+                let max = 1024;
+                if stdout_trim.len() > max {
+                    format!("{}… (truncated)", &stdout_trim[..max])
+                } else {
+                    stdout_trim
+                }
+            } else {
+                "(no output)".to_string()
+            };
+            return Err(format!("claude exited with status {code} — {detail}"));
+        }
+
+        let parsed = parse_claude_output(&stdout_buf);
+        Ok(DispatchResult {
+            tokens_used: parsed.tokens_used,
+            output_hashes: HashMap::new(),
+            session_id: parsed.session_id,
+            cost_usd: parsed.cost_usd,
+            duration_ms: parsed.duration_ms,
+            num_turns: parsed.num_turns,
+            governance_mode: None,
+        })
+    }
+}
+
+/// Render a single NDJSON frame from `claude --output-format stream-json`
+/// as a human-readable line. Returns `None` for frames the UI shouldn't
+/// surface (e.g. `result`, which is consumed by `parse_claude_output`,
+/// and successful tool-result echoes).
+fn format_stream_json_line(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || !trimmed.starts_with('{') {
+        return None;
+    }
+    let v: serde_json::Value = serde_json::from_str(trimmed).ok()?;
+    let kind = v.get("type")?.as_str()?;
+    match kind {
+        "system" => {
+            // Only the init banner is interesting — subsequent system frames
+            // (e.g. tool registry summaries) are noise for the live view.
+            let subtype = v.get("subtype").and_then(|s| s.as_str()).unwrap_or("");
+            if subtype == "init" {
+                let session = v
+                    .get("session_id")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("?");
+                let tools = v
+                    .get("tools")
+                    .and_then(|t| t.as_array())
+                    .map(|a| a.len())
+                    .unwrap_or(0);
+                Some(format!("[init] session={session} tools={tools}"))
+            } else {
+                None
+            }
+        }
+        "assistant" => {
+            let content = v.get("message")?.get("content")?.as_array()?;
+            let mut parts: Vec<String> = Vec::new();
+            for c in content {
+                let ctype = c.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                match ctype {
+                    "text" => {
+                        if let Some(text) = c.get("text").and_then(|t| t.as_str())
+                            && !text.trim().is_empty()
+                        {
+                            parts.push(text.to_string());
+                        }
+                    }
+                    "tool_use" => {
+                        let name = c.get("name").and_then(|n| n.as_str()).unwrap_or("?");
+                        // Surface the input's first scalar/string field (e.g.
+                        // command for Bash, file_path for Read) so the user can
+                        // tell what the tool was called with at a glance.
+                        let summary = c
+                            .get("input")
+                            .and_then(|inp| inp.as_object())
+                            .and_then(|map| {
+                                for (k, val) in map {
+                                    if let Some(s) = val.as_str() {
+                                        let snippet = s.lines().next().unwrap_or("");
+                                        let snippet = if snippet.len() > 80 {
+                                            format!("{}…", &snippet[..80])
+                                        } else {
+                                            snippet.to_string()
+                                        };
+                                        return Some(format!("{k}={snippet}"));
+                                    }
+                                }
+                                None
+                            })
+                            .unwrap_or_default();
+                        if summary.is_empty() {
+                            parts.push(format!("→ tool: {name}"));
+                        } else {
+                            parts.push(format!("→ tool: {name} ({summary})"));
+                        }
+                    }
+                    "thinking" => parts.push("[thinking…]".to_string()),
+                    _ => {}
+                }
+            }
+            if parts.is_empty() {
+                None
+            } else {
+                Some(parts.join("\n"))
+            }
+        }
+        "user" => {
+            // Tool results are echoed back as user frames. Only surface
+            // failures — successes are noise.
+            let content = v.get("message")?.get("content")?.as_array()?;
+            for c in content {
+                if c.get("type").and_then(|t| t.as_str()) == Some("tool_result")
+                    && c.get("is_error").and_then(|e| e.as_bool()) == Some(true)
+                {
+                    let snippet = c
+                        .get("content")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("(no detail)");
+                    let snippet = if snippet.len() > 200 {
+                        format!("{}…", &snippet[..200])
+                    } else {
+                        snippet.to_string()
+                    };
+                    return Some(format!("✗ tool error: {snippet}"));
+                }
+            }
+            None
+        }
+        _ => None,
     }
 }
 

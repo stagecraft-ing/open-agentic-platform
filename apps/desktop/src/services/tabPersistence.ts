@@ -4,6 +4,7 @@
  */
 
 import type { Tab } from '@/contexts/TabContext';
+import type { OpcBundle } from '@/types/factoryBundle';
 
 const STORAGE_KEY = 'opc_tabs_v2';
 const ACTIVE_TAB_KEY = 'opc_active_tab_v2';
@@ -19,6 +20,11 @@ interface SerializedTab {
   specMarkdownAbsolutePath?: string;
   initialProjectPath?: string;
   projectPath?: string;
+  // Spec 112 §6.3 — surviving the bundle across reloads keeps factory tabs
+  // bound to their stagecraft context (org id, slug, adapter, contracts).
+  // Dropping it stranded the panel in a half-resolved state where the header
+  // still showed the adapter badge but `projectPath` was effectively empty.
+  factoryBundle?: OpcBundle;
   status: Tab['status'];
   hasUnsavedChanges: boolean;
   order: number;
@@ -78,6 +84,7 @@ export class TabPersistenceService {
         specMarkdownAbsolutePath: tab.specMarkdownAbsolutePath,
         initialProjectPath: tab.initialProjectPath,
         projectPath: tab.projectPath,
+        factoryBundle: tab.factoryBundle,
         status: tab.status === 'running' ? 'idle' : tab.status, // Reset running status
         hasUnsavedChanges: false, // Reset unsaved changes
         order: tab.order,
