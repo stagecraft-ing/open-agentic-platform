@@ -1,9 +1,9 @@
 /**
- * Spec 111 Phase 4 — Publish confirmation.
+ * Spec 111 + 119 — Publish confirmation.
  *
  * Publishing a draft bumps version, auto-retires any prior published sibling
- * with the same (workspace, name), and broadcasts `agent.catalog.updated` to
- * every OPC session on the workspace (spec 111 §2.3). Requires workspace
+ * with the same (project, name), and broadcasts `agent.catalog.updated` to
+ * every OPC session on the project (spec 111 §2.3). Requires project
  * owner/admin per §2.2 RBAC; surfaced as a server error if the caller lacks
  * the role.
  */
@@ -15,6 +15,7 @@ import {
   useActionData,
   useLoaderData,
   useNavigation,
+  useParams,
 } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
@@ -28,12 +29,12 @@ export async function loader({
   params,
 }: {
   request: Request;
-  params: { agentId: string };
+  params: { projectId: string; agentId: string };
 }) {
   await requireUser(request);
   const { agent } = await getAgent(request, params.agentId);
   if (agent.status !== "draft") {
-    throw redirect(`/app/workspace/agents/${agent.id}`);
+    throw redirect(`/app/project/${params.projectId}/agents/${agent.id}`);
   }
   return { agent };
 }
@@ -43,12 +44,12 @@ export async function action({
   params,
 }: {
   request: Request;
-  params: { agentId: string };
+  params: { projectId: string; agentId: string };
 }) {
   await requireUser(request);
   try {
     const res = await publishAgent(request, params.agentId);
-    return redirect(`/app/workspace/agents/${res.agent.id}`);
+    return redirect(`/app/project/${params.projectId}/agents/${res.agent.id}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     try {
@@ -66,6 +67,8 @@ export default function PublishAgent() {
   const actionData = useActionData() as { error?: string } | undefined;
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
+  const { projectId } = useParams() as { projectId: string };
+  const base = `/app/project/${projectId}/agents`;
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -74,8 +77,8 @@ export default function PublishAgent() {
           Publish {agent.name} v{agent.version}
         </h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Publishing propagates this agent to every OPC currently connected to
-          the workspace. Prior published versions of{" "}
+          Publishing propagates this agent to every OPC currently bound to
+          the project. Prior published versions of{" "}
           <code className="font-mono">{agent.name}</code> will be auto-retired.
         </p>
       </div>
@@ -99,12 +102,12 @@ export default function PublishAgent() {
             policy bundle are recorded.
           </li>
           <li>
-            The workspace's current policy bundle is referenced at publish
+            The project's current policy bundle is referenced at publish
             time. Subsequent bundle changes do not auto-retire this agent; any
             drift is reported on future execution per spec 111 §2.6.
           </li>
           <li>
-            Only workspace <strong>owners</strong> and <strong>admins</strong>{" "}
+            Only project <strong>owners</strong> and <strong>admins</strong>{" "}
             can publish.
           </li>
         </ul>
@@ -142,7 +145,7 @@ export default function PublishAgent() {
           {submitting ? "Publishing…" : "Publish now"}
         </button>
         <Link
-          to={`/app/workspace/agents/${agent.id}`}
+          to={`${base}/${agent.id}`}
           className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
         >
           Cancel

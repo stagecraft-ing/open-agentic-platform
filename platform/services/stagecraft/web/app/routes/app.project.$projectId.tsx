@@ -40,6 +40,7 @@ export default function ProjectLayout() {
   const subnav = [
     { to: base, label: "Overview", end: true },
     { to: `${base}/knowledge`, label: "Knowledge", end: false },
+    { to: `${base}/agents`, label: "Agents", end: false },
     { to: `${base}/pipelines`, label: "Pipelines", end: false },
     { to: `${base}/deploys`, label: "Deploys", end: false },
     { to: `${base}/settings`, label: "Settings", end: false },

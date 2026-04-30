@@ -9,8 +9,7 @@ import {
   initFactoryPipeline,
   listKnowledgeObjects,
   listBindings,
-} from "../lib/workspace-api.server";
-import { getProject } from "../lib/projects-api.server";
+} from "../lib/project-api.server";
 import { useState } from "react";
 
 const KNOWN_ADAPTERS = [
@@ -97,13 +96,9 @@ export async function loader({
 }) {
   await requireUser(request);
 
-  // Resolve workspaceId from the project row — every Factory API call needs it.
-  const { project } = await getProject(request, params.projectId);
-  const workspaceId = (project as { workspaceId: string }).workspaceId;
-
   let pipeline: FactoryStatus | null = null;
   try {
-    const fRes = await getFactoryStatus(request, params.projectId, workspaceId);
+    const fRes = await getFactoryStatus(request, params.projectId);
     pipeline = fRes.pipeline as FactoryStatus | null;
   } catch {
     // no active pipeline
@@ -118,7 +113,7 @@ export async function loader({
     details: unknown;
   }> = [];
   try {
-    const aRes = await listFactoryAudit(request, params.projectId, workspaceId);
+    const aRes = await listFactoryAudit(request, params.projectId);
     auditEntries = aRes.entries;
   } catch {
     // audit may not be available
@@ -151,7 +146,6 @@ export async function loader({
   return {
     pipeline,
     auditEntries,
-    workspaceId,
     availableKnowledge,
     boundKnowledgeIds,
   };
@@ -167,11 +161,6 @@ export async function action({
   const user = await requireUser(request);
   const form = await request.formData();
   const intent = form.get("intent");
-  const workspaceId = form.get("workspaceId") as string;
-
-  if (!workspaceId) {
-    return { error: "workspaceId missing from form" };
-  }
 
   if (intent === "init") {
     const adapter = form.get("adapter") as string;
@@ -180,7 +169,6 @@ export async function action({
     const res = await initFactoryPipeline(request, params.projectId, {
       adapter,
       actorUserId: user.userId,
-      workspaceId,
       knowledge_object_ids: knowledgeIds.filter(Boolean),
     });
     return { initialized: res.pipeline_id };
@@ -194,7 +182,6 @@ export async function action({
       params.projectId,
       stageId,
       user.userId,
-      workspaceId,
       notes ?? undefined
     );
     return { confirmed: stageId };
@@ -208,7 +195,6 @@ export async function action({
       params.projectId,
       stageId,
       user.userId,
-      workspaceId,
       feedback
     );
     return { rejected: stageId };
@@ -220,7 +206,6 @@ export async function action({
       request,
       params.projectId,
       user.userId,
-      workspaceId,
       reason ?? undefined
     );
     return { cancelled: true };
@@ -233,7 +218,6 @@ export default function PipelineDetail() {
   const {
     pipeline,
     auditEntries,
-    workspaceId,
     availableKnowledge,
     boundKnowledgeIds,
   } = useLoaderData() as {
@@ -246,7 +230,6 @@ export default function PipelineDetail() {
       stageId: string | null;
       details: unknown;
     }>;
-    workspaceId: string;
     availableKnowledge: Array<{ id: string; filename: string; state: string }>;
     boundKnowledgeIds: string[];
   };
@@ -258,7 +241,6 @@ export default function PipelineDetail() {
     <div className="space-y-6">
       {!pipeline ? (
         <InitPipelineForm
-          workspaceId={workspaceId}
           availableKnowledge={availableKnowledge}
           boundKnowledgeIds={boundKnowledgeIds}
         />
@@ -287,9 +269,7 @@ export default function PipelineDetail() {
               </div>
             </div>
 
-            {pipeline.status === "active" && (
-              <CancelButton workspaceId={workspaceId} />
-            )}
+            {pipeline.status === "active" && <CancelButton />}
           </div>
 
           {/* Stage progress visualization */}
@@ -368,7 +348,6 @@ export default function PipelineDetail() {
             <GateActions
               stageId={pipeline.current_stage}
               stageData={pipeline.stages[pipeline.current_stage]}
-              workspaceId={workspaceId}
             />
           )}
 
@@ -427,11 +406,9 @@ export default function PipelineDetail() {
 function GateActions({
   stageId,
   stageData,
-  workspaceId,
 }: {
   stageId: string;
   stageData?: StageData;
-  workspaceId: string;
 }) {
   const fetcher = useFetcher();
   const [showReject, setShowReject] = useState(false);
@@ -455,7 +432,6 @@ function GateActions({
         <fetcher.Form method="POST">
           <input type="hidden" name="intent" value="confirm" />
           <input type="hidden" name="stageId" value={stageId} />
-          <input type="hidden" name="workspaceId" value={workspaceId} />
           <button
             type="submit"
             disabled={fetcher.state !== "idle"}
@@ -477,7 +453,6 @@ function GateActions({
           <fetcher.Form method="POST" className="flex gap-2 items-start">
             <input type="hidden" name="intent" value="reject" />
             <input type="hidden" name="stageId" value={stageId} />
-            <input type="hidden" name="workspaceId" value={workspaceId} />
             <input
               type="text"
               name="feedback"
@@ -506,7 +481,7 @@ function GateActions({
   );
 }
 
-function CancelButton({ workspaceId }: { workspaceId: string }) {
+function CancelButton() {
   const fetcher = useFetcher();
 
   return (
@@ -519,7 +494,6 @@ function CancelButton({ workspaceId }: { workspaceId: string }) {
       }}
     >
       <input type="hidden" name="intent" value="cancel" />
-      <input type="hidden" name="workspaceId" value={workspaceId} />
       <button
         type="submit"
         disabled={fetcher.state !== "idle"}
@@ -532,11 +506,9 @@ function CancelButton({ workspaceId }: { workspaceId: string }) {
 }
 
 function InitPipelineForm({
-  workspaceId,
   availableKnowledge,
   boundKnowledgeIds,
 }: {
-  workspaceId: string;
   availableKnowledge: Array<{ id: string; filename: string; state: string }>;
   boundKnowledgeIds: string[];
 }) {
@@ -571,7 +543,6 @@ function InitPipelineForm({
 
       <fetcher.Form method="POST" className="space-y-4">
         <input type="hidden" name="intent" value="init" />
-        <input type="hidden" name="workspaceId" value={workspaceId} />
 
         <div>
           <label
@@ -601,7 +572,7 @@ function InitPipelineForm({
           </span>
           {availableKnowledge.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              No knowledge objects in this workspace yet. Upload some from the{" "}
+              No knowledge objects in this project yet. Upload some from the{" "}
               <span className="font-medium">Knowledge</span> tab first.
             </p>
           ) : (

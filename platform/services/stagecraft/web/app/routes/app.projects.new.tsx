@@ -145,12 +145,6 @@ export async function action({ request }: { request: Request }): Promise<ActionR
     if (backendMsg.includes("Insufficient permissions") || backendMsg.includes("permission")) {
       return { error: "You don't have permission to create projects in this org." };
     }
-    if (backendMsg.includes("No active workspace")) {
-      return {
-        error:
-          "No active workspace for your org. Ask your org admin to create a default workspace.",
-      };
-    }
     if (backendMsg.includes("not supported by stagecraft Create")) {
       return { error: backendMsg };
     }

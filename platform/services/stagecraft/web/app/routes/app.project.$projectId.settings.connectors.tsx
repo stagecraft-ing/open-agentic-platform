@@ -4,8 +4,8 @@ import {
   listConnectors,
   deleteConnector,
   triggerSync,
-} from "../lib/workspace-api.server";
-import type { SourceConnectorRow } from "../lib/workspace-api.server";
+} from "../lib/project-api.server";
+import type { SourceConnectorRow } from "../lib/project-api.server";
 
 export async function loader({ request }: { request: Request }) {
   await requireUser(request);
@@ -78,8 +78,8 @@ export default function ConnectorList() {
             No connectors configured.
           </p>
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            Add a connector to import documents from external sources into your
-            workspace knowledge base.
+            Add a connector to import documents from external sources into this
+            project's knowledge base.
           </p>
         </div>
       ) : (

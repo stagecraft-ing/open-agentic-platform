@@ -1,6 +1,6 @@
 import { Form, redirect, useActionData, useNavigation, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { createConnector } from "../lib/workspace-api.server";
+import { createConnector } from "../lib/project-api.server";
 import { useState } from "react";
 
 export async function action({

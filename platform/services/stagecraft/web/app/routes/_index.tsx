@@ -6,7 +6,7 @@ export function meta() {
     {
       name: "description",
       content:
-        "OAP turns intent into machine-verifiable software. Spec-driven contracts, governed agents, policy-enforced pipelines — unified in one workspace.",
+        "OAP turns intent into machine-verifiable software. Spec-driven contracts, governed agents, policy-enforced pipelines — unified per project.",
     },
   ];
 }
@@ -76,7 +76,7 @@ function Hero() {
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
             OAP turns intent into machine-verifiable software. Compile specs into
             contracts, run agents under a policy kernel, and promote work through
-            governed pipelines — all converging on one workspace.
+            governed pipelines — every project, end to end.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
@@ -125,8 +125,8 @@ function Differentiators() {
       body: "A web governance plane for approvals, policy, and audit. A desktop execution plane for generation, git, and local tooling. Govern from the cloud, execute where the code lives.",
     },
     {
-      title: "Workspace as atom",
-      body: "Identity, knowledge, policy, projects, and factories converge on one unit — the workspace. Not a Jira project, a Drive folder, and a pile of runners held together with YAML.",
+      title: "Project as the unit of governance",
+      body: "Identity, knowledge, policy, repos, and factories converge on one atom — the project. Not a Jira project, a Drive folder, and a pile of runners held together with YAML.",
     },
     {
       title: "Policy kernel, not policy theatre",
@@ -138,7 +138,7 @@ function Differentiators() {
     },
     {
       title: "Factories with adapters",
-      body: "Deterministic multi-stage pipelines for real stacks — Vue/Node, Next/Prisma, Encore/React, Rust/Axum. Consume workspace knowledge, produce build artifacts, ship through governed gates.",
+      body: "Deterministic multi-stage pipelines for real stacks — Vue/Node, Next/Prisma, Encore/React, Rust/Axum. Consume project knowledge, produce build artifacts, ship through governed gates.",
     },
   ];
   return (
@@ -188,7 +188,7 @@ function HowItWorks() {
     {
       n: "02",
       title: "Ingest",
-      body: "Connect SharePoint, S3, Azure Blob, GCS, or upload directly. Documents are normalised into the workspace's canonical object store with full provenance.",
+      body: "Connect SharePoint, S3, Azure Blob, GCS, or upload directly. Documents are normalised into the project's canonical object store with full provenance.",
     },
     {
       n: "03",
@@ -246,7 +246,7 @@ function Architecture() {
           </h2>
           <p className="mt-4 text-gray-600 dark:text-gray-400">
             The web plane governs. The desktop plane executes. They share one
-            workspace model, one policy kernel, and one audit log — so work moves
+            project model, one policy kernel, and one audit log — so work moves
             between them without translation.
           </p>
         </div>
@@ -254,10 +254,10 @@ function Architecture() {
           <PlaneCard
             tag="Governance plane"
             title="Stagecraft"
-            description="Runs in the cloud. Identity, workspace administration, knowledge intake, approvals, deploy promotion, and audit. Read-heavy surface for reviewers, operators, and compliance."
+            description="Runs in the cloud. Identity, project administration, knowledge intake, approvals, deploy promotion, and audit. Read-heavy surface for reviewers, operators, and compliance."
             bullets={[
               "GitHub OAuth + OIDC identity",
-              "Workspace-scoped knowledge object store",
+              "Project-scoped knowledge object store",
               "Policy bundle serving & grant management",
               "Deploy orchestration to Azure Kubernetes",
             ]}
@@ -322,7 +322,7 @@ function FinalCta() {
               Govern your agents. Ship verified software.
             </h2>
             <p className="mt-4 text-gray-600 dark:text-gray-400">
-              Create a workspace, connect your knowledge sources, and run your first
+              Create a project, connect your knowledge sources, and run your first
               governed factory pipeline today.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">

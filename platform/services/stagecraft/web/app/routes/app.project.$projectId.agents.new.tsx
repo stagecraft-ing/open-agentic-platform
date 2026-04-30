@@ -1,14 +1,14 @@
 /**
- * Spec 111 Phase 4 — Create a draft agent.
+ * Spec 111 + 119 — Create a draft agent under the current project.
  *
- * Captures the minimum viable draft: name (kebab-case, workspace-unique),
+ * Captures the minimum viable draft: name (kebab-case, project-unique),
  * Tier-1 frontmatter (type, description, safety_tier, model, tags, display
  * name, allowed_tools), and the system prompt body. Full frontmatter fields
  * (hooks, governance, standards tags, arbitrary `extra`) are editable from
  * the detail view after creation.
  */
 
-import { Form, redirect, useActionData, useNavigation } from "react-router";
+import { Form, redirect, useActionData, useNavigation, useParams } from "react-router";
 import { useState } from "react";
 import { requireUser } from "../lib/auth.server";
 import {
@@ -32,7 +32,13 @@ export async function loader({ request }: { request: Request }) {
   return null;
 }
 
-export async function action({ request }: { request: Request }) {
+export async function action({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
   const form = await request.formData();
 
@@ -82,12 +88,12 @@ export async function action({ request }: { request: Request }) {
   };
 
   try {
-    const { agent } = await createAgent(request, {
+    const { agent } = await createAgent(request, params.projectId, {
       name,
       frontmatter,
       body_markdown: bodyMarkdown,
     });
-    return redirect(`/app/workspace/agents/${agent.id}`);
+    return redirect(`/app/project/${params.projectId}/agents/${agent.id}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     try {
@@ -104,6 +110,8 @@ export default function NewAgentDraft() {
   const actionData = useActionData() as { error?: string } | undefined;
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
+  const { projectId } = useParams() as { projectId: string };
+  const base = `/app/project/${projectId}/agents`;
   const [name, setName] = useState("");
 
   return (
@@ -113,7 +121,7 @@ export default function NewAgentDraft() {
           New agent draft
         </h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Drafts are private to the workspace until publication. Publishing
+          Drafts are private to the project until publication. Publishing
           bumps the version and fans out to every connected OPC.
         </p>
       </div>
@@ -129,7 +137,7 @@ export default function NewAgentDraft() {
       <Form method="post" className="space-y-4">
         <Field
           label="Name"
-          help="kebab-case; unique per workspace"
+          help="kebab-case; unique per project"
           id="name"
           required
           value={name}
@@ -213,7 +221,7 @@ export default function NewAgentDraft() {
             {submitting ? "Creating…" : "Create draft"}
           </button>
           <a
-            href="/app/workspace/agents"
+            href={base}
             className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             Cancel

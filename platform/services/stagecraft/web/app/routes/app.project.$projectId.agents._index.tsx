@@ -1,12 +1,12 @@
 /**
- * Spec 111 Phase 4 — Agent catalog list view.
+ * Spec 111 + 119 — Project-scoped agent catalog list view.
  *
  * Status-tabbed listing (draft/published/retired/all) with client-side
  * search over name and tags. Clicking a row navigates to the detail view;
  * a "New draft" button opens the creation form.
  */
 
-import { Link, useLoaderData } from "react-router";
+import { Link, useLoaderData, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import { listAgents, type CatalogAgent } from "../lib/agents-api.server";
 import type { AgentCatalogStatus } from "../lib/agents-api.server";
@@ -24,16 +24,24 @@ const STATUS_COLORS: Record<AgentCatalogStatus, string> = {
     "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
 };
 
-export async function loader({ request }: { request: Request }) {
+export async function loader({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
   // Fetch every status so the status-count badges are live without a refetch
   // per tab change. Limit (500) is enforced server-side.
-  const { agents } = await listAgents(request);
+  const { agents } = await listAgents(request, params.projectId);
   return { agents };
 }
 
 export default function AgentCatalogIndex() {
   const { agents } = useLoaderData() as { agents: CatalogAgent[] };
+  const { projectId } = useParams() as { projectId: string };
+  const base = `/app/project/${projectId}/agents`;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
 
@@ -83,7 +91,7 @@ export default function AgentCatalogIndex() {
           })}
         </div>
         <Link
-          to="/app/workspace/agents/new"
+          to={`${base}/new`}
           className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           New draft
@@ -107,7 +115,7 @@ export default function AgentCatalogIndex() {
           </p>
           {agents.length === 0 && (
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              Create a draft to share an agent with everyone in this workspace.
+              Create a draft to share an agent with everyone in this project.
             </p>
           )}
         </div>
@@ -133,7 +141,7 @@ export default function AgentCatalogIndex() {
                 >
                   <td className="px-4 py-3">
                     <Link
-                      to={`/app/workspace/agents/${a.id}`}
+                      to={`${base}/${a.id}`}
                       className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 font-mono"
                     >
                       {a.name}

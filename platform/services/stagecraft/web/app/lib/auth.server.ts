@@ -28,7 +28,6 @@ interface JwtClaims {
   oap_user_id: string;
   oap_org_id: string;
   oap_org_slug: string;
-  oap_workspace_id?: string;
   github_login?: string;
   idp_provider?: string;
   idp_login?: string;
@@ -82,7 +81,6 @@ function decodeJwtPayload(token: string): JwtClaims | null {
       oap_user_id: oapUserId,
       oap_org_id: oapOrgId,
       oap_org_slug: oapOrgSlug,
-      oap_workspace_id: pick("oap_workspace_id"),
       github_login: pick("github_login"),
       idp_provider: pick("idp_provider"),
       idp_login: pick("idp_login"),

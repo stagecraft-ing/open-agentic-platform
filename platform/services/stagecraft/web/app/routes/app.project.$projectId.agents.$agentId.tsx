@@ -1,5 +1,5 @@
 /**
- * Spec 111 Phase 4 — Agent detail + editor.
+ * Spec 111 + 119 — Agent detail + editor under the project shell.
  *
  * Drafts render an editable form for the Tier-1/Tier-2 frontmatter plus the
  * markdown body. Published/retired agents render read-only — per spec 111
@@ -13,6 +13,7 @@ import {
   useActionData,
   useLoaderData,
   useNavigation,
+  useParams,
   redirect,
 } from "react-router";
 import { useState } from "react";
@@ -52,7 +53,7 @@ export async function loader({
   params,
 }: {
   request: Request;
-  params: { agentId: string };
+  params: { projectId: string; agentId: string };
 }) {
   await requireUser(request);
   const { agent } = await getAgent(request, params.agentId);
@@ -64,11 +65,12 @@ export async function action({
   params,
 }: {
   request: Request;
-  params: { agentId: string };
+  params: { projectId: string; agentId: string };
 }) {
   await requireUser(request);
   const form = await request.formData();
   const intent = form.get("intent");
+  const base = `/app/project/${params.projectId}/agents`;
 
   try {
     if (intent === "save") {
@@ -85,13 +87,13 @@ export async function action({
     }
     if (intent === "retire") {
       await retireAgent(request, params.agentId);
-      return redirect(`/app/workspace/agents/${params.agentId}`);
+      return redirect(`${base}/${params.agentId}`);
     }
     if (intent === "fork") {
       const newName = ((form.get("new_name") as string | null) ?? "").trim();
       if (!newName) return { error: "Fork requires a new name." };
       const { agent } = await forkAgent(request, params.agentId, newName);
-      return redirect(`/app/workspace/agents/${agent.id}`);
+      return redirect(`${base}/${agent.id}`);
     }
     return { error: `unknown intent: ${String(intent)}` };
   } catch (err) {
@@ -162,10 +164,12 @@ export default function AgentDetail() {
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
   const editable = agent.status === "draft";
+  const { projectId } = useParams() as { projectId: string };
+  const base = `/app/project/${projectId}/agents`;
 
   return (
     <div className="space-y-6">
-      <Header agent={agent} />
+      <Header agent={agent} base={base} />
 
       {actionData?.error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
@@ -183,7 +187,7 @@ export default function AgentDetail() {
       )}
 
       {editable ? (
-        <EditForm agent={agent} submitting={submitting} />
+        <EditForm agent={agent} submitting={submitting} base={base} />
       ) : (
         <ReadOnlyView agent={agent} />
       )}
@@ -193,7 +197,7 @@ export default function AgentDetail() {
   );
 }
 
-function Header({ agent }: { agent: CatalogAgent }) {
+function Header({ agent, base }: { agent: CatalogAgent; base: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
@@ -221,14 +225,14 @@ function Header({ agent }: { agent: CatalogAgent }) {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <Link
-          to={`/app/workspace/agents/${agent.id}/history`}
+          to={`${base}/${agent.id}/history`}
           className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
         >
           History
         </Link>
         {agent.status === "draft" && (
           <Link
-            to={`/app/workspace/agents/${agent.id}/publish`}
+            to={`${base}/${agent.id}/publish`}
             className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
           >
             Publish…
@@ -257,9 +261,11 @@ function Header({ agent }: { agent: CatalogAgent }) {
 function EditForm({
   agent,
   submitting,
+  base,
 }: {
   agent: CatalogAgent;
   submitting: boolean;
+  base: string;
 }) {
   const fm = agent.frontmatter;
   const toolsValue = Array.isArray(fm.allowed_tools)
@@ -386,7 +392,7 @@ function EditForm({
           {submitting ? "Saving…" : "Save draft"}
         </button>
         <Link
-          to="/app/workspace/agents"
+          to={base}
           className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
         >
           Back to list

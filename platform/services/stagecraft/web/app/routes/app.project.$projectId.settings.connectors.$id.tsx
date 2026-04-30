@@ -16,11 +16,11 @@ import {
   triggerSync,
   testConnectorConnection,
   listSyncRuns,
-} from "../lib/workspace-api.server";
+} from "../lib/project-api.server";
 import type {
   SourceConnectorRow,
   SyncRunRow,
-} from "../lib/workspace-api.server";
+} from "../lib/project-api.server";
 import { useState } from "react";
 
 export async function loader({

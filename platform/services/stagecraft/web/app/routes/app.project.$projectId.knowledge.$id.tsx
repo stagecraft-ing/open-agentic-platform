@@ -7,8 +7,8 @@ import {
   transitionKnowledgeState,
   deleteKnowledgeObject,
   retryExtraction,
-} from "../lib/workspace-api.server";
-import type { KnowledgeObjectRow } from "../lib/workspace-api.server";
+} from "../lib/project-api.server";
+import type { KnowledgeObjectRow } from "../lib/project-api.server";
 import { redirect } from "react-router";
 
 export async function loader({

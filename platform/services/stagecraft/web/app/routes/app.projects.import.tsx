@@ -196,9 +196,9 @@ export default function ImportProject() {
           Import Existing Project
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Register a factory-produced GitHub repo with this workspace. The
-          platform detects factory state before creating any rows and
-          registers any <code>.artifacts/raw/</code> files as workspace
+          Register a factory-produced GitHub repo as a project under your
+          org. The platform detects factory state before creating any rows
+          and registers any <code>.artifacts/raw/</code> files as project
           knowledge.
         </p>
       </div>
@@ -581,9 +581,9 @@ function KnowledgeObjectsPanel({
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Files discovered under <code>.artifacts/raw/</code>. Each file is
-          registered as a workspace knowledge object scoped to this project.
-          The <code>requirements/</code> folder is tracked separately as
-          factory pipeline output and does not appear here.
+          registered as a knowledge object scoped to this project. The
+          <code>requirements/</code> folder is tracked separately as factory
+          pipeline output and does not appear here.
         </p>
       </div>
       <ul className="divide-y divide-gray-200 dark:divide-gray-700 rounded-md border border-gray-200 dark:border-gray-700">

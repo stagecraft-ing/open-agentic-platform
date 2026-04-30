@@ -1,10 +1,10 @@
 /**
- * Spec 111 Phase 4 — Agent catalog SSR API helpers.
+ * Agent catalog SSR API helpers.
  *
  * Shape mirrors the Encore.ts endpoints in `api/agents/catalog.ts`. The
- * React Router v7 loaders/actions forward cookies so the per-workspace
- * auth (`requireWorkspaceAuth` on the Encore side) picks the same
- * workspace as the browser session.
+ * catalog is project-scoped: list/create take an explicit `:projectId`,
+ * while detail endpoints (`/api/agents/:id`) resolve the project from the
+ * agent row and verify it belongs to the caller's org.
  */
 
 import type {
@@ -45,7 +45,7 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
 
 export type CatalogAgent = {
   id: string;
-  workspace_id: string;
+  project_id: string;
   name: string;
   version: number;
   status: AgentCatalogStatus;
@@ -60,7 +60,7 @@ export type CatalogAgent = {
 export type CatalogAuditEntry = {
   id: string;
   agent_id: string;
-  workspace_id: string;
+  project_id: string;
   action: AgentCatalogAuditAction;
   actor_user_id: string;
   before: Record<string, unknown> | null;
@@ -70,12 +70,14 @@ export type CatalogAuditEntry = {
 
 export async function listAgents(
   request: Request,
+  projectId: string,
   status?: AgentCatalogStatus,
 ) {
   const qs = status ? `?status=${encodeURIComponent(status)}` : "";
-  return apiFetch(request, `/api/agents${qs}`) as Promise<{
-    agents: CatalogAgent[];
-  }>;
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/agents${qs}`,
+  ) as Promise<{ agents: CatalogAgent[] }>;
 }
 
 export async function getAgent(request: Request, id: string) {
@@ -86,13 +88,14 @@ export async function getAgent(request: Request, id: string) {
 
 export async function createAgent(
   request: Request,
+  projectId: string,
   data: {
     name: string;
     frontmatter: CatalogFrontmatter;
     body_markdown: string;
   },
 ) {
-  return apiFetch(request, `/api/agents`, {
+  return apiFetch(request, `/api/projects/${projectId}/agents`, {
     method: "POST",
     body: JSON.stringify(data),
   }) as Promise<{ agent: CatalogAgent }>;

@@ -17,7 +17,6 @@ export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
   const repoName = url.searchParams.get("repoName") ?? undefined;
   const slug = url.searchParams.get("slug") ?? undefined;
-  const workspaceId = url.searchParams.get("workspaceId") ?? undefined;
   if (!repoName && !slug) {
     return Response.json(
       { error: "at least one of repoName or slug must be provided" },
@@ -27,7 +26,7 @@ export async function loader({ request }: { request: Request }) {
   try {
     const result: CloneAvailabilityResponse = await checkCloneAvailability(
       request,
-      { repoName, slug, workspaceId }
+      { repoName, slug }
     );
     return Response.json(result);
   } catch (err) {
