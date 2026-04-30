@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b023c5f0022b6710bb4cd586c8b2ca18af63106e02aef77270d8d7a9d1818b99",
+    "contentHash": "7088202e1bd266fd25e329238fc7b2ecf6bbfc140926734fcbd50b03ac14c54e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15,6 +15,10 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"119-project-as-unit-of-governance\" declares implements path \"platform/services/stagecraft/api/workspaces\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -3254,6 +3258,86 @@
           }
         ],
         "specId": "118-workflow-spec-traceability",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "087",
+          "092",
+          "094",
+          "099",
+          "113",
+          "114",
+          "115"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".specify/contract.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-contracts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/run",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/workspaces",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/000-bootstrap-spec-system",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/087-unified-workspace-architecture",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/092-workspace-runtime-threading",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/094-unified-artifact-store",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/099-workspace-scoped-persistence",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "119-project-as-unit-of-governance",
         "specStatus": "draft"
       }
     ],

@@ -2,7 +2,7 @@
 id: "109-factory-pat-and-pubsub-sync"
 slug: factory-pat-and-pubsub-sync
 title: Factory PAT Broker + PubSub Sync Worker
-status: draft
+status: approved
 implementation: complete
 owner: bart
 created: "2026-04-21"

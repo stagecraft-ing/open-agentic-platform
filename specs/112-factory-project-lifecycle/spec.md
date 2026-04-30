@@ -2,7 +2,7 @@
 id: "112-factory-project-lifecycle"
 slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
-status: draft
+status: approved
 implementation: complete
 owner: bart
 created: "2026-04-22"

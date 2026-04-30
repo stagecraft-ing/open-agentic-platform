@@ -2,7 +2,7 @@
 id: "110-stagecraft-to-opc-factory-trigger"
 slug: stagecraft-to-opc-factory-trigger
 title: Stagecraft-initiated Factory Run Trigger over the Duplex Channel
-status: draft
+status: approved
 implementation: complete
 owner: bart
 created: "2026-04-21"
