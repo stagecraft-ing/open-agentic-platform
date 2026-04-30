@@ -46,7 +46,7 @@ export async function action({
   }
 
   try {
-    await createConnector(request, {
+    await createConnector(request, params.projectId, {
       type,
       name,
       config: Object.keys(config).length > 0 ? config : undefined,

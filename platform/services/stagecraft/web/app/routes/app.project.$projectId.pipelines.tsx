@@ -8,7 +8,6 @@ import {
   cancelPipeline,
   initFactoryPipeline,
   listKnowledgeObjects,
-  listBindings,
 } from "../lib/project-api.server";
 import { useState } from "react";
 
@@ -119,25 +118,24 @@ export async function loader({
     // audit may not be available
   }
 
-  // Load available knowledge objects + current bindings for the init form.
+  // Spec 119 dropped document_bindings — every project's knowledge object is
+  // already scoped by `project_id`, so the init form just lists everything in
+  // the project's corpus and lets the operator choose. There is no separate
+  // "bound" set to reconcile.
   let availableKnowledge: Array<{
     id: string;
     filename: string;
     state: string;
   }> = [];
-  let boundKnowledgeIds: string[] = [];
+  const boundKnowledgeIds: string[] = [];
   if (!pipeline) {
     try {
-      const [kRes, bRes] = await Promise.all([
-        listKnowledgeObjects(request),
-        listBindings(request, params.projectId),
-      ]);
+      const kRes = await listKnowledgeObjects(request, params.projectId);
       availableKnowledge = (kRes.objects ?? []).map((o) => ({
         id: o.id,
         filename: o.filename,
         state: o.state,
       }));
-      boundKnowledgeIds = (bRes.bindings ?? []).map((b) => b.knowledgeObjectId);
     } catch {
       // knowledge surface unavailable — init form will render with no preselection.
     }

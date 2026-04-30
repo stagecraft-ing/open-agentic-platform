@@ -32,8 +32,10 @@ export async function loader({
 }) {
   await requireUser(request);
   const [connRes, runsRes] = await Promise.all([
-    getConnector(request, params.id),
-    listSyncRuns(request, params.id).catch(() => ({ runs: [] as SyncRunRow[] })),
+    getConnector(request, params.projectId, params.id),
+    listSyncRuns(request, params.projectId, params.id).catch(() => ({
+      runs: [] as SyncRunRow[],
+    })),
   ]);
   return { connector: connRes.connector, syncRuns: runsRes.runs };
 }
@@ -66,7 +68,7 @@ export async function action({
     }
 
     try {
-      await updateConnector(request, params.id, {
+      await updateConnector(request, params.projectId, params.id, {
         name,
         syncSchedule,
         status,
@@ -82,7 +84,7 @@ export async function action({
 
   if (intent === "delete") {
     try {
-      await deleteConnector(request, params.id);
+      await deleteConnector(request, params.projectId, params.id);
       return redirect(`/app/project/${params.projectId}/settings/connectors`);
     } catch (err) {
       return {
@@ -93,7 +95,7 @@ export async function action({
 
   if (intent === "sync") {
     try {
-      const res = await triggerSync(request, params.id);
+      const res = await triggerSync(request, params.projectId, params.id);
       return { success: `Sync started (run: ${res.syncRunId})` };
     } catch (err) {
       return {
@@ -104,7 +106,11 @@ export async function action({
 
   if (intent === "test") {
     try {
-      const res = await testConnectorConnection(request, params.id);
+      const res = await testConnectorConnection(
+        request,
+        params.projectId,
+        params.id,
+      );
       if (res.success) {
         return { success: "Connection test passed" };
       }

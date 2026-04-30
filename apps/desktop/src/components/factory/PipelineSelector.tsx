@@ -2,7 +2,7 @@
 // Pipeline selector — start a new pipeline or display the running run ID.
 
 import React, { useEffect, useState } from 'react';
-import { FolderOpen, Play, Square } from 'lucide-react';
+import { FolderOpen, FolderTree, Play, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -13,6 +13,11 @@ import { useFactoryPipeline } from './FactoryPipelineContext';
 const ADAPTER_FALLBACK = 'next-prisma';
 const RAW_ARTIFACTS_SUBDIR = '.artifacts/raw';
 const BUSINESS_DOC_EXTENSIONS = new Set(['md', 'txt', 'pdf', 'docx']);
+// Hard cap on recursive folder walks. Business document corpora are small;
+// anything over this is almost certainly the user pointing at the wrong dir
+// (e.g. a `node_modules`), and unbounded recursion would freeze the panel.
+const FOLDER_WALK_FILE_LIMIT = 500;
+const FOLDER_WALK_DEPTH_LIMIT = 8;
 
 interface PipelineSelectorProps {
   projectPath?: string;
@@ -30,6 +35,30 @@ function hasBusinessDocExt(name: string): boolean {
   return BUSINESS_DOC_EXTENSIONS.has(name.slice(dot + 1).toLowerCase());
 }
 
+async function walkBusinessDocs(
+  dir: string,
+  collected: string[],
+  depth = 0,
+): Promise<void> {
+  if (depth > FOLDER_WALK_DEPTH_LIMIT) return;
+  if (collected.length >= FOLDER_WALK_FILE_LIMIT) return;
+  let entries;
+  try {
+    entries = await readDir(dir);
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (collected.length >= FOLDER_WALK_FILE_LIMIT) return;
+    const full = joinPath(dir, entry.name);
+    if (entry.isDirectory) {
+      await walkBusinessDocs(full, collected, depth + 1);
+    } else if (hasBusinessDocExt(entry.name)) {
+      collected.push(full);
+    }
+  }
+}
+
 export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   projectPath,
   bundle,
@@ -41,6 +70,8 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   const [businessDocs, setBusinessDocs] = useState<string[]>([]);
   const [rawArtifactsDir, setRawArtifactsDir] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [pickingFolder, setPickingFolder] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   // Resync adapter when the bundle resolves (e.g. after deep-link handoff).
   useEffect(() => {
@@ -112,8 +143,51 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     setBusinessDocs(paths);
   };
 
+  // Tauri's `open` is single-mode (files OR directories, never both), so the
+  // folder pick lives behind its own button. Selected directories are walked
+  // recursively for business-doc files; results are merged into whatever the
+  // file picker already produced so users can stack a folder on top of a few
+  // ad-hoc files.
+  const handlePickFolder = async () => {
+    if (pickingFolder) return;
+    setPickingFolder(true);
+    try {
+      const defaultPath = rawArtifactsDir ?? projectPath ?? undefined;
+      const selected = await open({
+        multiple: true,
+        directory: true,
+        defaultPath,
+      });
+      if (selected === null) return;
+      const folders = Array.isArray(selected) ? selected : [selected];
+      const collected: string[] = [];
+      for (const folder of folders) {
+        await walkBusinessDocs(folder, collected);
+        if (collected.length >= FOLDER_WALK_FILE_LIMIT) break;
+      }
+      setBusinessDocs((prev) => {
+        const seen = new Set(prev);
+        const merged = [...prev];
+        for (const p of collected) {
+          if (!seen.has(p)) {
+            merged.push(p);
+            seen.add(p);
+          }
+        }
+        return merged;
+      });
+    } finally {
+      setPickingFolder(false);
+    }
+  };
+
+  const handleClearDocs = () => {
+    setBusinessDocs([]);
+  };
+
   const handleStart = async () => {
     if (starting) return;
+    setStartError(null);
     setStarting(true);
     try {
       await startPipeline(
@@ -121,6 +195,11 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
         adapterName.trim() || ADAPTER_FALLBACK,
         businessDocs,
       );
+    } catch (err) {
+      // The Tauri command swallows errors silently — surface them inline so
+      // the user can act on adapter mismatches, missing factory roots, etc.
+      // instead of staring at a button that just bounces back to "Start".
+      setStartError(err instanceof Error ? err.message : String(err));
     } finally {
       setStarting(false);
     }
@@ -187,19 +266,46 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground">Business Documents</label>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full h-8 text-xs justify-start gap-2"
-          onClick={handlePickDocs}
-          disabled={starting}
-        >
-          <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-          {businessDocs.length === 0
-            ? 'Pick files…'
-            : `${businessDocs.length} file${businessDocs.length === 1 ? '' : 's'} selected`}
-        </Button>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-muted-foreground">Business Documents</label>
+          {businessDocs.length > 0 && (
+            <button
+              type="button"
+              className="text-[10px] text-muted-foreground hover:text-foreground underline disabled:opacity-50"
+              onClick={handleClearDocs}
+              disabled={starting}
+            >
+              clear
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 h-8 text-xs justify-start gap-2 min-w-0"
+            onClick={handlePickDocs}
+            disabled={starting || pickingFolder}
+          >
+            <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {businessDocs.length === 0
+                ? 'Pick files…'
+                : `${businessDocs.length} file${businessDocs.length === 1 ? '' : 's'} selected`}
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5 shrink-0 px-2"
+            onClick={handlePickFolder}
+            disabled={starting || pickingFolder}
+            title="Pick a folder — files matching .md/.txt/.pdf/.docx are added recursively"
+          >
+            <FolderTree className="h-3.5 w-3.5" />
+            {pickingFolder ? 'Walking…' : 'Folder'}
+          </Button>
+        </div>
       </div>
 
       <Button
@@ -210,6 +316,15 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
         <Play className="h-3.5 w-3.5" />
         {starting ? 'Starting…' : 'Start Pipeline'}
       </Button>
+
+      {startError && (
+        <p
+          className="text-xs text-destructive break-words"
+          role="alert"
+        >
+          {startError}
+        </p>
+      )}
     </div>
   );
 };

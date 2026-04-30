@@ -37,20 +37,35 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
 
 // =========================================================================
 // Knowledge Objects
+//
+// Spec 119 collapsed the workspace abstraction; every knowledge endpoint is
+// now project-scoped at `/api/projects/:projectId/knowledge/...`. The web
+// SSR helpers thread the projectId from the route params.
 // =========================================================================
+
+const knowledgeBase = (projectId: string) =>
+  `/api/projects/${encodeURIComponent(projectId)}/knowledge`;
 
 export async function listKnowledgeObjects(
   request: Request,
+  projectId: string,
   state?: string
 ) {
   const qs = state ? `?state=${encodeURIComponent(state)}` : "";
-  return apiFetch(request, `/api/knowledge/objects${qs}`) as Promise<{
+  return apiFetch(request, `${knowledgeBase(projectId)}/objects${qs}`) as Promise<{
     objects: KnowledgeObjectRow[];
   }>;
 }
 
-export async function getKnowledgeObject(request: Request, id: string) {
-  return apiFetch(request, `/api/knowledge/objects/${id}`) as Promise<{
+export async function getKnowledgeObject(
+  request: Request,
+  projectId: string,
+  id: string
+) {
+  return apiFetch(
+    request,
+    `${knowledgeBase(projectId)}/objects/${id}`
+  ) as Promise<{
     object: KnowledgeObjectRow;
     bindingsCount: number;
   }>;
@@ -58,6 +73,7 @@ export async function getKnowledgeObject(request: Request, id: string) {
 
 export async function requestUpload(
   request: Request,
+  projectId: string,
   data: {
     filename: string;
     mimeType: string;
@@ -66,28 +82,41 @@ export async function requestUpload(
     sourcePath?: string;
   }
 ) {
-  return apiFetch(request, "/api/knowledge/upload", {
+  return apiFetch(request, `${knowledgeBase(projectId)}/upload`, {
     method: "POST",
     body: JSON.stringify(data),
   }) as Promise<{ objectId: string; uploadUrl: string; storageKey: string }>;
 }
 
-export async function confirmUpload(request: Request, objectId: string) {
-  return apiFetch(request, `/api/knowledge/objects/${objectId}/confirm`, {
-    method: "POST",
-    body: "{}",
-  }) as Promise<{ object: KnowledgeObjectRow }>;
-}
-
-export async function getDownloadUrl(request: Request, objectId: string) {
+export async function confirmUpload(
+  request: Request,
+  projectId: string,
+  objectId: string
+) {
   return apiFetch(
     request,
-    `/api/knowledge/objects/${objectId}/download`
+    `${knowledgeBase(projectId)}/objects/${objectId}/confirm`,
+    {
+      method: "POST",
+      body: "{}",
+    }
+  ) as Promise<{ object: KnowledgeObjectRow }>;
+}
+
+export async function getDownloadUrl(
+  request: Request,
+  projectId: string,
+  objectId: string
+) {
+  return apiFetch(
+    request,
+    `${knowledgeBase(projectId)}/objects/${objectId}/download`
   ) as Promise<{ downloadUrl: string }>;
 }
 
 export async function transitionKnowledgeState(
   request: Request,
+  projectId: string,
   objectId: string,
   data: {
     targetState: string;
@@ -95,26 +124,39 @@ export async function transitionKnowledgeState(
     classification?: string[];
   }
 ) {
-  return apiFetch(request, `/api/knowledge/objects/${objectId}/transition`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  }) as Promise<{ object: KnowledgeObjectRow }>;
+  return apiFetch(
+    request,
+    `${knowledgeBase(projectId)}/objects/${objectId}/transition`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  ) as Promise<{ object: KnowledgeObjectRow }>;
 }
 
 export async function deleteKnowledgeObject(
   request: Request,
+  projectId: string,
   objectId: string
 ) {
-  return apiFetch(request, `/api/knowledge/objects/${objectId}`, {
-    method: "DELETE",
-  }) as Promise<{ deleted: boolean; bindingsRemoved: number }>;
+  return apiFetch(
+    request,
+    `${knowledgeBase(projectId)}/objects/${objectId}`,
+    {
+      method: "DELETE",
+    }
+  ) as Promise<{ deleted: boolean; bindingsRemoved: number }>;
 }
 
 /** Spec 115 FR-010 — operator re-enqueue for an extraction that failed. */
-export async function retryExtraction(request: Request, objectId: string) {
+export async function retryExtraction(
+  request: Request,
+  projectId: string,
+  objectId: string
+) {
   return apiFetch(
     request,
-    `/api/knowledge/objects/${objectId}/retry-extraction`,
+    `${knowledgeBase(projectId)}/objects/${objectId}/retry-extraction`,
     {
       method: "POST",
       body: "{}",
@@ -123,90 +165,97 @@ export async function retryExtraction(request: Request, objectId: string) {
 }
 
 // =========================================================================
-// Source Connectors
+// Source Connectors (project-scoped)
 // =========================================================================
 
-export async function listConnectors(request: Request) {
-  return apiFetch(request, "/api/knowledge/connectors") as Promise<{
+export async function listConnectors(request: Request, projectId: string) {
+  return apiFetch(request, `${knowledgeBase(projectId)}/connectors`) as Promise<{
     connectors: SourceConnectorRow[];
   }>;
 }
 
 export async function createConnector(
   request: Request,
+  projectId: string,
   data: { type: string; name: string; config?: Record<string, unknown>; syncSchedule?: string }
 ) {
-  return apiFetch(request, "/api/knowledge/connectors", {
+  return apiFetch(request, `${knowledgeBase(projectId)}/connectors`, {
     method: "POST",
     body: JSON.stringify(data),
   }) as Promise<{ connector: SourceConnectorRow }>;
 }
 
-export async function getConnector(request: Request, id: string) {
-  return apiFetch(request, `/api/knowledge/connectors/${id}`) as Promise<{
+export async function getConnector(
+  request: Request,
+  projectId: string,
+  id: string
+) {
+  return apiFetch(
+    request,
+    `${knowledgeBase(projectId)}/connectors/${id}`
+  ) as Promise<{
     connector: SourceConnectorRow;
   }>;
 }
 
 export async function updateConnector(
   request: Request,
+  projectId: string,
   id: string,
   data: { name?: string; config?: Record<string, unknown>; syncSchedule?: string | null; status?: string }
 ) {
-  return apiFetch(request, `/api/knowledge/connectors/${id}`, {
+  return apiFetch(request, `${knowledgeBase(projectId)}/connectors/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   }) as Promise<{ connector: SourceConnectorRow }>;
 }
 
-export async function deleteConnector(request: Request, id: string) {
-  return apiFetch(request, `/api/knowledge/connectors/${id}`, {
+export async function deleteConnector(
+  request: Request,
+  projectId: string,
+  id: string
+) {
+  return apiFetch(request, `${knowledgeBase(projectId)}/connectors/${id}`, {
     method: "DELETE",
   }) as Promise<{ deleted: boolean }>;
 }
 
-export async function testConnectorConnection(request: Request, id: string) {
-  return apiFetch(request, `/api/knowledge/connectors/${id}/test`, {
+export async function testConnectorConnection(
+  request: Request,
+  projectId: string,
+  id: string
+) {
+  return apiFetch(request, `${knowledgeBase(projectId)}/connectors/${id}/test`, {
     method: "POST",
     body: "{}",
   }) as Promise<{ success: boolean; error?: string }>;
 }
 
-export async function triggerSync(request: Request, id: string) {
-  return apiFetch(request, `/api/knowledge/connectors/${id}/sync`, {
+export async function triggerSync(
+  request: Request,
+  projectId: string,
+  id: string
+) {
+  return apiFetch(request, `${knowledgeBase(projectId)}/connectors/${id}/sync`, {
     method: "POST",
     body: "{}",
   }) as Promise<{ syncRunId: string }>;
 }
 
-export async function listSyncRuns(request: Request, connectorId: string) {
+export async function listSyncRuns(
+  request: Request,
+  projectId: string,
+  connectorId: string
+) {
   return apiFetch(
     request,
-    `/api/knowledge/connectors/${connectorId}/sync-runs`
+    `${knowledgeBase(projectId)}/connectors/${connectorId}/sync-runs`
   ) as Promise<{ runs: SyncRunRow[] }>;
 }
 
-// =========================================================================
-// Document Bindings
-// =========================================================================
-
-export async function listBindings(request: Request, projectId: string) {
-  return apiFetch(
-    request,
-    `/api/knowledge/bindings/${projectId}`
-  ) as Promise<{ bindings: DocumentBindingRow[] }>;
-}
-
-export async function bindToProject(
-  request: Request,
-  projectId: string,
-  knowledgeObjectIds: string[]
-) {
-  return apiFetch(request, `/api/knowledge/bindings/${projectId}`, {
-    method: "POST",
-    body: JSON.stringify({ knowledgeObjectIds }),
-  }) as Promise<{ bindings: DocumentBindingRow[] }>;
-}
+// Spec 119 dropped the document_bindings table — knowledge objects live
+// directly on `project_id` now. The legacy `listBindings` / `bindToProject`
+// helpers and their `/api/knowledge/bindings/:projectId` endpoint are gone.
 
 // =========================================================================
 // Factory Pipelines
@@ -347,14 +396,6 @@ export type SourceConnectorRow = {
   lastSyncedAt: string | null;
   createdAt: string;
   updatedAt: string;
-};
-
-export type DocumentBindingRow = {
-  id: string;
-  projectId: string;
-  knowledgeObjectId: string;
-  boundBy: string;
-  boundAt: string;
 };
 
 export type SyncRunRow = {

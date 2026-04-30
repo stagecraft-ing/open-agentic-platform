@@ -23,8 +23,10 @@ export async function loader({
   const stateFilter = url.searchParams.get("state") ?? undefined;
 
   const [koRes, connRes] = await Promise.all([
-    listKnowledgeObjects(request, stateFilter),
-    listConnectors(request).catch(() => ({ connectors: [] as SourceConnectorRow[] })),
+    listKnowledgeObjects(request, params.projectId, stateFilter),
+    listConnectors(request, params.projectId).catch(() => ({
+      connectors: [] as SourceConnectorRow[],
+    })),
   ]);
 
   return {
@@ -60,7 +62,7 @@ export default function KnowledgeBrowser() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Knowledge Objects
         </h2>
-        <UploadControls />
+        <UploadControls projectId={projectId} />
       </div>
 
       {/* State filter tabs */}
@@ -235,7 +237,7 @@ type UploadItem = {
  */
 const UPLOAD_CONCURRENCY = 3;
 
-function UploadControls() {
+function UploadControls({ projectId }: { projectId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadItem[]>([]);
@@ -267,7 +269,7 @@ function UploadControls() {
         const file = files[idx];
         updateItem(idx, { status: "uploading" });
         try {
-          await uploadOne(file);
+          await uploadOne(file, projectId);
           updateItem(idx, { status: "done" });
         } catch (err) {
           failures++;
@@ -387,7 +389,7 @@ function UploadStatusBadge({ status }: { status: UploadStatus }) {
  * than a Remix action — going through the action returns HTML under React
  * Router v7 single-fetch, which breaks `res.json()` on Safari.
  */
-async function uploadOne(file: File): Promise<void> {
+async function uploadOne(file: File, projectId: string): Promise<void> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -396,7 +398,9 @@ async function uploadOne(file: File): Promise<void> {
   const sourcePath =
     (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
 
-  const reqUploadRes = await fetch("/api/knowledge/upload", {
+  const apiBase = `/api/projects/${encodeURIComponent(projectId)}/knowledge`;
+
+  const reqUploadRes = await fetch(`${apiBase}/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -424,7 +428,7 @@ async function uploadOne(file: File): Promise<void> {
   }
 
   const confirmRes = await fetch(
-    `/api/knowledge/objects/${objectId}/confirm`,
+    `${apiBase}/objects/${objectId}/confirm`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

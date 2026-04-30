@@ -7,28 +7,40 @@ import {
 } from "../lib/project-api.server";
 import type { SourceConnectorRow } from "../lib/project-api.server";
 
-export async function loader({ request }: { request: Request }) {
+export async function loader({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
-  const res = await listConnectors(request).catch(() => ({
+  const res = await listConnectors(request, params.projectId).catch(() => ({
     connectors: [] as SourceConnectorRow[],
   }));
   return { connectors: res.connectors };
 }
 
-export async function action({ request }: { request: Request }) {
+export async function action({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
   await requireUser(request);
   const form = await request.formData();
   const intent = form.get("intent");
 
   if (intent === "delete") {
     const id = form.get("connectorId") as string;
-    await deleteConnector(request, id);
+    await deleteConnector(request, params.projectId, id);
     return { deleted: true };
   }
 
   if (intent === "sync") {
     const id = form.get("connectorId") as string;
-    const res = await triggerSync(request, id);
+    const res = await triggerSync(request, params.projectId, id);
     return { syncRunId: res.syncRunId };
   }
 

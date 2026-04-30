@@ -19,7 +19,11 @@ export async function loader({
   params: { projectId: string; id: string };
 }) {
   await requireUser(request);
-  const { object, bindingsCount } = await getKnowledgeObject(request, params.id);
+  const { object, bindingsCount } = await getKnowledgeObject(
+    request,
+    params.projectId,
+    params.id,
+  );
   return { object, bindingsCount, projectId: params.projectId };
 }
 
@@ -40,25 +44,28 @@ export async function action({
     // mode, but the action handler still respects whatever the API
     // returns.
     const targetState = form.get("targetState") as string;
-    const res = await transitionKnowledgeState(request, params.id, {
-      targetState,
-    });
+    const res = await transitionKnowledgeState(
+      request,
+      params.projectId,
+      params.id,
+      { targetState },
+    );
     return { object: res.object };
   }
 
   if (intent === "retry") {
     // Spec 115 FR-010 — operator re-enqueues a failed extraction.
-    const res = await retryExtraction(request, params.id);
+    const res = await retryExtraction(request, params.projectId, params.id);
     return { retry: res };
   }
 
   if (intent === "download") {
-    const res = await getDownloadUrl(request, params.id);
+    const res = await getDownloadUrl(request, params.projectId, params.id);
     return { downloadUrl: res.downloadUrl };
   }
 
   if (intent === "delete") {
-    await deleteKnowledgeObject(request, params.id);
+    await deleteKnowledgeObject(request, params.projectId, params.id);
     return redirect(`/app/project/${params.projectId}/knowledge`);
   }
 
@@ -297,6 +304,7 @@ export default function KnowledgeObjectDetail() {
       )}
 
       <PreviewSection
+        projectId={projectId}
         objectId={object.id}
         mimeType={object.mimeType}
         sizeBytes={object.sizeBytes}
@@ -430,11 +438,13 @@ function isPreviewableMimeType(mime: string): boolean {
  * link only.
  */
 function PreviewSection({
+  projectId,
   objectId,
   mimeType,
   sizeBytes,
   filename,
 }: {
+  projectId: string;
   objectId: string;
   mimeType: string;
   sizeBytes: number;
@@ -454,7 +464,9 @@ function PreviewSection({
     setLoading(true);
     setError(null);
     try {
-      const urlRes = await fetch(`/api/knowledge/objects/${objectId}/download`);
+      const urlRes = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/knowledge/objects/${objectId}/download`,
+      );
       if (!urlRes.ok) {
         throw new Error(`Failed to get download URL (${urlRes.status})`);
       }
