@@ -385,12 +385,14 @@ export const deleteProject = api(
     // so we delete the project's owned set explicitly inside the same
     // transaction.
     await db.transaction(async (tx) => {
-      await tx.delete(projects).where(eq(projects.id, req.id));
+      // knowledge_objects has a non-cascading FK to projects, so it must
+      // be cleared before the project row to avoid a constraint violation.
       if (knowledgeIds.length > 0) {
         await tx
           .delete(knowledgeObjects)
           .where(inArray(knowledgeObjects.id, knowledgeIds));
       }
+      await tx.delete(projects).where(eq(projects.id, req.id));
       await tx.insert(auditLog).values({
         actorUserId: auth.userID,
         action: "project.delete",

@@ -156,16 +156,29 @@ export async function mirrorClone(
 }
 
 /**
- * `git push --mirror` from a bare mirror to a destination remote URL
+ * Push branches and tags from a bare mirror to a destination remote URL
  * (which must already include the auth header in its userinfo segment).
+ *
+ * Explicit refspecs instead of `--mirror`: GitHub denies updates to
+ * `refs/pull/*` ("hidden refs") and `refs/notes/*`, which would fail the
+ * whole mirror push. The destination is a freshly-created repo so there
+ * are no refs to prune, and the source's pull-request refs are not
+ * meaningful in the new repo anyway.
  */
 export async function mirrorPush(
   mirrorPath: string,
   authedRemoteUrl: string
 ): Promise<void> {
-  await runCmd("git", ["push", "--mirror", authedRemoteUrl], {
-    cwd: mirrorPath,
-  });
+  await runCmd(
+    "git",
+    [
+      "push",
+      authedRemoteUrl,
+      "+refs/heads/*:refs/heads/*",
+      "+refs/tags/*:refs/tags/*",
+    ],
+    { cwd: mirrorPath }
+  );
 }
 
 /**
