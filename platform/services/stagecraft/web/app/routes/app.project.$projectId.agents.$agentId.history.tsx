@@ -1,12 +1,12 @@
 /**
- * Spec 111 Phase 4 — Agent audit/history view.
+ * Spec 111 + 119 — Agent audit/history view.
  *
  * Renders the append-only `agent_catalog_audit` trail for a single agent
- * scoped to the caller's workspace. The list is the compliance view behind
+ * scoped to the caller's project. The list is the compliance view behind
  * "every publish/retire is audited" (spec 111 §2.2/§2.6).
  */
 
-import { Link, useLoaderData } from "react-router";
+import { Link, useLoaderData, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
   getAgent,
@@ -32,7 +32,7 @@ export async function loader({
   params,
 }: {
   request: Request;
-  params: { agentId: string };
+  params: { projectId: string; agentId: string };
 }) {
   await requireUser(request);
   const [{ agent }, { entries }] = await Promise.all([
@@ -47,6 +47,8 @@ export default function AgentHistory() {
     agent: CatalogAgent;
     entries: CatalogAuditEntry[];
   };
+  const { projectId } = useParams() as { projectId: string };
+  const base = `/app/project/${projectId}/agents`;
 
   return (
     <div className="space-y-5">
@@ -60,7 +62,7 @@ export default function AgentHistory() {
           </p>
         </div>
         <Link
-          to={`/app/workspace/agents/${agent.id}`}
+          to={`${base}/${agent.id}`}
           className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
         >
           ← Back to agent

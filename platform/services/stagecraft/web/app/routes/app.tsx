@@ -1,8 +1,6 @@
 import { Outlet, useLoaderData, NavLink, useRevalidator } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import { requireUser } from "../lib/auth.server";
-import { getDefaultWorkspace } from "../lib/workspace-api.server";
-import type { WorkspaceRow } from "../lib/workspace-api.server";
 
 interface UserOrg {
   orgId: string;
@@ -12,13 +10,6 @@ interface UserOrg {
 
 export async function loader({ request }: { request: Request }) {
   const user = await requireUser(request);
-  let workspace: WorkspaceRow | null = null;
-  try {
-    const res = await getDefaultWorkspace(request);
-    workspace = res.workspace;
-  } catch {
-    // Workspace may not be available yet
-  }
 
   // Fetch available orgs for the user (for org switcher)
   let userOrgs: UserOrg[] = [];
@@ -36,13 +27,12 @@ export async function loader({ request }: { request: Request }) {
     // Non-fatal: org switcher will just not appear
   }
 
-  return { user, workspace, userOrgs };
+  return { user, userOrgs };
 }
 
 const NAV_ITEMS = [
   { to: "/app", label: "Projects", end: true },
   { to: "/app/factory", label: "Factory", end: false },
-  { to: "/app/workspace/agents", label: "Agents", end: false },
 ];
 
 function OrgSwitcher({
@@ -127,9 +117,8 @@ function OrgSwitcher({
 }
 
 export default function AppLayout() {
-  const { user, workspace, userOrgs } = useLoaderData() as {
+  const { user, userOrgs } = useLoaderData() as {
     user: { name: string; email: string; orgSlug?: string };
-    workspace: WorkspaceRow | null;
     userOrgs: UserOrg[];
   };
 
@@ -142,11 +131,6 @@ export default function AppLayout() {
               <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
                 stagecraft
               </span>
-              {workspace && (
-                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                  {workspace.name}
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -181,7 +165,7 @@ export default function AppLayout() {
       </header>
 
       <main className="container px-4 mx-auto py-6">
-        <Outlet context={{ workspace }} />
+        <Outlet />
       </main>
     </div>
   );

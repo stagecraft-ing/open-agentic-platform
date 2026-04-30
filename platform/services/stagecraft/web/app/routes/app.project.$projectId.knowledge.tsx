@@ -3,11 +3,11 @@ import { requireUser } from "../lib/auth.server";
 import {
   listKnowledgeObjects,
   listConnectors,
-} from "../lib/workspace-api.server";
+} from "../lib/project-api.server";
 import type {
   KnowledgeObjectRow,
   SourceConnectorRow,
-} from "../lib/workspace-api.server";
+} from "../lib/project-api.server";
 import { useState, useRef } from "react";
 
 export async function loader({
@@ -96,7 +96,7 @@ export default function KnowledgeBrowser() {
             {stateFilter !== "all" ? ` in "${stateFilter}" state` : ""}.
           </p>
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            Upload documents to start building your workspace knowledge base.
+            Upload documents to start building this project's knowledge base.
           </p>
         </div>
       ) : (

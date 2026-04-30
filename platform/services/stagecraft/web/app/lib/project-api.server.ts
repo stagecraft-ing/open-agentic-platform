@@ -1,5 +1,6 @@
 /**
- * Server-side API helpers for workspace, knowledge, and factory endpoints.
+ * Server-side API helpers for project-scoped resources: knowledge objects,
+ * source connectors, document bindings, and the factory pipeline.
  *
  * Uses direct fetch with cookie forwarding — the Encore-generated client
  * does not support forwarding cookies from incoming SSR requests, which is
@@ -32,38 +33,6 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
     throw new Error(body || `API error: ${res.status}`);
   }
   return res.json();
-}
-
-// =========================================================================
-// Workspaces
-// =========================================================================
-
-export async function listWorkspaces(request: Request) {
-  return apiFetch(request, "/api/workspaces") as Promise<{
-    workspaces: WorkspaceRow[];
-  }>;
-}
-
-export async function getWorkspace(request: Request, id: string) {
-  return apiFetch(request, `/api/workspaces/${id}`) as Promise<{
-    workspace: WorkspaceRow;
-  }>;
-}
-
-export async function getDefaultWorkspace(request: Request) {
-  return apiFetch(request, "/api/workspaces/by-org/default") as Promise<{
-    workspace: WorkspaceRow;
-  }>;
-}
-
-export async function createWorkspace(
-  request: Request,
-  data: { name: string; slug: string }
-) {
-  return apiFetch(request, "/api/workspaces", {
-    method: "POST",
-    body: JSON.stringify(data),
-  }) as Promise<{ workspace: WorkspaceRow }>;
 }
 
 // =========================================================================
@@ -243,27 +212,17 @@ export async function bindToProject(
 // Factory Pipelines
 // =========================================================================
 
-export async function getFactoryStatus(
-  request: Request,
-  projectId: string,
-  workspaceId: string
-) {
-  const qs = `?workspaceId=${encodeURIComponent(workspaceId)}`;
+export async function getFactoryStatus(request: Request, projectId: string) {
   return apiFetch(
     request,
-    `/api/projects/${projectId}/factory/status${qs}`
+    `/api/projects/${projectId}/factory/status`
   ) as Promise<{ pipeline: PipelineStatusRow | null }>;
 }
 
-export async function listFactoryAudit(
-  request: Request,
-  projectId: string,
-  workspaceId: string
-) {
-  const qs = `?workspaceId=${encodeURIComponent(workspaceId)}`;
+export async function listFactoryAudit(request: Request, projectId: string) {
   return apiFetch(
     request,
-    `/api/projects/${projectId}/factory/audit${qs}`
+    `/api/projects/${projectId}/factory/audit`
   ) as Promise<{ entries: FactoryAuditEntry[] }>;
 }
 
@@ -273,7 +232,6 @@ export async function initFactoryPipeline(
   data: {
     adapter: string;
     actorUserId: string;
-    workspaceId: string;
     business_docs?: Array<{ name: string; storage_ref: string }>;
     knowledge_object_ids?: string[];
     policy_overrides?: Record<string, unknown>;
@@ -296,13 +254,12 @@ export async function confirmFactoryStage(
   projectId: string,
   stageId: string,
   actorUserId: string,
-  workspaceId: string,
   notes?: string
 ) {
   return apiFetch(
     request,
     `/api/projects/${projectId}/factory/stage/${stageId}/confirm`,
-    { method: "POST", body: JSON.stringify({ actorUserId, notes, workspaceId }) }
+    { method: "POST", body: JSON.stringify({ actorUserId, notes }) }
   ) as Promise<{ stage: FactoryStageRow }>;
 }
 
@@ -311,13 +268,12 @@ export async function rejectFactoryStage(
   projectId: string,
   stageId: string,
   actorUserId: string,
-  workspaceId: string,
   feedback: string
 ) {
   return apiFetch(
     request,
     `/api/projects/${projectId}/factory/stage/${stageId}/reject`,
-    { method: "POST", body: JSON.stringify({ actorUserId, feedback, workspaceId }) }
+    { method: "POST", body: JSON.stringify({ actorUserId, feedback }) }
   ) as Promise<{ stage: FactoryStageRow }>;
 }
 
@@ -325,43 +281,20 @@ export async function cancelPipeline(
   request: Request,
   projectId: string,
   actorUserId: string,
-  workspaceId: string,
   reason?: string
 ) {
   return apiFetch(request, `/api/projects/${projectId}/factory/cancel`, {
     method: "POST",
     body: JSON.stringify({
       actorUserId,
-      workspaceId,
       reason: reason ?? "Cancelled from web UI",
     }),
   }) as Promise<{ pipeline: PipelineStatusRow }>;
 }
 
 // =========================================================================
-// Deploy
-// =========================================================================
-
-export async function listEnvironments(request: Request, projectId: string) {
-  return apiFetch(
-    request,
-    `/api/projects/${projectId}/envs`
-  ) as Promise<{ environments: EnvironmentRow[] }>;
-}
-
-// =========================================================================
 // Types (server-side, matching API responses)
 // =========================================================================
-
-export type WorkspaceRow = {
-  id: string;
-  orgId: string;
-  name: string;
-  slug: string;
-  objectStoreBucket: string;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export type LatestExtractionRun = {
   status: string;
@@ -379,7 +312,7 @@ export type LastExtractionError = {
 
 export type KnowledgeObjectRow = {
   id: string;
-  workspaceId: string;
+  projectId: string;
   connectorId: string | null;
   storageKey: string;
   filename: string;
@@ -406,7 +339,7 @@ export type KnowledgeObjectRow = {
 
 export type SourceConnectorRow = {
   id: string;
-  workspaceId: string;
+  projectId: string;
   type: string;
   name: string;
   syncSchedule: string | null;
@@ -427,7 +360,7 @@ export type DocumentBindingRow = {
 export type SyncRunRow = {
   id: string;
   connectorId: string;
-  workspaceId: string;
+  projectId: string;
   status: string;
   objectsCreated: number;
   objectsUpdated: number;
@@ -472,16 +405,4 @@ export type FactoryAuditEntry = {
   stageId: string | null;
   featureId: string | null;
   details: unknown;
-};
-
-export type EnvironmentRow = {
-  id: string;
-  projectId: string;
-  name: string;
-  kind: string;
-  k8sNamespace: string | null;
-  autoDeployBranch: string | null;
-  requiresApproval: boolean;
-  createdAt: string;
-  updatedAt: string;
 };

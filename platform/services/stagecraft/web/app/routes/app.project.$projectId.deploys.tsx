@@ -1,7 +1,18 @@
 import { useLoaderData } from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { listEnvironments } from "../lib/workspace-api.server";
-import type { EnvironmentRow } from "../lib/workspace-api.server";
+import { listEnvironments } from "../lib/projects-api.server";
+
+type EnvironmentRow = {
+  id: string;
+  projectId: string;
+  name: string;
+  kind: string;
+  k8sNamespace: string | null;
+  autoDeployBranch: string | null;
+  requiresApproval: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export async function loader({
   request,

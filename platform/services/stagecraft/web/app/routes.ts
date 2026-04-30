@@ -38,17 +38,17 @@ export default [
       "projects/clone-runs/:cloneJobId",
       "routes/app.projects.clone-runs.$cloneJobId.tsx"
     ),
-    route("workspace/agents", "routes/app.workspace.agents.tsx", [
-      index("routes/app.workspace.agents._index.tsx"),
-      route("new", "routes/app.workspace.agents.new.tsx"),
-      route(":agentId", "routes/app.workspace.agents.$agentId.tsx"),
-      route(":agentId/publish", "routes/app.workspace.agents.$agentId.publish.tsx"),
-      route(":agentId/history", "routes/app.workspace.agents.$agentId.history.tsx"),
-    ]),
     route("project/:projectId", "routes/app.project.$projectId.tsx", [
       index("routes/app.project.$projectId._index.tsx"),
       route("knowledge", "routes/app.project.$projectId.knowledge.tsx"),
       route("knowledge/:id", "routes/app.project.$projectId.knowledge.$id.tsx"),
+      route("agents", "routes/app.project.$projectId.agents.tsx", [
+        index("routes/app.project.$projectId.agents._index.tsx"),
+        route("new", "routes/app.project.$projectId.agents.new.tsx"),
+        route(":agentId", "routes/app.project.$projectId.agents.$agentId.tsx"),
+        route(":agentId/publish", "routes/app.project.$projectId.agents.$agentId.publish.tsx"),
+        route(":agentId/history", "routes/app.project.$projectId.agents.$agentId.history.tsx"),
+      ]),
       route("pipelines", "routes/app.project.$projectId.pipelines.tsx"),
       route("deploys", "routes/app.project.$projectId.deploys.tsx"),
       route("settings", "routes/app.project.$projectId.settings.tsx", [

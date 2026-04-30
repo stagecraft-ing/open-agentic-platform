@@ -80,7 +80,6 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
 export interface ProjectListEntry {
   id: string;
   orgId: string;
-  workspaceId: string;
   name: string;
   slug: string;
   description: string;
@@ -161,13 +160,11 @@ export interface CloneAvailabilityResponse {
 
 export async function checkCloneAvailability(
   request: Request,
-  params: { repoName?: string; slug?: string; workspaceId?: string }
+  params: { repoName?: string; slug?: string }
 ) {
   const qs = new URLSearchParams();
   if (params.repoName !== undefined) qs.set("repoName", params.repoName);
   if (params.slug !== undefined) qs.set("slug", params.slug);
-  if (params.workspaceId !== undefined)
-    qs.set("workspaceId", params.workspaceId);
   return apiFetch(
     request,
     `/api/projects/clone/check-availability?${qs.toString()}`
@@ -363,7 +360,6 @@ export interface OpcBundle {
     id: string;
     name: string;
     slug: string;
-    workspaceId: string;
     orgId: string;
   };
   repo: {

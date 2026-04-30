@@ -1,9 +1,9 @@
 /**
- * Spec 111 Phase 4 — Workspace agent catalog layout.
+ * Spec 111 + 119 — Project-scoped agent catalog layout.
  *
- * Scoped to the user's current workspace (derived from the session cookie by
- * `requireWorkspaceAuth` on the API side); there is no workspaceId in the URL
- * because an OPC session is bound to a single workspace at a time.
+ * The catalog is scoped to the project in the URL. Detail endpoints
+ * (`/api/agents/:id`) resolve the project from the agent row; list/create
+ * (`/api/projects/:projectId/agents`) take the projectId from this route.
  */
 
 import { Outlet } from "react-router";
@@ -22,9 +22,9 @@ export default function AgentsLayout() {
           Agent Catalog
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Organisational agents shared with every OPC connected to this
-          workspace. Published agents are pushed over the duplex channel;
-          retirements propagate automatically.
+          Project agents shared with every OPC bound to this project.
+          Published agents are pushed over the duplex channel; retirements
+          propagate automatically.
         </p>
       </div>
       <Outlet />
