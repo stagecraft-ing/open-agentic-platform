@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7dac3013305b4b132689dc3d83f8d1e49d546a5a292d231e1d77e15572c1c248",
+    "contentHash": "a2b4ebe0110d246eb352426ba0115f9df200a345557521fdac8fb4b3373ac31b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -2766,7 +2766,7 @@
           }
         ],
         "specId": "108-factory-as-platform-feature",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

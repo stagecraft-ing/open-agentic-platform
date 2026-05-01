@@ -2,10 +2,11 @@
 id: "108-factory-as-platform-feature"
 slug: factory-as-platform-feature
 title: Factory as a First-Class Platform Feature
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-20"
+approved: "2026-05-01"
 summary: >
   Removes the repo-rooted `factory/` directory and reimplements adapters,
   contracts, processes, and upstream-map configuration as first-class entities
@@ -245,3 +246,51 @@ into the sync worker.
 - How do we handle an org that has not yet installed the OAP GitHub App?
   Answer: surface the same "install the GitHub App" CTA already used by the
   project creation form.
+
+## 11. Implementation Notes
+
+The spec landed across multiple commits between 2026-04-20 and 2026-05-01.
+Phases 1–4 were already shipped on `main` when this spec's lifecycle was
+flipped; the closing work was the §8 deletion plus downstream cleanups.
+
+Per-phase artefacts:
+
+- **Phase 1 (route shell + Overview):**
+  `platform/services/stagecraft/web/app/routes/app.factory.tsx` (tab strip),
+  `app.factory._index.tsx` (Overview with counts, last-sync banner, "Sync now"
+  button, recent runs table). Top-level nav entry in `app.tsx:35`.
+
+- **Phase 2 (DB schema + Upstreams form):**
+  `platform/services/stagecraft/api/db/schema.ts:751–815` declares
+  `factoryUpstreams`, `factoryAdapters`, `factoryContracts`, `factoryProcesses`;
+  migration `api/db/migrations/18_factory_platform_feature.up.sql`. The
+  Upstreams UI lives at `app.factory.upstreams.tsx`; the Encore handlers in
+  `api/factory/upstreams.ts` (`getUpstreams`, `upsertUpstreams`).
+
+- **Phase 3 (sync worker, async via spec 109 §5):**
+  `api/factory/sync.ts` enqueues on `FactorySyncRequestTopic`,
+  `api/factory/syncWorker.ts` is the PubSub subscription that runs
+  `runSyncPipeline` in `api/factory/syncPipeline.ts` (clone → translate →
+  upsert with prune). `api/factory/translator.ts` lifts the spec 088 §5
+  translation protocol into the worker. Run state lands in
+  `factory_sync_runs`; the polling endpoint is `api/factory/syncRuns.ts`.
+
+- **Phase 4 (browsers):**
+  `api/factory/browse.ts` (list/get for adapters, contracts, processes) +
+  `web/app/routes/app.factory.{adapters,contracts,processes}.tsx` rendering
+  through the shared `web/app/components/factory-browser.tsx`. List + detail
+  drawer; reads only.
+
+- **Removals (§8):**
+  Closed by commit `chore(repo): retire in-tree factory/ directory (spec 108
+  §8)` (2026-05-01) which deleted 176 files under `factory/`, updated
+  doc-comments in `agent-frontmatter` / `factory-contracts`, regenerated the
+  TS mirror, marked the OPC desktop's `resolve_factory_root` with the §7.1
+  punt TODO, cleared spec 081's now-defunct `implements:` block, and added
+  this spec's `implementation-audit.md`.
+
+OPC desktop migration (§7.1 punt) is the single open follow-up item: the
+`apps/desktop/src-tauri/src/commands/factory.rs` path still expects a local
+factory checkout. A subsequent spec will migrate it to fetch
+adapter / contract / process bodies from the platform API endpoints shipped
+here.
