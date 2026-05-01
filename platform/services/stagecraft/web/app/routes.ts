@@ -13,6 +13,14 @@ export default [
   route("admin/signin", "routes/admin.signin.tsx"),
   route("app", "routes/app.tsx", [
     index("routes/app._index.tsx"),
+    // Spec 123 — org-level Agents top-nav surface (Phase 4)
+    route("agents", "routes/app.agents.tsx", [
+      index("routes/app.agents._index.tsx"),
+      route("new", "routes/app.agents.new.tsx"),
+      route(":agentId", "routes/app.agents.$agentId.tsx"),
+      route(":agentId/publish", "routes/app.agents.$agentId.publish.tsx"),
+      route(":agentId/history", "routes/app.agents.$agentId.history.tsx"),
+    ]),
     route("factory", "routes/app.factory.tsx", [
       index("routes/app.factory._index.tsx"),
       route("upstreams", "routes/app.factory.upstreams.tsx"),

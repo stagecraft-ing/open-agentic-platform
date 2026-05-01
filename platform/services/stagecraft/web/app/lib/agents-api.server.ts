@@ -1,10 +1,16 @@
 /**
  * Agent catalog SSR API helpers.
  *
- * Shape mirrors the Encore.ts endpoints in `api/agents/catalog.ts`. The
- * catalog is project-scoped: list/create take an explicit `:projectId`,
- * while detail endpoints (`/api/agents/:id`) resolve the project from the
- * agent row and verify it belongs to the caller's org.
+ * Two families of helpers:
+ *
+ * 1. **Project-scoped** (legacy, spec 111 + 119): list/create take an
+ *    explicit `:projectId`. Phase 5 of spec 123 will delete/rewrite these.
+ *    DO NOT remove them yet — the project agent routes still reference them.
+ *
+ * 2. **Org-scoped** (spec 123 §5.1): `listOrgAgents`, `getOrgAgent`,
+ *    `createOrgAgent`, `patchOrgAgent`, `publishOrgAgent`, `retireOrgAgent`,
+ *    `forkOrgAgent`, `listOrgAgentAudit` — hit `/api/orgs/:orgId/agents…`.
+ *    The `OrgCatalogAgent` type carries `org_id` (not `project_id`).
  */
 
 import type {
@@ -43,6 +49,10 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
   return res.json();
 }
 
+// ---------------------------------------------------------------------------
+// Project-scoped types (spec 111/119 — Phase 5 will rewrite these)
+// ---------------------------------------------------------------------------
+
 export type CatalogAgent = {
   id: string;
   project_id: string;
@@ -67,6 +77,40 @@ export type CatalogAuditEntry = {
   after: Record<string, unknown> | null;
   created_at: string;
 };
+
+// ---------------------------------------------------------------------------
+// Org-scoped types (spec 123 §5.1)
+// ---------------------------------------------------------------------------
+
+/** Wire shape for org-scoped agent catalog rows (spec 123). */
+export type OrgCatalogAgent = {
+  id: string;
+  org_id: string;
+  name: string;
+  version: number;
+  status: AgentCatalogStatus;
+  frontmatter: CatalogFrontmatter;
+  body_markdown: string;
+  content_hash: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrgCatalogAuditEntry = {
+  id: string;
+  agent_id: string;
+  org_id: string;
+  action: AgentCatalogAuditAction;
+  actor_user_id: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Project-scoped helpers (legacy — Phase 5 deletes/rewrites)
+// ---------------------------------------------------------------------------
 
 export async function listAgents(
   request: Request,
@@ -145,4 +189,107 @@ export async function listAgentAudit(request: Request, id: string) {
   return apiFetch(request, `/api/agents/${id}/audit`) as Promise<{
     entries: CatalogAuditEntry[];
   }>;
+}
+
+// ---------------------------------------------------------------------------
+// Org-scoped helpers (spec 123 §5.1)
+// ---------------------------------------------------------------------------
+
+export async function listOrgAgents(
+  request: Request,
+  orgId: string,
+  status?: AgentCatalogStatus,
+) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch(
+    request,
+    `/api/orgs/${orgId}/agents${qs}`,
+  ) as Promise<{ agents: OrgCatalogAgent[] }>;
+}
+
+export async function getOrgAgent(
+  request: Request,
+  orgId: string,
+  id: string,
+) {
+  return apiFetch(
+    request,
+    `/api/orgs/${orgId}/agents/${id}`,
+  ) as Promise<{ agent: OrgCatalogAgent }>;
+}
+
+export async function createOrgAgent(
+  request: Request,
+  orgId: string,
+  data: {
+    name: string;
+    frontmatter: CatalogFrontmatter;
+    body_markdown: string;
+  },
+) {
+  return apiFetch(request, `/api/orgs/${orgId}/agents`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<{ agent: OrgCatalogAgent }>;
+}
+
+export async function patchOrgAgent(
+  request: Request,
+  orgId: string,
+  id: string,
+  data: {
+    frontmatter?: CatalogFrontmatter;
+    body_markdown?: string;
+    expected_content_hash?: string;
+  },
+) {
+  return apiFetch(request, `/api/orgs/${orgId}/agents/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  }) as Promise<{ agent: OrgCatalogAgent }>;
+}
+
+export async function publishOrgAgent(
+  request: Request,
+  orgId: string,
+  id: string,
+) {
+  return apiFetch(request, `/api/orgs/${orgId}/agents/${id}/publish`, {
+    method: "POST",
+    body: "{}",
+  }) as Promise<{ agent: OrgCatalogAgent; retired?: OrgCatalogAgent }>;
+}
+
+export async function retireOrgAgent(
+  request: Request,
+  orgId: string,
+  id: string,
+) {
+  return apiFetch(request, `/api/orgs/${orgId}/agents/${id}/retire`, {
+    method: "POST",
+    body: "{}",
+  }) as Promise<{ agent: OrgCatalogAgent }>;
+}
+
+export async function forkOrgAgent(
+  request: Request,
+  orgId: string,
+  id: string,
+  newName: string,
+) {
+  return apiFetch(request, `/api/orgs/${orgId}/agents/${id}/fork`, {
+    method: "POST",
+    body: JSON.stringify({ new_name: newName }),
+  }) as Promise<{ agent: OrgCatalogAgent }>;
+}
+
+export async function listOrgAgentAudit(
+  request: Request,
+  orgId: string,
+  id: string,
+) {
+  return apiFetch(
+    request,
+    `/api/orgs/${orgId}/agents/${id}/audit`,
+  ) as Promise<{ entries: OrgCatalogAuditEntry[] }>;
 }

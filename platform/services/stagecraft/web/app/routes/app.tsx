@@ -32,6 +32,7 @@ export async function loader({ request }: { request: Request }) {
 
 const NAV_ITEMS = [
   { to: "/app", label: "Projects", end: true },
+  { to: "/app/agents", label: "Agents", end: false },
   { to: "/app/factory", label: "Factory", end: false },
 ];
 
