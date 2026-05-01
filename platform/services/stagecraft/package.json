@@ -1,7 +1,7 @@
 {
   "name": "stagecraft",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Stagecraft SaaS platform — auth, admin, project management, deployment orchestration",
   "license": "MPL-2.0",
   "type": "module",
