@@ -11,6 +11,7 @@
 pub mod adapter_manifest;
 pub mod adapter_registry;
 pub mod agent_loader;
+pub mod agent_reference;
 pub mod budget;
 pub mod build_spec;
 pub mod knowledge;
@@ -26,6 +27,7 @@ pub mod verification;
 pub use adapter_manifest::AdapterManifest;
 pub use adapter_registry::AdapterRegistry;
 pub use agent_loader::AgentPrompt;
+pub use agent_reference::AgentReference;
 pub use budget::AssumptionBudget;
 pub use build_spec::BuildSpec;
 pub use pattern_resolver::PatternResolver;

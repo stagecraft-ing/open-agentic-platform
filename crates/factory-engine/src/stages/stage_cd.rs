@@ -27,6 +27,7 @@
 //! `compare_mode_does_not_modify_authored_doc_bytes` integration test
 //! pins this invariant byte-for-byte.
 
+use crate::agent_resolver::{AgentReference, AgentResolver};
 use crate::stages::stage_cd_comparator::{
     self, ComparatorMode, StageCdDiff,
 };
@@ -61,6 +62,19 @@ pub struct StageCdInputs {
     pub project_slug: String,
     pub workspace_name: String,
     pub known_owners: Vec<String>,
+    /// Optional agent resolver. When supplied along with
+    /// `comparator_agent_ref`, the resolver is called before Phase 1
+    /// to pin the comparator agent's `content_hash` into the audit
+    /// record (spec 123 §8.2, A-8).
+    ///
+    /// `None` is the safe default: the pipeline runs without agent
+    /// identity pinning. Tests that exercise pure comparator logic
+    /// leave this unset.
+    pub agent_resolver: Option<std::sync::Arc<AgentResolver>>,
+    /// The org catalog reference for the Stage CD comparator agent,
+    /// if the pipeline binds one (spec 123). Only consulted when
+    /// `agent_resolver` is `Some`.
+    pub comparator_agent_ref: Option<AgentReference>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,6 +107,15 @@ pub struct StageCdResult {
     /// Compare-mode only. `None` in seed mode (FR-015).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub diff_path: Option<PathBuf>,
+    /// Spec 123 §8.2 — content hash of the org catalog agent that was
+    /// resolved as the comparator agent for this run, if an agent
+    /// resolver was supplied in the inputs. Two runs against different
+    /// projects but the same org agent will carry byte-identical hashes
+    /// here (acceptance criterion A-8).
+    ///
+    /// `None` when no resolver / agent reference was provided.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_content_hash: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -107,6 +130,11 @@ pub enum StageCdError {
     DuplicateAnchor { path: PathBuf },
     #[error("comparator error: {0}")]
     Comparator(String),
+    /// Spec 123 §8.2 — the agent resolver failed to resolve the
+    /// comparator agent. The pipeline halts rather than running with
+    /// an unverified agent identity.
+    #[error("agent resolve error: {0}")]
+    AgentResolve(String),
 }
 
 // ---------------------------------------------------------------------------
@@ -162,7 +190,7 @@ fn write_history(
 // Public entry point
 // ---------------------------------------------------------------------------
 
-pub fn run_stage_cd(inputs: &StageCdInputs) -> Result<StageCdResult, StageCdError> {
+pub async fn run_stage_cd(inputs: &StageCdInputs) -> Result<StageCdResult, StageCdError> {
     let stakeholder_dir = inputs.project.join("requirements/stakeholder");
     let authored_charter = stakeholder_dir.join(DocKind::Charter.canonical_filename());
     let authored_client = stakeholder_dir.join(DocKind::ClientDocument.canonical_filename());
@@ -181,6 +209,22 @@ pub fn run_stage_cd(inputs: &StageCdInputs) -> Result<StageCdResult, StageCdErro
     } else {
         (StageCdMode::Compare, StageCdEvent::StageCdCompareReady)
     };
+
+    // Spec 123 §8.2 — resolve the comparator agent from the org catalog
+    // and pin its content_hash into the audit record BEFORE Phase 1
+    // executes. This ensures two runs against different projects but the
+    // same org agent record an identical hash (A-8).
+    let agent_content_hash: Option<String> =
+        match (&inputs.agent_resolver, &inputs.comparator_agent_ref) {
+            (Some(resolver), Some(agent_ref)) => {
+                let resolved = resolver
+                    .resolve(agent_ref.clone())
+                    .await
+                    .map_err(|e| StageCdError::AgentResolve(e.to_string()))?;
+                Some(resolved.content_hash)
+            }
+            _ => None,
+        };
 
     // Phase 1 — always run, writes ONLY to artifact store.
     let candidate_dir = inputs.artifact_store.join("stage-cd");
@@ -251,6 +295,7 @@ pub fn run_stage_cd(inputs: &StageCdInputs) -> Result<StageCdResult, StageCdErro
         candidate_charter_path: candidate_charter,
         candidate_client_document_path: candidate_client,
         diff_path,
+        agent_content_hash,
     })
 }
 
@@ -485,14 +530,16 @@ PMO.
             project_slug: "cfs".into(),
             workspace_name: "ws".into(),
             known_owners: vec![],
+            agent_resolver: None,
+            comparator_agent_ref: None,
         }
     }
 
-    #[test]
-    fn seed_mode_when_authored_absent() {
+    #[tokio::test]
+    async fn seed_mode_when_authored_absent() {
         let dir = tempfile::tempdir().unwrap();
         let inputs = make_inputs(dir.path());
-        let result = run_stage_cd(&inputs).unwrap();
+        let result = run_stage_cd(&inputs).await.unwrap();
         assert_eq!(result.mode, StageCdMode::Seed);
         assert_eq!(result.event, StageCdEvent::StageCdSeedReady);
         assert!(result.diff_path.is_none());
@@ -500,8 +547,8 @@ PMO.
         assert!(result.candidate_client_document_path.is_file());
     }
 
-    #[test]
-    fn compare_mode_when_authored_present() {
+    #[tokio::test]
+    async fn compare_mode_when_authored_present() {
         let dir = tempfile::tempdir().unwrap();
         let stk = dir.path().join("requirements/stakeholder");
         fs::create_dir_all(&stk).unwrap();
@@ -521,15 +568,15 @@ Body.
         )
         .unwrap();
         let inputs = make_inputs(dir.path());
-        let result = run_stage_cd(&inputs).unwrap();
+        let result = run_stage_cd(&inputs).await.unwrap();
         assert_eq!(result.mode, StageCdMode::Compare);
         assert_eq!(result.event, StageCdEvent::StageCdCompareReady);
         assert!(result.diff_path.is_some());
         assert!(result.diff_path.as_ref().unwrap().is_file());
     }
 
-    #[test]
-    fn fallback_to_seed_when_authored_deleted_between_runs() {
+    #[tokio::test]
+    async fn fallback_to_seed_when_authored_deleted_between_runs() {
         let dir = tempfile::tempdir().unwrap();
         let stk = dir.path().join("requirements/stakeholder");
         fs::create_dir_all(&stk).unwrap();
@@ -549,12 +596,12 @@ Body.
         )
         .unwrap();
         let inputs = make_inputs(dir.path());
-        let r1 = run_stage_cd(&inputs).unwrap();
+        let r1 = run_stage_cd(&inputs).await.unwrap();
         assert_eq!(r1.mode, StageCdMode::Compare);
 
         // Operator deletes authored docs between runs.
         fs::remove_file(stk.join("charter.md")).unwrap();
-        let r2 = run_stage_cd(&inputs).unwrap();
+        let r2 = run_stage_cd(&inputs).await.unwrap();
         assert_eq!(r2.mode, StageCdMode::Seed);
         assert_eq!(r2.event, StageCdEvent::StageCdModeFallbackToSeed);
     }
@@ -565,8 +612,8 @@ Body.
     /// they are identical down to the byte. A regression here would
     /// reintroduce the contamination amplifier the spec exists to
     /// prevent.
-    #[test]
-    fn compare_mode_does_not_modify_authored_doc_bytes() {
+    #[tokio::test]
+    async fn compare_mode_does_not_modify_authored_doc_bytes() {
         let dir = tempfile::tempdir().unwrap();
         let stk = dir.path().join("requirements/stakeholder");
         fs::create_dir_all(&stk).unwrap();
@@ -576,7 +623,7 @@ Body.
 
         let before = fs::read(&charter_path).unwrap();
         let inputs = make_inputs(dir.path());
-        run_stage_cd(&inputs).unwrap();
+        run_stage_cd(&inputs).await.unwrap();
         let after = fs::read(&charter_path).unwrap();
         assert_eq!(
             before, after,
@@ -584,11 +631,11 @@ Body.
         );
     }
 
-    #[test]
-    fn seed_mode_does_not_create_anything_under_project_workspace() {
+    #[tokio::test]
+    async fn seed_mode_does_not_create_anything_under_project_workspace() {
         let dir = tempfile::tempdir().unwrap();
         let inputs = make_inputs(dir.path());
-        run_stage_cd(&inputs).unwrap();
+        run_stage_cd(&inputs).await.unwrap();
         // The only top-level dir under the project (other than the
         // artifact store) is `artifact-store/`. No
         // `requirements/stakeholder/` should exist.
@@ -600,11 +647,11 @@ Body.
             .is_file());
     }
 
-    #[test]
-    fn candidate_carries_anchor_hash_inline() {
+    #[tokio::test]
+    async fn candidate_carries_anchor_hash_inline() {
         let dir = tempfile::tempdir().unwrap();
         let inputs = make_inputs(dir.path());
-        let result = run_stage_cd(&inputs).unwrap();
+        let result = run_stage_cd(&inputs).await.unwrap();
         let charter = fs::read_to_string(&result.candidate_charter_path).unwrap();
         // Each generated heading must carry the inline anchorHash
         // comment per FR-029.
@@ -628,8 +675,8 @@ Body.
     /// a Stage 1 provenance.json must have identical bytes before and
     /// after multiple Stage CD runs that include an authored-doc
     /// edit between them.
-    #[test]
-    fn authored_doc_edit_between_runs_does_not_modify_stage1_outputs() {
+    #[tokio::test]
+    async fn authored_doc_edit_between_runs_does_not_modify_stage1_outputs() {
         let dir = tempfile::tempdir().unwrap();
         let stk = dir.path().join("requirements/stakeholder");
         fs::create_dir_all(&stk).unwrap();
@@ -664,7 +711,7 @@ The applicant must be a registered shelter society.
         fs::write(&prov_path, prov_bytes).unwrap();
 
         let inputs = make_inputs(dir.path());
-        run_stage_cd(&inputs).unwrap();
+        run_stage_cd(&inputs).await.unwrap();
         assert_eq!(fs::read(&brd_path).unwrap(), brd_bytes);
         assert_eq!(fs::read(&prov_path).unwrap(), prov_bytes);
 
@@ -686,7 +733,7 @@ candidate, but Stage 1 outputs MUST NOT be rewritten.
 "#,
         )
         .unwrap();
-        run_stage_cd(&inputs).unwrap();
+        run_stage_cd(&inputs).await.unwrap();
         assert_eq!(
             fs::read(&brd_path).unwrap(),
             brd_bytes,

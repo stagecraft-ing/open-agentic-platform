@@ -10,6 +10,7 @@
 //! dynamic scaffolding fan-out (s6a–s6g) derived from the Build Spec content.
 
 pub mod agent_bridge;
+pub mod agent_resolver;
 pub mod artifact_store;
 pub mod checks;
 pub mod engine;

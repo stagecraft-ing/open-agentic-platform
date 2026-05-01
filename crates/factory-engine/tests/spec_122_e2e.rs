@@ -176,8 +176,8 @@ fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
 /// `scope_class_fires_on_body_scope_flip_phrase` for the body
 /// regex) do. This e2e test's job is to prove run_stage_cd →
 /// comparator → gate is honest under realistic generator output.
-#[test]
-fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
+#[tokio::test]
+async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
     let dir = tempfile::tempdir().unwrap();
     copy_tree(&fixture_root(), dir.path());
 
@@ -197,7 +197,10 @@ fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
         project_slug: "cfs".into(),
         workspace_name: "ws".into(),
         known_owners: vec![],
+        agent_resolver: None,
+        comparator_agent_ref: None,
     })
+    .await
     .expect("stage CD should succeed");
     assert_eq!(result.mode, StageCdMode::Compare);
     let diff_path = result.diff_path.expect("compare-mode produces a diff");
