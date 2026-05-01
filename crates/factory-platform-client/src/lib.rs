@@ -10,9 +10,16 @@
 //! migrates from the spec-108 in-tree walk-up (`resolve_factory_root`) to
 //! this crate in spec 124 Phase 5.
 //!
-//! Phase 0 deliverable: cache-root layout (`source_shas` → `PathBuf`)
-//! plus the `SourceShas` projection type. The HTTP client, OIDC plumbing,
-//! and `materialise_run_root` follow in Phase 4 (T040..T045).
+//! Phase 0 laid out the cache-root layout (`source_shas` → `PathBuf`) and
+//! the `SourceShas` projection type. Phase 4 (T040..T045) added:
+//!
+//!   * `PlatformClient` — typed REST surface + OIDC token plumbing,
+//!     also implements spec 123's `factory_engine::agent_resolver::CatalogClient`
+//!     so a single client instance feeds both the run pipeline and the
+//!     agent resolver.
+//!   * `materialise_run_root` — content-addressed materialisation with
+//!     atomic-rename, agent-resolver cross-check, and warm-cache short
+//!     circuit.
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -20,8 +27,21 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 pub mod cache_root;
+pub mod client;
+pub mod error;
+pub mod materialise;
+pub mod wire;
 
 pub use cache_root::cache_root_for;
+pub use client::{OidcTokenProvider, PlatformClient, StaticTokenProvider};
+pub use error::FactoryClientError;
+pub use materialise::{
+    collect_contract_names, walk_process_for_agent_refs, RunRoot,
+};
+pub use wire::{
+    AdapterBody, ContractBody, ProcessBody, ReserveRunRequest, RunReservation,
+    RunRow, WireAgentRef, WireSourceShas,
+};
 
 /// Spec 124 §3 — projection of spec-123 `ResolvedAgent` carried in
 /// `factory_runs.source_shas.agents[]`. Field names mirror the snake_case

@@ -89,6 +89,13 @@ mod tests {
     use super::*;
     use crate::{AgentRef, source_shas_from_pairs};
     use std::collections::BTreeMap;
+    use std::sync::Mutex;
+
+    // The two tests below mutate `XDG_CACHE_HOME`. Rust 2024 marks
+    // `set_var` unsafe precisely because cargo's default parallel test
+    // execution makes the writes race; serialise them through a single
+    // process-local mutex so the assertions remain deterministic.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn fixture() -> SourceShas {
         SourceShas {
@@ -105,11 +112,9 @@ mod tests {
 
     #[test]
     fn cache_root_uses_xdg_cache_home_when_set() {
-        // Set the env var to a deterministic path so the assertion does
-        // not depend on the host's actual cache directory.
-        // SAFETY: tests in this module run single-threaded under the
-        // default Rust test harness; there's no concurrent reader of
-        // XDG_CACHE_HOME in this test binary.
+        let _guard = ENV_LOCK.lock().unwrap();
+        // SAFETY: ENV_LOCK serialises every env-mutating test in this
+        // module so the read below cannot race a concurrent set_var.
         unsafe {
             std::env::set_var("XDG_CACHE_HOME", "/tmp/oap-test-cache");
         }
@@ -133,9 +138,11 @@ mod tests {
 
     #[test]
     fn cache_root_layout_matches_documented_shape() {
+        let _guard = ENV_LOCK.lock().unwrap();
         // Even without XDG_CACHE_HOME the path's tail must be
         // `oap-factory/<short>` so the materialiser can rely on the
         // segment positions when laying out adapters/process/contract.
+        // SAFETY: ENV_LOCK above prevents a parallel set_var.
         unsafe {
             std::env::set_var("XDG_CACHE_HOME", "/tmp/oap-test-cache-2");
         }
