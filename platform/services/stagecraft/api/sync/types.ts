@@ -269,6 +269,8 @@ export type ServerEnvelope =
   | ServerFactoryRunRequest
   | ServerAgentCatalogUpdated
   | ServerAgentCatalogSnapshot
+  | ServerProjectAgentBindingUpdated
+  | ServerProjectAgentBindingSnapshot
   | ServerProjectCatalogUpsert
   | ServerAck
   | ServerNack
@@ -464,6 +466,55 @@ export interface ServerAgentCatalogSnapshot {
   generatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Spec 123 §7.2 — Project agent binding envelopes
+// ---------------------------------------------------------------------------
+
+/**
+ * Stagecraft announces that a project's binding to an org agent changed.
+ * Fans out only to OPCs whose claimed org matches; desktop-side filters
+ * by `projectId` to apply only to the project the user has active.
+ */
+export interface ServerProjectAgentBindingUpdated {
+  kind: "project.agent_binding.updated";
+  meta: ServerMeta;
+  orgId: string;
+  projectId: string;
+  bindingId: string;
+  orgAgentId: string;
+  agentName: string;
+  pinnedVersion: number;
+  pinnedContentHash: string;
+  action: "bound" | "rebound" | "unbound";
+  boundAt: string;
+}
+
+/** Per-project snapshot entry — one row per binding that points at a
+ *  catalog row. Carries no body/frontmatter; desktops resolve those via
+ *  `agent.catalog.fetch_request` against the org-wide catalog snapshot. */
+export interface ProjectAgentBindingSnapshotEntry {
+  bindingId: string;
+  orgAgentId: string;
+  agentName: string;
+  pinnedVersion: number;
+  pinnedContentHash: string;
+}
+
+/**
+ * Per-project binding directory replay on handshake or explicit resync.
+ * Sent ONCE PER PROJECT the user has access to — keeping the binding
+ * snapshot fan-out independent of the catalog snapshot lets desktops
+ * apply project-membership delta without repulling the org-wide catalog.
+ */
+export interface ServerProjectAgentBindingSnapshot {
+  kind: "project.agent_binding.snapshot";
+  meta: ServerMeta;
+  orgId: string;
+  projectId: string;
+  bindings: ProjectAgentBindingSnapshotEntry[];
+  generatedAt: string;
+}
+
 /**
  * Stagecraft announces that a project was created/updated/deleted
  * (spec 112 §7). Reuses the spec 111 sync pattern: one wire message carries
@@ -634,6 +685,8 @@ export interface ServerEnvelopeWire {
     | "factory.run.request"
     | "agent.catalog.updated"
     | "agent.catalog.snapshot"
+    | "project.agent_binding.updated"
+    | "project.agent_binding.snapshot"
     | "project.catalog.upsert"
     | "sync.ack"
     | "sync.nack"
@@ -688,7 +741,10 @@ export interface ServerEnvelopeWire {
   requestedAt?: string;
   deadlineAt?: string;
   // spec 111 §2.3 — agent.catalog.updated / agent.catalog.snapshot fields
+  // (orgId added by spec 123; the older `projectId` field at the top of
+  // this wire union is shared with other variants and remains optional.)
   agentId?: string;
+  orgId?: string;
   name?: string;
   version?: number;
   contentHash?: string;
@@ -697,6 +753,17 @@ export interface ServerEnvelopeWire {
   updatedAt?: string;
   entries?: AgentCatalogSnapshotEntry[];
   generatedAt?: string;
+  // spec 123 §7.2 — project.agent_binding.updated / .snapshot fields.
+  // The `action` field used by binding.updated is the wider `action?: string`
+  // declared above (shared with audit.candidate); the binding-specific
+  // values are "bound" | "rebound" | "unbound", which subset cleanly.
+  bindingId?: string;
+  orgAgentId?: string;
+  agentName?: string;
+  pinnedVersion?: number;
+  pinnedContentHash?: string;
+  boundAt?: string;
+  bindings?: ProjectAgentBindingSnapshotEntry[];
   // spec 112 §7 — project.catalog.upsert fields (projectId, name, updatedAt
   // are already declared above).
   slug?: string;

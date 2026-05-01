@@ -24,11 +24,15 @@ vi.mock("../db/drizzle", () => ({
     select(_shape?: unknown) {
       const chain: {
         from: () => typeof chain;
+        innerJoin: () => typeof chain;
         where: () => typeof chain;
         limit: () => Promise<unknown[]>;
         then: (resolve: (rows: unknown[]) => void) => void;
       } = {
         from() {
+          return chain;
+        },
+        innerJoin() {
           return chain;
         },
         where() {
@@ -55,6 +59,19 @@ vi.mock("../db/schema", () => ({
     status: "status",
     contentHash: "content_hash",
     updatedAt: "updated_at",
+  },
+  projectAgentBindings: {
+    id: "id",
+    projectId: "project_id",
+    orgAgentId: "org_agent_id",
+    pinnedVersion: "pinned_version",
+    pinnedContentHash: "pinned_content_hash",
+    boundBy: "bound_by",
+    boundAt: "bound_at",
+  },
+  projects: {
+    id: "id",
+    orgId: "org_id",
   },
 }));
 
@@ -218,5 +235,150 @@ describe("sendAgentCatalogSnapshot", () => {
       contentHash: "a".repeat(64),
       updatedAt: "2026-04-22T00:05:00.000Z",
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec 123 §7.2 — Project agent binding broadcast tests
+// ---------------------------------------------------------------------------
+
+import {
+  publishProjectAgentBindingUpdated,
+  sendProjectAgentBindingSnapshot,
+} from "./relay";
+import {
+  AGENT_CATALOG_ENVELOPE_VERSION,
+  PROJECT_AGENT_BINDING_ENVELOPE_VERSION,
+} from "../sync/types";
+
+function makeBinding(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "b-1",
+    projectId: "proj-1",
+    orgAgentId: "a-1",
+    pinnedVersion: 3,
+    pinnedContentHash: "p".repeat(64),
+    boundBy: "u-1",
+    boundAt: new Date("2026-04-23T00:00:00Z"),
+    ...overrides,
+  };
+}
+
+describe("publishProjectAgentBindingUpdated", () => {
+  beforeEach(() => {
+    dispatchMock.mockClear();
+    dispatchMock.mockResolvedValue({
+      eventId: "evt-2",
+      cursor: "00100",
+      delivered: 4,
+    });
+  });
+
+  test("dispatches a project.agent_binding.updated envelope keyed on the org", async () => {
+    const binding = makeBinding();
+    const result = await publishProjectAgentBindingUpdated({
+      orgId: "org-1",
+      projectId: "proj-1",
+      binding: binding as never,
+      agentName: "triage",
+      action: "bound",
+    });
+    expect(result.delivered).toBe(4);
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    const [orgId, envelope] = dispatchMock.mock.calls[0];
+    expect(orgId).toBe("org-1");
+    expect(envelope.kind).toBe("project.agent_binding.updated");
+    expect(envelope.orgId).toBe("org-1");
+    expect(envelope.projectId).toBe("proj-1");
+    expect(envelope.bindingId).toBe("b-1");
+    expect(envelope.orgAgentId).toBe("a-1");
+    expect(envelope.agentName).toBe("triage");
+    expect(envelope.pinnedVersion).toBe(3);
+    expect(envelope.pinnedContentHash).toBe("p".repeat(64));
+    expect(envelope.action).toBe("bound");
+    expect(envelope.boundAt).toBe("2026-04-23T00:00:00.000Z");
+  });
+
+  test("emits action='unbound' so desktop knows to drop the binding from local state", async () => {
+    const binding = makeBinding();
+    await publishProjectAgentBindingUpdated({
+      orgId: "org-1",
+      projectId: "proj-1",
+      binding: binding as never,
+      agentName: "triage",
+      action: "unbound",
+    });
+    const [, envelope] = dispatchMock.mock.calls[0];
+    expect(envelope.action).toBe("unbound");
+  });
+});
+
+describe("sendProjectAgentBindingSnapshot", () => {
+  beforeEach(() => {
+    targetedMock.mockClear();
+    targetedMock.mockResolvedValue(true);
+    fixture.selectRows = [];
+  });
+
+  test("builds a per-project binding directory keyed on the project", async () => {
+    fixture.selectRows = [
+      {
+        bindingId: "b-1",
+        orgAgentId: "a-1",
+        pinnedVersion: 2,
+        pinnedContentHash: "p".repeat(64),
+        agentName: "triage",
+      },
+      {
+        bindingId: "b-2",
+        orgAgentId: "a-2",
+        pinnedVersion: 5,
+        pinnedContentHash: "q".repeat(64),
+        agentName: "review",
+      },
+    ];
+
+    const sent = await sendProjectAgentBindingSnapshot(
+      "org-1",
+      "proj-1",
+      "client-x",
+    );
+    expect(sent).toBe(true);
+    expect(targetedMock).toHaveBeenCalledTimes(1);
+    const [orgId, clientId, envelope] = targetedMock.mock.calls[0];
+    expect(orgId).toBe("org-1");
+    expect(clientId).toBe("client-x");
+    expect(envelope.kind).toBe("project.agent_binding.snapshot");
+    expect(envelope.orgId).toBe("org-1");
+    expect(envelope.projectId).toBe("proj-1");
+    expect(envelope.bindings).toHaveLength(2);
+    expect(envelope.bindings[0]).toEqual({
+      bindingId: "b-1",
+      orgAgentId: "a-1",
+      agentName: "triage",
+      pinnedVersion: 2,
+      pinnedContentHash: "p".repeat(64),
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec 123 §7.3 / T044 — compile-time schema-version constants.
+//
+// The const exports in `api/sync/types.ts` and the Rust mirror in
+// `apps/desktop/src-tauri/src/commands/sync_client.rs` must stay in lock-
+// step. Drift surfaces here as a test failure rather than runtime parse
+// failure (the Rust side has matching constants; if a developer bumps one
+// without the other, the Rust crate's constant test fails on `cargo test`
+// and this TS test fails on `npm test`).
+// ---------------------------------------------------------------------------
+
+describe("schema-version constants", () => {
+  test("AGENT_CATALOG_ENVELOPE_VERSION is 2 (spec 123 bump from spec 111's v: 1)", () => {
+    expect(AGENT_CATALOG_ENVELOPE_VERSION).toBe(2);
+  });
+
+  test("PROJECT_AGENT_BINDING_ENVELOPE_VERSION is 1 (new in spec 123)", () => {
+    expect(PROJECT_AGENT_BINDING_ENVELOPE_VERSION).toBe(1);
   });
 });

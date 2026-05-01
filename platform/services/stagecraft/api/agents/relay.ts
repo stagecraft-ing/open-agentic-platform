@@ -21,6 +21,8 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   agentCatalog,
+  projectAgentBindings,
+  projects,
   type AgentCatalogStatus,
 } from "../db/schema";
 import {
@@ -29,12 +31,16 @@ import {
 } from "../sync/service";
 import type {
   AgentCatalogSnapshotEntry,
+  ProjectAgentBindingSnapshotEntry,
   ServerAgentCatalogUpdated,
   ServerAgentCatalogSnapshot,
+  ServerProjectAgentBindingSnapshot,
+  ServerProjectAgentBindingUpdated,
 } from "../sync/types";
 import type { CatalogFrontmatter } from "./frontmatter";
 
 type AgentRow = typeof agentCatalog.$inferSelect;
+type BindingRow = typeof projectAgentBindings.$inferSelect;
 
 // ---------------------------------------------------------------------------
 // Envelope construction
@@ -164,4 +170,118 @@ export async function sendAgentCatalogSnapshot(
     delivered: sent,
   });
   return sent;
+}
+
+// ---------------------------------------------------------------------------
+// Spec 123 §7.2 — Project agent binding broadcasts
+// ---------------------------------------------------------------------------
+
+/**
+ * Broadcast a binding mutation to every OPC connected to the project's org.
+ * Desktop-side filters by `projectId` to apply only to the project the user
+ * has active. The fan-out keys on org because that's the duplex session
+ * scope; per-project routing is the desktop's responsibility.
+ */
+export async function publishProjectAgentBindingUpdated(args: {
+  orgId: string;
+  projectId: string;
+  binding: BindingRow;
+  agentName: string;
+  action: "bound" | "rebound" | "unbound";
+}): Promise<{ eventId: string; cursor: string; delivered: number }> {
+  const event: Omit<ServerProjectAgentBindingUpdated, "meta"> = {
+    kind: "project.agent_binding.updated",
+    orgId: args.orgId,
+    projectId: args.projectId,
+    bindingId: args.binding.id,
+    orgAgentId: args.binding.orgAgentId,
+    agentName: args.agentName,
+    pinnedVersion: args.binding.pinnedVersion,
+    pinnedContentHash: args.binding.pinnedContentHash,
+    action: args.action,
+    boundAt: args.binding.boundAt.toISOString(),
+  };
+  const result = await dispatchServerEvent(args.orgId, event);
+  log.info("agent.binding: updated broadcast dispatched", {
+    orgId: args.orgId,
+    projectId: args.projectId,
+    bindingId: args.binding.id,
+    action: args.action,
+    delivered: result.delivered,
+  });
+  return result;
+}
+
+/**
+ * Build the directory of bindings for one project. Carries no body or
+ * frontmatter — the desktop joins entries against the org-wide catalog
+ * snapshot to materialise the active agent set.
+ */
+export async function buildProjectAgentBindingSnapshotEntries(
+  projectId: string,
+): Promise<ProjectAgentBindingSnapshotEntry[]> {
+  const rows = await db
+    .select({
+      bindingId: projectAgentBindings.id,
+      orgAgentId: projectAgentBindings.orgAgentId,
+      pinnedVersion: projectAgentBindings.pinnedVersion,
+      pinnedContentHash: projectAgentBindings.pinnedContentHash,
+      agentName: agentCatalog.name,
+    })
+    .from(projectAgentBindings)
+    .innerJoin(
+      agentCatalog,
+      eq(agentCatalog.id, projectAgentBindings.orgAgentId),
+    )
+    .where(eq(projectAgentBindings.projectId, projectId));
+
+  return rows.map((r) => ({
+    bindingId: r.bindingId,
+    orgAgentId: r.orgAgentId,
+    agentName: r.agentName,
+    pinnedVersion: r.pinnedVersion,
+    pinnedContentHash: r.pinnedContentHash,
+  }));
+}
+
+/**
+ * Send the per-project binding snapshot to one connected client. Called
+ * once per project the user has access to, immediately after the catalog
+ * snapshot, on handshake or explicit resync.
+ */
+export async function sendProjectAgentBindingSnapshot(
+  orgId: string,
+  projectId: string,
+  clientId: string,
+): Promise<boolean> {
+  const bindings = await buildProjectAgentBindingSnapshotEntries(projectId);
+  const event: Omit<ServerProjectAgentBindingSnapshot, "meta"> = {
+    kind: "project.agent_binding.snapshot",
+    orgId,
+    projectId,
+    bindings,
+    generatedAt: new Date().toISOString(),
+  };
+  const sent = await sendTargetedServerEvent(orgId, clientId, event);
+  log.info("agent.binding: snapshot sent on handshake", {
+    orgId,
+    projectId,
+    clientId,
+    bindingCount: bindings.length,
+    delivered: sent,
+  });
+  return sent;
+}
+
+/**
+ * List every project an OPC session needs binding snapshots for. Returns
+ * project ids in the connected user's org. Called from the duplex
+ * handshake; the resync path uses the same lookup.
+ */
+export async function listProjectIdsForOrg(orgId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.orgId, orgId));
+  return rows.map((r) => r.id);
 }

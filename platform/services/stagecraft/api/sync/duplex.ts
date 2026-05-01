@@ -29,7 +29,11 @@ import {
   type InboundContext,
 } from "./service";
 import { cursors } from "./store";
-import { sendAgentCatalogSnapshot } from "../agents/relay";
+import {
+  sendAgentCatalogSnapshot,
+  sendProjectAgentBindingSnapshot,
+  listProjectIdsForOrg,
+} from "../agents/relay";
 import { sendProjectCatalogSnapshot } from "./projectCatalogRelay";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -168,6 +172,42 @@ export const duplex = api.streamInOut<
         err: err instanceof Error ? err.message : String(err),
       });
     });
+
+    // Spec 123 §7.2 — post-handshake project agent binding snapshots, one
+    // per project in the org. Sent independently of the catalog snapshot so
+    // a desktop with a partial project membership delta can apply binding
+    // state without rebuilding its catalog cache. Fire-and-log per snapshot.
+    void (async () => {
+      try {
+        const projectIds = await listProjectIdsForOrg(orgId);
+        for (const projectId of projectIds) {
+          await sendProjectAgentBindingSnapshot(
+            orgId,
+            projectId,
+            handshake.clientId,
+          ).catch((err) => {
+            log.warn(
+              "sync: project.agent_binding.snapshot post-handshake send failed",
+              {
+                orgId,
+                projectId,
+                clientId: handshake.clientId,
+                err: err instanceof Error ? err.message : String(err),
+              },
+            );
+          });
+        }
+      } catch (err) {
+        log.warn(
+          "sync: failed to enumerate projects for binding snapshot",
+          {
+            orgId,
+            clientId: handshake.clientId,
+            err: err instanceof Error ? err.message : String(err),
+          },
+        );
+      }
+    })();
 
     // Start a heartbeat so idle connections surface half-open sockets.
     let heartbeatAlive = true;

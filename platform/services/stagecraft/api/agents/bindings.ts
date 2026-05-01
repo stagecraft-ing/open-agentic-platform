@@ -29,6 +29,7 @@ import {
   type AgentBindingAuditAction,
   type AgentCatalogStatus,
 } from "../db/schema";
+import { publishProjectAgentBindingUpdated } from "./relay";
 
 // ---------------------------------------------------------------------------
 // Wire types
@@ -356,6 +357,14 @@ export const bindAgent = api(
       return inserted;
     });
 
+    await publishProjectAgentBindingUpdated({
+      orgId,
+      projectId: req.projectId,
+      binding,
+      agentName: target.name,
+      action: "bound",
+    });
+
     return {
       binding: toWire(binding, { name: target.name, status: target.status }),
     };
@@ -412,6 +421,14 @@ export const repinBinding = api(
       return { binding: updated, target };
     });
 
+    await publishProjectAgentBindingUpdated({
+      orgId,
+      projectId: req.projectId,
+      binding: result.binding,
+      agentName: result.target.name,
+      action: "rebound",
+    });
+
     return {
       binding: toWire(result.binding, {
         name: result.target.name,
@@ -432,7 +449,7 @@ export const unbindAgent = api(
     const { userId, orgId } = requireOrgAuth();
     await verifyProjectInOrg(req.projectId, orgId);
 
-    await db.transaction(async (tx) => {
+    const removed = await db.transaction(async (tx) => {
       const existing = await loadBinding(req.bindingId, req.projectId);
       // Audit BEFORE delete so the row contents live in the audit row.
       const [agentNameRow] = await tx
@@ -450,6 +467,15 @@ export const unbindAgent = api(
       await tx
         .delete(projectAgentBindings)
         .where(eq(projectAgentBindings.id, existing.id));
+      return { binding: existing, agentName: agentNameRow?.name ?? "" };
+    });
+
+    await publishProjectAgentBindingUpdated({
+      orgId,
+      projectId: req.projectId,
+      binding: removed.binding,
+      agentName: removed.agentName,
+      action: "unbound",
     });
 
     return { ok: true };
