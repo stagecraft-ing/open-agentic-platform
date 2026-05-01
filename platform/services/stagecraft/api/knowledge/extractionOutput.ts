@@ -12,6 +12,14 @@ import { z } from "zod";
 // Drift is a CI failure (see `tools/schema-parity-check`).
 export const KNOWLEDGE_SCHEMA_VERSION = "1.0.0" as const;
 
+// Spec 120 FR-016(d) — minimum schema version the external
+// `extraction-output` endpoint accepts. OPC sets the
+// `X-Knowledge-Schema-Version` request header from its compile-time
+// `KNOWLEDGE_SCHEMA_VERSION` const; bodies below this minimum are rejected
+// with `failed_precondition` / `schema_version_too_old`.
+export const MINIMUM_KNOWLEDGE_SCHEMA_VERSION = "1.0.0" as const;
+export const KNOWLEDGE_SCHEMA_VERSION_HEADER = "x-knowledge-schema-version";
+
 // ---------------------------------------------------------------------------
 // Zod schema
 // ---------------------------------------------------------------------------

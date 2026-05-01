@@ -891,7 +891,10 @@ export type KnowledgeObjectUpdatedPayload = {
   lastExtractionError: { code: ExtractionFailureCode } | null;
 };
 
-async function broadcastObjectUpdated(
+// Spec 120 FR-016 — exported so the external POST `extraction-output`
+// handler can surface the same duplex notification the internal worker
+// emits, keeping OPC's subscription path uniform.
+export async function broadcastObjectUpdated(
   projectId: string,
   payload: KnowledgeObjectUpdatedPayload,
 ): Promise<void> {

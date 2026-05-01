@@ -11,8 +11,13 @@ export const KNOWLEDGE_EXTRACTION_FAILED =
   "knowledge.extraction_failed" as const;
 export const KNOWLEDGE_EXTRACTION_RETRY_REQUESTED =
   "knowledge.extraction_retry_requested" as const;
+// Spec 120 FR-020 — resolver decision audit when multiple extraction
+// records exist for the same `(object_id, content_hash)`.
+export const KNOWLEDGE_EXTRACTION_RESOLVED =
+  "knowledge.extraction_resolved" as const;
 
 export type KnowledgeExtractionAuditAction =
   | typeof KNOWLEDGE_EXTRACTED
   | typeof KNOWLEDGE_EXTRACTION_FAILED
-  | typeof KNOWLEDGE_EXTRACTION_RETRY_REQUESTED;
+  | typeof KNOWLEDGE_EXTRACTION_RETRY_REQUESTED
+  | typeof KNOWLEDGE_EXTRACTION_RESOLVED;

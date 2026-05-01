@@ -34,7 +34,10 @@ import { getConnectorImpl } from "./connectors";
 import type { SyncContext } from "./connectors";
 import { broadcastToOrg } from "../sync/sync";
 import { enqueueExtraction } from "./extractionCore";
-import { KNOWLEDGE_EXTRACTION_RETRY_REQUESTED } from "./auditActions";
+import {
+  KNOWLEDGE_EXTRACTION_RETRY_REQUESTED,
+  KNOWLEDGE_EXTRACTION_RESOLVED,
+} from "./auditActions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1488,6 +1491,7 @@ export async function resolveKnowledgeForFactory(
       filename: knowledgeObjects.filename,
       storageKey: knowledgeObjects.storageKey,
       state: knowledgeObjects.state,
+      contentHash: knowledgeObjects.contentHash,
       projectId: knowledgeObjects.projectId,
     })
     .from(knowledgeObjects)
@@ -1507,12 +1511,81 @@ export async function resolveKnowledgeForFactory(
     );
   }
 
-  // Verify all are in "available" state
-  const notReady = objs.filter((o) => o.state !== "available");
-  if (notReady.length > 0) {
-    throw APIError.invalidArgument(
-      `knowledge objects not in 'available' state: ${notReady.map((o) => o.id).join(", ")}`
+  // Spec 120 FR-020 — multi-record selection. For each object pick the
+  // most-recent `completed` run; tie-break on `extractor_kind` ascending.
+  // Failed runs are skipped, never returned. Throw `no_successful_extraction`
+  // when an object has runs but all are failed (rather than silently dropping).
+  const runs = await db
+    .select({
+      id: knowledgeExtractionRuns.id,
+      knowledgeObjectId: knowledgeExtractionRuns.knowledgeObjectId,
+      status: knowledgeExtractionRuns.status,
+      completedAt: knowledgeExtractionRuns.completedAt,
+      extractorKind: knowledgeExtractionRuns.extractorKind,
+    })
+    .from(knowledgeExtractionRuns)
+    .where(
+      and(
+        eq(knowledgeExtractionRuns.projectId, projectId),
+        inArray(knowledgeExtractionRuns.knowledgeObjectId, knowledgeObjectIds),
+      ),
     );
+
+  type RunRow = (typeof runs)[number];
+  const byObject = new Map<string, RunRow[]>();
+  for (const r of runs) {
+    const list = byObject.get(r.knowledgeObjectId) ?? [];
+    list.push(r);
+    byObject.set(r.knowledgeObjectId, list);
+  }
+
+  const winners: { objectId: string; runId: string; candidateIds: string[] }[] = [];
+  for (const obj of objs) {
+    const list = byObject.get(obj.id) ?? [];
+    if (list.length === 0) {
+      // No extraction record yet — fall back to the legacy "available" gate.
+      if (obj.state !== "available") {
+        throw APIError.invalidArgument(
+          `knowledge object ${obj.id} has no completed extraction and is not in 'available' state`,
+        );
+      }
+      continue;
+    }
+    const completed = list.filter((r) => r.status === "completed");
+    if (completed.length === 0) {
+      throw APIError.failedPrecondition(
+        `no_successful_extraction: object ${obj.id} has only failed extraction runs`,
+      );
+    }
+    completed.sort((a, b) => {
+      const at = a.completedAt?.getTime() ?? 0;
+      const bt = b.completedAt?.getTime() ?? 0;
+      if (at !== bt) return bt - at; // most-recent first
+      return (a.extractorKind ?? "").localeCompare(b.extractorKind ?? "");
+    });
+    winners.push({
+      objectId: obj.id,
+      runId: completed[0].id,
+      candidateIds: list.map((r) => r.id),
+    });
+  }
+
+  // Audit each multi-candidate decision so the resolver's choice is
+  // traceable. Single-candidate cases skip the audit (no decision to record).
+  for (const w of winners) {
+    if (w.candidateIds.length > 1) {
+      await db.insert(auditLog).values({
+        actorUserId: "00000000-0000-0000-0000-000000000000",
+        action: KNOWLEDGE_EXTRACTION_RESOLVED,
+        targetType: "knowledge_object",
+        targetId: w.objectId,
+        metadata: {
+          projectId,
+          winnerRunId: w.runId,
+          candidateRunIds: w.candidateIds,
+        },
+      });
+    }
   }
 
   return objs.map((o) => ({
