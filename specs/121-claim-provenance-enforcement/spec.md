@@ -2,8 +2,8 @@
 id: "121-claim-provenance-enforcement"
 slug: claim-provenance-enforcement
 title: Claim Provenance Enforcement
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-30"
 risk: critical

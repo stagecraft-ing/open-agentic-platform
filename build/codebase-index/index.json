@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "86273961d5892a4a46a5404203fda3b062d9fc403ed8780ab8408b171efde173",
+    "contentHash": "e317c2437bce80c0ff35032c87e93ebd786fa55c47c9d2c95bdc83d7bb4a8ada",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3550,7 +3550,7 @@
           }
         ],
         "specId": "121-claim-provenance-enforcement",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
