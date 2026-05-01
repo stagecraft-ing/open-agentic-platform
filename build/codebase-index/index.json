@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4eff77baf3f3cc907dee5c4cdd417c2b63dcb700b92f8c451429d859ceeb1c07",
+    "contentHash": "ff9804a1770a78462d80ce14ff25a10ca6e7c18a1e3dd147b4d910ff07f5fd04",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -23,6 +23,78 @@
       {
         "code": "I-101",
         "message": "spec \"119-project-as-unit-of-governance\" declares implements path \"platform/services/stagecraft/api/workspaces\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-contracts/src/provenance.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/business-requirements-analyst.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/validate.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/src/stages/quality_gates.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/src/stages/s1_business_requirements.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/Cargo.toml\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/allowlist.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/anchor.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/citation.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/lib.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"platform/services/stagecraft/api/governance/provenancePolicy.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"apps/desktop/src/components/factory/StageCdReview.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-contracts/src/stakeholder_docs.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/client-document-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/src/stages/stage_cd.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/src/stages/stage_cd_comparator.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"tools/stakeholder-doc-lint/Cargo.toml\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -380,27 +452,23 @@
     {
       "edition": "2024",
       "entryPoints": [
-        "src/lib.rs",
-        "src/bin/artifact_extract.rs"
+        "src/lib.rs"
       ],
       "externalDeps": [
-        "anyhow",
-        "calamine",
-        "chrono",
-        "clap",
         "pdf-extract",
         "quick-xml",
         "serde_json",
-        "tempfile",
         "thiserror",
-        "walkdir",
         "zip"
       ],
-      "kind": "rust-lib-bin",
+      "internalDeps": [
+        "factory-contracts"
+      ],
+      "kind": "rust-lib",
       "name": "artifact-extract",
       "path": "crates/artifact-extract",
-      "specRef": "087-unified-architecture-domain-model",
-      "version": "0.1.0"
+      "specRef": "120-factory-extraction-stage",
+      "version": "0.2.0"
     },
     {
       "edition": "2024",
@@ -491,6 +559,7 @@
         "chrono",
         "clap",
         "dirs",
+        "infer",
         "jsonschema",
         "regex",
         "serde",
@@ -499,10 +568,12 @@
         "sha2",
         "thiserror",
         "tokio",
+        "tokio-util",
         "uuid",
         "walkdir"
       ],
       "internalDeps": [
+        "artifact-extract",
         "factory-contracts",
         "open_agentic_policy_kernel",
         "orchestrator",
@@ -2351,16 +2422,6 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [
-          {
-            "name": "artifact-extract",
-            "path": "crates/artifact-extract",
-            "source": "cargo-metadata"
-          }
-        ],
-        "specId": "087-unified-architecture-domain-model"
-      },
-      {
         "dependsOn": [
           "074",
           "075",
@@ -3342,6 +3403,162 @@
           }
         ],
         "specId": "119-project-as-unit-of-governance",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075",
+          "077",
+          "094",
+          "110",
+          "115"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/components/factory/ArtifactInspector.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "name": "artifact-extract",
+            "path": "crates/artifact-extract",
+            "source": "cargo-metadata"
+          },
+          {
+            "path": "crates/artifact-extract/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/artifact-extract/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-contracts/src/knowledge.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/manifest_gen.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "120-factory-extraction-stage",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "091",
+          "118",
+          "120"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts/src/provenance.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/skills/business-requirements-analyst.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/skills/validate.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/quality_gates.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/s1_business_requirements.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/src/allowlist.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/src/anchor.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/src/citation.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "121-claim-provenance-enforcement",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "087",
+          "119",
+          "120",
+          "121"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src/components/factory/StageCdReview.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-contracts/src/stakeholder_docs.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/skills/client-document-comparator.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/skills/project-charter-comparator.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd_comparator.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/stakeholder-doc-lint/Cargo.toml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "122-stakeholder-doc-inversion",
         "specStatus": "draft"
       }
     ],

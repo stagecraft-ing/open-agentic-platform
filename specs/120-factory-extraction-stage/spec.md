@@ -2,10 +2,11 @@
 id: "120-factory-extraction-stage"
 slug: factory-extraction-stage
 title: Factory Extraction Stage
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-30"
+amended: "2026-04-30"
 risk: high
 summary: >
   Promote the orphan `crates/artifact-extract` to a canonical, deterministic
@@ -39,7 +40,7 @@ implements:
   - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
   - path: apps/desktop/src-tauri/src/commands/factory.rs
   - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
-  - path: apps/desktop/src/components/inspector/ArtifactInspector.tsx
+  - path: apps/desktop/src/components/factory/ArtifactInspector.tsx
 ---
 
 # 120 — Factory Extraction Stage
