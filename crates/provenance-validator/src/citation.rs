@@ -18,6 +18,7 @@
 
 use crate::corpus::Corpus;
 use factory_contracts::provenance::{quote_hash, Citation, QuoteHash};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Result of verifying one `Citation` against the corpus.
@@ -88,7 +89,8 @@ pub fn verify_citation(corpus: &Corpus, citation: &Citation) -> CitationResult {
 }
 
 /// Per-source hit summary returned by `search_entity` (FR-021).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EntitySearchSummary {
     pub source: PathBuf,
     pub pages_searched: u32,
@@ -97,7 +99,8 @@ pub struct EntitySearchSummary {
 }
 
 /// One verbatim hit of an entity surface form in a source.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CitationHit {
     /// 1-based inclusive line range where the hit was found.
     pub line_range: (u32, u32),

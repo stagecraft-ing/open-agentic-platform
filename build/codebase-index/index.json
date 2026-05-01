@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6da587bb6ec84a5fc3bd5049e0f901d8eb7ed411cc459d0e7de1faf35a171c04",
+    "contentHash": "38428f24ad4bd75a3a2f2fa925054de57c4dd230fad30c3b6b5598b0ad1a6a25",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -677,7 +677,8 @@
     {
       "edition": "2024",
       "entryPoints": [
-        "src/lib.rs"
+        "src/lib.rs",
+        "src/bin/audit.rs"
       ],
       "externalDeps": [
         "serde",
@@ -688,7 +689,7 @@
       "internalDeps": [
         "factory-contracts"
       ],
-      "kind": "rust-lib",
+      "kind": "rust-lib-bin",
       "name": "provenance-validator",
       "path": "crates/provenance-validator",
       "specRef": "121-claim-provenance-enforcement",

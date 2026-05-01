@@ -27,6 +27,7 @@
 pub mod allowlist;
 pub mod citation;
 pub mod corpus;
+pub mod validator;
 
 pub use allowlist::{
     derive as derive_allowlist, detect_external_entities, Allowlist,
@@ -37,7 +38,13 @@ pub use citation::{
     EntitySearchSummary,
 };
 pub use corpus::{extracted_corpus_hash, Corpus, CorpusEntry};
+pub use validator::{
+    audit, audit_with_options, render_audit_report, validate, AuditReport,
+    ClaimRecord, CorpusSource, ValidationReport, ValidationSummary,
+    VALIDATION_REPORT_VERSION,
+};
 
-// Re-export the Phase 1 hash functions so consumers of this crate get a
-// single import path.
+// Re-export the Phase 1 hash functions and the budget contract so
+// consumers of this crate get a single import path.
 pub use factory_contracts::provenance::{anchor_hash, quote_hash};
+pub use factory_contracts::AssumptionBudget;
