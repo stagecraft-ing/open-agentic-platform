@@ -55,14 +55,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/src/stages/stage_cd.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/src/stages/stage_cd_comparator.rs\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
