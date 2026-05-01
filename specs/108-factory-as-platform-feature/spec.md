@@ -195,7 +195,7 @@ a Factory run in OPC:
 3. OPC executes the 7-stage pipeline locally, using the platform-served
    definitions as the source of truth.
 4. OPC streams run events back over `api/sync/duplex.ts` into a new
-   `factory_runs` table (deferred to a follow-up spec).
+   `factory_runs` table — defined and shipped under **spec 124**.
 
 This mirrors the existing workspace duplex pattern: OPC is the execution
 tier, stagecraft is the orchestration and persistence tier.
@@ -207,14 +207,18 @@ The platform-side surface (`/api/factory/adapters`, `.../contracts/*`,
 existing local execution path (`apps/desktop/src-tauri/src/commands/factory.rs`)
 off the in-tree `factory/` checkout and onto the platform API is a separate
 effort with material complexity (auth, caching, run-state, offline
-behaviour) and is **deferred to a follow-up spec**. Until that follow-up
-lands, OPC factory runs require the developer to keep a local checkout of
-the upstream factory repo on disk; see the `// TODO(spec-108-§7-punt)`
-marker on `resolve_factory_root` for the entry point.
+behaviour) and is **tracked under spec 124 (`opc-factory-run-platform-integration`)**.
+Until 124 ships, OPC factory runs require the developer to keep a local
+checkout of the upstream factory repo on disk; see the
+`// TODO(spec-108-§7-punt)` marker on `resolve_factory_root` for the entry
+point.
 
 The factory-engine and factory-contracts crates already accept a configurable
 `factory_root`; they remain path-agnostic and need no source change for the
 follow-up.
+
+Spec 124 also closes the §7.4 `factory_runs` deferral below — the table,
+duplex event handlers, and run-history UI all land there.
 
 ## 8. Removals
 
@@ -289,8 +293,14 @@ Per-phase artefacts:
   punt TODO, cleared spec 081's now-defunct `implements:` block, and added
   this spec's `implementation-audit.md`.
 
-OPC desktop migration (§7.1 punt) is the single open follow-up item: the
-`apps/desktop/src-tauri/src/commands/factory.rs` path still expects a local
-factory checkout. A subsequent spec will migrate it to fetch
-adapter / contract / process bodies from the platform API endpoints shipped
-here.
+OPC desktop migration (§7.1 punt) and the `factory_runs` persistence
+(§7.4) are tracked under **spec 124** (`opc-factory-run-platform-integration`).
+That spec migrates `apps/desktop/src-tauri/src/commands/factory.rs` to
+fetch adapter / contract / process bodies from the API endpoints shipped
+here, and adds the `factory_runs` table + duplex event handlers + Runs
+UI.
+
+The `make ci-schema-parity` gate is currently broken on `main` due to
+the unrelated zod removal in commit `b6859d3`; that's tracked separately
+under **spec 125** (`schema-parity-walker-rebuild`) and is not a
+spec-108 regression.

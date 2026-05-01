@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a2b4ebe0110d246eb352426ba0115f9df200a345557521fdac8fb4b3373ac31b",
+    "contentHash": "5e9dc447af1c670d6b5854a3ffe71a0cf27cc2e1010308305199694217ddf74d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -87,6 +87,10 @@
       {
         "code": "I-101",
         "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/factory/runs.ts\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -3623,6 +3627,46 @@
           }
         ],
         "specId": "123-agent-catalog-org-rescope",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "106",
+          "107",
+          "108",
+          "109"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/runs.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "124-opc-factory-run-platform-integration",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "120",
+          "121",
+          "122"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/schema-parity-check/index.mjs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "125-schema-parity-walker-rebuild",
         "specStatus": "draft"
       }
     ],
