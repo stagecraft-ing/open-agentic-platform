@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
-import { z } from "zod";
+// zod 4: see extractionOutput.ts for why namespace-import is required.
+import * as z from "zod";
 import { readSecretFromDir } from "./secrets";
 import { getCachedDeploydAuthHeader } from "./oidcM2m";
 

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "3294dc0c0d32fe19564b6c70135a913a82ab5c92355df4122c61a1063741f20f",
+    "contentHash": "665668b7d1b0893dd01edabcd817e0a0e63c4226a0e36ba34124e1ba4824ca39",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -422,7 +422,8 @@
     {
       "edition": "2024",
       "entryPoints": [
-        "src/lib.rs"
+        "src/lib.rs",
+        "src/bin/artifact_extract.rs"
       ],
       "externalDeps": [
         "pdf-extract",
@@ -434,7 +435,7 @@
       "internalDeps": [
         "factory-contracts"
       ],
-      "kind": "rust-lib",
+      "kind": "rust-lib-bin",
       "name": "artifact-extract",
       "path": "crates/artifact-extract",
       "specRef": "120-factory-extraction-stage",

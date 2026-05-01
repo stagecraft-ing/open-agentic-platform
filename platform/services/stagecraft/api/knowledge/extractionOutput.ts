@@ -5,7 +5,13 @@
 // `extractor_returned_malformed_output` rather than silently corrupting the
 // workspace's knowledge.
 
-import { z } from "zod";
+// zod 4: use namespace-import form. The named `z` export in zod's
+// `index.d.ts` is a re-exported `import * as z` alias which Encore.ts's
+// TypeScript parser cannot resolve through `export { z }` (fails with
+// "object not found: z" during `encore build` codegen). The namespace
+// import goes through the package's top-level `export *` re-exports
+// directly and preserves identical surface (`z.object`, `z.infer`, etc).
+import * as z from "zod";
 
 // Spec 120 FR-002 — shared schema version, mirrored verbatim by
 // `KNOWLEDGE_SCHEMA_VERSION` in `crates/factory-contracts/src/knowledge.rs`.
