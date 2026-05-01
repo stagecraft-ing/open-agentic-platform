@@ -1104,6 +1104,41 @@ kind: charter
     }
 
     #[test]
+    fn scope_class_fires_on_body_scope_flip_phrase() {
+        // FR-019 second clause: when anchor kinds match (no kind change)
+        // but the candidate body contains a scope-flip phrase that the
+        // authored body lacks, the diff still classifies as `scope`.
+        // Pinned because the e2e SC-001 fixture exercises this path
+        // through run_stage_cd; the unit test isolates it.
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            &dir.path().join("requirements/stakeholder/charter.md"),
+            &authored_with(
+                "### IN-SCOPE-1: Online application intake\n\nOnline application intake is in scope for v1.",
+            ),
+        );
+        write(
+            &dir.path().join(
+                "artifact-store/run-001/stage-cd/charter.candidate.md",
+            ),
+            &candidate_with(
+                "### IN-SCOPE-1: Online application intake\n\nNow in scope for the new payment channel.",
+            ),
+        );
+        write(
+            &dir.path().join(
+                "artifact-store/run-001/stage-cd/client-document.candidate.md",
+            ),
+            &candidate_with(""),
+        );
+        let diff = run(&make_inputs(dir.path())).unwrap();
+        assert!(
+            diff.counts.scope >= 1,
+            "scope-flip phrase in candidate body must surface as scope: {diff:?}"
+        );
+    }
+
+    #[test]
     fn external_entity_class_fires_on_unallowed_token() {
         let dir = tempfile::tempdir().unwrap();
         write(
