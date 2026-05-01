@@ -1,0 +1,7 @@
+Government of Alberta Emergency Family Violence Services Funding Request Portal
+Business Case — Extracted Text
+
+Payment processing — Out of Scope. Finance systems are not in scope for Phase 1.
+All financial disbursement is handled externally by existing provincial infrastructure.
+The portal's role is limited to intake, eligibility determination, and routing of applications.
+Applicants submit requests; adjudication and payment are downstream of this system.
