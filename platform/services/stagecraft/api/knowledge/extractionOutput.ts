@@ -3,26 +3,16 @@
 // Postgres JSONB cannot enforce this shape cheaply, so the worker validates
 // at write time. A malformed payload fails the run with
 // `extractor_returned_malformed_output` rather than silently corrupting the
-// workspace's knowledge.
-
-// zod 4 named imports. The package exposes `z` as a re-exported
-// namespace alias (`import * as z from "..."; export { z }`) which
-// Encore.ts's TS parser cannot resolve — `import { z } from "zod"`
-// fails with `error: object not found: z` and `import * as z from
-// "zod"` fails with `error: unsupported member on type never` during
-// `encore build` codegen. Direct named imports go through the package's
-// top-level `export *` re-exports cleanly. This is also the idiomatic,
-// tree-shakable v4 form.
-import {
-  array,
-  number,
-  object,
-  record,
-  string,
-  unknown,
-  type ZodIssue,
-  type infer as zInfer,
-} from "zod";
+// project's knowledge corpus.
+//
+// Hand-rolled validator (no zod). Encore.ts's TypeScript parser walks
+// imported package `.d.ts` for type resolution and crashes on
+// `node_modules/zod/v4/classic/schemas.d.cts` (`unsupported:
+// TsFnOrConstructorType` on function-types-in-type-positions). Every zod 4
+// import style triggers it, and the same hostility applies to `zod/mini`.
+// Plain TS interfaces + a small validator keep Encore's parse path free
+// of zod and let Encore's own runtime type-checking validate the API
+// surface for typed handlers.
 
 // Spec 120 FR-002 — shared schema version, mirrored verbatim by
 // `KNOWLEDGE_SCHEMA_VERSION` in `crates/factory-contracts/src/knowledge.rs`.
@@ -38,73 +28,68 @@ export const MINIMUM_KNOWLEDGE_SCHEMA_VERSION = "1.0.0" as const;
 export const KNOWLEDGE_SCHEMA_VERSION_HEADER = "x-knowledge-schema-version";
 
 // ---------------------------------------------------------------------------
-// Zod schema
+// Public types
 // ---------------------------------------------------------------------------
 
-const tokenSpendSchema = object({
-  input: number().int().nonnegative(),
-  output: number().int().nonnegative(),
-  cacheRead: number().int().nonnegative().optional(),
-  cacheWrite: number().int().nonnegative().optional(),
-});
+export interface TokenSpend {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+}
 
-const agentRunSchema = object({
-  modelId: string().min(1),
+export interface AgentRun {
+  modelId: string;
   // sha256 hex of the prompt template + key params; reproducible across runs.
-  promptFingerprint: string().regex(/^[a-f0-9]{64}$/),
-  durationMs: number().int().nonnegative(),
-  tokenSpend: tokenSpendSchema,
-  costUsd: number().nonnegative(),
-  attempts: number().int().positive(),
-});
+  promptFingerprint: string;
+  durationMs: number;
+  tokenSpend: TokenSpend;
+  costUsd: number;
+  attempts: number;
+}
 
-const pageSchema = object({
-  index: number().int().nonnegative(),
-  text: string(),
-  bbox: unknown().optional(),
-});
+export interface ExtractionPage {
+  index: number;
+  text: string;
+  bbox?: unknown;
+}
 
-const outlineEntrySchema = object({
-  level: number().int().positive(),
-  text: string().min(1),
-  pageIndex: number().int().nonnegative().optional(),
-});
+export interface OutlineEntry {
+  level: number;
+  text: string;
+  pageIndex?: number;
+}
 
-const extractorMetaSchema = object({
-  kind: string().min(1),
-  version: string().min(1),
-  agentRun: agentRunSchema.optional(),
-});
+export interface ExtractorMeta {
+  kind: string;
+  version: string;
+  agentRun?: AgentRun;
+}
 
-export const extractionOutputSchema = object({
-  text: string(),
-  pages: array(pageSchema).optional(),
+export interface ExtractionOutput {
+  text: string;
+  pages?: ExtractionPage[];
   // ISO 639-1 (e.g. "en", "fr"). Optional — many short payloads are unsafe
   // to language-detect.
-  language: string().min(2).max(8).optional(),
-  outline: array(outlineEntrySchema).optional(),
-  metadata: record(string(), unknown()),
-  extractor: extractorMetaSchema,
-});
+  language?: string;
+  outline?: OutlineEntry[];
+  metadata: Record<string, unknown>;
+  extractor: ExtractorMeta;
+}
 
 // ---------------------------------------------------------------------------
-// Public types (inferred from schema so drift is impossible)
+// Validation
 // ---------------------------------------------------------------------------
 
-export type TokenSpend = zInfer<typeof tokenSpendSchema>;
-export type AgentRun = zInfer<typeof agentRunSchema>;
-export type ExtractionPage = zInfer<typeof pageSchema>;
-export type OutlineEntry = zInfer<typeof outlineEntrySchema>;
-export type ExtractionOutput = zInfer<typeof extractionOutputSchema>;
-
-// ---------------------------------------------------------------------------
-// Validation helper
-// ---------------------------------------------------------------------------
+export interface ExtractionOutputIssue {
+  path: (string | number)[];
+  message: string;
+}
 
 export class ExtractorReturnedMalformedOutputError extends Error {
   readonly code = "extractor_returned_malformed_output";
-  readonly issues: ZodIssue[];
-  constructor(issues: ZodIssue[]) {
+  readonly issues: ExtractionOutputIssue[];
+  constructor(issues: ExtractionOutputIssue[]) {
     super(
       `extractor returned malformed output: ${issues
         .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)
@@ -114,10 +99,185 @@ export class ExtractorReturnedMalformedOutputError extends Error {
   }
 }
 
-export function validateExtractionOutput(value: unknown): ExtractionOutput {
-  const result = extractionOutputSchema.safeParse(value);
-  if (!result.success) {
-    throw new ExtractorReturnedMalformedOutputError(result.error.issues);
+const HEX_64 = /^[a-f0-9]{64}$/;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+class Validator {
+  readonly issues: ExtractionOutputIssue[] = [];
+  private path: (string | number)[] = [];
+
+  fail(message: string): void {
+    this.issues.push({ path: [...this.path], message });
   }
-  return result.data;
+
+  enter<T>(segment: string | number, fn: () => T): T {
+    this.path.push(segment);
+    try {
+      return fn();
+    } finally {
+      this.path.pop();
+    }
+  }
+
+  requireString(value: unknown, opts: { min?: number; max?: number } = {}): boolean {
+    if (typeof value !== "string") {
+      this.fail("expected string");
+      return false;
+    }
+    if (opts.min !== undefined && value.length < opts.min) {
+      this.fail(`string shorter than ${opts.min}`);
+      return false;
+    }
+    if (opts.max !== undefined && value.length > opts.max) {
+      this.fail(`string longer than ${opts.max}`);
+      return false;
+    }
+    return true;
+  }
+
+  requireInt(
+    value: unknown,
+    opts: { nonneg?: boolean; positive?: boolean } = {},
+  ): boolean {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+      this.fail("expected integer");
+      return false;
+    }
+    if (opts.positive && value <= 0) {
+      this.fail("expected positive integer");
+      return false;
+    }
+    if (opts.nonneg && value < 0) {
+      this.fail("expected nonnegative integer");
+      return false;
+    }
+    return true;
+  }
+
+  requireNumber(value: unknown, opts: { nonneg?: boolean } = {}): boolean {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      this.fail("expected finite number");
+      return false;
+    }
+    if (opts.nonneg && value < 0) {
+      this.fail("expected nonnegative number");
+      return false;
+    }
+    return true;
+  }
+
+  requireObject(value: unknown): value is Record<string, unknown> {
+    if (!isObject(value)) {
+      this.fail("expected object");
+      return false;
+    }
+    return true;
+  }
+}
+
+function validateTokenSpend(v: Validator, value: unknown): void {
+  if (!v.requireObject(value)) return;
+  v.enter("input", () => v.requireInt(value.input, { nonneg: true }));
+  v.enter("output", () => v.requireInt(value.output, { nonneg: true }));
+  if (value.cacheRead !== undefined) {
+    v.enter("cacheRead", () => v.requireInt(value.cacheRead, { nonneg: true }));
+  }
+  if (value.cacheWrite !== undefined) {
+    v.enter("cacheWrite", () => v.requireInt(value.cacheWrite, { nonneg: true }));
+  }
+}
+
+function validateAgentRun(v: Validator, value: unknown): void {
+  if (!v.requireObject(value)) return;
+  v.enter("modelId", () => v.requireString(value.modelId, { min: 1 }));
+  v.enter("promptFingerprint", () => {
+    if (!v.requireString(value.promptFingerprint)) return;
+    if (!HEX_64.test(value.promptFingerprint as string)) {
+      v.fail("expected sha256 hex (64 lowercase hex chars)");
+    }
+  });
+  v.enter("durationMs", () => v.requireInt(value.durationMs, { nonneg: true }));
+  v.enter("tokenSpend", () => validateTokenSpend(v, value.tokenSpend));
+  v.enter("costUsd", () => v.requireNumber(value.costUsd, { nonneg: true }));
+  v.enter("attempts", () => v.requireInt(value.attempts, { positive: true }));
+}
+
+function validatePage(v: Validator, value: unknown): void {
+  if (!v.requireObject(value)) return;
+  v.enter("index", () => v.requireInt(value.index, { nonneg: true }));
+  v.enter("text", () => v.requireString(value.text));
+  // bbox is `unknown` — no shape check
+}
+
+function validateOutlineEntry(v: Validator, value: unknown): void {
+  if (!v.requireObject(value)) return;
+  v.enter("level", () => v.requireInt(value.level, { positive: true }));
+  v.enter("text", () => v.requireString(value.text, { min: 1 }));
+  if (value.pageIndex !== undefined) {
+    v.enter("pageIndex", () => v.requireInt(value.pageIndex, { nonneg: true }));
+  }
+}
+
+function validateExtractor(v: Validator, value: unknown): void {
+  if (!v.requireObject(value)) return;
+  v.enter("kind", () => v.requireString(value.kind, { min: 1 }));
+  v.enter("version", () => v.requireString(value.version, { min: 1 }));
+  if (value.agentRun !== undefined) {
+    v.enter("agentRun", () => validateAgentRun(v, value.agentRun));
+  }
+}
+
+export function validateExtractionOutput(value: unknown): ExtractionOutput {
+  const v = new Validator();
+
+  if (!v.requireObject(value)) {
+    throw new ExtractorReturnedMalformedOutputError(v.issues);
+  }
+
+  v.enter("text", () => v.requireString(value.text));
+
+  if (value.pages !== undefined) {
+    v.enter("pages", () => {
+      if (!Array.isArray(value.pages)) {
+        v.fail("expected array");
+        return;
+      }
+      value.pages.forEach((p, i) => v.enter(i, () => validatePage(v, p)));
+    });
+  }
+
+  if (value.language !== undefined) {
+    v.enter("language", () =>
+      v.requireString(value.language, { min: 2, max: 8 }),
+    );
+  }
+
+  if (value.outline !== undefined) {
+    v.enter("outline", () => {
+      if (!Array.isArray(value.outline)) {
+        v.fail("expected array");
+        return;
+      }
+      value.outline.forEach((entry, i) =>
+        v.enter(i, () => validateOutlineEntry(v, entry)),
+      );
+    });
+  }
+
+  v.enter("metadata", () => {
+    if (!isObject(value.metadata)) {
+      v.fail("expected object");
+    }
+  });
+
+  v.enter("extractor", () => validateExtractor(v, value.extractor));
+
+  if (v.issues.length > 0) {
+    throw new ExtractorReturnedMalformedOutputError(v.issues);
+  }
+
+  return value as unknown as ExtractionOutput;
 }

@@ -1,15 +1,11 @@
 import { api } from "encore.dev/api";
-// zod 4: named imports. The package's `index.d.ts` exports `z` as a
-// re-exported namespace alias (`import * as z from "..."; export { z }`)
-// that Encore.ts's TS parser cannot resolve through, producing
-// `error: object not found: z` (default export form) or
-// `error: unsupported member on type never` (`import * as z` form)
-// during `encore build` codegen. Direct named imports go through the
-// package's top-level `export *` re-exports cleanly and are also the
-// idiomatic, tree-shakable v4 form.
-import { object, string, array, record, enum as zEnum } from "zod";
 import { readSecretFromDir } from "./secrets";
 import { getCachedDeploydAuthHeader } from "./oidcM2m";
+
+// Hand-rolled validator for the `/v1/deployments` raw body. zod is
+// avoided here because Encore.ts's TS parser walks zod 4's `.d.cts`
+// during codegen and crashes on `TsFnOrConstructorType` — see
+// `api/knowledge/extractionOutput.ts` for the longer explanation.
 
 const DEPLOYD_URL =
   process.env.DEPLOYD_URL ?? "http://deployd-api.deployd-system.svc.cluster.local";
@@ -17,28 +13,134 @@ const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ??
 const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
 
-const CreateDeployment = object({
-  tenant_id: string().min(1),
-  app_id: string().min(1),
-  app_slug: string().min(1),
-  env_id: string().min(1),
-  env_slug: string().min(1),
+interface DesiredRoute {
+  host?: string;
+  path: string;
+}
 
-  release_sha: string().min(7),
-  artifact_ref: string().min(1),
-  lane: zEnum(["LANE_A", "LANE_B"]),
+interface CreateDeploymentBody {
+  tenant_id: string;
+  app_id: string;
+  app_slug: string;
+  env_id: string;
+  env_slug: string;
+  release_sha: string;
+  artifact_ref: string;
+  lane: "LANE_A" | "LANE_B";
+  desired_routes: DesiredRoute[];
+  config_refs: Record<string, string>;
+}
 
-  desired_routes: array(
-    object({
-      host: string().optional(),
-      path: string().default("/"),
-    }),
-  )
-    .optional()
-    .default([]),
+interface FieldIssue {
+  field: string;
+  message: string;
+}
 
-  config_refs: record(string(), string()).optional().default({}),
-});
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function parseCreateDeployment(
+  raw: unknown,
+):
+  | { ok: true; data: CreateDeploymentBody }
+  | { ok: false; issues: FieldIssue[] } {
+  const issues: FieldIssue[] = [];
+  if (!isObject(raw)) {
+    return { ok: false, issues: [{ field: "<root>", message: "expected object" }] };
+  }
+
+  const reqStr = (key: keyof CreateDeploymentBody, min = 1): string => {
+    const v = raw[key as string];
+    if (typeof v !== "string" || v.length < min) {
+      issues.push({
+        field: key as string,
+        message: `expected string with length >= ${min}`,
+      });
+      return "";
+    }
+    return v;
+  };
+
+  const tenant_id = reqStr("tenant_id");
+  const app_id = reqStr("app_id");
+  const app_slug = reqStr("app_slug");
+  const env_id = reqStr("env_id");
+  const env_slug = reqStr("env_slug");
+  const release_sha = reqStr("release_sha", 7);
+  const artifact_ref = reqStr("artifact_ref");
+
+  let lane: "LANE_A" | "LANE_B" = "LANE_A";
+  if (raw.lane === "LANE_A" || raw.lane === "LANE_B") {
+    lane = raw.lane;
+  } else {
+    issues.push({ field: "lane", message: "expected 'LANE_A' or 'LANE_B'" });
+  }
+
+  const desired_routes: DesiredRoute[] = [];
+  if (raw.desired_routes !== undefined) {
+    if (!Array.isArray(raw.desired_routes)) {
+      issues.push({ field: "desired_routes", message: "expected array" });
+    } else {
+      raw.desired_routes.forEach((entry, i) => {
+        if (!isObject(entry)) {
+          issues.push({
+            field: `desired_routes[${i}]`,
+            message: "expected object",
+          });
+          return;
+        }
+        const host = entry.host;
+        if (host !== undefined && typeof host !== "string") {
+          issues.push({
+            field: `desired_routes[${i}].host`,
+            message: "expected string",
+          });
+          return;
+        }
+        const path = typeof entry.path === "string" ? entry.path : "/";
+        desired_routes.push({ host, path });
+      });
+    }
+  }
+
+  const config_refs: Record<string, string> = {};
+  if (raw.config_refs !== undefined) {
+    if (!isObject(raw.config_refs)) {
+      issues.push({ field: "config_refs", message: "expected object" });
+    } else {
+      for (const [k, v] of Object.entries(raw.config_refs)) {
+        if (typeof v !== "string") {
+          issues.push({
+            field: `config_refs.${k}`,
+            message: "expected string value",
+          });
+          continue;
+        }
+        config_refs[k] = v;
+      }
+    }
+  }
+
+  if (issues.length > 0) {
+    return { ok: false, issues };
+  }
+  return {
+    ok: true,
+    data: {
+      tenant_id,
+      app_id,
+      app_slug,
+      env_id,
+      env_slug,
+      release_sha,
+      artifact_ref,
+      lane,
+      desired_routes,
+      config_refs,
+    },
+  };
+}
 
 function safeJson(s: string): unknown {
   try {
@@ -104,14 +206,14 @@ export const createDeployment = api.raw(
       return;
     }
 
-    const parsed = CreateDeployment.safeParse(body);
-    if (!parsed.success) {
+    const parsed = parseCreateDeployment(body);
+    if (!parsed.ok) {
       res.statusCode = 400;
       res.setHeader("Content-Type", "application/json");
       res.end(
         JSON.stringify({
           error: "invalid_request",
-          details: parsed.error.flatten(),
+          details: parsed.issues,
         })
       );
       return;
