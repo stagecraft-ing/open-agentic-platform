@@ -52,6 +52,10 @@ export default defineConfig({
       // Spec 124 — factory_runs migration assertions hit the live db
       // client and exercise FK/CHECK semantics that require Postgres.
       "**/runsMigration.test.ts",
+      // Spec 124 — /api/factory/runs reservation/list/detail integration
+      // tests touch agent_catalog + project_agent_bindings + factory_*
+      // tables; they run under `encore test`.
+      "**/factory/runs.test.ts",
     ],
   },
 });
