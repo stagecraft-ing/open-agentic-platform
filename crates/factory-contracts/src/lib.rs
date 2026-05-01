@@ -12,6 +12,7 @@ pub mod adapter_manifest;
 pub mod adapter_registry;
 pub mod agent_loader;
 pub mod build_spec;
+pub mod knowledge;
 pub mod namespace;
 pub mod pattern_resolver;
 pub mod pipeline_state;

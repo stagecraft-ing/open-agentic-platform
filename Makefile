@@ -14,7 +14,7 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
-        ci ci-rust ci-tools ci-desktop ci-stagecraft \
+        ci ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-cross ci-parity
 
@@ -129,7 +129,7 @@ fetch-axiomregent-check:
 # ============================================================
 
 ## Recompile spec registry + codebase index in one step (102 FR-026).
-registry: spec-compile index
+registry: spec-compile index ci-schema-parity
 	@echo "==> Registry and index recompiled."
 
 spec-compile:
@@ -286,7 +286,7 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-supply-chain
+ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-supply-chain
 	@echo ""
 	@echo "==> Local CI parity: all gates passed."
 
@@ -399,6 +399,25 @@ ci-stagecraft: ci-agent-frontmatter-ts
 	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
 
 # ============================================================
+# Schema parity (spec 120 FR-003) — asserts the Rust mirror in
+# `crates/factory-contracts/src/knowledge.rs` and the Zod source in
+# `platform/services/stagecraft/api/knowledge/extractionOutput.ts` describe
+# the same shape. Drift fails CI before any runtime divergence can ship.
+#
+# Step 1 emits the Rust-side fingerprint via `cargo test`; step 2 walks the
+# Zod schema with bun (which handles .ts natively and resolves `zod` from
+# stagecraft's node_modules).
+# ============================================================
+
+ci-schema-parity:
+	@echo "==> ci-schema-parity: emit rust fingerprint"
+	cargo test --manifest-path crates/factory-contracts/Cargo.toml --lib -- knowledge::tests
+	@echo ""
+	@echo "==> ci-schema-parity: walk zod schema and compare"
+	@cd platform/services/stagecraft && [ -d node_modules/zod ] || npm ci --silent
+	bun run tools/schema-parity-check/index.mjs
+
+# ============================================================
 # Supply chain (spec 116) — mirrors .github/workflows/ci-supply-chain.yml.
 # Posture: warn-only until 2026-05-28; promote by removing `|| true` lines.
 # ============================================================
@@ -470,6 +489,7 @@ clean:
 	@echo "==> Cleaning build artifacts..."
 	rm -rf build/spec-registry
 	rm -rf build/codebase-index
+	rm -rf build/schema-parity
 	rm -rf apps/desktop/dist
 	rm -rf apps/desktop/src-tauri/target
 

@@ -7,6 +7,11 @@
 
 import { z } from "zod";
 
+// Spec 120 FR-002 — shared schema version, mirrored verbatim by
+// `KNOWLEDGE_SCHEMA_VERSION` in `crates/factory-contracts/src/knowledge.rs`.
+// Drift is a CI failure (see `tools/schema-parity-check`).
+export const KNOWLEDGE_SCHEMA_VERSION = "1.0.0" as const;
+
 // ---------------------------------------------------------------------------
 // Zod schema
 // ---------------------------------------------------------------------------
