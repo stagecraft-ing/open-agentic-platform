@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-003, FR-004
+// Spec: specs/121-claim-provenance-enforcement/spec.md — FR-007 (extension)
 //
 // Schema parity check.
 //
@@ -9,13 +10,23 @@
 // (the source of truth) with the fingerprint emitted by
 // `crates/factory-contracts/src/knowledge.rs` during `cargo test`.
 //
+// Spec 121 extends the check: a second Rust fingerprint is recorded for the
+// provenance schema (`crates/factory-contracts/src/provenance.rs`). The
+// matching TS mirror at `platform/services/stagecraft/api/governance/
+// provenancePolicy.ts` is reserved by spec 121 §8 but not yet authored. When
+// the TS mirror is absent, the parity check records the Rust-side
+// fingerprint and emits an informational line — it does NOT fail. Once the
+// TS mirror lands, the check upgrades automatically (the file's existence
+// flips on the comparison).
+//
 // Run order:
 //   1. cargo test --manifest-path crates/factory-contracts/Cargo.toml
-//      (writes build/schema-parity/rust-knowledge-schema.json)
+//      (writes build/schema-parity/rust-knowledge-schema.json AND
+//       build/schema-parity/rust-provenance-schema.json)
 //   2. node tools/schema-parity-check/index.mjs   (this file)
 //
 // Exit codes:
-//   0  fingerprints match
+//   0  all configured fingerprints match (or recorded for later comparison)
 //   1  fingerprints differ — drift detected
 //   2  internal error (rust file missing, zod walk failed, etc.)
 
@@ -38,6 +49,19 @@ const RUST_MIRROR_PATH = path.join(
   "crates/factory-contracts/src/knowledge.rs",
 );
 
+const TS_PROVENANCE_PATH = path.join(
+  REPO_ROOT,
+  "platform/services/stagecraft/api/governance/provenancePolicy.ts",
+);
+const RUST_PROVENANCE_FINGERPRINT_PATH = path.join(
+  REPO_ROOT,
+  "build/schema-parity/rust-provenance-schema.json",
+);
+const RUST_PROVENANCE_MIRROR_PATH = path.join(
+  REPO_ROOT,
+  "crates/factory-contracts/src/provenance.rs",
+);
+
 function fail(code, message) {
   process.stderr.write(message + "\n");
   process.exit(code);
@@ -47,6 +71,14 @@ if (!fs.existsSync(RUST_FINGERPRINT_PATH)) {
   fail(
     2,
     `schema-parity-check: rust fingerprint not found at ${path.relative(REPO_ROOT, RUST_FINGERPRINT_PATH)}\n` +
+      `  Run: cargo test --manifest-path crates/factory-contracts/Cargo.toml`,
+  );
+}
+
+if (!fs.existsSync(RUST_PROVENANCE_FINGERPRINT_PATH)) {
+  fail(
+    2,
+    `schema-parity-check: provenance rust fingerprint not found at ${path.relative(REPO_ROOT, RUST_PROVENANCE_FINGERPRINT_PATH)}\n` +
       `  Run: cargo test --manifest-path crates/factory-contracts/Cargo.toml`,
   );
 }
@@ -122,6 +154,49 @@ function walkType(zod) {
         .sort((a, b) => a.name.localeCompare(b.name));
       return { kind: "object", fields };
     }
+    case "tuple": {
+      // Zod 4: items live on `_def.items`. Map each positional schema to a
+      // type fingerprint preserving order (tuples are positional, NOT
+      // alphabetical).
+      const items = (zod._def.items ?? []).map((t) => walkType(t));
+      return { kind: "tuple", items };
+    }
+    case "enum": {
+      // Zod 4: `_def.entries` is `Record<string, string>` for native string
+      // enums and a value list for plain `z.enum([...])`. We sort to keep
+      // the fingerprint order-independent.
+      const raw = zod._def.entries ?? zod._def.values ?? {};
+      const values = Array.isArray(raw) ? [...raw] : Object.values(raw);
+      values.sort();
+      return { kind: "enum", values };
+    }
+    case "union":
+    case "discriminatedUnion": {
+      // The Rust side uses #[serde(tag = "mode")] which is the Zod
+      // `discriminatedUnion("mode", [...])` shape. Each option is an
+      // object whose discriminator literal is the variant tag.
+      const discriminator = zod._def.discriminator;
+      const options = zod._def.options ?? [];
+      const variants = options
+        .map((opt) => {
+          const inner = unwrap(opt);
+          const shape = inner?._def?.shape ?? {};
+          const tagSchema = shape[discriminator];
+          const tag =
+            tagSchema?._def?.values?.[0] ?? tagSchema?._def?.value ?? null;
+          const fields = Object.entries(shape)
+            .filter(([name]) => name !== discriminator)
+            .map(([name, t]) => ({
+              name,
+              required: !isOptional(t),
+              type: walkType(t),
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          return { tag, fields };
+        })
+        .sort((a, b) => String(a.tag).localeCompare(String(b.tag)));
+      return { kind: "discriminatedUnion", discriminator, variants };
+    }
     default:
       throw new Error(
         `schema-parity-check: unhandled zod type: ${zod?._def?.type}`,
@@ -195,24 +270,109 @@ function diff(a, b, pathParts = []) {
 const issues = diff(tsFingerprint, rustFingerprint);
 if (issues.length === 0) {
   process.stdout.write(
-    `schema-parity-check: OK (version ${tsSchemaVersion})\n` +
+    `schema-parity-check: knowledge OK (version ${tsSchemaVersion})\n` +
       `  ts: ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)}\n` +
       `  rs: ${path.relative(REPO_ROOT, RUST_MIRROR_PATH)}\n`,
+  );
+} else {
+  process.stderr.write(
+    `schema-parity-check: DRIFT detected between\n` +
+      `  ts: ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)} (version=${tsSchemaVersion})\n` +
+      `  rs: ${path.relative(REPO_ROOT, RUST_MIRROR_PATH)} (version=${rustFingerprint.version})\n\n`,
+  );
+  for (const issue of issues) {
+    process.stderr.write(`  - ${issue}\n`);
+  }
+  process.stderr.write(
+    `\nIf the TS schema changed, mirror the change in ${path.relative(REPO_ROOT, RUST_MIRROR_PATH)}.\n` +
+      `If the Rust types changed, mirror them in ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)}.\n` +
+      `Then bump KNOWLEDGE_SCHEMA_VERSION on both sides if the change is breaking.\n`,
+  );
+  process.exit(1);
+}
+
+// ---------------------------------------------------------------------------
+// Provenance schema (spec 121).
+//
+// The TS mirror at provenancePolicy.ts is reserved by the spec but not yet
+// authored. While it is absent, this block records the Rust fingerprint as
+// already emitted by `cargo test` and emits an informational message — it
+// does NOT fail CI. Once the TS file lands and exports
+// `provenanceClaimSchema` + `PROVENANCE_SCHEMA_VERSION`, the comparison
+// activates automatically.
+// ---------------------------------------------------------------------------
+
+const provenanceRustFingerprint = JSON.parse(
+  fs.readFileSync(RUST_PROVENANCE_FINGERPRINT_PATH, "utf8"),
+);
+
+if (!fs.existsSync(TS_PROVENANCE_PATH)) {
+  process.stdout.write(
+    `schema-parity-check: provenance rust fingerprint recorded (version ${provenanceRustFingerprint.version})\n` +
+      `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}\n` +
+      `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} — not yet authored (spec 121 §8 reserves the path)\n` +
+      `  comparison will activate automatically when the TS mirror lands.\n`,
+  );
+  process.exit(0);
+}
+
+let provenanceTsSchema;
+let provenanceTsVersion;
+try {
+  const mod = await import(TS_PROVENANCE_PATH);
+  provenanceTsSchema =
+    mod.provenanceClaimSchema ?? mod.provenanceSchema ?? mod.default;
+  provenanceTsVersion = mod.PROVENANCE_SCHEMA_VERSION;
+} catch (e) {
+  fail(
+    2,
+    `schema-parity-check: failed to import ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}\n  ${e.message}`,
+  );
+}
+
+if (!provenanceTsSchema || typeof provenanceTsVersion !== "string") {
+  fail(
+    2,
+    `schema-parity-check: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} is missing exports\n` +
+      `  Required: provenanceClaimSchema (or provenanceSchema), PROVENANCE_SCHEMA_VERSION`,
+  );
+}
+
+let provenanceTsFingerprint;
+try {
+  provenanceTsFingerprint = {
+    version: provenanceTsVersion,
+    claim: walkType(provenanceTsSchema),
+  };
+} catch (e) {
+  fail(2, `schema-parity-check: provenance zod walk failed — ${e.message}`);
+}
+
+const provenanceClaimRustFp = {
+  version: provenanceRustFingerprint.version,
+  claim: provenanceRustFingerprint.claim,
+};
+const provenanceIssues = diff(provenanceTsFingerprint, provenanceClaimRustFp);
+if (provenanceIssues.length === 0) {
+  process.stdout.write(
+    `schema-parity-check: provenance OK (version ${provenanceTsVersion})\n` +
+      `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}\n` +
+      `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}\n`,
   );
   process.exit(0);
 }
 
 process.stderr.write(
-  `schema-parity-check: DRIFT detected between\n` +
-    `  ts: ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)} (version=${tsSchemaVersion})\n` +
-    `  rs: ${path.relative(REPO_ROOT, RUST_MIRROR_PATH)} (version=${rustFingerprint.version})\n\n`,
+  `schema-parity-check: provenance DRIFT detected between\n` +
+    `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} (version=${provenanceTsVersion})\n` +
+    `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)} (version=${provenanceRustFingerprint.version})\n\n`,
 );
-for (const issue of issues) {
+for (const issue of provenanceIssues) {
   process.stderr.write(`  - ${issue}\n`);
 }
 process.stderr.write(
-  `\nIf the TS schema changed, mirror the change in ${path.relative(REPO_ROOT, RUST_MIRROR_PATH)}.\n` +
-    `If the Rust types changed, mirror them in ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)}.\n` +
-    `Then bump KNOWLEDGE_SCHEMA_VERSION on both sides if the change is breaking.\n`,
+  `\nIf the TS schema changed, mirror the change in ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}.\n` +
+    `If the Rust types changed, mirror them in ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}.\n` +
+    `Then bump PROVENANCE_SCHEMA_VERSION on both sides if the change is breaking.\n`,
 );
 process.exit(1);

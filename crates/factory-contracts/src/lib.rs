@@ -16,6 +16,7 @@ pub mod knowledge;
 pub mod namespace;
 pub mod pattern_resolver;
 pub mod pipeline_state;
+pub mod provenance;
 pub mod validation;
 pub mod verification;
 
@@ -25,4 +26,5 @@ pub use agent_loader::AgentPrompt;
 pub use build_spec::BuildSpec;
 pub use pattern_resolver::PatternResolver;
 pub use pipeline_state::PipelineState;
+pub use provenance::{anchor_hash, quote_hash, PROVENANCE_SCHEMA_VERSION};
 pub use verification::VerificationContract;

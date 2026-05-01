@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ff9804a1770a78462d80ce14ff25a10ca6e7c18a1e3dd147b4d910ff07f5fd04",
+    "contentHash": "2bb03db27f3c86b8bf950c70a13b6ff9aa5730b328e4d8ee0152f13a39a3be46",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -23,10 +23,6 @@
       {
         "code": "I-101",
         "message": "spec \"119-project-as-unit-of-governance\" declares implements path \"platform/services/stagecraft/api/workspaces\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-contracts/src/provenance.rs\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -535,7 +531,9 @@
         "serde",
         "serde_json",
         "serde_yaml",
-        "thiserror"
+        "sha2",
+        "thiserror",
+        "unicode-normalization"
       ],
       "internalDeps": [
         "agent-frontmatter"
