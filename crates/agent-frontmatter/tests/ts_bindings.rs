@@ -125,6 +125,97 @@ fn canonical_frontmatter_round_trips_through_jsonb() {
     assert_eq!(json, re, "JSONB round-trip lost or rewrote a field");
 }
 
+/// spec 123 §7.1 — verify that a `UnifiedFrontmatter` embedded in a v2
+/// `agent.catalog.updated` envelope round-trips through `serde_json`. This
+/// mirrors how the desktop sync code preserves frontmatter through the JSONB
+/// round-trip when applying a catalog update.
+///
+/// The test constructs a minimal v2 envelope shape (as `serde_json::Value`),
+/// extracts the frontmatter field, and asserts it deserialises back to the
+/// canonical `UnifiedFrontmatter` without loss.
+#[test]
+fn v2_catalog_updated_frontmatter_round_trips() {
+    // Build a `UnifiedFrontmatter` and embed it in a v2 envelope JSON value.
+    let fm = UnifiedFrontmatter {
+        name: "spec-123-agent".to_string(),
+        description: Some("round-trip test for spec 123 §7.1".to_string()),
+        agent_type: AgentType::Agent,
+        model: Some("sonnet".to_string()),
+        tags: vec!["spec-123".to_string()],
+        display_name: Some("Spec-123 Agent".to_string()),
+        trigger: None,
+        allowed_tools: AllowedTools::all(),
+        safety_tier: Some(SafetyTier::Tier2),
+        mutation: None,
+        hooks: std::collections::HashMap::new(),
+        governance: Some(GovernanceRequirement::Enforced),
+        max_spec_risk: None,
+        version: Some("2.0.0".to_string()),
+        author: Some("bart".to_string()),
+        priority: None,
+        icon: Some("globe".to_string()),
+        stage: None,
+        context_budget: None,
+        standards_category: None,
+        standards_tags: vec![],
+        extra: std::collections::HashMap::new(),
+    };
+
+    let fm_value: serde_json::Value = serde_json::to_value(&fm).expect("fm to value");
+
+    // Construct a minimal v2 agent.catalog.updated envelope — the shape the
+    // Rust sync_client.rs decoder and agent_catalog_sync.rs handlers deal with.
+    let envelope = serde_json::json!({
+        "kind": "agent.catalog.updated",
+        "meta": {
+            "v": 1,
+            "eventId": "e-spec123",
+            "sentAt": "2026-05-01T00:00:00Z",
+            "orgCursor": "cur-spec123",
+            "orgId": "org-spec123"          // v2 shape: org_id on meta
+        },
+        // Spec 123 §7.1 — v:2 fields.
+        "agentId": "ag-spec123",
+        "name": "spec-123-agent",
+        "version": 2,
+        "status": "published",
+        "contentHash": "spec123contenthash",
+        "frontmatter": fm_value,
+        "bodyMarkdown": "# spec 123 agent body",
+        "updatedAt": "2026-05-01T00:01:00Z"
+    });
+
+    // Verify the envelope is valid JSON.
+    let re_serialised = serde_json::to_string(&envelope).expect("re-serialise envelope");
+    let reparsed: serde_json::Value =
+        serde_json::from_str(&re_serialised).expect("re-parse envelope");
+
+    // Extract and deserialise the frontmatter.
+    let fm_json = reparsed["frontmatter"].clone();
+    let fm_back: UnifiedFrontmatter =
+        serde_json::from_value(fm_json.clone()).expect("fm deserialise");
+
+    assert_eq!(fm_back.name, "spec-123-agent");
+    assert_eq!(fm_back.agent_type, AgentType::Agent);
+    assert_eq!(fm_back.model.as_deref(), Some("sonnet"));
+    assert!(fm_back.allowed_tools.is_all());
+
+    // Round-trip: re-serialise the deserialised frontmatter and compare.
+    let fm_re: serde_json::Value =
+        serde_json::to_value(&fm_back).expect("fm re-serialise");
+    assert_eq!(
+        fm_json, fm_re,
+        "frontmatter must survive v2 envelope round-trip without loss"
+    );
+
+    // Also verify the org_id is carried on the meta (spec 123 §7.1 change from spec 111).
+    assert_eq!(
+        reparsed["meta"]["orgId"].as_str(),
+        Some("org-spec123"),
+        "v2 envelope meta must carry orgId"
+    );
+}
+
 #[test]
 fn allowed_tools_wildcard_round_trips() {
     let fm = UnifiedFrontmatter {

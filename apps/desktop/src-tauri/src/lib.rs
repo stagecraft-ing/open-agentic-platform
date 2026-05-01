@@ -23,9 +23,10 @@ use commands::agents::{
     get_agent_run, get_agent_run_with_real_time_metrics, get_claude_binary_path,
     get_live_session_output, get_session_output, get_session_status, import_agent,
     import_agent_from_file, import_agent_from_github, init_database, kill_agent_session,
-    list_agent_runs, list_agent_runs_with_metrics, list_agents, list_claude_installations,
-    list_running_sessions, list_workspaces, load_agent_session_history, plan_request,
-    set_active_workspace, set_claude_binary_path, stream_session_output, update_agent,
+    list_active_agents, list_agent_runs, list_agent_runs_with_metrics, list_agents,
+    list_claude_installations, list_org_agents, list_running_sessions, list_workspaces,
+    load_agent_session_history, plan_request, set_active_workspace, set_claude_binary_path,
+    stream_session_output, update_agent,
 };
 use commands::claude::{
     ClaudeBridgeIpcState, ClaudeProcessState, cancel_claude_execution, check_auto_checkpoint,
@@ -472,6 +473,9 @@ pub fn run() {
             get_cpu_usage,
             // Agent Management
             list_agents,
+            // spec 123 §6.3 — binding-aware agent listing
+            list_active_agents,
+            list_org_agents,
             create_agent,
             update_agent,
             delete_agent,

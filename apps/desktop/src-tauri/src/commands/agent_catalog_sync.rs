@@ -27,8 +27,9 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::agents::AgentDb;
 use crate::commands::sync_client::{
-    AgentCatalogFetchReason, AgentCatalogSnapshotEntry, FnHandler, ServerEnvelopeWire,
-    SyncClientState,
+    AgentCatalogFetchReason, AgentCatalogSnapshotEntry, FnHandler,
+    ProjectAgentBindingSnapshotEntry, ServerEnvelopeWire, SyncClientState,
+    AGENT_CATALOG_ENVELOPE_VERSION, PROJECT_AGENT_BINDING_ENVELOPE_VERSION,
 };
 
 /// Env var that gates desktop-side remote catalog ingestion. Phase 3 keeps
@@ -40,6 +41,16 @@ pub const CATALOG_FEATURE_FLAG: &str = "OPC_REMOTE_AGENT_CATALOG";
 pub const EVENT_CATALOG_UPDATED: &str = "agent-catalog-updated";
 /// Tauri event emitted after a snapshot has been applied to the local cache.
 pub const EVENT_CATALOG_SNAPSHOT: &str = "agent-catalog-snapshot";
+/// Tauri event emitted when a project-agent binding is upserted or removed.
+pub const EVENT_BINDING_UPDATED: &str = "project-agent-binding-updated";
+/// Tauri event emitted after a binding snapshot has been applied.
+pub const EVENT_BINDING_SNAPSHOT: &str = "project-agent-binding-snapshot";
+
+/// One-shot flag per session: whether we have already surfaced the
+/// "stagecraft requires desktop update" log for a v:1 catalog envelope.
+/// Using a `std::sync::atomic::AtomicBool` avoids locking on the fast path.
+static CATALOG_VERSION_MISMATCH_LOGGED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
 
 /// Return true when the feature flag is set to any value other than the
 /// canonical "off" strings. Mirrors the laxness of Rust's typical bool env
@@ -275,6 +286,100 @@ pub fn diff_snapshot(
 }
 
 // ---------------------------------------------------------------------------
+// Binding DB operations (spec 123 §7.2)
+// ---------------------------------------------------------------------------
+
+/// Flat projection of a `project.agent_binding.updated` or binding snapshot
+/// entry. Written into the local `project_agent_bindings` table so
+/// `list_active_agents` can return the bound subset without a network call.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalBinding {
+    pub project_id: String,
+    pub org_agent_id: String,
+    pub pinned_version: i32,
+    pub pinned_content_hash: String,
+}
+
+/// Upsert or delete a single binding row based on the `action` field from
+/// a `project.agent_binding.updated` envelope.
+pub fn apply_binding_action(
+    conn: &Connection,
+    binding: &LocalBinding,
+    action: &str,
+) -> Result<(), rusqlite::Error> {
+    match action {
+        "bound" | "rebound" => {
+            conn.execute(
+                "INSERT INTO project_agent_bindings
+                     (project_id, org_agent_id, pinned_version, pinned_content_hash)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(project_id, org_agent_id) DO UPDATE SET
+                     pinned_version       = excluded.pinned_version,
+                     pinned_content_hash  = excluded.pinned_content_hash,
+                     updated_at           = CURRENT_TIMESTAMP",
+                params![
+                    binding.project_id,
+                    binding.org_agent_id,
+                    binding.pinned_version,
+                    binding.pinned_content_hash,
+                ],
+            )?;
+        }
+        "unbound" => {
+            conn.execute(
+                "DELETE FROM project_agent_bindings
+                 WHERE project_id = ?1 AND org_agent_id = ?2",
+                params![binding.project_id, binding.org_agent_id],
+            )?;
+        }
+        other => {
+            warn!(
+                "apply_binding_action: unrecognised action {other:?} for project={} agent={} — ignored",
+                binding.project_id, binding.org_agent_id
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Replace all local bindings for `project_id` with the snapshot entries.
+/// This is called from the `project.agent_binding.snapshot` handler and
+/// performs a full reconcile: any binding not present in the snapshot is
+/// deleted; every snapshot entry is upserted.
+pub fn apply_binding_snapshot(
+    conn: &Connection,
+    project_id: &str,
+    entries: &[ProjectAgentBindingSnapshotEntry],
+) -> Result<(), rusqlite::Error> {
+    // Delete all existing bindings for the project first — the snapshot is
+    // authoritative (like the catalog snapshot handler).
+    conn.execute(
+        "DELETE FROM project_agent_bindings WHERE project_id = ?1",
+        params![project_id],
+    )?;
+
+    // Re-insert from the snapshot.
+    for entry in entries {
+        conn.execute(
+            "INSERT INTO project_agent_bindings
+                 (project_id, org_agent_id, pinned_version, pinned_content_hash)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(project_id, org_agent_id) DO UPDATE SET
+                 pinned_version       = excluded.pinned_version,
+                 pinned_content_hash  = excluded.pinned_content_hash,
+                 updated_at           = CURRENT_TIMESTAMP",
+            params![
+                project_id,
+                entry.org_agent_id,
+                entry.pinned_version,
+                entry.pinned_content_hash,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 // Dispatch handler registration
 // ---------------------------------------------------------------------------
 
@@ -316,10 +421,68 @@ pub fn register_agent_catalog_handlers(app: AppHandle) {
         dispatch.register("agent.catalog.snapshot", Arc::new(handler));
     }
 
+    // project.agent_binding.updated — upsert or delete a single binding row.
+    {
+        let app_handle = app.clone();
+        let handler = FnHandler(move |env: &ServerEnvelopeWire| {
+            on_binding_updated(app_handle.clone(), env);
+        });
+        dispatch.register("project.agent_binding.updated", Arc::new(handler));
+    }
+
+    // project.agent_binding.snapshot — replace all bindings for a project.
+    {
+        let app_handle = app.clone();
+        let handler = FnHandler(move |env: &ServerEnvelopeWire| {
+            on_binding_snapshot(app_handle.clone(), env);
+        });
+        dispatch.register("project.agent_binding.snapshot", Arc::new(handler));
+    }
+
     info!("agent_catalog_sync: dispatch handlers registered (flag enabled)");
 }
 
+/// Emit a one-shot warning when a `v:1` catalog envelope is received from a
+/// server that has not yet deployed spec 123. Per spec §7.3 this is a clean
+/// break; the desktop drops the frame and logs once per session.
+fn check_catalog_envelope_version(env: &ServerEnvelopeWire, kind: &str) -> bool {
+    // The protocol-wide `meta.v` is enforced by `is_server_envelope` upstream;
+    // here we additionally check the per-kind contract version embedded in the
+    // envelope's `version` field when it is present. A v:1 agent catalog
+    // envelope from a pre-spec-123 server carries `version: 1` at the
+    // payload level (not meta.v). We detect the mismatch by inspecting the
+    // kind-level version constant.
+    //
+    // Concrete check: if the envelope is `agent.catalog.*` and the server is
+    // still sending the spec-111 shape (which would be missing `orgId` on the
+    // meta, or carry no `org_id` at all), `extract_remote_update` will return
+    // `None` and the caller logs the drop. This function provides an additional
+    // one-shot advisory log so the operator knows why.
+    //
+    // Currently we cannot extract a per-kind version from the flat wire struct
+    // because the spec-111 server never sent one; instead we gate on the
+    // presence of `org_id` in the meta (added in spec 123 phase 3). If
+    // `meta.org_id` is empty on a catalog envelope the server is pre-spec-123.
+    let _ = AGENT_CATALOG_ENVELOPE_VERSION; // reference the const so the compiler validates it
+    let _ = kind;
+    if env.meta.org_id.is_empty() {
+        use std::sync::atomic::Ordering;
+        if !CATALOG_VERSION_MISMATCH_LOGGED.swap(true, Ordering::Relaxed) {
+            warn!(
+                "agent_catalog_sync: received {kind} with empty org_id — \
+                 stagecraft requires desktop update (spec 123 §7.3). \
+                 Envelope dropped. This warning appears once per session."
+            );
+        }
+        return false;
+    }
+    true
+}
+
 fn on_catalog_updated(app: AppHandle, env: &ServerEnvelopeWire) {
+    if !check_catalog_envelope_version(env, "agent.catalog.updated") {
+        return;
+    }
     let Some(update) = extract_remote_update(env) else {
         warn!("agent.catalog.updated missing required fields — ignored");
         return;
@@ -368,6 +531,9 @@ fn on_catalog_updated(app: AppHandle, env: &ServerEnvelopeWire) {
 }
 
 fn on_catalog_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
+    if !check_catalog_envelope_version(env, "agent.catalog.snapshot") {
+        return;
+    }
     let org_id = env.meta.org_id.clone();
     if org_id.is_empty() {
         warn!("agent.catalog.snapshot missing org id — ignored");
@@ -449,6 +615,106 @@ fn on_catalog_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
 }
 
 // ---------------------------------------------------------------------------
+// Binding handlers (spec 123 §7.2)
+// ---------------------------------------------------------------------------
+
+fn on_binding_updated(app: AppHandle, env: &ServerEnvelopeWire) {
+    let _ = PROJECT_AGENT_BINDING_ENVELOPE_VERSION; // validate const is visible
+
+    let Some(project_id) = env.project_id.clone() else {
+        warn!("project.agent_binding.updated missing project_id — ignored");
+        return;
+    };
+    let Some(org_agent_id) = env.org_agent_id.clone() else {
+        warn!("project.agent_binding.updated missing org_agent_id — ignored");
+        return;
+    };
+    let Some(pinned_version) = env.pinned_version else {
+        warn!("project.agent_binding.updated missing pinned_version — ignored");
+        return;
+    };
+    let Some(pinned_content_hash) = env.pinned_content_hash.clone() else {
+        warn!("project.agent_binding.updated missing pinned_content_hash — ignored");
+        return;
+    };
+    let action = env.action.clone().unwrap_or_else(|| "bound".to_string());
+
+    let Some(db) = app.try_state::<AgentDb>() else {
+        warn!("project.agent_binding.updated: AgentDb not managed — ignored");
+        return;
+    };
+
+    let binding = LocalBinding {
+        project_id: project_id.clone(),
+        org_agent_id: org_agent_id.clone(),
+        pinned_version,
+        pinned_content_hash: pinned_content_hash.clone(),
+    };
+
+    let result = {
+        let Ok(conn) = db.0.lock() else {
+            warn!("project.agent_binding.updated: DB mutex poisoned — ignored");
+            return;
+        };
+        apply_binding_action(&conn, &binding, &action)
+    };
+
+    match result {
+        Ok(_) => {
+            let payload = serde_json::json!({
+                "projectId": project_id,
+                "orgAgentId": org_agent_id,
+                "action": action,
+            });
+            if let Err(e) = app.emit(EVENT_BINDING_UPDATED, payload) {
+                warn!("project.agent_binding.updated: failed to emit frontend event: {e}");
+            }
+        }
+        Err(e) => warn!(
+            "project.agent_binding.updated: cache write failed project={project_id} agent={org_agent_id} action={action}: {e}"
+        ),
+    }
+}
+
+fn on_binding_snapshot(app: AppHandle, env: &ServerEnvelopeWire) {
+    let _ = PROJECT_AGENT_BINDING_ENVELOPE_VERSION; // validate const is visible
+
+    let Some(project_id) = env.project_id.clone() else {
+        warn!("project.agent_binding.snapshot missing project_id — ignored");
+        return;
+    };
+    let entries = env.bindings.clone().unwrap_or_default();
+
+    let Some(db) = app.try_state::<AgentDb>() else {
+        warn!("project.agent_binding.snapshot: AgentDb not managed — ignored");
+        return;
+    };
+
+    let result = {
+        let Ok(conn) = db.0.lock() else {
+            warn!("project.agent_binding.snapshot: DB mutex poisoned — ignored");
+            return;
+        };
+        apply_binding_snapshot(&conn, &project_id, &entries)
+    };
+
+    match result {
+        Ok(_) => {
+            let payload = serde_json::json!({
+                "projectId": project_id,
+                "bindingCount": entries.len(),
+            });
+            if let Err(e) = app.emit(EVENT_BINDING_SNAPSHOT, payload) {
+                warn!("project.agent_binding.snapshot: failed to emit frontend event: {e}");
+            }
+        }
+        Err(e) => warn!(
+            "project.agent_binding.snapshot: cache write failed project={project_id}: {e}"
+        ),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -486,7 +752,17 @@ mod tests {
                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
              );
              CREATE UNIQUE INDEX agents_remote_id_uniq
-                 ON agents(remote_agent_id) WHERE remote_agent_id IS NOT NULL;",
+                 ON agents(remote_agent_id) WHERE remote_agent_id IS NOT NULL;
+             CREATE TABLE project_agent_bindings (
+                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                 project_id TEXT    NOT NULL,
+                 org_agent_id TEXT  NOT NULL,
+                 pinned_version    INTEGER NOT NULL,
+                 pinned_content_hash TEXT NOT NULL,
+                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                 UNIQUE (project_id, org_agent_id)
+             );",
         )
         .expect("schema init");
         conn
@@ -837,5 +1113,152 @@ mod tests {
         // carries a real icon.
         assert_eq!(icon, "\u{1f310}");
         assert_eq!(model, "sonnet");
+    }
+
+    // ---------------------------------------------------------------------------
+    // spec 123 §7.2 — project_agent_bindings DB helpers
+    // ---------------------------------------------------------------------------
+
+    fn mk_binding(project_id: &str, org_agent_id: &str, version: i32, hash: &str) -> LocalBinding {
+        LocalBinding {
+            project_id: project_id.into(),
+            org_agent_id: org_agent_id.into(),
+            pinned_version: version,
+            pinned_content_hash: hash.into(),
+        }
+    }
+
+    #[test]
+    fn apply_binding_action_bound_inserts_row() {
+        let conn = in_memory_agents_db();
+        let b = mk_binding("proj-1", "a-1", 3, "h-3");
+        apply_binding_action(&conn, &b, "bound").expect("insert binding");
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_agent_bindings WHERE project_id = 'proj-1'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn apply_binding_action_rebound_updates_in_place() {
+        let conn = in_memory_agents_db();
+        apply_binding_action(&conn, &mk_binding("proj-1", "a-1", 3, "h-3"), "bound").unwrap();
+        apply_binding_action(&conn, &mk_binding("proj-1", "a-1", 4, "h-4"), "rebound").unwrap();
+
+        let (version, hash): (i64, String) = conn
+            .query_row(
+                "SELECT pinned_version, pinned_content_hash FROM project_agent_bindings
+                 WHERE project_id = 'proj-1' AND org_agent_id = 'a-1'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(version, 4);
+        assert_eq!(hash, "h-4");
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_agent_bindings",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1, "rebound must update, not insert a second row");
+    }
+
+    #[test]
+    fn apply_binding_action_unbound_deletes_row() {
+        let conn = in_memory_agents_db();
+        apply_binding_action(&conn, &mk_binding("proj-1", "a-1", 3, "h-3"), "bound").unwrap();
+        apply_binding_action(&conn, &mk_binding("proj-1", "a-1", 3, "h-3"), "unbound").unwrap();
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_agent_bindings",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 0, "unbound must delete the row");
+    }
+
+    #[test]
+    fn apply_binding_snapshot_replaces_all_for_project() {
+        let conn = in_memory_agents_db();
+        // Seed two existing bindings.
+        apply_binding_action(&conn, &mk_binding("proj-1", "a-1", 1, "h-1"), "bound").unwrap();
+        apply_binding_action(&conn, &mk_binding("proj-1", "a-2", 1, "h-2"), "bound").unwrap();
+
+        // Snapshot carries only a-1 (updated) and a new a-3; a-2 must be removed.
+        let snapshot = vec![
+            ProjectAgentBindingSnapshotEntry {
+                binding_id: "bind-1".into(),
+                org_agent_id: "a-1".into(),
+                agent_name: "triage".into(),
+                pinned_version: 2,
+                pinned_content_hash: "h-1-v2".into(),
+            },
+            ProjectAgentBindingSnapshotEntry {
+                binding_id: "bind-3".into(),
+                org_agent_id: "a-3".into(),
+                agent_name: "reviewer".into(),
+                pinned_version: 1,
+                pinned_content_hash: "h-3".into(),
+            },
+        ];
+        apply_binding_snapshot(&conn, "proj-1", &snapshot).expect("snapshot apply");
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_agent_bindings WHERE project_id = 'proj-1'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 2, "snapshot must leave exactly 2 bindings");
+
+        // a-1 must have been updated to v2.
+        let version: i64 = conn
+            .query_row(
+                "SELECT pinned_version FROM project_agent_bindings
+                 WHERE project_id = 'proj-1' AND org_agent_id = 'a-1'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(version, 2);
+
+        // a-2 must no longer exist.
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_agent_bindings WHERE org_agent_id = 'a-2'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(exists, 0, "a-2 must have been removed by snapshot reconcile");
+    }
+
+    #[test]
+    fn apply_binding_snapshot_does_not_touch_other_projects() {
+        let conn = in_memory_agents_db();
+        // Binding for proj-2 must survive a snapshot for proj-1.
+        apply_binding_action(&conn, &mk_binding("proj-2", "a-1", 1, "h-1"), "bound").unwrap();
+
+        apply_binding_snapshot(&conn, "proj-1", &[]).expect("empty snapshot for proj-1");
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_agent_bindings WHERE project_id = 'proj-2'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1, "proj-2 binding must not be affected by proj-1 snapshot");
     }
 }

@@ -2794,6 +2794,14 @@ mod tests {
             repo: None,
             opc_deep_link: None,
             tombstone: None,
+            binding_id: None,
+            org_agent_id: None,
+            agent_name: None,
+            pinned_version: None,
+            pinned_content_hash: None,
+            bindings: None,
+            bound_at: None,
+            action: None,
         };
         assert!(extract_factory_run(&env).is_none());
     }
@@ -2857,6 +2865,14 @@ mod tests {
             repo: None,
             opc_deep_link: None,
             tombstone: None,
+            binding_id: None,
+            org_agent_id: None,
+            agent_name: None,
+            pinned_version: None,
+            pinned_content_hash: None,
+            bindings: None,
+            bound_at: None,
+            action: None,
         };
         let run = extract_factory_run(&env).unwrap();
         assert_eq!(run.pipeline_id, "pl-1");

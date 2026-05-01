@@ -180,6 +180,42 @@ pub struct ServerEnvelopeWire {
     pub opc_deep_link: Option<String>,
     #[serde(default)]
     pub tombstone: Option<bool>,
+    // spec 123 §7.2 — project.agent_binding.updated fields.
+    #[serde(default)]
+    pub binding_id: Option<String>,
+    #[serde(default)]
+    pub org_agent_id: Option<String>,
+    #[serde(default)]
+    pub agent_name: Option<String>,
+    #[serde(default)]
+    pub pinned_version: Option<i32>,
+    #[serde(default)]
+    pub pinned_content_hash: Option<String>,
+    // spec 123 §7.2 — project.agent_binding.snapshot fields.
+    #[serde(default)]
+    pub bindings: Option<Vec<ProjectAgentBindingSnapshotEntry>>,
+    #[serde(default)]
+    pub bound_at: Option<String>,
+    // spec 123 §7.1 — AgentCatalogSnapshot also carries org_id on the envelope
+    // itself (mirrored from meta.org_id for convenience). Shared with project
+    // catalog upsert via the existing `org_id` field above.
+    // `action` is used by project.agent_binding.updated.
+    #[serde(default)]
+    pub action: Option<String>,
+}
+
+/// Mirror of {@link ProjectAgentBindingSnapshotEntry} from stagecraft's
+/// `api/sync/types.ts` (spec 123 §7.2). Carries the hashes-only directory
+/// of per-project agent bindings so the desktop can diff its local cache
+/// without refetching full catalog rows.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectAgentBindingSnapshotEntry {
+    pub binding_id: String,
+    pub org_agent_id: String,
+    pub agent_name: String,
+    pub pinned_version: i32,
+    pub pinned_content_hash: String,
 }
 
 /// Mirror of the {@link ServerProjectCatalogUpsert} `repo` sub-object
@@ -238,6 +274,9 @@ const SERVER_KINDS: &[&str] = &[
     "factory.run.request",
     "agent.catalog.updated",
     "agent.catalog.snapshot",
+    // spec 123 §7.2 — project-binding envelopes at v1.
+    "project.agent_binding.updated",
+    "project.agent_binding.snapshot",
     "project.catalog.upsert",
     "sync.ack",
     "sync.nack",
@@ -881,6 +920,14 @@ mod tests {
             repo: None,
             opc_deep_link: None,
             tombstone: None,
+            binding_id: None,
+            org_agent_id: None,
+            agent_name: None,
+            pinned_version: None,
+            pinned_content_hash: None,
+            bindings: None,
+            bound_at: None,
+            action: None,
         }
     }
 
@@ -1260,6 +1307,87 @@ mod tests {
             }
             other => panic!("unexpected frame: {other:?}"),
         }
+    }
+
+    // spec 123 §7.2 — project.agent_binding.{updated,snapshot} must be
+    // recognised as known SERVER→CLIENT kinds.
+    #[test]
+    fn accepts_project_agent_binding_kinds_at_v1() {
+        for kind in [
+            "project.agent_binding.updated",
+            "project.agent_binding.snapshot",
+        ] {
+            assert!(
+                is_server_envelope(&empty_envelope(kind, 1)),
+                "kind {kind} should pass the guard",
+            );
+        }
+    }
+
+    #[test]
+    fn project_agent_binding_updated_deserializes_from_wire_json() {
+        let raw = r#"{
+          "kind": "project.agent_binding.updated",
+          "meta": {
+            "v": 1,
+            "eventId": "e-bind",
+            "sentAt": "2026-05-01T00:00:00Z",
+            "orgCursor": "cur-3",
+            "orgId": "org-1"
+          },
+          "projectId": "proj-1",
+          "bindingId": "bind-1",
+          "orgAgentId": "a-1",
+          "agentName": "triage",
+          "pinnedVersion": 3,
+          "pinnedContentHash": "h-3",
+          "action": "bound",
+          "boundAt": "2026-05-01T00:00:01Z"
+        }"#;
+        let env: ServerEnvelopeWire = serde_json::from_str(raw).expect("deserialize");
+        assert!(is_server_envelope(&env));
+        assert_eq!(env.project_id.as_deref(), Some("proj-1"));
+        assert_eq!(env.binding_id.as_deref(), Some("bind-1"));
+        assert_eq!(env.org_agent_id.as_deref(), Some("a-1"));
+        assert_eq!(env.agent_name.as_deref(), Some("triage"));
+        assert_eq!(env.pinned_version, Some(3));
+        assert_eq!(env.pinned_content_hash.as_deref(), Some("h-3"));
+        assert_eq!(env.action.as_deref(), Some("bound"));
+        assert_eq!(env.bound_at.as_deref(), Some("2026-05-01T00:00:01Z"));
+    }
+
+    #[test]
+    fn project_agent_binding_snapshot_deserializes_from_wire_json() {
+        let raw = r#"{
+          "kind": "project.agent_binding.snapshot",
+          "meta": {
+            "v": 1,
+            "eventId": "e-bsnap",
+            "sentAt": "2026-05-01T00:00:00Z",
+            "orgCursor": "cur-4",
+            "orgId": "org-1"
+          },
+          "projectId": "proj-1",
+          "bindings": [
+            {
+              "bindingId": "bind-1",
+              "orgAgentId": "a-1",
+              "agentName": "triage",
+              "pinnedVersion": 3,
+              "pinnedContentHash": "h-3"
+            }
+          ]
+        }"#;
+        let env: ServerEnvelopeWire = serde_json::from_str(raw).expect("deserialize");
+        assert!(is_server_envelope(&env));
+        assert_eq!(env.project_id.as_deref(), Some("proj-1"));
+        let bindings = env.bindings.as_ref().expect("bindings present");
+        assert_eq!(bindings.len(), 1);
+        assert_eq!(bindings[0].binding_id, "bind-1");
+        assert_eq!(bindings[0].org_agent_id, "a-1");
+        assert_eq!(bindings[0].agent_name, "triage");
+        assert_eq!(bindings[0].pinned_version, 3);
+        assert_eq!(bindings[0].pinned_content_hash, "h-3");
     }
 
     #[tokio::test(flavor = "multi_thread")]

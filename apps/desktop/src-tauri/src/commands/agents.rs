@@ -510,6 +510,35 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
         [],
     )?;
 
+    // spec 123 §7.2 — local mirror of `project_agent_bindings`. Tracks which
+    // org agents are bound to which project so `list_active_agents(project_id)`
+    // can return the bound subset without hitting the network. Populated by the
+    // `project.agent_binding.updated` and `project.agent_binding.snapshot`
+    // duplex handlers in `agent_catalog_sync.rs`.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS project_agent_bindings (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT    NOT NULL,
+            org_agent_id TEXT  NOT NULL,
+            pinned_version    INTEGER NOT NULL,
+            pinned_content_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (project_id, org_agent_id)
+        )",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS project_agent_bindings_project_idx
+         ON project_agent_bindings (project_id)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS project_agent_bindings_agent_idx
+         ON project_agent_bindings (org_agent_id)",
+        [],
+    )?;
+
     // Create agent_runs table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS agent_runs (
@@ -603,6 +632,110 @@ pub async fn list_agents(db: State<'_, AgentDb>) -> Result<Vec<Agent>, String> {
 
     let agents = stmt
         .query_map([], |row| {
+            Ok(Agent {
+                id: Some(row.get(0)?),
+                name: row.get(1)?,
+                icon: row.get(2)?,
+                system_prompt: row.get(3)?,
+                default_task: row.get(4)?,
+                model: row
+                    .get::<_, String>(5)
+                    .unwrap_or_else(|_| "sonnet".to_string()),
+                enable_file_read: row.get::<_, bool>(6).unwrap_or(true),
+                enable_file_write: row.get::<_, bool>(7).unwrap_or(true),
+                enable_network: row.get::<_, bool>(8).unwrap_or(false),
+                hooks: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(agents)
+}
+
+/// Return org agents that are bound to `project_id` in the local
+/// `project_agent_bindings` table (spec 123 §6.3).
+///
+/// This is the default `Agent.list()` source for the active project going
+/// forward — only agents the operator has explicitly bound to the project appear
+/// in this list. For ad-hoc browsing of the full org catalog use
+/// `list_org_agents`.
+#[tauri::command]
+pub async fn list_active_agents(
+    db: State<'_, AgentDb>,
+    project_id: String,
+) -> Result<Vec<Agent>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT a.id, a.name, a.icon, a.system_prompt, a.default_task,
+                    a.model, a.enable_file_read, a.enable_file_write, a.enable_network,
+                    a.hooks, a.created_at, a.updated_at
+             FROM agents a
+             INNER JOIN project_agent_bindings b ON b.org_agent_id = a.remote_agent_id
+             WHERE b.project_id = ?1
+               AND a.source = 'remote'
+             ORDER BY a.name ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let agents = stmt
+        .query_map(params![project_id], |row| {
+            Ok(Agent {
+                id: Some(row.get(0)?),
+                name: row.get(1)?,
+                icon: row.get(2)?,
+                system_prompt: row.get(3)?,
+                default_task: row.get(4)?,
+                model: row
+                    .get::<_, String>(5)
+                    .unwrap_or_else(|_| "sonnet".to_string()),
+                enable_file_read: row.get::<_, bool>(6).unwrap_or(true),
+                enable_file_write: row.get::<_, bool>(7).unwrap_or(true),
+                enable_network: row.get::<_, bool>(8).unwrap_or(false),
+                hooks: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(agents)
+}
+
+/// Return the full org catalog for ad-hoc browsing (spec 123 §6.3).
+///
+/// All `source = 'remote'` agents for the given `org_id` are returned,
+/// regardless of whether they are bound to any project. This is surfaced
+/// via the "Browse org agents" affordance; the typical default listing
+/// uses `list_active_agents(project_id)` instead.
+#[tauri::command]
+pub async fn list_org_agents(
+    db: State<'_, AgentDb>,
+    org_id: String,
+) -> Result<Vec<Agent>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, icon, system_prompt, default_task,
+                    model, enable_file_read, enable_file_write, enable_network,
+                    hooks, created_at, updated_at
+             FROM agents
+             WHERE source = 'remote'
+               AND org_id = ?1
+             ORDER BY name ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let agents = stmt
+        .query_map(params![org_id], |row| {
             Ok(Agent {
                 id: Some(row.get(0)?),
                 name: row.get(1)?,
