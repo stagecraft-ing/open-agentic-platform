@@ -69,6 +69,25 @@ once Phase 0 is in. Phase 5 depends on 1, 2, 3, 4. Phase 7 depends on
   across two specs and re-introduce the project↔org seam spec 123
   exists to remove. The resolver writes resolved bodies into the
   per-run cache so the on-disk shape stays uniform.
+- **Resolver flow differs slightly between project-bound and ad-hoc
+  runs.** With a `project_id`, the desktop reads
+  `project_agent_bindings` first to fix the `(org_agent_id,
+  pinned_version)` pair, then calls
+  `AgentResolver::resolve(AgentReference::ById { org_agent_id,
+  version })` — that's the most stable form (UUID + version pinned).
+  Without a `project_id` (ad-hoc runs), the process definition's
+  embedded `AgentReference` is used directly: `ByName { name, version
+  }` for explicit pins, `ByNameLatest { name }` to take the latest
+  published row at run time. The server-side reservation (T020) does
+  the same lookup so its `source_shas.agents[]` matches what the
+  client materialises (T043 cross-check).
+- **Spec 123's `CatalogClient` is what the platform client implements.**
+  `factory-engine` carries the `CatalogClient` trait but no HTTP
+  dependency; spec 124's new `factory-platform-client` crate provides
+  the concrete implementation. One client instance feeds both the run
+  pipeline (`/api/factory/runs`, GETs for adapter/contract/process)
+  and the agent resolver via the trait, so the desktop has one source
+  of authentication + retry policy.
 - **Duplex envelopes are versioned independently of spec 123.**
   `factory.run.*` starts at `v: 1`; bumps later if the shape changes.
   Compile-time schema-version constants per the

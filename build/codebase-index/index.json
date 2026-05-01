@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6f01a59bd452d810dec8f459317c7fb207ea2573599a513ddc8062c39c4714d5",
+    "contentHash": "13c7f2102fbb6638795f6a711888e43dc289e09626e7bd04f77a16d6894c147f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -59,6 +59,14 @@
       {
         "code": "I-101",
         "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/factory/runs.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"126-desktop-agent-picker-ui\" declares implements path \"apps/desktop/src/components/AgentPicker.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"126-desktop-agent-picker-ui\" declares implements path \"apps/desktop/src/lib/agentPicker.ts\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -3640,6 +3648,25 @@
           }
         ],
         "specId": "125-schema-parity-walker-rebuild",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "111",
+          "123",
+          "124"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src/components/AgentPicker.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/agentPicker.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "126-desktop-agent-picker-ui",
         "specStatus": "draft"
       }
     ],
