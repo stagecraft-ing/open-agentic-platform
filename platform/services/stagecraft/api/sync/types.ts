@@ -405,8 +405,8 @@ export interface ServerFactoryRunRequest {
  */
 export interface AgentCatalogSnapshotEntry {
   agentId: string;
-  /** Project the agent belongs to (spec 119 — agents are project-scoped). */
-  projectId: string;
+  /** Org the agent belongs to (spec 123 — agents rescoped to org). */
+  orgId: string;
   name: string;
   version: number;
   status: "published" | "retired";
@@ -416,7 +416,7 @@ export interface AgentCatalogSnapshotEntry {
 
 /**
  * Stagecraft announces that an agent definition was published or retired
- * (spec 111 §2.3, amended by spec 119 to be project-scoped). Carries the
+ * (spec 111 §2.3, amended by spec 123 to be org-scoped). Carries the
  * full frontmatter + body so connected OPCs can update their local caches
  * in one round-trip. Also used as the targeted reply to a
  * {@link ClientAgentCatalogFetchRequest}.
@@ -424,13 +424,13 @@ export interface AgentCatalogSnapshotEntry {
 export interface ServerAgentCatalogUpdated {
   kind: "agent.catalog.updated";
   meta: ServerMeta;
-  /** Remote id — stable across versions within a (project, name) pair. */
+  /** Remote id — stable across versions within an (org, name) pair. */
   agentId: string;
-  /** Project that owns the agent. */
-  projectId: string;
-  /** Catalog key (kebab-case, unique per project). */
+  /** Org that owns the agent (spec 123 §7.1). */
+  orgId: string;
+  /** Catalog key (kebab-case, unique per org). */
   name: string;
-  /** Monotonic per (project, name). */
+  /** Monotonic per (org, name). */
   version: number;
   /** `published` puts the agent into the active catalog;
    *  `retired` removes it. Drafts never travel the wire. */

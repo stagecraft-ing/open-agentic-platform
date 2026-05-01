@@ -1,6 +1,5 @@
 /**
- * Spec 111 Phase 3 (amended by spec 119) — Agent catalog sync relay
- * (outbound only).
+ * Spec 123 — Agent catalog sync relay (outbound only, org-scoped).
  *
  * Two outbound paths:
  *
@@ -12,19 +11,16 @@
  *     -> sendAgentCatalogSnapshot(orgId, clientId)                      // targeted
  *        -> sendTargetedServerEvent(orgId, clientId, agent.catalog.snapshot)
  *
- * The snapshot is a directory (hashes only, no bodies) that spans every
- * project in the session's org. Desktops pull full bodies for cache misses
- * via `agent.catalog.fetch_request` — served by `serveAgentCatalogFetch` in
- * sync/service.ts (layered there to keep the inbound handler close to
- * handleInbound, matching the audit-candidate pattern). This module
- * deliberately owns outbound only.
+ * The snapshot is a directory (hashes only, no bodies) of every published
+ * agent in the org. Desktops pull full bodies for cache misses via
+ * `agent.catalog.fetch_request` — served by `serveAgentCatalogFetch` in
+ * sync/service.ts. This module deliberately owns outbound only.
  */
 import log from "encore.dev/log";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   agentCatalog,
-  projects,
   type AgentCatalogStatus,
 } from "../db/schema";
 import {
@@ -47,9 +43,7 @@ type AgentRow = typeof agentCatalog.$inferSelect;
 function buildUpdatedEvent(
   row: AgentRow,
 ): Omit<ServerAgentCatalogUpdated, "meta"> {
-  // Spec 111 §2.3: only published/retired rows travel the wire. The caller
-  // is responsible for never passing a draft; we assert here so a caller
-  // bug surfaces as a loud log rather than a silent cache corruption.
+  // Spec 111 §2.3: only published/retired rows travel the wire.
   if (row.status !== "published" && row.status !== "retired") {
     log.error("agent.catalog: refusing to relay non-terminal status", {
       agentId: row.id,
@@ -62,7 +56,7 @@ function buildUpdatedEvent(
   return {
     kind: "agent.catalog.updated",
     agentId: row.id,
-    projectId: row.projectId,
+    orgId: row.orgId,
     name: row.name,
     version: row.version,
     status: row.status as "published" | "retired",
@@ -71,15 +65,6 @@ function buildUpdatedEvent(
     bodyMarkdown: row.bodyMarkdown,
     updatedAt: row.updatedAt.toISOString(),
   };
-}
-
-async function resolveOrgIdForProject(projectId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ orgId: projects.orgId })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  return row?.orgId ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,28 +79,17 @@ export interface PublishAgentCatalogUpdatedResult {
 
 /**
  * Broadcast a published or retired agent to every OPC connected to the
- * project's org. Called from `publishAgent` and `retireAgent` after their
+ * agent's org. Called from `publishAgent` and `retireAgent` after their
  * DB transactions commit — order matters, so a failed broadcast never
  * leaves the catalog and the wire out of step.
  */
 export async function publishAgentCatalogUpdated(
   row: AgentRow,
 ): Promise<PublishAgentCatalogUpdatedResult> {
-  const orgId = await resolveOrgIdForProject(row.projectId);
-  if (!orgId) {
-    log.error("agent.catalog: cannot resolve org for project — broadcast skipped", {
-      agentId: row.id,
-      projectId: row.projectId,
-    });
-    throw new Error(
-      `cannot resolve org for project ${row.projectId}; agent broadcast aborted`,
-    );
-  }
   const event = buildUpdatedEvent(row);
-  const result = await dispatchServerEvent(orgId, event);
+  const result = await dispatchServerEvent(row.orgId, event);
   log.info("agent.catalog: updated broadcast dispatched", {
-    orgId,
-    projectId: row.projectId,
+    orgId: row.orgId,
     agentId: row.id,
     name: row.name,
     version: row.version,
@@ -130,10 +104,10 @@ export async function publishAgentCatalogUpdated(
 // ---------------------------------------------------------------------------
 
 /**
- * Build the directory of currently-published agents across every project in
- * an org. Returns hashes only — the bodies are pulled lazily by the desktop
- * via `agent.catalog.fetch_request` (spec 111 §2.3). Retired agents are
- * excluded so the desktop infers removal from absence, which matches §2.4.
+ * Build the directory of currently-published agents in an org. Returns
+ * hashes only — the bodies are pulled lazily by the desktop via
+ * `agent.catalog.fetch_request` (spec 111 §2.3). Retired agents are
+ * excluded so the desktop infers removal from absence.
  */
 export async function buildAgentCatalogSnapshotEntries(
   orgId: string,
@@ -141,7 +115,7 @@ export async function buildAgentCatalogSnapshotEntries(
   const rows = await db
     .select({
       id: agentCatalog.id,
-      projectId: agentCatalog.projectId,
+      orgId: agentCatalog.orgId,
       name: agentCatalog.name,
       version: agentCatalog.version,
       status: agentCatalog.status,
@@ -149,17 +123,16 @@ export async function buildAgentCatalogSnapshotEntries(
       updatedAt: agentCatalog.updatedAt,
     })
     .from(agentCatalog)
-    .innerJoin(projects, eq(projects.id, agentCatalog.projectId))
     .where(
       and(
-        eq(projects.orgId, orgId),
+        eq(agentCatalog.orgId, orgId),
         eq(agentCatalog.status, "published" as AgentCatalogStatus),
       ),
     );
 
   return rows.map((r) => ({
     agentId: r.id,
-    projectId: r.projectId,
+    orgId: r.orgId,
     name: r.name,
     version: r.version,
     status: r.status as "published",

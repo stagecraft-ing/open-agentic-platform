@@ -1005,17 +1005,9 @@ export const agentCatalog = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     // Spec 123: org-scoped. The `project_id` column from spec 119 / migration 28
-    // is dropped by migration 30 and absorbed-row state is materialised into
-    // `project_agent_bindings`. The `.default("default")` mirrors migration
-    // 30's backfill default so Phase 0/1 inserts that have not yet been
-    // rewritten still typecheck; Phase 2 rewrites callers to supply orgId
-    // explicitly and the default may then be dropped here.
-    orgId: text("org_id").notNull().default("default"),
-    // Removed by spec 123 (migration 30). Kept on the Drizzle row through
-    // Phase 0 so existing project-scoped callers in catalog.ts / relay.ts
-    // typecheck until Phase 2 rewrites them; deleted from the schema in
-    // Phase 2's commit.
-    projectId: uuid("project_id").notNull(),
+    // is dropped by migration 30; absorbed-row state is materialised into
+    // `project_agent_bindings`.
+    orgId: text("org_id").notNull(),
     name: text("name").notNull(),
     version: integer("version").notNull().default(1),
     status: text("status").$type<AgentCatalogStatus>()
@@ -1039,12 +1031,7 @@ export const agentCatalogAudit = pgTable("agent_catalog_audit", {
   id: uuid("id").defaultRandom().primaryKey(),
   agentId: uuid("agent_id").notNull(),
   // Spec 123: org-scoped (was project-scoped from migration 28).
-  // `.default("default")` mirrors migration 30's backfill so Phase 0/1
-  // inserts compile before Phase 2 rewrites callers to supply orgId.
-  orgId: text("org_id").notNull().default("default"),
-  // Removed by spec 123 (migration 30). Kept through Phase 0 so existing
-  // catalog.ts callers typecheck; deleted in Phase 2.
-  projectId: uuid("project_id").notNull(),
+  orgId: text("org_id").notNull(),
   action: text("action").$type<AgentCatalogAuditAction>().notNull(),
   actorUserId: uuid("actor_user_id").notNull(),
   before: jsonb("before"),

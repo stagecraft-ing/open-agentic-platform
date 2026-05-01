@@ -1,17 +1,14 @@
 /**
- * Spec 111 Phase 1 (amended by spec 119) — Project-managed Agent Catalog CRUD.
+ * Spec 123: agents are org-scoped; projects consume via bindings.
  *
- * Authoritative per-project agent definitions. Drafts mutate in place
- * (bumping `content_hash`); publication promotes a draft to the next
+ * This module owns the org-scoped agent catalog CRUD. Drafts mutate in
+ * place (bumping `content_hash`); publication promotes a draft to the next
  * version and auto-retires the prior published row for the same
- * (project_id, name). Retirement is a status flip; no hard delete.
+ * (org_id, name). Retirement is a status flip; no hard delete.
  *
- * Phase 1 is CRUD only — the duplex envelopes that push published state
- * to connected OPCs land in Phase 3 (see spec 111 §7 Rollout).
- *
- * Spec 119: agents are project-scoped. Every endpoint either takes a
- * `:projectId` path param or resolves the project via the row's `:id`,
- * and the caller's org is verified against `projects.org_id`.
+ * Project consumption (bind / repin / unbind) lives in `bindings.ts`.
+ * Duplex broadcast lives in `relay.ts` and now carries `orgId` directly
+ * on the wire payload (spec 123 §7.1).
  */
 
 import { createHash } from "node:crypto";
@@ -21,7 +18,7 @@ import { db } from "../db/drizzle";
 import {
   agentCatalog,
   agentCatalogAudit,
-  projects,
+  organizations,
   type AgentCatalogAuditAction,
   type AgentCatalogStatus,
 } from "../db/schema";
@@ -33,15 +30,11 @@ import { publishAgentCatalogUpdated } from "./relay";
 // Wire types
 // ---------------------------------------------------------------------------
 
-// `CatalogFrontmatter` is the ts-rs-mirrored `UnifiedFrontmatter` (crate
-// `agent-frontmatter`, spec 054) plus an open index signature for the
-// flattened `extra` map — re-exported from `./frontmatter` so the Rust type
-// stays the single source of truth (spec 111 §2.1, Phase 2).
 export type { CatalogFrontmatter };
 
 export type CatalogAgent = {
   id: string;
-  project_id: string;
+  org_id: string;
   name: string;
   version: number;
   status: AgentCatalogStatus;
@@ -54,20 +47,21 @@ export type CatalogAgent = {
 };
 
 type CreateAgentRequest = {
-  projectId: string;
+  orgId: string;
   name: string;
   frontmatter: CatalogFrontmatter;
   body_markdown: string;
 };
 type CreateAgentResponse = { agent: CatalogAgent };
 
-type ListAgentsRequest = { projectId: string; status?: AgentCatalogStatus };
+type ListAgentsRequest = { orgId: string; status?: AgentCatalogStatus };
 type ListAgentsResponse = { agents: CatalogAgent[] };
 
-type GetAgentRequest = { id: string };
+type GetAgentRequest = { orgId: string; id: string };
 type GetAgentResponse = { agent: CatalogAgent };
 
 type PatchAgentRequest = {
+  orgId: string;
   id: string;
   frontmatter?: CatalogFrontmatter;
   body_markdown?: string;
@@ -76,19 +70,19 @@ type PatchAgentRequest = {
 };
 type PatchAgentResponse = { agent: CatalogAgent };
 
-type PublishAgentRequest = { id: string };
+type PublishAgentRequest = { orgId: string; id: string };
 type PublishAgentResponse = { agent: CatalogAgent; retired?: CatalogAgent };
 
-type RetireAgentRequest = { id: string };
+type RetireAgentRequest = { orgId: string; id: string };
 type RetireAgentResponse = { agent: CatalogAgent };
 
-type ForkAgentRequest = { id: string; new_name: string };
+type ForkAgentRequest = { orgId: string; id: string; new_name: string };
 type ForkAgentResponse = { agent: CatalogAgent };
 
 export type CatalogAuditEntry = {
   id: string;
   agent_id: string;
-  project_id: string;
+  org_id: string;
   action: AgentCatalogAuditAction;
   actor_user_id: string;
   before: Record<string, unknown> | null;
@@ -96,7 +90,7 @@ export type CatalogAuditEntry = {
   created_at: string;
 };
 
-type ListAgentAuditRequest = { id: string };
+type ListAgentAuditRequest = { orgId: string; id: string };
 type ListAgentAuditResponse = { entries: CatalogAuditEntry[] };
 
 // ---------------------------------------------------------------------------
@@ -105,10 +99,6 @@ type ListAgentAuditResponse = { entries: CatalogAuditEntry[] };
 
 const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
-/**
- * Canonical JSON: object keys sorted recursively so the hash is stable
- * regardless of the order keys appear in the authoring payload.
- */
 function canonicalise(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalise);
   if (value && typeof value === "object") {
@@ -122,13 +112,6 @@ function canonicalise(value: unknown): unknown {
   return value;
 }
 
-/**
- * Content-addressable hash. Typed loosely on purpose: the stability
- * invariant (spec 111 §6) is about canonical JSON serialisation of arbitrary
- * object shapes, not about whether the input matches `CatalogFrontmatter`.
- * The catalog API call-sites flow a typed `CatalogFrontmatter` in through
- * this wider signature, which still accepts them via structural subtyping.
- */
 export function computeContentHash(
   frontmatter: Record<string, unknown>,
   bodyMarkdown: string,
@@ -145,7 +128,7 @@ type AgentRow = typeof agentCatalog.$inferSelect;
 function toWire(row: AgentRow): CatalogAgent {
   return {
     id: row.id,
-    project_id: row.projectId,
+    org_id: row.orgId,
     name: row.name,
     version: row.version,
     status: row.status,
@@ -158,15 +141,10 @@ function toWire(row: AgentRow): CatalogAgent {
   };
 }
 
-/**
- * Snapshot for audit rows: drops `body_markdown` since the full body is
- * reconstructable from the corresponding agent_catalog row at replay time,
- * and the audit trail is kept light for compliance reads.
- */
 function auditSnapshot(row: AgentRow): Record<string, unknown> {
   return {
     id: row.id,
-    project_id: row.projectId,
+    org_id: row.orgId,
     name: row.name,
     version: row.version,
     status: row.status,
@@ -179,7 +157,7 @@ function auditSnapshot(row: AgentRow): Record<string, unknown> {
 async function recordAudit(
   entry: {
     agentId: string;
-    projectId: string;
+    orgId: string;
     action: AgentCatalogAuditAction;
     actorUserId: string;
     before?: AgentRow | null;
@@ -189,7 +167,7 @@ async function recordAudit(
 ): Promise<void> {
   await tx.insert(agentCatalogAudit).values({
     agentId: entry.agentId,
-    projectId: entry.projectId,
+    orgId: entry.orgId,
     action: entry.action,
     actorUserId: entry.actorUserId,
     before: entry.before ? auditSnapshot(entry.before) : null,
@@ -197,15 +175,24 @@ async function recordAudit(
   });
 }
 
-/** Verify the project exists and belongs to the caller's org; throw 404 if not. */
-async function verifyProjectInOrg(projectId: string, orgId: string): Promise<void> {
+/**
+ * Verify the org id on the path matches the caller's authenticated org.
+ * Replaces the prior project-scoped `verifyProjectInOrg` (spec 123 T030).
+ */
+async function verifyOrgAccess(orgId: string, callerOrgId: string): Promise<void> {
+  if (orgId !== callerOrgId) {
+    throw APIError.permissionDenied(
+      "agent catalog access is restricted to the caller's org",
+    );
+  }
+  // Cheap existence check so a typo'd path returns 404 rather than 200/empty.
   const [row] = await db
-    .select({ id: projects.id })
-    .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
     .limit(1);
   if (!row) {
-    throw APIError.notFound("project not found");
+    throw APIError.notFound("org not found");
   }
 }
 
@@ -233,12 +220,12 @@ function requirePublishRole(platformRole: string) {
 async function loadAgent(
   tx: typeof db,
   id: string,
-  projectId: string,
+  orgId: string,
 ): Promise<AgentRow> {
   const rows = await tx
     .select()
     .from(agentCatalog)
-    .where(and(eq(agentCatalog.id, id), eq(agentCatalog.projectId, projectId)))
+    .where(and(eq(agentCatalog.id, id), eq(agentCatalog.orgId, orgId)))
     .limit(1);
   if (rows.length === 0) {
     throw APIError.notFound("agent not found");
@@ -246,39 +233,22 @@ async function loadAgent(
   return rows[0];
 }
 
-/** Resolve an agent id → its project, asserting the project lives in the caller's org. */
-async function resolveAgentProject(
-  agentId: string,
-  orgId: string,
-): Promise<string> {
-  const [row] = await db
-    .select({ projectId: agentCatalog.projectId })
-    .from(agentCatalog)
-    .where(eq(agentCatalog.id, agentId))
-    .limit(1);
-  if (!row) {
-    throw APIError.notFound("agent not found");
-  }
-  await verifyProjectInOrg(row.projectId, orgId);
-  return row.projectId;
-}
-
 async function nextVersion(
   tx: typeof db,
-  projectId: string,
+  orgId: string,
   name: string,
 ): Promise<number> {
   const [row] = await tx
     .select({ max: max(agentCatalog.version) })
     .from(agentCatalog)
     .where(
-      and(eq(agentCatalog.projectId, projectId), eq(agentCatalog.name, name)),
+      and(eq(agentCatalog.orgId, orgId), eq(agentCatalog.name, name)),
     );
   return (row?.max ?? 0) + 1;
 }
 
 // ---------------------------------------------------------------------------
-// Endpoints
+// Endpoints (spec 123 §5.1)
 // ---------------------------------------------------------------------------
 
 export const createAgent = api(
@@ -286,7 +256,7 @@ export const createAgent = api(
     expose: true,
     auth: true,
     method: "POST",
-    path: "/api/projects/:projectId/agents",
+    path: "/api/orgs/:orgId/agents",
   },
   async (req: CreateAgentRequest): Promise<CreateAgentResponse> => {
     if (!KEBAB_CASE.test(req.name)) {
@@ -299,19 +269,19 @@ export const createAgent = api(
     }
 
     const { userId, orgId } = requireOrgAuth();
-    await verifyProjectInOrg(req.projectId, orgId);
+    await verifyOrgAccess(req.orgId, orgId);
     const hash = computeContentHash(req.frontmatter, req.body_markdown);
 
     const inserted = await db.transaction(async (tx) => {
       const version = await nextVersion(
         tx as unknown as typeof db,
-        req.projectId,
+        req.orgId,
         req.name,
       );
       const [row] = await tx
         .insert(agentCatalog)
         .values({
-          projectId: req.projectId,
+          orgId: req.orgId,
           name: req.name,
           version,
           status: "draft",
@@ -324,7 +294,7 @@ export const createAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          projectId: req.projectId,
+          orgId: req.orgId,
           action: "create",
           actorUserId: userId,
           after: row,
@@ -343,18 +313,18 @@ export const listAgents = api(
     expose: true,
     auth: true,
     method: "GET",
-    path: "/api/projects/:projectId/agents",
+    path: "/api/orgs/:orgId/agents",
   },
   async (req: ListAgentsRequest): Promise<ListAgentsResponse> => {
     const { orgId } = requireOrgAuth();
-    await verifyProjectInOrg(req.projectId, orgId);
+    await verifyOrgAccess(req.orgId, orgId);
 
     const where = req.status
       ? and(
-          eq(agentCatalog.projectId, req.projectId),
+          eq(agentCatalog.orgId, req.orgId),
           eq(agentCatalog.status, req.status),
         )
-      : eq(agentCatalog.projectId, req.projectId);
+      : eq(agentCatalog.orgId, req.orgId);
 
     const rows = await db
       .select()
@@ -368,23 +338,37 @@ export const listAgents = api(
 );
 
 export const getAgent = api(
-  { expose: true, auth: true, method: "GET", path: "/api/agents/:id" },
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/orgs/:orgId/agents/:id",
+  },
   async (req: GetAgentRequest): Promise<GetAgentResponse> => {
     const { orgId } = requireOrgAuth();
-    const projectId = await resolveAgentProject(req.id, orgId);
-    const row = await loadAgent(db, req.id, projectId);
+    await verifyOrgAccess(req.orgId, orgId);
+    const row = await loadAgent(db, req.id, req.orgId);
     return { agent: toWire(row) };
   },
 );
 
 export const patchAgent = api(
-  { expose: true, auth: true, method: "PATCH", path: "/api/agents/:id" },
+  {
+    expose: true,
+    auth: true,
+    method: "PATCH",
+    path: "/api/orgs/:orgId/agents/:id",
+  },
   async (req: PatchAgentRequest): Promise<PatchAgentResponse> => {
     const { userId, orgId } = requireOrgAuth();
-    const projectId = await resolveAgentProject(req.id, orgId);
+    await verifyOrgAccess(req.orgId, orgId);
 
     const updated = await db.transaction(async (tx) => {
-      const existing = await loadAgent(tx as unknown as typeof db, req.id, projectId);
+      const existing = await loadAgent(
+        tx as unknown as typeof db,
+        req.id,
+        req.orgId,
+      );
       if (existing.status !== "draft") {
         throw APIError.failedPrecondition(
           `only drafts may be edited (agent is ${existing.status})`,
@@ -418,7 +402,7 @@ export const patchAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          projectId,
+          orgId: req.orgId,
           action: "edit",
           actorUserId: userId,
           before: existing,
@@ -434,14 +418,23 @@ export const patchAgent = api(
 );
 
 export const publishAgent = api(
-  { expose: true, auth: true, method: "POST", path: "/api/agents/:id/publish" },
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/orgs/:orgId/agents/:id/publish",
+  },
   async (req: PublishAgentRequest): Promise<PublishAgentResponse> => {
     const { userId, orgId, platformRole } = requireOrgAuth();
     requirePublishRole(platformRole);
-    const projectId = await resolveAgentProject(req.id, orgId);
+    await verifyOrgAccess(req.orgId, orgId);
 
     const result = await db.transaction(async (tx) => {
-      const existing = await loadAgent(tx as unknown as typeof db, req.id, projectId);
+      const existing = await loadAgent(
+        tx as unknown as typeof db,
+        req.id,
+        req.orgId,
+      );
       if (existing.status !== "draft") {
         throw APIError.failedPrecondition(
           `only drafts may be published (agent is ${existing.status})`,
@@ -449,13 +442,13 @@ export const publishAgent = api(
       }
 
       // Auto-retire any currently-published sibling for the same
-      // (project, name). Keeps "published" a single active row per name.
+      // (org_id, name). Keeps "published" a single active row per name.
       const priorPublished = await tx
         .select()
         .from(agentCatalog)
         .where(
           and(
-            eq(agentCatalog.projectId, projectId),
+            eq(agentCatalog.orgId, req.orgId),
             eq(agentCatalog.name, existing.name),
             eq(agentCatalog.status, "published"),
             ne(agentCatalog.id, existing.id),
@@ -466,13 +459,16 @@ export const publishAgent = api(
       for (const prior of priorPublished) {
         const [row] = await tx
           .update(agentCatalog)
-          .set({ status: "retired" as AgentCatalogStatus, updatedAt: new Date() })
+          .set({
+            status: "retired" as AgentCatalogStatus,
+            updatedAt: new Date(),
+          })
           .where(eq(agentCatalog.id, prior.id))
           .returning();
         await recordAudit(
           {
             agentId: row.id,
-            projectId,
+            orgId: req.orgId,
             action: "retire",
             actorUserId: userId,
             before: prior,
@@ -495,7 +491,7 @@ export const publishAgent = api(
       await recordAudit(
         {
           agentId: published.id,
-          projectId,
+          orgId: req.orgId,
           action: "publish",
           actorUserId: userId,
           before: existing,
@@ -507,12 +503,10 @@ export const publishAgent = api(
       return { published, retired };
     });
 
-    // Spec 111 §2.3 Phase 3 (amended by spec 119) — broadcast the
-    // terminal-state rows to every OPC connected to the org. The
-    // broadcast runs after the transaction commits so a fan-out failure
-    // never leaves the catalog ahead of the wire. Emit retired first so
-    // a desktop with both envelopes inflight applies "retired → published"
-    // in an order its local cache merge semantics already handle.
+    // Spec 123 §7.1 — broadcast org-keyed envelopes after the transaction
+    // commits so a fan-out failure never leaves the catalog ahead of the
+    // wire. Emit retired first so a desktop with both envelopes inflight
+    // applies "retired → published" in an order its merge semantics handle.
     if (result.retired) {
       await publishAgentCatalogUpdated(result.retired);
     }
@@ -526,14 +520,23 @@ export const publishAgent = api(
 );
 
 export const retireAgent = api(
-  { expose: true, auth: true, method: "POST", path: "/api/agents/:id/retire" },
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/orgs/:orgId/agents/:id/retire",
+  },
   async (req: RetireAgentRequest): Promise<RetireAgentResponse> => {
     const { userId, orgId, platformRole } = requireOrgAuth();
     requirePublishRole(platformRole);
-    const projectId = await resolveAgentProject(req.id, orgId);
+    await verifyOrgAccess(req.orgId, orgId);
 
     const retired = await db.transaction(async (tx) => {
-      const existing = await loadAgent(tx as unknown as typeof db, req.id, projectId);
+      const existing = await loadAgent(
+        tx as unknown as typeof db,
+        req.id,
+        req.orgId,
+      );
       if (existing.status !== "published") {
         throw APIError.failedPrecondition(
           `only published agents may be retired (agent is ${existing.status})`,
@@ -541,13 +544,16 @@ export const retireAgent = api(
       }
       const [row] = await tx
         .update(agentCatalog)
-        .set({ status: "retired" as AgentCatalogStatus, updatedAt: new Date() })
+        .set({
+          status: "retired" as AgentCatalogStatus,
+          updatedAt: new Date(),
+        })
         .where(eq(agentCatalog.id, existing.id))
         .returning();
       await recordAudit(
         {
           agentId: row.id,
-          projectId,
+          orgId: req.orgId,
           action: "retire",
           actorUserId: userId,
           before: existing,
@@ -565,14 +571,19 @@ export const retireAgent = api(
 );
 
 export const listAgentAudit = api(
-  { expose: true, auth: true, method: "GET", path: "/api/agents/:id/audit" },
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/orgs/:orgId/agents/:id/audit",
+  },
   async (req: ListAgentAuditRequest): Promise<ListAgentAuditResponse> => {
     const { orgId } = requireOrgAuth();
-    const projectId = await resolveAgentProject(req.id, orgId);
-    // Authorise by loading the row under the project scope first — the
-    // audit rows themselves carry project_id but leaning on the catalog
-    // row guarantees "cannot query audit for an agent you cannot read".
-    await loadAgent(db, req.id, projectId);
+    await verifyOrgAccess(req.orgId, orgId);
+    // Authorise by loading the catalog row under the org scope first — the
+    // audit rows themselves carry org_id but leaning on the catalog row
+    // guarantees "cannot query audit for an agent you cannot read."
+    await loadAgent(db, req.id, req.orgId);
 
     const rows = await db
       .select()
@@ -580,7 +591,7 @@ export const listAgentAudit = api(
       .where(
         and(
           eq(agentCatalogAudit.agentId, req.id),
-          eq(agentCatalogAudit.projectId, projectId),
+          eq(agentCatalogAudit.orgId, req.orgId),
         ),
       )
       .orderBy(desc(agentCatalogAudit.createdAt))
@@ -590,7 +601,7 @@ export const listAgentAudit = api(
       entries: rows.map((r) => ({
         id: r.id,
         agent_id: r.agentId,
-        project_id: r.projectId,
+        org_id: r.orgId,
         action: r.action,
         actor_user_id: r.actorUserId,
         before: (r.before as Record<string, unknown> | null) ?? null,
@@ -602,18 +613,28 @@ export const listAgentAudit = api(
 );
 
 export const forkAgent = api(
-  { expose: true, auth: true, method: "POST", path: "/api/agents/:id/fork" },
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/orgs/:orgId/agents/:id/fork",
+  },
   async (req: ForkAgentRequest): Promise<ForkAgentResponse> => {
     if (!KEBAB_CASE.test(req.new_name)) {
       throw APIError.invalidArgument(
         `new_name must be kebab-case (matching ${KEBAB_CASE.source})`,
       );
     }
-    const { userId, orgId } = requireOrgAuth();
-    const projectId = await resolveAgentProject(req.id, orgId);
+    const { userId, orgId, platformRole } = requireOrgAuth();
+    requirePublishRole(platformRole);
+    await verifyOrgAccess(req.orgId, orgId);
 
     const forked = await db.transaction(async (tx) => {
-      const source = await loadAgent(tx as unknown as typeof db, req.id, projectId);
+      const source = await loadAgent(
+        tx as unknown as typeof db,
+        req.id,
+        req.orgId,
+      );
       if (source.name === req.new_name) {
         throw APIError.invalidArgument(
           "new_name must differ from the source agent's name",
@@ -622,7 +643,7 @@ export const forkAgent = api(
 
       const version = await nextVersion(
         tx as unknown as typeof db,
-        projectId,
+        req.orgId,
         req.new_name,
       );
       const frontmatter = source.frontmatter as CatalogFrontmatter;
@@ -631,7 +652,7 @@ export const forkAgent = api(
       const [row] = await tx
         .insert(agentCatalog)
         .values({
-          projectId,
+          orgId: req.orgId,
           name: req.new_name,
           version,
           status: "draft",
@@ -645,7 +666,7 @@ export const forkAgent = api(
       await recordAudit(
         {
           agentId: row.id,
-          projectId,
+          orgId: req.orgId,
           action: "fork",
           actorUserId: userId,
           before: source,

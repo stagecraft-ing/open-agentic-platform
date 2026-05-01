@@ -30,6 +30,7 @@ import {
   factoryAdapters,
   factoryContracts,
   factoryProcesses,
+  projectAgentBindings,
   projectRepos,
   projects,
 } from "../db/schema";
@@ -293,23 +294,34 @@ async function loadLatestProcesses(orgId: string): Promise<BundleProcessInput[]>
   }));
 }
 
+// Spec 123: project-scoped agents are now consumed via project_agent_bindings.
+// Return only bindings whose catalog row is currently published — retired-upstream
+// bindings (I-B3) stay visible in the project Agents UI but are excluded from
+// the OPC active-agent bundle so OPC doesn't attempt to invoke a retired prompt.
 async function loadPublishedAgents(projectId: string) {
   const rows = await db
-    .select()
-    .from(agentCatalog)
+    .select({
+      id: agentCatalog.id,
+      name: agentCatalog.name,
+      version: agentCatalog.version,
+      contentHash: agentCatalog.contentHash,
+      frontmatter: agentCatalog.frontmatter,
+      bodyMarkdown: agentCatalog.bodyMarkdown,
+    })
+    .from(projectAgentBindings)
+    .innerJoin(
+      agentCatalog,
+      eq(agentCatalog.id, projectAgentBindings.orgAgentId),
+    )
     .where(
-      and(eq(agentCatalog.projectId, projectId), eq(agentCatalog.status, "published"))
+      and(
+        eq(projectAgentBindings.projectId, projectId),
+        eq(agentCatalog.status, "published"),
+      ),
     )
     .orderBy(asc(agentCatalog.name));
 
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    version: r.version,
-    contentHash: r.contentHash,
-    frontmatter: r.frontmatter,
-    bodyMarkdown: r.bodyMarkdown,
-  }));
+  return rows;
 }
 
 /**

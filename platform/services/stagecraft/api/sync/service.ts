@@ -271,13 +271,8 @@ async function serveAgentCatalogFetch(
   if (!row) {
     return { ok: false, reason: "invalid", detail: "agent not found" };
   }
-  // Verify the agent's project belongs to the session's org.
-  const [project] = await db
-    .select({ orgId: projects.orgId })
-    .from(projects)
-    .where(eq(projects.id, row.projectId))
-    .limit(1);
-  if (!project || project.orgId !== ctx.orgId) {
+  // Spec 123 — agents are org-scoped; verify the row's org matches the session.
+  if (row.orgId !== ctx.orgId) {
     return {
       ok: false,
       reason: "org_mismatch",
@@ -295,7 +290,7 @@ async function serveAgentCatalogFetch(
   const event: Omit<ServerAgentCatalogUpdated, "meta"> = {
     kind: "agent.catalog.updated",
     agentId: row.id,
-    projectId: row.projectId,
+    orgId: row.orgId,
     name: row.name,
     version: row.version,
     status: row.status as "published" | "retired",
