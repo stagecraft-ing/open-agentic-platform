@@ -5,13 +5,24 @@
 // `extractor_returned_malformed_output` rather than silently corrupting the
 // workspace's knowledge.
 
-// zod 4: use namespace-import form. The named `z` export in zod's
-// `index.d.ts` is a re-exported `import * as z` alias which Encore.ts's
-// TypeScript parser cannot resolve through `export { z }` (fails with
-// "object not found: z" during `encore build` codegen). The namespace
-// import goes through the package's top-level `export *` re-exports
-// directly and preserves identical surface (`z.object`, `z.infer`, etc).
-import * as z from "zod";
+// zod 4 named imports. The package exposes `z` as a re-exported
+// namespace alias (`import * as z from "..."; export { z }`) which
+// Encore.ts's TS parser cannot resolve — `import { z } from "zod"`
+// fails with `error: object not found: z` and `import * as z from
+// "zod"` fails with `error: unsupported member on type never` during
+// `encore build` codegen. Direct named imports go through the package's
+// top-level `export *` re-exports cleanly. This is also the idiomatic,
+// tree-shakable v4 form.
+import {
+  array,
+  number,
+  object,
+  record,
+  string,
+  unknown,
+  type ZodIssue,
+  type infer as zInfer,
+} from "zod";
 
 // Spec 120 FR-002 — shared schema version, mirrored verbatim by
 // `KNOWLEDGE_SCHEMA_VERSION` in `crates/factory-contracts/src/knowledge.rs`.
@@ -30,49 +41,49 @@ export const KNOWLEDGE_SCHEMA_VERSION_HEADER = "x-knowledge-schema-version";
 // Zod schema
 // ---------------------------------------------------------------------------
 
-const tokenSpendSchema = z.object({
-  input: z.number().int().nonnegative(),
-  output: z.number().int().nonnegative(),
-  cacheRead: z.number().int().nonnegative().optional(),
-  cacheWrite: z.number().int().nonnegative().optional(),
+const tokenSpendSchema = object({
+  input: number().int().nonnegative(),
+  output: number().int().nonnegative(),
+  cacheRead: number().int().nonnegative().optional(),
+  cacheWrite: number().int().nonnegative().optional(),
 });
 
-const agentRunSchema = z.object({
-  modelId: z.string().min(1),
+const agentRunSchema = object({
+  modelId: string().min(1),
   // sha256 hex of the prompt template + key params; reproducible across runs.
-  promptFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-  durationMs: z.number().int().nonnegative(),
+  promptFingerprint: string().regex(/^[a-f0-9]{64}$/),
+  durationMs: number().int().nonnegative(),
   tokenSpend: tokenSpendSchema,
-  costUsd: z.number().nonnegative(),
-  attempts: z.number().int().positive(),
+  costUsd: number().nonnegative(),
+  attempts: number().int().positive(),
 });
 
-const pageSchema = z.object({
-  index: z.number().int().nonnegative(),
-  text: z.string(),
-  bbox: z.unknown().optional(),
+const pageSchema = object({
+  index: number().int().nonnegative(),
+  text: string(),
+  bbox: unknown().optional(),
 });
 
-const outlineEntrySchema = z.object({
-  level: z.number().int().positive(),
-  text: z.string().min(1),
-  pageIndex: z.number().int().nonnegative().optional(),
+const outlineEntrySchema = object({
+  level: number().int().positive(),
+  text: string().min(1),
+  pageIndex: number().int().nonnegative().optional(),
 });
 
-const extractorMetaSchema = z.object({
-  kind: z.string().min(1),
-  version: z.string().min(1),
+const extractorMetaSchema = object({
+  kind: string().min(1),
+  version: string().min(1),
   agentRun: agentRunSchema.optional(),
 });
 
-export const extractionOutputSchema = z.object({
-  text: z.string(),
-  pages: z.array(pageSchema).optional(),
+export const extractionOutputSchema = object({
+  text: string(),
+  pages: array(pageSchema).optional(),
   // ISO 639-1 (e.g. "en", "fr"). Optional — many short payloads are unsafe
   // to language-detect.
-  language: z.string().min(2).max(8).optional(),
-  outline: z.array(outlineEntrySchema).optional(),
-  metadata: z.record(z.string(), z.unknown()),
+  language: string().min(2).max(8).optional(),
+  outline: array(outlineEntrySchema).optional(),
+  metadata: record(string(), unknown()),
   extractor: extractorMetaSchema,
 });
 
@@ -80,11 +91,11 @@ export const extractionOutputSchema = z.object({
 // Public types (inferred from schema so drift is impossible)
 // ---------------------------------------------------------------------------
 
-export type TokenSpend = z.infer<typeof tokenSpendSchema>;
-export type AgentRun = z.infer<typeof agentRunSchema>;
-export type ExtractionPage = z.infer<typeof pageSchema>;
-export type OutlineEntry = z.infer<typeof outlineEntrySchema>;
-export type ExtractionOutput = z.infer<typeof extractionOutputSchema>;
+export type TokenSpend = zInfer<typeof tokenSpendSchema>;
+export type AgentRun = zInfer<typeof agentRunSchema>;
+export type ExtractionPage = zInfer<typeof pageSchema>;
+export type OutlineEntry = zInfer<typeof outlineEntrySchema>;
+export type ExtractionOutput = zInfer<typeof extractionOutputSchema>;
 
 // ---------------------------------------------------------------------------
 // Validation helper
@@ -92,8 +103,8 @@ export type ExtractionOutput = z.infer<typeof extractionOutputSchema>;
 
 export class ExtractorReturnedMalformedOutputError extends Error {
   readonly code = "extractor_returned_malformed_output";
-  readonly issues: z.ZodIssue[];
-  constructor(issues: z.ZodIssue[]) {
+  readonly issues: ZodIssue[];
+  constructor(issues: ZodIssue[]) {
     super(
       `extractor returned malformed output: ${issues
         .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)

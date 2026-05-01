@@ -1,6 +1,13 @@
 import { api } from "encore.dev/api";
-// zod 4: see extractionOutput.ts for why namespace-import is required.
-import * as z from "zod";
+// zod 4: named imports. The package's `index.d.ts` exports `z` as a
+// re-exported namespace alias (`import * as z from "..."; export { z }`)
+// that Encore.ts's TS parser cannot resolve through, producing
+// `error: object not found: z` (default export form) or
+// `error: unsupported member on type never` (`import * as z` form)
+// during `encore build` codegen. Direct named imports go through the
+// package's top-level `export *` re-exports cleanly and are also the
+// idiomatic, tree-shakable v4 form.
+import { object, string, array, record, enum as zEnum } from "zod";
 import { readSecretFromDir } from "./secrets";
 import { getCachedDeploydAuthHeader } from "./oidcM2m";
 
@@ -10,28 +17,27 @@ const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ??
 const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
 
-const CreateDeployment = z.object({
-  tenant_id: z.string().min(1),
-  app_id: z.string().min(1),
-  app_slug: z.string().min(1),
-  env_id: z.string().min(1),
-  env_slug: z.string().min(1),
+const CreateDeployment = object({
+  tenant_id: string().min(1),
+  app_id: string().min(1),
+  app_slug: string().min(1),
+  env_id: string().min(1),
+  env_slug: string().min(1),
 
-  release_sha: z.string().min(7),
-  artifact_ref: z.string().min(1),
-  lane: z.enum(["LANE_A", "LANE_B"]),
+  release_sha: string().min(7),
+  artifact_ref: string().min(1),
+  lane: zEnum(["LANE_A", "LANE_B"]),
 
-  desired_routes: z
-    .array(
-      z.object({
-        host: z.string().optional(),
-        path: z.string().default("/"),
-      })
-    )
+  desired_routes: array(
+    object({
+      host: string().optional(),
+      path: string().default("/"),
+    }),
+  )
     .optional()
     .default([]),
 
-  config_refs: z.record(z.string(), z.string()).optional().default({}),
+  config_refs: record(string(), string()).optional().default({}),
 });
 
 function safeJson(s: string): unknown {
