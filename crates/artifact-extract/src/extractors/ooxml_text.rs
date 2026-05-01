@@ -1,36 +1,45 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-//! Shared OOXML helpers used by DOCX and PPTX extractors.
+//! Shared OOXML helpers used by the DOCX extractor.
 //!
-//! DOCX and PPTX are both ZIP archives of XML files. Both use the same
-//! `<w:t>` / `<a:t>` text-element pattern for paragraph content — the only
-//! difference is the namespace. These helpers read a file out of a zip, scan
-//! for text nodes, and collect plain strings.
+//! DOCX is a ZIP archive of XML files. These helpers read a file out of a
+//! zip and scan for text nodes (`<w:t>`).
 
-use anyhow::{Context, Result};
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use std::io::{Read, Seek};
+
+#[derive(Debug, thiserror::Error)]
+pub enum OoxmlError {
+    #[error("archive entry missing: {0}")]
+    MissingEntry(String),
+    #[error("read archive entry {0}: {1}")]
+    Io(String, #[source] std::io::Error),
+    #[error("zip error: {0}")]
+    Zip(#[from] ::zip::result::ZipError),
+    #[error("xml parse error: {0}")]
+    Xml(#[from] quick_xml::Error),
+}
 
 /// Read the full bytes of an archive entry into memory.
 pub fn read_entry_bytes<R: Read + Seek>(
     archive: &mut ::zip::ZipArchive<R>,
     name: &str,
-) -> Result<Vec<u8>> {
+) -> Result<Vec<u8>, OoxmlError> {
     let mut file = archive
         .by_name(name)
-        .with_context(|| format!("archive entry missing: {name}"))?;
+        .map_err(|_| OoxmlError::MissingEntry(name.into()))?;
     let mut buf = Vec::with_capacity(file.size() as usize);
     file.read_to_end(&mut buf)
-        .with_context(|| format!("read archive entry: {name}"))?;
+        .map_err(|e| OoxmlError::Io(name.into(), e))?;
     Ok(buf)
 }
 
 /// Collect all `<w:t>`/`<a:t>`-style text nodes into a vector of plain
-/// strings. Ignores empty strings. Works for DOCX and PPTX regardless of
-/// namespace — we match by local name.
-pub fn collect_text_nodes(xml: &[u8]) -> Result<Vec<String>> {
+/// strings. Ignores empty strings.
+#[allow(dead_code)]
+pub fn collect_text_nodes(xml: &[u8]) -> Result<Vec<String>, OoxmlError> {
     let mut reader = Reader::from_reader(xml);
     reader.config_mut().trim_text(false);
     let mut buf = Vec::new();

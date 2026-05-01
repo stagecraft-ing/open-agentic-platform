@@ -11,6 +11,7 @@ description = "Factory workflow engine — two-phase orchestration, manifest gen
 [dependencies]
 orchestrator = { path = "../orchestrator" }
 factory-contracts = { path = "../factory-contracts" }
+artifact-extract = { path = "../artifact-extract" }
 standards-loader = { path = "../standards-loader" }
 policy-kernel = { package = "open_agentic_policy_kernel", path = "../policy-kernel" }
 async-trait = "0.1"
