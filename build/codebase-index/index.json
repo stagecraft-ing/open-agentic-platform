@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5e9dc447af1c670d6b5854a3ffe71a0cf27cc2e1010308305199694217ddf74d",
+    "contentHash": "5855df80a108a99d655e8c66a3ddb524776ba3952d242d694c88c1a9691b51be",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -62,10 +62,6 @@
       },
       {
         "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
         "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx\" which is not a known package, adapter, or existing file/directory"
       },
       {
@@ -87,6 +83,10 @@
       {
         "code": "I-101",
         "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -3635,11 +3635,16 @@
           "106",
           "107",
           "108",
-          "109"
+          "109",
+          "123"
         ],
         "implementingPaths": [
           {
             "path": "apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
             "source": "spec-implements"
           },
           {

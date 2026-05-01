@@ -22,9 +22,11 @@ depends_on:
   - "107"  # rauthy-client-redirect-convergence
   - "108"  # factory-as-platform-feature (provides /api/factory/*)
   - "109"  # factory-pat-and-pubsub-sync (the platform-side sync model)
+  - "123"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
 implements:
   - path: apps/desktop/src-tauri/src/commands/factory.rs
   - path: platform/services/stagecraft/api/factory/runs.ts
+  - path: platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql
 ---
 
 # 124 — OPC Factory-Run Platform Integration
@@ -94,7 +96,10 @@ definitions don't refetch.
 
 ## 3. Data Model
 
-Added to `platform/services/stagecraft/api/db/schema.ts`:
+Added to `platform/services/stagecraft/api/db/schema.ts` via migration
+`31_create_factory_runs.up.sql`. Spec 123 reserves migration `30` for
+`agent_catalog_org_rescope`; this spec MUST take `31` and MUST NOT
+re-use a slot below it.
 
 ```ts
 factory_runs (
@@ -105,10 +110,10 @@ factory_runs (
   adapter_id   uuid not null references factory_adapters(id),
   process_id   uuid not null references factory_processes(id),
   status       text not null,    // queued | running | ok | failed | cancelled
-  stage_progress jsonb not null default '[]',  // [{stage_id, status, started_at, completed_at}]
+  stage_progress jsonb not null default '[]',  // [{stage_id, status, started_at, completed_at, agent_ref?}]
   token_spend  jsonb,             // { input, output, total } per stage rolled up
   error        text,
-  source_shas  jsonb not null,    // { adapter, process, contracts: {name: sha} }
+  source_shas  jsonb not null,    // { adapter, process, contracts:{name:sha}, agents:[{org_agent_id, version, content_hash}] }
   started_at   timestamptz not null default now(),
   completed_at timestamptz,
   created_at   timestamptz not null default now()
@@ -120,6 +125,14 @@ Indexes on `(org_id, started_at desc)` for the run-history view and
 in-flight view. All rows are org-scoped; the duplex handler validates
 that the OPC connection's auth identity matches `org_id` before
 accepting an update.
+
+`source_shas.agents[]` carries the spec-123 `(org_agent_id, version,
+content_hash)` triple per stage so a Stage CD comparator (spec 122) run
+across two projects can attest whether the same agent definition
+participated. `pinned_content_hash` is taken from
+`project_agent_bindings` at run-start time (spec 123 §4.4 invariant
+I-B2); for ad-hoc runs without a project binding, the resolver records
+the catalog row's `content_hash` directly.
 
 ## 4. Encore APIs
 
@@ -147,6 +160,26 @@ Duplex events handled by `api/sync/duplex.ts`:
 
 Each event is keyed by the `run_id` from the POST `/runs` reservation;
 the handler rejects events for runs the caller does not own.
+
+### 4.1 Agent definitions are out of band
+
+`/api/factory/*` returns adapter / contract / process bodies. Agents,
+per spec 123, live in `agent_catalog` and reach OPC via the duplex
+catalog cache (spec 123 §7.1 envelopes), not via this spec's API. OPC's
+materialiser MUST resolve agent references through
+`crates/factory-engine/src/agent_resolver.rs` (spec 123 §8.2) against
+the desktop's local catalog cache + the active project's
+`project_agent_bindings`. The resolver returns the
+`(content_hash, body_markdown, frontmatter)` triple for each
+stage-referenced agent; OPC writes the resolved content into the
+per-run cache root under `process/agents/<role>.md` so the in-tree
+shape `factory-engine` already expects (spec 108 §6 §7) keeps working.
+
+If an agent reference cannot be resolved (binding missing, retired
+upstream with no replacement) the run is rejected client-side BEFORE
+reservation. No `factory_runs` row is created in that case; the desktop
+shows the resolver error to the user with a deep-link to the project's
+binding management UI (spec 123 §6.2).
 
 ## 5. OPC Migration — `commands/factory.rs`
 
@@ -213,6 +246,32 @@ sweeper marks it `failed` after a configurable timeout (default: max stage
 duration × 2). The sweeper lives in `api/factory/runsScheduler.ts`,
 modelled on the existing `extraction-staleness-sweeper` cron (spec 115).
 
+### 6.1 Duplex envelope versioning
+
+`factory.run.*` envelopes are independent of spec 123's `agent.catalog.*`
+(`v: 2`) and `project.agent_binding.*` (`v: 1`) envelopes; they ride the
+same duplex bus but carry their own compile-time schema constant
+starting at `v: 1`:
+
+```ts
+interface FactoryRunStageStarted {
+  v: 1;
+  kind: "factory.run.stage_started";
+  event_id: string;
+  org_id: string;
+  run_id: string;
+  stage_id: string;
+  agent_ref: { org_agent_id: string; version: number; content_hash: string };
+  started_at: string;
+}
+// ... stage_completed, completed, failed, cancelled mirror this shape
+```
+
+`api/sync/duplex.ts` registers the `factory.run.*` envelope kinds
+alongside the spec-123 catalog/binding kinds. The desktop and platform
+honour the embedded-schema-version convention (compile-time const,
+build-error on mismatch) the same way spec 123 §7.3 describes.
+
 ## 7. UI Surface
 
 Adds two views to `/app/factory`:
@@ -267,3 +326,14 @@ A-5. The schema-parity check (spec 125) treats `factory_runs` as a normal
      stagecraft table — no special-casing.
 A-6. Spec 108 §7.1 and §7.4 are updated to reference 124 rather than
      "deferred to a follow-up spec".
+A-7. Migration is named `31_create_factory_runs.up.sql` and applies
+     cleanly on top of spec 123's migration `30`.
+A-8. `factory_runs.source_shas.agents[]` carries the spec-123 triple
+     per stage; a Stage CD comparator integration test verifies two
+     runs of the same pipeline against two projects record identical
+     `agents[].content_hash` values.
+A-9. The desktop's `materialise_run_root` materialises agent bodies by
+     calling `agent_resolver` (spec 123 §8.2) — `rg "agent_catalog"
+     apps/desktop/src-tauri/src/commands/factory.rs` returns zero hits
+     because the resolver is consumed via the factory-engine crate, not
+     directly.

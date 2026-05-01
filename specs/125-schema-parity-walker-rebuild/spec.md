@@ -132,6 +132,13 @@ the zod walker live behind a `walk(node)` dispatcher keyed on the input
 shape. Once specs 121 and 122 land their TS mirrors as descriptors, the
 zod walker can be deleted entirely.
 
+The descriptor pattern is the canonical answer for any future schema
+that needs Rust↔TS parity without zod. Spec 123's duplex envelope types
+(`AgentCatalogUpdated` etc.) are not currently parity-checked — they
+use `ts-rs` to push Rust types to TS, not a fingerprinted comparison —
+but should that direction ever reverse, descriptors are the recommended
+shape.
+
 ### 3.3 In-file consistency test
 
 A vitest case in `extractionOutput.test.ts` (or a new `descriptor.test.ts`)
