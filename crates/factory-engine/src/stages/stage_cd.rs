@@ -617,6 +617,88 @@ Body.
         );
     }
 
+    /// FR-036 no-reverse-cascade invariant. A change to the authored
+    /// stakeholder doc between Stage CD runs MUST NOT trigger any
+    /// rewrite of Stage 1 outputs. The cascade is one-way: BRD →
+    /// candidate stakeholder docs (FR-016). The authored side never
+    /// flows back to Stage 1 unless the operator explicitly re-runs
+    /// Stage 1 (FR-037, reserved for a future spec).
+    ///
+    /// This test pins it byte-for-byte: a synthetic BRD on disk plus
+    /// a Stage 1 provenance.json must have identical bytes before and
+    /// after multiple Stage CD runs that include an authored-doc
+    /// edit between them.
+    #[test]
+    fn authored_doc_edit_between_runs_does_not_modify_stage1_outputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let stk = dir.path().join("requirements/stakeholder");
+        fs::create_dir_all(&stk).unwrap();
+        let charter_path = stk.join("charter.md");
+        fs::write(
+            &charter_path,
+            r#"---
+status: authored
+owner: o
+version: "1.0.0"
+kind: charter
+---
+
+### OBJ-1: Reduce form-correction cycles
+
+The applicant must be a registered shelter society.
+"#,
+        )
+        .unwrap();
+
+        // Synthetic Stage 1 outputs that the BRD-rewriting cascade
+        // would touch if FR-036 ever leaked.
+        let stage1_dir = dir.path().join("requirements");
+        let brd_path =
+            stage1_dir.join("business_requirements_document.md");
+        let brd_bytes =
+            b"# BRD\n\n### Objectives\n\nReduce form-correction cycles by 50%.\n";
+        fs::write(&brd_path, brd_bytes).unwrap();
+        let prov_path = dir.path().join(".artifacts/provenance.json");
+        fs::create_dir_all(prov_path.parent().unwrap()).unwrap();
+        let prov_bytes = b"{\"schemaVersion\":\"1.0.0\",\"claims\":[]}";
+        fs::write(&prov_path, prov_bytes).unwrap();
+
+        let inputs = make_inputs(dir.path());
+        run_stage_cd(&inputs).unwrap();
+        assert_eq!(fs::read(&brd_path).unwrap(), brd_bytes);
+        assert_eq!(fs::read(&prov_path).unwrap(), prov_bytes);
+
+        // Operator edits the authored doc between runs. The next
+        // Stage CD run must still leave Stage 1 outputs untouched.
+        fs::write(
+            &charter_path,
+            r#"---
+status: authored
+owner: o
+version: "1.0.0"
+kind: charter
+---
+
+### OBJ-1: Reduce form-correction cycles
+
+Edited authored body — comparator may now diff this against the
+candidate, but Stage 1 outputs MUST NOT be rewritten.
+"#,
+        )
+        .unwrap();
+        run_stage_cd(&inputs).unwrap();
+        assert_eq!(
+            fs::read(&brd_path).unwrap(),
+            brd_bytes,
+            "FR-036 violation: BRD bytes changed after authored-doc edit"
+        );
+        assert_eq!(
+            fs::read(&prov_path).unwrap(),
+            prov_bytes,
+            "FR-036 violation: Stage 1 provenance.json changed after authored-doc edit"
+        );
+    }
+
     #[test]
     fn candidate_generation_is_deterministic() {
         let dir = tempfile::tempdir().unwrap();
