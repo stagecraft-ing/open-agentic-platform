@@ -46,10 +46,6 @@
       },
       {
         "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"apps/desktop/src/components/factory/StageCdReview.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/client-document-comparator.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
