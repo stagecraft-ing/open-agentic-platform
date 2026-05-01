@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dbf96ebd250b29b0e28a22e63f90a48276910caed0a0cc065fe54c399a3f4370",
+    "contentHash": "232821d17b331107af9f3ae5b98b3f249ad8d72f9c5956f8058d4d6a1cb6c28b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3606,7 +3606,7 @@
           }
         ],
         "specId": "122-stakeholder-doc-inversion",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

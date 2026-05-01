@@ -2,8 +2,9 @@
 id: "122-stakeholder-doc-inversion"
 slug: stakeholder-doc-inversion
 title: Stakeholder-Doc Inversion and Stage CD Comparator
-status: draft
-implementation: pending
+status: approved
+implementation: complete
+amended: "2026-05-01"
 owner: bart
 created: "2026-04-30"
 risk: critical
