@@ -20,6 +20,7 @@ pub mod manifest_gen;
 pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;
+pub mod project_config;
 pub mod stagecraft_client;
 pub mod stages;
 pub mod standards_resolver;
@@ -69,4 +70,13 @@ pub enum FactoryError {
 
     #[error("s-1-extract stage failed: {0}")]
     Extract(#[from] stages::s_minus_1_extract::ExtractStageError),
+
+    #[error("QG-13 ExternalProvenance gate blocked: {reason}; rejected_ids={rejected_ids:?}")]
+    ProvenanceGateFail {
+        reason: String,
+        rejected_ids: Vec<factory_contracts::provenance::ClaimId>,
+    },
+
+    #[error("project config error: {0}")]
+    ProjectConfig(#[from] project_config::ProjectConfigError),
 }

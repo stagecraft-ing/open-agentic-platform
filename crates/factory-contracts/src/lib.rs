@@ -18,6 +18,7 @@ pub mod namespace;
 pub mod pattern_resolver;
 pub mod pipeline_state;
 pub mod provenance;
+pub mod provenance_config;
 pub mod validation;
 pub mod verification;
 
@@ -29,6 +30,9 @@ pub use build_spec::BuildSpec;
 pub use pattern_resolver::PatternResolver;
 pub use pipeline_state::PipelineState;
 pub use provenance::{anchor_hash, quote_hash, PROVENANCE_SCHEMA_VERSION};
+pub use provenance_config::{
+    FactoryProvenanceMode, ProvenanceConfig, ProvenanceConfigError,
+};
 pub use verification::VerificationContract;
 
 /// Re-export of `chrono::DateTime`, `Utc`, and `TimeZone` so downstream

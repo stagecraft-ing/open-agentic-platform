@@ -678,16 +678,16 @@ fn parse_h3_claim_id(line: &str) -> Option<(ClaimId, ClaimKind, String)> {
     let after_hashes = line.trim_start_matches('#').trim_start();
     // Walk word-by-word; the first KIND-NNN-shaped token is the claim ID.
     for (i, word) in after_hashes.split_whitespace().enumerate() {
-        let cleaned = word.trim_end_matches(|c: char| c == ':' || c == '.');
+        let cleaned = word.trim_end_matches([':', '.']);
         if let Some((kind, _)) = parse_kind_nnn(cleaned) {
             // descriptive_text = everything after this word in the heading.
             let mut after: Vec<&str> =
                 after_hashes.split_whitespace().skip(i + 1).collect();
             // Strip leading colon if the descriptive text starts with one.
-            if let Some(first) = after.first().copied() {
-                if first == ":" {
-                    after.remove(0);
-                }
+            if let Some(first) = after.first().copied()
+                && first == ":"
+            {
+                after.remove(0);
             }
             let descriptive = after.join(" ").trim_start_matches(':').trim().to_string();
             return Some((ClaimId(cleaned.to_string()), kind, descriptive));
@@ -709,7 +709,7 @@ fn count_inline_claim_refs(s: &str) -> u32 {
     // Count occurrences of any KIND-NNN-looking token on this line.
     let mut count: u32 = 0;
     for word in s.split(|c: char| !c.is_alphanumeric() && c != '-') {
-        if let Some(_) = parse_kind_nnn(word) {
+        if parse_kind_nnn(word).is_some() {
             count += 1;
         }
     }
@@ -790,12 +790,9 @@ fn find_brd(project_dir: &Path) -> Option<PathBuf> {
         .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("md"))
         .collect();
     entries.sort();
-    for path in entries {
-        if file_starts_with_brd_heading(&path) {
-            return Some(path);
-        }
-    }
-    None
+    entries
+        .into_iter()
+        .find(|path| file_starts_with_brd_heading(path))
 }
 
 fn file_starts_with_brd_heading(path: &Path) -> bool {

@@ -60,14 +60,14 @@ fn main() -> ExitCode {
         .join("requirements")
         .join("audit")
         .join("retroactive-provenance-report.md");
-    if let Some(parent) = dest.parent() {
-        if let Err(e) = std::fs::create_dir_all(parent) {
-            eprintln!(
-                "provenance-validator: failed to create {}: {e}",
-                parent.display(),
-            );
-            return ExitCode::from(4);
-        }
+    if let Some(parent) = dest.parent()
+        && let Err(e) = std::fs::create_dir_all(parent)
+    {
+        eprintln!(
+            "provenance-validator: failed to create {}: {e}",
+            parent.display(),
+        );
+        return ExitCode::from(4);
     }
     let body = render_audit_report(&report);
     if let Err(e) = std::fs::write(&dest, body) {
@@ -130,10 +130,10 @@ fn parse_args(args: &[String]) -> Result<ParsedArgs, String> {
     // Tolerate an optional leading `audit` subcommand for ergonomic
     // future expansion (FR-036 names the binary as
     // `provenance-validator audit`, suggesting a subcommand structure).
-    if let Some(first) = args.first() {
-        if first == "audit" {
-            i = 1;
-        }
+    if let Some(first) = args.first()
+        && first == "audit"
+    {
+        i = 1;
     }
     while i < args.len() {
         let arg = args[i].as_str();

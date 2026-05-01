@@ -2230,6 +2230,7 @@ dependencies = [
  "jsonschema 0.46.3",
  "open_agentic_policy_kernel",
  "orchestrator",
+ "provenance-validator",
  "regex",
  "serde",
  "serde_json",
@@ -4353,6 +4354,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2 0.10.9",
  "tempfile",
 ]

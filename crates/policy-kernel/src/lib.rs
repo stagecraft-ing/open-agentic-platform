@@ -20,6 +20,9 @@ pub mod settings;
 #[cfg(feature = "native")]
 pub mod watcher;
 
+// --- spec 121: Workspace provenance policy slice ---
+pub mod provenance_policy;
+
 pub use coherence::{CoherenceScheduler, CoherenceSchedulerConfig, PrivilegeLevel};
 pub use proof_chain::{
     NF004_MAX_BYTES_EXCLUDING_CONTEXT, ProofChainError, ProofChainWriter, ProofPrivilege,

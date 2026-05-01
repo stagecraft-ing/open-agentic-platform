@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "38428f24ad4bd75a3a2f2fa925054de57c4dd230fad30c3b6b5598b0ad1a6a25",
+    "contentHash": "5370ace077345acb5fc3493a12f8ced9fb05e935682154a4556d41c267a5a959",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -31,10 +31,6 @@
       {
         "code": "I-101",
         "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/validate.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/src/stages/quality_gates.rs\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -559,6 +555,7 @@
         "factory-contracts",
         "open_agentic_policy_kernel",
         "orchestrator",
+        "provenance-validator",
         "standards-loader"
       ],
       "kind": "rust-lib-bin",

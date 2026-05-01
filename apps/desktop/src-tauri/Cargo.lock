@@ -1948,6 +1948,7 @@ dependencies = [
  "jsonschema",
  "open_agentic_policy_kernel",
  "orchestrator",
+ "provenance-validator",
  "regex",
  "serde",
  "serde_json",
@@ -5460,6 +5461,17 @@ checksum = "52717f9a02b6965224f95ca2a81e2e0c5c43baacd28ca057577988930b6c3d5b"
 dependencies = [
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "provenance-validator"
+version = "0.1.0"
+dependencies = [
+ "factory-contracts",
+ "serde",
+ "serde_json",
+ "sha2",
+ "unicode-normalization",
 ]
 
 [[package]]

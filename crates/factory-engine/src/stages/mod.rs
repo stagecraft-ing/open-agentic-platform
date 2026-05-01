@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Bartek Kus
 
 //! Factory pipeline stages that execute as in-process Rust code rather than
-//! through the LLM-agent dispatch path. Today this is just `s-1-extract`
-//! (spec 120); future Rust stages live alongside.
+//! through the LLM-agent dispatch path. Today this is `s-1-extract`
+//! (spec 120) and the spec-121 quality gate `QG-13_ExternalProvenance`
+//! (spec 121); future Rust stages live alongside.
 
+pub mod quality_gates;
 pub mod s_minus_1_extract;
