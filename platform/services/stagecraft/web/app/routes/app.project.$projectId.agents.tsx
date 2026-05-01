@@ -1,9 +1,9 @@
 /**
- * Spec 111 + 119 — Project-scoped agent catalog layout.
+ * Spec 123 §6.2 — Project-scoped agent bindings layout.
  *
- * The catalog is scoped to the project in the URL. Detail endpoints
- * (`/api/agents/:id`) resolve the project from the agent row; list/create
- * (`/api/projects/:projectId/agents`) take the projectId from this route.
+ * Projects are consumers of the org agent catalog. The "Create draft" CTA
+ * from the 119-era layout is removed; authoring lives at the org level
+ * (/app/agents). This layout provides the breadcrumb chrome only.
  */
 
 import { Outlet } from "react-router";
@@ -14,17 +14,23 @@ export async function loader({ request }: { request: Request }) {
   return null;
 }
 
-export default function AgentsLayout() {
+export default function ProjectAgentsLayout() {
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Agent Catalog
+          Imported Agents
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Project agents shared with every OPC bound to this project.
-          Published agents are pushed over the duplex channel; retirements
-          propagate automatically.
+          Org agents imported into this project. Each binding pins a specific
+          published version. To author or publish agents, visit the org-level{" "}
+          <a
+            href="/app/agents"
+            className="text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            Agents
+          </a>{" "}
+          catalog.
         </p>
       </div>
       <Outlet />

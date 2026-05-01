@@ -1,16 +1,18 @@
 /**
  * Agent catalog SSR API helpers.
  *
+ * Spec 123: agents are org-scoped; projects consume via bindings.
+ *
  * Two families of helpers:
  *
- * 1. **Project-scoped** (legacy, spec 111 + 119): list/create take an
- *    explicit `:projectId`. Phase 5 of spec 123 will delete/rewrite these.
- *    DO NOT remove them yet — the project agent routes still reference them.
- *
- * 2. **Org-scoped** (spec 123 §5.1): `listOrgAgents`, `getOrgAgent`,
+ * 1. **Org-scoped** (spec 123 §5.1): `listOrgAgents`, `getOrgAgent`,
  *    `createOrgAgent`, `patchOrgAgent`, `publishOrgAgent`, `retireOrgAgent`,
  *    `forkOrgAgent`, `listOrgAgentAudit` — hit `/api/orgs/:orgId/agents…`.
  *    The `OrgCatalogAgent` type carries `org_id` (not `project_id`).
+ *
+ * 2. **Project binding helpers** (spec 123 §5.2): `listProjectAgentBindings`,
+ *    `bindAgent`, `repinBinding`, `unbindAgent` — hit
+ *    `/api/projects/:projectId/agents…` (now binding endpoints, not CRUD).
  */
 
 import type {
@@ -50,35 +52,6 @@ async function apiFetch(request: Request, path: string, init?: RequestInit) {
 }
 
 // ---------------------------------------------------------------------------
-// Project-scoped types (spec 111/119 — Phase 5 will rewrite these)
-// ---------------------------------------------------------------------------
-
-export type CatalogAgent = {
-  id: string;
-  project_id: string;
-  name: string;
-  version: number;
-  status: AgentCatalogStatus;
-  frontmatter: CatalogFrontmatter;
-  body_markdown: string;
-  content_hash: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type CatalogAuditEntry = {
-  id: string;
-  agent_id: string;
-  project_id: string;
-  action: AgentCatalogAuditAction;
-  actor_user_id: string;
-  before: Record<string, unknown> | null;
-  after: Record<string, unknown> | null;
-  created_at: string;
-};
-
-// ---------------------------------------------------------------------------
 // Org-scoped types (spec 123 §5.1)
 // ---------------------------------------------------------------------------
 
@@ -109,87 +82,22 @@ export type OrgCatalogAuditEntry = {
 };
 
 // ---------------------------------------------------------------------------
-// Project-scoped helpers (legacy — Phase 5 deletes/rewrites)
+// Project binding types (spec 123 §5.2)
 // ---------------------------------------------------------------------------
 
-export async function listAgents(
-  request: Request,
-  projectId: string,
-  status?: AgentCatalogStatus,
-) {
-  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
-  return apiFetch(
-    request,
-    `/api/projects/${projectId}/agents${qs}`,
-  ) as Promise<{ agents: CatalogAgent[] }>;
-}
-
-export async function getAgent(request: Request, id: string) {
-  return apiFetch(request, `/api/agents/${id}`) as Promise<{
-    agent: CatalogAgent;
-  }>;
-}
-
-export async function createAgent(
-  request: Request,
-  projectId: string,
-  data: {
-    name: string;
-    frontmatter: CatalogFrontmatter;
-    body_markdown: string;
-  },
-) {
-  return apiFetch(request, `/api/projects/${projectId}/agents`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  }) as Promise<{ agent: CatalogAgent }>;
-}
-
-export async function patchAgent(
-  request: Request,
-  id: string,
-  data: {
-    frontmatter?: CatalogFrontmatter;
-    body_markdown?: string;
-    expected_content_hash?: string;
-  },
-) {
-  return apiFetch(request, `/api/agents/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  }) as Promise<{ agent: CatalogAgent }>;
-}
-
-export async function publishAgent(request: Request, id: string) {
-  return apiFetch(request, `/api/agents/${id}/publish`, {
-    method: "POST",
-    body: "{}",
-  }) as Promise<{ agent: CatalogAgent; retired?: CatalogAgent }>;
-}
-
-export async function retireAgent(request: Request, id: string) {
-  return apiFetch(request, `/api/agents/${id}/retire`, {
-    method: "POST",
-    body: "{}",
-  }) as Promise<{ agent: CatalogAgent }>;
-}
-
-export async function forkAgent(
-  request: Request,
-  id: string,
-  newName: string,
-) {
-  return apiFetch(request, `/api/agents/${id}/fork`, {
-    method: "POST",
-    body: JSON.stringify({ new_name: newName }),
-  }) as Promise<{ agent: CatalogAgent }>;
-}
-
-export async function listAgentAudit(request: Request, id: string) {
-  return apiFetch(request, `/api/agents/${id}/audit`) as Promise<{
-    entries: CatalogAuditEntry[];
-  }>;
-}
+/** Wire shape from `api/agents/bindings.ts` (spec 123). */
+export type ProjectAgentBinding = {
+  binding_id: string;
+  project_id: string;
+  org_agent_id: string;
+  agent_name: string;
+  pinned_version: number;
+  pinned_content_hash: string;
+  /** `retired_upstream` when the catalog row was retired after bind time (I-B3). */
+  status: "active" | "retired_upstream";
+  bound_by: string;
+  bound_at: string; // ISO-8601
+};
 
 // ---------------------------------------------------------------------------
 // Org-scoped helpers (spec 123 §5.1)
@@ -292,4 +200,51 @@ export async function listOrgAgentAudit(
     request,
     `/api/orgs/${orgId}/agents/${id}/audit`,
   ) as Promise<{ entries: OrgCatalogAuditEntry[] }>;
+}
+
+// ---------------------------------------------------------------------------
+// Project binding helpers (spec 123 §5.2)
+// ---------------------------------------------------------------------------
+
+export async function listProjectAgentBindings(
+  request: Request,
+  projectId: string,
+) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/agents`,
+  ) as Promise<{ bindings: ProjectAgentBinding[] }>;
+}
+
+export async function bindAgent(
+  request: Request,
+  projectId: string,
+  body: { org_agent_id: string; version: number },
+) {
+  return apiFetch(request, `/api/projects/${projectId}/agents/bind`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<{ binding: ProjectAgentBinding }>;
+}
+
+export async function repinBinding(
+  request: Request,
+  projectId: string,
+  bindingId: string,
+  body: { version: number },
+) {
+  return apiFetch(request, `/api/projects/${projectId}/agents/${bindingId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  }) as Promise<{ binding: ProjectAgentBinding }>;
+}
+
+export async function unbindAgent(
+  request: Request,
+  projectId: string,
+  bindingId: string,
+) {
+  return apiFetch(request, `/api/projects/${projectId}/agents/${bindingId}`, {
+    method: "DELETE",
+  }) as Promise<{ ok: true }>;
 }

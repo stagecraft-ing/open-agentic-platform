@@ -50,12 +50,11 @@ export default [
       index("routes/app.project.$projectId._index.tsx"),
       route("knowledge", "routes/app.project.$projectId.knowledge.tsx"),
       route("knowledge/:id", "routes/app.project.$projectId.knowledge.$id.tsx"),
+      // Spec 123 Phase 5 — project Agents tab is now a binding manager;
+      // 119-era authoring routes (new, :agentId, :agentId/publish,
+      // :agentId/history) are deleted. Authoring lives at /app/agents.
       route("agents", "routes/app.project.$projectId.agents.tsx", [
         index("routes/app.project.$projectId.agents._index.tsx"),
-        route("new", "routes/app.project.$projectId.agents.new.tsx"),
-        route(":agentId", "routes/app.project.$projectId.agents.$agentId.tsx"),
-        route(":agentId/publish", "routes/app.project.$projectId.agents.$agentId.publish.tsx"),
-        route(":agentId/history", "routes/app.project.$projectId.agents.$agentId.history.tsx"),
       ]),
       route("pipelines", "routes/app.project.$projectId.pipelines.tsx"),
       route("deploys", "routes/app.project.$projectId.deploys.tsx"),

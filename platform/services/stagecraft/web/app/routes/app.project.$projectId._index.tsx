@@ -20,6 +20,11 @@ export default function ProjectOverview() {
       hint: "Documents bound to this project and their state.",
     },
     {
+      to: `${base}/agents`,
+      label: "Imported agents",
+      hint: "Org agents imported into this project via version-pinned bindings.",
+    },
+    {
       to: `${base}/pipelines`,
       label: "Pipelines",
       hint: "Factory pipeline runs and stage approvals.",
