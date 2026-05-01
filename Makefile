@@ -358,6 +358,11 @@ ci-tools:
 	@echo "==> ci-tools: policy-compiler"
 	cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
 	cargo test --manifest-path tools/policy-compiler/Cargo.toml
+	@echo ""
+	@echo "==> ci-tools: assumption-cascade-check (spec 121 FR-034)"
+	cargo build --release --manifest-path tools/assumption-cascade-check/Cargo.toml
+	cargo test --manifest-path tools/assumption-cascade-check/Cargo.toml
+	./tools/assumption-cascade-check/target/release/assumption-cascade-check --repo .
 
 ci-desktop:
 	@# CI creates these stubs on fresh checkout; locally only if missing.
@@ -438,6 +443,7 @@ SUPPLY_CHAIN_RUST_MANIFESTS = \
     tools/codebase-indexer/Cargo.toml \
     tools/policy-compiler/Cargo.toml \
     tools/adapter-scopes-compiler/Cargo.toml \
+    tools/assumption-cascade-check/Cargo.toml \
     tools/ci-parity-check/Cargo.toml \
     tools/shared/frontmatter/Cargo.toml
 

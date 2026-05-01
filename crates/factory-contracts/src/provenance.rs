@@ -236,6 +236,74 @@ pub struct Claim {
 }
 
 // ---------------------------------------------------------------------------
+// AssumptionManifestEntry / PendingPromotionEntry — Phase 5 cross-stage
+// cascade contracts (FR-010, FR-032, FR-035).
+// ---------------------------------------------------------------------------
+
+/// One row in `assumption-only-manifest.md`. Stage 4/5 cascade keys on
+/// `anchor_hash`, so renaming the claim ID does not silently revive
+/// emission for the same underlying concept.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssumptionManifestEntry {
+    pub id: ClaimId,
+    pub kind: ClaimKind,
+    pub anchor_hash: AnchorHash,
+    pub owner: String,
+    pub rationale: String,
+    pub expires_at: DateTime<Utc>,
+    /// External-entity surface forms. The cascade CI check (FR-034)
+    /// greps generated artifacts for any of these strings; a hit
+    /// outside `pending-promotion.md` FAILs the stage.
+    pub extracted_entity_candidates: Vec<String>,
+    /// Where the would-have-been-emitted artifacts get logged. Always
+    /// `pending-promotion.md` (relative to the manifest file).
+    pub pending_promotion_path: String,
+}
+
+/// One spec-only artifact that Stage 4 or Stage 5 skipped emitting
+/// because its origin claim was tagged `Assumption` /
+/// `AssumptionOrphaned`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PendingEmission {
+    /// 4 (Stage 4 — DDL / data model) or 5 (Stage 5 — UI / tests).
+    pub stage: u8,
+    /// `ddl_table` | `service_stub` | `ui_binding` | `test_fixture`.
+    pub artifact_kind: String,
+    /// Human placeholder describing what would be emitted on promotion.
+    pub description: String,
+}
+
+/// One record in `pending-promotion.md` for a claim that survived as
+/// `Assumption` / `AssumptionOrphaned`. Operators read this to know
+/// what cascade work is parked behind the assumption.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PendingPromotionEntry {
+    pub claim_id: ClaimId,
+    pub anchor_hash: AnchorHash,
+    pub kind: ClaimKind,
+    pub would_emit: Vec<PendingEmission>,
+}
+
+/// FR-035 audit payload for an `Assumption -> Derived` operator-approved
+/// promotion. Phase 5 provides the contract type + payload builder; the
+/// transition workflow itself lives in Phase 6 (desktop UI).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromotionAuditPayload {
+    /// Always `factory.provenance_promoted`.
+    pub action: String,
+    pub claim_id: ClaimId,
+    pub from_mode: ProvenanceMode,
+    pub to_mode: ProvenanceMode,
+    pub citation: Citation,
+    /// Operator-of-record (workspace member id / email).
+    pub actor: String,
+}
+
+// ---------------------------------------------------------------------------
 // IdRegistry — persisted as id-registry.json; keyed by AnchorHash for
 // regeneration stability (FR-009, FR-013, FR-014).
 // ---------------------------------------------------------------------------

@@ -331,6 +331,29 @@ pub struct ModeChangePayload {
     pub reason: String,
 }
 
+/// FR-035 helper: build the `factory.provenance_promoted` audit payload
+/// when an operator approves a candidate citation that flips an
+/// `Assumption` (or `AssumptionOrphaned`) claim to `Derived`. The
+/// transition workflow itself lives in Phase 6's desktop UI; this
+/// helper provides the contract type the writer of the audit row
+/// consumes.
+pub fn build_promotion_payload(
+    claim_id: factory_contracts::provenance::ClaimId,
+    from_mode: factory_contracts::provenance::ProvenanceMode,
+    to_mode: factory_contracts::provenance::ProvenanceMode,
+    citation: factory_contracts::provenance::Citation,
+    actor: &str,
+) -> factory_contracts::provenance::PromotionAuditPayload {
+    factory_contracts::provenance::PromotionAuditPayload {
+        action: "factory.provenance_promoted".into(),
+        claim_id,
+        from_mode,
+        to_mode,
+        citation,
+        actor: actor.to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -606,6 +629,31 @@ mod tests {
         assert_eq!(audit.action, "factory.provenance_validated");
         assert_eq!(audit.project, "test-project");
         assert!(!audit.workspace_pin_applied);
+    }
+
+    #[test]
+    fn promotion_payload_carries_correct_action() {
+        use factory_contracts::provenance::{
+            Citation, ProvenanceMode, QuoteHash,
+        };
+        use std::path::PathBuf;
+        let cit = Citation {
+            source: PathBuf::from("doc.txt"),
+            line_range: (1, 1),
+            quote: "x".into(),
+            quote_hash: QuoteHash("h".into()),
+        };
+        let p = build_promotion_payload(
+            ClaimId("INT-003".into()),
+            ProvenanceMode::Assumption,
+            ProvenanceMode::Derived,
+            cit,
+            "ops@example.com",
+        );
+        assert_eq!(p.action, "factory.provenance_promoted");
+        assert_eq!(p.from_mode, ProvenanceMode::Assumption);
+        assert_eq!(p.to_mode, ProvenanceMode::Derived);
+        assert_eq!(p.actor, "ops@example.com");
     }
 
     #[test]

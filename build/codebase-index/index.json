@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5370ace077345acb5fc3493a12f8ced9fb05e935682154a4556d41c267a5a959",
+    "contentHash": "86273961d5892a4a46a5404203fda3b062d9fc403ed8780ab8408b171efde173",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -261,6 +261,13 @@
         ],
         "name": "adapter-scopes-compiler",
         "path": "tools/adapter-scopes-compiler"
+      },
+      {
+        "binaries": [
+          "assumption-cascade-check"
+        ],
+        "name": "assumption-cascade-check",
+        "path": "tools/assumption-cascade-check"
       },
       {
         "binaries": [
@@ -1341,6 +1348,21 @@
       "name": "open_agentic_adapter_scopes_compiler",
       "path": "tools/adapter-scopes-compiler",
       "specRef": "105-scripts-to-binaries-migration",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "internalDeps": [
+        "factory-engine"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_assumption_cascade_check",
+      "path": "tools/assumption-cascade-check",
+      "specRef": "121-claim-provenance-enforcement",
       "version": "0.1.0"
     },
     {
@@ -3520,6 +3542,11 @@
           {
             "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
             "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_assumption_cascade_check",
+            "path": "tools/assumption-cascade-check",
+            "source": "cargo-metadata"
           }
         ],
         "specId": "121-claim-provenance-enforcement",

@@ -27,6 +27,7 @@
 pub mod allowlist;
 pub mod citation;
 pub mod corpus;
+pub mod manifest;
 pub mod validator;
 
 pub use allowlist::{
@@ -38,6 +39,11 @@ pub use citation::{
     EntitySearchSummary,
 };
 pub use corpus::{extracted_corpus_hash, Corpus, CorpusEntry};
+pub use manifest::{
+    append_pending_promotion, assumption_manifest_body,
+    emit_assumption_manifest, parse_assumption_manifest,
+    ParsedAssumptionEntry,
+};
 pub use validator::{
     audit, audit_with_options, render_audit_report, validate, AuditReport,
     ClaimRecord, CorpusSource, ValidationReport, ValidationSummary,
