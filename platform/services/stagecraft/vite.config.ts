@@ -45,6 +45,13 @@ export default defineConfig({
   test: {
     // Integration tests that require Encore service infrastructure
     // (databases, service-to-service calls) must run via `encore test`.
-    exclude: ["**/node_modules/**", "**/dist/**", "**/check.test.ts"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/check.test.ts",
+      // Spec 124 — factory_runs migration assertions hit the live db
+      // client and exercise FK/CHECK semantics that require Postgres.
+      "**/runsMigration.test.ts",
+    ],
   },
 });
