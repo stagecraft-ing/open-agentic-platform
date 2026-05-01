@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "76480e516496441ce0c47d8c7c7f4f10877a77e294ce064d93c871f7e2a5cd1e",
+    "contentHash": "7dac3013305b4b132689dc3d83f8d1e49d546a5a292d231e1d77e15572c1c248",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -51,6 +51,42 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"crates/factory-engine/src/agent_resolver.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/api/agents/bindings.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents._index.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.new.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.tsx\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -3509,6 +3545,85 @@
         ],
         "specId": "122-stakeholder-doc-inversion",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "042",
+          "054",
+          "068",
+          "075",
+          "087",
+          "090",
+          "098",
+          "108",
+          "111",
+          "119",
+          "122"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/agent_resolver.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/bindings.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/duplex.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.new.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "123-agent-catalog-org-rescope",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
