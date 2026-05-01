@@ -239,24 +239,24 @@ fn persist_report(
 fn load_corpus(project_root: &Path) -> Corpus {
     let typed_dir = project_root.join(".artifacts/corpus");
     let mut entries: Vec<CorpusEntry> = Vec::new();
-    if typed_dir.is_dir() {
-        if let Ok(read) = std::fs::read_dir(&typed_dir) {
-            for entry in read.flatten() {
-                let p = entry.path();
-                if p.extension().and_then(|s| s.to_str()) != Some("json") {
-                    continue;
-                }
-                if let Ok(bytes) = std::fs::read(&p)
-                    && let Ok(out) = serde_json::from_slice(&bytes)
-                {
-                    entries.push(CorpusEntry {
-                        source_key: p
-                            .file_name()
-                            .map(PathBuf::from)
-                            .unwrap_or_default(),
-                        output: out,
-                    });
-                }
+    if typed_dir.is_dir()
+        && let Ok(read) = std::fs::read_dir(&typed_dir)
+    {
+        for entry in read.flatten() {
+            let p = entry.path();
+            if p.extension().and_then(|s| s.to_str()) != Some("json") {
+                continue;
+            }
+            if let Ok(bytes) = std::fs::read(&p)
+                && let Ok(out) = serde_json::from_slice(&bytes)
+            {
+                entries.push(CorpusEntry {
+                    source_key: p
+                        .file_name()
+                        .map(PathBuf::from)
+                        .unwrap_or_default(),
+                    output: out,
+                });
             }
         }
     }

@@ -10,4 +10,6 @@ pub mod cascade_check;
 pub mod quality_gates;
 pub mod s_minus_1_extract;
 pub mod stage_cd;
+pub mod stage_cd_actions;
 pub mod stage_cd_comparator;
+pub mod stage_cd_gate;

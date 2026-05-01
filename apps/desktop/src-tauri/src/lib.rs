@@ -534,6 +534,12 @@ pub fn run() {
             commands::provenance::provenance_supply_citation,
             commands::provenance::provenance_downgrade_to_assumption,
             commands::provenance::provenance_promote_assumption,
+            // Stage CD review (spec 122 FR-024..FR-026)
+            commands::stage_cd::stage_cd_get_diff,
+            commands::stage_cd::stage_cd_evaluate_gate,
+            commands::stage_cd::stage_cd_reject_candidate,
+            commands::stage_cd::stage_cd_accept_candidate,
+            commands::stage_cd::stage_cd_force_approve,
             // Worktree agents (051)
             spawn_background_agent,
             list_background_agents,
