@@ -59,6 +59,9 @@ export default defineConfig({
       // Spec 124 — duplex handler integration tests mutate `factory_runs`
       // and `audit_log` rows; gated to `encore test` for the live DB.
       "**/factory/runDuplexHandlers.test.ts",
+      // Spec 124 — runs staleness sweeper tests mutate `factory_runs`
+      // and emit audit rows; same DB-bound posture as the others.
+      "**/factory/runsScheduler.test.ts",
     ],
   },
 });

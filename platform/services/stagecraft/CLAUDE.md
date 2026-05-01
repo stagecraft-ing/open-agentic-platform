@@ -95,3 +95,4 @@ Env knobs:
 - `STAGECRAFT_EXTRACT_POLICY_DIR` — override for compiled policy snapshot dir (default `build/policy/projects`; spec 119 §4.5)
 - `STAGECRAFT_EXTRACT_PRICE_*_USD_PER_MTOK` — Anthropic pricing overrides for the cost estimator
 - `ANTHROPIC_API_KEY` — required secret; agent extractors fail closed without it
+- `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC` — `factory_runs` staleness cutoff for the spec 124 sweeper (default 1800, i.e. 30 minutes). Rows in `(queued, running)` whose `last_event_at` is older than this are flipped to `failed` with a `factory.run.swept` audit by `api/factory/runsScheduler.ts` (cron `factory-runs-staleness-sweeper`, every 1m).
