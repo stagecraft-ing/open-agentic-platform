@@ -199,6 +199,22 @@ a Factory run in OPC:
 This mirrors the existing workspace duplex pattern: OPC is the execution
 tier, stagecraft is the orchestration and persistence tier.
 
+### 7.1 Punt — desktop factory-run migration
+
+The platform-side surface (`/api/factory/adapters`, `.../contracts/*`,
+`.../processes/:name`) ships with this spec. Migrating the OPC desktop's
+existing local execution path (`apps/desktop/src-tauri/src/commands/factory.rs`)
+off the in-tree `factory/` checkout and onto the platform API is a separate
+effort with material complexity (auth, caching, run-state, offline
+behaviour) and is **deferred to a follow-up spec**. Until that follow-up
+lands, OPC factory runs require the developer to keep a local checkout of
+the upstream factory repo on disk; see the `// TODO(spec-108-§7-punt)`
+marker on `resolve_factory_root` for the entry point.
+
+The factory-engine and factory-contracts crates already accept a configurable
+`factory_root`; they remain path-agnostic and need no source change for the
+follow-up.
+
 ## 8. Removals
 
 Deleted from the repo in Phase 2:

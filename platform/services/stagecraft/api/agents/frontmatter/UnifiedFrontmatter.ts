@@ -11,7 +11,11 @@ import type { SafetyTier } from "./SafetyTier";
  * Subsumes three formats:
  * - Claude Code agents under `.claude/agents/`
  * - Skills under `.claude/commands/`
- * - Factory agents under `factory/process/agents/` and `factory/adapters/<name>/agents/`
+ * - Factory agents (process agents under a process tree's `agents/`, scaffold
+ *   agents under an adapter's `agents/`). Per spec 108, factory definitions
+ *   are sourced from the platform's `factory_*` tables rather than an in-tree
+ *   directory; this crate is path-agnostic and works against whichever
+ *   filesystem layout the caller materialises.
  *
  * Field aliases ensure backward compatibility (FR-012):
  * - `id` → `name`

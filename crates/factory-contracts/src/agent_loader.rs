@@ -3,9 +3,14 @@
 
 //! Process and adapter agent prompt loading.
 //!
-//! Reads agent prompt files from `factory/process/agents/` (process agents,
-//! Tier 1 read-only) and `factory/adapters/{name}/agents/` (scaffold agents,
-//! Tier 2 read-write).
+//! Reads agent prompt files from any factory layout the caller passes in:
+//!   - `<root>/process/agents/`   — process agents (Tier 1 read-only)
+//!   - `<root>/adapters/{name}/agents/` — scaffold agents (Tier 2 read-write)
+//!
+//! Per spec 108, factory definitions are sourced from the platform's
+//! `factory_adapters` / `factory_processes` tables; the `<root>` is whatever
+//! directory the caller materialised those rows into. This loader is
+//! deliberately path-agnostic and does not assume an in-tree `factory/`.
 //!
 //! Delegates YAML frontmatter parsing to `agent-frontmatter` (spec 054).
 

@@ -3,8 +3,11 @@
 
 //! Adapter discovery and registration.
 //!
-//! Discovers adapters by scanning `factory/adapters/*/manifest.yaml` and
-//! provides capability matching against Build Specs.
+//! Discovers adapters by scanning `<root>/adapters/*/manifest.yaml` and
+//! provides capability matching against Build Specs. Per spec 108 the
+//! authoritative source for adapters is the platform's `factory_adapters`
+//! table; `<root>` is whichever directory the caller writes those manifests
+//! into.
 
 use crate::adapter_manifest::{AdapterManifest, Capabilities};
 use crate::build_spec::{AudienceMethod, BuildSpec, Variant};

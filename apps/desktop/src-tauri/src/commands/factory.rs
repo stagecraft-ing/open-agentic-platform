@@ -596,9 +596,20 @@ fn mime_from_ext(name: &str) -> &'static str {
     }
 }
 
-/// Locate the factory/ directory by walking up from the project path or CWD.
+/// Locate a factory/ directory by walking up from the project path or CWD.
+///
+/// TODO(spec-108-§7-punt): Spec 108 retired the in-tree `factory/` directory
+/// and made the platform's `factory_adapters` / `factory_contracts` /
+/// `factory_processes` tables authoritative. Migrating this command path to
+/// fetch those definitions from `/api/factory/*` (and cache them locally for
+/// the run) is out of scope for spec 108 and tracked as a follow-up. Until
+/// that lands, OPC factory runs require the developer to keep a checkout of
+/// the upstream factory repo on disk and either run from a directory that
+/// contains it, or pass an explicit `--factory-root` to the standalone
+/// `factory_run` binary. See `specs/108-factory-as-platform-feature/spec.md`
+/// §7 for the full punt note.
 fn resolve_factory_root() -> Result<PathBuf, String> {
-    // First try relative to the repo root (common case).
+    // First try relative to the repo root (common case for in-repo dev).
     let candidates = [
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../..")
@@ -612,7 +623,12 @@ fn resolve_factory_root() -> Result<PathBuf, String> {
             return Ok(p);
         }
     }
-    Err("factory/ directory not found. Ensure the repository contains a factory/ directory with adapters/".into())
+    Err(
+        "factory directory not found. Spec 108 §7 follow-up: this command \
+         currently expects a local factory checkout containing adapters/. \
+         Provide one (or wait for the platform-API fetch migration)."
+            .into(),
+    )
 }
 
 /// Persist the run-level summary (`state.json`) used by `list_factory_runs`

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "665668b7d1b0893dd01edabcd817e0a0e63c4226a0e36ba34124e1ba4824ca39",
+    "contentHash": "76480e516496441ce0c47d8c7c7f4f10877a77e294ce064d93c871f7e2a5cd1e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -54,84 +54,7 @@
       }
     ]
   },
-  "factory": [
-    {
-      "displayName": "AIM Vue+Node GoA Enterprise Template",
-      "name": "aim-vue-node",
-      "path": "factory/adapters/aim-vue-node",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff",
-        "cd-client-documentation"
-      ],
-      "stackLanguage": "typescript",
-      "stackRuntime": "node-24",
-      "targetStack": "aim-vue-node",
-      "version": "4.0.0"
-    },
-    {
-      "displayName": "Encore.ts + React Router Full-Stack",
-      "name": "encore-react",
-      "path": "factory/adapters/encore-react",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff",
-        "cd-client-documentation"
-      ],
-      "stackLanguage": "typescript",
-      "stackRuntime": "node-20",
-      "targetStack": "encore-react",
-      "version": "1.0.0"
-    },
-    {
-      "displayName": "Next.js 15 + Prisma Full-Stack",
-      "name": "next-prisma",
-      "path": "factory/adapters/next-prisma",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff",
-        "cd-client-documentation"
-      ],
-      "stackLanguage": "typescript",
-      "stackRuntime": "node-22",
-      "targetStack": "next-prisma",
-      "version": "1.0.0"
-    },
-    {
-      "displayName": "Rust Axum + SQLx Full-Stack",
-      "name": "rust-axum",
-      "path": "factory/adapters/rust-axum",
-      "phaseCoverage": [
-        "00-pre-flight",
-        "01-business-requirements",
-        "02-service-requirements",
-        "03-data-model",
-        "04-api-specification",
-        "05-ui-specification",
-        "06-adapter-handoff",
-        "cd-client-documentation"
-      ],
-      "stackLanguage": "rust",
-      "stackRuntime": "native",
-      "targetStack": "rust-axum",
-      "version": "1.0.0"
-    }
-  ],
+  "factory": [],
   "infrastructure": {
     "agents": [
       {
@@ -2390,28 +2313,6 @@
       {
         "implementingPaths": [
           {
-            "path": "factory/adapters/aim-vue-node",
-            "source": "spec-implements"
-          },
-          {
-            "path": "factory/adapters/encore-react",
-            "source": "spec-implements"
-          },
-          {
-            "path": "factory/adapters/next-prisma",
-            "source": "spec-implements"
-          },
-          {
-            "path": "factory/adapters/rust-axum",
-            "source": "spec-implements"
-          }
-        ],
-        "specId": "081-factory-test-hydration",
-        "specStatus": "approved"
-      },
-      {
-        "implementingPaths": [
-          {
             "path": "crates/factory-contracts",
             "source": "spec-implements"
           },
@@ -3613,6 +3514,7 @@
     "orphanedSpecs": [
       "033-axiomregent-activation",
       "066-vscode-extension",
+      "081-factory-test-hydration",
       "086-open-source-launch",
       "088-factory-upstream-sync",
       "100-post-convergence-remediation"

@@ -15,11 +15,12 @@ summary: >
   unit and integration tests. Closes the gap between schema-only DDL output and
   a runnable application with meaningful data.
 code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
-implements:
-  - path: factory/adapters/aim-vue-node
-  - path: factory/adapters/encore-react
-  - path: factory/adapters/next-prisma
-  - path: factory/adapters/rust-axum
+# implements: cleared by spec 108 §8. The seed-pattern work landed inside the
+# upstream factory repo (`GovAlta-Pronghorn/goa-software-factory`); the
+# in-tree `factory/adapters/*` directories no longer exist after spec 108
+# moved factory state into `factory_adapters` / `factory_contracts` /
+# `factory_processes` and removed the in-tree mirror.
+implements: []
 ---
 
 # 081 — Factory Test Data Hydration
