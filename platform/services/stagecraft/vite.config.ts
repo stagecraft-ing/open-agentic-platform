@@ -56,6 +56,9 @@ export default defineConfig({
       // tests touch agent_catalog + project_agent_bindings + factory_*
       // tables; they run under `encore test`.
       "**/factory/runs.test.ts",
+      // Spec 124 — duplex handler integration tests mutate `factory_runs`
+      // and `audit_log` rows; gated to `encore test` for the live DB.
+      "**/factory/runDuplexHandlers.test.ts",
     ],
   },
 });
