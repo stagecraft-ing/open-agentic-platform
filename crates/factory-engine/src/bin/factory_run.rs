@@ -13,11 +13,43 @@ use orchestrator::{
     DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
     materialize_run_directory_with_phase,
 };
+use factory_engine::stages::s_minus_1_extract::{KnowledgeBundleRef, sniff_mime_or_fallback};
+use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// Build synthetic `KnowledgeBundleRef`s from CLI-supplied `--business-docs`
+/// paths. The object_id is derived from the filename; the source content
+/// hash is the SHA-256 of file bytes; mime is sniffed via `infer` with an
+/// extension-based fallback.
+fn build_cli_bundles(paths: &[PathBuf]) -> std::io::Result<Vec<KnowledgeBundleRef>> {
+    let mut out = Vec::with_capacity(paths.len());
+    for p in paths {
+        let path = p.canonicalize().unwrap_or_else(|_| p.clone());
+        let bytes = std::fs::read(&path)?;
+        let mut h = Sha256::new();
+        h.update(&bytes);
+        let source_content_hash = format!("{:x}", h.finalize());
+        let filename = path
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "doc".into());
+        let object_id = format!("cli:{}:{}", filename, &source_content_hash[..12]);
+        let mime = sniff_mime_or_fallback(&path, None);
+        out.push(KnowledgeBundleRef {
+            local_path: path,
+            object_id,
+            source_content_hash,
+            mime,
+            filename,
+        });
+    }
+    Ok(out)
+}
+
 
 #[derive(Parser)]
 #[command(
@@ -81,6 +113,13 @@ struct Cli {
     /// Workspace ID for governed execution context (spec 092)
     #[arg(long)]
     workspace: Option<String>,
+
+    /// Skip the `s-1-extract` typed-extraction stage (spec 120 FR-022).
+    /// In standalone CLI use this falls back to passing `--business-docs`
+    /// paths verbatim to the LLM agents. The orchestrated pipeline (OPC)
+    /// always uses the typed path; only set this for ad-hoc invocations.
+    #[arg(long, default_value_t = false)]
+    no_pipeline_extract: bool,
 }
 
 /// Adapts FactoryAgentBridge to the orchestrator's AgentPromptLookup trait.
@@ -212,12 +251,61 @@ async fn main() -> ExitCode {
     // ── Phase 1: Process stages ─────────────────────────────────────────
     eprintln!("Phase 1: Generating process manifest (s0-s5)...");
 
-    let start = match engine.start_pipeline(&cli.adapter, &cli.business_docs, cli.workspace.clone())
-    {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Pipeline start failed: {e}");
-            return ExitCode::FAILURE;
+    let start = if cli.no_pipeline_extract || cli.business_docs.is_empty() {
+        match engine.start_pipeline(&cli.adapter, &cli.business_docs, cli.workspace.clone()) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Pipeline start failed: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else {
+        let bundles = match build_cli_bundles(&cli.business_docs) {
+            Ok(b) => b,
+            Err(e) => {
+                eprintln!("Failed to build typed bundle refs: {e}");
+                return ExitCode::FAILURE;
+            }
+        };
+        let store = match factory_engine::artifact_store::LocalArtifactStore::from_env() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to open local artifact store: {e}");
+                return ExitCode::FAILURE;
+            }
+        };
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let extracting = engine
+            .start_pipeline_extracting(
+                &cli.adapter,
+                &bundles,
+                &store,
+                None,
+                cli.workspace.clone(),
+                cancel,
+            )
+            .await;
+        match extracting {
+            Ok(r) => {
+                eprintln!(
+                    "  s-1-extract: {} objects (deterministic={}, agent-yielded={}, failed={})",
+                    r.extraction.stored.len() + r.extraction.failed.len(),
+                    r.extraction.deterministic_count,
+                    r.extraction.agent_yielded_count,
+                    r.extraction.failed.len(),
+                );
+                eprintln!("  s1 context: {}", r.s1_context_path.display());
+                factory_engine::PipelineStartResult {
+                    run_id: r.run_id,
+                    manifest: r.manifest,
+                    agent_bridge: r.agent_bridge,
+                    pipeline_state: r.pipeline_state,
+                }
+            }
+            Err(e) => {
+                eprintln!("s-1-extract failed: {e}");
+                return ExitCode::FAILURE;
+            }
         }
     };
 

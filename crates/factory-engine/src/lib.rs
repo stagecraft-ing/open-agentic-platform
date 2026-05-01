@@ -20,6 +20,8 @@ pub mod manifest_gen;
 pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;
+pub mod stagecraft_client;
+pub mod stages;
 pub mod standards_resolver;
 pub mod topo_sort;
 pub mod verify_harness;
@@ -64,4 +66,7 @@ pub enum FactoryError {
 
     #[error("orchestrator error: {0}")]
     Orchestrator(#[from] orchestrator::OrchestratorError),
+
+    #[error("s-1-extract stage failed: {0}")]
+    Extract(#[from] stages::s_minus_1_extract::ExtractStageError),
 }

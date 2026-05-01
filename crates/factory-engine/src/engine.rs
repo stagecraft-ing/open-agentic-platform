@@ -15,9 +15,15 @@
 
 use crate::FactoryError;
 use crate::agent_bridge::FactoryAgentBridge;
+use crate::artifact_store::LocalArtifactStore;
 use crate::manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 use crate::pipeline_state::{FactoryPipelineState, FailedFeature};
 use crate::policy_shard::generate_factory_policy_shard;
+use crate::stagecraft_client::StagecraftClient;
+use crate::stages::s_minus_1_extract::{
+    ExtractionStageConfig, ExtractionStageReport, KnowledgeBundleRef, render_s1_context_md,
+    run_extraction_stage,
+};
 use crate::verify_harness::run_factory_gate_check;
 use factory_contracts::AdapterRegistry;
 use factory_contracts::build_spec::BuildSpec;
@@ -25,6 +31,8 @@ use orchestrator::manifest::WorkflowManifest;
 use policy_kernel::PolicyBundle;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 /// Configuration for the Factory engine.
@@ -210,6 +218,50 @@ impl FactoryEngine {
         .await
     }
 
+    /// Start a pipeline that runs `s-1-extract` first against typed bundle
+    /// refs (spec 120 FR-010 to FR-015). The extraction stage writes typed
+    /// `ExtractionOutput` artifacts to `store`, renders an `s1-context.md`
+    /// aggregating them, and the manifest's first stage receives that
+    /// rendered file as its sole input.
+    ///
+    /// The `client` argument provides the yield-back transport. Pass
+    /// `None` for environments where `RequiresAgent` should hard-fail
+    /// (CLI standalone with no stagecraft reachable).
+    pub async fn start_pipeline_extracting(
+        &self,
+        adapter_name: &str,
+        bundles: &[KnowledgeBundleRef],
+        store: &LocalArtifactStore,
+        client: Option<Arc<dyn StagecraftClient>>,
+        project_id: Option<String>,
+        cancel: CancellationToken,
+    ) -> Result<ExtractingPipelineStartResult, FactoryError> {
+        let cfg = ExtractionStageConfig::from_env(project_id.clone().unwrap_or_default());
+        let report = run_extraction_stage(bundles, store, client, &cfg, cancel).await?;
+        let context_md = render_s1_context_md(bundles, &report, store)
+            .map_err(|e| FactoryError::ManifestGeneration {
+                reason: format!("render s1-context.md: {e}"),
+            })?;
+        let context_artifact = store
+            .store_bytes(context_md.as_bytes(), "s1-context.md")
+            .map_err(|e| FactoryError::ManifestGeneration {
+                reason: format!("store s1-context.md: {e}"),
+            })?;
+        let business_doc_paths = vec![PathBuf::from(&context_artifact.storage_path)];
+        let mut start = self.start_pipeline(adapter_name, &business_doc_paths, project_id)?;
+        start
+            .pipeline_state
+            .record_extraction_summary(&report);
+        Ok(ExtractingPipelineStartResult {
+            run_id: start.run_id,
+            manifest: start.manifest,
+            agent_bridge: start.agent_bridge,
+            pipeline_state: start.pipeline_state,
+            extraction: report,
+            s1_context_path: PathBuf::from(context_artifact.storage_path),
+        })
+    }
+
     /// Get the engine configuration.
     pub fn config(&self) -> &FactoryEngineConfig {
         &self.config
@@ -231,6 +283,18 @@ pub struct PipelineStartResult {
     pub agent_bridge: FactoryAgentBridge,
     /// Initial pipeline state.
     pub pipeline_state: FactoryPipelineState,
+}
+
+/// Result of starting a pipeline that ran `s-1-extract` first
+/// (spec 120 FR-010 to FR-015).
+pub struct ExtractingPipelineStartResult {
+    pub run_id: Uuid,
+    pub manifest: WorkflowManifest,
+    pub agent_bridge: FactoryAgentBridge,
+    pub pipeline_state: FactoryPipelineState,
+    pub extraction: ExtractionStageReport,
+    /// Path to the rendered `s1-context.md` artifact in the artifact store.
+    pub s1_context_path: PathBuf,
 }
 
 /// Result of the Phase 1→2 transition (Build Spec freeze → scaffolding).

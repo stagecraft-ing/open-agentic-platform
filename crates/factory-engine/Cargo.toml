@@ -20,6 +20,8 @@ serde_json = "1"
 serde_yaml = "0.9"
 thiserror = "2"
 tokio = { version = "1", features = ["process", "time", "sync", "macros", "rt-multi-thread"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+infer = "0.16"
 uuid = { version = "1", features = ["v4", "serde"] }
 sha2 = "0.10"
 jsonschema = "0.46"

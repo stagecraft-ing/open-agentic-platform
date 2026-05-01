@@ -14,6 +14,7 @@
 //! The 2-char prefix sharding follows the same pattern as `axiomregent::checkpoint::BlobStore`.
 
 use crate::preflight::hash_file;
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
 /// Default artifact store location when `OAP_ARTIFACT_STORE` is unset.
@@ -84,6 +85,97 @@ impl LocalArtifactStore {
             storage_path: target.to_string_lossy().to_string(),
             size_bytes,
         })
+    }
+
+    /// Store an in-memory byte slice keyed by its SHA-256. Used by the
+    /// `s-1-extract` stage (spec 120 FR-011) to write typed extraction-output
+    /// JSON without a temp-file round-trip.
+    pub fn store_bytes(&self, bytes: &[u8], filename: &str) -> std::io::Result<StoredArtifact> {
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        let content_hash = format!("{:x}", hasher.finalize());
+        let target = self.artifact_path(&content_hash, filename)?;
+        if !target.exists() {
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let tmp = target.with_extension("tmp");
+            std::fs::write(&tmp, bytes)?;
+            std::fs::rename(&tmp, &target)?;
+        }
+        Ok(StoredArtifact {
+            content_hash,
+            storage_path: target.to_string_lossy().to_string(),
+            size_bytes: bytes.len() as u64,
+        })
+    }
+
+    /// Record an extraction-output mapping `(object_id, source_content_hash)
+    /// → artifact_content_hash` (spec 120 FR-010). The sidecar lives under
+    /// `<base>/extract-index/<key[0..2]>/<key>.json` where `key = sha256
+    /// (object_id ":" source_content_hash)`. Idempotent: re-recording the
+    /// same triple is a no-op if the file already names the same artifact.
+    pub fn index_extraction(
+        &self,
+        object_id: &str,
+        source_content_hash: &str,
+        artifact_content_hash: &str,
+        filename: &str,
+    ) -> std::io::Result<()> {
+        let path = self.extract_index_path(object_id, source_content_hash);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let payload = serde_json::json!({
+            "objectId": object_id,
+            "sourceContentHash": source_content_hash,
+            "artifactContentHash": artifact_content_hash,
+            "filename": filename,
+        });
+        let bytes = serde_json::to_vec_pretty(&payload).expect("serde_json::to_vec_pretty");
+        let tmp = path.with_extension("tmp");
+        std::fs::write(&tmp, &bytes)?;
+        std::fs::rename(&tmp, &path)?;
+        Ok(())
+    }
+
+    /// Look up an extraction-output mapping. Returns
+    /// `(artifact_content_hash, filename)` if a record exists.
+    pub fn lookup_extraction(
+        &self,
+        object_id: &str,
+        source_content_hash: &str,
+    ) -> std::io::Result<Option<(String, String)>> {
+        let path = self.extract_index_path(object_id, source_content_hash);
+        if !path.exists() {
+            return Ok(None);
+        }
+        let raw = std::fs::read(&path)?;
+        let v: serde_json::Value = serde_json::from_slice(&raw).map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+        })?;
+        let artifact = v
+            .get("artifactContentHash")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let filename = v
+            .get("filename")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        Ok(artifact.zip(filename))
+    }
+
+    fn extract_index_path(&self, object_id: &str, source_content_hash: &str) -> PathBuf {
+        let mut h = Sha256::new();
+        h.update(object_id.as_bytes());
+        h.update(b":");
+        h.update(source_content_hash.as_bytes());
+        let key = format!("{:x}", h.finalize());
+        let prefix = &key[..2];
+        self.base_dir
+            .join("extract-index")
+            .join(prefix)
+            .join(format!("{key}.json"))
     }
 
     /// Retrieve a stored artifact to the target path.

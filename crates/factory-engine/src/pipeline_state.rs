@@ -38,6 +38,20 @@ pub struct FactoryPipelineState {
     /// ID of the most recent completed pipeline for the same project/adapter (082 FR-022).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub previous_pipeline_id: Option<String>,
+    /// `s-1-extract` summary recorded by the engine when the typed-extraction
+    /// path is taken (spec 120 FR-015).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub s1_extract_summary: Option<S1ExtractSummary>,
+}
+
+/// Summary of one `s-1-extract` invocation, surfaced in the OPC pipeline view
+/// (spec 120 FR-015).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct S1ExtractSummary {
+    pub objects_processed: u32,
+    pub deterministic_count: u32,
+    pub agent_yielded_count: u32,
+    pub failed_count: u32,
 }
 
 /// Detailed scaffolding progress tracking.
@@ -75,7 +89,21 @@ impl FactoryPipelineState {
             scaffolding: None,
             total_tokens: 0,
             previous_pipeline_id: None,
+            s1_extract_summary: None,
         }
+    }
+
+    /// Record the result of an `s-1-extract` run for downstream surfacing.
+    pub fn record_extraction_summary(
+        &mut self,
+        report: &crate::stages::s_minus_1_extract::ExtractionStageReport,
+    ) {
+        self.s1_extract_summary = Some(S1ExtractSummary {
+            objects_processed: (report.stored.len() + report.failed.len()) as u32,
+            deterministic_count: report.deterministic_count,
+            agent_yielded_count: report.agent_yielded_count,
+            failed_count: report.failed.len() as u32,
+        });
     }
 
     /// Transition to scaffolding phase after Build Spec freeze.
