@@ -435,13 +435,20 @@ mod tests {
 
     #[test]
     fn preflight_real_examples() {
-        // Uses real adapter fixtures if available
+        // Probes a developer's local clone of the upstream factory; spec 108
+        // §8 retired the in-tree mirror, so this test skips cleanly in CI and
+        // on fresh clones. A future spec will materialise the fixture from
+        // factory_adapters/factory_contracts rows.
         let spec_path = std::path::Path::new(
             "../factory/contract/examples/community-grant-portal.build-spec.yaml",
         );
         let adapter_path = std::path::Path::new("../factory/adapters/aim-vue-node");
         if !spec_path.exists() || !adapter_path.exists() {
-            eprintln!("Skipping real example test — factory fixtures not found");
+            eprintln!(
+                "skipping preflight_real_examples — in-tree factory fixtures \
+                 retired by spec 108 §8; runs only when a developer keeps a \
+                 local checkout"
+            );
             return;
         }
         let results = run_preflight(spec_path, adapter_path, None);

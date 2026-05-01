@@ -7,6 +7,14 @@
 // - transition_to_scaffolding produces Phase 2 manifest from a real Build Spec
 // - dispatch_manifest_noop runs Phase 2 (s6a–s6g fan-out)
 // - Policy bundle is returned (not discarded)
+//
+// Spec 108 §8 retired the in-tree `factory/` mirror. These tests probe the
+// repo-root location so they continue to exercise the engine when a developer
+// keeps a local checkout there, but skip cleanly when the directory is
+// absent (CI, fresh clones). The proper fixture for these flows lives
+// upstream in `goa-software-factory` and lands in `factory_adapters` rows
+// via the platform sync worker (spec 108 §5); a future spec will let this
+// test materialise a fixture from those rows instead of the filesystem.
 
 use factory_engine::{FactoryEngine, FactoryEngineConfig};
 use orchestrator::{
@@ -14,7 +22,8 @@ use orchestrator::{
 };
 use std::path::PathBuf;
 
-/// Resolve the factory root relative to the crate directory.
+/// Resolve the (legacy in-tree) factory root relative to the crate
+/// directory. Returns a path that may not exist after spec 108 §8.
 fn factory_root() -> PathBuf {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     crate_dir.join("../../factory")
@@ -46,7 +55,11 @@ fn populate_artifacts(
 fn noop_e2e_phase1_generates_six_process_stages() {
     let factory_root = factory_root();
     if !factory_root.join("adapters/aim-vue-node").exists() {
-        eprintln!("skipping: factory/adapters/aim-vue-node not found");
+        eprintln!(
+            "skipping: in-tree factory/adapters/aim-vue-node fixture not present \
+             (retired by spec 108 §8; the test runs only when a developer keeps a \
+             local checkout)"
+        );
         return;
     }
 
@@ -96,7 +109,11 @@ fn noop_e2e_phase1_generates_six_process_stages() {
 fn noop_e2e_full_pipeline_dispatch() {
     let factory_root = factory_root();
     if !factory_root.join("adapters/aim-vue-node").exists() {
-        eprintln!("skipping: factory/adapters/aim-vue-node not found");
+        eprintln!(
+            "skipping: in-tree factory/adapters/aim-vue-node fixture not present \
+             (retired by spec 108 §8; the test runs only when a developer keeps a \
+             local checkout)"
+        );
         return;
     }
 
