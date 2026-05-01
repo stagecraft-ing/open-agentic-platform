@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5855df80a108a99d655e8c66a3ddb524776ba3952d242d694c88c1a9691b51be",
+    "contentHash": "6f01a59bd452d810dec8f459317c7fb207ea2573599a513ddc8062c39c4714d5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -51,38 +51,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"crates/factory-engine/src/agent_resolver.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/api/agents/bindings.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents._index.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.new.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"123-agent-catalog-org-rescope\" declares implements path \"platform/services/stagecraft/web/app/routes/app.agents.tsx\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -3627,7 +3595,7 @@
           }
         ],
         "specId": "123-agent-catalog-org-rescope",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

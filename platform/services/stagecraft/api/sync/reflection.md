@@ -14,8 +14,8 @@ is *real* in the codebase versus what is *stubbed, best-effort, or deferred*.
 After the workspace-into-project collapse landed:
 
 - **Wire envelope renamed.** `ServerMeta` now carries `orgId` and `orgCursor` (the prior workspace-keyed pair was retired). Schema version bumped 1 → 2 in `ENVELOPE_SCHEMA_VERSION`. The session is keyed by `orgId`; one OPC connection observes every project in its org.
-- **Per-event projectId.** Every variant that needs project scope carries `projectId` on the envelope (e.g. `factory.event`, `agent.catalog.updated`); desktops filter client-side.
-- **Variants dropped.** The legacy server-side workspace-updated variant (`workspace.updated`) was removed. The legacy workspace-keyed fields on `ServerProjectCatalogUpsert` and `ClientAgentCatalogFetchRequest` were removed (project lives directly under org; the agent-fetch request is verified server-side via `agent_catalog.project_id` → `projects.org_id`).
+- **Per-event projectId.** Every variant that needs project scope carries `projectId` on the envelope (e.g. `factory.event`); desktops filter client-side. Spec 123: the agent catalog envelopes (`agent.catalog.*`) now carry `orgId` directly since agents are org-scoped, and the new `project.agent_binding.*` variants carry `projectId` for project-bound state.
+- **Variants dropped.** The legacy server-side workspace-updated variant (`workspace.updated`) was removed. The legacy workspace-keyed fields on `ServerProjectCatalogUpsert` and `ClientAgentCatalogFetchRequest` were removed (project lives directly under org; the agent-fetch request is verified server-side by comparing the catalog row's `org_id` against the session's `orgId` — spec 123 swapped this from a `agent_catalog → projects` join to a direct read).
 - **Nack reason renamed.** `"workspace_mismatch"` → `"org_mismatch"`.
 - **Agent catalog snapshot widened.** `buildAgentCatalogSnapshotEntries(orgId)` joins `agent_catalog` × `projects` and returns every published agent across the org; entries carry `projectId` so the desktop can attribute and filter.
 
@@ -138,7 +138,7 @@ After the first pass of this document, the following changes landed in the same 
 | Org taken from authenticated claims, not client input | **Yes.** See section C. |
 | Outbox cursor scoped per-org | **Yes.** Verified by `store.test.ts`. |
 | `ClientAuditCandidate` forcibly stamped with server-side `orgId` | **Yes.** |
-| `agent.catalog.fetch_request` cross-org probe rejected | **Yes.** Server resolves `agent_catalog.project_id` → `projects.org_id` and compares against the session's `orgId`; mismatch surfaces as `org_mismatch`. |
+| `agent.catalog.fetch_request` cross-org probe rejected | **Yes.** Server reads `agent_catalog.org_id` directly (spec 123) and compares against the session's `orgId`; mismatch surfaces as `org_mismatch`. |
 
 **Verdict: Fully aligned.**
 

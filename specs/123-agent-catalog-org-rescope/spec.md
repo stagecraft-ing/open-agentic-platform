@@ -2,8 +2,8 @@
 id: "123-agent-catalog-org-rescope"
 slug: agent-catalog-org-rescope
 title: Agent Catalog Org-Rescope — Projects Consume, Org Governs
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-01"
 risk: high
@@ -107,7 +107,7 @@ Per the convention 119 §7 introduced, this spec carries `amends: ["119"]` and 1
 | `sync_runs.project_id` (§4.3) | **Stands.** |
 | `knowledge_extraction_runs.project_id` (§4.3) | **Stands.** |
 | `clone_runs.project_id` (§4.3) | **Stands.** |
-| `agent_policies.project_id` (§4.3) | **Reverted to `org_id`.** Policy attaches to the org-level catalog; per-project policy attaches to bindings, not definitions. See §4.3. |
+| `agent_policies.project_id` (§4.3) | **No-op (already org-scoped).** Implementation discovery: `agent_policies` was created in migration 4 with `org_id` and was never actually project-scoped — the spec 119 collapse did not touch it. The §4.3 SQL block from this spec is therefore omitted from migration 30. Policy attaches to the org-level catalog as intended; per-project policy attaches to bindings, not definitions. |
 | `agent_catalog.project_id` (implicit via migration 27) | **Reverted to `org_id`.** See §4. |
 | `agent_catalog_audit.project_id` (implicit via migration 27) | **Reverted to `org_id`.** See §4. |
 | `project_grants` merge (§6.4) | **Stands.** Tool-permission governance for runtime stays project-scoped; agent *catalog* governance is org-scoped. |
@@ -160,22 +160,17 @@ DROP INDEX agent_catalog_audit_proj_idx;
 CREATE INDEX agent_catalog_audit_org_idx ON agent_catalog_audit (org_id, created_at DESC);
 ```
 
-### 4.3 `agent_policies` — same rescope
+### 4.3 `agent_policies` — no-op (reconciled at implementation time)
 
-```sql
-ALTER TABLE agent_policies
-    ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default';
-UPDATE agent_policies ap
-   SET org_id = p.org_id
-  FROM projects p
- WHERE p.id = ap.project_id;
-ALTER TABLE agent_policies ALTER COLUMN org_id DROP DEFAULT;
-ALTER TABLE agent_policies DROP COLUMN project_id;
-ALTER TABLE agent_policies
-    DROP CONSTRAINT agent_policies_project_id_slug_key;
-ALTER TABLE agent_policies
-    ADD CONSTRAINT agent_policies_org_id_slug_key UNIQUE (org_id, slug);
-```
+> **Implementation note (2026-05-01):** the SQL block originally drafted in
+> this section assumed `agent_policies` was migrated to `project_id` by
+> spec 119. In reality migration 4 created `agent_policies` with `org_id`
+> and `UNIQUE (org_id, slug)`, and the spec 119 collapse (migrations 27,
+> 28, 29) never touched it. Migration 30 therefore omits this SQL block
+> entirely; the table is already in the target shape. Authoritative
+> record: the migration file
+> `platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql`
+> header comment.
 
 ### 4.4 `project_agent_bindings` — new join table
 
