@@ -529,6 +529,11 @@ pub fn run() {
             fetch_project_opc_bundle,
             clone_project_from_bundle,
             refresh_clone_token,
+            // Provenance review (spec 121 FR-041)
+            commands::provenance::provenance_get_report,
+            commands::provenance::provenance_supply_citation,
+            commands::provenance::provenance_downgrade_to_assumption,
+            commands::provenance::provenance_promote_assumption,
             // Worktree agents (051)
             spawn_background_agent,
             list_background_agents,

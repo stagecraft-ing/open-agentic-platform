@@ -303,6 +303,27 @@ pub struct PromotionAuditPayload {
     pub actor: String,
 }
 
+/// Spec 121 §5.3 audit payload: `factory.assumption_skip_emitted`. One
+/// row is written per artifact that Stage 4 / Stage 5 skipped because
+/// its origin claim is `Assumption` or `AssumptionOrphaned` (FR-032,
+/// FR-033). Reconstructs what was deferred so audit can show the full
+/// cascade picture.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssumptionSkipPayload {
+    /// Always `factory.assumption_skip_emitted`.
+    pub action: String,
+    pub project: String,
+    pub claim_id: ClaimId,
+    pub anchor_hash: AnchorHash,
+    /// 4 (Stage 4 — DDL / data model) or 5 (Stage 5 — UI / tests).
+    pub stage: u8,
+    /// `ddl_table` | `service_stub` | `ui_binding` | `test_fixture`.
+    pub artifact_kind: String,
+    /// Human description of what would have been emitted.
+    pub description: String,
+}
+
 // ---------------------------------------------------------------------------
 // IdRegistry — persisted as id-registry.json; keyed by AnchorHash for
 // regeneration stability (FR-009, FR-013, FR-014).

@@ -94,6 +94,7 @@ policy-kernel = { package = "open_agentic_policy_kernel", path = "../../../crate
 factory-engine = { path = "../../../crates/factory-engine" }
 factory-contracts = { path = "../../../crates/factory-contracts" }
 factory-project-detect = { path = "../../../crates/factory-project-detect" }
+provenance-validator = { path = "../../../crates/provenance-validator" }
 
 
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }

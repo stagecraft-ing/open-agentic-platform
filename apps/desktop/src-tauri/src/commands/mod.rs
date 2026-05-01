@@ -12,6 +12,7 @@ pub mod mcp;
 pub mod orchestrator;
 pub mod project_catalog_sync;
 pub mod project_open;
+pub mod provenance;
 pub mod proxy;
 pub mod quick_pane;
 pub mod recovery;

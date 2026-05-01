@@ -331,6 +331,68 @@ pub struct ModeChangePayload {
     pub reason: String,
 }
 
+/// FR-040 / §5.3 helper: build `factory.assumption_skip_emitted` audit
+/// payload for one Stage 4 / Stage 5 artifact that was skipped because
+/// its origin claim is `Assumption` or `AssumptionOrphaned`.
+pub fn build_skip_payload(
+    project: &str,
+    claim_id: factory_contracts::provenance::ClaimId,
+    anchor_hash: factory_contracts::provenance::AnchorHash,
+    stage: u8,
+    artifact_kind: &str,
+    description: &str,
+) -> factory_contracts::provenance::AssumptionSkipPayload {
+    factory_contracts::provenance::AssumptionSkipPayload {
+        action: "factory.assumption_skip_emitted".into(),
+        project: project.to_string(),
+        claim_id,
+        anchor_hash,
+        stage,
+        artifact_kind: artifact_kind.to_string(),
+        description: description.to_string(),
+    }
+}
+
+/// Persist the latest `ValidationReport` to the project's
+/// `<project>/.artifacts/provenance.json` for downstream tauri commands
+/// (Phase 6) to read without re-running the validator. Atomic
+/// write-then-rename so a crashed run never leaves a half-written file.
+///
+/// The file is overwritten on every gate evaluation; cumulative state
+/// across runs (id-registry, etc.) lives in sibling files.
+pub fn persist_provenance_report(
+    project_root: &std::path::Path,
+    report: &provenance_validator::ValidationReport,
+) -> std::io::Result<std::path::PathBuf> {
+    let artifacts_dir = project_root.join(".artifacts");
+    std::fs::create_dir_all(&artifacts_dir)?;
+    let dest = artifacts_dir.join("provenance.json");
+    let tmp = artifacts_dir.join("provenance.json.tmp");
+    let body = serde_json::to_vec_pretty(report).map_err(|e| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+    })?;
+    std::fs::write(&tmp, body)?;
+    std::fs::rename(&tmp, &dest)?;
+    Ok(dest)
+}
+
+/// Read the persisted provenance report, returning `None` when no file
+/// exists yet (fresh project).
+pub fn load_provenance_report(
+    project_root: &std::path::Path,
+) -> std::io::Result<Option<provenance_validator::ValidationReport>> {
+    let path = project_root.join(".artifacts/provenance.json");
+    if !path.exists() {
+        return Ok(None);
+    }
+    let bytes = std::fs::read(&path)?;
+    let report: provenance_validator::ValidationReport =
+        serde_json::from_slice(&bytes).map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+        })?;
+    Ok(Some(report))
+}
+
 /// FR-035 helper: build the `factory.provenance_promoted` audit payload
 /// when an operator approves a candidate citation that flips an
 /// `Assumption` (or `AssumptionOrphaned`) claim to `Derived`. The
@@ -629,6 +691,56 @@ mod tests {
         assert_eq!(audit.action, "factory.provenance_validated");
         assert_eq!(audit.project, "test-project");
         assert!(!audit.workspace_pin_applied);
+    }
+
+    #[test]
+    fn persist_and_load_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let claim = make_claim(
+            "BR-001",
+            ClaimKind::Br,
+            "applicants must be registered",
+            None,
+        );
+        let outs = outputs_with(vec![claim], 0);
+        let r = evaluate_qg13(
+            &outs,
+            &ProvenanceConfig::default(),
+            None,
+            fixed_now(),
+        );
+        let report = match r {
+            QualityGateResult::Pass { report, .. } => *report,
+            QualityGateResult::Warn { report, .. } => *report,
+            QualityGateResult::Fail { report, .. } => *report,
+        };
+        let path = persist_provenance_report(dir.path(), &report).unwrap();
+        assert!(path.exists());
+        let loaded = load_provenance_report(dir.path()).unwrap().unwrap();
+        assert_eq!(loaded, report);
+    }
+
+    #[test]
+    fn load_provenance_returns_none_when_absent() {
+        let dir = tempfile::tempdir().unwrap();
+        let loaded = load_provenance_report(dir.path()).unwrap();
+        assert!(loaded.is_none());
+    }
+
+    #[test]
+    fn skip_payload_carries_correct_action() {
+        let p = build_skip_payload(
+            "test-project",
+            ClaimId("INT-003".into()),
+            factory_contracts::provenance::AnchorHash("abc".into()),
+            4,
+            "ddl_table",
+            "table payment_request (skipped)",
+        );
+        assert_eq!(p.action, "factory.assumption_skip_emitted");
+        assert_eq!(p.stage, 4);
+        assert_eq!(p.artifact_kind, "ddl_table");
+        assert_eq!(p.claim_id.0, "INT-003");
     }
 
     #[test]

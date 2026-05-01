@@ -4701,6 +4701,7 @@ dependencies = [
  "objc",
  "open_agentic_policy_kernel",
  "orchestrator",
+ "provenance-validator",
  "provider-registry",
  "regex",
  "reqwest 0.12.28",
