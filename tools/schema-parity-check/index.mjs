@@ -62,6 +62,20 @@ const RUST_PROVENANCE_MIRROR_PATH = path.join(
   "crates/factory-contracts/src/provenance.rs",
 );
 
+// Spec 122 — stakeholder-doc grammar.
+const TS_STAKEHOLDER_DOC_PATH = path.join(
+  REPO_ROOT,
+  "platform/services/stagecraft/api/governance/stakeholderDocPolicy.ts",
+);
+const RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH = path.join(
+  REPO_ROOT,
+  "build/schema-parity/rust-stakeholder-doc-schema.json",
+);
+const RUST_STAKEHOLDER_DOC_MIRROR_PATH = path.join(
+  REPO_ROOT,
+  "crates/factory-contracts/src/stakeholder_docs.rs",
+);
+
 function fail(code, message) {
   process.stderr.write(message + "\n");
   process.exit(code);
@@ -79,6 +93,14 @@ if (!fs.existsSync(RUST_PROVENANCE_FINGERPRINT_PATH)) {
   fail(
     2,
     `schema-parity-check: provenance rust fingerprint not found at ${path.relative(REPO_ROOT, RUST_PROVENANCE_FINGERPRINT_PATH)}\n` +
+      `  Run: cargo test --manifest-path crates/factory-contracts/Cargo.toml`,
+  );
+}
+
+if (!fs.existsSync(RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH)) {
+  fail(
+    2,
+    `schema-parity-check: stakeholder-doc rust fingerprint not found at ${path.relative(REPO_ROOT, RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH)}\n` +
       `  Run: cargo test --manifest-path crates/factory-contracts/Cargo.toml`,
   );
 }
@@ -306,6 +328,7 @@ const provenanceRustFingerprint = JSON.parse(
   fs.readFileSync(RUST_PROVENANCE_FINGERPRINT_PATH, "utf8"),
 );
 
+let provenanceHandled = false;
 if (!fs.existsSync(TS_PROVENANCE_PATH)) {
   process.stdout.write(
     `schema-parity-check: provenance rust fingerprint recorded (version ${provenanceRustFingerprint.version})\n` +
@@ -313,66 +336,155 @@ if (!fs.existsSync(TS_PROVENANCE_PATH)) {
       `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} — not yet authored (spec 121 §8 reserves the path)\n` +
       `  comparison will activate automatically when the TS mirror lands.\n`,
   );
+  provenanceHandled = true;
+}
+
+if (!provenanceHandled) {
+  let provenanceTsSchema;
+  let provenanceTsVersion;
+  try {
+    const mod = await import(TS_PROVENANCE_PATH);
+    provenanceTsSchema =
+      mod.provenanceClaimSchema ?? mod.provenanceSchema ?? mod.default;
+    provenanceTsVersion = mod.PROVENANCE_SCHEMA_VERSION;
+  } catch (e) {
+    fail(
+      2,
+      `schema-parity-check: failed to import ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}\n  ${e.message}`,
+    );
+  }
+
+  if (!provenanceTsSchema || typeof provenanceTsVersion !== "string") {
+    fail(
+      2,
+      `schema-parity-check: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} is missing exports\n` +
+        `  Required: provenanceClaimSchema (or provenanceSchema), PROVENANCE_SCHEMA_VERSION`,
+    );
+  }
+
+  let provenanceTsFingerprint;
+  try {
+    provenanceTsFingerprint = {
+      version: provenanceTsVersion,
+      claim: walkType(provenanceTsSchema),
+    };
+  } catch (e) {
+    fail(2, `schema-parity-check: provenance zod walk failed — ${e.message}`);
+  }
+
+  const provenanceClaimRustFp = {
+    version: provenanceRustFingerprint.version,
+    claim: provenanceRustFingerprint.claim,
+  };
+  const provenanceIssues = diff(provenanceTsFingerprint, provenanceClaimRustFp);
+  if (provenanceIssues.length === 0) {
+    process.stdout.write(
+      `schema-parity-check: provenance OK (version ${provenanceTsVersion})\n` +
+        `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}\n` +
+        `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}\n`,
+    );
+  } else {
+    process.stderr.write(
+      `schema-parity-check: provenance DRIFT detected between\n` +
+        `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} (version=${provenanceTsVersion})\n` +
+        `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)} (version=${provenanceRustFingerprint.version})\n\n`,
+    );
+    for (const issue of provenanceIssues) {
+      process.stderr.write(`  - ${issue}\n`);
+    }
+    process.stderr.write(
+      `\nIf the TS schema changed, mirror the change in ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}.\n` +
+        `If the Rust types changed, mirror them in ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}.\n` +
+        `Then bump PROVENANCE_SCHEMA_VERSION on both sides if the change is breaking.\n`,
+    );
+    process.exit(1);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stakeholder-doc schema (spec 122).
+//
+// The TS mirror at stakeholderDocPolicy.ts is reserved by spec 122 but
+// not yet authored. While it is absent, this block records the Rust
+// fingerprint as already emitted by `cargo test` and emits an
+// informational message — it does NOT fail CI. Once the TS file lands
+// and exports `stakeholderDocSchema` + `STAKEHOLDER_DOC_SCHEMA_VERSION`,
+// the comparison activates automatically.
+// ---------------------------------------------------------------------------
+
+const stakeholderRustFingerprint = JSON.parse(
+  fs.readFileSync(RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH, "utf8"),
+);
+
+if (!fs.existsSync(TS_STAKEHOLDER_DOC_PATH)) {
+  process.stdout.write(
+    `schema-parity-check: stakeholder-doc rust fingerprint recorded (version ${stakeholderRustFingerprint.version})\n` +
+      `  rs: ${path.relative(REPO_ROOT, RUST_STAKEHOLDER_DOC_MIRROR_PATH)}\n` +
+      `  ts: ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)} — not yet authored (spec 122 §8 reserves the path)\n` +
+      `  comparison will activate automatically when the TS mirror lands.\n`,
+  );
   process.exit(0);
 }
 
-let provenanceTsSchema;
-let provenanceTsVersion;
+let stakeholderTsSchema;
+let stakeholderTsVersion;
 try {
-  const mod = await import(TS_PROVENANCE_PATH);
-  provenanceTsSchema =
-    mod.provenanceClaimSchema ?? mod.provenanceSchema ?? mod.default;
-  provenanceTsVersion = mod.PROVENANCE_SCHEMA_VERSION;
+  const mod = await import(TS_STAKEHOLDER_DOC_PATH);
+  stakeholderTsSchema =
+    mod.stakeholderDocSchema ?? mod.stakeholderDoc ?? mod.default;
+  stakeholderTsVersion = mod.STAKEHOLDER_DOC_SCHEMA_VERSION;
 } catch (e) {
   fail(
     2,
-    `schema-parity-check: failed to import ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}\n  ${e.message}`,
+    `schema-parity-check: failed to import ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)}\n  ${e.message}`,
   );
 }
 
-if (!provenanceTsSchema || typeof provenanceTsVersion !== "string") {
+if (!stakeholderTsSchema || typeof stakeholderTsVersion !== "string") {
   fail(
     2,
-    `schema-parity-check: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} is missing exports\n` +
-      `  Required: provenanceClaimSchema (or provenanceSchema), PROVENANCE_SCHEMA_VERSION`,
+    `schema-parity-check: ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)} is missing exports\n` +
+      `  Required: stakeholderDocSchema, STAKEHOLDER_DOC_SCHEMA_VERSION`,
   );
 }
 
-let provenanceTsFingerprint;
+let stakeholderTsFingerprint;
 try {
-  provenanceTsFingerprint = {
-    version: provenanceTsVersion,
-    claim: walkType(provenanceTsSchema),
+  stakeholderTsFingerprint = {
+    version: stakeholderTsVersion,
+    stakeholderDoc: walkType(stakeholderTsSchema),
   };
 } catch (e) {
-  fail(2, `schema-parity-check: provenance zod walk failed — ${e.message}`);
-}
-
-const provenanceClaimRustFp = {
-  version: provenanceRustFingerprint.version,
-  claim: provenanceRustFingerprint.claim,
-};
-const provenanceIssues = diff(provenanceTsFingerprint, provenanceClaimRustFp);
-if (provenanceIssues.length === 0) {
-  process.stdout.write(
-    `schema-parity-check: provenance OK (version ${provenanceTsVersion})\n` +
-      `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}\n` +
-      `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}\n`,
+  fail(
+    2,
+    `schema-parity-check: stakeholder-doc zod walk failed — ${e.message}`,
   );
-  process.exit(0);
 }
 
-process.stderr.write(
-  `schema-parity-check: provenance DRIFT detected between\n` +
-    `  ts: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} (version=${provenanceTsVersion})\n` +
-    `  rs: ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)} (version=${provenanceRustFingerprint.version})\n\n`,
-);
-for (const issue of provenanceIssues) {
-  process.stderr.write(`  - ${issue}\n`);
+const stakeholderRustFp = {
+  version: stakeholderRustFingerprint.version,
+  stakeholderDoc: stakeholderRustFingerprint.stakeholderDoc,
+};
+const stakeholderIssues = diff(stakeholderTsFingerprint, stakeholderRustFp);
+if (stakeholderIssues.length === 0) {
+  process.stdout.write(
+    `schema-parity-check: stakeholder-doc OK (version ${stakeholderTsVersion})\n` +
+      `  ts: ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)}\n` +
+      `  rs: ${path.relative(REPO_ROOT, RUST_STAKEHOLDER_DOC_MIRROR_PATH)}\n`,
+  );
+} else {
+  process.stderr.write(
+    `schema-parity-check: stakeholder-doc DRIFT detected between\n` +
+      `  ts: ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)} (version=${stakeholderTsVersion})\n` +
+      `  rs: ${path.relative(REPO_ROOT, RUST_STAKEHOLDER_DOC_MIRROR_PATH)} (version=${stakeholderRustFingerprint.version})\n\n`,
+  );
+  for (const issue of stakeholderIssues) {
+    process.stderr.write(`  - ${issue}\n`);
+  }
+  process.stderr.write(
+    `\nIf the TS schema changed, mirror the change in ${path.relative(REPO_ROOT, RUST_STAKEHOLDER_DOC_MIRROR_PATH)}.\n` +
+      `If the Rust types changed, mirror them in ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)}.\n` +
+      `Then bump STAKEHOLDER_DOC_SCHEMA_VERSION on both sides if the change is breaking.\n`,
+  );
+  process.exit(1);
 }
-process.stderr.write(
-  `\nIf the TS schema changed, mirror the change in ${path.relative(REPO_ROOT, RUST_PROVENANCE_MIRROR_PATH)}.\n` +
-    `If the Rust types changed, mirror them in ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)}.\n` +
-    `Then bump PROVENANCE_SCHEMA_VERSION on both sides if the change is breaking.\n`,
-);
-process.exit(1);

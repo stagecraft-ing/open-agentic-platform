@@ -140,6 +140,7 @@ spec-tools:
 	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
 	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+	cargo build --release --manifest-path tools/stakeholder-doc-lint/Cargo.toml
 
 # ============================================================
 # agent-frontmatter TS mirror (spec 111 §2.1, Phase 2)
@@ -349,6 +350,12 @@ ci-tools:
 	./tools/spec-lint/target/release/spec-lint || true   # warnings non-blocking (matches CI)
 	cargo test --manifest-path tools/spec-lint/Cargo.toml
 	@echo ""
+	@echo "==> ci-tools: stakeholder-doc-lint (spec 122 FR-035)"
+	cargo build --release --manifest-path tools/stakeholder-doc-lint/Cargo.toml
+	cargo clippy --manifest-path tools/stakeholder-doc-lint/Cargo.toml -- -D warnings
+	cargo test --manifest-path tools/stakeholder-doc-lint/Cargo.toml
+	./tools/stakeholder-doc-lint/target/release/stakeholder-doc-lint --project . || true   # warnings non-blocking by default (FR-035)
+	@echo ""
 	@echo "==> ci-tools: codebase-indexer (+ staleness gate)"
 	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
 	./tools/codebase-indexer/target/release/codebase-indexer check
@@ -415,8 +422,11 @@ ci-stagecraft: ci-agent-frontmatter-ts
 # ============================================================
 
 ci-schema-parity:
-	@echo "==> ci-schema-parity: emit rust fingerprint"
-	cargo test --manifest-path crates/factory-contracts/Cargo.toml --lib -- knowledge::tests
+	@echo "==> ci-schema-parity: emit rust fingerprints (knowledge + provenance + stakeholder_docs)"
+	cargo test --manifest-path crates/factory-contracts/Cargo.toml --lib -- \
+	    knowledge::tests::writes_fingerprint_file \
+	    provenance::tests::writes_provenance_fingerprint_file \
+	    stakeholder_docs::tests::writes_stakeholder_docs_fingerprint_file
 	@echo ""
 	@echo "==> ci-schema-parity: walk zod schema and compare"
 	@cd platform/services/stagecraft && [ -d node_modules/zod ] || npm ci --silent
@@ -440,6 +450,7 @@ SUPPLY_CHAIN_RUST_MANIFESTS = \
     tools/spec-compiler/Cargo.toml \
     tools/registry-consumer/Cargo.toml \
     tools/spec-lint/Cargo.toml \
+    tools/stakeholder-doc-lint/Cargo.toml \
     tools/codebase-indexer/Cargo.toml \
     tools/policy-compiler/Cargo.toml \
     tools/adapter-scopes-compiler/Cargo.toml \

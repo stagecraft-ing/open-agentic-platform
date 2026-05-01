@@ -19,6 +19,7 @@ pub mod pattern_resolver;
 pub mod pipeline_state;
 pub mod provenance;
 pub mod provenance_config;
+pub mod stakeholder_docs;
 pub mod validation;
 pub mod verification;
 
@@ -32,6 +33,11 @@ pub use pipeline_state::PipelineState;
 pub use provenance::{anchor_hash, quote_hash, PROVENANCE_SCHEMA_VERSION};
 pub use provenance_config::{
     FactoryProvenanceMode, ProvenanceConfig, ProvenanceConfigError,
+};
+pub use stakeholder_docs::{
+    AnchorKind, AnchoredSection, AppliedFromEntry, AuthoringStatus, DocKind,
+    SectionAnchor, SemVer, StakeholderDoc, StakeholderDocParseError,
+    StakeholderFrontmatter, STAKEHOLDER_DOC_SCHEMA_VERSION,
 };
 pub use verification::VerificationContract;
 

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e317c2437bce80c0ff35032c87e93ebd786fa55c47c9d2c95bdc83d7bb4a8ada",
+    "contentHash": "7fc6a920353c5fb1aa3fe51a0f1be443f75a041db7c6ca7d5a318dd8b948c8df",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -50,10 +50,6 @@
       },
       {
         "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-contracts/src/stakeholder_docs.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/client-document-comparator.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
@@ -67,10 +63,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/src/stages/stage_cd_comparator.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"tools/stakeholder-doc-lint/Cargo.toml\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -310,6 +302,13 @@
         ],
         "name": "spec-lint",
         "path": "tools/spec-lint"
+      },
+      {
+        "binaries": [
+          "stakeholder-doc-lint"
+        ],
+        "name": "stakeholder-doc-lint",
+        "path": "tools/stakeholder-doc-lint"
       }
     ]
   },
@@ -1507,6 +1506,28 @@
       "name": "open_agentic_spec_lint",
       "path": "tools/spec-lint",
       "specRef": "006-conformance-lint-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_yaml",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "provenance-validator"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_stakeholder_doc_lint",
+      "path": "tools/stakeholder-doc-lint",
+      "specRef": "122-stakeholder-doc-inversion",
       "version": "0.1.0"
     }
   ],
@@ -3584,6 +3605,11 @@
           {
             "path": "crates/factory-engine/src/stages/stage_cd_comparator.rs",
             "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_stakeholder_doc_lint",
+            "path": "tools/stakeholder-doc-lint",
+            "source": "cargo-metadata"
           },
           {
             "path": "tools/stakeholder-doc-lint/Cargo.toml",
