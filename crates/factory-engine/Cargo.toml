@@ -44,6 +44,10 @@ path = "src/bin/factory_run.rs"
 name = "verify-certificate"
 path = "src/bin/verify_certificate.rs"
 
+[[bin]]
+name = "factory-migrate-stakeholder-docs"
+path = "src/bin/migrate_stakeholder_docs.rs"
+
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "time"] }

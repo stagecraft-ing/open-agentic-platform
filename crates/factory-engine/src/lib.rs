@@ -17,6 +17,7 @@ pub mod gate;
 pub mod governance_certificate;
 pub mod harness_state;
 pub mod manifest_gen;
+pub mod migration;
 pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;

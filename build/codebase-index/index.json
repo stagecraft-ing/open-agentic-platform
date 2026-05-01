@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7fc6a920353c5fb1aa3fe51a0f1be443f75a041db7c6ca7d5a318dd8b948c8df",
+    "contentHash": "dbf96ebd250b29b0e28a22e63f90a48276910caed0a0cc065fe54c399a3f4370",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -536,7 +536,8 @@
         "src/lib.rs",
         "src/bin/harness.rs",
         "src/bin/factory_run.rs",
-        "src/bin/verify_certificate.rs"
+        "src/bin/verify_certificate.rs",
+        "src/bin/migrate_stakeholder_docs.rs"
       ],
       "externalDeps": [
         "async-trait",
