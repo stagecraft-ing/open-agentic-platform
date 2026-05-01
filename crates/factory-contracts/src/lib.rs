@@ -30,7 +30,10 @@ pub use budget::AssumptionBudget;
 pub use build_spec::BuildSpec;
 pub use pattern_resolver::PatternResolver;
 pub use pipeline_state::PipelineState;
-pub use provenance::{anchor_hash, quote_hash, PROVENANCE_SCHEMA_VERSION};
+pub use provenance::{
+    anchor_canonical_tokens, anchor_hash, quote_hash,
+    PROVENANCE_SCHEMA_VERSION,
+};
 pub use provenance_config::{
     FactoryProvenanceMode, ProvenanceConfig, ProvenanceConfigError,
 };

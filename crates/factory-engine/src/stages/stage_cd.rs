@@ -30,6 +30,7 @@
 use crate::stages::stage_cd_comparator::{
     self, ComparatorMode, StageCdDiff,
 };
+use provenance_validator::CorpusEntry;
 use chrono::{DateTime, Utc};
 use factory_contracts::provenance::anchor_hash;
 use factory_contracts::stakeholder_docs::{
@@ -52,6 +53,14 @@ pub struct StageCdInputs {
     /// headings and produces matching anchored candidate sections.
     pub brd: String,
     pub now: DateTime<Utc>,
+    /// Pre-loaded extraction corpus entries used by Phase 2 for
+    /// allowlist derivation + citation re-validation. Empty in seed
+    /// mode (Phase 2 doesn't run).
+    pub corpus: Vec<CorpusEntry>,
+    pub project_name: String,
+    pub project_slug: String,
+    pub workspace_name: String,
+    pub known_owners: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,6 +103,10 @@ pub enum StageCdError {
         #[source]
         source: std::io::Error,
     },
+    #[error("duplicate anchor in authored doc {path}: comparator refuses to run until W-122-003 is resolved")]
+    DuplicateAnchor { path: PathBuf },
+    #[error("comparator error: {0}")]
+    Comparator(String),
 }
 
 // ---------------------------------------------------------------------------
@@ -208,11 +221,18 @@ pub fn run_stage_cd(inputs: &StageCdInputs) -> Result<StageCdResult, StageCdErro
                     authored_client_document: authored_client.clone(),
                     mode: ComparatorMode::Standard,
                     now: inputs.now,
+                    corpus: inputs.corpus.clone(),
+                    project_name: inputs.project_name.clone(),
+                    project_slug: inputs.project_slug.clone(),
+                    workspace_name: inputs.workspace_name.clone(),
+                    known_owners: inputs.known_owners.clone(),
                 },
             )
-            .map_err(|e| StageCdError::Io {
-                path: inputs.artifact_store.clone(),
-                source: std::io::Error::other(e.to_string()),
+            .map_err(|e| match e {
+                stage_cd_comparator::ComparatorError::DuplicateAnchor {
+                    path,
+                } => StageCdError::DuplicateAnchor { path },
+                other => StageCdError::Comparator(other.to_string()),
             })?;
             Some(write_diff(&inputs.artifact_store, &diff)?)
         }
@@ -460,6 +480,11 @@ PMO.
             artifact_store: root.join("artifact-store/run-001"),
             brd: cfs_brd().to_string(),
             now: fixed_now(),
+            corpus: vec![],
+            project_name: "cfs".into(),
+            project_slug: "cfs".into(),
+            workspace_name: "ws".into(),
+            known_owners: vec![],
         }
     }
 

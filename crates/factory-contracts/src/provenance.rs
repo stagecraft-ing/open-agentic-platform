@@ -371,16 +371,13 @@ const ANCHOR_STOP_TOKENS: &[&str] = &[
     "a", "an", "the", "is", "are", "must", "may", "can", "will", "shall",
 ];
 
-/// Compute the anchor hash of a piece of claim text. See module-level docs
-/// and FR-011 for the normalisation pipeline.
-///
-/// Edge case: input that consists entirely of whitespace, punctuation, or
-/// stop tokens reduces to zero tokens and hashes the empty string — a
-/// stable, real SHA-256 (`e3b0c4...`). Two such inputs collide. Real claim
-/// text never reduces to pure stop tokens, so this is a theoretical
-/// degenerate case rather than a fabrication-collision risk; the validator
-/// (Phase 2+) refuses to admit zero-content claims at the gate.
-pub fn anchor_hash(text: &str) -> AnchorHash {
+/// Canonical token bag for a piece of claim text. Shared by
+/// [`anchor_hash`] (which sha256s the joined string) and the spec-122
+/// Stage CD comparator (which computes Jaccard similarity over the
+/// bag for FR-018 step 3 pairing). Exposing the helper guarantees the
+/// hash and the similarity scorer can never disagree about
+/// canonicalisation — they read the same token list.
+pub fn anchor_canonical_tokens(text: &str) -> Vec<String> {
     let lowered: String = text.to_lowercase();
     let nfc: String = lowered.nfc().collect();
 
@@ -396,7 +393,22 @@ pub fn anchor_hash(text: &str) -> AnchorHash {
 
     tokens.sort();
     tokens.dedup();
+    tokens
+}
 
+/// Compute the anchor hash of a piece of claim text. See module-level docs
+/// and FR-011 for the normalisation pipeline. Internally calls
+/// [`anchor_canonical_tokens`] so the hash and the spec-122 Jaccard
+/// similarity scorer share canonicalisation byte-for-byte.
+///
+/// Edge case: input that consists entirely of whitespace, punctuation, or
+/// stop tokens reduces to zero tokens and hashes the empty string — a
+/// stable, real SHA-256 (`e3b0c4...`). Two such inputs collide. Real claim
+/// text never reduces to pure stop tokens, so this is a theoretical
+/// degenerate case rather than a fabrication-collision risk; the validator
+/// (Phase 2+) refuses to admit zero-content claims at the gate.
+pub fn anchor_hash(text: &str) -> AnchorHash {
+    let tokens = anchor_canonical_tokens(text);
     let joined = tokens.join(" ");
 
     let mut hasher = Sha256::new();
