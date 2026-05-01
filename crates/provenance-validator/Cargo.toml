@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Bartek Kus
+
+[package]
+name = "provenance-validator"
+publish = false   # internal workspace crate; binaries ship via release workflows, not crates.io
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Allowlist derivation, corpus view, and citation verification for spec 121 claim-provenance enforcement. LLM-independent by construction (FR-001)."
+
+[lib]
+name = "provenance_validator"
+path = "src/lib.rs"
+
+[dependencies]
+factory-contracts = { path = "../factory-contracts" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+unicode-normalization = "0.1"
+
+[dev-dependencies]
+toml = "0.8"
+
+[package.metadata.oap]
+spec = "121-claim-provenance-enforcement"

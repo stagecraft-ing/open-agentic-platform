@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2bb03db27f3c86b8bf950c70a13b6ff9aa5730b328e4d8ee0152f13a39a3be46",
+    "contentHash": "6da587bb6ec84a5fc3bd5049e0f901d8eb7ed411cc459d0e7de1faf35a171c04",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -42,23 +42,7 @@
       },
       {
         "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/Cargo.toml\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/allowlist.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
         "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/anchor.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/citation.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/lib.rs\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -688,6 +672,26 @@
       "name": "open_agentic_policy_kernel",
       "path": "crates/policy-kernel",
       "specRef": "047-governance-control-plane",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "serde",
+        "serde_json",
+        "sha2",
+        "unicode-normalization"
+      ],
+      "internalDeps": [
+        "factory-contracts"
+      ],
+      "kind": "rust-lib",
+      "name": "provenance-validator",
+      "path": "crates/provenance-validator",
+      "specRef": "121-claim-provenance-enforcement",
       "version": "0.1.0"
     },
     {
@@ -3489,6 +3493,11 @@
           {
             "path": "crates/factory-engine/src/stages/s1_business_requirements.rs",
             "source": "spec-implements"
+          },
+          {
+            "name": "provenance-validator",
+            "path": "crates/provenance-validator",
+            "source": "cargo-metadata"
           },
           {
             "path": "crates/provenance-validator/Cargo.toml",
