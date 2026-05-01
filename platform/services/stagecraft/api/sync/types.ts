@@ -57,6 +57,22 @@ export interface SyncHandshake {
 export type EnvelopeSchemaVersion = 2;
 export const ENVELOPE_SCHEMA_VERSION: EnvelopeSchemaVersion = 2;
 
+/**
+ * Spec 123 §7 — per-event-kind contract versions for the agent catalog and
+ * project-binding envelopes. These are independent of the protocol-wide
+ * `ENVELOPE_SCHEMA_VERSION` above (which guards `meta.v`); they document the
+ * payload contract version that ships under each `kind`. Mirroring constants
+ * (`AGENT_CATALOG_ENVELOPE_VERSION`, `PROJECT_AGENT_BINDING_ENVELOPE_VERSION`)
+ * exist on the desktop side; a build-time mismatch surfaces as a Rust
+ * compile error so a desktop / platform skew never reaches the wire.
+ */
+export const AGENT_CATALOG_ENVELOPE_VERSION = 2 as const;
+export type AgentCatalogEnvelopeVersion = typeof AGENT_CATALOG_ENVELOPE_VERSION;
+
+export const PROJECT_AGENT_BINDING_ENVELOPE_VERSION = 1 as const;
+export type ProjectAgentBindingEnvelopeVersion =
+  typeof PROJECT_AGENT_BINDING_ENVELOPE_VERSION;
+
 export interface EnvelopeMeta {
   /** Schema version — required; strict equality enforced at the boundary. */
   v: EnvelopeSchemaVersion;

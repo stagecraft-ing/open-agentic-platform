@@ -1,0 +1,22 @@
+-- Migration 30 — Spec 123: Agent Catalog Org-Rescope.
+--
+-- Reverts the agent_catalog and agent_catalog_audit `project_id` scoping that
+-- spec 119 established (migration 28) back to `org_id`, and introduces the
+-- `project_agent_bindings` join table so projects consume org-managed agents
+-- as pinned versions instead of authoring their own.
+--
+-- Spec/reality drift discovered at implementation time:
+--   - Spec 123 §3 / §4.3 also calls for migrating `agent_policies` from
+--     `project_id` to `org_id`. In reality, `agent_policies` was created in
+--     migration 4 with `org_id` and was never project-scoped (migrations 27,
+--     28, 29 do not touch it). The agent_policies SQL block from spec §4.3 is
+--     therefore a no-op and is omitted from this migration. The spec 123
+--     closure phase reconciles the spec body with this actual state.
+--
+--   - Spec 123 §4.1 names indexes `agent_catalog_proj_*` and
+--     `agent_catalog_audit_proj_idx`. The actual indexes installed by
+--     migration 28 are `agent_catalog_project_name_idx`,
+--     `agent_catalog_project_status_idx`, and
+--     `agent_catalog_audit_project_idx`. This migration drops those names.
+--
+-- Phase 1 (T010–T020) fills in the body. Phase 0 reserves the file slot.

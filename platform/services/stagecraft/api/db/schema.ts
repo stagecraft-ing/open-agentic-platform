@@ -969,12 +969,16 @@ export const projectCloneRuns = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Spec 111 — Org-managed Agent Catalog.
+// Spec 111 — Org-managed Agent Catalog (rescoped by spec 123).
 // ---------------------------------------------------------------------------
-// Authoritative per-project agent definitions (renamed from per-workspace by
-// spec 119 Phase C). `status` and `action` are constrained as CHECK-backed
-// TEXT in the migration; mirrored here as typed string unions so drift
-// between drizzle and SQL fails at the TS boundary.
+// Authoritative org-scoped agent definitions. Spec 119 Phase C briefly
+// rescoped these to project; spec 123 reverted to org and introduced
+// `project_agent_bindings` (below) so projects consume catalog rows as
+// pinned versions rather than authoring their own.
+//
+// `status` and `action` are constrained as CHECK-backed TEXT in the
+// migration; mirrored here as typed string unions so drift between drizzle
+// and SQL fails at the TS boundary.
 
 export type AgentCatalogStatus = "draft" | "published" | "retired";
 export type AgentCatalogAuditAction =
@@ -984,10 +988,33 @@ export type AgentCatalogAuditAction =
   | "retire"
   | "fork";
 
+/**
+ * Spec 123 — `audit_log.action` values for binding lifecycle events.
+ *
+ * Bindings have no dedicated audit table (the catalog has its own
+ * `agent_catalog_audit` for definition mutations); binding mutations land
+ * in the global `audit_log` keyed by these actions.
+ */
+export type AgentBindingAuditAction =
+  | "agent.binding_created"
+  | "agent.binding_repinned"
+  | "agent.binding_unbound";
+
 export const agentCatalog = pgTable(
   "agent_catalog",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    // Spec 123: org-scoped. The `project_id` column from spec 119 / migration 28
+    // is dropped by migration 30 and absorbed-row state is materialised into
+    // `project_agent_bindings`. The `.default("default")` mirrors migration
+    // 30's backfill default so Phase 0/1 inserts that have not yet been
+    // rewritten still typecheck; Phase 2 rewrites callers to supply orgId
+    // explicitly and the default may then be dropped here.
+    orgId: text("org_id").notNull().default("default"),
+    // Removed by spec 123 (migration 30). Kept on the Drizzle row through
+    // Phase 0 so existing project-scoped callers in catalog.ts / relay.ts
+    // typecheck until Phase 2 rewrites them; deleted from the schema in
+    // Phase 2's commit.
     projectId: uuid("project_id").notNull(),
     name: text("name").notNull(),
     version: integer("version").notNull().default(1),
@@ -1005,12 +1032,18 @@ export const agentCatalog = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [unique().on(t.projectId, t.name, t.version)]
+  (t) => [unique().on(t.orgId, t.name, t.version)]
 );
 
 export const agentCatalogAudit = pgTable("agent_catalog_audit", {
   id: uuid("id").defaultRandom().primaryKey(),
   agentId: uuid("agent_id").notNull(),
+  // Spec 123: org-scoped (was project-scoped from migration 28).
+  // `.default("default")` mirrors migration 30's backfill so Phase 0/1
+  // inserts compile before Phase 2 rewrites callers to supply orgId.
+  orgId: text("org_id").notNull().default("default"),
+  // Removed by spec 123 (migration 30). Kept through Phase 0 so existing
+  // catalog.ts callers typecheck; deleted in Phase 2.
   projectId: uuid("project_id").notNull(),
   action: text("action").$type<AgentCatalogAuditAction>().notNull(),
   actorUserId: uuid("actor_user_id").notNull(),
@@ -1020,6 +1053,37 @@ export const agentCatalogAudit = pgTable("agent_catalog_audit", {
     .notNull()
     .defaultNow(),
 });
+
+/**
+ * Spec 123 §4.4 — `project_agent_bindings`.
+ *
+ * Pins one org agent at one immutable version per project. The binding row
+ * carries `pinned_version` and `pinned_content_hash` only — no override of
+ * the agent definition (frontmatter / body / tools / model). Project-specific
+ * behaviour requires forking the org agent into a new org agent.
+ *
+ * Invariants:
+ *   I-B1: no definition override (enforced by schema — only id+version+hash).
+ *   I-B2: pin integrity — `pinned_content_hash` MUST match the catalog row's
+ *         `content_hash` at `(orgAgentId, pinnedVersion)` at bind time.
+ *   I-B3: retired-upstream bindings stay readable but cannot be repinned.
+ *   I-B4: ON DELETE RESTRICT on `orgAgentId` — retire instead of hard delete.
+ */
+export const projectAgentBindings = pgTable(
+  "project_agent_bindings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    orgAgentId: uuid("org_agent_id").notNull(),
+    pinnedVersion: integer("pinned_version").notNull(),
+    pinnedContentHash: text("pinned_content_hash").notNull(),
+    boundBy: uuid("bound_by").notNull(),
+    boundAt: timestamp("bound_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.projectId, t.orgAgentId)]
+);
 
 // ---------------------------------------------------------------------------
 // Spec 115 — Knowledge Extraction Pipeline.

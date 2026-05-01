@@ -37,6 +37,15 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 /// `ENVELOPE_SCHEMA_VERSION` in `platform/services/stagecraft/api/sync/types.ts`.
 pub const ENVELOPE_SCHEMA_VERSION: u8 = 1;
 
+/// Spec 123 §7 — per-event-kind contract version constants. Mirror the TS
+/// counterparts in `platform/services/stagecraft/api/sync/types.ts`. Kept as
+/// `pub const` so a desktop / platform skew on the catalog or binding
+/// payload contract surfaces as a build-time mismatch (Rust-side tests
+/// reference these constants directly; TS-side handlers reference the TS
+/// ones).
+pub const AGENT_CATALOG_ENVELOPE_VERSION: u8 = 2;
+pub const PROJECT_AGENT_BINDING_ENVELOPE_VERSION: u8 = 1;
+
 // ---------------------------------------------------------------------------
 // Wire-level envelope types (mirror the typescript wire shapes)
 // ---------------------------------------------------------------------------
