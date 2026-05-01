@@ -544,6 +544,112 @@ impl StagecraftClient {
         resp.json().await.map_err(StagecraftError::Decode)
     }
 
+    // -- Spec 120 FR-021: Extraction-Output Endpoints ---------------------------
+
+    /// Spec 120 FR-016 — POST a typed `ExtractionOutput` produced by OPC's
+    /// `s-1-extract` stage. Returns `{ duplicate, extractionRunId }`.
+    pub async fn post_extraction_output(
+        &self,
+        project_id: &str,
+        object_id: &str,
+        schema_version: &str,
+        output: &serde_json::Value,
+    ) -> Result<PostExtractionOutputResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/knowledge/objects/{}/extraction-output",
+            self.base_url, project_id, object_id
+        );
+        let body = serde_json::json!({
+            "projectId": project_id,
+            "objectId": object_id,
+            "orgId": self.org_id(),
+            "output": output,
+        });
+        let resp = self
+            .authed_post(&url)
+            .header("X-Knowledge-Schema-Version", schema_version)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    /// Spec 120 FR-018 — request a server-side agent extraction.
+    pub async fn request_extraction_yield(
+        &self,
+        project_id: &str,
+        object_id: &str,
+        content_hash: &str,
+        requested_kind: Option<&str>,
+        reason: &str,
+    ) -> Result<YieldExtractionResponse, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/knowledge/objects/{}/yield-extraction",
+            self.base_url, project_id, object_id
+        );
+        let mut body = serde_json::json!({
+            "projectId": project_id,
+            "objectId": object_id,
+            "orgId": self.org_id(),
+            "contentHash": content_hash,
+            "reason": reason,
+        });
+        if let Some(kind) = requested_kind {
+            body["requestedExtractorKind"] = serde_json::Value::String(kind.into());
+        }
+        let resp = self
+            .authed_post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
+    /// Spec 120 FR-019 — fetch the most-recent successful extraction record
+    /// for a content hash. Returns `None` on 404.
+    pub async fn fetch_extraction_output(
+        &self,
+        project_id: &str,
+        object_id: &str,
+        content_hash: &str,
+    ) -> Result<Option<FetchExtractionOutputResponse>, StagecraftError> {
+        let url = format!(
+            "{}/api/projects/{}/knowledge/objects/{}/extraction-output?contentHash={}",
+            self.base_url, project_id, object_id, content_hash,
+        );
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if resp.status().as_u16() == 404 {
+            return Ok(None);
+        }
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        let parsed: FetchExtractionOutputResponse =
+            resp.json().await.map_err(StagecraftError::Decode)?;
+        Ok(Some(parsed))
+    }
+
     // -- 082 FR-025: Lookup Artifacts ------------------------------------------
 
     pub async fn lookup_artifact(
@@ -998,6 +1104,105 @@ pub struct LookupArtifactResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Spec 120 — extraction-output endpoint responses
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PostExtractionOutputResponse {
+    pub duplicate: bool,
+    pub extraction_run_id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YieldExtractionResponse {
+    pub run_id: String,
+    pub outcome: String,
+    pub duplex_event_type: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FetchExtractionOutputResponse {
+    pub extraction_run_id: String,
+    pub output: serde_json::Value,
+}
+
+// ---------------------------------------------------------------------------
+// Spec 120 FR-021 — Tauri command surface
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn post_extraction_output(
+    state: tauri::State<'_, StagecraftState>,
+    project_id: String,
+    object_id: String,
+    schema_version: String,
+    output: serde_json::Value,
+) -> Result<PostExtractionOutputResponse, String> {
+    let client = state
+        .0
+        .read()
+        .unwrap()
+        .as_ref()
+        .ok_or_else(|| "stagecraft client not configured".to_string())?
+        .clone();
+    client
+        .post_extraction_output(&project_id, &object_id, &schema_version, &output)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn request_extraction_yield(
+    state: tauri::State<'_, StagecraftState>,
+    project_id: String,
+    object_id: String,
+    content_hash: String,
+    requested_kind: Option<String>,
+    reason: String,
+) -> Result<YieldExtractionResponse, String> {
+    let client = state
+        .0
+        .read()
+        .unwrap()
+        .as_ref()
+        .ok_or_else(|| "stagecraft client not configured".to_string())?
+        .clone();
+    client
+        .request_extraction_yield(
+            &project_id,
+            &object_id,
+            &content_hash,
+            requested_kind.as_deref(),
+            &reason,
+        )
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn fetch_extraction_output(
+    state: tauri::State<'_, StagecraftState>,
+    project_id: String,
+    object_id: String,
+    content_hash: String,
+) -> Result<Option<FetchExtractionOutputResponse>, String> {
+    let client = state
+        .0
+        .read()
+        .unwrap()
+        .as_ref()
+        .ok_or_else(|| "stagecraft client not configured".to_string())?
+        .clone();
+    client
+        .fetch_extraction_output(&project_id, &object_id, &content_hash)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ---------------------------------------------------------------------------
 // Agent catalog draft (spec 111 Phase 6)
 // ---------------------------------------------------------------------------
 
@@ -1309,6 +1514,24 @@ mod tests {
         let token = bundle.clone_token.as_ref().expect("clone token present");
         assert_eq!(token.source, "project_github_pat");
         assert!(token.expires_at.is_none());
+    }
+
+    #[test]
+    fn _phase_5_extraction_response_shapes_round_trip() {
+        let post_payload = r#"{ "duplicate": false, "extractionRunId": "r-1" }"#;
+        let post: PostExtractionOutputResponse =
+            serde_json::from_str(post_payload).expect("post response decodes");
+        assert_eq!(post.extraction_run_id, "r-1");
+
+        let yield_payload = r#"{ "runId": "r-2", "outcome": "enqueued", "duplexEventType": "knowledge.object.updated" }"#;
+        let yld: YieldExtractionResponse =
+            serde_json::from_str(yield_payload).expect("yield response decodes");
+        assert_eq!(yld.outcome, "enqueued");
+
+        let fetch_payload = r#"{ "extractionRunId": "r-3", "output": { "text": "hi", "metadata": {}, "extractor": { "kind": "deterministic-text", "version": "1" } } }"#;
+        let fetch: FetchExtractionOutputResponse =
+            serde_json::from_str(fetch_payload).expect("fetch response decodes");
+        assert_eq!(fetch.extraction_run_id, "r-3");
     }
 
     #[test]

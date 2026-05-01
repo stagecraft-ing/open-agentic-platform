@@ -502,6 +502,10 @@ pub fn run() {
             import_agent_from_github,
             // Workspace agent catalog (spec 111 Phase 6)
             commands::agent_catalog_publish::publish_local_agent_to_workspace,
+            // Stagecraft extraction-output endpoints (spec 120 FR-021)
+            commands::stagecraft_client::post_extraction_output,
+            commands::stagecraft_client::request_extraction_yield,
+            commands::stagecraft_client::fetch_extraction_output,
             // Workspace threading (spec 092)
             set_active_workspace,
             list_workspaces,

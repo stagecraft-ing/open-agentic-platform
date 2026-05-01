@@ -132,6 +132,13 @@ const ArtifactContent: React.FC<ArtifactContentProps> = ({
   }
 
   if (artifact.mimeType === 'json' || artifact.mimeType === 'yaml') {
+    // Spec 120 FR-023 — typed `ExtractionOutput` view. Detect by content
+    // shape rather than mime so the existing `extraction-output.json`
+    // sidecar (no special mime) renders in the typed mode.
+    const typed = tryParseExtractionOutput(content);
+    if (typed) {
+      return <ExtractionOutputView output={typed} />;
+    }
     return (
       <JsonYamlContent
         content={content}
@@ -146,6 +153,146 @@ const ArtifactContent: React.FC<ArtifactContentProps> = ({
       <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-words">
         {content}
       </pre>
+    </div>
+  );
+};
+
+// ── ExtractionOutputView (spec 120 FR-023) ───────────────────────────────────
+
+type AgentRunView = {
+  modelId?: string;
+  promptFingerprint?: string;
+  durationMs?: number;
+  costUsd?: number;
+  attempts?: number;
+  tokenSpend?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
+};
+
+type ExtractionOutputShape = {
+  text: string;
+  pages?: Array<{ index: number; text: string }>;
+  language?: string;
+  outline?: Array<{ level: number; text: string; pageIndex?: number }>;
+  metadata?: Record<string, unknown>;
+  extractor: { kind: string; version: string; agentRun?: AgentRunView };
+};
+
+function tryParseExtractionOutput(content: string): ExtractionOutputShape | null {
+  try {
+    const v = JSON.parse(content);
+    if (
+      v &&
+      typeof v === 'object' &&
+      typeof v.text === 'string' &&
+      v.extractor &&
+      typeof v.extractor.kind === 'string' &&
+      typeof v.extractor.version === 'string'
+    ) {
+      return v as ExtractionOutputShape;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
+
+const ExtractionOutputView: React.FC<{ output: ExtractionOutputShape }> = ({
+  output,
+}) => {
+  const [showFullText, setShowFullText] = useState(false);
+  const TEXT_PREVIEW = 4000;
+  const truncated = output.text.length > TEXT_PREVIEW;
+  const visibleText = showFullText
+    ? output.text
+    : output.text.slice(0, TEXT_PREVIEW);
+
+  return (
+    <div className="flex-1 overflow-auto p-4 space-y-4 text-sm">
+      <header className="rounded border border-border p-3 space-y-1 bg-card">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          Typed extraction
+        </div>
+        <div className="font-mono">
+          <span className="text-foreground">{output.extractor.kind}</span>
+          <span className="text-muted-foreground"> · v{output.extractor.version}</span>
+          {output.language && (
+            <span className="text-muted-foreground"> · lang={output.language}</span>
+          )}
+          {output.pages && (
+            <span className="text-muted-foreground"> · {output.pages.length} page(s)</span>
+          )}
+        </div>
+        {output.extractor.agentRun && (
+          <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
+            <div>model: {output.extractor.agentRun.modelId}</div>
+            <div>
+              cost: ${(output.extractor.agentRun.costUsd ?? 0).toFixed(4)} ·
+              tokens: in {output.extractor.agentRun.tokenSpend?.input ?? 0} /
+              out {output.extractor.agentRun.tokenSpend?.output ?? 0} ·
+              attempts: {output.extractor.agentRun.attempts ?? 1}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {output.outline && output.outline.length > 0 && (
+        <section className="rounded border border-border p-3 bg-card">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+            Outline
+          </div>
+          <ul className="space-y-0.5">
+            {output.outline.map((entry, idx) => (
+              <li
+                key={idx}
+                className="font-mono text-xs"
+                style={{ paddingLeft: `${(entry.level - 1) * 12}px` }}
+              >
+                <span className="text-muted-foreground">L{entry.level}</span>{' '}
+                {entry.text}
+                {entry.pageIndex !== undefined && (
+                  <span className="text-muted-foreground"> (p{entry.pageIndex + 1})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="rounded border border-border bg-card">
+        <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">
+            Text {truncated && !showFullText && `(first ${TEXT_PREVIEW} chars)`}
+          </span>
+          {truncated && (
+            <button
+              type="button"
+              onClick={() => setShowFullText(!showFullText)}
+              className="text-xs text-foreground hover:underline"
+            >
+              {showFullText ? 'Collapse' : `Show full (${output.text.length} chars)`}
+            </button>
+          )}
+        </div>
+        <pre className="text-xs font-mono whitespace-pre-wrap break-words p-3 max-h-[60vh] overflow-auto">
+          {visibleText}
+        </pre>
+      </section>
+
+      {output.pages && output.pages.length > 0 && (
+        <section className="rounded border border-border bg-card">
+          <div className="px-3 py-2 border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+            Pages ({output.pages.length})
+          </div>
+          <ul className="divide-y divide-border">
+            {output.pages.map((p) => (
+              <li key={p.index} className="px-3 py-2 text-xs">
+                <span className="font-mono text-muted-foreground">p{p.index + 1}</span>
+                <span className="text-muted-foreground"> · {p.text.length} chars</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 };

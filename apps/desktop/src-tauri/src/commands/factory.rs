@@ -2361,6 +2361,59 @@ pub fn register_factory_run_handler(app: AppHandle, opc_instance_id: String) {
     log::info!("sync_client: factory.run.request dispatch handler registered");
 }
 
+/// Spec 120 FR-022 — pre-flight `s-1-extract` for orchestrated runs.
+///
+/// Builds typed `KnowledgeBundleRef`s from the materialised paths, runs the
+/// extraction stage with `client = None` (yield-back disabled until the
+/// duplex subscription lands in Phase 6 hardening), and returns the path to
+/// the rendered `s1-context.md` artifact as the sole input for the LLM
+/// stages. When the bundle contains a non-deterministic object the stage
+/// fails fast with `NoStagecraftClient`; the caller surfaces it via the
+/// run-ack channel.
+async fn run_orchestrated_s_minus_1_extract(
+    run: &InboundFactoryRun,
+    materialised: &[(WireKnowledgeBundle, std::path::PathBuf)],
+) -> Result<Vec<String>, String> {
+    use factory_engine::artifact_store::LocalArtifactStore;
+    use factory_engine::stages::s_minus_1_extract::{
+        ExtractionStageConfig, KnowledgeBundleRef, render_s1_context_md, run_extraction_stage,
+        sniff_mime_or_fallback,
+    };
+
+    if materialised.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let bundles: Vec<KnowledgeBundleRef> = materialised
+        .iter()
+        .map(|(bundle, path)| KnowledgeBundleRef {
+            local_path: path.clone(),
+            object_id: bundle.object_id.clone(),
+            source_content_hash: bundle.content_hash.clone(),
+            mime: sniff_mime_or_fallback(path, None),
+            filename: bundle.filename.clone(),
+        })
+        .collect();
+
+    let store = LocalArtifactStore::from_env().map_err(|e| format!("artifact store: {e}"))?;
+    let cfg = ExtractionStageConfig::from_env(run.project_id.clone());
+    let report = run_extraction_stage(
+        &bundles,
+        &store,
+        None,
+        &cfg,
+        tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    let context_md = render_s1_context_md(&bundles, &report, &store)
+        .map_err(|e| format!("render s1-context.md: {e}"))?;
+    let stored = store
+        .store_bytes(context_md.as_bytes(), "s1-context.md")
+        .map_err(|e| format!("store s1-context.md: {e}"))?;
+    Ok(vec![stored.storage_path])
+}
+
 async fn handle_factory_run_request(
     app: AppHandle,
     opc_instance_id: String,
@@ -2369,10 +2422,11 @@ async fn handle_factory_run_request(
 ) {
     // Step 1: materialise knowledge bundles. Hash mismatch is a trust-boundary
     // failure — decline the run and let stagecraft mark it failed.
-    let mut doc_paths = Vec::with_capacity(run.knowledge.len());
+    let mut materialised: Vec<(WireKnowledgeBundle, std::path::PathBuf)> =
+        Vec::with_capacity(run.knowledge.len());
     for bundle in &run.knowledge {
         match materialize_knowledge_bundle(bundle).await {
-            Ok(p) => doc_paths.push(p.to_string_lossy().into_owned()),
+            Ok(p) => materialised.push((bundle.clone(), p)),
             Err(e) => {
                 let decline = match &e {
                     KnowledgeMaterializationError::HashMismatch { .. } => {
@@ -2397,6 +2451,30 @@ async fn handle_factory_run_request(
             }
         }
     }
+
+    // Step 1b (spec 120 FR-022): run `s-1-extract` ahead of the LLM stages.
+    // Deterministic objects emit typed `ExtractionOutput` to the unified
+    // artifact store; RequiresAgent objects fail until the duplex
+    // subscription is wired (Phase 6 hardening). The aggregated
+    // `s1-context.md` becomes the single doc input for stage s0.
+    let doc_paths = match run_orchestrated_s_minus_1_extract(&run, &materialised).await {
+        Ok(paths) => paths,
+        Err(reason) => {
+            log::warn!(
+                "factory.run.request pipeline_id={} s-1-extract failed: {reason}",
+                run.pipeline_id
+            );
+            send_factory_run_ack(
+                &app,
+                &run.pipeline_id,
+                &session_id,
+                &opc_instance_id,
+                false,
+                Some(format!("s_minus_1_extract: {reason}")),
+            );
+            return;
+        }
+    };
 
     // Step 2: resolve a project_path. For the Phase 4 landing we use the
     // OPC workspace-scoped scratch path `$OPC_CACHE_DIR/projects/<project_id>`
