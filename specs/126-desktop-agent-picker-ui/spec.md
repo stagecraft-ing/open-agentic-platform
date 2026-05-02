@@ -2,10 +2,11 @@
 id: "126-desktop-agent-picker-ui"
 slug: desktop-agent-picker-ui
 title: Desktop Agent Picker — Bindings vs Full Catalog
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-01"
+approved: "2026-05-01"
 risk: low
 summary: >
   Closes spec 123 T073, which was a no-op because the desktop AgentPicker
@@ -227,3 +228,46 @@ A-8. Unit tests cover: tab switching preserves filter state; retired-
 - Should it surface the full `frontmatter` (safety tier, model, tags)
   inline, or hide behind a "Show details" toggle? Default: inline for
   active, collapsed for browse (the catalog can be large).
+
+## 10. Implementation Notes (2026-05-01)
+
+What shipped on branch `126-desktop-agent-picker-ui`:
+
+- **Component**: `apps/desktop/src/components/AgentPicker.tsx` exports
+  `AgentPicker` (hook-driven container) and `AgentPickerView`
+  (presentational). Surface matches §3 plus `open`/`onOpenChange` for
+  modal control. Reuses `@opc/ui/{dialog,tabs,button,badge,input}`.
+- **Data hook**: `apps/desktop/src/lib/agentPicker.ts` declares the
+  `AgentReference` TS mirror (kind-discriminated; serde→TS bridge note
+  per T002), `BindingRow`/`CatalogRow`, and `useAgentPickerData`.
+  Concurrent fetches dedup via an in-module `Map<key, Promise>`;
+  duplex Tauri events (`agent-catalog-updated`,
+  `agent-catalog-snapshot`, `project-agent-binding-updated`,
+  `project-agent-binding-snapshot`) trigger `refresh()`.
+- **Backend wire**: `list_active_agents` and `list_org_agents` in
+  `apps/desktop/src-tauri/src/commands/agents.rs` now return
+  `AgentBindingRow` (LEFT JOIN with bindings, surfaces `pinned_version`
+  + `pinned_content_hash` + derived `status`) and `AgentCatalogRow`
+  (catalog cache row with `remote_version` + `remote_content_hash`).
+- **Invariants**:
+  - Retired-upstream bindings: derived from the JOIN missing its
+    catalog partner (spec 123's `retire_remote_agent` DELETEs the
+    catalog row); status is set in Rust to `"retired_upstream"` and
+    rendered muted, non-selectable, with the unbind tooltip.
+  - Draft filtering on browse: defensive in TS (`status !== "draft"`).
+    The spec 123 catalog cache already skips drafts in the upsert
+    path, so this is belt-and-braces.
+  - "↻ latest" toggle: per-agent state in `AgentPickerView`; selection
+    handler emits `ByNameLatest` when toggled, `ById` otherwise.
+- **Tests**: 10 unit tests in `AgentPicker.test.tsx` covering
+  A-2..A-6, the latest toggle, draft filtering, and the duplex
+  auto-refresh integration. Fixture page at
+  `apps/desktop/src/dev/AgentPickerFixture.tsx` for visual review
+  (Storybook absent from the desktop app).
+- **Deviation worth flagging**: the picker exposes the bindings'
+  `pinned_version` + `pinned_content_hash` directly. Spec 123's
+  binding schema (`project_agent_bindings`) carries no `name` column,
+  so retired-upstream rows show the bare `org_agent_id` UUID until
+  spec 123 backfills a denormalised name. Not blocking — the row is
+  non-selectable anyway and the operator's only action is "unbind via
+  web UI". File a spec 123 follow-up if the UX needs the name.

@@ -97,15 +97,15 @@ Lock the behaviour.
 
 Acceptance gates A-1..A-8; spec lifecycle flip.
 
-- [ ] **T050** Verify A-1: `AgentPicker.tsx` exports the component with the props in spec §3.
-- [ ] **T051** Verify A-2..A-3: tab content matches the spec.
-- [ ] **T052** Verify A-4: emitted reference variant tests pass.
-- [ ] **T053** Verify A-5: duplex auto-refresh integration test passes (mocked event triggers a re-fetch).
-- [ ] **T054** Verify A-6: deep-link button opens the expected URL (asserted via the `tauri-plugin-shell` mock).
-- [ ] **T055** Verify A-7..A-8: Storybook / fixture coverage + unit-test enumeration matches the acceptance list.
-- [ ] **T056** Spec frontmatter flip: `status: draft → approved`, `implementation: pending → complete`, add `approved: <today>`. Append a brief Implementation Notes section.
-- [ ] **T057** `make registry` — recompile spec registry + codebase index. Must be clean.
-- [ ] **T058** Commit: `feat(specs): mark spec 126 approved + complete; refresh registry`.
+- [x] **T050** Verify A-1: `AgentPicker.tsx` exports the component with the props in spec §3.
+- [x] **T051** Verify A-2..A-3: tab content matches the spec.
+- [x] **T052** Verify A-4: emitted reference variant tests pass.
+- [x] **T053** Verify A-5: duplex auto-refresh integration test passes (mocked event triggers a re-fetch).
+- [x] **T054** Verify A-6: deep-link button opens the expected URL (asserted via the `tauri-plugin-shell` mock).
+- [x] **T055** Verify A-7..A-8: Storybook / fixture coverage + unit-test enumeration matches the acceptance list.
+- [x] **T056** Spec frontmatter flip: `status: draft → approved`, `implementation: pending → complete`, add `approved: <today>`. Append a brief Implementation Notes section.
+- [x] **T057** `make registry` — recompile spec registry + codebase index. Must be clean.
+- [x] **T058** Commit: `feat(specs): mark spec 126 approved + complete; refresh registry`.
 
 **Final checkpoint:** spec §8 acceptance fully green; `git log --oneline` shows the per-phase commit trail (one commit per Phase 0..4 + the lifecycle flip = six commits).
 
