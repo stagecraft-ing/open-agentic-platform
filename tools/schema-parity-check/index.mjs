@@ -3,36 +3,57 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-003, FR-004
 // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-007 (extension)
+// Spec: specs/125-schema-parity-walker-rebuild/spec.md — §3.2 (descriptor walker)
 //
 // Schema parity check.
 //
-// Compares the structural fingerprint of stagecraft's `extractionOutputSchema`
-// (the source of truth) with the fingerprint emitted by
-// `crates/factory-contracts/src/knowledge.rs` during `cargo test`.
+// Compares the structural fingerprint of each stagecraft TS schema (the
+// source of truth) with the fingerprint emitted by the matching Rust
+// mirror in `crates/factory-contracts/` during `cargo test`. Drift on
+// either side fails CI before any runtime divergence can ship.
 //
-// Spec 121 extends the check: a second Rust fingerprint is recorded for the
-// provenance schema (`crates/factory-contracts/src/provenance.rs`). The
-// matching TS mirror at `platform/services/stagecraft/api/governance/
-// provenancePolicy.ts` is reserved by spec 121 §8 but not yet authored. When
-// the TS mirror is absent, the parity check records the Rust-side
-// fingerprint and emits an informational line — it does NOT fail. Once the
-// TS mirror lands, the check upgrades automatically (the file's existence
-// flips on the comparison).
+// Walker dispatcher (spec 125). Each TS schema is walked through one of
+// two paths:
+//
+//   - Descriptor walker (`walkDescriptor`, in `./walk-descriptor.mjs`).
+//     Consumes a plain-data `SchemaNode` exported next to a hand-rolled
+//     validator. This is the canonical path going forward — it is
+//     dependency-free and stable under Encore.ts's TS parser, which
+//     crashes on `zod/v4/classic/schemas.d.cts` if zod is imported from
+//     any file the API tree transitively touches (see the file header on
+//     `extractionOutput.ts`).
+//
+//   - Zod walker (`walkType`, inline below). Walks a `ZodTypeAny` tree by
+//     introspecting `_def.type`. Retained for the provenance + stakeholder
+//     surfaces: those Rust mirrors exist, but their TS mirrors are
+//     reserved by specs 121 §8 / 122 and not yet authored. When those
+//     files land, they will land as descriptors and this walker becomes
+//     deletable.
+//
+// The `walk(node)` dispatcher selects the descriptor walker when `node.kind`
+// is a string (the `SchemaNode` discriminator) and falls through to the
+// zod walker otherwise.
+//
+// Spec 121/122 reserved-mode behaviour: when a TS mirror file does not
+// exist, the parity check records the Rust-side fingerprint and emits an
+// informational line — it does NOT fail. Once the TS mirror lands, the
+// comparison activates automatically (existence flip).
 //
 // Run order:
 //   1. cargo test --manifest-path crates/factory-contracts/Cargo.toml
-//      (writes build/schema-parity/rust-knowledge-schema.json AND
-//       build/schema-parity/rust-provenance-schema.json)
-//   2. node tools/schema-parity-check/index.mjs   (this file)
+//      (writes build/schema-parity/{rust-knowledge,rust-provenance,rust-stakeholder-doc}-schema.json)
+//   2. bun run tools/schema-parity-check/index.mjs   (this file — needs
+//      a runtime that can import .ts, hence bun)
 //
 // Exit codes:
 //   0  all configured fingerprints match (or recorded for later comparison)
 //   1  fingerprints differ — drift detected
-//   2  internal error (rust file missing, zod walk failed, etc.)
+//   2  internal error (rust file missing, walk failed, missing exports, etc.)
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { walkDescriptor } from "./walk-descriptor.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..");
@@ -106,11 +127,11 @@ if (!fs.existsSync(RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH)) {
 }
 
 const stagecraftDir = path.join(REPO_ROOT, "platform/services/stagecraft");
-let extractionOutputSchema;
+let extractionOutputDescriptor;
 let tsSchemaVersion;
 try {
   const mod = await import(TS_SCHEMA_PATH);
-  extractionOutputSchema = mod.extractionOutputSchema;
+  extractionOutputDescriptor = mod.extractionOutputDescriptor;
   tsSchemaVersion = mod.KNOWLEDGE_SCHEMA_VERSION;
 } catch (e) {
   fail(
@@ -121,13 +142,42 @@ try {
   );
 }
 
-if (!extractionOutputSchema || typeof tsSchemaVersion !== "string") {
+if (
+  !extractionOutputDescriptor ||
+  typeof extractionOutputDescriptor.kind !== "string" ||
+  typeof tsSchemaVersion !== "string"
+) {
   fail(
     2,
     `schema-parity-check: ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)} is missing exports\n` +
-      `  Required: extractionOutputSchema, KNOWLEDGE_SCHEMA_VERSION`,
+      `  Required: extractionOutputDescriptor (a SchemaNode with a string \`kind\`), KNOWLEDGE_SCHEMA_VERSION`,
   );
 }
+
+// Spec 125 dispatcher. A `SchemaNode` carries a string `kind`; any other
+// shape is assumed to be a `ZodTypeAny` and routed to `walkType`. Once the
+// provenance + stakeholder-doc TS mirrors land as descriptors, every call
+// site here will resolve through `walkDescriptor` and `walkType` can go.
+function walk(node) {
+  if (node && typeof node.kind === "string") {
+    return walkDescriptor(node);
+  }
+  return walkType(node);
+}
+
+// ---------------------------------------------------------------------------
+// Zod walker (spec 121 / 122 reserved-mode legacy).
+//
+// Reads the structural shape directly out of a `ZodTypeAny._def` tree. Used
+// by the provenance + stakeholder-doc parity surfaces only — those TS
+// mirrors don't exist yet, but when they land per specs 121 §8 / 122, they
+// will land as plain-data descriptors (the canonical post-spec-125 shape)
+// and this walker becomes deletable. Until then, the dispatcher above
+// keeps both paths alive so neither surface regresses.
+//
+// Do NOT extend this function. New parity surfaces should ship with a
+// `SchemaNode` descriptor (see `walk-descriptor.mjs`).
+// ---------------------------------------------------------------------------
 
 function unwrap(zod) {
   while (zod?._def?.type === "pipe") zod = zod._def.in;
@@ -230,10 +280,10 @@ let tsFingerprint;
 try {
   tsFingerprint = {
     version: tsSchemaVersion,
-    root: walkType(extractionOutputSchema),
+    root: walk(extractionOutputDescriptor),
   };
 } catch (e) {
-  fail(2, `schema-parity-check: zod walk failed — ${e.message}`);
+  fail(2, `schema-parity-check: knowledge descriptor walk failed — ${e.message}`);
 }
 
 const rustFingerprint = JSON.parse(
@@ -366,10 +416,10 @@ if (!provenanceHandled) {
   try {
     provenanceTsFingerprint = {
       version: provenanceTsVersion,
-      claim: walkType(provenanceTsSchema),
+      claim: walk(provenanceTsSchema),
     };
   } catch (e) {
-    fail(2, `schema-parity-check: provenance zod walk failed — ${e.message}`);
+    fail(2, `schema-parity-check: provenance walk failed — ${e.message}`);
   }
 
   const provenanceClaimRustFp = {
@@ -452,12 +502,12 @@ let stakeholderTsFingerprint;
 try {
   stakeholderTsFingerprint = {
     version: stakeholderTsVersion,
-    stakeholderDoc: walkType(stakeholderTsSchema),
+    stakeholderDoc: walk(stakeholderTsSchema),
   };
 } catch (e) {
   fail(
     2,
-    `schema-parity-check: stakeholder-doc zod walk failed — ${e.message}`,
+    `schema-parity-check: stakeholder-doc walk failed — ${e.message}`,
   );
 }
 
