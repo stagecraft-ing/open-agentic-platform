@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "13c7f2102fbb6638795f6a711888e43dc289e09626e7bd04f77a16d6894c147f",
+    "contentHash": "c24d092bed3452cffc7920069fadc09c68ca488273a2ff5599823bced53edf06",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -51,14 +51,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/factory/runs.ts\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -497,6 +489,32 @@
       "name": "factory-engine",
       "path": "crates/factory-engine",
       "specRef": "075-factory-workflow-engine",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "dirs",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "tokio"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "factory-engine"
+      ],
+      "kind": "rust-lib",
+      "name": "factory-platform-client",
+      "path": "crates/factory-platform-client",
+      "specRef": "124-opc-factory-run-platform-integration",
       "version": "0.1.0"
     },
     {
@@ -3620,6 +3638,11 @@
             "source": "spec-implements"
           },
           {
+            "name": "factory-platform-client",
+            "path": "crates/factory-platform-client",
+            "source": "cargo-metadata"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
             "source": "spec-implements"
           },
@@ -3629,7 +3652,7 @@
           }
         ],
         "specId": "124-opc-factory-run-platform-integration",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
