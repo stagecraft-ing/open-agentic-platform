@@ -2,10 +2,12 @@
 id: "125-schema-parity-walker-rebuild"
 slug: schema-parity-walker-rebuild
 title: Schema-Parity Walker — Rebuild for Hand-Rolled Validators
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-01"
+approved: "2026-05-01"
+amended: "2026-05-01"
 risk: medium
 summary: >
   Restores the `make ci-schema-parity` gate after commit `b6859d3` removed
@@ -125,12 +127,12 @@ After spec 125:
    tree walker; no zod dependency anywhere.
 3. Comparison logic against the Rust fingerprint is unchanged.
 
-The provenance and stakeholder-doc parity surfaces stay zod-walking for
-now (their TS mirrors don't exist yet on the spec 121 §8 reserved-mode
-path), but the walker code path is split so the descriptor walker and
-the zod walker live behind a `walk(node)` dispatcher keyed on the input
-shape. Once specs 121 and 122 land their TS mirrors as descriptors, the
-zod walker can be deleted entirely.
+The provenance and stakeholder-doc parity surfaces remain in
+reserved mode — specs 121 §8 / 122 reserved the TS-mirror paths but
+shipped without authoring those files (both specs are
+`status: approved, implementation: complete`). When a future spec
+authors them, they MUST land as `SchemaNode` descriptors; the parity
+tool no longer carries a zod walker (see §8 Phase 6 cleanup).
 
 The descriptor pattern is the canonical answer for any future schema
 that needs Rust↔TS parity without zod. Spec 123's duplex envelope types
@@ -202,3 +204,71 @@ A-5. The `extractionOutput.ts` file remains free of any zod import
 - Could the parity tool diff TS interfaces directly via the TypeScript
   compiler API? Plausible, but heavier than the descriptor approach
   and pulls a `typescript` dependency into the build chain.
+
+## 8. Implementation Notes
+
+Landed on branch `125-schema-parity-walker-rebuild`, six commits, all
+six phases of `tasks.md` completed in order:
+
+- **Phase 0 — Foundations** (`c3eb1d3`). `SchemaNode` discriminated
+  union added to
+  `platform/services/stagecraft/api/knowledge/extractionOutput.ts`.
+  Mirrors the kinds the Rust fingerprint emitter in
+  `crates/factory-contracts/src/knowledge.rs` produces (`string | int |
+  number | boolean | unknown | enum | array | tuple | map | object |
+  discriminatedUnion`). Co-located with the validator (T001 option a)
+  to keep the parity tool dependency-free; `map` is included alongside
+  the variants enumerated in `tasks.md` because the Rust mirror uses
+  it for `metadata: HashMap<String, Value>`.
+- **Phase 1 — Descriptor** (`0f9a27b`). `extractionOutputDescriptor`
+  authored by walking `validateExtractionOutput` and its helpers; cross-
+  checked against `build/schema-parity/rust-knowledge-schema.json` —
+  structurally identical, no schema drift between validator and Rust
+  mirror predates this spec. Value-shape constraints the validator
+  additionally enforces (`HEX_64`, length min/max, integer/finite,
+  positive vs. nonneg) carried as per-field `// note:` comments per
+  T013.
+- **Phase 2 — Consistency test** (`d914c2c`). Recursive walker emits
+  per-field cases; 27 new tests, 33 total passing under `npm test --
+  extractionOutput.test.ts --run`. Catches descriptor↔validator drift
+  locally before commit.
+- **Phase 3 — Walker rewrite** (`8db4b0a`). Extracted
+  `walkDescriptor` into `tools/schema-parity-check/walk-descriptor.mjs`;
+  added a `walk(node)` dispatcher in `index.mjs` that picks descriptor
+  walker on `node.kind` and falls through to the legacy zod walker for
+  the still-reserved provenance + stakeholder-doc surfaces. Replaced
+  the `extractionOutputSchema` import + presence check with
+  `extractionOutputDescriptor`. Added 12-case standalone test at
+  `tools/schema-parity-check/walk-descriptor.test.mjs` (`node …`, no
+  zod, no `.ts` imports). Updated the `make ci-schema-parity` echo
+  line and Makefile preamble to reflect the dispatcher behaviour.
+- **Phase 4 — CI integration** (`028cf0f`). All five acceptance gates
+  individually verified via reversible smoke tests (rename a
+  descriptor field → diff message; flip required → optional → vitest
+  fails; `encore build docker` passes parser; rg on zod imports
+  returns nothing; `make ci` exits 0).
+- **Phase 5 — Closure** (this commit). Frontmatter flip, registry
+  recompile.
+
+- **Phase 6 — Cleanup** (amendment, 2026-05-01). Reviewing the
+  branch surfaced that specs 121 and 122 had already shipped as
+  `status: approved, implementation: complete` without authoring the
+  reserved TS mirrors. The conditional under which the zod walker
+  was "queued for deletion" had therefore already passed. The
+  `walkType` zod walker, the `unwrap` / `isOptional` helpers, and
+  the `walk(node)` dispatcher were deleted in the same branch; the
+  three call sites now invoke `walkDescriptor` directly. The
+  reserved-mode early-returns for provenance and stakeholder-doc are
+  unchanged (both surfaces still log + skip while their TS files
+  don't exist), but the post-existence-flip path now requires those
+  files to export `SchemaNode` descriptors named
+  `provenanceClaimDescriptor` / `stakeholderDocDescriptor`. The
+  Makefile's `[ -d node_modules/zod ] || npm ci` install guard was
+  also removed — `extractionOutput.ts` has no imports, so bun's TS
+  loader needs nothing from stagecraft's `node_modules` to walk it.
+
+The Encore.ts TS parser invariant from b6859d3 holds: zero zod imports
+in `extractionOutput.ts`, verified by
+`! rg "from \"zod" platform/services/stagecraft/api/knowledge/extractionOutput.ts`.
+After Phase 6 the parity tool itself imports zero zod symbols too —
+the descriptor pattern is the only walker shape carried forward.

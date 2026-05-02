@@ -412,13 +412,17 @@ ci-stagecraft: ci-agent-frontmatter-ts
 
 # ============================================================
 # Schema parity (spec 120 FR-003) — asserts the Rust mirror in
-# `crates/factory-contracts/src/knowledge.rs` and the Zod source in
-# `platform/services/stagecraft/api/knowledge/extractionOutput.ts` describe
-# the same shape. Drift fails CI before any runtime divergence can ship.
+# `crates/factory-contracts/src/knowledge.rs` and the TS source-of-truth
+# in `platform/services/stagecraft/api/knowledge/extractionOutput.ts`
+# describe the same shape. Drift fails CI before any runtime divergence
+# can ship.
 #
-# Step 1 emits the Rust-side fingerprint via `cargo test`; step 2 walks the
-# Zod schema with bun (which handles .ts natively and resolves `zod` from
-# stagecraft's node_modules).
+# Step 1 emits the Rust-side fingerprints via `cargo test`. Step 2 walks
+# the TS side with bun (which handles .ts natively): every schema walks
+# a plain-data `SchemaNode` descriptor co-located with its hand-rolled
+# validator (spec 125, no zod — Encore parser invariant). Provenance and
+# stakeholder-doc surfaces are in reserved mode until their TS mirrors
+# land at the paths spec 121 §8 / 122 reserve.
 # ============================================================
 
 ci-schema-parity:
@@ -428,8 +432,7 @@ ci-schema-parity:
 	    provenance::tests::writes_provenance_fingerprint_file \
 	    stakeholder_docs::tests::writes_stakeholder_docs_fingerprint_file
 	@echo ""
-	@echo "==> ci-schema-parity: walk zod schema and compare"
-	@cd platform/services/stagecraft && [ -d node_modules/zod ] || npm ci --silent
+	@echo "==> ci-schema-parity: walk TS descriptors and compare"
 	bun run tools/schema-parity-check/index.mjs
 
 # ============================================================

@@ -3,36 +3,46 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-003, FR-004
 // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-007 (extension)
+// Spec: specs/125-schema-parity-walker-rebuild/spec.md — §3.2 (descriptor walker)
 //
 // Schema parity check.
 //
-// Compares the structural fingerprint of stagecraft's `extractionOutputSchema`
-// (the source of truth) with the fingerprint emitted by
-// `crates/factory-contracts/src/knowledge.rs` during `cargo test`.
+// Compares the structural fingerprint of each stagecraft TS schema (the
+// source of truth) with the fingerprint emitted by the matching Rust
+// mirror in `crates/factory-contracts/` during `cargo test`. Drift on
+// either side fails CI before any runtime divergence can ship.
 //
-// Spec 121 extends the check: a second Rust fingerprint is recorded for the
-// provenance schema (`crates/factory-contracts/src/provenance.rs`). The
-// matching TS mirror at `platform/services/stagecraft/api/governance/
-// provenancePolicy.ts` is reserved by spec 121 §8 but not yet authored. When
-// the TS mirror is absent, the parity check records the Rust-side
-// fingerprint and emits an informational line — it does NOT fail. Once the
-// TS mirror lands, the check upgrades automatically (the file's existence
-// flips on the comparison).
+// Walker (spec 125). Every TS schema is walked through `walkDescriptor`
+// (in `./walk-descriptor.mjs`), which consumes a plain-data `SchemaNode`
+// exported next to a hand-rolled validator. This is the only walker the
+// tool carries: it is dependency-free and stable under Encore.ts's TS
+// parser, which crashes on `zod/v4/classic/schemas.d.cts` if zod is
+// imported from any file the API tree transitively touches (see the
+// file header on `extractionOutput.ts`). Any future TS mirror authored
+// at one of the reserved paths below MUST export a `SchemaNode`
+// descriptor (not a zod tree).
+//
+// Reserved-mode behaviour: when a TS mirror file does not exist (specs
+// 121 §8 / 122 reserved the paths but did not author the files), the
+// parity check records the Rust-side fingerprint and emits an
+// informational line — it does NOT fail. Once a TS mirror lands as a
+// descriptor, the comparison activates automatically (existence flip).
 //
 // Run order:
 //   1. cargo test --manifest-path crates/factory-contracts/Cargo.toml
-//      (writes build/schema-parity/rust-knowledge-schema.json AND
-//       build/schema-parity/rust-provenance-schema.json)
-//   2. node tools/schema-parity-check/index.mjs   (this file)
+//      (writes build/schema-parity/{rust-knowledge,rust-provenance,rust-stakeholder-doc}-schema.json)
+//   2. bun run tools/schema-parity-check/index.mjs   (this file — needs
+//      a runtime that can import .ts, hence bun)
 //
 // Exit codes:
 //   0  all configured fingerprints match (or recorded for later comparison)
 //   1  fingerprints differ — drift detected
-//   2  internal error (rust file missing, zod walk failed, etc.)
+//   2  internal error (rust file missing, walk failed, missing exports, etc.)
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { walkDescriptor } from "./walk-descriptor.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..");
@@ -106,11 +116,11 @@ if (!fs.existsSync(RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH)) {
 }
 
 const stagecraftDir = path.join(REPO_ROOT, "platform/services/stagecraft");
-let extractionOutputSchema;
+let extractionOutputDescriptor;
 let tsSchemaVersion;
 try {
   const mod = await import(TS_SCHEMA_PATH);
-  extractionOutputSchema = mod.extractionOutputSchema;
+  extractionOutputDescriptor = mod.extractionOutputDescriptor;
   tsSchemaVersion = mod.KNOWLEDGE_SCHEMA_VERSION;
 } catch (e) {
   fail(
@@ -121,119 +131,26 @@ try {
   );
 }
 
-if (!extractionOutputSchema || typeof tsSchemaVersion !== "string") {
+if (
+  !extractionOutputDescriptor ||
+  typeof extractionOutputDescriptor.kind !== "string" ||
+  typeof tsSchemaVersion !== "string"
+) {
   fail(
     2,
     `schema-parity-check: ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)} is missing exports\n` +
-      `  Required: extractionOutputSchema, KNOWLEDGE_SCHEMA_VERSION`,
+      `  Required: extractionOutputDescriptor (a SchemaNode with a string \`kind\`), KNOWLEDGE_SCHEMA_VERSION`,
   );
-}
-
-function unwrap(zod) {
-  while (zod?._def?.type === "pipe") zod = zod._def.in;
-  return zod;
-}
-
-function isOptional(zod) {
-  return unwrap(zod)?._def?.type === "optional";
-}
-
-function walkType(zod) {
-  zod = unwrap(zod);
-  if (zod?._def?.type === "optional" || zod?._def?.type === "nullable") {
-    return walkType(zod._def.innerType);
-  }
-  switch (zod?._def?.type) {
-    case "string":
-      return { kind: "string" };
-    case "number": {
-      const isInt = (zod._def.checks ?? []).some(
-        (c) => c?.format === "safeint" || c?._zod?.def?.format === "safeint",
-      );
-      return { kind: isInt ? "int" : "number" };
-    }
-    case "boolean":
-      return { kind: "boolean" };
-    case "unknown":
-    case "any":
-      return { kind: "unknown" };
-    case "array":
-      return { kind: "array", element: walkType(zod._def.element) };
-    case "record":
-      return {
-        kind: "map",
-        key: walkType(zod._def.keyType),
-        value: walkType(zod._def.valueType),
-      };
-    case "object": {
-      const shape = zod._def.shape;
-      const fields = Object.entries(shape)
-        .map(([name, t]) => ({
-          name,
-          required: !isOptional(t),
-          type: walkType(t),
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      return { kind: "object", fields };
-    }
-    case "tuple": {
-      // Zod 4: items live on `_def.items`. Map each positional schema to a
-      // type fingerprint preserving order (tuples are positional, NOT
-      // alphabetical).
-      const items = (zod._def.items ?? []).map((t) => walkType(t));
-      return { kind: "tuple", items };
-    }
-    case "enum": {
-      // Zod 4: `_def.entries` is `Record<string, string>` for native string
-      // enums and a value list for plain `z.enum([...])`. We sort to keep
-      // the fingerprint order-independent.
-      const raw = zod._def.entries ?? zod._def.values ?? {};
-      const values = Array.isArray(raw) ? [...raw] : Object.values(raw);
-      values.sort();
-      return { kind: "enum", values };
-    }
-    case "union":
-    case "discriminatedUnion": {
-      // The Rust side uses #[serde(tag = "mode")] which is the Zod
-      // `discriminatedUnion("mode", [...])` shape. Each option is an
-      // object whose discriminator literal is the variant tag.
-      const discriminator = zod._def.discriminator;
-      const options = zod._def.options ?? [];
-      const variants = options
-        .map((opt) => {
-          const inner = unwrap(opt);
-          const shape = inner?._def?.shape ?? {};
-          const tagSchema = shape[discriminator];
-          const tag =
-            tagSchema?._def?.values?.[0] ?? tagSchema?._def?.value ?? null;
-          const fields = Object.entries(shape)
-            .filter(([name]) => name !== discriminator)
-            .map(([name, t]) => ({
-              name,
-              required: !isOptional(t),
-              type: walkType(t),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-          return { tag, fields };
-        })
-        .sort((a, b) => String(a.tag).localeCompare(String(b.tag)));
-      return { kind: "discriminatedUnion", discriminator, variants };
-    }
-    default:
-      throw new Error(
-        `schema-parity-check: unhandled zod type: ${zod?._def?.type}`,
-      );
-  }
 }
 
 let tsFingerprint;
 try {
   tsFingerprint = {
     version: tsSchemaVersion,
-    root: walkType(extractionOutputSchema),
+    root: walkDescriptor(extractionOutputDescriptor),
   };
 } catch (e) {
-  fail(2, `schema-parity-check: zod walk failed — ${e.message}`);
+  fail(2, `schema-parity-check: knowledge descriptor walk failed — ${e.message}`);
 }
 
 const rustFingerprint = JSON.parse(
@@ -340,12 +257,12 @@ if (!fs.existsSync(TS_PROVENANCE_PATH)) {
 }
 
 if (!provenanceHandled) {
-  let provenanceTsSchema;
+  let provenanceDescriptor;
   let provenanceTsVersion;
   try {
     const mod = await import(TS_PROVENANCE_PATH);
-    provenanceTsSchema =
-      mod.provenanceClaimSchema ?? mod.provenanceSchema ?? mod.default;
+    provenanceDescriptor =
+      mod.provenanceClaimDescriptor ?? mod.provenanceDescriptor;
     provenanceTsVersion = mod.PROVENANCE_SCHEMA_VERSION;
   } catch (e) {
     fail(
@@ -354,11 +271,15 @@ if (!provenanceHandled) {
     );
   }
 
-  if (!provenanceTsSchema || typeof provenanceTsVersion !== "string") {
+  if (
+    !provenanceDescriptor ||
+    typeof provenanceDescriptor.kind !== "string" ||
+    typeof provenanceTsVersion !== "string"
+  ) {
     fail(
       2,
       `schema-parity-check: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} is missing exports\n` +
-        `  Required: provenanceClaimSchema (or provenanceSchema), PROVENANCE_SCHEMA_VERSION`,
+        `  Required: provenanceClaimDescriptor (a SchemaNode with a string \`kind\`), PROVENANCE_SCHEMA_VERSION`,
     );
   }
 
@@ -366,10 +287,10 @@ if (!provenanceHandled) {
   try {
     provenanceTsFingerprint = {
       version: provenanceTsVersion,
-      claim: walkType(provenanceTsSchema),
+      claim: walkDescriptor(provenanceDescriptor),
     };
   } catch (e) {
-    fail(2, `schema-parity-check: provenance zod walk failed — ${e.message}`);
+    fail(2, `schema-parity-check: provenance walk failed — ${e.message}`);
   }
 
   const provenanceClaimRustFp = {
@@ -426,12 +347,12 @@ if (!fs.existsSync(TS_STAKEHOLDER_DOC_PATH)) {
   process.exit(0);
 }
 
-let stakeholderTsSchema;
+let stakeholderDescriptor;
 let stakeholderTsVersion;
 try {
   const mod = await import(TS_STAKEHOLDER_DOC_PATH);
-  stakeholderTsSchema =
-    mod.stakeholderDocSchema ?? mod.stakeholderDoc ?? mod.default;
+  stakeholderDescriptor =
+    mod.stakeholderDocDescriptor ?? mod.stakeholderDescriptor;
   stakeholderTsVersion = mod.STAKEHOLDER_DOC_SCHEMA_VERSION;
 } catch (e) {
   fail(
@@ -440,11 +361,15 @@ try {
   );
 }
 
-if (!stakeholderTsSchema || typeof stakeholderTsVersion !== "string") {
+if (
+  !stakeholderDescriptor ||
+  typeof stakeholderDescriptor.kind !== "string" ||
+  typeof stakeholderTsVersion !== "string"
+) {
   fail(
     2,
     `schema-parity-check: ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)} is missing exports\n` +
-      `  Required: stakeholderDocSchema, STAKEHOLDER_DOC_SCHEMA_VERSION`,
+      `  Required: stakeholderDocDescriptor (a SchemaNode with a string \`kind\`), STAKEHOLDER_DOC_SCHEMA_VERSION`,
   );
 }
 
@@ -452,12 +377,12 @@ let stakeholderTsFingerprint;
 try {
   stakeholderTsFingerprint = {
     version: stakeholderTsVersion,
-    stakeholderDoc: walkType(stakeholderTsSchema),
+    stakeholderDoc: walkDescriptor(stakeholderDescriptor),
   };
 } catch (e) {
   fail(
     2,
-    `schema-parity-check: stakeholder-doc zod walk failed — ${e.message}`,
+    `schema-parity-check: stakeholder-doc walk failed — ${e.message}`,
   );
 }
 

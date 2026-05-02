@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c24d092bed3452cffc7920069fadc09c68ca488273a2ff5599823bced53edf06",
+    "contentHash": "26644b4e6d9740cb8470dbf22de544aa1680a8d97dff648fb795903a95d8a878",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3671,7 +3671,7 @@
           }
         ],
         "specId": "125-schema-parity-walker-rebuild",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
