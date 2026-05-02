@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "26644b4e6d9740cb8470dbf22de544aa1680a8d97dff648fb795903a95d8a878",
+    "contentHash": "a8a1098360a12e4c0f5795c96f7a06a938dc655709c1bb31b779e7e333a7d3e5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -51,14 +51,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"126-desktop-agent-picker-ui\" declares implements path \"apps/desktop/src/components/AgentPicker.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"126-desktop-agent-picker-ui\" declares implements path \"apps/desktop/src/lib/agentPicker.ts\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -3690,7 +3682,7 @@
           }
         ],
         "specId": "126-desktop-agent-picker-ui",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
