@@ -219,3 +219,12 @@ Principle II, machine-consumable structure lives in compiler-emitted JSON,
 not in CLAUDE.md prose. The convention IS documented in CLAUDE.md (a one-
 line addition under "Key Conventions"), but the contract is enforced by
 the indexer.
+
+## Cross-references
+
+- Spec 129 (`granular-package-oap-metadata`) extends the same convention
+  pattern (`# Spec: NNN-slug` header) to Rust source files via
+  `// Spec: specs/NNN-slug/spec.md`. The parser and index entries live
+  in the same `tools/codebase-indexer/` crate. Spec 129 bumps
+  `schemaVersion` 1.1.0 → 1.2.0 and extends `TraceSource`. No change
+  to spec 118's workflow-header behaviour.

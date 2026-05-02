@@ -9,8 +9,8 @@
   "properties": {
     "schemaVersion": {
       "type": "string",
-      "const": "1.1.0",
-      "description": "Schema version. 1.1.0 adds optional workflowTraceability (spec 118)."
+      "const": "1.2.0",
+      "description": "Schema version. 1.2.0 (spec 129) extends TraceSource: cargo-metadata renamed to cargo-metadata-crate; cargo-metadata-module reserved; comment-header added for file-level annotations; both → multiple for any 2+ overlap."
     },
     "build": {
       "type": "object",
@@ -209,8 +209,14 @@
               },
               "source": {
                 "type": "string",
-                "enum": ["spec-implements", "cargo-metadata", "both"],
-                "description": "How the mapping was discovered."
+                "enum": [
+                  "spec-implements",
+                  "cargo-metadata-crate",
+                  "cargo-metadata-module",
+                  "comment-header",
+                  "multiple"
+                ],
+                "description": "How the mapping was discovered. spec-implements: spec frontmatter `implements:`. cargo-metadata-crate: `[package.metadata.oap].spec` in the crate's Cargo.toml. cargo-metadata-module: reserved for future per-target metadata. comment-header: `// Spec: specs/NNN-slug/spec.md` at file root (spec 129). multiple: 2+ sources independently asserted the same (spec, path)."
               }
             }
           },

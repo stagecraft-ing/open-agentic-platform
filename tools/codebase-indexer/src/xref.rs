@@ -1,5 +1,6 @@
 //! Cross-reference engine (Layer 2 traceability).
 
+use crate::comment_scanner::CommentHeaderMap;
 use crate::spec_scanner::SpecRecord;
 use crate::types::{
     Diagnostic, ImplementingPath, PackageRecord, TraceMapping, TraceSource, Traceability,
@@ -7,15 +8,19 @@ use crate::types::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-/// Build the traceability layer from spec records and package inventory.
+/// Build the traceability layer from spec records, package inventory, and
+/// per-file comment headers.
 ///
 /// `extra_known_paths` contains non-package paths that are valid implements
-/// targets (e.g. factory adapter directories). `repo_root` is used as a
-/// fallback to verify that declared paths exist on disk (file or directory).
+/// targets (e.g. factory adapter directories). `comment_headers` maps
+/// repo-relative file paths to spec IDs declared via `// Spec:` headers
+/// (spec 129). `repo_root` is used as a fallback to verify that declared
+/// paths exist on disk (file or directory).
 pub fn build_traceability(
     specs: &[SpecRecord],
     packages: &[PackageRecord],
     extra_known_paths: &BTreeSet<String>,
+    comment_headers: &CommentHeaderMap,
     repo_root: &Path,
 ) -> (Traceability, Vec<Diagnostic>) {
     let mut diagnostics = Vec::new();
@@ -60,7 +65,7 @@ pub fn build_traceability(
         }
     }
 
-    // Reverse mapping: code → spec (from [package.metadata.oap].spec)
+    // Reverse mapping: code → spec (from [package.metadata.oap].spec — crate-level)
     for pkg in packages {
         if let Some(ref spec_id) = pkg.spec_ref {
             let entry = mappings.entry(spec_id.clone()).or_insert_with(|| {
@@ -82,14 +87,46 @@ pub fn build_traceability(
                 .iter_mut()
                 .find(|p| p.path == pkg.path)
             {
-                existing.source = Some(TraceSource::Both);
+                existing.source = Some(TraceSource::Multiple);
             } else {
                 entry.implementing_paths.push(ImplementingPath {
                     path: pkg.path.clone(),
                     name: Some(pkg.name.clone()),
-                    source: Some(TraceSource::CargoMetadata),
+                    source: Some(TraceSource::CargoMetadataCrate),
                 });
             }
+        }
+    }
+
+    // File-level mapping: comment-header → spec (spec 129).
+    // Each (file_path, spec_id) becomes its own ImplementingPath entry.
+    // If the same path is already claimed by spec-implements or cargo-metadata,
+    // the source is upgraded to Multiple.
+    for (file_path, spec_id) in comment_headers {
+        let entry = mappings.entry(spec_id.clone()).or_insert_with(|| {
+            let spec_rec = specs.iter().find(|s| &s.id == spec_id);
+            let status = spec_rec.map(|s| s.status.clone());
+            let deps = spec_rec.map(|s| s.depends_on.clone()).unwrap_or_default();
+            TraceMapping {
+                spec_id: spec_id.clone(),
+                spec_status: status,
+                depends_on: deps,
+                implementing_paths: Vec::new(),
+            }
+        });
+
+        if let Some(existing) = entry
+            .implementing_paths
+            .iter_mut()
+            .find(|p| &p.path == file_path)
+        {
+            existing.source = Some(TraceSource::Multiple);
+        } else {
+            entry.implementing_paths.push(ImplementingPath {
+                path: file_path.clone(),
+                name: None,
+                source: Some(TraceSource::CommentHeader),
+            });
         }
     }
 

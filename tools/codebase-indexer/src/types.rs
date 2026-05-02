@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 
 /// Schema version — compile-time contract between the indexer and the JSON Schema.
 /// Bumped to 1.1.0 in spec 118 (additive: optional `workflowTraceability` block).
-pub const SCHEMA_VERSION: &str = "1.1.0";
+/// Bumped to 1.2.0 in spec 129 (TraceSource extended: cargo-metadata renamed
+/// to cargo-metadata-crate; cargo-metadata-module reserved; comment-header
+/// added for file-level annotations; both → multiple for any 2+ overlap).
+pub const SCHEMA_VERSION: &str = "1.2.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -100,9 +103,22 @@ pub struct ImplementingPath {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum TraceSource {
+    /// Path declared in a spec's `implements:` frontmatter list.
     SpecImplements,
-    CargoMetadata,
-    Both,
+    /// `[package.metadata.oap].spec` in the crate's root Cargo.toml
+    /// (renamed from the legacy `cargo-metadata` in schema 1.1; spec 129).
+    CargoMetadataCrate,
+    /// Reserved for future per-target `[<lib|bin>.metadata.oap]` annotations.
+    /// Schema 1.2 declares the variant; the indexer does not yet emit it.
+    CargoMetadataModule,
+    /// `// Spec: specs/NNN-slug/spec.md` doc-comment header at file root
+    /// (within the leading comment block, before any non-comment statement).
+    /// Spec 129.
+    CommentHeader,
+    /// Two or more sources independently asserted the same (spec, path).
+    /// Replaces the legacy `Both` variant which only modelled the
+    /// SpecImplements + CargoMetadataCrate overlap.
+    Multiple,
 }
 
 // ── Layer 3: Factory Adapter Inventory ──────────────────────────────────────

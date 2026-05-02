@@ -332,3 +332,14 @@ After index exists, the `/init` command MUST be able to load structural context 
   declarations simply appear in the orphan report. There is no enforcement gate in MVP.
 - The markdown output is a **derived view**, not a source of truth. `index.json` is
   canonical. The markdown is for human consumption and PR review diffs.
+
+## 7. Cross-references
+
+- Spec 118 (`workflow-spec-traceability`) added `workflowTraceability` (Layer 5)
+  and bumped `schemaVersion` to `1.1.0`.
+- Spec 129 (`granular-package-oap-metadata`) bumps `schemaVersion` to `1.2.0`,
+  extends `TraceSource` with `cargo-metadata-crate` (renamed from
+  `cargo-metadata`), `cargo-metadata-module` (reserved), `comment-header`
+  (new), and `multiple` (replaces `both`); adds the `comment_scanner`
+  module and merges file-level claims via xref. The mechanism is additive;
+  the index's existing layers are unchanged.

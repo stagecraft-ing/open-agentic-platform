@@ -1,5 +1,6 @@
 //! Library for compiling the codebase index per specs/101-codebase-index-mvp.
 
+pub mod comment_scanner;
 pub mod factory;
 pub mod hash;
 pub mod infra;
@@ -137,8 +138,29 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     // ── Layer 2: Spec scanning + traceability ────────────────────────────
 
     let specs = spec_scanner::scan_specs(repo_root);
-    let (traceability, xref_diags) =
-        xref::build_traceability(&specs, &packages, &adapter_paths, repo_root);
+
+    // Comment-header scan (spec 129): walk every Rust crate path for
+    // file-level `// Spec: …` annotations. Merged into the cross-reference
+    // engine alongside the spec-implements + cargo-metadata sources.
+    let crate_paths: Vec<String> = packages
+        .iter()
+        .filter(|p| matches!(
+            p.kind,
+            types::PackageKind::RustLib
+                | types::PackageKind::RustBin
+                | types::PackageKind::RustLibBin
+        ))
+        .map(|p| p.path.clone())
+        .collect();
+    let comment_headers = comment_scanner::scan_packages(repo_root, &crate_paths);
+
+    let (traceability, xref_diags) = xref::build_traceability(
+        &specs,
+        &packages,
+        &adapter_paths,
+        &comment_headers,
+        repo_root,
+    );
     all_diagnostics.extend(xref_diags);
 
     // ── Layer 4: Infrastructure ──────────────────────────────────────────

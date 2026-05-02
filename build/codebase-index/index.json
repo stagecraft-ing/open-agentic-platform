@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5d328176fb88b0b924c6245e8171c40eda456e62f5c05245e97ff3b05e63fb4b",
+    "contentHash": "cc1874bf3b1b956903dfee3761b13f6743f679f71f4049f0c74c35f509e381e6",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1496,7 +1496,7 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "traceability": {
     "mappings": [
       {
@@ -1504,7 +1504,7 @@
           {
             "name": "open_agentic_frontmatter",
             "path": "tools/shared/frontmatter",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "000-bootstrap-spec-system",
@@ -1515,7 +1515,7 @@
           {
             "name": "open_agentic_spec_compiler",
             "path": "tools/spec-compiler",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "001-spec-compiler-mvp",
@@ -1526,7 +1526,7 @@
           {
             "name": "open_agentic_registry_consumer",
             "path": "tools/registry-consumer",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "002-registry-consumer-mvp",
@@ -1571,7 +1571,7 @@
           {
             "name": "open_agentic_spec_lint",
             "path": "tools/spec-lint",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "006-conformance-lint-mvp",
@@ -1832,17 +1832,17 @@
           {
             "name": "@opc/desktop",
             "path": "apps/desktop",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "xray",
             "path": "crates/xray",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "@opc/ui",
             "path": "packages/ui",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "032-opc-inspect-governance-wiring-mvp",
@@ -1853,7 +1853,11 @@
           {
             "name": "featuregraph",
             "path": "crates/featuregraph",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/featuregraph/src/scanner.rs",
+            "source": "comment-header"
           }
         ],
         "specId": "034-featuregraph-registry-scanner-fix",
@@ -1864,7 +1868,7 @@
           {
             "name": "agent",
             "path": "crates/agent",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "035-agent-governed-execution",
@@ -1929,12 +1933,12 @@
         "implementingPaths": [
           {
             "path": "crates/provider-registry",
-            "source": "both"
+            "source": "multiple"
           },
           {
             "name": "@opc/provider-registry",
             "path": "packages/provider-registry",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "042-multi-provider-agent-registry",
@@ -1957,9 +1961,27 @@
       {
         "implementingPaths": [
           {
+            "path": "crates/orchestrator/src/effort.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/manifest.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "044-multi-agent-orchestration",
+        "specStatus": "superseded"
+      },
+      {
+        "implementingPaths": [
+          {
             "name": "@opc/claude-code-bridge",
             "path": "packages/claude-code-bridge",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "045-claude-code-sdk-bridge",
@@ -1980,12 +2002,12 @@
           {
             "name": "open_agentic_policy_kernel",
             "path": "crates/policy-kernel",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "open_agentic_policy_compiler",
             "path": "tools/policy-compiler",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "047-governance-control-plane",
@@ -1996,7 +2018,7 @@
           {
             "name": "@opc/hookify-rule-engine",
             "path": "packages/hookify-rule-engine",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "048-hookify-rule-engine",
@@ -2007,7 +2029,7 @@
           {
             "name": "@opc/permission-system",
             "path": "packages/permission-system",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "049-permission-system",
@@ -2018,7 +2040,7 @@
           {
             "name": "@opc/tool-renderer",
             "path": "packages/tool-renderer",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "050-tool-renderer-system",
@@ -2029,7 +2051,7 @@
           {
             "name": "@opc/worktree-agents",
             "path": "packages/worktree-agents",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "051-worktree-agents",
@@ -2040,12 +2062,12 @@
           {
             "name": "orchestrator",
             "path": "crates/orchestrator",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "run",
             "path": "crates/run",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "052-state-persistence",
@@ -2056,7 +2078,7 @@
           {
             "name": "@opc/verification-profiles",
             "path": "packages/verification-profiles",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "053-verification-profiles",
@@ -2076,12 +2098,12 @@
           {
             "name": "agent-frontmatter",
             "path": "crates/agent-frontmatter",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "@opc/agent-frontmatter",
             "path": "packages/agent-frontmatter",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "054-agent-frontmatter-schema",
@@ -2097,12 +2119,12 @@
           {
             "name": "standards-loader",
             "path": "crates/standards-loader",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "@opc/yaml-standards-schema",
             "path": "packages/yaml-standards-schema",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "055-yaml-standards-schema",
@@ -2113,7 +2135,7 @@
           {
             "name": "@opc/session-memory",
             "path": "packages/session-memory",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "056-session-memory",
@@ -2124,7 +2146,7 @@
           {
             "name": "@opc/notification-orchestrator",
             "path": "packages/notification-orchestrator",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "057-notification-system",
@@ -2135,7 +2157,7 @@
           {
             "name": "@opc/file-mention",
             "path": "packages/file-mention",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "058-file-mention-system",
@@ -2146,7 +2168,7 @@
           {
             "name": "@opc/git-panel",
             "path": "packages/git-panel",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "059-git-panel",
@@ -2157,7 +2179,7 @@
           {
             "name": "@opc/panel-event-bus",
             "path": "packages/panel-event-bus",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "060-panel-event-bus",
@@ -2168,7 +2190,7 @@
           {
             "name": "@opc/conductor-track",
             "path": "packages/conductor-track",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "061-conductor-track-lifecycle",
@@ -2179,7 +2201,7 @@
           {
             "name": "@opc/multi-model-chaining",
             "path": "packages/multi-model-chaining",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "062-multi-model-chaining",
@@ -2190,7 +2212,7 @@
           {
             "name": "@opc/coherence-scoring",
             "path": "packages/coherence-scoring",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "063-coherence-scoring",
@@ -2221,7 +2243,7 @@
           {
             "name": "tool-registry",
             "path": "crates/tool-registry",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "067-tool-definition-registry",
@@ -2250,9 +2272,13 @@
       {
         "implementingPaths": [
           {
+            "path": "crates/agent/src/prompt/mod.rs",
+            "source": "comment-header"
+          },
+          {
             "name": "@opc/prompt-assembly",
             "path": "packages/prompt-assembly",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "070-prompt-assembly-cache",
@@ -2261,14 +2287,18 @@
       {
         "implementingPaths": [
           {
+            "path": "crates/axiomregent/src/skill_provider.rs",
+            "source": "comment-header"
+          },
+          {
             "name": "skill-factory",
             "path": "crates/skill-factory",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "@opc/skill-command-factory",
             "path": "packages/skill-command-factory",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "071-skill-command-factory",
@@ -2289,12 +2319,12 @@
           {
             "name": "axiomregent",
             "path": "crates/axiomregent",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "name": "deployd-api",
             "path": "platform/services/deployd-api-rs",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "073-axiomregent-unification",
@@ -2305,7 +2335,7 @@
           {
             "name": "factory-contracts",
             "path": "crates/factory-contracts",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "074-factory-ingestion",
@@ -2316,7 +2346,59 @@
           {
             "name": "factory-engine",
             "path": "crates/factory-engine",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/factory-engine/src/agent_bridge.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/checks.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/engine.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/gate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/harness_state.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/manifest_gen.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/pipeline_state.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/policy_shard.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/preflight.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/topo_sort.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/verify_harness.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/verify.rs",
+            "source": "comment-header"
           }
         ],
         "specId": "075-factory-workflow-engine",
@@ -2369,6 +2451,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-contracts/src/namespace.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/artifact_store.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/orchestrator",
             "source": "spec-implements"
           }
@@ -2401,7 +2491,7 @@
           {
             "name": "oap-ctl",
             "path": "packages/oap-ctl",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "085-remote-control-cli",
@@ -2421,7 +2511,7 @@
           {
             "name": "@opc/workspace-sdk",
             "path": "packages/workspace-sdk",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "087-unified-workspace-architecture",
@@ -2549,6 +2639,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/featuregraph/src/enrichment.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/xray",
             "source": "spec-implements"
           }
@@ -2567,6 +2661,10 @@
           {
             "path": "crates/orchestrator",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
+            "source": "comment-header"
           },
           {
             "path": "crates/run",
@@ -2624,7 +2722,7 @@
           {
             "name": "open_agentic_codebase_indexer",
             "path": "tools/codebase-indexer",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "101-codebase-index-mvp",
@@ -2642,8 +2740,32 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/bin/verify_certificate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/featuregraph/src/index_bridge.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/orchestrator",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/agent_identity.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/circuit_breaker.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/output_filter.rs",
+            "source": "comment-header"
           },
           {
             "path": "crates/policy-kernel",
@@ -2652,6 +2774,10 @@
           {
             "path": "crates/tool-registry",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/policy_bridge.rs",
+            "source": "comment-header"
           },
           {
             "path": "tools/spec-compiler",
@@ -2701,7 +2827,7 @@
           },
           {
             "path": "tools/ci-parity-check",
-            "source": "both"
+            "source": "multiple"
           }
         ],
         "specId": "104-makefile-ci-parity-contract",
@@ -2722,7 +2848,7 @@
           },
           {
             "path": "tools/adapter-scopes-compiler",
-            "source": "both"
+            "source": "multiple"
           }
         ],
         "specId": "105-scripts-to-binaries-migration",
@@ -2992,7 +3118,7 @@
           {
             "name": "factory-project-detect",
             "path": "crates/factory-project-detect",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "path": "crates/factory-project-detect/",
@@ -3149,6 +3275,10 @@
           "114"
         ],
         "implementingPaths": [
+          {
+            "path": "crates/artifact-extract/src/bin/artifact_extract.rs",
+            "source": "comment-header"
+          },
           {
             "path": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql",
             "source": "spec-implements"
@@ -3416,27 +3546,47 @@
           {
             "name": "artifact-extract",
             "path": "crates/artifact-extract",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "path": "crates/artifact-extract/Cargo.toml",
             "source": "spec-implements"
           },
           {
+            "path": "crates/artifact-extract/src/extractors/docx.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/mod.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/pdf.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/text.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/artifact-extract/src/lib.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "crates/factory-contracts/src/knowledge.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "crates/factory-engine/src/manifest_gen.rs",
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/stagecraft_client.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
@@ -3459,8 +3609,16 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/factory-contracts/src/budget.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/factory-contracts/src/provenance.rs",
-            "source": "spec-implements"
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-contracts/src/provenance_config.rs",
+            "source": "comment-header"
           },
           {
             "path": "crates/factory-engine/skills/business-requirements-analyst.md",
@@ -3471,17 +3629,29 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/project_config.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/cascade_check.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/factory-engine/src/stages/quality_gates.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "crates/factory-engine/src/stages/s1_business_requirements.rs",
             "source": "spec-implements"
           },
           {
+            "path": "crates/policy-kernel/src/provenance_policy.rs",
+            "source": "comment-header"
+          },
+          {
             "name": "provenance-validator",
             "path": "crates/provenance-validator",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "path": "crates/provenance-validator/Cargo.toml",
@@ -3489,19 +3659,35 @@
           },
           {
             "path": "crates/provenance-validator/src/allowlist.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "crates/provenance-validator/src/anchor.rs",
             "source": "spec-implements"
           },
           {
+            "path": "crates/provenance-validator/src/bin/audit.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/provenance-validator/src/citation.rs",
-            "source": "spec-implements"
+            "source": "multiple"
+          },
+          {
+            "path": "crates/provenance-validator/src/corpus.rs",
+            "source": "comment-header"
           },
           {
             "path": "crates/provenance-validator/src/lib.rs",
-            "source": "spec-implements"
+            "source": "multiple"
+          },
+          {
+            "path": "crates/provenance-validator/src/manifest.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/provenance-validator/src/validator.rs",
+            "source": "comment-header"
           },
           {
             "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
@@ -3510,7 +3696,15 @@
           {
             "name": "open_agentic_assumption_cascade_check",
             "path": "tools/assumption-cascade-check",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/assumption-cascade-check/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "tools/assumption-cascade-check/src/main.rs",
+            "source": "comment-header"
           }
         ],
         "specId": "121-claim-provenance-enforcement",
@@ -3531,7 +3725,7 @@
           },
           {
             "path": "crates/factory-contracts/src/stakeholder_docs.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "crates/factory-engine/skills/client-document-comparator.md",
@@ -3542,21 +3736,49 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/migration/mod.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/migration/stakeholder_docs.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/factory-engine/src/stages/stage_cd.rs",
-            "source": "spec-implements"
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd_actions.rs",
+            "source": "comment-header"
           },
           {
             "path": "crates/factory-engine/src/stages/stage_cd_comparator.rs",
-            "source": "spec-implements"
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd_gate.rs",
+            "source": "comment-header"
           },
           {
             "name": "open_agentic_stakeholder_doc_lint",
             "path": "tools/stakeholder-doc-lint",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
           },
           {
             "path": "tools/stakeholder-doc-lint/Cargo.toml",
             "source": "spec-implements"
+          },
+          {
+            "path": "tools/stakeholder-doc-lint/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "tools/stakeholder-doc-lint/src/main.rs",
+            "source": "comment-header"
           }
         ],
         "specId": "122-stakeholder-doc-inversion",
@@ -3582,8 +3804,12 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-contracts/src/agent_reference.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/factory-engine/src/agent_resolver.rs",
-            "source": "spec-implements"
+            "source": "multiple"
           },
           {
             "path": "platform/services/stagecraft/api/agents/bindings.ts",
@@ -3658,7 +3884,31 @@
           {
             "name": "factory-platform-client",
             "path": "crates/factory-platform-client",
-            "source": "cargo-metadata"
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/factory-platform-client/src/cache_root.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/client.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/error.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/materialise.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/wire.rs",
+            "source": "comment-header"
           },
           {
             "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
@@ -3730,7 +3980,7 @@
           },
           {
             "path": "tools/spec-code-coupling-check",
-            "source": "both"
+            "source": "multiple"
           }
         ],
         "specId": "127-spec-code-coupling-gate",
@@ -3748,6 +3998,24 @@
           }
         ],
         "specId": "128-spec-lint-default-fail-on-warn",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "101",
+          "118"
+        ],
+        "implementingPaths": [
+          {
+            "path": "schemas/codebase-index.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "129-granular-package-oap-metadata",
         "specStatus": "approved"
       }
     ],
