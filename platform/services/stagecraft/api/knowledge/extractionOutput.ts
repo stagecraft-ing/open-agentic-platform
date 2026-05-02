@@ -28,6 +28,49 @@ export const MINIMUM_KNOWLEDGE_SCHEMA_VERSION = "1.0.0" as const;
 export const KNOWLEDGE_SCHEMA_VERSION_HEADER = "x-knowledge-schema-version";
 
 // ---------------------------------------------------------------------------
+// Schema descriptor (spec 125)
+// ---------------------------------------------------------------------------
+//
+// `SchemaNode` is the plain-data structural shape consumed by the
+// `tools/schema-parity-check` walker. It mirrors the variant set the Rust
+// fingerprint emitter in `crates/factory-contracts/src/knowledge.rs`
+// produces, so a TS descriptor walked through the parity tool yields a
+// fingerprint string-equal to the Rust one when the schemas agree.
+//
+// Co-located here (T001 option a) rather than in a shared package so the
+// descriptor sits beside the `Validator` it describes — drift between the
+// two is caught locally by the in-file vitest case (Phase 2). The parity
+// tool stays dependency-free: it imports this file at runtime via Bun's
+// TS loader and walks the descriptor structurally.
+//
+// Structural-only by design. Value-shape constraints the validator
+// additionally enforces (HEX_64, Number.isInteger, min/max length, finite
+// numbers) live in `Validator` and are exercised by unit tests, not by
+// the parity gate.
+export type SchemaNode =
+  | { kind: "string" }
+  | { kind: "int" }
+  | { kind: "number" }
+  | { kind: "boolean" }
+  | { kind: "unknown" }
+  | { kind: "enum"; values: string[] }
+  | { kind: "array"; element: SchemaNode }
+  | { kind: "tuple"; items: SchemaNode[] }
+  | { kind: "map"; key: SchemaNode; value: SchemaNode }
+  | {
+      kind: "object";
+      fields: Array<{ name: string; required: boolean; type: SchemaNode }>;
+    }
+  | {
+      kind: "discriminatedUnion";
+      discriminator: string;
+      variants: Array<{
+        tag: string;
+        fields: Array<{ name: string; required: boolean; type: SchemaNode }>;
+      }>;
+    };
+
+// ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
