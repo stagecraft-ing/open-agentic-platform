@@ -19,7 +19,13 @@ fn hex_lower(bytes: &[u8]) -> String {
 }
 
 const COMPILER_ID: &str = "open-agentic-spec-compiler";
-const SPEC_VERSION: &str = "1.3.0";
+/// Schema version. 1.4.0 adds (spec 132) the `unamendable` and
+/// `amends_sections` frontmatter fields plus the V-011 violation
+/// (amends_sections ∩ unamendable ≠ ∅). Tooling-only — spec 000's
+/// frontmatter does not yet declare any `unamendable` anchors; the
+/// proposed amendment is staged in /tmp/spec_000_proposed_amendment.diff
+/// for human review.
+const SPEC_VERSION: &str = "1.4.0";
 
 /// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
 const KNOWN_KEYS: &[&str] = &[
@@ -38,6 +44,10 @@ const KNOWN_KEYS: &[&str] = &[
     "implementation",
     "implements",
     "compliance",
+    // Spec 132 — unamendable invariants.
+    "amends",
+    "amends_sections",
+    "unamendable",
 ];
 
 /// Valid values for the `risk` frontmatter field.
@@ -192,9 +202,18 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             &mut alias_owner,
         )?;
 
+        // Spec 132 fields (V-011 input). Stored separately from extra_frontmatter
+        // so the V-011 check has typed access without re-parsing.
+        let amends = optional_string_list(fm, "amends").unwrap_or_default();
+        let amends_sections = optional_string_list(fm, "amends_sections").unwrap_or_default();
+        let unamendable = optional_string_list(fm, "unamendable").unwrap_or_default();
+
         let headings = extract_headings(&body, &title);
 
         features.push(FeatureRecord {
+            amends,
+            amends_sections,
+            unamendable,
             id,
             title,
             status,
@@ -234,6 +253,59 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
                         message: format!("depends_on references non-existent spec id {dep:?}"),
                         path: Some(f.spec_path.clone()),
                     });
+                }
+            }
+        }
+    }
+
+    // ── V-011: amends_sections must not overlap an amended spec's `unamendable` (spec 132) ──
+    //
+    // For every spec X with `amends: [Y, ...]` and a non-empty
+    // `amends_sections`, look up each Y by id (or numeric prefix) and
+    // check that the section anchors X claims to amend are not declared
+    // unamendable in Y. An attempt to amend a frozen anchor is a hard
+    // error: the amending spec must instead retire the amended spec
+    // entirely (status: superseded) and replace it.
+    {
+        // Build a quick id-prefix map: short ids (e.g. "000") and full slugs
+        // both resolve to the FeatureRecord owning the unamendable list.
+        let mut by_id: BTreeMap<String, &FeatureRecord> = BTreeMap::new();
+        for f in &features {
+            by_id.insert(f.id.clone(), f);
+            // Also index by leading numeric prefix (e.g. "000") so
+            // `amends: ["000"]` resolves the same as `amends: ["000-bootstrap-spec-system"]`.
+            if let Some((prefix, _)) = f.id.split_once('-') {
+                if prefix.len() == 3 && prefix.chars().all(|c| c.is_ascii_digit()) {
+                    by_id.entry(prefix.to_string()).or_insert(f);
+                }
+            }
+        }
+        for f in &features {
+            if f.amends.is_empty() || f.amends_sections.is_empty() {
+                continue;
+            }
+            for amended_id in &f.amends {
+                let Some(amended) = by_id.get(amended_id.as_str()) else {
+                    continue; // V-008 would have flagged this elsewhere
+                };
+                if amended.unamendable.is_empty() {
+                    continue;
+                }
+                let frozen: BTreeSet<&String> = amended.unamendable.iter().collect();
+                for section in &f.amends_sections {
+                    if frozen.contains(section) {
+                        violations.push(Violation {
+                            code: "V-011".to_string(),
+                            severity: "error".to_string(),
+                            message: format!(
+                                "spec {:?} amends section {:?} of spec {:?}, but that anchor is in {:?}'s unamendable list; \
+                                 amending an unamendable section requires retiring the spec (status: superseded) and \
+                                 replacing it with a successor",
+                                f.id, section, amended.id, amended.id
+                            ),
+                            path: Some(f.spec_path.clone()),
+                        });
+                    }
                 }
             }
         }
@@ -309,6 +381,23 @@ struct FeatureRecord {
     /// Compliance framework mappings (spec 102 FR-023).
     #[serde(skip_serializing_if = "Option::is_none")]
     compliance: Option<Vec<ComplianceEntry>>,
+    /// Spec 132 — section anchors this spec amends in the spec(s) named
+    /// in `amends:`. Validated against the amended spec's `unamendable`
+    /// list (V-011). Empty → no amendment claim.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    amends: Vec<String>,
+    #[serde(
+        rename = "amendsSections",
+        skip_serializing_if = "Vec::is_empty",
+        default
+    )]
+    amends_sections: Vec<String>,
+    /// Spec 132 — section anchors that future amendments cannot touch.
+    /// Used by V-011: when another spec carries `amends: [<this id>]`
+    /// AND `amends_sections:` overlaps this set, the amendment is
+    /// rejected.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    unamendable: Vec<String>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }

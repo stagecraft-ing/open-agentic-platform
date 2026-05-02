@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a5ff9f43224f8cfa0740f418ef741c0eb834db979e34b14345093b167c9015f1",
+    "contentHash": "df1cc136b0a89477106c9907d62eff94e7da72f696daf81ba35dc7f77848e41d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4057,6 +4057,24 @@
           }
         ],
         "specId": "131-adversarial-prompt-refusal-policy",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "001"
+        ],
+        "implementingPaths": [
+          {
+            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "132-constitutional-invariant-freeze",
         "specStatus": "approved"
       }
     ],

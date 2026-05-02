@@ -117,6 +117,21 @@
               }
             }
           }
+        },
+        "amends": {
+          "type": "array",
+          "description": "Spec 132 — IDs of specs this spec amends. Companion to `amendsSections`.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "amendsSections": {
+          "type": "array",
+          "description": "Spec 132 — section anchors this spec claims to amend in the specs named in `amends`. V-011 rejects any anchor that appears in the amended spec's `unamendable` list.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "unamendable": {
+          "type": "array",
+          "description": "Spec 132 — section anchors that future amendments cannot touch. An amending spec referencing one of these via `amendsSections` produces V-011.",
+          "items": { "type": "string", "minLength": 1 }
         }
       }
     },

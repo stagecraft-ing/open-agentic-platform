@@ -136,8 +136,9 @@ code_aliases:
 }
 
 #[test]
-fn repo_spec_version_is_1_3_0() {
+fn repo_spec_version_is_1_4_0() {
+    // 1.4.0 (spec 132): adds amends/amends_sections/unamendable fields and V-011.
     let out = open_agentic_spec_compiler::compile(&repo_root()).expect("compile");
     let v: Value = serde_json::from_slice(&out.registry_json).unwrap();
-    assert_eq!(v["specVersion"], "1.3.0");
+    assert_eq!(v["specVersion"], "1.4.0");
 }
