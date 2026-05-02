@@ -2,10 +2,11 @@
 id: "116-supply-chain-policy-gates"
 slug: supply-chain-policy-gates
 title: Supply-Chain Policy Gates — cargo-deny + dependency audit in CI
-status: draft
+status: approved
 implementation: pending
 owner: bart
 created: "2026-04-28"
+approved: "2026-05-02"
 kind: governance
 risk: medium
 depends_on:
@@ -275,6 +276,18 @@ ci-supply-chain-npm:
   `actions/cache` keys it by date for once-a-day refresh.
 
 ## 9. Day-30 Promotion Plan
+
+### 9.1 Lifecycle naming
+
+This spec uses the two-axis lifecycle deliberately: `status: approved` records
+that the design is settled and the artefacts (`deny.toml`, the workflow, the
+Makefile target, the BLOCKING-var guard) are landed; `implementation: pending`
+records that operational enforcement is still inside the staged warn-only
+window. The `implementation: complete` milestone is **the day-30 follow-up
+PR described below** — flipping the field earlier would assert a posture the
+gate does not yet enforce.
+
+### 9.2 Day-30 PR
 
 A calendar entry is set for 2026-05-28. The follow-up PR:
 

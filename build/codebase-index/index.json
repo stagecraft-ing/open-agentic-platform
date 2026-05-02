@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a8a1098360a12e4c0f5795c96f7a06a938dc655709c1bb31b779e7e333a7d3e5",
+    "contentHash": "392738996551de1f4e78b649dea68dac6d4eb36a5234aaa15be24f2485b60196",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -295,7 +295,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.2.9"
+      "version": "0.3.0"
     },
     {
       "edition": "2024",
@@ -3236,7 +3236,7 @@
           }
         ],
         "specId": "116-supply-chain-policy-gates",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
