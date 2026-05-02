@@ -4,6 +4,7 @@ import {
   Bot,
   ExternalLink,
   RefreshCw,
+  RotateCw,
   Search,
 } from "lucide-react";
 import {
@@ -103,11 +104,23 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
 
   const filteredBrowse = useMemo<CatalogRow[]>(() => {
     const q = debouncedQuery.trim().toLowerCase();
-    let rows = browse;
+    let rows = browse.filter((r) => r.status !== "draft");
     if (filter) rows = rows.filter(filter);
     if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q));
     return rows;
   }, [browse, debouncedQuery, filter]);
+
+  const [latestByAgent, setLatestByAgent] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const toggleLatest = useCallback((agentId: number) => {
+    setLatestByAgent((prev) => {
+      const next = new Set(prev);
+      if (next.has(agentId)) next.delete(agentId);
+      else next.add(agentId);
+      return next;
+    });
+  }, []);
 
   const handleSelectActive = useCallback(
     (row: BindingRow) => {
@@ -122,13 +135,17 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
 
   const handleSelectBrowse = useCallback(
     (row: CatalogRow) => {
-      onSelect({
-        kind: "by_id",
-        org_agent_id: row.org_agent_id,
-        version: row.version,
-      });
+      if (latestByAgent.has(row.agent_id)) {
+        onSelect({ kind: "by_name_latest", name: row.name });
+      } else {
+        onSelect({
+          kind: "by_id",
+          org_agent_id: row.org_agent_id,
+          version: row.version,
+        });
+      }
     },
-    [onSelect],
+    [onSelect, latestByAgent],
   );
 
   const handleManageBindings = useCallback(async () => {
@@ -212,10 +229,16 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
               <ActiveList
                 rows={filteredActive}
                 projectId={projectId}
+                onBindCTA={handleManageBindings}
                 onSelect={handleSelectActive}
               />
             ) : (
-              <BrowseList rows={filteredBrowse} onSelect={handleSelectBrowse} />
+              <BrowseList
+                rows={filteredBrowse}
+                onSelect={handleSelectBrowse}
+                latestByAgent={latestByAgent}
+                onToggleLatest={toggleLatest}
+              />
             )}
           </div>
         </div>
@@ -239,13 +262,27 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
 const ActiveList: React.FC<{
   rows: BindingRow[];
   projectId?: string;
+  onBindCTA: () => void;
   onSelect: (row: BindingRow) => void;
-}> = ({ rows, onSelect }) => {
+}> = ({ rows, projectId, onBindCTA, onSelect }) => {
   if (rows.length === 0) {
     return (
-      <div className="py-8 px-4 text-center text-sm text-muted-foreground">
-        No bindings yet — open the project's Agents tab in stagecraft to bind
-        one.
+      <div className="py-8 px-4 text-center flex flex-col items-center gap-3">
+        <p className="text-sm text-muted-foreground">
+          No bindings yet — open the project's Agents tab in stagecraft to bind
+          one.
+        </p>
+        {projectId ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onBindCTA}
+            data-testid="agent-picker-bind-cta"
+          >
+            Bind an org agent to this project
+            <ExternalLink className="ml-2 w-4 h-4" />
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -265,7 +302,9 @@ const ActiveList: React.FC<{
 const BrowseList: React.FC<{
   rows: CatalogRow[];
   onSelect: (row: CatalogRow) => void;
-}> = ({ rows, onSelect }) => {
+  latestByAgent: Set<number>;
+  onToggleLatest: (agentId: number) => void;
+}> = ({ rows, onSelect, latestByAgent, onToggleLatest }) => {
   if (rows.length === 0) {
     return (
       <div className="py-8 px-4 text-center text-sm text-muted-foreground">
@@ -280,6 +319,8 @@ const BrowseList: React.FC<{
           key={row.agent_id}
           row={row}
           onSelect={onSelect}
+          isLatest={latestByAgent.has(row.agent_id)}
+          onToggleLatest={() => onToggleLatest(row.agent_id)}
         />
       ))}
     </ul>
@@ -354,26 +395,45 @@ const BindingRowItem: React.FC<{
 const CatalogRowItem: React.FC<{
   row: CatalogRow;
   onSelect: (row: CatalogRow) => void;
-}> = ({ row, onSelect }) => {
+  isLatest: boolean;
+  onToggleLatest: () => void;
+}> = ({ row, onSelect, isLatest, onToggleLatest }) => {
+  const isRetired = row.status === "retired";
   const shortHash = row.content_hash.slice(0, 7);
   return (
     <li
       role="button"
-      tabIndex={0}
-      data-testid="agent-picker-row-catalog"
-      className="p-3 hover:bg-muted/50 cursor-pointer"
-      onClick={() => onSelect(row)}
+      tabIndex={isRetired ? -1 : 0}
+      aria-disabled={isRetired || undefined}
+      data-testid={
+        isRetired
+          ? "agent-picker-row-catalog-retired"
+          : "agent-picker-row-catalog"
+      }
+      className={
+        isRetired
+          ? "p-3 opacity-60 cursor-not-allowed"
+          : "p-3 hover:bg-muted/50 cursor-pointer"
+      }
+      onClick={() => {
+        if (!isRetired) onSelect(row);
+      }}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (!isRetired && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onSelect(row);
         }
       }}
+      title={isRetired ? "Retired upstream — unbind via web UI." : undefined}
     >
       <div className="flex items-center gap-2 flex-wrap">
-        <Bot className="w-4 h-4" aria-hidden />
+        {isRetired ? (
+          <AlertTriangle className="w-4 h-4 text-destructive" aria-hidden />
+        ) : (
+          <Bot className="w-4 h-4" aria-hidden />
+        )}
         <span className="font-medium">
-          {row.name} @ v{row.version}
+          {row.name} {isLatest ? "@ latest" : `@ v${row.version}`}
         </span>
         <span
           className="text-xs text-muted-foreground"
@@ -381,9 +441,43 @@ const CatalogRowItem: React.FC<{
         >
           sha:{shortHash}
         </span>
-        <Badge variant="secondary">{row.status}</Badge>
+        {isRetired ? (
+          <Badge variant="destructive">RETIRED</Badge>
+        ) : (
+          <Badge variant="secondary">{row.status}</Badge>
+        )}
+        {!isRetired ? (
+          <button
+            type="button"
+            data-testid="agent-picker-latest-toggle"
+            aria-pressed={isLatest}
+            title={
+              isLatest
+                ? "Resolves at run time to the latest published version"
+                : "Always use latest published version"
+            }
+            className={
+              isLatest
+                ? "ml-auto inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-primary text-primary"
+                : "ml-auto inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border text-muted-foreground hover:text-foreground"
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleLatest();
+            }}
+          >
+            <RotateCw className="w-3 h-3" aria-hidden />
+            latest
+          </button>
+        ) : null}
       </div>
-      <p className="text-xs text-muted-foreground mt-1">model: {row.model}</p>
+      {isRetired ? (
+        <p className="text-xs text-muted-foreground mt-1">
+          Upstream retired — unbind via web UI.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground mt-1">model: {row.model}</p>
+      )}
     </li>
   );
 };

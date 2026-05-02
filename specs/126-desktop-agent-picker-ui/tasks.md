@@ -65,11 +65,11 @@ Replace the fixture with real Tauri command calls.
 
 The spec 123 invariants the picker must surface correctly.
 
-- [ ] **T030** Retired-upstream rendering: rows where the binding row carries `status: 'retired_upstream'` (active tab) or where the catalog row's `status: 'retired'` (browse tab) render with muted style + a warning icon, are non-selectable, and tooltip "Retired upstream — unbind via web UI." Per spec 123 invariant I-B3.
-- [ ] **T031** Draft filtering: in browse tab, filter out catalog rows with `status: 'draft'`. Per spec 123 §3 invariant ("only published or retired definitions can be bound").
-- [ ] **T032** [P] Selection emits `AgentReference::ById` by default with `org_agent_id` and `pinned_version` (active) or `version` (browse).
-- [ ] **T033** [P] "Always use latest" shortcut: a small "↻ latest" toggle on each browse-tab row that, when active, makes the row emit `AgentReference::ByNameLatest` instead of `ById`. Documented in the row tooltip.
-- [ ] **T034** [P] Empty state copy: when active tab has zero bindings, render a CTA: "Bind an org agent to this project →" deep-linking to `/app/project/{projectId}/agents`.
+- [x] **T030** Retired-upstream rendering: rows where the binding row carries `status: 'retired_upstream'` (active tab) or where the catalog row's `status: 'retired'` (browse tab) render with muted style + a warning icon, are non-selectable, and tooltip "Retired upstream — unbind via web UI." Per spec 123 invariant I-B3.
+- [x] **T031** Draft filtering: in browse tab, filter out catalog rows with `status: 'draft'`. Per spec 123 §3 invariant ("only published or retired definitions can be bound").
+- [x] **T032** [P] Selection emits `AgentReference::ById` by default with `org_agent_id` and `pinned_version` (active) or `version` (browse).
+- [x] **T033** [P] "Always use latest" shortcut: a small "↻ latest" toggle on each browse-tab row that, when active, makes the row emit `AgentReference::ByNameLatest` instead of `ById`. Documented in the row tooltip.
+- [x] **T034** [P] Empty state copy: when active tab has zero bindings, render a CTA: "Bind an org agent to this project →" deep-linking to `/app/project/{projectId}/agents`.
 
 **Checkpoint:** Manual smoke: select a published row, confirm `onSelect` emits `ById`; toggle "latest", select again, confirm emits `ByNameLatest`; confirm retired row is non-selectable. Commit: `feat(desktop, spec-126): AgentPicker invariants — retired/draft/latest`.
 
