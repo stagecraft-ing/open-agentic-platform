@@ -12,8 +12,8 @@ Tasks are grouped by phase per `plan.md`. `[P]` = can run in parallel with other
 
 TypeScript surface mirroring spec 123's enums and row shapes.
 
-- [ ] **T001** Audit `crates/factory-contracts/src/agent_reference.rs` to confirm the `AgentReference` enum's three variants (`ById`, `ByName`, `ByNameLatest`) and their field shapes. The picker's TS mirror MUST match exactly.
-- [ ] **T002** [P] In `apps/desktop/src/lib/agentPicker.ts`, declare the TS mirror of `AgentReference`:
+- [x] **T001** Audit `crates/factory-contracts/src/agent_reference.rs` to confirm the `AgentReference` enum's three variants (`ById`, `ByName`, `ByNameLatest`) and their field shapes. The picker's TS mirror MUST match exactly.
+- [x] **T002** [P] In `apps/desktop/src/lib/agentPicker.ts`, declare the TS mirror of `AgentReference`:
   ```ts
   export type AgentReference =
     | { kind: "by_id"; org_agent_id: string; version: number }
@@ -21,8 +21,8 @@ TypeScript surface mirroring spec 123's enums and row shapes.
     | { kind: "by_name_latest"; name: string };
   ```
   Use `kind` rather than serde's `tag` because the desktop currently has no shared serde→TS type bridge for spec 123 envelopes; document the mapping in a comment so a future shared-type generator can replace this.
-- [ ] **T003** [P] Declare `CatalogRow` and `BindingRow` shapes in the same `agentPicker.ts` module, mirroring what `list_active_agents` and `list_org_agents` actually return on the wire (snake_case keys per Encore.ts convention).
-- [ ] **T004** [P] Stub the data hook signature: `export function useAgentPickerData(orgId: string, projectId?: string): { active: BindingRow[]; browse: CatalogRow[]; loading: boolean; error: Error | null; refresh: () => void }`. Hook body is wired in Phase 2.
+- [x] **T003** [P] Declare `CatalogRow` and `BindingRow` shapes in the same `agentPicker.ts` module, mirroring what `list_active_agents` and `list_org_agents` actually return on the wire (snake_case keys per Encore.ts convention).
+- [x] **T004** [P] Stub the data hook signature: `export function useAgentPickerData(orgId: string, projectId?: string): { active: BindingRow[]; browse: CatalogRow[]; loading: boolean; error: Error | null; refresh: () => void }`. Hook body is wired in Phase 2.
 
 **Checkpoint:** `pnpm --filter @opc/desktop tsc --noEmit` passes (or equivalent depending on the desktop build wiring). Commit: `chore(desktop, spec-126): AgentPicker types + hook stub`.
 
