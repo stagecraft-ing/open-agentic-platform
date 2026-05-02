@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "52c575903268936a3891424646eddac5c4e2600e9523c8ebe62184f0e8aed04b",
+    "contentHash": "5d328176fb88b0b924c6245e8171c40eda456e62f5c05245e97ff3b05e63fb4b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3734,6 +3734,20 @@
           }
         ],
         "specId": "127-spec-code-coupling-gate",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "006",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "128-spec-lint-default-fail-on-warn",
         "specStatus": "approved"
       }
     ],

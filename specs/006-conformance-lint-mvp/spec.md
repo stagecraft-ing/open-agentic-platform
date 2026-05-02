@@ -4,6 +4,8 @@ title: "Conformance lint (optional workflow warnings)"
 feature_branch: "006-conformance-lint-mvp"
 status: approved
 implementation: complete
+amended: "2026-05-02"
+amendment_record: "128-spec-lint-default-fail-on-warn"
 kind: platform
 created: "2026-03-22"
 authors:
@@ -21,6 +23,14 @@ summary: >
 **Created**: 2026-03-22  
 **Status**: Draft  
 **Input**: Features **003–005** define **lifecycle**, **execution**, and **verification**. This feature adds **optional**, **non-blocking** **warnings** so humans and CI can notice **protocol drift** before it becomes silent failure.
+
+> **Amendment 2026-05-02 (record: 128-spec-lint-default-fail-on-warn).**
+> The "advisory unless a repo policy opts into `--fail-on-warn`" clause
+> in §"Normative dependency" is now activated for OAP: `make ci-tools`
+> invokes `spec-lint --fail-on-warn` and propagates non-zero exits. The
+> CLI default (exit 0 on warnings) is unchanged; this is a per-repo
+> integration choice. See `specs/128-spec-lint-default-fail-on-warn/`
+> for the policy rationale.
 
 ## Purpose and charter
 

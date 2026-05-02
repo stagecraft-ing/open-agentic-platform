@@ -348,7 +348,7 @@ ci-tools:
 	@echo ""
 	@echo "==> ci-tools: spec-lint"
 	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
-	./tools/spec-lint/target/release/spec-lint || true   # warnings non-blocking (matches CI)
+	./tools/spec-lint/target/release/spec-lint --fail-on-warn   # spec 128: strict posture (amends spec 006)
 	cargo test --manifest-path tools/spec-lint/Cargo.toml
 	@echo ""
 	@echo "==> ci-tools: stakeholder-doc-lint (spec 122 FR-035)"

@@ -76,8 +76,8 @@ jobs:
       - name: Build spec-lint (Feature 006)
         run: cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 
-      - name: spec-lint (warnings non-blocking)
-        run: ./tools/spec-lint/target/release/spec-lint
+      - name: spec-lint (strict; spec 128 amends 006)
+        run: ./tools/spec-lint/target/release/spec-lint --fail-on-warn
 
       - name: spec-lint tests
         run: cargo test --manifest-path tools/spec-lint/Cargo.toml
