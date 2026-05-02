@@ -53,6 +53,48 @@ pub struct Agent {
     pub updated_at: String,
 }
 
+/// Project-bound agent row (spec 126 §3). Joins `project_agent_bindings`
+/// with `agents` so the desktop picker surfaces both the binding's pinned
+/// version/hash and the catalog row's display fields. When the upstream
+/// catalog row is gone (`retire_remote_agent` deleted it), the binding
+/// remains and `status = "retired_upstream"` so the operator can see
+/// what to unbind via the web UI (spec 123 invariant I-B3).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AgentBindingRow {
+    pub binding_id: i64,
+    pub project_id: String,
+    pub org_agent_id: String,
+    pub pinned_version: i64,
+    pub pinned_content_hash: String,
+    pub status: String,
+    pub agent_id: Option<i64>,
+    pub name: Option<String>,
+    pub icon: Option<String>,
+    pub model: Option<String>,
+    pub frontmatter_json: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Org catalog row (spec 126 §3). Returned by `list_org_agents` for the
+/// browse tab. The local cache only stores published rows (drafts skip the
+/// upsert in `agent_catalog_sync`, retirements DELETE), so the rows here
+/// are always treated as `published`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AgentCatalogRow {
+    pub agent_id: i64,
+    pub org_agent_id: String,
+    pub name: String,
+    pub icon: String,
+    pub model: String,
+    pub version: i64,
+    pub content_hash: String,
+    pub status: String,
+    pub frontmatter_json: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 /// Represents an agent execution run
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgentRun {
@@ -656,108 +698,128 @@ pub async fn list_agents(db: State<'_, AgentDb>) -> Result<Vec<Agent>, String> {
     Ok(agents)
 }
 
-/// Return org agents that are bound to `project_id` in the local
-/// `project_agent_bindings` table (spec 123 §6.3).
-///
-/// This is the default `Agent.list()` source for the active project going
-/// forward — only agents the operator has explicitly bound to the project appear
-/// in this list. For ad-hoc browsing of the full org catalog use
-/// `list_org_agents`.
+/// Return the project's org-agent bindings joined with the cached catalog
+/// rows (spec 123 §6.3, spec 126 §3). LEFT JOIN so retired-upstream
+/// bindings (where `retire_remote_agent` deleted the agents row) still
+/// surface — those rows carry `status = "retired_upstream"` and NULL
+/// catalog fields so the picker can render them non-selectable per
+/// spec 123 invariant I-B3.
 #[tauri::command]
 pub async fn list_active_agents(
     db: State<'_, AgentDb>,
     project_id: String,
-) -> Result<Vec<Agent>, String> {
+) -> Result<Vec<AgentBindingRow>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
         .prepare(
-            "SELECT a.id, a.name, a.icon, a.system_prompt, a.default_task,
-                    a.model, a.enable_file_read, a.enable_file_write, a.enable_network,
-                    a.hooks, a.created_at, a.updated_at
-             FROM agents a
-             INNER JOIN project_agent_bindings b ON b.org_agent_id = a.remote_agent_id
+            "SELECT b.id,
+                    b.project_id,
+                    b.org_agent_id,
+                    b.pinned_version,
+                    b.pinned_content_hash,
+                    b.created_at,
+                    b.updated_at,
+                    a.id,
+                    a.name,
+                    a.icon,
+                    a.model,
+                    a.frontmatter_json
+             FROM project_agent_bindings b
+             LEFT JOIN agents a
+               ON a.remote_agent_id = b.org_agent_id
+              AND a.source = 'remote'
              WHERE b.project_id = ?1
-               AND a.source = 'remote'
-             ORDER BY a.name ASC",
+             ORDER BY COALESCE(a.name, b.org_agent_id) ASC",
         )
         .map_err(|e| e.to_string())?;
 
-    let agents = stmt
+    let rows = stmt
         .query_map(params![project_id], |row| {
-            Ok(Agent {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                icon: row.get(2)?,
-                system_prompt: row.get(3)?,
-                default_task: row.get(4)?,
-                model: row
-                    .get::<_, String>(5)
-                    .unwrap_or_else(|_| "sonnet".to_string()),
-                enable_file_read: row.get::<_, bool>(6).unwrap_or(true),
-                enable_file_write: row.get::<_, bool>(7).unwrap_or(true),
-                enable_network: row.get::<_, bool>(8).unwrap_or(false),
-                hooks: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
+            let agent_id: Option<i64> = row.get(7)?;
+            let status = if agent_id.is_some() {
+                "active".to_string()
+            } else {
+                "retired_upstream".to_string()
+            };
+            Ok(AgentBindingRow {
+                binding_id: row.get(0)?,
+                project_id: row.get(1)?,
+                org_agent_id: row.get(2)?,
+                pinned_version: row.get(3)?,
+                pinned_content_hash: row.get(4)?,
+                created_at: row.get(5)?,
+                updated_at: row.get(6)?,
+                agent_id,
+                name: row.get(8)?,
+                icon: row.get(9)?,
+                model: row.get(10)?,
+                frontmatter_json: row.get(11)?,
+                status,
             })
         })
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    Ok(agents)
+    Ok(rows)
 }
 
-/// Return the full org catalog for ad-hoc browsing (spec 123 §6.3).
-///
-/// All `source = 'remote'` agents for the given `org_id` are returned,
-/// regardless of whether they are bound to any project. This is surfaced
-/// via the "Browse org agents" affordance; the typical default listing
-/// uses `list_active_agents(project_id)` instead.
+/// Return the full org catalog for ad-hoc browsing (spec 123 §6.3,
+/// spec 126 §3). The local cache only ever stores published rows
+/// (`agent_catalog_sync::handle_catalog_updated` skips drafts and
+/// `retire_remote_agent` deletes retired rows), so every row returned
+/// here is treated as `published`.
 #[tauri::command]
 pub async fn list_org_agents(
     db: State<'_, AgentDb>,
     org_id: String,
-) -> Result<Vec<Agent>, String> {
+) -> Result<Vec<AgentCatalogRow>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, icon, system_prompt, default_task,
-                    model, enable_file_read, enable_file_write, enable_network,
-                    hooks, created_at, updated_at
+            "SELECT id,
+                    remote_agent_id,
+                    name,
+                    icon,
+                    model,
+                    remote_version,
+                    remote_content_hash,
+                    frontmatter_json,
+                    created_at,
+                    updated_at
              FROM agents
              WHERE source = 'remote'
                AND org_id = ?1
+               AND remote_agent_id IS NOT NULL
+               AND remote_version IS NOT NULL
+               AND remote_content_hash IS NOT NULL
              ORDER BY name ASC",
         )
         .map_err(|e| e.to_string())?;
 
-    let agents = stmt
+    let rows = stmt
         .query_map(params![org_id], |row| {
-            Ok(Agent {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                icon: row.get(2)?,
-                system_prompt: row.get(3)?,
-                default_task: row.get(4)?,
-                model: row
-                    .get::<_, String>(5)
-                    .unwrap_or_else(|_| "sonnet".to_string()),
-                enable_file_read: row.get::<_, bool>(6).unwrap_or(true),
-                enable_file_write: row.get::<_, bool>(7).unwrap_or(true),
-                enable_network: row.get::<_, bool>(8).unwrap_or(false),
-                hooks: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
+            Ok(AgentCatalogRow {
+                agent_id: row.get(0)?,
+                org_agent_id: row.get(1)?,
+                name: row.get(2)?,
+                icon: row.get(3)?,
+                model: row.get(4)?,
+                version: row.get(5)?,
+                content_hash: row.get(6)?,
+                frontmatter_json: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+                status: "published".to_string(),
             })
         })
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    Ok(agents)
+    Ok(rows)
 }
 
 /// Create a new agent

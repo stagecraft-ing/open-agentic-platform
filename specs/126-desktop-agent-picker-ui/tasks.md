@@ -47,15 +47,15 @@ Presentational only; no real data. A fixture array drives the rendering until Ph
 
 Replace the fixture with real Tauri command calls.
 
-- [ ] **T020** Implement `useAgentPickerData(orgId, projectId)`:
+- [x] **T020** Implement `useAgentPickerData(orgId, projectId)`:
   - Calls `invoke("list_active_agents", { project_id: projectId })` when `projectId` is set; returns `[]` otherwise.
   - Calls `invoke("list_org_agents", { org_id: orgId })` always.
   - Both calls run in parallel via `Promise.all`.
   - Transient errors surface in `error`; partial success (one call OK, the other failed) is treated as full failure for now (revisit if needed).
-- [ ] **T021** Concurrent-fetch dedup: if a second invocation of the hook with the same `(orgId, projectId)` arrives while a fetch is in flight, both subscribers share the in-flight promise. Implement via a small in-module `Map<key, Promise>`.
-- [ ] **T022** [P] Listen for duplex `agent.catalog.updated` events. The desktop's existing duplex bridge surfaces these as Tauri events (see `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs`); subscribe via `listen("agent.catalog.updated", …)` and call `refresh()`. Same for `project.agent_binding.updated` when `projectId` is set.
-- [ ] **T023** [P] Replace the Phase 1 fixture in `AgentPicker.tsx` with `useAgentPickerData`'s output.
-- [ ] **T024** [P] Loading state: skeleton rows or spinner while `loading: true`. Error state: a small banner with retry.
+- [x] **T021** Concurrent-fetch dedup: if a second invocation of the hook with the same `(orgId, projectId)` arrives while a fetch is in flight, both subscribers share the in-flight promise. Implement via a small in-module `Map<key, Promise>`.
+- [x] **T022** [P] Listen for duplex `agent.catalog.updated` events. The desktop's existing duplex bridge surfaces these as Tauri events (see `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — `EVENT_CATALOG_UPDATED = "agent-catalog-updated"`, kebab-case); subscribe via `listen("agent-catalog-updated", …)` and call `refresh()`. Same for `project-agent-binding-updated` when `projectId` is set.
+- [x] **T023** [P] Replace the Phase 1 fixture in `AgentPicker.tsx` with `useAgentPickerData`'s output.
+- [x] **T024** [P] Loading state: skeleton rows or spinner while `loading: true`. Error state: a small banner with retry.
 
 **Checkpoint:** Picker shows real data when running against a stagecraft + a desktop build with a populated catalog. Commit: `feat(desktop, spec-126): AgentPicker data hook + duplex auto-refresh`.
 
