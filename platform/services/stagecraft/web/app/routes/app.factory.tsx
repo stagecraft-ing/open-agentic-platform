@@ -16,6 +16,7 @@ export async function loader({ request }: { request: Request }) {
 const TABS = [
   { to: "/app/factory", label: "Overview", end: true },
   { to: "/app/factory/upstreams", label: "Upstreams", end: false },
+  { to: "/app/factory/runs", label: "Runs", end: false },
   { to: "/app/factory/adapters", label: "Adapters", end: false },
   { to: "/app/factory/contracts", label: "Contracts", end: false },
   { to: "/app/factory/processes", label: "Processes", end: false },
