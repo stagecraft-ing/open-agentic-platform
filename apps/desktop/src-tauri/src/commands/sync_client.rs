@@ -567,7 +567,7 @@ pub struct SyncClientInner {
 }
 
 impl SyncClientInner {
-    fn set_outbound(&self, tx: Option<mpsc::Sender<OutboundFrame>>) {
+    pub(crate) fn set_outbound(&self, tx: Option<mpsc::Sender<OutboundFrame>>) {
         if let Ok(mut g) = self.outbound.write() {
             *g = tx;
         }

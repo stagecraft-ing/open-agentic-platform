@@ -1963,6 +1963,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "factory-platform-client"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dirs 6.0.0",
+ "factory-contracts",
+ "factory-engine",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
 name = "factory-project-detect"
 version = "0.1.0"
 dependencies = [
@@ -4687,6 +4704,7 @@ dependencies = [
  "env_logger",
  "factory-contracts",
  "factory-engine",
+ "factory-platform-client",
  "factory-project-detect",
  "featuregraph",
  "futures",

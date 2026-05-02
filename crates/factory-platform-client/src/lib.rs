@@ -39,8 +39,8 @@ pub use materialise::{
     collect_contract_names, walk_process_for_agent_refs, RunRoot,
 };
 pub use wire::{
-    AdapterBody, ContractBody, ProcessBody, ReserveRunRequest, RunReservation,
-    RunRow, WireAgentRef, WireSourceShas,
+    AdapterBody, ContractBody, ListRunsQuery, ListRunsResponse, ProcessBody, ReserveRunRequest,
+    RunReservation, RunRow, RunSummaryRow, WireAgentRef, WireSourceShas,
 };
 
 /// Spec 124 §3 — projection of spec-123 `ResolvedAgent` carried in

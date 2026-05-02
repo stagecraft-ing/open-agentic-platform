@@ -5,6 +5,7 @@ pub mod analysis;
 pub mod auth;
 pub mod claude;
 pub mod factory;
+pub mod factory_platform;
 pub mod factory_project;
 pub mod git;
 pub mod keychain;

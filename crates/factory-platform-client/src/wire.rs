@@ -140,6 +140,51 @@ pub struct RunRow {
     pub token_spend: Option<RunTokenSpend>,
 }
 
+/// Spec 124 §4 — summary row returned by the list endpoint
+/// (`GET /api/factory/runs`). Lighter than [`RunRow`]: no per-stage
+/// progress or source_shas blob, since list rendering only needs the
+/// status pill, timestamps, and identifiers.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RunSummaryRow {
+    pub id: String,
+    pub org_id: String,
+    pub project_id: Option<String>,
+    pub triggered_by: String,
+    pub adapter_id: String,
+    pub process_id: String,
+    pub client_run_id: String,
+    pub status: String,
+    pub started_at: String,
+    pub completed_at: Option<String>,
+    pub last_event_at: String,
+    pub error: Option<String>,
+}
+
+/// Filter parameters for `GET /api/factory/runs`. The desktop typically
+/// passes `None` for everything except `status` (when the user filters
+/// the Runs tab). `before` is an ISO-8601 timestamp cursor — the
+/// platform returns rows with `started_at < before`.
+#[derive(Debug, Clone, Default)]
+pub struct ListRunsQuery {
+    pub status: Option<String>,
+    pub adapter: Option<String>,
+    pub limit: Option<u32>,
+    pub before: Option<String>,
+}
+
+/// Wire response: `{ runs: [...], nextCursor?: ISO-8601 }`. The cursor
+/// is preserved so a future paginated React surface (Phase 7) can ask
+/// for older rows; the desktop's current `list_factory_runs` consumes
+/// the first page only.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ListRunsResponse {
+    pub runs: Vec<RunSummaryRow>,
+    #[serde(default)]
+    pub next_cursor: Option<String>,
+}
+
 // ---------------------------------------------------------------------------
 // Conversions to/from `crate::SourceShas`
 // ---------------------------------------------------------------------------

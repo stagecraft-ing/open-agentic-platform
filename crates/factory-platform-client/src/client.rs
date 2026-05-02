@@ -25,8 +25,8 @@ use factory_engine::agent_resolver::{
 
 use crate::error::FactoryClientError;
 use crate::wire::{
-    AdapterBody, ContractBody, ProcessBody, ReserveRunRequest, RunReservation,
-    RunRow,
+    AdapterBody, ContractBody, ListRunsQuery, ListRunsResponse, ProcessBody, ReserveRunRequest,
+    RunReservation, RunRow, RunSummaryRow,
 };
 
 // ---------------------------------------------------------------------------
@@ -261,6 +261,45 @@ impl PlatformClient {
     pub async fn get_run(&self, id: &str) -> Result<RunRow, FactoryClientError> {
         let path = format!("/api/factory/runs/{}", url_segment(id));
         self.get_with_retry::<RunRow>(&path).await
+    }
+
+    /// List recent runs for the caller's org. The query is encoded as
+    /// snake_case parameters per the Encore.ts request shape (`status`,
+    /// `adapter`, `limit`, `before`). Uses the GET-retry helper because
+    /// the endpoint is idempotent.
+    pub async fn list_runs_with(
+        &self,
+        query: ListRunsQuery,
+    ) -> Result<ListRunsResponse, FactoryClientError> {
+        let mut path = String::from("/api/factory/runs");
+        let mut sep = '?';
+        let mut push = |k: &str, v: &str| {
+            path.push(sep);
+            path.push_str(k);
+            path.push('=');
+            path.push_str(&url_segment(v));
+            sep = '&';
+        };
+        if let Some(s) = query.status.as_deref() {
+            push("status", s);
+        }
+        if let Some(s) = query.adapter.as_deref() {
+            push("adapter", s);
+        }
+        if let Some(n) = query.limit {
+            push("limit", &n.to_string());
+        }
+        if let Some(s) = query.before.as_deref() {
+            push("before", s);
+        }
+        self.get_with_retry::<ListRunsResponse>(&path).await
+    }
+
+    /// Convenience: list with default pagination (no filters).
+    pub async fn list_runs(&self) -> Result<Vec<RunSummaryRow>, FactoryClientError> {
+        self.list_runs_with(ListRunsQuery::default())
+            .await
+            .map(|r| r.runs)
     }
 }
 
