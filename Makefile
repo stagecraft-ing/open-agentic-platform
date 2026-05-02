@@ -16,6 +16,7 @@
         agent-frontmatter-ts ci-agent-frontmatter-ts \
         ci ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
+        ci-spec-code-coupling \
         ci-cross ci-parity
 
 # ============================================================
@@ -287,7 +288,7 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-supply-chain
+ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
 	@echo ""
 	@echo "==> Local CI parity: all gates passed."
 
@@ -436,6 +437,33 @@ ci-schema-parity:
 	bun run tools/schema-parity-check/index.mjs
 
 # ============================================================
+# Spec/code coupling (spec 127) — mirrors
+# .github/workflows/ci-spec-code-coupling.yml.
+#
+# PR-time gate: any diff path claimed by a spec's `implements:` list must
+# be accompanied by an edit to that spec's spec.md. Locally this defaults
+# to `origin/main...HEAD`; override BASE_REF/HEAD_REF on the command line
+# (e.g. `make ci-spec-code-coupling BASE_REF=HEAD~3`).
+# ============================================================
+
+ci-spec-code-coupling:
+	@echo "==> ci-spec-code-coupling: build + run gate"
+	cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml
+	cargo test --manifest-path tools/spec-code-coupling-check/Cargo.toml
+	@# Local mirror of .github/workflows/ci-spec-code-coupling.yml. CI passes
+	@# explicit base/head SHAs via --base/--head; locally we materialise the
+	@# working-tree-vs-origin/main diff (committed + staged + unstaged) plus
+	@# untracked-but-not-ignored new files so uncommitted edits AND new files
+	@# participate in the self-test. Override BASE_REF on the command line.
+	@paths_file=$$(mktemp); \
+	  base=$(or $(BASE_REF),origin/main); \
+	  { git diff --name-only $$base; git ls-files --others --exclude-standard; } \
+	      | sort -u > $$paths_file; \
+	  ./tools/spec-code-coupling-check/target/release/spec-code-coupling-check \
+	      --base $$base --head HEAD --paths-from $$paths_file; \
+	  status=$$?; rm -f $$paths_file; exit $$status
+
+# ============================================================
 # Supply chain (spec 116) — mirrors .github/workflows/ci-supply-chain.yml.
 # Posture: warn-only until 2026-05-28; promote by removing `|| true` lines.
 # ============================================================
@@ -545,6 +573,7 @@ help:
 	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
 	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"
 	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
+	@echo "  make ci-spec-code-coupling  PR-time spec/code coupling gate (spec 127)"
 	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; warn-only until 2026-05-28)"
 	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"
 	@echo "  make ci-parity          Drift check: Makefile mirrors enforcing workflows (spec 104)"

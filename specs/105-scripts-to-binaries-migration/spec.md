@@ -277,3 +277,12 @@ Each migration PR MUST include a before/after trace showing:
 - Phase ordering is a recommendation; implementers MAY land phases in a
   different order as long as each phase independently satisfies its
   success criteria.
+
+## Cross-references
+
+- Spec 127 (`spec-code-coupling-gate`) adds a new Rust binary
+  (`tools/spec-code-coupling-check/`) and a paired Makefile target.
+  Added per the same convention this spec codifies — declares
+  `[package.metadata.oap].spec`, mirrors its workflow in `make ci`,
+  no `scripts/` artefact introduced. No change to this spec's
+  migration-plan invariants.

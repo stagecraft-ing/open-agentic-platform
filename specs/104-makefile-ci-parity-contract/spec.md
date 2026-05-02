@@ -265,3 +265,12 @@ a pre-PR check, alongside the existing `make ci` step.
   catch cargo/node-ecosystem drift, not every shell utility.
 - The parity rule is **asymmetric**: workflows MUST have Makefile mirrors,
   Makefile-only targets (`make dev`, `make setup`) are fine.
+
+## 7. Cross-references
+
+- Spec 127 (`spec-code-coupling-gate`) plugs the
+  `ci-spec-code-coupling.yml` workflow into the `ENFORCING_WORKFLOWS`
+  registry of `tools/ci-parity-check/src/lib.rs` and adds the matching
+  `ci-spec-code-coupling` Makefile target. The count of mirrored
+  workflows moves from 9 → 11 (the 10th was `ci-supply-chain.yml` from
+  spec 116). No change to the parity contract itself.

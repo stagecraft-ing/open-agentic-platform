@@ -40,6 +40,7 @@ pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-desktop.yml",
     "ci-orchestrator.yml",
     "ci-policy-kernel.yml",
+    "ci-spec-code-coupling.yml",
     "ci-stagecraft.yml",
     "ci-supply-chain.yml",
     "spec-conformance.yml",

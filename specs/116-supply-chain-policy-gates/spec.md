@@ -302,3 +302,9 @@ A calendar entry is set for 2026-05-28. The follow-up PR:
 Promotion is contingent on the warn window having generated zero unresolved
 advisories. If unresolved items remain, the window is extended to 60 days
 and the rationale documented in this spec.
+
+## 10. Cross-references
+
+- Spec 127 (`spec-code-coupling-gate`) adds an `ci-spec-code-coupling`
+  Makefile target as a sibling above `ci-supply-chain` in the `make ci`
+  composition. No change to this spec's gates or warn-window posture.

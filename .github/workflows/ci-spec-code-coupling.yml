@@ -1,0 +1,57 @@
+# Spec: 127-spec-code-coupling-gate
+#
+# PR-time gate: every diff path claimed by a spec's `implements:` list must
+# be accompanied by an edit to that spec's spec.md. Reads
+# build/codebase-index/index.json via typed deserialization shared with
+# `codebase-indexer` (spec 103 governed-read exception). Bypass list lives
+# in tools/spec-code-coupling-check/src/lib.rs::BYPASS_PREFIXES; explicit
+# waivers via `Spec-Drift-Waiver: <reason>` line in PR body.
+
+name: CI spec/code coupling
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coupling-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          toolchain: '1.95.0'
+
+      - name: Build codebase-indexer
+        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+
+      - name: Compile codebase-index
+        run: ./tools/codebase-indexer/target/release/codebase-indexer compile
+
+      - name: Build spec-code-coupling-check
+        run: cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml
+
+      - name: Run spec-code-coupling-check
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -u
+          # Materialise the PR body to a file so the gate can grep waivers.
+          body_file="$(mktemp)"
+          printf '%s' "${PR_BODY:-}" > "$body_file"
+          ./tools/spec-code-coupling-check/target/release/spec-code-coupling-check \
+              --base "$BASE_SHA" --head "$HEAD_SHA" --pr-body "$body_file"

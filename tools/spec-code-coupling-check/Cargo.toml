@@ -1,0 +1,26 @@
+[package]
+name = "open_agentic_spec_code_coupling_check"
+publish = false
+version = "0.1.0"
+edition = "2024"
+description = "PR-time gate: fail when an implements:-claimed path changes without its spec.md (spec 127)"
+rust-version = "1.85"
+
+[[bin]]
+name = "spec-code-coupling-check"
+path = "src/main.rs"
+
+[lib]
+name = "open_agentic_spec_code_coupling_check"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+open_agentic_codebase_indexer = { path = "../codebase-indexer" }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[package.metadata.oap]
+spec = "127-spec-code-coupling-gate"

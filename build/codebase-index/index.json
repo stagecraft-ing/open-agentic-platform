@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "392738996551de1f4e78b649dea68dac6d4eb36a5234aaa15be24f2485b60196",
+    "contentHash": "52c575903268936a3891424646eddac5c4e2600e9523c8ebe62184f0e8aed04b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -199,6 +199,13 @@
         ],
         "name": "registry-consumer",
         "path": "tools/registry-consumer"
+      },
+      {
+        "binaries": [
+          "spec-code-coupling-check"
+        ],
+        "name": "spec-code-coupling-check",
+        "path": "tools/spec-code-coupling-check"
       },
       {
         "binaries": [
@@ -1401,6 +1408,25 @@
       "name": "open_agentic_frontmatter",
       "path": "tools/shared/frontmatter",
       "specRef": "000-bootstrap-spec-system",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde_json"
+      ],
+      "internalDeps": [
+        "open_agentic_codebase_indexer"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_spec_code_coupling_check",
+      "path": "tools/spec-code-coupling-check",
+      "specRef": "127-spec-code-coupling-gate",
       "version": "0.1.0"
     },
     {
@@ -3683,6 +3709,32 @@
         ],
         "specId": "126-desktop-agent-picker-ui",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "001",
+          "101",
+          "103",
+          "104",
+          "118"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci-spec-code-coupling.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-code-coupling-check",
+            "source": "both"
+          }
+        ],
+        "specId": "127-spec-code-coupling-gate",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -3800,6 +3852,13 @@
       "source": "header",
       "specs": [
         "047-governance-control-plane"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-spec-code-coupling.yml",
+      "source": "header",
+      "specs": [
+        "127-spec-code-coupling-gate"
       ]
     },
     {
