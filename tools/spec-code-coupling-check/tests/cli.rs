@@ -17,7 +17,7 @@ fn write_synthetic_index(dir: &std::path::Path, mappings_json: &str) -> PathBuf 
     let path = dir.join("index.json");
     let body = format!(
         r#"{{
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "build": {{
     "indexerId": "codebase-indexer",
     "indexerVersion": "test",

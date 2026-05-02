@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "cc1874bf3b1b956903dfee3761b13f6743f679f71f4049f0c74c35f509e381e6",
+    "contentHash": "7a842c3770b519255e0ab94e9c705b4185e4c97e71f410652f2ee92a2a3073ef",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4016,6 +4016,20 @@
           }
         ],
         "specId": "129-granular-package-oap-metadata",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "127",
+          "129"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-code-coupling-check",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "130-spec-coupling-primary-owner",
         "specStatus": "approved"
       }
     ],

@@ -36,12 +36,15 @@ pub const BYPASS_PREFIXES: &[&str] = &[
 /// Case-sensitive PR-body waiver keyword. Spec 127 FR-005.
 pub const WAIVER_KEYWORD: &str = "Spec-Drift-Waiver:";
 
-/// Per-spec violation: a spec owns at least one offending path that the
-/// diff changed without also changing `specs/<id>/spec.md`.
+/// One uncovered path in the diff with the full sorted list of claimants.
+/// Spec 130 — primary-owner heuristic — replaces the previous per-spec
+/// shape: a path with N claimants is cleared if ANY one of them is in
+/// the diff. The renderer surfaces the full claimant list so reviewers
+/// can sanity-check that the right claimant covered the change.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Violation {
-    pub spec_id: String,
-    pub paths: Vec<String>,
+    pub path: String,
+    pub claimants: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -151,10 +154,17 @@ pub fn build_claim_index(
     by_claim
 }
 
-/// Compute coupling violations.
+/// Compute coupling violations under spec 130's primary-owner heuristic.
 ///
-/// `diff_paths` is the set of files changed in the PR (any side, normalized
+/// `diff_paths` is the set of files changed in the PR (any side, normalised
 /// to forward slashes). `pr_body` may carry a `Spec-Drift-Waiver:` line.
+///
+/// **Heuristic** (spec 130 amends spec 127): when a path is claimed by N≥1
+/// specs, the path is cleared if **any one** claimant's `spec.md` is in
+/// the diff. Strict-but-not-cascading. The rendered output names every
+/// claimant on a violation block so reviewers can sanity-check that the
+/// right one was edited (when ≥1 was) — or that none was, when it
+/// fires.
 pub fn check_coupling(
     index: &CodebaseIndex,
     diff_paths: &BTreeSet<String>,
@@ -163,39 +173,43 @@ pub fn check_coupling(
     let waiver_reason = parse_waiver(pr_body);
     let claim_index = build_claim_index(index);
 
-    // For each diff path that is not bypass-listed, find the set of specs
-    // that claim it. Aggregate into spec_id -> set of offending paths.
-    let mut owed: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    // Path-centric aggregation: for each non-bypass diff path, collect the
+    // full set of claimant spec IDs (across exact and prefix-match claims).
+    let mut path_claimants: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for path in diff_paths {
         if is_bypass(path) {
             continue;
         }
         for (claim, owners) in &claim_index {
             if claim_matches(claim, path) {
+                let entry = path_claimants.entry(path.clone()).or_default();
                 for spec_id in owners {
-                    owed.entry(spec_id.clone())
-                        .or_default()
-                        .insert(path.clone());
+                    entry.insert(spec_id.clone());
                 }
             }
         }
     }
 
-    // A spec edit in the diff clears that spec's owed paths.
+    // Primary-owner heuristic: a path is covered when ANY one of its
+    // claimants has its spec.md in the diff. The remaining claimants are
+    // not required to edit (spec 130 OQ-1: revisit if this proves
+    // ambiguous in practice).
     let mut violations: Vec<Violation> = Vec::new();
-    for (spec_id, paths) in owed {
-        let spec_md = format!("specs/{spec_id}/spec.md");
-        if diff_paths.contains(&spec_md) {
+    for (path, claimants) in path_claimants {
+        let any_claimant_edited = claimants
+            .iter()
+            .any(|s| diff_paths.contains(&format!("specs/{s}/spec.md")));
+        if any_claimant_edited {
             continue;
         }
-        let mut paths_sorted: Vec<String> = paths.into_iter().collect();
-        paths_sorted.sort();
+        let mut sorted: Vec<String> = claimants.into_iter().collect();
+        sorted.sort();
         violations.push(Violation {
-            spec_id,
-            paths: paths_sorted,
+            path,
+            claimants: sorted,
         });
     }
-    violations.sort_by(|a, b| a.spec_id.cmp(&b.spec_id));
+    violations.sort_by(|a, b| a.path.cmp(&b.path));
 
     Outcome {
         violations,
@@ -204,7 +218,8 @@ pub fn check_coupling(
 }
 
 /// Render an outcome for human-readable CI logs. Empty for clean runs;
-/// otherwise a multi-line block per the spec 127 §8 worked example.
+/// otherwise a path-centric block listing every claimant per uncovered
+/// path (spec 130).
 pub fn render(outcome: &Outcome) -> String {
     if let Some(reason) = &outcome.waiver_reason {
         let count = outcome.violations.len();
@@ -212,12 +227,12 @@ pub fn render(outcome: &Outcome) -> String {
             return String::new();
         }
         let mut s = format!(
-            "::warning::spec-code-coupling-check: {count} violation(s) waived by PR body — reason: {reason}\n",
+            "::warning::spec-code-coupling-check: {count} path(s) waived by PR body — reason: {reason}\n",
         );
         for v in &outcome.violations {
-            s.push_str(&format!("  {} (waived)\n", v.spec_id));
-            for p in &v.paths {
-                s.push_str(&format!("    {p}\n"));
+            s.push_str(&format!("  {} (waived)\n", v.path));
+            for c in &v.claimants {
+                s.push_str(&format!("    {c}\n"));
             }
         }
         return s;
@@ -226,19 +241,27 @@ pub fn render(outcome: &Outcome) -> String {
         return String::new();
     }
     let mut s = format!(
-        "spec-code-coupling-check: {} spec(s) owe a spec.md edit.\n\n",
+        "spec-code-coupling-check: {} path(s) lack a claimant edit.\n\n",
         outcome.violations.len(),
     );
     for v in &outcome.violations {
-        s.push_str(&format!("  {}\n", v.spec_id));
-        for p in &v.paths {
-            s.push_str(&format!("    {p}\n"));
+        if v.claimants.len() == 1 {
+            s.push_str(&format!("  {} (claimed by {})\n", v.path, v.claimants[0]));
+        } else {
+            s.push_str(&format!(
+                "  {} (claimed by {} specs)\n",
+                v.path,
+                v.claimants.len()
+            ));
+            for c in &v.claimants {
+                s.push_str(&format!("    {c}\n"));
+            }
         }
     }
     s.push('\n');
-    s.push_str("To resolve, either:\n");
-    s.push_str("  - amend the named spec.md in this PR, or\n");
-    s.push_str("  - add a 'Spec-Drift-Waiver: <reason>' line to the PR body.\n");
+    s.push_str("To resolve, amend ANY ONE claimant's spec.md (per spec 130\n");
+    s.push_str("primary-owner heuristic), or add 'Spec-Drift-Waiver: <reason>'\n");
+    s.push_str("to the PR body.\n");
     s
 }
 
@@ -348,15 +371,18 @@ mod tests {
         assert_eq!(parse_waiver("no waiver here"), None);
     }
 
-    /// AC-1: a coupling violation produces a Violation block.
+    /// AC-1: a coupling violation produces a path-centric block.
     #[test]
     fn ac1_violation_when_path_changed_without_spec_edit() {
         let idx = index_claiming("044-multi-agent-orchestration", &["crates/orchestrator"]);
         let diff = diffset(&["crates/orchestrator/src/lib.rs"]);
         let outcome = check_coupling(&idx, &diff, "");
         assert_eq!(outcome.violations.len(), 1);
-        assert_eq!(outcome.violations[0].spec_id, "044-multi-agent-orchestration");
-        assert_eq!(outcome.violations[0].paths, vec!["crates/orchestrator/src/lib.rs"]);
+        assert_eq!(outcome.violations[0].path, "crates/orchestrator/src/lib.rs");
+        assert_eq!(
+            outcome.violations[0].claimants,
+            vec!["044-multi-agent-orchestration"]
+        );
         assert_eq!(outcome.exit_code(), 1);
     }
 
@@ -400,7 +426,7 @@ mod tests {
     }
 
     #[test]
-    fn multi_spec_diff_aggregates_per_owner() {
+    fn multi_spec_diff_separate_paths_each_owed() {
         let mut idx = index_claiming("044-multi-agent-orchestration", &["crates/orchestrator"]);
         idx.traceability.mappings.push(TraceMapping {
             spec_id: "067-tool-definition-registry".to_string(),
@@ -412,15 +438,90 @@ mod tests {
                 source: Some(TraceSource::SpecImplements),
             }],
         });
+        // Two paths, each with a single distinct claimant. Both fire.
         let diff = diffset(&[
             "crates/orchestrator/src/lib.rs",
             "crates/tool-registry/src/lib.rs",
         ]);
         let outcome = check_coupling(&idx, &diff, "");
         assert_eq!(outcome.violations.len(), 2);
-        // Sorted by spec id.
-        assert_eq!(outcome.violations[0].spec_id, "044-multi-agent-orchestration");
-        assert_eq!(outcome.violations[1].spec_id, "067-tool-definition-registry");
+        // Sorted by path.
+        assert_eq!(outcome.violations[0].path, "crates/orchestrator/src/lib.rs");
+        assert_eq!(outcome.violations[1].path, "crates/tool-registry/src/lib.rs");
+        assert_eq!(outcome.violations[0].claimants.len(), 1);
+        assert_eq!(outcome.violations[1].claimants.len(), 1);
+    }
+
+    /// Spec 130 SC-1: a path claimed by N≥2 specs is cleared when ANY one
+    /// claimant's spec.md is in the diff. The remaining claimants do not
+    /// need to edit.
+    #[test]
+    fn primary_owner_heuristic_clears_when_any_claimant_edits() {
+        // Two specs both claim crates/orchestrator (busy crate scenario).
+        let mut idx = index_claiming("044-multi-agent-orchestration", &["crates/orchestrator"]);
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "079-scheduling".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            implementing_paths: vec![ImplementingPath {
+                path: "crates/orchestrator".to_string(),
+                name: None,
+                source: Some(TraceSource::SpecImplements),
+            }],
+        });
+        // Diff edits an orchestrator file but only ONE of the two claimant
+        // spec.md files. Heuristic accepts.
+        let diff = diffset(&[
+            "crates/orchestrator/src/lib.rs",
+            "specs/079-scheduling/spec.md",
+        ]);
+        let outcome = check_coupling(&idx, &diff, "");
+        assert!(
+            outcome.violations.is_empty(),
+            "heuristic should clear the path; got violations: {:?}",
+            outcome.violations
+        );
+        assert_eq!(outcome.exit_code(), 0);
+    }
+
+    /// When zero claimants edit, the violation lists ALL claimants for
+    /// reviewer transparency (spec 130 FR-002).
+    #[test]
+    fn multi_claim_violation_names_all_claimants() {
+        let mut idx = index_claiming("044-multi-agent-orchestration", &["crates/orchestrator"]);
+        for spec_id in ["052-state-persistence", "079-scheduling"] {
+            idx.traceability.mappings.push(TraceMapping {
+                spec_id: spec_id.to_string(),
+                spec_status: Some("approved".to_string()),
+                depends_on: Vec::new(),
+                implementing_paths: vec![ImplementingPath {
+                    path: "crates/orchestrator".to_string(),
+                    name: None,
+                    source: Some(TraceSource::SpecImplements),
+                }],
+            });
+        }
+        let diff = diffset(&["crates/orchestrator/src/lib.rs"]);
+        let outcome = check_coupling(&idx, &diff, "");
+        assert_eq!(outcome.violations.len(), 1);
+        let v = &outcome.violations[0];
+        assert_eq!(v.path, "crates/orchestrator/src/lib.rs");
+        assert_eq!(v.claimants.len(), 3);
+        // All three claimants surfaced, sorted.
+        assert_eq!(
+            v.claimants,
+            vec![
+                "044-multi-agent-orchestration",
+                "052-state-persistence",
+                "079-scheduling",
+            ]
+        );
+        let rendered = render(&outcome);
+        // Header signals multi-claim.
+        assert!(rendered.contains("claimed by 3 specs"));
+        for c in &v.claimants {
+            assert!(rendered.contains(c.as_str()));
+        }
     }
 
     #[test]

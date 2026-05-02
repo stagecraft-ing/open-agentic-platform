@@ -4,6 +4,8 @@ slug: spec-code-coupling-gate
 title: "Spec/Code Coupling Gate — fail PRs that change implements: paths without spec.md"
 status: approved
 implementation: complete
+amended: "2026-05-02"
+amendment_record: "130-spec-coupling-primary-owner"
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
@@ -109,8 +111,10 @@ a passive index entry that no current gate guards.
 - **FR-003 — coupling detection.** For each diff path P that is not
   bypass-listed, the gate computes the set of spec IDs S such that some
   `mapping.implementing_paths[].path` is exactly P or a path prefix of P
-  (slash-anchored). For each `s ∈ S`, the gate fails if
-  `specs/<s>/spec.md` is not in the diff.
+  (slash-anchored). The gate fails when **no** `s ∈ S` has `specs/<s>/spec.md`
+  in the diff (per spec 130's primary-owner heuristic, amends 2026-05-02).
+  The original FR-003 required *every* `s ∈ S` to be in the diff — see
+  the `## Amendment record` section below for the rationale.
 - **FR-004 — error shape.** A coupling violation prints, per offending
   spec, a multi-line block: spec ID + each offending path on its own
   indented line. Exit code 1.
@@ -232,19 +236,46 @@ the index) and before `ci-supply-chain`.
 ## 8. Worked Example
 
 A PR that adds a function to `crates/orchestrator/src/dag.rs` without
-amending `specs/044-multi-agent-orchestration/spec.md`:
+amending any of the 12 specs that claim `crates/orchestrator`:
 
 ```
-spec-code-coupling-check: 1 spec(s) owe a spec.md edit.
+spec-code-coupling-check: 1 path(s) lack a claimant edit.
 
-  044-multi-agent-orchestration
-    crates/orchestrator/src/dag.rs
+  crates/orchestrator/src/dag.rs (claimed by 12 specs)
+    004-spec-to-execution-bridge-mvp
+    043-agent-organizer
+    052-state-persistence
+    079-scheduling
+    082-artifact-integrity-platform-hardening
+    090-governance-non-optionality
+    094-unified-artifact-store
+    098-governance-enforcement-stitching
+    099-workspace-scoped-persistence
+    102-governed-excellence
+    119-project-as-unit-of-governance
+    044-multi-agent-orchestration
 
-To resolve, either:
-  - amend specs/044-multi-agent-orchestration/spec.md in this PR, or
-  - add a 'Spec-Drift-Waiver: <reason>' line to the PR body.
+To resolve, amend ANY ONE claimant's spec.md (per spec 130
+primary-owner heuristic), or add 'Spec-Drift-Waiver: <reason>'
+to the PR body.
 ```
 
-Adding `specs/044-multi-agent-orchestration/spec.md` to the diff (even a
-one-character change) clears the violation. The intent is friction in the
-right place, not coercive scale.
+Adding any one of the listed claimants' `spec.md` to the diff clears
+the violation. The intent is friction in the right place — some owner
+must review — not coercive scale across every claimant.
+
+## Amendment record
+
+**Amendment 2026-05-02 (record: 130-spec-coupling-primary-owner).**
+The original FR-003 required *every* claimant of a diff path to have
+its `spec.md` in the same diff. Real-corpus exercise during spec 129's
+demo step revealed cascade behaviour: `crates/orchestrator` is claimed
+by 12 specs, so a single-file change to that crate would have demanded
+12 cosmetic spec amendments. The current FR-003 wording captures the
+post-amendment rule (any one claimant's edit covers the path); spec
+130 documents the rationale, the alternate paths considered (refining
+`implements:` declarations; adding explicit `primary: true` flags),
+and OQ-1 noting when an explicit-primary mechanism would replace the
+heuristic. The renderer also changes shape: violation blocks are
+path-centric (not per-spec), and every claimant is named so reviewers
+can sanity-check that the right one was edited.
