@@ -40,6 +40,14 @@ export type ServerEnvelopeWithoutMeta = DistributiveOmit<ServerEnvelope, "meta">
 import { isClientEnvelope } from "./types";
 import * as registry from "./registry";
 import { inbox, outbox, cursors } from "./store";
+import {
+  handleStageStarted,
+  handleStageCompleted,
+  handleRunCompleted,
+  handleRunFailed,
+  handleRunCancelled,
+  type RunHandlerResult,
+} from "../factory/runDuplexHandlers";
 
 // ---------------------------------------------------------------------------
 // Inbound path
@@ -94,6 +102,20 @@ export async function handleInbound(
     // mismatched session.
     const served = await serveAgentCatalogFetch(ctx, evt.agentId);
     return served;
+  }
+
+  // Spec 124 §6 — `factory.run.*` lifecycle envelopes mutate a
+  // `factory_runs` row. Dispatch goes through `runDuplexHandlers`; each
+  // handler enforces org ownership and is idempotent on
+  // (run_id, stage_id, status).
+  if (
+    evt.kind === "factory.run.stage_started" ||
+    evt.kind === "factory.run.stage_completed" ||
+    evt.kind === "factory.run.completed" ||
+    evt.kind === "factory.run.failed" ||
+    evt.kind === "factory.run.cancelled"
+  ) {
+    return runDispatch(ctx, evt);
   }
 
   // For all other kinds, persist + log + audit where appropriate.
@@ -300,6 +322,81 @@ async function serveAgentCatalogFetch(
     updatedAt: row.updatedAt.toISOString(),
   };
   await sendTargetedServerEvent(ctx.orgId, ctx.clientId, event);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Spec 124 §6 — factory.run.* dispatch
+// ---------------------------------------------------------------------------
+
+async function runDispatch(
+  ctx: InboundContext,
+  evt: ClientEnvelope,
+): Promise<InboundResult> {
+  let result: RunHandlerResult;
+  try {
+    switch (evt.kind) {
+      case "factory.run.stage_started":
+        result = await handleStageStarted(evt, {
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+        });
+        break;
+      case "factory.run.stage_completed":
+        result = await handleStageCompleted(evt, {
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+        });
+        break;
+      case "factory.run.completed":
+        result = await handleRunCompleted(evt, {
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+        });
+        break;
+      case "factory.run.failed":
+        result = await handleRunFailed(evt, {
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+        });
+        break;
+      case "factory.run.cancelled":
+        result = await handleRunCancelled(evt, {
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+        });
+        break;
+      default:
+        // The kind-narrowing in `handleInbound` makes this unreachable.
+        return { ok: false, reason: "invalid", detail: "unknown run event" };
+    }
+  } catch (err) {
+    log.error("sync: factory.run handler failed", {
+      orgId: ctx.orgId,
+      clientId: ctx.clientId,
+      kind: evt.kind,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, reason: "internal_error" };
+  }
+
+  if (!result.ok) {
+    log.warn("sync: factory.run handler rejected", {
+      orgId: ctx.orgId,
+      clientId: ctx.clientId,
+      kind: evt.kind,
+      reason: result.reason,
+      detail: result.detail,
+    });
+    return result;
+  }
+
+  log.info("sync: factory.run handler accepted", {
+    orgId: ctx.orgId,
+    clientId: ctx.clientId,
+    kind: evt.kind,
+    eventId: evt.meta.eventId,
+  });
   return { ok: true };
 }
 

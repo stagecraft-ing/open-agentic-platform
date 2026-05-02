@@ -282,3 +282,104 @@ export async function getFactoryProcess(request: Request, name: string) {
     `/api/factory/processes/${encodeURIComponent(name)}`
   ) as Promise<FactoryProcessDetail>;
 }
+
+// ---------------------------------------------------------------------------
+// Spec 124 — factory runs (list + detail).
+// ---------------------------------------------------------------------------
+//
+// The reservation POST is desktop-only; the web UI consumes only the read
+// endpoints. Wire shapes mirror `api/factory/runs.ts` exactly — keep field
+// names in sync (FactoryAgentRef triple is acceptance gate A-9 / T088).
+
+export type FactoryRunStatus =
+  | "queued"
+  | "running"
+  | "ok"
+  | "failed"
+  | "cancelled";
+
+export type FactoryAgentRef = {
+  orgAgentId: string;
+  version: number;
+  contentHash: string;
+};
+
+export type FactoryRunStageProgressEntry = {
+  stage_id: string;
+  status: "running" | "ok" | "failed" | "skipped";
+  started_at: string;
+  completed_at?: string | null;
+  agent_ref?: FactoryAgentRef | null;
+  error?: string | null;
+};
+
+export type FactoryRunSourceShas = {
+  adapter: string;
+  process: string;
+  contracts: Record<string, string>;
+  agents: FactoryAgentRef[];
+};
+
+export type FactoryRunTokenSpend = {
+  input: number;
+  output: number;
+  total: number;
+};
+
+export type FactoryRunSummary = {
+  id: string;
+  orgId: string;
+  projectId: string | null;
+  triggeredBy: string;
+  adapterId: string;
+  processId: string;
+  clientRunId: string;
+  status: FactoryRunStatus;
+  startedAt: string;
+  completedAt: string | null;
+  lastEventAt: string;
+  error: string | null;
+};
+
+export type FactoryRunDetail = FactoryRunSummary & {
+  stageProgress: FactoryRunStageProgressEntry[];
+  sourceShas: FactoryRunSourceShas;
+  tokenSpend: FactoryRunTokenSpend | null;
+};
+
+export type ListFactoryRunsResponse = {
+  runs: FactoryRunSummary[];
+  nextCursor?: string;
+};
+
+export type ListFactoryRunsQuery = {
+  status?: FactoryRunStatus;
+  adapter?: string;
+  limit?: number;
+  /** ISO-8601 cursor — rows with `started_at < before`. */
+  before?: string;
+};
+
+export async function listFactoryRuns(
+  request: Request,
+  query: ListFactoryRunsQuery = {}
+): Promise<ListFactoryRunsResponse> {
+  const params = new URLSearchParams();
+  if (query.status) params.set("status", query.status);
+  if (query.adapter) params.set("adapter", query.adapter);
+  if (query.limit !== undefined) params.set("limit", String(query.limit));
+  if (query.before) params.set("before", query.before);
+  const qs = params.toString();
+  const path = qs ? `/api/factory/runs?${qs}` : "/api/factory/runs";
+  return apiFetch(request, path) as Promise<ListFactoryRunsResponse>;
+}
+
+export async function getFactoryRun(
+  request: Request,
+  id: string
+): Promise<FactoryRunDetail> {
+  return apiFetch(
+    request,
+    `/api/factory/runs/${encodeURIComponent(id)}`
+  ) as Promise<FactoryRunDetail>;
+}

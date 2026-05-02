@@ -24,6 +24,9 @@ export default [
     route("factory", "routes/app.factory.tsx", [
       index("routes/app.factory._index.tsx"),
       route("upstreams", "routes/app.factory.upstreams.tsx"),
+      // Spec 124 §7 — Runs tab + run-detail.
+      route("runs", "routes/app.factory.runs._index.tsx"),
+      route("runs/:runId", "routes/app.factory.runs.$runId.tsx"),
       route("adapters", "routes/app.factory.adapters.tsx"),
       route("contracts", "routes/app.factory.contracts.tsx"),
       route("processes", "routes/app.factory.processes.tsx"),

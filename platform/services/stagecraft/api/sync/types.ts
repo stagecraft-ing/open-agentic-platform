@@ -73,6 +73,40 @@ export const PROJECT_AGENT_BINDING_ENVELOPE_VERSION = 1 as const;
 export type ProjectAgentBindingEnvelopeVersion =
   typeof PROJECT_AGENT_BINDING_ENVELOPE_VERSION;
 
+/**
+ * Spec 124 §6.1 — per-event-kind contract version for the `factory.run.*`
+ * envelope family (stage_started, stage_completed, completed, failed,
+ * cancelled). Independent of the protocol-wide `ENVELOPE_SCHEMA_VERSION` and
+ * the spec-123 catalog/binding versions; the desktop mirror constant in
+ * `apps/desktop/src-tauri/src/commands/sync_client.rs` MUST equal this value
+ * — a mismatch surfaces as a Rust build error before any wire skew is
+ * possible.
+ */
+export const FACTORY_RUN_ENVELOPE_VERSION = 1 as const;
+export type FactoryRunEnvelopeVersion = typeof FACTORY_RUN_ENVELOPE_VERSION;
+
+/**
+ * Spec 124 §3 — projection of spec-123 `ResolvedAgent` (carried inline in
+ * `factory.run.stage_started` envelopes and persisted under
+ * `factory_runs.source_shas.agents[]`). Field names MUST stay aligned with
+ * `crates/factory-engine/src/agent_resolver.rs::ResolvedAgent` — the spec
+ * 124 acceptance criterion A-9 grep gate (T088) and the spec 122 Stage CD
+ * comparator both depend on the `(orgAgentId, version, contentHash)` triple.
+ *
+ * Wire convention: camelCase on the duplex envelope (matches the rest of
+ * the `ClientEnvelopeWire` shape). The DB column `factory_runs.source_shas`
+ * stores the snake_case form `{ org_agent_id, version, content_hash }` per
+ * spec §3 — the platform-side reservation/handler converts on persist.
+ */
+export interface FactoryAgentRef {
+  /** spec 123 `agent_catalog.id` — stable across versions per (org, name). */
+  orgAgentId: string;
+  /** Monotonic version on the catalog row. */
+  version: number;
+  /** sha-256 content hash from the catalog row at resolve time. */
+  contentHash: string;
+}
+
 export interface EnvelopeMeta {
   /** Schema version — required; strict equality enforced at the boundary. */
   v: EnvelopeSchemaVersion;
@@ -109,6 +143,11 @@ export type ClientEnvelope =
   | ClientAgentInvocation
   | ClientAuditCandidate
   | ClientFactoryRunAck
+  | ClientFactoryRunStageStarted
+  | ClientFactoryRunStageCompleted
+  | ClientFactoryRunCompleted
+  | ClientFactoryRunFailed
+  | ClientFactoryRunCancelled
   | ClientAgentCatalogFetchRequest
   | ClientAck
   | ClientResyncRequest
@@ -205,6 +244,106 @@ export interface ClientFactoryRunAck {
   declineReason?: string;
   /** ISO-8601 timestamp of the observation. */
   observedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Spec 124 §6.1 — factory.run.* lifecycle envelopes
+// ---------------------------------------------------------------------------
+//
+// OPC reserves a run via `POST /api/factory/runs` (spec 124 §4) and emits
+// these envelopes over the duplex bus as the run progresses. The platform
+// handler is idempotent on (run_id, stage_id, status) so at-least-once
+// duplex delivery is safe (spec 124 §6).
+//
+// Authority invariant: these envelopes mutate `factory_runs` rows that
+// belong to the caller's org; the handler enforces `org_id` match against
+// the duplex session's authenticated identity (spec 124 §3).
+
+/**
+ * Spec 124 §6.1 — desktop announces a stage has started executing. The
+ * platform handler appends a `{stage_id, status: "running", started_at,
+ * agent_ref}` entry to `factory_runs.stage_progress` and flips the row's
+ * `status` to `running` if it was `queued`.
+ */
+export interface ClientFactoryRunStageStarted {
+  kind: "factory.run.stage_started";
+  meta: EnvelopeMeta;
+  /** `factory_runs.id` returned from the reservation POST (§4). */
+  runId: string;
+  /** Stage identifier (e.g. `s0`, `s1`, `s6a`). Free-form within the run. */
+  stageId: string;
+  /** Projection of spec-123 ResolvedAgent for the agent driving this stage.
+   *  Persisted under `factory_runs.source_shas.agents[]`. */
+  agentRef: FactoryAgentRef;
+  /** ISO-8601 wall-clock from the desktop. */
+  startedAt: string;
+}
+
+/**
+ * Spec 124 §6.1 — desktop announces a stage has finished. The handler
+ * updates the matching `stage_progress` entry's `status` and `completedAt`.
+ * Out-of-order delivery (completed before started) is tolerated — the
+ * handler synthesises an entry rather than fail (spec 124 T032).
+ */
+export interface ClientFactoryRunStageCompleted {
+  kind: "factory.run.stage_completed";
+  meta: EnvelopeMeta;
+  runId: string;
+  stageId: string;
+  /** Per-stage outcome — distinct from the run's terminal status. Named
+   *  `stageOutcome` (not `outcome`) so the flat `ClientEnvelopeWire` union
+   *  can keep the existing `agent.invocation.outcome` value set without
+   *  widening it. */
+  stageOutcome: "ok" | "failed" | "skipped";
+  /** Optional error string when `stageOutcome === "failed"`. */
+  error?: string;
+  /** ISO-8601 of stage completion. */
+  completedAt: string;
+}
+
+/**
+ * Spec 124 §4 / §6.1 — terminal success. Sets the row's `status = 'ok'`,
+ * `completed_at`, and `token_spend` (rolled-up totals across stages).
+ */
+export interface ClientFactoryRunCompleted {
+  kind: "factory.run.completed";
+  meta: EnvelopeMeta;
+  runId: string;
+  /** Per-stage rolled-up token usage. Shape mirrors the in-tree
+   *  `factory_runs.token_spend` JSONB (`{ input, output, total }`). */
+  tokenSpend: {
+    input: number;
+    output: number;
+    total: number;
+  };
+  completedAt: string;
+}
+
+/**
+ * Spec 124 §4 / §6.1 — terminal failure. Sets `status = 'failed'`,
+ * `completed_at`, `error`. Partial `stage_progress` is preserved by the
+ * handler — the failure does not overwrite the per-stage trail.
+ */
+export interface ClientFactoryRunFailed {
+  kind: "factory.run.failed";
+  meta: EnvelopeMeta;
+  runId: string;
+  /** Free-form error message; surfaced verbatim in the run-detail UI. */
+  error: string;
+  completedAt: string;
+}
+
+/**
+ * Spec 124 §4 / §6.1 — user-initiated cancellation. Same shape as failed
+ * but no `error` is required.
+ */
+export interface ClientFactoryRunCancelled {
+  kind: "factory.run.cancelled";
+  meta: EnvelopeMeta;
+  runId: string;
+  /** Optional reason recorded in audit; not required by spec. */
+  reason?: string;
+  completedAt: string;
 }
 
 /**
@@ -629,6 +768,11 @@ export interface ClientEnvelopeWire {
     | "agent.invocation"
     | "audit.candidate"
     | "factory.run.ack"
+    | "factory.run.stage_started"
+    | "factory.run.stage_completed"
+    | "factory.run.completed"
+    | "factory.run.failed"
+    | "factory.run.cancelled"
     | "agent.catalog.fetch_request"
     | "sync.ack"
     | "sync.resync_request"
@@ -672,6 +816,24 @@ export interface ClientEnvelopeWire {
   accepted?: boolean;
   declineReason?: string;
   observedAt?: string;
+  // spec 124 §6.1 — factory.run.* lifecycle fields. `runId`, `stageId`,
+  // `agentRef`, `startedAt`, `completedAt`, `stageOutcome`, `error`,
+  // `tokenSpend` are populated only on the relevant kinds; the wire shape
+  // is a fat optional union per the existing convention. `stageOutcome` is
+  // distinct from `outcome` (used by agent.invocation) — both coexist on
+  // the wire.
+  runId?: string;
+  stageId?: string;
+  agentRef?: FactoryAgentRef;
+  startedAt?: string;
+  completedAt?: string;
+  stageOutcome?: "ok" | "failed" | "skipped";
+  error?: string;
+  tokenSpend?: {
+    input: number;
+    output: number;
+    total: number;
+  };
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -800,6 +962,11 @@ const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind
   "agent.invocation",
   "audit.candidate",
   "factory.run.ack",
+  "factory.run.stage_started",
+  "factory.run.stage_completed",
+  "factory.run.completed",
+  "factory.run.failed",
+  "factory.run.cancelled",
   "agent.catalog.fetch_request",
   "sync.ack",
   "sync.resync_request",

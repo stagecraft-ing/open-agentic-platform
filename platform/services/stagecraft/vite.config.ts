@@ -45,6 +45,23 @@ export default defineConfig({
   test: {
     // Integration tests that require Encore service infrastructure
     // (databases, service-to-service calls) must run via `encore test`.
-    exclude: ["**/node_modules/**", "**/dist/**", "**/check.test.ts"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/check.test.ts",
+      // Spec 124 — factory_runs migration assertions hit the live db
+      // client and exercise FK/CHECK semantics that require Postgres.
+      "**/runsMigration.test.ts",
+      // Spec 124 — /api/factory/runs reservation/list/detail integration
+      // tests touch agent_catalog + project_agent_bindings + factory_*
+      // tables; they run under `encore test`.
+      "**/factory/runs.test.ts",
+      // Spec 124 — duplex handler integration tests mutate `factory_runs`
+      // and `audit_log` rows; gated to `encore test` for the live DB.
+      "**/factory/runDuplexHandlers.test.ts",
+      // Spec 124 — runs staleness sweeper tests mutate `factory_runs`
+      // and emit audit rows; same DB-bound posture as the others.
+      "**/factory/runsScheduler.test.ts",
+    ],
   },
 });

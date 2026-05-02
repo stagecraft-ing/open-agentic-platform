@@ -93,6 +93,7 @@ provider-registry = { path = "../../../crates/provider-registry", default-featur
 policy-kernel = { package = "open_agentic_policy_kernel", path = "../../../crates/policy-kernel", default-features = false }
 factory-engine = { path = "../../../crates/factory-engine" }
 factory-contracts = { path = "../../../crates/factory-contracts" }
+factory-platform-client = { path = "../../../crates/factory-platform-client" }
 factory-project-detect = { path = "../../../crates/factory-project-detect" }
 provenance-validator = { path = "../../../crates/provenance-validator" }
 

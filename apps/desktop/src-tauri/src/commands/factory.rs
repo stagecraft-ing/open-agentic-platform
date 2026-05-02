@@ -16,11 +16,22 @@ use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
+use super::factory_platform::{
+    platform_context, prepare_run_root, FactoryError, RunEmitter,
+};
 use super::keychain::clone_token_load;
 use super::stagecraft_client::{StagecraftClient, StagecraftState};
 use super::sync_client::{
-    FnHandler, KnowledgeBundle as WireKnowledgeBundle, ServerEnvelopeWire, SyncClientState,
+    FactoryAgentRef, FactoryRunTokenSpend, FactoryStageOutcome, FnHandler,
+    KnowledgeBundle as WireKnowledgeBundle, ServerEnvelopeWire, SyncClientState,
 };
+
+/// Default process name used when a Tauri caller does not specify one.
+/// Spec 124 §4 makes `processName` required at the platform boundary; the
+/// in-tree process body before spec 108 §8 was a single, unnamed
+/// definition — keeping a documented default keeps the desktop UX
+/// uncluttered until Phase 7 surfaces a process picker.
+const DEFAULT_PROCESS_NAME: &str = "factory";
 
 /// Spec 112 §6.4.5 — load the project's clone token from the OS
 /// keychain and surface it as `{ GITHUB_TOKEN: <value> }` for the
@@ -62,11 +73,41 @@ fn clone_token_env_for_project(project_id: Option<&str>) -> HashMap<String, Stri
 struct TauriStepEventHandler {
     app: AppHandle,
     run_id: String,
+    /// Spec 124 §6 — duplex emitter shared with the run context. `None`
+    /// for runs that never reserved a platform row (legacy code paths
+    /// kept for tests). Production runs always have an emitter.
+    emitter: Option<RunEmitter>,
+    /// Spec 124 §6.1 — per-stage agent triple captured at reservation
+    /// time. Looked up by `step_id` when emitting `factory.run.stage_started`.
+    /// Stages without an entry emit a placeholder so the platform
+    /// handler still sees a valid envelope.
+    stage_agents: Arc<HashMap<String, FactoryAgentRef>>,
 }
 
 impl TauriStepEventHandler {
-    fn new(app: AppHandle, run_id: String) -> Self {
-        Self { app, run_id }
+    fn new(
+        app: AppHandle,
+        run_id: String,
+        emitter: Option<RunEmitter>,
+        stage_agents: Arc<HashMap<String, FactoryAgentRef>>,
+    ) -> Self {
+        Self {
+            app,
+            run_id,
+            emitter,
+            stage_agents,
+        }
+    }
+
+    fn agent_ref_for_step(&self, step_id: &str) -> FactoryAgentRef {
+        self.stage_agents
+            .get(step_id)
+            .cloned()
+            .unwrap_or_else(|| FactoryAgentRef {
+                org_agent_id: String::new(),
+                version: 0,
+                content_hash: String::new(),
+            })
     }
 }
 
@@ -81,6 +122,18 @@ impl StepEventHandler for TauriStepEventHandler {
                         "stepId": step_id,
                     }),
                 );
+                if let Some(emitter) = &self.emitter {
+                    let emitter = emitter.clone();
+                    let agent_ref = self.agent_ref_for_step(&step_id);
+                    let stage_id = step_id.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = emitter.stage_started(&stage_id, agent_ref).await {
+                            log::warn!(
+                                "factory.run.stage_started emit failed for {stage_id}: {e}"
+                            );
+                        }
+                    });
+                }
             }
             StepEvent::AgentOutput { step_id, line } => {
                 let _ = self.app.emit(
@@ -105,6 +158,20 @@ impl StepEventHandler for TauriStepEventHandler {
                         "artifacts": Vec::<String>::new(),
                     }),
                 );
+                if let Some(emitter) = &self.emitter {
+                    let emitter = emitter.clone();
+                    let stage_id = step_id.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = emitter
+                            .stage_completed(&stage_id, FactoryStageOutcome::Ok, None)
+                            .await
+                        {
+                            log::warn!(
+                                "factory.run.stage_completed emit failed for {stage_id}: {e}"
+                            );
+                        }
+                    });
+                }
             }
             StepEvent::StepFailed { step_id, error } => {
                 let _ = self.app.emit(
@@ -115,6 +182,25 @@ impl StepEventHandler for TauriStepEventHandler {
                         "error": error,
                     }),
                 );
+                if let Some(emitter) = &self.emitter {
+                    let emitter = emitter.clone();
+                    let stage_id = step_id.clone();
+                    let err_msg = error.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = emitter
+                            .stage_completed(
+                                &stage_id,
+                                FactoryStageOutcome::Failed,
+                                Some(err_msg),
+                            )
+                            .await
+                        {
+                            log::warn!(
+                                "factory.run.stage_completed(failed) emit failed for {stage_id}: {e}"
+                            );
+                        }
+                    });
+                }
             }
         }
     }
@@ -349,6 +435,11 @@ struct FactoryRunContext {
     /// runs. Surfaces back on `factory.run.ack` and on every `execution.status`
     /// the run emits.
     session_id: String,
+    /// Spec 124 §3 — platform-issued `factory_runs.id`. The desktop emits
+    /// every `factory.run.*` envelope keyed by this value.
+    platform_run_id: String,
+    /// Spec 124 §6 — duplex emitter shared with the step-event handler.
+    emitter: RunEmitter,
 }
 
 #[derive(Clone, Debug)]
@@ -596,107 +687,47 @@ fn mime_from_ext(name: &str) -> &'static str {
     }
 }
 
-/// Locate a factory/ directory by walking up from the project path or CWD.
-///
-/// TODO(spec-108-§7-punt): Spec 108 retired the in-tree `factory/` directory
-/// and made the platform's `factory_adapters` / `factory_contracts` /
-/// `factory_processes` tables authoritative. Migrating this command path to
-/// fetch those definitions from `/api/factory/*` (and cache them locally for
-/// the run) is out of scope for spec 108 and tracked as a follow-up. Until
-/// that lands, OPC factory runs require the developer to keep a checkout of
-/// the upstream factory repo on disk and either run from a directory that
-/// contains it, or pass an explicit `--factory-root` to the standalone
-/// `factory_run` binary. See `specs/108-factory-as-platform-feature/spec.md`
-/// §7 for the full punt note.
-fn resolve_factory_root() -> Result<PathBuf, String> {
-    // First try relative to the repo root (common case for in-repo dev).
-    let candidates = [
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .join("factory"),
-        PathBuf::from("factory"),
-    ];
-    for candidate in &candidates {
-        if let Ok(p) = candidate.canonicalize()
-            && p.join("adapters").is_dir()
-        {
-            return Ok(p);
-        }
+/// Spec 124 §6 — emit a terminal `factory.run.failed` envelope. Errors
+/// are logged but never propagated; the duplex emitter spools to disk
+/// when the stream is disconnected (T053).
+async fn emit_terminal_failed(ctx: &FactoryRunContext, error: &str) {
+    if let Err(e) = ctx.emitter.failed(error.to_string()).await {
+        log::warn!(
+            "factory.run.failed emit/spool failed for run {}: {e}",
+            ctx.platform_run_id
+        );
     }
-    Err(
-        "factory directory not found. Spec 108 §7 follow-up: this command \
-         currently expects a local factory checkout containing adapters/. \
-         Provide one (or wait for the platform-API fetch migration)."
-            .into(),
-    )
 }
 
-/// Persist the run-level summary (`state.json`) used by `list_factory_runs`
-/// to surface the run in Pipeline History. Called at run start, on phase
-/// transitions, and on terminal success/failure so a partial run does not
-/// disappear from history. Errors are intentionally swallowed — disk
-/// persistence is best-effort and must never poison the in-memory dispatch.
-fn persist_run_state(ctx: &FactoryRunContext, phase: &str) {
-    let started_at = ctx
-        .audit_trail
-        .lock()
-        .ok()
-        .and_then(|trail| trail.first().map(|e| e.timestamp.clone()))
-        .unwrap_or_else(now_iso);
-    let total_tokens = ctx
-        .pipeline_state
-        .lock()
-        .map(|ps| ps.total_tokens)
-        .unwrap_or(0);
-    let completed_at = if phase == "complete" || phase == "failed" {
-        Some(now_iso())
-    } else {
-        None
+/// Spec 124 §6 — emit a terminal `factory.run.completed` envelope with
+/// the final token-spend rollup.
+async fn emit_terminal_completed(ctx: &FactoryRunContext, total_tokens: u64) {
+    // Pre-rollup the per-stage observations into the wire shape. The
+    // platform handler stores `{input, output, total}`; the desktop's
+    // orchestrator currently exposes a single combined count, so we
+    // split evenly between input and output. The platform UI surfaces
+    // the total as the headline number; the split is informational.
+    let half = total_tokens / 2;
+    let token_spend = FactoryRunTokenSpend {
+        input: half,
+        output: total_tokens - half,
+        total: total_tokens,
     };
-    // Snapshot stage progress so the history view can render "N/6 — Last
-    // stage" without re-walking disk. `stage_status` is the authoritative
-    // tracker for completed stages while the run is live; the disk fallback
-    // (`list_factory_runs` for runs without state.json) recomputes from
-    // artifact presence.
-    let (stages_completed, last_completed_stage) = {
-        let trackers = ctx.stage_status.lock().ok();
-        let mut completed = 0u32;
-        let mut last: Option<String> = None;
-        if let Some(trackers) = trackers {
-            for (id, name) in PROCESS_STAGES {
-                if let Some(t) = trackers.get(*id)
-                    && t.status == "completed"
-                {
-                    completed += 1;
-                    last = Some(name.to_string());
-                }
-            }
-        }
-        (completed, last)
-    };
-    let summary = PipelineRunSummary {
-        run_id: ctx.run_id.to_string(),
-        adapter: ctx.adapter_name.clone(),
-        project_path: ctx.project_path.to_string_lossy().into(),
-        started_at,
-        completed_at,
-        phase: phase.to_string(),
-        total_tokens,
-        stages_completed,
-        stages_total: PROCESS_STAGES.len() as u32,
-        last_completed_stage,
-    };
-    let dir = ctx
-        .project_path
-        .join(".factory")
-        .join("runs")
-        .join(ctx.run_id.to_string());
-    if std::fs::create_dir_all(&dir).is_err() {
-        return;
+    if let Err(e) = ctx.emitter.completed(token_spend).await {
+        log::warn!(
+            "factory.run.completed emit/spool failed for run {}: {e}",
+            ctx.platform_run_id
+        );
     }
-    let path = dir.join("state.json");
-    if let Ok(json) = serde_json::to_string_pretty(&summary) {
-        let _ = std::fs::write(&path, json);
+}
+
+/// Spec 124 §6 — emit a terminal `factory.run.cancelled` envelope.
+async fn emit_terminal_cancelled(ctx: &FactoryRunContext, reason: Option<String>) {
+    if let Err(e) = ctx.emitter.cancelled(reason).await {
+        log::warn!(
+            "factory.run.cancelled emit/spool failed for run {}: {e}",
+            ctx.platform_run_id
+        );
     }
 }
 
@@ -832,11 +863,14 @@ pub async fn start_factory_pipeline(
     app: AppHandle,
     project_path: String,
     adapter_name: String,
+    process_name: Option<String>,
     business_doc_paths: Vec<String>,
     stagecraft_project_id: Option<String>,
     session_id: Option<String>,
 ) -> Result<StartPipelineResponse, String> {
-    let factory_root = resolve_factory_root()?;
+    let process_name = process_name
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_PROCESS_NAME.to_string());
     let project_path = PathBuf::from(&project_path);
     let doc_paths: Vec<PathBuf> = business_doc_paths.iter().map(PathBuf::from).collect();
 
@@ -847,7 +881,23 @@ pub async fn start_factory_pipeline(
         .canonicalize()
         .map_err(|e| format!("resolve project path failed: {e}"))?;
 
-    // Build engine and start pipeline.
+    // Spec 124 §5/§6 — replace the spec-108 in-tree walk with a platform
+    // reservation + content-addressed materialisation. `prepared.run_id`
+    // is the platform-issued `factory_runs.id`; all subsequent
+    // `factory.run.*` envelopes are keyed by it.
+    let ctx_pf = platform_context(&app).map_err(FactoryError::into_user_message)?;
+    let prepared = prepare_run_root(
+        &ctx_pf,
+        &adapter_name,
+        &process_name,
+        stagecraft_project_id.as_deref(),
+    )
+    .await
+    .map_err(FactoryError::into_user_message)?;
+    let factory_root = prepared.engine_factory_root.clone();
+    let platform_run_id = prepared.run_id.clone();
+
+    // Build engine and start pipeline against the materialised cache.
     let config = FactoryEngineConfig {
         factory_root: factory_root.clone(),
         project_path: project_path.clone(),
@@ -856,11 +906,7 @@ pub async fn start_factory_pipeline(
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
 
-    // Get org/project id from StagecraftClient (set by set_active_workspace) — spec 092.
-    let org_id: Option<String> = app
-        .try_state::<StagecraftState>()
-        .and_then(|s| s.current().map(|c| c.org_id()))
-        .filter(|s| !s.is_empty());
+    let org_id: Option<String> = Some(ctx_pf.org_id.clone());
 
     let start = engine
         .start_pipeline(&adapter_name, &doc_paths, org_id.clone())
@@ -869,7 +915,11 @@ pub async fn start_factory_pipeline(
     let run_id = start.run_id;
     let run_id_str = run_id.to_string();
 
-    // Set up artifact manager under the project directory.
+    // Set up artifact manager under the project directory. The cache root
+    // (T043) is the platform-fed adapter/process tree; per-run scratch
+    // (artifacts, logs) lives next to the project so the React UI can keep
+    // pointing at it (spec 124 §5 — "Per-run scratch dir is NOT the cache
+    // root").
     let artifact_dir = project_path.join(".factory").join("runs");
     let am = ArtifactManager::new(&artifact_dir);
     materialize_run_directory(&am, run_id, &start.manifest)
@@ -884,8 +934,10 @@ pub async fn start_factory_pipeline(
         action: "pipeline_started".into(),
         stage_id: None,
         details: Some(format!(
-            "adapter={} docs={}",
+            "adapter={} process={} platform_run_id={} docs={}",
             adapter_name,
+            process_name,
+            platform_run_id,
             business_doc_paths.join(",")
         )),
         feedback: None,
@@ -905,6 +957,9 @@ pub async fn start_factory_pipeline(
         );
     }
 
+    let emitter = RunEmitter::new(&app, platform_run_id.clone())
+        .map_err(FactoryError::into_user_message)?;
+
     let ctx = Arc::new(FactoryRunContext {
         run_id,
         gate_handler: gate_handler.clone(),
@@ -922,6 +977,8 @@ pub async fn start_factory_pipeline(
         session_id: session_id
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| Uuid::new_v4().to_string()),
+        platform_run_id: platform_run_id.clone(),
+        emitter: emitter.clone(),
     });
 
     FACTORY_RUNS
@@ -929,10 +986,11 @@ pub async fn start_factory_pipeline(
         .map_err(|e| e.to_string())?
         .insert(run_id_str.clone(), ctx.clone());
 
-    // Persist an initial state.json so the run shows up in Pipeline History
-    // even before Phase 1 finishes. Updated on phase transitions and on
-    // terminal success/failure inside the dispatch task.
-    persist_run_state(&ctx, "process");
+    // Spec 124 §6 — the platform row is born `queued` at reservation time;
+    // the first stage_started envelope flips it to `running`. All
+    // lifecycle/state-of-the-run updates flow over the duplex bus from
+    // here on; no on-disk state.json is written.
+    let _ = platform_run_id;
 
     // Dual-write: register pipeline with Stagecraft (fire-and-forget).
     if let Some(sc_project_id) = &stagecraft_project_id {
@@ -989,6 +1047,17 @@ pub async fn start_factory_pipeline(
         .as_ref()
         .and_then(|_| app.try_state::<StagecraftState>())
         .and_then(|s| s.current());
+    // Spec 124 §6.1 — per-stage agent triple captured at reservation time
+    // is stamped onto every `factory.run.stage_started` envelope by the
+    // step-event handler.
+    let stage_agents: Arc<HashMap<String, FactoryAgentRef>> = Arc::new(
+        prepared
+            .stage_agents
+            .iter()
+            .cloned()
+            .collect::<HashMap<_, _>>(),
+    );
+    let emitter_for_spawn = ctx.emitter.clone();
 
     // Derive governance mode once for the entire pipeline (098 Slice 2).
     let grants_json = crate::governed_claude::grants_json_claude_default();
@@ -1031,6 +1100,8 @@ pub async fn start_factory_pipeline(
         let step_event_handler: Arc<dyn StepEventHandler> = Arc::new(TauriStepEventHandler::new(
             app_handle.clone(),
             run_id.to_string(),
+            Some(emitter_for_spawn.clone()),
+            stage_agents.clone(),
         ));
         let executor = Arc::new(
             ClaudeCodeExecutor::new(project_path.clone())
@@ -1071,7 +1142,7 @@ pub async fn start_factory_pipeline(
             Err(e) => {
                 log::error!("factory phase 1 dispatch failed for run {run_id}: {e}");
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
-                persist_run_state(&ctx_for_spawn, "failed");
+                emit_terminal_failed(&ctx_for_spawn, &e.to_string()).await;
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                     sc_update_status(
                         &sc,
@@ -1118,7 +1189,6 @@ pub async fn start_factory_pipeline(
             let phase1_tokens: u64 = summary1.steps.iter().filter_map(|s| s.tokens_used).sum();
             ps.add_tokens(phase1_tokens);
         }
-        persist_run_state(&ctx_for_spawn, "scaffolding");
 
         app_handle
             .emit(
@@ -1169,6 +1239,7 @@ pub async fn start_factory_pipeline(
             ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
             let err_msg = format!("Build Spec not found at {}", build_spec_path.display());
             log::error!("factory transition failed for run {run_id}: {err_msg}");
+            emit_terminal_failed(&ctx_for_spawn, &err_msg).await;
             if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                 sc_update_status(
                     &sc,
@@ -1193,44 +1264,44 @@ pub async fn start_factory_pipeline(
             return;
         }
 
-        let transition = {
+        let transition_result = {
             let mut ps = ctx_for_spawn.pipeline_state.lock().unwrap();
-            match engine.transition_to_scaffolding(
+            engine.transition_to_scaffolding(
                 &adapter_for_spawn,
                 &build_spec_path,
                 &mut ps,
                 None, // org_override
                 org_id.clone(),
-            ) {
-                Ok(t) => t,
-                Err(e) => {
-                    log::error!("factory transition_to_scaffolding failed for run {run_id}: {e}");
-                    ps.mark_failed();
-                    drop(ps);
-                    persist_run_state(&ctx_for_spawn, "failed");
-                    if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
-                        sc_update_status(
-                            &sc,
-                            &pid,
-                            &plid,
-                            "failed",
-                            None,
-                            Some(&e.to_string()),
-                            Some("transition"),
-                        );
-                    }
-                    app_handle
-                        .emit(
-                            "factory:workflow_failed",
-                            &serde_json::json!({
-                                "runId": run_id.to_string(),
-                                "error": e.to_string(),
-                                "phase": "transition",
-                            }),
-                        )
-                        .ok();
-                    return;
+            )
+        };
+        let transition = match transition_result {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("factory transition_to_scaffolding failed for run {run_id}: {e}");
+                ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
+                emit_terminal_failed(&ctx_for_spawn, &e.to_string()).await;
+                if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
+                    sc_update_status(
+                        &sc,
+                        &pid,
+                        &plid,
+                        "failed",
+                        None,
+                        Some(&e.to_string()),
+                        Some("transition"),
+                    );
                 }
+                app_handle
+                    .emit(
+                        "factory:workflow_failed",
+                        &serde_json::json!({
+                            "runId": run_id.to_string(),
+                            "error": e.to_string(),
+                            "phase": "transition",
+                        }),
+                    )
+                    .ok();
+                return;
             }
         };
 
@@ -1263,6 +1334,7 @@ pub async fn start_factory_pipeline(
             ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
             let err_msg = format!("materialize phase 2 failed: {e}");
             log::error!("factory phase 2 materialize failed for run {run_id}: {err_msg}");
+            emit_terminal_failed(&ctx_for_spawn, &err_msg).await;
             if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                 sc_update_status(
                     &sc,
@@ -1313,7 +1385,7 @@ pub async fn start_factory_pipeline(
             Err(e) => {
                 log::error!("factory phase 2 dispatch failed for run {run_id}: {e}");
                 ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
-                persist_run_state(&ctx_for_spawn, "failed");
+                emit_terminal_failed(&ctx_for_spawn, &e.to_string()).await;
                 if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
                     sc_update_status(
                         &sc,
@@ -1362,7 +1434,9 @@ pub async fn start_factory_pipeline(
             ps.mark_complete();
         }
 
-        // Persist final state to disk.
+        // Persist final pipeline state to per-run scratch dir for resume
+        // detection. The cache root (T043) is content-addressed and lives
+        // elsewhere; this file is only consulted by `detect_resume_plan_for_run`.
         let state_path = project_path
             .join(".factory")
             .join("runs")
@@ -1371,13 +1445,17 @@ pub async fn start_factory_pipeline(
         if let Ok(ps) = ctx_for_spawn.pipeline_state.lock() {
             let _ = ps.save_to_file(&state_path);
         }
-
-        // Refresh state.json so list_factory_runs reports the terminal phase
-        // and final token total. `persist_run_state` reads phase + tokens
-        // straight off the run context (uses the started_at preserved in the
-        // audit trail), so the helper deliberately ignores `adapter_for_spawn`.
         let _ = adapter_for_spawn;
-        persist_run_state(&ctx_for_spawn, "complete");
+
+        // Spec 124 §6 — terminal `factory.run.completed`. The platform
+        // handler stamps `status='ok'` and `completed_at`; the desktop is
+        // free of further bookkeeping for this run.
+        let total_tokens = ctx_for_spawn
+            .pipeline_state
+            .lock()
+            .map(|ps| ps.total_tokens)
+            .unwrap_or(0);
+        emit_terminal_completed(&ctx_for_spawn, total_tokens).await;
 
         // Dual-write: report Phase 2 (scaffolding) token spend and scaffold progress to Stagecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
@@ -1460,15 +1538,20 @@ pub async fn start_factory_pipeline(
 ///
 /// Resolution order:
 /// 1. In-memory `FACTORY_RUNS` (live or just-completed run).
-/// 2. Disk fallback — when `project_path` is supplied, reconstruct a status
-///    from `<project_path>/.factory/runs/<run_id>/` so Pipeline History can
-///    hydrate runs that aren't loaded in memory (after restart, or runs
-///    started by a different process).
+/// 2. Platform fallback — `GET /api/factory/runs/:id` (spec 124 §4) when
+///    the run isn't loaded in memory (after an OPC restart, runs
+///    authored by another desktop, etc.). The legacy disk hydration path
+///    (`state.json` walking) is gone: spec 108 §8 retired the in-tree
+///    factory directory and spec 124 §6 makes the platform row the
+///    source of truth for run history.
 #[tauri::command]
 pub async fn get_factory_pipeline_status(
+    app: AppHandle,
     run_id: String,
     project_path: Option<String>,
 ) -> Result<PipelineStatusResponse, String> {
+    let _ = project_path; // Tauri keeps the parameter for backwards compat;
+    // the platform row is now the canonical source.
     {
         let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
         if let Some(ctx) = runs.get(&run_id) {
@@ -1476,130 +1559,82 @@ pub async fn get_factory_pipeline_status(
         }
     }
 
-    if let Some(pp) = project_path
-        && let Some(resp) = build_status_response_from_disk(&run_id, &pp)
-    {
-        return Ok(resp);
+    match build_status_response_from_platform(&app, &run_id).await {
+        Ok(Some(resp)) => Ok(resp),
+        Ok(None) => Err(format!("run not found: {run_id}")),
+        Err(e) => Err(e.into_user_message()),
     }
-
-    Err(format!("run not found: {run_id}"))
 }
 
-/// Reconstruct a PipelineStatusResponse from on-disk artifacts. Used when
-/// the run isn't in `FACTORY_RUNS` — e.g. after an OPC restart, or for runs
-/// authored by a different process. Returns `None` when there isn't enough
-/// state on disk to identify the run.
-fn build_status_response_from_disk(
+/// Spec 124 §4 — fetch a single run from the platform and project it
+/// into the React-facing [`PipelineStatusResponse`]. Returns `Ok(None)`
+/// when the platform reports the row does not exist for this org.
+async fn build_status_response_from_platform(
+    app: &AppHandle,
     run_id: &str,
-    project_path: &str,
-) -> Option<PipelineStatusResponse> {
-    let run_dir = std::path::Path::new(project_path)
-        .join(".factory")
-        .join("runs")
-        .join(run_id);
-    if !run_dir.exists() {
-        return None;
+) -> Result<Option<PipelineStatusResponse>, FactoryError> {
+    let ctx = platform_context(app)?;
+    let row = match ctx.client.get_run(run_id).await {
+        Ok(r) => r,
+        Err(factory_platform_client::FactoryClientError::NotFound(_)) => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
+
+    // Project per-stage progress into the React StageInfo shape. Fill in
+    // the canonical six-stage skeleton so the table renders consistently
+    // even for runs that have only emitted a subset of stages so far.
+    let mut stage_lookup: HashMap<String, &factory_platform_client::wire::RunStageProgressEntry> =
+        HashMap::new();
+    for entry in &row.stage_progress {
+        stage_lookup.insert(entry.stage_id.clone(), entry);
     }
-
-    // Read state.json if available — gives us run-level phase + total tokens.
-    let state_summary: Option<PipelineRunSummary> = std::fs::read_to_string(run_dir.join("state.json"))
-        .ok()
-        .and_then(|t| serde_json::from_str(&t).ok());
-
-    // Read summary.json (orchestrator's RunSummary) for per-step token counts.
-    // Optional — falls back to 0 when missing or malformed.
-    let step_tokens: HashMap<String, u64> = std::fs::read_to_string(run_dir.join("summary.json"))
-        .ok()
-        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-        .and_then(|v| v.get("steps").cloned())
-        .and_then(|steps| steps.as_array().cloned())
-        .map(|arr| {
-            arr.into_iter()
-                .filter_map(|s| {
-                    let id = s.get("step_id")?.as_str()?.to_string();
-                    let tokens = s.get("tokens_used").and_then(|t| t.as_u64()).unwrap_or(0);
-                    Some((id, tokens))
-                })
-                .collect()
-        })
-        .unwrap_or_default();
 
     let stages: Vec<StageInfo> = PROCESS_STAGES
         .iter()
         .map(|(id, name)| {
-            let stage_dir = run_dir.join(id);
-            let mut artifacts: Vec<String> = Vec::new();
-            let mut completed = false;
-            if stage_dir.exists() {
-                if let Ok(entries) = std::fs::read_dir(&stage_dir) {
-                    for entry in entries.flatten() {
-                        if entry.path().is_file()
-                            && let Some(name) = entry.file_name().to_str()
-                        {
-                            artifacts.push(name.to_string());
-                        }
-                    }
-                }
-                completed = !artifacts.is_empty();
-            }
+            let entry = stage_lookup.get(*id);
             StageInfo {
                 id: id.to_string(),
                 name: name.to_string(),
-                status: if completed { "completed".into() } else { "pending".into() },
-                token_spend: step_tokens.get(*id).copied().unwrap_or(0),
-                artifacts,
-                started_at: None,
-                completed_at: None,
+                status: entry
+                    .map(|e| match e.status.as_str() {
+                        "ok" => "completed".to_string(),
+                        s => s.to_string(),
+                    })
+                    .unwrap_or_else(|| "pending".to_string()),
+                token_spend: 0,
+                artifacts: vec![],
+                started_at: entry.map(|e| e.started_at.clone()),
+                completed_at: entry.and_then(|e| e.completed_at.clone()),
             }
         })
         .collect();
 
-    let all_done = stages.iter().all(|s| s.status == "completed");
-    let phase = state_summary
-        .as_ref()
-        .map(|s| {
-            // A `state.json` saying `process` for a run that's not in
-            // FACTORY_RUNS is stale — the dispatch task already exited.
-            // Promote those to `paused` so the UI offers Resume rather than
-            // claiming the run is still ticking.
-            if s.phase == "process" || s.phase == "scaffolding" {
-                "paused".to_string()
-            } else {
-                s.phase.clone()
-            }
-        })
-        .unwrap_or_else(|| {
-            // Infer phase from stage completeness when state.json is absent
-            // (legacy runs predating the early-write helper).
-            if all_done {
-                "complete".to_string()
-            } else {
-                "paused".to_string()
-            }
-        });
-    let total_tokens = state_summary
-        .as_ref()
-        .map(|s| s.total_tokens)
-        .filter(|t| *t > 0)
-        .unwrap_or_else(|| stages.iter().map(|s| s.token_spend).sum());
+    let phase = match row.status.as_str() {
+        "queued" => "process",
+        "running" => "process",
+        "ok" => "complete",
+        "failed" => "failed",
+        "cancelled" => "failed",
+        _ => "paused",
+    }
+    .to_string();
 
-    let adapter = state_summary.as_ref().and_then(|s| {
-        if s.adapter.is_empty() {
-            None
-        } else {
-            Some(s.adapter.clone())
-        }
-    });
+    let total_tokens = row
+        .token_spend
+        .as_ref()
+        .map(|t| t.total.max(0) as u64)
+        .unwrap_or(0);
 
-    Some(PipelineStatusResponse {
-        run_id: run_id.to_string(),
+    Ok(Some(PipelineStatusResponse {
+        run_id: row.id.clone(),
         phase,
         stages,
         scaffolding: None,
         total_tokens,
         audit_trail: vec![],
-        adapter,
-    })
+        adapter: None,
+    }))
 }
 
 /// Confirm a gate stage. Resolves the pending oneshot in TauriGateHandler.
@@ -1710,11 +1745,12 @@ pub async fn cancel_factory_pipeline(
     run_id: String,
     reason: String,
 ) -> Result<(), String> {
-    let sc_project_id = {
+    let (sc_project_id, ctx_for_emit) = {
         let runs = FACTORY_RUNS.lock().map_err(|e| e.to_string())?;
         let ctx = runs
             .get(&run_id)
-            .ok_or_else(|| format!("run not found: {run_id}"))?;
+            .ok_or_else(|| format!("run not found: {run_id}"))?
+            .clone();
 
         // Mark local pipeline as failed/cancelled
         ctx.pipeline_state.lock().unwrap().mark_failed();
@@ -1727,10 +1763,11 @@ pub async fn cancel_factory_pipeline(
             feedback: None,
         });
 
-        persist_run_state(ctx, "failed");
-
-        ctx.stagecraft_project_id.clone()
+        (ctx.stagecraft_project_id.clone(), ctx)
     };
+
+    // Spec 124 §6 — terminal `factory.run.cancelled`.
+    emit_terminal_cancelled(&ctx_for_emit, Some(reason.clone())).await;
 
     app.emit(
         "factory:workflow_cancelled",
@@ -1787,131 +1824,60 @@ fn adapter_from_manifest(manifest_path: &std::path::Path) -> Option<String> {
     None
 }
 
-/// Scan a single run directory for completed-stage progress. A stage is
-/// considered complete when its sub-directory holds at least one regular
-/// file. Matches the heuristic used by `build_status_response_from_disk`
-/// and the orchestrator's resume detector.
-fn scan_disk_progress(run_dir: &std::path::Path) -> (u32, Option<String>) {
-    let mut completed = 0u32;
-    let mut last: Option<String> = None;
-    for (id, name) in PROCESS_STAGES {
-        let sd = run_dir.join(id);
-        if !sd.is_dir() {
-            continue;
-        }
-        let has_output = std::fs::read_dir(&sd)
-            .map(|it| it.flatten().any(|e| e.path().is_file()))
-            .unwrap_or(false);
-        if has_output {
-            completed += 1;
-            last = Some(name.to_string());
-        }
-    }
-    (completed, last)
-}
-
-/// List all Factory pipeline runs under `<project_path>/.factory/runs/`.
+/// Spec 124 §4 / T054 — list Factory runs from the platform.
 ///
-/// Prefers `state.json` (written by the desktop dispatch loop), and falls
-/// back to a `manifest.yaml`-only synthesis so legacy runs and runs that
-/// died before reaching the first state-write still appear in history and
-/// can be selected for resume.
+/// `project_path` is retained on the Tauri signature for backwards
+/// compatibility with React callers, but the local on-disk run cache is
+/// no longer the source of truth for run history (spec 108 §8 retired
+/// the in-tree factory directory; spec 124 §6 made `factory_runs` rows
+/// the canonical record). The platform endpoint scopes results to the
+/// caller's organization automatically.
 #[tauri::command]
-pub async fn list_factory_runs(project_path: String) -> Result<Vec<PipelineRunSummary>, String> {
-    let runs_dir = std::path::Path::new(&project_path)
-        .join(".factory")
-        .join("runs");
+pub async fn list_factory_runs(
+    app: AppHandle,
+    project_path: String,
+) -> Result<Vec<PipelineRunSummary>, String> {
+    let _ = project_path;
 
-    if !runs_dir.exists() {
-        return Ok(vec![]);
-    }
+    let ctx = platform_context(&app).map_err(FactoryError::into_user_message)?;
+    let rows = ctx
+        .client
+        .list_runs()
+        .await
+        .map_err(|e| FactoryError::from(e).into_user_message())?;
 
-    let entries =
-        std::fs::read_dir(&runs_dir).map_err(|e| format!("read .factory/runs failed: {e}"))?;
-
-    let mut summaries = Vec::new();
-    for entry in entries.flatten() {
-        let dir = entry.path();
-        if !dir.is_dir() {
-            continue;
-        }
-        let run_id = match dir.file_name().and_then(|n| n.to_str()) {
-            Some(s) => s.to_string(),
-            None => continue,
-        };
-
-        // Walk stage subdirs once — used both to refine state.json (which
-        // may be stale between phase transitions) and to synthesise the
-        // legacy fallback path below.
-        let (stages_completed, last_completed_stage) = scan_disk_progress(&dir);
-
-        // Primary: state.json from the desktop dispatcher.
-        let state_path = dir.join("state.json");
-        if state_path.exists()
-            && let Ok(text) = std::fs::read_to_string(&state_path)
-            && let Ok(mut summary) = serde_json::from_str::<PipelineRunSummary>(&text)
-        {
-            // Disk truth wins over the snapshot — `state.json` is refreshed
-            // on phase boundaries, but stage outputs land continuously.
-            // Fix-ups also paper over old state.json files that pre-date the
-            // progress fields.
-            summary.stages_total = PROCESS_STAGES.len() as u32;
-            if stages_completed > summary.stages_completed {
-                summary.stages_completed = stages_completed;
+    let stages_total = PROCESS_STAGES.len() as u32;
+    // The list endpoint returns a summary shape without per-stage
+    // progress; the Runs tab table only needs status + timestamps + the
+    // status pill at this granularity. Per-stage progress hydrates when
+    // the user opens the detail drawer (which calls
+    // `get_factory_pipeline_status`).
+    let mut summaries: Vec<PipelineRunSummary> = rows
+        .into_iter()
+        .map(|row| {
+            let phase = match row.status.as_str() {
+                "queued" | "running" => "running",
+                "ok" => "complete",
+                "failed" => "failed",
+                "cancelled" => "failed",
+                _ => "paused",
             }
-            if summary.last_completed_stage.is_none() {
-                summary.last_completed_stage = last_completed_stage.clone();
+            .to_string();
+            let stages_completed = if row.status == "ok" { stages_total } else { 0 };
+            PipelineRunSummary {
+                run_id: row.id,
+                adapter: String::new(),
+                project_path: row.project_id.unwrap_or_default(),
+                started_at: row.started_at,
+                completed_at: row.completed_at,
+                phase,
+                total_tokens: 0,
+                stages_completed,
+                stages_total,
+                last_completed_stage: None,
             }
-            summaries.push(summary);
-            continue;
-        }
-
-        // Fallback: manifest.yaml-only run (no state.json yet, or written by
-        // a non-desktop tool). Build a minimal summary from disk so the run
-        // is still selectable and resumable from Pipeline History.
-        let manifest_path = dir.join("manifest.yaml");
-        if !manifest_path.exists() {
-            continue;
-        }
-
-        let started_at = std::fs::metadata(&manifest_path)
-            .and_then(|m| m.created().or_else(|_| m.modified()))
-            .ok()
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| {
-                chrono::DateTime::<chrono::Utc>::from_timestamp(d.as_secs() as i64, 0)
-                    .unwrap_or_else(chrono::Utc::now)
-                    .format("%Y-%m-%dT%H:%M:%SZ")
-                    .to_string()
-            })
-            .unwrap_or_else(now_iso);
-
-        let stages_total = PROCESS_STAGES.len() as u32;
-        let all_stages_done = stages_completed == stages_total;
-
-        summaries.push(PipelineRunSummary {
-            run_id,
-            // Recover adapter name from the manifest's instruction text so
-            // legacy manifest-only runs are still resumable from history.
-            // Falls back to empty when the manifest is malformed or missing
-            // the adapter line — Resume then surfaces a clear error.
-            adapter: adapter_from_manifest(&manifest_path).unwrap_or_default(),
-            project_path: project_path.clone(),
-            started_at,
-            completed_at: None,
-            // Disk-only runs are not running anywhere — surface as `paused`
-            // so the UI offers Resume and stops claiming the run is active.
-            phase: if all_stages_done {
-                "complete".into()
-            } else {
-                "paused".into()
-            },
-            total_tokens: 0,
-            stages_completed,
-            stages_total,
-            last_completed_stage,
-        });
-    }
+        })
+        .collect();
 
     summaries.sort_by(|a, b| b.started_at.cmp(&a.started_at));
     Ok(summaries)
@@ -2017,16 +1983,22 @@ pub async fn skip_factory_step(
     Ok(())
 }
 
-/// Resume a previously failed pipeline run.
+/// Resume a previously failed pipeline run. Spec 124 §8 declares
+/// re-runs as immutable new rows, so this path reserves a fresh
+/// `factory_runs.id` and emits envelopes against it; the old run's
+/// platform row stays at its terminal status.
 #[tauri::command]
 pub async fn resume_factory_pipeline(
     app: AppHandle,
     run_id: String,
     project_path: String,
     adapter_name: String,
+    process_name: Option<String>,
     stagecraft_project_id: Option<String>,
 ) -> Result<(), String> {
-    let factory_root = resolve_factory_root()?;
+    let process_name = process_name
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_PROCESS_NAME.to_string());
     let project_path = PathBuf::from(&project_path)
         .canonicalize()
         .map_err(|e| format!("resolve project path failed: {e}"))?;
@@ -2052,6 +2024,21 @@ pub async fn resume_factory_pipeline(
         adapter_name
     };
 
+    // Spec 124 §5/§6 — authenticate against stagecraft, reserve a new
+    // platform row for the resumed attempt, and materialise the cache
+    // root from the platform-fed adapter/process bodies.
+    let ctx_pf = platform_context(&app).map_err(FactoryError::into_user_message)?;
+    let prepared = prepare_run_root(
+        &ctx_pf,
+        &adapter_name,
+        &process_name,
+        stagecraft_project_id.as_deref(),
+    )
+    .await
+    .map_err(FactoryError::into_user_message)?;
+    let factory_root = prepared.engine_factory_root.clone();
+    let platform_run_id = prepared.run_id.clone();
+
     let config = FactoryEngineConfig {
         factory_root: factory_root.clone(),
         project_path: project_path.clone(),
@@ -2060,11 +2047,7 @@ pub async fn resume_factory_pipeline(
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
 
-    // Get org/project id from StagecraftClient for resumed pipelines (spec 092).
-    let org_id: Option<String> = app
-        .try_state::<StagecraftState>()
-        .and_then(|s| s.current().map(|c| c.org_id()))
-        .filter(|s| !s.is_empty());
+    let org_id: Option<String> = Some(ctx_pf.org_id.clone());
 
     let start = engine
         .start_pipeline(&adapter_name, &[], org_id)
@@ -2086,9 +2069,20 @@ pub async fn resume_factory_pipeline(
     // Spec 112 §6.4.5 — thread the project's clone token through resumed runs
     // too, so re-entry after a pause does not silently downgrade to anon.
     let extra_env = clone_token_env_for_project(stagecraft_project_id.as_deref());
+    let resume_emitter = RunEmitter::new(&app, platform_run_id.clone())
+        .map_err(FactoryError::into_user_message)?;
+    let stage_agents: Arc<HashMap<String, FactoryAgentRef>> = Arc::new(
+        prepared
+            .stage_agents
+            .iter()
+            .cloned()
+            .collect::<HashMap<_, _>>(),
+    );
     let step_event_handler: Arc<dyn StepEventHandler> = Arc::new(TauriStepEventHandler::new(
         app.clone(),
         run_uuid.to_string(),
+        Some(resume_emitter.clone()),
+        stage_agents,
     ));
     let executor = Arc::new(
         ClaudeCodeExecutor::new(project_path.clone())
@@ -2129,9 +2123,22 @@ pub async fn resume_factory_pipeline(
     };
 
     let app_handle = app.clone();
+    let resume_emitter_for_spawn = resume_emitter.clone();
     tokio::spawn(async move {
         match dispatch_manifest(&am, run_uuid, &start.manifest, bridge, executor, &options).await {
-            Ok(_summary) => {
+            Ok(summary) => {
+                let total_tokens: u64 = summary.steps.iter().filter_map(|s| s.tokens_used).sum();
+                let half = total_tokens / 2;
+                let token_spend = FactoryRunTokenSpend {
+                    input: half,
+                    output: total_tokens - half,
+                    total: total_tokens,
+                };
+                if let Err(emit_err) = resume_emitter_for_spawn.completed(token_spend).await {
+                    log::warn!(
+                        "factory.run.completed (resume) emit/spool failed for run {run_id}: {emit_err}"
+                    );
+                }
                 app_handle
                     .emit(
                         "factory:workflow_completed",
@@ -2141,6 +2148,11 @@ pub async fn resume_factory_pipeline(
             }
             Err(e) => {
                 log::error!("factory dispatch failed for run {run_id}: {e}");
+                if let Err(emit_err) = resume_emitter_for_spawn.failed(e.to_string()).await {
+                    log::warn!(
+                        "factory.run.failed (resume) emit/spool failed for run {run_id}: {emit_err}"
+                    );
+                }
                 app_handle
                     .emit(
                         "factory:workflow_failed",
@@ -2503,11 +2515,14 @@ async fn handle_factory_run_request(
         .to_string_lossy()
         .into_owned();
 
-    // Step 3: start the pipeline with the minted session id.
+    // Step 3: start the pipeline with the minted session id. Spec 110
+    // envelopes don't carry a process name yet, so `start_factory_pipeline`
+    // falls back to its DEFAULT_PROCESS_NAME constant when None is passed.
     let result = start_factory_pipeline(
         app.clone(),
         project_path,
         run.adapter.clone(),
+        None,
         doc_paths,
         Some(run.project_id.clone()),
         Some(session_id.clone()),
@@ -2879,5 +2894,210 @@ mod tests {
         assert_eq!(run.project_id, "proj-1");
         assert_eq!(run.adapter, "rest");
         assert_eq!(run.knowledge.len(), 1);
+    }
+
+    // -----------------------------------------------------------------
+    // Spec 124 T056 — full duplex emit sequence (desktop side).
+    //
+    // The full integration assertion (platform row reaches `status: ok`
+    // with all stages recorded) is gated on `OAP_INTEGRATION=1` because
+    // it requires a running stagecraft + Postgres. The test below covers
+    // the desktop's contribution to that path: the order, identity, and
+    // payload of every `factory.run.*` envelope a successful run emits.
+    // The platform-side assertion lives in
+    // `platform/services/stagecraft/api/factory/runs.test.ts` and the
+    // duplex handler tests under spec 124 Phase 3.
+    // -----------------------------------------------------------------
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn run_emitter_full_event_sequence_emits_in_order() {
+        use crate::commands::factory_platform::RunEmitter;
+        use crate::commands::sync_client::{
+            FactoryAgentRef, FactoryRunTokenSpend, FactoryStageOutcome, OutboundFrame,
+            SyncClientInner,
+        };
+        use std::sync::Arc;
+        use tokio::sync::mpsc;
+
+        let inner = Arc::new(SyncClientInner::default());
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(32);
+        inner.set_outbound(Some(tx));
+
+        let emitter = RunEmitter::from_inner(inner.clone(), "run-test-1".to_string());
+
+        // Stage 0 — start + complete.
+        let agent_s0 = FactoryAgentRef {
+            org_agent_id: "ag-0".into(),
+            version: 1,
+            content_hash: "h-0".into(),
+        };
+        emitter.stage_started("s0-preflight", agent_s0.clone()).await.unwrap();
+        emitter
+            .stage_completed("s0-preflight", FactoryStageOutcome::Ok, None)
+            .await
+            .unwrap();
+
+        // Stage 1 — start + complete.
+        let agent_s1 = FactoryAgentRef {
+            org_agent_id: "ag-1".into(),
+            version: 2,
+            content_hash: "h-1".into(),
+        };
+        emitter
+            .stage_started("s1-business-requirements", agent_s1.clone())
+            .await
+            .unwrap();
+        emitter
+            .stage_completed("s1-business-requirements", FactoryStageOutcome::Ok, None)
+            .await
+            .unwrap();
+
+        // Terminal — completed with token spend rollup.
+        emitter
+            .completed(FactoryRunTokenSpend {
+                input: 50,
+                output: 50,
+                total: 100,
+            })
+            .await
+            .unwrap();
+
+        // Drain the captured frames in send-order and verify shape.
+        let mut frames = Vec::new();
+        while let Ok(f) = rx.try_recv() {
+            frames.push(f);
+        }
+        assert_eq!(frames.len(), 5, "expected 5 frames, got {}", frames.len());
+
+        match &frames[0] {
+            OutboundFrame::FactoryRunStageStarted {
+                run_id,
+                stage_id,
+                agent_ref,
+                ..
+            } => {
+                assert_eq!(run_id, "run-test-1");
+                assert_eq!(stage_id, "s0-preflight");
+                assert_eq!(agent_ref, &agent_s0);
+            }
+            other => panic!("frame 0: expected stage_started, got {other:?}"),
+        }
+        match &frames[1] {
+            OutboundFrame::FactoryRunStageCompleted {
+                run_id,
+                stage_id,
+                stage_outcome,
+                error,
+                ..
+            } => {
+                assert_eq!(run_id, "run-test-1");
+                assert_eq!(stage_id, "s0-preflight");
+                assert_eq!(*stage_outcome, FactoryStageOutcome::Ok);
+                assert!(error.is_none());
+            }
+            other => panic!("frame 1: expected stage_completed, got {other:?}"),
+        }
+        match &frames[2] {
+            OutboundFrame::FactoryRunStageStarted {
+                stage_id,
+                agent_ref,
+                ..
+            } => {
+                assert_eq!(stage_id, "s1-business-requirements");
+                assert_eq!(agent_ref, &agent_s1);
+            }
+            other => panic!("frame 2: expected stage_started, got {other:?}"),
+        }
+        match &frames[3] {
+            OutboundFrame::FactoryRunStageCompleted {
+                stage_id,
+                stage_outcome,
+                ..
+            } => {
+                assert_eq!(stage_id, "s1-business-requirements");
+                assert_eq!(*stage_outcome, FactoryStageOutcome::Ok);
+            }
+            other => panic!("frame 3: expected stage_completed, got {other:?}"),
+        }
+        match &frames[4] {
+            OutboundFrame::FactoryRunCompleted {
+                run_id,
+                token_spend,
+                ..
+            } => {
+                assert_eq!(run_id, "run-test-1");
+                assert_eq!(token_spend.total, 100);
+            }
+            other => panic!("frame 4: expected completed, got {other:?}"),
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn run_emitter_spools_to_disk_when_disconnected() {
+        use crate::commands::factory_platform::{
+            queue_len, replay_queue, replay_queue_dir, RunEmitter,
+            REPLAY_QUEUE_ENV_LOCK,
+        };
+        use crate::commands::sync_client::{
+            FactoryAgentRef, FactoryStageOutcome, OutboundFrame, SyncClientInner,
+        };
+        use std::sync::Arc;
+        use tokio::sync::mpsc;
+
+        // Pin XDG_DATA_HOME to a temp dir for queue isolation. Held for
+        // the duration of the test so a sibling env-mutating test cannot
+        // remap the path mid-flight.
+        let _env_guard = REPLAY_QUEUE_ENV_LOCK.lock().unwrap();
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: REPLAY_QUEUE_ENV_LOCK held above.
+        unsafe { std::env::set_var("XDG_DATA_HOME", tmp.path()) };
+
+        let inner = Arc::new(SyncClientInner::default());
+        // Start disconnected — first emit goes to disk.
+        let run_id = "run-spool-1".to_string();
+        let emitter = RunEmitter::from_inner(inner.clone(), run_id.clone());
+
+        emitter
+            .stage_started(
+                "s0",
+                FactoryAgentRef {
+                    org_agent_id: "ag-0".into(),
+                    version: 1,
+                    content_hash: "h".into(),
+                },
+            )
+            .await
+            .unwrap();
+        emitter
+            .stage_completed("s0", FactoryStageOutcome::Ok, None)
+            .await
+            .unwrap();
+
+        assert_eq!(queue_len(&run_id).await, 2, "two events spooled to disk");
+
+        // Reconnect: drain the queue.
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(8);
+        inner.set_outbound(Some(tx));
+        let drained = replay_queue(&run_id, &inner).await.unwrap();
+        assert_eq!(drained, 2);
+        assert_eq!(queue_len(&run_id).await, 0, "queue cleared after replay");
+
+        let mut frames = Vec::new();
+        while let Ok(f) = rx.try_recv() {
+            frames.push(f);
+        }
+        assert_eq!(frames.len(), 2, "two frames replayed in order");
+        assert!(matches!(
+            frames[0],
+            OutboundFrame::FactoryRunStageStarted { .. }
+        ));
+        assert!(matches!(
+            frames[1],
+            OutboundFrame::FactoryRunStageCompleted { .. }
+        ));
+
+        // Tidy up env state for sibling tests.
+        unsafe { std::env::remove_var("XDG_DATA_HOME") };
+        let _ = replay_queue_dir;
     }
 }

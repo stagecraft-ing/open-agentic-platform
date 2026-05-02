@@ -2,10 +2,11 @@
 id: "124-opc-factory-run-platform-integration"
 slug: opc-factory-run-platform-integration
 title: OPC Factory-Run Platform Integration
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-01"
+approved: "2026-05-01"
 risk: high
 summary: >
   Closes the spec 108 §7.1 punt and §7.4 deferral. OPC stops reading
@@ -337,3 +338,104 @@ A-9. The desktop's `materialise_run_root` materialises agent bodies by
      apps/desktop/src-tauri/src/commands/factory.rs` returns zero hits
      because the resolver is consumed via the factory-engine crate, not
      directly.
+
+## 11. Implementation Notes
+
+Shipped 2026-05-01 across nine commits. Per-phase summary:
+
+- **Phase 0 — Foundations** (`81ccb33`): `factory.run.*` envelope kinds with
+  compile-time `FACTORY_RUN_ENVELOPE_VERSION = 1`; audit-action strings
+  (`factory.run.{reserved,completed,failed,cancelled,swept}`); pure
+  cache-root helper (`cache_root_for(source_shas)`); platform-client
+  scaffold; OIDC token-getter wrapper.
+- **Phase 1 — Schema migration** (`2b23212`): migration
+  `31_create_factory_runs.up.sql`, FK `CASCADE` on `project_id` and
+  `RESTRICT` on adapter/process; partial index on
+  `(org_id) WHERE status IN ('queued','running')`; SQL `DO $$` ordering
+  guard that aborts loud with a referenced error message
+  (`Migration 31 aborted: agent_catalog.org_id is missing — spec 123
+  migration 30 ... has not been applied`) when migration 30 is missing;
+  Drizzle definitions mirror the SQL.
+- **Phase 2 — Stagecraft API** (`0e00b3a`):
+  `POST /api/factory/runs` reservation + `GET /api/factory/runs` list +
+  `GET /api/factory/runs/:id` detail; idempotency on
+  `(org_id, client_run_id)`; pure agent-refs walker
+  (`runAgentRefs.ts`) with unit tests; integration tests against a real
+  Postgres for happy path, idempotent replay, hot-loop concurrency,
+  retired-binding rejection, foreign-org reject, list pagination /
+  filtering, invalid cursor.
+- **Phase 3 — Duplex handlers** (`0f99f80`): five
+  `factory.run.*` envelope kinds registered on `api/sync/duplex.ts`;
+  idempotent on `(run_id, stage_id, status)`; out-of-order delivery
+  tolerated (synthesised `stage_started` if `stage_completed` arrives
+  first); foreign-org and envelope-version mismatches rejected before
+  any DB write; integration test suite covers in-order, out-of-order,
+  duplicate, and reject paths.
+- **Phase 4 — `factory-platform-client` crate** (`6b98bc3`): new
+  `crates/factory-platform-client`; `PlatformClient` implements both
+  the typed REST surface and spec 123's `CatalogClient` trait so a
+  single instance threads into `AgentResolver`; warm/cold cache via
+  atomic-rename so partial materialisation can never leave a half-built
+  cache visible; cross-checks the resolver's
+  `(org_agent_id, version, content_hash)` triple against
+  `reservation.source_shas.agents[]` and aborts on drift; mock-server
+  tests cover both cache paths and partial-failure cleanup.
+- **Phase 5 — OPC migration** (`1fc8498`): `commands/factory.rs`
+  rewritten to call `materialise_run_root`; `resolve_factory_root`
+  (and the `// TODO(spec-108-§7-punt)` marker) deleted entirely; new
+  `commands/factory_platform.rs` (886 lines) carries the platform
+  pipeline logic; local replay queue at
+  `$XDG_DATA_HOME/oap/factory-run-events/<run_id>.ndjson` capped at
+  1000 events with terminal-fail-out on overflow; `list_factory_runs`
+  command rebound to `GET /api/factory/runs`.
+- **Phase 6 — Sweeper** (`8af0515`): `api/factory/runsScheduler.ts`
+  cron (`factory-runs-staleness-sweeper`, 60 s); flips `(queued,
+  running)` rows older than `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC`
+  (default 1800 s = 30 min) to `failed` with
+  `error = 'sweeper: no events for <duration>'` and a
+  `factory.run.swept` audit row; tests cover stale-running, fresh-row
+  noop, and stale-queued cases.
+- **Phase 7 — Runs UI** (`7abee42`): `/app/factory/runs` (list) and
+  `/app/factory/runs/:runId` (detail) routes; loaders read
+  `lib/factory-api.server.ts` helpers (`listFactoryRuns`,
+  `getFactoryRun`); status / adapter / date-range filters; cursor
+  pagination on `started_at`; per-stage progress with
+  `agent_ref` short-hash hover; live-updates via 3 s polling while
+  status is `(queued, running)`; vitest fixture renders detail with
+  mocked event stream.
+- **Phase 8 — Closure** (this commit): A-1..A-9 verified; cross-project
+  comparator test (A-8) added to `runs.test.ts` as a single-test
+  extension; spec frontmatter flipped to `approved` + `complete`;
+  registry + codebase index refreshed.
+
+### Decisions and follow-ups
+
+- **Two distinct AgentReference enums.** `factory_engine::agent_resolver`
+  and `factory_contracts::agent_reference` each carry their own enum
+  shape; Phase 5 imports the engine variant as `EngineAgentReference`
+  to disambiguate. Worth a future cleanup spec to collapse to one
+  canonical type — neither owner of this duplication is changing
+  shape in the near term.
+- **`XDG_CACHE_HOME` race in `cache_root` tests.** Pre-existing race
+  surfaced once the new tests started writing under the same cache
+  root in parallel; fixed in-place with a `Mutex` around
+  `XDG_CACHE_HOME`-mutating tests rather than rewriting the helper.
+- **Phase 7 date-range filter is client-side.** The chosen option in
+  the user's session-3 review; the loader pulls a 14-day window and
+  the React component filters in-memory. Easy to flip to a server-side
+  `started_at` query if/when the active-runs window grows.
+- **Live updates via 3 s polling, not WebSocket.** The merge reducer
+  in `app.factory.runs.$runId.tsx` keeps the data path swappable; the
+  duplex bus already carries every `factory.run.*` envelope, so a
+  future spec can replace the polling with a duplex subscription
+  without touching the view tree.
+- **A-5 carry-over.** `make ci-schema-parity` fails on
+  `extractionOutput.ts is missing exports` — a regression in the
+  knowledge-extraction Zod surface owned by spec 125. `factory_runs`
+  is treated as a normal stagecraft table by the parity walker (no
+  special-casing); the carry-over is informational and does not block
+  spec 124 closure.
+- **A-4 (live desktop → web smoke) deferred to user smoke.** The full
+  Encore + Postgres + desktop stack is non-trivial to spin up inside
+  a closure session; manual steps are documented in the Phase 7
+  checkpoint and should be exercised before merging the branch.

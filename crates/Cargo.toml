@@ -6,6 +6,7 @@ members = [
     "axiomregent",
     "factory-contracts",
     "factory-engine",
+    "factory-platform-client",
     "factory-project-detect",
     "featuregraph",
     "orchestrator",

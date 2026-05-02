@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6f01a59bd452d810dec8f459317c7fb207ea2573599a513ddc8062c39c4714d5",
+    "contentHash": "c24d092bed3452cffc7920069fadc09c68ca488273a2ff5599823bced53edf06",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -54,11 +54,11 @@
       },
       {
         "code": "I-101",
-        "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql\" which is not a known package, adapter, or existing file/directory"
+        "message": "spec \"126-desktop-agent-picker-ui\" declares implements path \"apps/desktop/src/components/AgentPicker.tsx\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
-        "message": "spec \"124-opc-factory-run-platform-integration\" declares implements path \"platform/services/stagecraft/api/factory/runs.ts\" which is not a known package, adapter, or existing file/directory"
+        "message": "spec \"126-desktop-agent-picker-ui\" declares implements path \"apps/desktop/src/lib/agentPicker.ts\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -489,6 +489,32 @@
       "name": "factory-engine",
       "path": "crates/factory-engine",
       "specRef": "075-factory-workflow-engine",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "dirs",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "tokio"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "factory-engine"
+      ],
+      "kind": "rust-lib",
+      "name": "factory-platform-client",
+      "path": "crates/factory-platform-client",
+      "specRef": "124-opc-factory-run-platform-integration",
       "version": "0.1.0"
     },
     {
@@ -3612,6 +3638,11 @@
             "source": "spec-implements"
           },
           {
+            "name": "factory-platform-client",
+            "path": "crates/factory-platform-client",
+            "source": "cargo-metadata"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
             "source": "spec-implements"
           },
@@ -3621,7 +3652,7 @@
           }
         ],
         "specId": "124-opc-factory-run-platform-integration",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -3640,6 +3671,25 @@
           }
         ],
         "specId": "125-schema-parity-walker-rebuild",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "111",
+          "123",
+          "124"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src/components/AgentPicker.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/agentPicker.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "126-desktop-agent-picker-ui",
         "specStatus": "draft"
       }
     ],

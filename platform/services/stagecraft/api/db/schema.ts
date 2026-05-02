@@ -815,6 +815,101 @@ export const factoryProcesses = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Spec 124 — factory_runs. One row per OPC factory run, mutated via the
+// duplex bus (`factory.run.*` envelopes) once reserved. Closes the spec 108
+// §7.4 deferral. Migration `31_create_factory_runs.up.sql`.
+// ---------------------------------------------------------------------------
+
+/** Spec 124 §3 — closed set for the `status` column. The migration
+ *  enforces it with a CHECK constraint; this alias documents the
+ *  TypeScript-side narrowing for handlers and loaders. */
+export type FactoryRunStatus =
+  | "queued"
+  | "running"
+  | "ok"
+  | "failed"
+  | "cancelled";
+
+/** Spec 124 §3 — per-stage entry shape persisted under
+ *  `factory_runs.stage_progress` and projected onto the run-detail UI.
+ *  `agentRef` is the spec-123 triple (snake_case in the JSONB column). */
+export interface FactoryRunStageProgressEntry {
+  stage_id: string;
+  status: "running" | "ok" | "failed" | "skipped";
+  started_at: string;
+  completed_at?: string;
+  agent_ref?: {
+    org_agent_id: string;
+    version: number;
+    content_hash: string;
+  };
+  /** Free-form failure detail for this stage. Distinct from the row-level
+   *  `error` column which is only set on terminal `factory.run.failed`. */
+  error?: string;
+}
+
+/** Spec 124 §3 — `source_shas` JSONB shape. snake_case to match the
+ *  columns the platform handlers read/write directly. */
+export interface FactoryRunSourceShas {
+  adapter: string;
+  process: string;
+  contracts: Record<string, string>;
+  agents: {
+    org_agent_id: string;
+    version: number;
+    content_hash: string;
+  }[];
+}
+
+/** Spec 124 §6.1 — `token_spend` JSONB shape, populated on
+ *  `factory.run.completed`. */
+export interface FactoryRunTokenSpend {
+  input: number;
+  output: number;
+  total: number;
+}
+
+export const factoryRuns = pgTable(
+  "factory_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    /** NULL for ad-hoc runs (no project binding consulted). */
+    projectId: uuid("project_id"),
+    triggeredBy: uuid("triggered_by").notNull(),
+    adapterId: uuid("adapter_id").notNull(),
+    processId: uuid("process_id").notNull(),
+    /** Idempotency key supplied by the desktop on POST /api/factory/runs.
+     *  Unique per `(org_id, client_run_id)` so retries return the existing
+     *  row (T021 / T023). */
+    clientRunId: text("client_run_id").notNull(),
+    status: text("status").$type<FactoryRunStatus>().notNull(),
+    stageProgress: jsonb("stage_progress")
+      .$type<FactoryRunStageProgressEntry[]>()
+      .notNull()
+      .default([]),
+    tokenSpend: jsonb("token_spend").$type<FactoryRunTokenSpend>(),
+    error: text("error"),
+    sourceShas: jsonb("source_shas")
+      .$type<FactoryRunSourceShas>()
+      .notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    /** Refreshed on every duplex event for the row; drives the staleness
+     *  sweeper (T061). */
+    lastEventAt: timestamp("last_event_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique("factory_runs_org_client_run_id_uniq").on(t.orgId, t.clientRunId)]
+);
+
+// ---------------------------------------------------------------------------
 // Spec 112 — Factory scaffold jobs.
 // Durable, concurrency-safe record of every Create request (replaces the
 // retired `template-distributor` service's in-memory job map).

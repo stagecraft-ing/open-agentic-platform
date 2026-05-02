@@ -46,6 +46,14 @@ pub const ENVELOPE_SCHEMA_VERSION: u8 = 1;
 pub const AGENT_CATALOG_ENVELOPE_VERSION: u8 = 2;
 pub const PROJECT_AGENT_BINDING_ENVELOPE_VERSION: u8 = 1;
 
+/// Spec 124 §6.1 — per-event-kind contract version for the `factory.run.*`
+/// lifecycle envelope family (stage_started, stage_completed, completed,
+/// failed, cancelled). Mirrors the TS constant `FACTORY_RUN_ENVELOPE_VERSION`
+/// in `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform
+/// skew on this constant surfaces as a Rust build error before any wire
+/// drift is possible.
+pub const FACTORY_RUN_ENVELOPE_VERSION: u8 = 1;
+
 // ---------------------------------------------------------------------------
 // Wire-level envelope types (mirror the typescript wire shapes)
 // ---------------------------------------------------------------------------
@@ -261,6 +269,43 @@ pub struct EnvelopeBusinessDoc {
     pub storage_ref: String,
 }
 
+/// Spec 124 §3 — projection of spec-123 `ResolvedAgent` carried inline on
+/// `factory.run.stage_started` envelopes. Mirrors the TS `FactoryAgentRef`
+/// type in `platform/services/stagecraft/api/sync/types.ts`. Field names
+/// MUST stay aligned with `factory_engine::agent_resolver::ResolvedAgent` —
+/// the spec 124 A-9 grep gate (T088) and the spec 122 Stage CD comparator
+/// both depend on this triple.
+///
+/// Wire convention: camelCase on the duplex bus (matches the rest of the
+/// envelope wire shape). The DB column `factory_runs.source_shas` stores
+/// the snake_case form per spec §3 — the platform-side reservation/handler
+/// converts on persist.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FactoryAgentRef {
+    pub org_agent_id: String,
+    pub version: i64,
+    pub content_hash: String,
+}
+
+/// Spec 124 §6.1 — token-spend roll-up shipped on `factory.run.completed`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FactoryRunTokenSpend {
+    pub input: u64,
+    pub output: u64,
+    pub total: u64,
+}
+
+/// Spec 124 §6.1 — per-stage outcome on `factory.run.stage_completed`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FactoryStageOutcome {
+    Ok,
+    Failed,
+    Skipped,
+}
+
 /// Set of server envelope kinds this client accepts. Guarding at the
 /// boundary stops a drifted server or a hostile proxy from slipping an
 /// unknown kind through serde's default decoder.
@@ -349,6 +394,74 @@ pub enum OutboundFrame {
         reason: AgentCatalogFetchReason,
         #[serde(rename = "observedAt")]
         observed_at: String,
+    },
+    /// Spec 124 §6.1 — desktop announces a stage has started executing.
+    /// Platform handler appends a `(stage_id, status: running, started_at,
+    /// agent_ref)` entry to `factory_runs.stage_progress` and flips the
+    /// row's status from `queued` to `running` if needed.
+    #[serde(rename = "factory.run.stage_started")]
+    FactoryRunStageStarted {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        #[serde(rename = "stageId")]
+        stage_id: String,
+        #[serde(rename = "agentRef")]
+        agent_ref: FactoryAgentRef,
+        #[serde(rename = "startedAt")]
+        started_at: String,
+    },
+    /// Spec 124 §6.1 — desktop announces a stage has finished. Updates the
+    /// matching `stage_progress` entry's status + completedAt. Out-of-order
+    /// delivery (completed before started) is tolerated (T032).
+    #[serde(rename = "factory.run.stage_completed")]
+    FactoryRunStageCompleted {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        #[serde(rename = "stageId")]
+        stage_id: String,
+        #[serde(rename = "stageOutcome")]
+        stage_outcome: FactoryStageOutcome,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+        #[serde(rename = "completedAt")]
+        completed_at: String,
+    },
+    /// Spec 124 §6.1 — terminal success. Sets row's status = `ok`,
+    /// `completed_at`, and the rolled-up `token_spend`.
+    #[serde(rename = "factory.run.completed")]
+    FactoryRunCompleted {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        #[serde(rename = "tokenSpend")]
+        token_spend: FactoryRunTokenSpend,
+        #[serde(rename = "completedAt")]
+        completed_at: String,
+    },
+    /// Spec 124 §6.1 — terminal failure. Sets row's status = `failed`,
+    /// `completed_at`, and `error`. Partial `stage_progress` is preserved.
+    #[serde(rename = "factory.run.failed")]
+    FactoryRunFailed {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        error: String,
+        #[serde(rename = "completedAt")]
+        completed_at: String,
+    },
+    /// Spec 124 §6.1 — user-initiated cancellation. Same shape as failed
+    /// but `error` is replaced by an optional `reason`.
+    #[serde(rename = "factory.run.cancelled")]
+    FactoryRunCancelled {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        reason: Option<String>,
+        #[serde(rename = "completedAt")]
+        completed_at: String,
     },
 }
 
@@ -454,7 +567,7 @@ pub struct SyncClientInner {
 }
 
 impl SyncClientInner {
-    fn set_outbound(&self, tx: Option<mpsc::Sender<OutboundFrame>>) {
+    pub(crate) fn set_outbound(&self, tx: Option<mpsc::Sender<OutboundFrame>>) {
         if let Ok(mut g) = self.outbound.write() {
             *g = tx;
         }
@@ -511,6 +624,85 @@ impl SyncClientInner {
             accepted,
             decline_reason,
             observed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+
+    /// Spec 124 §6.1 — emit `factory.run.stage_started`. Returns `false`
+    /// when the duplex stream is not connected; callers should enqueue the
+    /// frame onto the on-disk replay buffer (Phase 5 T053).
+    pub async fn send_factory_run_stage_started(
+        &self,
+        run_id: &str,
+        stage_id: &str,
+        agent_ref: FactoryAgentRef,
+    ) -> bool {
+        let frame = OutboundFrame::FactoryRunStageStarted {
+            meta: new_meta(),
+            run_id: run_id.to_string(),
+            stage_id: stage_id.to_string(),
+            agent_ref,
+            started_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+
+    /// Spec 124 §6.1 — emit `factory.run.stage_completed`.
+    pub async fn send_factory_run_stage_completed(
+        &self,
+        run_id: &str,
+        stage_id: &str,
+        stage_outcome: FactoryStageOutcome,
+        error: Option<String>,
+    ) -> bool {
+        let frame = OutboundFrame::FactoryRunStageCompleted {
+            meta: new_meta(),
+            run_id: run_id.to_string(),
+            stage_id: stage_id.to_string(),
+            stage_outcome,
+            error,
+            completed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+
+    /// Spec 124 §6.1 — emit terminal `factory.run.completed`.
+    pub async fn send_factory_run_completed(
+        &self,
+        run_id: &str,
+        token_spend: FactoryRunTokenSpend,
+    ) -> bool {
+        let frame = OutboundFrame::FactoryRunCompleted {
+            meta: new_meta(),
+            run_id: run_id.to_string(),
+            token_spend,
+            completed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+
+    /// Spec 124 §6.1 — emit terminal `factory.run.failed`.
+    pub async fn send_factory_run_failed(&self, run_id: &str, error: String) -> bool {
+        let frame = OutboundFrame::FactoryRunFailed {
+            meta: new_meta(),
+            run_id: run_id.to_string(),
+            error,
+            completed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+
+    /// Spec 124 §6.1 — emit terminal `factory.run.cancelled`.
+    pub async fn send_factory_run_cancelled(
+        &self,
+        run_id: &str,
+        reason: Option<String>,
+    ) -> bool {
+        let frame = OutboundFrame::FactoryRunCancelled {
+            meta: new_meta(),
+            run_id: run_id.to_string(),
+            reason,
+            completed_at: chrono::Utc::now().to_rfc3339(),
         };
         self.send(frame).await
     }
@@ -1399,6 +1591,198 @@ mod tests {
             .send_factory_run_ack("pl", "sid", "opc", true, None)
             .await;
         assert!(!sent);
+    }
+
+    // spec 124 §6.1 — factory.run.* lifecycle envelope round-trips. Each
+    // outbound frame must serialise to camelCase wire JSON the platform
+    // ClientEnvelopeWire can decode, with the per-kind contract version
+    // mirrored from the TS constant.
+
+    #[test]
+    fn factory_run_envelope_version_matches_documented_constant() {
+        // Phase 0 lock — bumping FACTORY_RUN_ENVELOPE_VERSION must happen
+        // here AND in `platform/services/stagecraft/api/sync/types.ts` in
+        // lock-step. The compile-time mismatch would surface in T036's
+        // platform-side handler tests, but the Rust-side assertion is
+        // simpler to read in review.
+        assert_eq!(FACTORY_RUN_ENVELOPE_VERSION, 1);
+    }
+
+    #[test]
+    fn factory_run_stage_started_serializes_to_camelcase_wire_shape() {
+        let frame = OutboundFrame::FactoryRunStageStarted {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-05-01T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "r-1".into(),
+            stage_id: "s0".into(),
+            agent_ref: FactoryAgentRef {
+                org_agent_id: "a-1".into(),
+                version: 3,
+                content_hash: "h-3".into(),
+            },
+            started_at: "2026-05-01T00:00:01Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.stage_started");
+        assert_eq!(json["runId"], "r-1");
+        assert_eq!(json["stageId"], "s0");
+        assert_eq!(json["agentRef"]["orgAgentId"], "a-1");
+        assert_eq!(json["agentRef"]["version"], 3);
+        assert_eq!(json["agentRef"]["contentHash"], "h-3");
+        assert_eq!(json["startedAt"], "2026-05-01T00:00:01Z");
+        assert_eq!(json["meta"]["v"], 1);
+    }
+
+    #[test]
+    fn factory_run_stage_completed_serializes_outcome_as_snake_case() {
+        let frame = OutboundFrame::FactoryRunStageCompleted {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-05-01T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "r-1".into(),
+            stage_id: "s0".into(),
+            stage_outcome: FactoryStageOutcome::Failed,
+            error: Some("oops".into()),
+            completed_at: "2026-05-01T00:01:00Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.stage_completed");
+        assert_eq!(json["stageOutcome"], "failed");
+        assert_eq!(json["error"], "oops");
+        assert_eq!(json["completedAt"], "2026-05-01T00:01:00Z");
+    }
+
+    #[test]
+    fn factory_run_stage_completed_omits_error_when_ok() {
+        let frame = OutboundFrame::FactoryRunStageCompleted {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-05-01T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "r-1".into(),
+            stage_id: "s0".into(),
+            stage_outcome: FactoryStageOutcome::Ok,
+            error: None,
+            completed_at: "2026-05-01T00:01:00Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["stageOutcome"], "ok");
+        assert!(
+            json.get("error").is_none(),
+            "error must be omitted when None — kept off the wire to mirror the TS optional shape"
+        );
+    }
+
+    #[test]
+    fn factory_run_completed_carries_token_spend() {
+        let frame = OutboundFrame::FactoryRunCompleted {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-05-01T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "r-1".into(),
+            token_spend: FactoryRunTokenSpend {
+                input: 100,
+                output: 250,
+                total: 350,
+            },
+            completed_at: "2026-05-01T00:05:00Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.completed");
+        assert_eq!(json["tokenSpend"]["input"], 100);
+        assert_eq!(json["tokenSpend"]["output"], 250);
+        assert_eq!(json["tokenSpend"]["total"], 350);
+    }
+
+    #[test]
+    fn factory_run_failed_serializes_error_inline() {
+        let frame = OutboundFrame::FactoryRunFailed {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-05-01T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "r-1".into(),
+            error: "stage s2 failed: pattern resolver missing".into(),
+            completed_at: "2026-05-01T00:02:00Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.failed");
+        assert_eq!(
+            json["error"],
+            "stage s2 failed: pattern resolver missing"
+        );
+        assert_eq!(json["completedAt"], "2026-05-01T00:02:00Z");
+    }
+
+    #[test]
+    fn factory_run_cancelled_omits_reason_when_unset() {
+        let frame = OutboundFrame::FactoryRunCancelled {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e1".into(),
+                sent_at: "2026-05-01T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "r-1".into(),
+            reason: None,
+            completed_at: "2026-05-01T00:03:00Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.cancelled");
+        assert!(json.get("reason").is_none());
+        assert_eq!(json["completedAt"], "2026-05-01T00:03:00Z");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn send_factory_run_stage_started_emits_frame_when_connected() {
+        let inner = Arc::new(SyncClientInner::default());
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(8);
+        inner.set_outbound(Some(tx));
+
+        let agent_ref = FactoryAgentRef {
+            org_agent_id: "a-1".into(),
+            version: 2,
+            content_hash: "h-2".into(),
+        };
+        let sent = inner
+            .send_factory_run_stage_started("r-1", "s0", agent_ref.clone())
+            .await;
+        assert!(sent);
+
+        let frame = rx.recv().await.expect("frame on channel");
+        match frame {
+            OutboundFrame::FactoryRunStageStarted {
+                run_id,
+                stage_id,
+                agent_ref: got,
+                ..
+            } => {
+                assert_eq!(run_id, "r-1");
+                assert_eq!(stage_id, "s0");
+                assert_eq!(got, agent_ref);
+            }
+            other => panic!("unexpected frame: {other:?}"),
+        }
     }
 
     #[tokio::test(flavor = "multi_thread")]
