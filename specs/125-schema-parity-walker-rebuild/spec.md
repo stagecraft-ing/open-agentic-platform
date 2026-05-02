@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-05-01"
 approved: "2026-05-01"
+amended: "2026-05-01"
 risk: medium
 summary: >
   Restores the `make ci-schema-parity` gate after commit `b6859d3` removed
@@ -126,12 +127,12 @@ After spec 125:
    tree walker; no zod dependency anywhere.
 3. Comparison logic against the Rust fingerprint is unchanged.
 
-The provenance and stakeholder-doc parity surfaces stay zod-walking for
-now (their TS mirrors don't exist yet on the spec 121 §8 reserved-mode
-path), but the walker code path is split so the descriptor walker and
-the zod walker live behind a `walk(node)` dispatcher keyed on the input
-shape. Once specs 121 and 122 land their TS mirrors as descriptors, the
-zod walker can be deleted entirely.
+The provenance and stakeholder-doc parity surfaces remain in
+reserved mode — specs 121 §8 / 122 reserved the TS-mirror paths but
+shipped without authoring those files (both specs are
+`status: approved, implementation: complete`). When a future spec
+authors them, they MUST land as `SchemaNode` descriptors; the parity
+tool no longer carries a zod walker (see §8 Phase 6 cleanup).
 
 The descriptor pattern is the canonical answer for any future schema
 that needs Rust↔TS parity without zod. Spec 123's duplex envelope types
@@ -249,12 +250,25 @@ six phases of `tasks.md` completed in order:
 - **Phase 5 — Closure** (this commit). Frontmatter flip, registry
   recompile.
 
-The legacy zod walker (`walkType` in `index.mjs`) stays in place behind
-the dispatcher — provenance and stakeholder-doc TS mirrors are still
-unwritten (specs 121 §8 / 122 reserve the paths). When those mirrors
-land as descriptors, every call site in `index.mjs` will resolve
-through `walkDescriptor` and `walkType` becomes deletable.
+- **Phase 6 — Cleanup** (amendment, 2026-05-01). Reviewing the
+  branch surfaced that specs 121 and 122 had already shipped as
+  `status: approved, implementation: complete` without authoring the
+  reserved TS mirrors. The conditional under which the zod walker
+  was "queued for deletion" had therefore already passed. The
+  `walkType` zod walker, the `unwrap` / `isOptional` helpers, and
+  the `walk(node)` dispatcher were deleted in the same branch; the
+  three call sites now invoke `walkDescriptor` directly. The
+  reserved-mode early-returns for provenance and stakeholder-doc are
+  unchanged (both surfaces still log + skip while their TS files
+  don't exist), but the post-existence-flip path now requires those
+  files to export `SchemaNode` descriptors named
+  `provenanceClaimDescriptor` / `stakeholderDocDescriptor`. The
+  Makefile's `[ -d node_modules/zod ] || npm ci` install guard was
+  also removed — `extractionOutput.ts` has no imports, so bun's TS
+  loader needs nothing from stagecraft's `node_modules` to walk it.
 
 The Encore.ts TS parser invariant from b6859d3 holds: zero zod imports
 in `extractionOutput.ts`, verified by
 `! rg "from \"zod" platform/services/stagecraft/api/knowledge/extractionOutput.ts`.
+After Phase 6 the parity tool itself imports zero zod symbols too —
+the descriptor pattern is the only walker shape carried forward.

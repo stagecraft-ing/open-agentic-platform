@@ -12,32 +12,21 @@
 // mirror in `crates/factory-contracts/` during `cargo test`. Drift on
 // either side fails CI before any runtime divergence can ship.
 //
-// Walker dispatcher (spec 125). Each TS schema is walked through one of
-// two paths:
+// Walker (spec 125). Every TS schema is walked through `walkDescriptor`
+// (in `./walk-descriptor.mjs`), which consumes a plain-data `SchemaNode`
+// exported next to a hand-rolled validator. This is the only walker the
+// tool carries: it is dependency-free and stable under Encore.ts's TS
+// parser, which crashes on `zod/v4/classic/schemas.d.cts` if zod is
+// imported from any file the API tree transitively touches (see the
+// file header on `extractionOutput.ts`). Any future TS mirror authored
+// at one of the reserved paths below MUST export a `SchemaNode`
+// descriptor (not a zod tree).
 //
-//   - Descriptor walker (`walkDescriptor`, in `./walk-descriptor.mjs`).
-//     Consumes a plain-data `SchemaNode` exported next to a hand-rolled
-//     validator. This is the canonical path going forward — it is
-//     dependency-free and stable under Encore.ts's TS parser, which
-//     crashes on `zod/v4/classic/schemas.d.cts` if zod is imported from
-//     any file the API tree transitively touches (see the file header on
-//     `extractionOutput.ts`).
-//
-//   - Zod walker (`walkType`, inline below). Walks a `ZodTypeAny` tree by
-//     introspecting `_def.type`. Retained for the provenance + stakeholder
-//     surfaces: those Rust mirrors exist, but their TS mirrors are
-//     reserved by specs 121 §8 / 122 and not yet authored. When those
-//     files land, they will land as descriptors and this walker becomes
-//     deletable.
-//
-// The `walk(node)` dispatcher selects the descriptor walker when `node.kind`
-// is a string (the `SchemaNode` discriminator) and falls through to the
-// zod walker otherwise.
-//
-// Spec 121/122 reserved-mode behaviour: when a TS mirror file does not
-// exist, the parity check records the Rust-side fingerprint and emits an
-// informational line — it does NOT fail. Once the TS mirror lands, the
-// comparison activates automatically (existence flip).
+// Reserved-mode behaviour: when a TS mirror file does not exist (specs
+// 121 §8 / 122 reserved the paths but did not author the files), the
+// parity check records the Rust-side fingerprint and emits an
+// informational line — it does NOT fail. Once a TS mirror lands as a
+// descriptor, the comparison activates automatically (existence flip).
 //
 // Run order:
 //   1. cargo test --manifest-path crates/factory-contracts/Cargo.toml
@@ -154,133 +143,11 @@ if (
   );
 }
 
-// Spec 125 dispatcher. A `SchemaNode` carries a string `kind`; any other
-// shape is assumed to be a `ZodTypeAny` and routed to `walkType`. Once the
-// provenance + stakeholder-doc TS mirrors land as descriptors, every call
-// site here will resolve through `walkDescriptor` and `walkType` can go.
-function walk(node) {
-  if (node && typeof node.kind === "string") {
-    return walkDescriptor(node);
-  }
-  return walkType(node);
-}
-
-// ---------------------------------------------------------------------------
-// Zod walker (spec 121 / 122 reserved-mode legacy).
-//
-// Reads the structural shape directly out of a `ZodTypeAny._def` tree. Used
-// by the provenance + stakeholder-doc parity surfaces only — those TS
-// mirrors don't exist yet, but when they land per specs 121 §8 / 122, they
-// will land as plain-data descriptors (the canonical post-spec-125 shape)
-// and this walker becomes deletable. Until then, the dispatcher above
-// keeps both paths alive so neither surface regresses.
-//
-// Do NOT extend this function. New parity surfaces should ship with a
-// `SchemaNode` descriptor (see `walk-descriptor.mjs`).
-// ---------------------------------------------------------------------------
-
-function unwrap(zod) {
-  while (zod?._def?.type === "pipe") zod = zod._def.in;
-  return zod;
-}
-
-function isOptional(zod) {
-  return unwrap(zod)?._def?.type === "optional";
-}
-
-function walkType(zod) {
-  zod = unwrap(zod);
-  if (zod?._def?.type === "optional" || zod?._def?.type === "nullable") {
-    return walkType(zod._def.innerType);
-  }
-  switch (zod?._def?.type) {
-    case "string":
-      return { kind: "string" };
-    case "number": {
-      const isInt = (zod._def.checks ?? []).some(
-        (c) => c?.format === "safeint" || c?._zod?.def?.format === "safeint",
-      );
-      return { kind: isInt ? "int" : "number" };
-    }
-    case "boolean":
-      return { kind: "boolean" };
-    case "unknown":
-    case "any":
-      return { kind: "unknown" };
-    case "array":
-      return { kind: "array", element: walkType(zod._def.element) };
-    case "record":
-      return {
-        kind: "map",
-        key: walkType(zod._def.keyType),
-        value: walkType(zod._def.valueType),
-      };
-    case "object": {
-      const shape = zod._def.shape;
-      const fields = Object.entries(shape)
-        .map(([name, t]) => ({
-          name,
-          required: !isOptional(t),
-          type: walkType(t),
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      return { kind: "object", fields };
-    }
-    case "tuple": {
-      // Zod 4: items live on `_def.items`. Map each positional schema to a
-      // type fingerprint preserving order (tuples are positional, NOT
-      // alphabetical).
-      const items = (zod._def.items ?? []).map((t) => walkType(t));
-      return { kind: "tuple", items };
-    }
-    case "enum": {
-      // Zod 4: `_def.entries` is `Record<string, string>` for native string
-      // enums and a value list for plain `z.enum([...])`. We sort to keep
-      // the fingerprint order-independent.
-      const raw = zod._def.entries ?? zod._def.values ?? {};
-      const values = Array.isArray(raw) ? [...raw] : Object.values(raw);
-      values.sort();
-      return { kind: "enum", values };
-    }
-    case "union":
-    case "discriminatedUnion": {
-      // The Rust side uses #[serde(tag = "mode")] which is the Zod
-      // `discriminatedUnion("mode", [...])` shape. Each option is an
-      // object whose discriminator literal is the variant tag.
-      const discriminator = zod._def.discriminator;
-      const options = zod._def.options ?? [];
-      const variants = options
-        .map((opt) => {
-          const inner = unwrap(opt);
-          const shape = inner?._def?.shape ?? {};
-          const tagSchema = shape[discriminator];
-          const tag =
-            tagSchema?._def?.values?.[0] ?? tagSchema?._def?.value ?? null;
-          const fields = Object.entries(shape)
-            .filter(([name]) => name !== discriminator)
-            .map(([name, t]) => ({
-              name,
-              required: !isOptional(t),
-              type: walkType(t),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-          return { tag, fields };
-        })
-        .sort((a, b) => String(a.tag).localeCompare(String(b.tag)));
-      return { kind: "discriminatedUnion", discriminator, variants };
-    }
-    default:
-      throw new Error(
-        `schema-parity-check: unhandled zod type: ${zod?._def?.type}`,
-      );
-  }
-}
-
 let tsFingerprint;
 try {
   tsFingerprint = {
     version: tsSchemaVersion,
-    root: walk(extractionOutputDescriptor),
+    root: walkDescriptor(extractionOutputDescriptor),
   };
 } catch (e) {
   fail(2, `schema-parity-check: knowledge descriptor walk failed — ${e.message}`);
@@ -390,12 +257,12 @@ if (!fs.existsSync(TS_PROVENANCE_PATH)) {
 }
 
 if (!provenanceHandled) {
-  let provenanceTsSchema;
+  let provenanceDescriptor;
   let provenanceTsVersion;
   try {
     const mod = await import(TS_PROVENANCE_PATH);
-    provenanceTsSchema =
-      mod.provenanceClaimSchema ?? mod.provenanceSchema ?? mod.default;
+    provenanceDescriptor =
+      mod.provenanceClaimDescriptor ?? mod.provenanceDescriptor;
     provenanceTsVersion = mod.PROVENANCE_SCHEMA_VERSION;
   } catch (e) {
     fail(
@@ -404,11 +271,15 @@ if (!provenanceHandled) {
     );
   }
 
-  if (!provenanceTsSchema || typeof provenanceTsVersion !== "string") {
+  if (
+    !provenanceDescriptor ||
+    typeof provenanceDescriptor.kind !== "string" ||
+    typeof provenanceTsVersion !== "string"
+  ) {
     fail(
       2,
       `schema-parity-check: ${path.relative(REPO_ROOT, TS_PROVENANCE_PATH)} is missing exports\n` +
-        `  Required: provenanceClaimSchema (or provenanceSchema), PROVENANCE_SCHEMA_VERSION`,
+        `  Required: provenanceClaimDescriptor (a SchemaNode with a string \`kind\`), PROVENANCE_SCHEMA_VERSION`,
     );
   }
 
@@ -416,7 +287,7 @@ if (!provenanceHandled) {
   try {
     provenanceTsFingerprint = {
       version: provenanceTsVersion,
-      claim: walk(provenanceTsSchema),
+      claim: walkDescriptor(provenanceDescriptor),
     };
   } catch (e) {
     fail(2, `schema-parity-check: provenance walk failed — ${e.message}`);
@@ -476,12 +347,12 @@ if (!fs.existsSync(TS_STAKEHOLDER_DOC_PATH)) {
   process.exit(0);
 }
 
-let stakeholderTsSchema;
+let stakeholderDescriptor;
 let stakeholderTsVersion;
 try {
   const mod = await import(TS_STAKEHOLDER_DOC_PATH);
-  stakeholderTsSchema =
-    mod.stakeholderDocSchema ?? mod.stakeholderDoc ?? mod.default;
+  stakeholderDescriptor =
+    mod.stakeholderDocDescriptor ?? mod.stakeholderDescriptor;
   stakeholderTsVersion = mod.STAKEHOLDER_DOC_SCHEMA_VERSION;
 } catch (e) {
   fail(
@@ -490,11 +361,15 @@ try {
   );
 }
 
-if (!stakeholderTsSchema || typeof stakeholderTsVersion !== "string") {
+if (
+  !stakeholderDescriptor ||
+  typeof stakeholderDescriptor.kind !== "string" ||
+  typeof stakeholderTsVersion !== "string"
+) {
   fail(
     2,
     `schema-parity-check: ${path.relative(REPO_ROOT, TS_STAKEHOLDER_DOC_PATH)} is missing exports\n` +
-      `  Required: stakeholderDocSchema, STAKEHOLDER_DOC_SCHEMA_VERSION`,
+      `  Required: stakeholderDocDescriptor (a SchemaNode with a string \`kind\`), STAKEHOLDER_DOC_SCHEMA_VERSION`,
   );
 }
 
@@ -502,7 +377,7 @@ let stakeholderTsFingerprint;
 try {
   stakeholderTsFingerprint = {
     version: stakeholderTsVersion,
-    stakeholderDoc: walk(stakeholderTsSchema),
+    stakeholderDoc: walkDescriptor(stakeholderDescriptor),
   };
 } catch (e) {
   fail(

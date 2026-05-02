@@ -7,14 +7,13 @@
 // Maps a `SchemaNode` (the plain-data structural type co-located with each
 // hand-rolled validator — see
 // `platform/services/stagecraft/api/knowledge/extractionOutput.ts`) to the
-// fingerprint shape consumed by `tools/schema-parity-check/index.mjs`.
-//
-// The output is intentionally identical to what the zod walker (`walkType`
-// in `index.mjs`) produces for the same shape, so the parity tool can
-// dispatch between descriptor- and zod-typed inputs without changing the
-// comparison logic. Descriptor input is the recommended shape going forward
-// (see spec 125 §3.2); the zod walker stays in place until specs 121 §8 /
-// 122 land their TS mirrors as descriptors.
+// fingerprint shape consumed by `tools/schema-parity-check/index.mjs` and
+// emitted by the Rust mirror in `crates/factory-contracts/`. This is the
+// only walker the parity tool carries — the zod walker that once lived
+// alongside it was removed in spec 125 Phase 6 once specs 121 / 122 had
+// shipped without authoring their reserved TS mirrors. Any future TS
+// mirror landed at one of those paths MUST export a `SchemaNode`
+// descriptor.
 //
 // Structural-only by design: value-shape constraints (regex, length bounds,
 // finiteness, sign) are NOT carried through the fingerprint. Those are the
