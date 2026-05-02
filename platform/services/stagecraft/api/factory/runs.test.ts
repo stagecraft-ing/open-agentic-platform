@@ -220,6 +220,54 @@ describe("spec 124 — /api/factory/runs", () => {
     await db.execute(sql`DELETE FROM projects WHERE id = ${altProject}`);
   });
 
+  it("two projects bound to the same agent record identical source_shas.agents (A-8 cross-project comparator)", async () => {
+    // A-8 / spec §10: a Stage CD comparator (spec 122) needs two runs of
+    // the same (adapter, process) against two different projects to record
+    // identical `agents[].content_hash` arrays when both projects bind the
+    // same catalog row. This test pins the comparator contract at the
+    // reservation surface — anything later (resolver drift, binding
+    // mutation) is owned by the consumer specs.
+    const altProjectId = "22222222-0000-0000-0000-0000000000c1";
+    await db.execute(sql`
+      INSERT INTO projects (id, org_id, name, slug, description, object_store_bucket, created_by)
+        VALUES (${altProjectId}, ${ORG_ID}, 'spec124-rp-alt', 'spec124-rp-alt', '', 'bucket-spec124-runs-alt', ${USER_ID})
+        ON CONFLICT (id) DO NOTHING
+    `);
+    await db.execute(sql`
+      INSERT INTO project_agent_bindings (project_id, org_agent_id, pinned_version, pinned_content_hash, bound_by)
+        VALUES (${altProjectId}, ${AGENT_ID}, 1, 'agent-hash-1', ${USER_ID})
+        ON CONFLICT (project_id, org_agent_id) DO NOTHING
+    `);
+
+    const runA = await reserveRunCore(
+      {
+        adapterName: "spec124-rest",
+        processName: "spec124-rp-process",
+        projectId: PROJECT_ID,
+        clientRunId: "comparator-a",
+      },
+      ORG_CTX,
+    );
+    const runB = await reserveRunCore(
+      {
+        adapterName: "spec124-rest",
+        processName: "spec124-rp-process",
+        projectId: altProjectId,
+        clientRunId: "comparator-b",
+      },
+      ORG_CTX,
+    );
+
+    expect(runA.runId).not.toBe(runB.runId);
+    const hashesA = runA.sourceShas.agents.map((a) => a.contentHash);
+    const hashesB = runB.sourceShas.agents.map((a) => a.contentHash);
+    expect(hashesA).toEqual(hashesB);
+    expect(runA.sourceShas.agents).toEqual(runB.sourceShas.agents);
+
+    await db.execute(sql`DELETE FROM project_agent_bindings WHERE project_id = ${altProjectId}`);
+    await db.execute(sql`DELETE FROM projects WHERE id = ${altProjectId}`);
+  });
+
   it("returns 404 when fetching a run from a foreign org", async () => {
     const created = await reserveRunCore(
       {

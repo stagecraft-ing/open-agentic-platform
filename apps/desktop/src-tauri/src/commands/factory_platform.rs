@@ -446,12 +446,12 @@ pub static REPLAY_QUEUE_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new((
 /// Resolve `$XDG_DATA_HOME/oap/factory-run-events/`. Falls back to
 /// `dirs::data_dir()` and finally to a temp directory.
 pub fn replay_queue_dir() -> PathBuf {
-    if let Ok(explicit) = std::env::var("XDG_DATA_HOME") {
-        if !explicit.is_empty() {
-            return PathBuf::from(explicit)
-                .join("oap")
-                .join("factory-run-events");
-        }
+    if let Ok(explicit) = std::env::var("XDG_DATA_HOME")
+        && !explicit.is_empty()
+    {
+        return PathBuf::from(explicit)
+            .join("oap")
+            .join("factory-run-events");
     }
     if let Some(data) = dirs::data_dir() {
         return data.join("oap").join("factory-run-events");
