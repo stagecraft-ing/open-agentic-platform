@@ -4,6 +4,8 @@ title: "governance control plane (policy compiler)"
 feature_branch: "047-governance-control-plane"
 status: approved
 implementation: complete
+amended: "2026-05-02"
+amendment_record: "131-adversarial-prompt-refusal-policy"
 kind: platform
 created: "2026-03-29"
 authors:
@@ -267,3 +269,16 @@ The WASM kernel is the **single enforcement point** for policy decisions:
 - **R-003**: Coherence scoring is inherently heuristic. Aggressive degradation may frustrate users; lenient thresholds may miss genuine drift. Mitigation: configurable thresholds, detailed audit trail to explain why degradation occurred, human override path.
 - **R-004**: Proof chain storage may grow large for long-running agent sessions. Mitigation: NF-004 bounds record size; chain can be checkpointed and archived periodically with a summary record.
 - **R-005**: Shared frontmatter parser extraction (from spec-compiler) may introduce coupling. Mitigation: the shared crate exposes only the YAML-in-markdown parsing interface; no spec-compiler business logic leaks.
+
+## Amendment record
+
+**Amendment 2026-05-02 (record: 131-adversarial-prompt-refusal-policy).**
+Added `spec_code_coherence` to the policy-compiler's recognised-gate
+allowlist (the `V-106 invalid gate` check) so spec 131's CONST-005
+policy block compiles without error. The kernel does not yet evaluate
+the gate at tool-call time — CONST-005 is a behavioral policy enforced
+by the orchestrated-workflow protocol via
+`.claude/rules/adversarial-prompt-refusal.md`. A future spec may add a
+`gate_spec_code_coherence` function to `crates/policy-kernel/` if call-
+time blocking becomes desirable; the present amendment limits change
+to the compiler's gate vocabulary.

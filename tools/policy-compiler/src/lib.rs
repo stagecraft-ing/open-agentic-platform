@@ -432,7 +432,11 @@ fn parse_rule_block(block: &str, source_path: &str) -> Result<PolicyRule, Vec<Vi
     if let Some(gate_val) = &gate {
         if !matches!(
             gate_val.as_str(),
-            "destructive_operation" | "secrets_scanner" | "tool_allowlist" | "diff_size_limiter"
+            "destructive_operation"
+                | "secrets_scanner"
+                | "tool_allowlist"
+                | "diff_size_limiter"
+                | "spec_code_coherence"  // CONST-005, spec 131 (behavioral; no kernel impl)
         ) {
             violations.push(Violation {
                 code: "V-106".into(),
@@ -574,6 +578,27 @@ gate: destructive_operation
         assert!(violations.is_empty());
         assert_eq!(rules.len(), 1);
         assert_eq!(rules[0].id, "P-001");
+    }
+
+    #[test]
+    fn accepts_const_005_spec_code_coherence_gate() {
+        // Spec 131: CONST-005 declares gate `spec_code_coherence`.
+        // Must compile without V-106 (invalid gate).
+        let raw = r#"
+```policy
+id: CONST-005-spec-code-coherence
+description: refuse spec/code drift
+mode: enforce
+scope: global
+gate: spec_code_coherence
+```
+"#;
+        let mut violations = Vec::new();
+        let rules = parse_policy_blocks(raw, "CLAUDE.md", &mut violations);
+        assert!(violations.is_empty(), "got violations: {violations:?}");
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].id, "CONST-005-spec-code-coherence");
+        assert_eq!(rules[0].gate.as_deref(), Some("spec_code_coherence"));
     }
 
     #[test]
