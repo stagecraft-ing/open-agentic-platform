@@ -10,6 +10,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@opc/ui/dialog";
@@ -163,6 +164,10 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
             <Bot className="w-5 h-5" />
             Choose an agent
           </DialogTitle>
+          <DialogDescription>
+            Pick an org agent to use for this project. Bindings are managed in
+            the stagecraft web UI.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-6 pb-4 flex flex-col gap-3">

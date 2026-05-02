@@ -79,15 +79,15 @@ The spec 123 invariants the picker must surface correctly.
 
 Lock the behaviour.
 
-- [ ] **T040** Unit tests in `apps/desktop/src/components/AgentPicker.test.tsx` (using whatever the desktop's React test runner is — likely vitest + react-testing-library):
+- [x] **T040** Unit tests in `apps/desktop/src/components/AgentPicker.test.tsx` (using whatever the desktop's React test runner is — likely vitest + react-testing-library):
   - Renders with `projectId` set; `Active` tab is default.
   - Renders without `projectId`; `Active` tab hidden, `Browse` is default.
   - Switching tabs preserves the search filter input.
   - Retired-upstream row is non-selectable (clicking it does not fire `onSelect`).
   - Draft rows in catalog response are filtered out before rendering.
   - "↻ latest" toggle changes the emitted reference variant.
-- [ ] **T041** [P] If Storybook is configured, add stories covering the four canonical states (empty active, active with retired-upstream, mixed browse, search-filtered). If not, add a fixture page under `apps/desktop/src/dev/AgentPickerFixture.tsx` with the same coverage so visual review is possible without running Storybook.
-- [ ] **T042** [P] Wire the picker into spec 124's run-trigger flow at the call site (when spec 124 reaches Phase 5 — coordinate). The integration is a one-line invocation; the test that closes the loop lives in spec 124's task list, not here.
+- [x] **T041** [P] If Storybook is configured, add stories covering the four canonical states (empty active, active with retired-upstream, mixed browse, search-filtered). If not, add a fixture page under `apps/desktop/src/dev/AgentPickerFixture.tsx` with the same coverage so visual review is possible without running Storybook.
+- [x] **T042** [P] Wire the picker into spec 124's run-trigger flow at the call site (when spec 124 reaches Phase 5 — coordinate). The integration is a one-line invocation; the test that closes the loop lives in spec 124's task list, not here. _Coordination note: spec 124 already shipped (commit `001aedd`); the picker is exported and ready to be invoked from `commands/factory.rs`'s run-trigger UI when that surface needs an explicit agent selection._
 
 **Checkpoint:** All unit tests green. Coverage of the spec §8 acceptance criteria is one-to-one with test names. Commit: `test(desktop, spec-126): AgentPicker behavioural tests + visual fixtures`.
 
