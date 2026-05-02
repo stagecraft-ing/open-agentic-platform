@@ -324,3 +324,124 @@ export function validateExtractionOutput(value: unknown): ExtractionOutput {
 
   return value as unknown as ExtractionOutput;
 }
+
+// ---------------------------------------------------------------------------
+// Descriptor (spec 125)
+// ---------------------------------------------------------------------------
+//
+// Plain-data structural mirror of what `validateExtractionOutput` accepts.
+// Consumed by `tools/schema-parity-check` (which can no longer walk a zod
+// tree because zod is not safe to import from this file — Encore.ts's TS
+// parser crashes on `zod/v4/classic/schemas.d.cts`, see file header).
+//
+// The descriptor records *structure only*: field names, required vs.
+// optional, and a small set of structural kinds (string | int | number |
+// boolean | unknown | enum | array | tuple | map | object |
+// discriminatedUnion). Value-shape constraints the `Validator` additionally
+// enforces — `HEX_64` regex, length min/max, `Number.isInteger`,
+// `Number.isFinite`, positive vs. nonneg, and so on — are NOT carried in
+// the descriptor. Those checks are unit-tested via `validateExtractionOutput`
+// itself; the parity gate's job is structural drift between TS and the
+// Rust mirror in `crates/factory-contracts/src/knowledge.rs` only.
+//
+// Field order within each `object`'s `fields` array is alphabetical so the
+// fingerprint emitted by the descriptor walker is order-independent and
+// matches the Rust side (which sorts identically).
+
+// note: validator additionally enforces nonneg on every int field
+// (requireInt with `nonneg`/`positive` opts); the descriptor records the
+// kind only.
+const tokenSpendDescriptor: SchemaNode = {
+  kind: "object",
+  fields: [
+    { name: "cacheRead", required: false, type: { kind: "int" } },
+    { name: "cacheWrite", required: false, type: { kind: "int" } },
+    { name: "input", required: true, type: { kind: "int" } },
+    { name: "output", required: true, type: { kind: "int" } },
+  ],
+};
+
+const agentRunDescriptor: SchemaNode = {
+  kind: "object",
+  fields: [
+    // note: validator additionally enforces positive (> 0).
+    { name: "attempts", required: true, type: { kind: "int" } },
+    // note: validator additionally enforces nonneg + Number.isFinite.
+    { name: "costUsd", required: true, type: { kind: "number" } },
+    // note: validator additionally enforces nonneg.
+    { name: "durationMs", required: true, type: { kind: "int" } },
+    // note: validator additionally enforces non-empty string (min: 1).
+    { name: "modelId", required: true, type: { kind: "string" } },
+    // note: validator additionally enforces sha256 hex (HEX_64: 64 lowercase
+    // hex chars).
+    { name: "promptFingerprint", required: true, type: { kind: "string" } },
+    { name: "tokenSpend", required: true, type: tokenSpendDescriptor },
+  ],
+};
+
+const extractorDescriptor: SchemaNode = {
+  kind: "object",
+  fields: [
+    { name: "agentRun", required: false, type: agentRunDescriptor },
+    // note: validator additionally enforces non-empty string (min: 1).
+    { name: "kind", required: true, type: { kind: "string" } },
+    // note: validator additionally enforces non-empty string (min: 1).
+    { name: "version", required: true, type: { kind: "string" } },
+  ],
+};
+
+const pageDescriptor: SchemaNode = {
+  kind: "object",
+  fields: [
+    // note: validator does not introspect bbox shape; any value is accepted.
+    { name: "bbox", required: false, type: { kind: "unknown" } },
+    // note: validator additionally enforces nonneg.
+    { name: "index", required: true, type: { kind: "int" } },
+    { name: "text", required: true, type: { kind: "string" } },
+  ],
+};
+
+const outlineEntryDescriptor: SchemaNode = {
+  kind: "object",
+  fields: [
+    // note: validator additionally enforces positive (> 0).
+    { name: "level", required: true, type: { kind: "int" } },
+    // note: validator additionally enforces nonneg.
+    { name: "pageIndex", required: false, type: { kind: "int" } },
+    // note: validator additionally enforces non-empty string (min: 1).
+    { name: "text", required: true, type: { kind: "string" } },
+  ],
+};
+
+export const extractionOutputDescriptor: SchemaNode = {
+  kind: "object",
+  fields: [
+    { name: "extractor", required: true, type: extractorDescriptor },
+    // note: validator additionally enforces 2..=8 character length on
+    // ISO 639-1 codes.
+    { name: "language", required: false, type: { kind: "string" } },
+    // The validator only requires `metadata` to be an object; the Rust
+    // mirror serialises it as `HashMap<String, Value>`. The map descriptor
+    // matches the Rust fingerprint shape.
+    {
+      name: "metadata",
+      required: true,
+      type: {
+        kind: "map",
+        key: { kind: "string" },
+        value: { kind: "unknown" },
+      },
+    },
+    {
+      name: "outline",
+      required: false,
+      type: { kind: "array", element: outlineEntryDescriptor },
+    },
+    {
+      name: "pages",
+      required: false,
+      type: { kind: "array", element: pageDescriptor },
+    },
+    { name: "text", required: true, type: { kind: "string" } },
+  ],
+};
