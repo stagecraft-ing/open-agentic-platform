@@ -468,8 +468,10 @@ mod tests {
     #[test]
     fn allowlist_entity_model_yaml_tokens() {
         let yaml = "entities:\n  - name: Shelter Society Registry\n  - name: \"Funding Approval\"\n";
-        let mut ctx = ProjectContext::default();
-        ctx.entity_model_yaml = Some(yaml);
+        let ctx = ProjectContext {
+            entity_model_yaml: Some(yaml),
+            ..Default::default()
+        };
         let allow = derive(&ctx);
         assert!(allow.contains("shelter"));
         assert!(allow.contains("society"));
@@ -484,8 +486,10 @@ mod tests {
         // pulled into the allowlist (the parser only looks under
         // entities:).
         let yaml = "metadata:\n  name: Should Not Leak\nentities:\n  - name: Real Entity\n";
-        let mut ctx = ProjectContext::default();
-        ctx.entity_model_yaml = Some(yaml);
+        let ctx = ProjectContext {
+            entity_model_yaml: Some(yaml),
+            ..Default::default()
+        };
         let allow = derive(&ctx);
         assert!(allow.contains("real"));
         assert!(allow.contains("entity"));
@@ -494,8 +498,10 @@ mod tests {
 
     #[test]
     fn allowlist_charter_vocabulary_null_safe() {
-        let mut ctx = ProjectContext::default();
-        ctx.charter_vocabulary = None;
+        let ctx = ProjectContext {
+            charter_vocabulary: None,
+            ..Default::default()
+        };
         // Must not panic.
         let _ = derive(&ctx);
     }
@@ -503,8 +509,10 @@ mod tests {
     #[test]
     fn allowlist_charter_vocabulary_tokens() {
         let vocab = vec!["Foundation Trust".to_string(), "Sponsor".to_string()];
-        let mut ctx = ProjectContext::default();
-        ctx.charter_vocabulary = Some(&vocab);
+        let ctx = ProjectContext {
+            charter_vocabulary: Some(&vocab),
+            ..Default::default()
+        };
         let allow = derive(&ctx);
         assert!(allow.contains("foundation"));
         assert!(allow.contains("trust"));
