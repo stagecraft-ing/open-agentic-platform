@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e5f5f65d301aad37a81cc0d7e3d690e5e59a3efe1ec9a3794fda90cd73270a7b",
+    "contentHash": "967fce767f4516217fafbcdd52ea217e85a00e2e8235ee50848c7255f7e9199a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4076,6 +4076,27 @@
         ],
         "specId": "132-constitutional-invariant-freeze",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "134-fast-local-ci-mode",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [

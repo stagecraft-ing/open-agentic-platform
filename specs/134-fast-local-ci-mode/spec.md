@@ -2,7 +2,7 @@
 id: "134-fast-local-ci-mode"
 title: "Fast Local CI Mode — Two-Mode Parity Contract"
 status: draft
-implementation: incomplete
+implementation: in-progress
 owner: bart
 created: "2026-05-03"
 kind: governance
@@ -112,16 +112,14 @@ The mapping between `ci` gates and `ci-fast` gates lives in §3 (FR-02).
 ### 2.4 ci-parity-check Coverage
 
 `tools/ci-parity-check` continues to enforce token parity on `make ci` only.
-The Makefile MUST demarcate the `ci-fast` recipe tree with sentinel comments:
+The Makefile MUST demarcate the `ci-fast` recipe tree with sentinel comments
+at line start: the literal text `# BEGIN ci-fast (spec 134)` opens the
+region and `# END ci-fast` closes it. `ci-parity-check` MUST skip every
+line between (and including) those markers when scanning the Makefile.
 
-```
-# BEGIN ci-fast (spec 134)
-... ci-fast recipes ...
-# END ci-fast
-```
-
-`ci-parity-check` MUST skip every line between (and including) those markers
-when scanning the Makefile.
+The marker text MUST match exactly (after leading whitespace tolerance)
+so a comment that merely *mentions* the marker text doesn't accidentally
+open or close the region.
 
 ### 2.5 Documentation
 
