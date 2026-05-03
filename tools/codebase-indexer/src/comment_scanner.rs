@@ -104,6 +104,7 @@ pub fn parse_leading_block(content: &str) -> Option<String> {
 /// - `specs/NNN-slug/spec.md` (canonical long form)
 /// - `specs/NNN-slug/` (trailing slash)
 /// - `NNN-slug` (short form)
+///
 /// Returns `None` if no `\d{3}-[a-z][a-z0-9-]*` token is present.
 fn parse_spec_id(payload: &str) -> Option<String> {
     let trimmed = payload.trim();
