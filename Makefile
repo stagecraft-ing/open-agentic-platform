@@ -558,7 +558,11 @@ ifneq (,$(shell command -v sccache 2>/dev/null))
   export RUSTC_WRAPPER := $(shell command -v sccache)
 endif
 ifneq (,$(shell command -v cargo-nextest 2>/dev/null))
-  CIFAST_CARGO_TEST := nextest run
+  # `--no-tests=pass` matches `cargo test` semantics: a binary with zero
+  # `#[test]` functions exits 0 silently. Without this, nextest errors
+  # with "no tests to run" on workspace members whose `tests/` dirs (or
+  # `examples/`, `benches/` under --all-targets) contain no test fns.
+  CIFAST_CARGO_TEST := nextest run --no-tests=pass
 else
   CIFAST_CARGO_TEST := test
 endif
