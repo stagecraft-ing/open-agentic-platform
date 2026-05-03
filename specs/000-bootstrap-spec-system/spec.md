@@ -6,18 +6,36 @@ status: approved
 implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
-amended: "2026-04-29"
-amendment_record: "119"
+amended: "2026-05-02"
+amendment_record: "132-constitutional-invariant-freeze"
+unamendable:
+   - "V-001"
+   - "V-002"
+   - "V-003"
+   - "V-004"
+   - "V-005"
+   - "V-006"
+   - "V-007"
+   - "V-008"
+   - "V-009"
+   - "V-010"
+   - "markdown-truth-boundary"
+   - "json-truth-boundary"
+   - "determinism-requirement"
+   - "directory-name-equals-id"
 ratified: "2026-03-22"
 authors:
-  - "open-agentic-platform"
+   - "open-agentic-platform"
 language: en
 summary: >
-  Foundational contract: authored truth lives only in markdown (with YAML frontmatter
-  blocks permitted inside .md); machine-consumable truth is compiler-emitted JSON only;
-  full markdown → registry compilation from day one; no standalone authored YAML.
-  Amended by spec 119 to formally introduce the `amends:` and `amendment_record:`
-  frontmatter convention.
+   Foundational contract: authored truth lives only in markdown (with YAML frontmatter
+   blocks permitted inside .md); machine-consumable truth is compiler-emitted JSON only;
+   full markdown → registry compilation from day one; no standalone authored YAML.
+   Amended by spec 119 to formally introduce the `amends:` and `amendment_record:`
+   frontmatter convention.
+   Amended by spec 132 (2026-05-02) to declare an `unamendable` list of frozen
+   anchors and back it with V-011 in the spec compiler. The unamendable list
+   in this frontmatter is the authoritative freeze surface.
 ---
 
 # Feature Specification: Bootstrap spec system
@@ -193,6 +211,40 @@ The compiler MUST reject or emit `validation.passed: false` when:
 - **V-003**: Duplicate feature `id` values exist across the tree.
 - **V-004**: A standalone `.yaml` or `.yml` file appears under authored paths designated by policy (default: entire repo except `node_modules/`, `.git/`, and explicitly listed third-party vendored paths in a later amendment).
 - **V-005** (**reserved; not MVP-enforced**): Hand-edited or non-compiler mutation of JSON under the compiler output directory SHOULD be detectable in a future phase (heuristic TBD: e.g. tamper-evident hash, read-only CI artifacts). The **intent** is workflow integrity, not a cryptographic guarantee in Feature 000. Until enforcement exists, implementations MUST NOT claim full **V-005** compliance; they MAY emit **warnings** only if explicitly implemented.
+
+## Frozen invariants *(introduced by spec 132, 2026-05-02)*
+
+The frontmatter `unamendable` list declares which anchors of this spec
+are frozen against in-place amendment. The compiler enforces the freeze
+via **V-011**: any spec carrying `amends: ["000"]` (or short-form
+`"000-bootstrap-spec-system"`) plus an `amends_sections` entry that
+overlaps the unamendable list is rejected with severity `error`.
+
+The frozen anchors and their authoritative referents in this spec:
+
+| Anchor | Where it lives in this spec |
+|--------|-----------------------------|
+| `V-001` | "Minimum validation invariants" — `spec.md` missing/unreadable |
+| `V-002` | Same section — required keys / id-matches-directory |
+| `V-003` | Same section — duplicate feature ids |
+| `V-004` | Same section — standalone YAML rejection |
+| `V-005` | Same section — hand-edited JSON detection (reserved) |
+| `V-006`..`V-010` | Reserved for future enumerations of this same section's invariants |
+| `markdown-truth-boundary` | "Authored truth: markdown only (including frontmatter)" |
+| `json-truth-boundary` | "Machine truth: compiler-owned JSON only" |
+| `determinism-requirement` | "Deterministic compiler expectations" |
+| `directory-name-equals-id` | "Markdown document grammar (normative minimum)" — directory naming rule |
+
+**Path past a frozen anchor.** An amending spec that needs to change
+frozen content cannot use `amends:` — it must instead retire spec 000
+(`status: superseded` on spec 000) and replace it with a successor.
+The successor's first section explains what changed and why. This is
+the heaviest amendment path in the convention precisely because the
+constitutional weight of the change demands it.
+
+**Reserved entries.** `V-006` through `V-010` are reserved for future
+invariants. Listing them as unamendable now means a future spec adding
+content under those anchors cannot freely modify it later.
 
 ## Reverse-engineered provenance expectations
 
