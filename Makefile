@@ -465,7 +465,7 @@ ci-spec-code-coupling:
 
 # ============================================================
 # Supply chain (spec 116) — mirrors .github/workflows/ci-supply-chain.yml.
-# Posture: warn-only until 2026-05-28; promote by removing `|| true` lines.
+# Posture: blocking from day 0 (spec 116 §9 — warn window collapsed 2026-05-02).
 # ============================================================
 
 ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
@@ -494,16 +494,16 @@ ci-supply-chain-cargo:
 	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
 	@for m in $(SUPPLY_CHAIN_RUST_MANIFESTS); do \
 	    echo "  cargo deny --manifest-path $$m check"; \
-	    cargo deny --manifest-path $$m check || true; \
-	done   # warn-only until 2026-05-28 (spec 116 §9)
+	    cargo deny --manifest-path $$m check; \
+	done
 
 ci-supply-chain-pnpm:
 	@echo "==> ci-supply-chain: pnpm audit"
-	pnpm audit --audit-level=high || true   # warn-only until 2026-05-28
+	pnpm audit --audit-level=high
 
 ci-supply-chain-npm:
 	@echo "==> ci-supply-chain: npm audit (stagecraft)"
-	cd platform/services/stagecraft && npm audit --audit-level=high || true   # warn-only until 2026-05-28
+	cd platform/services/stagecraft && npm audit --audit-level=high
 
 # axiomregent cross-target matrix (build-axiomregent.yml). Opt-in.
 # Prerequisite per target: rustup target add <triple>
@@ -574,7 +574,7 @@ help:
 	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"
 	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
 	@echo "  make ci-spec-code-coupling  PR-time spec/code coupling gate (spec 127)"
-	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; warn-only until 2026-05-28)"
+	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; blocking)"
 	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"
 	@echo "  make ci-parity          Drift check: Makefile mirrors enforcing workflows (spec 104)"
 	@echo ""

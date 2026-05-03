@@ -3,14 +3,9 @@
 # Supply-chain gates: cargo-deny across every Rust manifest, plus pnpm/npm
 # audit at the package-manager layer. Mirrored in Makefile `ci-supply-chain`.
 #
-# Posture (until 2026-05-28):
-#   - 30-day warn window: each audit step soft-fails (exit 0 with a
-#     `::warning::` annotation) so violations surface as advisories
-#     rather than blocking the workflow. Mirrors `|| true` in the
-#     Makefile.
-#   - On 2026-05-28 a follow-up PR sets `vars.SUPPLY_CHAIN_BLOCKING=true`
-#     (via a repo variable). The audit steps then propagate non-zero
-#     exit codes and the gate becomes blocking.
+# Posture: blocking from day 0. The 30-day warn-only window planned in the
+# original spec was collapsed on 2026-05-02 after a clean dry-run (zero
+# `--audit-level=high` findings across all three audits). See spec 116 §9.
 #
 # Cron: Monday 12:00 UTC pulls a fresh advisory-db even on a quiet week.
 
@@ -75,8 +70,6 @@ jobs:
       # rest of CI compiles. Workspace `crates/Cargo.toml` covers all 16
       # member crates in one pass.
       - name: Run cargo-deny
-        env:
-          BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}
         run: |
           set -u
           manifests=(
@@ -100,12 +93,7 @@ jobs:
             fi
             echo "::endgroup::"
           done
-          if [ "$rc" -ne 0 ]; then
-            if [ "$BLOCKING" = "true" ]; then
-              exit 1
-            fi
-            echo "::warning::cargo-deny advisories present (warn-only window until 2026-05-28)"
-          fi
+          exit $rc
 
   pnpm-audit:
     runs-on: ubuntu-latest
@@ -124,15 +112,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: pnpm audit
-        env:
-          BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}
-        run: |
-          if [ "$BLOCKING" = "true" ]; then
-            pnpm audit --audit-level=high
-          else
-            pnpm audit --audit-level=high \
-              || echo "::warning::pnpm audit advisories present (warn-only window until 2026-05-28)"
-          fi
+        run: pnpm audit --audit-level=high
 
   npm-audit-stagecraft:
     runs-on: ubuntu-latest
@@ -153,12 +133,4 @@ jobs:
 
       - name: npm audit
         working-directory: platform/services/stagecraft
-        env:
-          BLOCKING: ${{ vars.SUPPLY_CHAIN_BLOCKING }}
-        run: |
-          if [ "$BLOCKING" = "true" ]; then
-            npm audit --audit-level=high
-          else
-            npm audit --audit-level=high \
-              || echo "::warning::npm audit advisories present (warn-only window until 2026-05-28)"
-          fi
+        run: npm audit --audit-level=high
