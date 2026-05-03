@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:64bbae1f13bf37f9672b3e6e0fd69bed6d754648e6f16383e41170af06f4b4de",
+  "graph_fingerprint": "sha256:d56f10050a891f6aefad5ac76062722f97b113da4c69e4bebd903645437a2698",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -1404,7 +1404,7 @@
       "title": "VS Code Extension (Sidebar Webview)",
       "spec_path": "specs/066-vscode-extension/spec.md",
       "status": "approved",
-      "implementation": "n/a",
+      "implementation": "deferred",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1684,7 +1684,7 @@
       "title": "Open Source Launch Readiness",
       "spec_path": "specs/086-open-source-launch/spec.md",
       "status": "approved",
-      "implementation": "n/a",
+      "implementation": "deferred",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1695,7 +1695,7 @@
     },
     {
       "feature_id": "087-unified-workspace-architecture",
-      "title": "Unified Workspace Architecture",
+      "title": "Unified Project Architecture",
       "spec_path": "specs/087-unified-workspace-architecture/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -1719,7 +1719,7 @@
       "feature_id": "088-factory-upstream-sync",
       "title": "Factory Upstream Sync Protocol",
       "spec_path": "specs/088-factory-upstream-sync/spec.md",
-      "status": "approved",
+      "status": "superseded",
       "implementation": "complete",
       "governance": "",
       "owner": "bart",
@@ -1785,7 +1785,7 @@
     },
     {
       "feature_id": "092-workspace-runtime-threading",
-      "title": "Workspace Runtime Threading",
+      "title": "Project Runtime Threading",
       "spec_path": "specs/092-workspace-runtime-threading/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -1907,7 +1907,7 @@
     },
     {
       "feature_id": "099-workspace-scoped-persistence",
-      "title": "Workspace-Scoped Persistence",
+      "title": "Project-Scoped Persistence",
       "spec_path": "specs/099-workspace-scoped-persistence/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -1928,7 +1928,7 @@
       "title": "Post-Convergence Remediation",
       "spec_path": "specs/100-post-convergence-remediation/spec.md",
       "status": "approved",
-      "implementation": "n/a",
+      "implementation": "complete",
       "governance": "high",
       "owner": "bart",
       "group": "",
@@ -1974,9 +1974,624 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "103-init-protocol-governed-reads",
+      "title": "Init Protocol Governed Reads — Consumer Binaries Over Ad-Hoc Parsing",
+      "spec_path": "specs/103-init-protocol-governed-reads/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001",
+        "002",
+        "101"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "104-makefile-ci-parity-contract",
+      "title": "Makefile as CI Parity Contract — Drift-Checked Local Mirror of GitHub Actions",
+      "spec_path": "specs/104-makefile-ci-parity-contract/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "006"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "105-scripts-to-binaries-migration",
+      "title": "Retire scripts/ — Migrate To Rust Binaries Or Make Recipes By Nature",
+      "spec_path": "specs/105-scripts-to-binaries-migration/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "037",
+        "073",
+        "075",
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "106-rauthy-native-oidc-and-membership",
+      "title": "Rauthy-Native OIDC + Layered Membership Resolution (App Installation + PAT)",
+      "spec_path": "specs/106-rauthy-native-oidc-and-membership/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "080",
+        "087"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "107-rauthy-client-redirect-convergence",
+      "title": "Rauthy OIDC Client Redirect URI Convergence",
+      "spec_path": "specs/107-rauthy-client-redirect-convergence/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "080",
+        "106"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "108-factory-as-platform-feature",
+      "title": "Factory as a First-Class Platform Feature",
+      "spec_path": "specs/108-factory-as-platform-feature/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "074",
+        "075",
+        "087",
+        "088"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "109-factory-pat-and-pubsub-sync",
+      "title": "Factory PAT Broker + PubSub Sync Worker",
+      "spec_path": "specs/109-factory-pat-and-pubsub-sync/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "080",
+        "106",
+        "108"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "110-stagecraft-to-opc-factory-trigger",
+      "title": "Stagecraft-initiated Factory Run Trigger over the Duplex Channel",
+      "spec_path": "specs/110-stagecraft-to-opc-factory-trigger/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "075",
+        "076",
+        "077",
+        "087",
+        "092",
+        "094",
+        "108",
+        "109"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "111-org-agent-catalog-sync",
+      "title": "Org-managed Agent Catalog Synced from Stagecraft to OPC",
+      "spec_path": "specs/111-org-agent-catalog-sync/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "042",
+        "054",
+        "068",
+        "087",
+        "090",
+        "110"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "112-factory-project-lifecycle",
+      "title": "Factory Project Lifecycle — Create, Import, Open",
+      "spec_path": "specs/112-factory-project-lifecycle/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "074",
+        "075",
+        "087",
+        "094",
+        "108",
+        "109",
+        "110",
+        "111"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "113-stagecraft-projects-rename-and-clone",
+      "title": "Stagecraft Projects Rename + In-Org Project Clone",
+      "spec_path": "specs/113-stagecraft-projects-rename-and-clone/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "108",
+        "109",
+        "112"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "114-async-project-clone-pipeline",
+      "title": "Async Project Clone Pipeline",
+      "spec_path": "specs/114-async-project-clone-pipeline/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "109",
+        "112",
+        "113"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "115-knowledge-extraction-pipeline",
+      "title": "Knowledge Extraction Pipeline",
+      "spec_path": "specs/115-knowledge-extraction-pipeline/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "036",
+        "047",
+        "087",
+        "114"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "116-supply-chain-policy-gates",
+      "title": "Supply-Chain Policy Gates — cargo-deny + dependency audit in CI",
+      "spec_path": "specs/116-supply-chain-policy-gates/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "047",
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "117-release-artifact-attestations",
+      "title": "Release Artifact Attestations — SBOM + build provenance for every shipped binary",
+      "spec_path": "specs/117-release-artifact-attestations/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "037",
+        "086",
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "118-workflow-spec-traceability",
+      "title": "Workflow-to-Spec Traceability — surface \"# Spec:\" headers in the codebase index",
+      "spec_path": "specs/118-workflow-spec-traceability/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "101",
+        "103"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "119-project-as-unit-of-governance",
+      "title": "Project as Unit of Governance — Workspace Collapse",
+      "spec_path": "specs/119-project-as-unit-of-governance/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "087",
+        "092",
+        "094",
+        "099",
+        "113",
+        "114",
+        "115"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "120-factory-extraction-stage",
+      "title": "Factory Extraction Stage",
+      "spec_path": "specs/120-factory-extraction-stage/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "074",
+        "075",
+        "077",
+        "094",
+        "110",
+        "115"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "121-claim-provenance-enforcement",
+      "title": "Claim Provenance Enforcement",
+      "spec_path": "specs/121-claim-provenance-enforcement/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "critical",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "075",
+        "091",
+        "118",
+        "120"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "122-stakeholder-doc-inversion",
+      "title": "Stakeholder-Doc Inversion and Stage CD Comparator",
+      "spec_path": "specs/122-stakeholder-doc-inversion/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "critical",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "075",
+        "087",
+        "119",
+        "120",
+        "121"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "123-agent-catalog-org-rescope",
+      "title": "Agent Catalog Org-Rescope — Projects Consume, Org Governs",
+      "spec_path": "specs/123-agent-catalog-org-rescope/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "042",
+        "054",
+        "068",
+        "075",
+        "087",
+        "090",
+        "098",
+        "108",
+        "111",
+        "119",
+        "122"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "124-opc-factory-run-platform-integration",
+      "title": "OPC Factory-Run Platform Integration",
+      "spec_path": "specs/124-opc-factory-run-platform-integration/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "106",
+        "107",
+        "108",
+        "109",
+        "123"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "125-schema-parity-walker-rebuild",
+      "title": "Schema-Parity Walker — Rebuild for Hand-Rolled Validators",
+      "spec_path": "specs/125-schema-parity-walker-rebuild/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "120",
+        "121",
+        "122"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "126-desktop-agent-picker-ui",
+      "title": "Desktop Agent Picker — Bindings vs Full Catalog",
+      "spec_path": "specs/126-desktop-agent-picker-ui/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "111",
+        "123",
+        "124"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "127-spec-code-coupling-gate",
+      "title": "Spec/Code Coupling Gate — fail PRs that change implements: paths without spec.md",
+      "spec_path": "specs/127-spec-code-coupling-gate/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001",
+        "101",
+        "103",
+        "104",
+        "118"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "128-spec-lint-default-fail-on-warn",
+      "title": "spec-lint default to fail-on-warn — repo opts into the strict posture",
+      "spec_path": "specs/128-spec-lint-default-fail-on-warn/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "006",
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "129-granular-package-oap-metadata",
+      "title": "Granular [package.metadata.oap] — file-level spec annotation via comment headers",
+      "spec_path": "specs/129-granular-package-oap-metadata/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "101",
+        "118"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "130-spec-coupling-primary-owner",
+      "title": "Spec/code coupling: primary-owner heuristic — relax to any-claimant edit",
+      "spec_path": "specs/130-spec-coupling-primary-owner/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "127",
+        "129"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "131-adversarial-prompt-refusal-policy",
+      "title": "CONST-005 — Adversarial-prompt refusal: spec/code coherence",
+      "spec_path": "specs/131-adversarial-prompt-refusal-policy/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "047",
+        "127",
+        "130"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "132-constitutional-invariant-freeze",
+      "title": "Constitutional invariant freeze — `unamendable` anchors and V-011",
+      "spec_path": "specs/132-constitutional-invariant-freeze/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "134-fast-local-ci-mode",
+      "title": "Fast Local CI Mode — Two-Mode Parity Contract",
+      "spec_path": "specs/134-fast-local-ci-mode/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src-tauri/src/commands/factory_platform.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src-tauri/src/commands/provenance.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src-tauri/src/commands/stage_cd.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-024, FR-025, FR-026, FR-030",
+      "suggested_fix": "Fix header format"
+    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
@@ -2057,6 +2672,20 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "apps/desktop/src/components/factory/ProvenanceHealthPanel.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/ProvenanceReport.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "apps/desktop/src/components/factory/ScaffoldMonitor.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
@@ -2064,8 +2693,36 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "apps/desktop/src/components/factory/StageCdReview.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "apps/desktop/src/components/factory/TokenDashboard.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/__tests__/ProvenanceReport.test.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2162,8 +2819,78 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/artifact-extract/src/bin/artifact_extract.rs",
+      "message": "Malformed Spec directive: // Spec: specs/115-knowledge-extraction-pipeline/spec.md (FR-027 legacy",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/artifact-extract/src/extractors/docx.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/artifact-extract/src/extractors/mod.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/artifact-extract/src/extractors/pdf.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/artifact-extract/src/extractors/text.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/artifact-extract/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-005 through FR-009, FR-027",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/artifact-extract/tests/no_llm_deps.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-007",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/axiomregent/src/skill_provider.rs",
       "message": "Malformed Spec directive: // Spec: specs/071-skill-command-factory/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-contracts/src/agent_reference.rs",
+      "message": "Malformed Spec directive: // Spec: specs/123-agent-catalog-org-rescope/spec.md — §8.2, T083",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-contracts/src/budget.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-028, FR-029",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-contracts/src/knowledge.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-001, FR-002",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2176,6 +2903,27 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-contracts/src/provenance.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-006 through FR-014",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-contracts/src/provenance_config.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-024, FR-025, FR-027, FR-028",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-contracts/src/stakeholder_docs.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-001 through FR-006",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/agent_bridge.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-007",
       "suggested_fix": "Fix header format"
@@ -2183,8 +2931,22 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/agent_resolver.rs",
+      "message": "Malformed Spec directive: // Spec: specs/123-agent-catalog-org-rescope/spec.md — §8.2, A-8",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/artifact_store.rs",
       "message": "Malformed Spec directive: // Spec: specs/082-artifact-integrity-platform-hardening/spec.md — FR-020, FR-021",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-008",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2246,6 +3008,20 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/migration/mod.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-007 to FR-012",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/migration/stakeholder_docs.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-007 to FR-012",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/pipeline_state.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-009",
       "suggested_fix": "Fix header format"
@@ -2267,6 +3043,69 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/project_config.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-025, FR-028",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stagecraft_client.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-016, FR-018, FR-019",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/cascade_check.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-032 to FR-034",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/quality_gates.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-004, FR-023 to FR-031",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-010 through FR-015,",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/stage_cd.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-013 to FR-017",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/stage_cd_actions.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-024, FR-025, FR-026",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/stage_cd_comparator.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-014, FR-016, FR-018 to FR-021, FR-027",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/stages/stage_cd_gate.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-022 to FR-026",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/standards_resolver.rs",
       "message": "Malformed Feature directive: // Feature: 055-yaml-standards-schema",
       "suggested_fix": "Fix header format"
@@ -2283,6 +3122,69 @@
       "severity": "error",
       "path": "crates/factory-engine/src/verify_harness.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/agent_resolver_test.rs",
+      "message": "Malformed Spec directive: // Spec: specs/123-agent-catalog-org-rescope/spec.md — T084, T085, A-8",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/spec_122_e2e.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — SC-001..SC-012",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/src/cache_root.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md — §5, T005",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/src/client.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/src/error.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md — §5 / §6",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/src/materialise.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md — §5 / T043",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/src/wire.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md — §4 / T042",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-platform-client/tests/platform_client.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md — T044, T045",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2367,6 +3269,83 @@
       "severity": "error",
       "path": "crates/orchestrator/src/verify.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/policy-kernel/src/provenance_policy.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-026",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/allowlist.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-015 to FR-018",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/bin/audit.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-036, FR-037, FR-038",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/citation.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-019, FR-020, FR-021",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/corpus.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-021, FR-022",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001, FR-015 to FR-022",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/manifest.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-010, FR-032, FR-033",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/src/validator.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001 to FR-005, FR-036 to FR-039",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/tests/no_llm_deps.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/tests/sc001_cfs_audit.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — SC-001",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/provenance-validator/tests/validator_tests.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001 to FR-005, FR-036 to FR-039",
       "suggested_fix": "Fix header format"
     },
     {
@@ -2549,6 +3528,48 @@
       "severity": "error",
       "path": "packages/skill-command-factory/src/types.ts",
       "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "platform/services/stagecraft/api/knowledge/extractionExternal.test.ts",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-016, FR-017",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
+      "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-016 through FR-019",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/assumption-cascade-check/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-034",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/assumption-cascade-check/src/main.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-034",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/stakeholder-doc-lint/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-005, FR-034",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/stakeholder-doc-lint/src/main.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-005, FR-035",
       "suggested_fix": "Fix header format"
     }
   ]
