@@ -744,8 +744,8 @@ mod tests {
             Some("client-document"),
             "DocKind serialises kebab-case",
         );
-        assert_eq!(j["frontmatter"]["migratedAt"].is_string(), true);
-        assert_eq!(j["frontmatter"]["migratedFrom"].is_string(), true);
+        assert!(j["frontmatter"]["migratedAt"].is_string());
+        assert!(j["frontmatter"]["migratedFrom"].is_string());
         assert_eq!(j["frontmatter"]["status"].as_str(), Some("authored"));
     }
 

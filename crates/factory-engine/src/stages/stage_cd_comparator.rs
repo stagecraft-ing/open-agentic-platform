@@ -1199,8 +1199,7 @@ kind: charter
         // Authored citation references a corpus path that doesn't exist
         // in the supplied corpus → orphaned → citation diff.
         let dir = tempfile::tempdir().unwrap();
-        let authored = format!(
-            r#"---
+        let authored = r#"---
 status: authored
 owner: o
 version: "1.0.0"
@@ -1216,7 +1215,7 @@ citations:
 
 Body.
 "#
-        );
+        .to_string();
         write(
             &dir.path().join("requirements/stakeholder/charter.md"),
             &authored,
