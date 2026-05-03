@@ -340,3 +340,6 @@ platform/_tmp_test/
 
 # Local dev runtime data
 .local/
+
+# Spec 134: shared CARGO_TARGET_DIR for ci-fast-tools fan-out (CIFAST_TARGET_DIR)
+.target/
