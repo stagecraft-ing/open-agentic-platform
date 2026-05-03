@@ -5,6 +5,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
+amended: "2026-05-03"
+amendment_record: "134-fast-local-ci-mode"
 kind: governance
 risk: low
 depends_on:
@@ -24,6 +26,12 @@ summary: >
 ---
 
 # 104 — Makefile as CI Parity Contract
+
+> **Amendment (spec 134, 2026-05-03).** A sibling target `make ci-fast` is
+> now permitted as a parity-exempt, performance-optimised local mirror.
+> Lines bracketed by `# BEGIN ci-fast (spec 134)` / `# END ci-fast` in the
+> Makefile are skipped by `ci-parity-check`. The parity contract on
+> `make ci` is unchanged.
 
 ## 1. Problem Statement
 
