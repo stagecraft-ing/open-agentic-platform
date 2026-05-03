@@ -10,7 +10,7 @@
 //! Deep-link scheme: `opc://auth/callback?code=...&state=...`
 
 use super::result::AppResult;
-use super::stagecraft_client::StagecraftState;
+use super::stagecraft_client::{decode_jwt_claims, StagecraftState};
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -126,21 +126,6 @@ fn keychain_delete(key: &str) {
     if let Ok(entry) = keyring::Entry::new(KEYCHAIN_SERVICE, key) {
         let _ = entry.delete_credential();
     }
-}
-
-// ---------------------------------------------------------------------------
-// JWT helper
-// ---------------------------------------------------------------------------
-
-fn decode_jwt_claims(token: &str) -> Option<serde_json::Value> {
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .decode(parts[1])
-        .ok()?;
-    serde_json::from_slice(&payload).ok()
 }
 
 // ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 //! All methods are best-effort — callers log warnings on failure but never
 //! block local pipeline execution.
 
+use base64::Engine as _;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
@@ -48,6 +49,25 @@ pub fn to_stagecraft_stage_id(local_id: &str) -> &str {
         "s5-ui-specification" => "s5-ui-spec",
         other => other,
     }
+}
+
+// ---------------------------------------------------------------------------
+// JWT helper — single source of truth for Rauthy token claim extraction
+// ---------------------------------------------------------------------------
+
+/// Decode the payload of a Rauthy JWT into a JSON value. Returns `None` on
+/// malformed tokens (wrong segment count, non-base64 payload, non-JSON body).
+/// Signature is intentionally not verified here — desktop-side callers use
+/// claims for read-back of fields the server already validated.
+pub(super) fn decode_jwt_claims(token: &str) -> Option<serde_json::Value> {
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(parts[1])
+        .ok()?;
+    serde_json::from_slice(&payload).ok()
 }
 
 // ---------------------------------------------------------------------------
@@ -113,11 +133,27 @@ impl StagecraftClient {
     }
 
     /// Set the auth token (Rauthy JWT) and persist to OS keychain.
+    ///
+    /// Also derives `org_id` from the token's `oap_org_id` claim so the two
+    /// fields stay coupled — see `apply_token` for the invariant.
     pub fn set_auth_token(&self, token: &str) {
-        *self.auth_token.write().unwrap() = Some(token.to_string());
+        self.apply_token(token);
         // Best-effort persist to keychain
         if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
             let _ = entry.set_password(token);
+        }
+    }
+
+    /// Type invariant: whenever `auth_token` is `Some`, `org_id` reflects the
+    /// token's `oap_org_id` claim. Used by both fresh-auth (`set_auth_token`)
+    /// and keychain-restore (`load_token_from_keychain`) so the field cannot
+    /// drift between writers.
+    fn apply_token(&self, token: &str) {
+        *self.auth_token.write().unwrap() = Some(token.to_string());
+        if let Some(claims) = decode_jwt_claims(token)
+            && let Some(org) = claims.get("oap_org_id").and_then(|v| v.as_str())
+        {
+            *self.org_id.write().unwrap() = org.to_string();
         }
     }
 
@@ -126,7 +162,7 @@ impl StagecraftClient {
         if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session")
             && let Ok(token) = entry.get_password()
         {
-            *self.auth_token.write().unwrap() = Some(token);
+            self.apply_token(&token);
             return true;
         }
         false
@@ -1548,5 +1584,56 @@ mod tests {
             serde_json::from_str(payload).expect("refresh envelope decodes");
         let token = resp.clone_token.expect("token present");
         assert_eq!(token.value, "ghs_REFRESHED_TOKEN");
+    }
+
+    /// Build a minimally-shaped Rauthy JWT for tests. The signature segment
+    /// is unverified by `decode_jwt_claims` (claims-only read), so any
+    /// non-empty placeholder is fine.
+    fn fake_jwt(claims: &serde_json::Value) -> String {
+        let header = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(br#"{"alg":"none","typ":"JWT"}"#);
+        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(serde_json::to_vec(claims).unwrap());
+        format!("{header}.{payload}.sig")
+    }
+
+    /// Pin the type invariant from the spec/code coupling fix:
+    /// `set_auth_token` MUST derive `org_id` from the JWT's `oap_org_id`
+    /// claim. Regression here recreates the "no active organization
+    /// (sign-in incomplete)" bug where restore/refresh paths would set the
+    /// token but leave `org_id` empty.
+    #[test]
+    fn set_auth_token_populates_org_id_from_jwt_claim() {
+        let client = StagecraftClient::new("http://example.test", "actor-1")
+            .expect("client builds");
+        assert_eq!(client.org_id(), "");
+
+        let token = fake_jwt(&serde_json::json!({
+            "oap_org_id": "org-abc-123",
+            "oap_user_id": "user-1",
+            "exp": 9_999_999_999i64,
+        }));
+        client.apply_token(&token);
+
+        assert_eq!(client.org_id(), "org-abc-123");
+    }
+
+    /// A malformed token must not panic and must leave `org_id` untouched.
+    /// The previous value (e.g. from a successful prior auth) wins over a
+    /// silent overwrite to empty, which would itself trigger the bug.
+    #[test]
+    fn apply_token_leaves_org_id_when_claim_missing() {
+        let client = StagecraftClient::new("http://example.test", "actor-1")
+            .expect("client builds");
+        client.set_org_id("org-prior");
+
+        // Token with no oap_org_id claim.
+        let token = fake_jwt(&serde_json::json!({"sub": "anon"}));
+        client.apply_token(&token);
+        assert_eq!(client.org_id(), "org-prior");
+
+        // Garbage token (wrong segment count).
+        client.apply_token("not.a.jwt.at.all");
+        assert_eq!(client.org_id(), "org-prior");
     }
 }
