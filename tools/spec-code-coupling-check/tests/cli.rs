@@ -42,7 +42,11 @@ fn write_synthetic_index(dir: &std::path::Path, mappings_json: &str) -> PathBuf 
 }
 
 fn run(args: &[&str]) -> (i32, String, String) {
-    let out = Command::new(cli_bin()).args(args).output().unwrap();
+    let out = Command::new(cli_bin())
+        .args(args)
+        .env_remove("GITHUB_PR_BODY")
+        .output()
+        .unwrap();
     (
         out.status.code().unwrap_or(-1),
         String::from_utf8_lossy(&out.stdout).to_string(),

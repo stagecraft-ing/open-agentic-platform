@@ -264,6 +264,19 @@ Adding any one of the listed claimants' `spec.md` to the diff clears
 the violation. The intent is friction in the right place — some owner
 must review — not coercive scale across every claimant.
 
+## Defect log
+
+**2026-05-02 — test isolation: `GITHUB_PR_BODY` env leak.**
+The `tests/cli.rs` integration tests built the gate binary via
+`Command::new(cli_bin())`, which inherits the parent process
+environment. When `make ci-spec-code-coupling` runs in a shell that
+already has `GITHUB_PR_BODY` set (e.g. when verifying a waiver
+locally), the inherited value contains a `Spec-Drift-Waiver:` line
+and AC-1's "violation must exit 1" assertion silently degrades to
+exit 0. Fix: `tests/cli.rs::run` now adds
+`.env_remove("GITHUB_PR_BODY")` before spawning. No production code
+change; failure mode was test-only.
+
 ## Amendment record
 
 **Amendment 2026-05-02 (record: 130-spec-coupling-primary-owner).**
