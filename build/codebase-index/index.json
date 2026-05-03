@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e5f5f65d301aad37a81cc0d7e3d690e5e59a3efe1ec9a3794fda90cd73270a7b",
+    "contentHash": "dcccdd21dc7e876757431829c6d7d524cd2f72d0fa1dcddf51da85deb55a38f2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4076,6 +4076,21 @@
         ],
         "specId": "132-constitutional-invariant-freeze",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "119",
+          "127",
+          "130"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-code-coupling-check",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "133-amends-aware-coupling-gate",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
