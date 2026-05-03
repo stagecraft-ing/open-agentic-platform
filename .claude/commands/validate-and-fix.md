@@ -14,6 +14,8 @@ Run the authoritative local CI parity check and automatically fix discovered iss
 
 Invoke `make ci` from the repo root. The `Makefile` is the **single source of truth** for what CI validates. Do not discover validation commands by grepping `package.json`, `Cargo.toml`, or CLAUDE.md — the Makefile already enumerates every gate the CI workflows enforce.
 
+> **Two modes (spec 134).** `make ci` is the parity-bound mirror of every enforcing GitHub workflow — token-equivalent, conservative, ~90 min on M1 Pro. `make ci-fast` is the parity-exempt local accelerator — same gate set, parallel/sccache/nextest, target ≤ 25 min warm. Use `ci-fast` for the inner loop; run `ci` once before pushing to confirm parity.
+
 `make ci` composes:
 
 - **`make ci-rust`** — per-manifest `cargo check` + `cargo clippy -- -D warnings` + `cargo test` for every isolated Rust workspace. Covers: `axiomregent`, `orchestrator`, `policy-kernel`, `tool-registry`, `skill-factory`, `factory-engine`, `factory-contracts`, `provider-registry`, `agent-frontmatter`, `standards-loader`, `platform/services/deployd-api-rs`. Mirrors `ci-axiomregent.yml`, `ci-crates.yml`, `ci-deployd-api-rs.yml`, `ci-orchestrator.yml`, `ci-policy-kernel.yml`.
