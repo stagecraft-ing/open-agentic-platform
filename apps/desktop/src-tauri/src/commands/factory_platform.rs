@@ -440,8 +440,14 @@ pub const REPLAY_QUEUE_MAX: usize = 1000;
 /// Test-only mutex serialising every test that mutates `XDG_DATA_HOME`
 /// in this binary. Cargo runs lib tests in parallel by default; without
 /// this, two tests reading the same env var see each other's writes.
+///
+/// Async-aware on purpose: tests that mutate `XDG_DATA_HOME` then `await`
+/// on operations reading it must hold the guard across the await points
+/// (the lock's whole reason for existing). A `std::sync::MutexGuard` held
+/// across `.await` is a clippy-flagged footgun in a multi-thread tokio
+/// runtime; `tokio::sync::Mutex` is the textbook fix.
 #[cfg(test)]
-pub static REPLAY_QUEUE_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+pub static REPLAY_QUEUE_ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Resolve `$XDG_DATA_HOME/oap/factory-run-events/`. Falls back to
 /// `dirs::data_dir()` and finally to a temp directory.
@@ -843,9 +849,9 @@ mod tests {
         assert!(s.contains("/app/project/<ad-hoc>/agents"));
     }
 
-    #[test]
-    fn replay_queue_dir_honours_xdg_data_home() {
-        let _guard = REPLAY_QUEUE_ENV_LOCK.lock().unwrap();
+    #[tokio::test]
+    async fn replay_queue_dir_honours_xdg_data_home() {
+        let _guard = REPLAY_QUEUE_ENV_LOCK.lock().await;
         let prev = std::env::var("XDG_DATA_HOME").ok();
         // SAFETY: REPLAY_QUEUE_ENV_LOCK serialises every env-mutating
         // test in this binary so the read below cannot race a parallel
@@ -866,7 +872,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn enqueue_then_count_matches_appended_lines() {
-        let _guard = REPLAY_QUEUE_ENV_LOCK.lock().unwrap();
+        let _guard = REPLAY_QUEUE_ENV_LOCK.lock().await;
         let tmp = tempfile::tempdir().unwrap();
         // SAFETY: REPLAY_QUEUE_ENV_LOCK above prevents a parallel set_var.
         unsafe {
