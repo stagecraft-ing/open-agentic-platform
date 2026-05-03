@@ -610,12 +610,19 @@ CIFAST_TOOL_MANIFESTS = \
 ci-fast-tools:
 	@mkdir -p $(CIFAST_TARGET_DIR)
 	@echo "==> ci-fast-tools: $(words $(CIFAST_TOOL_MANIFESTS)) manifests, shared target dir"
+	@# BSD xargs (macOS) caps `-I{}` replacement at 255 bytes by default and
+	@# fails this recipe with "command line cannot be assembled, too long".
+	@# Pass the manifest as a positional arg (`$$1`) instead of substituting `{}`.
+	@# Drop `--jobs` from cargo invocations: under `make -j` the jobserver
+	@# already throttles, and explicit `--jobs` is silently ignored with a
+	@# warning per invocation. && chains short-circuit on first failure.
 	@printf '%s\n' $(CIFAST_TOOL_MANIFESTS) | \
-	  xargs -n1 -P$(CIFAST_JOBS) -I{} sh -ec '\
-	    echo "  [start] {}"; \
-	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo clippy --jobs $(CIFAST_CARGO_JOBS) --manifest-path {} --all-targets -- -D warnings; \
-	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo $(CIFAST_CARGO_TEST) --jobs $(CIFAST_CARGO_JOBS) --manifest-path {}; \
-	    echo "  [done ] {}"'
+	  xargs -n1 -P$(CIFAST_JOBS) sh -c '\
+	    m="$$1"; \
+	    echo "  [start] $$m"; \
+	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo clippy --manifest-path "$$m" --all-targets -- -D warnings && \
+	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo $(CIFAST_CARGO_TEST) --manifest-path "$$m" && \
+	    echo "  [done ] $$m"' _
 	@# Spec 134 §2.2(4): preserve the contract-prefix existence guarantee
 	@# the dropped registry-consumer subset loop implicitly provided. Each
 	@# prefix in CI_REGISTRY_CONSUMER_CONTRACTS MUST match ≥1 listed test.
