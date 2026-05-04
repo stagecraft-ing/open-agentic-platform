@@ -14,11 +14,11 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
-        ci ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
+        ci ci-strict ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
         ci-cross ci-parity \
-        ci-fast ci-fast-rust ci-fast-tools ci-fast-desktop \
+        ci-fast-rust ci-fast-tools ci-fast-desktop \
         ci-fast-stagecraft ci-fast-schema-parity \
         ci-fast-spec-coupling ci-fast-supply-chain
 
@@ -271,14 +271,22 @@ destroy-%:
 # ============================================================
 # CI parity — single source of truth for local end-to-end validation.
 #
-# Mirrors every gate enforced by .github/workflows/. If `make ci` passes
-# locally, CI will pass too. Any new workflow gate MUST be added here in
-# the same change — never a one-off script under scripts/.
+# Spec 135 (2026-05-03) reversed the daily/pre-merge defaults:
+#   `make ci`        — parallel fast loop (≈ 5 min warm). Daily dev loop.
+#                      Lives under the `# BEGIN ci-fast (spec 134)` /
+#                      `# END ci-fast` sentinel below; parity-exempt.
+#   `make ci-strict` — parity mirror (≈ 90 min). Pre-merge release
+#                      verification or parity-drift investigation.
+#                      The recipe in this section.
+#
+# `make ci-strict` mirrors every gate enforced by .github/workflows/.
+# If it passes locally, CI will pass too. Any new workflow gate MUST be
+# added here in the same change — never a one-off script under scripts/.
 #
 # Composes:
-#   ci-rust       — Rust per-manifest: check + clippy -D warnings + test
-#                   (ci-axiomregent, ci-crates, ci-deployd-api-rs,
-#                    ci-orchestrator, ci-policy-kernel)
+#   ci-rust       — Rust workspace + deployd-api-rs: check + clippy
+#                   -D warnings + test (covers all 18 crates/ workspace
+#                   members in one --workspace invocation per spec 135 FR-01)
 #   ci-tools      — Tool crates + registry-consumer contract subsets +
 #                   codebase-indexer staleness gate (spec-conformance.yml)
 #   ci-desktop    — apps/desktop: tauri rust (custom clippy flags) +
@@ -286,14 +294,14 @@ destroy-%:
 #   ci-stagecraft — platform/services/stagecraft: npm ci + tsc + vitest
 #                   (ci-stagecraft.yml)
 #
-# Opt-in (not part of `ci`):
+# Opt-in (not part of `ci-strict`):
 #   ci-cross      — axiomregent cross-target matrix (build-axiomregent.yml);
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
+ci-strict: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
 	@echo ""
-	@echo "==> Local CI parity: all gates passed."
+	@echo "==> ci-strict: parity-mirror gates passed."
 
 # Rust validation (spec 135 FR-01): the `crates/` workspace is validated
 # once via `cargo --workspace --manifest-path crates/Cargo.toml`, covering
@@ -514,9 +522,10 @@ ci-cross:
 	    cargo build --release --target $$t --manifest-path crates/axiomregent/Cargo.toml; \
 	done
 
-# Parity drift check (spec 104): asserts `make ci` mirrors every enforcing
-# workflow's `run:` blocks. Not included in `ci` to avoid circular failure —
-# CI runs it independently via .github/workflows/ci-parity.yml.
+# Parity drift check (spec 104, rebound by spec 135 FR-04): asserts
+# `make ci-strict` mirrors every enforcing workflow's `run:` blocks. Not
+# included in `ci-strict` to avoid circular failure — CI runs it
+# independently via .github/workflows/ci-parity.yml.
 ci-parity:
 	cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml
 	./tools/ci-parity-check/target/release/ci-parity-check
@@ -524,16 +533,20 @@ ci-parity:
 # BEGIN ci-fast (spec 134)
 # ============================================================
 # Fast local CI (spec 134) — performance-optimised local validation.
+# Promoted to `make ci` (the daily dev loop) by spec 135 (2026-05-03).
+# The sentinel comments still reference "ci-fast" because they bind to
+# the spec 134 contract identifier, not the make target name; renaming
+# them would invalidate `tools/ci-parity-check`'s parsing without value.
+#
 # Parity-exempt by design: lines between this BEGIN sentinel and the
 # corresponding `# END ci-fast` are skipped by `tools/ci-parity-check`.
 # Bound instead by the spec 134 §2.3 coverage invariant: the gate set
-# performed here MUST be a superset of `make ci`.
+# performed here MUST be a superset of `make ci-strict`.
 #
-# Reference hardware: M1 Pro 10c / 64 GB. Targets (aspirational, not
-# pass/fail): cold ≤ 50 min, warm ≤ 25 min. Measurement commit pending
-# at docs/ci-fast-bench.md (SC-01).
+# Reference hardware: M1 Pro 10c / 64 GB. Measured warm cache: 4m54s
+# (docs/ci-fast-bench.md SC-01).
 #
-# Tunables (env or `make CIFAST_JOBS=N ci-fast`):
+# Tunables (env or `make CIFAST_JOBS=N ci`):
 #   CIFAST_JOBS         outer concurrency (default 4)
 #
 # Auto-detected accelerators (no-op if absent):
@@ -557,8 +570,8 @@ else
   CIFAST_CARGO_TEST := test
 endif
 
-ci-fast:
-	@echo "==> ci-fast (spec 134): parallel local validation"
+ci:
+	@echo "==> ci (spec 134 fast loop, promoted to default by spec 135): parallel local validation"
 	@echo "    sccache:  $(if $(RUSTC_WRAPPER),enabled ($(RUSTC_WRAPPER)),absent — install: brew install sccache)"
 	@echo "    nextest:  $(if $(filter nextest run,$(CIFAST_CARGO_TEST)),enabled,absent — install: cargo install cargo-nextest)"
 	@echo ""
@@ -567,7 +580,7 @@ ci-fast:
 	    ci-fast-stagecraft ci-fast-schema-parity \
 	    ci-fast-spec-coupling ci-fast-supply-chain
 	@echo ""
-	@echo "==> ci-fast: all gates passed."
+	@echo "==> ci: all gates passed."
 
 # Workspace-mode for crates/ collapses 18 workspace members to one clippy
 # + one test invocation. deployd-api-rs (separate workspace) runs as a
@@ -750,8 +763,8 @@ help:
 	@echo "  make ci-agent-frontmatter-ts  Regenerate + fail if working tree drifts"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
-	@echo "  make ci                 Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain). Pre-push parity gate. ~90 min on M1 Pro."
-	@echo "  make ci-fast            Spec 134 — parallel local validation, parity-exempt. Inner-loop default. Target ≤ 25 min warm on M1 Pro 10c / 64 GB."
+	@echo "  make ci                 Spec 134 fast loop (promoted to default by spec 135) — parallel local validation, parity-exempt. Daily dev loop. ~5 min warm on M1 Pro 10c / 64 GB."
+	@echo "  make ci-strict          Parity mirror — composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain. Pre-push / parity-investigation. ~90 min on M1 Pro."
 	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
 	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
 	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"
