@@ -7,7 +7,11 @@ use serde::{Deserialize, Serialize};
 /// Bumped to 1.2.0 in spec 129 (TraceSource extended: cargo-metadata renamed
 /// to cargo-metadata-crate; cargo-metadata-module reserved; comment-header
 /// added for file-level annotations; both → multiple for any 2+ overlap).
-pub const SCHEMA_VERSION: &str = "1.2.0";
+/// Bumped to 1.3.0 in spec 133 (TraceMapping extended: `amends` list and
+/// `amendmentRecord` string surface the spec 119 amendment protocol so
+/// the spec/code coupling gate can recognise amender→amended edits as
+/// valid coupling alongside `implements:`).
+pub const SCHEMA_VERSION: &str = "1.3.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -87,6 +91,17 @@ pub struct TraceMapping {
     pub spec_status: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub depends_on: Vec<String>,
+    /// Spec 133: spec ids this mapping's spec amends in place via the
+    /// spec 119 protocol. Resolved to full `NNN-slug` ids at index-build
+    /// time so consumers do not need to re-resolve short forms.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub amends: Vec<String>,
+    /// Spec 133: the spec id whose amendment record applies to this
+    /// mapping's spec (the reverse-link, set on the amended spec's
+    /// frontmatter as `amendment_record:`). Resolved to a full
+    /// `NNN-slug` id at index-build time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amendment_record: Option<String>,
     pub implementing_paths: Vec<ImplementingPath>,
 }
 

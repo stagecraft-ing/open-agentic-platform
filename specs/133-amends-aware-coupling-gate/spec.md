@@ -15,6 +15,8 @@ depends_on:
 code_aliases: ["AMENDS_AWARE_COUPLING"]
 implements:
   - path: tools/spec-code-coupling-check
+  - path: tools/codebase-indexer
+  - path: schemas/codebase-index.schema.json
 summary: >
   Spec 127's gate currently only recognises `implements:` as a coupling
   relationship. When a spec is edited via the `amends:` mechanism (spec 119
@@ -217,6 +219,21 @@ fn legitimate_owners(path: &str, index: &Index) -> BTreeSet<String> {
 ```
 
 The renderer changes shape to label each owner by source, per FR-004.
+
+**Strict-expansion gate.** Per FR-005, the amend pathways (Paths 2 and
+3) MUST NOT enrol a path that today has zero `implements:` claimants.
+If they did, editing one's own `spec.md` would create a new firing
+condition whenever some unrelated amender exists but is not in the
+diff — converting today's silent paths into tomorrow's failures. The
+implementation gates Paths 2 and 3 on `owners.implements.is_empty()
+== false`: amend resolution adds owners to a path that is already
+firing today; it never elevates a silent path to a firing one. This
+is the runtime expression of FR-005's "strictly expands the set of
+accepted couplings; it never removes existing ones." Worked example
+(§8) preserves correctness because spec 119 already claims
+`specs/000-bootstrap-spec-system` via `implements:`, so spec 000's
+`spec.md` enters the gate via Path 1; Paths 2 and 3 then add
+spec 132 as an additional cleared-via candidate.
 
 ### 5.3 No production behaviour change for non-amend cases
 

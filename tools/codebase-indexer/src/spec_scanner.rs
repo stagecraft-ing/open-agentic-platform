@@ -11,6 +11,13 @@ pub struct SpecRecord {
     pub implementation: Option<String>,
     pub depends_on: Vec<String>,
     pub implements: Vec<ImplementsEntry>,
+    /// Spec 133: raw `amends:` list from frontmatter. Entries may be
+    /// short-form (`"000"`) or full (`"000-bootstrap-spec-system"`);
+    /// `xref::build_traceability` resolves to full ids.
+    pub amends: Vec<String>,
+    /// Spec 133: raw `amendment_record:` value from frontmatter (single
+    /// id today; resolved to a full id by `xref::build_traceability`).
+    pub amendment_record: Option<String>,
 }
 
 /// A single entry from the `implements` frontmatter field.
@@ -75,6 +82,11 @@ fn parse_spec(path: &Path) -> Option<SpecRecord> {
 
     let depends_on = parse_depends_on(fm);
     let implements = parse_implements(fm);
+    let amends = parse_string_list(fm, "amends");
+    let amendment_record = fm
+        .get("amendment_record")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     Some(SpecRecord {
         id,
@@ -82,7 +94,24 @@ fn parse_spec(path: &Path) -> Option<SpecRecord> {
         implementation,
         depends_on,
         implements,
+        amends,
+        amendment_record,
     })
+}
+
+/// Parse a list-of-strings frontmatter field (`amends`, `depends_on`-like).
+/// Returns the entries in declaration order; resolution to full spec ids
+/// happens later in `xref::build_traceability`.
+fn parse_string_list(fm: &serde_yaml::Mapping, key: &str) -> Vec<String> {
+    let Some(val) = fm.get(key) else {
+        return vec![];
+    };
+    let Some(seq) = val.as_sequence() else {
+        return vec![];
+    };
+    seq.iter()
+        .filter_map(|item| item.as_str().map(|s| s.to_string()))
+        .collect()
 }
 
 /// Parse the `depends_on` field from raw YAML frontmatter.

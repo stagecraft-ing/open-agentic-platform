@@ -26,6 +26,11 @@ pub fn build_traceability(
     let mut diagnostics = Vec::new();
     let package_paths: BTreeSet<String> = packages.iter().map(|p| p.path.clone()).collect();
 
+    // Spec 133: build the full id set up-front so amend links can be
+    // resolved from short-form ids (`"000"` → `"000-bootstrap-spec-system"`)
+    // exactly the way the spec-compiler resolves them for V-011.
+    let all_spec_ids: BTreeSet<String> = specs.iter().map(|s| s.id.clone()).collect();
+
     // Forward mapping: spec → code (from spec `implements` field)
     let mut mappings: BTreeMap<String, TraceMapping> = BTreeMap::new();
 
@@ -48,19 +53,25 @@ pub fn build_traceability(
                 });
             }
 
-            let entry = mappings
-                .entry(spec.id.clone())
-                .or_insert_with(|| TraceMapping {
-                    spec_id: spec.id.clone(),
-                    spec_status: Some(spec.status.clone()),
-                    depends_on: spec.depends_on.clone(),
-                    implementing_paths: Vec::new(),
-                });
+            let entry = mappings.entry(spec.id.clone()).or_insert_with(|| {
+                mapping_skeleton(&spec.id, Some(spec), &all_spec_ids)
+            });
 
             entry.implementing_paths.push(ImplementingPath {
                 path: imp.path.clone(),
                 name: imp.crate_name.clone(),
                 source: Some(TraceSource::SpecImplements),
+            });
+        }
+
+        // Spec 133: a spec that participates in the amend protocol but
+        // declares no `implements:` paths still needs a mapping so the
+        // coupling gate's amend resolver can see it. The mapping starts
+        // with empty `implementing_paths`; downstream cross-reference
+        // sources may populate them later.
+        if !spec.amends.is_empty() || spec.amendment_record.is_some() {
+            mappings.entry(spec.id.clone()).or_insert_with(|| {
+                mapping_skeleton(&spec.id, Some(spec), &all_spec_ids)
             });
         }
     }
@@ -69,16 +80,8 @@ pub fn build_traceability(
     for pkg in packages {
         if let Some(ref spec_id) = pkg.spec_ref {
             let entry = mappings.entry(spec_id.clone()).or_insert_with(|| {
-                // Find the spec record for status and depends_on
                 let spec_rec = specs.iter().find(|s| &s.id == spec_id);
-                let status = spec_rec.map(|s| s.status.clone());
-                let deps = spec_rec.map(|s| s.depends_on.clone()).unwrap_or_default();
-                TraceMapping {
-                    spec_id: spec_id.clone(),
-                    spec_status: status,
-                    depends_on: deps,
-                    implementing_paths: Vec::new(),
-                }
+                mapping_skeleton(spec_id, spec_rec, &all_spec_ids)
             });
 
             // Check if this path is already declared via spec `implements`
@@ -105,14 +108,7 @@ pub fn build_traceability(
     for (file_path, spec_id) in comment_headers {
         let entry = mappings.entry(spec_id.clone()).or_insert_with(|| {
             let spec_rec = specs.iter().find(|s| &s.id == spec_id);
-            let status = spec_rec.map(|s| s.status.clone());
-            let deps = spec_rec.map(|s| s.depends_on.clone()).unwrap_or_default();
-            TraceMapping {
-                spec_id: spec_id.clone(),
-                spec_status: status,
-                depends_on: deps,
-                implementing_paths: Vec::new(),
-            }
+            mapping_skeleton(spec_id, spec_rec, &all_spec_ids)
         });
 
         if let Some(existing) = entry
@@ -174,4 +170,63 @@ pub fn build_traceability(
     };
 
     (traceability, diagnostics)
+}
+
+/// Spec 133: build a fresh `TraceMapping` for `spec_id`, populating
+/// `amends:` / `amendment_record:` from the spec record's frontmatter
+/// when available and resolving short-form ids against the full spec
+/// id set (so `amends: ["000"]` lands as `"000-bootstrap-spec-system"`).
+/// Cross-reference sources later fill `implementing_paths`.
+fn mapping_skeleton(
+    spec_id: &str,
+    spec_rec: Option<&SpecRecord>,
+    all_spec_ids: &BTreeSet<String>,
+) -> TraceMapping {
+    let status = spec_rec.map(|s| s.status.clone());
+    let deps = spec_rec.map(|s| s.depends_on.clone()).unwrap_or_default();
+    let amends = spec_rec
+        .map(|s| {
+            s.amends
+                .iter()
+                .filter_map(|raw| resolve_spec_id(raw, all_spec_ids))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let amendment_record = spec_rec
+        .and_then(|s| s.amendment_record.as_ref())
+        .and_then(|raw| resolve_spec_id(raw, all_spec_ids));
+    TraceMapping {
+        spec_id: spec_id.to_string(),
+        spec_status: status,
+        depends_on: deps,
+        amends,
+        amendment_record,
+        implementing_paths: Vec::new(),
+    }
+}
+
+/// Spec 133: resolve a spec-id reference (full `NNN-slug` or short `NNN`)
+/// against the canonical id set. Returns the full id when matched,
+/// `None` for dangling references. The single-numeric-prefix rule
+/// matches the spec-compiler's V-011 short-form resolution (spec 132).
+fn resolve_spec_id(raw: &str, all_spec_ids: &BTreeSet<String>) -> Option<String> {
+    if all_spec_ids.contains(raw) {
+        return Some(raw.to_string());
+    }
+    // Short form: bare numeric id. Match the unique full id with that
+    // 3-digit prefix; ignore on ambiguity (silent — diagnostics are
+    // out of scope for this resolver).
+    let is_short = raw.len() == 3 && raw.bytes().all(|b| b.is_ascii_digit());
+    if is_short {
+        let prefix = format!("{raw}-");
+        let mut matches = all_spec_ids
+            .iter()
+            .filter(|id| id.starts_with(&prefix));
+        let first = matches.next()?;
+        if matches.next().is_some() {
+            return None;
+        }
+        return Some(first.clone());
+    }
+    None
 }
