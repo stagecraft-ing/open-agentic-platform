@@ -53,6 +53,14 @@ Shape B (indexer + gate). All subsequent tasks depend on this outcome.
 - [ ] T003 [Foundational] Decide implementation shape (A or B) based on
   T002. Record decision in this tasks.md as a comment line.
 
+## Decision (T003): Shape B — index.json does NOT carry `amends:` or
+## `amendmentRecord:` today. The codebase-indexer's `TraceMapping`
+## struct (`tools/codebase-indexer/src/types.rs`) only surfaces
+## `specId`, `specStatus`, `dependsOn`, and `implementingPaths`; the
+## scanner reads no amend frontmatter. Phase 3 therefore includes the
+## indexer extension (T020-T024) plus the gate change (T030-T032),
+## landing as one cohesive PR per the plan's Shape B branch.
+
 **Checkpoint**: shape decided. Phase 3 (Shape A path) or Phase 3+4
 (Shape B path) proceed.
 
