@@ -672,9 +672,13 @@ ci-fast-desktop:
 ci-fast-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-fast-stagecraft: npm ci then (tsc | vitest)"
 	cd platform/services/stagecraft && CI=true npm ci
-	@cd platform/services/stagecraft && \
-	  ( CI=true npx tsc --noEmit ) & TSC_PID=$$!; \
-	  ( CI=true npm test ) & VT_PID=$$!; \
+	@# Each backgrounded compound needs its own `cd` — bash treats
+	@# `cd X && cmd &` as a backgrounded subshell, so the parent shell's
+	@# CWD doesn't change. Without this fix, only the first job runs in
+	@# stagecraft/; the second runs from repo root and `npm test` fails
+	@# with "Missing script: test" (the workspace root has no test script).
+	@( cd platform/services/stagecraft && CI=true npx tsc --noEmit ) & TSC_PID=$$!; \
+	  ( cd platform/services/stagecraft && CI=true npm test ) & VT_PID=$$!; \
 	  wait $$TSC_PID; T=$$?; wait $$VT_PID; V=$$?; exit $$((T | V))
 
 ci-fast-schema-parity:
