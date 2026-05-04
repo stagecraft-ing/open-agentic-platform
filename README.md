@@ -89,9 +89,10 @@ Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (session init pr
 ## Getting started
 
 ```bash
-make setup   # install deps, build tools, compile spec registry + codebase index
-make dev     # start OPC desktop (Vite + Tauri, hot-reload)
-make ci      # full local CI parity (rust + tools + desktop + stagecraft)
+make setup     # install deps, build tools, compile spec registry + codebase index
+make dev       # start OPC desktop (Vite + Tauri, hot-reload)
+make ci        # parallel local validation (~5 min warm) — daily dev loop (spec 135)
+make ci-strict # full parity mirror (~90 min) — pre-merge / parity-investigation
 ```
 
 Full setup guide, prerequisites, and platform-service instructions: **[DEVELOPERS.md](DEVELOPERS.md)**.

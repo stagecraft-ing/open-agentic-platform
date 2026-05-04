@@ -1,9 +1,15 @@
-//! CI parity drift-check (spec 104).
+//! CI parity drift-check (spec 104, rebound by spec 135 FR-04).
 //!
 //! For every enforcing GitHub Actions workflow, extract significant command
 //! tokens from each step's `run:` block and assert they appear in the root
 //! Makefile. Drift means the Makefile has fallen behind CI — a gate exists
-//! in CI that `make ci` does not mirror.
+//! in CI that `make ci-strict` does not mirror.
+//!
+//! Spec 135 (2026-05-03) reversed the `ci` ↔ `ci-fast` semantic positions:
+//! `make ci` is now the parity-exempt fast loop (sentinel-bracketed); the
+//! parity-bound recipe is `make ci-strict`. The `# BEGIN ci-fast (spec 134)`
+//! / `# END ci-fast` sentinel markers are unchanged — they bind to the spec
+//! 134 contract identifier, not the make-target name.
 
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -30,8 +36,8 @@ struct Step {
     run: Option<String>,
 }
 
-/// Workflows whose gates `make ci` must mirror. Order is stable for reporting.
-/// Keep in sync with spec 104 §2.2.
+/// Workflows whose gates `make ci-strict` must mirror. Order is stable for reporting.
+/// Keep in sync with spec 104 §2.2 (post-spec-135 amendment).
 pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-axiomregent.yml",
     "ci-codebase-index.yml",
