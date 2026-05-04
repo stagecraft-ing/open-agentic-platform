@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0777b0afa9b69419fa7613d59f429701ca20210c908aff85fc7ce11b6e5202b5",
+    "contentHash": "980258a3eb4706558ba8f2d3404667d3e27d0e4f40b112c9a30fbc2fa2067bde",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4129,7 +4129,7 @@
           }
         ],
         "specId": "133-amends-aware-coupling-gate",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

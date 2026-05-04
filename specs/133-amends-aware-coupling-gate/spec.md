@@ -2,10 +2,12 @@
 id: "133-amends-aware-coupling-gate"
 slug: amends-aware-coupling-gate
 title: "Amends-aware spec/code coupling gate — recognise `amends:` as valid coupling"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-03"
+approved: "2026-05-04"
+closed: "2026-05-04"
 kind: governance
 risk: low
 depends_on:
