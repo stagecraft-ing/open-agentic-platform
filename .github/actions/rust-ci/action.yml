@@ -7,6 +7,13 @@ inputs:
   manifest-path:
     description: Path to Cargo.toml
     required: true
+  workspace:
+    description: >
+      If 'true', append `--workspace` to cargo invocations so every member of
+      the workspace at `manifest-path` is validated in a single pass. Default
+      'false' validates only the crate at `manifest-path`. Spec 135 FR-05.
+    required: false
+    default: 'false'
   clippy-flags:
     description: Extra flags passed to cargo clippy after --
     required: false
@@ -62,16 +69,16 @@ runs:
       shell: bash
       env:
         CARGO_TERM_COLOR: always
-      run: cargo check --manifest-path ${{ inputs.manifest-path }}
+      run: cargo check ${{ inputs.workspace == 'true' && '--workspace' || '' }} --manifest-path ${{ inputs.manifest-path }}
 
     - name: cargo clippy
       shell: bash
       env:
         CARGO_TERM_COLOR: always
-      run: cargo clippy --manifest-path ${{ inputs.manifest-path }} -- ${{ inputs.clippy-flags }}
+      run: cargo clippy ${{ inputs.workspace == 'true' && '--workspace' || '' }} --manifest-path ${{ inputs.manifest-path }} -- ${{ inputs.clippy-flags }}
 
     - name: cargo test
       shell: bash
       env:
         CARGO_TERM_COLOR: always
-      run: cargo test --manifest-path ${{ inputs.manifest-path }}
+      run: cargo test ${{ inputs.workspace == 'true' && '--workspace' || '' }} --manifest-path ${{ inputs.manifest-path }}
