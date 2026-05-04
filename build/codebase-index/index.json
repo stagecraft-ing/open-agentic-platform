@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "967fce767f4516217fafbcdd52ea217e85a00e2e8235ee50848c7255f7e9199a",
+    "contentHash": "25c70a056201b0967d1a1bf01fdeb9f9ce373d455f7b6d8b4ea3a3a381ef8af4",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4096,7 +4096,7 @@
           }
         ],
         "specId": "134-fast-local-ci-mode",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

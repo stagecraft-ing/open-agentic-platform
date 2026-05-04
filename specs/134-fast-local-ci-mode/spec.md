@@ -1,8 +1,8 @@
 ---
 id: "134-fast-local-ci-mode"
 title: "Fast Local CI Mode — Two-Mode Parity Contract"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-03"
 kind: governance
