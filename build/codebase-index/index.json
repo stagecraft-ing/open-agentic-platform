@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f629264dacac694e2d4d417cf55900bfa90ad4fe3e7b9fa23a24ff4d475bcd1c",
+    "contentHash": "8775bc590c38b3f677cd8c8f652210f45bcd8239f6704001486143e274110201",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -125,7 +125,7 @@
         "path": ".claude/commands/review-branch.md"
       },
       {
-        "description": "Run the local CI parity check (`make ci`) and automatically fix discovered issues using concurrent agents",
+        "description": "Run the local fast CI loop (`make ci`) and automatically fix discovered issues using concurrent agents",
         "name": "validate-and-fix",
         "path": ".claude/commands/validate-and-fix.md"
       }
@@ -4127,7 +4127,7 @@
           }
         ],
         "specId": "135-fast-ci-as-default",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -4188,7 +4188,8 @@
       "source": "header",
       "specs": [
         "033-axiomregent-activation",
-        "073-axiomregent-unification"
+        "073-axiomregent-unification",
+        "135-fast-ci-as-default"
       ]
     },
     {
@@ -4207,7 +4208,8 @@
         "071-skill-command-factory",
         "075-factory-workflow-engine",
         "054-agent-frontmatter-schema",
-        "042-multi-provider-agent-registry"
+        "042-multi-provider-agent-registry",
+        "135-fast-ci-as-default"
       ]
     },
     {
