@@ -2,10 +2,11 @@
 id: "135-fast-ci-as-default"
 title: "Fast CI as Default — Crates Workspace Convergence + Target Rename"
 status: approved
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-05-03"
 approved: "2026-05-03"
+completed: "2026-05-03"
 kind: governance
 risk: low
 amends:
