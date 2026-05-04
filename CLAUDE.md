@@ -64,7 +64,8 @@ In addition, all orchestrated workflows load `.claude/rules/governed-artifact-re
 - **axiomregent is the unified MCP agent crate.** It now contains the `github/`, `search/`, and `checkpoint/` modules, absorbing the former `gitctx`, `blockoli`, and `stackwalk` crates.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.
 - **Spec compiler is the build system.** Run `./tools/spec-compiler/target/release/spec-compiler compile` from repo root to produce `build/spec-registry/registry.json`.
-- **Traceability via `[package.metadata.oap]`.** Rust crates that implement a spec should declare `spec = "<spec-id>"` under `[package.metadata.oap]` in their Cargo.toml. The codebase-indexer uses this to build spec-to-code traceability mappings in `build/codebase-index/index.json`.
+- **Traceability via `[package.metadata.oap]`.** Rust crates that implement a spec declare `spec = "<spec-id>"` under `[package.metadata.oap]` in their Cargo.toml; npm packages do the same via top-level `"oap": { "spec": "<spec-id>" }` in package.json. The codebase-indexer uses these to build spec-to-code traceability mappings in `build/codebase-index/index.json`.
+- **Per-crate documentation lives in the spec, not in per-crate READMEs.** The spec id declared in each manifest (above) is the canonical "what is this crate." `build/codebase-index/CODEBASE-INDEX.md` renders this as a Spec column linking each crate/package to its spec. Do not add new per-crate or per-package READMEs; route prose into the owning spec, the root [`README.md`](README.md), [`DEVELOPERS.md`](DEVELOPERS.md), or [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Existing tool READMEs that document binary-specific behavior beyond the spec (e.g. `tools/registry-consumer/README.md` whose fenced examples are fixture-tested verbatim) are exceptions, not the pattern.
 
 ## Build Commands
 

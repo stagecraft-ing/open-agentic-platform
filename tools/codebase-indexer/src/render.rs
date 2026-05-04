@@ -47,21 +47,22 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
 
     if !rust_pkgs.is_empty() {
         out.push_str(&format!("### Rust Crates ({})\n\n", rust_pkgs.len()));
-        out.push_str("| Name | Path | Kind | Version | Internal Deps |\n");
-        out.push_str("|------|------|------|---------|---------------|\n");
+        out.push_str("| Name | Path | Kind | Version | Spec | Internal Deps |\n");
+        out.push_str("|------|------|------|---------|------|---------------|\n");
         for p in &rust_pkgs {
             let kind = format!("{:?}", p.kind)
                 .to_lowercase()
                 .replace("rust", "rust-");
             let version = p.version.as_deref().unwrap_or("-");
+            let spec = render_spec_link(p.spec_ref.as_deref());
             let deps = p
                 .internal_deps
                 .as_ref()
                 .map(|d| d.join(", "))
                 .unwrap_or_else(|| "-".into());
             out.push_str(&format!(
-                "| {} | `{}` | {} | {} | {} |\n",
-                p.name, p.path, kind, version, deps
+                "| {} | `{}` | {} | {} | {} | {} |\n",
+                p.name, p.path, kind, version, spec, deps
             ));
         }
         out.push('\n');
@@ -69,16 +70,17 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
 
     if !npm_pkgs.is_empty() {
         out.push_str(&format!("### NPM Packages ({})\n\n", npm_pkgs.len()));
-        out.push_str("| Name | Path | Kind | Version |\n");
-        out.push_str("|------|------|------|---------|\n");
+        out.push_str("| Name | Path | Kind | Version | Spec |\n");
+        out.push_str("|------|------|------|---------|------|\n");
         for p in &npm_pkgs {
             let kind = format!("{:?}", p.kind)
                 .to_lowercase()
                 .replace("npm", "npm-");
             let version = p.version.as_deref().unwrap_or("-");
+            let spec = render_spec_link(p.spec_ref.as_deref());
             out.push_str(&format!(
-                "| {} | `{}` | {} | {} |\n",
-                p.name, p.path, kind, version
+                "| {} | `{}` | {} | {} | {} |\n",
+                p.name, p.path, kind, version, spec
             ));
         }
         out.push('\n');
@@ -327,4 +329,14 @@ fn render_named_section(out: &mut String, title: &str, items: &[(&str, &str)]) {
         out.push_str(&format!("- **{name}** — `{path}`\n"));
     }
     out.push('\n');
+}
+
+/// Render a spec_ref as a relative markdown link to the spec file. Output
+/// path is rooted at `build/codebase-index/CODEBASE-INDEX.md`, so specs are
+/// reached via `../../specs/<id>/spec.md`. Returns `—` for the no-spec case.
+fn render_spec_link(spec_ref: Option<&str>) -> String {
+    match spec_ref {
+        Some(id) => format!("[`{id}`](../../specs/{id}/spec.md)"),
+        None => "—".to_string(),
+    }
 }

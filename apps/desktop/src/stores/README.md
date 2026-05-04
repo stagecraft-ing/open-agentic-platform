@@ -1,8 +1,3 @@
 # Stores
 
-Zustand-based global state management for the OPC desktop app.
-
-- `sessionStore.ts` — session state
-- `agentStore.ts` — agent workflow state
-
-These stores use optimized selectors and handle real-time updates via SSE.
+See spec [`032-opc-inspect-governance-wiring-mvp`](../../../../specs/032-opc-inspect-governance-wiring-mvp/spec.md) and [`build/codebase-index/CODEBASE-INDEX.md`](../../../../build/codebase-index/CODEBASE-INDEX.md) for context.

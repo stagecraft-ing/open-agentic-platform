@@ -62,7 +62,7 @@ Stagecraft also exposes the Encore development dashboard at http://localhost:940
 
 ## Package Managers
 
-- **Root workspace** uses **pnpm** (`apps/desktop/`, tools, crates)
+- **JS workspace** uses **pnpm** — covers `apps/desktop/` and `packages/*`. Tools and crates under `tools/` and `crates/` are Rust (managed by `cargo`, not pnpm).
 - **Platform services** use **npm** (each has its own `package-lock.json`)
 
 Platform services are excluded from `pnpm-workspace.yaml`. Do not run `pnpm install` inside `platform/services/*`.

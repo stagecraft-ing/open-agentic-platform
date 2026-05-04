@@ -60,7 +60,7 @@ OPC is where work is experienced. Platform is where work is governed. The Spec S
 
 Human truth is **markdown** (with optional YAML frontmatter); machine registries are **compiler-emitted JSON** only. Authoritative specs live at repo-root `specs/NNN-kebab-case/`. The constitutional baseline is [`000-bootstrap-spec-system`](specs/000-bootstrap-spec-system/spec.md); status lifecycle is `draft | approved | superseded | retired`.
 
-Current spec corpus: 107 specs (`000`–`106`). Query the compiled registry:
+Current spec corpus: 136 specs (`000`–`135`). Query the compiled registry:
 
 ```bash
 ./tools/registry-consumer/target/release/registry-consumer list

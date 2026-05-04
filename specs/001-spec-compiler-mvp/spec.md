@@ -128,3 +128,33 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 ### Session 2026-03-22
 
 - Deliberately **not** specifying axiomregent/xray/featuregraph; Feature 001 is the **compiler MVP** only.
+
+### Session 2026-05-04 — Implementation behaviour hoisted from `tools/spec-compiler/README.md`
+
+These clauses refine the spec's narrative with binary-specific normative
+behaviour that has been part of `spec-compiler` since 2026-03-22 but lived
+only in the tool's README. They do not change `registry.json` shape and
+do not introduce new V-codes; they make existing parser strictness
+discoverable from the spec spine.
+
+- **Frontmatter delimiter strictness (MVP).** The parser expects an
+  opening line that starts **exactly** with `---` — no leading
+  whitespace, no trailing content on the same line. Variants such as
+  `--- ` (trailing space) on the opening delimiter are **not** accepted.
+  Editors that emit such variants must be configured to elide the
+  trailing whitespace. The closing delimiter follows the same rule. This
+  is the source of FR-002's "frontmatter parser" boundary; spec authors
+  should not assume a more permissive YAML loader.
+- **Heading extraction (normative for this binary).** The compiler emits
+  `sectionHeadings` covering only `#` (H1) and `##` (H2) ATX headings;
+  deeper levels (H3+) are intentionally ignored. Document order is
+  preserved. As an MVP-specific deduplication: if the **first** heading
+  text equals the frontmatter `title` (trimmed), that heading is
+  **dropped** from `sectionHeadings` so the title does not appear twice
+  in any rendered TOC. Feature 000 only requires `sectionHeadings` to be
+  stable; this binary's specific extraction policy is documented here so
+  the contract is reachable from the spec, not only from the README.
+- **Exit code mapping.** `0` = success and validation passed; `1` =
+  validation failed (FR-008's non-zero on `validation.passed = false`);
+  `3` = I/O or parse error (FR-008's "unrecoverable I/O error"). Future
+  exit codes require a spec change.
