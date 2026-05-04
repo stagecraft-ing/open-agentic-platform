@@ -117,6 +117,44 @@ pub fn render_markdown(index: &CodebaseIndex) -> String {
         out.push('\n');
     }
 
+    // Spec 133 (AC-5): surface the spec 119 amendment protocol's footprint
+    // as a focused subsection. Only mappings that actually carry an
+    // `amends:` or `amendmentRecord` field are listed; entries are sorted
+    // by spec id for stable diff output.
+    let amend_rows: Vec<&crate::types::TraceMapping> = index
+        .traceability
+        .mappings
+        .iter()
+        .filter(|m| !m.amends.is_empty() || m.amendment_record.is_some())
+        .collect();
+    if !amend_rows.is_empty() {
+        out.push_str(&format!(
+            "### Amendment Relationships ({})\n\n",
+            amend_rows.len()
+        ));
+        out.push_str(
+            "Spec 119 amendment-protocol surface (spec 133 made this visible). \
+             A row appears when the spec carries `amends:` (this spec \
+             modifies the listed specs in place) or `amendment_record:` \
+             (this spec is the amended target of the listed amender).\n\n",
+        );
+        out.push_str("| Spec ID | Amends | Amendment Record |\n");
+        out.push_str("|---------|--------|------------------|\n");
+        for m in &amend_rows {
+            let amends = if m.amends.is_empty() {
+                "—".to_string()
+            } else {
+                m.amends.join(", ")
+            };
+            let record = m.amendment_record.as_deref().unwrap_or("—");
+            out.push_str(&format!(
+                "| {} | {} | {} |\n",
+                m.spec_id, amends, record
+            ));
+        }
+        out.push('\n');
+    }
+
     if !index.traceability.orphaned_specs.is_empty() {
         out.push_str(&format!(
             "### Orphaned Specs ({})\n\n",
