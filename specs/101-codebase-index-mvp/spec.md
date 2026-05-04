@@ -343,3 +343,12 @@ After index exists, the `/init` command MUST be able to load structural context 
   (new), and `multiple` (replaces `both`); adds the `comment_scanner`
   module and merges file-level claims via xref. The mechanism is additive;
   the index's existing layers are unchanged.
+- Spec 133 (`amends-aware-coupling-gate`) bumps `schemaVersion` to `1.3.0`,
+  extends `TraceMapping` with `amends` (list of spec ids amended in place
+  per spec 119's protocol) and `amendmentRecord` (the back-link surfaced
+  from an amended spec's frontmatter). The spec scanner reads the new
+  fields from frontmatter; downstream consumers (the spec/code coupling
+  gate from spec 127, as relaxed by spec 130) consume them to recognise
+  amender→amended edits as valid coupling alongside `implements:`. The
+  mechanism is additive — the new fields default to empty when absent
+  and the index's existing layers are unchanged.
