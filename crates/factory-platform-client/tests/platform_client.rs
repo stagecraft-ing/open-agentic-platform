@@ -10,7 +10,7 @@
 //! bottom of this file behind a `#[cfg(...)]`-equivalent runtime gate;
 //! when the env var is unset the integration test is a no-op.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use async_trait::async_trait;
 use factory_engine::agent_resolver::{
@@ -30,19 +30,49 @@ use wiremock::{
 // Test fixtures
 // ---------------------------------------------------------------------------
 
+/// Process-wide lock serialising every test that mutates `XDG_CACHE_HOME`.
+/// Mirrors the `ENV_LOCK` pattern in `src/cache_root.rs` — set_var is
+/// global, so concurrent tests calling `isolate_cache_dir()` would race
+/// on the env var and on the content-addressed cache paths it controls.
+/// Held by `EnvScope` for the lifetime of each test.
+fn env_lock() -> &'static Mutex<()> {
+    static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    ENV_LOCK.get_or_init(|| Mutex::new(()))
+}
+
+/// RAII bundle: holds the `ENV_LOCK` guard for the lifetime of the test
+/// and owns the `TempDir` that backs `XDG_CACHE_HOME`. Drop order is
+/// guard-then-tempdir which is fine — the next test waits on the lock
+/// before touching the env var, so the tempdir of the prior test is
+/// always already dropped by the time the next set_var fires.
+struct EnvScope {
+    _guard: MutexGuard<'static, ()>,
+    _dir: tempfile::TempDir,
+}
+
 /// Set XDG_CACHE_HOME to a fresh temp directory so the materialiser writes
 /// inside the test's scratch space — no leakage across test runs and no
-/// dependency on the host's real cache directory.
-fn isolate_cache_dir() -> tempfile::TempDir {
+/// dependency on the host's real cache directory. The returned `EnvScope`
+/// MUST be bound for the duration of the test (e.g. `let _scratch = …`);
+/// dropping it early releases the env-lock and any subsequent test would
+/// race on `XDG_CACHE_HOME`.
+fn isolate_cache_dir() -> EnvScope {
+    // Recover from poisoning: if a prior test panicked while holding the
+    // lock, std::sync::Mutex marks it poisoned and `lock()` returns Err.
+    // Tests should still be able to run — the poison only signals that
+    // some earlier test panicked, not that the data is corrupt.
+    let guard = env_lock().lock().unwrap_or_else(|p| p.into_inner());
     let dir = tempfile::tempdir().expect("tempdir");
-    // SAFETY: each test creates its own tempdir and calls set_var
-    // sequentially. The wiremock test runtime is multi-threaded, but
-    // tests here read XDG_CACHE_HOME at call time of `cache_root_for`,
-    // not at process startup.
+    // SAFETY: ENV_LOCK above serialises every env-mutating test in this
+    // file. The wiremock test runtime is multi-threaded, but the lock
+    // ensures no two tests touch XDG_CACHE_HOME concurrently.
     unsafe {
         std::env::set_var("XDG_CACHE_HOME", dir.path());
     }
-    dir
+    EnvScope {
+        _guard: guard,
+        _dir: dir,
+    }
 }
 
 fn provider() -> Arc<dyn OidcTokenProvider> {
