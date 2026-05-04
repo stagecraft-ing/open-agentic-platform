@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "408153e614b5140393d7b3b1cc86e2ac2d3b810df6ef9c3c618a06a6d9460ce3",
+    "contentHash": "e5740fe7965eddedb8933ac61812592790eab3b64cb75398d768863104fba4fe",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -306,7 +306,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.3.0"
+      "version": "0.3.1"
     },
     {
       "edition": "2024",
@@ -427,7 +427,7 @@
       "name": "axiomregent",
       "path": "crates/axiomregent",
       "specRef": "073-axiomregent-unification",
-      "version": "0.1.3"
+      "version": "0.1.4"
     },
     {
       "edition": "2024",
@@ -1279,7 +1279,18 @@
       "kind": "npm-package",
       "name": "stagecraft",
       "path": "platform/services/stagecraft",
-      "version": "0.0.2"
+      "specRef": "087-unified-workspace-architecture",
+      "version": "0.1.0"
+    },
+    {
+      "externalDeps": [
+        "express"
+      ],
+      "kind": "npm-package",
+      "name": "tenant-hello",
+      "path": "platform/services/tenant-hello",
+      "specRef": "136-tenant-hello-demo-service",
+      "version": "0.0.1"
     },
     {
       "edition": "2024",
@@ -2519,6 +2530,11 @@
           {
             "name": "@opc/workspace-sdk",
             "path": "packages/workspace-sdk",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "name": "stagecraft",
+            "path": "platform/services/stagecraft",
             "source": "cargo-metadata-crate"
           }
         ],
@@ -4190,6 +4206,20 @@
         ],
         "specId": "135-fast-ci-as-default",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "078",
+          "087"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/tenant-hello",
+            "source": "multiple"
+          }
+        ],
+        "specId": "136-tenant-hello-demo-service",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [

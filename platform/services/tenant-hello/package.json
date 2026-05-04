@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "oap": {
+    "spec": "136-tenant-hello-demo-service"
+  },
   "scripts": {
     "start": "node src/index.js"
   },

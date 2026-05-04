@@ -406,8 +406,7 @@ pub fn discover_npm_packages(repo_root: &Path) -> Vec<PathBuf> {
     }
 
     // Platform services (non-workspace npm packages)
-    {
-        let svc = &"stagecraft";
+    for svc in ["stagecraft", "tenant-hello"] {
         let p = repo_root
             .join("platform/services")
             .join(svc)
