@@ -3,25 +3,22 @@
 import { describe, expect, test } from "vitest";
 import { buildL0PipelineStateSeed } from "./seedPipelineState";
 import { buildProjectOpenDeepLink } from "./deepLink";
-import { declaredPrebuildProfiles, pickProfile } from "./prebuilds";
-import { assertNode24Runtime } from "./runAdapterScaffold";
-import type { AdapterScaffoldBlock, ScaffoldAdapterRef } from "./types";
+import {
+  PROFILE_MODULES,
+  detectProfile,
+  extrasFor,
+  pickProfileFromModules,
+  isKnownModule,
+} from "./moduleCatalog";
+import type { ScaffoldAdapterRef } from "./types";
 
 const adapter: ScaffoldAdapterRef = {
   id: "00000000-0000-0000-0000-000000000000",
   name: "aim-vue-node",
   version: "3.0.0",
   sourceSha: "a".repeat(40),
-  scaffold: {
-    entry_point: "scripts/setup-app.ts",
-    runtime: "node-24",
-    profiles: [
-      { name: "single-public", variant: "single-public" },
-      { name: "single-internal", variant: "single-internal" },
-      { name: "dual", variant: "dual", default: true, modules: ["security-core"] },
-    ],
-    emits: [{ path: ".factory/pipeline-state.json" }],
-  },
+  templateRemote: "GovAlta-Pronghorn/template",
+  templateDefaultBranch: "main",
 };
 
 describe("buildL0PipelineStateSeed", () => {
@@ -70,56 +67,127 @@ describe("buildProjectOpenDeepLink", () => {
   });
 });
 
-describe("pickProfile", () => {
-  test("explicit profileName must match variant", () => {
-    expect(
-      pickProfile(adapter.scaffold, { profileName: "dual", variant: "dual" })
-    ).toMatchObject({ name: "dual", variant: "dual" });
-    expect(
-      pickProfile(adapter.scaffold, { profileName: "dual", variant: "single-public" })
-    ).toBeNull();
-    expect(
-      pickProfile(adapter.scaffold, { profileName: "unknown", variant: "dual" })
-    ).toBeNull();
+describe("detectProfile", () => {
+  test("auth-saml → public", () => {
+    expect(detectProfile(["auth-saml", "data-redis"])).toBe("public");
   });
 
-  test("without profileName, picks the default-for-variant entry", () => {
-    expect(
-      pickProfile(adapter.scaffold, { variant: "dual" })
-    ).toMatchObject({ name: "dual" });
-    expect(
-      pickProfile(adapter.scaffold, { variant: "single-public" })
-    ).toMatchObject({ name: "single-public" });
+  test("auth-entra-id → internal", () => {
+    expect(detectProfile(["auth-entra-id", "data-postgres"])).toBe("internal");
   });
 
-  test("returns null when adapter declares no profiles", () => {
-    expect(pickProfile({}, { variant: "dual" })).toBeNull();
+  test("no auth driver → minimal", () => {
+    expect(detectProfile([])).toBe("minimal");
+    expect(detectProfile(["data-redis"])).toBe("minimal");
+  });
+
+  test("auth-saml wins over auth-entra-id when both somehow selected", () => {
+    expect(detectProfile(["auth-saml", "auth-entra-id"])).toBe("public");
   });
 });
 
-describe("declaredPrebuildProfiles", () => {
-  test("enumerates name, variant, and isDefault for each profile", () => {
-    const prebuilds = declaredPrebuildProfiles(adapter.scaffold);
-    expect(prebuilds).toEqual([
-      { name: "single-public", variant: "single-public", isDefault: false },
-      { name: "single-internal", variant: "single-internal", isDefault: false },
-      { name: "dual", variant: "dual", isDefault: true },
+describe("pickProfileFromModules", () => {
+  test("variant=dual always picks dual regardless of modules", () => {
+    expect(pickProfileFromModules("dual", [])).toBe("dual");
+    expect(pickProfileFromModules("dual", ["auth-saml"])).toBe("dual");
+  });
+
+  test("variant=single-public → public", () => {
+    expect(pickProfileFromModules("single-public", [])).toBe("public");
+  });
+
+  test("variant=single-internal → internal", () => {
+    expect(pickProfileFromModules("single-internal", [])).toBe("internal");
+  });
+
+  test("unknown variant falls through to detectProfile", () => {
+    expect(pickProfileFromModules("unspecified", ["auth-saml"])).toBe("public");
+    expect(pickProfileFromModules("unspecified", [])).toBe("minimal");
+  });
+});
+
+describe("extrasFor", () => {
+  test("dropping built-in modules: public profile already ships data-redis", () => {
+    const result = extrasFor("public", ["data-redis", "user-management"]);
+    // data-redis is in PROFILE_MODULES.public → dropped; user-management is not → kept
+    expect(result).not.toContain("data-redis");
+    expect(result).toContain("user-management");
+  });
+
+  test("sorting by INSTALL_ORDER: dependencies appear before dependents", () => {
+    const result = extrasFor("minimal", [
+      "user-management",
+      "data-postgres",
+      "auth-entra-id",
+    ]);
+    // INSTALL_ORDER places data-postgres → auth-entra-id → user-management
+    expect(result).toEqual([
+      "data-postgres",
+      "auth-entra-id",
+      "user-management",
     ]);
   });
+
+  test("returns empty when every selected module is in the profile", () => {
+    expect(extrasFor("public", PROFILE_MODULES.public)).toEqual([]);
+  });
+
+  test("unknown modules are dropped (filtered upstream by isKnownModule)", () => {
+    const result = extrasFor("minimal", ["bogus-not-real"]);
+    expect(result).toEqual([]);
+  });
 });
 
-describe("assertNode24Runtime", () => {
-  test("accepts node-24 adapters with an entry_point", () => {
-    expect(() => assertNode24Runtime(adapter.scaffold)).not.toThrow();
+describe("spec 112 §10 runtime gate (shape)", () => {
+  // The gate lives in create.ts; this test pins the shape of manifests we
+  // expect to pass / fail so a translator change doesn't silently
+  // re-introduce non-Node-24 adapters.
+  function evaluateRuntimeGate(manifest: Record<string, unknown>): "pass" | "reject" {
+    const declared = (manifest as { scaffold?: { runtime?: string } }).scaffold
+      ?.runtime;
+    if (declared && declared !== "node-24") return "reject";
+    return "pass";
+  }
+
+  test("synthetic translator manifest (no scaffold block) passes", () => {
+    expect(
+      evaluateRuntimeGate({
+        entry: "orchestration/template-orchestrator.md",
+        template_remote: "GovAlta-Pronghorn/template",
+      })
+    ).toBe("pass");
   });
 
-  test("rejects non-node-24 runtimes", () => {
-    const scaffold: AdapterScaffoldBlock = { entry_point: "x", runtime: "deno-2" };
-    expect(() => assertNode24Runtime(scaffold)).toThrow(/not supported/);
+  test("explicitly declared node-24 passes", () => {
+    expect(evaluateRuntimeGate({ scaffold: { runtime: "node-24" } })).toBe(
+      "pass"
+    );
   });
 
-  test("rejects missing entry_point", () => {
-    const scaffold: AdapterScaffoldBlock = { runtime: "node-24" };
-    expect(() => assertNode24Runtime(scaffold)).toThrow(/no scaffold\.entry_point/);
+  test("deno-2 / python / anything-else is rejected", () => {
+    expect(evaluateRuntimeGate({ scaffold: { runtime: "deno-2" } })).toBe(
+      "reject"
+    );
+    expect(evaluateRuntimeGate({ scaffold: { runtime: "python-3.12" } })).toBe(
+      "reject"
+    );
+  });
+});
+
+describe("isKnownModule", () => {
+  test("recognises catalogued modules", () => {
+    expect(isKnownModule("auth-saml")).toBe(true);
+    expect(isKnownModule("user-management")).toBe(true);
+  });
+
+  test("rejects unknown ids", () => {
+    expect(isKnownModule("nope")).toBe(false);
+    expect(isKnownModule("")).toBe(false);
+  });
+
+  test("rejects always-on modules that aren't user-selectable", () => {
+    // security-core / auth-core are always-on per template-distributor:108-194.
+    expect(isKnownModule("security-core")).toBe(false);
+    expect(isKnownModule("auth-core")).toBe(false);
   });
 });

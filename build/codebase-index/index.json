@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e5740fe7965eddedb8933ac61812592790eab3b64cb75398d768863104fba4fe",
+    "contentHash": "8e14b46fbc027e7356836d9e15bca678ca42b0cfba32288e742db65fd0cc97fb",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3116,6 +3116,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "138-stagecraft-create-realised-scaffold",
         "dependsOn": [
           "074",
           "075",
@@ -4220,6 +4221,56 @@
         ],
         "specId": "136-tenant-hello-demo-service",
         "specStatus": "draft"
+      },
+      {
+        "amends": [
+          "112-factory-project-lifecycle"
+        ],
+        "dependsOn": [
+          "108",
+          "109",
+          "112"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/stagecraft/templates/workspace-pvc.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "138-stagecraft-create-realised-scaffold",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -4228,7 +4279,8 @@
       "081-factory-test-hydration",
       "086-open-source-launch",
       "088-factory-upstream-sync",
-      "100-post-convergence-remediation"
+      "100-post-convergence-remediation",
+      "137-tenant-environment-access-gates"
     ],
     "untracedCode": [
       "grammars/tree-sitter-c",

@@ -282,13 +282,39 @@ function deriveContractName(path: string): string {
   return base || path;
 }
 
+// A 40-char hex sha is not a useful "default branch" — when the upstream
+// config pins to a sha (or omits the ref), the scaffold layer needs a
+// branch name to keep refreshing against. Fall back to `main`.
+const SHA40 = /^[0-9a-f]{40}$/i;
+function resolveDefaultBranch(ref: string | undefined): string {
+  if (!ref || SHA40.test(ref)) return "main";
+  return ref;
+}
+
 // ---------------------------------------------------------------------------
 // Template repo → adapter
 // ---------------------------------------------------------------------------
 
+export type TemplateRemoteOptions = {
+  /**
+   * Upstream GitHub repo identity (`<owner>/<repo>`) the adapter scaffold
+   * should clone at create time. Stored in the synthetic adapter manifest
+   * so `api/projects/scaffold/templateCache.ts` can resolve the clone URL
+   * without re-reading `factory_upstreams`. Spec 112 §5.2 step 2.
+   */
+  templateRemote?: string;
+  /**
+   * Branch the scaffold treats as consumable. Defaults to `main` when the
+   * upstream config carries a sha or omits the ref. The cache layer pins
+   * to the latest commit on this branch, refreshed every 30 min.
+   */
+  templateDefaultBranch?: string;
+};
+
 export async function translateTemplate(
   repoPath: string,
-  sourceSha: string
+  sourceSha: string,
+  options: TemplateRemoteOptions = {}
 ): Promise<{
   adapter: AdapterTranslation;
   contracts: ContractTranslation[];
@@ -318,15 +344,23 @@ export async function translateTemplate(
     }
   }
 
+  const manifest: Record<string, unknown> = {
+    entry: "orchestration/template-orchestrator.md",
+    orchestrator,
+    skills,
+  };
+  if (options.templateRemote) {
+    manifest.template_remote = options.templateRemote;
+    manifest.template_default_branch = resolveDefaultBranch(
+      options.templateDefaultBranch
+    );
+  }
+
   const adapter: AdapterTranslation = {
     name: "aim-vue-node",
     version: sourceSha.slice(0, 12),
     sourceSha,
-    manifest: {
-      entry: "orchestration/template-orchestrator.md",
-      orchestrator,
-      skills,
-    },
+    manifest,
   };
 
   contractFiles.sort((a, b) => a.path.localeCompare(b.path));
@@ -352,6 +386,10 @@ export async function translateUpstreams(opts: {
   factorySourceSha: string;
   templatePath: string;
   templateSha: string;
+  /** GitHub repo identity (`<owner>/<repo>`) the scaffold layer clones. */
+  templateRemote?: string;
+  /** Branch to treat as consumable; falls back to `main` if a sha is given. */
+  templateDefaultBranch?: string;
 }): Promise<TranslationResult> {
   // Verify both paths exist before doing real work. Fail fast with a clear
   // message so the caller can surface it as a sync error.
@@ -369,7 +407,10 @@ export async function translateUpstreams(opts: {
     opts.factorySourcePath,
     opts.factorySourceSha
   );
-  const template = await translateTemplate(opts.templatePath, opts.templateSha);
+  const template = await translateTemplate(opts.templatePath, opts.templateSha, {
+    templateRemote: opts.templateRemote,
+    templateDefaultBranch: opts.templateDefaultBranch,
+  });
 
   // De-duplicate contracts by name, preferring factory source if both repos
   // carry the same schema. Version/sha disambiguation can come later.

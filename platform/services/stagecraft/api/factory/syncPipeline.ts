@@ -100,6 +100,12 @@ async function cloneAndTranslate(
             factorySourceSha: factoryRepo.sha,
             templatePath: templateRepo.path,
             templateSha: templateRepo.sha,
+            // Stamp the synthetic adapter manifest with the upstream
+            // template repo identity so the Create-time scaffold layer
+            // (spec 112 §5.2) can resolve a clone URL without
+            // re-reading factory_upstreams. Spec 112 §5.3 op 1.
+            templateRemote: inputs.templateSource,
+            templateDefaultBranch: inputs.templateRef,
           });
 
           // Contract schemas are OAP-owned (spec 108 §3.2). The upstreams

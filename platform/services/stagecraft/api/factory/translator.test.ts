@@ -200,6 +200,32 @@ describe("translateTemplate", () => {
     expect(blob).not.toContain("excluded module");
     expect(blob).not.toContain("excluded internal");
   });
+
+  test("omits template_remote when no options supplied", async () => {
+    const { adapter } = await translateTemplate(repo, sha);
+    const m = adapter.manifest as Record<string, unknown>;
+    expect(m.template_remote).toBeUndefined();
+    expect(m.template_default_branch).toBeUndefined();
+  });
+
+  test("embeds template_remote and default branch when supplied", async () => {
+    const { adapter } = await translateTemplate(repo, sha, {
+      templateRemote: "GovAlta-Pronghorn/template",
+      templateDefaultBranch: "main",
+    });
+    const m = adapter.manifest as Record<string, unknown>;
+    expect(m.template_remote).toBe("GovAlta-Pronghorn/template");
+    expect(m.template_default_branch).toBe("main");
+  });
+
+  test("falls back to main when branch arg is a 40-char sha", async () => {
+    const { adapter } = await translateTemplate(repo, sha, {
+      templateRemote: "GovAlta-Pronghorn/template",
+      templateDefaultBranch: "9b83c1095013fd460b18745ef35987bd8d2de1b1",
+    });
+    const m = adapter.manifest as Record<string, unknown>;
+    expect(m.template_default_branch).toBe("main");
+  });
 });
 
 describe("translateUpstreams", () => {

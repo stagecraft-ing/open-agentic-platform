@@ -86,12 +86,17 @@ export interface CreateRepoResult {
 
 /**
  * Create a GitHub repository in the org using the installation token.
+ *
+ * `autoInit` defaults to `true` (the legacy behavior — repo ships with an
+ * auto-generated README so `seedRepoFromAdapter` has a SHA to update). The
+ * factory scaffold path passes `false` so we can push our scaffold tree as
+ * commit #1 without force-overwriting the README.
  */
 export async function createGitHubRepo(
   token: string,
   org: string,
   repoName: string,
-  opts: { isPrivate: boolean; description: string }
+  opts: { isPrivate: boolean; description: string; autoInit?: boolean }
 ): Promise<CreateRepoResult> {
   const resp = await fetch(`${GITHUB_API}/orgs/${org}/repos`, {
     method: "POST",
@@ -100,7 +105,7 @@ export async function createGitHubRepo(
       name: repoName,
       description: opts.description,
       private: opts.isPrivate,
-      auto_init: true, // creates initial commit with README
+      auto_init: opts.autoInit ?? true,
       delete_branch_on_merge: true,
     }),
   });

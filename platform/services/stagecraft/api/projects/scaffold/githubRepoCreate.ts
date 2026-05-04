@@ -25,6 +25,9 @@ export async function createRepoWithBranchProtection(
   const result = await createGitHubRepo(opts.token, opts.githubOrg, opts.repoName, {
     isPrivate: opts.isPrivate,
     description: opts.description ?? "",
+    // Spec 112 §5.2 step 6 — commit #1 is our scaffold tree; an auto-init
+    // README would force the push to overwrite it.
+    autoInit: false,
   });
   // Branch protection is best-effort (handles 403 internally per its contract).
   await configureBranchProtection(opts.token, result.fullName, result.defaultBranch);

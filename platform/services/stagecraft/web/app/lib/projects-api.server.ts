@@ -254,7 +254,7 @@ export async function createFactoryProject(
     description?: string;
     adapterId: string;
     variant: "single-public" | "single-internal" | "dual";
-    profileName?: string;
+    modules?: string[];
     repoName: string;
     isPrivate?: boolean;
   }
@@ -269,7 +269,34 @@ export async function createFactoryProject(
     opcDeepLink: string;
     scaffoldJobId: string;
     factoryAdapterId: string;
+    devEnvironmentId: string;
+    profile: string;
   }>;
+}
+
+// Spec 112 Phase 5 — scaffold-readiness gate for the Create form.
+export interface ScaffoldReadiness {
+  ready: boolean;
+  step: string;
+  progress: number;
+  error?: string;
+  hasFactoryAdapter: boolean;
+  hasUpstreamPat: boolean;
+  canCreate: boolean;
+  blocker?:
+    | "warming-up"
+    | "warmup-error"
+    | "no-factory-adapter"
+    | "no-upstream-pat";
+}
+
+export async function getScaffoldReadiness(
+  request: Request
+): Promise<ScaffoldReadiness> {
+  return apiFetch(
+    request,
+    "/api/projects/scaffold-readiness"
+  ) as Promise<ScaffoldReadiness>;
 }
 
 export async function listFactoryAdapters(request: Request) {

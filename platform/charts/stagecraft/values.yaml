@@ -75,3 +75,25 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+
+# Spec 112 §5.3 — workspace dir for the scaffold subflow.
+#
+# Stagecraft's Create flow keeps a clone of the upstream `template` repo
+# (~150MB after `npm install`) plus four prebuilt profile trees in a
+# workspace directory. The dir is mounted at `STAGECRAFT_WORKSPACE_DIR`
+# and survives pod restarts so warmup is skipped when on-disk state matches
+# the upstream HEAD.
+#
+# Persistence defaults to ON. Disable only if the cluster's storage class
+# is unavailable; with persistence off the warmup re-runs every restart.
+#
+# storageClass: leave blank to inherit the cluster default.
+#   Per-cloud overrides land in values-{azure,aws,gcp,do,hetzner}.yaml
+#   (e.g. "managed-csi" on Azure, "do-block-storage" on DigitalOcean).
+workspace:
+  dir: /var/stagecraft/workspace
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce

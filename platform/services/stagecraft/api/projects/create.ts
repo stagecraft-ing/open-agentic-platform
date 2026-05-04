@@ -1,13 +1,30 @@
 // Spec 112 §5.2 — ACP-native project creation endpoint.
 //
-// Orchestrates the six scaffold operations absorbed from the retired
-// `template-distributor` service (§5.3) and writes commit #1 with an
-// L0 `.factory/pipeline-state.json` seed. Leaves the post-push
-// lifecycle to OPC (§5.4 boundary — "birth on stagecraft, life on OPC").
+// Drives the six absorbed scaffold operations (§5.3) end-to-end:
 //
-// Response shape includes `opc_deep_link` so the success page can hand
-// off to a local OPC install with one click.
+//   1. Resolve adapter + verify warmup readiness.
+//   2. Insert a scaffold_jobs row in `running` state.
+//   3. Create the GitHub repo (auto_init=false → commit #1 is ours).
+//   4. Run the per-request scaffold against the prebuilt profile, copy
+//      into a temp dir, install user-selected extras, write the L0
+//      pipeline-state seed.
+//   5. Run server-side artifact extraction (when seed inputs supplied).
+//   6. Init + commit + push to the new GitHub repo.
+//   7. Insert projects / project_repos / project_members / environments
+//      rows + audit event in one transaction.
+//   8. Mark the job succeeded and clean up the local working tree.
+//
+// Failure handling (spec 112 §10):
+//   - Pre-repo-create failures (validation, no PAT, warmup not ready)
+//     surface as APIError.failedPrecondition / invalidArgument with the
+//     actual cause — never the Encore-wrapped "an internal error occurred".
+//   - Post-repo-create failures mark the scaffold_jobs row `orphaned` so
+//     an operator can reclaim the empty repo. The error is rethrown as
+//     APIError.internal with the underlying message attached.
 
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { api, APIError } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
 import log from "encore.dev/log";
@@ -15,6 +32,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   auditLog,
+  environments,
   factoryAdapters,
   githubInstallations,
   projectMembers,
@@ -24,16 +42,28 @@ import {
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
+import { loadFactoryUpstreamPatToken } from "../factory/upstreamPat";
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
+import { gitInitAndPush } from "./scaffold/gitInitAndPush";
+import { scaffoldFromPrebuilt } from "./scaffold/perRequestScaffold";
 import { buildL0PipelineStateSeed } from "./scaffold/seedPipelineState";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
-import { pickProfile } from "./scaffold/prebuilds";
-import { assertNode24Runtime } from "./scaffold/runAdapterScaffold";
+import { extractArtifactsIntoTree } from "./scaffold/artifactExtract";
+import {
+  getInitStatus,
+  isTemplateCacheReady,
+  isTemplateCacheRefreshing,
+  defaultWorkspaceDir,
+} from "./scaffold/templateCache";
+import {
+  isKnownModule,
+  pickProfileFromModules,
+} from "./scaffold/moduleCatalog";
 import type {
-  AdapterScaffoldBlock,
   ScaffoldAdapterRef,
   ScaffoldSeedInput,
+  ScaffoldStep,
 } from "./scaffold/types";
 
 // ── Request / response ─────────────────────────────────────────────────
@@ -48,10 +78,8 @@ export interface CreateFactoryProjectRequest {
   adapterId: string;
   /** Matches Build Spec project.variant; one of "single-public" | "single-internal" | "dual". */
   variant: string;
-  /** Optional explicit profile from adapter.scaffold.profiles. */
-  profileName?: string;
-  /** Optional --args forwarded to the adapter entry point. */
-  args?: Record<string, unknown>;
+  /** Modules selected from MODULE_CATALOG. Filtered server-side. */
+  modules?: string[];
   /** GitHub repo name (created under the org's active App installation). */
   repoName: string;
   isPrivate?: boolean;
@@ -66,6 +94,10 @@ export interface CreateFactoryProjectResponse {
   opcDeepLink: string;
   scaffoldJobId: string;
   factoryAdapterId: string;
+  /** Spec 112 §11 / Phase 7 — auto-provisioned dev environment row. */
+  devEnvironmentId: string;
+  /** Profile chosen by pickProfileFromModules (informational, for UI). */
+  profile: string;
 }
 
 // ── Endpoint ───────────────────────────────────────────────────────────
@@ -77,11 +109,14 @@ export const createFactoryProject = api(
     method: "POST",
     path: "/api/projects/factory-create",
   },
-  async (req: CreateFactoryProjectRequest): Promise<CreateFactoryProjectResponse> => {
+  async (
+    req: CreateFactoryProjectRequest
+  ): Promise<CreateFactoryProjectResponse> => {
     const auth = getAuthData()!;
     validateSlug(req.slug);
     validateRepoName(req.repoName);
     validateVariant(req.variant);
+    const selectedModules = (req.modules ?? []).filter(isKnownModule);
 
     if (!hasOrgPermission(auth.platformRole, "project:create")) {
       throw APIError.permissionDenied(
@@ -89,29 +124,79 @@ export const createFactoryProject = api(
       );
     }
 
-    // ── 1. Resolve the factory adapter. ──────────────────────────────
-    const adapter = await loadFactoryAdapter(auth.orgId, req.adapterId);
-    const scaffold = (adapter.manifest as { scaffold?: AdapterScaffoldBlock }).scaffold ?? {};
-    assertNode24Runtime(scaffold);
-    const profile = pickProfile(scaffold, {
-      profileName: req.profileName,
-      variant: req.variant,
-    });
-    if (!profile) {
-      throw APIError.invalidArgument(
-        `Adapter ${adapter.name}@${adapter.version} has no profile matching variant "${req.variant}"` +
-          (req.profileName ? ` and name "${req.profileName}"` : "")
+    // ── 1. Warmup readiness — Create blocks if cache/prebuilds aren't up. ──
+    const status = getInitStatus();
+    if (isTemplateCacheRefreshing()) {
+      throw APIError.failedPrecondition(
+        `Template cache is still initializing (step: ${status.step}, ${status.progress}%). ` +
+          `Please retry in a couple of minutes.`
       );
     }
+    if (!isTemplateCacheReady() || !status.ready) {
+      throw APIError.failedPrecondition(
+        status.error
+          ? `Scaffold infrastructure not ready: ${status.error}`
+          : `Scaffold infrastructure not ready (step: ${status.step}, ${status.progress}%). ` +
+              `Wait for warmup to complete and retry.`
+      );
+    }
+
+    // ── 2. Resolve the factory adapter + its template_remote. ─────────
+    const adapter = await loadFactoryAdapter(auth.orgId, req.adapterId);
+    const manifest = adapter.manifest;
+
+    // Spec 112 §10 — Create-eligibility gate. Adapters that declare a
+    // non-Node-24 scaffold runtime are not executable on stagecraft (web
+    // UI is Node-24-only); they need OPC-side dispatch via spec 110.
+    // Today's translator does not emit `scaffold.runtime`, so the absent
+    // case passes; the gate fires only if a future adapter declares
+    // something stagecraft cannot run.
+    const declaredRuntime = (manifest as { scaffold?: { runtime?: string } })
+      .scaffold?.runtime;
+    if (declaredRuntime && declaredRuntime !== "node-24") {
+      throw APIError.failedPrecondition(
+        `Factory adapter ${adapter.name}@${adapter.version} declares scaffold.runtime "${declaredRuntime}". ` +
+          `Stagecraft Create executes Node-24 adapters only (spec 112 §10); ` +
+          `non-Node-24 scaffolds must dispatch to OPC.`
+      );
+    }
+
+    const templateRemote =
+      typeof manifest.template_remote === "string"
+        ? manifest.template_remote
+        : "";
+    const templateDefaultBranch =
+      typeof manifest.template_default_branch === "string"
+        ? manifest.template_default_branch
+        : "main";
+    if (!templateRemote) {
+      throw APIError.failedPrecondition(
+        `Factory adapter ${adapter.name}@${adapter.version} has no template_remote in its manifest. ` +
+          `Re-run /factory-sync to repopulate the adapter row.`
+      );
+    }
+
+    // ── 3. Verify the org has an upstream PAT (used for warmup + clone). ─
+    const upstreamPat = await loadFactoryUpstreamPatToken(auth.orgId);
+    if (!upstreamPat) {
+      throw APIError.failedPrecondition(
+        "No factory upstream PAT configured for this org. " +
+          "Add one at /app/admin/factory/pat before creating projects."
+      );
+    }
+
+    const profile = pickProfileFromModules(req.variant, selectedModules);
+
     const adapterRef: ScaffoldAdapterRef = {
       id: adapter.id,
       name: adapter.name,
       version: adapter.version,
       sourceSha: adapter.sourceSha,
-      scaffold,
+      templateRemote,
+      templateDefaultBranch,
     };
 
-    // ── 2. Resolve the GitHub App installation + token. ──────────────
+    // ── 4. Resolve the GitHub App installation + token. ───────────────
     const installation = await loadActiveInstallation(auth.orgId);
     const { token } = await brokerInstallationToken(installation.installationId, {
       contents: "write",
@@ -120,7 +205,7 @@ export const createFactoryProject = api(
       workflows: "write",
     });
 
-    // ── 3. Insert a pending scaffold_jobs row. ───────────────────────
+    // ── 5. Insert a running scaffold_jobs row. ────────────────────────
     const [job] = await db
       .insert(scaffoldJobs)
       .values({
@@ -128,18 +213,20 @@ export const createFactoryProject = api(
         factoryAdapterId: adapter.id,
         requestedBy: auth.userID,
         variant: req.variant,
-        profileName: profile.name,
+        profileName: profile,
         status: "running",
         step: "repo-create",
         githubOrg: installation.githubOrgLogin,
         repoName: req.repoName,
         metadata: {
           adapter: { name: adapter.name, version: adapter.version },
+          selectedModules,
           seedInputCount: req.seedInputs?.length ?? 0,
         },
       })
       .returning();
 
+    // ── 6. Create the GitHub repo. (Past this point, failures = orphan.) ─
     let repoCreate;
     try {
       repoCreate = await createRepoWithBranchProtection({
@@ -151,19 +238,69 @@ export const createFactoryProject = api(
       });
     } catch (err) {
       await markJobFailed(job.id, "repo-create", err);
-      throw APIError.internal(
-        `Failed to create GitHub repository: ${String(err)}`
-      );
+      // Pre-repo failure — no orphan to leave behind.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/already exists/i.test(msg)) {
+        throw APIError.alreadyExists(
+          `GitHub repository ${installation.githubOrgLogin}/${req.repoName} already exists`
+        );
+      }
+      throw APIError.internal(`Failed to create GitHub repository: ${msg}`);
     }
 
-    // ── 4. Build the L0 pipeline-state seed. Full scaffold-run + push
-    //       is delegated to the scaffold subflow (spec 112 §5.3 ops 3,5).
-    //       The orchestrator writes the seed into the per-request tree
-    //       before `git add` so commit #1 carries it atomically.
-    const pipelineStateSeed = buildL0PipelineStateSeed(adapterRef);
+    // ── 7. Per-request scaffold + seed write + push. ──────────────────
+    const workspace = defaultWorkspaceDir();
+    const tmpRoot = await mkdtemp(join(tmpdir(), "stagecraft-create-"));
+    const projectRoot = join(tmpRoot, req.repoName);
 
-    // ── 5. Record project + project_repo rows. ───────────────────────
-    let projectRow;
+    const pipelineStateSeed = buildL0PipelineStateSeed(adapterRef);
+    let commitSha = "";
+
+    try {
+      await advanceStep(job.id, "run-entry");
+      await scaffoldFromPrebuilt({
+        workspaceDir: workspace,
+        profile,
+        selectedModules,
+        destDir: projectRoot,
+        pipelineStateSeed: pipelineStateSeed as unknown as Record<string, unknown>,
+      });
+
+      if (req.seedInputs && req.seedInputs.length > 0) {
+        await advanceStep(job.id, "extract-artifacts");
+        await extractArtifactsIntoTree({
+          projectRoot,
+          inputs: req.seedInputs,
+        });
+      }
+
+      await advanceStep(job.id, "push-initial");
+      const pushed = await gitInitAndPush({
+        projectRoot,
+        githubOrg: installation.githubOrgLogin,
+        repoName: req.repoName,
+        token,
+        branch: repoCreate.defaultBranch,
+        commitMessage: "Initial commit",
+        authorName: "Stagecraft",
+        authorEmail: "noreply@stagecraft.ing",
+      });
+      commitSha = pushed.commitSha;
+    } catch (err) {
+      await markJobOrphaned(
+        job.id,
+        installation.githubOrgLogin,
+        req.repoName,
+        err
+      );
+      await rm(tmpRoot, { recursive: true, force: true }).catch(() => {});
+      const msg = err instanceof Error ? err.message : String(err);
+      throw APIError.internal(`Scaffold/push failed: ${msg}`);
+    }
+
+    // ── 8. DB transaction: project + repo + member + env + audit. ─────
+    let projectRow: typeof projects.$inferSelect;
+    let devEnvRow: typeof environments.$inferSelect;
     try {
       const tx = await db.transaction(async (tx) => {
         const [p] = await tx
@@ -173,8 +310,6 @@ export const createFactoryProject = api(
             name: req.name,
             slug: req.slug,
             description: req.description ?? "",
-            // Spec 119 §4.2 — each project owns its bucket. Naming
-            // mirrors the create-on-projects.ts convention.
             objectStoreBucket: `oap-${auth.orgSlug || "unknown"}-${req.slug}`,
             factoryAdapterId: adapter.id,
             createdBy: auth.userID,
@@ -193,6 +328,23 @@ export const createFactoryProject = api(
           userId: auth.userID,
           role: "admin",
         });
+        // Spec 112 Phase 7 — auto-provision the development env row so
+        // POST /api/projects/:id/factory/deploy and the PR webhook path
+        // both target a pre-existing row instead of one path lazy-creating
+        // and the other not. Pure DB insert; no namespace is created on
+        // the cluster until something actually deploys.
+        const namespaceSlug = `oap-${auth.orgSlug || "unknown"}-${req.slug}-dev`;
+        const [devEnv] = await tx
+          .insert(environments)
+          .values({
+            projectId: p.id,
+            name: "development",
+            kind: "development",
+            k8sNamespace: namespaceSlug,
+            autoDeployBranch: repoCreate.defaultBranch,
+            requiresApproval: false,
+          })
+          .returning();
         await tx.insert(auditLog).values({
           actorUserId: auth.userID,
           action: "project.created",
@@ -204,11 +356,14 @@ export const createFactoryProject = api(
             factoryAdapterId: adapter.id,
             adapter: `${adapter.name}@${adapter.version}`,
             variant: req.variant,
-            profile: profile.name,
+            profile,
+            selectedModules,
             githubOrg: installation.githubOrgLogin,
             repoName: req.repoName,
             githubRepoUrl: repoCreate.htmlUrl,
+            commitSha,
             scaffoldJobId: job.id,
+            devEnvironmentId: devEnv.id,
             pipelineStateSeed: {
               schema_version: pipelineStateSeed.schema_version,
               pipeline_id: pipelineStateSeed.pipeline.id,
@@ -216,25 +371,33 @@ export const createFactoryProject = api(
             orgId: auth.orgId,
           },
         });
-        return { project: p };
+        return { project: p, devEnv };
       });
       projectRow = tx.project;
+      devEnvRow = tx.devEnv;
     } catch (err) {
-      await markJobFailed(job.id, "push-initial", err);
-      log.error("Project DB transaction failed after GitHub repo creation", {
+      await markJobOrphaned(
+        job.id,
+        installation.githubOrgLogin,
+        req.repoName,
+        err
+      );
+      await rm(tmpRoot, { recursive: true, force: true }).catch(() => {});
+      log.error("Project DB transaction failed after GitHub push", {
         jobId: job.id,
         githubRepo: repoCreate.fullName,
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       });
-      if (String(err).match(/unique|duplicate/i)) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/unique|duplicate/i.test(msg)) {
         throw APIError.alreadyExists(
           "A project with that slug already exists in this org"
         );
       }
-      throw APIError.internal("Failed to create project records");
+      throw APIError.internal(`Failed to record project: ${msg}`);
     }
 
-    // ── 6. Mark scaffold_jobs succeeded and return. ──────────────────
+    // ── 9. Mark scaffold_jobs succeeded + clean up the working tree. ──
     await db
       .update(scaffoldJobs)
       .set({
@@ -242,10 +405,17 @@ export const createFactoryProject = api(
         step: "cleanup",
         projectId: projectRow.id,
         cloneUrl: repoCreate.cloneUrl,
+        commitSha,
         completedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(scaffoldJobs.id, job.id));
+    await rm(tmpRoot, { recursive: true, force: true }).catch((err) => {
+      log.warn("scaffold cleanup failed (non-fatal)", {
+        tmpRoot,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
 
     const opcDeepLink = buildProjectOpenDeepLink({
       projectId: projectRow.id,
@@ -253,9 +423,9 @@ export const createFactoryProject = api(
       detectionLevel: "scaffold_only",
     });
 
-    // Spec 112 Phase 8 — broadcast the new project to connected OPCs so
-    // their Projects panel updates without a restart. Fire-and-log: a
-    // sync hiccup must not roll back the project the user just created.
+    // Spec 112 Phase 8 — broadcast the new project to connected OPCs.
+    // Fire-and-log: a sync hiccup must not roll back the project we
+    // just created.
     void publishProjectCatalogUpsert({
       orgId: auth.orgId,
       project: {
@@ -283,6 +453,9 @@ export const createFactoryProject = api(
       projectId: projectRow.id,
       repoName: req.repoName,
       adapter: `${adapter.name}@${adapter.version}`,
+      profile,
+      commitSha,
+      devEnvironmentId: devEnvRow.id,
       scaffoldJobId: job.id,
     });
 
@@ -293,6 +466,8 @@ export const createFactoryProject = api(
       opcDeepLink,
       scaffoldJobId: job.id,
       factoryAdapterId: adapter.id,
+      devEnvironmentId: devEnvRow.id,
+      profile,
     };
   }
 );
@@ -311,7 +486,9 @@ function validateSlug(slug: string): void {
 function validateRepoName(name: string): void {
   const pattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
   if (!name || name.length > 100 || !pattern.test(name)) {
-    throw APIError.invalidArgument("repoName must match GitHub repo naming rules");
+    throw APIError.invalidArgument(
+      "repoName must match GitHub repo naming rules"
+    );
   }
 }
 
@@ -343,7 +520,9 @@ async function loadFactoryAdapter(
       manifest: factoryAdapters.manifest,
     })
     .from(factoryAdapters)
-    .where(and(eq(factoryAdapters.orgId, orgId), eq(factoryAdapters.id, adapterId)))
+    .where(
+      and(eq(factoryAdapters.orgId, orgId), eq(factoryAdapters.id, adapterId))
+    )
     .limit(1);
   if (!row) {
     throw APIError.notFound(`Factory adapter ${adapterId} not found in org`);
@@ -381,9 +560,16 @@ async function loadActiveInstallation(
   return row;
 }
 
+async function advanceStep(jobId: string, step: ScaffoldStep): Promise<void> {
+  await db
+    .update(scaffoldJobs)
+    .set({ step, updatedAt: new Date() })
+    .where(eq(scaffoldJobs.id, jobId));
+}
+
 async function markJobFailed(
   jobId: string,
-  step: string,
+  step: ScaffoldStep,
   err: unknown
 ): Promise<void> {
   await db
@@ -392,6 +578,30 @@ async function markJobFailed(
       status: "failed",
       step,
       errorMessage: err instanceof Error ? err.message : String(err),
+      updatedAt: new Date(),
+      completedAt: new Date(),
+    })
+    .where(eq(scaffoldJobs.id, jobId));
+}
+
+/**
+ * Spec 112 §10 — orphan-repo recovery. Past `repo-create` we have an empty
+ * GitHub repo; mark the job `orphaned` so an operator can reclaim it via
+ * the admin UI rather than letting the empty repo sit silently.
+ */
+async function markJobOrphaned(
+  jobId: string,
+  githubOrg: string,
+  repoName: string,
+  err: unknown
+): Promise<void> {
+  await db
+    .update(scaffoldJobs)
+    .set({
+      status: "orphaned",
+      errorMessage: err instanceof Error ? err.message : String(err),
+      githubOrg,
+      repoName,
       updatedAt: new Date(),
       completedAt: new Date(),
     })

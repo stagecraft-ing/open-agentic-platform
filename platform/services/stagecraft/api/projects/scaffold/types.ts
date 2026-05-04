@@ -6,41 +6,40 @@ export interface ScaffoldAdapterRef {
   name: string;
   version: string;
   sourceSha: string;
-  /** Parsed manifest.scaffold block (spec 112 §8). */
-  scaffold: AdapterScaffoldBlock;
+  /**
+   * Upstream `<owner>/<repo>` for the template the scaffold clones at
+   * Create time. Stamped onto the synthetic adapter manifest by the
+   * translator (spec 112 §5.3 op 1) so the scaffold layer doesn't need
+   * to round-trip through `factory_upstreams`.
+   */
+  templateRemote: string;
+  /** Branch the cache pins to. Falls back to `main` for sha-pinned upstreams. */
+  templateDefaultBranch: string;
 }
 
-export interface AdapterScaffoldBlock {
-  entry_point?: string;
-  runtime?: string;
-  args_schema?: Record<string, unknown>;
-  profiles?: Array<{
-    name: string;
-    variant: string;
-    modules?: string[];
-    default?: boolean;
-  }>;
-  emits?: Array<{ path: string; description?: string }>;
-  // Legacy optional fields (pre-spec 112) tolerated on read.
-  source?: string;
-  description?: string;
-  modules?: Record<string, string[]>;
-  setup_commands?: string[];
+/**
+ * Synthetic-adapter top-level fields the translator stamps onto the
+ * manifest at sync time so the scaffold layer can resolve a clone URL
+ * without round-tripping through `factory_upstreams`. Spec 112 §5.2 / §5.3.
+ */
+export interface AdapterTemplateRemote {
+  /** GitHub repo identity, e.g. `"GovAlta-Pronghorn/template"`. */
+  template_remote: string;
+  /** Branch the cache layer pins to; refresher polls this. */
+  template_default_branch: string;
 }
 
 export interface ScaffoldRequest {
   orgId: string;
   requestedBy: string;
   adapter: ScaffoldAdapterRef;
-  /** One of the adapter's declared variants; validated against args_schema. */
+  /** One of build-spec.schema.yaml's project.variant values. */
   variant: string;
-  /** Optional named profile from adapter.scaffold.profiles. */
-  profileName?: string;
+  /** Modules the user picked from MODULE_CATALOG (filtered server-side). */
+  selectedModules: string[];
   githubOrg: string;
   repoName: string;
   isPrivate: boolean;
-  /** Additional free-form --args to pass through to the entry point. */
-  args?: Record<string, unknown>;
   /** Seed inputs uploaded into the project bucket (spec 112 §4.3). */
   seedInputs?: ScaffoldSeedInput[];
 }

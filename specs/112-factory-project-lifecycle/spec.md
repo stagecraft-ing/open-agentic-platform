@@ -4,6 +4,8 @@ slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
 implementation: complete
+amended: "2026-05-04"
+amendment_record: "138-stagecraft-create-realised-scaffold"
 owner: bart
 created: "2026-04-22"
 summary: >
@@ -358,6 +360,18 @@ ignores them.
 
 ## 5. Stagecraft Create Path
 
+> **Amended 2026-05-04 (record: 138-stagecraft-create-realised-scaffold).**
+> When the absorbed scaffold subflow landed, four refinements settled
+> details this section had deferred to "the production implementation":
+> (1) the prebuild profile set is stagecraft-owned, not adapter-driven
+> (§5.3 row 2 below + spec 138 §2.1); (2) the Create transaction also
+> inserts an `environments` row (§5.2 step 7 + spec 138 §2.2); (3) the
+> form gates on a new `GET /api/projects/scaffold-readiness` endpoint
+> (§5.1.1 + spec 138 §2.3); (4) the workspace dir is backed by an RWO
+> PVC (§5.3 deployment note + spec 138 §2.4). See the
+> `## Amendment record` section at the bottom of this spec for full
+> rationale; spec 138 carries the audit trail.
+
 ### 5.1 UI — `/app/projects/new`
 
 Form fields:
@@ -378,6 +392,37 @@ Form fields:
   extractor (§4.3) server-side; extracted outputs are written into
   `.artifacts/extracted/` in the generated tree and committed in commit
   #1. Binary originals remain in the bucket, not in git.
+
+### 5.1.1 Scaffold-readiness gate
+
+> Added by amendment 2026-05-04 (record: 137).
+
+The form's loader fetches `GET /api/projects/scaffold-readiness`
+alongside the adapter list and gates submit on its `canCreate` field.
+The endpoint's response shape is contract-frozen here:
+
+```json
+{
+  "ready": boolean,
+  "step": "idle" | "cloning" | "cache-installing" |
+          "building-minimal" | "building-public" |
+          "building-internal" | "building-dual" |
+          "ready" | "error",
+  "progress": 0,                   // integer 0-100
+  "error": string | null,
+  "hasFactoryAdapter": boolean,    // org has at least one factory_adapters row
+  "hasUpstreamPat": boolean,       // org has factory_upstream_pats configured
+  "canCreate": boolean,            // = ready && hasFactoryAdapter && hasUpstreamPat
+  "blocker": "warming-up" | "warmup-error" |
+             "no-factory-adapter" | "no-upstream-pat" | null
+}
+```
+
+`blocker` resolves in priority order (`no-factory-adapter` →
+`no-upstream-pat` → `warmup-error` → `warming-up`) so the UI can pick
+banner copy without re-deriving precedence. The endpoint is read-only
+and idempotent; OPC may consume it for the same gate via the duplex
+channel in a future spec.
 
 ### 5.2 Backend — `api/projects/create.ts`
 
@@ -409,9 +454,16 @@ Flow:
 6. Create the GitHub repo via the org's App installation and push the
    generated tree with a single initial commit. Commit author is the
    stagecraft service identity; co-author is the user.
-7. Insert rows into `projects` and `project_repos` (spec 108) with
-   `factory_adapter_id` pointing at the adapter used. Emit a
-   `project.created` audit event.
+7. Insert rows into `projects`, `project_repos`, `project_members`, and
+   `environments` (spec 108) within a single DB transaction. The
+   `projects` row carries `factory_adapter_id`; the `environments` row
+   is `kind=development` with `k8s_namespace=oap-{orgSlug}-{projectSlug}-dev`,
+   so subsequent deploy paths land on a pre-existing env row instead of
+   one path lazy-creating and the other not. No K8s namespace is
+   created at Create time; the deployd-api dispatch itself remains
+   §11 non-goal. Emit a `project.created` audit event with
+   `devEnvironmentId` in the metadata. *(amends 2026-05-04 — environments
+   row added per spec 138 §2.2.)*
 8. Return `{ project_id, repo_url, clone_url }` for the UI to link to.
 
 ### 5.3 What is absorbed from template-distributor
@@ -425,7 +477,7 @@ the code.
 | # | Template-distributor capability | Reference | Lands in stagecraft as |
 |---|---|---|---|
 | 1 | Template cache clone + `npm install` + upstream-SHA refresh | `ensureTemplateCache`, server.ts:329-375 | `api/projects/scaffold/templateCache.ts` (per-workspace cache, keyed on `factory_adapters.source_sha`) |
-| 2 | Profile prebuilds (minimal/public/internal/dual) | `ensurePrebuilts`, server.ts:377-446 | `api/projects/scaffold/prebuilds.ts` (warm-on-startup; declared profile set comes from the adapter manifest §8) |
+| 2 | Profile prebuilds (minimal/public/internal/dual) | `ensurePrebuilts`, server.ts:377-446 | `api/projects/scaffold/templateCache.ts` (warm-on-startup; profile set is **stagecraft-owned**, mirroring template-distributor's hardcoded set in `moduleCatalog.ts` — amends 2026-05-04 per spec 138 §2.1. Manifest §8 `scaffold.profiles` remains forward-compat for non-template adapters) |
 | 3 | Per-request scaffold: copy prebuilt + run `setup-*.ts` + `add-module.ts` for extras | server.ts:613-760 | `api/projects/scaffold/runAdapterScaffold.ts` (Node-24 subprocess in a per-request temp dir, concurrency-bounded) |
 | 4 | Create GitHub repo + grant team admin (with retry) | `createRepo` + `teams.addOrUpdateRepoPermissionsInOrg`, server.ts:865-897 | `api/projects/scaffold/githubRepoCreate.ts` |
 | 5 | Initial git commit + authed push to `main` | server.ts:899-927 | `api/projects/scaffold/githubPushInitial.ts` — uses the existing App installation token via `authedGitUrl` pattern (server.ts:285-300) |
@@ -454,6 +506,19 @@ OAP does not import code from `template-distributor` — the absorbing
 PR rewrites the six operations above in stagecraft idioms. The
 external repo lives outside this project's control; §9 Phase 9
 describes what OAP retires on its side, not the upstream repo's fate.
+
+**Deployment** *(amends 2026-05-04 per spec 138 §2.4)*: the absorbed
+scaffold subflow is mounted at `${STAGECRAFT_WORKSPACE_DIR}` (default
+`/var/stagecraft/workspace`). The path is backed by a `ReadWriteOnce`
+`PersistentVolumeClaim` declared in
+`platform/charts/stagecraft/templates/workspace-pvc.yaml` (default
+10Gi, cluster-default `StorageClass`). Persistence is togglable via
+`workspace.persistence.enabled` for dev clusters without a CSI driver;
+the chart fails at `helm install/upgrade` time when `replicaCount > 1`
+while persistence is enabled because RWO is incompatible with horizontal
+scaling. Per-cloud `StorageClass` overrides land in
+`platform/charts/stagecraft/values-{azure,aws,gcp,do,hetzner}.yaml`;
+Hetzner uses the `hcloud-volumes` cluster-default and needs no override.
 
 ### 5.4 Stagecraft–OPC boundary
 
@@ -1099,3 +1164,48 @@ this tree reads them.
   a new empty project directory. Does not run the factory pipeline.
 - **Produce** — the act of running the factory pipeline against a
   scaffolded project, advancing stage state and emitting artifacts.
+
+## Amendment record
+
+**Amendment 2026-05-04 (record: 138-stagecraft-create-realised-scaffold).**
+Four refinements to §5 settled when the absorbed scaffold subflow
+landed. None contradicts the original design — each is a load-bearing
+detail this section had deferred to "the production implementation".
+
+- **§5.3 row 2 — profile-set ownership.** The original wording had the
+  prebuild profile set declared by the adapter manifest (§8). The
+  landed code holds the four profiles (`minimal`, `public`, `internal`,
+  `dual`) in stagecraft's own `moduleCatalog.ts`, mirroring
+  `template-distributor/src/server.ts:108-232`. Profiles are properties
+  of the *template repo's* `setup-{app,dual-app}.ts` scripts (§5.3 row
+  3 already binds the per-request scaffold to that shape via §10), so
+  the adapter manifest's `scaffold.profiles` is correctly understood as
+  forward-compat metadata for non-template adapters that do not yet
+  exist. §8's manifest schema is unchanged.
+
+- **§5.2 step 7 — environments row in the Create transaction.** The
+  original step listed `projects` + `project_repos`. The landed code
+  also inserts a `kind=development` `environments` row in the same
+  transaction so that `POST /api/projects/:id/factory/deploy` and the
+  PR webhook's `findOrCreatePreviewEnv` path target the same row
+  instead of one path lazy-creating and the other not. §11's
+  deployd-api non-goal is preserved — only the row is provisioned;
+  the dispatch envelope and deploy gate remain a follow-up spec.
+
+- **§5.1.1 (new) — scaffold-readiness endpoint.** The original
+  contract did not specify the form's gate against warmup state /
+  adapter presence / PAT presence. The new section freezes the
+  `GET /api/projects/scaffold-readiness` response shape so the UI's
+  banner copy is governed.
+
+- **§5.3 deployment note — workspace PVC.** The original §5.3 said
+  warmup runs on stagecraft startup; storage backing was unspecified.
+  The new note records that `${STAGECRAFT_WORKSPACE_DIR}` (default
+  `/var/stagecraft/workspace`) is backed by an RWO PVC declared in
+  `platform/charts/stagecraft/templates/workspace-pvc.yaml`, with
+  per-cloud `StorageClass` overrides and a `replicaCount > 1`
+  template-render guard.
+
+Spec 137 (`stagecraft-create-realised-scaffold`) carries the full
+rationale, the audit trail, and the `implements:` mapping for the
+landed code paths.

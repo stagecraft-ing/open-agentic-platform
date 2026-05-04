@@ -61,6 +61,10 @@ spec:
               value: /usr/local/bin/artifact-extract
             - name: FACTORY_PROJECT_DETECT_BIN
               value: /usr/local/bin/factory-project-detect
+            # Spec 112 §5.3 — scaffold workspace mount; ensureTemplateCache /
+            # ensurePrebuilts read and write under this path.
+            - name: STAGECRAFT_WORKSPACE_DIR
+              value: {{ .Values.workspace.dir | quote }}
           envFrom:
             - secretRef:
                 name: stagecraft-api-secrets
@@ -91,6 +95,8 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: workspace
+              mountPath: {{ .Values.workspace.dir | quote }}
       volumes:
         - name: secrets-store
           {{- if eq (default "k8s" .Values.secrets.provider) "csi-azure" }}
@@ -105,3 +111,15 @@ spec:
           {{- end }}
         - name: tmp
           emptyDir: {}
+        - name: workspace
+          {{- if .Values.workspace.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: stagecraft-api-workspace
+          {{- else }}
+          # Persistence disabled — warmup re-runs every restart on node
+          # ephemeral storage. emptyDir size limit defaults to ~ephemeral
+          # node space; restrict via .Values.workspace.persistence.size when
+          # the cluster supports sizeLimit on emptyDir.
+          emptyDir:
+            sizeLimit: {{ .Values.workspace.persistence.size | default "10Gi" | quote }}
+          {{- end }}
