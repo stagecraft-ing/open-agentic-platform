@@ -242,6 +242,87 @@ fn amendment_record_clears_amended_spec_path() {
     );
 }
 
+/// T040 / spec 133 AC-2 & FR-004. When a `specs/X/spec.md` path is in the
+/// diff, claimed by one `implements:` spec C and amended by another
+/// spec B, and the diff includes neither C nor B, the violation block
+/// labels each candidate owner by source class so reviewers can audit
+/// which coupling applies. Format: `  <path>` followed by per-class
+/// rows `    implements:`, `    amends:`, `    amendment_record:`.
+#[test]
+fn violation_renderer_labels_owner_sources() {
+    let dir = tempfile::tempdir().unwrap();
+    let mappings = r#"[
+        {
+            "specId": "200-amended-fixture",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "amendmentRecord": "203-amendment-target",
+            "implementingPaths": []
+        },
+        {
+            "specId": "201-amender",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": ["200-amended-fixture"],
+            "implementingPaths": []
+        },
+        {
+            "specId": "202-implements-claimant",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": [
+                {"path": "specs/200-amended-fixture", "source": "spec-implements"}
+            ]
+        },
+        {
+            "specId": "203-amendment-target",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": []
+        }
+    ]"#;
+    let index_path = write_synthetic_index(dir.path(), mappings);
+
+    // Diff edits the amended spec only — none of the three candidate
+    // owners (202 implements, 201 amends, 203 amendment_record) is in
+    // the diff. The gate must fire and surface all three source classes.
+    let paths_file = dir.path().join("paths.txt");
+    fs::write(&paths_file, "specs/200-amended-fixture/spec.md\n").unwrap();
+
+    let (code, _stdout, stderr) = run(&[
+        "--index",
+        index_path.to_str().unwrap(),
+        "--paths-from",
+        paths_file.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 1, "no candidate owner in diff; expected fire. stderr={stderr}");
+
+    // Per-class labels appear, each followed by the spec id of that class.
+    assert!(
+        stderr.contains("implements:"),
+        "missing 'implements:' label in:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("amends:"),
+        "missing 'amends:' label in:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("amendment_record:"),
+        "missing 'amendment_record:' label in:\n{stderr}"
+    );
+
+    // Each candidate is named exactly once, under its source row.
+    assert!(stderr.contains("202-implements-claimant"));
+    assert!(stderr.contains("201-amender"));
+    assert!(stderr.contains("203-amendment-target"));
+
+    // Path itself appears as the violation header.
+    assert!(stderr.contains("specs/200-amended-fixture/spec.md"));
+}
+
 /// T012 / spec 133 AC-4. A diff with no `specs/*/spec.md` paths is
 /// unaffected — the new amend-aware resolver paths only fire when the
 /// path being checked is itself a `specs/X/spec.md` path. A code-only
