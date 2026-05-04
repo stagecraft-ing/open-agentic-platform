@@ -9,8 +9,8 @@
   "properties": {
     "schemaVersion": {
       "type": "string",
-      "const": "1.2.0",
-      "description": "Schema version. 1.2.0 (spec 129) extends TraceSource: cargo-metadata renamed to cargo-metadata-crate; cargo-metadata-module reserved; comment-header added for file-level annotations; both → multiple for any 2+ overlap."
+      "const": "1.3.0",
+      "description": "Schema version. 1.3.0 (spec 133) extends traceMapping with `amends` (list) and `amendmentRecord` (string) so the spec/code coupling gate can recognise spec 119 amend protocol relationships as valid coupling alongside `implements:`."
     },
     "build": {
       "type": "object",
@@ -190,6 +190,19 @@
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "description": "Spec IDs this spec depends on (from frontmatter depends_on)."
+        },
+        "amends": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "description": "Spec 133: full spec ids this spec amends in place via the spec 119 protocol. Short-form `amends: [\"000\"]` from frontmatter is resolved to the full id at index-build time."
+        },
+        "amendmentRecord": {
+          "type": "string",
+          "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Spec 133: full spec id of the amendment record applied to this spec (the reverse-link, set on the amended spec's frontmatter as `amendment_record:`). Resolved from short-form at index-build time."
         },
         "implementingPaths": {
           "type": "array",

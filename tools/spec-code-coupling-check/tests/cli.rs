@@ -130,6 +130,271 @@ fn ac3_bypass_paths_silent_exit_0() {
     assert_eq!(code, 0, "stderr=\n{stderr}");
 }
 
+// ── Spec 133 — amends-aware coupling ────────────────────────────────────────
+
+/// T010 / spec 133 AC-1. A diff containing the amended spec's `spec.md`
+/// (specs/A/spec.md) plus the amender's `spec.md` (specs/B/spec.md, with
+/// `amends: ["A"]`) clears the path even when no `implements:` claimant of
+/// A is in the diff.
+#[test]
+fn amends_link_clears_amended_spec_path() {
+    let dir = tempfile::tempdir().unwrap();
+    // Spec C claims `specs/200-amended-fixture` via `implements:` (this
+    // mirrors how spec 119 claims `specs/000-bootstrap-spec-system`).
+    // Spec B amends spec 200 via the spec 119 protocol.
+    let mappings = r#"[
+        {
+            "specId": "200-amended-fixture",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": []
+        },
+        {
+            "specId": "201-amender",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": ["200-amended-fixture"],
+            "implementingPaths": []
+        },
+        {
+            "specId": "202-implements-claimant",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": [
+                {"path": "specs/200-amended-fixture", "source": "spec-implements"}
+            ]
+        }
+    ]"#;
+    let index_path = write_synthetic_index(dir.path(), mappings);
+
+    let paths_file = dir.path().join("paths.txt");
+    fs::write(
+        &paths_file,
+        "specs/200-amended-fixture/spec.md\nspecs/201-amender/spec.md\n",
+    )
+    .unwrap();
+
+    let (code, stdout, stderr) = run(&[
+        "--index",
+        index_path.to_str().unwrap(),
+        "--paths-from",
+        paths_file.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 0,
+        "amender's spec.md edit must clear the amended spec's path; stdout={stdout} stderr={stderr}"
+    );
+}
+
+/// T011 / spec 133 AC-3. A diff containing the amended spec's `spec.md`
+/// (with `amendmentRecord: "D"` in its mapping) plus `specs/D/spec.md`
+/// clears the path via the amendment_record back-link, even when D's own
+/// frontmatter does not yet carry `amends: ["A"]`.
+#[test]
+fn amendment_record_clears_amended_spec_path() {
+    let dir = tempfile::tempdir().unwrap();
+    let mappings = r#"[
+        {
+            "specId": "200-amended-fixture",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "amendmentRecord": "203-amendment-target",
+            "implementingPaths": []
+        },
+        {
+            "specId": "203-amendment-target",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": []
+        },
+        {
+            "specId": "202-implements-claimant",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": [
+                {"path": "specs/200-amended-fixture", "source": "spec-implements"}
+            ]
+        }
+    ]"#;
+    let index_path = write_synthetic_index(dir.path(), mappings);
+
+    let paths_file = dir.path().join("paths.txt");
+    fs::write(
+        &paths_file,
+        "specs/200-amended-fixture/spec.md\nspecs/203-amendment-target/spec.md\n",
+    )
+    .unwrap();
+
+    let (code, stdout, stderr) = run(&[
+        "--index",
+        index_path.to_str().unwrap(),
+        "--paths-from",
+        paths_file.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 0,
+        "amendmentRecord target's spec.md edit must clear the amended path; stdout={stdout} stderr={stderr}"
+    );
+}
+
+/// T040 / spec 133 AC-2 & FR-004. When a `specs/X/spec.md` path is in the
+/// diff, claimed by one `implements:` spec C and amended by another
+/// spec B, and the diff includes neither C nor B, the violation block
+/// labels each candidate owner by source class so reviewers can audit
+/// which coupling applies. Format: `  <path>` followed by per-class
+/// rows `    implements:`, `    amends:`, `    amendment_record:`.
+#[test]
+fn violation_renderer_labels_owner_sources() {
+    let dir = tempfile::tempdir().unwrap();
+    let mappings = r#"[
+        {
+            "specId": "200-amended-fixture",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "amendmentRecord": "203-amendment-target",
+            "implementingPaths": []
+        },
+        {
+            "specId": "201-amender",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": ["200-amended-fixture"],
+            "implementingPaths": []
+        },
+        {
+            "specId": "202-implements-claimant",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": [
+                {"path": "specs/200-amended-fixture", "source": "spec-implements"}
+            ]
+        },
+        {
+            "specId": "203-amendment-target",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": []
+        }
+    ]"#;
+    let index_path = write_synthetic_index(dir.path(), mappings);
+
+    // Diff edits the amended spec only — none of the three candidate
+    // owners (202 implements, 201 amends, 203 amendment_record) is in
+    // the diff. The gate must fire and surface all three source classes.
+    let paths_file = dir.path().join("paths.txt");
+    fs::write(&paths_file, "specs/200-amended-fixture/spec.md\n").unwrap();
+
+    let (code, _stdout, stderr) = run(&[
+        "--index",
+        index_path.to_str().unwrap(),
+        "--paths-from",
+        paths_file.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 1, "no candidate owner in diff; expected fire. stderr={stderr}");
+
+    // Per-class labels appear, each followed by the spec id of that class.
+    assert!(
+        stderr.contains("implements:"),
+        "missing 'implements:' label in:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("amends:"),
+        "missing 'amends:' label in:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("amendment_record:"),
+        "missing 'amendment_record:' label in:\n{stderr}"
+    );
+
+    // Each candidate is named exactly once, under its source row.
+    assert!(stderr.contains("202-implements-claimant"));
+    assert!(stderr.contains("201-amender"));
+    assert!(stderr.contains("203-amendment-target"));
+
+    // Path itself appears as the violation header.
+    assert!(stderr.contains("specs/200-amended-fixture/spec.md"));
+}
+
+/// T012 / spec 133 AC-4. A diff with no `specs/*/spec.md` paths is
+/// unaffected — the new amend-aware resolver paths only fire when the
+/// path being checked is itself a `specs/X/spec.md` path. A code-only
+/// diff that already passes today (spec 130 path) continues to pass with
+/// the amend extension active, and an amender's `spec.md` edit alone
+/// does NOT silently clear an unrelated crate path.
+#[test]
+fn non_spec_path_unaffected_by_amends_extension() {
+    let dir = tempfile::tempdir().unwrap();
+    // Spec 044 claims crates/orchestrator. Spec 200 amends 044 (noise:
+    // amends links should not project onto crate paths).
+    let mappings = r#"[
+        {
+            "specId": "044-multi-agent-orchestration",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": [],
+            "implementingPaths": [
+                {"path": "crates/orchestrator", "source": "spec-implements"}
+            ]
+        },
+        {
+            "specId": "200-amender-noise",
+            "specStatus": "approved",
+            "dependsOn": [],
+            "amends": ["044-multi-agent-orchestration"],
+            "implementingPaths": []
+        }
+    ]"#;
+    let index_path = write_synthetic_index(dir.path(), mappings);
+
+    // Case A: diff edits the crate file plus the amender's spec.md only —
+    // the amender's edit must NOT cover the crate path; the gate must
+    // still demand spec 044's spec.md (or any other implements claimant).
+    let paths_file = dir.path().join("paths_a.txt");
+    fs::write(
+        &paths_file,
+        "crates/orchestrator/src/lib.rs\nspecs/200-amender-noise/spec.md\n",
+    )
+    .unwrap();
+    let (code, stdout, stderr) = run(&[
+        "--index",
+        index_path.to_str().unwrap(),
+        "--paths-from",
+        paths_file.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 1,
+        "amender spec.md edit must NOT cover an unrelated crate path; stdout={stdout} stderr={stderr}"
+    );
+    assert!(stderr.contains("044-multi-agent-orchestration"));
+
+    // Case B: same crate file diff plus the implements claimant's spec.md —
+    // continues to pass identically to today (spec 130 heuristic).
+    let paths_file = dir.path().join("paths_b.txt");
+    fs::write(
+        &paths_file,
+        "crates/orchestrator/src/lib.rs\nspecs/044-multi-agent-orchestration/spec.md\n",
+    )
+    .unwrap();
+    let (code, stdout, stderr) = run(&[
+        "--index",
+        index_path.to_str().unwrap(),
+        "--paths-from",
+        paths_file.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 0,
+        "implements-claimant edit must continue to clear crate paths; stdout={stdout} stderr={stderr}"
+    );
+}
+
 #[test]
 fn ac4_waiver_in_body_suppresses_failure() {
     let dir = tempfile::tempdir().unwrap();

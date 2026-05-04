@@ -36,15 +36,69 @@ pub const BYPASS_PREFIXES: &[&str] = &[
 /// Case-sensitive PR-body waiver keyword. Spec 127 FR-005.
 pub const WAIVER_KEYWORD: &str = "Spec-Drift-Waiver:";
 
-/// One uncovered path in the diff with the full sorted list of claimants.
-/// Spec 130 — primary-owner heuristic — replaces the previous per-spec
-/// shape: a path with N claimants is cleared if ANY one of them is in
-/// the diff. The renderer surfaces the full claimant list so reviewers
-/// can sanity-check that the right claimant covered the change.
+/// One uncovered path in the diff with the full sorted list of legitimate
+/// owners, partitioned by source class.
+///
+/// Spec 130 introduced the primary-owner heuristic (any one owner's edit
+/// clears the path). Spec 133 broadens the set of legitimate owners to
+/// include amenders (`amends:`) and amendment-record targets
+/// (`amendmentRecord`) when the path is itself a `specs/X/spec.md` path.
+/// All three classes compose: any one owner from any class clears the
+/// path, and the renderer labels each owner by source so reviewers can
+/// audit which class of coupling applies.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct OwnerSet {
+    /// Specs that claim this path via their `implements:` list. The
+    /// historical spec 127 / spec 130 source class.
+    pub implements: BTreeSet<String>,
+    /// Specs that amend the spec whose `spec.md` is this path
+    /// (`amends:` forward link, spec 119 protocol). Empty when the
+    /// path is not a `specs/X/spec.md` path.
+    pub amends: BTreeSet<String>,
+    /// The amendment-record target named on the amended spec's
+    /// frontmatter (`amendment_record:` reverse link). Empty when the
+    /// path is not a `specs/X/spec.md` path or the amended spec carries
+    /// no record.
+    pub amendment_record: BTreeSet<String>,
+}
+
+impl OwnerSet {
+    /// True when no owner of any class has been recorded.
+    pub fn is_empty(&self) -> bool {
+        self.implements.is_empty()
+            && self.amends.is_empty()
+            && self.amendment_record.is_empty()
+    }
+
+    /// Sorted union of every owner across all source classes. Useful for
+    /// the "any one in diff clears the path" check and for tests/clients
+    /// that don't care about source provenance.
+    pub fn all_unique_sorted(&self) -> Vec<String> {
+        let mut out: BTreeSet<String> = BTreeSet::new();
+        out.extend(self.implements.iter().cloned());
+        out.extend(self.amends.iter().cloned());
+        out.extend(self.amendment_record.iter().cloned());
+        out.into_iter().collect()
+    }
+
+    /// True when at least one owner from any class is named by a
+    /// `specs/<id>/spec.md` entry in the diff.
+    pub fn any_owner_in_diff(&self, diff_paths: &BTreeSet<String>) -> bool {
+        let in_diff = |id: &String| diff_paths.contains(&format!("specs/{id}/spec.md"));
+        self.implements.iter().any(in_diff)
+            || self.amends.iter().any(in_diff)
+            || self.amendment_record.iter().any(in_diff)
+    }
+}
+
+/// One uncovered path in the diff with the full sorted set of legitimate
+/// owners, source-tagged so the renderer can surface each class
+/// separately (spec 133 FR-004) while still composing under spec 130's
+/// primary-owner heuristic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Violation {
     pub path: String,
-    pub claimants: Vec<String>,
+    pub owners: OwnerSet,
 }
 
 #[derive(Debug)]
@@ -154,17 +208,26 @@ pub fn build_claim_index(
     by_claim
 }
 
-/// Compute coupling violations under spec 130's primary-owner heuristic.
+/// Compute coupling violations under spec 130's primary-owner heuristic
+/// extended by spec 133 to recognise amend-protocol couplings.
 ///
 /// `diff_paths` is the set of files changed in the PR (any side, normalised
 /// to forward slashes). `pr_body` may carry a `Spec-Drift-Waiver:` line.
 ///
-/// **Heuristic** (spec 130 amends spec 127): when a path is claimed by N≥1
-/// specs, the path is cleared if **any one** claimant's `spec.md` is in
-/// the diff. Strict-but-not-cascading. The rendered output names every
-/// claimant on a violation block so reviewers can sanity-check that the
-/// right one was edited (when ≥1 was) — or that none was, when it
-/// fires.
+/// **Resolver** (spec 130 + spec 133): a path's *legitimate owners* is the
+/// union of three source classes:
+/// - `implements:` — every spec whose `implements:` list claims the path
+///   (exact or prefix match). Spec 127 / 130 source.
+/// - `amends:` — when the path is `specs/X/spec.md`, every spec whose
+///   `amends:` list contains `X`. Spec 133 FR-001.
+/// - `amendmentRecord` — when the path is `specs/X/spec.md` and the
+///   amended spec X's mapping carries an `amendmentRecord` target,
+///   that target. Spec 133 FR-002.
+///
+/// **Heuristic** (spec 130, unchanged): the path is cleared if **any one**
+/// owner across any class has its `spec.md` in the diff. The rendered
+/// output groups owners by source class so reviewers can audit which
+/// coupling applies.
 pub fn check_coupling(
     index: &CodebaseIndex,
     diff_paths: &BTreeSet<String>,
@@ -173,41 +236,29 @@ pub fn check_coupling(
     let waiver_reason = parse_waiver(pr_body);
     let claim_index = build_claim_index(index);
 
-    // Path-centric aggregation: for each non-bypass diff path, collect the
-    // full set of claimant spec IDs (across exact and prefix-match claims).
-    let mut path_claimants: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    // Path-centric aggregation: for each non-bypass diff path, collect
+    // every legitimate owner across the three source classes.
+    let mut path_owners: BTreeMap<String, OwnerSet> = BTreeMap::new();
     for path in diff_paths {
         if is_bypass(path) {
             continue;
         }
-        for (claim, owners) in &claim_index {
-            if claim_matches(claim, path) {
-                let entry = path_claimants.entry(path.clone()).or_default();
-                for spec_id in owners {
-                    entry.insert(spec_id.clone());
-                }
-            }
-        }
-    }
-
-    // Primary-owner heuristic: a path is covered when ANY one of its
-    // claimants has its spec.md in the diff. The remaining claimants are
-    // not required to edit (spec 130 OQ-1: revisit if this proves
-    // ambiguous in practice).
-    let mut violations: Vec<Violation> = Vec::new();
-    for (path, claimants) in path_claimants {
-        let any_claimant_edited = claimants
-            .iter()
-            .any(|s| diff_paths.contains(&format!("specs/{s}/spec.md")));
-        if any_claimant_edited {
+        let owners = legitimate_owners(path, &claim_index, index);
+        if owners.is_empty() {
             continue;
         }
-        let mut sorted: Vec<String> = claimants.into_iter().collect();
-        sorted.sort();
-        violations.push(Violation {
-            path,
-            claimants: sorted,
-        });
+        path_owners.insert(path.clone(), owners);
+    }
+
+    // Primary-owner heuristic (spec 130): a path is covered when ANY one
+    // of its legitimate owners has its spec.md in the diff. Spec 133
+    // expands the set of owners; the heuristic itself is unchanged.
+    let mut violations: Vec<Violation> = Vec::new();
+    for (path, owners) in path_owners {
+        if owners.any_owner_in_diff(diff_paths) {
+            continue;
+        }
+        violations.push(Violation { path, owners });
     }
     violations.sort_by(|a, b| a.path.cmp(&b.path));
 
@@ -217,9 +268,83 @@ pub fn check_coupling(
     }
 }
 
+/// Spec 133: parse `specs/<id>/spec.md` into `<id>`. Returns `None` for
+/// paths that do not match the canonical spec.md location (e.g. crate
+/// paths, sub-files like `specs/<id>/plan.md`, or doc paths).
+pub fn spec_id_for_spec_md_path(path: &str) -> Option<&str> {
+    let rest = path.strip_prefix("specs/")?;
+    let (id, tail) = rest.split_once('/')?;
+    if tail == "spec.md" { Some(id) } else { None }
+}
+
+/// Spec 133: compute the full set of legitimate owners for `path` across
+/// `implements:` (spec 127), `amends:` (FR-001), and `amendmentRecord:`
+/// (FR-002). The two latter sources only fire when `path` itself names a
+/// spec's `spec.md`. Each source class is collected separately so the
+/// renderer (FR-004) can label owners by provenance.
+pub fn legitimate_owners(
+    path: &str,
+    claim_index: &BTreeMap<String, BTreeSet<String>>,
+    index: &CodebaseIndex,
+) -> OwnerSet {
+    let mut owners = OwnerSet::default();
+
+    // Path 1 — implements: claimants (spec 127, spec 130).
+    for (claim, claimants) in claim_index {
+        if claim_matches(claim, path) {
+            owners.implements.extend(claimants.iter().cloned());
+        }
+    }
+
+    // Paths 2 & 3 fire only for `specs/<id>/spec.md`.
+    let Some(amended_id) = spec_id_for_spec_md_path(path) else {
+        return owners;
+    };
+
+    // Spec 133 strict-expansion (FR-005): the new amend pathways MUST NOT
+    // newly enrol a path that today has no `implements:` claimant — that
+    // would convert a silent-today path into a firing path whenever some
+    // amender is not in the diff (e.g. editing your own spec.md when an
+    // unrelated amender exists). The contract is "strictly expands the
+    // set of accepted couplings; it never removes existing ones." Adding
+    // owners only matters when the path is already firing today; for
+    // paths today silent, amend resolution is suppressed.
+    if owners.implements.is_empty() {
+        return owners;
+    }
+
+    // Path 2 — amenders (FR-001). The indexer resolves short-form ids to
+    // full ids at compile time, so a direct equality check suffices.
+    for mapping in &index.traceability.mappings {
+        if mapping.amends.iter().any(|id| id == amended_id) {
+            owners.amends.insert(mapping.spec_id.clone());
+        }
+    }
+
+    // Path 3 — amendment record on the amended spec (FR-002).
+    if let Some(amended_mapping) = index
+        .traceability
+        .mappings
+        .iter()
+        .find(|m| m.spec_id == amended_id)
+    {
+        if let Some(record) = &amended_mapping.amendment_record {
+            owners.amendment_record.insert(record.clone());
+        }
+    }
+
+    owners
+}
+
 /// Render an outcome for human-readable CI logs. Empty for clean runs;
-/// otherwise a path-centric block listing every claimant per uncovered
-/// path (spec 130).
+/// otherwise a path-centric block listing every legitimate owner per
+/// uncovered path, partitioned by source class (spec 130 + spec 133).
+///
+/// Format (spec 133 FR-004): when an owner is named via `amends:` or
+/// `amendmentRecord`, the renderer prints aligned `implements:`,
+/// `amends:`, `amendment_record:` rows beneath the path so reviewers can
+/// audit which coupling class applies. For implements-only violations
+/// the renderer keeps the spec 130 compact form ("claimed by N specs").
 pub fn render(outcome: &Outcome) -> String {
     if let Some(reason) = &outcome.waiver_reason {
         let count = outcome.violations.len();
@@ -231,7 +356,7 @@ pub fn render(outcome: &Outcome) -> String {
         );
         for v in &outcome.violations {
             s.push_str(&format!("  {} (waived)\n", v.path));
-            for c in &v.claimants {
+            for c in v.owners.all_unique_sorted() {
                 s.push_str(&format!("    {c}\n"));
             }
         }
@@ -245,24 +370,68 @@ pub fn render(outcome: &Outcome) -> String {
         outcome.violations.len(),
     );
     for v in &outcome.violations {
-        if v.claimants.len() == 1 {
-            s.push_str(&format!("  {} (claimed by {})\n", v.path, v.claimants[0]));
-        } else {
-            s.push_str(&format!(
-                "  {} (claimed by {} specs)\n",
-                v.path,
-                v.claimants.len()
-            ));
-            for c in &v.claimants {
-                s.push_str(&format!("    {c}\n"));
-            }
-        }
+        s.push_str(&render_violation_block(v));
     }
     s.push('\n');
     s.push_str("To resolve, amend ANY ONE claimant's spec.md (per spec 130\n");
-    s.push_str("primary-owner heuristic), or add 'Spec-Drift-Waiver: <reason>'\n");
+    s.push_str("primary-owner heuristic; spec 133 also accepts amender\n");
+    s.push_str("or amendment-record edits), or add 'Spec-Drift-Waiver: <reason>'\n");
     s.push_str("to the PR body.\n");
     s
+}
+
+/// Render a single violation block. Spec 133 FR-004 mandates per-class
+/// labels when the amend or amendment_record source classes carry
+/// owners. For implements-only violations the renderer falls back to
+/// spec 130's compact form so existing CI output stays stable.
+fn render_violation_block(v: &Violation) -> String {
+    let has_amend_link = !v.owners.amends.is_empty()
+        || !v.owners.amendment_record.is_empty();
+    if !has_amend_link {
+        return render_implements_only_block(&v.path, &v.owners.implements);
+    }
+
+    let mut s = format!("  {}\n", v.path);
+    push_owner_class(&mut s, "implements", &v.owners.implements);
+    push_owner_class(&mut s, "amends", &v.owners.amends);
+    push_owner_class(&mut s, "amendment_record", &v.owners.amendment_record);
+    s
+}
+
+fn render_implements_only_block(path: &str, claimants: &BTreeSet<String>) -> String {
+    if claimants.len() == 1 {
+        let only = claimants.iter().next().expect("len==1");
+        return format!("  {path} (claimed by {only})\n");
+    }
+    let mut s = format!("  {path} (claimed by {} specs)\n", claimants.len());
+    for c in claimants {
+        s.push_str(&format!("    {c}\n"));
+    }
+    s
+}
+
+/// Spec 133 FR-004: per-class owner list, aligned for readability.
+/// The class label width matches the longest label so adjacent rows
+/// line up (`implements:        `, `amends:            `,
+/// `amendment_record:  `). An empty class is omitted entirely so the
+/// reviewer's eye lands on the present sources.
+fn push_owner_class(buf: &mut String, label: &str, members: &BTreeSet<String>) {
+    if members.is_empty() {
+        return;
+    }
+    // 16 chars covers "amendment_record" exactly; trailing colon plus 2
+    // spaces gives the aligned column.
+    const LABEL_WIDTH: usize = 16;
+    let padded = format!("{label}:{:width$}", "", width = LABEL_WIDTH - label.len() + 1);
+    let mut iter = members.iter();
+    if let Some(first) = iter.next() {
+        buf.push_str(&format!("    {padded}{first}\n"));
+    }
+    for rest in iter {
+        // Subsequent entries align under the first id column.
+        let blanks = " ".repeat(LABEL_WIDTH + 2);
+        buf.push_str(&format!("    {blanks}{rest}\n"));
+    }
 }
 
 #[cfg(test)]
@@ -310,6 +479,8 @@ mod tests {
             spec_id: spec_id.to_string(),
             spec_status: Some("approved".to_string()),
             depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
             implementing_paths: paths
                 .iter()
                 .map(|p| ImplementingPath {
@@ -380,9 +551,11 @@ mod tests {
         assert_eq!(outcome.violations.len(), 1);
         assert_eq!(outcome.violations[0].path, "crates/orchestrator/src/lib.rs");
         assert_eq!(
-            outcome.violations[0].claimants,
+            outcome.violations[0].owners.all_unique_sorted(),
             vec!["044-multi-agent-orchestration"]
         );
+        assert!(outcome.violations[0].owners.amends.is_empty());
+        assert!(outcome.violations[0].owners.amendment_record.is_empty());
         assert_eq!(outcome.exit_code(), 1);
     }
 
@@ -432,6 +605,8 @@ mod tests {
             spec_id: "067-tool-definition-registry".to_string(),
             spec_status: Some("approved".to_string()),
             depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
             implementing_paths: vec![ImplementingPath {
                 path: "crates/tool-registry".to_string(),
                 name: None,
@@ -448,8 +623,8 @@ mod tests {
         // Sorted by path.
         assert_eq!(outcome.violations[0].path, "crates/orchestrator/src/lib.rs");
         assert_eq!(outcome.violations[1].path, "crates/tool-registry/src/lib.rs");
-        assert_eq!(outcome.violations[0].claimants.len(), 1);
-        assert_eq!(outcome.violations[1].claimants.len(), 1);
+        assert_eq!(outcome.violations[0].owners.implements.len(), 1);
+        assert_eq!(outcome.violations[1].owners.implements.len(), 1);
     }
 
     /// Spec 130 SC-1: a path claimed by N≥2 specs is cleared when ANY one
@@ -463,6 +638,8 @@ mod tests {
             spec_id: "079-scheduling".to_string(),
             spec_status: Some("approved".to_string()),
             depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
             implementing_paths: vec![ImplementingPath {
                 path: "crates/orchestrator".to_string(),
                 name: None,
@@ -494,6 +671,8 @@ mod tests {
                 spec_id: spec_id.to_string(),
                 spec_status: Some("approved".to_string()),
                 depends_on: Vec::new(),
+                amends: Vec::new(),
+                amendment_record: None,
                 implementing_paths: vec![ImplementingPath {
                     path: "crates/orchestrator".to_string(),
                     name: None,
@@ -506,10 +685,10 @@ mod tests {
         assert_eq!(outcome.violations.len(), 1);
         let v = &outcome.violations[0];
         assert_eq!(v.path, "crates/orchestrator/src/lib.rs");
-        assert_eq!(v.claimants.len(), 3);
+        assert_eq!(v.owners.implements.len(), 3);
         // All three claimants surfaced, sorted.
         assert_eq!(
-            v.claimants,
+            v.owners.all_unique_sorted(),
             vec![
                 "044-multi-agent-orchestration",
                 "052-state-persistence",
@@ -517,9 +696,10 @@ mod tests {
             ]
         );
         let rendered = render(&outcome);
-        // Header signals multi-claim.
+        // Header signals multi-claim (implements-only path keeps the
+        // spec 130 compact form).
         assert!(rendered.contains("claimed by 3 specs"));
-        for c in &v.claimants {
+        for c in v.owners.implements.iter() {
             assert!(rendered.contains(c.as_str()));
         }
     }
