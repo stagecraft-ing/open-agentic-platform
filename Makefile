@@ -543,7 +543,6 @@ ci-parity:
 #
 # Tunables (env or `make CIFAST_JOBS=N ci-fast`):
 #   CIFAST_JOBS         outer concurrency (default 4)
-#   CIFAST_CARGO_JOBS   inner cargo --jobs cap (default 3)
 #
 # Auto-detected accelerators (no-op if absent):
 #   sccache         shared compilation cache via RUSTC_WRAPPER
@@ -551,7 +550,6 @@ ci-parity:
 # ============================================================
 
 CIFAST_JOBS         ?= 4
-CIFAST_CARGO_JOBS   ?= 3
 CIFAST_TARGET_DIR   ?= $(CURDIR)/.target/cifast-tools
 
 ifneq (,$(shell command -v sccache 2>/dev/null))
@@ -585,14 +583,17 @@ ci-fast:
 # subsumes the separate `cargo check` step (spec 134 §2.2(2)).
 ci-fast-rust:
 	@echo "==> ci-fast-rust: crates/ workspace + deployd-api-rs (concurrent)"
-	@( cargo clippy --jobs $(CIFAST_CARGO_JOBS) --workspace \
+	@# Drop `--jobs` from cargo invocations: under `make -j` the jobserver
+	@# already throttles, and explicit `--jobs` is silently ignored with a
+	@# warning per invocation (matches the ci-fast-tools fix in PR #78).
+	@( cargo clippy --workspace \
 	      --manifest-path crates/Cargo.toml --all-targets -- -D warnings && \
-	   cargo $(CIFAST_CARGO_TEST) --jobs $(CIFAST_CARGO_JOBS) --workspace \
+	   cargo $(CIFAST_CARGO_TEST) --workspace \
 	      --manifest-path crates/Cargo.toml ) & WS_PID=$$!; \
-	  ( cargo clippy --jobs $(CIFAST_CARGO_JOBS) \
+	  ( cargo clippy \
 	      --manifest-path platform/services/deployd-api-rs/Cargo.toml \
 	      --all-targets -- -D warnings && \
-	    cargo $(CIFAST_CARGO_TEST) --jobs $(CIFAST_CARGO_JOBS) \
+	    cargo $(CIFAST_CARGO_TEST) \
 	      --manifest-path platform/services/deployd-api-rs/Cargo.toml ) & DA_PID=$$!; \
 	  wait $$WS_PID; W=$$?; wait $$DA_PID; D=$$?; exit $$((W | D))
 
@@ -654,10 +655,12 @@ ci-fast-desktop:
 	 BIN=apps/desktop/src-tauri/binaries/axiomregent-$$HOST; \
 	 [ -f "$$BIN" ] || { mkdir -p $$(dirname "$$BIN"); touch "$$BIN"; chmod +x "$$BIN"; }
 	@echo "==> ci-fast-desktop: rust + pnpm install (concurrent)"
-	@( cargo clippy --jobs $(CIFAST_CARGO_JOBS) --manifest-path apps/desktop/src-tauri/Cargo.toml \
+	@# `--jobs` dropped: under `make -j` the jobserver throttles cargo;
+	@# explicit `--jobs` is silently ignored with a warning (PR #78 precedent).
+	@( cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml \
 	     --all-targets -- -A dead_code -D warnings && \
-	   cargo $(CIFAST_CARGO_TEST) --jobs $(CIFAST_CARGO_JOBS) --manifest-path apps/desktop/src-tauri/Cargo.toml --lib && \
-	   cargo test --jobs $(CIFAST_CARGO_JOBS) --manifest-path apps/desktop/src-tauri/Cargo.toml --doc \
+	   cargo $(CIFAST_CARGO_TEST) --manifest-path apps/desktop/src-tauri/Cargo.toml --lib && \
+	   cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --doc \
 	) & RUST_PID=$$!; \
 	  pnpm install --frozen-lockfile; PI=$$?; \
 	  wait $$RUST_PID; R=$$?; exit $$((R | PI))
