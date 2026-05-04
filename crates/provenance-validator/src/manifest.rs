@@ -421,7 +421,7 @@ mod tests {
             "1GX",
             "ops",
         );
-        let b1 = assumption_manifest_body(&report, &[claim.clone()]);
+        let b1 = assumption_manifest_body(&report, std::slice::from_ref(&claim));
         let b2 = assumption_manifest_body(&report, &[claim]);
         assert_eq!(b1, b2);
     }

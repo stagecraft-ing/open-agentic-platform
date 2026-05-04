@@ -5,6 +5,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
+amended: "2026-05-03"
+amendment_record: "135-fast-ci-as-default"
 kind: governance
 risk: low
 depends_on:
@@ -24,6 +26,25 @@ summary: >
 ---
 
 # 104 — Makefile as CI Parity Contract
+
+> **Amendment (spec 134, 2026-05-03).** A sibling target `make ci-fast` is
+> now permitted as a parity-exempt, performance-optimised local mirror.
+> Lines bracketed by `# BEGIN ci-fast (spec 134)` / `# END ci-fast` in the
+> Makefile are skipped by `ci-parity-check`. The parity contract on
+> `make ci` is unchanged.
+>
+> **Amendment (spec 135, 2026-05-03).** Two structural changes follow on
+> from spec 134's measurement work. (a) The `ci-rust` recipe collapses
+> the per-manifest loop over `crates/*` into a single `cargo --workspace
+> --manifest-path crates/Cargo.toml` triple, closing the ghost-crate gap
+> where 7 of 18 workspace members previously escaped `make ci`.
+> `deployd-api-rs` (separate workspace) stays as a per-manifest
+> invocation. (b) The `ci` and `ci-fast` target names are reversed:
+> `make ci` now refers to the fast parallel local validation (the daily
+> dev loop), and `make ci-strict` is the parity-bound recipe (pre-merge
+> / parity-investigation). The parity contract itself is unchanged —
+> `ci-parity-check` rebinds to `ci-strict:`. The §2.2 table below has
+> been updated; spec 134's body is reframed editorially in the same PR.
 
 ## 1. Problem Statement
 
@@ -68,14 +89,20 @@ block a merge. `make ci` MUST mirror their commands:
 
 | Workflow | Mirror in Makefile |
 |----------|--------------------|
-| `ci-axiomregent.yml` | `ci-rust` (via `CI_RUST_MANIFESTS` entry `crates/axiomregent/Cargo.toml`) |
-| `ci-crates.yml` | `ci-rust` (7 entries in `CI_RUST_MANIFESTS`) |
-| `ci-deployd-api-rs.yml` | `ci-rust` (`platform/services/deployd-api-rs/Cargo.toml`) |
+| `ci-axiomregent.yml` | `ci-rust` (covered by `cargo --workspace --manifest-path crates/Cargo.toml`; `crates/axiomregent` is a workspace member) |
+| `ci-crates.yml` | `ci-rust` (`cargo --workspace --manifest-path crates/Cargo.toml`; per spec 135 the matrix collapses to a single workspace job) |
+| `ci-deployd-api-rs.yml` | `ci-rust` (`platform/services/deployd-api-rs/Cargo.toml`, separate workspace, per-manifest invocation) |
 | `ci-desktop.yml` | `ci-desktop` |
-| `ci-orchestrator.yml` | `ci-rust` (`crates/orchestrator/Cargo.toml`) |
-| `ci-policy-kernel.yml` | `ci-rust` (`crates/policy-kernel/Cargo.toml`) |
+| `ci-orchestrator.yml` | `ci-rust` (covered by `cargo --workspace --manifest-path crates/Cargo.toml`; `crates/orchestrator` is a workspace member) |
+| `ci-policy-kernel.yml` | `ci-rust` (covered by `cargo --workspace --manifest-path crates/Cargo.toml`; `crates/policy-kernel` is a workspace member) |
 | `ci-stagecraft.yml` | `ci-stagecraft` |
 | `spec-conformance.yml` | `ci-tools` (including all ten contract subsets via `CI_REGISTRY_CONSUMER_CONTRACTS`) |
+
+> Post-spec-135 note: the parity-bound recipe lives under `make
+> ci-strict`. References to `make ci` elsewhere in this spec — written
+> before the rename — refer to that same recipe, now under the
+> `ci-strict` target name. `ci-parity-check` scans `ci-strict:` for
+> parity tokens.
 
 Explicitly **not** enforcing (excluded from the parity contract):
 

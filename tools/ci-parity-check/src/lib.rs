@@ -1,9 +1,15 @@
-//! CI parity drift-check (spec 104).
+//! CI parity drift-check (spec 104, rebound by spec 135 FR-04).
 //!
 //! For every enforcing GitHub Actions workflow, extract significant command
 //! tokens from each step's `run:` block and assert they appear in the root
 //! Makefile. Drift means the Makefile has fallen behind CI — a gate exists
-//! in CI that `make ci` does not mirror.
+//! in CI that `make ci-strict` does not mirror.
+//!
+//! Spec 135 (2026-05-03) reversed the `ci` ↔ `ci-fast` semantic positions:
+//! `make ci` is now the parity-exempt fast loop (sentinel-bracketed); the
+//! parity-bound recipe is `make ci-strict`. The `# BEGIN ci-fast (spec 134)`
+//! / `# END ci-fast` sentinel markers are unchanged — they bind to the spec
+//! 134 contract identifier, not the make-target name.
 
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -30,8 +36,8 @@ struct Step {
     run: Option<String>,
 }
 
-/// Workflows whose gates `make ci` must mirror. Order is stable for reporting.
-/// Keep in sync with spec 104 §2.2.
+/// Workflows whose gates `make ci-strict` must mirror. Order is stable for reporting.
+/// Keep in sync with spec 104 §2.2 (post-spec-135 amendment).
 pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-axiomregent.yml",
     "ci-codebase-index.yml",
@@ -70,8 +76,12 @@ pub struct Drift {
 /// Makefile mirrors every significant `run:` token across every enforcing
 /// workflow.
 pub fn check_parity(repo_root: &Path) -> Result<Vec<Drift>, String> {
-    let makefile = fs::read_to_string(repo_root.join("Makefile"))
+    let raw = fs::read_to_string(repo_root.join("Makefile"))
         .map_err(|e| format!("reading Makefile: {e}"))?;
+    // Spec 134 §FR-03: lines between `# BEGIN ci-fast (spec 134)` and
+    // `# END ci-fast` are parity-exempt. Strip them before scanning so
+    // tokens inside that region neither satisfy parity nor are scanned for it.
+    let makefile = strip_cifast_region(&raw);
     let workflows_dir = repo_root.join(".github").join("workflows");
 
     let mut drifts = Vec::new();
@@ -120,6 +130,44 @@ pub fn check_parity(repo_root: &Path) -> Result<Vec<Drift>, String> {
 
 fn allow_list_suppresses(line: &str) -> bool {
     ALLOW_LIST.iter().any(|entry| line.contains(entry))
+}
+
+/// Sentinel markers bracketing the parity-exempt `ci-fast` region in the
+/// Makefile (spec 134 §FR-03). Match leading whitespace tolerantly but
+/// require the marker text to be exact so a comment that happens to
+/// mention `ci-fast` doesn't accidentally open the region.
+const CIFAST_BEGIN: &str = "# BEGIN ci-fast (spec 134)";
+const CIFAST_END: &str = "# END ci-fast";
+
+/// Strip the parity-exempt `ci-fast` region (spec 134 §FR-03) from a
+/// Makefile string before parity scanning. Lines between (and including)
+/// the BEGIN/END sentinels are removed; everything outside is preserved
+/// verbatim, including line breaks, so substring matches behave identically.
+///
+/// Unmatched markers (BEGIN without END, or END without BEGIN) are tolerated
+/// by treating an unclosed BEGIN as opening a region that runs to EOF, and
+/// a stray END outside a region as a no-op. This is forgiving by design —
+/// the load-bearing assertion is that real `ci-fast` recipe lines do not
+/// satisfy parity, not that the markers are perfectly balanced.
+fn strip_cifast_region(makefile: &str) -> String {
+    let mut out = String::with_capacity(makefile.len());
+    let mut in_region = false;
+    for line in makefile.lines() {
+        let trimmed = line.trim_start();
+        if !in_region && trimmed.starts_with(CIFAST_BEGIN) {
+            in_region = true;
+            continue;
+        }
+        if in_region && trimmed.starts_with(CIFAST_END) {
+            in_region = false;
+            continue;
+        }
+        if !in_region {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -463,6 +511,58 @@ mod tests {
             "touch apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
         ));
         assert!(!allow_list_suppresses("cargo test --manifest-path crates/agent/Cargo.toml"));
+    }
+
+    #[test]
+    fn cifast_strip_removes_bracketed_region() {
+        let mk = "ci-rust:\n\tcargo test --manifest-path crates/foo/Cargo.toml\n# BEGIN ci-fast (spec 134)\nci-fast-rust:\n\tcargo nextest run --workspace\n# END ci-fast\nci-tools:\n\tcargo build\n";
+        let stripped = strip_cifast_region(mk);
+        // Outside the region, content is preserved verbatim.
+        assert!(stripped.contains("cargo test --manifest-path crates/foo/Cargo.toml"));
+        assert!(stripped.contains("ci-tools:"));
+        assert!(stripped.contains("cargo build"));
+        // Inside the region, nothing leaks through — neither the recipe lines
+        // nor the sentinel markers themselves.
+        assert!(!stripped.contains("ci-fast-rust:"));
+        assert!(!stripped.contains("cargo nextest run --workspace"));
+        assert!(!stripped.contains("BEGIN ci-fast"));
+        assert!(!stripped.contains("END ci-fast"));
+    }
+
+    #[test]
+    fn cifast_strip_no_region_is_identity_modulo_trailing_newline() {
+        // Real Makefiles always end with newline. strip_cifast_region
+        // normalises to one trailing newline per line; for an unbracketed
+        // input the only difference is at most a final newline.
+        let mk = "ci-rust:\n\tcargo test\nci-tools:\n\tcargo build\n";
+        let stripped = strip_cifast_region(mk);
+        assert!(stripped.contains("ci-rust:"));
+        assert!(stripped.contains("\tcargo test"));
+        assert!(stripped.contains("ci-tools:"));
+        assert!(stripped.contains("\tcargo build"));
+    }
+
+    #[test]
+    fn cifast_strip_tolerates_unclosed_begin() {
+        // Spec 134 §FR-03 forgiving behaviour: an unclosed BEGIN runs to EOF.
+        let mk = "ci-rust:\n\tcargo test\n# BEGIN ci-fast (spec 134)\nci-fast-rust:\n\tcargo nextest run\n";
+        let stripped = strip_cifast_region(mk);
+        assert!(stripped.contains("cargo test"));
+        assert!(!stripped.contains("ci-fast-rust:"));
+        assert!(!stripped.contains("cargo nextest run"));
+    }
+
+    #[test]
+    fn cifast_strip_ignores_indented_marker_text() {
+        // Markers must be at line start (after leading whitespace) and exact.
+        // A line that merely *mentions* the marker text doesn't open a region.
+        let mk = "ci-rust:\n\tcargo test\n# Note: avoid # BEGIN ci-fast (spec 134) inside echo blocks\n\tcargo build\n";
+        let stripped = strip_cifast_region(mk);
+        // Both recipe lines survive — the marker-mentioning comment doesn't
+        // open a region because `# BEGIN ci-fast (spec 134)` is not at the
+        // start of the line (after whitespace).
+        assert!(stripped.contains("\tcargo test"));
+        assert!(stripped.contains("\tcargo build"));
     }
 
     #[test]

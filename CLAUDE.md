@@ -75,7 +75,8 @@ Prefer the root `Makefile` for common flows; the raw cargo invocations below are
 make setup        # install deps, build spec compiler + codebase indexer, compile both
 make dev          # start OPC desktop (Vite + Tauri, hot-reload)
 make dev-platform # stagecraft + deployd-api in background
-make ci           # full local CI parity (rust + tools + desktop + stagecraft)
+make ci           # parallel local validation (~5 min warm) — daily dev loop (spec 135)
+make ci-strict    # full parity mirror (~90 min) — pre-merge / parity-investigation
 make registry     # recompile spec registry + codebase index
 ```
 

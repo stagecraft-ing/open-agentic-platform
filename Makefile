@@ -14,10 +14,13 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
-        ci ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
+        ci ci-strict ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
-        ci-cross ci-parity
+        ci-cross ci-parity \
+        ci-fast-rust ci-fast-tools ci-fast-desktop \
+        ci-fast-stagecraft ci-fast-schema-parity \
+        ci-fast-spec-coupling ci-fast-supply-chain
 
 # ============================================================
 # Prerequisites check
@@ -268,14 +271,22 @@ destroy-%:
 # ============================================================
 # CI parity — single source of truth for local end-to-end validation.
 #
-# Mirrors every gate enforced by .github/workflows/. If `make ci` passes
-# locally, CI will pass too. Any new workflow gate MUST be added here in
-# the same change — never a one-off script under scripts/.
+# Spec 135 (2026-05-03) reversed the daily/pre-merge defaults:
+#   `make ci`        — parallel fast loop (≈ 5 min warm). Daily dev loop.
+#                      Lives under the `# BEGIN ci-fast (spec 134)` /
+#                      `# END ci-fast` sentinel below; parity-exempt.
+#   `make ci-strict` — parity mirror (≈ 90 min). Pre-merge release
+#                      verification or parity-drift investigation.
+#                      The recipe in this section.
+#
+# `make ci-strict` mirrors every gate enforced by .github/workflows/.
+# If it passes locally, CI will pass too. Any new workflow gate MUST be
+# added here in the same change — never a one-off script under scripts/.
 #
 # Composes:
-#   ci-rust       — Rust per-manifest: check + clippy -D warnings + test
-#                   (ci-axiomregent, ci-crates, ci-deployd-api-rs,
-#                    ci-orchestrator, ci-policy-kernel)
+#   ci-rust       — Rust workspace + deployd-api-rs: check + clippy
+#                   -D warnings + test (covers all 18 crates/ workspace
+#                   members in one --workspace invocation per spec 135 FR-01)
 #   ci-tools      — Tool crates + registry-consumer contract subsets +
 #                   codebase-indexer staleness gate (spec-conformance.yml)
 #   ci-desktop    — apps/desktop: tauri rust (custom clippy flags) +
@@ -283,40 +294,32 @@ destroy-%:
 #   ci-stagecraft — platform/services/stagecraft: npm ci + tsc + vitest
 #                   (ci-stagecraft.yml)
 #
-# Opt-in (not part of `ci`):
+# Opt-in (not part of `ci-strict`):
 #   ci-cross      — axiomregent cross-target matrix (build-axiomregent.yml);
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
+ci-strict: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
 	@echo ""
-	@echo "==> Local CI parity: all gates passed."
+	@echo "==> ci-strict: parity-mirror gates passed."
 
-# Rust manifests each validated with: check + clippy -D warnings + test.
-# Desktop uses different clippy flags and is handled in ci-desktop.
-# Tool crates have extra smoke/contract steps and are handled in ci-tools.
-CI_RUST_MANIFESTS = \
-    crates/artifact-extract/Cargo.toml \
-    crates/axiomregent/Cargo.toml \
-    crates/orchestrator/Cargo.toml \
-    crates/policy-kernel/Cargo.toml \
-    crates/tool-registry/Cargo.toml \
-    crates/skill-factory/Cargo.toml \
-    crates/factory-engine/Cargo.toml \
-    crates/factory-contracts/Cargo.toml \
-    crates/provider-registry/Cargo.toml \
-    crates/agent-frontmatter/Cargo.toml \
-    crates/standards-loader/Cargo.toml \
-    platform/services/deployd-api-rs/Cargo.toml
-
+# Rust validation (spec 135 FR-01): the `crates/` workspace is validated
+# once via `cargo --workspace --manifest-path crates/Cargo.toml`, covering
+# all 18 workspace members in a single invocation set. `deployd-api-rs`
+# lives in its own workspace and stays as a separate per-manifest call.
+# Desktop has different clippy flags and is handled in ci-desktop. Tool
+# crates have extra smoke/contract steps and are handled in ci-tools.
 ci-rust:
-	@set -e; for m in $(CI_RUST_MANIFESTS); do \
-	    echo ""; \
-	    echo "==> ci-rust: $$m"; \
-	    cargo check  --manifest-path $$m; \
-	    cargo clippy --manifest-path $$m -- -D warnings; \
-	    cargo test   --manifest-path $$m; \
-	done
+	@echo ""
+	@echo "==> ci-rust: crates/ workspace (18 members)"
+	cargo check  --workspace --manifest-path crates/Cargo.toml
+	cargo clippy --workspace --manifest-path crates/Cargo.toml -- -D warnings
+	cargo test   --workspace --manifest-path crates/Cargo.toml
+	@echo ""
+	@echo "==> ci-rust: platform/services/deployd-api-rs/Cargo.toml"
+	cargo check  --manifest-path platform/services/deployd-api-rs/Cargo.toml
+	cargo clippy --manifest-path platform/services/deployd-api-rs/Cargo.toml -- -D warnings
+	cargo test   --manifest-path platform/services/deployd-api-rs/Cargo.toml
 
 # registry-consumer contract gates (spec-conformance.yml)
 CI_REGISTRY_CONSUMER_CONTRACTS = \
@@ -519,12 +522,204 @@ ci-cross:
 	    cargo build --release --target $$t --manifest-path crates/axiomregent/Cargo.toml; \
 	done
 
-# Parity drift check (spec 104): asserts `make ci` mirrors every enforcing
-# workflow's `run:` blocks. Not included in `ci` to avoid circular failure —
-# CI runs it independently via .github/workflows/ci-parity.yml.
+# Parity drift check (spec 104, rebound by spec 135 FR-04): asserts
+# `make ci-strict` mirrors every enforcing workflow's `run:` blocks. Not
+# included in `ci-strict` to avoid circular failure — CI runs it
+# independently via .github/workflows/ci-parity.yml.
 ci-parity:
 	cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml
 	./tools/ci-parity-check/target/release/ci-parity-check
+
+# BEGIN ci-fast (spec 134)
+# ============================================================
+# Fast local CI (spec 134) — performance-optimised local validation.
+# Promoted to `make ci` (the daily dev loop) by spec 135 (2026-05-03).
+# The sentinel comments still reference "ci-fast" because they bind to
+# the spec 134 contract identifier, not the make target name; renaming
+# them would invalidate `tools/ci-parity-check`'s parsing without value.
+#
+# Parity-exempt by design: lines between this BEGIN sentinel and the
+# corresponding `# END ci-fast` are skipped by `tools/ci-parity-check`.
+# Bound instead by the spec 134 §2.3 coverage invariant: the gate set
+# performed here MUST be a superset of `make ci-strict`.
+#
+# Reference hardware: M1 Pro 10c / 64 GB. Measured warm cache: 4m54s
+# (docs/ci-fast-bench.md SC-01).
+#
+# Tunables (env or `make CIFAST_JOBS=N ci`):
+#   CIFAST_JOBS         outer concurrency (default 4)
+#
+# Auto-detected accelerators (no-op if absent):
+#   sccache         shared compilation cache via RUSTC_WRAPPER
+#   cargo-nextest   replaces cargo test (strict superset for execution)
+# ============================================================
+
+CIFAST_JOBS         ?= 4
+CIFAST_TARGET_DIR   ?= $(CURDIR)/.target/cifast-tools
+
+ifneq (,$(shell command -v sccache 2>/dev/null))
+  export RUSTC_WRAPPER := $(shell command -v sccache)
+endif
+ifneq (,$(shell command -v cargo-nextest 2>/dev/null))
+  # `--no-tests=pass` matches `cargo test` semantics: a binary with zero
+  # `#[test]` functions exits 0 silently. Without this, nextest errors
+  # with "no tests to run" on workspace members whose `tests/` dirs (or
+  # `examples/`, `benches/` under --all-targets) contain no test fns.
+  CIFAST_CARGO_TEST := nextest run --no-tests=pass
+else
+  CIFAST_CARGO_TEST := test
+endif
+
+ci:
+	@echo "==> ci (spec 134 fast loop, promoted to default by spec 135): parallel local validation"
+	@echo "    sccache:  $(if $(RUSTC_WRAPPER),enabled ($(RUSTC_WRAPPER)),absent — install: brew install sccache)"
+	@echo "    nextest:  $(if $(filter nextest run,$(CIFAST_CARGO_TEST)),enabled,absent — install: cargo install cargo-nextest)"
+	@echo ""
+	@$(MAKE) -j$(CIFAST_JOBS) \
+	    ci-fast-rust ci-fast-tools ci-fast-desktop \
+	    ci-fast-stagecraft ci-fast-schema-parity \
+	    ci-fast-spec-coupling ci-fast-supply-chain
+	@echo ""
+	@echo "==> ci: all gates passed."
+
+# Workspace-mode for crates/ collapses 18 workspace members to one clippy
+# + one test invocation. deployd-api-rs (separate workspace) runs as a
+# concurrent sibling. `cargo clippy --all-targets -- -D warnings` subsumes
+# the separate `cargo check` step (spec 134 §2.2(2)).
+# Spec 135 FR-01 made `ci-rust` itself use `--workspace`; this fast-mode
+# recipe pre-dated that and remains its concurrent counterpart.
+ci-fast-rust:
+	@echo "==> ci-fast-rust: crates/ workspace + deployd-api-rs (concurrent)"
+	@# Drop `--jobs` from cargo invocations: under `make -j` the jobserver
+	@# already throttles, and explicit `--jobs` is silently ignored with a
+	@# warning per invocation (matches the ci-fast-tools fix in PR #78).
+	@( cargo clippy --workspace \
+	      --manifest-path crates/Cargo.toml --all-targets -- -D warnings && \
+	   cargo $(CIFAST_CARGO_TEST) --workspace \
+	      --manifest-path crates/Cargo.toml ) & WS_PID=$$!; \
+	  ( cargo clippy \
+	      --manifest-path platform/services/deployd-api-rs/Cargo.toml \
+	      --all-targets -- -D warnings && \
+	    cargo $(CIFAST_CARGO_TEST) \
+	      --manifest-path platform/services/deployd-api-rs/Cargo.toml ) & DA_PID=$$!; \
+	  wait $$WS_PID; W=$$?; wait $$DA_PID; D=$$?; exit $$((W | D))
+
+# Tools — parallel xargs fan-out, shared CARGO_TARGET_DIR so the 7 isolated
+# manifests dedup deps. The 10× registry-consumer contract subset loop in
+# `ci-tools` is dropped here per spec 134 §2.2(4): execution is subsumed
+# by the unfiltered `cargo test --manifest-path tools/registry-consumer/Cargo.toml`,
+# and the dropped loop's prefix-existence guarantee is preserved by the
+# explicit `cargo test -- --list` post-pass below.
+CIFAST_TOOL_MANIFESTS = \
+    tools/spec-compiler/Cargo.toml \
+    tools/registry-consumer/Cargo.toml \
+    tools/spec-lint/Cargo.toml \
+    tools/stakeholder-doc-lint/Cargo.toml \
+    tools/codebase-indexer/Cargo.toml \
+    tools/policy-compiler/Cargo.toml \
+    tools/assumption-cascade-check/Cargo.toml
+
+ci-fast-tools:
+	@mkdir -p $(CIFAST_TARGET_DIR)
+	@echo "==> ci-fast-tools: $(words $(CIFAST_TOOL_MANIFESTS)) manifests, shared target dir"
+	@# BSD xargs (macOS) caps `-I{}` replacement at 255 bytes by default and
+	@# fails this recipe with "command line cannot be assembled, too long".
+	@# Pass the manifest as a positional arg (`$$1`) instead of substituting `{}`.
+	@# Drop `--jobs` from cargo invocations: under `make -j` the jobserver
+	@# already throttles, and explicit `--jobs` is silently ignored with a
+	@# warning per invocation. && chains short-circuit on first failure.
+	@printf '%s\n' $(CIFAST_TOOL_MANIFESTS) | \
+	  xargs -n1 -P$(CIFAST_JOBS) sh -c '\
+	    m="$$1"; \
+	    echo "  [start] $$m"; \
+	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo clippy --manifest-path "$$m" --all-targets -- -D warnings && \
+	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo $(CIFAST_CARGO_TEST) --manifest-path "$$m" && \
+	    echo "  [done ] $$m"' _
+	@# Spec 134 §2.2(4): preserve the contract-prefix existence guarantee
+	@# the dropped registry-consumer subset loop implicitly provided. Each
+	@# prefix in CI_REGISTRY_CONSUMER_CONTRACTS MUST match ≥1 listed test.
+	@TESTS=$$(mktemp); \
+	 CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo test \
+	    --manifest-path tools/registry-consumer/Cargo.toml -- --list \
+	    > $$TESTS 2>&1; \
+	 status=0; \
+	 for p in $(CI_REGISTRY_CONSUMER_CONTRACTS); do \
+	    grep -q "^$$p" $$TESTS || { \
+	      echo "ERROR: contract prefix '$$p' has no matching test"; status=1; \
+	    }; \
+	 done; \
+	 rm -f $$TESTS; exit $$status
+	@# Spec-lint smoke + codebase-indexer staleness gate (mirrors ci-tools).
+	@CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) \
+	  cargo run --release --manifest-path tools/spec-lint/Cargo.toml -- --fail-on-warn
+	@CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) \
+	  cargo run --release --manifest-path tools/codebase-indexer/Cargo.toml -- check
+
+ci-fast-desktop:
+	@test -f apps/desktop/dist/index.html || { mkdir -p apps/desktop/dist; \
+	    echo '<!doctype html><html><body>stub</body></html>' > apps/desktop/dist/index.html; }
+	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
+	 BIN=apps/desktop/src-tauri/binaries/axiomregent-$$HOST; \
+	 [ -f "$$BIN" ] || { mkdir -p $$(dirname "$$BIN"); touch "$$BIN"; chmod +x "$$BIN"; }
+	@echo "==> ci-fast-desktop: rust + pnpm install (concurrent)"
+	@# `--jobs` dropped: under `make -j` the jobserver throttles cargo;
+	@# explicit `--jobs` is silently ignored with a warning (PR #78 precedent).
+	@( cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml \
+	     --all-targets -- -A dead_code -D warnings && \
+	   cargo $(CIFAST_CARGO_TEST) --manifest-path apps/desktop/src-tauri/Cargo.toml --lib && \
+	   cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --doc \
+	) & RUST_PID=$$!; \
+	  pnpm install --frozen-lockfile; PI=$$?; \
+	  wait $$RUST_PID; R=$$?; exit $$((R | PI))
+	@echo "==> ci-fast-desktop: tsc | vitest (concurrent)"
+	@( pnpm --filter @opc/desktop exec tsc --noEmit ) & TSC_PID=$$!; \
+	  ( pnpm --filter @opc/desktop test ) & VT_PID=$$!; \
+	  wait $$TSC_PID; T=$$?; wait $$VT_PID; V=$$?; exit $$((T | V))
+	@CARGO_V=$$(grep '^version' apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
+	 PKG_V=$$(node -p "require('./apps/desktop/package.json').version"); \
+	 [ "$$CARGO_V" = "$$PKG_V" ] || { echo "ERROR: version mismatch $$CARGO_V vs $$PKG_V"; exit 1; }
+
+ci-fast-stagecraft: ci-agent-frontmatter-ts
+	@echo "==> ci-fast-stagecraft: npm ci then (tsc | vitest)"
+	cd platform/services/stagecraft && CI=true npm ci
+	@# Each backgrounded compound needs its own `cd` — bash treats
+	@# `cd X && cmd &` as a backgrounded subshell, so the parent shell's
+	@# CWD doesn't change. Without this fix, only the first job runs in
+	@# stagecraft/; the second runs from repo root and `npm test` fails
+	@# with "Missing script: test" (the workspace root has no test script).
+	@( cd platform/services/stagecraft && CI=true npx tsc --noEmit ) & TSC_PID=$$!; \
+	  ( cd platform/services/stagecraft && CI=true npm test ) & VT_PID=$$!; \
+	  wait $$TSC_PID; T=$$?; wait $$VT_PID; V=$$?; exit $$((T | V))
+
+ci-fast-schema-parity:
+	cargo test --manifest-path crates/factory-contracts/Cargo.toml --lib -- \
+	    knowledge::tests::writes_fingerprint_file \
+	    provenance::tests::writes_provenance_fingerprint_file \
+	    stakeholder_docs::tests::writes_stakeholder_docs_fingerprint_file
+	bun run tools/schema-parity-check/index.mjs
+
+ci-fast-spec-coupling:
+	cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml
+	@paths_file=$$(mktemp); \
+	  base=$(or $(BASE_REF),origin/main); \
+	  { git diff --name-only $$base; git ls-files --others --exclude-standard; } \
+	      | sort -u > $$paths_file; \
+	  ./tools/spec-code-coupling-check/target/release/spec-code-coupling-check \
+	      --base $$base --head HEAD --paths-from $$paths_file; \
+	  status=$$?; rm -f $$paths_file; exit $$status
+
+ci-fast-supply-chain:
+	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
+	@echo "==> ci-fast-supply-chain: cargo-deny -P$(CIFAST_JOBS) | pnpm audit | npm audit"
+	@( pnpm audit --audit-level=high ) & PNPM_PID=$$!; \
+	  ( cd platform/services/stagecraft && npm audit --audit-level=high ) & NPM_PID=$$!; \
+	  printf '%s\n' $(SUPPLY_CHAIN_RUST_MANIFESTS) | \
+	    xargs -n1 -P$(CIFAST_JOBS) -I{} cargo deny --manifest-path {} check; \
+	  CD=$$?; \
+	  wait $$PNPM_PID; PA=$$?; wait $$NPM_PID; NA=$$?; \
+	  exit $$((CD | PA | NA))
+
+# END ci-fast
 
 # ============================================================
 # Utility
@@ -568,7 +763,8 @@ help:
 	@echo "  make ci-agent-frontmatter-ts  Regenerate + fail if working tree drifts"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
-	@echo "  make ci                 Run every CI gate locally (composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain)"
+	@echo "  make ci                 Spec 134 fast loop (promoted to default by spec 135) — parallel local validation, parity-exempt. Daily dev loop. ~5 min warm on M1 Pro 10c / 64 GB."
+	@echo "  make ci-strict          Parity mirror — composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain. Pre-push / parity-investigation. ~90 min on M1 Pro."
 	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
 	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
 	@echo "  make ci-desktop         apps/desktop rust + version alignment + tsc + vitest"

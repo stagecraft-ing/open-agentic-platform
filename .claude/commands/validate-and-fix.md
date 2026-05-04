@@ -1,32 +1,39 @@
 ---
 name: validate-and-fix
-description: Run the local CI parity check (`make ci`) and automatically fix discovered issues using concurrent agents
+description: Run the local fast CI loop (`make ci`) and automatically fix discovered issues using concurrent agents
 allowed-tools: Bash, Agent, Read, Edit, Glob, Grep
 ---
 
 # Validate and Fix
 
-Run the authoritative local CI parity check and automatically fix discovered issues. This command mirrors every GitHub Actions gate end to end — if `make ci` passes locally, the workflows in `.github/workflows/` will pass too.
+Run the local fast CI loop and automatically fix discovered issues. `make ci` covers the same gate set as every GitHub Actions enforcing workflow — if `make ci` passes locally, CI will pass too. For pre-merge release verification or parity-drift investigation, `make ci-strict` is the slower parity mirror (token-equivalent to the workflows).
 
 ## Process
 
-### 1. Run the local CI parity check
+### 1. Run the local fast CI loop
 
 Invoke `make ci` from the repo root. The `Makefile` is the **single source of truth** for what CI validates. Do not discover validation commands by grepping `package.json`, `Cargo.toml`, or CLAUDE.md — the Makefile already enumerates every gate the CI workflows enforce.
 
-`make ci` composes:
+> **Two modes (spec 134, defaults reversed by spec 135).** `make ci` is the parity-exempt fast loop (~5 min warm on M1 Pro 10c / 64 GB) — parallel, with sccache + nextest auto-detected. This is the daily dev loop. `make ci-strict` is the parity-bound mirror (~90 min) — token-equivalent to every enforcing workflow's `run:` blocks; use it pre-merge for release verification or when investigating parity drift.
 
-- **`make ci-rust`** — per-manifest `cargo check` + `cargo clippy -- -D warnings` + `cargo test` for every isolated Rust workspace. Covers: `axiomregent`, `orchestrator`, `policy-kernel`, `tool-registry`, `skill-factory`, `factory-engine`, `factory-contracts`, `provider-registry`, `agent-frontmatter`, `standards-loader`, `platform/services/deployd-api-rs`. Mirrors `ci-axiomregent.yml`, `ci-crates.yml`, `ci-deployd-api-rs.yml`, `ci-orchestrator.yml`, `ci-policy-kernel.yml`.
-- **`make ci-tools`** — spec tool crates (build + test + smoke), registry-consumer's 10 contract subsets, `codebase-indexer check` staleness gate. Mirrors `spec-conformance.yml`.
-- **`make ci-desktop`** — `apps/desktop/src-tauri` Rust (custom clippy flags: `-A dead_code -D warnings`), version alignment check (`Cargo.toml` ↔ `package.json`), `pnpm install --frozen-lockfile`, `tsc --noEmit`, vitest. Mirrors `ci-desktop.yml`.
-- **`make ci-stagecraft`** — `platform/services/stagecraft`: `npm ci` + `npx tsc --noEmit` + `npm test`. Mirrors `ci-stagecraft.yml`.
+`make ci` composes (concurrently, with `make -j$(CIFAST_JOBS)`):
 
-Not in `make ci` by default (run on demand):
+- **`ci-fast-rust`** — `cargo clippy --workspace -- -D warnings` + `cargo test --workspace` (or `nextest run --workspace` if installed) on `crates/Cargo.toml` (all 18 workspace members per spec 135 FR-01) and `platform/services/deployd-api-rs/Cargo.toml`. Mirrors `ci-axiomregent.yml`, `ci-crates.yml`, `ci-deployd-api-rs.yml`, `ci-orchestrator.yml`, `ci-policy-kernel.yml`.
+- **`ci-fast-tools`** — parallel xargs fan-out across tool manifests with shared `CARGO_TARGET_DIR`; `cargo test -- --list` post-pass asserting each `CI_REGISTRY_CONSUMER_CONTRACTS` prefix has ≥1 match; `spec-lint --fail-on-warn` smoke; `codebase-indexer check` staleness gate. Mirrors `spec-conformance.yml`.
+- **`ci-fast-desktop`** — `apps/desktop/src-tauri` Rust (custom clippy flags: `-A dead_code -D warnings`) concurrent with `pnpm install --frozen-lockfile`; `tsc --noEmit` and vitest concurrent; `Cargo.toml` ↔ `package.json` version alignment. Mirrors `ci-desktop.yml`.
+- **`ci-fast-stagecraft`** — `platform/services/stagecraft`: `npm ci`, then `tsc --noEmit` and `npm test` concurrent. Mirrors `ci-stagecraft.yml`.
+- **`ci-fast-schema-parity`** — Rust factory-contracts fingerprints + `bun run tools/schema-parity-check/index.mjs`. Mirrors `ci-schema-parity.yml` (spec 120/125).
+- **`ci-fast-spec-coupling`** — PR-time spec/code coupling gate. Mirrors `ci-spec-code-coupling.yml` (spec 127).
+- **`ci-fast-supply-chain`** — `cargo-deny` parallel xargs over Rust manifests + `pnpm audit` + `npm audit` concurrent. Mirrors `ci-supply-chain.yml` (spec 116).
+
+`make ci-strict` composes the same gate set via the canonical sequential targets (`ci-rust`, `ci-tools`, `ci-desktop`, `ci-stagecraft`, `ci-schema-parity`, `ci-spec-code-coupling`, `ci-supply-chain`) — token-equivalent to the workflows but ~90 min on M1 Pro.
+
+Not in either `make ci` or `make ci-strict` (run on demand):
 - `make ci-cross` — axiomregent cross-target matrix (requires `rustup target add` per triple). Mirrors `build-axiomregent.yml`.
 
 **If a check is missing, add it to the Makefile and the relevant workflow in the same change.** Never introduce a new validation via a one-off script under `scripts/` — that directory is being retired in favour of Rust binaries invoked from the Makefile (spec 105).
 
-After edits to either the Makefile `ci*` targets or any workflow under `.github/workflows/`, run `make ci-parity` as a pre-PR check. It asserts that every `run:` block in an enforcing workflow has a mirror in the Makefile; drift is a workflow violation (spec 104). The check is also enforced by `.github/workflows/ci-parity.yml`, so a PR that skips the local run will still be caught in CI.
+After edits to either the Makefile `ci*` targets or any workflow under `.github/workflows/`, run `make ci-parity` as a pre-PR check. It asserts that every `run:` block in an enforcing workflow has a mirror in `make ci-strict` (the parity-bound recipe); drift is a workflow violation (spec 104, rebound by spec 135 FR-04). The check is also enforced by `.github/workflows/ci-parity.yml`, so a PR that skips the local run will still be caught in CI.
 
 Capture full output — file paths, line numbers, error messages. Categorize findings:
 

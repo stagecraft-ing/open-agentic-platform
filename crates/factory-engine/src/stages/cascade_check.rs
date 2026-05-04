@@ -204,7 +204,7 @@ mod tests {
     use super::*;
     use chrono::{TimeZone, Utc};
     use factory_contracts::provenance::{
-        anchor_hash, AssumptionTag, Claim, ClaimKind, ProvenanceMode,
+        AssumptionTag, Claim, ClaimKind, ProvenanceMode,
     };
     use provenance_validator::{
         emit_assumption_manifest, ClaimRecord, ValidationReport,

@@ -3047,7 +3047,7 @@ mod tests {
         // Pin XDG_DATA_HOME to a temp dir for queue isolation. Held for
         // the duration of the test so a sibling env-mutating test cannot
         // remap the path mid-flight.
-        let _env_guard = REPLAY_QUEUE_ENV_LOCK.lock().unwrap();
+        let _env_guard = REPLAY_QUEUE_ENV_LOCK.lock().await;
         let tmp = tempfile::tempdir().unwrap();
         // SAFETY: REPLAY_QUEUE_ENV_LOCK held above.
         unsafe { std::env::set_var("XDG_DATA_HOME", tmp.path()) };

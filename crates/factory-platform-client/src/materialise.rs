@@ -254,25 +254,25 @@ pub fn collect_contract_names(node: &serde_json::Value) -> Vec<String> {
         }
         if let Some(map) = node.as_object() {
             for (k, v) in map {
-                if k == "contract" {
-                    if let Some(s) = v.as_str() {
-                        if !out.contains(&s.to_string()) {
+                if k == "contract"
+                    && let Some(s) = v.as_str()
+                {
+                    if !out.contains(&s.to_string()) {
+                        out.push(s.to_string());
+                    }
+                    continue;
+                }
+                if k == "contracts"
+                    && let Some(arr) = v.as_array()
+                {
+                    for item in arr {
+                        if let Some(s) = item.as_str()
+                            && !out.contains(&s.to_string())
+                        {
                             out.push(s.to_string());
                         }
-                        continue;
                     }
-                }
-                if k == "contracts" {
-                    if let Some(arr) = v.as_array() {
-                        for item in arr {
-                            if let Some(s) = item.as_str() {
-                                if !out.contains(&s.to_string()) {
-                                    out.push(s.to_string());
-                                }
-                            }
-                        }
-                        continue;
-                    }
+                    continue;
                 }
                 walk_inner(v, out);
             }

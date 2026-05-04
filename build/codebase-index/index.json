@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "980258a3eb4706558ba8f2d3404667d3e27d0e4f40b112c9a30fbc2fa2067bde",
+    "contentHash": "a27e1d848914627be977172c53bdf4e229e26e184110fd7fa822646f73df5646",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -125,7 +125,7 @@
         "path": ".claude/commands/review-branch.md"
       },
       {
-        "description": "Run the local CI parity check (`make ci`) and automatically fix discovered issues using concurrent agents",
+        "description": "Run the local fast CI loop (`make ci`) and automatically fix discovered issues using concurrent agents",
         "name": "validate-and-fix",
         "path": ".claude/commands/validate-and-fix.md"
       }
@@ -2819,6 +2819,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "135-fast-ci-as-default",
         "dependsOn": [
           "000",
           "006"
@@ -4130,6 +4131,65 @@
         ],
         "specId": "133-amends-aware-coupling-gate",
         "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "135-fast-ci-as-default",
+        "amends": [
+          "104-makefile-ci-parity-contract"
+        ],
+        "dependsOn": [
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "134-fast-local-ci-mode",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "104-makefile-ci-parity-contract"
+        ],
+        "dependsOn": [
+          "104",
+          "130",
+          "134"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-crates.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/104-makefile-ci-parity-contract/spec.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "135-fast-ci-as-default",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -4190,7 +4250,8 @@
       "source": "header",
       "specs": [
         "033-axiomregent-activation",
-        "073-axiomregent-unification"
+        "073-axiomregent-unification",
+        "135-fast-ci-as-default"
       ]
     },
     {
@@ -4209,7 +4270,8 @@
         "071-skill-command-factory",
         "075-factory-workflow-engine",
         "054-agent-frontmatter-schema",
-        "042-multi-provider-agent-registry"
+        "042-multi-provider-agent-registry",
+        "135-fast-ci-as-default"
       ]
     },
     {

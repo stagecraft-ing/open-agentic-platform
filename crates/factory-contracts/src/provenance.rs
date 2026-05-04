@@ -865,7 +865,7 @@ mod tests {
             ClaimKind::Usrreq,
         ];
         for k in kinds {
-            let j = serde_json::to_value(&k).unwrap();
+            let j = serde_json::to_value(k).unwrap();
             assert_eq!(j.as_str(), Some(k.prefix()));
             let back: ClaimKind = serde_json::from_value(j).unwrap();
             assert_eq!(k, back);

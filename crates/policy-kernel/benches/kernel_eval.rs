@@ -1,10 +1,11 @@
 //! SC-010: synthetic evaluation throughput (native kernel; excludes I/O per NF-001).
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use open_agentic_policy_kernel::{
     PolicyBundle, PolicyOutcome, PolicyRule, ToolCallContext, evaluate,
 };
 use std::collections::BTreeMap;
+use std::hint::black_box;
 
 fn sample_bundle() -> PolicyBundle {
     PolicyBundle {
