@@ -266,6 +266,25 @@ must review — not coercive scale across every claimant.
 
 ## Defect log
 
+**2026-05-03 — `amends:` invisible to the resolver (closed by spec 133).**
+FR-003 resolves a path's legitimate owners exclusively through
+`implements:` claims. When a spec is edited via spec 119's `amends:` /
+`amendment_record:` protocol — e.g. spec 132 amending spec 000 by
+adding `unamendable:` anchors — the gate sees `specs/000-bootstrap-spec-system/spec.md`
+in the diff and demands an `implements:` claimant of 000 (spec 119,
+the protocol's original codifier). The amender (spec 132) and the
+amendment-record target are both invisible to the resolver, so every
+amendment-driven commit on the same branch needs a `Spec-Drift-Waiver:`
+even though the change is governed by an authored protocol. Spec 133
+extends the resolver to honour both `amends:` (forward) and
+`amendment_record:` (reverse) as additional legitimate owners,
+composing with spec 130's primary-owner heuristic. Strictly
+expansive: a path silent today remains silent; the new sources only
+add owners to paths that already have an `implements:` claimant. See
+`specs/133-amends-aware-coupling-gate/spec.md` for the contract,
+including the FR-005 strict-expansion gate and the FR-004 source-
+labelled renderer output.
+
 **2026-05-02 — test isolation: `GITHUB_PR_BODY` env leak.**
 The `tests/cli.rs` integration tests built the gate binary via
 `Command::new(cli_bin())`, which inherits the parent process

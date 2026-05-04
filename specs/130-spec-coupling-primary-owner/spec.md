@@ -161,3 +161,18 @@ PR.
   the path level — every claimed path still requires SOME owner to
   review. The relaxation is from N-of-N to 1-of-N, which matches how
   human review actually works on shared infrastructure.
+
+## 8. Cross-references
+
+**Spec 133 — Amends-Aware Coupling Gate (2026-05-03).** Spec 133
+extends this primary-owner heuristic without amending it: the set of
+*legitimate owners* a path can be cleared by is broadened from the
+`implements:` claimants alone to the union with `amends:` and
+`amendment_record:` source classes (when the path is itself a
+`specs/X/spec.md`). Spec 130's any-one-clears semantics is unchanged;
+only the input set grows. Spec 133 also adds the FR-005 strict-
+expansion gate (amend pathways do not enrol paths with zero
+`implements:` claimants) so today's silent paths stay silent. This
+is a strict expansion, not an in-place amendment of spec 130's text;
+no `amends:` link is set. See
+`specs/133-amends-aware-coupling-gate/spec.md` for the contract.
