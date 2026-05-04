@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "25c70a056201b0967d1a1bf01fdeb9f9ce373d455f7b6d8b4ea3a3a381ef8af4",
+    "contentHash": "f629264dacac694e2d4d417cf55900bfa90ad4fe3e7b9fa23a24ff4d475bcd1c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4097,6 +4097,37 @@
         ],
         "specId": "134-fast-local-ci-mode",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "104",
+          "130",
+          "134"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-crates.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/104-makefile-ci-parity-contract/spec.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "135-fast-ci-as-default",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
