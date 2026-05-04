@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "022fb629b6fd7956ab1d010a73c58e2d7c7ba0d7cb53c78a8c398af4ef28711e",
+    "contentHash": "cdd30ea317d57fd931799996917d7ce42d13daf413c0c5c230c8b70dd0282fcb",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4242,6 +4242,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
             "source": "spec-implements"
           },
           {

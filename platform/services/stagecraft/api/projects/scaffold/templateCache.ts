@@ -77,6 +77,17 @@ export function isTemplateCacheRefreshing(): boolean {
 }
 
 /**
+ * Surface a warmup-blocked condition (e.g. no adapter manifest carries
+ * `template_remote`) through the existing readiness path. The status
+ * step stays "error" so the UI's `warmup-error` blocker fires with a
+ * clear, actionable reason.
+ */
+export function setInitErrorFromContext(reason: string): void {
+  initStatus = { step: "error", progress: 0, ready: false, error: reason };
+  templateCacheReady = false;
+}
+
+/**
  * Test-only: reset the in-memory status flags. Production code never calls
  * this — pods restart cleanly because warmup re-derives from disk state.
  */

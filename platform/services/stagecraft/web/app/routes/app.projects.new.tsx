@@ -227,6 +227,7 @@ export async function loader({
           progress: 0,
           hasFactoryAdapter: adapters.length > 0,
           hasUpstreamPat: false,
+          hasTemplateRemote: false,
           canCreate: false,
           blocker: "warmup-error",
           error:
@@ -640,9 +641,28 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
       return (
         <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
           <p className="text-sm text-yellow-900 dark:text-yellow-200">
-            <strong>No factory adapters available.</strong> Run{" "}
-            <code className="font-mono">/factory-sync</code> to populate this
-            org's adapter catalog before creating projects.
+            <strong>No factory adapters available.</strong> Visit{" "}
+            <a href="/app/factory" className="underline font-medium">
+              /app/factory
+            </a>{" "}
+            and run a sync to populate this org's adapter catalog before
+            creating projects.
+          </p>
+        </div>
+      );
+    case "stale-adapter-manifest":
+      return (
+        <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
+          <p className="text-sm text-yellow-900 dark:text-yellow-200">
+            <strong>Adapter manifest needs refreshing.</strong> Your
+            existing factory adapter rows predate the spec 138 translator
+            change and lack the <code>template_remote</code> field the
+            scaffold layer needs. Visit{" "}
+            <a href="/app/factory" className="underline font-medium">
+              /app/factory
+            </a>{" "}
+            and trigger a sync — once it completes the warmup will start
+            automatically and the form will unlock.
           </p>
         </div>
       );

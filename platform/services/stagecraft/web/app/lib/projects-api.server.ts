@@ -282,11 +282,13 @@ export interface ScaffoldReadiness {
   error?: string;
   hasFactoryAdapter: boolean;
   hasUpstreamPat: boolean;
+  hasTemplateRemote: boolean;
   canCreate: boolean;
   blocker?:
     | "warming-up"
     | "warmup-error"
     | "no-factory-adapter"
+    | "stale-adapter-manifest"
     | "no-upstream-pat";
 }
 

@@ -25,6 +25,7 @@ import {
 import { FactorySyncRequestTopic, type FactorySyncRequest } from "./events";
 import { resolveFactoryUpstreamToken } from "./tokenResolver";
 import { runSyncPipeline } from "./syncPipeline";
+import { runScaffoldWarmup } from "../projects/scaffold/scheduler";
 
 async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
   const startedAt = new Date();
@@ -103,6 +104,18 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
         counts: result.counts,
         tokenSource: resolved?.source ?? "anonymous",
       },
+    });
+
+    // Spec 138 §2.1 — a successful /factory-sync may have just stamped
+    // template_remote on previously-unmanaged adapter rows. Kick the
+    // scaffold warmup immediately so the Create form unlocks without
+    // waiting for the next 30-min cron tick.
+    void runScaffoldWarmup().catch((err) => {
+      log.warn("factory sync worker: post-sync warmup trigger failed", {
+        syncRunId: req.syncRunId,
+        orgId: req.orgId,
+        err: err instanceof Error ? err.message : String(err),
+      });
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

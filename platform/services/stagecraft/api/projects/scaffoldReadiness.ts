@@ -22,6 +22,14 @@ export interface ScaffoldReadinessResponse {
   hasFactoryAdapter: boolean;
   hasUpstreamPat: boolean;
   /**
+   * True iff at least one of the org's factory_adapters carries
+   * `template_remote` in its manifest. Existing adapter rows synced
+   * before spec 138 §2.1 lack the field; surfacing this distinct from
+   * `hasFactoryAdapter` lets the UI banner say "re-run /factory-sync"
+   * instead of "no adapter".
+   */
+  hasTemplateRemote: boolean;
+  /**
    * Convenience flag — true iff every gate is green: warmup ready, adapter
    * available, PAT configured. The UI uses this to enable the submit button
    * without having to AND the three fields itself.
@@ -32,6 +40,7 @@ export interface ScaffoldReadinessResponse {
     | "warming-up"
     | "warmup-error"
     | "no-factory-adapter"
+    | "stale-adapter-manifest"
     | "no-upstream-pat";
 }
 
@@ -46,12 +55,18 @@ export const scaffoldReadiness = api(
     const auth = getAuthData()!;
     const status = getInitStatus();
 
-    const [adapter] = await db
-      .select({ id: factoryAdapters.id })
+    const adapterRows = await db
+      .select({
+        id: factoryAdapters.id,
+        manifest: factoryAdapters.manifest,
+      })
       .from(factoryAdapters)
-      .where(eq(factoryAdapters.orgId, auth.orgId))
-      .limit(1);
-    const hasFactoryAdapter = Boolean(adapter);
+      .where(eq(factoryAdapters.orgId, auth.orgId));
+    const hasFactoryAdapter = adapterRows.length > 0;
+    const hasTemplateRemote = adapterRows.some((row) => {
+      const m = row.manifest as { template_remote?: unknown } | null;
+      return typeof m?.template_remote === "string" && m.template_remote.length > 0;
+    });
 
     const pat = await loadFactoryUpstreamPatToken(auth.orgId).catch(
       () => null
@@ -60,6 +75,7 @@ export const scaffoldReadiness = api(
 
     let blocker: ScaffoldReadinessResponse["blocker"];
     if (!hasFactoryAdapter) blocker = "no-factory-adapter";
+    else if (!hasTemplateRemote) blocker = "stale-adapter-manifest";
     else if (!hasUpstreamPat) blocker = "no-upstream-pat";
     else if (status.error) blocker = "warmup-error";
     else if (!status.ready) blocker = "warming-up";
@@ -71,7 +87,12 @@ export const scaffoldReadiness = api(
       error: status.error,
       hasFactoryAdapter,
       hasUpstreamPat,
-      canCreate: status.ready && hasFactoryAdapter && hasUpstreamPat,
+      hasTemplateRemote,
+      canCreate:
+        status.ready &&
+        hasFactoryAdapter &&
+        hasTemplateRemote &&
+        hasUpstreamPat,
       blocker,
     };
   }

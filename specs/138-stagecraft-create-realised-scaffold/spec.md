@@ -29,6 +29,7 @@ implements:
   # Auxiliary touches the realisation drove — declared here so the spec/code
   # coupling gate (spec 127/130/133) sees the amender as a claimant.
   - path: platform/services/stagecraft/api/factory/syncPipeline.ts
+  - path: platform/services/stagecraft/api/factory/syncWorker.ts
   - path: platform/services/stagecraft/api/factory/translator.test.ts
   - path: platform/services/stagecraft/api/github/repoInit.ts
   - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
@@ -207,3 +208,14 @@ Spec 112's overall design is unchanged:
   `specs/138-stagecraft-create-realised-scaffold/`).
 - 2026-05-04 — this amendment lands; spec 112 frontmatter records
   `amended: "2026-05-04"` / `amendment_record: "138-stagecraft-create-realised-scaffold"`.
+- 2026-05-04 — post-deploy fix-up: scheduler now reports a precise
+  blocker when warmup context is unresolvable (no adapters, stale
+  manifest with no `template_remote`, no upstream PAT) instead of
+  silently leaving the readiness endpoint at `step: idle (0%)`. The
+  syncWorker triggers `runScaffoldWarmup` immediately on
+  `factory.upstreams.sync_ok` so existing adapter rows that pre-date
+  the spec 138 §2.1 translator change unlock the Create form within
+  seconds of the next /factory-sync, not on the 30-min cron tick.
+  Readiness response gains `hasTemplateRemote` and a new
+  `stale-adapter-manifest` blocker; the UI banner points at
+  `/app/factory` for the manual sync trigger.
