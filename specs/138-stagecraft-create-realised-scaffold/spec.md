@@ -219,3 +219,13 @@ Spec 112's overall design is unchanged:
   Readiness response gains `hasTemplateRemote` and a new
   `stale-adapter-manifest` blocker; the UI banner points at
   `/app/factory` for the manual sync trigger.
+- 2026-05-04 — second post-deploy fix-up: npm subprocess env routes
+  through writable workspace paths. The container runs as uid 10001
+  with no `$HOME` on a `readOnlyRootFilesystem: true` pod, so npm's
+  default `$HOME/.npm` resolves to `/.npm` and `mkdir` returns
+  ENOENT/EROFS — `npm install` against the cloned template fails
+  immediately. `templateCache.tooledEnv()` now stamps `HOME`,
+  `npm_config_cache`, and `XDG_CACHE_HOME` at `${STAGECRAFT_WORKSPACE_DIR}`
+  subdirs (`.home`, `.npm-cache`, `.xdg-cache`) created on first
+  warmup. `perRequestScaffold` mirrors the env so per-request
+  add-module + lockfile refresh hit the same writable cache.

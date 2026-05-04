@@ -21,6 +21,24 @@ import log from "encore.dev/log";
 import { extrasFor, type Profile } from "./moduleCatalog";
 import { prebuiltDir } from "./templateCache";
 
+/**
+ * Subprocess env shared with templateCache. Mirrors `tooledEnv` —
+ * routes npm + node tooling at writable workspace paths so the pod's
+ * `readOnlyRootFilesystem: true` posture doesn't kill `npm install`.
+ */
+function tooledEnv(
+  workspace: string,
+  extra: NodeJS.ProcessEnv = {}
+): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    HOME: join(workspace, ".home"),
+    npm_config_cache: join(workspace, ".npm-cache"),
+    XDG_CACHE_HOME: join(workspace, ".xdg-cache"),
+    ...extra,
+  };
+}
+
 export interface PerRequestScaffoldOptions {
   workspaceDir: string;
   profile: Profile;
@@ -61,21 +79,20 @@ export async function scaffoldFromPrebuilt(
   if (extras.length > 0) {
     const tsx = join(cacheDir, "node_modules", "tsx", "dist", "cli.mjs");
     const addModuleScript = join(cacheDir, "scripts", "add-module.ts");
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
+    const addModuleEnv = tooledEnv(opts.workspaceDir, {
       NODE_PATH: join(cacheDir, "node_modules"),
       NO_INSTALL: "true",
       // add-module.ts reads ROOT to know where to write; it must be the
       // per-request dest, not the cache dir.
       ROOT: dest,
-    };
+    });
     for (const mod of extras) {
       sink(`add-module: ${mod}`);
       await spawnAndCapture(
         process.execPath,
         [tsx, addModuleScript, mod, "--yes"],
         cacheDir,
-        env
+        addModuleEnv
       );
     }
     // ── 3. Refresh the lockfile once for all extras ─────────────────────
@@ -84,7 +101,7 @@ export async function scaffoldFromPrebuilt(
       "npm",
       ["install", "--package-lock-only"],
       dest,
-      undefined
+      tooledEnv(opts.workspaceDir)
     );
   }
 

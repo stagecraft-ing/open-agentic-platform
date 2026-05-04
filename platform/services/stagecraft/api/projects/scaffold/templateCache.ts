@@ -120,6 +120,41 @@ export function prebuiltDir(workspace: string, profile: Profile): string {
   return join(workspace, `_prebuilt-${profile}`);
 }
 
+/**
+ * Build a subprocess env that routes npm + node tooling at writable
+ * paths. The pod has `readOnlyRootFilesystem: true` and runs as uid
+ * 10001 with no $HOME, so npm's defaults (`$HOME/.npm`) resolve to
+ * `/.npm` which the kernel rejects with EROFS / ENOENT. Setting
+ * `npm_config_cache` and `HOME` under the workspace PVC makes npm,
+ * tsx, and any subprocess they spawn write to a backed-up location.
+ */
+function tooledEnv(
+  workspace: string,
+  extra: NodeJS.ProcessEnv = {}
+): NodeJS.ProcessEnv {
+  const npmCache = join(workspace, ".npm-cache");
+  const homeOverride = join(workspace, ".home");
+  return {
+    ...process.env,
+    HOME: homeOverride,
+    npm_config_cache: npmCache,
+    // Some tools (corepack, pnpm shim) read XDG_CACHE_HOME independently.
+    XDG_CACHE_HOME: join(workspace, ".xdg-cache"),
+    ...extra,
+  };
+}
+
+async function ensureToolingDirs(workspace: string): Promise<void> {
+  const dirs = [
+    join(workspace, ".npm-cache"),
+    join(workspace, ".home"),
+    join(workspace, ".xdg-cache"),
+  ];
+  for (const d of dirs) {
+    await mkdir(d, { recursive: true });
+  }
+}
+
 // ── Public surface ─────────────────────────────────────────────────────
 
 /**
@@ -157,10 +192,12 @@ export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
   const tempDir = cache + "_new";
   try {
     await mkdir(ctx.workspaceDir, { recursive: true });
+    await ensureToolingDirs(ctx.workspaceDir);
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 
     const token = await ctx.patResolver();
     const cloneUrl = buildCloneUrl(ctx.templateRemote, token);
+    const env = tooledEnv(ctx.workspaceDir);
 
     log.info("template cache: cloning", {
       remote: ctx.templateRemote,
@@ -170,13 +207,13 @@ export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
       "git",
       ["clone", "--branch", ctx.defaultBranch, "--depth", "1", cloneUrl, tempDir],
       ctx.workspaceDir,
-      undefined,
+      env,
       token ?? undefined
     );
 
     initStatus = { step: "cache-installing", progress: 15, ready: false };
     log.info("template cache: npm install");
-    await spawnLogged("npm", ["install"], tempDir, undefined, undefined);
+    await spawnLogged("npm", ["install"], tempDir, env, undefined);
 
     if (await pathExists(cache)) {
       await rm(cache, { recursive: true, force: true });
@@ -231,11 +268,11 @@ export async function ensurePrebuilts(ctx: WarmupContext): Promise<void> {
   }
 
   const tsx = join(cache, "node_modules", "tsx", "dist", "cli.mjs");
-  const prebuiltEnv: NodeJS.ProcessEnv = {
-    ...process.env,
+  await ensureToolingDirs(ctx.workspaceDir);
+  const prebuiltEnv = tooledEnv(ctx.workspaceDir, {
     NODE_PATH: join(cache, "node_modules"),
     NO_INSTALL: "true",
-  };
+  });
 
   type ProfileSpec = { name: Profile; script: string; args: string[] };
   const PROFILE_SPECS: ProfileSpec[] = [
