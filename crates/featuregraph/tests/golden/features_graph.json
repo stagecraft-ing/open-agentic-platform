@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:d56f10050a891f6aefad5ac76062722f97b113da4c69e4bebd903645437a2698",
+  "graph_fingerprint": "sha256:a490d8cf8e4e8c3281bff067358f7418422b55f4f38f74f05c45554343b7973c",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2554,16 +2554,104 @@
       "violations": []
     },
     {
+      "feature_id": "133-amends-aware-coupling-gate",
+      "title": "Amends-aware spec/code coupling gate — recognise `amends:` as valid coupling",
+      "spec_path": "specs/133-amends-aware-coupling-gate/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "119",
+        "127",
+        "130"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
       "feature_id": "134-fast-local-ci-mode",
       "title": "Fast Local CI Mode — Two-Mode Parity Contract",
       "spec_path": "specs/134-fast-local-ci-mode/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "135-fast-ci-as-default",
+      "title": "Fast CI as Default — Crates Workspace Convergence + Target Rename",
+      "spec_path": "specs/135-fast-ci-as-default/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "104",
+        "134",
+        "130"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "136-tenant-hello-demo-service",
+      "title": "Tenant-hello — stagecraft-deployable tenant reference service",
+      "spec_path": "specs/136-tenant-hello-demo-service/spec.md",
       "status": "draft",
       "implementation": "in-progress",
       "governance": "low",
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "104"
+        "087",
+        "078"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "137-tenant-environment-access-gates",
+      "title": "Tenant environment access gates — passwordless OIDC via Rauthy",
+      "spec_path": "specs/137-tenant-environment-access-gates/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "136",
+        "087"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "138-stagecraft-create-realised-scaffold",
+      "title": "Stagecraft Create — realised scaffold subflow (amendment of 112)",
+      "spec_path": "specs/138-stagecraft-create-realised-scaffold/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "112",
+        "108",
+        "109"
       ],
       "impl_files": [],
       "test_files": [],

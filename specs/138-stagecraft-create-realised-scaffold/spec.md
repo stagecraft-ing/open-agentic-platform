@@ -26,6 +26,13 @@ implements:
   - path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts
   - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
   - path: platform/charts/stagecraft/templates/workspace-pvc.yaml
+  # Auxiliary touches the realisation drove — declared here so the spec/code
+  # coupling gate (spec 127/130/133) sees the amender as a claimant.
+  - path: platform/services/stagecraft/api/factory/syncPipeline.ts
+  - path: platform/services/stagecraft/api/factory/translator.test.ts
+  - path: platform/services/stagecraft/api/github/repoInit.ts
+  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
+  - path: platform/services/stagecraft/CLAUDE.md
 summary: >
   Spec 112 §5 specified Create at the contract level but left four points
   where the landed implementation diverged from the literal spec text:

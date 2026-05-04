@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "8e14b46fbc027e7356836d9e15bca678ca42b0cfba32288e742db65fd0cc97fb",
+    "contentHash": "022fb629b6fd7956ab1d010a73c58e2d7c7ba0d7cb53c78a8c398af4ef28711e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4237,6 +4237,22 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/CLAUDE.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github/repoInit.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/projects/create.ts",
             "source": "spec-implements"
           },
@@ -4262,6 +4278,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
             "source": "spec-implements"
           },
           {
