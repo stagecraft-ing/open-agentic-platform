@@ -295,31 +295,23 @@ ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coup
 	@echo ""
 	@echo "==> Local CI parity: all gates passed."
 
-# Rust manifests each validated with: check + clippy -D warnings + test.
-# Desktop uses different clippy flags and is handled in ci-desktop.
-# Tool crates have extra smoke/contract steps and are handled in ci-tools.
-CI_RUST_MANIFESTS = \
-    crates/artifact-extract/Cargo.toml \
-    crates/axiomregent/Cargo.toml \
-    crates/orchestrator/Cargo.toml \
-    crates/policy-kernel/Cargo.toml \
-    crates/tool-registry/Cargo.toml \
-    crates/skill-factory/Cargo.toml \
-    crates/factory-engine/Cargo.toml \
-    crates/factory-contracts/Cargo.toml \
-    crates/provider-registry/Cargo.toml \
-    crates/agent-frontmatter/Cargo.toml \
-    crates/standards-loader/Cargo.toml \
-    platform/services/deployd-api-rs/Cargo.toml
-
+# Rust validation (spec 135 FR-01): the `crates/` workspace is validated
+# once via `cargo --workspace --manifest-path crates/Cargo.toml`, covering
+# all 18 workspace members in a single invocation set. `deployd-api-rs`
+# lives in its own workspace and stays as a separate per-manifest call.
+# Desktop has different clippy flags and is handled in ci-desktop. Tool
+# crates have extra smoke/contract steps and are handled in ci-tools.
 ci-rust:
-	@set -e; for m in $(CI_RUST_MANIFESTS); do \
-	    echo ""; \
-	    echo "==> ci-rust: $$m"; \
-	    cargo check  --manifest-path $$m; \
-	    cargo clippy --manifest-path $$m -- -D warnings; \
-	    cargo test   --manifest-path $$m; \
-	done
+	@echo ""
+	@echo "==> ci-rust: crates/ workspace (18 members)"
+	cargo check  --workspace --manifest-path crates/Cargo.toml
+	cargo clippy --workspace --manifest-path crates/Cargo.toml -- -D warnings
+	cargo test   --workspace --manifest-path crates/Cargo.toml
+	@echo ""
+	@echo "==> ci-rust: platform/services/deployd-api-rs/Cargo.toml"
+	cargo check  --manifest-path platform/services/deployd-api-rs/Cargo.toml
+	cargo clippy --manifest-path platform/services/deployd-api-rs/Cargo.toml -- -D warnings
+	cargo test   --manifest-path platform/services/deployd-api-rs/Cargo.toml
 
 # registry-consumer contract gates (spec-conformance.yml)
 CI_REGISTRY_CONSUMER_CONTRACTS = \
@@ -577,10 +569,12 @@ ci-fast:
 	@echo ""
 	@echo "==> ci-fast: all gates passed."
 
-# Workspace-mode for crates/ collapses 11 of 12 CI_RUST_MANIFESTS entries
-# to one clippy + one test invocation. deployd-api-rs (the 12th) runs as
-# a concurrent sibling. `cargo clippy --all-targets -- -D warnings`
-# subsumes the separate `cargo check` step (spec 134 §2.2(2)).
+# Workspace-mode for crates/ collapses 18 workspace members to one clippy
+# + one test invocation. deployd-api-rs (separate workspace) runs as a
+# concurrent sibling. `cargo clippy --all-targets -- -D warnings` subsumes
+# the separate `cargo check` step (spec 134 §2.2(2)).
+# Spec 135 FR-01 made `ci-rust` itself use `--workspace`; this fast-mode
+# recipe pre-dated that and remains its concurrent counterpart.
 ci-fast-rust:
 	@echo "==> ci-fast-rust: crates/ workspace + deployd-api-rs (concurrent)"
 	@# Drop `--jobs` from cargo invocations: under `make -j` the jobserver
