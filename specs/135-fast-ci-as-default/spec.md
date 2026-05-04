@@ -1,10 +1,11 @@
 ---
 id: "135-fast-ci-as-default"
 title: "Fast CI as Default — Crates Workspace Convergence + Target Rename"
-status: draft
+status: approved
 implementation: pending
 owner: bart
 created: "2026-05-03"
+approved: "2026-05-03"
 kind: governance
 risk: low
 amends:
@@ -211,12 +212,13 @@ ci-strict` MUST be a strict superset of the validation `make ci`
 performed before this spec — the workspace switch adds the 7 ghost
 crates; nothing is removed.
 
-### FR-03: `make ci` is the previous `make ci-fast`
+### FR-03: `make ci` is the previous `make ci-fast`; `ci-fast` removed
 
 The root Makefile MUST define a phony `ci` target whose body is the
-previous `ci-fast` recipe, unchanged. The previous `ci-fast` target
-name MAY be retained as an alias for one release cycle to ease muscle
-memory, or removed outright — the user decides at implementation time.
+previous `ci-fast` recipe, unchanged. The `ci-fast` target name MUST
+be removed in the same commit — no transitional alias is retained.
+The naming distinction is the point of the rename; preserving the old
+name as an alias would dilute it.
 
 ### FR-04: `ci-parity-check` binds to `ci-strict`
 
@@ -303,10 +305,6 @@ expectations and intended audience, mirroring spec 134 §SC-04.
   ci-fast` markers are intentionally not renamed — they bind to a spec
   id, not the target name. A clarifying comment near the BEGIN sentinel
   is sufficient.
-- **Removing the `ci-fast` alias.** Whether `make ci-fast` continues to
-  work as an alias for `make ci` post-rename is an implementation
-  detail; this spec permits either choice. If retained, it is a
-  transitional alias only and may be removed in a follow-up.
 - **`deployd-api-rs` workspace consolidation.** That crate is in a
   separate workspace at `platform/services/deployd-api-rs/`. Merging
   it into `crates/Cargo.toml` is out of scope; it stays as a
