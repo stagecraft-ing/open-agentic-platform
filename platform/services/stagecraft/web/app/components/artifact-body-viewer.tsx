@@ -23,7 +23,20 @@ export type FactoryArtifact = {
   [key: string]: unknown;
 };
 
-export type ArtifactBodyKind = "markdown" | "yaml" | "json" | "text";
+export type ArtifactBodyKind = "markdown" | "yaml" | "json" | "text" | "bundle";
+
+// A "bundle" is an object body that's really a collection of markdown
+// documents stored in a JSON wrapper — e.g. an adapter manifest's
+// `{ orchestrator: { body }, skills: { <id>: { body } } }` or a process
+// definition's `{ agents: { <role>: [{ body, name, description }] } }`.
+// Each leaf with a multi-line `body` becomes a `BundleEntry`.
+export type BundleEntry = {
+  key: string;
+  path: string[];
+  name?: string;
+  description?: string;
+  body: string;
+};
 
 type EnvelopeBody = { path: string; body: string };
 
@@ -53,11 +66,79 @@ export function unwrapArtifactEnvelope(artifact: FactoryArtifact): FactoryArtifa
 }
 
 // The Source tab only adds value when Preview hides the raw bytes — i.e. for
-// JSON, where Preview pretty-prints and Source shows the wire form. For YAML,
-// Markdown, and plain text, Preview already renders the bytes verbatim, so a
-// Source tab would be a visual duplicate.
+// JSON or bundles, where Preview pretty-prints / splits-by-entry and Source
+// shows the wire form. For YAML, Markdown, and plain text, Preview already
+// renders the bytes verbatim, so a Source tab would be a visual duplicate.
 export function isSourceTabAvailable(kind: ArtifactBodyKind): boolean {
-  return kind === "json";
+  return kind === "json" || kind === "bundle";
+}
+
+// A body string qualifies as a bundle "document" body only when it contains
+// real or escaped line breaks. Short scalar values like `"y"` or `"v1"` don't
+// count — those are configuration values, not embedded documents.
+function isBundleDocumentBody(value: string): boolean {
+  return value.includes("\n") || value.includes("\\n") || value.includes("\\r\\n");
+}
+
+// Walk the body looking for `{ body: string, ... }` records. Each match
+// becomes a `BundleEntry`. The `path` is the dotted+indexed JSON path
+// (e.g. `agents.client_interface[0]`); `key` prefers `id`/`name` on the
+// record and falls back to that path so React keys stay stable across
+// renders. Body records are not recursed into — the markdown body is the
+// leaf.
+export function walkBundleEntries(
+  value: unknown,
+  path: string[] = [],
+): BundleEntry[] {
+  if (Array.isArray(value)) {
+    const out: BundleEntry[] = [];
+    for (let i = 0; i < value.length; i++) {
+      const childPath =
+        path.length === 0
+          ? [`[${i}]`]
+          : [...path.slice(0, -1), `${path[path.length - 1]}[${i}]`];
+      out.push(...walkBundleEntries(value[i], childPath));
+    }
+    return out;
+  }
+
+  if (value === null || typeof value !== "object") return [];
+
+  const obj = value as Record<string, unknown>;
+
+  if (typeof obj.body === "string" && isBundleDocumentBody(obj.body)) {
+    const id = typeof obj.id === "string" && obj.id.length > 0 ? obj.id : null;
+    const name =
+      typeof obj.name === "string" && obj.name.length > 0 ? obj.name : null;
+    const fallback = path.length > 0 ? path.join(".") : "root";
+    return [
+      {
+        key: id ?? name ?? fallback,
+        path,
+        name: typeof obj.name === "string" ? obj.name : undefined,
+        description:
+          typeof obj.description === "string" ? obj.description : undefined,
+        body: obj.body,
+      },
+    ];
+  }
+
+  const out: BundleEntry[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    out.push(...walkBundleEntries(v, [...path, k]));
+  }
+  return out;
+}
+
+// Adapter and process bodies arrive with embedded markdown serialised as
+// escape sequences (`\n`, `\r\n`) — likely a JSON-string-in-JSON-object
+// round trip somewhere in the sync path. Convert those back to real line
+// breaks before handing the markdown to the renderer.
+export function unescapeBundleBody(body: string): string {
+  return body
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\n");
 }
 
 export function detectArtifactBodyKind(artifact: FactoryArtifact): ArtifactBodyKind {
@@ -69,8 +150,17 @@ export function detectArtifactBodyKind(artifact: FactoryArtifact): ArtifactBodyK
   if (path.endsWith(".md")) return "markdown";
 
   // Object / array bodies come from jsonb columns (factory adapters &
-  // processes) — render them as JSON.
-  if (artifact.body != null && typeof artifact.body !== "string") return "json";
+  // processes). When they're really collections of markdown documents,
+  // render them in bundle mode; otherwise pretty-print as JSON.
+  if (artifact.body != null && typeof artifact.body !== "string") {
+    if (
+      !Array.isArray(artifact.body) &&
+      walkBundleEntries(artifact.body).length > 0
+    ) {
+      return "bundle";
+    }
+    return "json";
+  }
 
   const body = typeof artifact.body === "string" ? artifact.body : "";
   if (body.startsWith("---\n")) return "markdown";
@@ -112,6 +202,8 @@ function formatLabel(kind: ArtifactBodyKind): string {
       return "Markdown";
     case "text":
       return "Text";
+    case "bundle":
+      return "Bundle";
   }
 }
 
@@ -127,6 +219,10 @@ export function ArtifactBodyViewer({ artifact: rawArtifact, label }: Props) {
   const kind = useMemo(() => detectArtifactBodyKind(artifact), [artifact]);
   const body = useMemo(() => getArtifactDisplayBody(artifact), [artifact]);
   const metadata = useMemo(() => getArtifactMetadata(artifact), [artifact]);
+  const bundleEntries = useMemo(
+    () => (kind === "bundle" ? walkBundleEntries(artifact.body) : []),
+    [artifact.body, kind],
+  );
 
   const [tab, setTab] = useState<Tab>("preview");
   const [wrap, setWrap] = useState(true);
@@ -238,9 +334,19 @@ export function ArtifactBodyViewer({ artifact: rawArtifact, label }: Props) {
         </div>
       </div>
 
-      <div className="artifact-detail__body min-h-0 overflow-auto px-4 py-3">
+      <div
+        className={`artifact-detail__body min-h-0 ${
+          effectiveTab === "preview" && kind === "bundle"
+            ? "overflow-hidden"
+            : "overflow-auto px-4 py-3"
+        }`}
+      >
         {effectiveTab === "preview" ? (
-          <PreviewBody body={body} kind={kind} wrap={wrap} />
+          kind === "bundle" ? (
+            <BundlePreviewBody entries={bundleEntries} />
+          ) : (
+            <PreviewBody body={body} kind={kind} wrap={wrap} />
+          )
         ) : effectiveTab === "source" ? (
           <SourceBody body={body} wrap={wrap} />
         ) : (
@@ -301,6 +407,94 @@ function PreviewBody({
     <pre className="artifact-body artifact-body--text whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-gray-800 dark:text-gray-200">
       {body}
     </pre>
+  );
+}
+
+function BundlePreviewBody({ entries }: { entries: BundleEntry[] }) {
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  if (entries.length === 0) {
+    return (
+      <div className="px-4 py-3">
+        <EmptyBody />
+      </div>
+    );
+  }
+
+  // Local state may reference an entry that disappeared after the artifact
+  // changed. Fall back to the first entry rather than an empty pane.
+  const effectiveKey =
+    (selectedKey && entries.find((e) => e.key === selectedKey)?.key) ??
+    entries[0].key;
+  const selected =
+    entries.find((e) => e.key === effectiveKey) ?? entries[0];
+
+  return (
+    <div className="grid h-[60vh] min-h-[20rem] grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
+      <ul className="min-h-0 overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950/40 py-1 text-xs">
+        {entries.map((entry) => {
+          const isSelected = entry.key === effectiveKey;
+          const label = entry.name ?? entry.key;
+          const sub = entry.path.length > 0 ? entry.path.join(".") : "root";
+          return (
+            <li key={`${entry.path.join(".")}::${entry.key}`}>
+              <button
+                type="button"
+                onClick={() => setSelectedKey(entry.key)}
+                aria-current={isSelected ? "true" : undefined}
+                className={`block w-full px-3 py-2 text-left transition-colors ${
+                  isSelected
+                    ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                <div className="font-mono font-medium truncate" title={label}>
+                  {label}
+                </div>
+                {sub !== label ? (
+                  <div
+                    className="mt-0.5 truncate text-[10px] text-gray-500 dark:text-gray-400"
+                    title={sub}
+                  >
+                    {sub}
+                  </div>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="min-h-0 overflow-y-auto px-4 py-3">
+        <BundleEntryDetail entry={selected} />
+      </div>
+    </div>
+  );
+}
+
+function BundleEntryDetail({ entry }: { entry: BundleEntry }) {
+  const rendered = useMemo(() => unescapeBundleBody(entry.body), [entry.body]);
+  const pathLabel = entry.path.length > 0 ? entry.path.join(".") : "root";
+  return (
+    <div>
+      <header className="mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
+        <div className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100 break-all">
+          {entry.name ?? entry.key}
+        </div>
+        {entry.description ? (
+          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            {entry.description}
+          </p>
+        ) : null}
+        <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          {pathLabel}
+        </div>
+      </header>
+      <div className="artifact-body artifact-body--markdown text-sm leading-relaxed text-gray-800 dark:text-gray-200 break-words">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+          {rendered}
+        </ReactMarkdown>
+      </div>
+    </div>
   );
 }
 
