@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e4ae327824c3b1575ac8cadc978cf08cb49645819f5846fe098560ab27a611ba",
+    "contentHash": "74c99d7f4e6d0969898a5b414642f0ffc9e90ad46beb912e5aadce00720a52ed",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11,10 +11,6 @@
       {
         "code": "I-101",
         "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"112-factory-project-lifecycle\" declares implements path \"crates/factory-contracts/schemas/\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",

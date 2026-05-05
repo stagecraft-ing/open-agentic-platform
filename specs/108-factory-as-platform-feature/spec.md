@@ -293,6 +293,18 @@ Per-phase artefacts:
   punt TODO, cleared spec 081's now-defunct `implements:` block, and added
   this spec's `implementation-audit.md`.
 
+- **OAP-owned contract schemas relocation (2026-05-05 follow-up):**
+  The §8 deletion removed `factory/contract/schemas/` along with the rest of
+  the in-tree `factory/` tree, but `api/factory/oapContracts.ts` —
+  introduced because upstream-map v2 sources do not carry `*.schema.*` files
+  in main — still walked up looking for that path, returned an empty list on
+  every sync, and left `/app/factory/contracts` reporting "No contracts yet".
+  Resolved by relocating the nine OAP-owned schemas to
+  `crates/factory-contracts/schemas/` (four top-level + five under
+  `stage-outputs/`) and repointing the loader's walk-up target. The
+  `OAP_FACTORY_SCHEMAS_DIR` override path is preserved for production
+  containers that bind-mount the schemas elsewhere.
+
 OPC desktop migration (§7.1 punt) and the `factory_runs` persistence
 (§7.4) are tracked under **spec 124** (`opc-factory-run-platform-integration`).
 That spec migrates `apps/desktop/src-tauri/src/commands/factory.rs` to

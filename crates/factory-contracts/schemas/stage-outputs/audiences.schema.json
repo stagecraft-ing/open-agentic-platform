@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "audiences.schema.json",
+  "title": "Audiences — Stage 2 Output",
+  "description": "Who uses the system: audience groups, authentication methods, and role-permission mappings.",
+  "type": "object",
+  "required": ["audiences"],
+  "additionalProperties": false,
+  "properties": {
+    "audiences": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/audience" }
+    }
+  },
+  "$defs": {
+    "audience": {
+      "type": "object",
+      "required": ["name", "description", "auth_method", "roles"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Machine-safe audience name (e.g. \"citizen\", \"staff\")."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "auth_method": {
+          "type": "string",
+          "enum": ["saml", "oidc", "api-key", "basic", "mock"],
+          "description": "Abstract authentication method."
+        },
+        "auth_provider": {
+          "type": "string",
+          "description": "Identity provider name (e.g. \"alberta-ca-account\", \"entra-id\")."
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/role" }
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": ["role_code", "display_name", "description", "permissions"],
+      "additionalProperties": false,
+      "properties": {
+        "role_code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Machine-safe role identifier (e.g. \"cfs-analyst\")."
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable role name."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What this role can do."
+        },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Abstract permission labels (e.g. \"assess:write\", \"decision:read\")."
+        }
+      }
+    }
+  }
+}

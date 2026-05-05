@@ -2,9 +2,8 @@
  * OAP-owned contract schemas (spec 108 §3.2).
  *
  * Contract schemas are not owned by upstream repos. Per the Factory §3.2
- * architecture note, the canonical home is OAP-internal — today at
- * `factory/contract/schemas/`, tomorrow at `crates/factory-contracts/schemas/`
- * (spec 108 Phase 2).
+ * architecture note, the canonical home is OAP-internal at
+ * `crates/factory-contracts/schemas/` (spec 108 Phase 2).
  *
  * With upstream-map v2.0.0 pointing at `GovAlta-Pronghorn/goa-software-factory`
  * and `GovAlta-Pronghorn/template`, neither upstream carries `*.schema.*`
@@ -16,7 +15,7 @@
  * translators. It reads schemas from a directory resolved in this order:
  *   1. `OAP_FACTORY_SCHEMAS_DIR` env var (explicit override — set this in
  *      production container images)
- *   2. Walk up from `__dirname` looking for `factory/contract/schemas/`
+ *   2. Walk up from `__dirname` looking for `crates/factory-contracts/schemas/`
  *      (dev / monorepo-local execution)
  *   3. Return empty (no crash — browser just stays empty)
  */
@@ -30,13 +29,13 @@ import type { ContractTranslation } from "./translator";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 
-// Walk up from a starting directory looking for `factory/contract/schemas/`.
-// Bounded (walks at most 8 levels) so it fails fast if run outside the
-// monorepo.
+// Walk up from a starting directory looking for
+// `crates/factory-contracts/schemas/`. Bounded (walks at most 8 levels) so it
+// fails fast if run outside the monorepo.
 async function findSchemasDirByWalkUp(start: string): Promise<string | null> {
   let current = start;
   for (let i = 0; i < 8; i += 1) {
-    const candidate = join(current, "factory", "contract", "schemas");
+    const candidate = join(current, "crates", "factory-contracts", "schemas");
     const s = await stat(candidate).catch(() => null);
     if (s && s.isDirectory()) return candidate;
     const parent = dirname(current);
@@ -115,7 +114,7 @@ export async function loadOapOwnedContracts(
       name: deriveContractName(rel),
       version,
       sourceSha,
-      schema: { path: `factory/contract/schemas/${rel}`, body },
+      schema: { path: `crates/factory-contracts/schemas/${rel}`, body },
     });
   }
   rows.sort((a, b) => a.name.localeCompare(b.name));

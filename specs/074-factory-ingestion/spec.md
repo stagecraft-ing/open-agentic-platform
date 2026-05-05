@@ -336,6 +336,19 @@ preflight, gate, state modules) with a `factory-harness` CLI binary.
 2. Detect `.factory/build-spec.yaml` during compilation
 3. Index project name, adapter, hash, stage status
 
+### Phase 5: Schema Relocation (2026-05-05 follow-up)
+
+Spec 108 §8 retired the in-tree `factory/` tree, which removed the canonical
+`factory/contract/schemas/` location these typed representations were derived
+from. The OAP-owned schemas have been relocated to
+`crates/factory-contracts/schemas/` (four top-level: `adapter-manifest`,
+`build-spec`, `pipeline-state`, `verification`; five under `stage-outputs/`)
+so the YAML/JSON sources are co-located with the Rust types they back. The
+stagecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
+which now walks up looking for `crates/factory-contracts/schemas/` and
+respects an `OAP_FACTORY_SCHEMAS_DIR` env override for production
+containers.
+
 ## Success Criteria
 
 - **SC-001**: All four Factory contract examples parse without error into Rust types
