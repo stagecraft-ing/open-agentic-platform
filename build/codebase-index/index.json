@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "74c99d7f4e6d0969898a5b414642f0ffc9e90ad46beb912e5aadce00720a52ed",
+    "contentHash": "80b7f40513166af341e0fd762612eff4b3d492cf9f3d46c234e265ca465dc429",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -466,6 +466,7 @@
         "infer",
         "jsonschema",
         "regex",
+        "reqwest",
         "serde",
         "serde_json",
         "serde_yaml",
@@ -473,6 +474,7 @@
         "thiserror",
         "tokio",
         "tokio-util",
+        "urlencoding",
         "uuid",
         "walkdir"
       ],
@@ -1270,6 +1272,7 @@
         "vite",
         "vite-tsconfig-paths",
         "vitest",
+        "yaml",
         "zod"
       ],
       "kind": "npm-package",
@@ -2915,6 +2918,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "139-factory-artifact-substrate",
         "dependsOn": [
           "074",
           "075",
@@ -3026,6 +3030,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "139-factory-artifact-substrate",
         "dependsOn": [
           "042",
           "054",
@@ -3818,6 +3823,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "139-factory-artifact-substrate",
         "amends": [
           "119-project-as-unit-of-governance"
         ],
@@ -4290,6 +4296,166 @@
           }
         ],
         "specId": "138-stagecraft-create-realised-scaffold",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "108-factory-as-platform-feature",
+          "111-org-agent-catalog-sync",
+          "123-agent-catalog-org-rescope"
+        ],
+        "dependsOn": [
+          "082",
+          "094",
+          "108",
+          "111",
+          "112",
+          "123",
+          "124"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/engine.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/factory_root.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/substrate_version.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/virtual_root.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/bindings.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/agentCatalogMigration.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/bindings.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/browse.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/conflicts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeIngest.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/projection.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrate.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/upstreams.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/import.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "139-factory-artifact-substrate",
         "specStatus": "approved"
       }
     ],
