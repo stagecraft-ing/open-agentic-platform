@@ -284,6 +284,168 @@ export async function getFactoryProcess(request: Request, name: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Spec 139 — `/api/factory/artifacts/*` (substrate browser + override).
+// ---------------------------------------------------------------------------
+
+export type ArtifactKind =
+  | "agent"
+  | "skill"
+  | "process-stage"
+  | "adapter-manifest"
+  | "contract-schema"
+  | "pattern"
+  | "page-type-reference"
+  | "sample-html"
+  | "reference-data"
+  | "invariant"
+  | "pipeline-orchestrator";
+
+export type ArtifactSummary = {
+  id: string;
+  orgId: string;
+  origin: string;
+  path: string;
+  kind: ArtifactKind;
+  bundleId: string | null;
+  version: number;
+  status: "active" | "retired";
+  contentHash: string;
+  conflictState: "ok" | "diverged" | null;
+  hasOverride: boolean;
+  syncedAt: string;
+};
+
+export type ArtifactDetail = ArtifactSummary & {
+  upstreamSha: string | null;
+  upstreamBody: string | null;
+  userBody: string | null;
+  effectiveBody: string;
+  frontmatter: Record<string, unknown> | null;
+  conflictUpstreamSha: string | null;
+  userModifiedAt: string | null;
+  userModifiedBy: string | null;
+};
+
+export type ListArtifactsResponse = {
+  artifacts: ArtifactSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export async function listFactoryArtifacts(
+  request: Request,
+  params: {
+    kind?: ArtifactKind;
+    origin?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
+) {
+  const search = new URLSearchParams();
+  if (params.kind) search.set("kind", params.kind);
+  if (params.origin) search.set("origin", params.origin);
+  if (params.page) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const query = search.toString() ? `?${search.toString()}` : "";
+  return apiFetch(
+    request,
+    `/api/factory/artifacts${query}`,
+  ) as Promise<ListArtifactsResponse>;
+}
+
+export async function getFactoryArtifactById(
+  request: Request,
+  id: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}`,
+  ) as Promise<ArtifactDetail>;
+}
+
+export async function applyFactoryArtifactOverride(
+  request: Request,
+  id: string,
+  userBody: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}/override`,
+    {
+      method: "POST",
+      body: JSON.stringify({ userBody }),
+      headers: { "content-type": "application/json" },
+    },
+  ) as Promise<ArtifactDetail>;
+}
+
+export async function clearFactoryArtifactOverride(
+  request: Request,
+  id: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}/override`,
+    { method: "DELETE" },
+  ) as Promise<ArtifactDetail>;
+}
+
+export type ArtifactConflictSummary = {
+  id: string;
+  origin: string;
+  path: string;
+  kind: string;
+  conflictUpstreamSha: string | null;
+  upstreamSha: string | null;
+  upstreamBody: string | null;
+  userBody: string | null;
+  contentHash: string;
+};
+
+export async function listFactoryArtifactConflicts(request: Request) {
+  return apiFetch(request, "/api/factory/artifacts/conflicts") as Promise<{
+    conflicts: ArtifactConflictSummary[];
+  }>;
+}
+
+export async function resolveFactoryArtifactConflict(
+  request: Request,
+  id: string,
+  action: "keep_mine" | "take_upstream",
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ action }),
+      headers: { "content-type": "application/json" },
+    },
+  ) as Promise<ArtifactDetail>;
+}
+
+/**
+ * Spec 139 Phase 2 (T058) — `edit_and_accept` resolution. Carries the
+ * hand-merged body to the platform; server stores it as `user_body`.
+ */
+export async function resolveFactoryArtifactEditAndAccept(
+  request: Request,
+  id: string,
+  body: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ action: "edit_and_accept", body }),
+      headers: { "content-type": "application/json" },
+    },
+  ) as Promise<ArtifactDetail>;
+}
+
+// ---------------------------------------------------------------------------
 // Spec 124 — factory runs (list + detail).
 // ---------------------------------------------------------------------------
 //

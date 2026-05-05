@@ -20,8 +20,8 @@ import log from "encore.dev/log";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
-  agentCatalog,
-  projectAgentBindings,
+  factoryArtifactSubstrate,
+  factoryBindings,
   projects,
   type AgentCatalogStatus,
 } from "../db/schema";
@@ -39,8 +39,33 @@ import type {
 } from "../sync/types";
 import type { CatalogFrontmatter } from "./frontmatter";
 
-type AgentRow = typeof agentCatalog.$inferSelect;
-type BindingRow = typeof projectAgentBindings.$inferSelect;
+// Spec 139 Phase 4 (T091) — agent rows are projected from the substrate.
+// `AgentRow` is the wire-side shape catalog.ts produces via
+// `toWireForRelay`; defined structurally so the relay doesn't import the
+// retired `agent_catalog` Drizzle export.
+export type AgentRow = {
+  id: string;
+  orgId: string;
+  name: string;
+  version: number;
+  status: AgentCatalogStatus;
+  contentHash: string;
+  frontmatter: Record<string, unknown>;
+  bodyMarkdown: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type BindingRow = {
+  id: string;
+  projectId: string;
+  orgAgentId: string;
+  pinnedVersion: number;
+  pinnedContentHash: string;
+  boundBy: string;
+  boundAt: Date;
+};
 
 // ---------------------------------------------------------------------------
 // Envelope construction
@@ -118,33 +143,50 @@ export async function publishAgentCatalogUpdated(
 export async function buildAgentCatalogSnapshotEntries(
   orgId: string,
 ): Promise<AgentCatalogSnapshotEntry[]> {
+  // Spec 139 Phase 4 (T091): published-only filter realised by
+  // `frontmatter.publication_status='published'` (Phase 2 mirror seeded
+  // this; Phase 4 catalog.ts handlers maintain it). Substrate `status`
+  // alone collapses draft+published to `active`, so the publication
+  // ternary lives in frontmatter for substrate-direct consumers.
   const rows = await db
     .select({
-      id: agentCatalog.id,
-      orgId: agentCatalog.orgId,
-      name: agentCatalog.name,
-      version: agentCatalog.version,
-      status: agentCatalog.status,
-      contentHash: agentCatalog.contentHash,
-      updatedAt: agentCatalog.updatedAt,
+      id: factoryArtifactSubstrate.id,
+      orgId: factoryArtifactSubstrate.orgId,
+      path: factoryArtifactSubstrate.path,
+      version: factoryArtifactSubstrate.version,
+      contentHash: factoryArtifactSubstrate.contentHash,
+      frontmatter: factoryArtifactSubstrate.frontmatter,
+      updatedAt: factoryArtifactSubstrate.updatedAt,
     })
-    .from(agentCatalog)
+    .from(factoryArtifactSubstrate)
     .where(
       and(
-        eq(agentCatalog.orgId, orgId),
-        eq(agentCatalog.status, "published" as AgentCatalogStatus),
+        eq(factoryArtifactSubstrate.orgId, orgId),
+        eq(factoryArtifactSubstrate.origin, "user-authored"),
+        eq(factoryArtifactSubstrate.kind, "agent"),
+        eq(factoryArtifactSubstrate.status, "active"),
       ),
     );
 
-  return rows.map((r) => ({
-    agentId: r.id,
-    orgId: r.orgId,
-    name: r.name,
-    version: r.version,
-    status: r.status as "published",
-    contentHash: r.contentHash,
-    updatedAt: r.updatedAt.toISOString(),
-  }));
+  return rows
+    .filter((r) => {
+      const fm = r.frontmatter as Record<string, unknown> | null;
+      return fm?.publication_status === "published";
+    })
+    .map((r) => {
+      const name = r.path.startsWith("user-authored/")
+        ? r.path.slice("user-authored/".length, r.path.length - ".md".length)
+        : r.path;
+      return {
+        agentId: r.id,
+        orgId: r.orgId,
+        name,
+        version: r.version,
+        status: "published" as const,
+        contentHash: r.contentHash,
+        updatedAt: r.updatedAt.toISOString(),
+      };
+    });
 }
 
 /**
@@ -220,28 +262,38 @@ export async function publishProjectAgentBindingUpdated(args: {
 export async function buildProjectAgentBindingSnapshotEntries(
   projectId: string,
 ): Promise<ProjectAgentBindingSnapshotEntry[]> {
+  // Spec 139 Phase 4 (T091): bindings projected from substrate via
+  // `factory_bindings` ⨝ `factory_artifact_substrate`. The legacy
+  // `org_agent_id` field on the wire is preserved (Phase 2 migration
+  // preserved `agent_catalog.id` as `factory_artifact_substrate.id`
+  // so the field's UUID is still meaningful to existing consumers).
   const rows = await db
     .select({
-      bindingId: projectAgentBindings.id,
-      orgAgentId: projectAgentBindings.orgAgentId,
-      pinnedVersion: projectAgentBindings.pinnedVersion,
-      pinnedContentHash: projectAgentBindings.pinnedContentHash,
-      agentName: agentCatalog.name,
+      bindingId: factoryBindings.id,
+      artifactId: factoryBindings.artifactId,
+      pinnedVersion: factoryBindings.pinnedVersion,
+      pinnedContentHash: factoryBindings.pinnedContentHash,
+      path: factoryArtifactSubstrate.path,
     })
-    .from(projectAgentBindings)
+    .from(factoryBindings)
     .innerJoin(
-      agentCatalog,
-      eq(agentCatalog.id, projectAgentBindings.orgAgentId),
+      factoryArtifactSubstrate,
+      eq(factoryArtifactSubstrate.id, factoryBindings.artifactId),
     )
-    .where(eq(projectAgentBindings.projectId, projectId));
+    .where(eq(factoryBindings.projectId, projectId));
 
-  return rows.map((r) => ({
-    bindingId: r.bindingId,
-    orgAgentId: r.orgAgentId,
-    agentName: r.agentName,
-    pinnedVersion: r.pinnedVersion,
-    pinnedContentHash: r.pinnedContentHash,
-  }));
+  return rows.map((r) => {
+    const agentName = r.path.startsWith("user-authored/")
+      ? r.path.slice("user-authored/".length, r.path.length - ".md".length)
+      : r.path;
+    return {
+      bindingId: r.bindingId,
+      orgAgentId: r.artifactId,
+      agentName,
+      pinnedVersion: r.pinnedVersion,
+      pinnedContentHash: r.pinnedContentHash,
+    };
+  });
 }
 
 /**

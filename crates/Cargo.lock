@@ -2260,6 +2260,7 @@ dependencies = [
  "orchestrator",
  "provenance-validator",
  "regex",
+ "reqwest 0.13.3",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2269,6 +2270,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-util",
+ "urlencoding",
  "uuid",
  "walkdir",
 ]

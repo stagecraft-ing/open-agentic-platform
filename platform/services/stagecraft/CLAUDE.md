@@ -45,8 +45,19 @@ For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, midd
 
 Project creation and import live under `api/projects/`:
 
-- `create.ts` (spec 112 §5) — `POST /api/projects/factory-create`. ACP-native; writes commit #1 with a `.factory/pipeline-state.json` L0 seed, links the project to a `factory_adapters` row, auto-provisions a `kind=development` environments row (Phase 7), and returns an `opc://` deep link. Pre-flight checks (warmup readiness, adapter present, upstream PAT configured, spec 112 §10 runtime gate) raise `APIError.failedPrecondition` with the actual cause — never the Encore-wrapped generic 500.
-- `scaffoldReadiness.ts` (spec 112 Phase 5) — `GET /api/projects/scaffold-readiness`. Per-org readiness verdict for the Create form: `{ ready, step, progress, hasFactoryAdapter, hasUpstreamPat, canCreate, blocker }`. The web UI renders a banner per-blocker and disables submit until `canCreate` flips.
+**Spec 139 Phase 4 cutover (2026-05-05):** the spec 108 `factory_adapters` /
+`factory_contracts` / `factory_processes` tables were dropped (migration
+34). Adapter / contract / process reads project from
+`factory_artifact_substrate` via
+`api/factory/substrateBrowser.ts::loadSubstrateForOrg` +
+`api/factory/projection.ts::projectSubstrateToLegacy`. The OPC desktop's
+factory_root materialises through `factory-platform-client`; spec 139
+adds the substrate-aware `VirtualRoot` (Rust, `crates/factory-engine`)
+as the canonical replacement. The `agent_catalog` family stays in the
+schema until Phase 4b ships the `bindings.ts` re-point.
+
+- `create.ts` (spec 112 §5) — `POST /api/projects/factory-create`. ACP-native; writes commit #1 with a `.factory/pipeline-state.json` L0 seed, links the project to an adapter (substrate-projected; spec 139 Phase 4), auto-provisions a `kind=development` environments row (Phase 7), and returns an `opc://` deep link. Pre-flight checks (warmup readiness, adapter present, upstream PAT configured, spec 112 §10 runtime gate) raise `APIError.failedPrecondition` with the actual cause — never the Encore-wrapped generic 500.
+- `scaffoldReadiness.ts` (spec 112 Phase 5; spec 139 T056) — `GET /api/projects/scaffold-readiness`. Per-org readiness verdict for the Create form: `{ ready, step, progress, hasFactoryAdapter, hasUpstreamPat, scaffoldSourceResolved, adapters[], canCreate, blocker }`. Adapter rows project from substrate. The web UI renders a banner per-blocker (`no-scaffold-source-resolved` is the spec 139 addition) and disables submit until `canCreate` flips.
 - `import.ts` (spec 112 §6) — `POST /api/projects/factory-import`. Clones the repo, shells the `factory-project-detect` CLI for a governed detection read, branches on the level (reject / translate / register), and emits a `project.imported` audit event.
 - `clone.ts` (spec 113) — `POST /api/projects/{sourceProjectId}/clone`. Mirror-clones a source project's primary repo into the caller's current OAP org installation, registers a new project bound to that repo, hydrates raw artefacts via the same `registerRawArtifactsFromRepo` path as import, and emits a `project.cloned` audit event. Default-vs-user-typed name semantics resolve collisions per FR-029/FR-030; rollback deletes the destination repo on any post-create failure.
 - `cloneAvailability.ts` (spec 113) — `GET /api/projects/clone/check-availability`. Read-only, idempotent verdict for the Clone dialog's debounced field checks.

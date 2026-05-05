@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -11,6 +12,7 @@ import {
   jsonb,
   unique,
   index,
+  primaryKey,
   customType,
 } from "drizzle-orm/pg-core";
 
@@ -748,70 +750,181 @@ export const oidcGroupRoleMappings = pgTable(
 // every sync run; only the latest snapshot per (org, name[, version]) is
 // retained.
 
-export const factoryUpstreams = pgTable("factory_upstreams", {
-  orgId: uuid("org_id").primaryKey(),
-  factorySource: text("factory_source").notNull(),
-  factoryRef: text("factory_ref").notNull().default("main"),
-  templateSource: text("template_source").notNull(),
-  templateRef: text("template_ref").notNull().default("main"),
-  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
-  lastSyncSha: jsonb("last_sync_sha"),
-  lastSyncStatus: text("last_sync_status"),
-  lastSyncError: text("last_sync_error"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-export const factoryAdapters = pgTable(
-  "factory_adapters",
+// Spec 139 Phase 1 — generalised from singleton-per-org to N-per-org keyed
+// by (org_id, source_id). The legacy singleton row migrates to
+// source_id='legacy-mixed' / role='mixed' so spec 108's API surface keeps
+// serving. Legacy `factory_source` / `template_source` columns stay
+// nullable through Phases 1-3; Phase 4 drops them.
+export const factoryUpstreams = pgTable(
+  "factory_upstreams",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
     orgId: uuid("org_id").notNull(),
-    name: text("name").notNull(),
-    version: text("version").notNull(),
-    manifest: jsonb("manifest").notNull(),
-    sourceSha: text("source_sha").notNull(),
-    syncedAt: timestamp("synced_at", { withTimezone: true })
+    // Spec 139 §3.1 — stable per-org identifier for this upstream.
+    sourceId: text("source_id").notNull(),
+    // Spec 139 §2.2 — 'orchestration' | 'scaffold' | 'mixed' | 'oap-self'.
+    role: text("role").notNull(),
+    // Repo identity + ref drive `cloneAndTranslate` regardless of role.
+    repoUrl: text("repo_url").notNull(),
+    ref: text("ref").notNull().default("main"),
+    // Optional subpath inside the repo (e.g. 'Factory Agent/' or
+    // 'orchestration/'); NULL means whole repo.
+    subpath: text("subpath"),
+    // Spec 108 legacy columns. Phase 1 made them nullable; Phase 4 (T093)
+    // intentionally KEEPS them in this migration — they back the
+    // legacy singleton wire shape on `GET/POST /api/factory/upstreams`
+    // (factorySource/factoryRef/templateSource/templateRef as separate
+    // fields). The column drop is deferred to Phase 4b after the wire
+    // shape migrates to the N-per-org `/api/factory/upstreams/sources`
+    // endpoint exclusively.
+    factorySource: text("factory_source"),
+    factoryRef: text("factory_ref").default("main"),
+    templateSource: text("template_source"),
+    templateRef: text("template_ref").default("main"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastSyncSha: jsonb("last_sync_sha"),
+    lastSyncStatus: text("last_sync_status"),
+    lastSyncError: text("last_sync_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [unique().on(t.orgId, t.name)]
+  (t) => [primaryKey({ columns: [t.orgId, t.sourceId] })],
 );
 
-export const factoryContracts = pgTable(
-  "factory_contracts",
+// Spec 139 Phase 4 (T093) — `factory_adapters`, `factory_contracts`, and
+// `factory_processes` tables were dropped by migration 34. Reads project
+// from `factory_artifact_substrate` via `loadSubstrateForOrg` +
+// `projectSubstrateToLegacy`; writes are gone (the substrate is the only
+// authoritative store post-cutover).
+//
+// Spec 111 / 123 tables (`agent_catalog`, `agent_catalog_audit`,
+// `project_agent_bindings`) remain in the schema below — their drop is
+// gated to Phase 4b after the org-side `bindings.ts` re-point lands.
+
+// ---------------------------------------------------------------------------
+// Spec 139 Phase 1 — content-addressed factory artifact substrate.
+//
+// One row per upstream file (verbatim mirror), indexed by
+// (org_id, origin, path, version). `effective_body` is generated stored
+// from COALESCE(user_body, upstream_body); consumers select that column.
+// Closed-set kind/status/conflict_state are CHECK-constrained at the SQL
+// level (migration 32) — these TS unions document the narrowing for
+// handlers and the substrate state machine.
+// ---------------------------------------------------------------------------
+
+export type ArtifactKind =
+  | "agent"
+  | "skill"
+  | "process-stage"
+  | "adapter-manifest"
+  | "contract-schema"
+  | "pattern"
+  | "page-type-reference"
+  | "sample-html"
+  | "reference-data"
+  | "invariant"
+  | "pipeline-orchestrator";
+
+export type ArtifactStatus = "active" | "retired";
+
+export type ArtifactConflictState = "ok" | "diverged" | null;
+
+export type ArtifactAuditAction =
+  | "artifact.synced"
+  | "artifact.retired"
+  | "artifact.overridden"
+  | "artifact.override_cleared"
+  | "artifact.conflict_detected"
+  | "artifact.conflict_resolved"
+  // Spec 139 §6.4 — added Phase 2 to absorb spec 111
+  // `agent_catalog_audit.action='fork'` 1:1 (T051).
+  | "artifact.forked";
+
+// SQL table is `factory_artifact_substrate` (NOT `factory_artifacts`) — the
+// shorter name was already taken by spec 082's per-run pipeline artifact
+// registry (`factoryArtifacts` declared above at line ~583). See spec 139
+// §2.1 Naming Note. Drizzle export name mirrors the SQL identifier.
+export const factoryArtifactSubstrate = pgTable(
+  "factory_artifact_substrate",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     orgId: uuid("org_id").notNull(),
-    name: text("name").notNull(),
-    version: text("version").notNull(),
-    schema: jsonb("schema").notNull(),
-    sourceSha: text("source_sha").notNull(),
-    syncedAt: timestamp("synced_at", { withTimezone: true })
+    origin: text("origin").notNull(),
+    path: text("path").notNull(),
+    kind: text("kind").$type<ArtifactKind>().notNull(),
+    bundleId: uuid("bundle_id"),
+    version: integer("version").notNull().default(1),
+    status: text("status").$type<ArtifactStatus>().notNull().default("active"),
+    upstreamSha: text("upstream_sha"),
+    upstreamBody: text("upstream_body"),
+    userBody: text("user_body"),
+    userModifiedAt: timestamp("user_modified_at", { withTimezone: true }),
+    userModifiedBy: uuid("user_modified_by"),
+    // Generated-stored at the SQL level: COALESCE(user_body, upstream_body)
+    // (migration 32). Drizzle excludes `generatedAlwaysAs` columns from
+    // $inferInsert so TS handlers cannot accidentally write to it.
+    effectiveBody: text("effective_body")
+      .generatedAlwaysAs(sql`COALESCE(user_body, upstream_body)`)
+      .notNull(),
+    contentHash: text("content_hash").notNull(),
+    frontmatter: jsonb("frontmatter"),
+    conflictState: text("conflict_state").$type<ArtifactConflictState>(),
+    conflictUpstreamSha: text("conflict_upstream_sha"),
+    conflictResolvedAt: timestamp("conflict_resolved_at", {
+      withTimezone: true,
+    }),
+    conflictResolvedBy: uuid("conflict_resolved_by"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [unique().on(t.orgId, t.name, t.version)]
+  (t) => [unique().on(t.orgId, t.origin, t.path, t.version)],
 );
 
-export const factoryProcesses = pgTable(
-  "factory_processes",
+export const factoryArtifactSubstrateAudit = pgTable(
+  "factory_artifact_substrate_audit",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    artifactId: uuid("artifact_id").notNull(),
     orgId: uuid("org_id").notNull(),
-    name: text("name").notNull(),
-    version: text("version").notNull(),
-    definition: jsonb("definition").notNull(),
-    sourceSha: text("source_sha").notNull(),
-    syncedAt: timestamp("synced_at", { withTimezone: true })
+    action: text("action").$type<ArtifactAuditAction>().notNull(),
+    actorUserId: uuid("actor_user_id"),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [unique().on(t.orgId, t.name, t.version)]
+);
+
+// Spec 139 §2.1 — universal pinning. Replaces spec 123
+// `project_agent_bindings`; same shape, applies to any kind.
+// Invariants I-B1..I-B4 carry over:
+//   I-B1: no definition override (only id+version+hash).
+//   I-B2: pin integrity — `pinnedContentHash` MUST match the
+//         artifact row's `contentHash` at `(artifactId, pinnedVersion)`.
+//   I-B3: retired-upstream bindings stay readable but cannot be repinned.
+//   I-B4: ON DELETE RESTRICT on `artifactId` — retire instead of hard delete.
+export const factoryBindings = pgTable(
+  "factory_bindings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    artifactId: uuid("artifact_id").notNull(),
+    pinnedVersion: integer("pinned_version").notNull(),
+    pinnedContentHash: text("pinned_content_hash").notNull(),
+    boundBy: uuid("bound_by").notNull(),
+    boundAt: timestamp("bound_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.projectId, t.artifactId)],
 );
 
 // ---------------------------------------------------------------------------

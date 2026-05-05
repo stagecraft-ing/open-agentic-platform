@@ -33,7 +33,6 @@ import { db } from "../db/drizzle";
 import {
   auditLog,
   environments,
-  factoryAdapters,
   githubInstallations,
   projectMembers,
   projectRepos,
@@ -43,6 +42,8 @@ import {
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
 import { loadFactoryUpstreamPatToken } from "../factory/upstreamPat";
+import { loadSubstrateForOrg } from "../factory/substrateBrowser";
+import { projectSubstrateToLegacy } from "../factory/projection";
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
 import { gitInitAndPush } from "./scaffold/gitInitAndPush";
@@ -511,29 +512,31 @@ async function loadFactoryAdapter(
   sourceSha: string;
   manifest: Record<string, unknown>;
 }> {
-  const [row] = await db
-    .select({
-      id: factoryAdapters.id,
-      name: factoryAdapters.name,
-      version: factoryAdapters.version,
-      sourceSha: factoryAdapters.sourceSha,
-      manifest: factoryAdapters.manifest,
-    })
-    .from(factoryAdapters)
-    .where(
-      and(eq(factoryAdapters.orgId, orgId), eq(factoryAdapters.id, adapterId))
-    )
-    .limit(1);
-  if (!row) {
+  // Spec 139 Phase 4 (T091): adapter manifests live in
+  // `factory_artifact_substrate`. The synthesised id matches
+  // `browse.ts::synthesiseId` so consumers that received the id from
+  // listAdapters can use it here unchanged. Adapters resolve by name
+  // when the synthesised id matches a projection-emitted adapter.
+  const substrate = await loadSubstrateForOrg(orgId);
+  const projection = projectSubstrateToLegacy(substrate);
+  const found = projection.adapters.find(
+    (a) => synthesiseAdapterId(orgId, a.name) === adapterId,
+  );
+  if (!found) {
     throw APIError.notFound(`Factory adapter ${adapterId} not found in org`);
   }
   return {
-    id: row.id,
-    name: row.name,
-    version: row.version,
-    sourceSha: row.sourceSha,
-    manifest: row.manifest as Record<string, unknown>,
+    id: adapterId,
+    name: found.name,
+    version: found.version,
+    sourceSha: found.sourceSha,
+    manifest: found.manifest as Record<string, unknown>,
   };
+}
+
+/** Spec 139 Phase 4 — must match `browse.ts::synthesiseId` (substrate cutover). */
+function synthesiseAdapterId(orgId: string, name: string): string {
+  return `synthetic-adapter-${orgId.slice(0, 8)}-${name}`;
 }
 
 async function loadActiveInstallation(

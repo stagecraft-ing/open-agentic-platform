@@ -107,6 +107,29 @@ export interface FactoryAgentRef {
   contentHash: string;
 }
 
+/**
+ * Spec 139 Phase 3 (T073) — generalisation of `FactoryAgentRef` to any
+ * substrate-tracked artifact (adapter, contract, skill, pattern, etc.).
+ * The triple shape is identical; the field name change reflects that
+ * spec 139 unified the agent catalog into the substrate, so the
+ * "thing being pinned" is now an `artifact_id` rather than an
+ * `org_agent_id`.
+ *
+ * **Backward-compat window (one release):** Encore handlers that record
+ * stage progress accept BOTH `agentRef` and `artifactRef` shapes. Going
+ * forward emit `artifactRef`. After the soak window the desktop drops
+ * `agentRef` and Phase 4 prep removes the dual-acceptance from the
+ * handlers.
+ */
+export interface FactoryArtifactRef {
+  /** `factory_artifact_substrate.id` — stable across versions per (org, origin, path). */
+  artifactId: string;
+  /** Monotonic version on the substrate row. */
+  version: number;
+  /** sha-256 content hash from the substrate row at resolve time. */
+  contentHash: string;
+}
+
 export interface EnvelopeMeta {
   /** Schema version — required; strict equality enforced at the boundary. */
   v: EnvelopeSchemaVersion;
@@ -272,9 +295,24 @@ export interface ClientFactoryRunStageStarted {
   runId: string;
   /** Stage identifier (e.g. `s0`, `s1`, `s6a`). Free-form within the run. */
   stageId: string;
-  /** Projection of spec-123 ResolvedAgent for the agent driving this stage.
-   *  Persisted under `factory_runs.source_shas.agents[]`. */
-  agentRef: FactoryAgentRef;
+  /**
+   * Projection of spec-123 ResolvedAgent for the agent driving this stage.
+   * Persisted under `factory_runs.source_shas.agents[]`.
+   *
+   * **Spec 139 Phase 3 (T073) deprecation:** `agentRef` is the legacy
+   * shape; new emitters SHOULD use `artifactRef` instead. Encore handlers
+   * accept both during the one-release backward-compat window. Receiver
+   * code resolves the triple via `agentRef ?? artifactRef` and treats
+   * either as authoritative; the substrate guarantees `artifactId ===
+   * orgAgentId` for migrated user-authored agents (migration 33 §1).
+   */
+  agentRef?: FactoryAgentRef;
+  /**
+   * Spec 139 Phase 3 (T073) — generalised triple referencing any
+   * substrate artifact. Going forward this is the canonical field;
+   * `agentRef` remains for one-release compat.
+   */
+  artifactRef?: FactoryArtifactRef;
   /** ISO-8601 wall-clock from the desktop. */
   startedAt: string;
 }

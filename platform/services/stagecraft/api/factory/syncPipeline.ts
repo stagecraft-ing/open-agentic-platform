@@ -1,27 +1,39 @@
 /**
- * Core Factory sync pipeline (spec 109 §5).
+ * Spec 139 Phase 1 — factory sync pipeline (substrate-authoritative).
  *
- * The actual clone + translate + upsert logic, lifted out of the old
- * inline endpoint so it can be shared between the PubSub worker and any
- * future admin CLI. Pure helpers — no HTTP surface — so they can be
- * unit-tested against a real Postgres via `encore test`.
+ * The pipeline walks the upstream end-to-end into the
+ * `factory_artifact_substrate` substrate (verbatim mirror per spec 139 §5).
+ * Spec 108's API surface (`/api/factory/{adapters,contracts,processes}`)
+ * is served by `browse.ts` projecting the substrate at read time via
+ * `loadSubstrateForOrg` + `projectSubstrateToLegacy`.
+ *
+ * **Spec 139 Phase 4 (T091):** the legacy projection write path was
+ * retired. The substrate is the only store; legacy `factory_adapters` /
+ * `factory_contracts` / `factory_processes` tables drop in migration 34.
+ * The substrate write runs in one `db.transaction(...)` — no partial
+ * state.
  */
 
 import log from "encore.dev/log";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
-  factoryAdapters,
-  factoryContracts,
-  factoryProcesses,
+  factoryArtifactSubstrate,
+  factoryArtifactSubstrateAudit,
   factoryUpstreams,
+  type ArtifactKind,
 } from "../db/schema";
 import { withClonedRepo } from "./clone";
 import {
-  translateUpstreams,
-  type TranslationResult,
+  translateUpstreamsToSubstrate,
+  type SubstrateRowDraft,
+  type SubstrateTranslation,
 } from "./translator";
-import { loadOapOwnedContracts } from "./oapContracts";
+import { sha256Hex, type SubstrateRow } from "./substrate";
+
+// ---------------------------------------------------------------------------
+// Public entry — full upstream sync.
+// ---------------------------------------------------------------------------
 
 export type SyncPipelineInputs = {
   orgId: string;
@@ -39,47 +51,47 @@ export type SyncPipelineResult = {
 };
 
 export async function runSyncPipeline(
-  inputs: SyncPipelineInputs
+  inputs: SyncPipelineInputs,
 ): Promise<SyncPipelineResult> {
   const translation = await cloneAndTranslate(inputs);
   const syncedAt = new Date();
 
-  await applyTranslation({
+  await applyDualWrite({
     orgId: inputs.orgId,
-    translation: translation.result,
+    substrate: translation.substrate,
     factorySha: translation.factorySha,
     templateSha: translation.templateSha,
     syncedAt,
   });
 
+  // Per-kind counts come from the substrate now that the legacy projection
+  // tables are retired. The wire shape of `SyncPipelineResult.counts` stays
+  // the same so spec 108's `/api/factory/upstreams/sync` consumer doesn't
+  // change.
+  const counts = countByLegacyKind(translation.substrate);
   log.info("factory sync pipeline completed", {
     orgId: inputs.orgId,
     factorySha: translation.factorySha,
     templateSha: translation.templateSha,
-    adapters: translation.result.adapters.length,
-    contracts: translation.result.contracts.length,
-    processes: translation.result.processes.length,
+    artifacts: translation.substrate.rows.length,
+    ...counts,
   });
 
   return {
     factorySha: translation.factorySha,
     templateSha: translation.templateSha,
-    counts: {
-      adapters: translation.result.adapters.length,
-      contracts: translation.result.contracts.length,
-      processes: translation.result.processes.length,
-    },
+    counts,
   };
 }
 
 type CloneAndTranslateResult = {
-  result: TranslationResult;
+  substrate: SubstrateTranslation;
   factorySha: string;
   templateSha: string;
 };
 
 async function cloneAndTranslate(
-  inputs: SyncPipelineInputs
+  inputs: SyncPipelineInputs,
 ): Promise<CloneAndTranslateResult> {
   return withClonedRepo(
     {
@@ -95,140 +107,104 @@ async function cloneAndTranslate(
           token: inputs.token,
         },
         async (templateRepo) => {
-          const upstream = await translateUpstreams({
+          // Single walk → substrate. Substrate is the only authoritative
+          // store from Phase 4 onward; consumers project at read time.
+          const substrate = await translateUpstreamsToSubstrate({
             factorySourcePath: factoryRepo.path,
             factorySourceSha: factoryRepo.sha,
             templatePath: templateRepo.path,
             templateSha: templateRepo.sha,
-            // Stamp the synthetic adapter manifest with the upstream
-            // template repo identity so the Create-time scaffold layer
-            // (spec 112 §5.2) can resolve a clone URL without
-            // re-reading factory_upstreams. Spec 112 §5.3 op 1.
             templateRemote: inputs.templateSource,
             templateDefaultBranch: inputs.templateRef,
           });
 
-          // Contract schemas are OAP-owned (spec 108 §3.2). The upstreams
-          // carry adapters + processes; schemas are merged from OAP's own
-          // tree so factory_contracts is populated regardless of what the
-          // upstream translators find.
-          const oapContracts = await loadOapOwnedContracts(
-            factoryRepo.sha.slice(0, 12),
-            factoryRepo.sha
-          );
-          const byName = new Map<string, TranslationResult["contracts"][number]>();
-          for (const c of [...oapContracts, ...upstream.contracts]) {
-            // OAP-owned schemas take precedence over any accidentally
-            // matching upstream schema name: the browser should show the
-            // governance source of truth.
-            if (!byName.has(c.name)) byName.set(c.name, c);
-          }
-
-          const result: TranslationResult = {
-            adapters: upstream.adapters,
-            processes: upstream.processes,
-            contracts: Array.from(byName.values()),
-          };
-
           return {
-            result,
+            substrate,
             factorySha: factoryRepo.sha,
             templateSha: templateRepo.sha,
           };
-        }
-      )
+        },
+      ),
   );
 }
 
+/**
+ * Approximate the legacy adapters/contracts/processes counts from the
+ * substrate state. Used only for the sync-result wire shape compat with
+ * spec 108 — the count values themselves aren't load-bearing for any
+ * downstream gate; they're informational on the sync-runs admin view.
+ */
+function countByLegacyKind(substrate: SubstrateTranslation): {
+  adapters: number;
+  contracts: number;
+  processes: number;
+} {
+  let adapters = 0;
+  let contracts = 0;
+  let processes = 0;
+  // Each org has exactly one synthetic adapter (`aim-vue-node`) +
+  // one synthetic process (`7-stage-build`) under the spec 108 model;
+  // those slots stay populated as long as the substrate has any
+  // adapter-shape or process-shape content.
+  for (const row of substrate.rows) {
+    if (row.kind === "contract-schema") contracts += 1;
+  }
+  if (
+    substrate.rows.some(
+      (r) =>
+        r.origin === substrate.templateOriginId &&
+        r.kind === "pipeline-orchestrator",
+    )
+  ) {
+    adapters = 1;
+  }
+  if (
+    substrate.rows.some(
+      (r) =>
+        r.origin === substrate.factoryOriginId &&
+        r.kind === "pipeline-orchestrator",
+    )
+  ) {
+    processes = 1;
+  }
+  return { adapters, contracts, processes };
+}
+
+// ---------------------------------------------------------------------------
+// Dual-write — substrate (authoritative) + legacy projection, in one
+// transaction.
+// ---------------------------------------------------------------------------
+
 type ApplyArgs = {
   orgId: string;
-  translation: TranslationResult;
+  substrate: SubstrateTranslation;
   factorySha: string;
   templateSha: string;
   syncedAt: Date;
 };
 
-async function applyTranslation(args: ApplyArgs): Promise<void> {
+async function applyDualWrite(args: ApplyArgs): Promise<void> {
   await db.transaction(async (tx) => {
-    // Prune + upsert adapters.
-    const adapterNames = args.translation.adapters.map((a) => a.name);
-    if (adapterNames.length > 0) {
-      const existing = await tx
-        .select({ name: factoryAdapters.name })
-        .from(factoryAdapters)
-        .where(eq(factoryAdapters.orgId, args.orgId));
-      const toDelete = existing
-        .map((r) => r.name)
-        .filter((n) => !adapterNames.includes(n));
-      for (const name of toDelete) {
-        await tx
-          .delete(factoryAdapters)
-          .where(
-            and(
-              eq(factoryAdapters.orgId, args.orgId),
-              eq(factoryAdapters.name, name)
-            )
-          );
-      }
-    } else {
-      await tx
-        .delete(factoryAdapters)
-        .where(eq(factoryAdapters.orgId, args.orgId));
-    }
+    // ---------- Substrate (authoritative) ----------
+    await applySubstrateRowsTx(tx, {
+      orgId: args.orgId,
+      origins: [
+        args.substrate.factoryOriginId,
+        args.substrate.templateOriginId,
+      ],
+      rows: args.substrate.rows,
+    });
 
-    for (const a of args.translation.adapters) {
-      await tx
-        .insert(factoryAdapters)
-        .values({
-          orgId: args.orgId,
-          name: a.name,
-          version: a.version,
-          manifest: a.manifest,
-          sourceSha: a.sourceSha,
-          syncedAt: args.syncedAt,
-        })
-        .onConflictDoUpdate({
-          target: [factoryAdapters.orgId, factoryAdapters.name],
-          set: {
-            version: a.version,
-            manifest: a.manifest,
-            sourceSha: a.sourceSha,
-            syncedAt: args.syncedAt,
-          },
-        });
-    }
-
-    // Replace contracts (keep-latest semantics, matching Phase 3 behaviour).
-    await tx
-      .delete(factoryContracts)
-      .where(eq(factoryContracts.orgId, args.orgId));
-    for (const c of args.translation.contracts) {
-      await tx.insert(factoryContracts).values({
-        orgId: args.orgId,
-        name: c.name,
-        version: c.version,
-        schema: c.schema,
-        sourceSha: c.sourceSha,
-        syncedAt: args.syncedAt,
-      });
-    }
-
-    // Same for processes.
-    await tx
-      .delete(factoryProcesses)
-      .where(eq(factoryProcesses.orgId, args.orgId));
-    for (const p of args.translation.processes) {
-      await tx.insert(factoryProcesses).values({
-        orgId: args.orgId,
-        name: p.name,
-        version: p.version,
-        definition: p.definition,
-        sourceSha: p.sourceSha,
-        syncedAt: args.syncedAt,
-      });
-    }
+    // Spec 139 Phase 4 (T091): the legacy projection write path is
+    // retired. `factory_adapters` / `factory_contracts` /
+    // `factory_processes` are dropped by migration 34; consumers
+    // (browse.ts, opcBundle.ts, create.ts, import.ts, scaffoldReadiness.ts,
+    // scheduler.ts) project the legacy wire shape from the substrate at
+    // read time via `loadSubstrateForOrg` + `projectSubstrateToLegacy`.
 
     // Denormalised "current state" mirror on factory_upstreams.
+    // Spec 139 generalised the PK to (org_id, source_id); the legacy
+    // singleton row migrates to source_id='legacy-mixed' (migration 32).
     await tx
       .update(factoryUpstreams)
       .set({
@@ -241,6 +217,296 @@ async function applyTranslation(args: ApplyArgs): Promise<void> {
         lastSyncError: null,
         updatedAt: args.syncedAt,
       })
-      .where(eq(factoryUpstreams.orgId, args.orgId));
+      .where(
+        and(
+          eq(factoryUpstreams.orgId, args.orgId),
+          eq(factoryUpstreams.sourceId, "legacy-mixed"),
+        ),
+      );
   });
+}
+
+// ---------------------------------------------------------------------------
+// Substrate row writer — per-origin batch with per-row diff/insert/retire.
+// ---------------------------------------------------------------------------
+
+type ApplySubstrateArgs = {
+  orgId: string;
+  /**
+   * The set of origin ids touched by this sync. Rows under these origins
+   * that aren't in the new `rows` set will be retired (spec §5 prune step).
+   */
+  origins: string[];
+  rows: SubstrateRowDraft[];
+};
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function applySubstrateRowsTx(
+  tx: Tx,
+  args: ApplySubstrateArgs,
+): Promise<void> {
+  // Snapshot existing active rows under the touched origins so we can
+  // identify retire candidates.
+  const existingPathsByOrigin = new Map<string, Set<string>>();
+  for (const origin of args.origins) {
+    const existingRows = await tx
+      .select({ path: factoryArtifactSubstrate.path })
+      .from(factoryArtifactSubstrate)
+      .where(
+        and(
+          eq(factoryArtifactSubstrate.orgId, args.orgId),
+          eq(factoryArtifactSubstrate.origin, origin),
+          eq(factoryArtifactSubstrate.status, "active"),
+        ),
+      );
+    existingPathsByOrigin.set(
+      origin,
+      new Set(existingRows.map((r) => r.path)),
+    );
+  }
+
+  // Apply each new/updated row.
+  const seenPathsByOrigin = new Map<string, Set<string>>();
+  for (const draft of args.rows) {
+    if (!seenPathsByOrigin.has(draft.origin)) {
+      seenPathsByOrigin.set(draft.origin, new Set());
+    }
+    seenPathsByOrigin.get(draft.origin)!.add(draft.path);
+
+    await applyArtifactRowTx(tx, {
+      orgId: args.orgId,
+      origin: draft.origin,
+      path: draft.path,
+      kind: draft.kind,
+      bundleId: draft.bundleId,
+      upstreamSha: draft.upstreamSha,
+      upstreamBody: draft.upstreamBody,
+      frontmatter: draft.frontmatter,
+    });
+  }
+
+  // Retire rows present before but absent now.
+  for (const origin of args.origins) {
+    const existing = existingPathsByOrigin.get(origin) ?? new Set<string>();
+    const seen = seenPathsByOrigin.get(origin) ?? new Set<string>();
+    for (const path of existing) {
+      if (seen.has(path)) continue;
+      const retired = await tx
+        .update(factoryArtifactSubstrate)
+        .set({ status: "retired", updatedAt: new Date() })
+        .where(
+          and(
+            eq(factoryArtifactSubstrate.orgId, args.orgId),
+            eq(factoryArtifactSubstrate.origin, origin),
+            eq(factoryArtifactSubstrate.path, path),
+            eq(factoryArtifactSubstrate.status, "active"),
+          ),
+        )
+        .returning({ id: factoryArtifactSubstrate.id });
+      for (const r of retired) {
+        await tx.insert(factoryArtifactSubstrateAudit).values({
+          artifactId: r.id,
+          orgId: args.orgId,
+          action: "artifact.retired",
+          actorUserId: null,
+          before: null,
+          after: null,
+        });
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-row sync decision (spec §5). Inserted, fast-forwarded, or marked
+// diverged transactionally. Returns the live row after the decision is
+// applied — used by both batch sync and single-row testing helpers.
+// ---------------------------------------------------------------------------
+
+type ArtifactRowArgs = {
+  orgId: string;
+  origin: string;
+  path: string;
+  kind: ArtifactKind;
+  bundleId?: string | null;
+  upstreamSha: string;
+  upstreamBody: string;
+  frontmatter: Record<string, unknown> | null;
+};
+
+async function applyArtifactRowTx(
+  tx: Tx,
+  args: ArtifactRowArgs,
+): Promise<SubstrateRow> {
+  const existingRows = await tx
+    .select()
+    .from(factoryArtifactSubstrate)
+    .where(
+      and(
+        eq(factoryArtifactSubstrate.orgId, args.orgId),
+        eq(factoryArtifactSubstrate.origin, args.origin),
+        eq(factoryArtifactSubstrate.path, args.path),
+      ),
+    )
+    .orderBy(sql`${factoryArtifactSubstrate.version} DESC`)
+    .limit(1);
+  const existing = existingRows[0];
+  const now = new Date();
+
+  if (!existing) {
+    // No prior row — initial insert.
+    const inserted = await tx
+      .insert(factoryArtifactSubstrate)
+      .values({
+        orgId: args.orgId,
+        origin: args.origin,
+        path: args.path,
+        kind: args.kind,
+        bundleId: args.bundleId ?? null,
+        version: 1,
+        status: "active",
+        upstreamSha: args.upstreamSha,
+        upstreamBody: args.upstreamBody,
+        userBody: null,
+        contentHash: sha256Hex(args.upstreamBody),
+        frontmatter: args.frontmatter,
+        conflictState: "ok",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    const row = mapInsertedRowToSubstrate(inserted[0]);
+    await tx.insert(factoryArtifactSubstrateAudit).values({
+      artifactId: row.id,
+      orgId: args.orgId,
+      action: "artifact.synced",
+      actorUserId: null,
+      before: null,
+      after: { upstreamSha: args.upstreamSha, version: 1 },
+    });
+    return row;
+  }
+
+  const upstreamUnchanged = existing.upstreamBody === args.upstreamBody;
+  const userBodyPresent = existing.userBody !== null;
+
+  if (upstreamUnchanged) {
+    // Either pure no-op or sha refresh. Don't bump version, don't audit
+    // unless we changed something on the row.
+    if (existing.upstreamSha === args.upstreamSha) {
+      return mapStoredRowToSubstrate(existing);
+    }
+    const updated = await tx
+      .update(factoryArtifactSubstrate)
+      .set({ upstreamSha: args.upstreamSha, updatedAt: now })
+      .where(eq(factoryArtifactSubstrate.id, existing.id))
+      .returning();
+    return mapStoredRowToSubstrate(updated[0]);
+  }
+
+  if (!userBodyPresent) {
+    // Fast-forward — version bumps so historical bindings remain valid.
+    const updated = await tx
+      .update(factoryArtifactSubstrate)
+      .set({
+        version: existing.version + 1,
+        upstreamSha: args.upstreamSha,
+        upstreamBody: args.upstreamBody,
+        contentHash: sha256Hex(args.upstreamBody),
+        frontmatter: args.frontmatter,
+        kind: args.kind,
+        bundleId: args.bundleId ?? existing.bundleId ?? null,
+        conflictState: "ok",
+        updatedAt: now,
+      })
+      .where(eq(factoryArtifactSubstrate.id, existing.id))
+      .returning();
+    const row = mapStoredRowToSubstrate(updated[0]);
+    await tx.insert(factoryArtifactSubstrateAudit).values({
+      artifactId: row.id,
+      orgId: args.orgId,
+      action: "artifact.synced",
+      actorUserId: null,
+      before: { upstreamSha: existing.upstreamSha, version: existing.version },
+      after: { upstreamSha: args.upstreamSha, version: row.version },
+    });
+    return row;
+  }
+
+  // Override present + upstream changed → diverged. user_body untouched.
+  const updated = await tx
+    .update(factoryArtifactSubstrate)
+    .set({
+      upstreamSha: args.upstreamSha,
+      upstreamBody: args.upstreamBody,
+      frontmatter: args.frontmatter,
+      kind: args.kind,
+      bundleId: args.bundleId ?? existing.bundleId ?? null,
+      conflictState: "diverged",
+      updatedAt: now,
+    })
+    .where(eq(factoryArtifactSubstrate.id, existing.id))
+    .returning();
+  const row = mapStoredRowToSubstrate(updated[0]);
+  await tx.insert(factoryArtifactSubstrateAudit).values({
+    artifactId: row.id,
+    orgId: args.orgId,
+    action: "artifact.conflict_detected",
+    actorUserId: null,
+    before: { upstreamSha: existing.upstreamSha },
+    after: { upstreamSha: args.upstreamSha },
+  });
+  return row;
+}
+
+// ---------------------------------------------------------------------------
+// Single-row sync helper (T012). Wraps `applyArtifactRowTx` in its own
+// transaction so the test can drive the state machine without a full
+// upstream walk.
+// ---------------------------------------------------------------------------
+
+export async function syncSubstrateRowCore(
+  args: ArtifactRowArgs,
+): Promise<SubstrateRow> {
+  return db.transaction(async (tx) => applyArtifactRowTx(tx, args));
+}
+
+// ---------------------------------------------------------------------------
+// Helpers — map raw Drizzle row shape to the SubstrateRow public type.
+// Drizzle infers nullable/non-null from the schema; the public type is a
+// stable handler-facing surface.
+// ---------------------------------------------------------------------------
+
+type StoredArtifactRow = typeof factoryArtifactSubstrate.$inferSelect;
+
+function mapStoredRowToSubstrate(row: StoredArtifactRow): SubstrateRow {
+  return {
+    id: row.id,
+    orgId: row.orgId,
+    origin: row.origin,
+    path: row.path,
+    kind: row.kind,
+    bundleId: row.bundleId,
+    version: row.version,
+    status: row.status,
+    upstreamSha: row.upstreamSha,
+    upstreamBody: row.upstreamBody,
+    userBody: row.userBody,
+    userModifiedAt: row.userModifiedAt,
+    userModifiedBy: row.userModifiedBy,
+    effectiveBody: row.effectiveBody,
+    contentHash: row.contentHash,
+    frontmatter: (row.frontmatter as Record<string, unknown> | null) ?? null,
+    conflictState: row.conflictState ?? null,
+    conflictUpstreamSha: row.conflictUpstreamSha,
+    conflictResolvedAt: row.conflictResolvedAt,
+    conflictResolvedBy: row.conflictResolvedBy,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function mapInsertedRowToSubstrate(row: StoredArtifactRow): SubstrateRow {
+  return mapStoredRowToSubstrate(row);
 }

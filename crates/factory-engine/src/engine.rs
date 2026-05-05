@@ -16,6 +16,7 @@
 use crate::FactoryError;
 use crate::agent_bridge::FactoryAgentBridge;
 use crate::artifact_store::LocalArtifactStore;
+use crate::factory_root::FactoryRoot;
 use crate::manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 use crate::pipeline_state::{FactoryPipelineState, FailedFeature};
 use crate::policy_shard::generate_factory_policy_shard;
@@ -36,10 +37,18 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 /// Configuration for the Factory engine.
+///
+/// Spec 139 Phase 3 (T070) — `factory_root` is now a [`FactoryRoot`] enum
+/// so the OPC desktop can wire a HTTP-backed [`VirtualRoot`] without
+/// changing the engine's internal `&Path` flow. Existing tests + the
+/// `factory-run` CLI continue to work via the [`FactoryRoot::Filesystem`]
+/// variant; that path is the [`Default`].
 #[derive(Clone, Debug)]
 pub struct FactoryEngineConfig {
-    /// Path to the Factory root directory (e.g., `factory/`).
-    pub factory_root: PathBuf,
+    /// Source of factory content. Filesystem variant carries a path to a
+    /// `factory/` checkout; Virtual variant materialises substrate
+    /// content into a local cache before engine reads.
+    pub factory_root: FactoryRoot,
     /// Path to the target project directory.
     pub project_path: PathBuf,
     /// Maximum concurrent scaffolding steps (NF-001).
@@ -51,7 +60,7 @@ pub struct FactoryEngineConfig {
 impl Default for FactoryEngineConfig {
     fn default() -> Self {
         Self {
-            factory_root: PathBuf::from("factory"),
+            factory_root: FactoryRoot::Filesystem(PathBuf::from("factory")),
             project_path: PathBuf::from("."),
             concurrency_limit: 4,
             max_total_tokens: None,
@@ -71,11 +80,10 @@ pub struct FactoryEngine {
 impl FactoryEngine {
     /// Create a new engine with adapter discovery.
     pub fn new(config: FactoryEngineConfig) -> Result<Self, FactoryError> {
-        let adapter_registry = AdapterRegistry::discover(&config.factory_root).map_err(|e| {
-            FactoryError::AdapterNotFound {
+        let adapter_registry = AdapterRegistry::discover(config.factory_root.local_path())
+            .map_err(|e| FactoryError::AdapterNotFound {
                 name: format!("discovery failed: {e}"),
-            }
-        })?;
+            })?;
 
         Ok(Self {
             config,
@@ -115,15 +123,21 @@ impl FactoryEngine {
         let phase1_manifest = generate_process_manifest(
             adapter,
             business_doc_paths,
-            &self.config.factory_root,
+            self.config.factory_root.local_path(),
             project_id,
         )?;
 
         // Create agent bridge.
-        let process_agents =
-            factory_contracts::agent_loader::load_process_agents(&self.config.factory_root)
-                .unwrap_or_default();
-        let adapter_path = self.config.factory_root.join("adapters").join(adapter_name);
+        let process_agents = factory_contracts::agent_loader::load_process_agents(
+            self.config.factory_root.local_path(),
+        )
+        .unwrap_or_default();
+        let adapter_path = self
+            .config
+            .factory_root
+            .local_path()
+            .join("adapters")
+            .join(adapter_name);
         let adapter_agents =
             factory_contracts::agent_loader::load_adapter_agents(&adapter_path).unwrap_or_default();
         let agent_bridge = FactoryAgentBridge::new(process_agents, adapter_agents);
@@ -195,7 +209,7 @@ impl FactoryEngine {
         let phase2_manifest = generate_scaffold_manifest(
             &build_spec,
             adapter,
-            &self.config.factory_root,
+            self.config.factory_root.local_path(),
             project_id,
         )?;
 
@@ -213,7 +227,7 @@ impl FactoryEngine {
         run_factory_gate_check(
             stage_id,
             &self.config.project_path,
-            &self.config.factory_root,
+            self.config.factory_root.local_path(),
         )
         .await
     }

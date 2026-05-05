@@ -112,6 +112,34 @@ function agentRefToDb(
   };
 }
 
+/**
+ * Spec 139 Phase 3 (T073/T074) — resolve the (legacy) `agentRef` and the
+ * (new) `artifactRef` envelopes into the canonical persisted shape. The
+ * substrate guarantees `artifactId === orgAgentId` for migrated
+ * user-authored agents (migration 33 §1) so the persisted row carries
+ * the same triple regardless of which envelope the desktop emitted.
+ *
+ * Backward-compat window: handlers accept either field. `artifactRef`
+ * wins when both are present (forward-leaning).
+ */
+function resolveStageRefForDb(
+  evt: ClientFactoryRunStageStarted,
+):
+  | NonNullable<FactoryRunStageProgressEntry["agent_ref"]>
+  | undefined {
+  if (evt.artifactRef) {
+    return {
+      org_agent_id: evt.artifactRef.artifactId,
+      version: evt.artifactRef.version,
+      content_hash: evt.artifactRef.contentHash,
+    };
+  }
+  if (evt.agentRef) {
+    return agentRefToDb(evt.agentRef);
+  }
+  return undefined;
+}
+
 /** Find the latest stage_progress entry for `stageId` (newest by index). */
 function findStageEntry(
   progress: FactoryRunStageProgressEntry[],
@@ -170,11 +198,26 @@ export async function handleStageStarted(
     return { ok: true };
   }
 
+  // Spec 139 Phase 3 (T073/T074) — accept either agentRef or artifactRef.
+  // Reject only when neither shape is present.
+  const stageRef = resolveStageRefForDb(evt);
+  if (!stageRef) {
+    log.warn("sync: factory.run.stage_started without agentRef or artifactRef", {
+      runId: evt.runId,
+      stageId: evt.stageId,
+    });
+    return {
+      ok: false,
+      reason: "invalid",
+      detail: "factory.run.stage_started must carry agentRef or artifactRef",
+    };
+  }
+
   const newEntry: FactoryRunStageProgressEntry = {
     stage_id: evt.stageId,
     status: "running",
     started_at: evt.startedAt,
-    agent_ref: agentRefToDb(evt.agentRef),
+    agent_ref: stageRef,
   };
 
   // Append; ensure the row's status flips queued → running on first start.

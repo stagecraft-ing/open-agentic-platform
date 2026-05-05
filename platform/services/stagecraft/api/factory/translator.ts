@@ -1,6 +1,9 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative, basename } from "node:path";
 import { randomUUID } from "node:crypto";
+import { parse as parseYaml } from "yaml";
+import type { ArtifactKind } from "../db/schema";
+import { sha256Hex } from "./substrate";
 
 // ---------------------------------------------------------------------------
 // Spec 108 Phase 3 — deterministic translation from upstream repos to the
@@ -704,4 +707,267 @@ export function translateLegacyManifest(
   }
 
   return document;
+}
+
+// ===========================================================================
+// Spec 139 Phase 1 — substrate translator (verbatim mirror)
+//
+// Walks the upstream sources and emits one substrate row per file. Path-
+// based predicates win over frontmatter (D-1 locked at Phase 0); the
+// `Orchestrator/scripts/` exclusion stays in place. The new translator is
+// additive — `translateUpstreams` above remains the legacy projection
+// emitter for the round-trip parity test (T010) and Phase 1's
+// dual-write window.
+// ===========================================================================
+
+/**
+ * Default origin ids used during the upstream sync. They MUST also appear
+ * as `factory_upstreams.source_id` rows (or be backfilled to
+ * `legacy-mixed`) for the substrate's foreign-key contract to hold.
+ */
+export const DEFAULT_FACTORY_ORIGIN = "goa-software-factory";
+export const DEFAULT_TEMPLATE_ORIGIN = "aim-vue-node-template";
+
+export type SubstrateRowDraft = {
+  origin: string;
+  path: string;
+  kind: ArtifactKind;
+  bundleId: string | null;
+  upstreamSha: string;
+  upstreamBody: string;
+  contentHash: string;
+  frontmatter: Record<string, unknown> | null;
+};
+
+export type SubstrateTranslationInput = {
+  factorySourcePath: string;
+  factorySourceSha: string;
+  templatePath: string;
+  templateSha: string;
+  /** Default `goa-software-factory`. */
+  factoryOriginId?: string;
+  /** Default `aim-vue-node-template`. */
+  templateOriginId?: string;
+  /** Carries forward to projection's `manifest.template_remote`. */
+  templateRemote?: string;
+  /** Carries forward to projection's `manifest.template_default_branch`. */
+  templateDefaultBranch?: string;
+};
+
+export type SubstrateTranslation = {
+  rows: SubstrateRowDraft[];
+  factorySourceSha: string;
+  templateSourceSha: string;
+  factoryOriginId: string;
+  templateOriginId: string;
+  templateRemote?: string;
+  templateDefaultBranch?: string;
+};
+
+/**
+ * Strip a YAML frontmatter block (`---\n...---\n...`) from a markdown
+ * body, returning the parsed frontmatter as a plain JS object plus the
+ * remaining body. Returns `null` frontmatter when no block is present
+ * (or when the YAML fails to parse — sync-worker logs would surface that;
+ * here we degrade gracefully so substrate insert can still happen).
+ */
+export function extractFrontmatter(body: string): {
+  frontmatter: Record<string, unknown> | null;
+  bodyOnly: string;
+} {
+  const m = /^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/.exec(body);
+  if (!m) return { frontmatter: null, bodyOnly: body };
+  try {
+    const parsed = parseYaml(m[1]);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return {
+        frontmatter: parsed as Record<string, unknown>,
+        bodyOnly: m[2] ?? "",
+      };
+    }
+  } catch {
+    // fall through — malformed YAML preserved as null frontmatter so the
+    // sync transaction still inserts the row verbatim (the body stays
+    // intact; downstream consumers can re-parse on read).
+  }
+  return { frontmatter: null, bodyOnly: m[2] ?? "" };
+}
+
+/**
+ * Spec 139 §4.2 kind classifier. Path-based predicates always evaluate
+ * before frontmatter-based ones (D-1 locked at Phase 0).
+ *
+ * Returns one of the 11 closed-set kinds. The substrate row format
+ * version is `SUBSTRATE_VERSION = 1` (see `substrate.ts`).
+ */
+export function classifyArtifactKind(
+  rel: string,
+  frontmatter: Record<string, unknown> | null,
+): ArtifactKind {
+  // -------- Path-based predicates (precedence wins) --------
+
+  // 1. contract-schema (drained first; matches legacy translator)
+  if (/\.(schema)\.(json|ya?ml)$/i.test(rel)) return "contract-schema";
+
+  // 2. pipeline-orchestrator (top-level orchestrator file in either tree)
+  if (
+    rel === "Factory Agent/factory-orchestration.md" ||
+    rel === "orchestration/template-orchestrator.md" ||
+    rel === "factory-orchestration.md"
+  ) {
+    return "pipeline-orchestrator";
+  }
+
+  // 3. process-stage (path predicate wins over frontmatter `parent:`)
+  if (
+    /^Factory Agent\/Orchestrator\/factory-orchestration-(s\d+|cd|tm|xf)\.md$/.test(
+      rel,
+    ) ||
+    /^process\/stages\/.+\.md$/.test(rel)
+  ) {
+    return "process-stage";
+  }
+
+  // 4. sample-html
+  if (/\/samples\/[^/]+\.html$/.test(rel)) return "sample-html";
+
+  // 5. page-type-reference (D-1 locked at Phase 0 — single new kind)
+  if (
+    /\/page-types\/(authenticated|public)\/page-type-[^/]+\.md$/.test(rel)
+  ) {
+    return "page-type-reference";
+  }
+
+  // 6. adapter-manifest
+  if (/^adapters\/[^/]+\/manifest\.yaml$/.test(rel)) {
+    return "adapter-manifest";
+  }
+
+  // 7. pattern (adapters/<name>/patterns/**)
+  if (/^adapters\/[^/]+\/patterns\//.test(rel)) return "pattern";
+
+  // 8. invariant (adapters/<name>/validation/invariants.yaml)
+  if (/^adapters\/[^/]+\/validation\/invariants\.yaml$/.test(rel)) {
+    return "invariant";
+  }
+
+  // 9. reference-data: load-bearing JSON under Requirements/{System,Service}/
+  // and frontmatter-less reference markdown (e.g. digest.md, sitemap-template-*.json).
+  if (
+    /^Factory Agent\/Requirements\/(Service|System)\/[^/]+\.json$/.test(rel)
+  ) {
+    return "reference-data";
+  }
+  if (rel.endsWith("/digest.md")) return "reference-data";
+
+  // -------- Frontmatter-based fallbacks (only for .md) --------
+
+  if (/\.md$/i.test(rel)) {
+    if (frontmatter) {
+      const t = String(frontmatter.type ?? "");
+      const parent = frontmatter.parent;
+      if (t === "agent" || t === "orchestrator") return "agent";
+      // type: reference outside the page-types path is a reference doc
+      // (e.g. svc-page-type-catalog.md). Phase 0 D-1 routes it to
+      // reference-data alongside the structured JSON.
+      if (t === "reference") return "reference-data";
+      if (
+        parent !== undefined &&
+        parent !== null &&
+        parent !== "none"
+      ) {
+        return "skill";
+      }
+    }
+    // Default for .md without classifying frontmatter: skill.
+    return "skill";
+  }
+
+  // Last-resort: reference-data (load-bearing json/text without specific
+  // home). Sync-worker may emit an unclassified-artifact warning; the row
+  // still lands so the operator can rebucket.
+  return "reference-data";
+}
+
+/**
+ * Walk the factory + template repos and emit one `SubstrateRowDraft` per
+ * file. Mirrors `translateUpstreams` in walk semantics (same exclusion
+ * predicates) but emits the verbatim substrate shape instead of the
+ * categorical projection.
+ */
+export async function translateUpstreamsToSubstrate(
+  opts: SubstrateTranslationInput,
+): Promise<SubstrateTranslation> {
+  // Verify both paths exist before doing real work — same fail-fast
+  // contract as `translateUpstreams`.
+  for (const [label, path] of [
+    ["factory source", opts.factorySourcePath],
+    ["template", opts.templatePath],
+  ] as const) {
+    const s = await stat(path).catch(() => null);
+    if (!s || !s.isDirectory()) {
+      throw new Error(`${label} path is not a directory: ${path}`);
+    }
+  }
+
+  const factoryOriginId = opts.factoryOriginId ?? DEFAULT_FACTORY_ORIGIN;
+  const templateOriginId = opts.templateOriginId ?? DEFAULT_TEMPLATE_ORIGIN;
+
+  const rows: SubstrateRowDraft[] = [];
+
+  for await (const { rel, abs } of walk(opts.factorySourcePath, (p) =>
+    FACTORY_SOURCE_EXCLUDES.some((fn) => fn(p)),
+  )) {
+    const body = await readText(abs);
+    const { frontmatter } = extractFrontmatter(body);
+    const kind = classifyArtifactKind(rel, frontmatter);
+    rows.push({
+      origin: factoryOriginId,
+      path: rel,
+      kind,
+      bundleId: null, // bundle assignment is a sync-worker concern; Phase 1 leaves null.
+      upstreamSha: opts.factorySourceSha,
+      upstreamBody: body,
+      contentHash: sha256Hex(body),
+      frontmatter,
+    });
+  }
+
+  for await (const { rel, abs } of walk(opts.templatePath, (p) =>
+    TEMPLATE_EXCLUDES.some((fn) => fn(p)),
+  )) {
+    const body = await readText(abs);
+    const { frontmatter } = extractFrontmatter(body);
+    const kind = classifyArtifactKind(rel, frontmatter);
+    rows.push({
+      origin: templateOriginId,
+      path: rel,
+      kind,
+      bundleId: null,
+      upstreamSha: opts.templateSha,
+      upstreamBody: body,
+      contentHash: sha256Hex(body),
+      frontmatter,
+    });
+  }
+
+  // Deterministic ordering: sort by (origin, path) so substrate rows are
+  // emitted in stable order regardless of `readdir` quirks. This keeps the
+  // round-trip projection's array buckets stable (for fields the legacy
+  // translator already sorts by path) and helps `EXPLAIN`-friendly INSERT
+  // batching.
+  rows.sort((a, b) => {
+    if (a.origin !== b.origin) return a.origin.localeCompare(b.origin);
+    return a.path.localeCompare(b.path);
+  });
+
+  return {
+    rows,
+    factorySourceSha: opts.factorySourceSha,
+    templateSourceSha: opts.templateSha,
+    factoryOriginId,
+    templateOriginId,
+    templateRemote: opts.templateRemote,
+    templateDefaultBranch: opts.templateDefaultBranch,
+  };
 }

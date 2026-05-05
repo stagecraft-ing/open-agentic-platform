@@ -64,7 +64,7 @@ fn noop_e2e_phase1_generates_six_process_stages() {
     }
 
     let config = FactoryEngineConfig {
-        factory_root: factory_root.clone(),
+        factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: PathBuf::from("."),
         concurrency_limit: 4,
         max_total_tokens: None,
@@ -121,7 +121,7 @@ fn noop_e2e_full_pipeline_dispatch() {
     let am = ArtifactManager::new(tmp.path());
 
     let config = FactoryEngineConfig {
-        factory_root: factory_root.clone(),
+        factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: PathBuf::from("."),
         concurrency_limit: 4,
         max_total_tokens: None,

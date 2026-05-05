@@ -6,6 +6,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-21"
+amended: "2026-05-05"
+amendment_record: "139"
 summary: >
   Treats agents as organisational assets stored in stagecraft and pushed to
   OPC via the duplex channel (spec 087 §5.3). Workspaces author, version,
@@ -43,6 +45,13 @@ implements:
 ---
 
 # 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC
+
+> **Amended 2026-05-05 by spec [139](../139-factory-artifact-substrate/spec.md).**
+> The `agent_catalog` table generalises into the `factory_artifacts`
+> substrate as the `origin='user-authored'` partition. The `/api/agents/*`
+> handlers re-point at the substrate in spec 139 Phase 2 (T053); the
+> public API surface is preserved. `agent_catalog` and
+> `agent_catalog_audit` are dropped in spec 139 Phase 4 (T093).
 
 ## 1. Problem
 

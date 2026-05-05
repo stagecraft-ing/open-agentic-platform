@@ -7,6 +7,8 @@ implementation: complete
 owner: bart
 created: "2026-04-20"
 approved: "2026-05-01"
+amended: "2026-05-05"
+amendment_record: "139"
 summary: >
   Removes the repo-rooted `factory/` directory and reimplements adapters,
   contracts, processes, and upstream-map configuration as first-class entities
@@ -27,6 +29,16 @@ implements:
 ---
 
 # 108 — Factory as a First-Class Platform Feature
+
+> **Amended 2026-05-05 by spec [139](../139-factory-artifact-substrate/spec.md).**
+> Spec 139 replaces this spec's bucket-blob translator (§3 data model
+> and §5 sync flow) with a content-addressed substrate; the
+> `factory_adapters` / `factory_contracts` / `factory_processes` tables
+> become Phase-1 projections over `factory_artifacts` and are dropped in
+> Phase 4. Spec 139 also closes this spec's §7.1 OPC-checkout punt and
+> lifts §9's "editing manifests via the UI" non-goal (overrides land
+> on the substrate). The external API surface (`/api/factory/{adapters,
+> contracts,processes}`) stays byte-stable through Phases 1-3.
 
 ## 1. Problem Statement
 

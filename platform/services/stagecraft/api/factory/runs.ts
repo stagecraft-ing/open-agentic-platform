@@ -16,8 +16,6 @@ import { and, desc, eq, lt, type SQL } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   factoryRuns,
-  factoryAdapters,
-  factoryProcesses,
   projects,
   auditLog,
   type FactoryRunStatus,
@@ -32,6 +30,22 @@ import {
   RetiredAgentError,
   AgentReferenceNotFoundError,
 } from "./runAgentRefs";
+import { loadSubstrateForOrg } from "./substrateBrowser";
+import { projectSubstrateToLegacy } from "./projection";
+
+/** Spec 139 Phase 4 — must match `browse.ts::synthesiseId`. */
+function synthesiseAdapterId(orgId: string, name: string): string {
+  return `synthetic-adapter-${orgId.slice(0, 8)}-${name}`;
+}
+
+/** Spec 139 Phase 4 — synthesise a process id stable across reservations. */
+function synthesiseProcessId(
+  orgId: string,
+  name: string,
+  version: string,
+): string {
+  return `synthetic-process-${orgId.slice(0, 8)}-${name}-${version}`;
+}
 
 // ---------------------------------------------------------------------------
 // Wire shapes — camelCase per the existing stagecraft convention. The
@@ -227,41 +241,25 @@ export async function reserveRunCore(
       };
     }
 
-    // Resolve adapter by `(orgId, name)`. Names are unique per spec 108
-    // schema (`unique().on(orgId, name)` on `factoryAdapters`).
-    const [adapter] = await db
-      .select()
-      .from(factoryAdapters)
-      .where(
-        and(
-          eq(factoryAdapters.orgId, auth.orgId),
-          eq(factoryAdapters.name, req.adapterName),
-        ),
-      )
-      .limit(1);
+    // Spec 139 Phase 4 (T091): adapters + processes project from
+    // substrate. The wire shape (name + version + sourceSha + manifest |
+    // definition) stays identical to spec 108's resolved values.
+    const substrate = await loadSubstrateForOrg(auth.orgId);
+    const projection = projectSubstrateToLegacy(substrate);
+    const adapter = projection.adapters.find(
+      (a) => a.name === req.adapterName,
+    );
     if (!adapter) {
       throw APIError.notFound(`adapter "${req.adapterName}" not found`);
     }
-
-    // Resolve process. `factory_processes` is `(orgId, name, version)`-unique,
-    // so a single name can have multiple versions; we pick the highest by
-    // string-ordered version (the translator writes monotonic "v1"/"v2"/…
-    // values). If the desktop later wants pinned versions per run, a
-    // future spec adds an explicit `processVersion?` field on the request.
-    const processRows = await db
-      .select()
-      .from(factoryProcesses)
-      .where(
-        and(
-          eq(factoryProcesses.orgId, auth.orgId),
-          eq(factoryProcesses.name, req.processName),
-        ),
-      );
-    if (processRows.length === 0) {
+    const processCandidates = projection.processes.filter(
+      (p) => p.name === req.processName,
+    );
+    if (processCandidates.length === 0) {
       throw APIError.notFound(`process "${req.processName}" not found`);
     }
-    processRows.sort((a, b) => b.version.localeCompare(a.version));
-    const process = processRows[0];
+    processCandidates.sort((a, b) => b.version.localeCompare(a.version));
+    const process = processCandidates[0];
 
     // Validate the project (when provided) belongs to this org.
     if (req.projectId) {
@@ -322,8 +320,10 @@ export async function reserveRunCore(
         orgId: auth.orgId,
         projectId: req.projectId ?? null,
         triggeredBy: auth.userID,
-        adapterId: adapter.id,
-        processId: process.id,
+        // Spec 139 Phase 4 (T091) — synthesised stable ids; the legacy
+        // UUIDs were dropped with the spec 108 trio.
+        adapterId: synthesiseAdapterId(auth.orgId, adapter.name),
+        processId: synthesiseProcessId(auth.orgId, process.name, process.version),
         clientRunId: req.clientRunId,
         status: "queued",
         sourceShas,
@@ -408,22 +408,27 @@ export async function listRunsCore(
     }
 
     if (req.adapter) {
-      // Resolve adapter name → id for the WHERE clause. Empty result
-      // means no rows match, so short-circuit.
-      const [adapter] = await db
-        .select({ id: factoryAdapters.id })
-        .from(factoryAdapters)
-        .where(
-          and(
-            eq(factoryAdapters.orgId, auth.orgId),
-            eq(factoryAdapters.name, req.adapter),
-          ),
-        )
-        .limit(1);
+      // Spec 139 Phase 4 (T091): the legacy `factory_adapters.id` UUID
+      // is dropped; `factory_runs.adapterId` was previously written from
+      // that UUID at reservation time. Existing runs continue to reference
+      // their stored adapter UUID; we filter via the substrate-derived
+      // synthetic id when the caller passes a name. The substrate
+      // projection's adapter list is small per org (≤ a handful) so an
+      // exact-match scan is cheap.
+      const substrateForFilter = await loadSubstrateForOrg(auth.orgId);
+      const projectionForFilter = projectSubstrateToLegacy(substrateForFilter);
+      const adapter = projectionForFilter.adapters.find(
+        (a) => a.name === req.adapter,
+      );
       if (!adapter) {
         return { runs: [] };
       }
-      conditions.push(eq(factoryRuns.adapterId, adapter.id));
+      conditions.push(
+        eq(
+          factoryRuns.adapterId,
+          synthesiseAdapterId(auth.orgId, adapter.name),
+        ),
+      );
     }
 
     if (req.before) {

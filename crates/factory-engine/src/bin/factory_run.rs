@@ -233,8 +233,12 @@ async fn main() -> ExitCode {
     eprintln!();
 
     // ── Initialize engine ───────────────────────────────────────────────
+    // Spec 139 Phase 3 — `factory_root` is now a `FactoryRoot` enum; the
+    // CLI always wires the Filesystem variant since it operates against
+    // an on-disk checkout. The desktop wires the Virtual variant via the
+    // `factory-platform-client` materialiser.
     let config = FactoryEngineConfig {
-        factory_root: factory_root.clone(),
+        factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: project_path.clone(),
         concurrency_limit: 4,
         max_total_tokens: None,

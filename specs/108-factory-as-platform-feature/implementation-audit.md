@@ -5,6 +5,17 @@
 > `factory/` from repo root) is the only remaining blocker. The spec lifecycle
 > is still `status: draft, implementation: in-progress` and must be flipped
 > after the removals land and CI is green.
+>
+> **§3 superseded by [spec 139](../139-factory-artifact-substrate/spec.md)
+> (Phase 4, 2026-05-05).** The `factory_adapters` / `factory_contracts` /
+> `factory_processes` bucket-blob trio was retired by migration 34. The
+> data lives in `factory_artifact_substrate` post Phase 1 dual-write
+> + Phase 4 cutover; consumers project the legacy wire shape via
+> `loadSubstrateForOrg` + `projectSubstrateToLegacy` so spec 108's
+> `/api/factory/{adapters,contracts,processes}` endpoints continue to
+> serve byte-stable responses. Spec 108's external API surface is
+> preserved; the storage primitive is replaced. See spec 139 §2.1 for
+> the substrate row shape and §10 for the symmetry table.
 
 ## Section coverage matrix
 

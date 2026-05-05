@@ -34,7 +34,8 @@ Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/ap
 - `source_connectors` — external knowledge sources (project_id, type: upload/sharepoint/s3/azure-blob/gcs, config, sync schedule) (spec 087 Phase 2)
 - `knowledge_objects` — canonical normalised documents in the project object store (project_id, storage_key, filename, mime_type, content_hash, state lifecycle: imported→extracting→extracted→classified→available, provenance JSONB) (spec 087 Phase 2)
 - `sync_runs` — connector sync execution history (connector_id, project_id, status: running/completed/failed, objects_created/updated/skipped, delta_token for incremental sync) (spec 087 Phase 4)
-- `agent_catalog` / `agent_catalog_audit` — project-scoped agent definitions (spec 111, amended by spec 119)
+- `agent_catalog` / `agent_catalog_audit` — org-scoped agent definitions (spec 111, amended by spec 119, mirrored into the substrate by spec 139 Phase 2). **Phase 4b drop pending** — `bindings.ts` re-point not yet shipped; the substrate is canonical-on-write but `agent_catalog` still backs reads on `/api/agents/*/bind`.
+- `factory_artifact_substrate` / `factory_artifact_substrate_audit` / `factory_bindings` — content-addressed factory substrate (spec 139). One row per upstream file (verbatim mirror); per-org `user_body` overrides; universal `factory_bindings` pinning (replaces spec 123 `project_agent_bindings`, drop pending Phase 4b). Replaces spec 108's `factory_adapters` / `factory_contracts` / `factory_processes` bucket-blob trio (dropped by migration 34); the spec 108 wire shape projects from substrate at read time.
 
 ## Identity
 

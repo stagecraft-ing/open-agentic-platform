@@ -49,16 +49,46 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     return;
   }
 
+  // Spec 139 generalised factory_upstreams to N-per-org. The legacy
+  // singleton row (which carried both factory + template sources) is
+  // tagged source_id='legacy-mixed' / role='mixed' (migration 32). The
+  // sync worker keeps reading the legacy shape through Phase 1; Phase 4
+  // drops the legacy columns when consumers migrate.
   const [upstreamRow] = await db
     .select()
     .from(factoryUpstreams)
-    .where(eq(factoryUpstreams.orgId, req.orgId))
+    .where(
+      and(
+        eq(factoryUpstreams.orgId, req.orgId),
+        eq(factoryUpstreams.sourceId, "legacy-mixed"),
+      ),
+    )
     .limit(1);
 
   if (!upstreamRow) {
     await failRun(req, "No factory upstream configured for org");
     return;
   }
+
+  // Spec 139 made the legacy columns nullable to permit the dual-write
+  // transition. The legacy-mixed row must still carry all four for the
+  // sync worker to do meaningful work — surface the gap clearly.
+  if (
+    !upstreamRow.factorySource ||
+    !upstreamRow.factoryRef ||
+    !upstreamRow.templateSource ||
+    !upstreamRow.templateRef
+  ) {
+    await failRun(
+      req,
+      "legacy-mixed upstream row is missing factorySource/factoryRef/templateSource/templateRef; reconfigure via POST /api/factory/upstreams",
+    );
+    return;
+  }
+  const factorySource = upstreamRow.factorySource;
+  const factoryRef = upstreamRow.factoryRef;
+  const templateSource = upstreamRow.templateSource;
+  const templateRef = upstreamRow.templateRef;
 
   await db
     .update(factoryUpstreams)
@@ -67,16 +97,21 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
       lastSyncError: null,
       updatedAt: startedAt,
     })
-    .where(eq(factoryUpstreams.orgId, req.orgId));
+    .where(
+      and(
+        eq(factoryUpstreams.orgId, req.orgId),
+        eq(factoryUpstreams.sourceId, "legacy-mixed"),
+      ),
+    );
 
   try {
     const resolved = await resolveFactoryUpstreamToken(req.orgId);
     const result = await runSyncPipeline({
       orgId: req.orgId,
-      factorySource: upstreamRow.factorySource,
-      factoryRef: upstreamRow.factoryRef,
-      templateSource: upstreamRow.templateSource,
-      templateRef: upstreamRow.templateRef,
+      factorySource,
+      factoryRef,
+      templateSource,
+      templateRef,
       token: resolved?.token,
     });
 
@@ -145,7 +180,12 @@ async function failRun(
       lastSyncError: message,
       updatedAt: completedAt,
     })
-    .where(eq(factoryUpstreams.orgId, req.orgId));
+    .where(
+      and(
+        eq(factoryUpstreams.orgId, req.orgId),
+        eq(factoryUpstreams.sourceId, "legacy-mixed"),
+      ),
+    );
 
   await db.insert(auditLog).values({
     actorUserId: req.triggeredBy,

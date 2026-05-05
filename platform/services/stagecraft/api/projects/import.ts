@@ -24,7 +24,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   auditLog,
-  factoryAdapters,
   githubInstallations,
   projectGithubPats,
   projectMembers,
@@ -36,6 +35,8 @@ import { brokerInstallationToken } from "../github/repoInit";
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
 import { encryptPat } from "../auth/patCrypto";
+import { loadSubstrateForOrg } from "../factory/substrateBrowser";
+import { projectSubstrateToLegacy } from "../factory/projection";
 import { classifyFormat, probeGitHub, tokenPrefix } from "../auth/patProbe";
 import { errorForLog } from "../auth/errorLog";
 import {
@@ -879,22 +880,15 @@ async function loadOrgAdapters(
     manifest: Record<string, unknown>;
   }>
 > {
-  const rows = await db
-    .select({
-      id: factoryAdapters.id,
-      name: factoryAdapters.name,
-      version: factoryAdapters.version,
-      sourceSha: factoryAdapters.sourceSha,
-      manifest: factoryAdapters.manifest,
-    })
-    .from(factoryAdapters)
-    .where(eq(factoryAdapters.orgId, orgId));
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    version: r.version,
-    sourceSha: r.sourceSha,
-    manifest: (r.manifest ?? {}) as Record<string, unknown>,
+  // Spec 139 Phase 4 (T091): adapter manifests project from substrate.
+  const substrate = await loadSubstrateForOrg(orgId);
+  const projection = projectSubstrateToLegacy(substrate);
+  return projection.adapters.map((a) => ({
+    id: synthesiseAdapterId(orgId, a.name),
+    name: a.name,
+    version: a.version,
+    sourceSha: a.sourceSha,
+    manifest: (a.manifest ?? {}) as Record<string, unknown>,
   }));
 }
 
@@ -902,12 +896,18 @@ async function loadAdapterByName(
   orgId: string,
   name: string
 ): Promise<{ id: string } | null> {
-  const [row] = await db
-    .select({ id: factoryAdapters.id })
-    .from(factoryAdapters)
-    .where(and(eq(factoryAdapters.orgId, orgId), eq(factoryAdapters.name, name)))
-    .limit(1);
-  return row ?? null;
+  // Spec 139 Phase 4 (T091): adapter lookup goes through the substrate
+  // projection. Returns the synthesised id consistent with browse.ts.
+  const substrate = await loadSubstrateForOrg(orgId);
+  const projection = projectSubstrateToLegacy(substrate);
+  const found = projection.adapters.find((a) => a.name === name);
+  if (!found) return null;
+  return { id: synthesiseAdapterId(orgId, found.name) };
+}
+
+/** Spec 139 Phase 4 — must match `browse.ts::synthesiseId`. */
+function synthesiseAdapterId(orgId: string, name: string): string {
+  return `synthetic-adapter-${orgId.slice(0, 8)}-${name}`;
 }
 
 // ── Shell helpers ───────────────────────────────────────────────────────

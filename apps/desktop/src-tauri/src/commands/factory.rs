@@ -898,8 +898,14 @@ pub async fn start_factory_pipeline(
     let platform_run_id = prepared.run_id.clone();
 
     // Build engine and start pipeline against the materialised cache.
+    // Spec 139 Phase 3 (T072) — `factory_root` is wrapped in
+    // `FactoryRoot::Filesystem` since `factory_platform_client` already
+    // materialises the substrate content into a local directory. The
+    // engine's enum variant signals "filesystem path" semantics
+    // unambiguously; future runs that want pure HTTP-driven reads can
+    // swap in `FactoryRoot::Virtual(...)` without changing the engine.
     let config = FactoryEngineConfig {
-        factory_root: factory_root.clone(),
+        factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: project_path.clone(),
         concurrency_limit: 4,
         max_total_tokens: None,
@@ -2039,8 +2045,11 @@ pub async fn resume_factory_pipeline(
     let factory_root = prepared.engine_factory_root.clone();
     let platform_run_id = prepared.run_id.clone();
 
+    // Spec 139 Phase 3 (T072) — wrap the materialised path in the
+    // `FactoryRoot::Filesystem` variant; resume mirrors the start-pipeline
+    // construction.
     let config = FactoryEngineConfig {
-        factory_root: factory_root.clone(),
+        factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: project_path.clone(),
         concurrency_limit: 4,
         max_total_tokens: None,

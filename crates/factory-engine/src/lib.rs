@@ -23,11 +23,18 @@ pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;
 pub mod project_config;
+pub mod factory_root;
 pub mod stagecraft_client;
 pub mod stages;
 pub mod standards_resolver;
+pub mod substrate_version;
 pub mod topo_sort;
 pub mod verify_harness;
+pub mod virtual_root;
+
+pub use factory_root::FactoryRoot;
+pub use substrate_version::SUBSTRATE_VERSION;
+pub use virtual_root::{ArtifactFetcher, ArtifactRef, VirtualRoot, VirtualRootError};
 
 pub use agent_bridge::FactoryAgentBridge;
 pub use engine::{

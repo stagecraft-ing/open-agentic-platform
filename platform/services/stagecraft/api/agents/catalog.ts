@@ -1,14 +1,11 @@
 /**
  * Spec 123: agents are org-scoped; projects consume via bindings.
- *
- * This module owns the org-scoped agent catalog CRUD. Drafts mutate in
- * place (bumping `content_hash`); publication promotes a draft to the next
- * version and auto-retires the prior published row for the same
- * (org_id, name). Retirement is a status flip; no hard delete.
- *
- * Project consumption (bind / repin / unbind) lives in `bindings.ts`.
- * Duplex broadcast lives in `relay.ts` and now carries `orgId` directly
- * on the wire payload (spec 123 §7.1).
+ * Spec 139 Phase 4 (T091): handlers read AND write `factory_artifact_substrate`
+ * directly. The legacy `agent_catalog` + `agent_catalog_audit` tables are
+ * dropped in migration 34 (T093). The wire shape (CatalogAgent) is
+ * preserved; spec 111's draft|published|retired ternary is recovered
+ * from `frontmatter.publication_status` (Phase 2 mirror seeded this on
+ * every existing row; Phase 4 writes maintain it directly).
  */
 
 import { createHash } from "node:crypto";
@@ -16,8 +13,8 @@ import { api, APIError } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
 import { db } from "../db/drizzle";
 import {
-  agentCatalog,
-  agentCatalogAudit,
+  factoryArtifactSubstrate,
+  factoryArtifactSubstrateAudit,
   organizations,
   type AgentCatalogAuditAction,
   type AgentCatalogStatus,
@@ -25,9 +22,14 @@ import {
 import { and, desc, eq, max, ne } from "drizzle-orm";
 import type { CatalogFrontmatter } from "./frontmatter";
 import { publishAgentCatalogUpdated } from "./relay";
+import {
+  mapAgentCatalogAuditAction,
+  mapAgentCatalogStatus,
+  userAuthoredAgentPath,
+} from "../factory/agentCatalogMigration";
 
 // ---------------------------------------------------------------------------
-// Wire types
+// Wire types — preserved from spec 111/123.
 // ---------------------------------------------------------------------------
 
 export type { CatalogFrontmatter };
@@ -65,7 +67,6 @@ type PatchAgentRequest = {
   id: string;
   frontmatter?: CatalogFrontmatter;
   body_markdown?: string;
-  /** Optimistic lock: rejected if the current content_hash doesn't match. */
   expected_content_hash?: string;
 };
 type PatchAgentResponse = { agent: CatalogAgent };
@@ -98,6 +99,8 @@ type ListAgentAuditResponse = { entries: CatalogAuditEntry[] };
 // ---------------------------------------------------------------------------
 
 const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const PATH_PREFIX = "user-authored/";
+const PATH_SUFFIX = ".md";
 
 function canonicalise(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalise);
@@ -123,31 +126,78 @@ export function computeContentHash(
   return createHash("sha256").update(canon).digest("hex");
 }
 
-type AgentRow = typeof agentCatalog.$inferSelect;
+type SubstrateRow = typeof factoryArtifactSubstrate.$inferSelect;
 
-function toWire(row: AgentRow): CatalogAgent {
+function nameFromPath(path: string): string {
+  if (!path.startsWith(PATH_PREFIX) || !path.endsWith(PATH_SUFFIX)) {
+    return path;
+  }
+  return path.slice(PATH_PREFIX.length, path.length - PATH_SUFFIX.length);
+}
+
+function recoverPublicationStatus(
+  frontmatter: Record<string, unknown> | null,
+  substrateStatus: "active" | "retired",
+): AgentCatalogStatus {
+  if (substrateStatus === "retired") return "retired";
+  const fmStatus = frontmatter?.publication_status;
+  if (fmStatus === "draft" || fmStatus === "published" || fmStatus === "retired") {
+    return fmStatus;
+  }
+  // Default for an active substrate row whose frontmatter never carried
+  // publication_status: treat as draft (matches createAgent semantics).
+  return "draft";
+}
+
+function stripPublicationStatus(
+  frontmatter: Record<string, unknown> | null,
+): CatalogFrontmatter {
+  if (!frontmatter) return {} as CatalogFrontmatter;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { publication_status, ...rest } = frontmatter;
+  return rest as CatalogFrontmatter;
+}
+
+function injectPublicationStatus(
+  frontmatter: Record<string, unknown> | null,
+  publicationStatus: AgentCatalogStatus,
+): Record<string, unknown> {
+  return {
+    ...(frontmatter ?? {}),
+    publication_status: publicationStatus,
+  };
+}
+
+function toWire(row: SubstrateRow): CatalogAgent {
+  const fm = (row.frontmatter as Record<string, unknown> | null) ?? null;
+  const status = recoverPublicationStatus(fm, row.status);
   return {
     id: row.id,
     org_id: row.orgId,
-    name: row.name,
+    name: nameFromPath(row.path),
     version: row.version,
-    status: row.status,
-    frontmatter: row.frontmatter as CatalogFrontmatter,
-    body_markdown: row.bodyMarkdown,
+    status,
+    frontmatter: stripPublicationStatus(fm),
+    // For user-authored content the body lives in `user_body`; the
+    // generated `effective_body` mirrors it.
+    body_markdown: row.userBody ?? row.effectiveBody,
     content_hash: row.contentHash,
-    created_by: row.createdBy,
+    created_by: row.userModifiedBy ?? row.orgId, // fallback for migrated rows; prod paths populate
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
   };
 }
 
-function auditSnapshot(row: AgentRow): Record<string, unknown> {
+function auditSnapshot(row: SubstrateRow): Record<string, unknown> {
   return {
     id: row.id,
     org_id: row.orgId,
-    name: row.name,
+    name: nameFromPath(row.path),
     version: row.version,
-    status: row.status,
+    status: recoverPublicationStatus(
+      (row.frontmatter as Record<string, unknown> | null) ?? null,
+      row.status,
+    ),
     content_hash: row.contentHash,
     frontmatter: row.frontmatter,
     updated_at: row.updatedAt.toISOString(),
@@ -160,32 +210,27 @@ async function recordAudit(
     orgId: string;
     action: AgentCatalogAuditAction;
     actorUserId: string;
-    before?: AgentRow | null;
-    after?: AgentRow | null;
+    before?: SubstrateRow | null;
+    after?: SubstrateRow | null;
   },
   tx: typeof db,
 ): Promise<void> {
-  await tx.insert(agentCatalogAudit).values({
-    agentId: entry.agentId,
+  await tx.insert(factoryArtifactSubstrateAudit).values({
+    artifactId: entry.agentId,
     orgId: entry.orgId,
-    action: entry.action,
+    action: mapAgentCatalogAuditAction(entry.action),
     actorUserId: entry.actorUserId,
     before: entry.before ? auditSnapshot(entry.before) : null,
     after: entry.after ? auditSnapshot(entry.after) : null,
   });
 }
 
-/**
- * Verify the org id on the path matches the caller's authenticated org.
- * Replaces the prior project-scoped `verifyProjectInOrg` (spec 123 T030).
- */
 async function verifyOrgAccess(orgId: string, callerOrgId: string): Promise<void> {
   if (orgId !== callerOrgId) {
     throw APIError.permissionDenied(
       "agent catalog access is restricted to the caller's org",
     );
   }
-  // Cheap existence check so a typo'd path returns 404 rather than 200/empty.
   const [row] = await db
     .select({ id: organizations.id })
     .from(organizations)
@@ -221,11 +266,18 @@ async function loadAgent(
   tx: typeof db,
   id: string,
   orgId: string,
-): Promise<AgentRow> {
+): Promise<SubstrateRow> {
   const rows = await tx
     .select()
-    .from(agentCatalog)
-    .where(and(eq(agentCatalog.id, id), eq(agentCatalog.orgId, orgId)))
+    .from(factoryArtifactSubstrate)
+    .where(
+      and(
+        eq(factoryArtifactSubstrate.id, id),
+        eq(factoryArtifactSubstrate.orgId, orgId),
+        eq(factoryArtifactSubstrate.origin, "user-authored"),
+        eq(factoryArtifactSubstrate.kind, "agent"),
+      ),
+    )
     .limit(1);
   if (rows.length === 0) {
     throw APIError.notFound("agent not found");
@@ -238,17 +290,22 @@ async function nextVersion(
   orgId: string,
   name: string,
 ): Promise<number> {
+  const path = userAuthoredAgentPath(name);
   const [row] = await tx
-    .select({ max: max(agentCatalog.version) })
-    .from(agentCatalog)
+    .select({ max: max(factoryArtifactSubstrate.version) })
+    .from(factoryArtifactSubstrate)
     .where(
-      and(eq(agentCatalog.orgId, orgId), eq(agentCatalog.name, name)),
+      and(
+        eq(factoryArtifactSubstrate.orgId, orgId),
+        eq(factoryArtifactSubstrate.origin, "user-authored"),
+        eq(factoryArtifactSubstrate.path, path),
+      ),
     );
   return (row?.max ?? 0) + 1;
 }
 
 // ---------------------------------------------------------------------------
-// Endpoints (spec 123 §5.1)
+// Endpoints — every read/write hits `factory_artifact_substrate` only.
 // ---------------------------------------------------------------------------
 
 export const createAgent = api(
@@ -271,6 +328,11 @@ export const createAgent = api(
     const { userId, orgId } = requireOrgAuth();
     await verifyOrgAccess(req.orgId, orgId);
     const hash = computeContentHash(req.frontmatter, req.body_markdown);
+    const path = userAuthoredAgentPath(req.name);
+    const frontmatterWithStatus = injectPublicationStatus(
+      req.frontmatter,
+      "draft",
+    );
 
     const inserted = await db.transaction(async (tx) => {
       const version = await nextVersion(
@@ -279,16 +341,19 @@ export const createAgent = api(
         req.name,
       );
       const [row] = await tx
-        .insert(agentCatalog)
+        .insert(factoryArtifactSubstrate)
         .values({
           orgId: req.orgId,
-          name: req.name,
+          origin: "user-authored",
+          path,
+          kind: "agent",
           version,
-          status: "draft",
-          frontmatter: req.frontmatter,
-          bodyMarkdown: req.body_markdown,
+          status: "active",
+          userBody: req.body_markdown,
+          userModifiedBy: userId,
           contentHash: hash,
-          createdBy: userId,
+          frontmatter: frontmatterWithStatus,
+          conflictState: "ok",
         })
         .returning();
       await recordAudit(
@@ -319,21 +384,24 @@ export const listAgents = api(
     const { orgId } = requireOrgAuth();
     await verifyOrgAccess(req.orgId, orgId);
 
-    const where = req.status
-      ? and(
-          eq(agentCatalog.orgId, req.orgId),
-          eq(agentCatalog.status, req.status),
-        )
-      : eq(agentCatalog.orgId, req.orgId);
-
     const rows = await db
       .select()
-      .from(agentCatalog)
-      .where(where)
-      .orderBy(desc(agentCatalog.updatedAt))
+      .from(factoryArtifactSubstrate)
+      .where(
+        and(
+          eq(factoryArtifactSubstrate.orgId, req.orgId),
+          eq(factoryArtifactSubstrate.origin, "user-authored"),
+          eq(factoryArtifactSubstrate.kind, "agent"),
+        ),
+      )
+      .orderBy(desc(factoryArtifactSubstrate.updatedAt))
       .limit(500);
 
-    return { agents: rows.map(toWire) };
+    let agents = rows.map(toWire);
+    if (req.status) {
+      agents = agents.filter((a) => a.status === req.status);
+    }
+    return { agents };
   },
 );
 
@@ -369,9 +437,13 @@ export const patchAgent = api(
         req.id,
         req.orgId,
       );
-      if (existing.status !== "draft") {
+      const existingStatus = recoverPublicationStatus(
+        (existing.frontmatter as Record<string, unknown> | null) ?? null,
+        existing.status,
+      );
+      if (existingStatus !== "draft") {
         throw APIError.failedPrecondition(
-          `only drafts may be edited (agent is ${existing.status})`,
+          `only drafts may be edited (agent is ${existingStatus})`,
         );
       }
       if (
@@ -384,19 +456,28 @@ export const patchAgent = api(
       }
 
       const newFrontmatter =
-        req.frontmatter ?? (existing.frontmatter as CatalogFrontmatter);
-      const newBody = req.body_markdown ?? existing.bodyMarkdown;
+        req.frontmatter ??
+        (stripPublicationStatus(
+          existing.frontmatter as Record<string, unknown> | null,
+        ));
+      const newBody = req.body_markdown ?? existing.userBody ?? "";
       const newHash = computeContentHash(newFrontmatter, newBody);
+      const frontmatterWithStatus = injectPublicationStatus(
+        newFrontmatter,
+        "draft",
+      );
 
       const [row] = await tx
-        .update(agentCatalog)
+        .update(factoryArtifactSubstrate)
         .set({
-          frontmatter: newFrontmatter,
-          bodyMarkdown: newBody,
+          frontmatter: frontmatterWithStatus,
+          userBody: newBody,
+          userModifiedAt: new Date(),
+          userModifiedBy: userId,
           contentHash: newHash,
           updatedAt: new Date(),
         })
-        .where(eq(agentCatalog.id, existing.id))
+        .where(eq(factoryArtifactSubstrate.id, existing.id))
         .returning();
 
       await recordAudit(
@@ -435,35 +516,54 @@ export const publishAgent = api(
         req.id,
         req.orgId,
       );
-      if (existing.status !== "draft") {
+      const existingStatus = recoverPublicationStatus(
+        (existing.frontmatter as Record<string, unknown> | null) ?? null,
+        existing.status,
+      );
+      if (existingStatus !== "draft") {
         throw APIError.failedPrecondition(
-          `only drafts may be published (agent is ${existing.status})`,
+          `only drafts may be published (agent is ${existingStatus})`,
         );
       }
 
       // Auto-retire any currently-published sibling for the same
-      // (org_id, name). Keeps "published" a single active row per name.
+      // (org_id, path). The substrate's UNIQUE constraint is
+      // (org_id, origin, path, version), so siblings live on different
+      // versions but the same path. Retire by status flip + audit.
       const priorPublished = await tx
         .select()
-        .from(agentCatalog)
+        .from(factoryArtifactSubstrate)
         .where(
           and(
-            eq(agentCatalog.orgId, req.orgId),
-            eq(agentCatalog.name, existing.name),
-            eq(agentCatalog.status, "published"),
-            ne(agentCatalog.id, existing.id),
+            eq(factoryArtifactSubstrate.orgId, req.orgId),
+            eq(factoryArtifactSubstrate.origin, "user-authored"),
+            eq(factoryArtifactSubstrate.path, existing.path),
+            ne(factoryArtifactSubstrate.id, existing.id),
+            eq(factoryArtifactSubstrate.status, "active"),
           ),
         );
 
-      let retired: AgentRow | null = null;
+      let retired: SubstrateRow | null = null;
       for (const prior of priorPublished) {
+        const priorStatus = recoverPublicationStatus(
+          (prior.frontmatter as Record<string, unknown> | null) ?? null,
+          prior.status,
+        );
+        if (priorStatus !== "published") continue;
+        const retiredFm = injectPublicationStatus(
+          stripPublicationStatus(
+            prior.frontmatter as Record<string, unknown> | null,
+          ),
+          "retired",
+        );
         const [row] = await tx
-          .update(agentCatalog)
+          .update(factoryArtifactSubstrate)
           .set({
-            status: "retired" as AgentCatalogStatus,
+            status: "retired",
+            frontmatter: retiredFm,
             updatedAt: new Date(),
           })
-          .where(eq(agentCatalog.id, prior.id))
+          .where(eq(factoryArtifactSubstrate.id, prior.id))
           .returning();
         await recordAudit(
           {
@@ -479,13 +579,19 @@ export const publishAgent = api(
         retired = row;
       }
 
+      const publishedFm = injectPublicationStatus(
+        stripPublicationStatus(
+          existing.frontmatter as Record<string, unknown> | null,
+        ),
+        "published",
+      );
       const [published] = await tx
-        .update(agentCatalog)
+        .update(factoryArtifactSubstrate)
         .set({
-          status: "published" as AgentCatalogStatus,
+          frontmatter: publishedFm,
           updatedAt: new Date(),
         })
-        .where(eq(agentCatalog.id, existing.id))
+        .where(eq(factoryArtifactSubstrate.id, existing.id))
         .returning();
 
       await recordAudit(
@@ -503,14 +609,10 @@ export const publishAgent = api(
       return { published, retired };
     });
 
-    // Spec 123 §7.1 — broadcast org-keyed envelopes after the transaction
-    // commits so a fan-out failure never leaves the catalog ahead of the
-    // wire. Emit retired first so a desktop with both envelopes inflight
-    // applies "retired → published" in an order its merge semantics handle.
     if (result.retired) {
-      await publishAgentCatalogUpdated(result.retired);
+      await publishAgentCatalogUpdated(toWireForRelay(result.retired));
     }
-    await publishAgentCatalogUpdated(result.published);
+    await publishAgentCatalogUpdated(toWireForRelay(result.published));
 
     return {
       agent: toWire(result.published),
@@ -537,18 +639,29 @@ export const retireAgent = api(
         req.id,
         req.orgId,
       );
-      if (existing.status !== "published") {
+      const existingStatus = recoverPublicationStatus(
+        (existing.frontmatter as Record<string, unknown> | null) ?? null,
+        existing.status,
+      );
+      if (existingStatus !== "published") {
         throw APIError.failedPrecondition(
-          `only published agents may be retired (agent is ${existing.status})`,
+          `only published agents may be retired (agent is ${existingStatus})`,
         );
       }
+      const retiredFm = injectPublicationStatus(
+        stripPublicationStatus(
+          existing.frontmatter as Record<string, unknown> | null,
+        ),
+        "retired",
+      );
       const [row] = await tx
-        .update(agentCatalog)
+        .update(factoryArtifactSubstrate)
         .set({
-          status: "retired" as AgentCatalogStatus,
+          status: "retired",
+          frontmatter: retiredFm,
           updatedAt: new Date(),
         })
-        .where(eq(agentCatalog.id, existing.id))
+        .where(eq(factoryArtifactSubstrate.id, existing.id))
         .returning();
       await recordAudit(
         {
@@ -564,7 +677,7 @@ export const retireAgent = api(
       return row;
     });
 
-    await publishAgentCatalogUpdated(retired);
+    await publishAgentCatalogUpdated(toWireForRelay(retired));
 
     return { agent: toWire(retired) };
   },
@@ -580,30 +693,27 @@ export const listAgentAudit = api(
   async (req: ListAgentAuditRequest): Promise<ListAgentAuditResponse> => {
     const { orgId } = requireOrgAuth();
     await verifyOrgAccess(req.orgId, orgId);
-    // Authorise by loading the catalog row under the org scope first — the
-    // audit rows themselves carry org_id but leaning on the catalog row
-    // guarantees "cannot query audit for an agent you cannot read."
     await loadAgent(db, req.id, req.orgId);
 
     const rows = await db
       .select()
-      .from(agentCatalogAudit)
+      .from(factoryArtifactSubstrateAudit)
       .where(
         and(
-          eq(agentCatalogAudit.agentId, req.id),
-          eq(agentCatalogAudit.orgId, req.orgId),
+          eq(factoryArtifactSubstrateAudit.artifactId, req.id),
+          eq(factoryArtifactSubstrateAudit.orgId, req.orgId),
         ),
       )
-      .orderBy(desc(agentCatalogAudit.createdAt))
+      .orderBy(desc(factoryArtifactSubstrateAudit.createdAt))
       .limit(500);
 
     return {
       entries: rows.map((r) => ({
         id: r.id,
-        agent_id: r.agentId,
+        agent_id: r.artifactId,
         org_id: r.orgId,
-        action: r.action,
-        actor_user_id: r.actorUserId,
+        action: substrateActionToLegacy(r.action),
+        actor_user_id: r.actorUserId ?? "",
         before: (r.before as Record<string, unknown> | null) ?? null,
         after: (r.after as Record<string, unknown> | null) ?? null,
         created_at: r.createdAt.toISOString(),
@@ -635,7 +745,8 @@ export const forkAgent = api(
         req.id,
         req.orgId,
       );
-      if (source.name === req.new_name) {
+      const sourceName = nameFromPath(source.path);
+      if (sourceName === req.new_name) {
         throw APIError.invalidArgument(
           "new_name must differ from the source agent's name",
         );
@@ -646,20 +757,27 @@ export const forkAgent = api(
         req.orgId,
         req.new_name,
       );
-      const frontmatter = source.frontmatter as CatalogFrontmatter;
-      const hash = computeContentHash(frontmatter, source.bodyMarkdown);
+      const sourceFm = stripPublicationStatus(
+        source.frontmatter as Record<string, unknown> | null,
+      );
+      const sourceBody = source.userBody ?? "";
+      const hash = computeContentHash(sourceFm, sourceBody);
+      const forkedFm = injectPublicationStatus(sourceFm, "draft");
 
       const [row] = await tx
-        .insert(agentCatalog)
+        .insert(factoryArtifactSubstrate)
         .values({
           orgId: req.orgId,
-          name: req.new_name,
+          origin: "user-authored",
+          path: userAuthoredAgentPath(req.new_name),
+          kind: "agent",
           version,
-          status: "draft",
-          frontmatter,
-          bodyMarkdown: source.bodyMarkdown,
+          status: "active",
+          userBody: sourceBody,
+          userModifiedBy: userId,
           contentHash: hash,
-          createdBy: userId,
+          frontmatter: forkedFm,
+          conflictState: "ok",
         })
         .returning();
 
@@ -680,3 +798,67 @@ export const forkAgent = api(
     return { agent: toWire(forked) };
   },
 );
+
+// ---------------------------------------------------------------------------
+// Internal helpers for relay broadcast.
+// ---------------------------------------------------------------------------
+
+/**
+ * `publishAgentCatalogUpdated` was authored against the legacy
+ * `agent_catalog` row shape. Translate the substrate row into that shape
+ * for relay broadcast — the relay's wire payload mirrors the legacy
+ * field names per spec 123 §7.1, untouched by Phase 4.
+ */
+function toWireForRelay(row: SubstrateRow): {
+  id: string;
+  orgId: string;
+  name: string;
+  version: number;
+  status: AgentCatalogStatus;
+  frontmatter: Record<string, unknown>;
+  bodyMarkdown: string;
+  contentHash: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+} {
+  const fm = (row.frontmatter as Record<string, unknown> | null) ?? null;
+  return {
+    id: row.id,
+    orgId: row.orgId,
+    name: nameFromPath(row.path),
+    version: row.version,
+    status: recoverPublicationStatus(fm, row.status),
+    frontmatter: stripPublicationStatus(fm),
+    bodyMarkdown: row.userBody ?? "",
+    contentHash: row.contentHash,
+    createdBy: row.userModifiedBy ?? row.orgId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+/**
+ * Reverse of `mapAgentCatalogAuditAction` — substrate action → legacy
+ * spec 111 action for the wire shape on `listAgentAudit`. The spec 139
+ * `artifact.forked` action maps back to `fork`; everything else folds
+ * into the spec 111 5-action enum.
+ */
+function substrateActionToLegacy(
+  action: typeof factoryArtifactSubstrateAudit.$inferSelect["action"],
+): AgentCatalogAuditAction {
+  switch (action) {
+    case "artifact.synced":
+      return "create";
+    case "artifact.overridden":
+      return "edit";
+    case "artifact.retired":
+      return "retire";
+    case "artifact.forked":
+      return "fork";
+    case "artifact.override_cleared":
+    case "artifact.conflict_detected":
+    case "artifact.conflict_resolved":
+      return "edit";
+  }
+}

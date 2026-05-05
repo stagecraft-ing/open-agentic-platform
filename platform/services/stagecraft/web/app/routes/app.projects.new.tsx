@@ -228,6 +228,8 @@ export async function loader({
           hasFactoryAdapter: adapters.length > 0,
           hasUpstreamPat: false,
           hasTemplateRemote: false,
+          scaffoldSourceResolved: false,
+          adapters: [],
           canCreate: false,
           blocker: "warmup-error",
           error:
@@ -681,6 +683,39 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
           </p>
         </div>
       );
+    case "no-scaffold-source-resolved": {
+      // Spec 139 Phase 2 (T056/T057). Surface the per-adapter verdict so
+      // the user knows which adapter is missing its `scaffold_source_id`
+      // upstream and what to register.
+      const offenders = readiness.adapters.filter(
+        (a) => a.declaresScaffoldSource && !a.scaffoldSourceResolved,
+      );
+      return (
+        <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
+          <p className="text-sm text-yellow-900 dark:text-yellow-200">
+            <strong>Scaffold source not resolved.</strong> One or more
+            adapters declare a <code>scaffold_source_id</code> that does
+            not match any registered upstream in this org. Visit{" "}
+            <a
+              href="/app/factory/upstreams"
+              className="underline font-medium"
+            >
+              /app/factory/upstreams
+            </a>{" "}
+            and register the source ids below.
+          </p>
+          {offenders.length > 0 ? (
+            <ul className="mt-2 list-disc pl-5 text-sm text-yellow-900 dark:text-yellow-200">
+              {offenders.map((a) => (
+                <li key={a.id}>
+                  <code>{a.name}</code> — needs scaffold source registered
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      );
+    }
     case "warmup-error":
       return (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">

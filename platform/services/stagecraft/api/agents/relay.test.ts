@@ -50,20 +50,27 @@ vi.mock("../db/drizzle", () => ({
   },
 }));
 
+// Spec 139 Phase 4 (T091): relay.ts now reads from
+// `factory_artifact_substrate` + `factory_bindings` (legacy
+// `agent_catalog` + `project_agent_bindings` were dropped in migration
+// 34). Stubbed exports mirror the new column shape.
 vi.mock("../db/schema", () => ({
-  agentCatalog: {
+  factoryArtifactSubstrate: {
     id: "id",
     orgId: "org_id",
-    name: "name",
+    origin: "origin",
+    path: "path",
+    kind: "kind",
     version: "version",
     status: "status",
     contentHash: "content_hash",
+    frontmatter: "frontmatter",
     updatedAt: "updated_at",
   },
-  projectAgentBindings: {
+  factoryBindings: {
     id: "id",
     projectId: "project_id",
-    orgAgentId: "org_agent_id",
+    artifactId: "artifact_id",
     pinnedVersion: "pinned_version",
     pinnedContentHash: "pinned_content_hash",
     boundBy: "bound_by",
@@ -185,23 +192,26 @@ describe("sendAgentCatalogSnapshot", () => {
   });
 
   test("builds a directory-only snapshot (no bodies) and targets the requesting client", async () => {
+    // Spec 139 Phase 4: relay reads factoryArtifactSubstrate; rows
+    // expose `path` (for name extraction) and `frontmatter` (for the
+    // publication_status filter) instead of legacy `name` / `status`.
     fixture.selectRows = [
       {
         id: "a-1",
         orgId: "org-1",
-        name: "triage",
+        path: "user-authored/triage.md",
         version: 2,
-        status: "published",
         contentHash: "a".repeat(64),
+        frontmatter: { publication_status: "published" },
         updatedAt: new Date("2026-04-22T00:05:00Z"),
       },
       {
         id: "a-2",
         orgId: "org-1",
-        name: "review",
+        path: "user-authored/review.md",
         version: 1,
-        status: "published",
         contentHash: "b".repeat(64),
+        frontmatter: { publication_status: "published" },
         updatedAt: new Date("2026-04-22T00:06:00Z"),
       },
     ];
@@ -321,20 +331,24 @@ describe("sendProjectAgentBindingSnapshot", () => {
   });
 
   test("builds a per-project binding directory keyed on the project", async () => {
+    // Spec 139 Phase 4: bindings come from factory_bindings ⨝
+    // factory_artifact_substrate. Field shape mirrors the new SELECT
+    // (artifactId + substrate.path); the relay derives `agentName` by
+    // stripping the `user-authored/` prefix + `.md` suffix from path.
     fixture.selectRows = [
       {
         bindingId: "b-1",
-        orgAgentId: "a-1",
+        artifactId: "a-1",
         pinnedVersion: 2,
         pinnedContentHash: "p".repeat(64),
-        agentName: "triage",
+        path: "user-authored/triage.md",
       },
       {
         bindingId: "b-2",
-        orgAgentId: "a-2",
+        artifactId: "a-2",
         pinnedVersion: 5,
         pinnedContentHash: "q".repeat(64),
-        agentName: "review",
+        path: "user-authored/review.md",
       },
     ];
 

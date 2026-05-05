@@ -18,9 +18,12 @@
 import { api } from "encore.dev/api";
 import { CronJob } from "encore.dev/cron";
 import log from "encore.dev/log";
+import { eq } from "drizzle-orm";
 import { db } from "../../db/drizzle";
-import { factoryAdapters } from "../../db/schema";
+import { factoryArtifactSubstrate } from "../../db/schema";
 import { loadFactoryUpstreamPatToken } from "../../factory/upstreamPat";
+import { loadSubstrateForOrg } from "../../factory/substrateBrowser";
+import { projectSubstrateToLegacy } from "../../factory/projection";
 import {
   defaultWorkspaceDir,
   runWarmup,
@@ -41,38 +44,46 @@ type WarmupResolution =
   | { kind: "no-pat" };
 
 async function resolveWarmupContext(): Promise<WarmupResolution> {
-  const rows = await db
-    .select({
-      orgId: factoryAdapters.orgId,
-      manifest: factoryAdapters.manifest,
+  // Spec 139 Phase 4 (T091): adapter manifests project from
+  // `factory_artifact_substrate`. The warmup iterates all orgs that
+  // have any substrate row (i.e. completed at least one sync) and for
+  // each projects the latest adapter manifest set.
+  const orgRows = await db
+    .selectDistinctOn([factoryArtifactSubstrate.orgId], {
+      orgId: factoryArtifactSubstrate.orgId,
     })
-    .from(factoryAdapters);
+    .from(factoryArtifactSubstrate)
+    .where(eq(factoryArtifactSubstrate.status, "active"));
 
-  if (rows.length === 0) return { kind: "no-adapters" };
+  if (orgRows.length === 0) return { kind: "no-adapters" };
 
   let sawTemplateRemote = false;
-  for (const row of rows) {
-    const manifest = row.manifest as {
-      template_remote?: string;
-      template_default_branch?: string;
-    };
-    if (!manifest?.template_remote) continue;
-    sawTemplateRemote = true;
+  for (const { orgId } of orgRows) {
+    const substrate = await loadSubstrateForOrg(orgId);
+    const projection = projectSubstrateToLegacy(substrate);
+    if (projection.adapters.length === 0) continue;
+    for (const adapter of projection.adapters) {
+      const manifest = (adapter.manifest ?? {}) as {
+        template_remote?: string;
+        template_default_branch?: string;
+      };
+      if (!manifest.template_remote) continue;
+      sawTemplateRemote = true;
 
-    const pat = await loadFactoryUpstreamPatToken(row.orgId).catch(() => null);
-    if (!pat) continue;
+      const pat = await loadFactoryUpstreamPatToken(orgId).catch(() => null);
+      if (!pat) continue;
 
-    const orgId = row.orgId;
-    return {
-      kind: "ok",
-      ctx: {
-        orgId,
-        workspaceDir: defaultWorkspaceDir(),
-        templateRemote: manifest.template_remote,
-        defaultBranch: manifest.template_default_branch ?? "main",
-        patResolver: () => loadFactoryUpstreamPatToken(orgId),
-      },
-    };
+      return {
+        kind: "ok",
+        ctx: {
+          orgId,
+          workspaceDir: defaultWorkspaceDir(),
+          templateRemote: manifest.template_remote,
+          defaultBranch: manifest.template_default_branch ?? "main",
+          patResolver: () => loadFactoryUpstreamPatToken(orgId),
+        },
+      };
+    }
   }
   return sawTemplateRemote ? { kind: "no-pat" } : { kind: "no-template-remote" };
 }

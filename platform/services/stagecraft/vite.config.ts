@@ -62,6 +62,15 @@ export default defineConfig({
       // Spec 124 — runs staleness sweeper tests mutate `factory_runs`
       // and emit audit rows; same DB-bound posture as the others.
       "**/factory/runsScheduler.test.ts",
+      // Spec 139 — conflict + artifacts API integration tests touch the
+      // live `factory_artifacts*` tables and run only under `encore test`.
+      "**/factory/conflicts.test.ts",
+      "**/factory/artifacts.test.ts",
+      // Spec 139 Phase 2 — agent_catalog → substrate migration dry-run +
+      // dispatch / createOapNative E2E tests; live DB.
+      "**/factory/agentCatalogMigration.dryrun.test.ts",
+      "**/agents/dispatch.test.ts",
+      "**/projects/scaffold/createOapNative.test.ts",
     ],
   },
 });

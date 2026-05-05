@@ -6,6 +6,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-01"
+amended: "2026-05-05"
+amendment_record: "139"
 risk: high
 depends_on:
   - "042"  # multi-provider-agent-registry
@@ -53,6 +55,14 @@ summary: >
 ---
 
 # 123 — Agent Catalog Org-Rescope
+
+> **Amended 2026-05-05 by spec [139](../139-factory-artifact-substrate/spec.md).**
+> The `project_agent_bindings` mechanism generalises into universal
+> `factory_bindings` — same shape (`(pinned_version, pinned_content_hash)`),
+> applied to any kind. Invariants I-B1..I-B4 (no definition override,
+> pin integrity, retired-readability, ON DELETE RESTRICT) carry over
+> verbatim. The migration lands in spec 139 Phase 2 (T052) and the legacy
+> table drops in Phase 4 (T093).
 
 **Feature Branch:** `123-agent-catalog-org-rescope`
 **Created:** 2026-05-01
