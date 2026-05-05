@@ -3,6 +3,7 @@ import {
   detectArtifactBodyKind,
   getArtifactDisplayBody,
   getArtifactMetadata,
+  isSourceTabAvailable,
   unwrapArtifactEnvelope,
   type FactoryArtifact,
 } from "./artifact-body-viewer";
@@ -160,6 +161,24 @@ describe("unwrapArtifactEnvelope", () => {
   test("leaves string bodies alone", () => {
     const original: FactoryArtifact = { name: "x", body: "hello" };
     expect(unwrapArtifactEnvelope(original)).toEqual(original);
+  });
+});
+
+describe("isSourceTabAvailable", () => {
+  test("source tab is available for json (preview is pretty, source is raw)", () => {
+    expect(isSourceTabAvailable("json")).toBe(true);
+  });
+
+  test("source tab is hidden for yaml (preview already shows raw bytes)", () => {
+    expect(isSourceTabAvailable("yaml")).toBe(false);
+  });
+
+  test("source tab is hidden for markdown (preview is the rendered surface)", () => {
+    expect(isSourceTabAvailable("markdown")).toBe(false);
+  });
+
+  test("source tab is hidden for plain text", () => {
+    expect(isSourceTabAvailable("text")).toBe(false);
   });
 });
 

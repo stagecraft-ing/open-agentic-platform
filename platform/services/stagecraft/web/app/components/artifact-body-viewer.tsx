@@ -52,6 +52,14 @@ export function unwrapArtifactEnvelope(artifact: FactoryArtifact): FactoryArtifa
   return artifact;
 }
 
+// The Source tab only adds value when Preview hides the raw bytes — i.e. for
+// JSON, where Preview pretty-prints and Source shows the wire form. For YAML,
+// Markdown, and plain text, Preview already renders the bytes verbatim, so a
+// Source tab would be a visual duplicate.
+export function isSourceTabAvailable(kind: ArtifactBodyKind): boolean {
+  return kind === "json";
+}
+
 export function detectArtifactBodyKind(artifact: FactoryArtifact): ArtifactBodyKind {
   const path = String(artifact.path ?? "").toLowerCase();
 
@@ -124,6 +132,13 @@ export function ArtifactBodyViewer({ artifact: rawArtifact, label }: Props) {
   const [wrap, setWrap] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  const showSourceTab = isSourceTabAvailable(kind);
+  // If the user lands on (or was previously on) the Source tab for an artifact
+  // whose kind doesn't carry a Source tab, render Preview instead.
+  const effectiveTab: Tab = tab === "source" && !showSourceTab ? "preview" : tab;
+  const showWrapToggle =
+    effectiveTab === "source" || (effectiveTab === "preview" && kind === "yaml");
+
   const isSchemaPath = typeof artifact.path === "string" && artifact.path.includes(".schema.");
   const headerName = artifact.name ?? label ?? "Artifact";
 
@@ -179,17 +194,28 @@ export function ArtifactBodyViewer({ artifact: rawArtifact, label }: Props) {
           ) : null}
         </dl>
         <div className="mt-3 flex flex-wrap items-center gap-1 border-b border-gray-200 dark:border-gray-700 -mb-3">
-          <TabButton active={tab === "preview"} onClick={() => setTab("preview")}>
+          <TabButton
+            active={effectiveTab === "preview"}
+            onClick={() => setTab("preview")}
+          >
             Preview
           </TabButton>
-          <TabButton active={tab === "source"} onClick={() => setTab("source")}>
-            Source
-          </TabButton>
-          <TabButton active={tab === "metadata"} onClick={() => setTab("metadata")}>
+          {showSourceTab ? (
+            <TabButton
+              active={effectiveTab === "source"}
+              onClick={() => setTab("source")}
+            >
+              Source
+            </TabButton>
+          ) : null}
+          <TabButton
+            active={effectiveTab === "metadata"}
+            onClick={() => setTab("metadata")}
+          >
             Metadata
           </TabButton>
           <div className="ml-auto flex items-center gap-3 pb-2 text-xs text-gray-500 dark:text-gray-400">
-            {tab === "source" ? (
+            {showWrapToggle ? (
               <label className="flex items-center gap-1 cursor-pointer">
                 <input
                   type="checkbox"
@@ -213,9 +239,9 @@ export function ArtifactBodyViewer({ artifact: rawArtifact, label }: Props) {
       </div>
 
       <div className="artifact-detail__body min-h-0 overflow-auto px-4 py-3">
-        {tab === "preview" ? (
-          <PreviewBody body={body} kind={kind} />
-        ) : tab === "source" ? (
+        {effectiveTab === "preview" ? (
+          <PreviewBody body={body} kind={kind} wrap={wrap} />
+        ) : effectiveTab === "source" ? (
           <SourceBody body={body} wrap={wrap} />
         ) : (
           <MetadataBody metadata={metadata} />
@@ -225,7 +251,15 @@ export function ArtifactBodyViewer({ artifact: rawArtifact, label }: Props) {
   );
 }
 
-function PreviewBody({ body, kind }: { body: string; kind: ArtifactBodyKind }) {
+function PreviewBody({
+  body,
+  kind,
+  wrap,
+}: {
+  body: string;
+  kind: ArtifactBodyKind;
+  wrap: boolean;
+}) {
   if (!body) {
     return <EmptyBody />;
   }
@@ -240,7 +274,11 @@ function PreviewBody({ body, kind }: { body: string; kind: ArtifactBodyKind }) {
 
   if (kind === "yaml") {
     return (
-      <pre className="artifact-body artifact-body--yaml whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-gray-800 dark:text-gray-200">
+      <pre
+        className={`artifact-body artifact-body--yaml font-mono text-[12px] leading-relaxed text-gray-800 dark:text-gray-200 ${
+          wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre overflow-x-auto"
+        }`}
+      >
         <code>{body}</code>
       </pre>
     );
