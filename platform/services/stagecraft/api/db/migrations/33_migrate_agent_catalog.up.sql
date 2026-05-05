@@ -50,7 +50,12 @@ INSERT INTO factory_artifact_substrate (
 )
 SELECT
     ac.id,
-    ac.org_id,
+    -- Migration 30 made agent_catalog.org_id TEXT (spec 123 rescope) while
+    -- factory_artifact_substrate.org_id is UUID (migration 32 §2). Postgres
+    -- will not implicitly coerce, so we cast here. Backfill in migration 30
+    -- §2 wrote `projects.org_id::text` into every row, so every value is a
+    -- valid UUID literal.
+    ac.org_id::uuid,
     'user-authored',
     'user-authored/' || ac.name || '.md',
     'agent',
@@ -103,7 +108,10 @@ INSERT INTO factory_artifact_substrate_audit (
 SELECT
     aca.id,
     aca.agent_id,
-    aca.org_id,
+    -- Same TEXT→UUID coercion as §1 (agent_catalog_audit.org_id is TEXT
+    -- per migration 30; factory_artifact_substrate_audit.org_id is UUID
+    -- per migration 32 §3).
+    aca.org_id::uuid,
     CASE aca.action
         WHEN 'create'  THEN 'artifact.synced'
         WHEN 'edit'    THEN 'artifact.overridden'
