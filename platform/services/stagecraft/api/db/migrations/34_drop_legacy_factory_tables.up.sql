@@ -25,13 +25,35 @@
 
 BEGIN;
 
--- factory_adapters has a unique on (org_id, name); no FKs into it.
+-- Drop FK constraints from dependent tables before dropping the legacy
+-- ones. Spec 139 cutover: schema.ts now treats these columns as bare
+-- UUIDs whose values point into factory_artifact_substrate(id) at the
+-- app layer (see `projects.factoryAdapterId`, `scaffoldJobs.factoryAdapterId`,
+-- `factoryRuns.adapterId`, `factoryRuns.processId` — none carry
+-- `.references()` after the cutover). The columns themselves survive;
+-- only the FK constraint goes.
+--
+-- IF EXISTS guards keep the migration idempotent and tolerate Postgres
+-- auto-naming differences across environments.
+ALTER TABLE projects
+    DROP CONSTRAINT IF EXISTS projects_factory_adapter_id_fkey;
+
+ALTER TABLE scaffold_jobs
+    DROP CONSTRAINT IF EXISTS scaffold_jobs_factory_adapter_id_fkey;
+
+ALTER TABLE factory_runs
+    DROP CONSTRAINT IF EXISTS factory_runs_adapter_id_fkey;
+
+ALTER TABLE factory_runs
+    DROP CONSTRAINT IF EXISTS factory_runs_process_id_fkey;
+
+-- factory_adapters has a unique on (org_id, name).
 DROP TABLE IF EXISTS factory_adapters;
 
 -- factory_contracts has a unique on (org_id, name, version); no FKs.
 DROP TABLE IF EXISTS factory_contracts;
 
--- factory_processes has a unique on (org_id, name, version); no FKs.
+-- factory_processes has a unique on (org_id, name, version).
 DROP TABLE IF EXISTS factory_processes;
 
 COMMIT;
