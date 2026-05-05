@@ -1,11 +1,11 @@
 /**
  * Spec 123 §5.2 / T035 — bindings.ts pure-helper coverage.
  *
- * The endpoint handlers themselves call into Drizzle which is stubbed at
- * the module boundary like the rest of the stagecraft vitest suite. This
- * file keeps the test surface focused on the integrity probe and the
- * wire-shape projection, both of which exercise the spec invariants
- * directly without needing live DB transactions.
+ * Spec 139 Phase 4b: the integrity probe joins `factory_bindings` against
+ * `factory_artifact_substrate` (the catalog mocks of spec 111/123 are
+ * gone in migration 35). The fixture rows mirror the new join shape;
+ * the substrate's structural fingerprint is the same `(version,
+ * content_hash)` pair the spec 098 contract enforces.
  */
 import { describe, expect, test, vi } from "vitest";
 
@@ -45,29 +45,32 @@ vi.mock("../db/drizzle", () => ({
 }));
 
 vi.mock("../db/schema", () => ({
-  agentCatalog: {
+  factoryArtifactSubstrate: {
     id: "id",
     orgId: "org_id",
-    name: "name",
+    origin: "origin",
+    path: "path",
+    kind: "kind",
     version: "version",
     status: "status",
     contentHash: "content_hash",
+    frontmatter: "frontmatter",
   },
-  auditLog: {},
-  projectAgentBindings: {
+  factoryBindings: {
     id: "id",
     projectId: "project_id",
-    orgAgentId: "org_agent_id",
+    artifactId: "artifact_id",
     pinnedVersion: "pinned_version",
     pinnedContentHash: "pinned_content_hash",
   },
+  auditLog: {},
   projects: { id: "id", orgId: "org_id" },
 }));
 
 import { verifyBindingIntegrity } from "./bindings";
 
-describe("verifyBindingIntegrity", () => {
-  test("returns an empty list when every binding's pinned hash matches the catalog row", async () => {
+describe("verifyBindingIntegrity (substrate-direct)", () => {
+  test("returns an empty list when every binding's pinned hash matches the substrate row", async () => {
     fixture.integrityRows = [
       {
         bindingId: "b1",
@@ -92,7 +95,7 @@ describe("verifyBindingIntegrity", () => {
     expect(violations).toEqual([]);
   });
 
-  test("flags hash drift — pinned content_hash no longer matches the catalog row", async () => {
+  test("flags hash drift — pinned content_hash no longer matches the substrate row", async () => {
     fixture.integrityRows = [
       {
         bindingId: "b1",
@@ -114,7 +117,7 @@ describe("verifyBindingIntegrity", () => {
     });
   });
 
-  test("flags row_missing when the binding's pinned_version no longer matches the catalog row's version", async () => {
+  test("flags row_missing when the binding's pinned_version no longer matches the substrate row's version", async () => {
     fixture.integrityRows = [
       {
         bindingId: "b1",
@@ -123,7 +126,7 @@ describe("verifyBindingIntegrity", () => {
         pinnedVersion: 2,
         recordedContentHash: "h".repeat(64),
         currentContentHash: "h".repeat(64),
-        currentVersion: 3, // catalog has moved past v2 somehow
+        currentVersion: 3, // substrate has moved past v2 somehow
       },
     ];
     const violations = await verifyBindingIntegrity();

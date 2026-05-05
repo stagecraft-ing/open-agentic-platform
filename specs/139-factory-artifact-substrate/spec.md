@@ -2,10 +2,11 @@
 id: "139-factory-artifact-substrate"
 slug: factory-artifact-substrate
 title: "Factory artifact substrate — verbatim mirror, per-org override, unified Agent/Skill/Adapter/Contract storage"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-05"
+closed: "2026-05-05"
 kind: architecture
 risk: high
 amends: ["108", "111", "123"]
@@ -18,6 +19,48 @@ depends_on:
   - "123"  # agent-catalog-org-rescope (binding mechanism becomes universal)
   - "124"  # opc-factory-run-platform-integration (closes spec 108 §7.1 punt)
 code_aliases: ["FACTORY_ARTIFACT_SUBSTRATE"]
+implements:
+  # Substrate primitive — schema, migrations, version constants
+  - path: platform/services/stagecraft/api/db/schema.ts
+  - path: platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql
+  - path: platform/services/stagecraft/api/factory/substrate.ts
+  - path: crates/factory-engine/src/substrate_version.rs
+  # Phase 1 — verbatim sync, projection, kind/conflict/artifact endpoints
+  - path: platform/services/stagecraft/api/factory/translator.ts
+  - path: platform/services/stagecraft/api/factory/syncPipeline.ts
+  - path: platform/services/stagecraft/api/factory/syncWorker.ts
+  - path: platform/services/stagecraft/api/factory/projection.ts
+  - path: platform/services/stagecraft/api/factory/artifacts.ts
+  - path: platform/services/stagecraft/api/factory/conflicts.ts
+  - path: platform/services/stagecraft/api/factory/bindings.ts
+  - path: platform/services/stagecraft/api/factory/upstreams.ts
+  - path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx
+  - path: platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx
+  # Phase 2 — agent_catalog → substrate mirror; OAP-native adapter ingest
+  - path: platform/services/stagecraft/api/factory/agentCatalogMigration.ts
+  - path: platform/services/stagecraft/api/factory/oapNativeIngest.ts
+  - path: platform/services/stagecraft/api/factory/oapNativeSanitise.ts
+  - path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts
+  # Phase 3 — OPC virtual factory_root (closes spec 108 §7.1)
+  - path: crates/factory-engine/src/factory_root.rs
+  - path: crates/factory-engine/src/virtual_root.rs
+  - path: crates/factory-engine/src/engine.rs
+  - path: apps/desktop/src-tauri/src/commands/factory.rs
+  # Phase 4 narrow — substrate-direct reads on the spec 108 surface
+  - path: platform/services/stagecraft/api/factory/substrateBrowser.ts
+  - path: platform/services/stagecraft/api/factory/browse.ts
+  - path: platform/services/stagecraft/api/projects/opcBundle.ts
+  - path: platform/services/stagecraft/api/projects/create.ts
+  - path: platform/services/stagecraft/api/projects/import.ts
+  - path: platform/services/stagecraft/api/agents/catalog.ts
+  - path: platform/services/stagecraft/api/agents/relay.ts
+  # Phase 4b — bindings.ts substrate-direct + legacy upstream column drop
+  - path: platform/services/stagecraft/api/agents/bindings.ts
+  - path: platform/services/stagecraft/api/factory/runAgentRefs.ts
+  - path: platform/services/stagecraft/api/sync/service.ts
 summary: >
   Replace the spec 108 bucket-blob translator with a content-addressed
   substrate (`factory_artifact_substrate`) that mirrors upstream Factory and
@@ -592,14 +635,27 @@ The existing live tables are not deleted in Phase 1.
 
 ### Phase 4 — Retire legacy tables
 
-- After Phase 1's projection has been read-shadowed by the substrate
-  for at least one release with no consumer regressions:
-  drop `factory_adapters`, `factory_contracts`, `factory_processes`,
-  `agent_catalog`, `agent_catalog_audit`, `project_agent_bindings`.
-  Drop legacy columns on `factory_upstreams`.
-- The `/api/factory/{adapters,contracts,processes}` endpoints continue
-  to exist as **kind-filtered views** over `factory_artifact_substrate`. No
-  external API breaks.
+Phase 4 split into two commits because the spec 108 trio retired cleanly
+in a single PR while the spec 111/123 family required a focused
+substrate-direct rewrite of `api/agents/bindings.ts` with DB-backed
+test coverage.
+
+**Phase 4 narrow (migration 34, 2026-05-05):** drop `factory_adapters`,
+`factory_contracts`, `factory_processes`. Reads project from the
+substrate via `loadSubstrateForOrg` + `projectSubstrateToLegacy`;
+spec 108's `/api/factory/{adapters,contracts,processes}` endpoints
+continue to serve kind-filtered views with no external API break.
+`api/agents/catalog.ts` rewritten substrate-direct.
+
+**Phase 4b (migration 35, 2026-05-05):** drop `agent_catalog`,
+`agent_catalog_audit`, `project_agent_bindings`, and the four legacy
+`factory_upstreams` per-side columns (`factory_source`, `factory_ref`,
+`template_source`, `template_ref`). `api/agents/bindings.ts` rewritten
+substrate-direct with the spec 098 integrity probe re-pointed at
+`factory_bindings ⨝ factory_artifact_substrate`. The legacy singleton
+upstream wire shape composes from two N-per-org rows
+(`legacy-mixed` for the factory side, `legacy-template-mixed` for the
+template side); the wire shape is preserved byte-stable.
 
 ## 10. Symmetry With Existing Specs
 

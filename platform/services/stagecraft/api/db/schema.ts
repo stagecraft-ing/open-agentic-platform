@@ -750,11 +750,12 @@ export const oidcGroupRoleMappings = pgTable(
 // every sync run; only the latest snapshot per (org, name[, version]) is
 // retained.
 
-// Spec 139 Phase 1 — generalised from singleton-per-org to N-per-org keyed
-// by (org_id, source_id). The legacy singleton row migrates to
-// source_id='legacy-mixed' / role='mixed' so spec 108's API surface keeps
-// serving. Legacy `factory_source` / `template_source` columns stay
-// nullable through Phases 1-3; Phase 4 drops them.
+// Spec 139 Phase 4b — N-per-org keyed by (org_id, source_id). The legacy
+// singleton wire shape on `GET/POST /api/factory/upstreams` composes
+// from two rows: `legacy-mixed` (factory side, role='mixed') and
+// `legacy-template-mixed` (template side, role='scaffold'). The four
+// legacy per-side columns (factory_source/factory_ref/template_source/
+// template_ref) are dropped in migration 35.
 export const factoryUpstreams = pgTable(
   "factory_upstreams",
   {
@@ -769,17 +770,6 @@ export const factoryUpstreams = pgTable(
     // Optional subpath inside the repo (e.g. 'Factory Agent/' or
     // 'orchestration/'); NULL means whole repo.
     subpath: text("subpath"),
-    // Spec 108 legacy columns. Phase 1 made them nullable; Phase 4 (T093)
-    // intentionally KEEPS them in this migration — they back the
-    // legacy singleton wire shape on `GET/POST /api/factory/upstreams`
-    // (factorySource/factoryRef/templateSource/templateRef as separate
-    // fields). The column drop is deferred to Phase 4b after the wire
-    // shape migrates to the N-per-org `/api/factory/upstreams/sources`
-    // endpoint exclusively.
-    factorySource: text("factory_source"),
-    factoryRef: text("factory_ref").default("main"),
-    templateSource: text("template_source"),
-    templateRef: text("template_ref").default("main"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     lastSyncSha: jsonb("last_sync_sha"),
     lastSyncStatus: text("last_sync_status"),
@@ -794,15 +784,16 @@ export const factoryUpstreams = pgTable(
   (t) => [primaryKey({ columns: [t.orgId, t.sourceId] })],
 );
 
-// Spec 139 Phase 4 (T093) — `factory_adapters`, `factory_contracts`, and
-// `factory_processes` tables were dropped by migration 34. Reads project
-// from `factory_artifact_substrate` via `loadSubstrateForOrg` +
-// `projectSubstrateToLegacy`; writes are gone (the substrate is the only
-// authoritative store post-cutover).
-//
-// Spec 111 / 123 tables (`agent_catalog`, `agent_catalog_audit`,
-// `project_agent_bindings`) remain in the schema below — their drop is
-// gated to Phase 4b after the org-side `bindings.ts` re-point lands.
+// Spec 139 cutover history:
+//   * Phase 4 narrow (migration 34) dropped `factory_adapters`,
+//     `factory_contracts`, `factory_processes`. Reads project from
+//     `factory_artifact_substrate` via `loadSubstrateForOrg` +
+//     `projectSubstrateToLegacy`.
+//   * Phase 4b (migration 35) dropped `agent_catalog`,
+//     `agent_catalog_audit`, `project_agent_bindings`. Reads project
+//     from `factory_artifact_substrate` (origin='user-authored',
+//     kind='agent') and `factory_bindings`.
+// The substrate is the only authoritative store post-cutover.
 
 // ---------------------------------------------------------------------------
 // Spec 139 Phase 1 — content-addressed factory artifact substrate.
@@ -1177,16 +1168,16 @@ export const projectCloneRuns = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Spec 111 — Org-managed Agent Catalog (rescoped by spec 123).
+// Spec 111/123 wire-shape constants — preserved post-cutover.
 // ---------------------------------------------------------------------------
-// Authoritative org-scoped agent definitions. Spec 119 Phase C briefly
-// rescoped these to project; spec 123 reverted to org and introduced
-// `project_agent_bindings` (below) so projects consume catalog rows as
-// pinned versions rather than authoring their own.
-//
-// `status` and `action` are constrained as CHECK-backed TEXT in the
-// migration; mirrored here as typed string unions so drift between drizzle
-// and SQL fails at the TS boundary.
+// Spec 139 Phase 4b (migration 35) dropped the `agent_catalog`,
+// `agent_catalog_audit`, and `project_agent_bindings` tables. The
+// publication ternary and the audit-action enum survive on the wire
+// because the substrate's frontmatter mirror carries
+// `publication_status`, and the `audit_log.action` strings remain
+// `agent.binding_*` for spec 123 §7.1 wire compatibility. Spec 139 §6.4
+// reserves `factory.binding_*` for non-agent kinds; today's binding
+// surface is agent-only.
 
 export type AgentCatalogStatus = "draft" | "published" | "retired";
 export type AgentCatalogAuditAction =
@@ -1198,87 +1189,13 @@ export type AgentCatalogAuditAction =
 
 /**
  * Spec 123 — `audit_log.action` values for binding lifecycle events.
- *
- * Bindings have no dedicated audit table (the catalog has its own
- * `agent_catalog_audit` for definition mutations); binding mutations land
- * in the global `audit_log` keyed by these actions.
+ * Bindings have no dedicated audit table; mutations land in the global
+ * `audit_log` keyed by these actions.
  */
 export type AgentBindingAuditAction =
   | "agent.binding_created"
   | "agent.binding_repinned"
   | "agent.binding_unbound";
-
-export const agentCatalog = pgTable(
-  "agent_catalog",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    // Spec 123: org-scoped. The `project_id` column from spec 119 / migration 28
-    // is dropped by migration 30; absorbed-row state is materialised into
-    // `project_agent_bindings`.
-    orgId: text("org_id").notNull(),
-    name: text("name").notNull(),
-    version: integer("version").notNull().default(1),
-    status: text("status").$type<AgentCatalogStatus>()
-      .notNull()
-      .default("draft"),
-    frontmatter: jsonb("frontmatter").notNull(),
-    bodyMarkdown: text("body_markdown").notNull(),
-    contentHash: text("content_hash").notNull(),
-    createdBy: uuid("created_by").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [unique().on(t.orgId, t.name, t.version)]
-);
-
-export const agentCatalogAudit = pgTable("agent_catalog_audit", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  agentId: uuid("agent_id").notNull(),
-  // Spec 123: org-scoped (was project-scoped from migration 28).
-  orgId: text("org_id").notNull(),
-  action: text("action").$type<AgentCatalogAuditAction>().notNull(),
-  actorUserId: uuid("actor_user_id").notNull(),
-  before: jsonb("before"),
-  after: jsonb("after"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-/**
- * Spec 123 §4.4 — `project_agent_bindings`.
- *
- * Pins one org agent at one immutable version per project. The binding row
- * carries `pinned_version` and `pinned_content_hash` only — no override of
- * the agent definition (frontmatter / body / tools / model). Project-specific
- * behaviour requires forking the org agent into a new org agent.
- *
- * Invariants:
- *   I-B1: no definition override (enforced by schema — only id+version+hash).
- *   I-B2: pin integrity — `pinned_content_hash` MUST match the catalog row's
- *         `content_hash` at `(orgAgentId, pinnedVersion)` at bind time.
- *   I-B3: retired-upstream bindings stay readable but cannot be repinned.
- *   I-B4: ON DELETE RESTRICT on `orgAgentId` — retire instead of hard delete.
- */
-export const projectAgentBindings = pgTable(
-  "project_agent_bindings",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    projectId: uuid("project_id").notNull(),
-    orgAgentId: uuid("org_agent_id").notNull(),
-    pinnedVersion: integer("pinned_version").notNull(),
-    pinnedContentHash: text("pinned_content_hash").notNull(),
-    boundBy: uuid("bound_by").notNull(),
-    boundAt: timestamp("bound_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [unique().on(t.projectId, t.orgAgentId)]
-);
 
 // ---------------------------------------------------------------------------
 // Spec 115 — Knowledge Extraction Pipeline.

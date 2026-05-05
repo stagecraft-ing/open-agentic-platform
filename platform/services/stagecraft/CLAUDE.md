@@ -45,16 +45,20 @@ For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, midd
 
 Project creation and import live under `api/projects/`:
 
-**Spec 139 Phase 4 cutover (2026-05-05):** the spec 108 `factory_adapters` /
-`factory_contracts` / `factory_processes` tables were dropped (migration
-34). Adapter / contract / process reads project from
-`factory_artifact_substrate` via
+**Spec 139 cutover complete (2026-05-05):** the spec 108
+`factory_adapters` / `factory_contracts` / `factory_processes` tables
+were dropped by migration 34 (Phase 4 narrow); the spec 111/123
+`agent_catalog` / `agent_catalog_audit` / `project_agent_bindings`
+tables and the four legacy `factory_upstreams` per-side columns were
+dropped by migration 35 (Phase 4b). All reads project from
+`factory_artifact_substrate` (`origin='user-authored', kind='agent'` for
+spec 111/123 content; spec 108 wire shape via
 `api/factory/substrateBrowser.ts::loadSubstrateForOrg` +
-`api/factory/projection.ts::projectSubstrateToLegacy`. The OPC desktop's
-factory_root materialises through `factory-platform-client`; spec 139
-adds the substrate-aware `VirtualRoot` (Rust, `crates/factory-engine`)
-as the canonical replacement. The `agent_catalog` family stays in the
-schema until Phase 4b ships the `bindings.ts` re-point.
+`api/factory/projection.ts::projectSubstrateToLegacy`).
+`api/agents/{catalog,bindings}.ts` and `api/factory/runAgentRefs.ts`
+read+write the substrate directly. The OPC desktop's factory_root
+materialises through the substrate-aware `VirtualRoot`
+(`crates/factory-engine`).
 
 - `create.ts` (spec 112 §5) — `POST /api/projects/factory-create`. ACP-native; writes commit #1 with a `.factory/pipeline-state.json` L0 seed, links the project to an adapter (substrate-projected; spec 139 Phase 4), auto-provisions a `kind=development` environments row (Phase 7), and returns an `opc://` deep link. Pre-flight checks (warmup readiness, adapter present, upstream PAT configured, spec 112 §10 runtime gate) raise `APIError.failedPrecondition` with the actual cause — never the Encore-wrapped generic 500.
 - `scaffoldReadiness.ts` (spec 112 Phase 5; spec 139 T056) — `GET /api/projects/scaffold-readiness`. Per-org readiness verdict for the Create form: `{ ready, step, progress, hasFactoryAdapter, hasUpstreamPat, scaffoldSourceResolved, adapters[], canCreate, blocker }`. Adapter rows project from substrate. The web UI renders a banner per-blocker (`no-scaffold-source-resolved` is the spec 139 addition) and disables submit until `canCreate` flips.

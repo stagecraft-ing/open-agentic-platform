@@ -61,7 +61,7 @@ export default function OrgAgentHistory() {
             History: <span className="font-mono">{agent.name}</span>
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Audit trail from `agent_catalog_audit` (append-only, org-scoped).
+            Audit trail from the factory artifact substrate (append-only, org-scoped).
           </p>
         </div>
         <Link

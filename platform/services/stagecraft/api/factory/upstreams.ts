@@ -16,17 +16,21 @@ import { projectSubstrateToLegacy } from "./projection";
 //
 // Spec 108 introduced one row per organisation with fixed factory+template
 // fields. Spec 139 generalises the table to N-per-org keyed on
-// (org_id, source_id) with role/subpath columns. The legacy singleton row
-// migrates to source_id='legacy-mixed' / role='mixed'; spec 108's API
-// surface continues to serve through Phase 1's legacy endpoints below.
+// (org_id, source_id) with role/subpath columns.
 //
-// The new N-per-org endpoints are exposed alongside the legacy singleton
-// shape so consumers can opt into role-aware sourcing for the OAP-native
-// adapters (Phase 2 lights up `oap-next-prisma`, `oap-rust-axum`,
-// `oap-encore-react` source rows).
+// Spec 139 Phase 4b (B-3): the legacy singleton wire shape
+// {factorySource, factoryRef, templateSource, templateRef} now reads from
+// TWO N-per-org rows — `legacy-mixed` carries the factory side
+// (role='mixed'); `legacy-template-mixed` carries the template side
+// (role='scaffold'). The four legacy columns
+// (factory_source/factory_ref/template_source/template_ref) are dropped
+// in migration 35.
 // ---------------------------------------------------------------------------
 
 export const LEGACY_SINGLETON_SOURCE_ID = "legacy-mixed";
+/** Spec 139 Phase 4b — template-side row that backs the legacy
+ *  `templateSource`/`templateRef` wire-shape fields. */
+export const LEGACY_TEMPLATE_SOURCE_ID = "legacy-template-mixed";
 
 export type FactoryUpstreamRow = {
   orgId: string;
@@ -123,8 +127,16 @@ function validateSourceId(value: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Legacy singleton row helpers — read/write the 'legacy-mixed' row that
-// spec 108's external API surface depends on.
+// Legacy singleton wire-shape helpers.
+//
+// Spec 139 Phase 4b (B-3): the singleton wire shape
+// {factorySource, factoryRef, templateSource, templateRef} composes from
+// two N-per-org rows. `legacy-mixed` carries the factory side via its
+// (repo_url, ref) columns; `legacy-template-mixed` carries the template
+// side via the same columns. Reading both produces the legacy shape;
+// writing both keeps the wire shape idempotent. Storage flips from the
+// per-side legacy columns to the substrate-shape columns; the wire shape
+// is byte-stable.
 // ---------------------------------------------------------------------------
 
 async function loadUpstream(orgId: string): Promise<FactoryUpstreamRow | null> {
@@ -134,30 +146,27 @@ async function loadUpstream(orgId: string): Promise<FactoryUpstreamRow | null> {
     .where(
       and(
         eq(factoryUpstreams.orgId, orgId),
-        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
+        sql`${factoryUpstreams.sourceId} IN (${LEGACY_SINGLETON_SOURCE_ID}, ${LEGACY_TEMPLATE_SOURCE_ID})`,
       ),
-    )
-    .limit(1);
-  const row = rows[0];
-  if (!row) return null;
-  if (!row.factorySource || !row.templateSource) {
-    // Phase 4 drops the legacy columns. Until then the singleton row
-    // always carries them; missing values mean the row was never
-    // populated through the legacy endpoint.
-    return null;
-  }
+    );
+  const factory = rows.find((r) => r.sourceId === LEGACY_SINGLETON_SOURCE_ID);
+  const template = rows.find((r) => r.sourceId === LEGACY_TEMPLATE_SOURCE_ID);
+  if (!factory || !template) return null;
+  // The factory row is the canonical carrier of last-sync state — the
+  // sync worker stamps it on the orchestration sync; the template row
+  // tracks scaffold cache freshness independently when used.
   return {
-    orgId: row.orgId,
-    factorySource: row.factorySource,
-    factoryRef: row.factoryRef ?? "main",
-    templateSource: row.templateSource,
-    templateRef: row.templateRef ?? "main",
-    lastSyncedAt: row.lastSyncedAt,
-    lastSyncSha: (row.lastSyncSha as FactoryUpstreamRow["lastSyncSha"]) ?? null,
-    lastSyncStatus: row.lastSyncStatus,
-    lastSyncError: row.lastSyncError,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    orgId: factory.orgId,
+    factorySource: factory.repoUrl,
+    factoryRef: factory.ref,
+    templateSource: template.repoUrl,
+    templateRef: template.ref,
+    lastSyncedAt: factory.lastSyncedAt,
+    lastSyncSha: (factory.lastSyncSha as FactoryUpstreamRow["lastSyncSha"]) ?? null,
+    lastSyncStatus: factory.lastSyncStatus,
+    lastSyncError: factory.lastSyncError,
+    createdAt: factory.createdAt,
+    updatedAt: factory.updatedAt,
   };
 }
 
@@ -240,40 +249,46 @@ export const upsertUpstreams = api(
 
     const existing = await loadUpstream(auth.orgId);
 
-    if (existing) {
-      await db
-        .update(factoryUpstreams)
-        .set({
-          factorySource,
-          factoryRef,
-          templateSource,
-          templateRef,
-          // Keep the spec 139 columns in sync with the legacy singleton
-          // shape — the sync worker reads either one.
-          repoUrl: factorySource,
-          ref: factoryRef,
-          role: "mixed",
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(factoryUpstreams.orgId, auth.orgId),
-            eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
-          ),
-        );
-    } else {
-      await db.insert(factoryUpstreams).values({
+    // Spec 139 Phase 4b — write factory + template as TWO N-per-org rows.
+    // Idempotent upsert: ON CONFLICT updates the substrate-shape columns
+    // (repo_url, ref, role) so the singleton wire shape becomes a thin
+    // projection over two rows.
+    await db
+      .insert(factoryUpstreams)
+      .values({
         orgId: auth.orgId,
         sourceId: LEGACY_SINGLETON_SOURCE_ID,
         role: "mixed",
         repoUrl: factorySource,
         ref: factoryRef,
-        factorySource,
-        factoryRef,
-        templateSource,
-        templateRef,
+      })
+      .onConflictDoUpdate({
+        target: [factoryUpstreams.orgId, factoryUpstreams.sourceId],
+        set: {
+          role: "mixed",
+          repoUrl: factorySource,
+          ref: factoryRef,
+          updatedAt: new Date(),
+        },
       });
-    }
+    await db
+      .insert(factoryUpstreams)
+      .values({
+        orgId: auth.orgId,
+        sourceId: LEGACY_TEMPLATE_SOURCE_ID,
+        role: "scaffold",
+        repoUrl: templateSource,
+        ref: templateRef,
+      })
+      .onConflictDoUpdate({
+        target: [factoryUpstreams.orgId, factoryUpstreams.sourceId],
+        set: {
+          role: "scaffold",
+          repoUrl: templateSource,
+          ref: templateRef,
+          updatedAt: new Date(),
+        },
+      });
 
     await db.insert(auditLog).values({
       actorUserId: auth.userID,

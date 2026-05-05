@@ -71,6 +71,9 @@ export default defineConfig({
       "**/factory/agentCatalogMigration.dryrun.test.ts",
       "**/agents/dispatch.test.ts",
       "**/projects/scaffold/createOapNative.test.ts",
+      // Spec 139 Phase 4b — bindings.ts substrate-direct integration
+      // tests (bind / repin / unbind / retired-upstream).
+      "**/agents/bindings.integration.test.ts",
     ],
   },
 });

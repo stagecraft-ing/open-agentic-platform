@@ -1,35 +1,62 @@
 // Spec 124 §4.1 / T022 — agent-reference resolver for the reservation path.
 //
-// Walks a `factory_processes.definition` JSONB blob for embedded
-// `AgentReference` instances (the externally-tagged enum from
+// Walks a process-stage definition for embedded `AgentReference` instances
+// (the externally-tagged enum from
 // `crates/factory-contracts/src/agent_reference.rs`), then resolves each
-// reference to a `(org_agent_id, version, content_hash)` triple by reading
-// `agent_catalog` and (when `projectId` is supplied) `project_agent_bindings`.
-//
-// The resolver is intentionally thin: the desktop's `agent_resolver`
-// (spec 123 §8.2) does the same lookup at run time, so the platform-side
-// resolver is here only to populate `factory_runs.source_shas.agents[]` at
-// reservation time. T043's cross-check asserts the desktop's per-run
-// resolution matches what the server recorded.
+// reference to a `(org_agent_id, version, content_hash)` triple. Spec 139
+// Phase 4b — reads come from the substrate (`factory_artifact_substrate`
+// filtered to `origin='user-authored'`, `kind='agent'`) and
+// `factory_bindings` instead of the dropped `agent_catalog` /
+// `project_agent_bindings`. The publication ternary recovers from
+// `frontmatter.publication_status` — only `published` rows resolve.
 //
 // AgentReference JSON shape (externally-tagged, snake_case):
 //   { "by_id":          { "org_agent_id": "...", "version": 3 } }
 //   { "by_name":        { "name": "stage-cd",   "version": 2 } }
 //   { "by_name_latest": { "name": "stage-cd"                  } }
-//
-// Project-bound runs override the process's declared `by_name_latest` with
-// the version pinned in `project_agent_bindings` (spec 124 §4.4 invariant
-// I-B2 of spec 123). Bindings whose pinned catalog row is `retired` reject
-// the reservation client- and server-side (spec 124 §4.1).
 
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { agentCatalog, projectAgentBindings } from "../db/schema";
+import {
+  factoryArtifactSubstrate,
+  factoryBindings,
+} from "../db/schema";
 import type { FactoryRunSourceShas } from "../db/schema";
 import {
   walkForAgentRefs,
   type AgentRefVariant,
 } from "./agentRefWalker";
+
+const AGENT_PATH_PREFIX = "user-authored/";
+const AGENT_PATH_SUFFIX = ".md";
+
+function pathFromName(name: string): string {
+  return `${AGENT_PATH_PREFIX}${name}${AGENT_PATH_SUFFIX}`;
+}
+
+function nameFromPath(path: string): string {
+  if (
+    path.startsWith(AGENT_PATH_PREFIX) &&
+    path.endsWith(AGENT_PATH_SUFFIX)
+  ) {
+    return path.slice(
+      AGENT_PATH_PREFIX.length,
+      path.length - AGENT_PATH_SUFFIX.length,
+    );
+  }
+  return path;
+}
+
+/** Recover spec 111's draft|published|retired ternary from a substrate row. */
+function recoverPublicationStatus(
+  frontmatter: Record<string, unknown> | null,
+  substrateStatus: "active" | "retired",
+): "draft" | "published" | "retired" {
+  if (substrateStatus === "retired") return "retired";
+  const fm = frontmatter?.publication_status;
+  if (fm === "published" || fm === "retired" || fm === "draft") return fm;
+  return "draft";
+}
 
 // Re-export the pure walker so callers that already import from
 // `runAgentRefs.ts` keep working. Tests should import the walker
@@ -122,32 +149,37 @@ export async function resolveProcessAgentRefs(
     return [];
   }
 
-  // Pre-load project bindings (one query for the whole walk).
+  // Pre-load project bindings (one query for the whole walk). Spec 139
+  // Phase 4b — joined against the substrate, not the dropped catalog.
   const bindingsByName = new Map<string, BindingRow>();
   if (ctx.projectId) {
     const rows = await db
       .select({
-        orgAgentId: projectAgentBindings.orgAgentId,
-        pinnedVersion: projectAgentBindings.pinnedVersion,
-        pinnedContentHash: projectAgentBindings.pinnedContentHash,
-        agentName: agentCatalog.name,
-        agentStatus: agentCatalog.status,
+        orgAgentId: factoryBindings.artifactId,
+        pinnedVersion: factoryBindings.pinnedVersion,
+        pinnedContentHash: factoryBindings.pinnedContentHash,
+        path: factoryArtifactSubstrate.path,
+        substrateStatus: factoryArtifactSubstrate.status,
+        frontmatter: factoryArtifactSubstrate.frontmatter,
       })
-      .from(projectAgentBindings)
+      .from(factoryBindings)
       .innerJoin(
-        agentCatalog,
+        factoryArtifactSubstrate,
         and(
-          eq(agentCatalog.id, projectAgentBindings.orgAgentId),
-          eq(agentCatalog.version, projectAgentBindings.pinnedVersion),
+          eq(factoryArtifactSubstrate.id, factoryBindings.artifactId),
+          eq(factoryArtifactSubstrate.version, factoryBindings.pinnedVersion),
         ),
       )
-      .where(eq(projectAgentBindings.projectId, ctx.projectId));
+      .where(eq(factoryBindings.projectId, ctx.projectId));
     for (const row of rows) {
-      bindingsByName.set(row.agentName, {
+      bindingsByName.set(nameFromPath(row.path), {
         orgAgentId: row.orgAgentId,
         pinnedVersion: row.pinnedVersion,
         pinnedContentHash: row.pinnedContentHash,
-        status: row.agentStatus,
+        status: recoverPublicationStatus(
+          (row.frontmatter as Record<string, unknown> | null) ?? null,
+          row.substrateStatus,
+        ),
       });
     }
   }
@@ -158,12 +190,14 @@ export async function resolveProcessAgentRefs(
       const wanted = variant.by_id;
       const [row] = await db
         .select()
-        .from(agentCatalog)
+        .from(factoryArtifactSubstrate)
         .where(
           and(
-            eq(agentCatalog.id, wanted.org_agent_id),
-            eq(agentCatalog.orgId, ctx.orgId),
-            eq(agentCatalog.version, wanted.version),
+            eq(factoryArtifactSubstrate.id, wanted.org_agent_id),
+            eq(factoryArtifactSubstrate.orgId, ctx.orgId),
+            eq(factoryArtifactSubstrate.origin, "user-authored"),
+            eq(factoryArtifactSubstrate.kind, "agent"),
+            eq(factoryArtifactSubstrate.version, wanted.version),
           ),
         )
         .limit(1);
@@ -172,13 +206,13 @@ export async function resolveProcessAgentRefs(
           `by_id ${wanted.org_agent_id} v${wanted.version}`,
         );
       }
-      if (row.status === "retired") {
-        throw new RetiredAgentError(
-          row.name,
-          row.id,
-          row.version,
-          ctx.projectId ?? null,
-        );
+      const status = recoverPublicationStatus(
+        (row.frontmatter as Record<string, unknown> | null) ?? null,
+        row.status,
+      );
+      const name = nameFromPath(row.path);
+      if (status === "retired") {
+        throw new RetiredAgentError(name, row.id, row.version, ctx.projectId ?? null);
       }
       triples.push({
         org_agent_id: row.id,
@@ -189,14 +223,17 @@ export async function resolveProcessAgentRefs(
     }
     if ("by_name" in variant) {
       const wanted = variant.by_name;
+      const path = pathFromName(wanted.name);
       const [row] = await db
         .select()
-        .from(agentCatalog)
+        .from(factoryArtifactSubstrate)
         .where(
           and(
-            eq(agentCatalog.name, wanted.name),
-            eq(agentCatalog.orgId, ctx.orgId),
-            eq(agentCatalog.version, wanted.version),
+            eq(factoryArtifactSubstrate.path, path),
+            eq(factoryArtifactSubstrate.orgId, ctx.orgId),
+            eq(factoryArtifactSubstrate.origin, "user-authored"),
+            eq(factoryArtifactSubstrate.kind, "agent"),
+            eq(factoryArtifactSubstrate.version, wanted.version),
           ),
         )
         .limit(1);
@@ -205,9 +242,13 @@ export async function resolveProcessAgentRefs(
           `by_name ${wanted.name} v${wanted.version}`,
         );
       }
-      if (row.status === "retired") {
+      const status = recoverPublicationStatus(
+        (row.frontmatter as Record<string, unknown> | null) ?? null,
+        row.status,
+      );
+      if (status === "retired") {
         throw new RetiredAgentError(
-          row.name,
+          wanted.name,
           row.id,
           row.version,
           ctx.projectId ?? null,
@@ -224,8 +265,6 @@ export async function resolveProcessAgentRefs(
     const name = variant.by_name_latest.name;
     const binding = bindingsByName.get(name);
     if (binding) {
-      // Project-bound resolution. Reject if the pinned catalog row is
-      // retired upstream (spec 123 I-B3 / spec 124 §4.1).
       if (binding.status === "retired") {
         throw new RetiredAgentError(
           name,
@@ -241,18 +280,22 @@ export async function resolveProcessAgentRefs(
       });
       continue;
     }
-    // Ad-hoc resolution — pick the highest published version.
+    // Ad-hoc resolution — pick the highest active+published version.
+    const path = pathFromName(name);
     const rows = await db
       .select()
-      .from(agentCatalog)
+      .from(factoryArtifactSubstrate)
       .where(
         and(
-          eq(agentCatalog.orgId, ctx.orgId),
-          eq(agentCatalog.name, name),
-          eq(agentCatalog.status, "published"),
+          eq(factoryArtifactSubstrate.orgId, ctx.orgId),
+          eq(factoryArtifactSubstrate.origin, "user-authored"),
+          eq(factoryArtifactSubstrate.kind, "agent"),
+          eq(factoryArtifactSubstrate.path, path),
+          eq(factoryArtifactSubstrate.status, "active"),
+          sql`${factoryArtifactSubstrate.frontmatter}->>'publication_status' = 'published'`,
         ),
       )
-      .orderBy(sql`${agentCatalog.version} DESC`)
+      .orderBy(sql`${factoryArtifactSubstrate.version} DESC`)
       .limit(1);
     const top = rows[0];
     if (!top) {

@@ -15,7 +15,7 @@
 
 import { Subscription } from "encore.dev/pubsub";
 import log from "encore.dev/log";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   auditLog,
@@ -26,6 +26,10 @@ import { FactorySyncRequestTopic, type FactorySyncRequest } from "./events";
 import { resolveFactoryUpstreamToken } from "./tokenResolver";
 import { runSyncPipeline } from "./syncPipeline";
 import { runScaffoldWarmup } from "../projects/scaffold/scheduler";
+import {
+  LEGACY_SINGLETON_SOURCE_ID,
+  LEGACY_TEMPLATE_SOURCE_ID,
+} from "./upstreams";
 
 async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
   const startedAt = new Date();
@@ -49,46 +53,39 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     return;
   }
 
-  // Spec 139 generalised factory_upstreams to N-per-org. The legacy
-  // singleton row (which carried both factory + template sources) is
-  // tagged source_id='legacy-mixed' / role='mixed' (migration 32). The
-  // sync worker keeps reading the legacy shape through Phase 1; Phase 4
-  // drops the legacy columns when consumers migrate.
-  const [upstreamRow] = await db
+  // Spec 139 Phase 4b — factory_upstreams is N-per-org. The legacy
+  // singleton wire shape composes from two rows: `legacy-mixed`
+  // (factory side, role='mixed') and `legacy-template-mixed` (template
+  // side, role='scaffold'). The four legacy per-side columns are
+  // dropped in migration 35 — repo_url + ref are the canonical fields.
+  const sideRows = await db
     .select()
     .from(factoryUpstreams)
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, "legacy-mixed"),
+        sql`${factoryUpstreams.sourceId} IN (${LEGACY_SINGLETON_SOURCE_ID}, ${LEGACY_TEMPLATE_SOURCE_ID})`,
       ),
-    )
-    .limit(1);
+    );
+  const factoryRow = sideRows.find(
+    (r) => r.sourceId === LEGACY_SINGLETON_SOURCE_ID,
+  );
+  const templateRow = sideRows.find(
+    (r) => r.sourceId === LEGACY_TEMPLATE_SOURCE_ID,
+  );
 
-  if (!upstreamRow) {
-    await failRun(req, "No factory upstream configured for org");
-    return;
-  }
-
-  // Spec 139 made the legacy columns nullable to permit the dual-write
-  // transition. The legacy-mixed row must still carry all four for the
-  // sync worker to do meaningful work — surface the gap clearly.
-  if (
-    !upstreamRow.factorySource ||
-    !upstreamRow.factoryRef ||
-    !upstreamRow.templateSource ||
-    !upstreamRow.templateRef
-  ) {
+  if (!factoryRow || !templateRow) {
     await failRun(
       req,
-      "legacy-mixed upstream row is missing factorySource/factoryRef/templateSource/templateRef; reconfigure via POST /api/factory/upstreams",
+      "factory upstream not configured for org; reconfigure via POST /api/factory/upstreams",
     );
     return;
   }
-  const factorySource = upstreamRow.factorySource;
-  const factoryRef = upstreamRow.factoryRef;
-  const templateSource = upstreamRow.templateSource;
-  const templateRef = upstreamRow.templateRef;
+
+  const factorySource = factoryRow.repoUrl;
+  const factoryRef = factoryRow.ref;
+  const templateSource = templateRow.repoUrl;
+  const templateRef = templateRow.ref;
 
   await db
     .update(factoryUpstreams)
@@ -100,7 +97,7 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, "legacy-mixed"),
+        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
       ),
     );
 
@@ -183,7 +180,7 @@ async function failRun(
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, "legacy-mixed"),
+        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
       ),
     );
 

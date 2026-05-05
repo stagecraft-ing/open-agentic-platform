@@ -61,8 +61,11 @@ summary: >
 > `factory_bindings` — same shape (`(pinned_version, pinned_content_hash)`),
 > applied to any kind. Invariants I-B1..I-B4 (no definition override,
 > pin integrity, retired-readability, ON DELETE RESTRICT) carry over
-> verbatim. The migration lands in spec 139 Phase 2 (T052) and the legacy
-> table drops in Phase 4 (T093).
+> verbatim. The mirror migration lands in spec 139 Phase 2 (T052); the
+> legacy table is dropped by migration 35 (Phase 4b), with
+> `api/agents/bindings.ts` substrate-direct on read and write. See
+> [implementation-audit.md](./implementation-audit.md) for the cutover
+> trail.
 
 **Feature Branch:** `123-agent-catalog-org-rescope`
 **Created:** 2026-05-01

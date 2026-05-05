@@ -1,10 +1,19 @@
 /**
  * Spec 123 §5.2 — Project agent bindings.
  *
- * Projects consume org-managed agents via this module. A binding pins
- * one org agent at one immutable version per (project, agent name); the
- * binding row carries `pinned_version` and `pinned_content_hash` only —
- * no override of the agent definition (spec invariant I-B1).
+ * Spec 139 Phase 4b: handlers read AND write the substrate
+ * (`factory_artifact_substrate` filtered to `origin='user-authored'`,
+ * `kind='agent'`) and `factory_bindings` directly. The legacy
+ * `agent_catalog` and `project_agent_bindings` tables are dropped in
+ * migration 35; this module is the last consumer to leave them.
+ *
+ * Wire shape (`ProjectAgentBinding`) is preserved: `org_agent_id` carries
+ * the substrate row id (Phase 2 migration preserved every legacy
+ * `agent_catalog.id` as `factory_artifact_substrate.id`, so existing
+ * consumers keep their UUIDs). The spec 111 publication ternary
+ * (`draft|published|retired`) is recovered from
+ * `frontmatter.publication_status` (Phase 2 mirror seeded this on every
+ * row; Phase 4 catalog handlers maintain it).
  *
  * Endpoints:
  *   GET    /api/projects/:projectId/agents             — list bindings
@@ -14,7 +23,19 @@
  *
  * Audit: each mutation writes an `audit_log` row keyed by
  * `agent.binding_created` / `agent.binding_repinned` / `agent.binding_unbound`
- * (spec 123 T003).
+ * (spec 123 T003). The audit-action wire identifiers stay `agent.binding_*`
+ * — spec 139 §6.4 reserves `factory.binding_*` for future bindings of
+ * non-agent kinds; today's handlers only mutate agent bindings.
+ *
+ * Spec 123 invariants I-B1..I-B4 carry over verbatim:
+ *   I-B1 — no definition override (binding row carries id+version+hash only).
+ *   I-B2 — `pinned_content_hash` matches the substrate row's `contentHash`
+ *          at `(artifactId, pinnedVersion)`.
+ *   I-B3 — bindings whose substrate row is now retired remain readable
+ *          as `status='retired_upstream'`; bind/repin to a retired row
+ *          is rejected.
+ *   I-B4 — substrate rows retire in place (status='retired') instead of
+ *          hard delete; bindings stay valid for audit.
  */
 
 import { api, APIError } from "encore.dev/api";
@@ -22,9 +43,9 @@ import { getAuthData } from "~encore/auth";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
-  agentCatalog,
   auditLog,
-  projectAgentBindings,
+  factoryArtifactSubstrate,
+  factoryBindings,
   projects,
   type AgentBindingAuditAction,
   type AgentCatalogStatus,
@@ -42,8 +63,8 @@ export type ProjectAgentBinding = {
   agent_name: string;
   pinned_version: number;
   pinned_content_hash: string;
-  /** Status of the catalog row this binding points at. `retired_upstream`
-   *  is surfaced when the catalog row was retired AFTER bind time
+  /** Status of the substrate row this binding points at. `retired_upstream`
+   *  is surfaced when the substrate row was retired AFTER bind time
    *  (spec 123 invariant I-B3 — bindings stay visible read-only). */
   status: "active" | "retired_upstream";
   bound_by: string;
@@ -73,12 +94,22 @@ type UnbindRequest = { projectId: string; bindingId: string };
 type UnbindResponse = { ok: true };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Auth + helpers
 // ---------------------------------------------------------------------------
 
-function requireOrgAuth(): { userId: string; orgId: string } {
+/**
+ * Subset of the Encore auth payload the binding endpoints depend on.
+ * Mirrors the spec 124 `runs.ts` Core/api split so integration tests can
+ * exercise the business logic without `getAuthData()`.
+ */
+export interface BindingAuth {
+  orgId: string;
+  userID: string;
+}
+
+function requireOrgAuth(): BindingAuth {
   const auth = getAuthData()!;
-  return { userId: auth.userID, orgId: auth.orgId };
+  return { orgId: auth.orgId, userID: auth.userID };
 }
 
 async function verifyProjectInOrg(projectId: string, orgId: string): Promise<void> {
@@ -92,45 +123,73 @@ async function verifyProjectInOrg(projectId: string, orgId: string): Promise<voi
   }
 }
 
-type CatalogRow = typeof agentCatalog.$inferSelect;
-type BindingRow = typeof projectAgentBindings.$inferSelect;
+type SubstrateRow = typeof factoryArtifactSubstrate.$inferSelect;
+type BindingRow = typeof factoryBindings.$inferSelect;
+
+const PATH_PREFIX = "user-authored/";
+const PATH_SUFFIX = ".md";
+
+function nameFromPath(path: string): string {
+  if (!path.startsWith(PATH_PREFIX) || !path.endsWith(PATH_SUFFIX)) {
+    return path;
+  }
+  return path.slice(PATH_PREFIX.length, path.length - PATH_SUFFIX.length);
+}
 
 /**
- * Resolve an (org_agent_id, version) pair to the catalog row, asserting
- * the agent belongs to `orgId` and is not in `draft` status (drafts cannot
- * be bound — only published or retired definitions). Returns the row so
- * the caller can read content_hash.
+ * Spec 111 publication ternary recovered from `frontmatter.publication_status`.
+ * Mirrors the helper in catalog.ts — kept private to bindings.ts so the
+ * publish/retire-only-published rule applies consistently here too.
  */
-async function resolveCatalogRow(
-  orgAgentId: string,
+function recoverPublicationStatus(
+  frontmatter: Record<string, unknown> | null,
+  substrateStatus: "active" | "retired",
+): AgentCatalogStatus {
+  if (substrateStatus === "retired") return "retired";
+  const fmStatus = frontmatter?.publication_status;
+  if (fmStatus === "draft" || fmStatus === "published" || fmStatus === "retired") {
+    return fmStatus;
+  }
+  return "draft";
+}
+
+/**
+ * Resolve the substrate row at `(orgId, origin='user-authored', path, version)`.
+ * Asserts org ownership and rejects draft/retired targets per spec 123 §5.2.
+ */
+async function resolveTargetByPathVersion(
+  path: string,
   version: number,
   orgId: string,
-): Promise<CatalogRow> {
+): Promise<SubstrateRow> {
   const [row] = await db
     .select()
-    .from(agentCatalog)
+    .from(factoryArtifactSubstrate)
     .where(
       and(
-        eq(agentCatalog.id, orgAgentId),
-        eq(agentCatalog.version, version),
-        eq(agentCatalog.orgId, orgId),
+        eq(factoryArtifactSubstrate.orgId, orgId),
+        eq(factoryArtifactSubstrate.origin, "user-authored"),
+        eq(factoryArtifactSubstrate.kind, "agent"),
+        eq(factoryArtifactSubstrate.path, path),
+        eq(factoryArtifactSubstrate.version, version),
       ),
     )
     .limit(1);
   if (!row) {
     throw APIError.notFound(
-      `agent ${orgAgentId} v${version} not found in org`,
+      `agent ${nameFromPath(path)} v${version} not found in org`,
     );
   }
-  if (row.status === ("draft" as AgentCatalogStatus)) {
+  const status = recoverPublicationStatus(
+    (row.frontmatter as Record<string, unknown> | null) ?? null,
+    row.status,
+  );
+  if (status === "draft") {
     throw APIError.failedPrecondition(
       "cannot bind to a draft — publish first",
     );
   }
-  if (row.status === ("retired" as AgentCatalogStatus)) {
-    // Spec 123 §5.2 — repinning to a retired version is rejected; the
-    // initial bind path also prohibits retired targets so a project can't
-    // start out pinned to a retired-upstream definition.
+  if (status === "retired") {
     throw APIError.failedPrecondition(
       `cannot bind to retired version v${version}; choose a published version`,
     );
@@ -139,20 +198,25 @@ async function resolveCatalogRow(
 }
 
 /**
- * The org_agent_id may resolve to ANY version row of an agent name. To
- * find the specific row at a given version we look it up by (orgId, name,
- * version). The caller passes the org_agent_id (any version's id) — we
- * read its name first, then resolve the target row.
+ * The caller passes the org_agent_id (any version row of an agent's name);
+ * we read its path first, then resolve the target row at the requested
+ * version. The path serves as the agent-name key in the substrate's
+ * `(origin='user-authored', path)` partition.
  */
-async function resolveTargetByNameVersion(
+async function resolveTargetByHintAndVersion(
   orgAgentIdHint: string,
   version: number,
   orgId: string,
-): Promise<CatalogRow> {
+): Promise<SubstrateRow> {
   const [hint] = await db
-    .select({ name: agentCatalog.name, orgId: agentCatalog.orgId })
-    .from(agentCatalog)
-    .where(eq(agentCatalog.id, orgAgentIdHint))
+    .select({
+      path: factoryArtifactSubstrate.path,
+      orgId: factoryArtifactSubstrate.orgId,
+      origin: factoryArtifactSubstrate.origin,
+      kind: factoryArtifactSubstrate.kind,
+    })
+    .from(factoryArtifactSubstrate)
+    .where(eq(factoryArtifactSubstrate.id, orgAgentIdHint))
     .limit(1);
   if (!hint) {
     throw APIError.notFound("org_agent_id not found");
@@ -160,34 +224,12 @@ async function resolveTargetByNameVersion(
   if (hint.orgId !== orgId) {
     throw APIError.permissionDenied("agent belongs to a different org");
   }
-
-  const [row] = await db
-    .select()
-    .from(agentCatalog)
-    .where(
-      and(
-        eq(agentCatalog.orgId, orgId),
-        eq(agentCatalog.name, hint.name),
-        eq(agentCatalog.version, version),
-      ),
-    )
-    .limit(1);
-  if (!row) {
-    throw APIError.notFound(
-      `agent ${hint.name} v${version} not found in org`,
-    );
-  }
-  if (row.status === ("draft" as AgentCatalogStatus)) {
+  if (hint.origin !== "user-authored" || hint.kind !== "agent") {
     throw APIError.failedPrecondition(
-      "cannot bind to a draft — publish first",
+      "org_agent_id does not reference a user-authored agent artifact",
     );
   }
-  if (row.status === ("retired" as AgentCatalogStatus)) {
-    throw APIError.failedPrecondition(
-      `cannot bind to retired version v${version}; choose a published version`,
-    );
-  }
-  return row;
+  return resolveTargetByPathVersion(hint.path, version, orgId);
 }
 
 async function loadBinding(
@@ -196,11 +238,11 @@ async function loadBinding(
 ): Promise<BindingRow> {
   const [row] = await db
     .select()
-    .from(projectAgentBindings)
+    .from(factoryBindings)
     .where(
       and(
-        eq(projectAgentBindings.id, bindingId),
-        eq(projectAgentBindings.projectId, projectId),
+        eq(factoryBindings.id, bindingId),
+        eq(factoryBindings.projectId, projectId),
       ),
     )
     .limit(1);
@@ -224,7 +266,7 @@ async function recordBindingAudit(
     targetId: binding.id,
     metadata: {
       project_id: binding.projectId,
-      org_agent_id: binding.orgAgentId,
+      org_agent_id: binding.artifactId,
       pinned_version: binding.pinnedVersion,
       pinned_content_hash: binding.pinnedContentHash,
       ...(detail ?? {}),
@@ -234,26 +276,268 @@ async function recordBindingAudit(
 
 function toWire(
   binding: BindingRow,
-  catalog: { name: string; status: AgentCatalogStatus },
+  artifact: { path: string; status: AgentCatalogStatus },
 ): ProjectAgentBinding {
   return {
     binding_id: binding.id,
     project_id: binding.projectId,
-    org_agent_id: binding.orgAgentId,
-    agent_name: catalog.name,
+    org_agent_id: binding.artifactId,
+    agent_name: nameFromPath(artifact.path),
     pinned_version: binding.pinnedVersion,
     pinned_content_hash: binding.pinnedContentHash,
-    // Spec 123 I-B3: bindings whose upstream catalog row is now retired
-    // surface as `retired_upstream` so the UI can dim/badge them; the data
-    // path keeps them visible for audit.
-    status: catalog.status === "retired" ? "retired_upstream" : "active",
+    // Spec 123 I-B3: bindings whose substrate row is now retired surface
+    // as `retired_upstream` so the UI can dim/badge them; the data path
+    // keeps them visible for audit.
+    status: artifact.status === "retired" ? "retired_upstream" : "active",
     bound_by: binding.boundBy,
     bound_at: binding.boundAt.toISOString(),
   };
 }
 
+/**
+ * Translate the substrate-keyed binding row into the legacy structural
+ * shape `relay.ts` expects on the wire. Spec 139 §3.1 preserved
+ * `agent_catalog.id` as `factory_artifact_substrate.id` during the Phase
+ * 2 migration, so `org_agent_id` on the relay envelope is still the
+ * UUID existing OPC consumers know about.
+ */
+function toRelayBindingRow(row: BindingRow): {
+  id: string;
+  projectId: string;
+  orgAgentId: string;
+  pinnedVersion: number;
+  pinnedContentHash: string;
+  boundBy: string;
+  boundAt: Date;
+} {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    orgAgentId: row.artifactId,
+    pinnedVersion: row.pinnedVersion,
+    pinnedContentHash: row.pinnedContentHash,
+    boundBy: row.boundBy,
+    boundAt: row.boundAt,
+  };
+}
+
 // ---------------------------------------------------------------------------
-// Endpoints
+// Core implementations — auth is passed explicitly so integration tests can
+// drive the business logic without `getAuthData()`. The api() handlers are
+// thin wrappers that read auth from the Encore context.
+// ---------------------------------------------------------------------------
+
+export async function listBindingsCore(
+  req: ListBindingsRequest,
+  auth: BindingAuth,
+): Promise<ListBindingsResponse> {
+  await verifyProjectInOrg(req.projectId, auth.orgId);
+
+  const rows = await db
+    .select({
+      binding: factoryBindings,
+      path: factoryArtifactSubstrate.path,
+      substrateStatus: factoryArtifactSubstrate.status,
+      frontmatter: factoryArtifactSubstrate.frontmatter,
+    })
+    .from(factoryBindings)
+    .innerJoin(
+      factoryArtifactSubstrate,
+      eq(factoryArtifactSubstrate.id, factoryBindings.artifactId),
+    )
+    .where(eq(factoryBindings.projectId, req.projectId))
+    .orderBy(desc(factoryBindings.boundAt));
+
+  return {
+    bindings: rows.map((r) =>
+      toWire(r.binding, {
+        path: r.path,
+        status: recoverPublicationStatus(
+          (r.frontmatter as Record<string, unknown> | null) ?? null,
+          r.substrateStatus,
+        ),
+      }),
+    ),
+  };
+}
+
+export async function bindAgentCore(
+  req: BindAgentRequest,
+  auth: BindingAuth,
+): Promise<BindAgentResponse> {
+  await verifyProjectInOrg(req.projectId, auth.orgId);
+
+  const target = await resolveTargetByHintAndVersion(
+    req.org_agent_id,
+    req.version,
+    auth.orgId,
+  );
+
+  const binding = await db.transaction(async (tx) => {
+    // Spec 123 §6.2 UI semantics — one binding per agent name per project.
+    // Same agent name across versions cannot be double-bound; explicit
+    // repin or unbind is required first.
+    const existingByName = await tx
+      .select({ id: factoryBindings.id })
+      .from(factoryBindings)
+      .innerJoin(
+        factoryArtifactSubstrate,
+        eq(factoryArtifactSubstrate.id, factoryBindings.artifactId),
+      )
+      .where(
+        and(
+          eq(factoryBindings.projectId, req.projectId),
+          eq(factoryArtifactSubstrate.path, target.path),
+        ),
+      )
+      .limit(1);
+    if (existingByName.length > 0) {
+      throw APIError.alreadyExists(
+        `project already has a binding for agent "${nameFromPath(target.path)}"; repin or unbind first`,
+      );
+    }
+
+    const [inserted] = await tx
+      .insert(factoryBindings)
+      .values({
+        projectId: req.projectId,
+        artifactId: target.id,
+        pinnedVersion: target.version,
+        pinnedContentHash: target.contentHash,
+        boundBy: auth.userID,
+      })
+      .returning();
+
+    await recordBindingAudit(
+      tx as unknown as typeof db,
+      "agent.binding_created",
+      auth.userID,
+      inserted,
+      { agent_name: nameFromPath(target.path) },
+    );
+    return inserted;
+  });
+
+  await publishProjectAgentBindingUpdated({
+    orgId: auth.orgId,
+    projectId: req.projectId,
+    binding: toRelayBindingRow(binding),
+    agentName: nameFromPath(target.path),
+    action: "bound",
+  });
+
+  return {
+    binding: toWire(binding, {
+      path: target.path,
+      status: recoverPublicationStatus(
+        (target.frontmatter as Record<string, unknown> | null) ?? null,
+        target.status,
+      ),
+    }),
+  };
+}
+
+export async function repinBindingCore(
+  req: RepinBindingRequest,
+  auth: BindingAuth,
+): Promise<RepinBindingResponse> {
+  await verifyProjectInOrg(req.projectId, auth.orgId);
+
+  const result = await db.transaction(async (tx) => {
+    const existing = await loadBinding(req.bindingId, req.projectId);
+    const target = await resolveTargetByHintAndVersion(
+      existing.artifactId,
+      req.version,
+      auth.orgId,
+    );
+
+    const [updated] = await tx
+      .update(factoryBindings)
+      .set({
+        artifactId: target.id,
+        pinnedVersion: target.version,
+        pinnedContentHash: target.contentHash,
+        boundBy: auth.userID,
+        boundAt: new Date(),
+      })
+      .where(eq(factoryBindings.id, existing.id))
+      .returning();
+
+    await recordBindingAudit(
+      tx as unknown as typeof db,
+      "agent.binding_repinned",
+      auth.userID,
+      updated,
+      {
+        agent_name: nameFromPath(target.path),
+        previous_pinned_version: existing.pinnedVersion,
+        previous_org_agent_id: existing.artifactId,
+        previous_pinned_content_hash: existing.pinnedContentHash,
+      },
+    );
+    return { binding: updated, target };
+  });
+
+  await publishProjectAgentBindingUpdated({
+    orgId: auth.orgId,
+    projectId: req.projectId,
+    binding: toRelayBindingRow(result.binding),
+    agentName: nameFromPath(result.target.path),
+    action: "rebound",
+  });
+
+  return {
+    binding: toWire(result.binding, {
+      path: result.target.path,
+      status: recoverPublicationStatus(
+        (result.target.frontmatter as Record<string, unknown> | null) ?? null,
+        result.target.status,
+      ),
+    }),
+  };
+}
+
+export async function unbindAgentCore(
+  req: UnbindRequest,
+  auth: BindingAuth,
+): Promise<UnbindResponse> {
+  await verifyProjectInOrg(req.projectId, auth.orgId);
+
+  const removed = await db.transaction(async (tx) => {
+    const existing = await loadBinding(req.bindingId, req.projectId);
+    // Audit BEFORE delete so the row contents live in the audit row.
+    const [pathRow] = await tx
+      .select({ path: factoryArtifactSubstrate.path })
+      .from(factoryArtifactSubstrate)
+      .where(eq(factoryArtifactSubstrate.id, existing.artifactId))
+      .limit(1);
+    const agentName = pathRow ? nameFromPath(pathRow.path) : "";
+    await recordBindingAudit(
+      tx as unknown as typeof db,
+      "agent.binding_unbound",
+      auth.userID,
+      existing,
+      { agent_name: agentName || null },
+    );
+    await tx
+      .delete(factoryBindings)
+      .where(eq(factoryBindings.id, existing.id));
+    return { binding: existing, agentName };
+  });
+
+  await publishProjectAgentBindingUpdated({
+    orgId: auth.orgId,
+    projectId: req.projectId,
+    binding: toRelayBindingRow(removed.binding),
+    agentName: removed.agentName,
+    action: "unbound",
+  });
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Encore endpoint wrappers
 // ---------------------------------------------------------------------------
 
 export const listBindings = api(
@@ -264,31 +548,7 @@ export const listBindings = api(
     path: "/api/projects/:projectId/agents",
   },
   async (req: ListBindingsRequest): Promise<ListBindingsResponse> => {
-    const { orgId } = requireOrgAuth();
-    await verifyProjectInOrg(req.projectId, orgId);
-
-    const rows = await db
-      .select({
-        binding: projectAgentBindings,
-        catalogName: agentCatalog.name,
-        catalogStatus: agentCatalog.status,
-      })
-      .from(projectAgentBindings)
-      .innerJoin(
-        agentCatalog,
-        eq(agentCatalog.id, projectAgentBindings.orgAgentId),
-      )
-      .where(eq(projectAgentBindings.projectId, req.projectId))
-      .orderBy(desc(projectAgentBindings.boundAt));
-
-    return {
-      bindings: rows.map((r) =>
-        toWire(r.binding, {
-          name: r.catalogName,
-          status: r.catalogStatus,
-        }),
-      ),
-    };
+    return listBindingsCore(req, requireOrgAuth());
   },
 );
 
@@ -300,74 +560,7 @@ export const bindAgent = api(
     path: "/api/projects/:projectId/agents/bind",
   },
   async (req: BindAgentRequest): Promise<BindAgentResponse> => {
-    const { userId, orgId } = requireOrgAuth();
-    await verifyProjectInOrg(req.projectId, orgId);
-
-    const target = await resolveTargetByNameVersion(
-      req.org_agent_id,
-      req.version,
-      orgId,
-    );
-
-    const binding = await db.transaction(async (tx) => {
-      // Reject if the project already has a binding for this agent name —
-      // operators must explicitly repin or unbind first. The unique
-      // constraint at the DB layer is on (project_id, org_agent_id) which
-      // would catch same-version dupes; we widen the check to "same name"
-      // so v1 and v2 of the same agent can't both be bound to the project
-      // (spec 123 §6.2 UI semantics: one binding per agent name).
-      const existingByName = await tx
-        .select({ id: projectAgentBindings.id })
-        .from(projectAgentBindings)
-        .innerJoin(
-          agentCatalog,
-          eq(agentCatalog.id, projectAgentBindings.orgAgentId),
-        )
-        .where(
-          and(
-            eq(projectAgentBindings.projectId, req.projectId),
-            eq(agentCatalog.name, target.name),
-          ),
-        )
-        .limit(1);
-      if (existingByName.length > 0) {
-        throw APIError.alreadyExists(
-          `project already has a binding for agent "${target.name}"; repin or unbind first`,
-        );
-      }
-
-      const [inserted] = await tx
-        .insert(projectAgentBindings)
-        .values({
-          projectId: req.projectId,
-          orgAgentId: target.id,
-          pinnedVersion: target.version,
-          pinnedContentHash: target.contentHash,
-          boundBy: userId,
-        })
-        .returning();
-
-      await recordBindingAudit(
-        tx as unknown as typeof db,
-        "agent.binding_created",
-        userId,
-        inserted,
-        { agent_name: target.name },
-      );
-      return inserted;
-    });
-
-    await publishProjectAgentBindingUpdated({
-      orgId,
-      projectId: req.projectId,
-      binding,
-      agentName: target.name,
-      action: "bound",
-    });
-
-    return {
-      binding: toWire(binding, { name: target.name, status: target.status }),
-    };
+    return bindAgentCore(req, requireOrgAuth());
   },
 );
 
@@ -379,62 +572,7 @@ export const repinBinding = api(
     path: "/api/projects/:projectId/agents/:bindingId",
   },
   async (req: RepinBindingRequest): Promise<RepinBindingResponse> => {
-    const { userId, orgId } = requireOrgAuth();
-    await verifyProjectInOrg(req.projectId, orgId);
-
-    const result = await db.transaction(async (tx) => {
-      const existing = await loadBinding(req.bindingId, req.projectId);
-      const target = await resolveTargetByNameVersion(
-        existing.orgAgentId,
-        req.version,
-        orgId,
-      );
-
-      // Spec 123 §6.2 / I-B3 — repinning to a retired version is rejected
-      // (already enforced inside resolveTargetByNameVersion). If the
-      // requested version resolves to a different row id, the binding's
-      // org_agent_id must move with it.
-      const [updated] = await tx
-        .update(projectAgentBindings)
-        .set({
-          orgAgentId: target.id,
-          pinnedVersion: target.version,
-          pinnedContentHash: target.contentHash,
-          boundBy: userId,
-          boundAt: new Date(),
-        })
-        .where(eq(projectAgentBindings.id, existing.id))
-        .returning();
-
-      await recordBindingAudit(
-        tx as unknown as typeof db,
-        "agent.binding_repinned",
-        userId,
-        updated,
-        {
-          agent_name: target.name,
-          previous_pinned_version: existing.pinnedVersion,
-          previous_org_agent_id: existing.orgAgentId,
-          previous_pinned_content_hash: existing.pinnedContentHash,
-        },
-      );
-      return { binding: updated, target };
-    });
-
-    await publishProjectAgentBindingUpdated({
-      orgId,
-      projectId: req.projectId,
-      binding: result.binding,
-      agentName: result.target.name,
-      action: "rebound",
-    });
-
-    return {
-      binding: toWire(result.binding, {
-        name: result.target.name,
-        status: result.target.status,
-      }),
-    };
+    return repinBindingCore(req, requireOrgAuth());
   },
 );
 
@@ -446,39 +584,7 @@ export const unbindAgent = api(
     path: "/api/projects/:projectId/agents/:bindingId",
   },
   async (req: UnbindRequest): Promise<UnbindResponse> => {
-    const { userId, orgId } = requireOrgAuth();
-    await verifyProjectInOrg(req.projectId, orgId);
-
-    const removed = await db.transaction(async (tx) => {
-      const existing = await loadBinding(req.bindingId, req.projectId);
-      // Audit BEFORE delete so the row contents live in the audit row.
-      const [agentNameRow] = await tx
-        .select({ name: agentCatalog.name })
-        .from(agentCatalog)
-        .where(eq(agentCatalog.id, existing.orgAgentId))
-        .limit(1);
-      await recordBindingAudit(
-        tx as unknown as typeof db,
-        "agent.binding_unbound",
-        userId,
-        existing,
-        { agent_name: agentNameRow?.name ?? null },
-      );
-      await tx
-        .delete(projectAgentBindings)
-        .where(eq(projectAgentBindings.id, existing.id));
-      return { binding: existing, agentName: agentNameRow?.name ?? "" };
-    });
-
-    await publishProjectAgentBindingUpdated({
-      orgId,
-      projectId: req.projectId,
-      binding: removed.binding,
-      agentName: removed.agentName,
-      action: "unbound",
-    });
-
-    return { ok: true };
+    return unbindAgentCore(req, requireOrgAuth());
   },
 );
 
@@ -497,8 +603,8 @@ export type BindingIntegrityViolation = {
 };
 
 /**
- * Verify every binding's `pinned_content_hash` still matches the catalog
- * row at `(org_agent_id, pinned_version)`. Returns the list of violations
+ * Verify every binding's `pinned_content_hash` still matches the substrate
+ * row at `(artifactId, pinnedVersion)`. Returns the list of violations
  * for the spec 098 nightly integrity job. Empty list → all bindings clean.
  */
 export async function verifyBindingIntegrity(): Promise<
@@ -506,26 +612,23 @@ export async function verifyBindingIntegrity(): Promise<
 > {
   const rows = await db
     .select({
-      bindingId: projectAgentBindings.id,
-      projectId: projectAgentBindings.projectId,
-      orgAgentId: projectAgentBindings.orgAgentId,
-      pinnedVersion: projectAgentBindings.pinnedVersion,
-      recordedContentHash: projectAgentBindings.pinnedContentHash,
-      currentContentHash: agentCatalog.contentHash,
-      currentVersion: agentCatalog.version,
+      bindingId: factoryBindings.id,
+      projectId: factoryBindings.projectId,
+      orgAgentId: factoryBindings.artifactId,
+      pinnedVersion: factoryBindings.pinnedVersion,
+      recordedContentHash: factoryBindings.pinnedContentHash,
+      currentContentHash: factoryArtifactSubstrate.contentHash,
+      currentVersion: factoryArtifactSubstrate.version,
     })
-    .from(projectAgentBindings)
+    .from(factoryBindings)
     .innerJoin(
-      agentCatalog,
-      eq(agentCatalog.id, projectAgentBindings.orgAgentId),
+      factoryArtifactSubstrate,
+      eq(factoryArtifactSubstrate.id, factoryBindings.artifactId),
     );
 
   const violations: BindingIntegrityViolation[] = [];
   for (const r of rows) {
     if (r.currentVersion !== r.pinnedVersion) {
-      // The binding's org_agent_id row is at a different version than the
-      // pinned one — should be impossible since org_agent_id is the
-      // specific version row, but defensive.
       violations.push({
         binding_id: r.bindingId,
         project_id: r.projectId,
@@ -549,6 +652,3 @@ export async function verifyBindingIntegrity(): Promise<
   }
   return violations;
 }
-
-// Silence unused-import lint when only resolveCatalogRow is needed for tests.
-export const _internal = { resolveCatalogRow };

@@ -18,9 +18,13 @@
  */
 import log from "encore.dev/log";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { agentCatalog, auditLog, projects } from "../db/schema";
+import {
+  auditLog,
+  factoryArtifactSubstrate,
+  projects,
+} from "../db/schema";
 import type {
   ClientEnvelope,
   ServerEnvelope,
@@ -284,16 +288,25 @@ async function serveAgentCatalogFetch(
   ctx: InboundContext,
   agentId: string,
 ): Promise<InboundResult> {
+  // Spec 139 Phase 4b — substrate-direct read (legacy `agent_catalog`
+  // dropped by migration 35). Agents live as
+  // `(origin='user-authored', kind='agent')` rows; the spec 111
+  // publication ternary recovers from `frontmatter.publication_status`.
   const [row] = await db
     .select()
-    .from(agentCatalog)
-    .where(eq(agentCatalog.id, agentId))
+    .from(factoryArtifactSubstrate)
+    .where(
+      and(
+        eq(factoryArtifactSubstrate.id, agentId),
+        eq(factoryArtifactSubstrate.origin, "user-authored"),
+        eq(factoryArtifactSubstrate.kind, "agent"),
+      ),
+    )
     .limit(1);
 
   if (!row) {
     return { ok: false, reason: "invalid", detail: "agent not found" };
   }
-  // Spec 123 — agents are org-scoped; verify the row's org matches the session.
   if (row.orgId !== ctx.orgId) {
     return {
       ok: false,
@@ -301,7 +314,16 @@ async function serveAgentCatalogFetch(
       detail: "agent belongs to a different org",
     };
   }
-  if (row.status === "draft") {
+
+  const fm = (row.frontmatter as Record<string, unknown> | null) ?? null;
+  const fmStatus = fm?.publication_status;
+  const publicationStatus =
+    row.status === "retired"
+      ? "retired"
+      : fmStatus === "published" || fmStatus === "retired"
+        ? fmStatus
+        : "draft";
+  if (publicationStatus === "draft") {
     return {
       ok: false,
       reason: "invalid",
@@ -309,16 +331,24 @@ async function serveAgentCatalogFetch(
     };
   }
 
+  const PATH_PREFIX = "user-authored/";
+  const PATH_SUFFIX = ".md";
+  const name = row.path.startsWith(PATH_PREFIX) && row.path.endsWith(PATH_SUFFIX)
+    ? row.path.slice(PATH_PREFIX.length, row.path.length - PATH_SUFFIX.length)
+    : row.path;
+  const cleanedFm: Record<string, unknown> = { ...(fm ?? {}) };
+  delete cleanedFm.publication_status;
+
   const event: Omit<ServerAgentCatalogUpdated, "meta"> = {
     kind: "agent.catalog.updated",
     agentId: row.id,
     orgId: row.orgId,
-    name: row.name,
+    name,
     version: row.version,
-    status: row.status as "published" | "retired",
+    status: publicationStatus,
     contentHash: row.contentHash,
-    frontmatter: row.frontmatter as CatalogFrontmatter,
-    bodyMarkdown: row.bodyMarkdown,
+    frontmatter: cleanedFm as CatalogFrontmatter,
+    bodyMarkdown: row.userBody ?? row.effectiveBody,
     updatedAt: row.updatedAt.toISOString(),
   };
   await sendTargetedServerEvent(ctx.orgId, ctx.clientId, event);

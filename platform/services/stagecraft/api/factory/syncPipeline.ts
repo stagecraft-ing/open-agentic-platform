@@ -202,9 +202,10 @@ async function applyDualWrite(args: ApplyArgs): Promise<void> {
     // scheduler.ts) project the legacy wire shape from the substrate at
     // read time via `loadSubstrateForOrg` + `projectSubstrateToLegacy`.
 
-    // Denormalised "current state" mirror on factory_upstreams.
-    // Spec 139 generalised the PK to (org_id, source_id); the legacy
-    // singleton row migrates to source_id='legacy-mixed' (migration 32).
+    // Denormalised "current state" mirror on factory_upstreams. Spec 139
+    // Phase 4b: the legacy singleton wire shape composes from two
+    // N-per-org rows (`legacy-mixed` + `legacy-template-mixed`); only
+    // the factory-side row carries the denormalised last-sync state.
     await tx
       .update(factoryUpstreams)
       .set({

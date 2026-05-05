@@ -47,11 +47,14 @@ implements:
 # 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC
 
 > **Amended 2026-05-05 by spec [139](../139-factory-artifact-substrate/spec.md).**
-> The `agent_catalog` table generalises into the `factory_artifacts`
-> substrate as the `origin='user-authored'` partition. The `/api/agents/*`
-> handlers re-point at the substrate in spec 139 Phase 2 (T053); the
-> public API surface is preserved. `agent_catalog` and
-> `agent_catalog_audit` are dropped in spec 139 Phase 4 (T093).
+> The `agent_catalog` table generalises into the
+> `factory_artifact_substrate` as the `origin='user-authored'`,
+> `kind='agent'` partition. The `/api/orgs/:orgId/agents/*` handlers
+> re-point at the substrate in spec 139 Phase 4 narrow (`catalog.ts`)
+> and Phase 4b (`bindings.ts`); the public API surface is preserved.
+> `agent_catalog` and `agent_catalog_audit` are dropped by migration 35
+> (Phase 4b). See [implementation-audit.md](./implementation-audit.md)
+> for the full cutover trail.
 
 ## 1. Problem
 
