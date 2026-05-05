@@ -110,5 +110,19 @@ runs:
         echo "=== Pod logs (latest) ==="
         kubectl -n ${{ inputs.namespace }} logs -l app=${{ inputs.app-label }} --tail=100 --all-containers
         echo ""
+        # Helm hook diagnostics: capture logs from any Job-controlled pods in
+        # the namespace (migrate, seed, etc.) that don't carry the app= label
+        # the main selector targets. Without this, pre-upgrade hook failures
+        # surface as opaque "Job Failed. failed: N/M" with no SQL/script error.
+        echo "=== Helm hook job pods (logs + describe) ==="
+        for pod in $(kubectl -n ${{ inputs.namespace }} get pods \
+            -o jsonpath='{range .items[?(@.metadata.ownerReferences[0].kind=="Job")]}{.metadata.name}{"\n"}{end}' \
+            2>/dev/null); do
+          echo "--- $pod (describe tail) ---"
+          kubectl -n ${{ inputs.namespace }} describe pod "$pod" 2>/dev/null | tail -30 || true
+          echo "--- $pod (logs) ---"
+          kubectl -n ${{ inputs.namespace }} logs "$pod" --tail=300 --all-containers 2>/dev/null || true
+        done
+        echo ""
         echo "=== Events ==="
         kubectl -n ${{ inputs.namespace }} get events --sort-by='.lastTimestamp' | tail -30
