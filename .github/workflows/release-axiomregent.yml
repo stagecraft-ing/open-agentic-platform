@@ -189,15 +189,47 @@ jobs:
           format: cyclonedx-json
           output-file: dist/sbom-axiomregent.cdx.json
 
-      # Spec 117 — SLSA build-provenance attestation per binary.
-      - name: Attest build provenance
+      # Spec 117 — SLSA build-provenance attestation per binary. Each
+      # subject gets its own attestation step so the action's `bundle-path`
+      # output names a single-subject bundle that we can stage as a release
+      # asset under the target binary's name. AC-1 requires per-target
+      # `*.intoto.jsonl` files attached to the release.
+      - name: Attest aarch64-apple-darwin provenance
+        id: attest-darwin-arm64
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
-          subject-path: |
-            dist/axiomregent-aarch64-apple-darwin
-            dist/axiomregent-x86_64-unknown-linux-gnu
-            dist/axiomregent-aarch64-unknown-linux-gnu
-            dist/axiomregent-x86_64-pc-windows-msvc.exe
+          subject-path: dist/axiomregent-aarch64-apple-darwin
+
+      - name: Attest x86_64-unknown-linux-gnu provenance
+        id: attest-linux-x64
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: dist/axiomregent-x86_64-unknown-linux-gnu
+
+      - name: Attest aarch64-unknown-linux-gnu provenance
+        id: attest-linux-arm64
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: dist/axiomregent-aarch64-unknown-linux-gnu
+
+      - name: Attest x86_64-pc-windows-msvc provenance
+        id: attest-windows-x64
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: dist/axiomregent-x86_64-pc-windows-msvc.exe
+
+      - name: Stage per-target attestation bundles for release
+        run: |
+          set -euo pipefail
+          cp "${{ steps.attest-darwin-arm64.outputs.bundle-path }}" \
+            dist/axiomregent-aarch64-apple-darwin.intoto.jsonl
+          cp "${{ steps.attest-linux-x64.outputs.bundle-path }}" \
+            dist/axiomregent-x86_64-unknown-linux-gnu.intoto.jsonl
+          cp "${{ steps.attest-linux-arm64.outputs.bundle-path }}" \
+            dist/axiomregent-aarch64-unknown-linux-gnu.intoto.jsonl
+          cp "${{ steps.attest-windows-x64.outputs.bundle-path }}" \
+            dist/axiomregent-x86_64-pc-windows-msvc.exe.intoto.jsonl
+          ls -lh dist/*.intoto.jsonl
 
       - name: Create GitHub Release
         env:

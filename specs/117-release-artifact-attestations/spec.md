@@ -2,8 +2,8 @@
 id: "117-release-artifact-attestations"
 slug: release-artifact-attestations
 title: Release Artifact Attestations — SBOM + build provenance for every shipped binary
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-28"
 kind: governance
@@ -112,73 +112,109 @@ release surface in one pass.
 
 ## 4. Workflow Shape
 
+Each subject is attested in its own `actions/attest-build-provenance` step
+so the action's `bundle-path` output names a single-subject bundle file
+that can be staged under the subject's name (`<subject>.intoto.jsonl`).
+A glob `subject-path` produces a single multi-subject bundle whose
+filename is unrelated to the subject names — that conflicts with the
+AC-1/2/3 requirement to surface per-target `*.intoto.jsonl` files as
+release assets and conflicts with `gh attestation download`'s default
+`sha256:<digest>.jsonl` output naming. Per-step attestation is the
+canonical shape.
+
 ### 4.1 release-axiomregent.yml (publish job)
 
-After `actions/download-artifact` and before `gh release create`, insert:
+After `actions/download-artifact` and before `gh release create`, insert
+SBOM generation, four per-target attestation steps, and a stage step
+that copies each step's `bundle-path` output to a per-target file in
+`dist/`. The existing `gh release create "$TAG" dist/*` then attaches
+binaries, SBOM, and per-target `*.intoto.jsonl` together.
 
 ```yaml
-- name: Generate SBOMs (CycloneDX)
-  uses: anchore/sbom-action@<pinned-sha>  # v0
+- name: Generate SBOM (CycloneDX)
+  uses: anchore/sbom-action@<pinned-sha>  # v0.24.0+
   with:
-    path: dist/
+    path: crates
     format: cyclonedx-json
     output-file: dist/sbom-axiomregent.cdx.json
 
-- name: Attest build provenance
-  uses: actions/attest-build-provenance@<pinned-sha>  # v2
+- name: Attest aarch64-apple-darwin provenance
+  id: attest-darwin-arm64
+  uses: actions/attest-build-provenance@<pinned-sha>  # v4
   with:
-    subject-path: 'dist/axiomregent-*'
-```
+    subject-path: dist/axiomregent-aarch64-apple-darwin
+# ... three more per-target attestation steps ...
 
-The attestation files are uploaded by the action to GitHub's attestation
-store and surfaced as release assets via:
-
-```yaml
-- name: Attach attestations + SBOMs to release
+- name: Stage per-target attestation bundles for release
   run: |
-    gh attestation download --repo "$GITHUB_REPOSITORY" --predicate-type \
-      'https://slsa.dev/provenance/v1' dist/axiomregent-* --output-dir dist/
-    gh release upload "$TAG" dist/sbom-axiomregent.cdx.json dist/*.intoto.jsonl \
-      --repo "$GITHUB_REPOSITORY" --clobber
+    cp "${{ steps.attest-darwin-arm64.outputs.bundle-path }}" \
+      dist/axiomregent-aarch64-apple-darwin.intoto.jsonl
+    # ... three more cp commands ...
 ```
 
 ### 4.2 release-desktop.yml (per-target release job)
 
-Inserted after the Tauri Action and before the SHA-256 sidecar generator:
+Per matrix-target the bundle dir contains exactly one of DMG / AppImage /
+NSIS `.exe`, so a single `attest-build-provenance` call produces a
+single-subject bundle whose `bundle-path` is copied to a sibling
+`<installer>.intoto.jsonl` and uploaded to the release alongside the
+SBOM. The `*.sha256` updater sidecars remain untouched (regression guard
+for AC-2).
 
 ```yaml
-- name: Generate installer SBOMs
+- name: Generate installer SBOM
   uses: anchore/sbom-action@<pinned-sha>
   with:
-    path: apps/desktop/src-tauri/target
+    path: apps/desktop
     format: cyclonedx-json
     output-file: apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
-- name: Attest desktop installer provenance
+- name: Attest installer provenance
+  id: attest-installer
   uses: actions/attest-build-provenance@<pinned-sha>
   with:
-    subject-path: |
-      apps/desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
-      apps/desktop/src-tauri/target/**/release/bundle/appimage/*.AppImage
-      apps/desktop/src-tauri/target/**/release/bundle/nsis/*.exe
+    subject-path: ${{ steps.installers.outputs.paths }}
+
+- name: Stage per-installer attestation bundle
+  run: |
+    cp "${{ steps.attest-installer.outputs.bundle-path }}" \
+      "${INSTALLER}.intoto.jsonl"
+
+- name: Upload SBOM and attestations to release
+  run: |
+    gh release upload "$TAG" \
+      "<sbom path>" "<installer path>.intoto.jsonl" \
+      --clobber --repo "$GITHUB_REPOSITORY"
 ```
 
 ### 4.3 release-tools.yml (publish job)
 
-After archives are packaged and before `gh release upload`:
+After archives are packaged: SBOM step, three per-archive attestation
+steps, a stage step that copies each `bundle-path` to
+`<archive>.intoto.jsonl`, and the existing
+`gh release upload "$TAG" release/*` picks up archives, SBOM, and
+attestations in one shot.
 
 ```yaml
-- name: Generate tool SBOMs
+- name: Generate tools SBOM (CycloneDX)
   uses: anchore/sbom-action@<pinned-sha>
   with:
-    path: dist/
+    path: src/tools
     format: cyclonedx-json
     output-file: release/sbom-tools.cdx.json
 
-- name: Attest tool provenance
+- name: Attest aarch64-apple-darwin archive provenance
+  id: attest-tools-darwin
   uses: actions/attest-build-provenance@<pinned-sha>
   with:
-    subject-path: 'release/oap-tools-*'
+    subject-path: release/oap-tools-aarch64-apple-darwin.tar.gz
+# ... two more per-archive attestation steps ...
+
+- name: Stage per-archive attestation bundles
+  run: |
+    cp "${{ steps.attest-tools-darwin.outputs.bundle-path }}" \
+      release/oap-tools-aarch64-apple-darwin.tar.gz.intoto.jsonl
+    # ... two more cp commands ...
 ```
 
 ## 5. Verification Flow (RELEASE-VERIFICATION.md)
