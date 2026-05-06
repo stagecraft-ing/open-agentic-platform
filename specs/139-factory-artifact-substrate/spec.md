@@ -43,6 +43,7 @@ implements:
   - path: platform/services/stagecraft/api/factory/agentCatalogMigration.ts
   - path: platform/services/stagecraft/api/factory/oapNativeIngest.ts
   - path: platform/services/stagecraft/api/factory/oapNativeSanitise.ts
+  - path: platform/services/stagecraft/api/factory/oapContracts.ts
   - path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts
   # Phase 3 — OPC virtual factory_root (closes spec 108 §7.1)
   - path: crates/factory-engine/src/factory_root.rs
@@ -714,28 +715,87 @@ template side); the wire shape is preserved byte-stable.
 
 ## 12. Success Criteria
 
+> **Post-close fixes recorded 2026-05-05.** SC-001 and SC-004 were not
+> fully met at the initial close (Phase 4b commit `378cbe8`). The
+> deficiencies — and the same-day follow-on commit that closed them —
+> are documented after each criterion below.
+
 - **SC-001 (substrate fidelity):** A sync of `goa-software-factory`
   produces `factory_artifact_substrate` rows whose `effective_body` content
   hashes equal the upstream file hashes byte-for-byte. No file is
   dropped; no synthetic categorisation reshapes content.
+  - _Post-close gap:_ the OAP-owned contract schemas under
+    `crates/factory-contracts/schemas/` (9 files, declared
+    "compile-time-canonical" in plan.md Constitution Check / Principle
+    II) were dropped from the substrate at first cutover because
+    `tasks.md` did not file a task to ingest them and the orphaned
+    `loadOapOwnedContracts` helper had no callers. Result: the
+    `/app/factory/contracts` tab showed 0 of 9 schemas.
+  - _Resolution:_ `loadOapOwnedSubstrateRows()` (rewritten
+    `oapContracts.ts`) now emits substrate row drafts under
+    `(origin='oap-self', kind='contract-schema')` with the
+    repo-relative path. `runSyncPipeline` merges the drafts into the
+    per-sync row set so `applyDualWrite` writes them atomically and the
+    prune/retire step under `oap-self` works uniformly with upstream
+    origins. `loadSubstrateForOrg` and
+    `projectSubstrateToLegacy::buildContracts` accept the third origin
+    so the legacy wire shape carries the OAP-self schemas. C count
+    restored: 9.
+
 - **SC-002 (override survival):** A user override of any artifact
   survives an upstream sync that does not change the same path.
   An upstream sync that does change the same path produces
   `conflict_state='diverged'` and never overwrites `user_body`.
+
 - **SC-003 (binding reproducibility):** A factory run recorded
   with `factory_bindings` against artifact content_hashes can be
   replayed N months later and produce byte-identical prompts even
   after upstream has moved on. Verified by hash equality on
   rendered prompt strings, not just artifact bodies.
+
 - **SC-004 (OAP-native parity):** All four adapters (`aim-vue-node`,
   `next-prisma`, `rust-axum`, `encore-react`) pass
   `scaffoldReadiness.ts` and can scaffold a buildable project.
   No adapter is silently rejected by the runtime gate.
+  - _Post-close gap (Part 1):_ `ingestAllOapNativeAdapters` /
+    `ingestOapNativeAdapter` were fully implemented with tests but had
+    zero production callers; the three OAP-native adapter trees never
+    entered the substrate organically.
+  - _Post-close gap (Part 2):_ `projection.ts::buildAdapter` was
+    hardcoded to emit a single synthetic `aim-vue-node` row from
+    template-origin content, so even when OAP-native adapter manifests
+    were in the substrate they would not surface in the legacy
+    `factory_adapters` wire shape; A count would stay at 1.
+  - _Resolution:_ added `loadOapNativeAdapterSubstrateRows()` to
+    `oapNativeIngest.ts` and wired it into `runSyncPipeline` alongside
+    the contract-schema ingest. Generalised `buildAdapter` →
+    `buildOapNativeAdapters` to emit one `AdapterTranslation` per
+    `kind='adapter-manifest'` substrate row (parsed YAML manifest +
+    companion patterns/agents/invariants exposed via `__companion`).
+    Updated `countByLegacyKind` to count adapter-manifest rows in
+    addition to the synthetic aim-vue-node count. Adapter source root
+    resolves via `OAP_NATIVE_ADAPTERS_DIR` env var with walk-up
+    fallback to `_tmp/factory/adapters/` (mirrors the
+    `OAP_FACTORY_SCHEMAS_DIR` pattern). Per-adapter readiness in
+    `scaffoldReadiness.ts` already gates on `scaffold_source_id` per
+    Phase 2 T056.
+
 - **SC-005 (OPC parity):** OPC factory runs use the virtual
   factory_root with no local checkout. The
   `// TODO(spec-108-§7-punt)` marker is deleted. Replay of a
   recorded run produces byte-identical prompts whether OPC is
   online (fresh fetch) or offline (cache hit).
+  - _Status:_ `FactoryRoot::Filesystem` / `FactoryRoot::Virtual` enum
+    landed; OPC `factory.rs` materialises through
+    `factory_platform_client::materialise_run_root` into a content-
+    addressed local cache before wrapping in
+    `FactoryRoot::Filesystem`. Substantively meets the contract (no
+    upstream checkout; replay-deterministic via cache hits) though the
+    pure-HTTP `VirtualRoot` path is built as infrastructure rather
+    than activated as the dispatch path. Acceptable per §8 design
+    note. Pure-HTTP activation remains available for future change
+    without engine-side modification.
+
 - **SC-006 (axiomregent enforcement):** Every dispatched skill
   carries a `max_tier` derived from frontmatter; axiomregent
   enforces the ceiling at dispatch and emits an audit row when

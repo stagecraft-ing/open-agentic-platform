@@ -29,6 +29,8 @@ import {
   type SubstrateRowDraft,
   type SubstrateTranslation,
 } from "./translator";
+import { loadOapOwnedSubstrateRows, OAP_SELF_ORIGIN } from "./oapContracts";
+import { loadOapNativeAdapterSubstrateRows } from "./oapNativeIngest";
 import { sha256Hex, type SubstrateRow } from "./substrate";
 
 // ---------------------------------------------------------------------------
@@ -56,12 +58,26 @@ export async function runSyncPipeline(
   const translation = await cloneAndTranslate(inputs);
   const syncedAt = new Date();
 
+  // Spec 139 Constitution Check (Principle II) + SC-004:
+  //   - OAP-owned contract schemas (`crates/factory-contracts/schemas/`)
+  //     ride into the substrate as `(oap-self, contract-schema)`.
+  //   - OAP-native adapters (`next-prisma`, `rust-axum`, `encore-react`)
+  //     ride into the substrate as `(oap-self, adapter-manifest|pattern|…)`.
+  // Both groups share the `oap-self` origin so the prune/retire step
+  // applies to the union; an empty source dir for either group simply
+  // contributes zero rows.
+  const oapContractRows = await loadOapOwnedSubstrateRows();
+  const oapAdapterRows = await loadOapNativeAdapterSubstrateRows();
+  const oapSelfRows = [...oapContractRows, ...oapAdapterRows];
+  translation.substrate.rows.push(...oapSelfRows);
+
   await applyDualWrite({
     orgId: inputs.orgId,
     substrate: translation.substrate,
     factorySha: translation.factorySha,
     templateSha: translation.templateSha,
     syncedAt,
+    extraOrigins: oapSelfRows.length > 0 ? [OAP_SELF_ORIGIN] : [],
   });
 
   // Per-kind counts come from the substrate now that the legacy projection
@@ -142,13 +158,15 @@ function countByLegacyKind(substrate: SubstrateTranslation): {
   let adapters = 0;
   let contracts = 0;
   let processes = 0;
-  // Each org has exactly one synthetic adapter (`aim-vue-node`) +
-  // one synthetic process (`7-stage-build`) under the spec 108 model;
-  // those slots stay populated as long as the substrate has any
-  // adapter-shape or process-shape content.
+  // Contracts: every contract-schema row across all origins (upstream
+  // factory/template repos AND `oap-self` for OAP-owned schemas under
+  // `crates/factory-contracts/schemas/`).
   for (const row of substrate.rows) {
     if (row.kind === "contract-schema") contracts += 1;
   }
+  // Adapters: the synthetic aim-vue-node (1 if the template upstream
+  // carries a pipeline-orchestrator) PLUS one per OAP-native
+  // `adapter-manifest` substrate row.
   if (
     substrate.rows.some(
       (r) =>
@@ -156,7 +174,10 @@ function countByLegacyKind(substrate: SubstrateTranslation): {
         r.kind === "pipeline-orchestrator",
     )
   ) {
-    adapters = 1;
+    adapters += 1;
+  }
+  for (const row of substrate.rows) {
+    if (row.kind === "adapter-manifest") adapters += 1;
   }
   if (
     substrate.rows.some(
@@ -181,6 +202,12 @@ type ApplyArgs = {
   factorySha: string;
   templateSha: string;
   syncedAt: Date;
+  /**
+   * Origin ids beyond the factory/template pair to include in the
+   * prune-on-removal scan. Today: OAP-owned contract schemas under
+   * `oap-self`. Empty when the schemas directory isn't resolvable.
+   */
+  extraOrigins?: string[];
 };
 
 async function applyDualWrite(args: ApplyArgs): Promise<void> {
@@ -191,6 +218,7 @@ async function applyDualWrite(args: ApplyArgs): Promise<void> {
       origins: [
         args.substrate.factoryOriginId,
         args.substrate.templateOriginId,
+        ...(args.extraOrigins ?? []),
       ],
       rows: args.substrate.rows,
     });

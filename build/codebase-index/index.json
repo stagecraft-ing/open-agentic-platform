@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "80b7f40513166af341e0fd762612eff4b3d492cf9f3d46c234e265ca465dc429",
+    "contentHash": "f131aa99a4af92797a8263b2cb4b6328b6200a6283ea40531eb6460922922c60",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3557,7 +3557,7 @@
           }
         ],
         "specId": "119-project-as-unit-of-governance",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -4384,6 +4384,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/factory/conflicts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapContracts.ts",
             "source": "spec-implements"
           },
           {

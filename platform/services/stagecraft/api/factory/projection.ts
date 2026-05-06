@@ -16,6 +16,7 @@
 // order — see `projection.test.ts` `normalize`).
 
 import { basename } from "node:path";
+import { parse as parseYaml } from "yaml";
 import type {
   AdapterTranslation,
   ContractTranslation,
@@ -100,12 +101,93 @@ export function projectSubstrateToLegacy(
   const templateRows = input.rows.filter(
     (r) => r.origin === input.templateOriginId,
   );
+  // OAP-owned contract schemas under `crates/factory-contracts/schemas/`
+  // ride alongside the upstream contracts. They aren't tracked by either
+  // upstream repo so the substrate sync surfaces them under a third
+  // origin (`oap-self`); the projection merges them into the legacy
+  // `contracts` array. See `oapContracts.ts` for the ingest path.
+  const oapSelfRows = input.rows.filter((r) => r.origin === "oap-self");
+
+  // Adapter set: the synthetic `aim-vue-node` from the template upstream
+  // PLUS one adapter per OAP-native `adapter-manifest` substrate row.
+  // De-duplicated by name (template wins on collision — it carries
+  // skill/orchestrator content shape; oap-self adapters carry their own
+  // manifest.yaml shape).
+  const adapters: AdapterTranslation[] = [buildAdapter(templateRows, input)];
+  for (const adapter of buildOapNativeAdapters(oapSelfRows)) {
+    if (!adapters.some((a) => a.name === adapter.name)) {
+      adapters.push(adapter);
+    }
+  }
 
   return {
-    adapters: [buildAdapter(templateRows, input)],
+    adapters,
     processes: [buildProcess(factoryRows, input)],
-    contracts: buildContracts(factoryRows, templateRows, input),
+    contracts: buildContracts(factoryRows, templateRows, oapSelfRows, input),
   };
+}
+
+/**
+ * Project OAP-native adapter substrate rows into the legacy
+ * `AdapterTranslation` shape — one adapter per `adapter-manifest` row,
+ * keyed by the directory name embedded in the substrate path.
+ */
+function buildOapNativeAdapters(
+  oapSelfRows: SubstrateRowDraft[],
+): AdapterTranslation[] {
+  const out: AdapterTranslation[] = [];
+  for (const manifestRow of oapSelfRows) {
+    if (manifestRow.kind !== "adapter-manifest") continue;
+    const m = /^adapters\/([^/]+)\/manifest\.yaml$/.exec(manifestRow.path);
+    if (!m) continue;
+    const adapterName = m[1];
+
+    let manifestObj: Record<string, unknown> = {};
+    try {
+      const parsed = parseYaml(manifestRow.upstreamBody);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        manifestObj = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed YAML — preserve the raw body so the wire shape is
+      // non-empty and the operator can debug. Substrate row stays intact.
+      manifestObj = { raw: manifestRow.upstreamBody };
+    }
+
+    // Companion content (patterns, agents, invariants) for the adapter,
+    // exposed alongside the manifest so consumers don't need a second
+    // round-trip. Mirrors how `buildAdapter` exposes template skills.
+    const prefix = `adapters/${adapterName}/`;
+    const patterns: Record<string, { path: string; body: string }> = {};
+    const agents: Record<string, { path: string; body: string }> = {};
+    let invariants: { path: string; body: string } | null = null;
+    for (const row of oapSelfRows) {
+      if (!row.path.startsWith(prefix) || row === manifestRow) continue;
+      if (row.kind === "pattern") {
+        const key = row.path.slice(prefix.length);
+        patterns[key] = { path: row.path, body: row.upstreamBody };
+      } else if (row.kind === "agent" || row.kind === "skill") {
+        const key = row.path.slice(prefix.length);
+        agents[key] = { path: row.path, body: row.upstreamBody };
+      } else if (row.kind === "invariant") {
+        invariants = { path: row.path, body: row.upstreamBody };
+      }
+    }
+
+    const enrichedManifest: Record<string, unknown> = {
+      ...manifestObj,
+      __companion: { patterns, agents, invariants },
+    };
+
+    out.push({
+      name: adapterName,
+      version: manifestRow.contentHash.slice(0, 12),
+      sourceSha: manifestRow.upstreamSha || `oap-self/${adapterName}`,
+      manifest: enrichedManifest,
+    });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
 }
 
 function buildAdapter(
@@ -249,6 +331,7 @@ function buildProcess(
 function buildContracts(
   factoryRows: SubstrateRowDraft[],
   templateRows: SubstrateRowDraft[],
+  oapSelfRows: SubstrateRowDraft[],
   input: SubstrateTranslation,
 ): ContractTranslation[] {
   const factorySchemaRows = factoryRows
@@ -269,12 +352,30 @@ function buildContracts(
       sourceSha: input.templateSourceSha,
       schema: { path: row.path, body: row.upstreamBody },
     }));
+  const oapSelfSchemaRows = oapSelfRows
+    .filter((r) => r.kind === "contract-schema")
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map<ContractTranslation>((row) => ({
+      name: deriveContractName(row.path),
+      // OAP-self schemas are content-versioned via `contentHash`. Use
+      // the short hash as the wire-shape `version` slug so consumers
+      // can detect content changes; `sourceSha` carries the substrate's
+      // stable upstream-sha stamp for cross-row consistency.
+      version: row.contentHash.slice(0, 12),
+      sourceSha: row.upstreamSha || "oap-self/contract-schemas",
+      schema: { path: row.path, body: row.upstreamBody },
+    }));
 
-  // Dedup by name; first-seen wins. `translateUpstreams` iterates
-  // `[...factory.contracts, ...template.contracts]` so factory wins on
-  // collision — preserve that here.
+  // Dedup by name; first-seen wins. Factory wins over template (matches
+  // legacy `translateUpstreams` ordering); upstream wins over OAP-self
+  // when both define the same schema name (theoretical case — today
+  // upstream repos carry zero schemas, but the precedence is explicit).
   const byName = new Map<string, ContractTranslation>();
-  for (const c of [...factorySchemaRows, ...templateSchemaRows]) {
+  for (const c of [
+    ...factorySchemaRows,
+    ...templateSchemaRows,
+    ...oapSelfSchemaRows,
+  ]) {
     if (!byName.has(c.name)) byName.set(c.name, c);
   }
   return Array.from(byName.values());

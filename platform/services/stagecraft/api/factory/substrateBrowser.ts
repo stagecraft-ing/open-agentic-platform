@@ -68,14 +68,20 @@ export async function loadSubstrateForOrg(
       ),
     );
 
-  // The projection only consumes rows from the two configured origins.
+  // The projection consumes rows from the factory + template origins
+  // (for adapters/processes/contracts) and from `oap-self` (for OAP-owned
+  // contract schemas under `crates/factory-contracts/schemas/`).
   // Filter in TS (rather than constructing a complex SQL OR) so the
   // query plan stays one indexed lookup per row.
   const drafts: SubstrateRowDraft[] = [];
   let factorySha = "";
   let templateSha = "";
   for (const row of rows) {
-    if (row.origin !== factoryOriginId && row.origin !== templateOriginId) {
+    if (
+      row.origin !== factoryOriginId &&
+      row.origin !== templateOriginId &&
+      row.origin !== "oap-self"
+    ) {
       continue;
     }
     // Track the latest upstream sha per origin for the projection's

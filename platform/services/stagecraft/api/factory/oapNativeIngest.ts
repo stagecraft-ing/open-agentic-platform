@@ -22,14 +22,20 @@
 // version) DO NOTHING`.
 
 import { readFile, readdir, stat } from "node:fs/promises";
-import { basename, join, relative } from "node:path";
+import { dirname, basename, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import log from "encore.dev/log";
 import { db } from "../db/drizzle";
 import {
   factoryArtifactSubstrate,
   factoryArtifactSubstrateAudit,
 } from "../db/schema";
 import { sha256Hex } from "./substrate";
-import { classifyArtifactKind, extractFrontmatter } from "./translator";
+import {
+  classifyArtifactKind,
+  extractFrontmatter,
+  type SubstrateRowDraft,
+} from "./translator";
 import {
   OAP_NATIVE_ADAPTERS,
   sanitiseForIngest,
@@ -259,4 +265,131 @@ async function ingestOneFile(
 
 function shortHash(input: string): string {
   return sha256Hex(input).slice(0, 12);
+}
+
+// ---------------------------------------------------------------------------
+// Spec 139 SC-004 — substrate-row collector for the sync pipeline.
+//
+// The legacy `ingestAllOapNativeAdapters` runs its own DB transaction and is
+// useful for one-shot/admin imports. For the production path, the sync
+// pipeline merges OAP-native adapter rows into the same atomic write that
+// processes upstream content so the prune/retire step under
+// `origin='oap-self'` treats them uniformly with contract schemas.
+// ---------------------------------------------------------------------------
+
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+
+/** Walk up looking for `_tmp/factory/adapters/` (dev / monorepo-local). */
+async function findAdaptersDirByWalkUp(start: string): Promise<string | null> {
+  let current = start;
+  for (let i = 0; i < 8; i += 1) {
+    const candidate = join(current, "_tmp", "factory", "adapters");
+    const s = await stat(candidate).catch(() => null);
+    if (s && s.isDirectory()) return candidate;
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+  return null;
+}
+
+/**
+ * Resolve the parent directory holding OAP-native adapter source trees.
+ *
+ * Order:
+ *   1. `OAP_NATIVE_ADAPTERS_DIR` env var (production container override)
+ *   2. Walk up from `__dirname` looking for `_tmp/factory/adapters/`
+ *   3. `null` (caller skips the OAP-native ingest)
+ */
+async function resolveAdaptersDir(): Promise<string | null> {
+  const override = process.env.OAP_NATIVE_ADAPTERS_DIR;
+  if (override) {
+    const s = await stat(override).catch(() => null);
+    if (s && s.isDirectory()) return override;
+    log.warn("OAP_NATIVE_ADAPTERS_DIR set but not a directory", {
+      path: override,
+    });
+  }
+  return findAdaptersDirByWalkUp(MODULE_DIR);
+}
+
+/**
+ * Collect OAP-native adapter substrate row drafts from disk WITHOUT
+ * writing them. The sync pipeline merges these into the per-sync row set
+ * so `applyDualWrite` can apply them in the same transaction as upstream
+ * rows and the prune/retire step sees them.
+ *
+ * Skips the `aim-vue-node` adapter — its content is already mirrored
+ * under the upstream factory + template origins.
+ *
+ * Returns an empty array if the adapters directory cannot be located.
+ */
+export async function loadOapNativeAdapterSubstrateRows(): Promise<
+  SubstrateRowDraft[]
+> {
+  const root = await resolveAdaptersDir();
+  if (!root) {
+    log.warn(
+      "OAP-native adapters directory not found; substrate will not carry them",
+      {
+        searched: [
+          process.env.OAP_NATIVE_ADAPTERS_DIR ?? "(no env)",
+          MODULE_DIR,
+        ],
+      },
+    );
+    return [];
+  }
+
+  const drafts: SubstrateRowDraft[] = [];
+  for (const adapterName of Object.keys(OAP_NATIVE_ADAPTERS)) {
+    if (adapterName === "aim-vue-node") continue; // already in upstream sync
+    const config = OAP_NATIVE_ADAPTERS[adapterName];
+    const adapterDir = join(root, adapterName);
+    const exists = await stat(adapterDir).catch(() => null);
+    if (!exists || !exists.isDirectory()) continue;
+
+    const upstreamSha = `oap-self/${adapterName}/${shortHash(adapterDir)}`;
+
+    for await (const file of walkAdapter(adapterDir)) {
+      const substratePath = `adapters/${adapterName}/${file.rel}`;
+      let bodyText = await readFile(file.abs, "utf8");
+      let frontmatter: Record<string, unknown> | null = null;
+
+      const sanitised = await sanitiseForIngest({
+        rel: file.rel,
+        body: bodyText,
+        adapterName,
+        config,
+      });
+      bodyText = sanitised.body;
+      frontmatter = sanitised.frontmatter;
+
+      if (frontmatter === null && /\.md$/i.test(file.rel)) {
+        frontmatter = extractFrontmatter(bodyText).frontmatter;
+      }
+
+      const kind = classifyArtifactKind(substratePath, frontmatter);
+      drafts.push({
+        origin: OAP_NATIVE_ORIGIN,
+        path: substratePath,
+        kind,
+        bundleId: null,
+        upstreamSha,
+        upstreamBody: bodyText,
+        contentHash: sha256Hex(bodyText),
+        frontmatter,
+      });
+    }
+  }
+
+  drafts.sort((a, b) => a.path.localeCompare(b.path));
+  log.info("loaded OAP-native adapter substrate drafts", {
+    root,
+    count: drafts.length,
+    adapters: Array.from(
+      new Set(drafts.map((d) => d.path.split("/")[1])),
+    ).sort(),
+  });
+  return drafts;
 }
