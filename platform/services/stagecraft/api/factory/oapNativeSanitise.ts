@@ -4,51 +4,20 @@
 // Lives in its own module (separate from `oapNativeIngest.ts`) so the
 // pure-function tests can run under bare vitest without pulling in the
 // encore runtime via the DB import chain.
+//
+// Spec 140 AC-2 — `OAP_NATIVE_ADAPTERS` moved to `oapNativeAdapters.ts`
+// so `translator.ts` and `projection.ts` can read the canonical
+// scaffold-source-id constants without an import cycle. Re-exported here
+// to keep existing callers (`oapNativeIngest.ts`, dispatch tests) stable.
 
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { extractFrontmatter } from "./translator";
+import type { OapNativeAdapterConfig } from "./oapNativeAdapters";
 
-export type OapNativeAdapterConfig = {
-  /** Adapter name; matches the directory name on disk. */
-  adapterName: string;
-  /** Required runtime override at ingest, or null to keep existing. */
-  runtimeOverride: string | null;
-  /** Spec 139 §7.2 manifest extension — Phase 2 keys. */
-  orchestrationSourceId: string;
-  scaffoldSourceId: string;
-  scaffoldRuntime: string;
-};
-
-export const OAP_NATIVE_ADAPTERS: Record<string, OapNativeAdapterConfig> = {
-  "next-prisma": {
-    adapterName: "next-prisma",
-    runtimeOverride: "node-24", // D-4 fix #1 — bump from node-22
-    orchestrationSourceId: "oap-next-prisma",
-    scaffoldSourceId: "oap-next-prisma-scaffold",
-    scaffoldRuntime: "node-24",
-  },
-  "rust-axum": {
-    adapterName: "rust-axum",
-    runtimeOverride: null, // `native` already satisfies spec 112 §5.4
-    orchestrationSourceId: "oap-rust-axum",
-    scaffoldSourceId: "oap-rust-axum-scaffold",
-    scaffoldRuntime: "native",
-  },
-  "encore-react": {
-    adapterName: "encore-react",
-    runtimeOverride: "node-24", // D-4 fix #1 — bump from node-20
-    orchestrationSourceId: "oap-encore-react",
-    scaffoldSourceId: "oap-encore-react-scaffold",
-    scaffoldRuntime: "node-24",
-  },
-  "aim-vue-node": {
-    adapterName: "aim-vue-node",
-    runtimeOverride: null,
-    orchestrationSourceId: "goa-software-factory",
-    scaffoldSourceId: "aim-vue-node-template",
-    scaffoldRuntime: "node-24",
-  },
-};
+export {
+  OAP_NATIVE_ADAPTERS,
+  type OapNativeAdapterConfig,
+} from "./oapNativeAdapters";
 
 export type SanitiseInput = {
   rel: string;

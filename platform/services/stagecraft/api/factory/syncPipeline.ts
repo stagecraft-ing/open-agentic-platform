@@ -125,13 +125,17 @@ async function cloneAndTranslate(
         async (templateRepo) => {
           // Single walk → substrate. Substrate is the only authoritative
           // store from Phase 4 onward; consumers project at read time.
+          // Spec 140 §2.1 — `templateRemote` / `templateDefaultBranch` no
+          // longer flow through the substrate. The projection's
+          // `buildAdapter` emits `scaffold_source_id` from
+          // `OAP_NATIVE_ADAPTERS["aim-vue-node"]` directly; URLs live in
+          // `factory_upstreams` and are resolved at clone time by the
+          // scaffold layer (see `api/projects/scaffold/scheduler.ts`).
           const substrate = await translateUpstreamsToSubstrate({
             factorySourcePath: factoryRepo.path,
             factorySourceSha: factoryRepo.sha,
             templatePath: templateRepo.path,
             templateSha: templateRepo.sha,
-            templateRemote: inputs.templateSource,
-            templateDefaultBranch: inputs.templateRef,
           });
 
           return {

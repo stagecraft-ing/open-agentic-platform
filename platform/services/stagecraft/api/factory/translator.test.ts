@@ -201,30 +201,25 @@ describe("translateTemplate", () => {
     expect(blob).not.toContain("excluded internal");
   });
 
-  test("omits template_remote when no options supplied", async () => {
+  // Spec 140 §2.1 (T012) — translator no longer writes the legacy
+  // `template_remote` / `template_default_branch` keys onto the adapter
+  // manifest. URLs live in `factory_upstreams` and are resolved at clone
+  // time via `manifest.scaffold_source_id`.
+  test("does not emit legacy template_remote / template_default_branch", async () => {
     const { adapter } = await translateTemplate(repo, sha);
     const m = adapter.manifest as Record<string, unknown>;
     expect(m.template_remote).toBeUndefined();
     expect(m.template_default_branch).toBeUndefined();
   });
 
-  test("embeds template_remote and default branch when supplied", async () => {
-    const { adapter } = await translateTemplate(repo, sha, {
-      templateRemote: "GovAlta-Pronghorn/template",
-      templateDefaultBranch: "main",
-    });
+  // Spec 140 §2.1 — manifest carries the §7.2 trio sourced from
+  // `OAP_NATIVE_ADAPTERS["aim-vue-node"]` (AC-2).
+  test("emits scaffold_source_id / orchestration_source_id / scaffold_runtime", async () => {
+    const { adapter } = await translateTemplate(repo, sha);
     const m = adapter.manifest as Record<string, unknown>;
-    expect(m.template_remote).toBe("GovAlta-Pronghorn/template");
-    expect(m.template_default_branch).toBe("main");
-  });
-
-  test("falls back to main when branch arg is a 40-char sha", async () => {
-    const { adapter } = await translateTemplate(repo, sha, {
-      templateRemote: "GovAlta-Pronghorn/template",
-      templateDefaultBranch: "9b83c1095013fd460b18745ef35987bd8d2de1b1",
-    });
-    const m = adapter.manifest as Record<string, unknown>;
-    expect(m.template_default_branch).toBe("main");
+    expect(m.scaffold_source_id).toBe("aim-vue-node-template");
+    expect(m.orchestration_source_id).toBe("goa-software-factory");
+    expect(m.scaffold_runtime).toBe("node-24");
   });
 });
 

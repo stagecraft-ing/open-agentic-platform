@@ -145,13 +145,14 @@ describe("spec 139 Phase 1 — round-trip parity (T010)", () => {
   });
 
   test("substrate→projection produces deep-equal TranslationResult to legacy", async () => {
+    // Spec 140 §2.1 — the substrate translator no longer carries
+    // `templateRemote` / `templateDefaultBranch` options; the manifest
+    // emits scaffold_source_id from OAP_NATIVE_ADAPTERS unconditionally.
     const opts = {
       factorySourcePath: factory,
       factorySourceSha: factorySha,
       templatePath: template,
       templateSha,
-      templateRemote: "GovAlta-Pronghorn/template",
-      templateDefaultBranch: "main",
     };
 
     const legacy = await translateUpstreams(opts);
@@ -294,5 +295,131 @@ describe("spec 139 Phase 1 — round-trip parity (T010)", () => {
     // Non-md (JSON) rows have null frontmatter.
     const refRow = substrate.rows.find((r) => r.path.endsWith(".json"));
     expect(refRow!.frontmatter).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec 140 Phase 1 — buildAdapter emit-side regression tests (T010 / T011).
+// ---------------------------------------------------------------------------
+
+describe("spec 140 Phase 1 — aim-vue-node manifest cutover (T010)", () => {
+  const factorySha = "f".repeat(40);
+  const templateSha = "e".repeat(40);
+
+  test("buildAdapter emits scaffold_source_id / orchestration_source_id / scaffold_runtime — and no template_remote / template_default_branch", () => {
+    const substrate = {
+      rows: [
+        {
+          origin: "aim-vue-node-template",
+          path: "orchestration/template-orchestrator.md",
+          kind: "pipeline-orchestrator" as const,
+          bundleId: null,
+          upstreamSha: templateSha,
+          upstreamBody: "orch body",
+          contentHash: "a".repeat(64),
+          frontmatter: null,
+        },
+        {
+          origin: "aim-vue-node-template",
+          path: "orchestration/skills/analyze.md",
+          kind: "skill" as const,
+          bundleId: null,
+          upstreamSha: templateSha,
+          upstreamBody: "analyze body",
+          contentHash: "b".repeat(64),
+          frontmatter: null,
+        },
+      ],
+      factorySourceSha: factorySha,
+      templateSourceSha: templateSha,
+      factoryOriginId: "goa-software-factory",
+      templateOriginId: "aim-vue-node-template",
+    };
+
+    const projected = projectSubstrateToLegacy(substrate);
+    expect(projected.adapters).toHaveLength(1);
+    const m = projected.adapters[0].manifest as Record<string, unknown>;
+
+    // Spec 140 AC-2 — values are sourced from the
+    // `OAP_NATIVE_ADAPTERS["aim-vue-node"]` constant.
+    expect(m.scaffold_source_id).toBe("aim-vue-node-template");
+    expect(m.orchestration_source_id).toBe("goa-software-factory");
+    expect(m.scaffold_runtime).toBe("node-24");
+
+    // The legacy fields are gone.
+    expect(m.template_remote).toBeUndefined();
+    expect(m.template_default_branch).toBeUndefined();
+  });
+});
+
+describe("spec 140 Phase 1 — adapter de-dup priority (T011)", () => {
+  const factorySha = "f".repeat(40);
+  const templateSha = "e".repeat(40);
+
+  test("oap-self adapter-manifest row wins over template-origin synthetic when both name aim-vue-node", () => {
+    // The oap-self row's manifest body — distinguished from the template
+    // synthetic by carrying its own `__companion` envelope and a
+    // recognisable display marker the synthetic never emits.
+    const oapSelfManifestBody = [
+      "adapter:",
+      "  name: aim-vue-node",
+      "  display_name: 'oap-self winning manifest'",
+      "orchestration_source_id: goa-software-factory",
+      "scaffold_source_id: aim-vue-node-template",
+      "scaffold_runtime: node-24",
+      "",
+    ].join("\n");
+
+    const substrate = {
+      rows: [
+        // Template-origin synthetic content — orchestrator + a skill so
+        // `buildAdapter` emits an aim-vue-node entry.
+        {
+          origin: "aim-vue-node-template",
+          path: "orchestration/template-orchestrator.md",
+          kind: "pipeline-orchestrator" as const,
+          bundleId: null,
+          upstreamSha: templateSha,
+          upstreamBody: "template orch body",
+          contentHash: "a".repeat(64),
+          frontmatter: null,
+        },
+        // Oap-self adapter-manifest row — `buildOapNativeAdapters`
+        // recognises the `adapters/<name>/manifest.yaml` shape.
+        {
+          origin: "oap-self",
+          path: "adapters/aim-vue-node/manifest.yaml",
+          kind: "adapter-manifest" as const,
+          bundleId: null,
+          upstreamSha: "oap-self/aim-vue-node/spec-140-migration-36",
+          upstreamBody: oapSelfManifestBody,
+          contentHash: "c".repeat(64),
+          frontmatter: null,
+        },
+      ],
+      factorySourceSha: factorySha,
+      templateSourceSha: templateSha,
+      factoryOriginId: "goa-software-factory",
+      templateOriginId: "aim-vue-node-template",
+    };
+
+    const projected = projectSubstrateToLegacy(substrate);
+    const aim = projected.adapters.find((a) => a.name === "aim-vue-node");
+    expect(aim).toBeDefined();
+
+    const manifest = aim!.manifest as Record<string, unknown>;
+
+    // Spec 140 §2.4 — oap-self wins. Tell-tale: the
+    // `__companion` envelope is ONLY emitted by `buildOapNativeAdapters`.
+    expect(manifest.__companion).toBeDefined();
+
+    // The oap-self row's display_name is distinctive.
+    const adapterMeta = manifest.adapter as Record<string, unknown>;
+    expect(adapterMeta.display_name).toBe("oap-self winning manifest");
+
+    // The template-origin synthetic's `entry: orchestration/...` and
+    // `skills` keys are NOT present (the synthetic was suppressed).
+    expect(manifest.entry).toBeUndefined();
+    expect(manifest.skills).toBeUndefined();
   });
 });
