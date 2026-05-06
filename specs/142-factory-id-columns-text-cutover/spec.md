@@ -20,6 +20,8 @@ implements:
   - path: platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts
   # Drizzle schema column types switched from `uuid()` to `text()` in lockstep.
   - path: platform/services/stagecraft/api/db/schema.ts
+  # Vite exclude list extended for the migration-38 isolated test (mirrors mig 36/37 precedent).
+  - path: platform/services/stagecraft/vite.config.ts
 summary: >
   Spec 139 Phase 4 cut over to substrate-projected adapter/process records
   whose runtime IDs are deterministic synthetic strings of the form

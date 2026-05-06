@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "997f03aec8489cc05811bc1720f0dd3951675950b487eda0ff23c58b76d6b683",
+    "contentHash": "b546fb5c5c41cc905b096027cdcf94e6023023bc41e220a404368e93dff973c2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4632,6 +4632,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
             "source": "spec-implements"
           }
         ],
