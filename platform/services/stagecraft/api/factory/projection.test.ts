@@ -310,7 +310,7 @@ describe("spec 140 Phase 1 — aim-vue-node manifest cutover (T010)", () => {
     const substrate = {
       rows: [
         {
-          origin: "aim-vue-node-template",
+          origin: "aim-vue-node",
           path: "orchestration/template-orchestrator.md",
           kind: "pipeline-orchestrator" as const,
           bundleId: null,
@@ -320,7 +320,7 @@ describe("spec 140 Phase 1 — aim-vue-node manifest cutover (T010)", () => {
           frontmatter: null,
         },
         {
-          origin: "aim-vue-node-template",
+          origin: "aim-vue-node",
           path: "orchestration/skills/analyze.md",
           kind: "skill" as const,
           bundleId: null,
@@ -333,7 +333,7 @@ describe("spec 140 Phase 1 — aim-vue-node manifest cutover (T010)", () => {
       factorySourceSha: factorySha,
       templateSourceSha: templateSha,
       factoryOriginId: "goa-software-factory",
-      templateOriginId: "aim-vue-node-template",
+      templateOriginId: "aim-vue-node",
     };
 
     const projected = projectSubstrateToLegacy(substrate);
@@ -342,7 +342,7 @@ describe("spec 140 Phase 1 — aim-vue-node manifest cutover (T010)", () => {
 
     // Spec 140 AC-2 — values are sourced from the
     // `OAP_NATIVE_ADAPTERS["aim-vue-node"]` constant.
-    expect(m.scaffold_source_id).toBe("aim-vue-node-template");
+    expect(m.scaffold_source_id).toBe("aim-vue-node");
     expect(m.orchestration_source_id).toBe("goa-software-factory");
     expect(m.scaffold_runtime).toBe("node-24");
 
@@ -365,7 +365,7 @@ describe("spec 140 Phase 1 — adapter de-dup priority (T011)", () => {
       "  name: aim-vue-node",
       "  display_name: 'oap-self winning manifest'",
       "orchestration_source_id: goa-software-factory",
-      "scaffold_source_id: aim-vue-node-template",
+      "scaffold_source_id: aim-vue-node",
       "scaffold_runtime: node-24",
       "",
     ].join("\n");
@@ -375,7 +375,7 @@ describe("spec 140 Phase 1 — adapter de-dup priority (T011)", () => {
         // Template-origin synthetic content — orchestrator + a skill so
         // `buildAdapter` emits an aim-vue-node entry.
         {
-          origin: "aim-vue-node-template",
+          origin: "aim-vue-node",
           path: "orchestration/template-orchestrator.md",
           kind: "pipeline-orchestrator" as const,
           bundleId: null,
@@ -400,7 +400,7 @@ describe("spec 140 Phase 1 — adapter de-dup priority (T011)", () => {
       factorySourceSha: factorySha,
       templateSourceSha: templateSha,
       factoryOriginId: "goa-software-factory",
-      templateOriginId: "aim-vue-node-template",
+      templateOriginId: "aim-vue-node",
     };
 
     const projected = projectSubstrateToLegacy(substrate);

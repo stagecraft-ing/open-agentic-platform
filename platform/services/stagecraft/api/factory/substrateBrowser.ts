@@ -24,7 +24,7 @@ import {
 export type LoadSubstrateForOrgOptions = {
   /** Default `goa-software-factory`. */
   factoryOriginId?: string;
-  /** Default `aim-vue-node-template`. */
+  /** Default `aim-vue-node`. */
   templateOriginId?: string;
 };
 

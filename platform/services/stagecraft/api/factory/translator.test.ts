@@ -217,7 +217,7 @@ describe("translateTemplate", () => {
   test("emits scaffold_source_id / orchestration_source_id / scaffold_runtime", async () => {
     const { adapter } = await translateTemplate(repo, sha);
     const m = adapter.manifest as Record<string, unknown>;
-    expect(m.scaffold_source_id).toBe("aim-vue-node-template");
+    expect(m.scaffold_source_id).toBe("aim-vue-node");
     expect(m.orchestration_source_id).toBe("goa-software-factory");
     expect(m.scaffold_runtime).toBe("node-24");
   });
