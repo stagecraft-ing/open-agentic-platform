@@ -2,8 +2,8 @@
 id: "118-workflow-spec-traceability"
 slug: workflow-spec-traceability
 title: Workflow-to-Spec Traceability — surface "# Spec:" headers in the codebase index
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-04-28"
 kind: governance
@@ -108,8 +108,8 @@ and renders a new layer of the codebase index.
 
 ## 4. Header Convention
 
-A workflow file MUST contain, within its first 10 lines, one or more lines
-matching:
+A workflow file MUST contain, within its leading comment block (the
+implementation scans the first 20 lines), one or more lines matching:
 
 ```
 # Spec: NNN-kebab-case-slug
@@ -138,11 +138,13 @@ the comment edit. The allowlist is the documented escape hatch.
 
 ## 5. Index Schema
 
-`build/codebase-index/index.json` gains a new top-level field:
+`build/codebase-index/index.json` gains a new top-level field
+`workflowTraceability` (camelCase per the existing schema convention —
+`schemaVersion`, `factoryAdapters`, etc.):
 
 ```json
 {
-  "workflow_traceability": [
+  "workflowTraceability": [
     {
       "path": ".github/workflows/build-axiomregent.yml",
       "specs": ["037-cross-platform-axiomregent"],
@@ -160,9 +162,9 @@ the comment edit. The allowlist is the documented escape hatch.
 `source` is `"header"`, `"allowlist"`, or `"unmapped"` (which means the
 file is on neither — and is diagnostic I-105).
 
-The schema version of `index.json` bumps from its current version (read at
-implementation time) to the next minor; consumers are tolerant of unknown
-fields per spec 101's contract.
+The schema version of `index.json` is `1.3.0` (1.2.0 → 1.3.0 for the
+workflow traceability addition; consumers are tolerant of unknown fields
+per spec 101's contract).
 
 ## 6. Renderer Output
 
@@ -205,10 +207,16 @@ The implementation commits the indexer changes first, then a follow-up
 commit backfills the headers and allowlist. Because `I-105` is a warning,
 not an error, the staged rollout is safe:
 
-1. Land the scanner + diagnostic + renderer (warnings only).
+1. Land the scanner + diagnostic + renderer (warnings only). **Done.**
 2. Backfill headers + allowlist in the same PR or a fast follow-up.
+   **Done** — every `.github/workflows/*.yml` file carries a `# Spec:`
+   header (allowlist remains empty).
 3. Promote `I-105` from warning to blocking in a subsequent PR once the
-   warning count reaches zero on main.
+   warning count reaches zero on main. **Done** — `codebase-indexer
+   check` returns exit code 2 (`IndexError::Blocking`) when any I-105
+   diagnostic is present in `index.json`. The existing CI gate
+   (`codebase-indexer check` invoked from `ci-codebase-index.yml`) now
+   blocks PRs that introduce unmapped workflows.
 
 ## 9. Why this isn't a CLAUDE.md addendum
 

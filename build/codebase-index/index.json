@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4002d30c88f89c58b81098edaab086b5624278ef4cf622b4eef3a4ede7b9056c",
+    "contentHash": "5da84ddfa805499766ffc989680b3d476658277cc4015a135b25698f3783a22c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3446,7 +3446,7 @@
           }
         ],
         "specId": "117-release-artifact-attestations",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -3469,7 +3469,7 @@
           }
         ],
         "specId": "118-workflow-spec-traceability",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amendmentRecord": "123-agent-catalog-org-rescope",

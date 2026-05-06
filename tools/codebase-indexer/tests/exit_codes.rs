@@ -89,6 +89,64 @@ fn check_exits_zero_when_fresh() {
 }
 
 #[test]
+fn check_exits_nonzero_on_blocking_diagnostic() {
+    // Spec 118 AC-4: a workflow without `# Spec:` and not on the allowlist
+    // emits I-105, which spec 118 §8 step 3 promotes to blocking. After
+    // `compile` writes the diagnostic into index.json, `check` MUST exit
+    // non-zero (code 2).
+    let exe = indexer_exe();
+    if !exe.is_file() {
+        return;
+    }
+    let scratch = mirror_repo();
+
+    // Replace the symlinked .github with a real directory containing a
+    // single offending stub workflow (no `# Spec:` header). The real
+    // workflow allowlist (mounted via the symlinked `tools/` tree) is
+    // empty — guarantees an I-105 fires.
+    let github_link = scratch.path().join(".github");
+    if github_link.exists() {
+        std::fs::remove_file(&github_link)
+            .or_else(|_| std::fs::remove_dir_all(&github_link))
+            .expect("remove .github symlink");
+    }
+    let wf_dir = github_link.join("workflows");
+    std::fs::create_dir_all(&wf_dir).expect("mkdir workflows");
+    std::fs::write(
+        wf_dir.join("_acceptance.yml"),
+        "name: Acceptance\non: workflow_dispatch\njobs:\n  noop:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+    )
+    .expect("write stub workflow");
+
+    // Compile to refresh index.json with the I-105 diagnostic.
+    let status = Command::new(&exe)
+        .arg("compile")
+        .arg("--repo")
+        .arg(scratch.path())
+        .status()
+        .expect("spawn compile");
+    assert!(status.success(), "compile should still exit 0 on warnings");
+
+    // Check should now fail because of the blocking I-105 diagnostic.
+    let status = Command::new(&exe)
+        .arg("check")
+        .arg("--repo")
+        .arg(scratch.path())
+        .status()
+        .expect("spawn check");
+    assert!(
+        !status.success(),
+        "check should exit non-zero when I-105 diagnostic is present (got {:?})",
+        status.code()
+    );
+    assert_eq!(
+        status.code(),
+        Some(2),
+        "check exit code MUST be 2 for blocking-diagnostic gate failures (matches Stale)"
+    );
+}
+
+#[test]
 fn compile_exits_nonzero_on_missing_repo() {
     let exe = indexer_exe();
     if !exe.is_file() {
