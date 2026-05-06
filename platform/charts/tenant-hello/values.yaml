@@ -1,0 +1,105 @@
+# Spec: 136-tenant-hello-demo-service
+#
+# Default values for the tenant-hello reference chart. The shape is the
+# baseline a stagecraft chartSelector (Phase 2) overlays per project:
+# image repo/tag come from the tenant build, ingress.host from the
+# stagecraft-supplied per-tenant value, replicaCount stays at 1 (the
+# spec is single-replica by design — multi-replica is a future
+# expansion, not this chart's contract).
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # TODO: stagecraft chartSelector overrides this with the tenant's
+  # registry image path at deploy time. The default value points
+  # nowhere — `helm install` against this chart without an override is
+  # not a supported flow.
+  repository: ghcr.io/your-org/open-agentic-platform/tenant-hello
+  tag: dev
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# Service port the tenant binds to. Injected as PORT env var per C-003.
+# Tenant-hello's documented default is 8080; the chart honours that.
+service:
+  type: ClusterIP
+  port: 8080
+
+# Ingress is opt-in: stagecraft enables it with the per-tenant hostname
+# at deploy time. Off by default so the chart works in test renders.
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  annotations: {}
+  # Spec 137 will add `auth-url` / `auth-signin` annotations here when
+  # the per-environment access gate is enabled. This chart leaves the
+  # annotation map open for that future overlay.
+  tls:
+    enabled: false
+    secretName: ""
+
+serviceAccount:
+  # Bind a dedicated SA per release. No extra permissions; the chart
+  # never grants RBAC beyond pod scheduling.
+  create: true
+  name: ""
+  annotations: {}
+
+# C-001 obligation: non-root by-policy. The chart enforces this rather
+# than relying on tenant Dockerfiles to do so.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# C-002 obligation: probes hit /healthz. initialDelaySeconds is small
+# (Express boot is fast); livenessProbe gives a longer window before
+# triggering a restart so a transient hiccup doesn't crash-loop the
+# pod.
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+podLabels: {}
+podAnnotations: {}
+
+# Extra env vars stagecraft can inject per-tenant (e.g. feature flags
+# pulled from the project's environment config). The chart never
+# defines tenant-side secrets — those flow through the platform's
+# Secret/ESO/CSI primitives the tenant's project_grants document.
+extraEnv: []

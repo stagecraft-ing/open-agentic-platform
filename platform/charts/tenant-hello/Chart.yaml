@@ -1,0 +1,14 @@
+# Spec: 136-tenant-hello-demo-service
+#
+# Helm chart that deploys the tenant-hello reference service. The chart
+# encodes the C-001..C-005 contract from spec 136 §"Tenant codebase
+# contract" — non-root SecurityContext (C-001), readiness probe on
+# /healthz (C-002), PORT env injection (C-003), stateless workload with
+# no PVC mounts (C-004). The C-005 declared-dependency clause is
+# enforced by the tenant Dockerfile, not the chart.
+apiVersion: v2
+name: tenant-hello
+description: Reference Helm chart for the tenant-hello demo service (spec 136). Encodes the C-001..C-005 tenant codebase contract.
+type: application
+version: 0.1.0
+appVersion: "0.0.1"

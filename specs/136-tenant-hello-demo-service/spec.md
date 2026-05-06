@@ -1,10 +1,11 @@
 ---
 id: "136-tenant-hello-demo-service"
 title: "Tenant-hello — stagecraft-deployable tenant reference service"
-status: draft
+status: approved
 implementation: in-progress
 owner: bart
 created: "2026-05-04"
+approved: "2026-05-06"
 kind: platform
 risk: low
 depends_on:
@@ -12,6 +13,9 @@ depends_on:
   - "078"  # platform-completion-plan (the broader platform-finishing context)
 implements:
   - path: platform/services/tenant-hello
+  - path: platform/charts/tenant-hello
+  - path: platform/services/stagecraft/api/deploy/chartSelector.ts
+  - path: platform/services/stagecraft/api/deploy/chartSelector.test.ts
 summary: >
   Document `platform/services/tenant-hello` as the deliberately-minimal
   reference of what a project codebase looks like when stagecraft is
