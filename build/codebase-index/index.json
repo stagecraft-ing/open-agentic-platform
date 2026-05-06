@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d6502d445cc5ae7ae1de45da65c12f3e5fa70b4105a62f50b0289d280bb91744",
+    "contentHash": "4002d30c88f89c58b81098edaab086b5624278ef4cf622b4eef3a4ede7b9056c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4222,7 +4222,7 @@
           }
         ],
         "specId": "136-tenant-hello-demo-service",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [

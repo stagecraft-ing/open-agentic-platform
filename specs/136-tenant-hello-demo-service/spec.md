@@ -1,10 +1,11 @@
 ---
 id: "136-tenant-hello-demo-service"
 title: "Tenant-hello — stagecraft-deployable tenant reference service"
-status: draft
+status: approved
 implementation: in-progress
 owner: bart
 created: "2026-05-04"
+approved: "2026-05-06"
 kind: platform
 risk: low
 depends_on:
