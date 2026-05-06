@@ -2,8 +2,9 @@
 id: "119-project-as-unit-of-governance"
 slug: project-as-unit-of-governance
 title: Project as Unit of Governance — Workspace Collapse
-status: draft
-implementation: pending
+status: approved
+implementation: complete
+closed: "2026-05-05"
 owner: bart
 created: "2026-04-29"
 amended: "2026-05-01"
@@ -271,15 +272,41 @@ A-7. The codebase index (`build/codebase-index/index.json`) re-renders cleanly a
 
 A-8. `make ci` passes on the post-migration branch.
 
-## 10. Open Questions
+## 10. Open Questions — Resolutions (2026-05-05 close-out)
 
-OQ-1. **Orphan-knowledge-object policy.** §6.2.2 leaves the zero-binding case ("delete or assign to first project") unresolved pending dev-DB inventory at migration time. The chosen rule is recorded in the migration changelog.
+All four open questions resolved at spec close-out. Resolutions below; the spec lifecycle flips to `approved` / `implementation: complete` on this date.
 
-OQ-2. **Audit-log retention.** §4.3 keeps `target_type='workspace'` historical rows as-is. Confirm that downstream audit consumers tolerate the mixed `workspace`/`project` namespace, or migrate the historical rows in a separate non-blocking pass.
+OQ-1. **Orphan-knowledge-object policy** — _Resolved._ Migration `27_collapse_workspace_into_project.up.sql` Step 2b chose **assign to first project**, not delete: the zero-binding fallback runs `UPDATE knowledge_objects SET project_id = p.id FROM (SELECT DISTINCT ON (workspace_id) ...)` so that I-2 ("no orphans post-cutover") holds. The migration changelog is the authoritative record of the chosen rule.
 
-OQ-3. **`amends:` lint posture.** §7.3 leaves spec-lint enforcement non-blocking for the introductory release. Promote to blocking once the convention is exercised across at least one further amendment.
+OQ-2. **Audit-log retention** — _Resolved._ Historical `target_type='workspace'` rows are retained as-is for audit completeness (per §4.3 row's note "rows remain for audit completeness"). Migration of historical rows to `target_type='project'` is **deferred to a separate non-blocking pass** when an audit consumer surfaces the mixed-namespace concern; no current consumer has objected.
 
-OQ-4. **OPC desktop URL paths.** Today: `/workspaces/{id}/projects/{id}`. After: `/projects/{id}`. Confirm no external bookmarks rely on the old path (pre-alpha posture suggests no, but worth a quick scan of any committed docs/screenshots).
+OQ-3. **`amends:` lint posture** — _Resolved._ Spec-lint enforcement remains **non-blocking** in the introductory release. The convention has now been exercised by spec 123 (amends 119), spec 130 (amends 127), spec 132 (amends 000), spec 133 (amends 127), spec 134 (amends 104), spec 135 (amends 104, 134), spec 138 (amends 112), and spec 139 (amends 108, 111, 123) — well past the "at least one further amendment" threshold. Promotion to blocking is filed as a spec-lint follow-up.
+
+OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookmarks rely on the old `/workspaces/{id}/projects/{id}` path. Codebase scan (`grep` over `apps/desktop/src/` and `platform/services/stagecraft/web/app/`) returns zero `/workspaces/` route declarations; the OPC desktop and stagecraft web routers exclusively use `/projects/{id}`. Migration of any committed screenshots is a docs follow-up, not an invariant.
+
+### Close-out invariant verification (2026-05-05)
+
+- A-5 (`grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates apps/desktop --include='*.ts' --include='*.tsx' --include='*.rs' --include='*.sql' --include='*.yaml' --include='*.yml' --include='*.json'`) returns zero hits outside `db/migrations/`.
+- A-1, A-2, A-3 confirmed via `git log` on amended specs and `.specify/contract.md`.
+- A-4 confirmed via migration history (27, 28, 29, 30 applied).
+- A-6, A-7, A-8 covered by `make ci` runs since landing.
+
+### Residual lexical references (acknowledged, not blocking)
+
+The broader `workspace` lexical scan surfaces several non-violations that I-3 explicitly permits or that §8 defers:
+
+- **Filesystem-path sense** (`STAGECRAFT_WORKSPACE_DIR`, `workspace: string` parameter for the scaffold PVC mount) — covered by I-3(b) "build tooling, not the entity".
+- **Claude Code container path** (`/workspace` literal in `claude_executor.rs`) — Claude Code's own filesystem convention, not OAP entity.
+- **UI copy and tab labels** (`workspace-projects` tab type, "across the workspace" portfolio header) — explicitly deferred per §8 "Renaming the user-facing UI label … is deferred to a UX spec post-collapse".
+- **Spec 111/123 publish-to-workspace agent flow names** (`publish_local_agent_to_workspace`, `handlePublishToWorkspace`) — semantics already org-scoped post-spec 123/139; symbol rename is a spec 111/123/139-surface refactor, filed as follow-up.
+- **`OPC_WORKSPACE_ID` env var** (`governed_claude.rs`, `orchestrator.rs`) — process-internal env var name with coupled correctness questions (writer/reader semantic mismatch); rename filed as a follow-up under the env-var convention sweep.
+
+### Close-out cleanups landed in this commit
+
+- Removed dead Tauri commands `list_workspaces` and `set_active_workspace` from `apps/desktop/src-tauri/src/commands/agents.rs` (both had zero frontend callers).
+- Removed dead HTTP client methods `list_workspaces`, `get_workspace`, `get_default_workspace` and their response types `WorkspaceInfo` / `ListWorkspacesResponse` / `GetWorkspaceResponse` from `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` (called dead `/api/workspaces/*` endpoints with no callers).
+- Removed orphan `workspace_id: string` documentation field from `crates/factory-contracts/schemas/build-spec.schema.yaml` (never deserialized by the Rust mirror; pre-alpha posture allows clean removal).
+- Removed Tauri command registrations for the deleted commands from `apps/desktop/src-tauri/src/lib.rs`.
 
 ## 11. References
 

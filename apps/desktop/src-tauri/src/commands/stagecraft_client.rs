@@ -253,62 +253,6 @@ impl StagecraftClient {
         Ok(())
     }
 
-    // -- Workspace CRUD (spec 087) -------------------------------------------
-
-    /// List workspaces for the authenticated user's org.
-    pub async fn list_workspaces(&self) -> Result<ListWorkspacesResponse, StagecraftError> {
-        let url = format!("{}/api/workspaces", self.base_url);
-        let resp = self
-            .authed_get(&url)
-            .send()
-            .await
-            .map_err(StagecraftError::Network)?;
-        if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
-        }
-        resp.json().await.map_err(StagecraftError::Decode)
-    }
-
-    /// Get a single workspace by ID (legacy endpoint, kept for API compat).
-    pub async fn get_workspace(
-        &self,
-        org_id: &str,
-    ) -> Result<GetWorkspaceResponse, StagecraftError> {
-        let url = format!("{}/api/workspaces/{}", self.base_url, org_id);
-        let resp = self
-            .authed_get(&url)
-            .send()
-            .await
-            .map_err(StagecraftError::Network)?;
-        if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
-        }
-        resp.json().await.map_err(StagecraftError::Decode)
-    }
-
-    /// Get or create the default workspace for the current org.
-    pub async fn get_default_workspace(&self) -> Result<GetWorkspaceResponse, StagecraftError> {
-        let url = format!("{}/api/workspaces/by-org/default", self.base_url);
-        let resp = self
-            .authed_get(&url)
-            .send()
-            .await
-            .map_err(StagecraftError::Network)?;
-        if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
-        }
-        resp.json().await.map_err(StagecraftError::Decode)
-    }
-
     // -- FR-001: Init Pipeline ------------------------------------------------
 
     pub async fn init_pipeline(
@@ -891,35 +835,6 @@ impl StagecraftClient {
         }
         retry.json().await.map_err(StagecraftError::Decode)
     }
-}
-
-// ---------------------------------------------------------------------------
-// Workspace types (spec 087)
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WorkspaceInfo {
-    pub id: String,
-    #[serde(rename = "orgId")]
-    pub org_id: String,
-    pub name: String,
-    pub slug: String,
-    #[serde(rename = "objectStoreBucket")]
-    pub object_store_bucket: String,
-    #[serde(rename = "createdAt")]
-    pub created_at: String,
-    #[serde(rename = "updatedAt")]
-    pub updated_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ListWorkspacesResponse {
-    pub workspaces: Vec<WorkspaceInfo>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetWorkspaceResponse {
-    pub workspace: WorkspaceInfo,
 }
 
 // ---------------------------------------------------------------------------

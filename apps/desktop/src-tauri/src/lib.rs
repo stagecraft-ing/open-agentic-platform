@@ -24,8 +24,8 @@ use commands::agents::{
     get_live_session_output, get_session_output, get_session_status, import_agent,
     import_agent_from_file, import_agent_from_github, init_database, kill_agent_session,
     list_active_agents, list_agent_runs, list_agent_runs_with_metrics, list_agents,
-    list_claude_installations, list_org_agents, list_running_sessions, list_workspaces,
-    load_agent_session_history, plan_request, set_active_workspace, set_claude_binary_path,
+    list_claude_installations, list_org_agents, list_running_sessions,
+    load_agent_session_history, plan_request, set_claude_binary_path,
     stream_session_output, update_agent,
 };
 use commands::claude::{
@@ -510,9 +510,6 @@ pub fn run() {
             commands::stagecraft_client::post_extraction_output,
             commands::stagecraft_client::request_extraction_yield,
             commands::stagecraft_client::fetch_extraction_output,
-            // Workspace threading (spec 092)
-            set_active_workspace,
-            list_workspaces,
             // Orchestrator (044)
             orchestrate_manifest,
             get_run_status,

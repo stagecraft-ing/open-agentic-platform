@@ -26,7 +26,6 @@ project:
   display_name: string            # Human-readable (e.g., "CFS Women's Shelter Funding Portal")
   org: string                     # Organization slug (e.g., "goa-cfs")
   description: string             # One-paragraph purpose statement
-  workspace_id: string            # Workspace context for this build
 
   # Variant determines deployment topology
   # - single-public:  one API + one web, internet-facing, no owned database
