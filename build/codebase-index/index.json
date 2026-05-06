@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5da84ddfa805499766ffc989680b3d476658277cc4015a135b25698f3783a22c",
+    "contentHash": "be566b7ac3049625c6b6a1c29f34113f3ceeab0deb5429436037d25a0916d749",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4216,6 +4216,18 @@
           "087"
         ],
         "implementingPaths": [
+          {
+            "path": "platform/charts/tenant-hello",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/chartSelector.ts",
+            "source": "spec-implements"
+          },
           {
             "path": "platform/services/tenant-hello",
             "source": "multiple"
