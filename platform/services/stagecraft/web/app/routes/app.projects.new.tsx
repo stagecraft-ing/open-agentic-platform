@@ -657,9 +657,10 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
         <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
           <p className="text-sm text-yellow-900 dark:text-yellow-200">
             <strong>Adapter manifest needs refreshing.</strong> Your
-            existing factory adapter rows predate the spec 138 translator
-            change and lack the <code>template_remote</code> field the
-            scaffold layer needs. Visit{" "}
+            existing factory adapter rows predate the spec 139 translator
+            change and lack the <code>scaffold_source_id</code> field the
+            scaffold layer needs (§7.2 replaced the legacy{" "}
+            <code>template_remote</code>). Visit{" "}
             <a href="/app/factory" className="underline font-medium">
               /app/factory
             </a>{" "}

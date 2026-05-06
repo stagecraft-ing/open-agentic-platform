@@ -7,6 +7,8 @@ implementation: complete
 owner: bart
 created: "2026-05-05"
 closed: "2026-05-05"
+amended: "2026-05-06"
+amendment_record: "140"
 kind: architecture
 risk: high
 amends: ["108", "111", "123"]
@@ -76,6 +78,13 @@ summary: >
 ---
 
 # 139 — Factory Artifact Substrate
+
+> **Amended 2026-05-06 by spec [140](../140-aim-vue-node-scaffold-source-id-cutover/spec.md).**
+> §7.2's `template_remote` → `scaffold_source_id` rename landed for the
+> three OAP-native adapters in Phase 2 but never reached the synthetic
+> `aim-vue-node` adapter that `projection.ts::buildAdapter` emits. Spec
+> 140 finishes the rename and drops the legacy fallback in
+> `scaffoldReadiness.ts`.
 
 ## 1. Problem Statement
 
