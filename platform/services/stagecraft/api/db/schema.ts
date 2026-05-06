@@ -182,7 +182,10 @@ export const projects = pgTable(
     // Spec 112 §5.2 — link to the factory adapter this project was created
     // from (or translated to, for imported legacy projects). Nullable so
     // pre-spec-112 projects load without migration back-fill.
-    factoryAdapterId: uuid("factory_adapter_id"),
+    // Spec 142 §2.2 — `text` (not `uuid`) since spec 139 Phase 4 cut
+    // over to substrate-projected synthetic adapter ids of the form
+    // `synthetic-adapter-<orgId8>-<name>` (migration 38).
+    factoryAdapterId: text("factory_adapter_id"),
     createdBy: uuid("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -981,8 +984,12 @@ export const factoryRuns = pgTable(
     /** NULL for ad-hoc runs (no project binding consulted). */
     projectId: uuid("project_id"),
     triggeredBy: uuid("triggered_by").notNull(),
-    adapterId: uuid("adapter_id").notNull(),
-    processId: uuid("process_id").notNull(),
+    // Spec 142 §2.2 — `text` (not `uuid`). Spec 139 Phase 4 writes
+    // `synthesiseAdapterId` / `synthesiseProcessId` synthetic strings
+    // here (`api/factory/runs.ts:325-326`); migration 38 aligned the
+    // column types to match the substrate-projected runtime format.
+    adapterId: text("adapter_id").notNull(),
+    processId: text("process_id").notNull(),
     /** Idempotency key supplied by the desktop on POST /api/factory/runs.
      *  Unique per `(org_id, client_run_id)` so retries return the existing
      *  row (T021 / T023). */
@@ -1023,7 +1030,12 @@ export const scaffoldJobs = pgTable("scaffold_jobs", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull(),
   projectId: uuid("project_id"),
-  factoryAdapterId: uuid("factory_adapter_id").notNull(),
+  // Spec 142 §2.2 — `text` (not `uuid`). Spec 139 Phase 4 writes
+  // `synthesiseAdapterId(...)` synthetic strings here from
+  // `api/projects/create.ts:225`; migration 38 aligned the column
+  // type. The runtime format is the contract — there is no surviving
+  // table to FK against post-substrate cutover.
+  factoryAdapterId: text("factory_adapter_id").notNull(),
   requestedBy: uuid("requested_by").notNull(),
   variant: text("variant").notNull(),
   profileName: text("profile_name"),
