@@ -212,17 +212,44 @@ jobs:
           format: cyclonedx-json
           output-file: release/sbom-tools.cdx.json
 
-      # Spec 117 — provenance attestation per archive.
-      - name: Attest tools provenance
+      # Spec 117 — provenance attestation per archive. Each archive gets its
+      # own attestation step so the action's `bundle-path` output names a
+      # single-subject bundle that we can stage as `<archive>.intoto.jsonl`
+      # per AC-3.
+      - name: Attest aarch64-apple-darwin archive provenance
+        id: attest-tools-darwin
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
-          subject-path: 'release/oap-tools-*'
+          subject-path: release/oap-tools-aarch64-apple-darwin.tar.gz
+
+      - name: Attest x86_64-unknown-linux-gnu archive provenance
+        id: attest-tools-linux
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: release/oap-tools-x86_64-unknown-linux-gnu.tar.gz
+
+      - name: Attest x86_64-pc-windows-msvc archive provenance
+        id: attest-tools-windows
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: release/oap-tools-x86_64-pc-windows-msvc.zip
+
+      - name: Stage per-archive attestation bundles
+        run: |
+          set -euo pipefail
+          cp "${{ steps.attest-tools-darwin.outputs.bundle-path }}" \
+            release/oap-tools-aarch64-apple-darwin.tar.gz.intoto.jsonl
+          cp "${{ steps.attest-tools-linux.outputs.bundle-path }}" \
+            release/oap-tools-x86_64-unknown-linux-gnu.tar.gz.intoto.jsonl
+          cp "${{ steps.attest-tools-windows.outputs.bundle-path }}" \
+            release/oap-tools-x86_64-pc-windows-msvc.zip.intoto.jsonl
+          ls -lh release/*.intoto.jsonl
 
       # M8 fix: with workflow_run gating on Release Desktop completion the
       # release is guaranteed to exist; the prior 10-minute poll-then-create
       # fallback is removed. workflow_dispatch users still get the upload —
       # they must have created the release themselves first.
-      - name: Upload tool archives + SBOM to release
+      - name: Upload tool archives + SBOM + attestations to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.resolve-tag.outputs.tag }}

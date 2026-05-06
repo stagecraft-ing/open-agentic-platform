@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d6502d445cc5ae7ae1de45da65c12f3e5fa70b4105a62f50b0289d280bb91744",
+    "contentHash": "3792865d629c4901ea161ef28878cd52e08452eaf4f56e56e8dadf9ea7f28754",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3446,7 +3446,7 @@
           }
         ],
         "specId": "117-release-artifact-attestations",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
