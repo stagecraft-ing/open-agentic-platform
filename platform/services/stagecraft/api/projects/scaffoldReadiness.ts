@@ -1,13 +1,16 @@
 // Spec 112 Phase 5 — scaffold-readiness endpoint.
-// Spec 139 Phase 2 (T056) — extended with `scaffold_source_resolved` per
-// adapter so the silent-reject path described in spec 112 §5.4 becomes an
-// explicit blocker.
+// Spec 139 Phase 2 (T056) — extended with `scaffold_source_resolved`
+//   per adapter so the silent-reject path described in spec 112 §5.4
+//   becomes an explicit blocker.
+// Spec 140 Phase 3 (§2.3 / T060) — legacy `template_remote` fallback
+//   removed. Create-eligibility is now purely a function of
+//   `scaffold_source_id` resolving to a `factory_upstreams` row.
 //
-// Public read: returns the warmup state plus the per-org "do you have what
-// you need to Create" preconditions (factory adapter on file, upstream PAT
-// configured, scaffold source resolved per spec 139 §7.2). The
-// /app/projects/new loader calls this on every render so the form can
-// banner clearly when something is missing instead of surfacing the
+// Public read: returns the warmup state plus the per-org "do you have
+// what you need to Create" preconditions (factory adapter on file,
+// upstream PAT configured, scaffold source resolved per spec 139 §7.2).
+// The /app/projects/new loader calls this on every render so the form
+// can banner clearly when something is missing instead of surfacing the
 // generic "an internal error occurred" 500.
 
 import { api } from "encore.dev/api";
@@ -19,6 +22,16 @@ import { loadFactoryUpstreamPatToken } from "../factory/upstreamPat";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
 import { projectSubstrateToLegacy } from "../factory/projection";
 import { getInitStatus } from "./scaffold/templateCache";
+import {
+  resolveBlocker,
+  type ScaffoldReadinessBlocker,
+} from "./scaffoldReadinessBlocker";
+
+export type {
+  BlockerInputs,
+  ScaffoldReadinessBlocker,
+} from "./scaffoldReadinessBlocker";
+export { resolveBlocker } from "./scaffoldReadinessBlocker";
 
 export type AdapterReadinessVerdict = {
   /** Adapter row id (matches factory_adapters.id). */
@@ -29,14 +42,6 @@ export type AdapterReadinessVerdict = {
   declaresScaffoldSource: boolean;
   /** True iff `scaffold_source_id` resolves to a `factory_upstreams` row. */
   scaffoldSourceResolved: boolean;
-  /**
-   * Spec 138 legacy: true iff `template_remote` is set. Combined with
-   * `scaffoldSourceResolved` to evaluate Create-eligibility — adapters
-   * synced before spec 139 carry `template_remote` instead of
-   * `scaffold_source_id`; both satisfy the spec 139 §7.2 contract during
-   * the transition window.
-   */
-  hasTemplateRemote: boolean;
   /** True iff this adapter alone is Create-eligible. */
   createEligible: boolean;
 };
@@ -49,19 +54,9 @@ export interface ScaffoldReadinessResponse {
   hasFactoryAdapter: boolean;
   hasUpstreamPat: boolean;
   /**
-   * True iff at least one of the org's factory_adapters carries
-   * `template_remote` in its manifest. Existing adapter rows synced
-   * before spec 138 §2.1 lack the field; surfacing this distinct from
-   * `hasFactoryAdapter` lets the UI banner say "re-run /factory-sync"
-   * instead of "no adapter".
-   */
-  hasTemplateRemote: boolean;
-  /**
    * Spec 139 §7.2 — true iff at least one adapter has its
    * `scaffold_source_id` resolved to a `factory_upstreams` row in the
-   * caller's org. Adapters that still rely on legacy `template_remote`
-   * (e.g. aim-vue-node pre-Phase 2) are counted as resolved when
-   * `template_remote` is set so the existing flow doesn't regress.
+   * caller's org.
    */
   scaffoldSourceResolved: boolean;
   /**
@@ -77,17 +72,10 @@ export interface ScaffoldReadinessResponse {
    */
   canCreate: boolean;
   /** First missing precondition, in resolution order — purely for banner copy. */
-  blocker?:
-    | "warming-up"
-    | "warmup-error"
-    | "no-factory-adapter"
-    | "stale-adapter-manifest"
-    | "no-scaffold-source-resolved"
-    | "no-upstream-pat";
+  blocker?: ScaffoldReadinessBlocker;
 }
 
 type AdapterManifest = {
-  template_remote?: unknown;
   scaffold_source_id?: unknown;
 } & Record<string, unknown>;
 
@@ -96,11 +84,10 @@ function synthesiseAdapterId(orgId: string, name: string): string {
   return `synthetic-adapter-${orgId.slice(0, 8)}-${name}`;
 }
 
-function readManifestStringField(
+function readScaffoldSourceId(
   manifest: AdapterManifest | null,
-  field: "template_remote" | "scaffold_source_id",
 ): string | null {
-  const v = manifest?.[field];
+  const v = manifest?.scaffold_source_id;
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
@@ -130,10 +117,7 @@ export const scaffoldReadiness = api(
     // `factory_upstreams` (composite-PK on (org_id, source_id) post-spec 139).
     const declaredSourceIds = new Set<string>();
     for (const row of adapterRows) {
-      const sid = readManifestStringField(
-        row.manifest as AdapterManifest | null,
-        "scaffold_source_id",
-      );
+      const sid = readScaffoldSourceId(row.manifest);
       if (sid) declaredSourceIds.add(sid);
     }
     const resolvedSourceIds = new Set<string>();
@@ -153,31 +137,23 @@ export const scaffoldReadiness = api(
     }
 
     const adapters: AdapterReadinessVerdict[] = adapterRows.map((row) => {
-      const manifest = row.manifest as AdapterManifest | null;
-      const scaffoldSourceId = readManifestStringField(
-        manifest,
-        "scaffold_source_id",
-      );
+      const scaffoldSourceId = readScaffoldSourceId(row.manifest);
       const declaresScaffoldSource = scaffoldSourceId !== null;
       const scaffoldSourceResolved =
         scaffoldSourceId !== null && resolvedSourceIds.has(scaffoldSourceId);
-      const hasTemplateRemote =
-        readManifestStringField(manifest, "template_remote") !== null;
-      // Create-eligible iff EITHER the legacy `template_remote` is set
-      // (transition window) OR the new `scaffold_source_id` resolves to a
-      // factory_upstreams row.
-      const createEligible = hasTemplateRemote || scaffoldSourceResolved;
+      // Spec 140 §2.3 — Create-eligibility is purely
+      // `scaffoldSourceResolved`. The legacy `template_remote` fallback
+      // is gone.
+      const createEligible = scaffoldSourceResolved;
       return {
         id: row.id,
         name: row.name,
         declaresScaffoldSource,
         scaffoldSourceResolved,
-        hasTemplateRemote,
         createEligible,
       };
     });
 
-    const hasTemplateRemote = adapters.some((a) => a.hasTemplateRemote);
     const scaffoldSourceResolved = adapters.some(
       (a) => a.scaffoldSourceResolved,
     );
@@ -188,21 +164,14 @@ export const scaffoldReadiness = api(
     );
     const hasUpstreamPat = Boolean(pat);
 
-    let blocker: ScaffoldReadinessResponse["blocker"];
-    if (!hasFactoryAdapter) blocker = "no-factory-adapter";
-    else if (!hasTemplateRemote && !scaffoldSourceResolved) {
-      // Spec 138 stale manifest is the legacy blocker; spec 139's
-      // scaffold-source-resolved is the new one. If neither is satisfied
-      // by any adapter, surface the more informative message based on
-      // whether any adapter declares scaffold_source_id at all.
-      blocker = adapters.some((a) => a.declaresScaffoldSource)
-        ? "no-scaffold-source-resolved"
-        : "stale-adapter-manifest";
-    } else if (!anyEligibleAdapter) {
-      blocker = "no-scaffold-source-resolved";
-    } else if (!hasUpstreamPat) blocker = "no-upstream-pat";
-    else if (status.error) blocker = "warmup-error";
-    else if (!status.ready) blocker = "warming-up";
+    const blocker = resolveBlocker({
+      hasFactoryAdapter,
+      anyDeclaresScaffoldSource: adapters.some((a) => a.declaresScaffoldSource),
+      scaffoldSourceResolved,
+      hasUpstreamPat,
+      warmupReady: status.ready,
+      warmupError: status.error,
+    });
 
     return {
       ready: status.ready,
@@ -211,7 +180,6 @@ export const scaffoldReadiness = api(
       error: status.error,
       hasFactoryAdapter,
       hasUpstreamPat,
-      hasTemplateRemote,
       scaffoldSourceResolved,
       adapters,
       canCreate:

@@ -227,7 +227,6 @@ export async function loader({
           progress: 0,
           hasFactoryAdapter: adapters.length > 0,
           hasUpstreamPat: false,
-          hasTemplateRemote: false,
           scaffoldSourceResolved: false,
           adapters: [],
           canCreate: false,
@@ -659,8 +658,7 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
             <strong>Adapter manifest needs refreshing.</strong> Your
             existing factory adapter rows predate the spec 139 translator
             change and lack the <code>scaffold_source_id</code> field the
-            scaffold layer needs (§7.2 replaced the legacy{" "}
-            <code>template_remote</code>). Visit{" "}
+            scaffold layer needs. Visit{" "}
             <a href="/app/factory" className="underline font-medium">
               /app/factory
             </a>{" "}
