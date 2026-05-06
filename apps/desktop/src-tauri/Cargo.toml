@@ -68,7 +68,7 @@ futures = "0.3"
 async-trait = "0.1"
 thiserror = "2"
 tempfile = "3"
-which = "7"
+which = "8"
 sha2 = "0.10"
 zstd = "0.13"
 uuid = { version = "1.23", features = ["v4", "serde"] }
