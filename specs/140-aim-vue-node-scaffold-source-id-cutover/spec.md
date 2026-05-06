@@ -3,10 +3,11 @@ id: "140-aim-vue-node-scaffold-source-id-cutover"
 slug: aim-vue-node-scaffold-source-id-cutover
 title: "aim-vue-node manifest cutover to scaffold_source_id (amendment of 139)"
 status: approved
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
+closed: "2026-05-06"
 kind: amendment
 risk: low
 amends: ["139"]
@@ -21,6 +22,10 @@ implements:
   - path: platform/services/stagecraft/api/factory/translator.ts
   - path: platform/services/stagecraft/api/factory/substrateBrowser.ts
   - path: platform/services/stagecraft/api/factory/syncWorker.ts
+  # AC-2 — single source of truth for OAP-native adapter source ids
+  # (extracted from oapNativeSanitise.ts so projection.ts and translator.ts
+  # can import without an import cycle).
+  - path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts
   # Read-side: the scaffold-warmup + per-request scaffold path
   - path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts
   - path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts
@@ -28,7 +33,18 @@ implements:
   - path: platform/services/stagecraft/api/projects/create.ts
   # Readiness: drop the legacy fallback
   - path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts
+  # T051 — pure blocker resolver extracted from scaffoldReadiness.ts so
+  # the unit test runs under bare vitest without the encore runtime.
+  - path: platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts
   - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
+  # T061 — web client type mirrors the API response shape; the
+  # `hasTemplateRemote` field is dropped here in lockstep with the
+  # server.
+  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
+  # T024 — one-shot, idempotent backfill that writes a synthetic
+  # `oap-self` `adapter-manifest` row per existing org so deploy-time
+  # cutover requires no operator action.
+  - path: platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql
   # Documentation alignment
   - path: platform/services/stagecraft/CLAUDE.md
 summary: >
