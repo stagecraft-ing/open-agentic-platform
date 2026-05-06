@@ -1,16 +1,83 @@
 # open-agentic-platform
 
-> **Status:** pre-alpha, stealth. Single-developer repository. No public releases, no external contributors.
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Specs: 142](https://img.shields.io/badge/specs-142-informational)](specs/)
+[![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#)
+[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
 
-**The governed operating system for AI-native software delivery.**
+**Frozen, hash-verifiable specs as the unit of governance for agent
+execution.** Every change is bound to a spec; every spec compiles to a
+deterministic JSON registry; every agent action is reconcilable to the spec
+that authorised it — and the audit chain is a single artifact you can hand
+to a regulator.
 
-Three layers, one contract system:
+- **Spec spine** — 142 markdown specs compile to a deterministic
+  `registry.json`. Drift between spec and code fails CI before merge
+  ([spec 127](specs/127-spec-code-coupling-gate/spec.md)).
+- **Governed agent execution** — agents act through scoped tools, policy
+  gates, and permission tiers. SHA-256 proof chains and JSONL audit logs
+  are the runtime substrate, not bolt-on observability.
+- **Identity-bounded collaboration** — Rauthy issues OIDC tokens, deployd-api
+  enforces scope at every request, the spec spine defines what each scope
+  is allowed to authorise.
 
-- **OPC** (`apps/desktop/`) — local Tauri v2 + React cockpit where humans and agents ask, plan, approve, execute, inspect, and rewind work
-- **Platform** (`platform/`) — organisational control plane for identity, policy, approvals, deployments, audit
-- **Spec Spine** (`specs/`) — canonical contract system that turns intent into traceable, machine-verifiable truth
+**Same discipline, applied to ourselves.** Every release ships per-target
+CycloneDX SBOMs (`sbom-desktop-aarch64-apple-darwin.cdx.json`,
+`sbom-desktop-x86_64-pc-windows-msvc.cdx.json`,
+`sbom-desktop-x86_64-unknown-linux-gnu.cdx.json`, `sbom-tools.cdx.json`)
+and an aggregate `open-agentic-platform-release.cyclonedx.json`, alongside
+SHA256-verifiable installers. The provenance discipline applied to
+governed agent execution is the discipline applied to the project's own
+releases.
 
-## Architecture
+**Try it now:** [install a prebuilt cockpit ↓](#install) or [reproduce
+the OWASP ASI 2026 traceability artifact from source ↓](#try-it).
+
+> Licensed **AGPL-3.0**. Strong copyleft is deliberate: the audit chain
+> is a public good for regulated buyers, and AGPL prevents that work from
+> being absorbed into proprietary control planes that strip the
+> traceability while keeping the engine.
+
+---
+
+## What this is
+
+OAP is a governed control plane for AI-native software delivery, built
+around three concrete components that already exist in this tree:
+
+The **spec spine** (`specs/`) is the authoritative design record. Every
+feature is a markdown file with YAML frontmatter, compiled by
+[`spec-compiler`](tools/spec-compiler/) into a deterministic `registry.json`.
+Specs are read through the consumer binary
+[`registry-consumer`](tools/registry-consumer/) — never by ad-hoc parsing —
+which makes the spec corpus a typed, query-able surface
+([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
+
+The **platform layer** (`platform/`) is the organisational control plane:
+[Rauthy](platform/charts/rauthy/) for OIDC identity,
+[`deployd-api-rs`](platform/services/deployd-api-rs/) for scope-gated
+deployment orchestration, [Encore.ts stagecraft](platform/services/stagecraft/)
+for governance UX, and Helm charts for managed-K8s deployment.
+
+The **OPC desktop** (`apps/desktop/`) is a Tauri v2 + React cockpit where
+humans and agents share a single execution surface — local workspaces, git
+context, semantic and structural analysis, snapshots, approval gates.
+
+## Who this is for
+
+- **OWASP ASI 2026 practitioners** evaluating governed agent runtimes. The
+  compliance-report CLI emits a real ASI-control-to-spec mapping today.
+- **Regulated-industry security and compliance teams** who need a single
+  audit chain artifact rather than a stitched-together evidence pack.
+- **Government-of-Canada and provincial buyers** with Azure-heavy estates,
+  uneven GCP, corner-case AWS, and sovereignty constraints that rule out
+  closed control planes.
+- **Engineering platform teams** building internal AI delivery pipelines
+  where governance must be the execution model, not a sidecar.
+
+## How it works
+
+### Architectural layers
 
 ```mermaid
 flowchart LR
@@ -45,56 +112,187 @@ flowchart LR
     OPC <--> PLATFORM
 ```
 
-OPC is where work is experienced. Platform is where work is governed. The Spec Spine is what keeps both sides honest.
+OPC is where work is experienced. Platform is where work is governed. The
+spec spine keeps both sides honest.
 
-## Core workflow
+### Trust fabric — one continuous path
 
-1. **Ask** — a human or agent expresses intent
-2. **Plan** — intent expands into specs, plans, tasks, dependencies, risk boundaries
-3. **Approve** — humans review proposed work, risk posture, policy checks, feature impact
-4. **Execute** — agents perform bounded work against governed tools and workspaces
-5. **Inspect** — structure, semantics, git context, runtime state, history, drift, results in one place
-6. **Rewind** — work can be compared, restored, replayed, or rolled back with a full state trail
-
-## Spec-first foundation
-
-Human truth is **markdown** (with optional YAML frontmatter); machine registries are **compiler-emitted JSON** only. Authoritative specs live at repo-root `specs/NNN-kebab-case/`. The constitutional baseline is [`000-bootstrap-spec-system`](specs/000-bootstrap-spec-system/spec.md); status lifecycle is `draft | approved | superseded | retired`.
-
-Current spec corpus: 136 specs (`000`–`135`). Query the compiled registry:
-
-```bash
-./tools/registry-consumer/target/release/registry-consumer list
-./tools/registry-consumer/target/release/registry-consumer status-report
+```mermaid
+flowchart LR
+    User[User or Agent] -->|OIDC login| Rauthy[Rauthy<br/>identity]
+    Rauthy -->|JWT + oap scope| API[deployd-api<br/>scope gate]
+    API -->|spec-bound action| Engine[factory-engine<br/>policy kernel]
+    Engine -->|recorded| Index[codebase-index<br/>spec-to-code map]
+    Engine -->|hashed| Cert[governance certificate<br/>schema + verifier]
 ```
 
-## Factory delivery engine
+You operate every node in the path. There is no SaaS in the trust path
+unless you put it there.
 
-The Factory (`factory/`, `crates/factory-engine/`, `crates/factory-contracts/`) is a two-phase AI pipeline:
+## Adapters
 
-1. **Phase 1** (s0–s5) — six sequential stages extract requirements, design services, model data, specify APIs and UI, producing a frozen Build Spec
-2. **Phase 2** (s6a–s6g) — dynamic scaffold fan-out generates code per-entity, per-operation, per-page with post-step verification and retry
+The factory engine generates code through pluggable adapters that
+implement a shared contract.
 
-Four pluggable adapters: `aim-vue-node`, `next-prisma`, `rust-axum`, `encore-react`.
+- **`aim-vue-node`** — production-supported. The active scaffold target;
+  recent specs ([138](specs/138-stagecraft-create-realised-scaffold/spec.md),
+  [140](specs/140-aim-vue-node-scaffold-source-id-cutover/spec.md),
+  [141](specs/141-aim-vue-node-source-id-template-name-alignment/spec.md))
+  drive its hardening. Used end-to-end by the tenant onboarding path.
+- **`next-prisma`**, **`rust-axum`**, **`encore-react`** — factory-contract
+  validated. Each registers against the same adapter manifest contract
+  the production adapter implements; their scaffolds exist but are not
+  the current production target. Treat as parity validators for the
+  contract, not drop-in alternatives.
 
-## Claude-native development
+## License (and why AGPL)
 
-This repository ships with first-class [Claude Code](https://docs.anthropic.com/en/docs/claude-code) integration in `.claude/`:
+OAP is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+Strong copyleft is the strategic choice. The intended beneficiary is the
+public — regulated buyers who depend on a governance layer cannot afford
+to have the audit chain absorbed into a proprietary control plane that
+serves the audit chain back as a paid feature. AGPL closes the network
+loophole that would let a hosted offering capture the value while
+stripping the traceability commitments the spec spine encodes. If you are
+building a closed product on top, this is the wrong substrate; if you are
+building an internal governed platform or a public good that hardens
+others' governance, it is the right one.
 
-- **Agents** — `architect`, `explorer`, `implementer`, `reviewer`, `encore-expert`
-- **Commands** — `/init`, `/commit`, `/code-review`, `/review-branch`, `/implement-plan`, `/research`, `/validate-and-fix`, `/cleanup`, `/factory-sync`, `/refactor-claude-md`
-- **Rules** — orchestrator behavioral rules (step ordering, file-based artifact passing, checkpoint discipline, governed artifact reads)
+## Install
 
-Combined with `CLAUDE.md` (project conventions) and `AGENTS.md` (session init protocol), this is the environment the platform is built in.
+Prebuilt OPC desktop installers ship with each
+[release](https://github.com/stagecraft-ing/open-agentic-platform/releases):
 
-## Getting started
+- **macOS (Apple Silicon)** — `opc_<version>_aarch64.dmg`
+- **Windows** — `opc_<version>_x64-setup.exe` (NSIS) or
+  `opc_<version>_x64_en-US.msi`
+- **Linux** — `opc_<version>_amd64.AppImage`, `opc_<version>_amd64.deb`,
+  or `opc-<version>-1.x86_64.rpm`
+
+Verify before installing — every installer ships an `.sha256` sidecar:
 
 ```bash
-make setup     # install deps, build tools, compile spec registry + codebase index
-make dev       # start OPC desktop (Vite + Tauri, hot-reload)
-make ci        # parallel local validation (~5 min warm) — daily dev loop (spec 135)
-make ci-strict # full parity mirror (~90 min) — pre-merge / parity-investigation
+sha256sum -c opc_0.3.2_aarch64.dmg.sha256
 ```
 
-Full setup guide, prerequisites, and platform-service instructions: **[DEVELOPERS.md](DEVELOPERS.md)**.
+Per-target CycloneDX SBOMs (`sbom-desktop-<triple>.cdx.json`) and the
+aggregate `open-agentic-platform-release.cyclonedx.json` are release
+assets — verify the bill of materials before the binary runs in your
+environment. The `oap-tools-<triple>.tar.gz` archive ships the spec
+toolchain (`registry-consumer`, `spec-compiler`, `codebase-indexer`) for
+the quickstart below without a Rust toolchain.
 
-Repository layout and conventions: **[CLAUDE.md](CLAUDE.md)**.
+## Try it
+
+These commands work from a fresh clone today and produce real artifacts.
+The OWASP ASI 2026 traceability mapping is a single deterministic JSON
+file; the spec/code coupling and codebase index are governed reads
+through compiled consumer binaries.
+
+```bash
+make setup
+# Builds spec compiler + codebase indexer, compiles the registry,
+# fetches the axiomregent sidecar binary.
+
+./tools/registry-consumer/target/release/registry-consumer \
+    compliance-report --framework owasp-asi-2026 --json
+# Emits the ASI-control-to-spec mapping. This is the traceability
+# artifact: structured, deterministic, and reproducible from the
+# compiled registry.
+
+./tools/registry-consumer/target/release/registry-consumer \
+    status-report --json --nonzero-only
+# Lifecycle inventory across the 142-spec corpus.
+# 137 approved, 1 draft, 4 superseded.
+
+./tools/codebase-indexer/target/release/codebase-indexer render
+cat build/codebase-index/CODEBASE-INDEX.md
+# Renders the spec-to-code map. The 'Spec' column is the
+# traceability surface for every Rust crate and npm package.
+```
+
+For the full daily-development loop:
+
+```bash
+make ci          # ~5 min warm — the daily dev loop (spec 135)
+make ci-strict   # ~90 min — full parity mirror, pre-merge / parity-investigation
+make dev         # OPC desktop (Vite + Tauri, hot-reload)
+```
+
+## Status
+
+OAP is **pre-alpha, stealth, single-developer**. No public releases. No
+external contributors yet. The status section below records what works
+today vs. what is staged and what is roadmap, by spec ID.
+
+### Works today
+
+- **Spec compilation and querying** — 142 specs compile deterministically.
+  `registry-consumer` is a typed read-only CLI; ad-hoc JSON parsing is a
+  workflow violation ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
+- **Spec/code coupling gate** — every code path claimed by a spec's
+  `implements:` list must change with the spec
+  ([spec 127](specs/127-spec-code-coupling-gate/spec.md)).
+- **Codebase index** — spec-to-code traceability for every crate and
+  package ([spec 101](specs/101-codebase-index-mvp/spec.md)).
+- **OWASP ASI 2026 compliance map** — six controls (ASI01, 03, 05, 07,
+  09, 10) map to spec 102 today via `registry-consumer compliance-report`.
+- **Identity (Rauthy)** — production-grade OIDC chart with HA
+  ([spec 106](specs/106-rauthy-native-oidc-and-membership/spec.md)).
+- **Scope-gated deployment** — `deployd-api-rs` enforces
+  `DEPLOYD_REQUIRED_SCOPE` on every request against Rauthy-issued JWTs.
+- **Supply chain gates** — `cargo-deny` + `pnpm audit` + `npm audit`,
+  blocking from day 0 ([spec 116](specs/116-supply-chain-policy-gates/spec.md)).
+- **Schema parity walker** — Rust ↔ TypeScript contract drift fails CI
+  ([spec 125](specs/125-schema-parity-walker-rebuild/spec.md)).
+- **Azure AKS deployment** — `make deploy-azure` against
+  `platform/infra/terraform/envs/dev/`.
+- **Hetzner K3s deployment** — `make deploy-hetzner` via standalone Helm
+  bootstrap path.
+
+### Experimental / partially wired
+
+- **Governance certificate** ([spec 102](specs/102-governed-excellence/spec.md))
+  — schema, builder, and verifier binary
+  (`crates/factory-engine/src/bin/verify_certificate.rs`) are
+  production-quality with five passing unit tests. **Pipeline emission is
+  not yet wired**: `factory_run.rs` does not write a certificate at the
+  end of a run. The schema is stable; the live emission path is the
+  remaining closure work.
+- **Factory pipeline** — two-phase engine (s0–s5 sequential, s6a–s6g
+  fan-out) with four registered adapters; aim-vue-node is the production
+  scaffold target.
+- **AWS / GCP / DigitalOcean Terraform modules**
+  ([spec 072](specs/072-multi-cloud-k8s-portability/spec.md)) — modules
+  exist in `platform/infra/terraform/modules/` but no environment
+  directories instantiate them yet. Helm charts and Rauthy/deployd-api
+  are cloud-neutral.
+
+### Roadmap
+
+- **Tenant environment access gates**
+  ([spec 137](specs/137-tenant-environment-access-gates/spec.md), draft) —
+  binds Rauthy-issued scopes to tenant-environment-scoped policy-kernel
+  permissions. Planning artifacts (`plan.md`, `tasks.md`) landed
+  2026-05-04; implementation is next.
+- **End-to-end pipeline → certificate emission** — closure of spec 102.
+- **AWS / GCP / DigitalOcean environments** — instantiating
+  `envs/aws-dev/`, `envs/gcp-dev/`, `envs/do-dev/` against the existing
+  Terraform modules.
+
+## Layout
+
+| Path | What lives there |
+|---|---|
+| `specs/` | The authoritative spec spine. 142 specs as of 2026-05-06. |
+| `tools/` | Rust CLIs: `spec-compiler`, `registry-consumer`, `spec-lint`, `codebase-indexer`, `policy-compiler`, `spec-code-coupling-check`, others. |
+| `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
+| `apps/desktop/` | OPC desktop (Tauri v2 + React + TypeScript). |
+| `platform/` | Identity, deployd-api, stagecraft, Helm charts, Terraform infra. |
+| `build/` | Compiler-emitted machine truth: `spec-registry/`, `codebase-index/`. Read through consumer binaries only. |
+| `.claude/` | Agent and command definitions used by the development environment. See `CLAUDE.md` and `AGENTS.md`. |
+
+Full setup, prerequisites, and platform-service development:
+[`DEVELOPERS.md`](DEVELOPERS.md). Repository conventions and architectural
+rules: [`CLAUDE.md`](CLAUDE.md). Compiler architecture and registry
+contract: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
