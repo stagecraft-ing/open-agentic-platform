@@ -55,7 +55,13 @@ SELECT DISTINCT
     -- so the de-dup pick is consistent regardless of which side wins.
     E'adapter:\n  name: aim-vue-node\norchestration_source_id: goa-software-factory\nscaffold_source_id: aim-vue-node-template\nscaffold_runtime: node-24\n'
                                                 AS upstream_body,
-    md5('spec-140-migration-36-aim-vue-node-v1') AS content_hash,
+    -- Precomputed sha256 of the marker `spec-140-migration-36-aim-vue-node-v1`.
+    -- Hardcoded (not `sha256(...)`/`md5(...)`) because the cluster Postgres
+    -- runs against a FIPS-mode OpenSSL where `md5()` returns
+    -- `could not compute MD5 hash: unsupported`. The runtime substrate
+    -- content_hash is sha256-hex everywhere else (api/factory/substrate.ts,
+    -- api/projects/importArtifacts.ts), so the value also matches convention.
+    '4ba0ff1737fe3fc0dc6c16587805fc7b27dec769686d95f4b46c109283130798' AS content_hash,
     jsonb_build_object(
         'adapter', jsonb_build_object('name', 'aim-vue-node'),
         'orchestration_source_id', 'goa-software-factory',

@@ -37,6 +37,12 @@ npm test             # Direct vitest without infra setup
 
 Test API endpoints by calling them directly as functions. Don't mock Encore infrastructure (databases, PubSub) — use the real thing.
 
+## Migrations
+
+SQL files live in `api/db/migrations/`, run by `scripts/migrate.mjs` as a Helm `pre-upgrade` hook (`platform/charts/stagecraft/templates/migration-job.yaml`).
+
+**Do not call Postgres `md5()` from migrations.** The Hetzner cluster Postgres is built against a FIPS-mode OpenSSL, so `md5()` returns `could not compute MD5 hash: unsupported` and aborts the migrate Job, blocking the whole upgrade. Use sha256 instead — either `encode(sha256('x'::bytea), 'hex')` (PG 11+ core) or precompute the hash in Node and inline a hex literal. Runtime `content_hash` producers (`api/factory/substrate.ts`, `api/projects/importArtifacts.ts`) already use sha256, so this also keeps migration-seeded values consistent with live ones.
+
 ## Reference
 
 For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, middleware, validation, etc.), see [`docs/encore-ts-reference.md`](docs/encore-ts-reference.md).
