@@ -75,6 +75,7 @@ fn main() {
                     eprintln!("codebase-indexer: {e}");
                     match e {
                         open_agentic_codebase_indexer::IndexError::Stale { .. } => 2,
+                        open_agentic_codebase_indexer::IndexError::Blocking { .. } => 2,
                         _ => 3,
                     }
                 }

@@ -26,6 +26,7 @@ pub enum IndexError {
     Json(serde_json::Error),
     Schema(String),
     Stale { expected: String, actual: String },
+    Blocking { code: String, count: usize },
 }
 
 impl From<std::io::Error> for IndexError {
@@ -49,9 +50,20 @@ impl std::fmt::Display for IndexError {
             IndexError::Stale { expected, actual } => {
                 write!(f, "index is stale: expected {expected}, got {actual}")
             }
+            IndexError::Blocking { code, count } => {
+                write!(
+                    f,
+                    "blocking diagnostic {code} present {count} time(s) — gate failed"
+                )
+            }
         }
     }
 }
+
+/// Diagnostic codes that fail `check`. Non-blocking warnings (e.g. I-101)
+/// stay as informational entries in the index. Spec 118 §8 step 3
+/// promotes I-105 to blocking once main reaches zero warnings.
+const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &["I-105"];
 
 impl std::error::Error for IndexError {}
 
@@ -238,7 +250,8 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     })
 }
 
-/// Check if the existing index.json is stale.
+/// Check if the existing index.json is stale, then fail when any blocking
+/// diagnostic (currently `I-105` per spec 118 §8 step 3) is present.
 pub fn check(repo_root: &Path) -> Result<(), IndexError> {
     let index_path = repo_root.join("build/codebase-index/index.json");
     let raw = fs::read_to_string(&index_path)?;
@@ -262,6 +275,26 @@ pub fn check(repo_root: &Path) -> Result<(), IndexError> {
             expected: current_hash,
             actual: existing_hash,
         });
+    }
+
+    // Spec 118 AC-4 / §8 step 3 — blocking diagnostics gate.
+    for code in BLOCKING_DIAGNOSTIC_CODES {
+        let count = doc
+            .get("diagnostics")
+            .and_then(|d| d.get("warnings"))
+            .and_then(|w| w.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter(|d| d.get("code").and_then(|c| c.as_str()) == Some(*code))
+                    .count()
+            })
+            .unwrap_or(0);
+        if count > 0 {
+            return Err(IndexError::Blocking {
+                code: (*code).to_string(),
+                count,
+            });
+        }
     }
 
     Ok(())
