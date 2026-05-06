@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d6502d445cc5ae7ae1de45da65c12f3e5fa70b4105a62f50b0289d280bb91744",
+    "contentHash": "035f22ccf88bdbd430fe30adc8b3437a8511798972c6f9ecd0907cd690d128b6",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3469,7 +3469,7 @@
           }
         ],
         "specId": "118-workflow-spec-traceability",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amendmentRecord": "123-agent-catalog-org-rescope",
