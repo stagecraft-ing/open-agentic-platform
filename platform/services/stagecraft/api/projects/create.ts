@@ -51,6 +51,7 @@ import { scaffoldFromPrebuilt } from "./scaffold/perRequestScaffold";
 import { buildL0PipelineStateSeed } from "./scaffold/seedPipelineState";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
 import { extractArtifactsIntoTree } from "./scaffold/artifactExtract";
+import { resolveScaffoldUpstream } from "./scaffold/scheduler";
 import {
   getInitStatus,
   isTemplateCacheReady,
@@ -142,38 +143,50 @@ export const createFactoryProject = api(
       );
     }
 
-    // ── 2. Resolve the factory adapter + its template_remote. ─────────
+    // ── 2. Resolve the factory adapter + verify scaffold_source_id. ───
+    // Spec 140 §2.2 — adapter manifest carries `scaffold_source_id`
+    // (an id, not a URL). The actual clone target lives in
+    // `factory_upstreams` for the same org and is resolved by
+    // `scheduler.ts::resolveScaffoldUpstream` at warmup time.
     const adapter = await loadFactoryAdapter(auth.orgId, req.adapterId);
     const manifest = adapter.manifest;
 
     // Spec 112 §10 — Create-eligibility gate. Adapters that declare a
     // non-Node-24 scaffold runtime are not executable on stagecraft (web
     // UI is Node-24-only); they need OPC-side dispatch via spec 110.
-    // Today's translator does not emit `scaffold.runtime`, so the absent
-    // case passes; the gate fires only if a future adapter declares
-    // something stagecraft cannot run.
-    const declaredRuntime = (manifest as { scaffold?: { runtime?: string } })
-      .scaffold?.runtime;
+    // The check accepts both `scaffold.runtime` (legacy block) and
+    // `scaffold_runtime` (spec 139 §7.2 / spec 140 §2.1 top-level).
+    const declaredRuntime =
+      (manifest as { scaffold?: { runtime?: string } }).scaffold?.runtime ??
+      (typeof (manifest as { scaffold_runtime?: unknown }).scaffold_runtime ===
+      "string"
+        ? ((manifest as { scaffold_runtime: string }).scaffold_runtime)
+        : undefined);
     if (declaredRuntime && declaredRuntime !== "node-24") {
       throw APIError.failedPrecondition(
-        `Factory adapter ${adapter.name}@${adapter.version} declares scaffold.runtime "${declaredRuntime}". ` +
+        `Factory adapter ${adapter.name}@${adapter.version} declares scaffold runtime "${declaredRuntime}". ` +
           `Stagecraft Create executes Node-24 adapters only (spec 112 §10); ` +
           `non-Node-24 scaffolds must dispatch to OPC.`
       );
     }
 
-    const templateRemote =
-      typeof manifest.template_remote === "string"
-        ? manifest.template_remote
+    const scaffoldSourceId =
+      typeof (manifest as { scaffold_source_id?: unknown }).scaffold_source_id ===
+      "string"
+        ? ((manifest as { scaffold_source_id: string }).scaffold_source_id)
         : "";
-    const templateDefaultBranch =
-      typeof manifest.template_default_branch === "string"
-        ? manifest.template_default_branch
-        : "main";
-    if (!templateRemote) {
+    if (!scaffoldSourceId) {
       throw APIError.failedPrecondition(
-        `Factory adapter ${adapter.name}@${adapter.version} has no template_remote in its manifest. ` +
-          `Re-run /factory-sync to repopulate the adapter row.`
+        `Factory adapter ${adapter.name}@${adapter.version} has no scaffold_source_id in its manifest. ` +
+          `Re-run /factory-sync to repopulate the adapter row (spec 139 §7.2 / spec 140 §2.1).`
+      );
+    }
+
+    const upstream = await resolveScaffoldUpstream(auth.orgId, scaffoldSourceId);
+    if (!upstream) {
+      throw APIError.failedPrecondition(
+        `Factory adapter ${adapter.name}@${adapter.version} declares scaffold_source_id "${scaffoldSourceId}" but no factory_upstreams row matches it. ` +
+          `Register the upstream at /app/factory/upstreams before creating projects (spec 139 §7.2).`
       );
     }
 
@@ -193,8 +206,6 @@ export const createFactoryProject = api(
       name: adapter.name,
       version: adapter.version,
       sourceSha: adapter.sourceSha,
-      templateRemote,
-      templateDefaultBranch,
     };
 
     // ── 4. Resolve the GitHub App installation + token. ───────────────

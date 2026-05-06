@@ -1,4 +1,12 @@
 // Spec 112 §5.2 + §5.3 — scaffold subflow shared types.
+//
+// Spec 140 §2.2 — `ScaffoldAdapterRef.templateRemote` /
+// `templateDefaultBranch` and the now-obsolete `AdapterTemplateRemote`
+// interface are removed. The scaffold layer derives the clone target
+// from `factory_upstreams (org_id, source_id=manifest.scaffold_source_id)`
+// at warmup time (`api/projects/scaffold/scheduler.ts`); per-request
+// scaffolds copy from the prebuilt cache the warmup populates and never
+// need the URL again.
 
 export interface ScaffoldAdapterRef {
   /** factory_adapters.id — links the job to the row the scaffold came from. */
@@ -6,27 +14,6 @@ export interface ScaffoldAdapterRef {
   name: string;
   version: string;
   sourceSha: string;
-  /**
-   * Upstream `<owner>/<repo>` for the template the scaffold clones at
-   * Create time. Stamped onto the synthetic adapter manifest by the
-   * translator (spec 112 §5.3 op 1) so the scaffold layer doesn't need
-   * to round-trip through `factory_upstreams`.
-   */
-  templateRemote: string;
-  /** Branch the cache pins to. Falls back to `main` for sha-pinned upstreams. */
-  templateDefaultBranch: string;
-}
-
-/**
- * Synthetic-adapter top-level fields the translator stamps onto the
- * manifest at sync time so the scaffold layer can resolve a clone URL
- * without round-tripping through `factory_upstreams`. Spec 112 §5.2 / §5.3.
- */
-export interface AdapterTemplateRemote {
-  /** GitHub repo identity, e.g. `"GovAlta-Pronghorn/template"`. */
-  template_remote: string;
-  /** Branch the cache layer pins to; refresher polls this. */
-  template_default_branch: string;
 }
 
 export interface ScaffoldRequest {

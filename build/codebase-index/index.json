@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "349df82712405c2246d8e927dd33544731507505105eb9bcb8e94acfcd9215d1",
+    "contentHash": "d6502d445cc5ae7ae1de45da65c12f3e5fa70b4105a62f50b0289d280bb91744",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4299,6 +4299,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "140-aim-vue-node-scaffold-source-id-cutover",
         "amends": [
           "108-factory-as-platform-feature",
           "111-org-agent-catalog-sync",
@@ -4460,6 +4461,80 @@
           }
         ],
         "specId": "139-factory-artifact-substrate",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "139-factory-artifact-substrate"
+        ],
+        "dependsOn": [
+          "112",
+          "138",
+          "139"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/CLAUDE.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/projection.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "140-aim-vue-node-scaffold-source-id-cutover",
         "specStatus": "approved"
       }
     ],

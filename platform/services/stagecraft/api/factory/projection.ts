@@ -25,6 +25,7 @@ import type {
   SubstrateTranslation,
   TranslationResult,
 } from "./translator";
+import { AIM_VUE_NODE_CONFIG } from "./oapNativeAdapters";
 
 // ---------------------------------------------------------------------------
 // Internal helpers — mirror legacy `translator.ts` predicates so the
@@ -77,12 +78,6 @@ function deriveContractName(path: string): string {
   return base || path;
 }
 
-const SHA40 = /^[0-9a-f]{40}$/i;
-function resolveDefaultBranch(ref: string | undefined): string {
-  if (!ref || SHA40.test(ref)) return "main";
-  return ref;
-}
-
 // ---------------------------------------------------------------------------
 // Public projection
 // ---------------------------------------------------------------------------
@@ -108,16 +103,17 @@ export function projectSubstrateToLegacy(
   // `contracts` array. See `oapContracts.ts` for the ingest path.
   const oapSelfRows = input.rows.filter((r) => r.origin === "oap-self");
 
-  // Adapter set: the synthetic `aim-vue-node` from the template upstream
-  // PLUS one adapter per OAP-native `adapter-manifest` substrate row.
-  // De-duplicated by name (template wins on collision — it carries
-  // skill/orchestrator content shape; oap-self adapters carry their own
-  // manifest.yaml shape).
-  const adapters: AdapterTranslation[] = [buildAdapter(templateRows, input)];
-  for (const adapter of buildOapNativeAdapters(oapSelfRows)) {
-    if (!adapters.some((a) => a.name === adapter.name)) {
-      adapters.push(adapter);
-    }
+  // Adapter set: one adapter per OAP-native `adapter-manifest` substrate
+  // row PLUS the synthetic `aim-vue-node` from the template upstream.
+  // Spec 140 §2.4 — de-dup priority is `oap-self` wins on collision (it
+  // carries the canonical §7.2 manifest shape, including
+  // `scaffold_source_id`). The template-origin synthetic still emits for
+  // orgs that haven't yet been migrated, but is suppressed when an
+  // `oap-self` `adapter-manifest` row exists for the same name.
+  const adapters: AdapterTranslation[] = buildOapNativeAdapters(oapSelfRows);
+  const synthetic = buildAdapter(templateRows, input);
+  if (!adapters.some((a) => a.name === synthetic.name)) {
+    adapters.push(synthetic);
   }
 
   return {
@@ -205,19 +201,19 @@ function buildAdapter(
       skills[m[1]] = { path: row.path, body: row.upstreamBody };
     }
   }
+  // Spec 140 §2.1 — manifest carries ids, not URLs. URLs live in
+  // `factory_upstreams` and are resolved at clone time by the scaffold
+  // layer (`api/projects/scaffold/scheduler.ts` post-§2.2).
   const manifest: Record<string, unknown> = {
     entry: "orchestration/template-orchestrator.md",
     orchestrator: orchestratorRow
       ? { path: orchestratorRow.path, body: orchestratorRow.upstreamBody }
       : null,
     skills,
+    orchestration_source_id: AIM_VUE_NODE_CONFIG.orchestrationSourceId,
+    scaffold_source_id: AIM_VUE_NODE_CONFIG.scaffoldSourceId,
+    scaffold_runtime: AIM_VUE_NODE_CONFIG.scaffoldRuntime,
   };
-  if (input.templateRemote) {
-    manifest.template_remote = input.templateRemote;
-    manifest.template_default_branch = resolveDefaultBranch(
-      input.templateDefaultBranch,
-    );
-  }
   return {
     name: "aim-vue-node",
     version: input.templateSourceSha.slice(0, 12),

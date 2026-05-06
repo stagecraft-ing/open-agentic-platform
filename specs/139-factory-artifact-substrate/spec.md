@@ -7,6 +7,8 @@ implementation: complete
 owner: bart
 created: "2026-05-05"
 closed: "2026-05-05"
+amended: "2026-05-06"
+amendment_record: "140"
 kind: architecture
 risk: high
 amends: ["108", "111", "123"]
@@ -76,6 +78,13 @@ summary: >
 ---
 
 # 139 — Factory Artifact Substrate
+
+> **Amended 2026-05-06 by spec [140](../140-aim-vue-node-scaffold-source-id-cutover/spec.md).**
+> §7.2's `template_remote` → `scaffold_source_id` rename landed for the
+> three OAP-native adapters in Phase 2 but never reached the synthetic
+> `aim-vue-node` adapter that `projection.ts::buildAdapter` emits. Spec
+> 140 finishes the rename and drops the legacy fallback in
+> `scaffoldReadiness.ts`.
 
 ## 1. Problem Statement
 
@@ -779,6 +788,31 @@ template side); the wire shape is preserved byte-stable.
     `OAP_FACTORY_SCHEMAS_DIR` pattern). Per-adapter readiness in
     `scaffoldReadiness.ts` already gates on `scaffold_source_id` per
     Phase 2 T056.
+  - _Post-close gap (Part 3):_ §7.2 declared `template_remote` is
+    replaced by `orchestration_source_id` + `scaffold_source_id` for
+    every adapter, but Phase 2's rename only landed for the OAP-native
+    trio (`next-prisma`, `rust-axum`, `encore-react`) via
+    `oapNativeSanitise.ts:96`. The synthetic `aim-vue-node` adapter
+    that `projection.ts::buildAdapter` emits from template-origin
+    substrate rows still carried `template_remote` only, and five
+    downstream consumers (scheduler, templateCache, create, scaffold
+    types, scaffoldReadiness fallback) read that legacy field
+    directly. Result: the §7.2 contract was nominally complete but the
+    one adapter that originated `template_remote` in the first place
+    never made the switch.
+  - _Resolution:_ closed by spec
+    [`140-aim-vue-node-scaffold-source-id-cutover`](../140-aim-vue-node-scaffold-source-id-cutover/spec.md)
+    (closed 2026-05-06, three commits on branch
+    `140-aim-vue-node-scaffold-source-id-cutover`). Both projection
+    paths now emit the §7.2 trio sourced from a single
+    `OAP_NATIVE_ADAPTERS["aim-vue-node"]` constant; the de-dup priority
+    in `projectSubstrateToLegacy` is flipped so the `oap-self`
+    `adapter-manifest` row wins on collision; the scaffold layer
+    resolves the clone target via `factory_upstreams (org_id,
+    source_id=manifest.scaffold_source_id)`; the `hasTemplateRemote`
+    fallback is gone end-to-end. Migration 36 backfills a synthetic
+    `oap-self` `adapter-manifest` row per existing org so deploy-time
+    cutover requires no operator action.
 
 - **SC-005 (OPC parity):** OPC factory runs use the virtual
   factory_root with no local checkout. The

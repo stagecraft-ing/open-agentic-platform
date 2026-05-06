@@ -26,9 +26,6 @@ export type LoadSubstrateForOrgOptions = {
   factoryOriginId?: string;
   /** Default `aim-vue-node-template`. */
   templateOriginId?: string;
-  /** Optional `template_remote` injected onto adapter manifests (matches Phase 1 syncPipeline). */
-  templateRemote?: string;
-  templateDefaultBranch?: string;
 };
 
 /**
@@ -122,7 +119,5 @@ export async function loadSubstrateForOrg(
     templateSourceSha: templateSha,
     factoryOriginId,
     templateOriginId,
-    templateRemote: options.templateRemote,
-    templateDefaultBranch: options.templateDefaultBranch,
   };
 }

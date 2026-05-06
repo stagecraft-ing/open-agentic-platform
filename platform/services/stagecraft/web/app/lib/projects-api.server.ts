@@ -277,12 +277,14 @@ export async function createFactoryProject(
 // Spec 112 Phase 5 — scaffold-readiness gate for the Create form.
 // Spec 139 Phase 2 (T056) — added per-adapter eligibility verdicts and the
 // `scaffoldSourceResolved` blocker.
+// Spec 140 §2.3 / T061 — `hasTemplateRemote` removed from both the
+// per-adapter verdict and the top-level response. Create-eligibility is
+// solely `scaffoldSourceResolved`.
 export interface AdapterReadinessVerdict {
   id: string;
   name: string;
   declaresScaffoldSource: boolean;
   scaffoldSourceResolved: boolean;
-  hasTemplateRemote: boolean;
   createEligible: boolean;
 }
 
@@ -293,7 +295,6 @@ export interface ScaffoldReadiness {
   error?: string;
   hasFactoryAdapter: boolean;
   hasUpstreamPat: boolean;
-  hasTemplateRemote: boolean;
   scaffoldSourceResolved: boolean;
   adapters: AdapterReadinessVerdict[];
   canCreate: boolean;

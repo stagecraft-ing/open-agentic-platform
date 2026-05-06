@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:5ace08e1bf9251b46a422e63008203ef21c8dd7c98ec54019ad9076eba8e55ec",
+  "graph_fingerprint": "sha256:89806ddc59fb1921b8957742a40d32468e15c3d9574a342c7e4c1bee2116741a",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2674,6 +2674,24 @@
         "112",
         "123",
         "124"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "140-aim-vue-node-scaffold-source-id-cutover",
+      "title": "aim-vue-node manifest cutover to scaffold_source_id (amendment of 139)",
+      "spec_path": "specs/140-aim-vue-node-scaffold-source-id-cutover/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "112",
+        "138",
+        "139"
       ],
       "impl_files": [],
       "test_files": [],
