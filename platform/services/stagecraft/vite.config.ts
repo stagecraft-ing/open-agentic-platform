@@ -77,6 +77,9 @@ export default defineConfig({
       // Spec 140 Phase 1 — migration 36 idempotence test mutates
       // `factory_artifact_substrate*` tables; runs under `encore test`.
       "**/db/migrations/36_aim_vue_node_manifest_cutover.test.ts",
+      // Spec 140 Phase 2 — scaffold scheduler resolver test queries the
+      // live `factory_upstreams` table.
+      "**/projects/scaffold/scheduler.test.ts",
     ],
   },
 });

@@ -138,10 +138,11 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
       },
     });
 
-    // Spec 138 §2.1 — a successful /factory-sync may have just stamped
-    // template_remote on previously-unmanaged adapter rows. Kick the
-    // scaffold warmup immediately so the Create form unlocks without
-    // waiting for the next 30-min cron tick.
+    // Spec 140 §2.1 — a successful /factory-sync may have just produced
+    // adapter rows whose projected manifest carries `scaffold_source_id`
+    // resolving to a `factory_upstreams` row. Kick the scaffold warmup
+    // immediately so the Create form unlocks without waiting for the
+    // next 30-min cron tick.
     void runScaffoldWarmup().catch((err) => {
       log.warn("factory sync worker: post-sync warmup trigger failed", {
         syncRunId: req.syncRunId,

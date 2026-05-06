@@ -45,10 +45,20 @@ export interface InitStatus {
 export interface WarmupContext {
   /** Absolute path of the workspace dir; cache + prebuilts live underneath. */
   workspaceDir: string;
-  /** GitHub `<owner>/<repo>` for the upstream template. */
-  templateRemote: string;
-  /** Branch the cache pins to; the refresher polls this. */
-  defaultBranch: string;
+  /**
+   * Spec 140 §2.2 — clone target derived from
+   * `factory_upstreams.repo_url` for the row whose `source_id` equals
+   * the adapter manifest's `scaffold_source_id`. Format is GitHub
+   * `<owner>/<repo>` (the `repo_url` column is normalised at write time
+   * by `factory/upstreams.ts::validateRepo`).
+   */
+  scaffoldRepoUrl: string;
+  /**
+   * Spec 140 §2.2 — branch the cache pins to; the refresher polls this.
+   * Sourced from `factory_upstreams.ref` for the same row. Defaults to
+   * `main` when the row's `ref` is a 40-char sha (sha-pinned upstream).
+   */
+  scaffoldRef: string;
   /**
    * Async resolver that returns the plaintext PAT used to clone the template
    * (and to read the branch head via REST). The brief mandates a single PAT
@@ -78,9 +88,10 @@ export function isTemplateCacheRefreshing(): boolean {
 
 /**
  * Surface a warmup-blocked condition (e.g. no adapter manifest carries
- * `template_remote`) through the existing readiness path. The status
- * step stays "error" so the UI's `warmup-error` blocker fires with a
- * clear, actionable reason.
+ * `scaffold_source_id`, or no `factory_upstreams` row matches it)
+ * through the existing readiness path. The status step stays "error"
+ * so the UI's `warmup-error` blocker fires with a clear, actionable
+ * reason.
  */
 export function setInitErrorFromContext(reason: string): void {
   initStatus = { step: "error", progress: 0, ready: false, error: reason };
@@ -179,7 +190,7 @@ export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
   if (diskCacheValid) {
     templateCacheReady = true;
     log.info("template cache: already up to date", {
-      remote: ctx.templateRemote,
+      remote: ctx.scaffoldRepoUrl,
       sha: cachedSha,
     });
     return;
@@ -196,16 +207,16 @@ export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 
     const token = await ctx.patResolver();
-    const cloneUrl = buildCloneUrl(ctx.templateRemote, token);
+    const cloneUrl = buildCloneUrl(ctx.scaffoldRepoUrl, token);
     const env = tooledEnv(ctx.workspaceDir);
 
     log.info("template cache: cloning", {
-      remote: ctx.templateRemote,
-      branch: ctx.defaultBranch,
+      remote: ctx.scaffoldRepoUrl,
+      branch: ctx.scaffoldRef,
     });
     await spawnLogged(
       "git",
-      ["clone", "--branch", ctx.defaultBranch, "--depth", "1", cloneUrl, tempDir],
+      ["clone", "--branch", ctx.scaffoldRef, "--depth", "1", cloneUrl, tempDir],
       ctx.workspaceDir,
       env,
       token ?? undefined
@@ -225,7 +236,7 @@ export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
     }
     templateCacheReady = true;
     log.info("template cache: ready", {
-      remote: ctx.templateRemote,
+      remote: ctx.scaffoldRepoUrl,
       sha: latestSha,
     });
   } catch (err) {
@@ -359,7 +370,7 @@ export function startBackgroundRefresher(ctx: WarmupContext): void {
 async function fetchLatestTemplateCommit(
   ctx: WarmupContext
 ): Promise<string | null> {
-  const [owner, repo] = ctx.templateRemote.split("/");
+  const [owner, repo] = ctx.scaffoldRepoUrl.split("/");
   if (!owner || !repo) return null;
   const token = await ctx.patResolver().catch(() => null);
 
@@ -371,12 +382,12 @@ async function fetchLatestTemplateCommit(
 
   try {
     const resp = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(ctx.defaultBranch)}`,
+      `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(ctx.scaffoldRef)}`,
       { headers }
     );
     if (!resp.ok) {
       log.warn("template head lookup failed", {
-        remote: ctx.templateRemote,
+        remote: ctx.scaffoldRepoUrl,
         status: resp.status,
       });
       return null;
@@ -385,7 +396,7 @@ async function fetchLatestTemplateCommit(
     return data.commit?.sha ?? null;
   } catch (err) {
     log.warn("template head lookup threw", {
-      remote: ctx.templateRemote,
+      remote: ctx.scaffoldRepoUrl,
       error: errMsg(err),
     });
     return null;

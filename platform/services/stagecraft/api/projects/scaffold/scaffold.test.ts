@@ -12,13 +12,14 @@ import {
 } from "./moduleCatalog";
 import type { ScaffoldAdapterRef } from "./types";
 
+// Spec 140 §2.2 — the legacy `templateRemote` / `templateDefaultBranch`
+// fields no longer exist on `ScaffoldAdapterRef`; the clone target is
+// resolved via `factory_upstreams` at warmup / create time.
 const adapter: ScaffoldAdapterRef = {
   id: "00000000-0000-0000-0000-000000000000",
   name: "aim-vue-node",
   version: "3.0.0",
   sourceSha: "a".repeat(40),
-  templateRemote: "GovAlta-Pronghorn/template",
-  templateDefaultBranch: "main",
 };
 
 describe("buildL0PipelineStateSeed", () => {
@@ -141,27 +142,47 @@ describe("extrasFor", () => {
 describe("spec 112 §10 runtime gate (shape)", () => {
   // The gate lives in create.ts; this test pins the shape of manifests we
   // expect to pass / fail so a translator change doesn't silently
-  // re-introduce non-Node-24 adapters.
+  // re-introduce non-Node-24 adapters. Spec 140 §2.1 introduced the
+  // top-level `scaffold_runtime` key; the gate accepts both the legacy
+  // `scaffold.runtime` block (still emitted by some OAP-native manifests)
+  // and the new top-level field.
   function evaluateRuntimeGate(manifest: Record<string, unknown>): "pass" | "reject" {
-    const declared = (manifest as { scaffold?: { runtime?: string } }).scaffold
-      ?.runtime;
+    const declared =
+      (manifest as { scaffold?: { runtime?: string } }).scaffold?.runtime ??
+      (typeof (manifest as { scaffold_runtime?: unknown }).scaffold_runtime ===
+      "string"
+        ? ((manifest as { scaffold_runtime: string }).scaffold_runtime)
+        : undefined);
     if (declared && declared !== "node-24") return "reject";
     return "pass";
   }
 
-  test("synthetic translator manifest (no scaffold block) passes", () => {
+  test("synthetic translator manifest carrying scaffold_runtime: node-24 passes", () => {
     expect(
       evaluateRuntimeGate({
         entry: "orchestration/template-orchestrator.md",
-        template_remote: "GovAlta-Pronghorn/template",
+        scaffold_source_id: "aim-vue-node-template",
+        scaffold_runtime: "node-24",
       })
     ).toBe("pass");
   });
 
-  test("explicitly declared node-24 passes", () => {
+  test("manifest without any runtime declaration passes (default)", () => {
+    expect(
+      evaluateRuntimeGate({
+        entry: "orchestration/template-orchestrator.md",
+      })
+    ).toBe("pass");
+  });
+
+  test("explicitly declared node-24 (legacy scaffold block) passes", () => {
     expect(evaluateRuntimeGate({ scaffold: { runtime: "node-24" } })).toBe(
       "pass"
     );
+  });
+
+  test("non-node-24 top-level scaffold_runtime is rejected", () => {
+    expect(evaluateRuntimeGate({ scaffold_runtime: "node-22" })).toBe("reject");
   });
 
   test("deno-2 / python / anything-else is rejected", () => {
