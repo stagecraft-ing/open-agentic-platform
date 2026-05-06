@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "41ae5f5a577a1ca27003cd3891accc5c0552970db388e519d9b0a8b346941161",
+    "contentHash": "b546fb5c5c41cc905b096027cdcf94e6023023bc41e220a404368e93dff973c2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4608,6 +4608,38 @@
           }
         ],
         "specId": "141-aim-vue-node-source-id-template-name-alignment",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "139-factory-artifact-substrate"
+        ],
+        "dependsOn": [
+          "139"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "142-factory-id-columns-text-cutover",
         "specStatus": "approved"
       }
     ],

@@ -80,6 +80,9 @@ export default defineConfig({
       // Spec 141 — migration 37 idempotence + effect test mutates the
       // same `factory_artifact_substrate*` + `factory_upstreams` tables.
       "**/db/migrations/37_aim_vue_node_canonical_source_id.test.ts",
+      // Spec 142 — migration 38 effect test reads information_schema and
+      // round-trips a synthetic adapter id through `scaffold_jobs`; live db.
+      "**/db/migrations/38_factory_id_columns_to_text.test.ts",
       // Spec 140 Phase 2 — scaffold scheduler resolver test queries the
       // live `factory_upstreams` table.
       "**/projects/scaffold/scheduler.test.ts",
