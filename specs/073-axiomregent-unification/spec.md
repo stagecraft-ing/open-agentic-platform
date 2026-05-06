@@ -650,3 +650,7 @@ window (not the entire tool call); release immediately after the git subprocess 
 directories containing `store.sqlite` data need a migration to hiqlite. Mitigation: implement a
 one-time migration that reads the old SQLite tables and writes to hiqlite on first startup;
 skip if no legacy data exists.
+
+## Release Markers
+
+- **axiomregent v0.1.5 (2026-05-05):** crate-level version bump cut alongside OPC desktop v0.3.2. Carries the substrate_version.rs clippy fix and absorbs the spec 119 workspace-symbol cleanup that touched axiomregent-adjacent code. Version-only edits to `crates/axiomregent/Cargo.toml` and the inherited `crates/Cargo.lock` do not change spec semantics; recording the release here documents the artefact lineage for the spec/code coupling gate.

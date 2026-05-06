@@ -474,6 +474,7 @@ CREATE TABLE document_bindings (
 - **NF-005:** The WebSocket relay must be project-scoped. An OPC instance only receives events for projects it is authenticated to.
 - **NF-006:** Factory policy shards are project-scoped and travel with the pipeline — they must not require live platform connectivity during execution.
 - **NF-007** _(maintenance, 2026-05-05):_ `platform/services/stagecraft/package-lock.json` is regenerated under npm 10 to match the CI runtime; the lockfile shape is non-load-bearing for spec semantics but is owned by 087 (and joint-claimed by 077, 080) for the spec/code coupling gate. Lockfile churn from npm version drift does not require a content amendment to this spec — recording the maintenance event here is sufficient.
+- **NF-007.1** _(maintenance, 2026-05-05):_ second `package-lock.json` regen under npm 10 cut alongside the OPC desktop v0.3.2 + axiomregent v0.1.5 release. Same maintenance pattern as NF-007.
 
 ## 11. End-State Model Summary
 

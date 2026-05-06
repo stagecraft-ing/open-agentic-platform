@@ -316,3 +316,7 @@ The broader `workspace` lexical scan surfaces several non-violations that I-3 ex
 - spec 115 (`knowledge-extraction-pipeline`) — extraction worker, currently workspace-scoped.
 - platform/CLAUDE.md — current schema documentation.
 - platform/services/stagecraft/api/db/schema.ts — source of truth for the schema diff.
+
+## 12. Release Markers
+
+- **OPC desktop v0.3.2 (2026-05-05):** ships the workspace→project entity collapse described above. App version metadata at `apps/desktop/package.json`, `apps/desktop/src-tauri/Cargo.toml`, `apps/desktop/src-tauri/tauri.conf.json` bumped accordingly. Version-only edits do not change spec semantics; recording the release here documents the artefact lineage for the spec/code coupling gate.

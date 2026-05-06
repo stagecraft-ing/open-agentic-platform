@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ad83f0d160b20d65e36f0f02aa58267853977d60ba5f805a394e2b9af2941e2c",
+    "contentHash": "349df82712405c2246d8e927dd33544731507505105eb9bcb8e94acfcd9215d1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -302,7 +302,7 @@
       "name": "@opc/desktop",
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.3.1"
+      "version": "0.3.2"
     },
     {
       "edition": "2024",
@@ -423,7 +423,7 @@
       "name": "axiomregent",
       "path": "crates/axiomregent",
       "specRef": "073-axiomregent-unification",
-      "version": "0.1.4"
+      "version": "0.1.5"
     },
     {
       "edition": "2024",
