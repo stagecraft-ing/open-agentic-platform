@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "be566b7ac3049625c6b6a1c29f34113f3ceeab0deb5429436037d25a0916d749",
+    "contentHash": "41ae5f5a577a1ca27003cd3891accc5c0552970db388e519d9b0a8b346941161",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4476,6 +4476,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "141-aim-vue-node-source-id-template-name-alignment",
         "amends": [
           "139-factory-artifact-substrate"
         ],
@@ -4547,6 +4548,66 @@
           }
         ],
         "specId": "140-aim-vue-node-scaffold-source-id-cutover",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "140-aim-vue-node-scaffold-source-id-cutover"
+        ],
+        "dependsOn": [
+          "140"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/artifacts.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/projection.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "141-aim-vue-node-source-id-template-name-alignment",
         "specStatus": "approved"
       }
     ],

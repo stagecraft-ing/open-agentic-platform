@@ -29,12 +29,12 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
           ON CONFLICT (id) DO NOTHING
       `);
     }
-    // Seed: org A has the aim-vue-node-template upstream registered.
+    // Seed: org A has the aim-vue-node upstream registered.
     await db.execute(sql`
       INSERT INTO factory_upstreams (
         org_id, source_id, role, repo_url, ref, subpath, created_at, updated_at
       ) VALUES (
-        ${ORG_ID_A}, 'aim-vue-node-template', 'scaffold',
+        ${ORG_ID_A}, 'aim-vue-node', 'scaffold',
         'GovAlta-Pronghorn/template', 'main', NULL, now(), now()
       )
       ON CONFLICT (org_id, source_id) DO NOTHING
@@ -55,7 +55,7 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
   it("returns repoUrl + ref when source_id resolves", async () => {
     const result = await resolveScaffoldUpstream(
       ORG_ID_A,
-      "aim-vue-node-template",
+      "aim-vue-node",
     );
     expect(result).not.toBeNull();
     expect(result!.repoUrl).toBe("GovAlta-Pronghorn/template");
@@ -68,10 +68,10 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
   });
 
   it("returns null when the source_id exists but for a DIFFERENT org (org-scoped lookup)", async () => {
-    // Org B has no aim-vue-node-template row, even though org A does.
+    // Org B has no aim-vue-node row, even though org A does.
     const result = await resolveScaffoldUpstream(
       ORG_ID_B,
-      "aim-vue-node-template",
+      "aim-vue-node",
     );
     expect(result).toBeNull();
   });

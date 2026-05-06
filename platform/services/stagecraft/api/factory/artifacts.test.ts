@@ -84,7 +84,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
       INSERT INTO factory_artifact_substrate
         (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, frontmatter, conflict_state)
       VALUES
-        (${ORG_ID}::uuid, 'aim-vue-node-template',
+        (${ORG_ID}::uuid, 'aim-vue-node',
          'orchestration/contracts/pipeline-state.schema.yaml',
          'contract-schema', 1, 'active',
          ${"e".repeat(40)}, 'type: object',

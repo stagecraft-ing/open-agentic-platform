@@ -161,7 +161,7 @@ describe("spec 112 §10 runtime gate (shape)", () => {
     expect(
       evaluateRuntimeGate({
         entry: "orchestration/template-orchestrator.md",
-        scaffold_source_id: "aim-vue-node-template",
+        scaffold_source_id: "aim-vue-node",
         scaffold_runtime: "node-24",
       })
     ).toBe("pass");

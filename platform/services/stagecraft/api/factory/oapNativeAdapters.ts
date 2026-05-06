@@ -47,7 +47,10 @@ export const OAP_NATIVE_ADAPTERS: Record<string, OapNativeAdapterConfig> = {
     adapterName: "aim-vue-node",
     runtimeOverride: null,
     orchestrationSourceId: "goa-software-factory",
-    scaffoldSourceId: "aim-vue-node-template",
+    // Spec 141 §2.1 — aligns with `template.json::templateName`
+    // declared by GovAlta-Pronghorn/template (the upstream's own name).
+    // Amends spec 140 §2.1, which fixed `aim-vue-node-template`.
+    scaffoldSourceId: "aim-vue-node",
     scaffoldRuntime: "node-24",
   },
 };

@@ -8,6 +8,8 @@ owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
 closed: "2026-05-06"
+amended: "2026-05-06"
+amendment_record: "141"
 kind: amendment
 risk: low
 amends: ["139"]

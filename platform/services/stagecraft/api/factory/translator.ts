@@ -696,9 +696,9 @@ export function translateLegacyManifest(
  * as `factory_upstreams.source_id` rows (or be backfilled to
  * `legacy-mixed`) for the substrate's foreign-key contract to hold.
  *
- * Spec 140 AC-2 — `DEFAULT_TEMPLATE_ORIGIN` derives from the canonical
- * `OAP_NATIVE_ADAPTERS["aim-vue-node"].scaffoldSourceId` instead of
- * duplicating the `"aim-vue-node-template"` literal.
+ * Spec 140 AC-2 / spec 141 §2.1 — `DEFAULT_TEMPLATE_ORIGIN` derives
+ * from the canonical `OAP_NATIVE_ADAPTERS["aim-vue-node"].scaffoldSourceId`
+ * instead of duplicating the `"aim-vue-node"` literal.
  */
 export const DEFAULT_FACTORY_ORIGIN =
   AIM_VUE_NODE_CONFIG.orchestrationSourceId;
@@ -722,7 +722,7 @@ export type SubstrateTranslationInput = {
   templateSha: string;
   /** Default `goa-software-factory`. */
   factoryOriginId?: string;
-  /** Default `aim-vue-node-template`. */
+  /** Default `aim-vue-node`. */
   templateOriginId?: string;
 };
 
