@@ -65,6 +65,10 @@ preflight) cannot derive execution boundaries from specs.
 - SC-091-2: `featuregraph` loads dependency graph from registry (non-empty `depends_on` on 087)
 - SC-091-3: Spec compiler rejects invalid `risk` values (not in `[low, medium, high, critical]`)
 
+## Maintenance Notes
+
+- _2026-05-05:_ `crates/featuregraph/tests/golden/features_graph.json` regenerated to reflect spec 119 lifecycle promotion (draft → approved/complete) and spec 087 NF-007 maintenance entry. The golden's `status` / `implementation` fields per feature are mechanical projections of the registry; refreshes that follow lifecycle flips on amender specs (here: spec 119 amends 087/092/094/099/000) are routine and do not require a content change to this spec — recording the maintenance event here is sufficient.
+
 ## Dependencies
 
 | Spec | Relationship |

@@ -39,7 +39,7 @@ mod tests {
 
     #[test]
     fn version_is_positive() {
-        assert!(SUBSTRATE_VERSION > 0);
+        const _: () = assert!(SUBSTRATE_VERSION > 0);
     }
 
     #[test]

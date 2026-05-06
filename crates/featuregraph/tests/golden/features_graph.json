@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:a490d8cf8e4e8c3281bff067358f7418422b55f4f38f74f05c45554343b7973c",
+  "graph_fingerprint": "sha256:5ace08e1bf9251b46a422e63008203ef21c8dd7c98ec54019ad9076eba8e55ec",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2284,8 +2284,8 @@
       "feature_id": "119-project-as-unit-of-governance",
       "title": "Project as Unit of Governance — Workspace Collapse",
       "spec_path": "specs/119-project-as-unit-of-governance/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "high",
       "owner": "bart",
       "group": "",
@@ -2652,6 +2652,28 @@
         "112",
         "108",
         "109"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "139-factory-artifact-substrate",
+      "title": "Factory artifact substrate — verbatim mirror, per-org override, unified Agent/Skill/Adapter/Contract storage",
+      "spec_path": "specs/139-factory-artifact-substrate/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "082",
+        "094",
+        "108",
+        "111",
+        "112",
+        "123",
+        "124"
       ],
       "impl_files": [],
       "test_files": [],
@@ -3061,6 +3083,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/factory_root.rs",
+      "message": "Malformed Spec directive: // Spec: specs/139-factory-artifact-substrate/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/gate.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-010",
       "suggested_fix": "Fix header format"
@@ -3201,6 +3230,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/substrate_version.rs",
+      "message": "Malformed Spec directive: // Spec: specs/139-factory-artifact-substrate/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/topo_sort.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md — FR-004",
       "suggested_fix": "Fix header format"
@@ -3215,6 +3251,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/virtual_root.rs",
+      "message": "Malformed Spec directive: // Spec: specs/139-factory-artifact-substrate/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/tests/agent_resolver_test.rs",
       "message": "Malformed Spec directive: // Spec: specs/123-agent-catalog-org-rescope/spec.md — T084, T085, A-8",
       "suggested_fix": "Fix header format"
@@ -3222,8 +3265,29 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/tests/run_replay.rs",
+      "message": "Malformed Spec directive: // Spec: specs/139-factory-artifact-substrate/spec.md — T061",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/tests/spec_122_e2e.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — SC-001..SC-012",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/virtual_root.rs",
+      "message": "Malformed Spec directive: // Spec: specs/139-factory-artifact-substrate/spec.md — T060",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/virtual_root_offline.rs",
+      "message": "Malformed Spec directive: // Spec: specs/139-factory-artifact-substrate/spec.md — T062",
       "suggested_fix": "Fix header format"
     },
     {
