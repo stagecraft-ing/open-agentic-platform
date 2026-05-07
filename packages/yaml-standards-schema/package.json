@@ -28,7 +28,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.4"
   },
   "oap": {
     "spec": "055-yaml-standards-schema"

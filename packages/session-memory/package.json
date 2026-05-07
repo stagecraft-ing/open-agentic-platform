@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.9.0",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.4"
   },
   "oap": {
     "spec": "056-session-memory"
