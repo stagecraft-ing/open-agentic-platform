@@ -28,11 +28,11 @@
   "devDependencies": {
     "@types/node": "^22.15.30",
     "typescript": "^6.0.3",
-    "vitest": "^3.0.5"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.91.1",
-    "@aws-sdk/client-bedrock-runtime": "^3.1039.0",
+    "@anthropic-ai/sdk": "^0.95.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1044.0",
     "@google/generative-ai": "^0.24.1",
     "@opc/claude-code-bridge": "workspace:*",
     "@opc/permission-system": "workspace:*",

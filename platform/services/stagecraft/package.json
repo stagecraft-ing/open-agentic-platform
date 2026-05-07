@@ -16,7 +16,7 @@
     "build:frontend": "cd web && react-router build"
   },
   "devDependencies": {
-    "@react-router/dev": "7.14.2",
+    "@react-router/dev": "7.15.0",
     "@tailwindcss/vite": "^4.2.4",
     "@types/luxon": "^3.7.1",
     "@types/node": "^22.19.17",
@@ -32,10 +32,10 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1039.0",
-    "@aws-sdk/s3-request-presigner": "^3.1039.0",
-    "@react-router/node": "7.14.2",
-    "@react-router/serve": "7.14.2",
+    "@aws-sdk/client-s3": "^3.1044.0",
+    "@aws-sdk/s3-request-presigner": "^3.1044.0",
+    "@react-router/node": "7.15.0",
+    "@react-router/serve": "7.15.0",
     "@tanstack/react-query": "^5.100.6",
     "drizzle-orm": "^0.45.2",
     "encore.dev": "^1.56.7",
@@ -45,10 +45,10 @@
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.20.0",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
-    "react-router": "7.14.2",
+    "react-router": "7.15.0",
     "remark-gfm": "^4.0.1",
     "yaml": "^2.8.4",
     "zod": "^4.3.6"

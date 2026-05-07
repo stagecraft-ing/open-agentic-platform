@@ -20,7 +20,7 @@ url = "2.4"
 walkdir = "2.4"
 sha2 = "0.10"
 hex = "0.4"
-base64 = "0.21"
+base64 = "0.22"
 regex = "1.10"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 zstd = "0.13"
@@ -28,12 +28,12 @@ tempfile = "3.8"
 chrono = { version = "0.4", features = ["serde"] }
 tokio = { version = "1.0", features = ["full"] }
 similar = "3.1.0"
-lz4_flex = "0.11"
+lz4_flex = "0.13"
 tar = "0.4.44"
 log = "0.4.29"
 env_logger = "0.11"
 reqwest = { version = "0.12", features = ["json"] }
-octocrab = "0.41"
+octocrab = { version = "0.50", default-features = false, features = ["default-client", "follow-redirect", "retry", "rustls", "rustls-ring", "timeout", "tracing", "jwt-aws-lc-rs"] }
 urlencoding = "2"
 hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "dlock", "listen_notify_local", "cache"] }
 async-trait = "0.1"
