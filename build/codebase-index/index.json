@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "3dd1a22cf5babd16215b8dddc45246902753a8b9d6425aa4e5edcf3eeba83e58",
+    "contentHash": "186e7cb422212f6de71611c2433aedfbe15f907e079518dd6c6128336dc077e1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15,6 +15,10 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"118-workflow-spec-traceability\" declares implements path \"build/codebase-index/CODEBASE-INDEX.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -119,6 +123,11 @@
         "description": "Review all changes in the current branch with structured read-only analysis across risk, quality, and platform compatibility dimensions.",
         "name": "review-branch",
         "path": ".claude/commands/review-branch.md"
+      },
+      {
+        "description": "One-time contributor setup — run `make setup` and verify governed reads work end-to-end so `/init` can report lifecycle and structural counts.",
+        "name": "setup",
+        "path": ".claude/commands/setup.md"
       },
       {
         "description": "Run the local fast CI loop (`make ci`) and automatically fix discovered issues using concurrent agents",

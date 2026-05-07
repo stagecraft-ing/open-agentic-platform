@@ -58,6 +58,9 @@ setup: check-deps
 	@echo "==> Compiling codebase index..."
 	./tools/codebase-indexer/target/release/codebase-indexer compile
 	@echo ""
+	@echo "==> Building registry-consumer (governed-read CLI for /init)..."
+	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+	@echo ""
 	@echo "==> Fetching axiomregent sidecar binary..."
 	@$(MAKE) fetch-axiomregent-check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
 	@echo ""

@@ -41,6 +41,7 @@ Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/i
 Commands live in `.claude/commands/`:
 
 - `/init` — Initialize a session (load context, recent activity, memory)
+- `/setup` — One-time contributor setup: build consumer binaries (`spec-compiler`, `codebase-indexer`, `registry-consumer`) and verify governed reads work, so `/init` can report lifecycle and structural counts
 - `/commit` — Create a git commit with impact-focused conventional message
 - `/code-review` — Multi-aspect code review using parallel sub-agents
 - `/review-branch` — Review all changes in the current branch
