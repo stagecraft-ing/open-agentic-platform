@@ -1959,7 +1959,7 @@ dependencies = [
  "clap",
  "dirs 6.0.0",
  "factory-contracts",
- "infer 0.16.0",
+ "infer",
  "jsonschema",
  "open_agentic_policy_kernel",
  "orchestrator",
@@ -3214,15 +3214,6 @@ dependencies = [
  "hashbrown 0.17.0",
  "serde",
  "serde_core",
-]
-
-[[package]]
-name = "infer"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc150e5ce2330295b8616ce0e3f53250e53af31759a9dbedad1621ba29151847"
-dependencies = [
- "cfb",
 ]
 
 [[package]]
@@ -7667,7 +7658,7 @@ dependencies = [
  "flate2",
  "futures-util",
  "http",
- "infer 0.19.0",
+ "infer",
  "log",
  "minisign-verify",
  "osakit",
@@ -7785,7 +7776,7 @@ dependencies = [
  "glob",
  "html5ever 0.29.1",
  "http",
- "infer 0.19.0",
+ "infer",
  "json-patch",
  "kuchikiki",
  "log",
