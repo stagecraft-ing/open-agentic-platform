@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b546fb5c5c41cc905b096027cdcf94e6023023bc41e220a404368e93dff973c2",
+    "contentHash": "03327d79bc4408614ea2556c97607a80b2ca26573d20c9dba57c19e55e02f178",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -456,6 +456,7 @@
         "src/bin/harness.rs",
         "src/bin/factory_run.rs",
         "src/bin/verify_certificate.rs",
+        "src/bin/build_certificate.rs",
         "src/bin/migrate_stakeholder_docs.rs"
       ],
       "externalDeps": [
@@ -2762,8 +2763,16 @@
         ],
         "implementingPaths": [
           {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/factory-engine",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/build_certificate.rs",
+            "source": "comment-header"
           },
           {
             "path": "crates/factory-engine/src/bin/verify_certificate.rs",

@@ -32,6 +32,7 @@ implements:
   - path: crates/policy-kernel
   - path: crates/orchestrator
   - path: tools/spec-compiler
+  - path: Makefile
 ---
 
 # 102 — Governed Excellence
@@ -517,3 +518,44 @@ Week 4: Phase D — OWASP ASI + Security
 - **The orchestrator dispatch loop.** The factory-engine binary wires the orchestrator primitives into a working loop. Extracting a reusable `run_workflow()` into the orchestrator crate is a separate architectural decision.
 - **Real-time governance drift monitoring.** FR-022 unifies the traceability source. Continuous drift monitoring (watching for divergence on every commit) is a follow-on capability.
 - **Agent execution identities with cryptographic signing (DIDs).** FR-031/FR-036 establish traceable identity tuples. Full DID-based cryptographic agent identity is a future enhancement.
+
+---
+
+## Closure record — Phase A pipeline emission (G-2)
+
+Phase A's certificate emission path (FR-003 / FR-009) is wired in
+`factory-run` (`crates/factory-engine/src/bin/factory_run.rs`):
+
+- A single `emit_certificate` helper calls `generate_certificate` +
+  `persist_certificate` from the `factory_engine::governance_certificate`
+  module. The helper is invoked at every termination point — Phase 1
+  dispatch failure, Phase 1→2 transition failure, Phase 2 dispatch
+  failure, and successful pipeline completion — so an `incomplete`
+  certificate is emitted on halt and a `complete` certificate on
+  success.
+- `intent.requirementsHash` is the SHA-256 of the concatenated
+  `--business-docs` byte streams, computed once at start.
+- The certificate is persisted as
+  `<project>/.factory/runs/<run-id>/governance-certificate.json`,
+  alongside the per-stage artifact directories that the verification
+  path walks.
+
+A sister binary `build-certificate`
+(`crates/factory-engine/src/bin/build_certificate.rs`) generates a
+certificate from an existing run directory without re-running the
+pipeline — useful for retroactive certification and for the demo flow
+documented at the repo root (`make build-certificate FILE=<run-dir>`,
+`make verify-certificate FILE=<cert-json>`).
+
+Items still open within spec 102 after this closure:
+
+- **FR-002** — explicit JSON Schema artifact at
+  `factory/contract/schemas/governance-certificate.schema.json`. The
+  Rust `serde` types are the de-facto schema today; an external schema
+  file would let non-Rust consumers validate without rebuilding.
+- **FR-010** — `governance-certificate-generated` SSE event via the
+  orchestrator's `LocalEventNotifier`. The certificate is written to
+  disk; eventing is the remaining wire-up.
+- **Phase B / C / D requirements** (FR-011 onward) remain partially
+  wired; their closure is tracked by the per-FR success criteria above
+  and by the convergence-plan specs (089, 100).

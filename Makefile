@@ -14,6 +14,7 @@
         index index-check index-render \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
+        build-certificate verify-certificate \
         ci ci-strict ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
@@ -180,6 +181,53 @@ ci-agent-frontmatter-ts:
 	    echo "A new #[derive(TS)] type was added without committing its generated .ts."; \
 	    exit 1; \
 	 fi
+
+# ============================================================
+# Governance Certificate (spec 102 FR-003 / FR-007 / FR-009)
+# ============================================================
+#
+# Two operator-facing targets pair with the live emission wired into
+# `factory-run` (see crates/factory-engine/src/bin/factory_run.rs):
+#
+#   make build-certificate FILE=<run-dir>      Generate a certificate from
+#                                              an existing factory run dir
+#                                              (retroactive certification).
+#                                              Optional: BUSINESS_DOCS=...,
+#                                              ADAPTER=...
+#   make verify-certificate FILE=<cert-json>   Independently verify a
+#                                              certificate by re-deriving
+#                                              artifact hashes. Optional:
+#                                              ARTIFACT_DIR=<run-dir>.
+#
+# Both targets build the binaries with --release; cold first build
+# compiles factory-engine, warm rebuilds are seconds.
+
+FACTORY_ENGINE_MANIFEST = crates/factory-engine/Cargo.toml
+# factory-engine is a member of the `crates/` workspace, so cargo writes
+# all binaries to the shared workspace target dir.
+FACTORY_ENGINE_TARGET   = crates/target/release
+
+build-certificate:
+	@if [ -z "$(FILE)" ]; then \
+	    echo "ERROR: FILE=<run-dir> is required."; \
+	    echo "  example: make build-certificate FILE=./demo/.factory/runs/<run-id>"; \
+	    exit 1; \
+	fi
+	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin build-certificate
+	@./$(FACTORY_ENGINE_TARGET)/build-certificate "$(FILE)" \
+	    $(if $(ADAPTER),--adapter $(ADAPTER)) \
+	    $(if $(REQUIREMENTS_HASH),--requirements-hash $(REQUIREMENTS_HASH)) \
+	    $(if $(BUSINESS_DOCS),--business-docs $(BUSINESS_DOCS))
+
+verify-certificate:
+	@if [ -z "$(FILE)" ]; then \
+	    echo "ERROR: FILE=<governance-certificate.json> is required."; \
+	    echo "  example: make verify-certificate FILE=./demo/.factory/runs/<run-id>/governance-certificate.json"; \
+	    exit 1; \
+	fi
+	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin verify-certificate
+	@./$(FACTORY_ENGINE_TARGET)/verify-certificate "$(FILE)" \
+	    $(if $(ARTIFACT_DIR),--artifact-dir $(ARTIFACT_DIR))
 
 # ============================================================
 # Codebase Index
@@ -761,6 +809,10 @@ help:
 	@echo "agent-frontmatter (ts-rs mirror, spec 111):"
 	@echo "  make agent-frontmatter-ts     Regenerate the TS bindings (write-through)"
 	@echo "  make ci-agent-frontmatter-ts  Regenerate + fail if working tree drifts"
+	@echo ""
+	@echo "Governance certificate (spec 102):"
+	@echo "  make build-certificate FILE=<run-dir>      Build a certificate from a factory run dir"
+	@echo "  make verify-certificate FILE=<cert-json>   Verify a certificate by re-deriving hashes"
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
 	@echo "  make ci                 Spec 134 fast loop (promoted to default by spec 135) — parallel local validation, parity-exempt. Daily dev loop. ~5 min warm on M1 Pro 10c / 64 GB."

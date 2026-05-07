@@ -16,7 +16,11 @@ to a regulator.
   ([spec 127](specs/127-spec-code-coupling-gate/spec.md)).
 - **Governed agent execution** — agents act through scoped tools, policy
   gates, and permission tiers. SHA-256 proof chains and JSONL audit logs
-  are the runtime substrate, not bolt-on observability.
+  are the runtime substrate, not bolt-on observability. Every factory
+  run emits a self-authenticating `governance-certificate.json`
+  ([spec 102](specs/102-governed-excellence/spec.md)) that an auditor
+  can verify independently — `make verify-certificate FILE=...` exits
+  non-zero on tamper with a specific artifact-hash diagnostic.
 - **Identity-bounded collaboration** — Rauthy issues OIDC tokens, deployd-api
   enforces scope at every request, the spec spine defines what each scope
   is allowed to authorise.
@@ -123,7 +127,7 @@ flowchart LR
     Rauthy -->|JWT + oap scope| API[deployd-api<br/>scope gate]
     API -->|spec-bound action| Engine[factory-engine<br/>policy kernel]
     Engine -->|recorded| Index[codebase-index<br/>spec-to-code map]
-    Engine -->|hashed| Cert[governance certificate<br/>schema + verifier]
+    Engine -->|hashed| Cert[governance certificate<br/>live emission + verifier]
 ```
 
 You operate every node in the path. There is no SaaS in the trust path
@@ -209,7 +213,44 @@ make setup
 cat build/codebase-index/CODEBASE-INDEX.md
 # Renders the spec-to-code map. The 'Spec' column is the
 # traceability surface for every Rust crate and npm package.
+
+# Governance certificate — the load-bearing artifact (spec 102).
+# `make build-certificate` reads any factory run directory and writes a
+# self-authenticating governance-certificate.json binding requirements
+# hash, frozen Build Spec hash, per-stage artifact hashes, and the
+# certificate's own SHA-256 into one auditable JSON file. To make the
+# Try it block fresh-clone reproducible, we synthesise a one-stage run
+# directory with a single artifact:
+mkdir -p /tmp/oap-demo-run/s0-preflight
+echo '{"ok":true}' > /tmp/oap-demo-run/s0-preflight/preflight.json
+echo "tenant onboarding requirements" > /tmp/oap-demo-reqs.md
+
+make build-certificate FILE=/tmp/oap-demo-run \
+    BUSINESS_DOCS=/tmp/oap-demo-reqs.md \
+    ADAPTER=aim-vue-node
+# governance certificate written: /tmp/oap-demo-run/governance-certificate.json
+#   (status=Complete, stages=6, hash=<16-char prefix>)
+
+make verify-certificate FILE=/tmp/oap-demo-run/governance-certificate.json \
+    ARTIFACT_DIR=/tmp/oap-demo-run
+# governance certificate VERIFIED  (exit 0)
+
+# Tamper an artifact and verify again — the cert rejects with a
+# specific diagnostic, exit 1:
+echo "TAMPERED" > /tmp/oap-demo-run/s0-preflight/preflight.json
+make verify-certificate FILE=/tmp/oap-demo-run/governance-certificate.json \
+    ARTIFACT_DIR=/tmp/oap-demo-run
+# governance certificate INVALID (1 error(s)):
+#   - artifact hash mismatch: s0-preflight/preflight.json:
+#     expected <hash-A>, got <hash-B>
+# The verifier does not trust the system that produced the certificate.
 ```
+
+`factory-run` itself emits `governance-certificate.json` automatically at
+the end of every pipeline run (success or halt) under
+`<project>/.factory/runs/<run-id>/`. The two `make` targets above cover
+retroactive certification and the auditor's independent verify path,
+which is what makes the certificate trustworthy.
 
 For the full daily-development loop:
 
@@ -237,6 +278,17 @@ today vs. what is staged and what is roadmap, by spec ID.
   package ([spec 101](specs/101-codebase-index-mvp/spec.md)).
 - **OWASP ASI 2026 compliance map** — six controls (ASI01, 03, 05, 07,
   09, 10) map to spec 102 today via `registry-consumer compliance-report`.
+- **Governance certificate — live emission** ([spec 102](specs/102-governed-excellence/spec.md))
+  — every `factory-run` writes `governance-certificate.json` under the
+  run directory at termination (success or halt), binding requirements
+  hash, frozen Build Spec hash, per-stage artifact hashes, and a
+  self-authenticating SHA-256 over the canonical JSON. `make
+  verify-certificate FILE=...` is the auditor's independent verifier:
+  exit 0 on a clean cert, exit 1 with a specific artifact-hash-mismatch
+  diagnostic on tamper. `make build-certificate FILE=...` covers the
+  retroactive-certification flow. The companion sister binary
+  `verify-certificate` does not trust the system that produced the
+  certificate (FR-007).
 - **Identity (Rauthy)** — production-grade OIDC chart with HA
   ([spec 106](specs/106-rauthy-native-oidc-and-membership/spec.md)).
 - **Scope-gated deployment** — `deployd-api-rs` enforces
@@ -252,13 +304,16 @@ today vs. what is staged and what is roadmap, by spec ID.
 
 ### Experimental / partially wired
 
-- **Governance certificate** ([spec 102](specs/102-governed-excellence/spec.md))
-  — schema, builder, and verifier binary
-  (`crates/factory-engine/src/bin/verify_certificate.rs`) are
-  production-quality with five passing unit tests. **Pipeline emission is
-  not yet wired**: `factory_run.rs` does not write a certificate at the
-  end of a run. The schema is stable; the live emission path is the
-  remaining closure work.
+- **Governance certificate — schema fixtures and SSE emission**
+  ([spec 102](specs/102-governed-excellence/spec.md) FR-002, FR-010) —
+  pipeline emission is wired and the verifier round-trip is part of CI,
+  but a few targets in spec 102 remain open: the explicit JSON Schema
+  artifact at `factory/contract/schemas/governance-certificate.schema.json`
+  (FR-002) is not yet committed (the Rust `serde` types are the de-facto
+  schema), and the `governance-certificate-generated` SSE event over
+  `LocalEventNotifier` (FR-010) is not yet plumbed. Phases B/C/D of spec
+  102 (policy-bridge composition, traceability unification, OWASP
+  hardening) remain partially wired against the per-FR success criteria.
 - **Factory pipeline** — two-phase engine (s0–s5 sequential, s6a–s6g
   fan-out) with four registered adapters; aim-vue-node is the production
   scaffold target.

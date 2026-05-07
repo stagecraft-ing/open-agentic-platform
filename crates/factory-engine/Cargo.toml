@@ -49,6 +49,10 @@ name = "verify-certificate"
 path = "src/bin/verify_certificate.rs"
 
 [[bin]]
+name = "build-certificate"
+path = "src/bin/build_certificate.rs"
+
+[[bin]]
 name = "factory-migrate-stakeholder-docs"
 path = "src/bin/migrate_stakeholder_docs.rs"
 

@@ -6,7 +6,8 @@
 
 use clap::Parser;
 use factory_engine::{
-    FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryStandardsResolver,
+    FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryPipelineState,
+    FactoryStandardsResolver, generate_certificate, persist_certificate,
 };
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
@@ -20,6 +21,49 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// SHA-256 of the concatenated bytes of every supplied requirements document
+/// (spec 102 FR-003 — `intent.requirementsHash`). An empty input list hashes
+/// to the SHA-256 of the empty string. Unreadable paths are skipped silently;
+/// the hash still reflects the contents the agents actually received.
+fn compute_requirements_hash(paths: &[PathBuf]) -> String {
+    let mut hasher = Sha256::new();
+    for p in paths {
+        if let Ok(bytes) = std::fs::read(p) {
+            hasher.update(&bytes);
+        }
+    }
+    format!("{:x}", hasher.finalize())
+}
+
+/// Generate and persist a governance certificate for the current pipeline state.
+///
+/// Spec 102 FR-003 / FR-009 / FR-010 — every pipeline termination (success
+/// OR halt) must emit `governance-certificate.json` under the run directory.
+/// Failures to persist log a warning but do not propagate; the pipeline's
+/// own exit status remains the source of truth for run outcome.
+fn emit_certificate(
+    am: &ArtifactManager,
+    run_id: Uuid,
+    pipeline_state: &FactoryPipelineState,
+    requirements_hash: &str,
+) {
+    let run_dir = am.run_dir(run_id);
+    let cert = generate_certificate(pipeline_state, requirements_hash, &run_dir, None);
+    let cert_path = run_dir.join("governance-certificate.json");
+    match persist_certificate(&cert, &run_dir) {
+        Ok(()) => eprintln!(
+            "Governance certificate emitted: {} (status={:?}, hash={}…)",
+            cert_path.display(),
+            cert.status,
+            &cert.certificate_hash[..16]
+        ),
+        Err(e) => eprintln!(
+            "Warning: failed to persist governance certificate at {}: {e}",
+            cert_path.display()
+        ),
+    }
+}
 
 /// Build synthetic `KnowledgeBundleRef`s from CLI-supplied `--business-docs`
 /// paths. The object_id is derived from the filename; the source content
@@ -322,6 +366,15 @@ async fn main() -> ExitCode {
         start.agent_bridge.len()
     );
 
+    // Seed Factory pipeline state from the engine's start result and bind it
+    // to the resolved run_id (spec 102 FR-003: state must survive across
+    // both phases for certificate emission on success or halt).
+    let mut pipeline_state = start.pipeline_state;
+    pipeline_state.pipeline_id = run_id.to_string();
+
+    // Hash the requirements documents once (spec 102 FR-003 — intent.requirementsHash).
+    let requirements_hash = compute_requirements_hash(&cli.business_docs);
+
     // Set up artifact manager under the project directory.
     let artifact_dir = project_path.join(".factory").join("runs");
     let am = ArtifactManager::new(&artifact_dir);
@@ -426,6 +479,8 @@ async fn main() -> ExitCode {
         Err(e) => {
             eprintln!("\nPhase 1 dispatch failed: {e}");
             eprintln!("To resume, re-run with: --resume {run_id}");
+            pipeline_state.mark_failed();
+            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
             return ExitCode::FAILURE;
         }
     };
@@ -447,11 +502,10 @@ async fn main() -> ExitCode {
     let build_spec_path = am.output_artifact_path(run_id, "s5-ui-specification", "build-spec.yaml");
     if !build_spec_path.exists() {
         eprintln!("Build Spec not found at {}", build_spec_path.display());
+        pipeline_state.mark_failed();
+        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
         return ExitCode::FAILURE;
     }
-
-    let mut pipeline_state =
-        factory_engine::FactoryPipelineState::new(run_id.to_string(), &cli.adapter);
 
     let transition = match engine.transition_to_scaffolding(
         &cli.adapter,
@@ -463,6 +517,8 @@ async fn main() -> ExitCode {
         Ok(t) => t,
         Err(e) => {
             eprintln!("Phase transition failed: {e}");
+            pipeline_state.mark_failed();
+            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
             return ExitCode::FAILURE;
         }
     };
@@ -481,6 +537,8 @@ async fn main() -> ExitCode {
         materialize_run_directory_with_phase(&am, run_id, &transition.manifest, Some("scaffold"))
     {
         eprintln!("Failed to materialize Phase 2 run directory: {e}");
+        pipeline_state.mark_failed();
+        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
         return ExitCode::FAILURE;
     }
 
@@ -533,6 +591,8 @@ async fn main() -> ExitCode {
         Err(e) => {
             eprintln!("\nPhase 2 dispatch failed: {e}");
             eprintln!("To resume, re-run with: --resume {run_id}");
+            pipeline_state.mark_failed();
+            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
             return ExitCode::FAILURE;
         }
     };
@@ -552,6 +612,9 @@ async fn main() -> ExitCode {
     let total_tokens = phase1_tokens + phase2_tokens;
     let total_steps = summary1.steps.len() + summary2.steps.len();
 
+    pipeline_state.add_tokens(total_tokens);
+    pipeline_state.mark_complete();
+
     eprintln!("\n========================================");
     eprintln!("Factory pipeline complete");
     eprintln!("  Total steps:  {total_steps}");
@@ -561,6 +624,10 @@ async fn main() -> ExitCode {
         artifact_dir.join(run_id.to_string()).display()
     );
     eprintln!("========================================");
+
+    // Spec 102 FR-003 / FR-009 — emit governance certificate at the end of
+    // every successful pipeline run.
+    emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
 
     ExitCode::SUCCESS
 }
