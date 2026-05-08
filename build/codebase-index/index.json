@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c1da05aebd6bd140ee348a79414f9e9caa56b845de75ad5a6083731b657253c4",
+    "contentHash": "a79caf5cdac602375a94f198ff721136d5b0a8588da4ab007722b7907f85e686",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4685,6 +4685,10 @@
           },
           {
             "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/validate/spec-143.sh",
             "source": "spec-implements"
           },
           {

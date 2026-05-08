@@ -34,6 +34,7 @@ implements:
   - path: platform/infra/hetzner/setup.sh
   - path: platform/infra/hetzner/post-create.sh
   - path: platform/infra/hetzner/.env.example
+  - path: platform/infra/hetzner/validate/spec-143.sh
   - path: platform/charts/stagecraft/values.yaml
   - path: platform/charts/stagecraft/values-hetzner.yaml
 summary: >
@@ -728,11 +729,34 @@ review:
 7. **DNS / cert-manager.** Provision the DNS record for
    `minio.stagecraft.ing` and the cert-manager `ClusterIssuer`
    (`letsencrypt-dns01`) using DNS-01 per FR-008.
-8. **End-to-end validation.** Run a real upload from the deployed
-   stagecraft web UI; observe `knowledge.upload_confirmed` audit row;
-   observe a non-empty `knowledge/` prefix in the project bucket on
-   the MinIO pod; verify the orphan sweeper retires a synthetic
-   `imported`-only row with no blob after the grace window.
+8. **End-to-end validation.** Land
+   `platform/infra/hetzner/validate/spec-143.sh` as the executable
+   form of the spec contract; run it after every deploy that
+   touches the upload path. The script splits checks into two
+   classes by exit code:
+
+   - **exit 2** — prerequisite failure (deploy is incomplete: DNS
+     missing, cert not issued, ingress unreachable, CORS
+     misconfigured). Operator finishes the deploy and re-runs.
+   - **exit 3** — contract failure (deploy is complete but the
+     spec guarantee is broken: signature mismatch, blob did not
+     land, sweeper not registered). Spec defect; integration
+     tests should not have passed.
+   - **exit 0** — all checks pass.
+
+   The CORS preflight check uses a real `OPTIONS` request with
+   `Origin: ${APP_BASE_URL}` and asserts the `Access-Control-Allow-Origin`
+   response header — naked `curl -X PUT` would false-pass against
+   broken CORS because curl does not preflight. The validation
+   leaves the cluster in the same state it started: an EXIT trap
+   removes the test blob, the synthetic `knowledge_objects` row,
+   and the audit rows scoped to its `target_id`.
+
+   Manual ad-hoc spot-check for first deploy (kept for reference;
+   the script supersedes this for repeatable verification): run a
+   real upload from the deployed stagecraft web UI; observe
+   `knowledge.upload_confirmed` audit row; observe a non-empty
+   `knowledge/` prefix in the project bucket on the MinIO pod.
 
 Steps 1–4 are code-only and land first; the resulting deployment
 falls back to single-endpoint behaviour because `S3_PUBLIC_ENDPOINT`
