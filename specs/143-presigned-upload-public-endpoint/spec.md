@@ -477,17 +477,33 @@ rather than mutating the default.
 
   - **Class A — PUT failed, no blob.** `headObject(bucket, storageKey)`
     returns 404 (NotFound). The bytes never landed. The sweeper
-    DELETEs the row in a single transaction with the audit insert
-    (action `knowledge.upload_orphaned`, metadata
-    `{ filename, storageKey, class: "no_blob", projectId }`).
+    DELETEs the row in a single transaction with the audit insert.
+    Audit shape: `action = knowledge.upload_orphaned`,
+    `actorUserId = SYSTEM_USER_ID` (`00000000-0000-0000-0000-000000000000`,
+    matching the convention used by the spec-115 staleness sweeper
+    and other Encore CronJobs), `metadata = { filename, storageKey,
+    class: "no_blob", projectId }`.
   - **Class B — PUT succeeded, confirmUpload never fired.** The
     blob is present (HEAD returns 200) but the row is still in
     `imported` because the browser tab closed (or the network
     flapped) between the PUT and the confirm POST. The sweeper
-    invokes `confirmUpload`'s core logic directly (idempotent
-    against a real blob) to update `sizeBytes`, audit
-    `knowledge.upload_confirmed`, and enqueue extraction. The row
-    is **not** deleted — it self-heals into the normal pipeline.
+    invokes `confirmUploadCore` (the extracted core of the user-
+    driven `confirmUpload` API handler — same pattern as
+    `listKnowledgeObjectsCore` from `c1b5d51`) to update
+    `sizeBytes`, write a `knowledge.upload_confirmed` audit row,
+    and enqueue extraction. The row is **not** deleted — it
+    self-heals into the normal pipeline.
+
+    Audit semantics for Class B: the sweeper emits the **same
+    action name** as the user-driven flow (`knowledge.upload_confirmed`),
+    NOT a separate `knowledge.upload_self_healed` action. The
+    rationale: the outcome is identical, dashboards keying on
+    `action = knowledge.upload_confirmed` should see all confirms
+    uniformly, and analytics that need to distinguish sweeper-
+    driven confirms can filter on `actorUserId = SYSTEM_USER_ID`
+    AND `metadata.source = "orphan_sweep_class_b"`. The user-
+    driven confirm path keeps its existing audit shape (no
+    `metadata.source` field, real `actorUserId`).
 
   The grace window is configurable via
   `STAGECRAFT_KNOWLEDGE_ORPHAN_AFTER_SEC` (default 3600s = upload
@@ -505,13 +521,29 @@ rather than mutating the default.
   Concurrency model: Encore CronJob does NOT guarantee single-flight
   at the platform level (the existing extraction-staleness sweeper
   relies on idempotence, not exclusion). Spec 143's sweep is safe
-  under concurrent execution because each row is processed via
-  `DELETE ... WHERE id = $1 AND state = 'imported' RETURNING id`
-  (Class A) or `UPDATE ... WHERE id = $1 AND state = 'imported'
-  RETURNING id` followed by extraction enqueue (Class B). Only the
-  first transaction to land the row's terminal state succeeds; the
-  audit row is written in the same transaction, so duplicate audits
-  cannot happen.
+  under concurrent execution at three layers:
+
+  1. **Sweeper-vs-sweeper, Class A.** Per-row `DELETE ... WHERE id
+     = $1 AND state = 'imported' RETURNING id` plus same-transaction
+     audit insert. Only the first concurrent DELETE returns rows;
+     the second is a no-op and skips the audit. No duplicate
+     `knowledge.upload_orphaned` rows.
+  2. **Sweeper-vs-sweeper, Class B.** Per-row update of `sizeBytes`
+     and `updatedAt` is naturally idempotent (same row, same
+     value). The audit + enqueue calls inside `confirmUploadCore`
+     can fire twice; the audit double is informational noise (a
+     journal entry, not a deduplicated event), and the extraction
+     enqueue is deduplicated by spec 115 FR-003 (`(projectId,
+     contentHash, extractorVersion)` over the last 24h, see
+     `extractionCore.ts:148-200`). Net result: at most two
+     `knowledge.upload_confirmed` audit rows but exactly one
+     extraction run.
+  3. **Sweeper Class B vs returning user.** A user who reopens a
+     tab and triggers `confirmUpload` while the sweeper is mid-
+     flight produces the same shape as case 2: two
+     `knowledge.upload_confirmed` audits (one with
+     `metadata.source = "orphan_sweep_class_b"`, one without),
+     one extraction run. The race test in §8 pins this contract.
 
   The action constant `KNOWLEDGE_UPLOAD_ORPHANED = "knowledge.upload_orphaned"`
   MUST be exported from
@@ -634,7 +666,8 @@ intermediate state at any step boundary.
 | Upload size cap (FR-011) | Client: simulate `handleFiles` with a 1.1 GiB file; assert the pre-check rejects without calling `requestUpload`. Server: call `requestUpload` directly with `sizeBytes` > 1 GiB and assert `APIError.invalidArgument` | new client unit + existing server integration |
 | Orphan sweeper Class A (FR-010, no blob) | Insert an `imported` row past grace with a `storageKey` that has no blob; run the sweeper; assert row deleted and `knowledge.upload_orphaned` audit row written with `metadata.class = "no_blob"` | `orphanSweeper.integration.test.ts` (new) |
 | Orphan sweeper Class B (FR-010, blob present) | Insert an `imported` row past grace whose `storageKey` HAS a blob in the bucket; run the sweeper; assert row stays present, state remains `imported` (until extraction), `sizeBytes` updated to match S3, `knowledge.upload_confirmed` audit row written, extraction enqueued | same |
-| Orphan sweeper concurrency | Run two sweeper invocations in parallel against a shared Class A row; assert exactly one DELETE returns rows, exactly one audit row written | same |
+| Orphan sweeper concurrency, Class A | Run two sweeper invocations in parallel against a shared Class A row; assert exactly one DELETE returns rows, exactly one `knowledge.upload_orphaned` audit row written | same |
+| Orphan sweeper Class B vs user confirm race | Insert an `imported` row past grace whose `storageKey` HAS a blob; spawn the sweeper's Class B handler and a `confirmUpload` API call concurrently; assert exactly one extraction run is created (FR-003 dedup carries through), and at most two `knowledge.upload_confirmed` audit rows exist (one user, one with `metadata.source="orphan_sweep_class_b"`) | same |
 | Orphan sweeper does not touch fresh rows | Insert an `imported` row with `created_at = now()`; run the sweeper; assert untouched | same |
 | Server-side ops unchanged | Existing `headObject` / `putObject` integration tests pass | existing |
 | Browser PUT success (FR-006, deploy-time) | Real upload from the deployed Knowledge tab; observe `knowledge.upload_confirmed` audit row and non-empty `knowledge/` prefix in MinIO bucket | deploy-time |
