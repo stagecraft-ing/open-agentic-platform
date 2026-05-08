@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: pending
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13; outstanding: FU-004 (validate-script fixtures) + FR-006 deploy-time real-UI confirmation
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1231,6 +1231,16 @@ Follow-up tracker (parking lot):
       answer. The current check would false-fail even on a
       successful upload, raising "blob did not persist" when the
       blob is in fact persisted.
+
+  **Done when:** (a)(b)(c) above are fixed AND, in the same PR,
+  §13 is re-titled "Evidence ledger (historical record)" with its
+  trailing stage-out clause (the "When FU-004 lands…" paragraph)
+  removed. The script's CONTRACT exit code becoming trustworthy
+  is the event that retires §13's "manual trace is authoritative,
+  script is known-broken" framing; landing the script fix without
+  the §13 edit produces a spec that has both a green CONTRACT and
+  a note saying don't trust it, and the next reader cannot tell
+  which is current. The two edits are one atomic change.
 
 The honest-state principle: when an FR's contract is broken in
 production but the implementation is structurally close to
