@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b48140720618f7b2192114803ee3f8fac838b258d0b28b83fb8b581f2fee1cbd",
+    "contentHash": "bcbe9194fb48b5d7cbd4bd728ad733e6753cf89aa09f31b924ed8adf7f4ed533",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4675,6 +4675,26 @@
           },
           {
             "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/knowledge.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/orphanSweeper.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/scheduler.ts",
             "source": "spec-implements"
           },
           {

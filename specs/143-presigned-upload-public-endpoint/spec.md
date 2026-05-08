@@ -17,6 +17,11 @@ code_aliases: ["PRESIGNED_UPLOAD_PUBLIC_ENDPOINT"]
 implements:
   - path: platform/services/stagecraft/api/knowledge/storage.ts
   - path: platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts
+  - path: platform/services/stagecraft/api/knowledge/knowledge.ts
+  - path: platform/services/stagecraft/api/knowledge/auditActions.ts
+  - path: platform/services/stagecraft/api/knowledge/orphanSweeper.ts
+  - path: platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts
+  - path: platform/services/stagecraft/api/knowledge/scheduler.ts
   - path: platform/services/stagecraft/test/__mocks__/encore-config.ts
   - path: platform/services/stagecraft/vite.config.ts
   - path: platform/services/stagecraft/infra.config.hetzner.json

@@ -15,9 +15,18 @@ export const KNOWLEDGE_EXTRACTION_RETRY_REQUESTED =
 // records exist for the same `(object_id, content_hash)`.
 export const KNOWLEDGE_EXTRACTION_RESOLVED =
   "knowledge.extraction_resolved" as const;
+// Spec 143 FR-010 — orphan-imported sweeper Class A audit. Emitted
+// when a row in `imported` state past the grace window has no blob
+// in S3 (headObject returned 404) and the sweeper deletes it. Class B
+// (blob present, no confirm) reuses the existing
+// `knowledge.upload_confirmed` action with `metadata.source =
+// "orphan_sweep_class_b"` so dashboards see all confirms uniformly.
+export const KNOWLEDGE_UPLOAD_ORPHANED =
+  "knowledge.upload_orphaned" as const;
 
 export type KnowledgeExtractionAuditAction =
   | typeof KNOWLEDGE_EXTRACTED
   | typeof KNOWLEDGE_EXTRACTION_FAILED
   | typeof KNOWLEDGE_EXTRACTION_RETRY_REQUESTED
-  | typeof KNOWLEDGE_EXTRACTION_RESOLVED;
+  | typeof KNOWLEDGE_EXTRACTION_RESOLVED
+  | typeof KNOWLEDGE_UPLOAD_ORPHANED;

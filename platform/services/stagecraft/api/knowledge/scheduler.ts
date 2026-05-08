@@ -20,6 +20,7 @@ import { sourceConnectors, syncRuns, projects } from "../db/schema";
 import { and, eq, desc, isNotNull } from "drizzle-orm";
 import { executeSyncRun } from "./knowledge";
 import { sweepStaleExtractionRuns } from "./extractionCore";
+import { runOrphanSweep } from "./orphanSweeper";
 
 // ---------------------------------------------------------------------------
 // Schedule interval parser
@@ -180,6 +181,39 @@ export const runExtractionStalenessSweep = api(
 );
 
 // ---------------------------------------------------------------------------
+// Spec 143 FR-010 — orphan-imported sweeper.
+// ---------------------------------------------------------------------------
+//
+// Reconciles `state = 'imported'` rows past the grace window (default
+// 3600s) along two paths: Class A (no blob → delete) or Class B
+// (blob present, missing confirm → self-heal via confirmUploadCore).
+// See `orphanSweeper.ts` for the design rationale and concurrency model.
+
+export const runOrphanImportedSweep = api(
+  {
+    expose: false,
+    method: "POST",
+    path: "/internal/knowledge/orphan-imported-sweep",
+  },
+  async (): Promise<void> => {
+    try {
+      const result = await runOrphanSweep();
+      if (
+        result.deletedClassA > 0 ||
+        result.selfHealedClassB > 0 ||
+        result.errored > 0
+      ) {
+        log.info("orphan-imported sweep result", result);
+      }
+    } catch (err) {
+      log.error("orphan-imported sweep failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Register the cron jobs
 // ---------------------------------------------------------------------------
 
@@ -196,3 +230,16 @@ const _extractionSweeper = new CronJob("extraction-staleness-sweeper", {
   endpoint: runExtractionStalenessSweep,
 });
 void _extractionSweeper;
+
+// Cadence rationale (spec 143 FR-010): cleanup latency = grace +
+// cadence. With grace 3600s and cadence 30m the worst-case latency is
+// 90 min. Tighter cadence is wasted polling at current scale because
+// no user-visible surface depends on sub-hour reconciliation. Loosen
+// further only if observability shows the sweep is meaningfully
+// load-burning.
+const _orphanSweeper = new CronJob("knowledge-orphan-imported-sweeper", {
+  title: "Knowledge Orphan-Imported Sweeper",
+  every: "30m",
+  endpoint: runOrphanImportedSweep,
+});
+void _orphanSweeper;
