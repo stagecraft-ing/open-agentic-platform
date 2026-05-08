@@ -1144,23 +1144,37 @@ Three viable fixes (none chosen on this branch):
    through the existing platform M2M auth surface
    (`api/auth/m2mAuth.ts::validateM2mRequest` — OIDC
    `client_credentials` JWT verified via Rauthy JWKS,
-   scope-gated). Already in production use across `policy.ts`
-   (`platform:policy:read`), `audit.ts` (`platform:audit:write`),
-   `grants.ts` (`platform:grants:read`), and `deployd-api-rs`
+   scope-gated). This matches spec 087 Phase 5's M2M design,
+   wired today on `policy.ts` (`platform:policy:read`),
+   `audit.ts` (`platform:audit:write`), `grants.ts`
+   (`platform:grants:read`), and `deployd-api-rs`
    (`DEPLOYD_REQUIRED_SCOPE`); the static-token fallback that
-   would otherwise be the "smallest diff" form of this option
-   was deliberately removed in spec 087 Phase 5, so any
-   "shared bearer token via Secret" framing regresses against
-   the platform's settled M2M policy. The K8s CronJob fetches
-   a token from Rauthy `/auth/v1/oidc/token` (client_credentials
-   grant) using a sweeper-scoped Rauthy client whose credentials
-   are mounted as a K8s Secret, then POSTs to the handler with
-   `Authorization: Bearer <jwt>`. Adds one new scope per sweeper
-   class — `platform:knowledge:sweep` and siblings, matching the
-   `platform:<service>:<verb>` shape of the existing `platform:`
-   scope vocabulary — so a leaked sweeper credential is bounded
-   by exactly which sweeps the client is granted, not the full
-   M2M surface.
+   would be the "smallest diff" form of this option was
+   deliberately removed in Phase 5, so any "shared bearer
+   token via Secret" framing regresses against settled M2M
+   policy. **Rauthy 0.35 nuance (load-bearing, see L-006 and
+   FU-006):** the `client_credentials` flow ignores the
+   `scope=` request parameter — Rauthy mints whatever is in
+   the client's *Default Scopes* (not *Allowed Scopes*).
+   Required scopes for `client_credentials` callers MUST be
+   added to the client's *Default Scopes*; placing them only
+   in *Allowed Scopes* is silently inert under this flow.
+   The K8s CronJob fetches a token from Rauthy
+   `/auth/v1/oidc/token` (client_credentials grant) using a
+   **per-purpose** Rauthy client (e.g.
+   `stagecraft-knowledge-sweeper-m2m-app`) whose *Default
+   Scopes* carry exactly `platform:knowledge:sweep`, with
+   credentials mounted as a K8s Secret; the CronJob then
+   POSTs to the handler with `Authorization: Bearer <jwt>`.
+   One Rauthy client per sweeper purpose (FU-003 inherits
+   the pattern: `stagecraft-factory-sweeper-m2m-app`,
+   `stagecraft-audit-sweeper-m2m-app`, etc.) bounds a
+   leaked credential to exactly that sweeper's surface —
+   defense in depth at the credential layer, not only at
+   the validator. Scope vocabulary follows the established
+   `platform:<service>:<verb>` shape:
+   `platform:knowledge:sweep`, `platform:factory:sweep`,
+   `platform:audit:sweep`, etc.
 2. Run the sweep work in-process via a tiny helper service that
    the K8s CronJob doesn't need to reach over HTTP — e.g. a
    sidecar container in the stagecraft pod that imports
@@ -1267,6 +1281,50 @@ Follow-up tracker (parking lot):
   a note saying don't trust it, and the next reader cannot tell
   which is current. The two edits are one atomic change.
 
+- **FU-006 — Audit M2M Default Scopes across all platform
+  clients.** L-006's discovery is platform-wide: every M2M
+  `client_credentials` caller whose validator checks a
+  non-default scope is latently broken under Rauthy 0.35.
+
+  (a) **`stagecraft-m2m` carries `deployd:deploy` in *Allowed
+      Scopes* but only `openid` in *Default Scopes*.**
+      `deployd-api-rs::has_scope` (`auth.rs:70`) requires
+      `deployd:deploy` exactly; under `client_credentials` the
+      JWT will only carry `openid`, so deployd-api would 403
+      every M2M call. Verified 2026-05-09 — no production
+      traffic has exercised this path. Fix: extend
+      `seed-rauthy.mjs` to converge `deployd:deploy` into
+      `stagecraft-m2m`'s *Default Scopes*, not just *Allowed*.
+  (b) **Same shape applies to `policy.ts`
+      (`platform:policy:read`), `audit.ts`
+      (`platform:audit:write`), `grants.ts`
+      (`platform:grants:read`).** No production callers
+      today, so latently broken rather than actively broken;
+      these will fail at first use unless their respective
+      M2M clients carry the required scope in *Default
+      Scopes*.
+  (c) **`deployd-api-rs`'s JWT validator is RSA-only**
+      (`auth.rs` looks for the `n` field on the JWK).
+      Rauthy 0.35 signs with EdDSA (Ed25519, JWK shape
+      `{kty: OKP, crv: Ed25519, x: ...}` — no `n`). Verified
+      2026-05-09 with a JWT carrying `scope: "openid"`
+      (irrelevant to this layer): deployd-api returned
+      `401 Missing n in JWK` at the JWKS layer, before scope
+      check. Even after fixing (a), deployd-api will not
+      accept the JWT without EdDSA support in `auth.rs`
+      matching the EdDSA branch in stagecraft's
+      `m2mAuth.ts:111-126`. Both fixes needed for the
+      deployd-api M2M path to function end-to-end.
+
+  **Done when:** (a)+(b) the affected M2M clients have their
+  required scopes in *Default Scopes*; (c) `deployd-api-rs`
+  handles EdDSA JWKs alongside RSA; AND a smoke test (one per
+  affected validator) confirms an end-to-end M2M call returns
+  200 for a valid scope and 403 for a missing scope — not 401
+  at the JWK or scope-claim layer. Best landed as a single
+  sibling spec covering the systemic finding rather than
+  per-client fixes, per FU-003 precedent.
+
 The honest-state principle: when an FR's contract is broken in
 production but the implementation is structurally close to
 working, mark it partially-implemented in the spec body rather
@@ -1309,6 +1367,60 @@ single-host non-wildcard certs once the parent domain's ingress is
 already routing." See §4.7 for the topology rationale and §7 step 7
 for the implementation path. Future authoritative-DNS migrations
 re-activate the dormant DNS-01 path without code resurrection.
+
+**L-006 — External-service behavior must be verified against the
+service's own documentation, not inferred from spec/protocol
+generality.** OAuth 2.0 generally permits `client_credentials`
+callers to request specific scopes via the `scope=` request
+parameter. Rauthy 0.35's documented behavior is the opposite:
+the `client_credentials` flow *cannot* request specific scopes —
+only `authorization_code` can — and Rauthy mints whatever is in
+the client's *Default Scopes* regardless of what was requested or
+what is in the client's *Allowed Scopes*. This is a documented
+divergence from protocol generality, not a bug.
+
+Implementation surfaced this only when token claims were inspected
+on the live cluster (2026-05-09 re-investigation, prompted by an
+earlier inference that "policy/audit/grants are in production use,
+validating M2M JWTs successfully" — a claim the live cluster
+falsified): every `client_credentials` token-mint returned
+`scope: "openid"` regardless of the `scope=` parameter, scope-object
+registration state, or attribute-mapping presence. Adding
+`platform:knowledge:sweep` to the sweeper client's *Default Scopes*
+caused the JWT to immediately include it; no other intervention
+moved the needle. The Rauthy admin doc names this behavior
+explicitly: "Default Scopes are the ones that Rauthy will simply
+always add … only the `authorization_code` flow can request
+specific scopes while all others can't." We did not read that
+sentence before designing against the OAuth2 generality of
+`scope=`.
+
+Same shape as L-005 (don't infer authoritative DNS from
+cloud-platform name): don't infer service-specific behavior from
+protocol generality. Add to the §6.4-style review checklist used
+at FR-review time: "for every external service the FR depends on,
+name the service's specific behavior for the integration mode in
+use, not the protocol's general behavior — and confirm the
+configuration the FR will rely on matches that documented
+behavior."
+
+Generalisation: any FR that asserts "the client requests scope X
+via the OAuth2 token endpoint" against an unspecified IDP MUST
+cite the IDP's documentation for the flow being used, not OAuth2
+generally. Rauthy is one data point; other IDPs differ in
+different ways. Concretely for this codebase: the assumption that
+`oidcM2m.ts::fetchClientCredentialsToken` could request a scope
+via the `scope=` URL parameter and have it land in the issued
+JWT was empirically wrong under Rauthy 0.35; the
+required-scope-into-Default-Scopes pattern is the platform
+convention going forward. See FU-006 for the audit of currently
+mis-configured M2M clients (`stagecraft-m2m`'s `deployd:deploy`
+chief among them) and the `deployd-api-rs` EdDSA-vs-RSA JWK
+shape mismatch surfaced in the same investigation.
+
+Affected: §12 L-004 Option 1 (refined 2026-05-09 to specify
+*Default Scopes, not Allowed Scopes*); FU-006 (new follow-up
+filing the platform-wide audit).
 
 ## 13. Evidence ledger (historical record)
 
