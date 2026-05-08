@@ -559,6 +559,42 @@ rather than mutating the default.
   to the UI until they accumulate at scale). Loosen further only if
   observability shows the sweep is meaningfully load-burning.
 
+  **Self-hosted scheduler (amendment, 2026-05-08).** Encore's
+  `CronJob` primitive is scheduled by Encore Cloud's platform
+  scheduler, not by anything inside the application image. In
+  self-hosted deployments (`encore build docker` + a K8s cluster
+  with no Encore Cloud connection — exactly what
+  `make deploy-hetzner` produces), the CronJob declaration is a
+  no-op for scheduling purposes. The endpoint exists and is
+  callable; nothing calls it. Empirically confirmed against the
+  Hetzner cluster on 2026-05-08: 2 hours of stagecraft-api logs
+  show zero `endpoint: runExtractionStalenessSweep` entries
+  despite the spec-115 sweeper being declared at `every: "1m"`
+  (which should have produced ~120 fires).
+
+  Spec 143 therefore requires TWO scheduler entries for the orphan
+  sweep:
+
+  1. The Encore `CronJob` declaration stays in `scheduler.ts`. It
+     is the local-dev entry point (Encore CLI does run cron
+     handlers under `encore run`), the documentation form of the
+     schedule, and the future Encore Cloud migration path.
+  2. A Kubernetes `CronJob` resource provisioned in
+     `platform/infra/hetzner/post-create.sh` is the **production
+     scheduler for self-hosted deployments**. It curls the
+     internal endpoint
+     `http://stagecraft-api.stagecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep`
+     on the same `every 30m` cadence. Both call into
+     `runOrphanSweep()` via the same handler.
+
+  This is a SYSTEMIC finding, not a spec-143-specific concern: the
+  existing extraction-staleness sweeper (spec 115 FR-006), the
+  connector sync scheduler (spec 087 §4.4), and the factory-runs
+  staleness sweeper (spec 124) have all been silently no-ops in
+  production since they were written. Spec 143 surfaces and fixes
+  the pattern for its own sweeper; the upstream sweepers' fixes
+  belong to follow-up amendments on their owner specs (see §12).
+
   Concurrency model: Encore CronJob does NOT guarantee single-flight
   at the platform level (the existing extraction-staleness sweeper
   relies on idempotence, not exclusion). Spec 143's sweep is safe
@@ -618,6 +654,16 @@ rather than mutating the default.
   alongside the existing spec-115 constants. Pattern matches
   `knowledge.<noun>_<verb_past>` per the existing naming
   convention.
+
+  **Self-hosted scheduler requirement (amendment, 2026-05-08).** In
+  addition to the Encore `CronJob` declaration, the deployment
+  scripts MUST provision a Kubernetes `CronJob` resource in
+  `platform/infra/hetzner/post-create.sh` that calls the internal
+  sweep endpoint on the same cadence (`*/30 * * * *`). The K8s
+  CronJob is the actual production scheduler for self-hosted
+  deployments; the Encore CronJob declaration is local-dev and
+  future-Encore-Cloud only. See §4.5 self-hosted scheduler
+  amendment for the rationale and empirical evidence.
 
 - **FR-011** — Upload size cap. The browser client MUST refuse
   files > 1 GiB before issuing `requestUpload` (UI-side fail-fast,
@@ -729,6 +775,18 @@ review:
 7. **DNS / cert-manager.** Provision the DNS record for
    `minio.stagecraft.ing` and the cert-manager `ClusterIssuer`
    (`letsencrypt-dns01`) using DNS-01 per FR-008.
+
+7b. **Self-hosted scheduler (K8s CronJob).** Add a Kubernetes
+    `CronJob` resource to `platform/infra/hetzner/post-create.sh`
+    that calls the orphan-sweep endpoint on the same `every 30m`
+    cadence as the Encore CronJob declaration. Required because
+    Encore's CronJob primitive is scheduled by Encore Cloud's
+    platform, not by the application image — see §4.5
+    self-hosted scheduler amendment + §12 L-001 for the
+    rationale and empirical evidence. The K8s CronJob curls
+    `http://stagecraft-api.stagecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep`
+    via a small image (e.g. `curlimages/curl`); idempotent on
+    re-apply (kubectl apply -f -).
 8. **End-to-end validation.** Land
    `platform/infra/hetzner/validate/spec-143.sh` as the executable
    form of the spec contract; run it after every deploy that
@@ -844,3 +902,65 @@ amendment is applied.
    for §7 step 6 MUST verify the knob name against the chart
    version pinned at deploy time and surface any drift in PR review
    rather than silently switching.
+
+## 12. Lessons (added by 2026-05-08 amendment)
+
+These are findings the spec-143 implementation surfaced that
+generalise beyond spec 143. Captured here so they propagate to
+future specs and other consumers of the same patterns.
+
+**L-001 — Encore platform primitives in self-hosted deployments.**
+Encore's `CronJob` (and possibly other platform primitives —
+PubSub workers, Object Storage, Caching) are scheduled or driven
+by Encore Cloud's platform components, not by anything inside
+the application image. In self-hosted deployments
+(`encore build docker` + a K8s cluster with no Encore Cloud
+connection), these primitives become no-ops or partial
+implementations.
+
+Empirical evidence (2026-05-08 Hetzner cluster):
+
+- `audit_log` shows zero `knowledge.upload_confirmed` rows since
+  the cluster started — confirms spec 143's diagnosis at the
+  audit-trail level.
+- 2 hours of stagecraft-api logs show zero
+  `endpoint: runExtractionStalenessSweep` entries despite spec
+  115's sweeper being declared at `every: "1m"` (~120 expected).
+- `kubectl get cronjobs -n stagecraft-system` returns "No
+  resources found" — no K8s-side scheduler exists for the
+  Encore primitive.
+
+Affected sweepers (each owner spec carries the bug
+independently):
+
+- Spec 115 FR-006 — `extraction-staleness-sweeper` (every 1m).
+  Worker-crash recovery silently broken.
+- Spec 087 §4.4 — `connector-sync-scheduler` (every 15m).
+  Scheduled connector syncs silently broken.
+- Spec 124 — `factory-runs-staleness-sweeper`. Stale factory
+  run sweeping silently broken.
+- Spec 143 FR-010 (this spec) — orphan-imported sweeper, fixed
+  in step 7's K8s CronJob addition before it shipped broken.
+
+The pattern: Encore's `CronJob` declaration is the local-dev
+entry point; production self-hosted deployments must provision
+a sibling K8s `CronJob` resource that curls the registered
+endpoint on the same cadence. This requirement should be
+reflected in any future spec that uses Encore's `CronJob` (or
+the analogous self-hosted gap for other platform primitives).
+
+A separate spec amending the affected owner specs (115, 087,
+124) and codifying the rule generally is appropriate work for
+a follow-up. Spec 143 fixes its own sweeper; the systemic
+remediation is out of scope to keep 143's blast radius bounded.
+
+**L-002 — Spec review must verify deployment-target alignment.**
+The Encore CronJob misuse passed three review rounds without
+being flagged because reviewers (including me) treated the
+primitive as if it worked the same way across deployment
+targets. The deployment target for this entire codebase has
+been self-hosted Hetzner from page one — that should have been
+the first question at FR-010 review, not a discovery during
+post-completion validation. Add deployment-target verification
+to the spec review checklist for any FR that depends on
+platform primitives.
