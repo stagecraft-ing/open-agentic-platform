@@ -233,7 +233,8 @@ MISSING=()
 for var in GITHUB_UPSTREAM_CLIENT_ID GITHUB_UPSTREAM_CLIENT_SECRET \
            GITHUB_APP_ID GITHUB_APP_PRIVATE_KEY_B64 \
            OIDC_SPA_CLIENT_ID OIDC_M2M_CLIENT_ID OIDC_M2M_CLIENT_SECRET \
-           RAUTHY_CLIENT_ID RAUTHY_CLIENT_SECRET RAUTHY_ADMIN_TOKEN; do
+           RAUTHY_CLIENT_ID RAUTHY_CLIENT_SECRET RAUTHY_ADMIN_TOKEN \
+           STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET; do
   if [ -z "${!var:-}" ]; then
     PHASE2_READY=false
     MISSING+=("$var")
@@ -256,6 +257,14 @@ if [ "$PHASE2_READY" = false ]; then
   echo "     - SPA client (public, authorization_code, redirect: https://${DOMAIN}/auth/callback)"
   echo "     - M2M client (confidential, client_credentials, scope: deployd:deploy)"
   echo "     - Server client (confidential, for backend OIDC)"
+  echo "     - stagecraft-knowledge-sweeper-m2m-app (confidential, client_credentials)"
+  echo "       Default Scopes: platform:knowledge:sweep   (spec 143 FR-010 + §12 L-006:"
+  echo "       Rauthy 0.35 client_credentials mints Default Scopes regardless of scope=,"
+  echo "       so Allowed Scopes alone is silently inert. Default Scopes is load-bearing.)"
+  echo "       Fill STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID/_SECRET in .env."
+  echo "       (FU-003 will add stagecraft-factory-sweeper-m2m-app and"
+  echo "        stagecraft-audit-sweeper-m2m-app for spec 115/087/124 sweepers; .env"
+  echo "        already carries the placeholder slots.)"
   echo "  3. Create the GitHub OAuth App for Rauthy at https://github.com/settings/developers"
   echo "     (GITHUB_UPSTREAM_CLIENT_ID/_SECRET, spec 106)"
   echo "        - Homepage: https://auth.${DOMAIN}"
@@ -331,6 +340,22 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=S3_REGION="us-east-1" \
   --from-literal=S3_ACCESS_KEY="$MINIO_ROOT_USER" \
   --from-literal=S3_SECRET_KEY="$MINIO_ROOT_PASSWORD" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Spec 143 FR-010 — per-purpose-credential mount discipline.
+# `stagecraft-knowledge-sweeper-credentials` is the SOLE Secret the
+# orphan-imported sweeper CronJob mounts. Materialised here directly
+# (Hetzner uses `secrets.provider: "k8s"`); cloud deployments that
+# enable ESO will get the same Secret name + key shape from the
+# `external-secret-knowledge-sweeper.yaml` chart template instead.
+# A leaked credential here is bounded to one Rauthy client's surface.
+# FU-003 will add sibling Secrets for spec 115 / 087 / 124 sweepers,
+# each separate, no cross-purpose mounts.
+info "Creating stagecraft-knowledge-sweeper-credentials..."
+kubectl create secret generic stagecraft-knowledge-sweeper-credentials \
+  --namespace stagecraft-system \
+  --from-literal=CLIENT_ID="$STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID" \
+  --from-literal=CLIENT_SECRET="$STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 info "Refreshing stagecraft pods to pick up new secrets..."

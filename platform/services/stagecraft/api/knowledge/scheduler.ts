@@ -12,7 +12,7 @@
  *   "15m", "30m", "1h", "6h", "12h", "24h"
  */
 
-import { api } from "encore.dev/api";
+import { api, Header } from "encore.dev/api";
 import { CronJob } from "encore.dev/cron";
 import log from "encore.dev/log";
 import { db } from "../db/drizzle";
@@ -21,6 +21,7 @@ import { and, eq, desc, isNotNull } from "drizzle-orm";
 import { executeSyncRun } from "./knowledge";
 import { sweepStaleExtractionRuns } from "./extractionCore";
 import { runOrphanSweep } from "./orphanSweeper";
+import { validateM2mRequest } from "../auth/m2mAuth.js";
 
 // ---------------------------------------------------------------------------
 // Schedule interval parser
@@ -189,28 +190,59 @@ export const runExtractionStalenessSweep = api(
 // (blob present, missing confirm → self-heal via confirmUploadCore).
 // See `orphanSweeper.ts` for the design rationale and concurrency model.
 
+async function executeOrphanSweep(): Promise<void> {
+  try {
+    const result = await runOrphanSweep();
+    if (
+      result.deletedClassA > 0 ||
+      result.selfHealedClassB > 0 ||
+      result.errored > 0
+    ) {
+      log.info("orphan-imported sweep result", result);
+    }
+  } catch (err) {
+    log.error("orphan-imported sweep failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+// Spec 143 §12 L-004: `expose: false` is "internal to the Encore service",
+// not "internal to the cluster" — a K8s CronJob is an external HTTP caller
+// relative to the Encore process boundary, regardless of the network hop
+// being intra-cluster. So this endpoint exposes publicly and is gated by
+// the platform M2M auth surface (spec 087 Phase 5 precedent — same pattern
+// as `audit.ts` / `policy.ts` / `grants.ts`). The `platform:knowledge:sweep`
+// scope must live in the calling Rauthy client's *Default Scopes* (load-
+// bearing per §12 L-006: Rauthy 0.35 `client_credentials` mints Default
+// Scopes regardless of `scope=`); placing it only in *Allowed Scopes* is
+// silently inert under this flow.
 export const runOrphanImportedSweep = api(
   {
-    expose: false,
+    expose: true,
     method: "POST",
     path: "/internal/knowledge/orphan-imported-sweep",
   },
-  async (): Promise<void> => {
-    try {
-      const result = await runOrphanSweep();
-      if (
-        result.deletedClassA > 0 ||
-        result.selfHealedClassB > 0 ||
-        result.errored > 0
-      ) {
-        log.info("orphan-imported sweep result", result);
-      }
-    } catch (err) {
-      log.error("orphan-imported sweep failed", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+  async (req: { authorization: Header<"Authorization"> }): Promise<void> => {
+    await validateM2mRequest(req.authorization, "platform:knowledge:sweep");
+    await executeOrphanSweep();
   },
+);
+
+// Encore CronJob requires a parameterless endpoint, so the local-dev /
+// future-Encore-Cloud cron path gets its own internal handler that runs
+// the same kernel without a header parameter. Self-hosted production
+// runs the K8s CronJob against `runOrphanImportedSweep` above (FR-010
+// self-hosted scheduler amendment); this handler is a no-op there
+// because Encore's CronJob primitive is unscheduled without Encore
+// Cloud (§12 L-001).
+export const runOrphanImportedSweepCron = api(
+  {
+    expose: false,
+    method: "POST",
+    path: "/internal/knowledge/orphan-imported-sweep-cron",
+  },
+  executeOrphanSweep,
 );
 
 // ---------------------------------------------------------------------------
@@ -240,6 +272,6 @@ void _extractionSweeper;
 const _orphanSweeper = new CronJob("knowledge-orphan-imported-sweeper", {
   title: "Knowledge Orphan-Imported Sweeper",
   every: "30m",
-  endpoint: runOrphanImportedSweep,
+  endpoint: runOrphanImportedSweepCron,
 });
 void _orphanSweeper;

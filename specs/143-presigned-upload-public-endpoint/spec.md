@@ -38,6 +38,17 @@ implements:
   - path: platform/charts/stagecraft/values.yaml
   - path: platform/charts/stagecraft/values-hetzner.yaml
   - path: platform/charts/stagecraft/templates/deployment.yaml  # §12 L-003 — render imagePullPolicy from values
+  - path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml  # FR-010 self-hosted scheduler (FU-001 beat 4)
+  - path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml  # FR-010 per-purpose-credential mount, ESO path (FU-001 beat 4)
+  # Note: platform/infra/terraform/envs/dev/core/{main,variables}.tf are owned
+  # by spec 072 (multi-cloud-k8s-portability). FR-010 adds per-purpose
+  # sweeper credential entries into 072's existing keyvault_secrets map —
+  # an additive-only data-shape change, not a multi-cloud-portability
+  # design amendment. The PR carries a Spec-Drift-Waiver per spec 127
+  # FR-005 instead of pulling those paths into 143's implements: (which
+  # would still require a 072 amendment under spec 130's primary-owner
+  # heuristic, and the heuristic correctly assigns primary ownership to
+  # 072 for the infrastructure layout).
 summary: >
   Browser uploads via presigned PUT have never landed in MinIO on the
   Hetzner deployment because the server-issued presigned URL points at
@@ -728,13 +739,35 @@ FR-008 is amended to reflect this scoping.
 
   **Self-hosted scheduler requirement (amendment, 2026-05-08).** In
   addition to the Encore `CronJob` declaration, the deployment
-  scripts MUST provision a Kubernetes `CronJob` resource in
-  `platform/infra/hetzner/post-create.sh` that calls the internal
-  sweep endpoint on the same cadence (`*/30 * * * *`). The K8s
-  CronJob is the actual production scheduler for self-hosted
-  deployments; the Encore CronJob declaration is local-dev and
-  future-Encore-Cloud only. See §4.5 self-hosted scheduler
-  amendment for the rationale and empirical evidence.
+  scripts MUST provision a Kubernetes `CronJob` resource (Helm-owned
+  under `platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml`,
+  superseding the earlier `post-create.sh` heredoc bootstrap) that
+  calls the internal sweep endpoint on the same cadence
+  (`*/30 * * * *`). The K8s CronJob is the actual production
+  scheduler for self-hosted deployments; the Encore CronJob
+  declaration is local-dev and future-Encore-Cloud only. See §4.5
+  self-hosted scheduler amendment for the rationale and empirical
+  evidence.
+
+  **Per-purpose credential mount discipline (amendment, 2026-05-09).**
+  Each sweeper CronJob mounts only its purpose-specific M2M client
+  credentials; cross-purpose mounts are forbidden. Concretely: the
+  K8s CronJob authenticates to the internal sweep endpoint via a
+  Rauthy-issued `client_credentials` JWT carrying the matching
+  `platform:<service>:sweep` scope (here `platform:knowledge:sweep`);
+  the JWT-fetch credentials live in a per-purpose K8s Secret (here
+  `stagecraft-knowledge-sweeper-credentials`, materialised by
+  `setup.sh` from `STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID/_SECRET`
+  on Hetzner, and from a dedicated ExternalSecret on ESO-backed
+  clouds), and that Secret is the only credential surface the
+  CronJob's pod sees. A leaked credential is bounded to that one
+  sweeper's surface — defence in depth at the credential layer, not
+  only at the validator. FU-003's K8s CronJobs for spec 115 FR-006
+  (`extraction-staleness-sweeper`), spec 087 §4.4
+  (`connector-sync-scheduler`), and spec 124
+  (`factory-runs-staleness-sweeper`) inherit this discipline without
+  re-deriving it. See §12 L-004 Option 1 + L-006 for the Rauthy 0.35
+  *Default Scopes* nuance the discipline rests on.
 
 - **FR-011** — Upload size cap. The browser client MUST refuse
   files > 1 GiB before issuing `requestUpload` (UI-side fail-fast,

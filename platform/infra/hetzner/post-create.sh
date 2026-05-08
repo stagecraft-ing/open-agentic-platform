@@ -385,70 +385,40 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
     --wait --timeout 300s
 fi
 
-# --- K8s CronJobs for self-hosted scheduler primitives (spec 143 §4.5b) ---
+# --- Spec 143 FR-010 K8s CronJob: legacy-bootstrap retirement ---
 #
-# Encore's CronJob primitive is scheduled by Encore Cloud's platform —
-# in self-hosted deployments (encore build docker + a K8s cluster with
-# no Encore Cloud connection), the declaration is a no-op for
-# scheduling. The handler endpoint is registered and callable but
-# nothing calls it on schedule.
+# Earlier revisions of post-create.sh imperatively created the
+# `knowledge-orphan-imported-sweeper` CronJob via heredoc-apply. That
+# bootstrap is now retired: the resource is owned by the stagecraft
+# Helm chart at
+# `platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml`
+# (FU-001 beat 4). Two systems writing the same K8s object is the
+# §12 L-003 single-writer anti-pattern; Helm is the sole writer going
+# forward.
 #
-# Empirically confirmed on this cluster 2026-05-08: 2h of stagecraft-api
-# logs show zero invocations of the spec-115 extraction-staleness
-# sweeper despite its every:"1m" declaration. Without a K8s-side
-# scheduler, every Encore CronJob in the codebase is silently broken
-# in production.
+# This delete is idempotent — `--ignore-not-found` keeps fresh
+# clusters silent — and runs BEFORE the helm release lands so a
+# cluster carrying the legacy un-Helm-owned CronJob has it cleared
+# in time for the Helm-owned successor to be created cleanly. The
+# imperative-vs-declarative ownership transition runs once per
+# upgraded cluster; subsequent runs are no-ops.
 #
-# Spec 143 owns its own sweeper's fix (this block). The other affected
-# sweepers — spec 115 FR-006, spec 087 §4.4 connector sync, spec 124
-# factory-runs sweeper — carry the same gap and need their own
-# follow-up amendments. See spec 143 §12 L-001 for the systemic
-# finding.
+# Note: this delete is for the post-create.sh legacy bootstrap path.
+# The cd-stagecraft helm-deploy action carries its own one-time
+# operator step (`kubectl delete cronjob knowledge-orphan-imported-sweeper
+# -n stagecraft-system --ignore-not-found=true`) before the next helm
+# upgrade lands the chart, because helm-deploy's ownership-transfer
+# logic only handles Deployments and a CronJob would otherwise fail
+# the upgrade on immutable-field collision.
+#
+# The systemic L-001 finding (spec 115 / 087 / 124 sweepers carry the
+# same self-hosted scheduler gap) is tracked as FU-003; their K8s
+# CronJobs will land Helm-native from day zero, no post-create.sh
+# bootstrap needed.
 
-info "Creating spec-143 orphan-imported sweeper K8s CronJob..."
-cat <<EOF | kubectl apply -f -
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: knowledge-orphan-imported-sweeper
-  namespace: stagecraft-system
-  labels:
-    app.kubernetes.io/name: knowledge-orphan-imported-sweeper
-    app.kubernetes.io/part-of: stagecraft
-    spec.oap/id: "143-presigned-upload-public-endpoint"
-    spec.oap/fr: "FR-010"
-spec:
-  # Spec 143 FR-010 cadence — every 30 minutes. Cleanup latency =
-  # grace (3600s default) + cadence (1800s) = 90min worst case.
-  schedule: "*/30 * * * *"
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  startingDeadlineSeconds: 300
-  jobTemplate:
-    spec:
-      backoffLimit: 0
-      template:
-        spec:
-          restartPolicy: Never
-          containers:
-            - name: curl
-              image: curlimages/curl:8.10.1
-              command:
-                - sh
-                - -c
-                - |
-                  curl -sS -fail -X POST \
-                    -H 'Content-Type: application/json' \
-                    --max-time 280 \
-                    http://stagecraft-api.stagecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep
-              resources:
-                requests:
-                  memory: "16Mi"
-                  cpu: "10m"
-                limits:
-                  memory: "32Mi"
-                  cpu: "100m"
-EOF
+info "Retiring legacy spec-143 orphan-imported-sweeper bootstrap (Helm now owns this resource)..."
+kubectl delete cronjob knowledge-orphan-imported-sweeper \
+  --namespace stagecraft-system \
+  --ignore-not-found=true
 
 info "Infrastructure bootstrap complete"
