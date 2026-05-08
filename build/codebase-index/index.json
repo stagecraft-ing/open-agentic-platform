@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6fac5448bdb957ee5577ebe0c2cf6054b0b08c81c2e23e60504fa7ec2aba847c",
+    "contentHash": "26ebf76d63dc98474031dd7e4bc75b5bce80a095a1468270cc9f7b5d34d6928e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4678,6 +4678,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/knowledge/storage.ts",
             "source": "spec-implements"
           },
@@ -4687,6 +4691,14 @@
           },
           {
             "path": "platform/services/stagecraft/infra.config.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/__mocks__/encore-config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
             "source": "spec-implements"
           }
         ],

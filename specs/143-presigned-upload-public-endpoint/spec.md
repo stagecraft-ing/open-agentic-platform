@@ -16,6 +16,9 @@ amends:
 code_aliases: ["PRESIGNED_UPLOAD_PUBLIC_ENDPOINT"]
 implements:
   - path: platform/services/stagecraft/api/knowledge/storage.ts
+  - path: platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts
+  - path: platform/services/stagecraft/test/__mocks__/encore-config.ts
+  - path: platform/services/stagecraft/vite.config.ts
   - path: platform/services/stagecraft/infra.config.hetzner.json
   - path: platform/services/stagecraft/infra.config.json
   - path: platform/infra/hetzner/setup.sh
