@@ -142,6 +142,84 @@ async function loadProjectScope(
 // List knowledge objects in a project
 // ---------------------------------------------------------------------------
 
+/**
+ * Core implementation of `listKnowledgeObjects` — exported for direct
+ * integration testing under `encore test` without going through the
+ * Encore auth/api surface. The api wrapper below pulls orgId from
+ * `getAuthData()` and delegates here.
+ */
+export async function listKnowledgeObjectsCore(args: {
+  projectId: string;
+  orgId: string;
+  state?: string;
+}): Promise<{ objects: KnowledgeObjectListRow[] }> {
+  const scope = await loadProjectScope(args.projectId, args.orgId);
+
+  const conditions = [eq(knowledgeObjects.projectId, scope.projectId)];
+  if (args.state) {
+    conditions.push(eq(knowledgeObjects.state, args.state as any));
+  }
+
+  const rows = await db
+    .select()
+    .from(knowledgeObjects)
+    .where(and(...conditions))
+    .orderBy(desc(knowledgeObjects.createdAt));
+
+  if (rows.length === 0) {
+    return { objects: [] };
+  }
+
+  // Spec 115 FR-030 — fetch the most-recent extraction run per object in
+  // one query. DISTINCT ON keeps it indexed against the
+  // (knowledgeObjectId, queuedAt DESC) covering index from migration 25.
+  //
+  // `IN (sql.join(...))` rather than `= ANY(${array})`: Drizzle's `sql`
+  // tag spreads JS arrays into individual placeholders, so the latter
+  // emits `ANY(($1, $2, ...))` — a row constructor, not an array — and
+  // Postgres rejects it with "op ANY/ALL (array) requires array on right
+  // side". Regression covered by `listKnowledgeObjects.integration.test.ts`.
+  const objectIds = rows.map((r) => r.id);
+  const idList = sql.join(
+    objectIds.map((id) => sql`${id}`),
+    sql`, `
+  );
+  const latestRuns = await db.execute<{
+    knowledge_object_id: string;
+    status: string;
+    extractor_kind: string | null;
+    completed_at: Date | null;
+    duration_ms: number | null;
+  }>(sql`
+    SELECT DISTINCT ON (knowledge_object_id)
+      knowledge_object_id,
+      status,
+      extractor_kind,
+      completed_at,
+      duration_ms
+    FROM knowledge_extraction_runs
+    WHERE knowledge_object_id IN (${idList})
+    ORDER BY knowledge_object_id, queued_at DESC
+  `);
+
+  const runsByObjectId = new Map<string, LatestExtractionRun>();
+  for (const r of latestRuns.rows) {
+    runsByObjectId.set(r.knowledge_object_id, {
+      status: r.status,
+      extractorKind: r.extractor_kind,
+      completedAt: r.completed_at ? r.completed_at.toISOString() : null,
+      durationMs: r.duration_ms,
+    });
+  }
+
+  const objects: KnowledgeObjectListRow[] = rows.map((row) => ({
+    ...row,
+    latestRun: runsByObjectId.get(row.id) ?? null,
+  }));
+
+  return { objects };
+}
+
 export const listKnowledgeObjects = api(
   {
     expose: true,
@@ -154,61 +232,11 @@ export const listKnowledgeObjects = api(
     state?: string;
   }): Promise<{ objects: KnowledgeObjectListRow[] }> => {
     const auth = getAuthData()!;
-    const scope = await loadProjectScope(req.projectId, auth.orgId);
-
-    const conditions = [eq(knowledgeObjects.projectId, scope.projectId)];
-    if (req.state) {
-      conditions.push(eq(knowledgeObjects.state, req.state as any));
-    }
-
-    const rows = await db
-      .select()
-      .from(knowledgeObjects)
-      .where(and(...conditions))
-      .orderBy(desc(knowledgeObjects.createdAt));
-
-    if (rows.length === 0) {
-      return { objects: [] };
-    }
-
-    // Spec 115 FR-030 — fetch the most-recent extraction run per object in
-    // one query. DISTINCT ON keeps it indexed against the
-    // (knowledgeObjectId, queuedAt DESC) covering index from migration 25.
-    const objectIds = rows.map((r) => r.id);
-    const latestRuns = await db.execute<{
-      knowledge_object_id: string;
-      status: string;
-      extractor_kind: string | null;
-      completed_at: Date | null;
-      duration_ms: number | null;
-    }>(sql`
-      SELECT DISTINCT ON (knowledge_object_id)
-        knowledge_object_id,
-        status,
-        extractor_kind,
-        completed_at,
-        duration_ms
-      FROM knowledge_extraction_runs
-      WHERE knowledge_object_id = ANY(${objectIds})
-      ORDER BY knowledge_object_id, queued_at DESC
-    `);
-
-    const runsByObjectId = new Map<string, LatestExtractionRun>();
-    for (const r of latestRuns.rows) {
-      runsByObjectId.set(r.knowledge_object_id, {
-        status: r.status,
-        extractorKind: r.extractor_kind,
-        completedAt: r.completed_at ? r.completed_at.toISOString() : null,
-        durationMs: r.duration_ms,
-      });
-    }
-
-    const objects: KnowledgeObjectListRow[] = rows.map((row) => ({
-      ...row,
-      latestRun: runsByObjectId.get(row.id) ?? null,
-    }));
-
-    return { objects };
+    return listKnowledgeObjectsCore({
+      projectId: req.projectId,
+      orgId: auth.orgId,
+      state: req.state,
+    });
   }
 );
 

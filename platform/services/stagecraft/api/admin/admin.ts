@@ -11,7 +11,7 @@ import {
   orgMemberships,
   users,
 } from "../db/schema";
-import { desc, eq, and, lt, gte, lte, sql, count as drizzleCount } from "drizzle-orm";
+import { desc, eq, and, inArray, lt, gte, lte, sql, count as drizzleCount } from "drizzle-orm";
 import { revokeSession } from "../auth/rauthy";
 import { evictDisabledCache } from "../auth/handler";
 
@@ -123,7 +123,7 @@ export const listUsers = api(
         .from(desktopRefreshTokens)
         .where(
           and(
-            sql`${desktopRefreshTokens.userId} = ANY(${userIds})`,
+            inArray(desktopRefreshTokens.userId, userIds),
             gte(desktopRefreshTokens.expiresAt, new Date())
           )
         )
