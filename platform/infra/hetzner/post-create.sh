@@ -54,8 +54,12 @@ fi
 kubectl wait --for=condition=Available deployment/cert-manager-webhook \
   -n cert-manager --timeout=120s
 
-# --- ClusterIssuer ---
-info "Creating Let's Encrypt ClusterIssuer..."
+# --- ClusterIssuer (HTTP-01) ---
+# Default issuer for all platform hosts (stagecraft.${DOMAIN},
+# auth.${DOMAIN}, deploy.${DOMAIN}). HTTP-01 challenge resolves via the
+# nginx ingress, which is fine for hosts whose A records point at the
+# cluster IP.
+info "Creating Let's Encrypt HTTP-01 ClusterIssuer..."
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@example.com}"
 cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
@@ -73,6 +77,89 @@ spec:
           ingress:
             class: nginx
 EOF
+
+# --- ClusterIssuer (DNS-01 via Hetzner DNS) — spec 143 FR-008 ---
+#
+# Spec 143 commits to DNS-01 for the MinIO public ingress
+# (minio.${DOMAIN}) to dodge HTTP-01's cluster-bootstrap problem
+# permanently — HTTP-01 fails on first rollout if ingress isn't yet
+# routing, and re-bites on every renewal during DNS maintenance.
+# DNS-01 also unblocks wildcard certs as the platform adds more
+# public subdomains.
+#
+# Prerequisites (one-time per cluster, NOT idempotent on every deploy):
+#
+#   (a) cert-manager-webhook-hetzner installed in cert-manager
+#       namespace. Installed below (idempotent helm upgrade --install);
+#       skip with SKIP_HETZNER_DNS_WEBHOOK=1 if the cluster has it
+#       installed via another mechanism.
+#
+#   (b) HCLOUD_DNS_API_TOKEN set in .env. Generate at:
+#         https://dns.hetzner.com/settings/api-token
+#       Stored as a Kubernetes Secret in cert-manager namespace.
+#
+#   (c) DNS A record minio.${DOMAIN} → <cluster ingress IP>
+#       MUST be created before the MinIO ingress in step 6 starts
+#       requesting certificates. No DNS IaC exists for Hetzner DNS in
+#       this repo (DNS is currently click-ops); the runbook step is:
+#
+#         Hetzner Cloud Console → DNS → ${DOMAIN} → Add record
+#           Type: A
+#           Name: minio
+#           Value: $(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+#           TTL: 60
+#
+#       Without this record, browser uploads still fail end-to-end
+#       even after step 6 lands — the browser cannot resolve
+#       minio.${DOMAIN}, and cert-manager cannot validate the
+#       challenge response. Step 8 (e2e validation) verifies this.
+
+if [ "${SKIP_HETZNER_DNS_WEBHOOK:-0}" != "1" ]; then
+  if helm status cert-manager-webhook-hetzner -n cert-manager >/dev/null 2>&1; then
+    info "cert-manager-webhook-hetzner already installed, skipping"
+  else
+    info "Installing cert-manager-webhook-hetzner..."
+    helm upgrade --install cert-manager-webhook-hetzner cert-manager-webhook-hetzner \
+      --repo https://vadimkim.github.io/cert-manager-webhook-hetzner \
+      --namespace cert-manager \
+      --wait --timeout 180s
+  fi
+fi
+
+if [ -n "${HCLOUD_DNS_API_TOKEN:-}" ]; then
+  info "Seeding hetzner-dns-secret for DNS-01 challenge..."
+  kubectl create secret generic hetzner-dns-secret \
+    --namespace cert-manager \
+    --from-literal=api-key="$HCLOUD_DNS_API_TOKEN" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  info "Creating Let's Encrypt DNS-01 ClusterIssuer..."
+  cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-dns01
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${LETSENCRYPT_EMAIL}
+    privateKeySecretRef:
+      name: letsencrypt-dns01
+    solvers:
+      - dns01:
+          webhook:
+            groupName: acme.${DOMAIN}
+            solverName: hetzner
+            config:
+              secretName: hetzner-dns-secret
+              zoneName: ${DOMAIN}
+              apiUrl: https://dns.hetzner.com/api/v1
+EOF
+else
+  info "HCLOUD_DNS_API_TOKEN not set — skipping letsencrypt-dns01 ClusterIssuer"
+  info "  Set HCLOUD_DNS_API_TOKEN in .env and re-run post-create.sh to enable"
+  info "  the DNS-01 challenge required by spec 143 (MinIO public ingress)."
+fi
 
 # --- Namespaces ---
 info "Creating namespaces..."

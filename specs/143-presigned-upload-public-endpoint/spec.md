@@ -32,6 +32,8 @@ implements:
   - path: platform/services/stagecraft/infra.config.hetzner.json
   - path: platform/services/stagecraft/infra.config.json
   - path: platform/infra/hetzner/setup.sh
+  - path: platform/infra/hetzner/post-create.sh
+  - path: platform/infra/hetzner/.env.example
   - path: platform/charts/stagecraft/values.yaml
   - path: platform/charts/stagecraft/values-hetzner.yaml
 summary: >

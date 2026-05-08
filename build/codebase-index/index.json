@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1e8ef8991ee623dff4e8f2a64fd40912dd2df2a820464f81e6fbff92953a4765",
+    "contentHash": "c1da05aebd6bd140ee348a79414f9e9caa56b845de75ad5a6083731b657253c4",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4673,6 +4673,14 @@
           },
           {
             "path": "platform/charts/stagecraft/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/post-create.sh",
             "source": "spec-implements"
           },
           {
