@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "cbfcc6c867fcf12ec4f222353ec0e7550106ad8c8060e1d63b7f02b9dbd88a94",
+    "contentHash": "6fac5448bdb957ee5577ebe0c2cf6054b0b08c81c2e23e60504fa7ec2aba847c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4655,6 +4655,43 @@
         ],
         "specId": "142-factory-id-columns-text-cutover",
         "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "087-unified-workspace-architecture"
+        ],
+        "dependsOn": [
+          "087",
+          "115"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/stagecraft/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/storage.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.hetzner.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.json",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "143-presigned-upload-public-endpoint",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
