@@ -88,6 +88,9 @@ export default defineConfig({
       // Class B self-heal + concurrency + race-with-user). Live DB;
       // mocks storage.headObject only.
       "**/knowledge/orphanSweeper.integration.test.ts",
+      // Spec 143 FR-011 — server-side upload size cap. Live DB;
+      // exercises requestUpload's APIError on sizeBytes > cap.
+      "**/knowledge/requestUpload.integration.test.ts",
       // Spec 140 Phase 1 — migration 36 idempotence test mutates
       // `factory_artifact_substrate*` tables; runs under `encore test`.
       "**/db/migrations/36_aim_vue_node_manifest_cutover.test.ts",

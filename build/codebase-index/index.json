@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "76359e39491bc38331de0001e0397f32b2fe926a99e9d158a8b32f908b1c6e92",
+    "contentHash": "23eafb82047b285b05463b77a2e4352592e715ad2d12c4e5f8c62c72b1b8c370",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4696,6 +4696,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/knowledge/scheduler.ts",
             "source": "spec-implements"
           },
@@ -4705,6 +4709,14 @@
           },
           {
             "path": "platform/services/stagecraft/api/knowledge/storage.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/uploadLimits.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/uploadLimits.ts",
             "source": "spec-implements"
           },
           {
@@ -4721,6 +4733,10 @@
           },
           {
             "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx",
             "source": "spec-implements"
           }
         ],

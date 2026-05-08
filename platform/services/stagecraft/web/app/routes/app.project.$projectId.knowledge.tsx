@@ -9,6 +9,10 @@ import type {
   SourceConnectorRow,
 } from "../lib/project-api.server";
 import { useState, useRef } from "react";
+import {
+  KNOWLEDGE_UPLOAD_MAX_BYTES,
+  KNOWLEDGE_UPLOAD_MAX_HUMAN,
+} from "../../../api/knowledge/uploadLimits";
 
 export async function loader({
   request,
@@ -248,24 +252,57 @@ function UploadControls({ projectId }: { projectId: string }) {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList);
 
-    const initial: UploadItem[] = files.map((f, i) => ({
-      id: `${Date.now()}-${i}-${f.name}`,
-      name: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name,
-      size: f.size,
-      status: "pending",
-    }));
+    // Spec 143 FR-011 — browser-side size cap. Pre-checking here
+    // means files over the cap never consume an objectId/storageKey
+    // server-side and never hit the ingress 413 backstop. The
+    // server's requestUpload re-checks identically as defence in
+    // depth (see api/knowledge/knowledge.ts).
+    const initial: UploadItem[] = files.map((f, i) => {
+      const name =
+        (f as File & { webkitRelativePath?: string }).webkitRelativePath ||
+        f.name;
+      const oversize = f.size > KNOWLEDGE_UPLOAD_MAX_BYTES;
+      return {
+        id: `${Date.now()}-${i}-${f.name}`,
+        name,
+        size: f.size,
+        status: oversize ? "failed" : "pending",
+        error: oversize
+          ? `File exceeds the ${KNOWLEDGE_UPLOAD_MAX_HUMAN} upload size cap`
+          : undefined,
+      };
+    });
     setItems(initial);
+
+    // Filter out the over-cap entries from the actual upload pipeline
+    // so we don't waste a presigned-URL request on them. Their failed
+    // state is already populated above, so the toast/banner shows the
+    // size-cap error immediately.
+    const acceptedIndices: number[] = [];
+    files.forEach((f, i) => {
+      if (f.size <= KNOWLEDGE_UPLOAD_MAX_BYTES) acceptedIndices.push(i);
+    });
+
+    if (acceptedIndices.length === 0) {
+      // All files rejected — leave the failure panel visible and exit
+      // without entering the running state.
+      if (fileRef.current) fileRef.current.value = "";
+      if (folderRef.current) folderRef.current.value = "";
+      return;
+    }
+
     setRunning(true);
 
     let cursor = 0;
-    let failures = 0;
+    let failures = files.length - acceptedIndices.length; // pre-rejected count
     const updateItem = (idx: number, patch: Partial<UploadItem>) =>
       setItems((cur) => cur.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
     async function worker() {
       while (true) {
-        const idx = cursor++;
-        if (idx >= files.length) return;
+        const cursorIdx = cursor++;
+        if (cursorIdx >= acceptedIndices.length) return;
+        const idx = acceptedIndices[cursorIdx];
         const file = files[idx];
         updateItem(idx, { status: "uploading" });
         try {

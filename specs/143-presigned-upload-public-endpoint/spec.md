@@ -23,6 +23,10 @@ implements:
   - path: platform/services/stagecraft/api/knowledge/orphanSweeper.ts
   - path: platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts
   - path: platform/services/stagecraft/api/knowledge/scheduler.ts
+  - path: platform/services/stagecraft/api/knowledge/uploadLimits.ts
+  - path: platform/services/stagecraft/api/knowledge/uploadLimits.test.ts
+  - path: platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts
+  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
   - path: platform/services/stagecraft/test/__mocks__/encore-config.ts
   - path: platform/services/stagecraft/vite.config.ts
   - path: platform/services/stagecraft/infra.config.hetzner.json

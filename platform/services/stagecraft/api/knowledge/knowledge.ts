@@ -38,6 +38,10 @@ import {
   KNOWLEDGE_EXTRACTION_RETRY_REQUESTED,
   KNOWLEDGE_EXTRACTION_RESOLVED,
 } from "./auditActions";
+import {
+  KNOWLEDGE_UPLOAD_MAX_BYTES,
+  KNOWLEDGE_UPLOAD_MAX_HUMAN,
+} from "./uploadLimits";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -345,6 +349,18 @@ export const requestUpload = api(
     }
     if (typeof req.sizeBytes !== "number" || req.sizeBytes < 0) {
       throw APIError.invalidArgument("sizeBytes must be a non-negative number");
+    }
+    // Spec 143 FR-011 — server-side size cap. Defence in depth: the
+    // browser pre-checks before fetching the presigned URL, and the
+    // ingress caps the body size at the same value (FR-005). If this
+    // check rejects, the browser pre-check has been bypassed (e.g.
+    // direct-API caller skipping the UI) — surface the cap explicitly
+    // rather than letting the request consume an objectId + storageKey
+    // that nothing will ever PUT to.
+    if (req.sizeBytes > KNOWLEDGE_UPLOAD_MAX_BYTES) {
+      throw APIError.invalidArgument(
+        `sizeBytes ${req.sizeBytes} exceeds the upload size cap of ${KNOWLEDGE_UPLOAD_MAX_HUMAN} (${KNOWLEDGE_UPLOAD_MAX_BYTES} bytes)`
+      );
     }
 
     const objectId = randomUUID();
