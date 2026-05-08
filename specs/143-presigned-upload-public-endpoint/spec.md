@@ -588,6 +588,20 @@ rather than mutating the default.
      on the same `every 30m` cadence. Both call into
      `runOrphanSweep()` via the same handler.
 
+  > **Partially implemented (2026-05-08).** The K8s CronJob is
+  > deployed and fires on schedule, but every run currently 404s.
+  > Root cause: `scheduler.ts:194` declares the handler with
+  > `expose: false`, so Encore returns 404 to any external HTTP
+  > caller — including in-cluster service callers like the K8s
+  > CronJob. The Encore `expose:false` design intends "callable
+  > only from inside the same Encore service" via direct function
+  > import, not "callable from anywhere on the cluster network".
+  > Reconciliation does not actually run in production. FR-010 is
+  > therefore not delivered against self-hosted deployments. The
+  > Class A delete and Class B self-heal logic in `orphanSweeper.ts`
+  > is correct and unit-tested; the integration is broken at the
+  > scheduler-to-handler hop. Follow-up: see §12 L-004.
+
   This is a SYSTEMIC finding, not a spec-143-specific concern: the
   existing extraction-staleness sweeper (spec 115 FR-006), the
   connector sync scheduler (spec 087 §4.4), and the factory-runs
@@ -1044,3 +1058,69 @@ Affected scope:
   Not fixed here to keep blast radius bounded; tracked as
   follow-up. Same review for any future per-environment
   values-*.yaml that ships an `image.tag`.
+
+**L-004 — `expose: false` is "internal to the Encore service",
+not "internal to the cluster".** FR-010's K8s CronJob curls
+`http://stagecraft-api.stagecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep`
+expecting the in-cluster service hop to be the auth boundary.
+But Encore's `expose: false` means "this route is not bound to
+the public HTTP server at all" — Encore's API gateway returns
+404 to any external HTTP caller, regardless of whether the
+caller is inside the cluster or outside. The route is callable
+only via direct function import inside the same Encore service.
+A K8s CronJob is an external HTTP caller relative to the Encore
+process boundary, not the K8s namespace boundary. Hence every
+sweep run 404s; reconciliation never executes.
+
+Three viable fixes (none chosen on this branch):
+
+1. Flip the handler to `expose: true` and add an Encore
+   middleware-style auth gate (header bearer token shared with
+   the K8s CronJob via a Secret). Smallest diff; keeps the
+   route exposed to the public surface but rejects callers
+   without the secret.
+2. Run the sweep work in-process via a tiny helper service that
+   the K8s CronJob doesn't need to reach over HTTP — e.g. a
+   sidecar container in the stagecraft pod that imports
+   `runOrphanSweep` directly and is triggered by the K8s
+   CronJob via `kubectl exec`. Awkward; introduces a sidecar
+   for one cron.
+3. Bind a second HTTP listener inside Encore restricted to a
+   private port, expose the internal routes there, and have
+   the K8s CronJob curl that port. Requires Encore-runtime
+   plumbing that may not exist; closest to the original
+   `expose: false` intent.
+
+Follow-up tracker (parking lot):
+
+- **FU-001 — Orphan-sweeper expose:false fix.** Pick one of the
+  three options above; amend FR-010 with the chosen approach;
+  ship as a fast-follow against this spec. Validation script's
+  job-exit-code check (added on this branch) will turn green
+  the moment the chosen fix lands.
+- **FU-002 — deployd-api dual-writer fix (same shape as L-003).**
+  `setup.sh:347-354` calls `helm upgrade --install deployd-api`
+  with `-f values-hetzner.yaml`; CD's `cd-deployd-api-rs.yml`
+  separately deploys deployd-api with sha-pinned tags. Same
+  pattern as L-003. Plus: `deployd-api-78ffc9b57-fg2th` is
+  OOM-killing on a 512Mi memory limit during hiqlite WAL init
+  (exit code 137, observed 2026-05-08). Fix needs both the
+  single-writer cleanup AND a memory bump, and should ship in
+  one commit so the recovery is verifiable end-to-end.
+- **FU-003 — Generalised L-001 amendment for other affected
+  sweepers.** Spec 115 FR-006 (`extraction-staleness-sweeper`,
+  every 1m), spec 087 §4.4 (`connector-sync-scheduler`,
+  every 15m), and spec 124 (`factory-runs-staleness-sweeper`)
+  carry the same Encore-CronJob-self-hosted-no-op bug. Each
+  owner spec needs its own K8s CronJob amendment. Best landed
+  as a single sibling spec that amends all three rather than
+  three separate amendments, to keep the systemic finding
+  visible and the gates aligned.
+
+The honest-state principle: when an FR's contract is broken in
+production but the implementation is structurally close to
+working, mark it partially-implemented in the spec body rather
+than carrying a clean "implemented" status that misrepresents
+the cluster's actual behaviour. A spec that lies about its own
+state corrodes the audit trail — the value of the spec spine is
+the trust that markdown matches truth.

@@ -330,5 +330,43 @@ if [ "$AGE_SEC" -gt 3600 ]; then
 fi
 ok "CronJob last fired ${AGE_SEC}s ago (within 2× cadence window)"
 
+# Spec 143 §12 L-004 — firing on schedule is necessary but not sufficient.
+# A CronJob can fire reliably while every run 404s because the curl-target
+# is unreachable (e.g. handler declared expose:false). Assert the most
+# recent Job owned by this CronJob succeeded — i.e. the curl returned 2xx
+# AND the handler ran. Without this check, FR-010 reports green even when
+# reconciliation has never executed in production.
+LAST_JOB=$(kubectl -n stagecraft-system get jobs \
+  --sort-by=.metadata.creationTimestamp \
+  -o json 2>/dev/null \
+  | python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+matching = [j for j in data.get("items", [])
+            if any(o.get("kind") == "CronJob"
+                   and o.get("name") == "knowledge-orphan-imported-sweeper"
+                   for o in j.get("metadata", {}).get("ownerReferences", []) or [])]
+print(matching[-1]["metadata"]["name"] if matching else "")
+' 2>/dev/null || echo "")
+
+if [ -z "$LAST_JOB" ]; then
+  ok "no completed jobs yet (CronJob registered but cadence not reached)"
+else
+  JOB_SUCCEEDED=$(kubectl -n stagecraft-system get job "$LAST_JOB" -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
+  JOB_FAILED=$(kubectl -n stagecraft-system get job "$LAST_JOB" -o jsonpath='{.status.failed}' 2>/dev/null || echo "0")
+  if [ "${JOB_FAILED:-0}" != "0" ] || [ "${JOB_SUCCEEDED:-0}" = "0" ]; then
+    POD_LOG=$(kubectl -n stagecraft-system logs --selector=job-name="$LAST_JOB" --tail=10 2>/dev/null | head -20 || true)
+    contract_fail "most recent CronJob run ($LAST_JOB) did not succeed.
+  succeeded=${JOB_SUCCEEDED:-0}, failed=${JOB_FAILED:-0}.
+  Recent pod logs:
+${POD_LOG}
+  A 404 from the curl target indicates the orphan-sweep endpoint is not
+  reachable from a K8s CronJob — see spec 143 §12 L-004 (expose:false is
+  internal to the Encore service, not internal to the cluster). FR-010 is
+  not delivered until the most recent run succeeds."
+  fi
+  ok "most recent CronJob run ($LAST_JOB) succeeded"
+fi
+
 # Cleanup runs from the EXIT trap; if we got here, all checks passed.
 exit 0
