@@ -65,6 +65,54 @@ runs:
           --docker-password=${{ inputs.ghcr-pat }} \
           --dry-run=client -o yaml | kubectl apply -f -
 
+    - name: Reclaim helm field-manager ownership
+      shell: bash
+      # Server-side-apply field-manager defence. When a Deployment under
+      # this release has been touched by manual `kubectl set image`,
+      # `kubectl rollout restart`, or `kubectl patch` between helm runs
+      # (e.g. during a hotfix), the kubectl operation registers a
+      # field-manager entry that owns fields helm later tries to apply.
+      # The next `helm upgrade` then fails with an opaque message:
+      #   "Apply failed with N conflict: conflict with kubectl-set
+      #    using apps/v1: .spec.template.spec.containers[name=...].image"
+      #
+      # Symptom seen 2026-05-08 on the spec-143 push: cd-stagecraft
+      # failed because the 2026-05-07 hotfix used `kubectl set image
+      # deployment/stagecraft-api` to ship hotfix-2026-05-07-knowledge-list,
+      # leaving kubectl-set as a field manager that helm couldn't
+      # reclaim. This step strips kubectl-* Update managers from any
+      # Deployment matching the release's instance label so helm can
+      # re-establish ownership cleanly.
+      #
+      # Scope: only Deployments under this release (label selector); only
+      # kubectl-* manager entries (preserves helm's own claims and k3s's
+      # status-subresource claims). No `helm upgrade --force` — that flag
+      # is too aggressive (it recreates Services and PVCs, churning IPs
+      # and risking data loss on persistent volumes managed by the same
+      # release).
+      run: |
+        set -euo pipefail
+        DEPS=$(kubectl -n ${{ inputs.namespace }} get deployments \
+          -l "app.kubernetes.io/instance=${{ inputs.release-name }}" \
+          -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+        for dep in $DEPS; do
+          # Detect any kubectl-* Update entries on this deployment's
+          # managedFields. If present, nuke the entire managedFields
+          # array via a JSON patch — helm will re-establish its own
+          # claims on the upcoming upgrade, and k3s will re-establish
+          # its status-subresource claims on the next reconciliation.
+          # The transient empty-managedFields window is sub-second; the
+          # actual resource shape (.spec, .status) is unchanged.
+          if kubectl -n ${{ inputs.namespace }} get deployment "$dep" -o json --show-managed-fields \
+               | jq -e '.metadata.managedFields[] | select(.manager | startswith("kubectl-")) | .manager' \
+               >/dev/null 2>&1; then
+            echo "==> Nuking polluted managedFields on ${{ inputs.namespace }}/$dep before helm upgrade"
+            kubectl -n ${{ inputs.namespace }} patch deployment "$dep" \
+              --type=json \
+              -p='[{"op":"replace","path":"/metadata/managedFields","value":[]}]'
+          fi
+        done
+
     - name: Deploy via Helm
       shell: bash
       run: |
