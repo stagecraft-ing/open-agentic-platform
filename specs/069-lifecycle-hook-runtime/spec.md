@@ -19,6 +19,16 @@ code_aliases: ["LIFECYCLE_HOOK_RUNTIME"]
 sources: ["claude-code"]
 implements:
   - path: packages/hookify-rule-engine
+compliance:
+  - framework: "owasp-asi-2026"
+    # The Architecture §"Hook definition schema" ships canonical worked
+    # examples (block-credential-read, block-force-push) — these patterns
+    # are part of what the spec delivers, not just capabilities the
+    # runtime would *enable*. ASI05 via the credential-read hook example
+    # (blocks FileRead on `*.env`/`*.key`/`*.pem`). ASI09 via the
+    # force-push and credential-write hook examples (blocks destructive
+    # Bash patterns at PreToolUse).
+    controls: ["ASI05", "ASI09"]
 ---
 
 # Feature Specification: Lifecycle Hook Runtime

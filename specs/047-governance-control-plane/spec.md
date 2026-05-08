@@ -19,6 +19,13 @@ summary: >
   (full/restricted/read-only/suspended based on drift), and cryptographic proof chains for
   audit trails.
 code_aliases: ["GOVERNANCE_CONTROL_PLANE", "POLICY_COMPILER"]
+compliance:
+  - framework: "owasp-asi-2026"
+    # Coherence scheduler + privilege-degradation + secrets scanner.
+    # ASI01 via FR-008 drift-driven privilege degradation; ASI03 via
+    # monotonic degradation (no self-promotion); ASI05 via secrets-scanner
+    # gate (FR-007); ASI10 via coherence-scoring drift detection.
+    controls: ["ASI01", "ASI03", "ASI05", "ASI10"]
 ---
 
 # Feature Specification: governance control plane (policy compiler)

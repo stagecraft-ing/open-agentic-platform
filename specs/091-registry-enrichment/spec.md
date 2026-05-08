@@ -68,6 +68,7 @@ preflight) cannot derive execution boundaries from specs.
 ## Maintenance Notes
 
 - _2026-05-05:_ `crates/featuregraph/tests/golden/features_graph.json` regenerated to reflect spec 119 lifecycle promotion (draft → approved/complete) and spec 087 NF-007 maintenance entry. The golden's `status` / `implementation` fields per feature are mechanical projections of the registry; refreshes that follow lifecycle flips on amender specs (here: spec 119 amends 087/092/094/099/000) are routine and do not require a content change to this spec — recording the maintenance event here is sufficient.
+- _2026-05-07:_ `crates/featuregraph/tests/golden/features_graph.json` regenerated again, this time absorbing accumulated drift from prior PRs (specs 117 and 118 status `draft → approved` + `implementation pending → complete`; spec 136 status `draft → approved`; specs 141 and 142 added). Triggered by the pre-disclosure hardening pass that added `compliance:` frontmatter to specs 047/067/068/069/116/121 — that pass surfaced the stale golden because it was the first `make ci` run on this branch since the upstream PRs landed. Same routine-maintenance disposition as the 2026-05-05 entry: `FeatureEntry` does not carry a `compliance` field, so the compliance edits themselves do not change the graph; the diff is solely the pre-existing lifecycle/membership drift.
 
 ## Dependencies
 

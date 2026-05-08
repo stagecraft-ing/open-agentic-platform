@@ -19,6 +19,18 @@ implements:
   - path: deny.toml
   - path: .github/workflows/ci-supply-chain.yml
   - path: Makefile
+compliance:
+  - framework: "owasp-asi-2026"
+    # ASI04 (supply-chain compromise) via the gate composition: cargo-deny
+    # advisory + license + banned-crate policies across every Rust manifest
+    # plus pnpm/npm audit on the JavaScript surface, blocking from day 0.
+    # NOTE: the "ASI04 = supply-chain compromise" name is asserted by
+    # docs/launch/gaps.md (line 116) and matches OWASP ASI 2026 framework
+    # naming, but is not itself defined in any OAP file-of-record. A future
+    # spec should fold canonical control definitions into a registry-consumer
+    # config so this mapping is mechanically defensible rather than
+    # human-asserted.
+    controls: ["ASI04"]
 summary: >
   Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle
   for advisories, licenses, and banned crates across every Rust manifest in

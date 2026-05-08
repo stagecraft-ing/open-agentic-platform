@@ -19,6 +19,19 @@ code_aliases: ["PERMISSION_RUNTIME"]
 sources: ["claude-code"]
 implements:
   - path: crates/policy-kernel
+compliance:
+  - framework: "owasp-asi-2026"
+    # ASI03 via FR-008 (enterprise policy `deny` is immutable across tiers,
+    # cannot be overridden by user `allow` — explicit anti-escalation).
+    # ASI05 via FR-002+FR-004 deny-rule schema (worked example denies
+    # FileWrite to `.env`, `*.key`, `*.pem`).
+    # ASI09 via same schema (worked example denies `rm -rf *`,
+    # `git push --force *`).
+    # ASI10 covers the *escalation-tracking* aspect of behavior drift via
+    # FR-005 denial tracking with N-strike session block; this is depth on
+    # spec 102's runtime-drift coverage rather than a primary drift-detection
+    # mechanism.
+    controls: ["ASI03", "ASI05", "ASI09", "ASI10"]
 ---
 
 # Feature Specification: Permission Runtime and Settings Layering

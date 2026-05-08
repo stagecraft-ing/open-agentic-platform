@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:89806ddc59fb1921b8957742a40d32468e15c3d9574a342c7e4c1bee2116741a",
+  "graph_fingerprint": "sha256:fb335dd67f5d3ec9d15afd6f8fd1d67ed96031e36974fe33d36ae3ae49c47755",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2247,8 +2247,8 @@
       "feature_id": "117-release-artifact-attestations",
       "title": "Release Artifact Attestations — SBOM + build provenance for every shipped binary",
       "spec_path": "specs/117-release-artifact-attestations/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -2266,8 +2266,8 @@
       "feature_id": "118-workflow-spec-traceability",
       "title": "Workflow-to-Spec Traceability — surface \"# Spec:\" headers in the codebase index",
       "spec_path": "specs/118-workflow-spec-traceability/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
@@ -2609,7 +2609,7 @@
       "feature_id": "136-tenant-hello-demo-service",
       "title": "Tenant-hello — stagecraft-deployable tenant reference service",
       "spec_path": "specs/136-tenant-hello-demo-service/spec.md",
-      "status": "draft",
+      "status": "approved",
       "implementation": "in-progress",
       "governance": "low",
       "owner": "bart",
@@ -2691,6 +2691,38 @@
       "depends_on": [
         "112",
         "138",
+        "139"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "141-aim-vue-node-source-id-template-name-alignment",
+      "title": "Align aim-vue-node scaffold_source_id with template.json::templateName",
+      "spec_path": "specs/141-aim-vue-node-source-id-template-name-alignment/spec.md",
+      "status": "approved",
+      "implementation": "in-progress",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "140"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "142-factory-id-columns-text-cutover",
+      "title": "Align factory adapter/process ID column types with substrate-projected synthetic IDs",
+      "spec_path": "specs/142-factory-id-columns-text-cutover/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
         "139"
       ],
       "impl_files": [],
@@ -3068,6 +3100,13 @@
       "severity": "error",
       "path": "crates/factory-engine/src/artifact_store.rs",
       "message": "Malformed Spec directive: // Spec: specs/082-artifact-integrity-platform-hardening/spec.md — FR-020, FR-021",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/bin/build_certificate.rs",
+      "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md — FR-003, FR-009",
       "suggested_fix": "Fix header format"
     },
     {

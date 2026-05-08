@@ -17,6 +17,13 @@ summary: >
   with a discoverable, composable tool surface.
 code_aliases: ["TOOL_DEFINITION_REGISTRY"]
 sources: ["claude-code"]
+compliance:
+  - framework: "owasp-asi-2026"
+    # ASI03 via FR-004 (`can_use()` consults policy kernel before every
+    # tool dispatch — single gate against unauthorised tool invocation).
+    # ASI09 via NF-003 (pre-execute JSON Schema validation — invalid input
+    # MUST return error without invoking the tool).
+    controls: ["ASI03", "ASI09"]
 ---
 
 # Feature Specification: Tool Definition Registry

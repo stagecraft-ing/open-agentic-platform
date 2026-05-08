@@ -43,6 +43,16 @@ implements:
   - path: crates/factory-engine/skills/business-requirements-analyst.md
   - path: crates/factory-engine/skills/validate.md
   - path: platform/services/stagecraft/api/governance/provenancePolicy.ts
+compliance:
+  - framework: "owasp-asi-2026"
+    # ASI01 via FR-001/FR-024 (validator + QG-13_ExternalProvenance enforce
+    # that every external-entity claim cite the corpus verbatim or carry an
+    # ASSUMPTION tag — directly defeats the model-prior-driven fabrication
+    # mode documented in §1's CFS forensic).
+    # ASI10 via FR-022 (citation drift detection: when extractedCorpusHash
+    # changes, every DERIVED claim's quoteHash is re-validated; orphans
+    # downgrade — claim-level drift detection).
+    controls: ["ASI01", "ASI10"]
 ---
 
 # 121 — Claim Provenance Enforcement

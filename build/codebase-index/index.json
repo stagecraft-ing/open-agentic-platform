@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "186e7cb422212f6de71611c2433aedfbe15f907e079518dd6c6128336dc077e1",
+    "contentHash": "cbfcc6c867fcf12ec4f222353ec0e7550106ad8c8060e1d63b7f02b9dbd88a94",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15,10 +15,6 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"118-workflow-spec-traceability\" declares implements path \"build/codebase-index/CODEBASE-INDEX.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
