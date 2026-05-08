@@ -59,6 +59,31 @@ kubectl wait --for=condition=Available deployment/cert-manager-webhook \
 # auth.${DOMAIN}, deploy.${DOMAIN}). HTTP-01 challenge resolves via the
 # nginx ingress, which is fine for hosts whose A records point at the
 # cluster IP.
+#
+# Issuer selection policy (decided 2026-05-08, spec 143 step 7):
+#
+#   - letsencrypt-prod (HTTP-01) is the DEFAULT for new ingresses,
+#     including any future apex subdomain (foo.${DOMAIN}). Stagecraft,
+#     Rauthy, deployd-api all keep this issuer.
+#
+#   - letsencrypt-dns01 (DNS-01 via Hetzner webhook) is reserved for
+#     ingresses that NEED DNS-01 specifically. Today that's the spec-143
+#     MinIO public ingress (minio.${DOMAIN}); the rationale recorded
+#     there generalises to "high-renewal-cost outages preferred to be
+#     avoided" (e.g. anything where a 90-day cert failure would block
+#     end-user data flow). For new public hosts that don't fit that
+#     bill, prefer letsencrypt-prod (simpler, no DNS API token
+#     dependency).
+#
+#   - Wildcard certs (when the platform grows past three public
+#     subdomains and the per-host cert ceremony becomes load-bearing)
+#     will live on letsencrypt-dns01 — HTTP-01 cannot solve wildcards.
+#     That promotion is its own decision, not made today.
+#
+# When adding a new ingress, copy the cert-manager.io/cluster-issuer
+# annotation from a similar existing ingress; if you find yourself
+# guessing, document the choice in the new ingress's PR rather than
+# assuming.
 info "Creating Let's Encrypt HTTP-01 ClusterIssuer..."
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@example.com}"
 cat <<EOF | kubectl apply -f -
