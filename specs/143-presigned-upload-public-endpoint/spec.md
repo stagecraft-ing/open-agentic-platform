@@ -567,6 +567,10 @@ review:
    integration tests for FR-009 and FR-009b.
 2. **Encore secret declaration.** Add `S3_PUBLIC_ENDPOINT` to
    `infra.config.hetzner.json` and `infra.config.json` env mapping.
+   _(Landed bundled into step 1's commit — the two-line config edit
+   was on the critical path for the test fixture to resolve the new
+   secret. The "eight steps" header is preserved as a planning
+   surface; logically step 2 is complete via commit `14c5c56`.)_
 3. **Orphan-row sweeper.** Implement the
    `knowledge-orphan-imported-sweeper` CronJob per FR-010 covering
    both Class A (delete) and Class B (self-heal via
