@@ -398,6 +398,121 @@ export const requestUpload = api(
 // Confirm upload (verifies object landed in S3, updates size)
 // ---------------------------------------------------------------------------
 
+/**
+ * Spec 143 FR-010 — `confirmUploadCore` is the extracted core of the
+ * user-driven `confirmUpload` API handler. Same pattern as
+ * `listKnowledgeObjectsCore` from `c1b5d51`: the API wrapper handles
+ * auth + project-scope resolution; the core does the actual work and
+ * is callable from non-API contexts (the spec-143 orphan-sweeper Class B
+ * path; future tests).
+ *
+ * Audit-actor surface matches spec 143 FR-010: user-driven confirms
+ * pass the requesting user's id and OMIT `source`; sweeper-driven
+ * confirms pass `SYSTEM_USER_ID` and set `source = "orphan_sweep_class_b"`.
+ * The action name (`knowledge.upload_confirmed`) is the same for both —
+ * dashboards see all confirms uniformly; analytics distinguish via the
+ * actor + metadata.source pair.
+ */
+export type ConfirmUploadActor = {
+  userId: string;
+  source?: string;
+};
+
+export async function confirmUploadCore(args: {
+  knowledgeObjectId: string;
+  projectId: string;
+  bucket: string;
+  actor: ConfirmUploadActor;
+}): Promise<KnowledgeObjectRow> {
+  const [obj] = await db
+    .select()
+    .from(knowledgeObjects)
+    .where(
+      and(
+        eq(knowledgeObjects.id, args.knowledgeObjectId),
+        eq(knowledgeObjects.projectId, args.projectId)
+      )
+    )
+    .limit(1);
+
+  if (!obj) {
+    throw APIError.notFound("knowledge object not found");
+  }
+
+  if (obj.state !== "imported") {
+    throw APIError.invalidArgument(
+      `cannot confirm upload: object is in state "${obj.state}"`
+    );
+  }
+
+  // Verify the object actually exists in S3
+  const meta = await headObject(args.bucket, obj.storageKey);
+
+  if (!meta) {
+    throw APIError.invalidArgument(
+      "upload not found in object store — upload the file before confirming"
+    );
+  }
+
+  // Trust the client-reported sizeBytes from requestUpload, but overwrite
+  // with the S3 HEAD value when it disagrees and is non-zero. Some
+  // S3-compatible stores omit Content-Length on HEAD; in that case we keep
+  // the request-time size rather than clobbering it with 0.
+  const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+  if (meta.contentLength > 0 && meta.contentLength !== obj.sizeBytes) {
+    updateSet.sizeBytes = meta.contentLength;
+  }
+
+  const [updated] = await db
+    .update(knowledgeObjects)
+    .set(updateSet)
+    .where(eq(knowledgeObjects.id, args.knowledgeObjectId))
+    .returning();
+
+  const auditMetadata: Record<string, unknown> = {
+    sizeBytes: updated.sizeBytes,
+    contentType: meta.contentType,
+    projectId: args.projectId,
+  };
+  if (args.actor.source !== undefined) {
+    auditMetadata.source = args.actor.source;
+  }
+
+  await db.insert(auditLog).values({
+    actorUserId: args.actor.userId,
+    action: "knowledge.upload_confirmed",
+    targetType: "knowledge_object",
+    targetId: args.knowledgeObjectId,
+    metadata: auditMetadata,
+  });
+
+  // Spec 115 FR-008 — automatic extraction. Enqueue happens after the
+  // audit insert; failure to enqueue MUST NOT roll back the upload (the
+  // bytes are already in S3). The Retry endpoint re-enqueues if needed.
+  // FR-003 dedup makes concurrent enqueue safe — see spec 143 FR-010
+  // concurrency model layer 2/3.
+  try {
+    await enqueueExtraction({
+      knowledgeObjectId: args.knowledgeObjectId,
+      projectId: args.projectId,
+      reason: "upload_confirmed",
+    });
+  } catch (err) {
+    log.error("confirmUploadCore: enqueueExtraction failed; upload kept", {
+      objectId: args.knowledgeObjectId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  log.info("upload confirmed", {
+    objectId: args.knowledgeObjectId,
+    sizeBytes: updated.sizeBytes,
+    source: args.actor.source ?? "user",
+  });
+
+  return updated;
+}
+
 export const confirmUpload = api(
   {
     expose: true,
@@ -412,82 +527,11 @@ export const confirmUpload = api(
     const auth = getAuthData()!;
     const scope = await loadProjectScope(req.projectId, auth.orgId);
 
-    const [obj] = await db
-      .select()
-      .from(knowledgeObjects)
-      .where(
-        and(
-          eq(knowledgeObjects.id, req.id),
-          eq(knowledgeObjects.projectId, scope.projectId)
-        )
-      )
-      .limit(1);
-
-    if (!obj) {
-      throw APIError.notFound("knowledge object not found");
-    }
-
-    if (obj.state !== "imported") {
-      throw APIError.invalidArgument(
-        `cannot confirm upload: object is in state "${obj.state}"`
-      );
-    }
-
-    // Verify the object actually exists in S3
-    const meta = await headObject(scope.bucket, obj.storageKey);
-
-    if (!meta) {
-      throw APIError.invalidArgument(
-        "upload not found in object store — upload the file before confirming"
-      );
-    }
-
-    // Trust the client-reported sizeBytes from requestUpload, but overwrite
-    // with the S3 HEAD value when it disagrees and is non-zero. Some
-    // S3-compatible stores omit Content-Length on HEAD; in that case we keep
-    // the request-time size rather than clobbering it with 0.
-    const updateSet: Record<string, unknown> = { updatedAt: new Date() };
-    if (meta.contentLength > 0 && meta.contentLength !== obj.sizeBytes) {
-      updateSet.sizeBytes = meta.contentLength;
-    }
-
-    const [updated] = await db
-      .update(knowledgeObjects)
-      .set(updateSet)
-      .where(eq(knowledgeObjects.id, req.id))
-      .returning();
-
-    await db.insert(auditLog).values({
-      actorUserId: auth.userID,
-      action: "knowledge.upload_confirmed",
-      targetType: "knowledge_object",
-      targetId: req.id,
-      metadata: {
-        sizeBytes: updated.sizeBytes,
-        contentType: meta.contentType,
-        projectId: scope.projectId,
-      },
-    });
-
-    // Spec 115 FR-008 — automatic extraction. Enqueue happens after the
-    // audit insert; failure to enqueue MUST NOT roll back the upload (the
-    // bytes are already in S3). The Retry endpoint re-enqueues if needed.
-    try {
-      await enqueueExtraction({
-        knowledgeObjectId: req.id,
-        projectId: scope.projectId,
-        reason: "upload_confirmed",
-      });
-    } catch (err) {
-      log.error("confirmUpload: enqueueExtraction failed; upload kept", {
-        objectId: req.id,
-        err: err instanceof Error ? err.message : String(err),
-      });
-    }
-
-    log.info("upload confirmed", {
-      objectId: req.id,
-      sizeBytes: updated.sizeBytes,
+    const updated = await confirmUploadCore({
+      knowledgeObjectId: req.id,
+      projectId: scope.projectId,
+      bucket: scope.bucket,
+      actor: { userId: auth.userID },
     });
 
     return { object: updated };
