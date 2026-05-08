@@ -1140,22 +1140,47 @@ sweep run 404s; reconciliation never executes.
 
 Three viable fixes (none chosen on this branch):
 
-1. Flip the handler to `expose: true` and add an Encore
-   middleware-style auth gate (header bearer token shared with
-   the K8s CronJob via a Secret). Smallest diff; keeps the
-   route exposed to the public surface but rejects callers
-   without the secret.
+1. Flip the handler to `expose: true` and validate the request
+   through the existing platform M2M auth surface
+   (`api/auth/m2mAuth.ts::validateM2mRequest` — OIDC
+   `client_credentials` JWT verified via Rauthy JWKS,
+   scope-gated). Already in production use across `policy.ts`
+   (`platform:policy:read`), `audit.ts` (`platform:audit:write`),
+   `grants.ts` (`platform:grants:read`), and `deployd-api-rs`
+   (`DEPLOYD_REQUIRED_SCOPE`); the static-token fallback that
+   would otherwise be the "smallest diff" form of this option
+   was deliberately removed in spec 087 Phase 5, so any
+   "shared bearer token via Secret" framing regresses against
+   the platform's settled M2M policy. The K8s CronJob fetches
+   a token from Rauthy `/auth/v1/oidc/token` (client_credentials
+   grant) using a sweeper-scoped Rauthy client whose credentials
+   are mounted as a K8s Secret, then POSTs to the handler with
+   `Authorization: Bearer <jwt>`. Adds one new scope per sweeper
+   class — `platform:knowledge:sweep` and siblings, matching the
+   `platform:<service>:<verb>` shape of the existing `platform:`
+   scope vocabulary — so a leaked sweeper credential is bounded
+   by exactly which sweeps the client is granted, not the full
+   M2M surface.
 2. Run the sweep work in-process via a tiny helper service that
    the K8s CronJob doesn't need to reach over HTTP — e.g. a
    sidecar container in the stagecraft pod that imports
    `runOrphanSweep` directly and is triggered by the K8s
    CronJob via `kubectl exec`. Awkward; introduces a sidecar
-   for one cron.
+   pattern that has no current platform precedent — no service
+   in `platform/charts/` ships a sidecar today, so this option
+   sets a new infra primitive's precedent for one cron.
 3. Bind a second HTTP listener inside Encore restricted to a
    private port, expose the internal routes there, and have
-   the K8s CronJob curl that port. Requires Encore-runtime
-   plumbing that may not exist; closest to the original
-   `expose: false` intent.
+   the K8s CronJob curl that port. Closest in intent to the
+   original `expose: false` framing. **Deferred pending
+   framework-feature verification** — initial scoping assumed
+   Encore exposes a second-listener primitive; reading the
+   service's `encore.app` config and grepping the codebase
+   surfaced no such primitive, and no service in this repo
+   registers a second listener. Not eliminated on merit; the
+   option becomes implementable if a future Encore release
+   adds the primitive (or if verification of the current
+   release surfaces one we missed).
 
 Follow-up tracker (parking lot):
 
