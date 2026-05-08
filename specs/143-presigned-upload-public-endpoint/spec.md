@@ -434,6 +434,49 @@ helper default (3600s in `storage.ts:132`); the spec adds an
 explicit `expiresInSeconds` argument at every download call site
 rather than mutating the default.
 
+### 4.7 Cert issuance topology (amendment, 2026-05-08)
+
+The original §4.3a / FR-008 design assumed cert issuance for
+`minio.stagecraft.ing` would use DNS-01 via a Hetzner cert-manager
+webhook. That assumption conflated *cluster host* with *authoritative
+DNS host* — they are independently configurable, and on the current
+deployment they diverge:
+
+- **Cluster host** — Hetzner Cloud (k3s on HCloud servers), provisioned
+  by `platform/infra/hetzner/post-create.sh`.
+- **Authoritative DNS host** — Cloudflare, fronting `stagecraft.ing`
+  and all subdomains. The Hetzner DNS API was never wired authoritatively
+  for the domain; `HCLOUD_DNS_API_TOKEN` is unset by design, not by
+  oversight. The DNS-01 ClusterIssuer block in `post-create.sh:106-188`
+  is gated on that token and consequently never created
+  `letsencrypt-dns01` in the cluster — the MinIO ingress annotation
+  pointing at it would have failed to issue if the upgrade had ever
+  been attempted before this amendment.
+
+Resolution — use HTTP-01 via the cluster's existing `letsencrypt-prod`
+ClusterIssuer:
+
+- The cluster bootstrap already provisions `letsencrypt-prod` at
+  `post-create.sh:87-104` (HTTP-01 challenge, nginx solver). It is
+  `Ready: True` and has issued certs for `stagecraft.ing` /
+  `auth.stagecraft.ing` / `deploy.stagecraft.ing` for ~29 days.
+- HTTP-01's "first rollout" failure mode (the original FR-008
+  rationale) is bootstrap-specific: it bites when the ingress class
+  is not yet routing on the cluster. By the time spec 143's MinIO
+  ingress is added, `nginx-ingress` is already serving the parent
+  domain's other hosts; `minio.stagecraft.ing` joins the same routing
+  fabric and HTTP-01 succeeds without ordering hazard.
+- The DNS-01 + Hetzner-webhook code block in `post-create.sh` remains
+  in place as a dormant fallback, gated on the same `HCLOUD_DNS_API_TOKEN`
+  check. A future migration of authoritative DNS to a provider with a
+  cert-manager webhook (Hetzner DNS, Cloudflare DNS-01, Route 53, etc.)
+  re-activates it without resurrecting deleted code.
+
+Wildcard certs (`*.stagecraft.ing`) and DNS-only-validatable certs
+remain DNS-01 territory by ACME design; they are out of scope for
+spec 143 and trigger the future migration above when needed.
+FR-008 is amended to reflect this scoping.
+
 ## 5. Functional Requirements
 
 - **FR-001** — `storage.ts` MUST expose two `S3Client` instances:
@@ -488,14 +531,27 @@ rather than mutating the default.
   configuration churn and supports local dev where MinIO at
   `http://localhost:9000` is reachable from the browser directly.
 - **FR-008** — DNS for `minio.stagecraft.ing` is a deployment-time
-  concern documented in `platform/infra/hetzner/post-create.sh`. The
-  cert-manager flow MUST use **DNS-01** challenge, not HTTP-01;
-  Hetzner DNS supports DNS-01 and DNS-01 dodges the ingress
-  bootstrap order problem permanently (HTTP-01 fails on first
-  rollout if ingress is not yet routing, and re-bites on every
-  renewal during DNS maintenance). DNS-01 also unblocks wildcard
-  certs as the platform adds future public subdomains. Spec CI
-  checks MUST NOT depend on live DNS.
+  concern documented in `platform/infra/hetzner/post-create.sh`.
+  **Amended 2026-05-08, see §4.7.** The cert-manager flow MUST use
+  **DNS-01** when the authoritative DNS provider supports a
+  cert-manager webhook AND a wildcard or DNS-only-validatable cert
+  is required. **HTTP-01** is acceptable for single-host
+  non-wildcard certs once the cluster's nginx ingress is already
+  routing the parent domain — at that point the ingress-bootstrap
+  failure mode that motivated the original DNS-01 mandate no longer
+  applies. Hetzner deployments today use HTTP-01 via the cluster's
+  pre-existing `letsencrypt-prod` ClusterIssuer for
+  `minio.stagecraft.ing`: authoritative DNS for `stagecraft.ing` is
+  at Cloudflare (not Hetzner DNS), so the Hetzner DNS-01 webhook
+  is not applicable to this deployment topology. The DNS-01
+  ClusterIssuer block in `post-create.sh` is preserved as dormant
+  (gated on `HCLOUD_DNS_API_TOKEN`, which remains unset) so a
+  future authoritative-DNS migration can re-activate it without
+  resurrecting deleted code. Future specs that need wildcard or
+  DNS-only-validatable certs MUST first migrate to a DNS provider
+  with a cert-manager webhook (Hetzner DNS, Cloudflare DNS-01
+  solver, Route 53, etc.). Spec CI checks MUST NOT depend on live
+  DNS.
 - **FR-009** — A regression test in
   `platform/services/stagecraft/api/knowledge/storage.integration.test.ts`
   MUST stand up a fake S3-compatible server bound to a non-default
@@ -768,7 +824,9 @@ review:
      `api/knowledge/uploadLimits.ts`; the comment in
      `uploadLimits.ts` calls out the propagation requirement and
      the chart `--set` line points back to it)
-   - `--set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-dns01`
+   - `--set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-prod`
+     (was `letsencrypt-dns01` pre-amendment; see §4.7 / amended FR-008
+     for the topology rationale.)
 
    Recommended (defence-in-depth + config coherence):
    - `--set environment.MINIO_BROWSER=off` — disables the console
@@ -787,9 +845,17 @@ review:
    Verify chart-knob names against the chart version pinned at
    deployment time before the PR (the `environment` vs `extraEnv`
    distinction; see §4.4).
-7. **DNS / cert-manager.** Provision the DNS record for
-   `minio.stagecraft.ing` and the cert-manager `ClusterIssuer`
-   (`letsencrypt-dns01`) using DNS-01 per FR-008.
+7. **DNS / cert-manager.** **Amended 2026-05-08 (see §4.7 / FR-008).**
+   Provision the DNS A record for `minio.stagecraft.ing` at the
+   authoritative DNS provider (Cloudflare for the current deployment;
+   Hetzner DNS would be the alternative if/when migrated) pointing at
+   the cluster's nginx ingress IP. Use the existing `letsencrypt-prod`
+   ClusterIssuer (HTTP-01 via the nginx solver) — already provisioned
+   at `post-create.sh:87-104` and verified `Ready: True` against the
+   deployed cluster. The DNS-01 + Hetzner-webhook block at
+   `post-create.sh:106-188` stays in place as a dormant fallback;
+   activating it requires migrating authoritative DNS to a provider
+   with a cert-manager webhook, which is out of scope here.
 
 7b. **Self-hosted scheduler (K8s CronJob).** Add a Kubernetes
     `CronJob` resource to `platform/infra/hetzner/post-create.sh`
@@ -1124,3 +1190,38 @@ than carrying a clean "implemented" status that misrepresents
 the cluster's actual behaviour. A spec that lies about its own
 state corrodes the audit trail — the value of the spec spine is
 the trust that markdown matches truth.
+
+**L-005 — Spec assumptions about deployment topology must be
+verified, not inferred from the cloud-platform name.** Spec 143's
+original FR-008 mandated DNS-01 via a Hetzner cert-manager webhook on
+the assumption that "Hetzner cluster" implied "Hetzner DNS as the
+authoritative provider for the cluster's domain." It does not. The
+authoritative DNS for `stagecraft.ing` is at Cloudflare and was never
+migrated to Hetzner DNS during cluster bootstrap. The DNS-01 webhook
+block at `post-create.sh:106-188` was added but never fired — gated
+on `HCLOUD_DNS_API_TOKEN`, which was never set — and the MinIO
+ingress annotation pointed at a `letsencrypt-dns01` ClusterIssuer
+that consequently never existed. Implementation surfaced this only
+when the helm upgrade was actually attempted on 2026-05-08:
+`kubectl get clusterissuer` showed `letsencrypt-prod` (HTTP-01) only.
+
+Generalisation: cluster-bootstrap topology — authoritative DNS
+provider, ingress controller class, cert-manager solver chain,
+identity provider — is *separately* configurable from the cloud
+platform that hosts the cluster. Spec FRs that pin behaviour against
+one of these surfaces MUST verify the surface against the running
+cluster (or against the bootstrap script that provisions it), not
+infer it from the cloud-platform name. Same shape as L-002:
+deployment-target alignment is a spec-review checklist item, not an
+inference. Add to the §6.4-style review checklist used at FR-review
+time: "for every infra-touching FR, name the authoritative provider
+of every external surface the FR depends on (DNS, identity, object
+storage, secrets), and cross-check against the bootstrap script."
+
+Affected: FR-008 relaxed from "MUST DNS-01" to "MUST DNS-01 when the
+authoritative DNS provider supports a cert-manager webhook AND
+wildcard or DNS-only validation is required; HTTP-01 acceptable for
+single-host non-wildcard certs once the parent domain's ingress is
+already routing." See §4.7 for the topology rationale and §7 step 7
+for the implementation path. Future authoritative-DNS migrations
+re-activate the dormant DNS-01 path without code resurrection.
