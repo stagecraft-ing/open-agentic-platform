@@ -148,6 +148,39 @@ docker-push-hetzner: docker-build-hetzner
 	docker push $(HETZNER_REGISTRY)/deployd-api:latest
 	docker push $(HETZNER_REGISTRY)/stagecraft:latest
 
+# ============================================================
+# Hetzner — fast docker build (cancel-then-scrape)
+# ============================================================
+# `encore build docker` is pathologically slow on macOS (single-threaded
+# go-containerregistry gzip compression of the bundled source layer
+# routinely takes 15+ min for ~200 MB images). The fast path documented
+# at services/stagecraft/docs/encore-custom-dockerfile.md cancels the
+# encore build once main.mjs is on disk and feeds it into a hand-rolled
+# Dockerfile via services/stagecraft/scripts/docker-build.sh — typical
+# total time 30–60s.
+#
+# STAGECRAFT_TAG controls the resulting tag. Defaults to ":latest"; set
+# to a SHA / hotfix marker for traceable hotfix deploys, e.g.
+#   make docker-push-hetzner-fast STAGECRAFT_TAG=hotfix-2026-05-07-knowledge-list
+STAGECRAFT_TAG ?= latest
+STAGECRAFT_ARCH ?= amd64
+
+docker-build-stagecraft-fast:
+	cd services/stagecraft && ./scripts/docker-build.sh \
+		$(HETZNER_REGISTRY)/stagecraft:$(STAGECRAFT_TAG) \
+		--arch $(STAGECRAFT_ARCH)
+
+docker-push-stagecraft-fast: docker-build-stagecraft-fast
+	docker push $(HETZNER_REGISTRY)/stagecraft:$(STAGECRAFT_TAG)
+
+docker-build-hetzner-fast:
+	cd services/deployd-api-rs && docker build -t $(HETZNER_REGISTRY)/deployd-api:latest .
+	$(MAKE) docker-build-stagecraft-fast
+
+docker-push-hetzner-fast: docker-build-hetzner-fast
+	docker push $(HETZNER_REGISTRY)/deployd-api:latest
+	docker push $(HETZNER_REGISTRY)/stagecraft:$(STAGECRAFT_TAG)
+
 destroy-hetzner:
 	hetzner-k3s delete --config $(HETZNER_ROOT)/cluster.yaml
 
