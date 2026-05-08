@@ -80,21 +80,29 @@ runs:
       # failed because the 2026-05-07 hotfix used `kubectl set image
       # deployment/stagecraft-api` to ship hotfix-2026-05-07-knowledge-list,
       # leaving kubectl-set as a field manager that helm couldn't
-      # reclaim. This step strips kubectl-* Update managers from any
-      # Deployment matching the release's instance label so helm can
-      # re-establish ownership cleanly.
+      # reclaim.
       #
-      # Scope: only Deployments under this release (label selector); only
-      # kubectl-* manager entries (preserves helm's own claims and k3s's
-      # status-subresource claims). No `helm upgrade --force` — that flag
-      # is too aggressive (it recreates Services and PVCs, churning IPs
-      # and risking data loss on persistent volumes managed by the same
-      # release).
+      # First-revision implementation (commit 5dbb056) tried a JSON
+      # patch to nuke managedFields entirely. That worked at first
+      # glance but left the resource in a state where K8s assigned a
+      # synthetic `before-first-apply` manager to the orphaned fields,
+      # which helm's server-side apply still couldn't force-claim from.
+      # The conflict transformed from kubectl-set → before-first-apply
+      # but didn't go away.
+      #
+      # Current implementation: transfer ownership to helm via SSA
+      # force-conflicts. We re-apply the live deployment spec under
+      # `--field-manager=helm --force-conflicts`, which makes helm the
+      # owner of every field currently on the resource. Helm's
+      # subsequent upgrade then sees its own manager and applies its
+      # new manifest cleanly. No `helm upgrade --force` — that flag is
+      # too aggressive (it recreates Services and PVCs, churning IPs
+      # and risking data loss on persistent volumes).
       run: |
         set -euo pipefail
         # Iterate every Deployment in the target namespace. The
-        # per-deployment kubectl-* detection below gates the actual
-        # patch, so this is safe (no-op on clean deployments). An
+        # per-deployment pollution detection below gates the actual
+        # ownership transfer, so untouched deployments are no-ops. An
         # earlier revision used `-l app.kubernetes.io/instance=<release>`
         # but the stagecraft chart's Deployment template predates the
         # helm-standard labels and only carries `managed-by=Helm`, so
@@ -103,20 +111,32 @@ runs:
         DEPS=$(kubectl -n ${{ inputs.namespace }} get deployments \
           -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
         for dep in $DEPS; do
-          # Detect any kubectl-* Update entries on this deployment's
-          # managedFields. If present, nuke the entire managedFields
-          # array via a JSON patch — helm will re-establish its own
-          # claims on the upcoming upgrade, and k3s will re-establish
-          # its status-subresource claims on the next reconciliation.
-          # The transient empty-managedFields window is sub-second; the
-          # actual resource shape (.spec, .status) is unchanged.
+          # Detect ownership pollution: kubectl-* entries (manual ops)
+          # OR a before-first-apply entry (orphaned fields from a prior
+          # JSON-patch nuke or pre-SSA history). Either case prevents
+          # helm from server-side-applying without conflict.
           if kubectl -n ${{ inputs.namespace }} get deployment "$dep" -o json --show-managed-fields \
-               | jq -e '.metadata.managedFields[] | select(.manager | startswith("kubectl-")) | .manager' \
+               | jq -e '.metadata.managedFields[] | select(.manager | test("^(kubectl-|before-first-apply)")) | .manager' \
                >/dev/null 2>&1; then
-            echo "==> Nuking polluted managedFields on ${{ inputs.namespace }}/$dep before helm upgrade"
-            kubectl -n ${{ inputs.namespace }} patch deployment "$dep" \
-              --type=json \
-              -p='[{"op":"replace","path":"/metadata/managedFields","value":[]}]'
+            echo "==> Transferring field ownership to helm for ${{ inputs.namespace }}/$dep"
+            # Re-apply live spec under --field-manager=helm
+            # --force-conflicts. This claims every field currently on
+            # the resource for the helm manager, releasing kubectl-*
+            # and before-first-apply claims. Strip system-injected
+            # fields (uid, resourceVersion, status, etc) that kubectl
+            # apply would reject as immutable.
+            kubectl -n ${{ inputs.namespace }} get deployment "$dep" -o json \
+              | jq 'del(
+                    .metadata.managedFields,
+                    .metadata.creationTimestamp,
+                    .metadata.resourceVersion,
+                    .metadata.uid,
+                    .metadata.generation,
+                    .status,
+                    .spec.template.metadata.creationTimestamp
+                  )' \
+              | kubectl apply --server-side --force-conflicts \
+                  --field-manager=helm -f -
           fi
         done
 
