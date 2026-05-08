@@ -6,14 +6,16 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-09"
-amended: "2026-04-29"
-amendment_record: "119"
+amended: "2026-05-08"
+amendment_record: "143-presigned-upload-public-endpoint"
 summary: >
   Unified architecture connecting web and desktop planes into one system with
   a first-class knowledge intake domain and project-scoped entity hierarchy.
   §5.3 adds the duplex sync substrate contract (FR-SYNC-001..010). Originally
   authored as "Unified Workspace Architecture" (2026-04-09); amended by spec
-  119 (2026-04-29) when the workspace layer was collapsed into project.
+  119 (2026-04-29) when the workspace layer was collapsed into project, and
+  by spec 143 (2026-05-08) to add the browser-reachability requirement to
+  NF-002 for the object-store endpoint backing presigned uploads.
 code_aliases: ["UNIFIED_PROJECT"]
 depends_on:
   - "074"  # factory-ingestion
@@ -468,7 +470,7 @@ CREATE TABLE document_bindings (
 ## 10. Non-Functional Requirements
 
 - **NF-001:** Knowledge objects must be immutable once in state `available`. Updates create new versions with provenance linking to the prior version.
-- **NF-002:** The object store must be S3-compatible (MinIO for local dev, any S3-compatible provider for production).
+- **NF-002:** The object store must be S3-compatible (MinIO for local dev, any S3-compatible provider for production). The endpoint used for browser-issued presigned URLs MUST be reachable from the browser origin under TLS — separately configurable from the server-side endpoint where the two diverge. _(Browser-reachability clause added by spec 143 amendment, 2026-05-08; see spec 143 for the dual-endpoint storage client design and Hetzner ingress topology. Pre-amendment text was silent on browser-reachability, which let the Hetzner deployment ship with a cluster-internal `S3_ENDPOINT` that no browser PUT could reach — see spec 143 §1 evidence ledger.)_
 - **NF-003:** Adding a new connector type requires implementing one trait/interface and registering it — no changes to the knowledge object model or factory integration.
 - **NF-004:** OPC must function fully offline. Platform connectivity is optional for all execution operations. Sync happens opportunistically when connectivity is available.
 - **NF-005:** The WebSocket relay must be project-scoped. An OPC instance only receives events for projects it is authenticated to.

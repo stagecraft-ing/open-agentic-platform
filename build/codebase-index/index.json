@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "26ebf76d63dc98474031dd7e4bc75b5bce80a095a1468270cc9f7b5d34d6928e",
+    "contentHash": "b6a300a39d2957314d1f54eba60c52849866d409c72cffdf9c49c7c8fd6c22f5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -2521,7 +2521,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "119-project-as-unit-of-governance",
+        "amendmentRecord": "143-presigned-upload-public-endpoint",
         "dependsOn": [
           "074",
           "075",
