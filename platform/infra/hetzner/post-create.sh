@@ -369,4 +369,70 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
     --wait --timeout 300s
 fi
 
+# --- K8s CronJobs for self-hosted scheduler primitives (spec 143 §4.5b) ---
+#
+# Encore's CronJob primitive is scheduled by Encore Cloud's platform —
+# in self-hosted deployments (encore build docker + a K8s cluster with
+# no Encore Cloud connection), the declaration is a no-op for
+# scheduling. The handler endpoint is registered and callable but
+# nothing calls it on schedule.
+#
+# Empirically confirmed on this cluster 2026-05-08: 2h of stagecraft-api
+# logs show zero invocations of the spec-115 extraction-staleness
+# sweeper despite its every:"1m" declaration. Without a K8s-side
+# scheduler, every Encore CronJob in the codebase is silently broken
+# in production.
+#
+# Spec 143 owns its own sweeper's fix (this block). The other affected
+# sweepers — spec 115 FR-006, spec 087 §4.4 connector sync, spec 124
+# factory-runs sweeper — carry the same gap and need their own
+# follow-up amendments. See spec 143 §12 L-001 for the systemic
+# finding.
+
+info "Creating spec-143 orphan-imported sweeper K8s CronJob..."
+cat <<EOF | kubectl apply -f -
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: knowledge-orphan-imported-sweeper
+  namespace: stagecraft-system
+  labels:
+    app.kubernetes.io/name: knowledge-orphan-imported-sweeper
+    app.kubernetes.io/part-of: stagecraft
+    spec.oap/id: "143-presigned-upload-public-endpoint"
+    spec.oap/fr: "FR-010"
+spec:
+  # Spec 143 FR-010 cadence — every 30 minutes. Cleanup latency =
+  # grace (3600s default) + cadence (1800s) = 90min worst case.
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: curl
+              image: curlimages/curl:8.10.1
+              command:
+                - sh
+                - -c
+                - |
+                  curl -sS -fail -X POST \
+                    -H 'Content-Type: application/json' \
+                    --max-time 280 \
+                    http://stagecraft-api.stagecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep
+              resources:
+                requests:
+                  memory: "16Mi"
+                  cpu: "10m"
+                limits:
+                  memory: "32Mi"
+                  cpu: "100m"
+EOF
+
 info "Infrastructure bootstrap complete"

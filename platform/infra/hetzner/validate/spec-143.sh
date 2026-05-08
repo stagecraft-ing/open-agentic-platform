@@ -284,24 +284,51 @@ if [ "$BLOB_LANDED" != "present" ]; then
 fi
 ok "blob present at /export/${TEST_BUCKET}/${TEST_KEY}"
 
-contract_section "Sweeper cron is registered with 30-minute cadence"
-SWEEPER_SCHEDULE=$(kubectl -n stagecraft-system get cronjob \
-  -l 'encore.dev/cron-id=knowledge-orphan-imported-sweeper' \
-  -o jsonpath='{.items[0].spec.schedule}' 2>/dev/null || true)
+contract_section "Self-hosted scheduler — K8s CronJob registered (spec 143 §4.5b / L-001)"
+# Per spec 143 L-001 (2026-05-08 amendment), Encore's CronJob primitive
+# is platform-driven and a no-op in self-hosted deployments. The actual
+# production scheduler is the K8s CronJob provisioned by post-create.sh.
+# Validate it exists, schedule matches, and has fired at least once
+# (after the first cadence interval has elapsed since deploy).
+SWEEPER_SCHEDULE=$(kubectl -n stagecraft-system get cronjob knowledge-orphan-imported-sweeper \
+  -o jsonpath='{.spec.schedule}' 2>/dev/null || true)
 if [ -z "$SWEEPER_SCHEDULE" ]; then
-  # Encore manages its CronJobs internally, may not surface as k8s CronJobs
-  # when the runtime is stagecraft-API only. Fall back to checking the
-  # endpoint exists.
-  if kubectl -n stagecraft-system exec deploy/stagecraft-api -- sh -c "
-    curl -sS -o /dev/null -w '%{http_code}' http://localhost:4000/internal/knowledge/orphan-imported-sweep -X POST
-  " 2>/dev/null | grep -qE "^2|^4"; then
-    ok "/internal/knowledge/orphan-imported-sweep endpoint reachable"
-  else
-    contract_fail "orphan-imported-sweeper not registered. Check deployd-api pod logs and Encore cron registration."
-  fi
-else
-  ok "k8s cronjob schedule: ${SWEEPER_SCHEDULE}"
+  contract_fail "K8s CronJob 'knowledge-orphan-imported-sweeper' not found in stagecraft-system.
+  Re-run post-create.sh; the spec 143 §4.5b amendment requires this resource as the
+  production scheduler. The Encore CronJob declaration alone is a no-op in
+  self-hosted deploys (no Encore Cloud scheduler present)."
 fi
+ok "K8s CronJob schedule: ${SWEEPER_SCHEDULE}"
+
+# Liveness check: lastScheduleTime within 2× cadence ago. CronJobs that
+# have NEVER fired (just-deployed cluster) won't have lastScheduleTime
+# set yet — that's an exit-2 prerequisite (deploy is too fresh), not
+# exit-3 contract failure.
+LAST_SCHEDULE=$(kubectl -n stagecraft-system get cronjob knowledge-orphan-imported-sweeper \
+  -o jsonpath='{.status.lastScheduleTime}' 2>/dev/null || true)
+if [ -z "$LAST_SCHEDULE" ]; then
+  prereq_fail "CronJob has never fired (no .status.lastScheduleTime).
+  Either the cluster was deployed less than 30 minutes ago and the cron
+  hasn't hit its first cadence yet, or the controller is wedged. Wait
+  30+ minutes and re-run; if still empty, check the
+  cronjob-controller-manager pod."
+fi
+
+# Compute age of last schedule in seconds.
+LAST_SCHEDULE_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_SCHEDULE" +%s 2>/dev/null \
+  || date -d "$LAST_SCHEDULE" +%s 2>/dev/null || echo 0)
+NOW_EPOCH=$(date +%s)
+AGE_SEC=$((NOW_EPOCH - LAST_SCHEDULE_EPOCH))
+# 2× cadence = 3600s for the every-30m schedule.
+if [ "$AGE_SEC" -gt 3600 ]; then
+  contract_fail "CronJob lastScheduleTime is ${AGE_SEC}s old — beyond the
+  2× cadence window (3600s). The cron is registered but has stopped
+  firing. Investigate the cronjob-controller, recent K8s events, and
+  the most recent job's pod logs:
+    kubectl -n stagecraft-system get jobs -l job-name=knowledge-orphan-imported-sweeper-...
+    kubectl -n stagecraft-system describe cronjob knowledge-orphan-imported-sweeper"
+fi
+ok "CronJob last fired ${AGE_SEC}s ago (within 2× cadence window)"
 
 # Cleanup runs from the EXIT trap; if we got here, all checks passed.
 exit 0
