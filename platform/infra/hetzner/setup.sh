@@ -327,6 +327,7 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=STAGECRAFT_DB_URL="$STAGECRAFT_DB_URL" \
   --from-literal=SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}" \
   --from-literal=S3_ENDPOINT="http://minio.stagecraft-system.svc.cluster.local:9000" \
+  --from-literal=S3_PUBLIC_ENDPOINT="${S3_PUBLIC_ENDPOINT:-https://minio.${DOMAIN}}" \
   --from-literal=S3_REGION="us-east-1" \
   --from-literal=S3_ACCESS_KEY="$MINIO_ROOT_USER" \
   --from-literal=S3_SECRET_KEY="$MINIO_ROOT_PASSWORD" \

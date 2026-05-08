@@ -194,9 +194,44 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
   helm repo add minio https://charts.min.io/ 2>/dev/null || true
   helm repo update minio >/dev/null
 
-  # Standalone mode: single replica, single drive. Cluster-internal only;
-  # no ingress because presigned URLs are issued by stagecraft and the
-  # signing surface should not be reachable from the public internet.
+  # Standalone mode: single replica, single drive. Two services:
+  # - API service: ClusterIP for in-cluster server ops + public ingress
+  #   on minio.${DOMAIN} for browser presigned-PUT (spec 143 FR-005).
+  # - Console service: ClusterIP only, no public ingress (operators
+  #   reach it via kubectl port-forward).
+  #
+  # Spec 143 history: the original Hetzner deployment shipped with NO
+  # ingress on either service because the platform was provisioned for
+  # a server-side-proxy upload flow (option B) that the application
+  # code never matched — storage.ts always issued presigned URLs to
+  # the browser. The browser couldn't reach the cluster-internal
+  # MinIO, so uploads silently failed for months. Spec 143 closed the
+  # gap on the option-A side: dual-endpoint storage client + public
+  # ingress here + CORS contract for the stagecraft origin.
+  #
+  # Required envs (FR-006a):
+  #   MINIO_SERVER_URL — must match the public ingress hostname so
+  #     SigV4 canonicalisation produces the same signature browser-side
+  #     and server-side. Without this MinIO recomputes against its
+  #     in-cluster hostname and rejects with SignatureDoesNotMatch.
+  #   MINIO_API_CORS_ALLOW_ORIGIN — strict to the stagecraft origin;
+  #     no wildcards.
+  #
+  # Recommended envs (defence-in-depth):
+  #   MINIO_BROWSER=off — disables the console daemon globally. The
+  #     console is also not exposed via ingress (consoleService.type
+  #     remains ClusterIP), so this is belt-and-suspenders.
+  #   MINIO_BROWSER_REDIRECT_URL — informational; coherent state if
+  #     a future operator flips the console back on.
+  #
+  # Body-size annotation: 1g matches KNOWLEDGE_UPLOAD_MAX_BYTES in
+  # platform/services/stagecraft/api/knowledge/uploadLimits.ts (spec
+  # 143 FR-011). When that constant changes, this value MUST change
+  # to match — uploadLimits.ts has the propagation comment pointing
+  # back here.
+  #
+  # Cluster-issuer letsencrypt-dns01 is created by the post-create.sh
+  # block below (cert-manager + Hetzner DNS webhook).
   helm upgrade --install minio minio/minio \
     --namespace stagecraft-system \
     --set rootUser="$MINIO_ROOT_USER" \
@@ -208,6 +243,17 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
     --set resources.requests.cpu=100m \
     --set service.type=ClusterIP \
     --set consoleService.type=ClusterIP \
+    --set environment.MINIO_SERVER_URL="https://minio.${DOMAIN}" \
+    --set environment.MINIO_API_CORS_ALLOW_ORIGIN="${APP_BASE_URL}" \
+    --set environment.MINIO_BROWSER="off" \
+    --set environment.MINIO_BROWSER_REDIRECT_URL="https://minio.${DOMAIN}" \
+    --set ingress.enabled=true \
+    --set ingress.ingressClassName=nginx \
+    --set "ingress.hosts[0]=minio.${DOMAIN}" \
+    --set "ingress.tls[0].secretName=minio-tls" \
+    --set "ingress.tls[0].hosts[0]=minio.${DOMAIN}" \
+    --set "ingress.annotations.nginx\.ingress\.kubernetes\.io/proxy-body-size=1g" \
+    --set "ingress.annotations.cert-manager\.io/cluster-issuer=letsencrypt-dns01" \
     --wait --timeout 300s
 fi
 
