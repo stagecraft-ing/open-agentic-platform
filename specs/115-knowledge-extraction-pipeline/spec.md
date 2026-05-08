@@ -6,6 +6,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-27"
+amended: "2026-05-08"
+amendment_record: "143-presigned-upload-public-endpoint"
 risk: high
 summary: >
   Replaces the manual click-through `imported → extracting → extracted` state
@@ -178,6 +180,19 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
 - **FR-001**: A new PubSub topic `KnowledgeExtractionRequestTopic` MUST be defined in `api/knowledge/extractionEvents.ts` with `deliveryGuarantee = "at-least-once"` and payload `{ extractionRunId: string }`. It MUST follow the spec 114 `cloneEvents.ts` pattern.
 - **FR-002**: A new table `knowledge_extraction_runs` MUST exist with columns `(id UUID PK, knowledge_object_id UUID NOT NULL FK, workspace_id UUID NOT NULL FK, status text NOT NULL, extractor_kind text, extractor_version text, agent_run JSONB, token_spend JSONB, cost_usd NUMERIC, error JSONB, attempts INT NOT NULL DEFAULT 0, queued_at TIMESTAMPTZ NOT NULL DEFAULT now(), running_at TIMESTAMPTZ, completed_at TIMESTAMPTZ, duration_ms INT)`. `status` is one of `pending | running | completed | failed | abandoned`.
 - **FR-003**: An `enqueueExtraction({ knowledgeObjectId, workspaceId, reason })` helper in `extractionCore.ts` MUST: (a) compute idempotency key `(workspaceId, contentHash, extractorVersion)` from the object row, (b) if a non-failed run already exists for that key in the last 24h return its id without inserting, (c) otherwise insert a row at `status = "pending"` and publish the topic, (d) if publish fails mark the row `failed` with `error.code = "enqueue_failed"` so retry logic can recover.
+
+  _Load-bearing for spec 143 (amendment, 2026-05-08)._ Spec 143
+  FR-010's orphan-imported sweeper Class B path (sweeper-driven
+  self-heal vs concurrent user `confirmUpload`) relies on this
+  dedup window's non-zero length and SELECT-then-INSERT shape to
+  collapse concurrent enqueues to a single extraction run under
+  sequential timing. Future amendments to this FR — relaxing the
+  24h window, removing the dedup, or replacing it with a strict
+  unique-index pattern — MUST update spec 143's race contract
+  (`§4.5 / FR-010` concurrency model layer 3) to match. The
+  `orphanSweeper.integration.test.ts` race-with-user case in spec
+  143 §8 asserts the loose `<= 2 runs` bound deliberately so it
+  does not over-couple to FR-003's specific window length.
 - **FR-004**: A new subscription `extractionWorker` MUST consume `KnowledgeExtractionRequestTopic`. On message: load the run, CAS-transition `pending → running` and stamp `runningAt`, advance `knowledge_objects.state` to `extracting` (if currently `imported`), invoke the dispatcher, write the typed `extraction_output` on success, advance object state to `extracted`, transition the run to `completed`, audit, and broadcast.
 - **FR-005**: The worker MUST be idempotent. A redelivered message whose run is already `running`, `completed`, `failed`, or `abandoned` MUST be a no-op (logged at `info`).
 - **FR-006**: A staleness sweeper (`scheduler.ts` cron, every 60s) MUST flip `running` runs whose `runningAt < now() - STAGECRAFT_EXTRACT_STALE_AFTER_SEC` (default 600s) to `failed` with `error.code = "worker_crashed"` and revert the object's `state` to `imported`.

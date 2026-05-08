@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "bcbe9194fb48b5d7cbd4bd728ad733e6753cf89aa09f31b924ed8adf7f4ed533",
+    "contentHash": "76359e39491bc38331de0001e0397f32b2fe926a99e9d158a8b32f908b1c6e92",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3312,6 +3312,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "143-presigned-upload-public-endpoint",
         "dependsOn": [
           "036",
           "047",
@@ -4658,7 +4659,8 @@
       },
       {
         "amends": [
-          "087-unified-workspace-architecture"
+          "087-unified-workspace-architecture",
+          "115-knowledge-extraction-pipeline"
         ],
         "dependsOn": [
           "087",

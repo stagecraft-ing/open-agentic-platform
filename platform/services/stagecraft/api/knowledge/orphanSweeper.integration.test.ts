@@ -273,19 +273,33 @@ describe("orphan-imported sweeper (spec 143 FR-010)", () => {
 
     expect(sweepResult.errored).toBe(0);
 
-    // Exactly one extraction run created (FR-003 dedup)
+    // Extraction run count: ASSERTED LOOSELY (<= 2). Spec 143 §FR-010
+    // concurrency model layer 3 documents the load-bearing dependency
+    // on spec 115 FR-003's SELECT-then-INSERT dedup pattern. Under
+    // sequential timing FR-003 collapses the second enqueue to
+    // outcome="deduped" and only one run exists; under tight contention
+    // both transactions can observe "no existing run" before either
+    // INSERTs, producing two pending runs. Both are acceptable —
+    // the worker is per-run idempotent and a doubled run is wasted-
+    // but-correct. Tightening to `toBe(1)` would over-couple this
+    // test to FR-003's specific window/atomicity and silently
+    // regress if FR-003 ever loosens.
     const runs = await db.execute<{ count: number }>(sql`
       SELECT COUNT(*)::int AS count
       FROM knowledge_extraction_runs
       WHERE knowledge_object_id = ${objectId}
         AND status IN ('pending', 'running', 'completed')
     `);
-    expect(runs.rows[0].count).toBe(1);
+    expect(runs.rows[0].count).toBeGreaterThanOrEqual(1);
+    expect(runs.rows[0].count).toBeLessThanOrEqual(2);
 
-    // Audit may double — at most two upload_confirmed rows. One from
-    // user (no metadata.source), one from sweeper (metadata.source =
-    // "orphan_sweep_class_b"). The user-vs-sweeper ordering is racy;
-    // the spec contract is "at most two", not "exactly two".
+    // Audit count: ASSERTED TIGHTLY (== 2). audit_log has no
+    // uniqueness constraint and both INSERTs succeed unconditionally
+    // when neither caller's confirmUploadCore throws. Spec 143
+    // §FR-010 layer 3 specifies the deterministic "two audit rows"
+    // outcome here: one from the user (no metadata.source, real
+    // userId) and one from the sweeper (metadata.source =
+    // "orphan_sweep_class_b", SYSTEM_USER_ID).
     const audits = await db.execute<{
       actor_user_id: string;
       metadata: Record<string, unknown>;
@@ -295,10 +309,9 @@ describe("orphan-imported sweeper (spec 143 FR-010)", () => {
       WHERE target_id = ${objectId} AND action = 'knowledge.upload_confirmed'
       ORDER BY created_at ASC
     `);
-    expect(audits.rows.length).toBeGreaterThanOrEqual(1);
-    expect(audits.rows.length).toBeLessThanOrEqual(2);
+    expect(audits.rows.length).toBe(2);
 
-    // If the sweeper landed an audit, it carries metadata.source.
+    // One sweeper audit, one user audit — distinguished by metadata.source.
     type AuditRow = {
       actor_user_id: string;
       metadata: Record<string, unknown>;
@@ -309,8 +322,12 @@ describe("orphan-imported sweeper (spec 143 FR-010)", () => {
     const userAudits = audits.rows.filter(
       (r: AuditRow) => r.metadata.source === undefined,
     );
-    expect(sweeperAudits.length).toBeLessThanOrEqual(1);
-    expect(userAudits.length).toBeLessThanOrEqual(1);
+    expect(sweeperAudits.length).toBe(1);
+    expect(userAudits.length).toBe(1);
+    expect(sweeperAudits[0].actor_user_id).toBe(
+      "00000000-0000-0000-0000-000000000000",
+    );
+    expect(userAudits[0].actor_user_id).toBe(USER_ID);
   });
 
   it("fresh rows past grace check are not touched", async () => {

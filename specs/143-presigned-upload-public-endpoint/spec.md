@@ -13,6 +13,7 @@ depends_on:
   - "115"  # knowledge-extraction-pipeline (downstream consumer of confirmed uploads)
 amends:
   - "087"  # extends NF-002 with the browser-reachability requirement
+  - "115"  # annotates FR-003 as load-bearing for spec 143 FR-010 race contract
 code_aliases: ["PRESIGNED_UPLOAD_PUBLIC_ENDPOINT"]
 implements:
   - path: platform/services/stagecraft/api/knowledge/storage.ts
@@ -545,10 +546,36 @@ rather than mutating the default.
      extraction run.
   3. **Sweeper Class B vs returning user.** A user who reopens a
      tab and triggers `confirmUpload` while the sweeper is mid-
-     flight produces the same shape as case 2: two
-     `knowledge.upload_confirmed` audits (one with
-     `metadata.source = "orphan_sweep_class_b"`, one without),
-     one extraction run. The race test in §8 pins this contract.
+     flight produces:
+     - **Two** `knowledge.upload_confirmed` audit rows (deterministic
+       when both transactions commit; one with `metadata.source =
+       "orphan_sweep_class_b"`, one without). The audit log has no
+       uniqueness constraint and both INSERTs succeed
+       unconditionally.
+     - **At most two** extraction runs, **modulo spec 115 FR-003's
+       dedup atomicity**. FR-003 (`extractionCore.ts:148-200`)
+       implements dedup as SELECT-then-INSERT, which has a
+       race window: two concurrent enqueues can both observe
+       "no existing run" and both INSERT, producing two pending
+       runs that the worker will then process serially. Under
+       sequential timing FR-003 collapses the second enqueue to
+       `outcome: "deduped"` and only one run exists; under
+       contention up to two runs may exist. Both outcomes are
+       acceptable — the worker is idempotent at the per-run level,
+       and a doubled run is wasted-but-correct.
+
+     **Load-bearing dependency on spec 115.** Spec 143's race
+     contract assumes spec 115 FR-003's dedup window is non-zero
+     and follows the SELECT-then-INSERT shape. Any future spec
+     that relaxes FR-003's window or removes the dedup entirely
+     weakens spec 143's race contract proportionately. Spec 115
+     carries the symmetric `amendment_record: 143-...` annotation
+     on FR-003 so the dependency is visible from both directions.
+     The race test in §8 asserts the looser bounds (`toBe(2)` for
+     audits, `toBeLessThanOrEqual(2)` for extraction runs)
+     accordingly; tightening to `== 1` would silently break if
+     FR-003's window were ever shortened to a sub-millisecond
+     value where the race window dominates.
 
   The action constant `KNOWLEDGE_UPLOAD_ORPHANED = "knowledge.upload_orphaned"`
   MUST be exported from
