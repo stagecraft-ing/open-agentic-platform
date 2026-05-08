@@ -47,6 +47,10 @@ tf-init:
 docker-push-azure:
 	az acr login -n stagecraftdevacr
 	cd services/deployd-api-rs && docker build -t stagecraftdevacr.azurecr.io/deployd-api:dev . && docker push stagecraftdevacr.azurecr.io/deployd-api:dev
+	# `encore build docker` packages whatever is on disk under web/build/;
+	# regenerate the react-router client tree first so bundled main.mjs and
+	# the static client tree share matching hashed asset names.
+	cd services/stagecraft && npm run build:frontend
 	cd services/stagecraft && encore build docker --config ./infra.config.json stagecraftdevacr.azurecr.io/stagecraft:dev && docker push stagecraftdevacr.azurecr.io/stagecraft:dev
 
 deploy-azure: tf-init
@@ -142,6 +146,12 @@ HETZNER_REGISTRY ?= ghcr.io/stagecraft-ing/open-agentic-platform
 
 docker-build-hetzner:
 	cd services/deployd-api-rs && docker build -t $(HETZNER_REGISTRY)/deployd-api:latest .
+	# `encore build docker` packages whatever is on disk under web/build/;
+	# it does not run npm scripts. Regenerate the react-router client tree
+	# first so the bundled main.mjs and the static client tree are pinned
+	# to the same hashed asset names. Skipping this ships stale frontend
+	# and breaks hydration (observed 2026-05-07 hotfix attempt).
+	cd services/stagecraft && npm run build:frontend
 	cd services/stagecraft && encore build docker --config ./infra.config.hetzner.json $(HETZNER_REGISTRY)/stagecraft:latest
 
 docker-push-hetzner: docker-build-hetzner
@@ -237,6 +247,10 @@ REGISTRY ?= ghcr.io/open-agentic-platform
 
 docker-build:
 	cd services/deployd-api && docker build -t $(REGISTRY)/deployd-api:dev .
+	# `encore build docker` packages whatever is on disk under web/build/;
+	# regenerate the react-router client tree first so bundled main.mjs and
+	# the static client tree share matching hashed asset names.
+	cd services/stagecraft && npm run build:frontend
 	cd services/stagecraft && encore build docker --config ./infra.config.json $(REGISTRY)/stagecraft:dev
 
 docker-push: docker-build
