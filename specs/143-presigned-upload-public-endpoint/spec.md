@@ -262,7 +262,7 @@ template. Two sub-options exist for routing:
 **4.3a Subdomain (chosen).** A dedicated host
 `https://minio.stagecraft.ing` resolves to the same cluster ingress
 IP as `stagecraft.ing`. nginx routes the request to the MinIO service
-in `stagecraft-system`. Three concrete settings are non-negotiable
+in `stagecraft-system`. Two concrete settings are non-negotiable
 because SigV4 covers the `Host` header — any rewrite mid-chain
 breaks signatures with cryptic `SignatureDoesNotMatch` errors:
 
@@ -273,9 +273,14 @@ breaks signatures with cryptic `SignatureDoesNotMatch` errors:
   on the MinIO container env. Required for SigV4 canonicalisation
   paths and console/redirect URLs. Without this, MinIO recomputes
   the canonical request against its in-cluster hostname and rejects.
-- **MinIO browser redirect.** `MINIO_BROWSER_REDIRECT_URL` matched
-  to the same host (informational; the console is disabled per §4.4
-  but the env should be coherent if it ever flips on).
+
+Console security is a separate concern from SigV4 (see §4.4). The
+console-disable knob (`MINIO_BROWSER`) is a defence-in-depth
+recommendation, not a SigV4 prerequisite — earlier draft revisions
+of this spec conflated the two. Setting `MINIO_BROWSER_REDIRECT_URL`
+is also informational (the console is not exposed via public ingress
+regardless), kept for config coherence in case the console is ever
+re-enabled.
 
 CORS allows the `https://stagecraft.ing` origin and the
 `PUT, GET, HEAD, OPTIONS` methods. Body size limit at the ingress
@@ -304,21 +309,38 @@ Public exposure is equal in both options — both are public TLS
 endpoints. The rejection is about the engineering hygiene of the
 boundary, not its security posture.
 
-### 4.4 CORS and MinIO chart wiring
+### 4.4 CORS, console security, and MinIO chart wiring
 
 MinIO's CORS surface is configured through environment variables on
-the MinIO container. The relevant envs:
+the MinIO container. The required envs (SigV4 hard requirements +
+CORS contract):
 
 ```
 MINIO_SERVER_URL=https://minio.stagecraft.ing
 MINIO_API_CORS_ALLOW_ORIGIN=https://stagecraft.ing
-MINIO_BROWSER=off
 ```
 
-`MINIO_BROWSER=off` disables the MinIO console; it stays disabled
-on the public ingress. The console pod (`minio-console` ClusterIP
-service) remains internal and is reachable through `kubectl port-
-forward` for operators only.
+**Console security.** The MinIO web console runs as a separate
+service inside the pod (`consoleService` in the chart). Spec 143's
+console-security posture is **layered**:
+
+1. **Primary control: no public ingress.** `consoleService.type =
+   ClusterIP` (chart default for our deployment) means the console
+   service is never reachable from the internet, regardless of the
+   `MINIO_BROWSER` env value. Only the API service gets the public
+   ingress (`minio.stagecraft.ing`); the console stays in-cluster.
+   Operator access is via `kubectl port-forward` (or an in-cluster
+   `mc` pod).
+2. **Defence-in-depth: `MINIO_BROWSER=off`.** Disables the console
+   daemon globally. Recommended for deployments where operators
+   prefer `mc` CLI over the web console; harmless to set even if
+   the team uses port-forward access (port-forward will return no
+   connection, and operators fall through to `mc`).
+
+The implementation MAY choose either layer or both. Spec 143
+recommends both for the Hetzner production deployment; local-dev
+deployments typically leave `MINIO_BROWSER` unset for operator
+ergonomics.
 
 The browser's preflight `OPTIONS` request needs `Access-Control-
 Allow-*` headers for `PUT, GET, HEAD, OPTIONS`, `Content-Type`, and
@@ -441,15 +463,21 @@ rather than mutating the default.
   `Host: minio.stagecraft.ing` header end-to-end so SigV4
   canonicalisation matches between browser and MinIO. Required:
   (a) ingress config sets `proxy_set_header Host $host;`, (b) the
-  MinIO container env sets `MINIO_SERVER_URL=https://minio.stagecraft.ing`,
-  (c) `MINIO_BROWSER=off`. Failure to set any of (a)–(c) produces
-  `SignatureDoesNotMatch` with no other diagnostic; the
-  implementation PR MUST verify the chain with a real preflight +
-  PUT against the deployed cluster. Recommended (not required):
-  set `MINIO_BROWSER_REDIRECT_URL=https://minio.stagecraft.ing` for
-  config coherence — it is dead env while `MINIO_BROWSER=off`, but
-  setting it now means a future operator who flips the console on
-  inherits a correct redirect rather than a stale one.
+  MinIO container env sets `MINIO_SERVER_URL=https://minio.stagecraft.ing`.
+  Failure to set either of (a)–(b) produces `SignatureDoesNotMatch`
+  with no other diagnostic; the implementation PR MUST verify the
+  chain with a real preflight + PUT against the deployed cluster.
+
+  Recommended (not required) for config coherence:
+  - `MINIO_BROWSER_REDIRECT_URL=https://minio.stagecraft.ing` —
+    dead env while the console is not exposed via ingress; setting
+    it now means a future operator who flips the console on
+    inherits a correct redirect rather than a stale one.
+
+  Console security is a separate concern handled by §4.4 (no
+  public console ingress; optional `MINIO_BROWSER=off` for
+  defence-in-depth). Earlier draft revisions of this FR
+  incorrectly listed `MINIO_BROWSER=off` as a SigV4 requirement.
 - **FR-007** — When `S3_PUBLIC_ENDPOINT` is unset, behaviour MUST
   be identical to the pre-spec-143 baseline (single-endpoint mode).
   This preserves AWS S3 / public-endpoint deployments without
@@ -661,18 +689,37 @@ review:
    `.env.example` (default to the documented production host).
 6. **MinIO chart wiring.** Update the MinIO Helm release in
    `platform/infra/hetzner/post-create.sh` to add ingress + env:
+
+   Required (SigV4 + CORS):
    - `--set environment.MINIO_SERVER_URL=https://minio.stagecraft.ing`
    - `--set environment.MINIO_API_CORS_ALLOW_ORIGIN=https://stagecraft.ing`
-   - `--set environment.MINIO_BROWSER=off`
+
+   Required (ingress topology):
    - `--set ingress.enabled=true`,
      `--set ingress.hosts[0]=minio.stagecraft.ing`,
      `--set ingress.tls[0].secretName=minio-tls`,
      `--set ingress.tls[0].hosts[0]=minio.stagecraft.ing`
-   - `--set ingress.annotations.\"nginx.ingress.kubernetes.io/proxy-body-size\"=1g`
-   - `--set ingress.annotations.\"cert-manager.io/cluster-issuer\"=letsencrypt-dns01`
-   Also update the comment block at `post-create.sh:198-199` (which
-   currently documents the rejected server-side-proxy intent — see
-   §1.2) to reflect the actual A-with-hardening design.
+   - `--set ingress.annotations."nginx\.ingress\.kubernetes\.io/proxy-body-size"=1g`
+     (value MUST match `KNOWLEDGE_UPLOAD_MAX_BYTES` from
+     `api/knowledge/uploadLimits.ts`; the comment in
+     `uploadLimits.ts` calls out the propagation requirement and
+     the chart `--set` line points back to it)
+   - `--set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-dns01`
+
+   Recommended (defence-in-depth + config coherence):
+   - `--set environment.MINIO_BROWSER=off` — disables the console
+     daemon. Console security is also achieved by
+     `consoleService.type=ClusterIP` (existing config; no public
+     ingress on the console service), so this is belt-and-
+     suspenders, not a hard requirement.
+   - `--set environment.MINIO_BROWSER_REDIRECT_URL=https://minio.stagecraft.ing`
+     — informational; coherent state for any future operator who
+     flips the console back on.
+
+   Also update the stale comment block at `post-create.sh:198-199`
+   (which currently documents the rejected server-side-proxy intent
+   — see §1.2) to reflect the actual A-with-hardening design.
+
    Verify chart-knob names against the chart version pinned at
    deployment time before the PR (the `environment` vs `extraEnv`
    distinction; see §4.4).
