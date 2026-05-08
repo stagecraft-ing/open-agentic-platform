@@ -37,6 +37,7 @@ implements:
   - path: platform/infra/hetzner/validate/spec-143.sh
   - path: platform/charts/stagecraft/values.yaml
   - path: platform/charts/stagecraft/values-hetzner.yaml
+  - path: platform/charts/stagecraft/templates/deployment.yaml  # §12 L-003 — render imagePullPolicy from values
 summary: >
   Browser uploads via presigned PUT have never landed in MinIO on the
   Hetzner deployment because the server-issued presigned URL points at
@@ -964,3 +965,82 @@ the first question at FR-010 review, not a discovery during
 post-completion validation. Add deployment-target verification
 to the spec review checklist for any FR that depends on
 platform primitives.
+
+**L-003 — Cluster-state surfaces must have exactly one writer.**
+On 2026-05-08 a `setup.sh` run during spec 143 infra provisioning
+silently rolled the stagecraft pod back ~7 hours of code while the
+DB stayed forward-migrated. Symptoms: `listProjects` /
+`listAdapters` / `getUpstreams` all 500'd because the running
+binary queried `workspace_id` (dropped by spec 119 migration 27),
+`factory_adapters` (dropped by spec 139 migration 34), and
+`factory_source` (dropped by spec 140 migration 36). The user
+saw "no projects", "no factory adapters", and `/app/factory` 500.
+
+Mechanism — dual writers on the same field:
+
+- CD (`cd-stagecraft.yml`) ran on every push to main and called
+  `helm upgrade --install stagecraft … --set image.tag=sha-${SHA}`,
+  correctly pinning the deployment to an immutable tag.
+- `setup.sh` ran on every operator infra change and called
+  `helm upgrade --install stagecraft … -f values-hetzner.yaml`
+  with no `--set image.tag` override. `values-hetzner.yaml`
+  shipped `tag: latest`, which won the helm field-manager
+  contention and rewrote the deployment to `:latest`.
+- `imagePullPolicy: IfNotPresent` (K8s default that survived
+  through helm's strategic merge) then resolved `:latest` to
+  whatever digest happened to be cached on the node — which was
+  the install-time digest from 28 days prior, not GHCR's actual
+  current `:latest`.
+
+The root failure mode was not the cache. The cache was the
+tiebreaker. The root failure mode was that two systems claimed
+ownership of `Deployment.spec.template.spec.containers[0].image`
+without coordinating, and the loser silently regressed.
+
+Fix — single-writer the surface:
+
+- `values-hetzner.yaml` no longer ships `tag: …`. The field is
+  intentionally unset; CD passes `--set image.tag=sha-${SHA}`
+  on every deploy and is the sole authority.
+- `setup.sh` no longer calls `helm upgrade` for stagecraft. It
+  runs `kubectl rollout restart deploy/stagecraft-api` — the
+  right verb for "secrets rotated, re-read" — guarded for the
+  fresh-cluster case where the deployment doesn't exist yet.
+- `imagePullPolicy: Always` is set in `values-hetzner.yaml` as
+  defence-in-depth against any future scenario where a mutable
+  tag gets reintroduced. With sha-pinned tags this is a no-op;
+  with mutable tags it's correctness.
+- The chart's `deployment.yaml` now renders `imagePullPolicy`
+  from `.Values.image.pullPolicy` (default `IfNotPresent`).
+  Previously the field was absent entirely, leaving it to K8s
+  admission defaults — a non-deterministic surface.
+
+Generalisation (the rule, not the instance):
+
+> Any cluster-state surface — image tag, replica count,
+> resource limits, ingress host, secret reference — must have
+> **exactly one writer** by design, not by hope. If two systems
+> can write the same field, document which is authoritative,
+> remove the other's write path, and fail-fast at install time
+> if both try. "Both writers happen to agree today" is not a
+> design; it's a latent bug.
+
+Same shape as L-001: a documented manual step (setup.sh's
+helm-upgrade) silently undid the automation (CD's sha-pinned
+tag). Same shape as the 2026-05-07 helm-deploy field-manager
+incident: `kubectl set image` and `helm upgrade` both wrote
+`Deployment.spec.template.spec.containers[0].image`, and the
+field-manager metadata desynchronised. Three incidents, one
+class. Worth treating "single-writer per cluster-state surface"
+as a platform-wide invariant going forward, not a per-incident
+fix.
+
+Affected scope:
+
+- Stagecraft chart + setup.sh (fixed in the same commit as this
+  amendment).
+- `deployd-api` chart + setup.sh helm-upgrade for deployd-api
+  almost certainly carries the same shape (setup.sh:347-354).
+  Not fixed here to keep blast radius bounded; tracked as
+  follow-up. Same review for any future per-environment
+  values-*.yaml that ships an `image.tag`.

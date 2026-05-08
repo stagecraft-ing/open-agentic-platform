@@ -333,15 +333,20 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=S3_SECRET_KEY="$MINIO_ROOT_PASSWORD" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-info "Deploying Stagecraft..."
-helm upgrade --install stagecraft "$CHARTS_ROOT/stagecraft" \
-  --namespace stagecraft-system \
-  -f "$CHARTS_ROOT/stagecraft/values.yaml" \
-  -f "$CHARTS_ROOT/stagecraft/values-hetzner.yaml" \
-  --set "ingress.host=${DOMAIN}" \
-  --set "oidc.endpoint=https://auth.${DOMAIN}" \
-  --set "oidc.deploydAudience=https://deploy.${DOMAIN}" \
-  --wait --timeout 600s
+info "Refreshing stagecraft pods to pick up new secrets..."
+# Spec 143 §12 L-003 — CD owns the stagecraft helm release. setup.sh
+# does NOT helm-upgrade stagecraft because doing so applied
+# values-hetzner.yaml's `tag: latest` which clobbered CD's
+# sha-pinned tag and caused a stale-pod-against-forward-DB
+# regression on 2026-05-08. Single writer for the helm field-manager
+# surface; restart is the right verb for "secrets rotated, re-read".
+if kubectl get deploy stagecraft-api -n stagecraft-system >/dev/null 2>&1; then
+  kubectl rollout restart deploy/stagecraft-api -n stagecraft-system
+  kubectl rollout status deploy/stagecraft-api -n stagecraft-system --timeout=600s
+  ok "stagecraft-api rollout complete"
+else
+  warn "stagecraft-api deployment not yet provisioned (fresh cluster). CD will create it on first push to main; re-run setup.sh after CD lands to refresh secrets."
+fi
 
 info "Deploying Deployd-API..."
 helm upgrade --install deployd-api "$CHARTS_ROOT/deployd-api" \
