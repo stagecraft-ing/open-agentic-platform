@@ -493,3 +493,28 @@ Web (stagecraft.ing)= governance and management plane
 ```
 
 The factory is not merely turning prompts into code. It is operating over a governed body of project knowledge. Cross-project knowledge use happens via the clone pipeline (specs 113, 114), which copies into the destination — superseding the original 087 model where multiple projects shared a workspace knowledge corpus via `document_bindings`.
+
+## 12. Open issues / follow-ups (amendment, 2026-05-08)
+
+This section was opened by the spec 143 implementation (Hetzner end-to-end deploy on 2026-05-08) surfacing a data-integrity finding that belongs on this spec's surface — `object_store_bucket` is defined here in §9 / NF-002. Future entries land here.
+
+**FU-005 — Bucket-name-length validation at project creation.** S3 (and S3-compatible backends including MinIO) rejects bucket names longer than 63 characters per the AWS S3 bucket-naming rules. Stagecraft project creation currently composes `object_store_bucket` (defined here in §9, browser-reachability requirement added in NF-002 by spec 143) by concatenating an `oap-stagecraft-ing-` prefix with the project slug; long project names produce buckets that exceed the ceiling and silently fail to be created in MinIO when the first upload is requested. The project row is otherwise valid, so the failure is invisible to the project list — it manifests only when `mc share upload` / `putObject` is finally called and errors with "Bucket name cannot be longer than 63 characters".
+
+Empirical evidence (Hetzner cluster, 2026-05-08): a project named "CFS Emergency Family Violence Services Funding Request Portal" produced bucket `oap-stagecraft-ing-cfs-emergency-family-violence-services-funding-request-portal` (80 chars). The bucket was never created in MinIO; every upload to that project would have failed at the storage layer. Surfaced during spec 143 deploy validation when the validate script's `ORDER BY created_at ASC LIMIT 1` query happened to pick this project as the canary — see spec 143 §12 FU-004(a) for the script-side fixture fix.
+
+Required fix at the schema / project-creation surface (this is the **production data-integrity** fix; the script-side fix lives on spec 143 as FU-004(a)):
+
+1. **Runtime guard at project creation.** Stagecraft's project-creation handler MUST reject (or truncate with a deterministic suffix) a composed bucket name whose length exceeds 63 characters. Surface as `APIError.invalidArgument` with a user-facing diagnostic naming the limit, the prefix, and the slug headroom (`63 - length("oap-stagecraft-ing-") = 44 chars` available for the slug).
+
+2. **Schema-level CHECK constraint.** Add `CHECK (length(object_store_bucket) <= 63)` in a new migration on the `projects` table (or wherever the column ended up post-spec 119). The constraint protects against any future composer that drifts away from the slug-based shape.
+
+3. **Backfill audit.** `SELECT id, name, length(object_store_bucket) FROM projects WHERE length(object_store_bucket) > 63;` enumerates the affected set. The 2026-05-08 audit found at least one row (the CFS project named above). Existing violators need a remediation plan — likely a deterministic rehash to a 32-char prefix-keyed shape (e.g. `oap-stagecraft-ing-<sha256(slug)[:32]>`), since renaming a project's bucket post-hoc requires either a data move (none, in this case — the bucket was never created) or, for projects with extant blobs, a migration that copies objects bucket-to-bucket and updates `storage_key` references in `knowledge_objects`.
+
+4. **Slug derivation review.** The slug component should itself be length-bounded at the slug-derivation surface (likely the project-creation API handler or a UI-side pre-check), so the user gets feedback at name-entry time rather than at first-upload time. AWS S3 bucket names also restrict character set (lowercase, digits, hyphens, no consecutive hyphens, etc.); the derivation should cover those constraints in the same pass.
+
+Cross-reference:
+- Spec 143 §12 FU-004(a) — script-side fix to skip invalid buckets in the validate canary; complements but does not replace this fix.
+- Spec 119 — collapsed workspace into project; the `object_store_bucket` column moved with the collapse but the constraint did not exist in either pre- or post-spec-119 schema.
+- Spec 113 — project rename / clone; if rename re-derives the bucket, the same length guard must apply at rename time, otherwise a project that was created under the limit can drift over it via rename.
+
+Both FU-004 (test surface) and FU-005 (production surface) must land for the upload chain to be robust against arbitrary user-named projects. FU-005 is the load-bearing fix; FU-004 is the test-side defence so future deploys catch the failure mode before it reaches production data.

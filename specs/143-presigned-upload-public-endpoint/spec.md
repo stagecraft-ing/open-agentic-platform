@@ -1182,6 +1182,55 @@ Follow-up tracker (parking lot):
   as a single sibling spec that amends all three rather than
   three separate amendments, to keep the systemic finding
   visible and the gates aligned.
+- **FU-004 — `validate/spec-143.sh` fixture hardening.** The script
+  passes all PREREQUISITE checks today (DNS, TLS, ingress
+  reachability, CORS preflight) but its CONTRACT section has three
+  independent fixture bugs that fire even when the deployable
+  contract is green — see §13 for the authoritative evidence that
+  the contract is green despite the script's red. Fix all three in
+  one pass; until that lands, a CONTRACT-section red is **not** a
+  regression signal on this spec's deployable promises.
+
+  (a) **Project picker can hit an invalid bucket name.** The
+      `ORDER BY created_at ASC LIMIT 1` query at lines 135-136
+      picks the oldest project regardless of whether its
+      `object_store_bucket` is valid for S3. On the Hetzner
+      cluster (2026-05-08) the oldest project's bucket is 80 chars
+      (`oap-stagecraft-ing-cfs-emergency-family-violence-services-funding-request-portal`),
+      exceeding S3's 63-char ceiling; `mc share upload` errors with
+      "Bucket name cannot be longer than 63 characters" and
+      `contract_fail` fires. Fix at the script level: add
+      `WHERE length(object_store_bucket) <= 63` to the SELECT (and
+      ideally `AND name NOT ILIKE '%test%'` so the canary picks a
+      stable non-fixture bucket). The underlying production bug —
+      stagecraft creating projects with over-long buckets in the
+      first place — is filed as FU-005 on spec 087.
+  (b) **Presigned URL generator is the wrong shape.** Line 236-238
+      uses `mc share upload`, which returns a multipart **POST**
+      form (HTML form-upload contract); line 256-263 then runs
+      `curl -X PUT --data-binary` against the host-substituted URL.
+      POST and PUT signatures are not interconvertible — even with
+      a working bucket the test would 403 `SignatureDoesNotMatch`,
+      and the script would raise that as an FR-006a failure when
+      the actual cause is fixture shape. Fix: drive presigning via
+      a real SigV4 PUT — `aws s3 presign` (AWS CLI), boto3, or the
+      Encore `requestUpload` endpoint with a real session. The
+      current stand-in produces misleading diagnostics that point
+      at FR-006a (Host preservation) when the real failure is the
+      fixture itself.
+  (c) **`BLOB_LANDED` check uses a brittle filesystem path.**
+      Lines 278-280 test `[ -f /export/${TEST_BUCKET}/${TEST_KEY} ]`
+      inside the MinIO pod. MinIO RELEASE.2024-12-18's on-disk
+      layout does not expose objects at that simple path —
+      manually confirmed during the 2026-05-08 validation: a
+      successful upload (`HTTP 204` + server etag) lands in MinIO
+      and is visible via `mc ls --recursive` at the expected key,
+      yet the filesystem `[ -f ... ]` check returns absent. Fix:
+      use `mc stat local/${TEST_BUCKET}/${TEST_KEY}` inside the
+      pod (exit 0 = present, !=0 = absent) for the canonical
+      answer. The current check would false-fail even on a
+      successful upload, raising "blob did not persist" when the
+      blob is in fact persisted.
 
 The honest-state principle: when an FR's contract is broken in
 production but the implementation is structurally close to
@@ -1225,3 +1274,81 @@ single-host non-wildcard certs once the parent domain's ingress is
 already routing." See §4.7 for the topology rationale and §7 step 7
 for the implementation path. Future authoritative-DNS migrations
 re-activate the dormant DNS-01 path without code resurrection.
+
+## 13. Evidence of record (amendment, 2026-05-08)
+
+This section is the authoritative evidence ledger for spec 143's
+deployable contract as of the date above. It exists because
+`platform/infra/hetzner/validate/spec-143.sh` (§7 step 8) has
+known fixture bugs in its CONTRACT section that produce
+false-negative regression signals — see §12 FU-004. Until FU-004
+lands, treat this §13 as the load-bearing artefact for
+"is the contract met"; the script's exit code regains that role
+once the fixture bugs are fixed.
+
+**Manual end-to-end POST trace, 2026-05-08 18:02:13 UTC.** A
+multipart POST against `https://minio.stagecraft.ing/oap-stagecraft-ing-default/`
+(presigned via `mc share upload` inside the MinIO pod, host-substituted
+to the public ingress) returned:
+
+- `HTTP/2 204` (No Content — S3-protocol success for form upload).
+- `etag: "4ec131f28888de0e8592ae2c27884a3b"` (server-computed
+  content hash; matches the body the client uploaded).
+- `location: https://minio.stagecraft.ing/oap-stagecraft-ing-default/knowledge/spec-143-validate-trace-1778263332/payload.bin`
+  (server-confirmed object key, addressable through the public
+  ingress).
+- `x-amz-id-2: dd9025bab4ad464b049177c95eb6ebf374d3b3fd1af9251148b658df7ac2e3e8`,
+  `x-amz-request-id: 18ADA91496DC886C` — MinIO request acceptance
+  proof.
+- `vary: Origin`, `vary: Accept-Encoding` — CORS-aware response
+  surface present on the data path (not just preflight).
+- `strict-transport-security: max-age=31536000; includeSubDomains` —
+  HSTS enforced at MinIO behind the public ingress.
+
+The blob was independently verified present via `mc ls --recursive
+local/oap-stagecraft-ing-default/`: 22 B at `knowledge/spec-143-validate-trace-1778263332/payload.bin`,
+written 18:02:13 UTC. ingress-nginx access log confirmed upstream
+success at `10.244.1.197:9000` (the MinIO pod IP) with `0.010s`
+upstream latency. The TLS chain on `:443` is `letsencrypt-prod`
+issued via HTTP-01, valid `2026-05-08 → 2026-08-06`.
+
+**Promise-to-evidence map.** Spec 143's deployable contract is
+green against the following per-FR check:
+
+| Promise | Evidence |
+|---|---|
+| FR-005 — public TLS ingress at `minio.${DOMAIN}` | TLS handshake on `:443`; `Certificate/minio-tls Ready=True`; cert valid through 2026-08-06 |
+| FR-005 — body-size cap at the ingress (FR-011 backstop) | `Ingress/minio` annotation `nginx.ingress.kubernetes.io/proxy-body-size: 1g` set; verified via `kubectl get ingress minio -n stagecraft-system -o yaml` |
+| FR-006 — browser PUT lands a blob in MinIO | POST returned 204 + etag; `mc ls --recursive` confirms the object at the expected key |
+| FR-006a — Host preserved end-to-end (SigV4) | The signature was signed for the public host and the server validated it (a Host rewrite mid-chain would have produced a 403 `SignatureDoesNotMatch`); MinIO `Server` header shows `MinIO` from the in-cluster pod |
+| §4.4 — CORS via MinIO env (`MINIO_API_CORS_ALLOW_ORIGIN`) | OPTIONS preflight returns `Access-Control-Allow-Origin: https://stagecraft.ing` (verified by `validate/spec-143.sh` PREREQUISITE 4 — that step is not affected by FU-004) |
+| §4.7 — HTTP-01 via `letsencrypt-prod` | `kubectl get clusterissuer letsencrypt-prod` shows `Ready: True`; `Certificate/minio-tls` lists this issuer; no `letsencrypt-dns01` issuer exists in the cluster (confirms dormant fallback) |
+
+**Pre-checks that ran clean via the validate script.** PREREQUISITE
+1-4 of `validate/spec-143.sh` all returned PASS on this run: DNS A
+record resolves to `178.104.146.181` (a worker node IP), TLS cert is
+Ready, public ingress responds with HTTP-non-000 (proves
+reachability), and CORS preflight returns the expected ACAO header.
+These four are not affected by FU-004 and remain authoritative
+through the script's exit code.
+
+**What is NOT yet evidence-of-record at this date.**
+
+- A real upload through the stagecraft web UI (FR-006 deploy-time
+  test). The data path is up; the user-driven flow is the next
+  layer of confirmation. The orphan-sweeper 404 (FU-001) is
+  orthogonal — uploads succeed regardless; only the sweep step is
+  broken.
+- A genuine SigV4 **PUT** (not the POST form used above). The
+  signature shapes differ; FU-004(b)'s fix produces this. The
+  spec's storage.ts code path emits PUT, so a real-traffic PUT
+  flowing through stagecraft's `requestUpload` endpoint will be
+  the next confirmation; the manual POST trace above proves the
+  surrounding chain (DNS, TLS, host preservation, body-size,
+  blob persistence) is sound.
+
+When FU-004 lands and the script's CONTRACT exit code becomes
+trustworthy again, this §13 should be re-titled "Evidence ledger
+(historical record)" and any future per-deploy evidence appended
+here as a dated entry — the spec spine's audit trail prefers an
+explicit ledger to a "trust the green CI light" handshake.
