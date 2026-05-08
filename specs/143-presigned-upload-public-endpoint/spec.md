@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13; outstanding: FU-004 (validate-script fixtures) + FR-006 deploy-time real-UI confirmation
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); outstanding: FU-001 (orphan-sweeper expose:false 404) + FR-006 deploy-time real-UI confirmation
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1285,16 +1285,18 @@ already routing." See §4.7 for the topology rationale and §7 step 7
 for the implementation path. Future authoritative-DNS migrations
 re-activate the dormant DNS-01 path without code resurrection.
 
-## 13. Evidence of record (amendment, 2026-05-08)
+## 13. Evidence ledger (historical record)
 
-This section is the authoritative evidence ledger for spec 143's
-deployable contract as of the date above. It exists because
-`platform/infra/hetzner/validate/spec-143.sh` (§7 step 8) has
-known fixture bugs in its CONTRACT section that produce
-false-negative regression signals — see §12 FU-004. Until FU-004
-lands, treat this §13 as the load-bearing artefact for
-"is the contract met"; the script's exit code regains that role
-once the fixture bugs are fixed.
+This section is the historical evidence ledger for spec 143's
+deployable contract on 2026-05-08, the date the manual end-to-end
+trace was captured. At that date, `platform/infra/hetzner/validate/spec-143.sh`
+had known fixture bugs in its CONTRACT section that produced
+false-negative regression signals — see §12 FU-004 — so this
+ledger was the load-bearing artefact for "is the contract met". With
+FU-004 closed (2026-05-09), the script's CONTRACT exit code is now
+the authoritative ongoing answer; this ledger remains as the dated
+record of the first deployable proof and as a template for future
+per-deploy evidence appended below.
 
 **Manual end-to-end POST trace, 2026-05-08 18:02:13 UTC.** A
 multipart POST against `https://minio.stagecraft.ing/oap-stagecraft-ing-default/`
@@ -1357,8 +1359,3 @@ through the script's exit code.
   surrounding chain (DNS, TLS, host preservation, body-size,
   blob persistence) is sound.
 
-When FU-004 lands and the script's CONTRACT exit code becomes
-trustworthy again, this §13 should be re-titled "Evidence ledger
-(historical record)" and any future per-deploy evidence appended
-here as a dated entry — the spec spine's audit trail prefers an
-explicit ledger to a "trust the green CI light" handshake.

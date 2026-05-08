@@ -104,10 +104,19 @@ cleanup() {
   local rc=$?
   printf "\n=== CLEANUP\n"
 
+  # Preflight response tempfile (created during PREREQUISITE 4).
+  if [ -n "${PREFLIGHT_RESPONSE:-}" ]; then
+    rm -f "$PREFLIGHT_RESPONSE" 2>/dev/null || true
+  fi
+
   # Test blob in MinIO bucket. Best-effort; missing == already cleaned.
+  # Use `mc rm` not filesystem rm — MinIO RELEASE.2024-12-18+ on-disk
+  # layout does not expose objects at /export/${bucket}/${key} (see §12 FU-004(c)).
   if [ -n "${TEST_BUCKET:-}" ]; then
-    kubectl -n stagecraft-system exec deploy/minio -- sh -c "rm -f /export/${TEST_BUCKET}/${TEST_KEY} 2>/dev/null" \
-      >/dev/null 2>&1 || true
+    kubectl -n stagecraft-system exec deploy/minio -- sh -c '
+      mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1
+      mc rm "local/'"$TEST_BUCKET"'/'"$TEST_KEY"'" >/dev/null 2>&1
+    ' >/dev/null 2>&1 || true
   fi
 
   # Test knowledge_objects row + audit rows scoped by target_id.
@@ -132,11 +141,26 @@ require_project_id() {
   if [ -n "$TEST_PROJECT_ID" ]; then
     return
   fi
+  # Filter the picker to projects whose bucket is S3-valid (<=63 chars).
+  # The 'oldest project' alone can land on an over-long bucket — FU-004(a)
+  # caught the 80-char EFVS bucket on the Hetzner cluster. The underlying
+  # production bug (stagecraft creating projects with invalid bucket
+  # names) is filed as FU-005 on spec 087.
+  #
+  # Prefer non-test projects so the canary lands on a stable, non-fixture
+  # bucket where one exists; fall back to test-named projects if no other
+  # valid-bucket project is on the cluster (i.e. don't strand the canary
+  # entirely just because every prod project has an over-long bucket).
   TEST_PROJECT_ID=$(kubectl -n stagecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
-    psql -U stagecraft -d auth -tAc "SELECT id FROM projects ORDER BY created_at ASC LIMIT 1;" 2>/dev/null \
-    | tr -d '[:space:]')
+    psql -U stagecraft -d auth -tAc "
+      SELECT id FROM projects
+      WHERE length(object_store_bucket) <= 63
+      ORDER BY CASE WHEN name ILIKE '%test%' THEN 1 ELSE 0 END,
+               created_at ASC
+      LIMIT 1;
+    " 2>/dev/null | tr -d '[:space:]')
   if [ -z "$TEST_PROJECT_ID" ]; then
-    prereq_fail "no projects exist on the cluster — create at least one before running validation"
+    prereq_fail "no projects with a valid bucket exist on the cluster — create at least one before running validation, or fix any over-long object_store_bucket values (see FU-005 on spec 087)"
   fi
 }
 
@@ -178,8 +202,9 @@ prereq_section "CORS preflight against MinIO ingress (OPTIONS, browser-shape)"
 # Browser-shape preflight: OPTIONS with Origin + Access-Control-Request-Method.
 # A bare `curl -X PUT` would pass even with broken CORS (curl doesn't
 # preflight), so this check is the actual contract-level test of CORS.
+# Tempfile cleanup is handled by the unified cleanup() trap above —
+# do NOT install a separate `trap` here, which would clobber it.
 PREFLIGHT_RESPONSE=$(mktemp)
-trap 'rm -f "$PREFLIGHT_RESPONSE"' EXIT INT TERM
 
 # We can't preflight-test against a real bucket/key without an auth'd
 # presigned URL, but we CAN test the OPTIONS response against the
@@ -227,40 +252,102 @@ if [ -z "$TEST_BUCKET" ]; then
 fi
 ok "project ${TEST_PROJECT_ID} → bucket ${TEST_BUCKET}"
 
-contract_section "Generate presigned PUT URL via stagecraft's storage layer"
-# Use mc client inside the MinIO pod to generate a presigned URL with
-# the same root credentials stagecraft would use. The URL targets the
-# public endpoint via MINIO_SERVER_URL the chart was configured with —
-# this proves the chart wiring produces the right shape, even before
-# we go through stagecraft's API.
-PRESIGNED_URL=$(kubectl -n stagecraft-system exec deploy/minio -- sh -c "
-  mc alias set local http://localhost:9000 '${MINIO_ROOT_USER:-}' '${MINIO_ROOT_PASSWORD:-}' >/dev/null 2>&1
-  mc share upload --expire 5m local/${TEST_BUCKET}/${TEST_KEY} 2>/dev/null | grep -o 'curl .*' | head -1
-" 2>/dev/null || true)
+contract_section "Generate presigned PUT URL via SigV4 (python3 stdlib)"
+# Pull MinIO root credentials directly from the pod environment. The
+# helm chart renders them there; reading via printenv is the canonical
+# authoritative path. Avoids relying on operator-workstation env vars,
+# which the prior `mc share upload` path silently depended on.
+MINIO_USER=$(kubectl -n stagecraft-system exec deploy/minio -- printenv MINIO_ROOT_USER 2>/dev/null | tr -d '[:space:]')
+MINIO_PASS=$(kubectl -n stagecraft-system exec deploy/minio -- printenv MINIO_ROOT_PASSWORD 2>/dev/null | tr -d '[:space:]')
+if [ -z "$MINIO_USER" ] || [ -z "$MINIO_PASS" ]; then
+  contract_fail "could not read MINIO_ROOT_USER/MINIO_ROOT_PASSWORD from the MinIO pod env"
+fi
+
+# SigV4 PUT presigning in pure stdlib — no aws CLI, no boto3.
+# Signed against the public host directly, so no host-substitution
+# step (and no SignatureDoesNotMatch failure mode from a Host rewrite).
+# Replaces the prior `mc share upload` path which produced a multipart
+# POST form — incompatible with the script's `curl -X PUT --data-binary`
+# call shape. See §12 FU-004(b).
+PRESIGNED_URL=$(MINIO_USER="$MINIO_USER" MINIO_PASS="$MINIO_PASS" \
+  MINIO_HOST="$MINIO_HOST" TEST_BUCKET="$TEST_BUCKET" TEST_KEY="$TEST_KEY" \
+  python3 - <<'PY'
+import datetime, hashlib, hmac, os, urllib.parse
+
+access  = os.environ["MINIO_USER"]
+secret  = os.environ["MINIO_PASS"]
+host    = os.environ["MINIO_HOST"]
+bucket  = os.environ["TEST_BUCKET"]
+key     = os.environ["TEST_KEY"]
+region  = "us-east-1"
+service = "s3"
+expires = 300
+
+now      = datetime.datetime.now(datetime.timezone.utc)
+amz_date = now.strftime("%Y%m%dT%H%M%SZ")
+date     = now.strftime("%Y%m%d")
+scope    = f"{date}/{region}/{service}/aws4_request"
+
+# Each path segment URL-encoded, but '/' between segments preserved.
+canon_uri = "/" + bucket + "/" + "/".join(
+    urllib.parse.quote(seg, safe="") for seg in key.split("/")
+)
+
+qs = {
+    "X-Amz-Algorithm":     "AWS4-HMAC-SHA256",
+    "X-Amz-Credential":    f"{access}/{scope}",
+    "X-Amz-Date":          amz_date,
+    "X-Amz-Expires":       str(expires),
+    "X-Amz-SignedHeaders": "host",
+}
+canon_qs = "&".join(
+    f"{k}={urllib.parse.quote(v, safe='')}" for k, v in sorted(qs.items())
+)
+
+canonical_request = "\n".join([
+    "PUT",
+    canon_uri,
+    canon_qs,
+    f"host:{host}\n",
+    "host",
+    "UNSIGNED-PAYLOAD",
+])
+
+string_to_sign = "\n".join([
+    "AWS4-HMAC-SHA256",
+    amz_date,
+    scope,
+    hashlib.sha256(canonical_request.encode()).hexdigest(),
+])
+
+def sign(k, m):
+    return hmac.new(k, m.encode(), hashlib.sha256).digest()
+
+k_date    = sign(("AWS4" + secret).encode(), date)
+k_region  = sign(k_date,    region)
+k_service = sign(k_region,  service)
+k_signing = sign(k_service, "aws4_request")
+signature = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
+
+print(f"https://{host}{canon_uri}?{canon_qs}&X-Amz-Signature={signature}")
+PY
+)
 
 if [ -z "$PRESIGNED_URL" ]; then
-  # mc share upload returns a curl command including the URL. We need
-  # to construct the URL manually if mc isn't cooperating; fall back
-  # to the deterministic SigV4 path via a stagecraft pod.
-  contract_fail "could not generate a presigned URL via mc.
-  Verify MINIO_ROOT_USER/PASSWORD are set in env, or fall through to
-  stagecraft-api's requestUpload endpoint with a real session."
+  contract_fail "presigned PUT URL generation failed (python3 stdlib SigV4 path)"
 fi
-ok "presigned URL generated"
+ok "presigned PUT URL generated (SigV4 stdlib, public host)"
 
 contract_section "Browser-shape PUT against the public ingress"
-# Construct the presigned URL targeting the PUBLIC host (not the
-# in-cluster mc localhost). The signature was computed with
-# MINIO_SERVER_URL=https://minio.${DOMAIN}, so the public hostname
-# in the URL resolves correctly server-side.
-PUBLIC_PRESIGNED=$(echo "$PRESIGNED_URL" | sed "s|http://localhost:9000|https://${MINIO_HOST}|" | sed "s|http://minio.stagecraft-system.svc.cluster.local:9000|https://${MINIO_HOST}|")
-
+# URL is signed against the public host directly — no substitution
+# needed. The Origin header exercises the CORS post-flight contract
+# on the data path (preflight is covered by PREREQUISITE 4 above).
 PUT_STATUS=$(printf "%s" "$TEST_PAYLOAD" | curl -sS -o /dev/null -w "%{http_code}" --max-time 30 \
   -X PUT \
   -H "Origin: ${APP_BASE_URL}" \
   -H "Content-Type: application/octet-stream" \
   --data-binary @- \
-  "$PUBLIC_PRESIGNED" || echo "000")
+  "$PRESIGNED_URL" || echo "000")
 
 case "$PUT_STATUS" in
   2*) ok "PUT to public ingress returned ${PUT_STATUS}" ;;
@@ -275,14 +362,19 @@ case "$PUT_STATUS" in
 esac
 
 contract_section "Blob lands in MinIO bucket under the expected key"
-BLOB_LANDED=$(kubectl -n stagecraft-system exec deploy/minio -- sh -c "
-  if [ -f /export/${TEST_BUCKET}/${TEST_KEY} ]; then echo present; else echo absent; fi
-" 2>/dev/null | tr -d '[:space:]')
+# `mc stat` is the canonical authoritative answer — MinIO's on-disk
+# layout (RELEASE.2024-12-18+) does not expose objects at the simple
+# /export/${bucket}/${key} path that the prior filesystem `[ -f ... ]`
+# check assumed. See §12 FU-004(c).
+BLOB_LANDED=$(kubectl -n stagecraft-system exec deploy/minio -- sh -c '
+  mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1
+  if mc stat "local/'"$TEST_BUCKET"'/'"$TEST_KEY"'" >/dev/null 2>&1; then echo present; else echo absent; fi
+' 2>/dev/null | tr -d '[:space:]')
 if [ "$BLOB_LANDED" != "present" ]; then
-  contract_fail "PUT returned 2xx but the blob is not in MinIO at /export/${TEST_BUCKET}/${TEST_KEY}.
-  The signature validated but the bytes did not persist. Check MinIO pod logs and disk usage."
+  contract_fail "PUT returned 2xx but mc stat does not see the object at ${TEST_BUCKET}/${TEST_KEY}.
+  The signature validated but the upload did not register with MinIO. Check MinIO pod logs and disk usage."
 fi
-ok "blob present at /export/${TEST_BUCKET}/${TEST_KEY}"
+ok "blob present at ${TEST_BUCKET}/${TEST_KEY} (verified via mc stat)"
 
 contract_section "Self-hosted scheduler — K8s CronJob registered (spec 143 §4.5b / L-001)"
 # Per spec 143 L-001 (2026-05-08 amendment), Encore's CronJob primitive
