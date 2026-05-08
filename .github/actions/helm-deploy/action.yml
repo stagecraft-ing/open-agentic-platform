@@ -100,44 +100,47 @@ runs:
       # and risking data loss on persistent volumes).
       run: |
         set -euo pipefail
-        # Iterate every Deployment in the target namespace. The
-        # per-deployment pollution detection below gates the actual
-        # ownership transfer, so untouched deployments are no-ops. An
-        # earlier revision used `-l app.kubernetes.io/instance=<release>`
-        # but the stagecraft chart's Deployment template predates the
+        # Iterate every Deployment in the target namespace. An earlier
+        # revision used `-l app.kubernetes.io/instance=<release>` but
+        # the stagecraft chart's Deployment template predates the
         # helm-standard labels and only carries `managed-by=Helm`, so
         # the selector matched nothing and the strip step silently
         # skipped — the very deployment that needed fixing.
         DEPS=$(kubectl -n ${{ inputs.namespace }} get deployments \
           -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
         for dep in $DEPS; do
-          # Detect ownership pollution: kubectl-* entries (manual ops)
-          # OR a before-first-apply entry (orphaned fields from a prior
-          # JSON-patch nuke or pre-SSA history). Either case prevents
-          # helm from server-side-applying without conflict.
-          if kubectl -n ${{ inputs.namespace }} get deployment "$dep" -o json --show-managed-fields \
-               | jq -e '.metadata.managedFields[] | select(.manager | test("^(kubectl-|before-first-apply)")) | .manager' \
-               >/dev/null 2>&1; then
-            echo "==> Transferring field ownership to helm for ${{ inputs.namespace }}/$dep"
-            # Re-apply live spec under --field-manager=helm
-            # --force-conflicts. This claims every field currently on
-            # the resource for the helm manager, releasing kubectl-*
-            # and before-first-apply claims. Strip system-injected
-            # fields (uid, resourceVersion, status, etc) that kubectl
-            # apply would reject as immutable.
-            kubectl -n ${{ inputs.namespace }} get deployment "$dep" -o json \
-              | jq 'del(
-                    .metadata.managedFields,
-                    .metadata.creationTimestamp,
-                    .metadata.resourceVersion,
-                    .metadata.uid,
-                    .metadata.generation,
-                    .status,
-                    .spec.template.metadata.creationTimestamp
-                  )' \
-              | kubectl apply --server-side --force-conflicts \
-                  --field-manager=helm -f -
-          fi
+          # Always run the ownership transfer — no detection gate.
+          # An earlier revision detected kubectl-* / before-first-apply
+          # entries in persisted managedFields and only ran the
+          # transfer when found, but the K8s API synthesises
+          # before-first-apply ON-THE-FLY during helm's SSA call for
+          # fields not in helm's apply body. That synthetic manager
+          # never appears in persisted state, so detection always
+          # missed it. Empty managedFields (left by a prior JSON-patch
+          # nuke, pre-SSA migrations, etc.) also produces the
+          # synthetic-manager conflict. Always doing the transfer is
+          # idempotent on clean deployments (helm already owns
+          # everything; the apply is a no-op patch) and corrective
+          # on polluted ones.
+          echo "==> Transferring field ownership to helm for ${{ inputs.namespace }}/$dep"
+          # Re-apply live spec under --field-manager=helm
+          # --force-conflicts. This claims every field currently on
+          # the resource for the helm manager, releasing kubectl-*
+          # and pre-existing claims. Strip system-injected fields
+          # (uid, resourceVersion, status, etc) that kubectl apply
+          # would reject as immutable.
+          kubectl -n ${{ inputs.namespace }} get deployment "$dep" -o json \
+            | jq 'del(
+                  .metadata.managedFields,
+                  .metadata.creationTimestamp,
+                  .metadata.resourceVersion,
+                  .metadata.uid,
+                  .metadata.generation,
+                  .status,
+                  .spec.template.metadata.creationTimestamp
+                )' \
+            | kubectl apply --server-side --force-conflicts \
+                --field-manager=helm -f -
         done
 
     - name: Deploy via Helm
