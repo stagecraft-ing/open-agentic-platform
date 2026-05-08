@@ -1,9 +1,18 @@
 /**
- * S3-compatible object store client for knowledge intake (spec 087 Phase 2).
+ * S3-compatible object store client for knowledge intake (spec 087 Phase 2,
+ * spec 143 dual-endpoint split).
  *
  * Uses MinIO for local dev, S3/Azure Blob for production.
  * Provides presigned URLs so clients upload directly to the store
  * without routing blobs through the Encore API.
+ *
+ * Spec 143 §4.1: two clients with the same credentials/region but
+ * potentially different endpoints. The internal client targets the
+ * cluster-internal storage URL (server-side ops); the public client
+ * targets the browser-reachable URL (presigning only). On AWS S3 /
+ * Azure Blob / GCS where the storage endpoint is already public, the
+ * S3_PUBLIC_ENDPOINT secret can be unset and both clients degenerate
+ * to the same configuration (FR-007 fallback).
  */
 
 import {
@@ -23,30 +32,81 @@ import log from "encore.dev/log";
 // Configuration (Encore secrets)
 // ---------------------------------------------------------------------------
 
-const s3Endpoint = secret("S3_ENDPOINT"); // e.g. http://localhost:9000 (MinIO) or https://s3.amazonaws.com
+const s3Endpoint = secret("S3_ENDPOINT"); // server-side endpoint (cluster-internal on Hetzner; public on AWS S3 / Azure / GCS)
+const s3PublicEndpoint = secret("S3_PUBLIC_ENDPOINT"); // browser-reachable endpoint for presigned URLs (spec 143). Empty/unset → falls back to S3_ENDPOINT.
 const s3Region = secret("S3_REGION"); // e.g. us-east-1
 const s3AccessKey = secret("S3_ACCESS_KEY");
 const s3SecretKey = secret("S3_SECRET_KEY");
 
 // ---------------------------------------------------------------------------
-// Client singleton (lazy-init)
+// Client singletons (lazy-init, dual-endpoint per spec 143 FR-001/FR-002)
 // ---------------------------------------------------------------------------
+//
+// `forcePathStyle: true` is non-negotiable on BOTH clients (FR-001).
+// MinIO under a custom domain rejects virtual-hosted addressing; AWS S3
+// accepts both styles, so path-style is a safe universal default.
+//
+// Only `getPresignedUploadUrl` and `getPresignedDownloadUrl` are allowed
+// to use the public client (FR-002). Every other helper uses the
+// internal client.
 
-let _client: S3Client | null = null;
+let _internalClient: S3Client | null = null;
+let _publicClient: S3Client | null = null;
 
-function getClient(): S3Client {
-  if (!_client) {
-    _client = new S3Client({
-      endpoint: s3Endpoint(),
-      region: s3Region(),
-      credentials: {
-        accessKeyId: s3AccessKey(),
-        secretAccessKey: s3SecretKey(),
-      },
-      forcePathStyle: true, // required for MinIO
-    });
+/**
+ * Resolve both endpoints from the configured secrets. Exposed (with the
+ * leading underscore convention) so unit tests can pin endpoint values
+ * without driving secrets through the Encore runtime.
+ *
+ * Fallback semantics (FR-007): when `S3_PUBLIC_ENDPOINT` is unset or
+ * empty, the public endpoint falls back to `S3_ENDPOINT` so AWS S3 /
+ * cloud deployments keep working without configuration churn, and
+ * local dev where MinIO at `http://localhost:9000` is reachable from
+ * the browser directly stays functional.
+ */
+export function _resolveEndpoints(): { internal: string; public: string } {
+  const internal = s3Endpoint();
+  const explicitPublic = s3PublicEndpoint();
+  return {
+    internal,
+    public: explicitPublic || internal,
+  };
+}
+
+function buildClient(endpoint: string): S3Client {
+  return new S3Client({
+    endpoint,
+    region: s3Region(),
+    credentials: {
+      accessKeyId: s3AccessKey(),
+      secretAccessKey: s3SecretKey(),
+    },
+    forcePathStyle: true, // FR-001 — non-negotiable for MinIO under a custom domain
+  });
+}
+
+function getInternalClient(): S3Client {
+  if (!_internalClient) {
+    _internalClient = buildClient(_resolveEndpoints().internal);
   }
-  return _client;
+  return _internalClient;
+}
+
+function getPublicClient(): S3Client {
+  if (!_publicClient) {
+    _publicClient = buildClient(_resolveEndpoints().public);
+  }
+  return _publicClient;
+}
+
+/**
+ * Reset cached client singletons. Test-only: vitest fixtures call this
+ * between test cases so each case can re-resolve the endpoints from a
+ * freshly-set secret value without bleeding state across tests.
+ */
+export function _resetClientsForTesting(): void {
+  _internalClient = null;
+  _publicClient = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,7 +123,7 @@ const ensuredBuckets = new Set<string>();
 
 export async function ensureBucket(bucket: string): Promise<void> {
   if (ensuredBuckets.has(bucket)) return;
-  const client = getClient();
+  const client = getInternalClient();
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }));
     ensuredBuckets.add(bucket);
@@ -115,7 +175,11 @@ export async function getPresignedUploadUrl(
     Bucket: bucket,
     Key: key,
   });
-  const url = await getSignedUrl(getClient(), cmd, {
+  // FR-002: presigning uses the public client so the signed URL's host
+  // is browser-reachable. Signature covers the Host header, so the
+  // ingress chain MUST preserve `Host: <S3_PUBLIC_ENDPOINT-host>`
+  // end-to-end (FR-006a).
+  const url = await getSignedUrl(getPublicClient(), cmd, {
     expiresIn: expiresInSeconds,
   });
   log.info("presigned upload URL generated", { bucket, key });
@@ -135,7 +199,10 @@ export async function getPresignedDownloadUrl(
     Bucket: bucket,
     Key: key,
   });
-  return getSignedUrl(getClient(), cmd, { expiresIn: expiresInSeconds });
+  // FR-002: presigning uses the public client (same rationale as
+  // getPresignedUploadUrl). FR-012 pins TTLs at every call site rather
+  // than mutating this helper's default.
+  return getSignedUrl(getPublicClient(), cmd, { expiresIn: expiresInSeconds });
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +220,7 @@ export async function headObject(
   key: string
 ): Promise<ObjectMeta | null> {
   try {
-    const res = await getClient().send(
+    const res = await getInternalClient().send(
       new HeadObjectCommand({ Bucket: bucket, Key: key })
     );
     return {
@@ -181,7 +248,7 @@ export async function deleteObject(
   bucket: string,
   key: string
 ): Promise<void> {
-  await getClient().send(
+  await getInternalClient().send(
     new DeleteObjectCommand({ Bucket: bucket, Key: key })
   );
   log.info("object deleted", { bucket, key });
@@ -200,7 +267,7 @@ export async function listAllObjects(bucket: string): Promise<string[]> {
   const keys: string[] = [];
   let continuationToken: string | undefined;
   while (true) {
-    const res = await getClient().send(
+    const res = await getInternalClient().send(
       new ListObjectsV2Command({
         Bucket: bucket,
         ContinuationToken: continuationToken,
@@ -231,7 +298,7 @@ export async function putObject(
   contentType: string
 ): Promise<void> {
   await ensureBucket(bucket);
-  await getClient().send(
+  await getInternalClient().send(
     new PutObjectCommand({
       Bucket: bucket,
       Key: key,
@@ -247,7 +314,7 @@ export async function putObject(
 // ---------------------------------------------------------------------------
 
 export async function getObject(bucket: string, key: string): Promise<Buffer> {
-  const res = await getClient().send(
+  const res = await getInternalClient().send(
     new GetObjectCommand({ Bucket: bucket, Key: key })
   );
   const body = res.Body;
@@ -271,7 +338,7 @@ export async function getObjectRange(
   startByte: number,
   endByte: number
 ): Promise<Buffer> {
-  const res = await getClient().send(
+  const res = await getInternalClient().send(
     new GetObjectCommand({
       Bucket: bucket,
       Key: key,

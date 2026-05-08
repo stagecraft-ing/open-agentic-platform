@@ -22,6 +22,12 @@ const bareVitestAliases = [
     find: "encore.dev/pubsub",
     replacement: path.resolve(__dirname, "./test/__mocks__/encore-pubsub.ts"),
   },
+  // Spec 143 — secrets read via env vars under bare vitest so storage
+  // dual-client tests can pin S3_ENDPOINT / S3_PUBLIC_ENDPOINT per case.
+  {
+    find: "encore.dev/config",
+    replacement: path.resolve(__dirname, "./test/__mocks__/encore-config.ts"),
+  },
   // `~encore/*` normally resolves into `./encore.gen/*`, which is generated
   // by the Encore CLI and git-ignored. CI runs `npm test` without that
   // directory, so stub the auth barrel before the broader `~encore` prefix.
