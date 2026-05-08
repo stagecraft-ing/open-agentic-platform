@@ -92,8 +92,15 @@ runs:
       # release).
       run: |
         set -euo pipefail
+        # Iterate every Deployment in the target namespace. The
+        # per-deployment kubectl-* detection below gates the actual
+        # patch, so this is safe (no-op on clean deployments). An
+        # earlier revision used `-l app.kubernetes.io/instance=<release>`
+        # but the stagecraft chart's Deployment template predates the
+        # helm-standard labels and only carries `managed-by=Helm`, so
+        # the selector matched nothing and the strip step silently
+        # skipped — the very deployment that needed fixing.
         DEPS=$(kubectl -n ${{ inputs.namespace }} get deployments \
-          -l "app.kubernetes.io/instance=${{ inputs.release-name }}" \
           -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
         for dep in $DEPS; do
           # Detect any kubectl-* Update entries on this deployment's
