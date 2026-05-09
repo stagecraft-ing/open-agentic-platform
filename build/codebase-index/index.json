@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "772e12a7a4f25a46a9f006e0af8fa47fa682d99a88b2c1ca31ed2284a57e0881",
+    "contentHash": "ea2a4d4fbd669fe2e9523d0c7c81be68dee8ea0f911a04b2a2ac53a03255536d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4668,7 +4668,15 @@
         ],
         "implementingPaths": [
           {
+            "path": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/charts/stagecraft/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml",
             "source": "spec-implements"
           },
           {
