@@ -1853,6 +1853,30 @@ shape from day one. Cross-reference to L-006 (scope inertia)
 and L-008 (issuer-claim derivation) — three Rauthy-0.35
 invariants in one family.
 
+**L-008 — Rauthy 0.35 issuer-claim invariant (use OIDC
+discovery, not string concatenation).** Rauthy 0.35's
+`client_credentials` access tokens carry `iss` exactly
+as published in the OIDC discovery doc at
+`/auth/v1/.well-known/openid-configuration` — currently
+`https://<host>/auth/v1/` with trailing slash.
+Hand-rolled validators that derive `expectedIssuer` by
+string concatenation (e.g. `` `${rauthyUrl()}/auth/v1` ``
+without trailing slash) will mismatch the token's `iss`
+and reject otherwise-valid M2M tokens. Same class as
+L-006 (Default vs Allowed Scopes) and L-007
+(client-auth-method invariant): when Rauthy publishes a
+contract through OIDC discovery, defer to the discovery
+doc as the source of truth — do not infer the contract
+from protocol generality or from the values you used in
+configuration.
+
+Affected: `platform/services/stagecraft/api/auth/m2mAuth.ts`
+(FU-011 Finding 1 fix, `getJwksAndIssuer()` call mirrors
+the sibling validator at `rauthy.ts::validateJwt:201`).
+FU-011 Finding 2 (`deployd-api-rs::auth.rs` RSA-only JWK)
+and Finding 3 (platform-wide M2M validator audit) remain
+open under FU-011's Tier 2 closure gate.
+
 ## 13. Evidence ledger (historical record)
 
 This section is the historical evidence ledger for spec 143's

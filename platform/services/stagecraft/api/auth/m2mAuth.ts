@@ -11,7 +11,7 @@
  */
 
 import { APIError } from "encore.dev/api";
-import { getJwks, rauthyUrl } from "./rauthy.js";
+import { getJwksAndIssuer } from "./rauthy.js";
 import { createPublicKey, createVerify, verify as cryptoVerify } from "node:crypto";
 import log from "encore.dev/log";
 
@@ -67,7 +67,17 @@ export async function validateM2mRequest(
  * - Returns M2mClaims (with scope) instead of OapClaims (with user fields)
  * - Still verifies issuer, expiry, and RS256 signature via JWKS
  */
-async function validateM2mJwt(token: string): Promise<M2mClaims | null> {
+export async function validateM2mJwt(token: string): Promise<M2mClaims | null> {
+  // Spec 143 §12 L-008 + FU-011 Finding 1: issuer is the discovery-doc
+  // value, not a string-concat. JWKS-failure posture (network, cache miss,
+  // discovery-shape change) is intentionally delegated to the outer
+  // try/catch below: getJwksAndIssuer() throws → catch → log.warn → return
+  // null. This is the explicit M2M-path decision (FU-011 audit-step):
+  // warn-level (not error) because the M2M validator is on the hot path
+  // for cron-driven sweepers and would otherwise alarm on transient Rauthy
+  // hiccups; rejection-on-discovery-failure is the safe default. Mirrors
+  // rauthy.ts::validateJwt's reject-on-throw posture (it logs at error
+  // level — the level differs deliberately, the reject behavior matches).
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -82,14 +92,22 @@ async function validateM2mJwt(token: string): Promise<M2mClaims | null> {
       return null;
     }
 
-    // Check issuer (same Rauthy instance)
-    const expectedIssuer = `${rauthyUrl()}/auth/v1`;
-    if (payload.iss && payload.iss !== expectedIssuer) {
+    // Fetch JWKS and the canonical issuer from Rauthy's OIDC discovery doc.
+    // String-concat derivation (`${rauthyUrl()}/auth/v1`) loses the
+    // trailing-slash that Rauthy 0.35 publishes in `iss`, rejecting
+    // otherwise-valid tokens. stripSlash normalisation mirrors
+    // rauthy.ts::validateJwt:201 — the bug being closed is the divergence
+    // from that sibling validator (§12 L-008).
+    const stripSlash = (s: string) => s.replace(/\/+$/, "");
+    const { keys, issuer: expectedIssuer } = await getJwksAndIssuer();
+    const tokenIssuer = typeof payload.iss === "string" ? stripSlash(payload.iss) : "";
+    const normalizedExpected = stripSlash(expectedIssuer);
+    if (!tokenIssuer || tokenIssuer !== normalizedExpected) {
+      log.warn("M2M JWT rejected: issuer mismatch", { iss: payload.iss, expected: expectedIssuer });
       return null;
     }
 
     // Verify signature using JWKS — supports RS256 (RSA) and EdDSA (Ed25519).
-    const keys = await getJwks();
     const key = header.kid
       ? keys.find((k) => k.kid === header.kid)
       : keys.find((k) => k.alg === header.alg || k.use === "sig");
