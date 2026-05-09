@@ -1832,6 +1832,27 @@ Affected: §12 L-004 Option 1 (refined 2026-05-09 to specify
 *Default Scopes, not Allowed Scopes*); FU-006 (new follow-up
 filing the platform-wide audit).
 
+**L-007 — Rauthy 0.35 client-auth-method invariant.**
+OAuth2 RFC 6749 §2.3.1 permits confidential clients to
+authenticate via either HTTP Basic (`client_secret_basic`)
+or request-body params (`client_secret_post`). Rauthy
+0.35 has chosen `client_secret_post` for confidential
+`client_credentials` flows and rejects Basic with
+`400 BadRequest "'client_secret' is missing"`. Same class
+as L-006: when the OAuth2 spec permits multiple shapes,
+Rauthy picks one and rejects the others — verify Rauthy's
+choice empirically rather than reading the OAuth2 spec
+for permission. The verify-don't-infer discipline applies
+to any protocol surface where the implementation has
+narrowed the spec's permissiveness.
+
+Affected: `platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml`
+(FU-010 fix, body-form `client_id`/`client_secret`); FU-003's
+incoming spec 115/087/124 sweepers inherit the corrected
+shape from day one. Cross-reference to L-006 (scope inertia)
+and L-008 (issuer-claim derivation) — three Rauthy-0.35
+invariants in one family.
+
 ## 13. Evidence ledger (historical record)
 
 This section is the historical evidence ledger for spec 143's
