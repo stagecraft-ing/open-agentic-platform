@@ -149,7 +149,7 @@ async function fetchJwksAndIssuer(): Promise<JwksAndIssuer> {
   };
 }
 
-async function getJwksAndIssuer(): Promise<JwksAndIssuer> {
+export async function getJwksAndIssuer(): Promise<JwksAndIssuer> {
   if (jwksCache && Date.now() - jwksCache.fetchedAt < JWKS_CACHE_TTL_MS) {
     return jwksCache;
   }

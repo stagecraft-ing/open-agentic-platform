@@ -396,12 +396,23 @@ fi
 # §12 L-003 single-writer anti-pattern; Helm is the sole writer going
 # forward.
 #
-# This delete is idempotent — `--ignore-not-found` keeps fresh
-# clusters silent — and runs BEFORE the helm release lands so a
-# cluster carrying the legacy un-Helm-owned CronJob has it cleared
-# in time for the Helm-owned successor to be created cleanly. The
-# imperative-vs-declarative ownership transition runs once per
-# upgraded cluster; subsequent runs are no-ops.
+# Idempotency is now LABEL-GATED (FU-009). The bootstrap-only delete
+# fired unconditionally on every setup.sh run, which was correct on
+# first cluster bootstrap (cluster carries legacy un-Helm-owned
+# cronjob → delete fires → helm release recreates it Helm-owned) but
+# WRONG on subsequent re-runs against a cluster where CD has already
+# deployed the Helm-owned successor (delete fires AFTER the
+# Helm-owned cronjob exists and removes it). Empirically validated
+# twice in the 2026-05-09 FU-001 verification session — see spec 143
+# §12 FU-009 filing for the evidence.
+#
+# Label gate: delete only when `app.kubernetes.io/managed-by` is
+# absent or != "Helm". The legacy un-Helm-owned cronjob (raw
+# kubectl-applied) carried no such label by construction; the Helm-
+# owned successor always carries it. Result: setup.sh re-runs against
+# a cluster carrying the Helm-owned cronjob preserve it; first-time
+# bootstrap against a cluster carrying the legacy cronjob still
+# clears it.
 #
 # Note: this delete is for the post-create.sh legacy bootstrap path.
 # The cd-stagecraft helm-deploy action carries its own one-time
@@ -416,9 +427,17 @@ fi
 # CronJobs will land Helm-native from day zero, no post-create.sh
 # bootstrap needed.
 
-info "Retiring legacy spec-143 orphan-imported-sweeper bootstrap (Helm now owns this resource)..."
-kubectl delete cronjob knowledge-orphan-imported-sweeper \
+info "Checking spec-143 orphan-imported-sweeper cronjob ownership (FU-009 label-gate)..."
+managed_by=$(kubectl get cronjob knowledge-orphan-imported-sweeper \
   --namespace stagecraft-system \
-  --ignore-not-found=true
+  -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null || echo "")
+if [ -z "$managed_by" ] || [ "$managed_by" != "Helm" ]; then
+  kubectl delete cronjob knowledge-orphan-imported-sweeper \
+    --namespace stagecraft-system \
+    --ignore-not-found=true
+  info "Legacy un-Helm-owned orphan sweeper cronjob cleared."
+else
+  info "Helm-owned orphan sweeper cronjob present; skipping legacy delete (FU-009 label-gate)."
+fi
 
 info "Infrastructure bootstrap complete"

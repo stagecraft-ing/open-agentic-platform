@@ -74,12 +74,20 @@ spec:
                 - |
                   set -eu
 
-                  # 1. Fetch a client_credentials JWT from Rauthy. The
-                  #    `scope=` parameter is documented-inert under
-                  #    Rauthy 0.35's client_credentials flow (§12 L-006);
-                  #    the JWT carries whatever is in the client's
-                  #    Default Scopes regardless. We send `scope=` only
-                  #    for forward-compat with stricter IDPs.
+                  # 1. Fetch a client_credentials JWT from Rauthy.
+                  #
+                  #    Two Rauthy-0.35 invariants apply here:
+                  #    - §12 L-006 (scope inertia): the `scope=` param
+                  #      is documented-inert under client_credentials;
+                  #      the JWT carries whatever is in the client's
+                  #      Default Scopes regardless. We send `scope=`
+                  #      only for forward-compat with stricter IDPs.
+                  #    - §12 L-007 (client-auth-method invariant):
+                  #      Rauthy 0.35 has narrowed RFC 6749 §2.3.1 to
+                  #      `client_secret_post` only and rejects HTTP
+                  #      Basic (`client_secret_basic`) with HTTP 400
+                  #      `'client_secret' is missing`. Credentials go
+                  #      in the body, not the Authorization header.
                   TOKEN_JSON=$(
                     curl --fail --silent --show-error \
                       --max-time 30 \
@@ -87,7 +95,8 @@ spec:
                       --header 'Content-Type: application/x-www-form-urlencoded' \
                       --data-urlencode 'grant_type=client_credentials' \
                       --data-urlencode 'scope=platform:knowledge:sweep' \
-                      --user "${CLIENT_ID}:${CLIENT_SECRET}" \
+                      --data-urlencode "client_id=${CLIENT_ID}" \
+                      --data-urlencode "client_secret=${CLIENT_SECRET}" \
                       "${RAUTHY_URL}/auth/v1/oidc/token"
                   )
 

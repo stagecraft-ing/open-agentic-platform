@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); outstanding: FU-001 (orphan-sweeper expose:false 404) + FR-006 deploy-time real-UI confirmation
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); outstanding: FU-001 deploy-artefact landed at 22ce269 but runtime path blocked on FU-008 (setup.sh secret-sync granularity) + FU-009 (post-create.sh delete safety) + FU-010 (chart client_secret_post + L-007) + FU-011 (M2M validator correctness across platform services + L-008) — see §13 2026-05-09 entry — plus FR-006 deploy-time real-UI confirmation
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1358,6 +1358,383 @@ Follow-up tracker (parking lot):
   sibling spec covering the systemic finding rather than
   per-client fixes, per FU-003 precedent.
 
+- **FU-008 — setup.sh secret-sync granularity.** Spec 143's
+  FU-001 verification surfaced a recurring structural seam:
+  on Hetzner-without-ESO, materialising any per-purpose M2M
+  Secret requires running the full `setup.sh` monolith. This
+  is the second of four hits on the same seam pattern across
+  this spec's lifecycle:
+
+  - *Hit #1 (Rauthy-seam, already filed)* — L-005/L-006:
+    spec 143 originally inferred Rauthy 0.35's behaviour from
+    OAuth2 protocol generality (FR-008 DNS-01 assumption,
+    `scope=` param semantics). Resolved by L-005/L-006
+    naming the empirical Rauthy 0.35 invariants verbatim.
+  - *Hit #2 (this filing)* — setup.sh-monolith seam:
+    `platform/infra/hetzner/setup.sh` interleaves pre-flight
+    checks (lines 95-219), helm chart installs (Rauthy at
+    201-217, infrastructure helm chain after 173 calling
+    post-create.sh), `kubectl create secret` calls
+    (rauthy-secrets at 184-191, deployd-api-secrets at
+    194-198, stagecraft-api-secrets at 318-343,
+    `stagecraft-knowledge-sweeper-credentials` at 354-359, S3
+    creds at 339-343), stagecraft-api rollout (368-374),
+    deployd-api helm upgrade (377-384), and GitHub Actions
+    secret sync (389-408) into a single sequential script.
+    To rotate or add **one** Secret — e.g. the new
+    sweeper-credentials triple introduced by FU-001/FU-003 —
+    operators must re-run the entire script, which (a) does
+    far more than the secret rollout requires, (b) reliably
+    triggers FU-009's cronjob deletion as a side effect (twice
+    observed in the 2026-05-09 verification session: once on
+    Beat 5→6 transition, once accidentally between Beat 6.4
+    fire and Beat 6.4 pod-exec verify), (c) couples credential
+    rollouts to chart-level state changes (stagecraft-api
+    rollout) that are unrelated to the credential being
+    rotated.
+  - *Hits #3 and #4 (incoming with FU-003)* — when FU-003
+    lands the spec 115 / 087 / 124 sweepers, each will need
+    its own per-purpose `stagecraft-{factory,audit}-sweeper-
+    credentials` Secret materialised the same way. Without
+    a structural fix, each new sweeper inherits the same
+    monolith-re-run requirement. The seam compounds; this is
+    why hits #3 and #4 are not "more of the same kind" but
+    "the same seam under load."
+
+  Two candidate shapes — neither pre-committed:
+
+  (a) **Idempotent setup.sh subcommand targets.** Refactor
+      `setup.sh` into composable targets matching the
+      operational unit of work — e.g. `setup.sh sync-secrets`
+      (re-materialises every `kubectl create secret generic …`
+      from the present `.env`, no helm work, no rollouts,
+      no GitHub Actions sync), `setup.sh sync-rbac`,
+      `setup.sh sync-app` (helm upgrades and rollouts),
+      `setup.sh full` (the present monolith, calling all
+      targets). Per-purpose credential rollouts then become
+      a single narrow command. Shape inherits the existing
+      script's `.env`-as-source-of-truth invariant; no
+      cluster-side controller required.
+
+  (b) **Deploy-time secret materialisation hook on the
+      Hetzner-without-ESO branch.** Move per-purpose Secret
+      materialisation out of `setup.sh` entirely and into a
+      Helm chart hook (or sister Job) that reads from a
+      cluster-side source of truth — e.g. a sealed-secret
+      bundle, an SOPS-encrypted manifest, or a Hetzner-
+      cluster-local `bootstrap-secrets` ConfigMap+Secret
+      pair populated once by setup.sh. The Helm release
+      then owns secret lifecycle the same way ESO would on
+      cloud clusters — chart drift is the contract; setup.sh
+      stops being the per-rotation rollout vehicle. Open
+      question: source-of-truth durability — `.env` on the
+      operator's laptop vs. cluster-internal store — is a
+      separate trade-off worth naming.
+
+  *Cross-FU constraint with FU-009.* The post-create.sh
+  legacy-delete (FU-009) currently lives in the same script
+  layer as the sweeper-Secret materialisation (this FU). Both
+  candidate shapes here have implications for FU-009's
+  resolution: shape (a) needs an answer for which target the
+  legacy-delete belongs to (or whether it stays at the
+  orchestrator level); shape (b) makes the legacy-delete
+  homeless and forces FU-009 toward its candidate (b) —
+  extraction to a one-time migration script. The two FUs
+  should be resolved together, with FU-009's shape decision
+  following FU-008's.
+
+  **Decision needed:** which shape (a or b, or hybrid) the
+  Hetzner-without-ESO path should adopt before FU-003 lands
+  hits #3 and #4. The spec must be present before the next
+  per-purpose M2M Secret rollout, otherwise the seam re-fires
+  with each FU-003 sweeper. Companion feedback memory
+  `feedback_setup_sh_secret_sync_granularity.md` cross-links
+  this spec entry; that memory captures the agent-side
+  recurrence pattern (the agent tried to materialise the
+  missing Secret out-of-band on first encounter, was
+  correctly halted by the auto-mode classifier; the
+  structural fix removes the temptation entirely).
+
+  **Done when:** the Hetzner-without-ESO secret rollout has
+  a single composable command path (whatever shape (a)/(b)/
+  hybrid resolves to); FU-003's incoming sweeper rollouts
+  use that path; the `.env`/cluster-side source-of-truth
+  durability question has its own resolution recorded.
+
+- **FU-009 — post-create.sh legacy-delete ordering safety.**
+  `platform/infra/hetzner/post-create.sh:419-422` runs
+  `kubectl delete cronjob knowledge-orphan-imported-sweeper
+  --ignore-not-found=true` unconditionally on every invocation.
+  The comment at lines 388-417 claims this "runs BEFORE the
+  helm release lands so a cluster carrying the legacy
+  un-Helm-owned CronJob has it cleared in time for the
+  Helm-owned successor to be created cleanly." That ordering
+  premise holds only on the first cluster bootstrap. On
+  subsequent setup.sh re-runs against a cluster where CD has
+  already deployed the Helm-owned successor (the FR-010
+  cronjob), the delete fires AFTER the Helm-owned cronjob
+  exists and removes it — leaving the cluster in a degraded
+  state until the next CD run rebuilds it.
+
+  Validated empirically twice in the 2026-05-09 verification
+  session for FU-001:
+
+  - First firing: setup.sh re-run between Beat 5
+    (cronjob present, verified) and Beat 6 (manual fire
+    expected) deleted the cronjob; CD re-run
+    [25586826114](https://github.com/stagecraft-ing/open-agentic-platform/actions/runs/25586826114)
+    (workflow_dispatch, 01:01:09Z helm upgrade,
+    01:01:38Z cronjob recreated) restored it.
+  - Second firing: setup.sh accidentally re-run between
+    Beat 6.4 manual fire (01:02:32Z) and Beat 6.4 pod-exec
+    verify (01:27:29Z) deleted the cronjob again.
+    Cluster-truth and chart-truth diverged: helm release
+    151 still carried the manifest (verified via `helm get
+    manifest stagecraft --revision 151 | grep CronJob`),
+    cluster API returned NotFound. No further restoration
+    attempt was made — the §13 2026-05-09 deferred-evidence
+    gap captures the close conditions.
+
+  Two candidate shapes — pick at fix time:
+
+  (a) **Label-gate the delete.** Wrap the kubectl delete
+      in a check on `app.kubernetes.io/managed-by`: delete
+      only if absent or != "Helm". A cluster carrying the
+      Helm-owned successor will see the delete skip; a
+      cluster carrying the legacy un-Helm-owned cronjob
+      will see the delete fire. Cheapest fix; adds one
+      jq/grep wrapper. Drawback: relies on the legacy
+      cronjob never having that label (it didn't, by
+      construction — the legacy was raw kubectl-applied,
+      not Helm-managed).
+
+  (b) **Extract the legacy-bootstrap retirement to a
+      one-shot migration script.** Move the delete out of
+      post-create.sh into a single-use `migrations/2026-05-08-retire-legacy-orphan-sweeper.sh`
+      (or equivalent), run once per pre-FR-010 cluster,
+      then removed from post-create.sh entirely once every
+      live cluster has crossed the cutover. Cleaner
+      long-term — the legacy-bootstrap retirement is a
+      one-time historical concern, not a perpetual hook.
+      Drawback: requires tracking which clusters have
+      completed the migration (manual today; would warrant
+      cluster-side state if formalised).
+
+  **Done when:** the post-create.sh legacy delete is either
+  label-gated (per (a)) OR extracted to a one-time migration
+  script and removed from post-create.sh entirely (per (b));
+  AND a setup.sh re-run against a cluster carrying the
+  Helm-owned cronjob no longer destroys it. Smoke-test:
+  re-run setup.sh; `kubectl get cronjob knowledge-orphan-imported-sweeper
+  -n stagecraft-system` continues to return the same
+  `metadata.uid` as before the re-run.
+
+- **FU-010 — Chart cronjob template uses `client_secret_post`
+  body params + §12 L-007.** The cronjob template at
+  `platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml:35-41`
+  authenticates to Rauthy's token endpoint with
+  `curl --user "${CLIENT_ID}:${CLIENT_SECRET}"` (HTTP Basic
+  Auth, RFC 6749 §2.3.1 `client_secret_basic`). Rauthy 0.35
+  rejects this for confidential `client_credentials` clients
+  with **HTTP 400 BadRequest `'client_secret' is missing`** —
+  the same rejection class as L-006's "Default Scopes vs
+  Allowed Scopes" finding: where OAuth2 RFC 6749 permits
+  multiple shapes, Rauthy 0.35 has narrowed to one and rejects
+  the others.
+
+  Verified 2026-05-09 against the live Rauthy instance:
+
+  - HTTP Basic via `curl --user "${CID}:${CSEC}"` against
+    `${RAUTHY_URL}/auth/v1/oidc/token` (chart's deployed
+    shape) → **HTTP 400** `'client_secret' is missing`.
+  - Body-form via `curl --data-urlencode "client_id=${CID}"
+    --data-urlencode "client_secret=${CSEC}"` (same endpoint,
+    same credentials) → **HTTP 200** with a 536-char Bearer,
+    `expires_in: 1800` (Beat 6.4 evidence line A in §13
+    2026-05-09 entry).
+
+  **Fix:** Replace `--user "${CLIENT_ID}:${CLIENT_SECRET}"`
+  in the cronjob template with body-form params:
+  `--data-urlencode "client_id=${CLIENT_ID}"` plus
+  `--data-urlencode "client_secret=${CLIENT_SECRET}"`.
+  FU-003's incoming spec 115/087/124 sweepers inherit the
+  corrected shape from day one. The existing
+  `--data-urlencode scope=platform:knowledge:sweep` line
+  stays — its body-inert semantics under L-006 are documented
+  in the chart comment and the comment stays current.
+
+  **§12 L-007 to land alongside the chart fix** (verbatim,
+  not pre-committed in this filing):
+
+  > **L-007 — Rauthy 0.35 client-auth-method invariant.**
+  > OAuth2 RFC 6749 §2.3.1 permits confidential clients to
+  > authenticate via either HTTP Basic (`client_secret_basic`)
+  > or request-body params (`client_secret_post`). Rauthy
+  > 0.35 has chosen `client_secret_post` for confidential
+  > `client_credentials` flows and rejects Basic with
+  > `400 BadRequest "'client_secret' is missing"`. Same class
+  > as L-006: when the OAuth2 spec permits multiple shapes,
+  > Rauthy picks one and rejects the others — verify Rauthy's
+  > choice empirically rather than reading the OAuth2 spec
+  > for permission. The verify-don't-infer discipline applies
+  > to any protocol surface where the implementation has
+  > narrowed the spec's permissiveness.
+
+  **Done when:** (a) `cronjob-orphan-sweeper.yaml:35-41`
+  uses body-form `client_secret_post`; (b) §12 L-007 lands
+  verbatim alongside the chart fix; (c) CD stagecraft
+  redeploys; (d) smoke-test: a manual fire (`kubectl create
+  job --from=cronjob/knowledge-orphan-imported-sweeper`)
+  reproduces Beat 6.4 evidence line A's HTTP 200 token
+  fetch. Sweep-endpoint closure (Beat 6.4 evidence line B's
+  401) is **not** in this FU's done-when — that is FU-011's
+  scope and tracked there.
+
+- **FU-011 — M2M validator correctness across platform
+  services + §12 L-008.** Spec 143 FU-001 verification
+  surfaced a third Rauthy-0.35-vs-hand-rolled-validator
+  finding, structurally adjacent to FU-006c (deployd-api
+  RSA-only validator). The seam is platform-wide:
+  hand-rolled M2M JWT validators across stagecraft-api,
+  deployd-api-rs, and any future sibling Rust/TypeScript
+  service each carry their own independent reimplementation
+  of "what is the issuer / how do I match it / what alg
+  do I support." Subtle divergence is the recurring failure
+  mode; this FU files the seam with a concrete trigger and
+  three numbered findings, only one of which is the spec
+  143 closure gate.
+
+  **Concrete trigger (Finding 1 — stagecraft-api issuer
+  derivation):** `validateM2mJwt` at
+  `platform/services/stagecraft/api/auth/m2mAuth.ts:85-89`
+  derives `expectedIssuer` by string concatenation:
+  `` `${rauthyUrl()}/auth/v1` ``. With
+  `RAUTHY_URL=https://auth.stagecraft.ing` (the cluster's
+  mounted secret), this evaluates to
+  `https://auth.stagecraft.ing/auth/v1` — no trailing slash.
+  Rauthy 0.35's OIDC discovery doc publishes
+  `issuer: "https://auth.stagecraft.ing/auth/v1/"` *with*
+  a trailing slash, and `client_credentials` access tokens
+  carry that exact string in the `iss` claim (verified
+  2026-05-09 by base64url-decoding the Beat 6.4 evidence
+  line B token: `iss: "https://auth.stagecraft.ing/auth/v1/"`).
+  Strict-equality compare → false → `return null` →
+  `m2mAuth.ts:53` throws `"invalid or expired M2M JWT"`.
+  This is the 401 in §13 2026-05-09 Beat 6.4 evidence
+  line B.
+
+  The same service has a sibling validator that does it
+  right: `validateJwt` in
+  `platform/services/stagecraft/api/auth/rauthy.ts:201`
+  fetches the canonical issuer via OIDC discovery
+  (`getJwksAndIssuer()`, defined at `rauthy.ts:152`) and
+  compares against the discovery-doc-published `issuer`
+  string. Two validators five lines apart in the same
+  directory derive issuer two different ways. The bug *is*
+  the divergence.
+
+  **Fix (named, not leaned).** Replace `m2mAuth.ts:85-89`'s
+  string concatenation with a call to `getJwksAndIssuer()`
+  (already exported from `rauthy.ts:152`) and compare against
+  the returned `issuer`. Mirror the pattern
+  `rauthy.ts::validateJwt:201` already uses; m2mAuth.ts
+  catches up to rauthy.ts. The decode evidence makes this
+  the only defensible fix: trailing-slash normalisation
+  would normalise the symptom while preserving the
+  divergence that produced it, and any future Rauthy-version
+  issuer-shape change re-fires this exact class of bug. The
+  authoritative-by-deference-to-the-discovery-doc shape is
+  the actual contract; making the validator match the
+  contract is the structural fix.
+
+  *JWKS-failure behaviour discipline.* `getJwksAndIssuer()`
+  has its own error modes (network, cache miss, discovery-
+  doc shape change). The M2M path must explicitly decide
+  JWKS-failure behavior; do not inherit by default. Audit
+  `rauthy.ts::validateJwt`'s current swallow/throw choice
+  on JWKS error and either mirror it explicitly or improve
+  on it in `m2mAuth.ts` — the explicit decision is the
+  point.
+
+  *Latent — `M2mClaims.sub` null handling.* The decoded
+  Beat 6.4 evidence line B token carried `sub: null`
+  (Rauthy's standard for `client_credentials`, where there
+  is no end-user principal). The TS interface at
+  `m2mAuth.ts:19-25` declares `sub: string`. Today the
+  validator returns null on issuer mismatch before any sub
+  consumer runs, so the type/runtime mismatch is harmless.
+  Once Finding 1 lands and execution flows past the issuer
+  check, audit downstream consumers of `M2mClaims.sub` for
+  null-handling. This is a one-line audit-note, not a spec
+  gate; called out here so a "fix-Finding-1-then-immediately-FU-012"
+  sequence is avoided.
+
+  **Finding 2 — deployd-api-rs RSA-only JWK validator
+  (cross-reference to FU-006c).** `deployd-api-rs::has_scope`
+  via `auth.rs` accepts only RSA JWKs (looks for the `n`
+  field). Rauthy 0.35 signs with EdDSA (Ed25519, JWK shape
+  `{kty: OKP, crv: Ed25519, x: …}` — no `n`). FU-006c's
+  existing text and verification (2026-05-09, JWT carrying
+  `scope: "openid"` returned `401 Missing n in JWK` at the
+  JWKS layer before scope check) stays where it is in
+  FU-006; this is now part of the FU-011 seam framing as
+  cross-reference, not duplicated text.
+
+  **Finding 3 — audit step (seam-closure work).** Walk every
+  M2M JWT validator in the platform — at minimum
+  `stagecraft-api`'s two validators (`m2mAuth.ts` +
+  `rauthy.ts`), `deployd-api-rs`'s `auth.rs`, and any
+  sibling service that receives M2M-authenticated traffic —
+  and surface every place that derives issuer, fetches JWKS,
+  or selects signature algorithm by hand-rolled code rather
+  than by deference to the OIDC discovery doc. Findings 1
+  and 2 are two examples of this surface; the audit closes
+  whether there are more. Without the audit step, the seam
+  framing is just text; the audit is the work that makes
+  "platform-wide M2M validator correctness" a finite,
+  closeable contract.
+
+  **§12 L-008 to land alongside Finding 1's fix** (verbatim,
+  not pre-committed in this filing):
+
+  > **L-008 — Rauthy 0.35 issuer-claim invariant (use OIDC
+  > discovery, not string concatenation).** Rauthy 0.35's
+  > `client_credentials` access tokens carry `iss` exactly
+  > as published in the OIDC discovery doc at
+  > `/auth/v1/.well-known/openid-configuration` — currently
+  > `https://<host>/auth/v1/` with trailing slash.
+  > Hand-rolled validators that derive `expectedIssuer` by
+  > string concatenation (e.g. `` `${rauthyUrl()}/auth/v1` ``
+  > without trailing slash) will mismatch the token's `iss`
+  > and reject otherwise-valid M2M tokens. Same class as
+  > L-006 (Default vs Allowed Scopes) and L-007
+  > (client-auth-method invariant): when Rauthy publishes a
+  > contract through OIDC discovery, defer to the discovery
+  > doc as the source of truth — do not infer the contract
+  > from protocol generality or from the values you used in
+  > configuration.
+
+  **Done-when, tiered:**
+
+  - *Tier 1 — spec 143 FU-001 closure gate.* Finding 1
+    fixed (m2mAuth.ts uses `getJwksAndIssuer()`'s
+    discovery-canonical issuer); Beat 6.4 evidence line B
+    flips from HTTP 401 `"invalid or expired M2M JWT"` to
+    HTTP 200; FU-010 has also landed (so the chart's token
+    fetch produces a Rauthy-valid token in the first
+    place); CD stagecraft redeploys; ≥ 1 full scheduled
+    tick fires successfully under the schedule
+    `*/30 * * * *`. Spec 143 closes when Tier 1 lands.
+  - *Tier 2 — FU-011 closure gate.* Finding 1 cleared (per
+    Tier 1); Finding 2 cleared (deployd-api-rs `auth.rs`
+    handles EdDSA JWKs alongside RSA, per FU-006c's
+    existing done-when); Finding 3 audit completed and any
+    additional latent validators it surfaces are filed and
+    resolved; §12 L-008 lands verbatim. FU-011 stays open
+    until Tier 2 lands. The audit is the seam-closure work
+    — if it is not in FU-011's done-when, the seam framing
+    is just text.
+
 The honest-state principle: when an FR's contract is broken in
 production but the implementation is structurally close to
 working, mark it partially-implemented in the spec body rather
@@ -1455,6 +1832,51 @@ Affected: §12 L-004 Option 1 (refined 2026-05-09 to specify
 *Default Scopes, not Allowed Scopes*); FU-006 (new follow-up
 filing the platform-wide audit).
 
+**L-007 — Rauthy 0.35 client-auth-method invariant.**
+OAuth2 RFC 6749 §2.3.1 permits confidential clients to
+authenticate via either HTTP Basic (`client_secret_basic`)
+or request-body params (`client_secret_post`). Rauthy
+0.35 has chosen `client_secret_post` for confidential
+`client_credentials` flows and rejects Basic with
+`400 BadRequest "'client_secret' is missing"`. Same class
+as L-006: when the OAuth2 spec permits multiple shapes,
+Rauthy picks one and rejects the others — verify Rauthy's
+choice empirically rather than reading the OAuth2 spec
+for permission. The verify-don't-infer discipline applies
+to any protocol surface where the implementation has
+narrowed the spec's permissiveness.
+
+Affected: `platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml`
+(FU-010 fix, body-form `client_id`/`client_secret`); FU-003's
+incoming spec 115/087/124 sweepers inherit the corrected
+shape from day one. Cross-reference to L-006 (scope inertia)
+and L-008 (issuer-claim derivation) — three Rauthy-0.35
+invariants in one family.
+
+**L-008 — Rauthy 0.35 issuer-claim invariant (use OIDC
+discovery, not string concatenation).** Rauthy 0.35's
+`client_credentials` access tokens carry `iss` exactly
+as published in the OIDC discovery doc at
+`/auth/v1/.well-known/openid-configuration` — currently
+`https://<host>/auth/v1/` with trailing slash.
+Hand-rolled validators that derive `expectedIssuer` by
+string concatenation (e.g. `` `${rauthyUrl()}/auth/v1` ``
+without trailing slash) will mismatch the token's `iss`
+and reject otherwise-valid M2M tokens. Same class as
+L-006 (Default vs Allowed Scopes) and L-007
+(client-auth-method invariant): when Rauthy publishes a
+contract through OIDC discovery, defer to the discovery
+doc as the source of truth — do not infer the contract
+from protocol generality or from the values you used in
+configuration.
+
+Affected: `platform/services/stagecraft/api/auth/m2mAuth.ts`
+(FU-011 Finding 1 fix, `getJwksAndIssuer()` call mirrors
+the sibling validator at `rauthy.ts::validateJwt:201`).
+FU-011 Finding 2 (`deployd-api-rs::auth.rs` RSA-only JWK)
+and Finding 3 (platform-wide M2M validator audit) remain
+open under FU-011's Tier 2 closure gate.
+
 ## 13. Evidence ledger (historical record)
 
 This section is the historical evidence ledger for spec 143's
@@ -1528,4 +1950,136 @@ through the script's exit code.
   the next confirmation; the manual POST trace above proves the
   surrounding chain (DNS, TLS, host preservation, body-size,
   blob persistence) is sound.
+
+**FU-001 cutover deploy-artefact-landed-but-not-end-to-end-verified,
+2026-05-09 01:30 UTC.** This entry records the honest state of the
+FU-001 self-hosted-scheduler cutover at the close of the verification
+session. The deploy-artefact level landed cleanly; the runtime path
+is blocked on three new follow-ups (FU-008/009/010) plus FU-011
+(the M2M validator correctness seam). Beat 6.6 has no available
+destructive action — see below.
+
+**What landed cleanly (deploy-artefact level).**
+
+- Helm-owned `CronJob/knowledge-orphan-imported-sweeper` deployed
+  via CD stagecraft run [25586025148](https://github.com/stagecraft-ing/open-agentic-platform/actions/runs/25586025148)
+  (push event, headSha `22ce2695`, deploy 2026-05-09 00:29:19Z).
+  Restored via re-run [25586826114](https://github.com/stagecraft-ing/open-agentic-platform/actions/runs/25586826114)
+  (workflow_dispatch, headSha `cc02ee0e`, deploy 01:01:38Z) after
+  setup.sh's post-create.sh hook deleted it (FU-009).
+  Manifest verified: `app.kubernetes.io/managed-by: Helm`,
+  `spec.oap/id: 143-presigned-upload-public-endpoint`,
+  `spec.oap/fr: FR-010`, schedule `*/30 * * * *`,
+  `envFrom: [secretRef: stagecraft-knowledge-sweeper-credentials]`
+  (sole credential mount, FR-010 per-purpose discipline).
+- Rauthy client `stagecraft-knowledge-sweeper-m2m-app` configured
+  correctly: `confidential: true`,
+  `flows_enabled: [client_credentials]`,
+  `default_scopes: [openid, platform:knowledge:sweep]`. L-006
+  (Default vs Allowed Scopes) is satisfied for this client.
+  Sibling clients `stagecraft-factory-sweeper-m2m-app` and
+  `stagecraft-audit-sweeper-m2m-app` carry the same shape for
+  FU-003's incoming spec 115 / 087 / 124 sweepers.
+
+**What did not work end-to-end (runtime level).**
+
+- *Beat 6.4 manual fire, evidence line A — Rauthy token fetch with
+  corrected `client_secret_post` body-form auth.* `POST
+  /auth/v1/oidc/token` with `client_id` + `client_secret` as form
+  params returned **HTTP 200** with a 536-char Bearer
+  (`expires_in: 1800`). The chart's deployed shape uses HTTP Basic
+  Auth via `curl --user`, which Rauthy 0.35 rejects as **HTTP 400**
+  `'client_secret' is missing`. The corrected pod-exec
+  (`Pod/sweeper-verify-1778290048`, stagecraft-system,
+  2026-05-09T01:27:29Z–01:27:30Z, exit 0) used body-form auth and
+  confirmed the auth invariant is satisfied at the token-mint layer.
+  Filed as FU-010 (chart cronjob template + §12 L-007).
+- *Beat 6.4 manual fire, evidence line B — sweep endpoint with the
+  line-A Bearer.* `POST stagecraft-api …/internal/knowledge/orphan-imported-sweep`
+  with `Authorization: Bearer <token>` returned **HTTP 401**
+  `{"code":"unauthenticated","message":"invalid or expired M2M JWT","details":null}`.
+  Cause diagnosed by base64url-decoding the token: `iss:
+  "https://auth.stagecraft.ing/auth/v1/"` (with trailing slash, from
+  Rauthy's OIDC discovery doc) versus stagecraft's `m2mAuth.ts:86`
+  hard-coded expectedIssuer `${rauthyUrl()}/auth/v1` (no trailing
+  slash). Strict-equality compare → false → `m2mAuth.ts:53` throws
+  `"invalid or expired M2M JWT"`. Sibling validator `rauthy.ts::validateJwt`
+  uses the discovery-doc canonical issuer correctly via
+  `getJwksAndIssuer()`. Filed as FU-011 (M2M validator correctness
+  across platform services + §12 L-008), absorbing FU-006c by
+  cross-reference.
+- *Beat 6.5 scheduled tick.* One real scheduled tick fired at
+  2026-05-09T00:30:00Z (cronjob controller event
+  `SuccessfulCreate :: Created job
+  knowledge-orphan-imported-sweeper-29638110`), running the same
+  broken-Basic-Auth chart path as the manual Beat 6.4 fire. Job
+  since cascaded-deleted with the cronjob (FU-009 fired). No
+  further scheduled-tick evidence is available on this cluster
+  until (a) FU-009 lands so setup.sh re-runs stop destroying the
+  Helm-owned successor, (b) FU-010 lands so the chart's curl call
+  can mint a token, (c) FU-011 Tier 1 lands so the sweep endpoint
+  accepts that token, (d) CD stagecraft redeploys, (e) ≥ 1 full
+  scheduled tick fires successfully post-(d). Recorded as a
+  deferred-evidence gap with named close conditions — these are
+  the *Tier 1* close conditions; Tier 2 (FU-011 audit step) does
+  not block spec 143 closure.
+- *Beat 6.6 legacy-client deletion.* No destructive action is
+  available — the legacy `stagecraft-sweeper-m2m-app` Rauthy
+  client was never created in this Rauthy instance (verified
+  2026-05-09 01:28 UTC against the live admin API: 7 clients
+  total, none with that id; only the new per-purpose triple
+  `stagecraft-{knowledge,factory,audit}-sweeper-m2m-app` plus
+  `stagecraft-m2m`, `stagecraft-server`, `stagecraft-spa`, and
+  `rauthy`), meaning there is no rollback path to a pre-FR-010
+  sweeper auth flow. Recorded as "no-op — legacy client absent"
+  rather than "deferred pending FU-010." Implication for FU-010
+  cutover: smoke-test must be fully green before redeploy; there
+  is no fallback configuration to revert to.
+
+**Follow-ups filed in this session (§12 above).**
+
+- **FU-008** — setup.sh secret-sync granularity. Second of four
+  hits on a recurring structural seam (Rauthy-seam L-005/L-006
+  was hit #1; FU-003 factory + audit will be hits #3 and #4).
+  Decision needed; two candidate shapes named, pre-committed to
+  neither.
+- **FU-009** — post-create.sh legacy-delete ordering safety.
+  Validated empirically twice in this session (once on the first
+  setup.sh re-run between Beat 5 and Beat 6, once on an
+  accidental re-run between Beat 6.4 manual fire and Beat 6.4
+  pod-exec). Operational fix, two candidate shapes.
+- **FU-010** — chart cronjob template `client_secret_post` body
+  params + §12 L-007 (Rauthy 0.35 client-auth-method invariant,
+  same class as L-006). Smoke-test references Beat 6.4 evidence
+  line A on landing.
+- **FU-011** — M2M validator correctness across platform
+  services + §12 L-008 (Rauthy 0.35 issuer-claim invariant).
+  Three numbered findings with tiered done-when: Tier 1
+  (Finding 1 — stagecraft-api `m2mAuth.ts` issuer derivation)
+  is the spec 143 closure gate; Tier 2 (Finding 2 — FU-006c
+  cross-reference; Finding 3 — platform-wide audit) is the
+  seam-closure gate. Spec 143 closes when Tier 1 lands; FU-011
+  stays open until Tier 2 lands.
+
+**Lesson family — the N-shaped tax of hand-rolled OIDC against
+Rauthy's wire shape.** This session surfaced three Rauthy-0.35-vs-
+hand-rolled-validator findings inside one spec — L-006 (Default
+Scopes vs Allowed Scopes, already filed), L-007 (client-auth-method,
+filed with FU-010), L-008 (issuer-claim derivation, filed with
+FU-011). The pattern: where the OAuth2/OIDC spec permits multiple
+shapes, Rauthy 0.35 has narrowed to one and rejects the others;
+hand-rolled validators that infer the contract from protocol
+generality, or from the values configured locally, accumulate an
+N-shaped tax against Rauthy's published wire shape. The remediation
+shape is also recurring: defer to the OIDC discovery doc as the
+single source of truth (issuer, JWKS, supported algs, supported
+auth methods) rather than re-implementing the contract by hand.
+The L-006/L-007/L-008 family is worth its own §12 cross-reference
+once a fourth instance lands, so future M2M work inherits the
+discipline by default.
+
+This is an *honest-state* §13 entry per the §12 L-004 honest-state
+principle: the deploy-artefact and the runtime path are separately
+credible, and the spec spine carries that separation verbatim until
+the runtime path is end-to-end verified.
 
