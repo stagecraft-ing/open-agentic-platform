@@ -26,7 +26,13 @@ implements:
   - path: platform/services/stagecraft/api/knowledge/uploadLimits.ts
   - path: platform/services/stagecraft/api/knowledge/uploadLimits.test.ts
   - path: platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
+  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx  # FU-023 — uploadOne uses fetchWithRefresh for the requestUpload/confirmUpload pair
+  - path: platform/services/stagecraft/api/auth/refreshCookie.ts  # FU-023 — POST /auth/refresh endpoint
+  - path: platform/services/stagecraft/api/auth/refreshCookie-pure.ts  # FU-023 — cookie parse/build pure helpers
+  - path: platform/services/stagecraft/api/auth/refreshCookie.test.ts  # FU-023 — endpoint unit test with mocked refreshTokens
+  - path: platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts  # FU-023 — pure-helper unit tests
+  - path: platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts  # FU-023 — browser fetch wrapper with single-flight 401 retry
+  - path: platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts  # FU-023 — wrapper unit tests (passthrough, retry, single-flight, refresh-fail propagation)
   - path: platform/services/stagecraft/test/__mocks__/encore-config.ts
   - path: platform/services/stagecraft/vite.config.ts
   - path: platform/services/stagecraft/infra.config.hetzner.json

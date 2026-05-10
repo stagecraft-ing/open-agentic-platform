@@ -13,6 +13,7 @@ import {
   KNOWLEDGE_UPLOAD_MAX_BYTES,
   KNOWLEDGE_UPLOAD_MAX_HUMAN,
 } from "../../../api/knowledge/uploadLimits";
+import { fetchWithRefresh } from "../lib/fetchWithRefresh";
 
 export async function loader({
   request,
@@ -425,6 +426,12 @@ function UploadStatusBadge({ status }: { status: UploadStatus }) {
  * Upload one file end-to-end. The fetch hits the Encore API directly rather
  * than a Remix action — going through the action returns HTML under React
  * Router v7 single-fetch, which breaks `res.json()` on Safari.
+ *
+ * Spec 143 FU-023: the two Encore-API hits (requestUpload + confirmUpload)
+ * go through `fetchWithRefresh` so a mid-batch __session expiry triggers a
+ * single-flighted `/auth/refresh` and the request replays cleanly. The S3
+ * PUT is a separate origin (presigned URL) and does not carry the auth
+ * cookie, so it stays on raw `fetch`.
  */
 async function uploadOne(file: File, projectId: string): Promise<void> {
   const buffer = await file.arrayBuffer();
@@ -437,7 +444,7 @@ async function uploadOne(file: File, projectId: string): Promise<void> {
 
   const apiBase = `/api/projects/${encodeURIComponent(projectId)}/knowledge`;
 
-  const reqUploadRes = await fetch(`${apiBase}/upload`, {
+  const reqUploadRes = await fetchWithRefresh(`${apiBase}/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -464,7 +471,7 @@ async function uploadOne(file: File, projectId: string): Promise<void> {
     throw new Error(`S3 upload failed: ${s3Res.status} ${s3Res.statusText}`);
   }
 
-  const confirmRes = await fetch(
+  const confirmRes = await fetchWithRefresh(
     `${apiBase}/objects/${objectId}/confirm`,
     {
       method: "POST",

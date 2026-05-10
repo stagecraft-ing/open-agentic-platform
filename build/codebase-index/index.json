@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "88baf543db3f8545e1efa24ea66ae2b4b631d704faac85e50d9b3221d8065055",
+    "contentHash": "f8492c572531c7102d038847fb13e802092f8d725dbdf9ecc828c78380d23ce4",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4708,6 +4708,22 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie-pure.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
             "source": "spec-implements"
           },
@@ -4769,6 +4785,14 @@
           },
           {
             "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts",
             "source": "spec-implements"
           },
           {
