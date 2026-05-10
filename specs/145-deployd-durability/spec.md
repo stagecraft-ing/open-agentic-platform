@@ -110,6 +110,60 @@ the `cryptr → s3-simple` chain is already in
 "S effort" recommendation to **M effort** and converted it from "an
 audit recommendation" into "its own spec" — this is that spec.
 
+### 1.1 Coordination with spec 146 (deployd-api memory hardening)
+
+**Read this before implementing §2.** Spec 146
+(`146-deployd-api-memory-hardening`, authored 2026-05-10) lands a
+chart-default `resources` block on
+`platform/charts/deployd-api/values.yaml` populating `limits.memory:
+1Gi`, `requests.memory: 256Mi`, `requests.cpu: 100m`. Spec 146 closes
+spec 143 FU-021 — the OOM driver was *cold-start hiqlite WAL pressure
+against an unbounded cgroup* on the actively-shipping Hetzner deploy
+(restartCount=3, exit 137, ~10 min lifetime). Spec 146 §2.4 and spec
+143's §13 2026-05-10 ~17:00 / ~17:30 UTC entries flag this as a
+coordination point with spec 145 for one reason:
+
+> **If memory pressure during WAL init produces an OOM *before* spec
+> 145's restore-on-startup path runs, the chart-default 1Gi cgroup
+> spec 146 lands is the load-bearing safeguard that lets
+> restore-on-startup run at all.**
+
+Concretely, when this session lands §2.4 (restore-on-startup):
+
+1. **Verify the cgroup floor is present.** `helm template` against
+   `values.yaml` must render `resources.limits.memory` and
+   `resources.requests.memory` non-empty in the deployd-api
+   Deployment. Spec 146 already wires this; the assertion here is
+   "spec 146 landed before spec 145's restore code path is
+   exercised on cluster." If §2 of this spec ships ahead of spec
+   146, the restore path runs against an unbounded cgroup and the
+   cold-start OOM can fire *before* the restore logic gets to run.
+2. **Decide absorb-vs-fork on WAL-pressure-aware scheduling.** If
+   restore-on-startup itself drives non-trivial allocation under
+   the 1Gi floor (e.g., decrypting a multi-MB snapshot in-memory),
+   this session decides whether to:
+   - **Absorb** — raise the cgroup default in spec 146 (amend
+     §2.1 with budget math for the restore-decrypt allocation), or
+   - **Fork** — file a follow-up spec on
+     WAL-pressure-aware scheduling (e.g., stream decrypt to disk,
+     or chunk restore by table).
+   Spec 146 §2.4 names this absorb-vs-fork choice as deferred to
+   this session — the floor is sufficient cover for the diagnosed
+   FU-021 failure mode, but spec 145's restore allocation profile
+   is the next pressure surface and this session has the data.
+3. **Touch points.** Spec 146 claims the same `values.yaml` file
+   under spec 130's any-claimant heuristic. Edits to the
+   `resources:` block from this session require either the spec 146
+   amendment path (cleanest) or a Spec-Drift-Waiver per spec 127
+   FR-005. The two specs' edits to `values.yaml` are otherwise
+   disjoint (146 adds `resources:`; 145 changes
+   `persistence.enabled` and `command.args`).
+
+This subsection is informational, not contractual; it does not
+expand spec 145's `implements:` list. The coordination flag exists
+so this session's first read of spec 145 surfaces the spec 146
+context without needing to dredge spec 143's §13 ledger.
+
 ## 2. Resolution
 
 The four changes below land as one coherent unit. They are coupled
