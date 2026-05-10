@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); outstanding: FU-001 deploy-artefact landed at 22ce269 but runtime path blocked on FU-008 (setup.sh secret-sync granularity) + FU-009 (post-create.sh delete safety) + FU-010 (chart client_secret_post + L-007) + FU-011 (M2M validator correctness across platform services + L-008) — see §13 2026-05-09 entry — plus FR-006 deploy-time real-UI confirmation
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 — FR-006 deploy-time real-UI confirmation green, FU-009 + FU-010 + FU-011 Finding 1 shipped, sweeper observed firing on schedule (see §13 Tier 1 closure entry); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2 (Findings 2 + 3), FU-013 (confirmUpload 502 under load, investigation-priority), FU-014 (knowledge-route refresh-500, may close as not-spec-143)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1743,6 +1743,128 @@ the cluster's actual behaviour. A spec that lies about its own
 state corrodes the audit trail — the value of the spec spine is
 the trust that markdown matches truth.
 
+- **FU-013 — `confirmUpload` 502 under concurrent batch upload
+  load.** Spec 143 FU-001 deploy-time verification (2026-05-09
+  §13 Tier 1 closure entry, image 2) surfaced a partial-failure
+  in the user-driven upload flow: of 34 concurrent files
+  uploaded through the stagecraft web UI, a subset returned
+  `Upload landed but confirm failed (502)` with an HTML error
+  body. The blob landed in MinIO; the subsequent `confirmUpload`
+  POST to stagecraft-api died upstream of the Encore handler
+  (502 + HTML signature, not a JSON Encore-error shape).
+
+  *Cause #1 ruled out by post-deploy cluster-state check.*
+  `kubectl get pods -n stagecraft-system -l app=stagecraft-api`
+  on 2026-05-09 ~07:35 UTC: 1 replica, READY, **0 restarts in
+  18h**, no `lastState.terminated`. The "pod restart / OOMKilled
+  mid-batch (same shape as L-003 / FU-002)" cause from the §13
+  closure entry's hypothesis list is empirically not it.
+
+  *Surviving hypotheses, ranked.*
+
+  (a) **Ingress `proxy_read_timeout` on synchronous MinIO
+      `headObject` under concurrent load** *(higher likelihood)*.
+      502 + HTML body is the nginx-ingress upstream-proxy
+      signature; an Encore handler that errored under load would
+      return JSON. If `confirmUpload`'s server-side path runs
+      `headObject` against MinIO synchronously after the PUT,
+      MinIO under concurrent batch load can exceed the default
+      60s `proxy_read_timeout` before the handler returns.
+
+  (b) **File-type-specific failure path in `confirmUpload`**
+      *(lower likelihood, not ruled out)*. Image 2's pattern
+      (`.xlsx` succeeded; entries that look like `.pptx` /
+      `.docx` failed) is suggestive of a content-aware step.
+      But file-type-specific failures usually surface as 4xx
+      with a structured error, not 502 + HTML. The plausible
+      reframe under (a): the type pattern is hiding a **size**
+      pattern — larger files take longer to land, and longer
+      `headObject` validation pushes the request over the
+      ingress timeout. Worth keeping as a parallel hypothesis
+      until logs disambiguate.
+
+  *Diagnostic moves (investigation phase, not now).*
+  `kubectl logs deploy/stagecraft-api -n stagecraft-system
+  --since=2h | grep -i confirmUpload` for handler-side timing
+  and errors; `kubectl describe ingress stagecraft-api -n
+  stagecraft-system | grep -i timeout` for the configured
+  upstream timeout.
+
+  *Self-healing absorbs the failure today.* Class B
+  orphan-sweeper is firing on schedule (per the §13 Tier 1
+  closure entry — three Completed jobs in the 65 min preceding
+  closure). Rows whose `confirmUpload` 502'd land in `imported`
+  state and the sweeper picks them up on the next tick. So
+  FU-013 is **investigation-priority**, not a Tier 1 blocker —
+  image 2's user-visible failure is recoverable via the
+  existing Class B mechanism. The sweeper is the safety net,
+  not the contract.
+
+  *Done when:* (i) the cause is identified via the diagnostic
+  moves above and confirmed against a reproduction or observed
+  traffic; (ii) the fix lands — likely a longer ingress
+  `proxy_read_timeout` annotation, an async `headObject`
+  refactor of `confirmUpload`'s server-side path, or a
+  content-aware-path fix if (b) is the cause; (iii) a 34-file
+  concurrent web-UI upload batch produces zero `confirm failed`
+  rows.
+
+- **FU-014 — Knowledge-route refresh-500 on hard-reload.**
+  Spec 143 FU-001 deploy-time verification (2026-05-09 §13
+  Tier 1 closure entry, image 3) surfaced a 500 on hard-refresh
+  of the project knowledge route
+  (`app/project/<uuid>/knowledge`). First navigation rendered
+  cleanly (image 1 confirmed it); hard-refresh returned "An
+  unexpected error occurred" with no detail — the
+  Remix / React Router error-boundary catch shape that fires
+  on a loader throw.
+
+  *Held pending retry-stability check.* Auth-cold-cache
+  patterns (cookie not surviving the SSR boundary, JWKS cache
+  cold on a fresh pod) often clear on a second refresh after
+  a few minutes. The first FU-014 step is cheap: refresh again
+  after ≥ 5 min; if the route loads, the failure is
+  auth-cold-cache and folds into the FU-011 family rather
+  than standing alone. If it persists, log-driven diagnosis
+  follows.
+
+  *Suspect causes, if persistent.*
+
+  (a) **Loader auth state divergent on SSR vs hydrated client.**
+      First navigation runs through hydrated client state from
+      the prior page; refresh forces a fresh server-side loader
+      call against a session-validator path that may be broken
+      on the deployed cluster (cookie not surviving SSR,
+      session validator misconfigured, JWKS cold). Same family
+      as FU-011 if the user-token validator carries its own
+      seam.
+
+  (b) **Loader query depending on a recently-migrated table
+      column.** If the loader joins against `knowledge_objects`
+      or related and a recent migration changed shape, SSR
+      fails while hydrated client state survives. Check the
+      deployed pod's image SHA against `main` and against the
+      migration tip.
+
+  (c) **Encore client-fetch URL building broken in SSR
+      context.** Loader builds a URL with a window-only API
+      or a missing env var on the SSR pod; SSR throws before
+      the loader returns.
+
+  *Diagnostic move (after retry check).* `kubectl logs
+  deploy/stagecraft-api -n stagecraft-system --since=2h |
+  grep -iE "error|knowledge"` for the exact stack at the
+  refresh timestamp.
+
+  *Done when:* the cause is identified and either fixed in
+  spec 143 scope or cross-referenced into the spec it actually
+  belongs to. FU-014 may close as "not spec 143" — the
+  knowledge-route SSR path is upstream of the upload contract
+  this spec owns, and the refresh-500 most likely rode in on
+  a non-spec-143 change in the same deploy. If the diagnosis
+  points elsewhere, FU-014 closes here with a pointer to the
+  owning spec.
+
 **L-005 — Spec assumptions about deployment topology must be
 verified, not inferred from the cloud-platform name.** Spec 143's
 original FR-008 mandated DNS-01 via a Hetzner cert-manager webhook on
@@ -2082,4 +2204,97 @@ This is an *honest-state* §13 entry per the §12 L-004 honest-state
 principle: the deploy-artefact and the runtime path are separately
 credible, and the spec spine carries that separation verbatim until
 the runtime path is end-to-end verified.
+
+**FU-001 Tier 1 closure, 2026-05-09 ~07:35 UTC — FR-006
+deploy-time green; sweeper observed firing; Class B self-heal
+absorbing observed partial failures.** This entry crystallises
+the green gates while the cluster-state evidence is fresh, and
+separates what *is* now evidence-of-record from what was newly
+observed during the same verification session and filed as
+follow-ups. The four bullet groups below are deliberately
+distinct surfaces — the next reader should be able to tell
+green gates from open ones at a glance.
+
+*Verified post-deploy (this entry).*
+
+- **FR-006 user-driven upload path green.** A 34-file batch
+  uploaded through the stagecraft web UI at the project
+  knowledge route (`app/project/<uuid>/knowledge`) showed
+  live "Uploading N/34" with `done` rows accumulating —
+  browser → presigned PUT → MinIO blob → `confirmUpload` →
+  row state transition. This is the user-visible confirmation
+  §13's 2026-05-08 "What is NOT yet evidence-of-record" entry
+  was waiting on. Evidence: image 1 of the verification session.
+- **Helm-owned `CronJob/knowledge-orphan-imported-sweeper`
+  firing on schedule.** `kubectl get cronjob -n stagecraft-system`:
+  `SCHEDULE */30 * * * *`, `AGE 18h`, `LAST SCHEDULE` within
+  the trailing 30-min window. `kubectl get jobs -n
+  stagecraft-system`: three Completed jobs (`Complete 1/1`,
+  5–6s each) at +5m / +35m / +65m before this entry —
+  `knowledge-orphan-imported-sweeper-{29639520,29639550,29639580}`.
+  This satisfies the "≥ 1 full scheduled tick fires successfully
+  post-deploy" Tier 1 close condition step (e) named in §13's
+  2026-05-09 01:30 UTC entry.
+- **stagecraft-api pod stable.** `kubectl get pods -l
+  app=stagecraft-api`: 1 replica, READY=True, **RESTARTS=0**,
+  uptime 18h, no `lastState.terminated` reason. The 18h matches
+  the CronJob age — the deploy that landed FU-009 / FU-010 /
+  FU-011 Finding 1 also brought up the sweeper, and neither
+  has destabilised the API pod since.
+- **Class B self-heal mechanism live.** §4.5's orphan-sweeper
+  contract is now exercised continuously by the every-30-min
+  schedule; rows the user-driven flow leaves in `imported`
+  state are absorbed on the next tick. The mechanism is no
+  longer "deploy-artefact landed" — it is observed-firing.
+
+*Observed but tolerated (filed as FU-013 — see §12).* A subset
+of files in the 34-file batch returned `Upload landed but
+confirm failed (502)` with an HTML error body. The blob landed
+in MinIO; the `confirmUpload` POST died upstream of the Encore
+handler (502 + HTML, not Encore JSON). Cause #1 (pod restart /
+OOMKilled mid-batch, same shape as L-003 / FU-002) is **ruled
+out** by the 0-restart, 18h-uptime check above. Two surviving
+hypotheses ranked in FU-013: (a) ingress `proxy_read_timeout`
+on synchronous MinIO `headObject` under concurrent load (higher
+likelihood — the 502 + HTML signature is upstream-proxy, not
+an Encore-handler error shape); (b) file-type-specific path in
+`confirmUpload`, with the type-pattern in image 2 plausibly
+being a size-pattern under hypothesis (a). The Class B sweeper
+is absorbing the failure rows, so FU-013 is investigation-priority,
+not a Tier 1 blocker. Evidence: image 2.
+
+*Observed, diagnosis pending (filed as FU-014 — see §12).*
+The project knowledge route returned an "unexpected error
+occurred" Remix-error-boundary 500 on hard refresh — first
+navigation worked (image 1 proves it), refresh threw. Held
+pending a retry-stability check; if persistent, log-driven
+diagnosis follows. Likely unrelated to spec 143 — the knowledge
+route's SSR path is upstream of the upload contract this spec
+owns. FU-014 may close as "not spec 143" with a pointer to the
+owning spec. Evidence: image 3.
+
+*Tier 2 still open (unchanged by this entry).*
+
+- **FU-011 Findings 2 and 3** — `deployd-api-rs::auth.rs`
+  EdDSA-vs-RSA JWK shape mismatch (Finding 2) and the
+  platform-wide M2M validator audit (Finding 3). FU-011's
+  Tier 2 close gate; spec 143 closes on Tier 1 — Finding 1's
+  `m2mAuth.ts` issuer-via-OIDC-discovery fix shipped at
+  f08a941 / cc02ee0.
+- **FU-002** — deployd-api dual-writer + memory bump (same
+  shape as L-003). Unchanged by this entry.
+- **FU-003** — Sibling spec for spec 115 / 087 / 124
+  Encore-CronJob-self-hosted-no-op corrections. Unchanged.
+- **FU-008** — setup.sh secret-sync granularity. Decision
+  pending; two candidate shapes named in §12.
+
+*Frontmatter.* The `implementation:` field stays `in-progress`
+— Tier 2 work remains. The frontmatter comment is updated in
+the same commit to reflect that FU-009 / FU-010 / FU-011
+Finding 1 have landed, FR-006 deploy-time confirmation is
+verified, and the outstanding-list now reads
+FU-002 / FU-003 / FU-008 / FU-011 Tier 2 / FU-013 / FU-014.
+
+The closure narrative for spec 143's FU-001 Tier 1 contract
+is complete; spec-level closure waits on Tier 2.
 
