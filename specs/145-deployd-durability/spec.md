@@ -512,8 +512,12 @@ Documents:
   `platform/services/deployd-api-rs/src/config.rs` exposes a typed
   `BackupConfig` struct that reads operator-facing `DEPLOYD_BACKUP_*`
   env vars (S3 endpoint URL, bucket, region, path-style flag, access
-  key id, secret access key, optional path prefix, cryptr keyring,
-  cryptr active-key id, cron schedule string, retention/keep-days)
+  key id, secret access key, cryptr keyring, cryptr active-key id,
+  cron schedule string, retention/keep-days — Phase 1 finding F6
+  dropped the `path_prefix` field after `~/.cargo/registry/src/.../
+  hiqlite-0.13.1/src/s3.rs:45-76` review confirmed
+  `S3Config::try_from_env` reads no path-prefix env var and
+  `backup-cron` lists from bucket root unconditionally)
   and exposes `apply_to_hql_env()` which writes the equivalent
   `HQL_*` env vars Hiqlite consumes. `BackupConfig::from_env()` returns
   `Ok(None)` when the operator has not opted in (no `DEPLOYD_BACKUP_*`

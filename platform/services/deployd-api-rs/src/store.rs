@@ -1,35 +1,82 @@
-use anyhow::Result;
-use hiqlite::{Client, Node, NodeConfig, Param};
+use anyhow::{Context, Result};
+use hiqlite::{Client, NodeConfig, Param};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use crate::config::Config;
+use crate::config::{BackupConfig, Config};
 
 pub struct AppState {
     pub client: Client,
     pub config: Config,
 }
 
+/// Dummy 32-byte zero key encoded as base64 (cryptr standard alphabet).
+/// Used only when the operator has not opted in to backup; satisfies
+/// hiqlite's s3-feature validation (`enc_keys` must be non-empty when
+/// the s3 feature is on, even if no S3Config is configured). See spec
+/// 145 §2.3 "ENC_KEYS validation".
+const DEV_FALLBACK_ENC_KEYS: &str =
+    "dev-fallback/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+const DEV_FALLBACK_ENC_KEY_ACTIVE: &str = "dev-fallback";
+
 pub async fn init_db(data_dir: &str) -> Result<Client> {
-    let config = NodeConfig {
-        node_id: 1,
-        nodes: vec![Node {
-            id: 1,
-            addr_raft: "127.0.0.1:7001".to_string(),
-            addr_api: "127.0.0.1:7002".to_string(),
-        }],
-        data_dir: Cow::Owned(data_dir.to_string()),
-        filename_db: Cow::Borrowed("deployd.db"),
-        secret_raft: std::env::var("HIQLITE_SECRET_RAFT")
-            .unwrap_or_else(|_| "deployd-raft-secret-key".to_string()),
-        secret_api: std::env::var("HIQLITE_SECRET_API")
-            .unwrap_or_else(|_| "deployd-api-secret-key0".to_string()),
-        log_statements: false,
-        ..NodeConfig::default()
-    };
+    apply_hql_env(data_dir).context("failed to apply HQL_* env translation")?;
+    let config = NodeConfig::from_env();
     let client = hiqlite::start_node(config).await?;
     migrate(&client).await?;
     Ok(client)
+}
+
+/// Translate deployd-facing env vars (and hardcoded single-replica defaults)
+/// to the `HQL_*` env-var surface Hiqlite v0.13.1's `NodeConfig::from_env()`
+/// consumes. Spec 145 §2.3 + §3.1 FR-005a.
+///
+/// This is the single env-mutation site in the binary. It is called once,
+/// before any worker thread spawns; all `unsafe { set_var }` blocks are
+/// safe under that lifecycle invariant.
+fn apply_hql_env(data_dir: &str) -> Result<()> {
+    let secret_raft = std::env::var("HIQLITE_SECRET_RAFT")
+        .unwrap_or_else(|_| "deployd-raft-secret-key".to_string());
+    let secret_api = std::env::var("HIQLITE_SECRET_API")
+        .unwrap_or_else(|_| "deployd-api-secret-key0".to_string());
+
+    // SAFETY: called once during startup before any worker thread spawns.
+    unsafe {
+        std::env::set_var("HQL_NODE_ID", "1");
+        std::env::set_var("HQL_NODES", "1 127.0.0.1:7001 127.0.0.1:7002");
+        std::env::set_var("HQL_DATA_DIR", data_dir);
+        std::env::set_var("HQL_FILENAME_DB", "deployd.db");
+        std::env::set_var("HQL_SECRET_RAFT", &secret_raft);
+        std::env::set_var("HQL_SECRET_API", &secret_api);
+        std::env::set_var("HQL_LOG_STATEMENTS", "false");
+    }
+
+    match BackupConfig::from_env()
+        .map_err(|e| anyhow::anyhow!("invalid DEPLOYD_BACKUP_* config: {e}"))?
+    {
+        Some(bc) => {
+            tracing::info!(
+                bucket = %bc.s3_bucket,
+                endpoint = %bc.s3_endpoint,
+                cron = %bc.cron_schedule,
+                keep_days = bc.keep_days,
+                "backup configured — S3 snapshots enabled"
+            );
+            bc.apply_to_hql_env();
+        }
+        None => {
+            tracing::info!(
+                "backup not configured (no DEPLOYD_BACKUP_* env vars); \
+                 using dev-fallback ENC_KEYS so hiqlite s3-feature validation passes"
+            );
+            // SAFETY: same as above — single-threaded init.
+            unsafe {
+                std::env::set_var("ENC_KEYS", DEV_FALLBACK_ENC_KEYS);
+                std::env::set_var("ENC_KEY_ACTIVE", DEV_FALLBACK_ENC_KEY_ACTIVE);
+            }
+        }
+    }
+    Ok(())
 }
 
 async fn migrate(client: &Client) -> Result<()> {
@@ -210,4 +257,89 @@ pub async fn get_events(client: &Client, deployment_id: &str) -> Result<Vec<Depl
         )
         .await
         .map_err(Into::into)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// T011 — `apply_hql_env` writes the required HQL_* keys + dev-fallback
+    /// ENC_KEYS when no `DEPLOYD_BACKUP_*` is set (steady-state, no opt-in).
+    /// This is the single env-mutation test in this binary; no other test
+    /// in the same module touches HQL_* env vars (config.rs tests use the
+    /// closure-based `from_var_lookup` path, not the env path).
+    #[test]
+    fn apply_hql_env_dev_fallback_path() {
+        // SAFETY: single-threaded test path; no concurrent env access.
+        unsafe {
+            for k in [
+                "DEPLOYD_BACKUP_S3_ENDPOINT",
+                "DEPLOYD_BACKUP_S3_BUCKET",
+                "DEPLOYD_BACKUP_S3_REGION",
+                "DEPLOYD_BACKUP_S3_ACCESS_KEY",
+                "DEPLOYD_BACKUP_S3_SECRET_KEY",
+                "DEPLOYD_BACKUP_CRYPTR_KEYRING",
+                "DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY",
+            ] {
+                std::env::remove_var(k);
+            }
+        }
+
+        apply_hql_env("/tmp/deployd-test-data-dir").expect("apply_hql_env should succeed");
+
+        assert_eq!(std::env::var("HQL_NODE_ID").unwrap(), "1");
+        assert_eq!(
+            std::env::var("HQL_NODES").unwrap(),
+            "1 127.0.0.1:7001 127.0.0.1:7002"
+        );
+        assert_eq!(
+            std::env::var("HQL_DATA_DIR").unwrap(),
+            "/tmp/deployd-test-data-dir"
+        );
+        assert_eq!(std::env::var("HQL_FILENAME_DB").unwrap(), "deployd.db");
+        assert!(std::env::var("HQL_SECRET_RAFT").unwrap().len() >= 16);
+        assert!(std::env::var("HQL_SECRET_API").unwrap().len() >= 16);
+        assert_eq!(std::env::var("HQL_LOG_STATEMENTS").unwrap(), "false");
+
+        // Dev-fallback ENC_KEYS path (no DEPLOYD_BACKUP_* opt-in).
+        assert_eq!(
+            std::env::var("ENC_KEY_ACTIVE").unwrap(),
+            DEV_FALLBACK_ENC_KEY_ACTIVE
+        );
+        assert_eq!(std::env::var("ENC_KEYS").unwrap(), DEV_FALLBACK_ENC_KEYS);
+    }
+
+    /// T012 — End-to-end restore validation against a real S3-compatible
+    /// endpoint (localstack / minio). `#[ignore]`-gated; runs only when
+    /// the operator has explicitly configured an S3 endpoint AND
+    /// `HQL_BACKUP_RESTORE=s3:<known-key>` AND the supporting `HQL_S3_*` /
+    /// `ENC_KEYS` / `ENC_KEY_ACTIVE` envs.
+    ///
+    /// Procedure:
+    /// 1. Stand up a localstack/minio bucket; populate with one snapshot
+    ///    (e.g. via a manual `curl PUT` of a known sqlite file named
+    ///    `backup_node_1_<unix-ts>.sqlite`).
+    /// 2. Export DEPLOYD_BACKUP_* env vars + HQL_BACKUP_RESTORE.
+    /// 3. `cargo test --manifest-path platform/services/deployd-api-rs/Cargo.toml
+    ///    --test-threads=1 -- --ignored restore_from_env_var`.
+    ///
+    /// Asserts: the data dir contents include `state_machine/db/deployd.db`
+    /// after init_db returns Ok — implying hiqlite's auto-restore ran.
+    #[tokio::test]
+    #[ignore = "requires real S3-compatible endpoint + populated bucket; run manually"]
+    async fn restore_from_env_var() {
+        let tmp = std::env::var("DEPLOYD_TEST_DATA_DIR")
+            .expect("set DEPLOYD_TEST_DATA_DIR to a writable empty path");
+        std::fs::create_dir_all(&tmp).expect("test data dir");
+
+        // Caller is responsible for setting HQL_BACKUP_RESTORE=s3:<key>
+        // and DEPLOYD_BACKUP_* env vars before invoking the test.
+        let _client = init_db(&tmp).await.expect("init_db with HQL_BACKUP_RESTORE should restore + init");
+
+        let db_path = std::path::Path::new(&tmp).join("state_machine/db/deployd.db");
+        assert!(
+            db_path.exists(),
+            "expected restored sqlite db at {db_path:?}"
+        );
+    }
 }

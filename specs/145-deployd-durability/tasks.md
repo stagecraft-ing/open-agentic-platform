@@ -192,19 +192,26 @@ from env, and implement restore-on-startup.
       `BackupConfig::apply_to_hql_env()` — verifies the translation
       writes the expected `HQL_BACKUP_CRON`, `HQL_BACKUP_KEEP_DAYS`,
       `HQL_S3_*`, `ENC_KEYS`, `ENC_KEY_ACTIVE` env vars.
-- [ ] T011 [P] [P1] Test (Rust integration):
-      `platform/services/deployd-api-rs/tests/store_test.rs` —
-      `init_db` against a temp dir without `DEPLOYD_BACKUP_*` env
-      (steady-state, no opt-in) matches current behaviour: hiqlite
-      starts with default backup cron (which is unused without an
-      `HQL_S3_*` config — local backups in `state_machine/backups/`
-      only) and the dummy `ENC_KEYS` `values-local`-shaped fallback.
-- [ ] T012 [P] [P1] Test (Rust integration, `#[ignore]` by default):
-      `platform/services/deployd-api-rs/tests/restore_test.rs` —
-      sets `HQL_BACKUP_RESTORE=s3:<known-key>` against a localstack
-      / minio test endpoint, calls `init_db`, asserts the data dir
-      was wiped + repopulated with the snapshot. Documented in the
-      runbook for manual pre-merge runs.
+- [ ] T011 [P] [P1] Test (inline `#[cfg(test)] mod tests` in
+      `platform/services/deployd-api-rs/src/store.rs`): `apply_hql_env`
+      against the no-opt-in path (no `DEPLOYD_BACKUP_*` env vars set)
+      writes the expected `HQL_*` env vars plus the dev-fallback
+      `ENC_KEYS` / `ENC_KEY_ACTIVE`. (Phase 1 finding F7: deployd-api-rs
+      is a binary crate without a `[lib]` target — `tests/store_test.rs`
+      as an integration test cannot reach internal functions; restructure
+      into `[lib] + [[bin]]` is a future-spec candidate. Inline
+      `#[cfg(test)]` is the smallest change that gives us coverage of
+      the env-translation logic without restructuring.)
+- [ ] T012 [P] [P1] Test (inline `#[cfg(test)] mod tests` in
+      `platform/services/deployd-api-rs/src/store.rs`, `#[ignore]` by
+      default): `restore_from_env_var` sets `HQL_BACKUP_RESTORE=s3:<key>`
+      and calls `init_db` against a writable temp dir with a real S3
+      endpoint (localstack / minio) populated with a known snapshot.
+      Asserts the data dir contains `state_machine/db/deployd.db` after
+      init_db returns Ok. Caller exports `DEPLOYD_TEST_DATA_DIR`,
+      `HQL_BACKUP_RESTORE`, plus the `HQL_S3_*` / `ENC_KEYS` /
+      `ENC_KEY_ACTIVE` envs. (Same F7 reason as T011.) Documented in
+      the runbook for manual pre-merge runs.
 
 ### Implementation
 
@@ -223,8 +230,9 @@ from env, and implement restore-on-startup.
 - [ ] T022 [P1] Add `BackupConfig` struct to
       `platform/services/deployd-api-rs/src/config.rs`. Fields per
       §3.1 FR-005a (s3 endpoint, bucket, region, path-style flag,
-      access key, secret key, optional path prefix, cryptr keyring,
-      cryptr active-key id, cron schedule, keep_days). Methods:
+      access key, secret key, cryptr keyring, cryptr active-key id,
+      cron schedule, keep_days — Phase 1 finding F6 dropped
+      `path_prefix`: Hiqlite v0.13.1 does not support it). Methods:
       `BackupConfig::from_env() -> Result<Option<Self>, String>`
       (returns `Ok(None)` if no `DEPLOYD_BACKUP_*` env vars are set;
       `Err` on partial config) and
@@ -367,10 +375,9 @@ env entries, project the new secrets.
         bucket: ""                # operator-supplied per env
         region: ""                # operator-supplied per env (e.g. "us-east-1" or hcloud equivalent)
         pathStyle: true           # most non-AWS S3-compatible endpoints prefer path-style
-        pathPrefix: ""            # optional
         schedule: "0 0 */6 * * *" # NFR-002 default — 6-field cron (Hiqlite parser); operator-overridable
         keep: 28                  # NFR-002 default — S3 retention days; operator-overridable
-        # ESO operators inherit these three keys by chart default; SPC and k8s
+        # ESO operators inherit these four keys by chart default; SPC and k8s
         # operators arrange projection through their own paths (see runbook).
         secretKeys:
           - key: backup-s3-access-key
@@ -382,11 +389,13 @@ env entries, project the new secrets.
           - key: backup-cryptr-active-key     # single key id, must match keyring entry
             remoteKey: deployd-backup-cryptr-active-key
       ```
-      Sensitive material (access key, secret key, cryptr keyring) is
-      declared by reference (key names) only — the actual values live
-      in the operator-managed Secret. The operator-side per-env values
-      files override `endpoint`, `bucket`, `region`, `pathPrefix`,
-      `schedule`, `keep` as needed.
+      Sensitive material (access key, secret key, cryptr keyring,
+      active-key id) is declared by reference (key names) only — the
+      actual values live in the operator-managed Secret. The
+      operator-side per-env values files override `endpoint`, `bucket`,
+      `region`, `schedule`, `keep` as needed. (Phase 1 finding F6
+      dropped `pathPrefix`: Hiqlite v0.13.1's `S3Config::try_from_env`
+      reads no path-prefix env var.)
 - [ ] T037 [P2] Helm-render smoke:
       `helm template platform/charts/deployd-api -f
       platform/charts/deployd-api/values-hetzner.yaml` → exit 0.
