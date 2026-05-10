@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:fb335dd67f5d3ec9d15afd6f8fd1d67ed96031e36974fe33d36ae3ae49c47755",
+  "graph_fingerprint": "sha256:5759b0693dfab475b3bea4113acc95b7fe83d9612abdd7274fe3f35e423ee956",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2724,6 +2724,58 @@
       "group": "",
       "depends_on": [
         "139"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "143-presigned-upload-public-endpoint",
+      "title": "Presigned upload public endpoint — browser-reachable object store for direct uploads",
+      "spec_path": "specs/143-presigned-upload-public-endpoint/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "115"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "144-hiqlite-default-features",
+      "title": "Hiqlite default-features hygiene — stop unifying upstream defaults across the crates workspace",
+      "spec_path": "specs/144-hiqlite-default-features/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "073",
+        "052"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "145-deployd-durability",
+      "title": "deployd-api durability chain — PVC + scrub-narrowing + Hiqlite backup/s3 + restore-on-startup",
+      "spec_path": "specs/145-deployd-durability/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "073",
+        "086",
+        "144"
       ],
       "impl_files": [],
       "test_files": [],
