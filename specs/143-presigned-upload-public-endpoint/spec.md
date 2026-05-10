@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); 2026-05-10 stability regression — stagecraft-api OOMKilled under FR-006 34-file batch load (§13 2026-05-10 ~01:34 UTC entry); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-013 (cause #1 OOM confirmed; fix gates on FU-015), FU-014 (toISOString in listKnowledgeObjects, in spec 143 scope), FU-015 (stagecraft-api OOM, mirrors FU-002), FU-016 (mid-batch session-cookie loss → 401)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); 2026-05-10 stability regression — stagecraft-api OOMKilled under FR-006 34-file batch load (§13 2026-05-10 ~01:34 UTC entry); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-013 (cause #1 OOM confirmed; fix gates on FU-015), FU-015 (stagecraft-api OOM, mirrors FU-002 — next priority), FU-016 (mid-batch session-cookie loss → 401)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1829,7 +1829,8 @@ the trust that markdown matches truth.
   request upload (503)` rows.
 
 - **FU-014 — Knowledge-route refresh-500: `r.completed_at.toISOString
-  is not a function` in `listKnowledgeObjects`.** Spec 143 FU-001
+  is not a function` in `listKnowledgeObjects`.** *Closed 2026-05-10
+  — see Resolution sub-section below.* Spec 143 FU-001
   deploy-time verification surfaced a 500 on hard-refresh of the
   project knowledge route (`app/project/<uuid>/knowledge`). First
   navigation rendered cleanly (image 1); hard-refresh returned
@@ -1910,6 +1911,59 @@ the trust that markdown matches truth.
   — paired with a column-type or writer-path correction), and
   a refresh of the knowledge route after a populated upload
   batch returns the list cleanly.
+
+  *Resolution (2026-05-10).* Root cause was none of (a)/(b)/(c)
+  above. The actual cause is a **fourth shape: asymmetric typing
+  between `db.execute<>(sql\`raw\`)` and Drizzle's typed
+  `db.select(...)` in the same file.** `knowledge.ts:191-217`
+  (the list path, broken) used `db.execute<{ ..., completed_at:
+  Date | null, ... }>(sql\`...\`)` — but `db.execute<>()` returns
+  `timestamptz` columns as **string** at runtime; the TypeScript
+  generic is a compile-time-only assertion that does not invoke
+  Drizzle's Date mapping. `r.completed_at` was a string;
+  `.toISOString()` is undefined on string; handler threw
+  TypeError; the Remix loader at
+  `web/app/routes/app.project.$projectId.knowledge.tsx` (no
+  catch wrapper) propagated the error to the route boundary
+  and rendered "Oops! An unexpected error occurred." The
+  parallel single-row path at `knowledge.ts:282-303` uses
+  `db.select(...)` with Drizzle's typed select, which does
+  invoke the Date mapping — that path returned Date and worked.
+  The asymmetry is the source of the bug.
+
+  *Why the existing test did not catch it.* The fixtures in
+  `listKnowledgeObjects.integration.test.ts` already seeded a
+  populated `completed_at` value for `OBJ_A` (line 88,
+  `'2026-05-07T11:00:02Z'`), but the assertions at lines
+  132-134 only checked `.status` and `.durationMs`. The
+  `.completedAt` field was asserted only for the **null** case
+  (OBJ_B, line 138). The populated-completedAt path was data-seeded
+  but not assertion-covered — so the bug shipped while the
+  test was green.
+
+  *Fix.* `knowledge.ts:191-217` — change the `db.execute<>`
+  generic to declare `completed_at: string | null` (matching
+  runtime), wrap the consumer in `new Date(r.completed_at).toISOString()`,
+  and add a load-bearing comment at the type declaration
+  naming the asymmetry between `db.execute()` and `db.select()`
+  for future readers. The comment is the discipline — the
+  next person who writes `db.execute<{ … : Date }>` in this
+  codebase has a fighting chance of remembering the conversion.
+
+  *Audit step.* Grep across `platform/services/stagecraft/api/`
+  for other `db.execute<{ ... Date ... }>` callsites: **no
+  other instances**. Bug isolated to `knowledge.ts:191-217`.
+  This is the same shape as FU-011 Finding 3's "audit step"
+  pattern — when a class of bug is found, the audit *is* the
+  close, not a separate follow-up. Audit result lands here so
+  the next reader knows the surface was checked.
+
+  *Test added.* `listKnowledgeObjects.integration.test.ts`
+  gains a `completedAt` ISO 8601 assertion on `OBJ_A`'s
+  populated path
+  (`expect(...completedAt).toBe("2026-05-07T11:00:02.000Z")`)
+  with a comment naming the prior coverage gap. The
+  null-completedAt assertion on OBJ_B is preserved.
 
 - **FU-015 — stagecraft-api OOMKilled under FR-006 34-file
   batch load (mirrors FU-002 for deployd-api).** Spec 143

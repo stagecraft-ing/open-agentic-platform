@@ -132,6 +132,15 @@ describe("listKnowledgeObjectsCore — IN (sql.join) array binding", () => {
     // OBJ_A: two runs, latest is "succeeded".
     expect(byId.get(OBJ_A_ID)?.latestRun?.status).toBe("succeeded");
     expect(byId.get(OBJ_A_ID)?.latestRun?.durationMs).toBe(2000);
+    // FU-014 regression — completedAt must serialize as ISO 8601 string for
+    // populated rows. Prior bug: the handler called r.completed_at.toISOString()
+    // directly on the db.execute<>() raw-SQL result, which returns timestamptz
+    // as string at runtime; .toISOString() then threw TypeError because the
+    // value is a string, not a Date. The existing test (which only asserted
+    // .status and .durationMs for OBJ_A) was the gap that let the bug ship.
+    expect(byId.get(OBJ_A_ID)?.latestRun?.completedAt).toBe(
+      "2026-05-07T11:00:02.000Z"
+    );
 
     // OBJ_B: single "running" run, no completedAt.
     expect(byId.get(OBJ_B_ID)?.latestRun?.status).toBe("running");

@@ -188,11 +188,20 @@ export async function listKnowledgeObjectsCore(args: {
     objectIds.map((id) => sql`${id}`),
     sql`, `
   );
+  // db.execute<>() returns timestamptz columns as string at runtime — the TS
+  // generic is compile-time-only and does not invoke Drizzle's Date mapping.
+  // The list path uses raw SQL via db.execute() (deliberate workaround for
+  // Drizzle's ANY-array-binding bug, per the comment at lines 181-185); the
+  // single-row typed-select path at line 282 uses db.select() and gets Date
+  // back automatically. The generic here therefore declares completed_at as
+  // string | null to match runtime, and the consumer wraps it in new Date(...)
+  // before calling .toISOString() — the explicit conversion the typed-select
+  // path gets for free. (Spec 143 FU-014.)
   const latestRuns = await db.execute<{
     knowledge_object_id: string;
     status: string;
     extractor_kind: string | null;
-    completed_at: Date | null;
+    completed_at: string | null;
     duration_ms: number | null;
   }>(sql`
     SELECT DISTINCT ON (knowledge_object_id)
@@ -211,7 +220,7 @@ export async function listKnowledgeObjectsCore(args: {
     runsByObjectId.set(r.knowledge_object_id, {
       status: r.status,
       extractorKind: r.extractor_kind,
-      completedAt: r.completed_at ? r.completed_at.toISOString() : null,
+      completedAt: r.completed_at ? new Date(r.completed_at).toISOString() : null,
       durationMs: r.duration_ms,
     });
   }
