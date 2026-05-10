@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 filed against spec 143's §13 — deployd-api retroactive check confirmed gap (resources={}, restarts=3, last exit 137); FU-017/18/19 stubs filed 2026-05-10 (FU-019 empirically validated by 5/34 unsupported-type rows in the closure-entry batch); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-016 (deferred — needs longer-running batch shape), FU-017 (extractor output rendering), FU-018 (detail-page two-column layout), FU-019 (no_extractor_available status taxonomy), FU-020 (optional load harness), FU-021 (deployd-api memory-limit + Rust OOM fix)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 closed 2026-05-10 ~17:30 UTC — spec 146 (146-deployd-api-memory-hardening) lands chart-default cgroup floor (values.yaml resources block: 1Gi limit / 256Mi request / 100m cpu request); revised done-when (one load-bearing leg + two documented-N/A legs per §13 ~17:00 UTC amendment entry) satisfied verbatim; second invocation of dont-soften-done-when discipline this session; cluster-side AC-8 is a 14-day trailing-window longitudinal signal (2026-05-10 → 2026-05-24); FU-017/18/19 stubs filed 2026-05-10 (FU-019 empirically validated by 5/34 unsupported-type rows in the closure-entry batch); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-016 (deferred — needs longer-running batch shape), FU-017 (extractor output rendering), FU-018 (detail-page two-column layout), FU-019 (no_extractor_available status taxonomy), FU-020 (optional load harness), FU-022 (spec 146 14-day longitudinal check — session-handover trigger 2026-05-24)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -2380,6 +2380,65 @@ FU-011 Finding 2 (`deployd-api-rs::auth.rs` RSA-only JWK)
 and Finding 3 (platform-wide M2M validator audit) remain
 open under FU-011's Tier 2 closure gate.
 
+- **FU-022 — deployd-api memory-fix longitudinal check.**
+  Spec 146 (`146-deployd-api-memory-hardening`) AC-8 commits a
+  14-day trailing-window observation (2026-05-10 → 2026-05-24)
+  for zero exit 137 events on the
+  `deployd-system/deployd-api` pod, as the longitudinal
+  acceptance signal that the chart-default cgroup floor
+  resolves the cold-start hiqlite WAL OOM. No daily cron, no
+  dashboard wiring lands with spec 146 (out of scope per §4);
+  this stub is the named owner of the boundary check so the
+  signal doesn't fall through "we'll remember."
+
+  *Trigger.* Next session-handover that opens on or after
+  **2026-05-24** runs the check as the first action after
+  `/init`. The check is a single `kubectl` invocation against
+  the Hetzner cluster:
+
+  ```bash
+  kubectl get pod -n deployd-system -l app=deployd-api -o json \
+    | jq '.items[0].status.containerStatuses[0]
+          | {restartCount, lastState}'
+  ```
+
+  *Decision tree.*
+
+  - `restartCount: 0` AND `lastState.terminated: null` (or
+    not exit 137) → spec 146 AC-8 met. The session handover
+    flips spec 146 `implementation:` to `complete` and
+    closes the spec; FU-022 closes with a back-reference to
+    the kubectl evidence. No further action.
+  - `restartCount > 0` OR any exit 137 in the trailing
+    window → spec 146 AC-7/AC-8 failed. The session
+    handover reopens spec 146 and adds the deferred
+    allocator-tuning leg (jemalloc / `MALLOC_CONF`) per
+    spec 146 §4. FU-022 stays open; spec 146 frontmatter
+    flips back to `implementation: in-progress`.
+
+  *Why on spec 143 rather than spec 146.* The diagnostic
+  chair for the FU-021 work lives on spec 143's §13; FU-022
+  is the longitudinal-acceptance companion stub. Parking it
+  on spec 143 §12 puts it in the same lookup table as
+  FU-016 / FU-020 (also longitudinal / deferred), which is
+  where future session-handovers already check for "what's
+  still open on spec 143?" — the natural surface.
+
+  *Why not a cron / dashboard.* No platform-side observation
+  cadence exists for deployd-api restart counts today.
+  Wiring one would be spec-117 / spec-105 territory
+  (release-artifact-attestations / scripts-to-binaries
+  migration), and would not land in time for the
+  2026-05-24 boundary. The named-session-handover trigger
+  is the cheapest mechanism that doesn't fall through.
+
+  *Done when.* (a) The kubectl check is run at the named
+  trigger date or later. (b) Either spec 146 closes (clean
+  trailing window) or reopens (regression captured); both
+  paths satisfy FU-022's contract — the stub exists to
+  guarantee the check *happens*, not to guarantee a clean
+  result.
+
 ## 13. Evidence ledger (historical record)
 
 This section is the historical evidence ledger for spec 143's
@@ -3116,4 +3175,232 @@ done-when satisfied verbatim (34 files, not 13); the V8 GC
 outlier is documented rather than papered over; the
 measurement-discipline footnote pins the lesson; FU-021 lands
 with concrete evidence rather than as a placeholder.
+
+**FU-021 done-when shape amendment, 2026-05-10 ~17:00 UTC —
+source-read on deployd-api-rs reduces three-leg template to
+one load-bearing leg + two documented-N/A legs.** This entry
+amends FU-021's done-when *before* it is declared met, per the
+`dont-soften-done-when` discipline (second invocation of that
+rule this session — first was FU-013 done-when narrowing on
+2026-05-10 ~01:34 UTC).
+
+*Trigger.* FU-021 was filed (this section, ~07:48 UTC entry)
+templated from FU-015's three-leg fix shape because the cluster
+symptoms matched: exit 137, restartCount=3, no resource limits.
+At filing time the deployd-api-rs source had not been read.
+Filing-time hypothesis was "same shape as FU-015 minus the V8
+leg" — so already two-leg in the stub, with allocator-tuning
+deferred until (a) is empirically insufficient.
+
+*Source contact, 2026-05-10 ~16:30 UTC.* Read every file under
+`platform/services/deployd-api-rs/src/` (`main.rs:52`,
+`routes.rs:345`, `k8s.rs:264`, `store.rs:213`, `auth.rs:117`,
+`config.rs:25`, ~1016 lines total). Key findings:
+
+- **Leg b — `NODE_OPTIONS=--max-old-space-size` analog —
+  N/A.** Rust has no managed heap; the cgroup `limits.memory`
+  IS the cap. The "budget math written down" framing the
+  FU-015 leg-b carries (cgroup minus runtime+SDK+OS reserve)
+  resolves trivially: cgroup is the load-bearing budget;
+  steady-state hiqlite WAL+SQLite cache+axum is observed at
+  ~250MB; ~750MB headroom covers cold-start hiqlite WAL
+  spikes. Nothing to set.
+- **Leg c — concurrency cap on unbounded fan-out — N/A.**
+  Zero `tokio::spawn` / `JoinSet` / `FuturesUnordered` /
+  `mpsc::channel` / `buffer_unordered` patterns across all
+  six source files. Each axum handler is request-scoped:
+  auth → 1–3 hiqlite ops → optional kube-rs API calls; no
+  application-level fan-out. The §13 ~07:48 UTC evidence
+  reports "container ran ~10 min before death" — a *cold-start*
+  failure mode (hiqlite WAL pressure on first-boot init),
+  not a request-burst failure mode. Adding
+  `tower::limit::ConcurrencyLimitLayer` would be invented
+  prophylactic without a load shape that demands it; cargo-
+  cults the form of FU-015's leg-c without its substance
+  (FU-015's leg-c was tied to `extractionWorker.ts:35-46`'s
+  punted-maxConcurrency literal, evidence-bound).
+
+*Coordination point with spec 145 (deployd-durability).* The
+cold-start hiqlite WAL pressure that produces the 10-minute
+SIGKILL window is the same WAL substrate spec 145's
+restore-on-startup logic interacts with. If memory pressure
+during WAL init produces an OOM *before* spec 145's restore
+path even gets to run, that is a chicken-and-egg interaction
+the 145 session must consciously address (absorb into 145's
+acceptance criteria, or fork a follow-up). Surfacing here as
+a coordination flag, not a new FU — spec 145 is unshipped and
+its session is the right place for the absorb-vs-fork call.
+
+*Revised done-when (replaces the (a)/(b)/(c) trio above).*
+FU-021 closes when:
+
+  (1) **Load-bearing — cgroup memory limits + requests
+      populated.** `platform/charts/deployd-api/values.yaml`
+      sets `resources.limits.memory` and
+      `resources.requests.memory` to non-empty values that
+      cover hiqlite WAL cold-start headroom. Implementing PR
+      lands on spec 146 (`146-deployd-api-memory-hardening`,
+      authored 2026-05-10) with chart paths in its
+      `implements:`. Spec 130's any-claimant heuristic accepts
+      a shared `values.yaml` claim with spec 145 (durability
+      track) without the gate firing.
+  (2) **Documented-N/A — no V8 / no managed-heap analog
+      env-var.** Spec 146's §3 records the budget math
+      (cgroup is the cap, ~250MB steady-state, ~750MB
+      cold-start headroom) and explains why `NODE_OPTIONS`
+      has no Rust analog at the chart-values layer. Allocator
+      tuning (jemalloc, `MALLOC_ARENA_MAX`) stays deferred
+      per the original stub language — fired only if (1)
+      proves empirically insufficient.
+  (3) **Documented-N/A — no application-level fan-out
+      surface to cap.** Spec 146's §3 records the source-read
+      finding (zero fan-out primitives in deployd-api-rs/src)
+      and explicitly rules out `tower::limit::ConcurrencyLimitLayer`
+      as fabricated-without-evidence. The cold-start WAL
+      coordination point with spec 145 is named here, not
+      absorbed silently.
+  (4) **CI regression assertions.** A new test file claimed
+      by spec 146 (mirrors spec 143's `spec143-fu015.config.test.ts`
+      in shape) statically asserts the chart's `resources`
+      block carries `limits.memory` and `requests.memory`
+      with non-empty values. No NODE_OPTIONS assertion (N/A);
+      no concurrency assertion (N/A).
+  (5) **Cluster verification — load shape constraint.** The
+      2026-05-08 exit-137 evidence (~10 min lifetime,
+      restartCount=3) is *cold-start*, not user-controllable.
+      Reproducing it requires a node-pool churn or a fresh
+      Hetzner deploy, not a request load shape. Verification
+      reduces to: post-fix deploy of deployd-api with the
+      populated `resources` block; observe RESTARTS=0 over
+      a 14-day window; if a restart fires, capture
+      lastState.terminated and re-open. Done-when (5) reads
+      "deployment carries non-empty resource limits + requests
+      AND zero exit 137 events in trailing 14 days" — same
+      as the original stub's (b), repurposed.
+
+*Why amend rather than meet the original stub verbatim.* The
+original stub's leg-(a) language (`Set resources.limits.memory
+and resources.requests.memory ... validate against hiqlite WAL
+init under the same scrape cadence FU-002 documented`) maps
+cleanly to revised (1). The original stub's (b) (jemalloc
+allocator-tuning) maps cleanly to revised (2)'s deferred-tail.
+The original stub's (c) (FU-002's single-writer cleanup)
+remains a separate FU-002 surface, as the original stub
+already documented. The amendment is therefore: rename the
+"three legs from FU-015 minus V8 leg" framing in the user-
+provided session prompt — which copy-pasted FU-015's three
+bullets verbatim and asked for Rust analogs of each — to
+"one load-bearing leg + two documented-N/A legs", and pin the
+diagnosis (source-read findings) so future sessions don't
+re-template from FU-015 without re-validating.
+
+*Precedent for the rule.* The `dont-soften-done-when` memory
+fired on 2026-05-10 ~01:34 UTC when FU-013 done-when needed
+narrowing post-diagnosis (sustained-load shape vs initial-burst
+shape). It fires again here, in the *opposite* direction —
+removing legs the stub anticipated but reality doesn't carry,
+not adding legs the stub missed. Both moves are the same rule:
+when source contact reshapes the diagnosis, amend the stub
+*first*, then close it. Templating from analog precedents at
+filing time is correct (cheap hypothesis with the right
+shape); rigid adherence to the template after diagnosis is
+wrong. Worth memorialising as the precedent, not just the
+principle.
+
+*Frontmatter.* The `implementation:` field stays
+`in-progress`. FU-021's note in the frontmatter
+`implementation:` line will update with the FU-021 closure
+entry that follows when spec 146 lands. No other FU shifts.
+
+This entry pre-records the amendment so the closure entry
+that follows it can satisfy the revised done-when verbatim.
+
+**FU-021 closure, 2026-05-10 ~17:30 UTC — spec 146
+implementing PR lands the chart-default cgroup floor.**
+Closes FU-021 against the revised done-when shape recorded
+above (~17:00 UTC entry).
+
+*Implementing PR.* Spec 146
+(`146-deployd-api-memory-hardening`, `specs/146-deployd-api-memory-hardening/spec.md`)
+authored 2026-05-10 ~17:15 UTC carries:
+
+- `platform/charts/deployd-api/values.yaml` — `resources:` block
+  populated with `limits.memory: 1Gi`, `requests.memory: 256Mi`,
+  `requests.cpu: 100m`. Inline comment cites spec 146 for the
+  budget-math rationale and the Rust-no-managed-heap framing.
+- `platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts`
+  — three CI static assertions: (i) `resources.limits.memory ≥
+  512Mi`, (ii) `resources.requests.memory ≥ 128Mi`, (iii)
+  inverse-polarity `NODE_OPTIONS` / `--max-old-space-size`
+  absence. Mirrors `spec143-fu015.config.test.ts` shape with
+  the legs that apply to a Rust workload. The (iii) inverse-
+  polarity assertion is novel — it converts a documented-N/A
+  leg into an enforced-N/A leg so a future drive-by edit fails
+  CI loudly rather than silently shipping.
+
+*Done-when crosswalk (revised ~17:00 UTC entry → spec 146
+acceptance).*
+
+| Done-when (revised) | Spec 146 AC | Status at closure |
+|---|---|---|
+| (1) cgroup memory limits + requests populated | AC-1, AC-2, AC-3 | values.yaml carries the block; helm-template renders it across all six per-cloud values files; AC-7 verifies post-deploy. |
+| (2) documented-N/A leg b (no managed-heap env-var) | AC-4 (iii) | Inverse-polarity test enforces absence. Allocator tuning deferred per original stub. |
+| (3) documented-N/A leg c (no fan-out cap) | spec 146 §2.3 + §4 | Source-read recorded; `tower::limit::ConcurrencyLimitLayer` explicitly out of scope. |
+| (4) CI regression assertions | AC-4 | New file; vitest picks it up under `platform/services/stagecraft/test/`. |
+| (5) cluster verification — load-shape constraint | AC-7, AC-8 | Post-deploy `resources` block populated; 14-day trailing-window observation for exit 137 events on the deployd-system/deployd-api pod between 2026-05-10 and 2026-05-24. |
+
+*Cluster verification path.* The 2026-05-08 exit-137 was
+cold-start, not user-controllable. Reproducing requires
+node-pool churn or fresh Hetzner deploy — not a request load
+shape this session can drive. AC-8's load-shape constraint
+documents this: once the cgroup is populated, the failure
+mode cannot recur in the same shape on a fresh deploy. The
+14-day trailing window is the longitudinal acceptance signal,
+deferred to ambient observation rather than gated within this
+session. If a restart fires within that window, the cluster
+evidence reopens FU-021 (and likely spec 146) rather than
+softening AC-7.
+
+*Coordination flag with spec 145.* The cold-start hiqlite WAL
+pressure surfaced as the §1.1 OOM driver in spec 146 is the
+same WAL substrate spec 145's restore-on-startup logic
+interacts with. If memory pressure during WAL init produces
+an OOM *before* spec 145's restore path runs, the chart-
+default 1Gi cgroup spec 146 lands is the load-bearing
+safeguard that lets restore-on-startup run at all. Spec 145's
+session decides absorb-vs-fork; this closure does not pre-
+empt that call.
+
+*Frontmatter shift.* `implementation:` line on spec 143 is
+updated to record FU-021 closure: the `FU-021 (deployd-api
+memory-limit + Rust OOM fix)` outstanding tail flips to
+`FU-021 closed 2026-05-10 ~17:30 UTC — spec 146
+implementing PR (146-deployd-api-memory-hardening); revised
+done-when (one load-bearing leg + two documented-N/A legs)
+satisfied verbatim per ~17:00 UTC amendment entry`.
+
+*Honest-state notes.* Per §12 L-004 closure-entry discipline:
+
+- The done-when shape was *amended* before closure, not
+  softened (the ~17:00 UTC entry lays out the rule and its
+  precedent — second invocation of `dont-soften-done-when`
+  this session).
+- The cluster-side AC-8 14-day window is documented as a
+  longitudinal signal rather than gated in-session; this is
+  not softening because the original FU-021 stub already
+  framed (b) as a 14-day post-fix observation window.
+- The two documented-N/A legs are *enforced* as N/A (test
+  iii is an absence assertion), not just narrated. This
+  upgrades the discipline beyond the FU-015 precedent —
+  FU-015's positive assertions catch reverts; spec 146's
+  inverse-polarity assertion catches *additions* that would
+  silently expand the fix shape past its documented scope.
+
+This is an honest-state §13 closure entry. The FU-021 stub
+that opened on 2026-05-08 ~07:48 UTC, was reshaped on
+2026-05-10 ~17:00 UTC, and closes on 2026-05-10 ~17:30 UTC
+against a single implementing spec (146) with three CI
+assertions and one chart-default values change. No outstanding
+sub-followups; FU-002 (single-writer cleanup) remains its own
+surface as the original stub language preserved.
 

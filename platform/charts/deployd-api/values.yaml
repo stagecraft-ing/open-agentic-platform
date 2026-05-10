@@ -17,7 +17,16 @@ serviceAccount:
 
 podLabels: {}
 
-resources: {}
+# Spec 146: chart-default resources floor. cgroup limit is the load-bearing
+# memory cap (Rust runtime — no managed-heap env-var to set). 1Gi covers
+# steady-state ~250MB plus cold-start hiqlite WAL spikes (~750MB headroom).
+# Operators with workload-specific budgets override per-environment.
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    memory: 256Mi
+    cpu: 100m
 
 persistence:
   enabled: true
