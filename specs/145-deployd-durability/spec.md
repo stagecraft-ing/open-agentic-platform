@@ -142,7 +142,7 @@ Concretely, when this session lands §2.4 (restore-on-startup):
 2. **Decide absorb-vs-fork on WAL-pressure-aware scheduling.** If
    restore-on-startup itself drives non-trivial allocation under
    the 1Gi floor (e.g., decrypting a multi-MB snapshot in-memory),
-   this session decides whether to:
+   this session captures the data and decides whether to:
    - **Absorb** — raise the cgroup default in spec 146 (amend
      §2.1 with budget math for the restore-decrypt allocation), or
    - **Fork** — file a follow-up spec on
@@ -370,13 +370,13 @@ through `.Values.secrets.provider`:
 
 | `provider` | Projection template | Operator action |
 |---|---|---|
-| `eso` | `templates/external-secret.yaml` | Add three keys to `secrets.keys` (per-env override or chart default); ESO fetches from upstream secret store. |
-| `csi-azure` | `templates/secretproviderclass.yaml` | Add three keys to `secretsMount.objects`; SPC mounts from Azure Key Vault. |
-| `k8s` | `templates/secrets-k8s.yaml` (only renders when `secrets.create: true`) — or operator-managed pre-existing Secret when `secrets.create: false` | Operator pre-creates `deployd-api-secrets` with the three keys, OR sets `secrets.data.*` in values for chart-create flow. |
+| `eso` | `templates/external-secret.yaml` | Add four keys to `secrets.keys` (per-env override or chart default); ESO fetches from upstream secret store. |
+| `csi-azure` | `templates/secretproviderclass.yaml` | Add four keys to `secretsMount.objects`; SPC mounts from Azure Key Vault. |
+| `k8s` | `templates/secrets-k8s.yaml` (only renders when `secrets.create: true`) — or operator-managed pre-existing Secret when `secrets.create: false` | Operator pre-creates `deployd-api-secrets` with the four keys, OR sets `secrets.data.*` in values for chart-create flow. |
 
 The currently-shipping Hetzner deploy uses `provider: "k8s"` with
 `create: false` — operator pre-creates the Secret out-of-band and
-adds the three new BackupConfig keys to it manually. The chart's
+adds the four new BackupConfig keys to it manually. The chart's
 `envFrom: secretRef: deployd-api-secrets, optional: true`
 (`templates/deployment.yaml:59-62`) loads whatever the operator
 populated, regardless of provider.
@@ -384,11 +384,17 @@ populated, regardless of provider.
 `templates/external-secret.yaml` IS in this spec's `implements:`
 list — its template-rendered surface gains a parallel `range` block
 for the new backup keys (so ESO operators get them by default).
-`secretproviderclass.yaml` and `secrets-k8s.yaml` are NOT in
-`implements:` (the SPC and k8s-create-true paths use the existing
-`.Values.secretsMount.objects` and `.Values.secrets.data` extension
-points; no new template surface is required). The runbook in §2.5
-documents the operator-side procedure for all three providers.
+The new `range` is gated by `{{- if and .Values.backup.endpoint
+.Values.backup.bucket }}` for **symmetric opt-in semantics with the
+Deployment env block** — when an operator has not enabled backup
+(endpoint+bucket unset), the ExternalSecret data block carries only
+the pre-existing non-backup entries, mirroring the env-block
+suppression. `secretproviderclass.yaml` and `secrets-k8s.yaml` are
+NOT in `implements:` (the SPC and k8s-create-true paths use the
+existing `.Values.secretsMount.objects` and `.Values.secrets.data`
+extension points; no new template surface is required). The runbook
+in §2.5 documents the operator-side procedure for all three
+providers.
 
 ### 2.4 Restore — operator-driven DR mode
 

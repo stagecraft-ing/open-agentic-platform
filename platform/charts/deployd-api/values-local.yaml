@@ -5,6 +5,11 @@ image:
 ingress:
   host: deployd.localhost
 
+# Dev loop only — emptyDir is fine; restore-on-startup is opt-in via
+# env-supplied BackupConfig which is unset in this profile (spec 145 §2.1).
+persistence:
+  enabled: false
+
 secrets:
   provider: "k8s"
   create: true
