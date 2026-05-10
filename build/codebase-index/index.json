@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "585c02cfd0d21d5a8f7bc84f9c79f62c67ba543bae74ae9693bebe9f1a76e84d",
+    "contentHash": "0e650604dad484c1ef23d87a76badf8518f4542465bcad4f77e81562ac42a997",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4705,6 +4705,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts",
             "source": "spec-implements"
           },
           {

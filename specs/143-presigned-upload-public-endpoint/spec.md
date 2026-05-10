@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); 2026-05-10 stability regression — stagecraft-api OOMKilled under FR-006 34-file batch load (§13 2026-05-10 ~01:34 UTC entry); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-013 (cause #1 OOM confirmed; fix gates on FU-015), FU-015 (stagecraft-api OOM, mirrors FU-002 — next priority), FU-016 (mid-batch session-cookie loss → 401)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); 2026-05-10 stability regression — stagecraft-api OOMKilled under FR-006 34-file batch load (§13 2026-05-10 ~01:34 UTC entry); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-015 root-cause confirmed 2026-05-10 ~07:48 UTC — V8-heap-vs-cgroup distinction adds third fix leg (NODE_OPTIONS), Subscription literal-int maxConcurrency cap is the load-bearing leg (§13 2026-05-10 ~07:48 UTC entry); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-013 (cause #1 OOM confirmed; fix gates on FU-015), FU-015 (stagecraft-api OOM, mirrors FU-002 + V8-heap leg — next priority), FU-016 (mid-batch session-cookie loss → 401), FU-020 (optional load harness), FU-021 (conditional deployd-api retro check)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -37,9 +37,10 @@ implements:
   - path: platform/infra/hetzner/validate/spec-143.sh
   - path: platform/charts/stagecraft/values.yaml
   - path: platform/charts/stagecraft/values-hetzner.yaml
-  - path: platform/charts/stagecraft/templates/deployment.yaml  # §12 L-003 — render imagePullPolicy from values
+  - path: platform/charts/stagecraft/templates/deployment.yaml  # §12 L-003 — render imagePullPolicy from values; FU-015 — NODE_OPTIONS env from .Values.nodeOptions (§13 2026-05-10 ~07:48 UTC)
   - path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml  # FR-010 self-hosted scheduler (FU-001 beat 4)
   - path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml  # FR-010 per-purpose-credential mount, ESO path (FU-001 beat 4)
+  - path: platform/services/stagecraft/api/knowledge/extractionWorker.ts  # FU-015 — Subscription literal-int maxConcurrency cap (§13 2026-05-10 ~07:48 UTC). Primary owner is spec 115; spec 143 amends 115 (frontmatter `amends:`), so spec 133's amends-aware coupling gate accepts the touch — explicit `implements:` entry makes the relationship visible without amends-walking.
   # Note: platform/infra/terraform/envs/dev/core/{main,variables}.tf are owned
   # by spec 072 (multi-cloud-k8s-portability). FR-010 adds per-purpose
   # sweeper credential entries into 072's existing keyvault_secrets map —
@@ -1992,22 +1993,38 @@ the trust that markdown matches truth.
   returned `code: unknown` after 1115ms at 01:20:32.637;
   OOMKill ~2s later.
 
-  *Two fixes likely needed (mirrors FU-002).*
+  *Three fixes needed (mirrors FU-002 plus a V8-heap leg the
+  initial stub did not anticipate; root-cause investigation
+  documented in §13 2026-05-10 ~07:48 UTC entry).*
 
-  (a) **Memory bump.** 512Mi is empirically insufficient.
-      FU-002 named "single-writer cleanup AND a memory bump,
-      in one commit so recovery is verifiable end-to-end" —
-      apply the same shape here. Bump to 1Gi or 2Gi; verify
-      against a reproduction of the 34-file batch.
+  (a) **Cgroup memory limit raised on the Deployment.** 512Mi
+      is empirically insufficient. Raise to 1Gi. FU-002 named
+      "single-writer cleanup AND a memory bump, in one commit
+      so recovery is verifiable end-to-end" — apply the same
+      shape here.
 
-  (b) **Concurrency cap on the upload-confirm-extract pipeline.**
-      Pre-OOM trace shows ~12 simultaneous in-flight
-      `confirmUpload` calls each enqueuing extraction work and
-      issuing `headObject` to MinIO. Without an upper bound,
-      memory grows linearly with batch size — bumping to 2Gi
-      doesn't prevent the failure under a 64-file or 128-file
-      batch. Consider a semaphore or queue-depth cap on
-      `confirmUpload`'s downstream work.
+  (b) **`NODE_OPTIONS=--max-old-space-size=896` set on the
+      container.** The 2026-05-10 06:58:55Z restart was exit
+      139 (V8 "Reached heap limit"), NOT exit 137 (cgroup
+      OOM-killer): V8 hit its ~256MB default
+      `max-old-space-size` ceiling before the cgroup engaged.
+      Raising cgroup alone does not move the V8 ceiling — Node
+      20's auto-detection from cgroup is not active on this
+      image. Set `NODE_OPTIONS` explicitly so V8 uses the new
+      headroom. Budget math in §13 2026-05-10 ~07:48 UTC.
+
+  (c) **Literal-integer `maxConcurrency: 4` on the extraction
+      Subscription.** `extractionWorker.ts:35-46` explicitly
+      omits `maxConcurrency` (Encore parses Subscription config
+      at build time and accepts only literal integers, not
+      constants). Combined with `extractionCore.ts:796`
+      `getObject` buffering the full file body into a Node
+      `Buffer`, parallel extraction workers stack file bodies
+      in V8 heap unbounded under FR-006 batch fan-out. Set the
+      literal (justification in §13). This is the only leg
+      that bounds memory regardless of batch size — survives
+      64- or 128-file batches that the cgroup + V8 bump alone
+      would not.
 
   *Cross-references.* FU-013's leading cause (cause #1) is
   this OOM. FU-013 done-when (i) gates on this FU landing.
@@ -2015,12 +2032,21 @@ the trust that markdown matches truth.
   (deployd-api) carry the same pattern; the lesson is no
   longer a one-off — it's a platform pattern. Worth a §12
   lesson update on "512Mi memory-limit pattern in platform
-  services" once FU-015 and FU-002 are both closed.
+  services" once FU-015 and FU-002 are both closed. FU-021 is
+  conditional on a post-FU-015-deploy retro check on
+  deployd-api (see §13 2026-05-10 ~07:48 UTC); FU-020 is an
+  optional reusable load harness.
 
-  *Done when:* (a) memory limit raised on stagecraft-api
-  Deployment; (b) a 34-file concurrent web-UI upload batch
-  completes without OOMKill; (c) optionally, a 64-file batch
-  tests the concurrency cap if added.
+  *Done when:* (a) cgroup memory limit raised on stagecraft-api
+  Deployment; (b) `NODE_OPTIONS=--max-old-space-size=...` set
+  on the container; (c) extraction Subscription has a
+  literal-integer `maxConcurrency`; (d) a 34-file concurrent
+  web-UI upload batch completes without OOMKill (cluster
+  validation); (e) three CI static assertions land —
+  Subscription `maxConcurrency` literal, chart memory limit
+  ≥ 1Gi, chart `nodeOptions` `--max-old-space-size` sane
+  against cgroup. A real load harness is filed as FU-020
+  (optional follow-up); not part of FU-015's done-when.
 
 - **FU-016 — Mid-batch session-cookie loss → 401 on
   `requestUpload`.** Spec 143 FU-001 deploy-time verification
@@ -2616,4 +2642,162 @@ This is an *honest-state* §13 entry per §12 L-004: the
 Tier 1 contract and the post-deploy stability regression are
 separately credible, and the spec spine carries that
 separation verbatim.
+
+**FU-015 root-cause investigation, 2026-05-10 ~07:48 UTC —
+V8-heap-vs-cgroup distinction; extraction Subscription
+no-`maxConcurrency`; three-leg fix shape.** Same pod
+(`stagecraft-api-5c67dd4544-s9jnm`, `sha-a7f6693`) as the §13
+2026-05-10 ~01:34 UTC entry; fresh diagnostic pass surfaced a
+second crash AND a handler-level root cause that reframes the
+FU-015 fix shape from two legs to three.
+
+*Second crash, exit 139 (V8 heap exhaustion) at
+2026-05-10T06:58:55Z.* `kubectl get pod` lastState.terminated:
+`exitCode: 139, reason: "Error", finishedAt: 06:58:55Z,
+startedAt: 02:06:19Z` (same pod, container two restarts on from
+the §13 2026-05-10 ~01:34 UTC entry). `kubectl logs --previous`
+ends with V8's pre-abort heap diagnostic:
+
+```
+<--- Last few GCs --->
+
+[1:0x1224a000] Mark-Compact 251.5 (258.6) -> 250.9 (258.8) MB,
+  pooled: 0 MB, 989.73 / 0.00 ms (average mu = 0.206,
+  current mu = 0.005) allocation failure; scavenge might not succeed
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript
+heap out of memory
+```
+
+Same FR-006 batch shape as Finding A
+(`oap-stagecraft-ing-test-6-dual`, parallel `requestUpload` /
+`confirmUpload` / `enqueueExtraction`, auth latency climbing
+113ms → 1750ms). Different exit code: V8 hit its default
+`--max-old-space-size` ceiling (~256MB old-space) BEFORE the
+cgroup OOM-killer engaged at 512Mi RSS. Node 20's automatic
+heap-from-cgroup detection is not active on this image — V8 was
+allocating against its built-in default, not the cgroup limit.
+
+*Handler-level root cause.* `extractionWorker.ts:35-46`
+explicitly omits `maxConcurrency` (the comment names Encore's
+build-time literal-integer parser as the friction). Combined
+with `extractionCore.ts:796` calling `getObject(bucket, key)` —
+which buffers the full file body into a Node `Buffer` via
+`storage.ts:316-326`'s `chunks.push(Buffer.from(chunk))` loop,
+materialising the complete body — parallel extraction workers
+stack file bodies in the same V8 heap. Per-run CAS dedupes work
+for the same row; the day-aggregate cost gate guards
+agent-extractor spend. Neither bounds parallel-batch fan-out
+memory.
+
+Memory math under §13 2026-05-10 ~01:34 UTC's observed load
+(~12 concurrent extraction workers, 1-4MB blobs):
+~44MB worst-case per worker (4MB eager buffer + ~10MB AWS SDK
+SigV4 staging + ~30MB extractor work-set: deterministic-pdf
+parses pages in-memory; deterministic-docx unzips XML) × 12 =
+~528MB extraction-side. Plus ~150MB base process
+(Encore.ts runtime, drizzle pg pool, MinIO clients, prompt-cache
+singletons). Total ~678MB working set. Greatly exceeds V8's
+256MB default — abort is deterministic at ~256MB regardless of
+cgroup limit.
+
+*Three-leg fix.*
+
+(1) **Cgroup memory limit raised** —
+    `platform/charts/stagecraft/values.yaml`
+    `resources.limits.memory: 512Mi` → `1Gi`. Without this, V8
+    bump alone gets killed by the kernel exit 137.
+
+(2) **`NODE_OPTIONS=--max-old-space-size=896` set on the
+    container** — `templates/deployment.yaml` sources from
+    `.Values.nodeOptions`. Budget: cgroup 1024 MiB − V8
+    old-space 896 MiB = 128 MiB reserve for V8 new-space
+    (~32 MiB), code-space (~10 MiB), Node runtime / libuv /
+    native modules (~30 MiB), off-heap library buffers
+    (~30 MiB), OS / page-cache headroom (~20 MiB). Standard
+    75%-old-space-of-cgroup shape; raise reserve if observed
+    RSS approaches the cap, lower the old-space cap before
+    raising cgroup further.
+
+(3) **Literal-integer `maxConcurrency: 4` on the extraction
+    Subscription** — `extractionWorker.ts` adds the literal.
+    Justification: 4 × ~44MB worst-case = 176MB
+    extraction-side ceiling. Plus 150MB base + 50MB
+    HTTP-handler concurrency = ~376MB working set, ~520MB
+    headroom in 896MB old-space. 34-file batch at 4-worker
+    fan-out completes in ~9 × 5s = ~45s wall-clock —
+    user-tolerable for the async extraction-after-upload path.
+    Conservative starting point; raisable to 6-8 once
+    empirical headroom is observed (cf. FU-020 below). The
+    literal lives in source because Encore's build-time
+    parser rejects constant references — justification
+    documented here, not via "Encore needs a literal."
+
+*CI regression — three static assertions (not a load harness).*
+
+(i) `extractionWorker.ts` MUST declare a literal-integer
+    `maxConcurrency` in the Subscription config. Test reads
+    the source and asserts the regex
+    `/maxConcurrency:\s*(\d+)\b/` matches with `1 ≤ N ≤ 8`.
+
+(ii) `platform/charts/stagecraft/values.yaml`
+     `resources.limits.memory` MUST be ≥ 1Gi (parsed via YAML
+     load + Mi/Gi normalization).
+
+(iii) `platform/charts/stagecraft/values.yaml` MUST set
+      `nodeOptions` containing `--max-old-space-size=N` where
+      `256 ≤ N ≤ (cgroup memory limit in MiB - 64)` so the
+      reserve is non-negative.
+
+Pinned in `platform/services/stagecraft/test/spec143-fu015.config.test.ts`.
+Done-when (e) of the amended FU-015 stub.
+
+*Optional follow-up — FU-020 — stagecraft-api batch-load
+harness for memory-ceiling regression.* Reusable load-test
+for FR-006 fan-out (local Encore + MinIO + 34 fixture files +
+concurrent batch driver + heap profile capture). Useful for
+raising `maxConcurrency` past 4 with empirical evidence rather
+than budget math, and for catching memory-ceiling regressions
+under future Subscription tuning. Not part of FU-015's
+done-when. Optional stub; file when there is concrete demand
+to raise the cap or when a second memory-ceiling regression
+surfaces.
+
+*Conditional follow-up — FU-021 — deployd-api retroactive
+check.* FU-002 documented the same OOM shape on deployd-api
+but predates this V8-heap-vs-cgroup distinction. deployd-api
+is Rust (no V8 heap leg applies — its OOM was hiqlite WAL
+pressure under cgroup), so a retroactive check is likely a
+one-line confirmation that the language-appropriate fix shape
+is sufficient. Run after FU-015 deploys cleanly:
+
+```bash
+kubectl get deployment deployd-api-rs -o yaml \
+  | grep -E "(memory:|NODE_)"
+```
+
+If the deployment carries an adequate memory bump and (Rust
+being Rust) no `NODE_OPTIONS` gap, no FU-021 needed. If a gap
+exists — e.g. memory still 512Mi, or a new Rust-side
+allocator-tuning seam emerges — file FU-021 against spec 143
+§13 with a cross-reference to FU-002 (which lives on its own
+spec surface and cannot be amended from spec 143). This check
+is the discipline FU-002 deserves before the §12 lesson family
+("512Mi memory-limit pattern in platform services")
+generalises across two languages.
+
+*Frontmatter implication.* `extractionWorker.ts` joins spec
+143's `implements:` list. Primary owner is spec 115; spec 143
+amends 115 (frontmatter `amends:`), so spec 133's
+amends-aware coupling gate accepts the touch — the explicit
+`implements:` entry makes the relationship visible to spec 127
+without relying on amends-walking. The `implementation:`
+comment is updated to reflect the V8-heap-vs-cgroup discovery
+and the three-leg fix shape.
+
+This is an *honest-state* §13 entry per §12 L-004: the FU-015
+stub's two-leg framing was not wrong, but incomplete. V8 heap
+was the missing leg.
 
