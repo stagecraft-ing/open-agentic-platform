@@ -2944,7 +2944,6 @@ dependencies = [
  "bincode",
  "bytes",
  "chrono",
- "cron",
  "cryptr",
  "deadpool 0.13.0",
  "dotenvy",
@@ -2977,7 +2976,6 @@ dependencies = [
  "time",
  "tokio",
  "tokio-rustls 0.26.4",
- "toml 1.1.2+spec-1.1.0",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -6764,21 +6762,6 @@ dependencies = [
  "toml_parser",
  "toml_writer",
  "winnow 0.7.15",
-]
-
-[[package]]
-name = "toml"
-version = "1.1.2+spec-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
-dependencies = [
- "indexmap",
- "serde_core",
- "serde_spanned 1.1.1",
- "toml_datetime 1.1.1+spec-1.1.0",
- "toml_parser",
- "toml_writer",
- "winnow 1.0.2",
 ]
 
 [[package]]
