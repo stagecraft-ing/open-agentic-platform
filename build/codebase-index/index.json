@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "807e97580a81faf08409959ac5f0ac9ec04600b52955cbaed40afc6239c38e45",
+    "contentHash": "3d7433e6a2c8a71419adaae409f998bc88245758dd9e4a13a8b97744430c33c8",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4870,6 +4870,24 @@
           }
         ],
         "specId": "145-deployd-durability",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "073",
+          "143"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/deployd-api/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "146-deployd-api-memory-hardening",
         "specStatus": "draft"
       }
     ],
