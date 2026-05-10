@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); 2026-05-10 stability regression — stagecraft-api OOMKilled under FR-006 34-file batch load (§13 2026-05-10 ~01:34 UTC entry); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-015 root-cause confirmed 2026-05-10 ~07:48 UTC — V8-heap-vs-cgroup distinction adds third fix leg (NODE_OPTIONS), Subscription literal-int maxConcurrency cap is the load-bearing leg (§13 2026-05-10 ~07:48 UTC entry); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-013 (cause #1 OOM confirmed; fix gates on FU-015), FU-015 (stagecraft-api OOM, mirrors FU-002 + V8-heap leg — next priority), FU-016 (mid-batch session-cookie loss → 401), FU-020 (optional load harness), FU-021 (conditional deployd-api retro check)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 filed against spec 143's §13 — deployd-api retroactive check confirmed gap (resources={}, restarts=3, last exit 137); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-016 (deferred — needs longer-running batch shape), FU-017/18/19 (UI/taxonomy stubs, to file), FU-020 (optional load harness), FU-021 (deployd-api memory-limit + Rust OOM fix)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1747,7 +1747,9 @@ the trust that markdown matches truth.
 
 - **FU-013 — `confirmUpload` 502 / `requestUpload` 503 under
   concurrent batch upload load — leading cause: stagecraft-api
-  OOMKill (FU-002 pattern).** Spec 143 FU-001 deploy-time
+  OOMKill (FU-002 pattern).** *Closed 2026-05-10 ~09:01 UTC —
+  see §13 closure entry. Done-when (i)(ii)(iii) all satisfied
+  on sha-51e050b 34-file batch.* Spec 143 FU-001 deploy-time
   verification surfaced a partial-failure mode in the user-driven
   upload flow under FR-006's 34-file concurrent batch shape.
   Three observation windows captured:
@@ -1968,7 +1970,12 @@ the trust that markdown matches truth.
   null-completedAt assertion on OBJ_B is preserved.
 
 - **FU-015 — stagecraft-api OOMKilled under FR-006 34-file
-  batch load (mirrors FU-002 for deployd-api).** Spec 143
+  batch load (mirrors FU-002 for deployd-api).** *Closed
+  2026-05-10 ~09:01 UTC — see §13 closure entry. Three-leg
+  fix landed at 51e050b (cgroup 1Gi + NODE_OPTIONS + extraction
+  Subscription maxConcurrency=4); 34-file user-driven batch on
+  test-7-dual completed 08:36:11Z–08:36:39Z with RESTARTS=0,
+  zero crash signals, zero 502/503 partial failures.* Spec 143
   FU-001 deploy-time verification (§13 2026-05-10 ~01:34 UTC
   entry) surfaced an OOMKill on stagecraft-api at
   2026-05-10T01:20:35Z, exit 137, under a memory limit of
@@ -2801,4 +2808,182 @@ and the three-leg fix shape.
 This is an *honest-state* §13 entry per §12 L-004: the FU-015
 stub's two-leg framing was not wrong, but incomplete. V8 heap
 was the missing leg.
+
+**FU-015 + FU-013 Tier 1 closure, 2026-05-10 ~09:01 UTC —
+three-leg fix held under realistic 34-file batch load.** This
+entry pins the cluster validation evidence for FU-015 done-when
+(d) and FU-013 done-when (i)(ii)(iii). The fix at 51e050b held
+under the same batch shape that crashed `sha-a7f6693` on
+2026-05-10 01:20:35Z — pod RESTARTS=0 across the full 34-file
+user-driven upload, zero crash signals, zero 502/503 partial
+failures.
+
+*New pod state.* `stagecraft-api-576479646b-92nwp` running
+`sha-51e050b` since 2026-05-10T08:28:48Z. Cgroup memory limit
+raised to 1Gi (was 512Mi); `NODE_OPTIONS=--max-old-space-size=896`
+set on the container; extraction Subscription literal-integer
+`maxConcurrency: 4` in source.
+
+*Cluster validation, 2026-05-10 08:36:11Z–08:36:39Z, project
+test-7-dual (`00212051-443a-45db-8bf1-4ecfe441e6bb`).*
+User-driven 34-file batch via stagecraft web UI. Authoritative
+counts from `kubectl logs --since=30m` against the running pod:
+
+| Signal | Pre-fix (sha-a7f6693, 01:20Z) | Post-fix (sha-51e050b, 08:36Z) |
+|---|---|---|
+| User-driven `upload confirmed` events (`source: user`) | partial — pod died mid-batch | **34 / 34** |
+| Sweeper Class B `upload confirmed` (`source: orphan_sweep_class_b`) | n/a (no sweeper run) | 12 (two 30-min cycles since pod start) |
+| Pod outcome | OOMKilled exit 137 | RESTARTS=0, ALIVE 33+ min |
+| V8 abort signals (FATAL / heap-out-of-memory / Mark-Compact pre-abort) | present (256MB old-space ceiling) | **0** |
+| Auth handler latency curve | climbing 13.9ms → 491ms → 904ms → 1321ms (death spiral) | median 3.7ms, p95 1100.8ms, max 5928.1ms (single GC-pause outlier post-burst) |
+| FR-006 partial-failure `confirm failed (502)` / `(503)` rows | observed in three windows on prior pod | **0** |
+| FU-016 `cookieHasSession":false` warnings | observed in 2026-05-10 ~01:34 UTC entry | 0 (batch was 28s, far under suspected 5–15min cookie TTL — FU-016 deferred, not closed) |
+
+*Done-when satisfaction (verbatim).*
+
+- **FU-015 (a)** cgroup memory limit raised — values.yaml `1Gi`,
+  rendered in `Deployment/stagecraft-api`. ✓
+- **FU-015 (b)** `NODE_OPTIONS=--max-old-space-size=...` set —
+  values.yaml `nodeOptions: --max-old-space-size=896`,
+  rendered as env var. ✓
+- **FU-015 (c)** extraction Subscription has literal-integer
+  `maxConcurrency` — `extractionWorker.ts:46` declares
+  `maxConcurrency: 4`. ✓
+- **FU-015 (d)** 34-file concurrent web-UI upload batch
+  completes without OOMKill — **34 user-driven confirms**
+  in 28s, zero crashes. ✓
+- **FU-015 (e)** three CI static assertions land —
+  `tests/spec143-fu015.config.test.ts` pins all three
+  (Subscription `maxConcurrency` literal in 1..8, chart memory
+  limit ≥ 1Gi, chart `nodeOptions --max-old-space-size=N` with
+  256 ≤ N ≤ memMiB-64). All passing local + green in CI on
+  51e050b. ✓
+- **FU-013 (i)** FU-015 landed and 34-file batch produced
+  no OOMKill. ✓
+- **FU-013 (ii)** residual 502s diagnosed against hypothesis
+  (2): **absent**. Zero 502s observed; the OOM was the leading
+  AND only cause. Hypothesis (2) (ingress `proxy_read_timeout`
+  on synchronous `headObject`) and hypothesis (3) (file-type
+  path) retire — they were always the OOM-recovery shadow,
+  not separate causes. ✓
+- **FU-013 (iii)** 34-file batch produces zero `confirm failed`
+  AND zero `Failed to request upload (503)` rows — dashboard at
+  09:01Z shows 34/34 in either `extracted` (29) or `imported
+  failed: policy_pending|extractor_failed` (5); every row has
+  a confirmed upload; no UI partial-failure errors. ✓
+
+**FU-013 and FU-015 close together at 51e050b.**
+
+*Auth-handler 5928ms outlier — diagnosis note.* The single
+outlier post-burst is consistent with V8 doing a major
+mark-compact under loaded extraction queue (4 workers ×
+~44MB peak buffers + AWS SDK staging + base process). p95 of
+1100ms reflects intermittent GC pressure during peak fan-out.
+Acceptable trade vs. crash; the alternative was death spiral.
+If sustained-batch p95 latency becomes a UX issue, FU-020
+(load harness, optional) gives the empirical evidence to lower
+`maxConcurrency`, raise old-space, or convert
+`extractionCore.ts:796` `getObject` from full-Buffer to
+streaming. Not closure-blocking.
+
+*FU-019 motivation validated.* 5 of 34 files landed in
+`imported failed: policy_pending` (`pptx ×2`, `xlsx`, `zip`)
+or `imported failed: extractor_failed` (1 `pdf`). Exactly the
+FU-019 stub surface — the dashboard renders these as hard-red
+failures because there is no `no_extractor_available` distinct
+status. The 4 `policy_pending` rows are not pipeline failures;
+they are "no extractor registered for this MIME type" — the
+pipeline correctly declined to dispatch. The 1
+`extractor_failed` PDF is a real failure path worth diagnosing
+as part of FU-019 (the `Attachment 1 - Funding Request Process
+Overview.pdf`, 88.9KB, presumably one of the embedded-text vs
+image-PDF discriminators in `deterministic-pdf-embedded`). FU-019
+stub to file in a separate commit (tertiary work item from the
+2026-05-10 handover).
+
+*Measurement-discipline footnote.* The agent's first-pass
+checkpoint reported "13/34 confirmUpload" mid-batch and
+proposed a partial-batch hypothesis. That was instrument
+error, not real signal: the background `kubectl logs -f`
+filter started mid-burst (~2s after the first confirm),
+matched a narrow regex, and the kubectl streaming buffer
+appears to have dropped events under the 28s burst rate.
+Authoritative count came from `kubectl logs --since=30m`
+against the named pod with a wider grep — 34 user
+confirms recovered. Lesson for future cluster-side
+batch validation: trust `kubectl logs --since=N` against
+the named pod over `-f` tail filters; treat tail counts
+as lower bounds, not authoritative.
+
+*FU-021 — deployd-api memory-limit + Rust OOM fix.* Per
+the §13 2026-05-10 ~07:48 UTC plan, retroactive check
+against deployd-api was run after FU-015 landed:
+
+```bash
+kubectl get deployment deployd-api -n deployd-system -o yaml \
+  | grep -E "(memory:|NODE_OPTIONS|RUST_|cpu:|image:|MALLOC|jemalloc)"
+# (no memory:/cpu: lines surfaced — see resources block below)
+
+kubectl get deployment deployd-api -n deployd-system -o yaml \
+  | yq '.spec.template.spec.containers[0].resources'
+# {} (empty)
+
+kubectl get pod -n deployd-system -l app=deployd-api -o json \
+  | jq '.items[0].status.containerStatuses[0]
+        | {restartCount, image, lastState}'
+# restartCount: 3
+# image: ghcr.io/.../deployd-api:latest
+# lastState.terminated: {exitCode:137, reason:"Error",
+#                        finishedAt:"2026-05-08T16:35:38Z",
+#                        startedAt:"2026-05-08T16:25:08Z"}
+```
+
+**Gap confirmed.** deployd-api has empty `resources: {}`
+(no memory limit, no request) AND a recent exit 137 (kernel
+SIGKILL — almost certainly OOM-killer despite "Error" reason
+field; container ran ~10 min before death, consistent with
+hiqlite WAL pressure). FU-002 documented the same shape on
+2026-05-08 with a stated 512Mi limit, but the rendered
+deployment carries no limit — either the chart never rendered
+limits, or they were reverted. Either way, the fix is the same
+shape as FU-015 minus the V8 leg (deployd-api is Rust, no V8
+heap):
+
+  (a) Set `resources.limits.memory` and `resources.requests.memory`
+      on the deployd-api Deployment (chart values for the
+      relevant module). Recommended: 1Gi limit, 256Mi request,
+      validate against hiqlite WAL init under the same scrape
+      cadence FU-002 documented.
+  (b) If hiqlite WAL pressure is dominated by allocator
+      fragmentation, evaluate jemalloc on the Rust binary —
+      defer until (a) is empirically insufficient.
+  (c) Single-writer cleanup mentioned in FU-002 (setup.sh
+      vs CD overlap on the helm release) stays open as the
+      original FU-002 surface.
+
+*Done when:* (a) deployd-api Deployment carries non-empty
+resource limits + requests; (b) deployd-api pod has zero exit
+137 events in the trailing 14 days post-fix; (c) FU-002's
+single-writer concern is reconciled (separate task on
+FU-002's own surface — no longer rolled into FU-021).
+
+The fix surface lives on whichever spec primary-owns
+`platform/charts/deployd-api/` — likely spec 073 (axiomregent)
+or spec 072 (multi-cloud). FU-021 documents the gap from spec
+143's diagnostic chair; the implementing PR amends the owning
+spec and lists deployd-api chart paths in its `implements:`.
+This split is intentional and matches user direction
+(2026-05-10): "FU-002 ... can't be amended from spec 143."
+
+*Frontmatter.* The `implementation:` field stays
+`in-progress` — Tier 2 work remains (FU-002, FU-003, FU-008,
+FU-011 Tier 2, FU-016 deferred, FU-017/18/19 to file, FU-020
+optional, FU-021 new). The FU-013 + FU-015 closure narrows
+the outstanding list and removes the OOM-stability blocker.
+
+This is an *honest-state* §13 closure entry per §12 L-004:
+done-when satisfied verbatim (34 files, not 13); the V8 GC
+outlier is documented rather than papered over; the
+measurement-discipline footnote pins the lesson; FU-021 lands
+with concrete evidence rather than as a placeholder.
 
