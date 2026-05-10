@@ -17,7 +17,7 @@ provider-registry = { path = "../provider-registry", default-features = false, f
 standards-loader = { path = "../standards-loader" }
 async-trait = "0.1"
 rusqlite = { version = "0.39", features = ["bundled"], optional = true }
-hiqlite = { version = "~0.13", features = ["sqlite", "dlock", "listen_notify_local"], optional = true }
+hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "listen_notify_local", "auto-heal"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
