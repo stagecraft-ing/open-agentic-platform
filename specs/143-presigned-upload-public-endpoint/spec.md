@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 closed 2026-05-10 ~17:30 UTC — spec 146 (146-deployd-api-memory-hardening) lands chart-default cgroup floor (values.yaml resources block: 1Gi limit / 256Mi request / 100m cpu request); revised done-when (one load-bearing leg + two documented-N/A legs per §13 ~17:00 UTC amendment entry) satisfied verbatim; second invocation of dont-soften-done-when discipline this session; cluster-side AC-8 is a 14-day trailing-window longitudinal signal (2026-05-10 → 2026-05-24); FU-017/18/19 stubs filed 2026-05-10 (FU-019 empirically validated by 5/34 unsupported-type rows in the closure-entry batch); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-016 (deferred — needs longer-running batch shape), FU-017 (extractor output rendering), FU-018 (detail-page two-column layout), FU-019 (no_extractor_available status taxonomy), FU-020 (optional load harness), FU-022 (spec 146 14-day longitudinal check — session-handover trigger 2026-05-24)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 closed 2026-05-10 ~17:30 UTC — spec 146 (146-deployd-api-memory-hardening) lands chart-default cgroup floor (values.yaml resources block: 1Gi limit / 256Mi request / 100m cpu request); revised done-when (one load-bearing leg + two documented-N/A legs per §13 ~17:00 UTC amendment entry) satisfied verbatim; second invocation of dont-soften-done-when discipline this session; cluster-side AC-8 is a 14-day trailing-window longitudinal signal (2026-05-10 → 2026-05-24); FU-017/18/19 stubs filed 2026-05-10 (FU-019 empirically validated by 5/34 unsupported-type rows in the closure-entry batch); FU-016 diagnosis pinned 2026-05-10 (post-FU-021 closure) — web __session cookie expires mid-batch on Rauthy access-token lifetime (~30 min default), no web-side refresh endpoint exists, generated Encore client has zero 401-retry; stub's hypothesis (a) confirmed verbatim, (b)(c) ruled out; not a one-line static fix per §13 "FU-016 static diagnosis" entry; FU-016 stays open against original done-when (verification path: ≥ N-min batch with no 401s, N > Rauthy access-token lifetime); FU-023 filed 2026-05-10 as implementation arm (POST /auth/refresh web endpoint + BaseClient.callAPI 401-retry wrapper); FU-002 scope-re-shaped 2026-05-10 — memory-bump leg implicitly closed by spec 146 (chart-default cgroup floor), surviving surface is single-writer cleanup only; FU-003/008/011-Tier-2 scope-confirmed 2026-05-10 (no intersection with FU-021 work); outstanding: FU-002 (single-writer cleanup only, reshape pinned), FU-003, FU-008, FU-011 Tier 2, FU-016 (diagnosis pinned, verification path open), FU-017 (extractor output rendering), FU-018 (detail-page two-column layout), FU-019 (no_extractor_available status taxonomy), FU-020 (optional load harness), FU-022 (spec 146 14-day longitudinal check — session-handover trigger 2026-05-24), FU-023 (web session-refresh endpoint + 401-retry client wrapper — FU-016 impl arm)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1244,9 +1244,22 @@ Follow-up tracker (parking lot):
   separately deploys deployd-api with sha-pinned tags. Same
   pattern as L-003. Plus: `deployd-api-78ffc9b57-fg2th` is
   OOM-killing on a 512Mi memory limit during hiqlite WAL init
-  (exit code 137, observed 2026-05-08). Fix needs both the
-  single-writer cleanup AND a memory bump, and should ship in
-  one commit so the recovery is verifiable end-to-end.
+  (exit code 137, observed 2026-05-08). Original stub text
+  required "single-writer cleanup AND memory bump, in one
+  commit, end-to-end verifiable" — that "one commit" framing
+  is **retired** by the §13 "FU-002–FU-011 Tier 2 currency
+  triage, 2026-05-10 (post-FU-021 closure)" entry. The
+  memory-bump leg shipped via spec 146 (chart-default cgroup
+  1Gi limit / 256Mi request, landed 2026-05-10 ~17:30 UTC per
+  the FU-021 closure entry); the surviving FU-002 surface is
+  the dual/single-writer cleanup leg only. Done-when for the
+  live surface: identify whether the present
+  `helm upgrade --install` from `setup.sh:347-354` + CD's
+  `cd-deployd-api-rs.yml` still constitutes a dual-writer
+  topology after spec 146's chart lands, and close on whatever
+  narrow setup.sh / workflow edit removes the duplication —
+  per `fu-stub-template-revalidation`, this stub now describes
+  reality after source contact, not the pre-source hypothesis.
 - **FU-003 — Generalised L-001 amendment for other affected
   sweepers.** Spec 115 FR-006 (`extraction-staleness-sweeper`,
   every 1m), spec 087 §4.4 (`connector-sync-scheduler`,
@@ -2439,6 +2452,125 @@ open under FU-011's Tier 2 closure gate.
   guarantee the check *happens*, not to guarantee a clean
   result.
 
+- **FU-023 — Web session-refresh endpoint + 401-retry client
+  wrapper.** Filed 2026-05-10 as the implementation arm of
+  FU-016. FU-016's diagnosis is pinned in §13 (entry titled
+  "FU-016 static diagnosis"); this stub carries the source-
+  side work the diagnosis surfaced.
+
+  *Diagnosis recap (load-bearing, not restated).* See the §13
+  "FU-016 static diagnosis" entry for the source-read chain
+  (`handler.ts:82-108`, `rauthyCallback.ts:552-558`,
+  `oidc.ts:721-725`, `github.ts:140-145`, `desktop.ts:370`,
+  `client.ts:3866-3932`) and the cookie-Max-Age vs
+  Rauthy-access-token-lifetime math. Short form: the web
+  `__session` cookie's `Max-Age` is bounded by
+  `tokens.expires_in` (Rauthy default ~1800s); no web-side
+  refresh endpoint exists; the generated Encore client
+  performs zero 401-retry. A 34-file batch that crosses the
+  access-token lifetime mid-stream 401s deterministically.
+
+  *Fix shape — two halves, both required.*
+
+  (a) **Server — `POST /auth/refresh` (web).** New endpoint
+      in `platform/services/stagecraft/api/auth/` modelled on
+      `/auth/org-switch/cookie` (`github.ts:324`, the only
+      existing web-path endpoint that reads `__refresh` from
+      the request cookie). Shape: `expose: true, auth: false`
+      (the access token is by definition expired or missing),
+      reads `__refresh` from the request `Cookie` header,
+      calls `refreshTokens(refreshToken)` (already exported
+      from `rauthy.ts:499`), emits both `__session` and
+      `__refresh` cookies via `Set-Cookie` headers using the
+      same builder pattern as `rauthyCallback.ts:552-558`
+      (`Path=/; HttpOnly; SameSite=Lax; Max-Age=...; Secure`
+      in prod). Returns 204 on success; 401 on absent or
+      Rauthy-rejected refresh token. No body.
+
+  (b) **Client — 401-retry wrapper around `BaseClient.callAPI`.**
+      `web/app/lib/client.ts:3875-3932` is the auto-generated
+      Encore client; it throws `APIError(401, ...)` on
+      unauthenticated responses without any retry. Two
+      candidate shapes for the wrapper, pick at fix time:
+
+      - **Inline in `callAPI`.** Patch the generated method
+        (or wrap it before export) to catch HTTP 401, call
+        `fetch('/auth/refresh', { method: 'POST', credentials:
+        'same-origin' })`, and on 204 retry the original
+        request once. On non-204 refresh response, propagate
+        the original 401. Single-flight the refresh call to
+        avoid N concurrent in-flight requests each kicking
+        off N parallel refreshes.
+      - **Application-level fetch wrapper.** Leave the
+        generated client untouched; wrap the upload-batch
+        call sites (the only confirmed long-running batch
+        path is `confirmUpload` / `requestUpload` under
+        `app.project.$projectId.knowledge.tsx`). Cheaper
+        diff, narrower scope, but the 401-recovery shape
+        doesn't generalise to other long-running flows.
+
+      Inline is the structurally correct shape; per-site is
+      acceptable only if the inline patch fights regeneration
+      ergonomics. The wrapper must single-flight refresh
+      calls — N concurrent uploads each catching 401 must
+      coalesce to one refresh-then-retry-each.
+
+  *Why not a third half (proactive refresh on activity
+  timer).* A proactive refresh timer that fires every
+  ~25 min while the tab is active would prevent the failure
+  entirely without a 401-retry round trip. It is not in this
+  FU's scope because (i) the reactive 401-retry path is
+  required anyway as the floor (tab in background, system
+  sleep, etc.), and (ii) layering proactive over reactive is
+  cheap once reactive is in. Filed as a sub-followup pointer
+  only; do not block FU-023 closure on the proactive timer.
+
+  *Cross-references.*
+
+  - Spec 087 §340-343 (one identity, two sessions: web
+    Rauthy-JWT-in-cookie; desktop Rauthy-JWT-in-keychain) is
+    the parent session contract. The web cookie's refresh
+    mechanism is the missing seam; FU-023 lands the web half
+    that `/auth/desktop/refresh` (`desktop.ts:370`) already
+    carries for the desktop half.
+  - `external-service-docs-over-protocol-generality` memory
+    (L-005/L-006 pattern): Rauthy 0.35's refresh-token grant
+    behaviour is the load-bearing contract for `(a)`. Verify
+    the response shape and `expires_in` math against the
+    live cluster, not against RFC 6749's permissiveness.
+  - `setup_sh_secret_sync_granularity` memory: the
+    `RAUTHY_URL` value already mounted into stagecraft-api
+    is sufficient; no new secret material required for
+    FU-023, so the FU-008 seam doesn't compound here.
+
+  *Done when.* (a) `POST /auth/refresh` lives in `api/auth/`
+  with `expose: true, auth: false`, reads `__refresh` from
+  Cookie, sets both rotated cookies on 204, fails to 401 on
+  absent/Rauthy-rejected refresh; (b) `BaseClient.callAPI`
+  (or an application-level wrapper at the upload-batch call
+  sites — decision pinned at fix time, not pre-committed)
+  catches 401, single-flights `/auth/refresh`, retries once;
+  (c) regression test: unit test against the endpoint with a
+  mock `refreshTokens()`; integration test that simulates a
+  mid-batch 401 and asserts the second attempt succeeds; (d)
+  verification path: a long-running upload batch crossing
+  the Rauthy access-token lifetime (~30 min default; or
+  configurable via Rauthy admin if the cluster overrides)
+  completes without 401-error rows on the user surface. On
+  closure, FU-016 closes with a back-reference to FU-023's
+  implementing PR — FU-016's done-when is the verification
+  path; FU-023 carries the source-side work that satisfies
+  it.
+
+  *Coordination flag.* If during implementation `(a)` the
+  Rauthy refresh-token grant turns out to emit a non-
+  rotating refresh token (some IdPs return the same refresh
+  token on every grant), the cookie write only needs to
+  rotate `__session`; the `__refresh` cookie write is a
+  no-op rewrite. Verify empirically per the
+  external-service-docs-over-protocol-generality discipline
+  before committing the cookie-write shape.
+
 ## 13. Evidence ledger (historical record)
 
 This section is the historical evidence ledger for spec 143's
@@ -3403,4 +3535,260 @@ against a single implementing spec (146) with three CI
 assertions and one chart-default values change. No outstanding
 sub-followups; FU-002 (single-writer cleanup) remains its own
 surface as the original stub language preserved.
+
+**FU-016 static diagnosis, 2026-05-10 (post-FU-021 closure) —
+web `__session` cookie expires mid-batch on Rauthy access-
+token lifetime; no web-side refresh endpoint, no client
+401-retry.** Diagnosis pinned; implementation arm filed as
+FU-023. FU-016 stays open against its existing done-when (the
+34-file ≥ N-minute batch verification) and closes when FU-023
+lands the source-side fix.
+
+*Source contact, this session.* Read the auth-handler +
+cookie-issuing chain end-to-end:
+
+- `platform/services/stagecraft/api/auth/handler.ts:82-108` —
+  Encore `authHandler<AuthParams, AuthData>`. Reads token from
+  `Authorization: Bearer` *or* `__session` cookie. On absence
+  emits the exact log surfaced in the FU-016 §12 trace
+  (`cookieHasSession:false, hasCookie:true`) and throws
+  `APIError.unauthenticated`. No inline refresh path.
+- `rauthyCallback.ts:552-558` and `oidc.ts:721-725` —
+  initial-login cookie write:
+  `__session=<access>; Path=/; HttpOnly; SameSite=Lax;`
+  `Max-Age=Math.min(tokens.expires_in, 14*24*60*60);` plus
+  `__refresh=<refresh>; ... Max-Age=14*24*60*60;`. The
+  `__session` cookie's TTL is bounded by Rauthy's
+  `tokens.expires_in` — the **access-token** lifetime, not
+  the refresh lifetime.
+- `github.ts:140-145` and `:413-420` — same cookie shape on
+  org-switch and post-OAuth GitHub paths. Identical
+  `Min(expires_in, 14d)` math.
+- `github.ts:324-420` (`/auth/org-switch/cookie`) — the
+  *only* web-path endpoint that reads `__refresh` from the
+  request `Cookie` and rotates `__session`+`__refresh`. It
+  is shaped as an org-switch operation, not a generic
+  session refresh. There is no analogous
+  `POST /auth/refresh` for the regular long-running-session
+  case.
+- `desktop.ts:370-388` (`/auth/desktop/refresh`) — desktop-
+  only, reads `refreshToken` from request body, returns
+  rotated token+refreshToken in JSON. Not consumable by the
+  web flow (no cookie write; body-based input rather than
+  Cookie-header read).
+- `web/app/lib/client.ts:3875-3932` (`BaseClient.callAPI`) —
+  generated Encore client. Throws `APIError(401, ...)` on
+  unauthenticated; zero retry, zero refresh, no 401 hook.
+  Confirmed by `grep` — only matches for "401" / "retry" /
+  "refresh" in this file are unrelated retry-extraction
+  endpoints, the `desktopRefresh` method (desktop only), and
+  ErrCode prose comments.
+
+*Rauthy access-token lifetime — actual TTL.* No
+`access_token_lifetime` override exists in
+`platform/charts/rauthy/values.yaml` or
+`platform/charts/rauthy/templates/statefulset.yaml` (the only
+relevant comment names the field in the context of
+`disableRefreshTokenNbf`, not for overriding the lifetime
+itself). Rauthy 0.35 default access-token lifetime is 1800s
+(30 minutes). The FU-016 §12 stub's "5–15 min" suspected TTL
+is the empirical guess at filing time; the actual default
+is 30 min, refining the reproduction window upward.
+
+*Diagnosis (the FU-016 §12 stub's hypothesis (a) confirmed).*
+The browser receives `__session` with `Max-Age=1800` at login
+(absent admin override). Mid-batch wall-clock crossing of
+that boundary → browser stops sending `__session` →
+`handler.ts:101-108` warning fires verbatim (`cookieHasSession:
+false, hasCookie:true`) → 401 to `requestUpload`. Subsequent
+batch rows then 401 deterministically until the user reloads
+the page through `/auth/rauthy`. The `__refresh` cookie is
+still present on the request but no server-side path reads it
+on the regular API surface, and no client-side path calls
+`/auth/desktop/refresh` (desktop only) on 401.
+
+*Rule-outs (stub's (b) and (c)).*
+
+- **(b) Browser tab/session state divergence — ruled out.**
+  Original FU-016 evidence (§12 stub) carries the same browser
+  `uid: 5dcf6f54-…` across the successful prefix and the 401
+  tail of the same batch. The browser hasn't reloaded; it has
+  Max-Age-dropped the cookie. (b) would require a
+  client-initiated cookie clear, which the FU-016 stub
+  already noted as implausible.
+- **(c) Server-side session-store wiped by OOM — ruled out.**
+  `handler.ts:82-133` is a *stateless* JWT validator. No
+  in-memory session store; `validateJwt` does cryptographic
+  verification against the Rauthy-issued token. An OOM
+  restart cannot wipe a session store that doesn't exist.
+  The §12 stub already named (c) as less likely; this
+  confirms.
+
+*Stub-vs-source revalidation per
+`fu-stub-template-revalidation`.* The FU-016 §12 stub was
+filed pre-source-contact at 2026-05-10 ~01:34 UTC with three
+suspect causes and the suspected TTL band. Source contact
+this session: (a) confirmed verbatim, (b)(c) ruled out, TTL
+band corrected from "5–15 min" to "Rauthy default 1800s
+(30 min) absent override". The stub was a correct hypothesis
+shape — no reshape needed. Honest-state note: this is the
+*first* invocation of the rule where the stub survived source
+contact substantially intact, the prior two (FU-013 narrowing,
+FU-021 reduction) both reshaped substantively. Recording so
+the discipline's full envelope is on the record.
+
+*Why FU-016 cannot close on a one-line static fix.* The §12
+stub explicitly said "If FU-016 closes outright on a static
+fix (e.g., a one-line `Max-Age` extension or `SameSite` flip),
+land the fix in the same session." Neither shape closes:
+
+- **`Max-Age` extension would not fix the 401.** Even if the
+  browser kept sending the cookie past the JWT's `exp` claim,
+  `handler.ts:111` → `validateJwt(token)` would reject the
+  expired JWT and 401 just the same. The cookie's TTL only
+  controls whether the cookie *gets sent*; the JWT's `exp`
+  controls whether the validator *accepts* it. Extending
+  Max-Age past `expires_in` is a no-op for this failure.
+- **`SameSite` flip is not the cause.** The 401 is on
+  `requestUpload`, which is a same-origin POST from
+  `app.stagecraft.ing` (or equivalent) to its own API. There
+  is no cross-site redirect between the cookie write and the
+  failing request. `SameSite=Lax` is correct for this flow.
+
+The fix requires source-side work: a `/auth/refresh` web
+endpoint that consumes `__refresh` from the cookie and rotates
+`__session`, plus a client-side 401-retry wrapper. Filed as
+FU-023 (this session, §12 entry above this ledger entry).
+
+*FU-016 done-when remains unchanged.* "Cause identified;
+long-running upload batches no longer 401 mid-stream; a
+34-file batch that takes ≥ N minutes (where N exceeds the
+prior cookie TTL) completes without 401s." Per
+`dont-soften-done-when`: leg (1) of the done-when (cause
+identified) is satisfied by this entry; legs (2) and (3) are
+the verification path FU-023 satisfies on landing. FU-016
+closes on FU-023's verification-path satisfaction, not on
+this diagnosis alone. The done-when is NOT softened by
+splitting diagnosis-as-milestone from impl-as-closure —
+that split is the existing stub's structure ("cause
+identified" is leg (1); the rest is leg (2)(3) verification).
+
+*Anti-softening cross-check.* The temptation here would be
+to mark FU-016 closed on "diagnosis sufficient" and forget
+the verification path. The §12 stub's done-when is explicit
+that 401-elimination on a ≥ N-min batch is required for
+closure — not just having a named cause. Pinning the
+diagnosis as a §13 milestone while keeping FU-016 open
+against its original done-when is the honest-state move:
+the stub's contract reads through unchanged; FU-023 inherits
+the verification path; FU-016's closure entry on FU-023's
+landing back-references both.
+
+*Verification path (≥ 31-min batch).* The §12 stub specifies
+"34-file batch ≥ N minutes". With N now refined to ~30 min,
+the verification needs either bandwidth throttling on the
+client side or a single very large file (multi-gig
+transcript) to span the access-token lifetime. The 09:01 UTC
+2026-05-10 closure-entry batch on `sha-51e050b` ran 28 s on
+34 files and could not reproduce; FU-023's verification must
+deliberately cross the lifetime boundary. Pre-FU-023
+production observability: zero new evidence captured this
+session beyond the prior `cookieHasSession:false` trace, and
+none expected until the source-side fix lands.
+
+*Coordination flag with spec 087.* Spec 087 §340-343 ("One
+identity, two sessions: web Rauthy-JWT-in-browser-cookie;
+desktop Rauthy-JWT-in-OS-keychain") is the parent session
+contract. The web cookie's refresh-token consumption path is
+unspecified there — the desktop half has
+`/auth/desktop/refresh`; the web half had none. FU-023's
+landing is the web-half completion of that contract. If a
+future amendment to spec 087 names the web refresh contract
+explicitly, FU-023's PR should land that amendment
+alongside the source change rather than as a follow-on
+spec edit.
+
+*Tier 2 triage carried in this session.* Per the session
+handover's secondary scope, FU-002/003/008/011-Tier-2 were
+reviewed for currency in the same pass; results pinned in
+the FU-002–FU-011 review entries below.
+
+**FU-002–FU-011 Tier 2 currency triage, 2026-05-10
+(post-FU-021 closure) — three scope-confirmed, one
+scope-re-shaped.**
+
+This entry is a single triage pass over the four oldest
+outstanding §12 follow-ups (FU-002, FU-003, FU-008, FU-011
+Tier 2). Per the session handover's secondary scope, each
+gets one of {implicitly-resolved-and-closed, scope-confirmed,
+scope-re-shaped}.
+
+- **FU-002 — scope-re-shaped.** Original stub text reads
+  "Fix needs both the single-writer cleanup AND a memory bump,
+  and should ship in one commit so the recovery is verifiable
+  end-to-end." Spec 146's chart-default cgroup floor
+  (1Gi limit / 256Mi request, landed 2026-05-10 ~17:30 UTC
+  per the FU-021 closure entry above) IS the memory bump.
+  The "one commit" constraint is therefore obsolete: the
+  memory bump shipped via spec 146; the single-writer
+  cleanup remains FU-002's live surface. Per
+  `fu-stub-template-revalidation`, the §12 stub language is
+  retired (annotated inline below) rather than left to
+  contradict the closure-entry record. The live FU-002 surface
+  is now scoped solely to: identify the surviving
+  dual/single-writer condition in the Helm-vs-`setup.sh`
+  deployd-api lifecycle, decide whether the present
+  `helm upgrade --install` from `setup.sh:347-354` + CD's
+  `cd-deployd-api-rs.yml` still constitutes a dual-writer or
+  whether one side has been retired in the meantime, and
+  close on that decision plus any narrow setup.sh /
+  workflow edit it requires. The memory-bump leg is closed
+  by FU-021 cross-reference; no separate work needed.
+
+- **FU-003 — scope-confirmed.** Generalised L-001 amendment
+  for Encore-CronJob-self-hosted-no-op affecting spec 115
+  (`extraction-staleness-sweeper`, every 1m), spec 087
+  (`connector-sync-scheduler`, every 15m), and spec 124
+  (`factory-runs-staleness-sweeper`). The 2026-05-08 Encore
+  self-hosted scheduler gap is structurally independent of
+  FU-021's chart-cgroup work; no implicit resolution. The
+  agent-side memory `encore-self-hosted-scheduler-gap`
+  corroborates that the wrapper-spec follow-up is still
+  pending. Scope unchanged.
+
+- **FU-008 — scope-confirmed.** Hetzner-without-ESO
+  setup.sh secret-sync granularity. Structurally orthogonal
+  to FU-021's chart-cgroup work (FU-021 amended chart values;
+  FU-008 is about secret materialisation orchestration on
+  the bootstrap path). The companion memory
+  `setup_sh_secret_sync_granularity` is intact. FU-003's
+  incoming spec 115/087/124 sweepers still need to land via
+  whatever shape FU-008 picks (a/b/hybrid) — the cross-FU
+  constraint with FU-009 also remains. Scope unchanged.
+
+- **FU-011 Tier 2 — scope-confirmed.** Tier 1 (Finding 1 —
+  stagecraft-api `m2mAuth.ts` issuer derivation) is the spec
+  143 closure gate and landed via FU-001's closure. Tier 2
+  remains: Finding 2 (deployd-api-rs `auth.rs` EdDSA support,
+  cross-reference to FU-006c), Finding 3 (platform-wide M2M
+  validator audit), and §12 L-008 verbatim. None of those
+  three legs intersect FU-021's cgroup work. Scope unchanged.
+
+*Honest-state notes per §12 L-004.* The triage is the work,
+not a placeholder — each FU got one read of its §12 entry
+against the post-FU-021 closure state, and the decision is
+named per FU. FU-002's reshape is the load-bearing
+discovery: the stub's "one commit" framing was a contract
+that landing spec 146 separately would have silently violated
+absent the explicit retirement here. The other three are
+honest no-changes — they don't intersect this session's work
+and the original framing remains correct, but the review is
+recorded so future sessions know the read happened on
+2026-05-10 post-FU-021.
+
+*Frontmatter shift.* `implementation:` line on spec 143 is
+updated to record: FU-016 diagnosis pinned (this entry);
+FU-023 filed (implementation arm); FU-002 scope-re-shaped
+to single-writer-cleanup-only; FU-003/008/011-Tier-2
+scope-confirmed.
 
