@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:7843208724d48164fdcac8c03f5f17f6c371aa62162cae7091309ac5ab257f29",
+  "graph_fingerprint": "sha256:262f9ac21557a033aba1dd2ba3d65aef89eec3122eec8f98953971ab901b13f4",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2776,6 +2776,23 @@
         "073",
         "086",
         "144"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "146-deployd-api-memory-hardening",
+      "title": "deployd-api memory hardening — populate cgroup limits/requests; document Rust runtime N/A legs",
+      "spec_path": "specs/146-deployd-api-memory-hardening/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "073",
+        "143"
       ],
       "impl_files": [],
       "test_files": [],
