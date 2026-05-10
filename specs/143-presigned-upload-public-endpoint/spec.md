@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 — FR-006 deploy-time real-UI confirmation green, FU-009 + FU-010 + FU-011 Finding 1 shipped, sweeper observed firing on schedule (see §13 Tier 1 closure entry); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2 (Findings 2 + 3), FU-013 (confirmUpload 502 under load, investigation-priority), FU-014 (knowledge-route refresh-500, may close as not-spec-143)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); 2026-05-10 stability regression — stagecraft-api OOMKilled under FR-006 34-file batch load (§13 2026-05-10 ~01:34 UTC entry); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-013 (cause #1 OOM confirmed; fix gates on FU-015), FU-014 (toISOString in listKnowledgeObjects, in spec 143 scope), FU-015 (stagecraft-api OOM, mirrors FU-002), FU-016 (mid-batch session-cookie loss → 401)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -1743,127 +1743,290 @@ the cluster's actual behaviour. A spec that lies about its own
 state corrodes the audit trail — the value of the spec spine is
 the trust that markdown matches truth.
 
-- **FU-013 — `confirmUpload` 502 under concurrent batch upload
-  load.** Spec 143 FU-001 deploy-time verification (2026-05-09
-  §13 Tier 1 closure entry, image 2) surfaced a partial-failure
-  in the user-driven upload flow: of 34 concurrent files
-  uploaded through the stagecraft web UI, a subset returned
-  `Upload landed but confirm failed (502)` with an HTML error
-  body. The blob landed in MinIO; the subsequent `confirmUpload`
-  POST to stagecraft-api died upstream of the Encore handler
-  (502 + HTML signature, not a JSON Encore-error shape).
+- **FU-013 — `confirmUpload` 502 / `requestUpload` 503 under
+  concurrent batch upload load — leading cause: stagecraft-api
+  OOMKill (FU-002 pattern).** Spec 143 FU-001 deploy-time
+  verification surfaced a partial-failure mode in the user-driven
+  upload flow under FR-006's 34-file concurrent batch shape.
+  Three observation windows captured:
 
-  *Cause #1 ruled out by post-deploy cluster-state check.*
-  `kubectl get pods -n stagecraft-system -l app=stagecraft-api`
-  on 2026-05-09 ~07:35 UTC: 1 replica, READY, **0 restarts in
-  18h**, no `lastState.terminated`. The "pod restart / OOMKilled
-  mid-batch (same shape as L-003 / FU-002)" cause from the §13
-  closure entry's hypothesis list is empirically not it.
+  - 2026-05-09 ~07:30 MDT (image 2): subset of files in a
+    34-file batch returned `Upload landed but confirm failed
+    (502)` with HTML body. Initial framing: 502 + HTML
+    upstream-proxy signature suggests ingress timeout.
+  - 2026-05-10 01:21:47 UTC (image 6): subset of files in a
+    fresh batch returned `Failed to request upload (503)` with
+    HTML `<title>503 Service Temporarily Unavailable</title>`
+    body. 503 from nginx = no ready upstream.
+  - 2026-05-10 01:31:54 UTC (image 9): subset of files in a
+    fresh project batch returned `Failed to request upload
+    (401)`. Distinct cause — see FU-016, not FU-013.
 
-  *Surviving hypotheses, ranked.*
+  *Cause #1 confirmed by post-restart cluster-state check
+  (2026-05-10 ~01:24 UTC).* `kubectl get pods -l
+  app=stagecraft-api`: `RESTARTS=1`, `Last State: Terminated,
+  Reason: OOMKilled, Exit Code: 137`. The previous container
+  died at 2026-05-10T01:20:35Z under a memory limit of
+  **512Mi**. Pre-OOM logs (`kubectl logs --previous`) show the
+  34-file batch storm: ~12 concurrent `requestUpload` + ~12
+  concurrent `confirmUpload` + extraction-enqueue events firing
+  in a 4-second window (01:20:26 → 01:20:33), with auth handler
+  durations climbing 13.9ms → 491ms → 904ms → 1321ms as memory
+  pressure built. A `healthz` probe at 01:20:32 returned
+  `code: unknown` after 1115ms; container died ~2s later.
+  **This is the L-003 / FU-002 pattern, applied to
+  stagecraft-api: same 512Mi limit, same exit 137, same
+  load-pressure trigger.** Image 6's 503s land ~70s into the
+  recovery window before the readiness gate re-flipped —
+  symptoms of the OOM, not a separate cause. Image 2's earlier
+  502s were not log-correlated at the time but have the same
+  shape and likely belong to the same pattern.
 
-  (a) **Ingress `proxy_read_timeout` on synchronous MinIO
-      `headObject` under concurrent load** *(higher likelihood)*.
-      502 + HTML body is the nginx-ingress upstream-proxy
-      signature; an Encore handler that errored under load would
-      return JSON. If `confirmUpload`'s server-side path runs
-      `headObject` against MinIO synchronously after the PUT,
-      MinIO under concurrent batch load can exceed the default
-      60s `proxy_read_timeout` before the handler returns.
+  *§13 closure entry record discipline.* The §13 2026-05-09
+  ~07:35 UTC Tier 1 closure entry's "stagecraft-api pod stable:
+  0 restarts in 18h" bullet was honest-as-of-07:35-UTC. The
+  freshness clock ticked: ~18h later (01:20:35 UTC) the OOM
+  happened. Per §12 L-004 honest-state principle, that prior
+  entry stays unamended — the new evidence lands as the §13
+  2026-05-10 ~01:34 UTC entry below.
 
-  (b) **File-type-specific failure path in `confirmUpload`**
-      *(lower likelihood, not ruled out)*. Image 2's pattern
-      (`.xlsx` succeeded; entries that look like `.pptx` /
-      `.docx` failed) is suggestive of a content-aware step.
-      But file-type-specific failures usually surface as 4xx
-      with a structured error, not 502 + HTML. The plausible
-      reframe under (a): the type pattern is hiding a **size**
-      pattern — larger files take longer to land, and longer
-      `headObject` validation pushes the request over the
-      ingress timeout. Worth keeping as a parallel hypothesis
-      until logs disambiguate.
+  *Hypothesis ranking, revised.*
 
-  *Diagnostic moves (investigation phase, not now).*
-  `kubectl logs deploy/stagecraft-api -n stagecraft-system
-  --since=2h | grep -i confirmUpload` for handler-side timing
-  and errors; `kubectl describe ingress stagecraft-api -n
-  stagecraft-system | grep -i timeout` for the configured
-  upstream timeout.
+  (1) **stagecraft-api OOMKilled under FR-006 batch load**
+      *(confirmed leading cause)* — concrete evidence above.
+      Fix gated on **FU-015** (memory bump + concurrency review).
 
-  *Self-healing absorbs the failure today.* Class B
-  orphan-sweeper is firing on schedule (per the §13 Tier 1
-  closure entry — three Completed jobs in the 65 min preceding
-  closure). Rows whose `confirmUpload` 502'd land in `imported`
-  state and the sweeper picks them up on the next tick. So
-  FU-013 is **investigation-priority**, not a Tier 1 blocker —
-  image 2's user-visible failure is recoverable via the
-  existing Class B mechanism. The sweeper is the safety net,
-  not the contract.
+  (2) **Ingress `proxy_read_timeout` on synchronous MinIO
+      `headObject` under concurrent load** *(secondary, may
+      also contribute under load short of OOM)*. Even with the
+      memory bump in (1), if `confirmUpload`'s server-side path
+      runs `headObject` synchronously, it could exceed the 60s
+      `proxy_read_timeout` under MinIO load. To verify or rule
+      out: post-FU-015, repeat the 34-file batch and inspect
+      whether residual 502s remain. If they do, FU-013 stays
+      open on (2).
 
-  *Done when:* (i) the cause is identified via the diagnostic
-  moves above and confirmed against a reproduction or observed
-  traffic; (ii) the fix lands — likely a longer ingress
-  `proxy_read_timeout` annotation, an async `headObject`
-  refactor of `confirmUpload`'s server-side path, or a
-  content-aware-path fix if (b) is the cause; (iii) a 34-file
-  concurrent web-UI upload batch produces zero `confirm failed`
-  rows.
+  (3) **File-type-specific failure path in `confirmUpload`**
+      *(tertiary)*. Image 2's type pattern is plausibly hiding
+      the OOM-recovery pattern (larger files = longer pipeline
+      = more memory in flight = first-killed under OOM). Likely
+      not a real distinct cause; if (1) and (2) both clear and
+      type-correlated 502s persist, revisit.
 
-- **FU-014 — Knowledge-route refresh-500 on hard-reload.**
-  Spec 143 FU-001 deploy-time verification (2026-05-09 §13
-  Tier 1 closure entry, image 3) surfaced a 500 on hard-refresh
-  of the project knowledge route
-  (`app/project/<uuid>/knowledge`). First navigation rendered
-  cleanly (image 1 confirmed it); hard-refresh returned "An
-  unexpected error occurred" with no detail — the
-  Remix / React Router error-boundary catch shape that fires
-  on a loader throw.
+  *Self-healing absorbs the user-visible failure today.* The
+  Class B orphan-sweeper is firing on schedule per the §13
+  2026-05-09 Tier 1 closure entry. Rows whose `confirmUpload`
+  502'd land in `imported` state and the sweeper picks them up
+  on the next tick. FU-013 stays **investigation-priority** at
+  the user-visible level, but the underlying cause (FU-015 OOM)
+  is **service-stability priority** and should be tackled first.
 
-  *Held pending retry-stability check.* Auth-cold-cache
-  patterns (cookie not surviving the SSR boundary, JWKS cache
-  cold on a fresh pod) often clear on a second refresh after
-  a few minutes. The first FU-014 step is cheap: refresh again
-  after ≥ 5 min; if the route loads, the failure is
-  auth-cold-cache and folds into the FU-011 family rather
-  than standing alone. If it persists, log-driven diagnosis
-  follows.
+  *Done when:* (i) FU-015 has landed and the 34-file batch
+  repro produces no OOMKill; (ii) any residual 502s post-FU-015
+  are diagnosed against hypothesis (2) and either fixed or
+  determined absent; (iii) a 34-file concurrent web-UI upload
+  batch produces zero `confirm failed` AND zero `Failed to
+  request upload (503)` rows.
 
-  *Suspect causes, if persistent.*
+- **FU-014 — Knowledge-route refresh-500: `r.completed_at.toISOString
+  is not a function` in `listKnowledgeObjects`.** Spec 143 FU-001
+  deploy-time verification surfaced a 500 on hard-refresh of the
+  project knowledge route (`app/project/<uuid>/knowledge`). First
+  navigation rendered cleanly (image 1); hard-refresh returned
+  "An unexpected error occurred" — the Remix / React Router
+  error-boundary catch shape on a loader throw (images 3, 7, 10).
 
-  (a) **Loader auth state divergent on SSR vs hydrated client.**
-      First navigation runs through hydrated client state from
-      the prior page; refresh forces a fresh server-side loader
-      call against a session-validator path that may be broken
-      on the deployed cluster (cookie not surviving SSR,
-      session validator misconfigured, JWKS cold). Same family
-      as FU-011 if the user-token validator carries its own
-      seam.
+  *Cause confirmed by log diagnosis (2026-05-10 01:23:13.439Z).*
 
-  (b) **Loader query depending on a recently-migrated table
-      column.** If the loader joins against `knowledge_objects`
-      or related and a recent migration changed shape, SSR
-      fails while hydrated client state survives. Check the
-      deployed pod's image SHA against `main` and against the
-      migration tip.
+  ```
+  {"code":"internal","endpoint":"listKnowledgeObjects",
+   "error":"an internal error occurred:
+            r.completed_at.toISOString is not a function",
+   ...}
+  Error: {"code":"internal","message":"an internal error occurred",...}
+      at apiFetch (.../web/build/server/index.js:7475:9)
+      at async loader$16 (.../web/build/server/index.js:7607:27)
+      at async callRouteHandler (.../react-router/...)
+  ```
 
-  (c) **Encore client-fetch URL building broken in SSR
-      context.** Loader builds a URL with a window-only API
-      or a missing env var on the SSR pod; SSR throws before
-      the loader returns.
+  Server-side bug in `listKnowledgeObjects`: a row's
+  `completed_at` column is not a Date object — handler calls
+  `.toISOString()` on a non-Date and throws. Reproduces across
+  three independent refreshes on three different project URLs
+  (images 3, 7, 10).
 
-  *Diagnostic move (after retry check).* `kubectl logs
-  deploy/stagecraft-api -n stagecraft-system --since=2h |
-  grep -iE "error|knowledge"` for the exact stack at the
-  refresh timestamp.
+  *Reframe vs prior FU-014 hypotheses.* The prior FU-014 stub
+  ranked three possible causes — (a) loader auth-cold-cache,
+  (b) recent-migration column shape, (c) SSR URL building.
+  **All three were wrong.** Actual cause is a server-side
+  type-mapping bug in the API handler, not an SSR-layer issue.
+  Hypothesis (b) was closest in spirit (column-shape mismatch)
+  but specifically about a missing column, not a
+  timestamp-typed-as-string mismatch.
 
-  *Done when:* the cause is identified and either fixed in
-  spec 143 scope or cross-referenced into the spec it actually
-  belongs to. FU-014 may close as "not spec 143" — the
-  knowledge-route SSR path is upstream of the upload contract
-  this spec owns, and the refresh-500 most likely rode in on
-  a non-spec-143 change in the same deploy. If the diagnosis
-  points elsewhere, FU-014 closes here with a pointer to the
-  owning spec.
+  *FU-014 is in spec 143 scope.* `listKnowledgeObjects` is the
+  user-facing list endpoint for FR-006's knowledge-objects
+  table — directly touched by the upload → confirmUpload →
+  state-transition flow this spec owns. The "may close as not
+  spec 143" framing in the prior stub is retracted.
+
+  *Suspect concrete root causes (one of the three).*
+
+  (a) **`completed_at` column type drift.** A migration may
+      have changed the column from `timestamptz` to `text`
+      (compare against spec 142's factory-id-columns-text-cutover
+      precedent). Handler's `r.completed_at.toISOString()`
+      assumes a Date; if the column is text, `.toISOString` is
+      undefined.
+
+  (b) **Sweeper or `confirmUpload` writing `completed_at` as a
+      string.** If either path sets `completed_at` via raw SQL
+      with a string literal or an ORM path that doesn't preserve
+      Date typing, subsequent reads return string. The Class B
+      sweeper writes state on every tick; if it's the writer,
+      every tick produces more poisoned rows.
+
+  (c) **Encore.ts driver returning `timestamptz` as string under
+      certain conditions.** Less likely — Encore's PG driver
+      typically maps `timestamptz` to `Date` — but worth
+      verifying with a one-row check against the live cluster.
+
+  *Diagnostic moves (root-cause phase).*
+
+  - Inspect column type:
+    `kubectl exec postgresql-0 -- psql -U stagecraft -d
+    knowledge -c "\\d knowledge_objects"` for column types;
+    `SELECT id, completed_at, pg_typeof(completed_at) FROM
+    knowledge_objects LIMIT 3` for runtime type.
+  - Grep `listKnowledgeObjects` handler for `.toISOString()`
+    callsites in `platform/services/stagecraft/api/knowledge/`.
+  - Grep `orphanSweeper.ts` and `confirmUpload` for
+    `completed_at` writes — if either uses raw SQL with a
+    string literal, that's the writer.
+
+  *Done when:* the cause is identified, fixed in spec 143
+  scope (likely a one-line guard in the handler — e.g.
+  `r.completed_at ? new Date(r.completed_at).toISOString() : null`
+  — paired with a column-type or writer-path correction), and
+  a refresh of the knowledge route after a populated upload
+  batch returns the list cleanly.
+
+- **FU-015 — stagecraft-api OOMKilled under FR-006 34-file
+  batch load (mirrors FU-002 for deployd-api).** Spec 143
+  FU-001 deploy-time verification (§13 2026-05-10 ~01:34 UTC
+  entry) surfaced an OOMKill on stagecraft-api at
+  2026-05-10T01:20:35Z, exit 137, under a memory limit of
+  **512Mi**. Trigger was a user-driven 34-file concurrent
+  upload batch through the stagecraft web UI — the FR-006
+  happy path under realistic load.
+
+  *This is the L-003 / FU-002 pattern, on stagecraft-api.*
+  FU-002 records the same shape on deployd-api: 512Mi memory
+  limit insufficient under hiqlite WAL init pressure, OOMKill
+  exit 137. stagecraft-api carries the same 512Mi limit and
+  exhibits the same OOM behaviour under a different load shape
+  (concurrent uploads + concurrent extraction enqueues rather
+  than WAL init).
+
+  *Concrete evidence pinned.* `kubectl get pods` shows
+  `RESTARTS=1, LAST_REASON: OOMKilled, LAST_EXIT: 137`.
+  Pre-OOM logs (`kubectl logs --previous`) show ~12 concurrent
+  `requestUpload` + ~12 concurrent `confirmUpload` + multiple
+  `enqueueExtraction` events in a 4-second window (01:20:26 →
+  01:20:33), with auth handler latency climbing 13.9ms → 491ms
+  → 904ms → 1321ms as memory pressure built. Liveness probe
+  returned `code: unknown` after 1115ms at 01:20:32.637;
+  OOMKill ~2s later.
+
+  *Two fixes likely needed (mirrors FU-002).*
+
+  (a) **Memory bump.** 512Mi is empirically insufficient.
+      FU-002 named "single-writer cleanup AND a memory bump,
+      in one commit so recovery is verifiable end-to-end" —
+      apply the same shape here. Bump to 1Gi or 2Gi; verify
+      against a reproduction of the 34-file batch.
+
+  (b) **Concurrency cap on the upload-confirm-extract pipeline.**
+      Pre-OOM trace shows ~12 simultaneous in-flight
+      `confirmUpload` calls each enqueuing extraction work and
+      issuing `headObject` to MinIO. Without an upper bound,
+      memory grows linearly with batch size — bumping to 2Gi
+      doesn't prevent the failure under a 64-file or 128-file
+      batch. Consider a semaphore or queue-depth cap on
+      `confirmUpload`'s downstream work.
+
+  *Cross-references.* FU-013's leading cause (cause #1) is
+  this OOM. FU-013 done-when (i) gates on this FU landing.
+  L-003 (cluster-state surfaces with one writer) and FU-002
+  (deployd-api) carry the same pattern; the lesson is no
+  longer a one-off — it's a platform pattern. Worth a §12
+  lesson update on "512Mi memory-limit pattern in platform
+  services" once FU-015 and FU-002 are both closed.
+
+  *Done when:* (a) memory limit raised on stagecraft-api
+  Deployment; (b) a 34-file concurrent web-UI upload batch
+  completes without OOMKill; (c) optionally, a 64-file batch
+  tests the concurrency cap if added.
+
+- **FU-016 — Mid-batch session-cookie loss → 401 on
+  `requestUpload`.** Spec 143 FU-001 deploy-time verification
+  (image 9, 2026-05-10 01:31:34 → 01:31:48 UTC) surfaced a
+  distinct failure mode: in a fresh browser-session upload
+  batch that had earlier `done` rows, mid-batch requests
+  started returning `Failed to request upload (401):
+  {"code":"unauthenticated","message":"No authentication
+  token provided"}`. **Not** the OOM-recovery pattern —
+  `RESTARTS=1` since 01:20:35Z and unchanged through 01:34:25Z.
+
+  *Concrete evidence (auth handler debug log).*
+
+  ```
+  {"cookieHasSession":false,"endpoint":"auth",
+   "hasAuthorization":false,"hasCookie":true,
+   "level":"warn",
+   "message":"auth handler: no token in Authorization header
+              or __session cookie",
+   ...}
+  ```
+
+  Translation: the request carries a Cookie header, but among
+  the cookies the `__session` cookie is **absent**. No
+  Authorization header either. Auth handler returns
+  `unauthenticated`; `requestUpload` returns 401. Repeated
+  across at least four trace IDs in the 01:31:54 → 01:31:58 UTC
+  window.
+
+  *Suspect causes.*
+
+  (a) **Session cookie TTL hit mid-batch.** If the `__session`
+      cookie has a short TTL (5–15 min) and there's no refresh
+      mechanism on the browser side during a long upload run,
+      the browser drops it mid-stream. A 34-file batch of
+      large transcripts can take several minutes.
+
+  (b) **Browser tab/session state divergence.** The user may
+      have closed/reopened the browser between batches or
+      navigated through a logout-flow page. Same browser
+      `uid: 5dcf6f54-…` appears in successful and failed
+      windows, so this is plausible only if the cookie was
+      cleared client-side.
+
+  (c) **Server-side session store wiped by the OOM restart.**
+      If stagecraft-api maintains an in-memory session store
+      rather than stateless JWT-only sessions, the OOM at
+      01:20:35Z would have wiped it — but the log message says
+      the cookie itself isn't present in the request, not that
+      it's present-but-invalid. So (c) is less likely.
+
+  *Diagnostic moves.* Inspect `__session` cookie in the browser
+  DevTools at the moment of failure (present? expiry?); inspect
+  the cookie set on initial login for its TTL; grep auth handler
+  in `platform/services/stagecraft/api/auth/` for session-refresh
+  logic and the cookie-issuing path's `Max-Age` / `Expires`.
+
+  *Done when:* cause identified; long-running upload batches no
+  longer 401 mid-stream; a 34-file batch that takes ≥ N minutes
+  (where N exceeds the prior cookie TTL) completes without 401s.
 
 **L-005 — Spec assumptions about deployment topology must be
 verified, not inferred from the cloud-platform name.** Spec 143's
@@ -2297,4 +2460,106 @@ FU-002 / FU-003 / FU-008 / FU-011 Tier 2 / FU-013 / FU-014.
 
 The closure narrative for spec 143's FU-001 Tier 1 contract
 is complete; spec-level closure waits on Tier 2.
+
+**FU-001 Tier 1 contract holds; stagecraft-api stability
+regression observed under FR-006 34-file batch load —
+2026-05-10 ~01:34 UTC.** This entry records new evidence that
+postdates the §13 2026-05-09 ~07:35 UTC Tier 1 closure entry
+above. The Tier 1 contract (sweeper firing on schedule,
+deploy-artefacts landed, FR-006 user-driven path green at the
+data-path level) is **not retracted**. What is new: the
+user-visible upload flow has surfaced four distinct failure
+modes under realistic batch load, three of which root in
+service-stability or handler-quality regressions that the
+Tier 1 closure did not exercise. Per §12 L-004 honest-state
+principle, the prior entry stays unamended; this entry is the
+evidence-of-record for the post-deploy regression surface.
+
+*Trigger.* User-driven 34-file concurrent upload batches
+through the stagecraft web UI on two projects (`test-4-dual`
+and `test-5-dual`), 2026-05-09 19:21 → 19:32 MDT
+(2026-05-10 01:21 → 01:32 UTC).
+
+*Finding A — stagecraft-api OOMKilled at 2026-05-10T01:20:35Z,
+exit 137.* `kubectl get pods -l app=stagecraft-api`:
+`RESTARTS=1, LAST_REASON: OOMKilled, LAST_EXIT: 137,
+STARTED: 2026-05-10T01:20:35Z`. Memory limit on Deployment:
+**512Mi** (same as deployd-api per FU-002 — same OOM-prone
+configuration). Pre-OOM logs (`kubectl logs --previous`):
+~12 concurrent `requestUpload` + ~12 concurrent
+`confirmUpload` + multiple `enqueueExtraction` events firing
+in a 4-second window (01:20:26 → 01:20:33); auth handler
+latency climbing 13.9ms → 491ms → 904ms → 1321ms; `healthz`
+returning `code: unknown` after 1115ms at 01:20:32; container
+died ~2s later. **L-003 / FU-002 pattern, on stagecraft-api.**
+Filed as **FU-015**. Reframes FU-013: cause #1 (originally
+ruled out as of the 07:35 UTC check) is now confirmed leading
+cause.
+
+*Finding B — image-6 503s on `requestUpload` and image-2 / 5
+502s on `confirmUpload` are symptoms of A.* The 503 (`503
+Service Temporarily Unavailable`, nginx) means no ready
+upstream. User screenshots at 01:21:47 UTC = ~70s into the
+recovery window before the readiness gate re-flipped.
+Endpoints currently show 1 ready upstream
+(`10.244.1.229:4000`) — recovery is complete. No separate
+root cause.
+
+*Finding C — refresh-500 = `r.completed_at.toISOString is not
+a function` in `listKnowledgeObjects`.* Server-side bug in the
+knowledge-list handler. Log evidence at 2026-05-10
+01:23:13.439Z:
+
+```
+{"code":"internal","endpoint":"listKnowledgeObjects",
+ "error":"...r.completed_at.toISOString is not a function",
+ ...}
+Error: ... at apiFetch (.../web/build/server/index.js:7475:9)
+       at async loader$16 (.../web/build/server/index.js:7607:27)
+       at async callRouteHandler (.../react-router/...)
+```
+
+Reproduces across three independent refreshes on three
+different project URLs (images 3, 7, 10). **FU-014's prior
+three hypotheses (a/b/c — auth-cold-cache, missing column,
+SSR URL building) were all wrong.** Actual cause is a
+type-mapping bug: `completed_at` is not a Date when the
+handler expects one. Reframes FU-014: cause confirmed, in
+spec 143 scope (the prior "may close as not spec 143" framing
+is retracted), root-cause investigation needed (column-type
+drift vs sweeper-write vs driver-mapping). FU-014 stays open
+at spec 143; root-cause moves named in the amended stub.
+
+*Finding D — mid-batch session-cookie loss → 401 on
+`requestUpload`.* Distinct from A/B (no pod restart at the
+401 timestamps — `RESTARTS=1` unchanged from 01:20:35Z
+through 01:34:25Z). Auth handler debug log at 01:31:54 UTC:
+`{"cookieHasSession":false,"hasAuthorization":false,"hasCookie":true,...}`
+— the request carries a Cookie header but among the cookies
+the `__session` cookie is absent. Reproduces across at least
+four trace IDs in a 4-second window (01:31:54 → 01:31:58).
+Likely session-cookie TTL hit mid-batch, but cause not yet
+diagnosed. Filed as **FU-016**.
+
+*Frontmatter implication.* The `implementation:` field stays
+`in-progress`. The frontmatter comment is updated in this
+commit to surface the regression and the four FU IDs that
+pin it (FU-013 amended, FU-014 amended, FU-015 new, FU-016
+new). The Tier 1 closure narrative remains valid for the
+sweeper / deploy-artefact / Class-B-self-heal contract; what
+this entry adds is "the FR-006 batch-load envelope exposed
+service-quality issues that Tier 1 did not exercise." The
+spec spine carries that distinction verbatim.
+
+*Cross-reference to §12 lessons.* L-003 (cluster-state
+surfaces with one writer) is now hit twice (FU-002
+deployd-api, FU-015 stagecraft-api); worth a §12 lesson
+update on "512Mi memory-limit pattern in platform services"
+once both FUs are closed. Not done in this commit — let the
+FU closes drive the lesson.
+
+This is an *honest-state* §13 entry per §12 L-004: the
+Tier 1 contract and the post-deploy stability regression are
+separately credible, and the spec spine carries that
+separation verbatim.
 
