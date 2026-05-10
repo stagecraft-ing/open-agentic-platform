@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6a238534087166ad291a4c9cc85afad1fcc246ecc4610cb44010a56fa2e8b2a1",
+    "contentHash": "f6f494213af77f3c8f5bbc4abaae87911e7ac2c47edc32f356b33e9bc33ad415",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -47,6 +47,10 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"145-deployd-durability\" declares implements path \"docs/runbooks/deployd-api-durability.md\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -4773,6 +4777,99 @@
           }
         ],
         "specId": "143-presigned-upload-public-endpoint",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "052",
+          "073"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/Cargo.lock",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/Cargo.toml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "144-hiqlite-default-features",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "073",
+          "086",
+          "144"
+        ],
+        "implementingPaths": [
+          {
+            "path": "docs/runbooks/deployd-api-durability.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/external-secret.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-aws.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-azure.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-do.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-gcp.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-local.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/Cargo.lock",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/config.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/store.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "145-deployd-durability",
         "specStatus": "draft"
       }
     ],
