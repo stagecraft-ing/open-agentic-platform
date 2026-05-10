@@ -3,7 +3,7 @@ id: "143-presigned-upload-public-endpoint"
 slug: presigned-upload-public-endpoint
 title: Presigned upload public endpoint — browser-reachable object store for direct uploads
 status: draft
-implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 filed against spec 143's §13 — deployd-api retroactive check confirmed gap (resources={}, restarts=3, last exit 137); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-016 (deferred — needs longer-running batch shape), FU-017/18/19 (UI/taxonomy stubs, to file), FU-020 (optional load harness), FU-021 (deployd-api memory-limit + Rust OOM fix)
+implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (historical) and validate/spec-143.sh CONTRACT (ongoing, post-FU-004); FU-001 Tier 1 closure landed 2026-05-09 (sweeper firing, FU-009/010/011-Finding-1 shipped); FU-014 closed 2026-05-10 (listKnowledgeObjects asymmetric typing fix); FU-013 + FU-015 closed 2026-05-10 ~09:01 UTC — three-leg fix held under realistic 34-file batch load on sha-51e050b (§13 2026-05-10 ~09:01 UTC entry); FU-021 filed against spec 143's §13 — deployd-api retroactive check confirmed gap (resources={}, restarts=3, last exit 137); FU-017/18/19 stubs filed 2026-05-10 (FU-019 empirically validated by 5/34 unsupported-type rows in the closure-entry batch); outstanding: FU-002, FU-003, FU-008, FU-011 Tier 2, FU-016 (deferred — needs longer-running batch shape), FU-017 (extractor output rendering), FU-018 (detail-page two-column layout), FU-019 (no_extractor_available status taxonomy), FU-020 (optional load harness), FU-021 (deployd-api memory-limit + Rust OOM fix)
 owner: bart
 created: "2026-05-07"
 kind: platform
@@ -2115,6 +2115,136 @@ the trust that markdown matches truth.
   *Done when:* cause identified; long-running upload batches no
   longer 401 mid-stream; a 34-file batch that takes ≥ N minutes
   (where N exceeds the prior cookie TTL) completes without 401s.
+
+- **FU-017 — Knowledge object detail page renders extractor
+  output as `JSON.stringify`'d `<pre>`; `text` shows literal
+  `\n` escapes.** Surfaced 2026-05-10 during FU-015 cluster
+  validation. The detail page (`web/app/routes/app.project.$projectId.knowledge.$objectId.tsx`,
+  or wherever the project knowledge object detail route
+  lives) renders the full extractor payload via
+  `JSON.stringify(payload, null, 2)` inside a single `<pre>`
+  block. The `text` field of `ExtractionOutput` (spec 115
+  FR-016 Zod-validated contract) carries real newlines but
+  the JSON encoder escapes them as `\n` literals; the `<pre>`
+  shows the escaped form, not human-readable text.
+
+  *Right fix — typed `ExtractionView<Kind>` discriminated
+  union.* One panel set per extractor kind (`deterministic-text`,
+  `deterministic-pdf-embedded`, `deterministic-docx`,
+  `agent-pdf-vision`, `agent-image-vision`), each rendering:
+  - **Header** — extractor kind, version, run duration,
+    `runId` (link to extraction-run timeline if/when that
+    surface lands).
+  - **Metadata** — `wordCount`, `mammothMessages` count for
+    docx, `pageCount` for pdf, etc. (per-kind shape, typed).
+  - **Outline** — collapsible heading tree from the `headings`
+    array, indented by `level`. Click-to-jump anchors into
+    the text panel.
+  - **Text** — `<pre class="whitespace-pre-wrap">` with the
+    `text` field rendered as actual newlines. Collapse
+    threshold ~5k chars with "show all" toggle (large
+    transcripts otherwise blow out the layout).
+  - **Raw JSON** — toggle, default off. Useful for
+    operator/developer inspection without dominating the
+    default view.
+
+  *Quick-win acceptable if scoped tight.* Lift `text` into
+  its own `<pre class="whitespace-pre-wrap">` above the
+  remaining `JSON.stringify` block. Add a TODO comment
+  pointing at the typed `ExtractionView` migration. The
+  TODO pointer is load-bearing — without it the quick-win
+  ossifies into the permanent shape.
+
+  *Cross-references.* Spec 115 FR-016 owns the
+  `ExtractionOutput` Zod contract — the typed view is
+  driven by that schema. Per-kind panel components belong
+  alongside the existing extractor dispatch table for
+  cohesion.
+
+  *Done when:* extractor `text` field renders with real
+  newlines (quick-win minimum); typed `ExtractionView<Kind>`
+  components for at least the three deterministic kinds
+  (text/pdf-embedded/docx) which cover the majority of
+  uploaded files; raw-JSON toggle for operator inspection.
+
+- **FU-018 — Knowledge object detail page wastes horizontal
+  space.** Surfaced 2026-05-10 during FU-015 cluster validation.
+
+  *Target layout.* Two-column at `≥md` breakpoint:
+  `[~320–400px sidebar | 1fr panel]`. Sidebar carries
+  metadata (filename, mime type, size, content hash, state,
+  source connector, imported-at, extraction-run timeline).
+  Main panel carries the `ExtractionView` from FU-017
+  (header → metadata → outline → text → raw JSON). Stack
+  below `md` for narrow viewports.
+
+  *Cross-references.* Composes with FU-017's typed view —
+  FU-017 produces the panel content; FU-018 places it.
+  Order of landing: FU-017 quick-win first (visible win),
+  FU-018 layout second (compositional), FU-017 typed view
+  third (structural).
+
+  *Done when:* `≥md` viewport renders metadata sidebar +
+  extraction main panel side-by-side; `<md` viewport stacks
+  cleanly; sidebar is sticky-positioned so long extraction
+  text scrolls under stable metadata context.
+
+- **FU-019 — `no_extractor_available` (or
+  `unsupported_type`) status taxonomy.** Empirically
+  validated 2026-05-10 ~09:01 UTC during FU-015 cluster
+  validation: 5 of 34 user-uploaded files landed in either
+  `imported failed: policy_pending` (`pptx ×2`, `xlsx`,
+  `zip`) or `imported failed: extractor_failed` (1 `pdf`
+  — the only real failure of the five). The dashboard
+  surfaces `failed: policy_pending` / `failed: extractor_failed`
+  as hard-red error states, but 4 of those 5 are not
+  pipeline failures — `deterministic-docx` correctly
+  declined to dispatch on those MIME types because no
+  extractor is registered for them. The current taxonomy
+  conflates "no extractor available for this type" with
+  "an extractor was selected and crashed."
+
+  *Two surfaces affected.*
+
+  (1) **Dashboard rendering** — knowledge_objects with
+      no eligible extractor need a distinct status (e.g.
+      `unsupported_type` or `no_extractor_available`) that
+      reads as informational, not as pipeline breakage.
+      Distinct from `failed: policy_pending` (cost-gate
+      tripped on a known-supported type) and
+      `failed: extractor_failed` (extractor selected and
+      threw). Badge color and copy follow.
+
+  (2) **Orphan-sweeper §6 contract semantics.** Class B
+      sweeper (FR-010) absorbs `imported`-state rows on
+      its 30-min cadence. If `unsupported_type` is a
+      terminal informational status, the sweeper MUST NOT
+      treat such rows as orphans. If it's a transient
+      "waiting for extractor support" status, the sweep
+      eligibility differs. Decision needed before the
+      enum value is added — and the answer probably
+      depends on whether the user can manually retry-with-
+      a-different-extractor, or whether unsupported types
+      are permanently parked.
+
+  *Cross-reference to today's empirical evidence.* Per
+  §13 2026-05-10 ~09:01 UTC closure entry, the 5
+  affected rows from project test-7-dual are the
+  reproduction; future regression tests against this
+  surface should drive the same MIME-type mix.
+
+  *Decision needed before implementation.* Confirm
+  orphan-sweeper §6 sweep eligibility for the new status
+  (terminal informational vs. transient).
+
+  *Done when:* (a) `knowledge_objects.state` enum gains
+  the new value (DB migration); (b) dispatch path emits
+  the new state when `pickExtractor` returns null on a
+  recognized-but-unsupported MIME type; (c) dashboard
+  renders the new state as informational, not red; (d)
+  orphan-sweeper §6 contract amended (or explicitly
+  noted as unchanged, with rationale) to handle the new
+  status.
 
 **L-005 — Spec assumptions about deployment topology must be
 verified, not inferred from the cloud-platform name.** Spec 143's
