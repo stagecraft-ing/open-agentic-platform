@@ -373,15 +373,24 @@ else
   warn "stagecraft-api deployment not yet provisioned (fresh cluster). CD will create it on first push to main; re-run setup.sh after CD lands to refresh secrets."
 fi
 
-info "Deploying Deployd-API..."
-helm upgrade --install deployd-api "$CHARTS_ROOT/deployd-api" \
-  --namespace deployd-system \
-  -f "$CHARTS_ROOT/deployd-api/values.yaml" \
-  -f "$CHARTS_ROOT/deployd-api/values-hetzner.yaml" \
-  --set "ingress.host=deploy.${DOMAIN}" \
-  --set "oidc.endpoint=https://auth.${DOMAIN}" \
-  --set "oidc.audience=https://deploy.${DOMAIN}" \
-  --wait --timeout 300s
+info "Refreshing deployd-api pods to pick up new secrets..."
+# Spec 143 §12 L-003 / FU-002 closure — CD owns the deployd-api helm
+# release (cd-deployd-api-rs.yml deploys with sha-pinned image.tag).
+# setup.sh does NOT helm-upgrade deployd-api because doing so would
+# apply values-hetzner.yaml's `tag: latest` and clobber CD's sha-pin —
+# the same dual-writer shape L-003 documents for stagecraft. Single
+# writer for the helm field-manager surface; restart is the right verb
+# for "HIQLITE_SECRET_* rotated, re-read". The values-hetzner.yaml
+# `tag: latest` line is now latent (no active racer); a future spec
+# can mirror L-003's chart-side hardening (remove `tag:`, add
+# `pullPolicy: Always`) as defence-in-depth.
+if kubectl get deploy deployd-api -n deployd-system >/dev/null 2>&1; then
+  kubectl rollout restart deploy/deployd-api -n deployd-system
+  kubectl rollout status deploy/deployd-api -n deployd-system --timeout=600s
+  ok "deployd-api rollout complete"
+else
+  warn "deployd-api deployment not yet provisioned (fresh cluster). CD will create it on first push to main touching platform/services/deployd-api-rs/** or platform/charts/deployd-api/** (or workflow_dispatch with deploy=true); re-run setup.sh after CD lands to refresh secrets."
+fi
 
 # ---------------------------------------------------------------------------
 # Sync secrets to GitHub Actions (if gh CLI is available)

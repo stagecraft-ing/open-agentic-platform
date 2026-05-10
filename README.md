@@ -1,7 +1,7 @@
 # open-agentic-platform
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-[![Specs: 142](https://img.shields.io/badge/specs-142-informational)](specs/)
+[![Specs: 147](https://img.shields.io/badge/specs-147-informational)](specs/)
 [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
 
