@@ -57,41 +57,49 @@ choices and may amend the spec if material divergences surface.
       130's primary-owner heuristic) **before** Phase 1 begins. If
       a Spec-Drift-Waiver is required, draft it now — surfacing it
       at handoff time is much better than mid-Phase-2.
-- [ ] T002 [P0] **Verify Hetzner CSI accepts 1 GiB.** Resolved
-      decision: `size: 1Gi`, `storageClassName: hcloud-volumes`.
-      The hcloud CSI driver typically enforces a minimum (commonly
-      10 GiB). Run
-      `kubectl get pvc -n <ns>` against the existing deployd-api
-      workload AND/OR `hcloud volume list` AND/OR
-      `kubectl get storageclass hcloud-volumes -o yaml` to confirm
-      1 GiB is accepted (or to observe what the provisioner actually
-      allocates for a 1 GiB request). **If 1 GiB is rejected or
-      silently rounded up, AMEND `spec.md` §2.1 and §6 to the actual
-      minimum the driver accepts (likely 10 GiB) before T030 edits
-      `values-hetzner.yaml`. Halt and surface to user.**
-- [ ] T003 [P0] Choose scrub Option A vs Option B (P0.2): bring up a
-      single-pod Hiqlite v0.13.1 cluster against a PVC, send
-      `SIGKILL`, restart, observe whether init succeeds without
-      intervention. If the lock file persists → Option A
-      (narrow `rm -f` of just `/var/lib/deployd/data/state_machine/lock`).
-      Otherwise → Option B (drop the wrapper shell entirely).
+- [x] T002 [P0] **Verify Hetzner CSI minimum — RESOLVED 2026-05-10.**
+      Decision: `size: 10Gi`, `storageClass: hcloud-volumes`. T002
+      ran `kubectl get pvc -A` against the live `oap-hetzner-master1`
+      cluster: all four existing `hcloud-volumes` PVCs allocated
+      10 GiB or larger (`rauthy-system/data-rauthy-0` = 10Gi,
+      `stagecraft-system/data-postgresql-0` = 10Gi,
+      `stagecraft-system/minio` = 20Gi,
+      `stagecraft-system/stagecraft-api-workspace` = 10Gi). The
+      hcloud CSI provisioner enforces a 10 GiB floor. Spec §2.1 and
+      §6 (Resolved 1a) amended to `size: 10Gi`. Also amended values
+      key from `storageClassName` (incorrect — chart uses
+      `storageClass`) to `storageClass`. T030 reflects the amended
+      target.
+- [x] T003 [P0] **Scrub Option A vs Option B — RESOLVED 2026-05-10
+      (locked Option B).** User direction during Phase 0 amendment
+      pass: drop the wrapper shell entirely (Option B), with T055
+      (pod restart against populated PVC) as the safety net. If T055
+      reveals stale-lock contamination on Hiqlite v0.13.1, AMEND
+      §2.2 + FR-003 back to Option A in a follow-up commit before
+      merge. T032 edits `templates/deployment.yaml:39-43` to remove
+      the `command`/`args` wrapper, restoring the image's default
+      entrypoint (`/usr/local/bin/deployd-api`).
 - [ ] T004 [P0] Cron defaults (resolved): record
       `schedule: "0 */6 * * *"`, `keep: 28` as the chart-level default
       to be set in T036. NFR-002 keeps both operator-configurable.
       No verification work required.
-- [ ] T005 [P0] **Confirm chart-template projection path.** Both
-      `platform/charts/deployd-api/templates/external-secret.yaml` and
-      `platform/charts/deployd-api/templates/secretproviderclass.yaml`
-      exist (verified in T001a). Decide which file is the operator's
-      primary projection mechanism for the new BackupConfig secrets;
-      spec 145 §2.3 / §2.5 assume ExternalSecrets. If the operator-
-      side answer is SecretProviderClass, AMEND `spec.md`'s
-      `implements:` list and §2.3 wording before T035 edits the
-      template. The cryptr key itself is resolved as a long-lived
-      operator-controlled Azure Key Vault entry (NFR-004); confirm
-      the operator's Key Vault has capacity for three new entries
-      (`backup-s3-access-key`, `backup-s3-secret-key`,
-      `backup-cryptr-key`).
+- [x] T005 [P0] **Chart-template projection path — RESOLVED
+      2026-05-10.** T001a + grep of `values-hetzner.yaml:21-23`
+      confirmed three secret-projection templates exist
+      (`external-secret.yaml` for `eso`, `secretproviderclass.yaml`
+      for `csi-azure`, `secrets-k8s.yaml` for chart-create k8s) and
+      that the actively-shipping Hetzner deploy uses
+      `secrets.provider: "k8s"` with `secrets.create: false` —
+      operator pre-creates the Secret out-of-band. Spec §2.3 + §3.2
+      NFR-003 amended to acknowledge all three providers.
+      `external-secret.yaml` IS in `implements:` (gains a parallel
+      `range` block for new backup keys via T035 — ESO operators
+      get the keys by chart default); `secretproviderclass.yaml` and
+      `secrets-k8s.yaml` are NOT in `implements:` (existing
+      `.Values.secretsMount.objects` and `.Values.secrets.data`
+      extension points cover them). The runbook in §2.5 (T040)
+      documents the per-provider operator procedure, including the
+      Hetzner k8s-pre-existing-Secret path.
 - [ ] T006 [P0] Other env files' persistence posture (resolved):
       `values-azure.yaml`, `values-aws.yaml`, `values-gcp.yaml`,
       `values-do.yaml` inherit chart default silently (no per-env
@@ -102,15 +110,41 @@ choices and may amend the spec if material divergences surface.
       `persistence.enabled` — they inherit from `values.yaml`. If a
       managed-K8s file already has an override, halt and surface
       before T031.
-- [ ] T007 [P0] Read Hiqlite v0.13.1 restore API (P0.6): consult
-      `hiqlite::NodeConfig` rustdoc + upstream restore example. Pin
-      function name, arguments, error type. If the API materially
-      differs from `spec.md` §2.4, AMEND the spec before writing
-      wiring code.
-- [ ] T008 [P0] Confirm BackupConfig field shape (P0.7) on Hiqlite
-      v0.13.1: inspect upstream `NodeConfig` post-`backup`-feature
-      shape (S3 endpoint, bucket, cron, retention, encryption key
-      field names). Mirror in `src/config.rs`'s typed struct.
+- [x] T007 [P0] **Hiqlite v0.13.1 restore API — RESOLVED 2026-05-10
+      (MATERIAL DIVERGENCE → spec amended).**
+      `hiqlite-0.13.1/src/start.rs:52` shows
+      `restore_backup_start(&node_config)` is auto-called inside
+      `start_node()`. Restore is env-driven via `HQL_BACKUP_RESTORE`
+      (format `s3:<key>` or `file:<path>`); destroys existing data
+      subtree before copying the snapshot. Public manual API
+      `hiqlite::restore_backup(&node_config, BackupSource)` exists
+      (`backup.rs:295`) but `BackupSource` is in the private `mod
+      backup` module — not nameable from application code. There is
+      no public Hiqlite API for "list S3 snapshots" or "auto-pick
+      latest." Spec §2.4 + FR-005b + AC-2 amended to operator-driven
+      restore model: chart never sets `HQL_BACKUP_RESTORE`; runbook
+      owns activation; operator UNSETS after restore succeeds.
+- [x] T008 [P0] **BackupConfig field shape — RESOLVED 2026-05-10
+      (CRITICAL: type is in private module).**
+      `hiqlite-0.13.1/src/lib.rs:62-63` declares `mod backup;`
+      (private; no `pub use backup::BackupConfig` re-export anywhere
+      in the crate). `BackupConfig` has private fields `cron_schedule:
+      cron::Schedule` (default `"0 30 2 * * * *"` 7-field) and
+      `keep_days: u16` (default 30). Constructor `BackupConfig::new`
+      and `BackupConfig::from_env` exist as `pub fn`, but the type
+      itself is unnameable from outside hiqlite. Application code
+      cannot construct or assign a custom value to
+      `NodeConfig.backup_config`. Resolved by routing all hiqlite
+      config through `NodeConfig::from_env()` with a deployd-side
+      translation layer (`DEPLOYD_BACKUP_*` → `HQL_*`) per FR-005a.
+      Additional NodeConfig fields under `backup`+`s3`: `enc_keys:
+      cryptr::EncKeys` (keyring, NOT single key — `ENC_KEYS=<id>/
+      <base64-32>` + `ENC_KEY_ACTIVE=<id>` env vars; non-empty
+      validation enforced in `NodeConfig::is_valid()`); `s3_config:
+      Option<Arc<S3Config>>` reads `HQL_S3_*` env vars;
+      `backup_keep_days_local: u16` (default 30, env
+      `HQL_BACKUP_KEEP_DAYS_LOCAL` — held at upstream default by
+      this spec).
 - [ ] T009 [P0] Confirm spec 144 timing (P0.8): is spec 144 already
       shipped, in-flight, or independent? Either way, spec 145 is
       unblocked because deployd-api-rs is a separate Cargo workspace.
@@ -128,37 +162,49 @@ from env, and implement restore-on-startup.
 
 ### Tests for Phase 1
 
-> **TDD ordering note.** The three Phase 1 tests have different
-> compile dependencies on the implementation, despite the shared `[P]`
-> marker:
+> **TDD ordering note (post-Phase-0 amendment).** The three Phase 1
+> tests have different compile dependencies on the implementation,
+> despite the shared `[P]` marker:
 >
-> - **T010 (`BackupConfig::from_env`)** can be authored RED-first
->   against a stub struct (declare the struct + the `from_env`
->   signature returning `unimplemented!()` in T022, then write the
->   test, then fill in T022). Stub-driven TDD is appropriate here
->   because the API surface is new and small.
-> - **T011 (`init_db` without BackupConfig)** requires T023 to compile
->   — `init_db` only takes its new arg shape after T023 lands.
+> - **T010 (`BackupConfig::from_env` + `apply_to_hql_env`)** can be
+>   authored RED-first against a stub struct (declare the struct +
+>   the two method signatures returning `unimplemented!()` in T022,
+>   then write the test, then fill in T022). Stub-driven TDD is
+>   appropriate here because the API surface is new and small.
+> - **T011 (`init_db` without `DEPLOYD_BACKUP_*`)** requires T023 to
+>   compile — `init_db`'s new shape (uses `NodeConfig::from_env()`,
+>   sets fallback dummy ENC_KEYS) only stabilises after T023 lands.
 >   Author the test once T023's signature is stable.
-> - **T012 (restore against test endpoint)** requires T024 to compile.
->   The test is `#[ignore]`-gated and only runs when a localstack /
->   minio endpoint is configured.
+> - **T012 (restore against test endpoint)** validates Hiqlite's
+>   internal restore via `HQL_BACKUP_RESTORE`; the application code
+>   is unchanged from steady-state (T024 adds tracing only). The
+>   test sets the env var, runs `init_db`, asserts data-dir
+>   contents. `#[ignore]`-gated; runs only against a localstack /
+>   minio endpoint.
 
 - [ ] T010 [P] [P1] Test:
       `platform/services/deployd-api-rs/src/config.rs` (or
-      `tests/config_test.rs`): `BackupConfig::from_env` honours all
-      env vars; returns `None` when no env keys are set; errors when
-      partial config is supplied (e.g. endpoint set, secret key
-      missing).
+      `tests/config_test.rs`): `BackupConfig::from_env` returns
+      `Ok(None)` when no `DEPLOYD_BACKUP_*` env vars are set; returns
+      `Ok(Some(_))` with all fields populated when full config is
+      supplied; returns `Err` on partial config (some `DEPLOYD_BACKUP_*`
+      set, some missing). Test also covers
+      `BackupConfig::apply_to_hql_env()` — verifies the translation
+      writes the expected `HQL_BACKUP_CRON`, `HQL_BACKUP_KEEP_DAYS`,
+      `HQL_S3_*`, `ENC_KEYS`, `ENC_KEY_ACTIVE` env vars.
 - [ ] T011 [P] [P1] Test (Rust integration):
       `platform/services/deployd-api-rs/tests/store_test.rs` —
-      `init_db` against a temp dir without BackupConfig matches
-      current behaviour.
+      `init_db` against a temp dir without `DEPLOYD_BACKUP_*` env
+      (steady-state, no opt-in) matches current behaviour: hiqlite
+      starts with default backup cron (which is unused without an
+      `HQL_S3_*` config — local backups in `state_machine/backups/`
+      only) and the dummy `ENC_KEYS` `values-local`-shaped fallback.
 - [ ] T012 [P] [P1] Test (Rust integration, `#[ignore]` by default):
       `platform/services/deployd-api-rs/tests/restore_test.rs` —
-      restore against a known snapshot when an S3-compatible test
-      endpoint is configured. Documented in the runbook for manual
-      pre-merge runs.
+      sets `HQL_BACKUP_RESTORE=s3:<known-key>` against a localstack
+      / minio test endpoint, calls `init_db`, asserts the data dir
+      was wiped + repopulated with the snapshot. Documented in the
+      runbook for manual pre-merge runs.
 
 ### Implementation
 
@@ -176,19 +222,46 @@ from env, and implement restore-on-startup.
       the diff exceeds feature activation.
 - [ ] T022 [P1] Add `BackupConfig` struct to
       `platform/services/deployd-api-rs/src/config.rs`. Fields per
-      `plan.md` §Phase 1 step 3. Loader reads from env (`DEPLOYD_BACKUP_*`
-      prefix); returns `None` when no env keys set; returns `Err` on
-      partial config.
-- [ ] T023 [P1] Wire `NodeConfig.backup_config` in
+      §3.1 FR-005a (s3 endpoint, bucket, region, path-style flag,
+      access key, secret key, optional path prefix, cryptr keyring,
+      cryptr active-key id, cron schedule, keep_days). Methods:
+      `BackupConfig::from_env() -> Result<Option<Self>, String>`
+      (returns `Ok(None)` if no `DEPLOYD_BACKUP_*` env vars are set;
+      `Err` on partial config) and
+      `BackupConfig::apply_to_hql_env(&self)` which writes
+      `HQL_BACKUP_CRON`, `HQL_BACKUP_KEEP_DAYS`, `HQL_S3_URL`,
+      `HQL_S3_BUCKET`, `HQL_S3_REGION`, `HQL_S3_PATH_STYLE`,
+      `HQL_S3_KEY`, `HQL_S3_SECRET`, `ENC_KEYS`, `ENC_KEY_ACTIVE` —
+      the env-var surface Hiqlite v0.13.1's `NodeConfig::from_env()`
+      consumes.
+- [ ] T023 [P1] Refactor
       `platform/services/deployd-api-rs/src/store.rs::init_db`
-      (lines 13-33). Populate from `BackupConfig::from_env()` when
-      `Some`; leave default when `None`.
-- [ ] T024 [P1] Implement restore-on-startup in
-      `platform/services/deployd-api-rs/src/main.rs:24-28` (or in
-      `store.rs::init_db` if upstream supports inline). Algorithm:
-      inspect data dir → if empty + BackupConfig → restore from
-      latest snapshot → fail fast on restore error. Readiness probe
-      stays not-Ready until `init_db` returns Ok.
+      (lines 13-33) to use `NodeConfig::from_env()` per §2.3
+      env-translation model. The existing manual NodeConfig
+      construction is replaced with: (a) translate the existing
+      `HIQLITE_SECRET_RAFT` / `HIQLITE_SECRET_API` to
+      `HQL_SECRET_RAFT` / `HQL_SECRET_API`; (b) set the hardcoded
+      `HQL_NODE_ID=1`, `HQL_NODES=1 127.0.0.1:7001 127.0.0.1:7002`,
+      `HQL_DATA_DIR=<data_dir arg>`, `HQL_FILENAME_DB=deployd.db`;
+      (c) call `BackupConfig::apply_to_hql_env()` when
+      `BackupConfig::from_env()` returns `Ok(Some(_))`; (d) when
+      `Ok(None)` (steady-state without opt-in), set a fallback
+      dummy `ENC_KEYS=dev/<base64-32>` and `ENC_KEY_ACTIVE=dev` to
+      satisfy hiqlite's s3-feature validation (cron will run with
+      its default schedule against local-only backups; harmless on
+      dev); (e) call `hiqlite::start_node(NodeConfig::from_env())`.
+- [ ] T024 [P1] Verify `src/main.rs:24-28` requires no behavioural
+      change. The pod readiness gate is already implicit — `init_db`
+      blocks on `start_node()`, which blocks on
+      `restore_backup_start` when `HQL_BACKUP_RESTORE` is set in the
+      pod env (FR-005b operator-driven DR mode), so the pod stays
+      NotReady until restore completes. Failure to restore returns
+      Err → `init_db` returns Err → main.rs's `?` propagates →
+      process exits → Deployment surfaces error in pod logs. Add
+      a `tracing::info!` log line before and after `init_db`
+      (mentioning whether `HQL_BACKUP_RESTORE` is set) so operators
+      can trace restore activation in pod logs (no other code
+      changes to `main.rs` required by FR-006).
 - [ ] T025 [P1] Run T010 → green.
 - [ ] T026 [P1] Run T011 → green.
 - [ ] T027 [P1] Run
@@ -214,12 +287,12 @@ env entries, project the new secrets.
 
 - [ ] T030 [P2] Edit
       `platform/charts/deployd-api/values-hetzner.yaml:34-38` per
-      FR-001:
+      FR-001 + Phase 0 amendments:
       ```yaml
       persistence:
         enabled: true
-        size: 1Gi               # or T002-confirmed minimum (e.g. 10Gi)
-        storageClassName: hcloud-volumes
+        size: 10Gi              # T002-confirmed hcloud CSI minimum
+        storageClass: hcloud-volumes  # chart's existing values key (renders as storageClassName: in PVC)
       ```
       Drop the "stealth stage" comment. Replace with one-sentence
       rationale per `spec.md` §2.1.
@@ -233,40 +306,87 @@ env entries, project the new secrets.
       default silently per the resolved decision in T006.
 - [ ] T032 [P2] Edit
       `platform/charts/deployd-api/templates/deployment.yaml:39-43`
-      per FR-003 and the T003 decision (Option A or B).
+      per FR-003 (Option B locked per T003 + §2.2). Remove the
+      `command: ["/bin/sh", "-c"]` and `args: |  rm -rf ... exec ...`
+      block; the Deployment falls back to the image's default
+      entrypoint (`/usr/local/bin/deployd-api`). No `command` or
+      `args` keys remain on the container spec.
 - [ ] T033 [P2] Extend
       `platform/charts/deployd-api/templates/deployment.yaml`
-      `env:` block with BackupConfig non-sensitive fields:
+      `env:` block with BackupConfig non-sensitive fields, gated by
+      `{{- if and .Values.backup.endpoint .Values.backup.bucket }}`
+      (only project when operator has populated):
       `DEPLOYD_BACKUP_S3_ENDPOINT`, `DEPLOYD_BACKUP_S3_BUCKET`,
+      `DEPLOYD_BACKUP_S3_REGION`, `DEPLOYD_BACKUP_S3_PATH_STYLE`,
       `DEPLOYD_BACKUP_S3_PATH_PREFIX`, `DEPLOYD_BACKUP_CRON_SCHEDULE`,
-      `DEPLOYD_BACKUP_KEEP_COUNT`, sourced from `.Values.backup.*`.
+      `DEPLOYD_BACKUP_KEEP_DAYS`, sourced from `.Values.backup.*`.
 - [ ] T034 [P2] Extend
       `platform/charts/deployd-api/templates/deployment.yaml`
-      `env:` block with BackupConfig sensitive fields:
-      `DEPLOYD_BACKUP_S3_ACCESS_KEY`,
-      `DEPLOYD_BACKUP_S3_SECRET_KEY`, `DEPLOYD_BACKUP_CRYPTR_KEY`,
-      sourced from `secretRef` against the secret projected by
-      `external-secret.yaml`.
+      `env:` block with BackupConfig sensitive fields via
+      `valueFrom: secretKeyRef`, gated by the same backup-enabled
+      conditional:
+      `DEPLOYD_BACKUP_S3_ACCESS_KEY` ← Secret key
+      `backup-s3-access-key`,
+      `DEPLOYD_BACKUP_S3_SECRET_KEY` ← Secret key
+      `backup-s3-secret-key`,
+      `DEPLOYD_BACKUP_CRYPTR_KEYRING` ← Secret key
+      `backup-cryptr-keyring` (multi-line value: one or more
+      `<id>/<base64-32-bytes>` lines per cryptr 0.10.0 format),
+      `DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY` ← Secret key
+      `backup-cryptr-active-key` (single key id matching one entry
+      in the keyring). All five `secretKeyRef` entries reference the
+      `deployd-api-secrets` Secret, which is populated by whichever
+      provider the operator has selected (eso / csi-azure / k8s).
+      The application's `BackupConfig::apply_to_hql_env()` translates
+      `DEPLOYD_BACKUP_CRYPTR_KEYRING` → `ENC_KEYS` and
+      `DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY` → `ENC_KEY_ACTIVE`.
 - [ ] T035 [P2] Edit
       `platform/charts/deployd-api/templates/external-secret.yaml`
-      to add three new keys: `backup-s3-access-key`,
-      `backup-s3-secret-key`, `backup-cryptr-key`. Names match the
-      operator-side secret store layout from T005.
+      per the three-provider acknowledgment in §2.3 (T005 resolution).
+      The existing template iterates `.Values.secrets.keys` for the
+      `data:` block. Add a parallel `range` over a new
+      `.Values.backup.secretKeys` array (declared in T036) so ESO
+      operators get the four new backup secret entries
+      (`backup-s3-access-key`, `backup-s3-secret-key`,
+      `backup-cryptr-keyring`, `backup-cryptr-active-key`) projected
+      by chart default. The cryptr-keyring entry is a single Secret
+      key whose VALUE is multi-line (cryptr expects one
+      `<id>/<base64-32-bytes>` per line); the active-key entry is a
+      single Secret key whose VALUE is the active key id (must match
+      one entry in the keyring). Operators using `provider:
+      "csi-azure"` add the same four remote-keys to
+      `.Values.secretsMount.objects`; operators using `provider:
+      "k8s"` (Hetzner today) add the four keys to their pre-existing
+      Secret manually (runbook T040 covers the operator procedure).
 - [ ] T036 [P2] Update
       `platform/charts/deployd-api/values.yaml` to declare new
       chart-level keys under `backup:`:
       ```yaml
       backup:
-        endpoint: ""           # operator-supplied per env
-        bucket: ""             # operator-supplied per env
-        pathPrefix: ""         # optional
-        schedule: "0 */6 * * *"  # NFR-002 default; operator-overridable
-        keep: 28                 # NFR-002 default; operator-overridable
+        endpoint: ""              # operator-supplied per env
+        bucket: ""                # operator-supplied per env
+        region: ""                # operator-supplied per env (e.g. "us-east-1" or hcloud equivalent)
+        pathStyle: true           # most non-AWS S3-compatible endpoints prefer path-style
+        pathPrefix: ""            # optional
+        schedule: "0 0 */6 * * *" # NFR-002 default — 6-field cron (Hiqlite parser); operator-overridable
+        keep: 28                  # NFR-002 default — S3 retention days; operator-overridable
+        # ESO operators inherit these three keys by chart default; SPC and k8s
+        # operators arrange projection through their own paths (see runbook).
+        secretKeys:
+          - key: backup-s3-access-key
+            remoteKey: deployd-backup-s3-access-key
+          - key: backup-s3-secret-key
+            remoteKey: deployd-backup-s3-secret-key
+          - key: backup-cryptr-keyring        # multi-line: <id>/<base64-32> per line
+            remoteKey: deployd-backup-cryptr-keyring
+          - key: backup-cryptr-active-key     # single key id, must match keyring entry
+            remoteKey: deployd-backup-cryptr-active-key
       ```
-      Sensitive keys (access key, secret key, cryptr key) are NOT
-      declared in values; they live in the secret only. The
-      operator-side per-env values files override `endpoint` and
-      `bucket` (and optionally `pathPrefix`, `schedule`, `keep`).
+      Sensitive material (access key, secret key, cryptr keyring) is
+      declared by reference (key names) only — the actual values live
+      in the operator-managed Secret. The operator-side per-env values
+      files override `endpoint`, `bucket`, `region`, `pathPrefix`,
+      `schedule`, `keep` as needed.
 - [ ] T037 [P2] Helm-render smoke:
       `helm template platform/charts/deployd-api -f
       platform/charts/deployd-api/values-hetzner.yaml` → exit 0.
@@ -287,11 +407,52 @@ baseline established.
 **Purpose**: capture the operational contract.
 
 - [ ] T040 [P3] Author `docs/runbooks/deployd-api-durability.md`
-      per `spec.md` §2.5. Sections: Prerequisites; Secret store
-      layout (the keys added in T035); Helm values (the keys added
-      in T036); Backup verification (how to confirm a snapshot
-      succeeded); DR restore procedure; Key-rotation considerations
-      (NFR-004 — surface only, implementation deferred).
+      per `spec.md` §2.5 (post-Phase-0 amendment). Sections:
+      - **Prerequisites** — S3-compatible bucket, IAM/access policy,
+        cryptr keyring generation (`cryptr keys generate` or
+        equivalent — produces 32-byte key + id).
+      - **Secret store layout — three projection paths.** Per-provider
+        operator procedure: (a) **`provider: "eso"`** — add keys to
+        upstream secret store under remote names from
+        `.Values.backup.secretKeys[].remoteKey`; ESO projects via
+        `external-secret.yaml`. (b) **`provider: "csi-azure"`** — add
+        the four same logical keys to `.Values.secretsMount.objects`
+        per the existing SPC pattern. (c) **`provider: "k8s"` with
+        `create: false` (Hetzner today)** — operator pre-creates
+        `deployd-api-secrets` Secret out-of-band and adds the four
+        keys (`backup-s3-access-key`, `backup-s3-secret-key`,
+        `backup-cryptr-keyring`, `backup-cryptr-active-key`)
+        manually. The cryptr-keyring entry's value is multi-line:
+        one `<id>/<base64-32-bytes>` per line per cryptr 0.10.0
+        format. The cryptr-active-key entry's value is a single id
+        string that must match one of the keyring entries. The chart
+        projects the keyring as `DEPLOYD_BACKUP_CRYPTR_KEYRING` and
+        the active-key as `DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY`; the
+        application's translation layer (FR-005a) writes them out
+        as `ENC_KEYS` and `ENC_KEY_ACTIVE` for hiqlite to consume.
+      - **Helm values** — the keys added in T036; per-env override
+        examples for endpoint, bucket, region.
+      - **Backup verification** — how to confirm a snapshot succeeded
+        (S3 `ls` for `backup_node_*_*.sqlite`; pod log line
+        `Backup task finished successfully`).
+      - **DR restore procedure** — operator-driven flow per FR-005b:
+        list S3 snapshots, pick the latest by timestamp suffix, run
+        `kubectl set env deployment/deployd-api
+        HQL_BACKUP_RESTORE=s3:<key>`, watch pod restart, confirm
+        Ready, then **UNSET** `HQL_BACKUP_RESTORE` (`kubectl set env
+        deployment/deployd-api HQL_BACKUP_RESTORE-`) so subsequent
+        restarts do not re-wipe + re-restore. Include explicit
+        warning that leaving the var set will erase the data dir on
+        every pod restart.
+      - **Key-rotation considerations** (NFR-004) — cryptr keyring
+        is multi-key by design. Rotation procedure: add new key id
+        to the operator's secret-store entry under
+        `backup-cryptr-keyring` (one line per key); flip
+        `ENC_KEY_ACTIVE` env to the new id; restart pod (new
+        snapshots encrypted under new key, old snapshots still
+        decryptable until aged out of `BackupConfig.keep_days`
+        retention). Implementation of an automated rotation tool is
+        deferred to a future spec.
 - [ ] T041 [P3] Operator review: walk the runbook through a fresh-
       cluster scenario; capture sign-off (or revisions) in the PR
       description. (AC-7.)
@@ -316,10 +477,14 @@ deploy, refresh registries, mark spec implementation complete.
 > role in Phase 4 is to prepare commands, surface diagnostics, and
 > walk the operator through them — not to drive them.
 
-- [ ] T050 [P4] **Pre-deploy.** Add the three new secret keys to the
-      operator-side secret store (Azure Key Vault entries per T005).
-      Confirm `kubectl get secret -n <ns>` shows the projected
-      ExternalSecret has refreshed with the new keys.
+- [ ] T050 [P4] **Pre-deploy.** Add the four new secret keys
+      (`backup-s3-access-key`, `backup-s3-secret-key`,
+      `backup-cryptr-keyring`, `backup-cryptr-active-key`) to the
+      `deployd-api-secrets` Secret on the Hetzner cluster (operator
+      uses `provider: "k8s"` + `create: false` — Secret is
+      operator-managed pre-existing). Confirm `kubectl get secret
+      -n <deployd-ns> deployd-api-secrets -o jsonpath='{.data}'`
+      shows the four new keys after operator updates the Secret.
 - [ ] T051 [P4] Deploy to Hetzner: `make deploy-hetzner` (or the
       equivalent chart-apply path). Pod comes up Ready.
 - [ ] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
@@ -327,14 +492,29 @@ deploy, refresh registries, mark spec implementation complete.
       `kubectl delete pod -n <ns> deployd-api-...`. Wait for
       replacement Ready. Re-query — both rows present.
 - [ ] T053 [P4] **AC-3 — cron snapshot emission.** Wait one cron
-      cycle (or trigger manually if upstream supports). Verify a new
-      object appears in S3 at the configured prefix. Decrypt with
-      the cryptr key on a workstation as a smoke check.
-- [ ] T054 [P4] **AC-2 — fresh-PVC restore.** With AC-3 confirmed,
-      `kubectl delete pvc -n <ns> <pvc-name>` then force pod
-      restart. Watch readiness probe — pod stays NotReady through
-      the restore window. On Ready, query — rowset matches the most
-      recent snapshot.
+      cycle per the configured `HQL_BACKUP_CRON` (default
+      `"0 0 */6 * * *"` = next 6-hour boundary). Verify a new
+      object appears in S3 at the configured prefix matching
+      `backup_node_1_<unix-ts>.sqlite`. Confirm the
+      "Backup task finished successfully" pod log line. Decrypt the
+      object with the cryptr key id from `ENC_KEY_ACTIVE` on a
+      workstation as a smoke check (cryptr CLI: `cryptr decrypt
+      --key <id>:<base64-32-bytes> <object>`).
+- [ ] T054 [P4] **AC-2 — fresh-PVC restore (operator-driven).**
+      With AC-3 confirmed, capture the latest S3 snapshot key
+      (e.g. `backup_node_1_1715347200.sqlite`). Then:
+      `kubectl delete pvc -n <ns> <pvc-name>`,
+      `kubectl set env deployment/deployd-api -n <ns>
+      HQL_BACKUP_RESTORE=s3:<latest-key>`, then force pod restart
+      (Recreate strategy will pick up the new env on next pod). Watch
+      readiness probe — pod stays NotReady through the restore window;
+      look for the `Found backup restore request S3(...)` and
+      `restore_backup_finish task successful` log lines. On Ready,
+      query — rowset matches the snapshot. **Then UNSET the env var:**
+      `kubectl set env deployment/deployd-api -n <ns>
+      HQL_BACKUP_RESTORE-` so the next pod restart does not re-wipe.
+      Confirm a subsequent pod restart (no PVC deletion) does NOT
+      trigger restore (steady-state path).
 - [ ] T055 [P4] **AC-4 — scrub no longer deletes data.** Pod restart
       against the (now repopulated) PVC. Confirm `deployments` and
       `deployment_events` rowsets unchanged.
