@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0e650604dad484c1ef23d87a76badf8518f4542465bcad4f77e81562ac42a997",
+    "contentHash": "6a238534087166ad291a4c9cc85afad1fcc246ecc4610cb44010a56fa2e8b2a1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4757,6 +4757,10 @@
           },
           {
             "path": "platform/services/stagecraft/test/__mocks__/encore-config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/spec143-fu015.config.test.ts",
             "source": "spec-implements"
           },
           {

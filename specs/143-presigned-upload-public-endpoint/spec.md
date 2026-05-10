@@ -41,6 +41,7 @@ implements:
   - path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml  # FR-010 self-hosted scheduler (FU-001 beat 4)
   - path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml  # FR-010 per-purpose-credential mount, ESO path (FU-001 beat 4)
   - path: platform/services/stagecraft/api/knowledge/extractionWorker.ts  # FU-015 — Subscription literal-int maxConcurrency cap (§13 2026-05-10 ~07:48 UTC). Primary owner is spec 115; spec 143 amends 115 (frontmatter `amends:`), so spec 133's amends-aware coupling gate accepts the touch — explicit `implements:` entry makes the relationship visible without amends-walking.
+  - path: platform/services/stagecraft/test/spec143-fu015.config.test.ts  # FU-015 — three CI static assertions (Subscription maxConcurrency literal, chart memory limit ≥1Gi, chart NODE_OPTIONS sanity). §13 2026-05-10 ~07:48 UTC.
   # Note: platform/infra/terraform/envs/dev/core/{main,variables}.tf are owned
   # by spec 072 (multi-cloud-k8s-portability). FR-010 adds per-purpose
   # sweeper credential entries into 072's existing keyvault_secrets map —

@@ -66,6 +66,14 @@ spec:
             # ensurePrebuilts read and write under this path.
             - name: STAGECRAFT_WORKSPACE_DIR
               value: {{ .Values.workspace.dir | quote }}
+            {{- with .Values.nodeOptions }}
+            # Spec 143 FU-015 — V8 heap ceiling. Without an explicit
+            # --max-old-space-size, V8 aborts on FR-006 batch load before
+            # the cgroup OOM-killer engages. See values.yaml comment +
+            # §13 2026-05-10 ~07:48 UTC for budget math.
+            - name: NODE_OPTIONS
+              value: {{ . | quote }}
+            {{- end }}
           envFrom:
             - secretRef:
                 name: stagecraft-api-secrets

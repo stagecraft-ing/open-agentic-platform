@@ -34,14 +34,18 @@ async function handleExtractionRequest(
 }
 
 // Encore parses Subscription config at build time and only accepts literal
-// integers for `maxConcurrency`. We omit it here and rely on Encore's
-// default fan-out; runtime back-pressure is handled by the per-run CAS +
-// the day-aggregate cost gate inside `runExtractionWork`.
+// integers for `maxConcurrency`. The literal here bounds parallel extraction
+// fan-out so file-body buffers loaded by `getObject` (extractionCore.ts:796)
+// stay within V8's old-space ceiling under FR-006 batch load. Per-run CAS
+// and the day-aggregate cost gate dedupe and cap spend respectively, but
+// neither bounds parallel-batch memory. See spec 143 §13 2026-05-10 ~07:48
+// UTC for budget math and the value justification (FU-015).
 const _extractionWorker = new Subscription(
   KnowledgeExtractionRequestTopic,
   "knowledge-extraction-worker",
   {
     handler: handleExtractionRequest,
+    maxConcurrency: 4,
   },
 );
 void _extractionWorker;
