@@ -85,6 +85,8 @@ const STATE_COLORS: Record<string, string> = {
   extracted: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   classified: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
   available: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  // Spec 143 §12 FU-019 — informational tint, same as list view.
+  unsupported_type: "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300",
 };
 
 const STATE_ORDER = ["imported", "extracting", "extracted", "classified", "available"];

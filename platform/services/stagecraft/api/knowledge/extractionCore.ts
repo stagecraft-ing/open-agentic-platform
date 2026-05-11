@@ -33,6 +33,7 @@ import { broadcastToOrg } from "../sync/sync";
 import {
   KNOWLEDGE_EXTRACTED,
   KNOWLEDGE_EXTRACTION_FAILED,
+  KNOWLEDGE_UNSUPPORTED_TYPE,
 } from "./auditActions";
 import {
   ExtractorReturnedMalformedOutputError,
@@ -75,6 +76,26 @@ const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 // driven re-extract a week later still works.
 const IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+// Spec 143 §12 FU-019 — synthetic policy used only to probe the
+// dispatch registry for "would any extractor handle this MIME under
+// any policy?" Constructing it inline next to a real policy would be
+// noisy and easy to drift; pinning it as a module-scoped constant
+// keeps the probe legible and grep-able. NOT a real authorisation
+// signal — never reaches the extractor's `extract` call.
+const MAXIMALLY_PERMISSIVE_POLICY_FOR_DISPATCH_PROBE: {
+  visionAllowed: boolean;
+  audioAllowed: boolean;
+  costCeilingUsdPerCall: number;
+  costCeilingUsdPerDay: number;
+  source: "compiled_bundle";
+} = {
+  visionAllowed: true,
+  audioAllowed: true,
+  costCeilingUsdPerCall: Number.MAX_SAFE_INTEGER,
+  costCeilingUsdPerDay: Number.MAX_SAFE_INTEGER,
+  source: "compiled_bundle",
+};
+
 // FR-023: cap on auto-retries. PubSub at-least-once will redeliver a
 // message after a worker crash; the cap prevents a poison object from
 // looping forever. The Retry endpoint (FR-010) ignores this cap.
@@ -115,6 +136,12 @@ export type ExtractionFailureCode =
   | "worker_crashed"
   | "auto_retry_exhausted"
   | "abandoned"
+  // Spec 143 §12 FU-019 — recorded on the run row's `error.code` when
+  // no registered extractor's `canHandle` predicate matches the MIME
+  // under any policy. The knowledge_object surface uses the
+  // `unsupported_type` state with `lastExtractionError = null`; this
+  // code carries the audit-trail reason on the run row itself.
+  | "unsupported_type"
   | string;
 
 export type StoredExtractionError = {
@@ -447,7 +474,28 @@ export async function runExtractionWork(args: {
 
   const dispatch = pickExtractor(input, policy);
   if (!dispatch) {
-    // Differentiate the failure by why no extractor matched.
+    // Spec 143 §12 FU-019 — disambiguate "no extractor for this MIME"
+    // from "an extractor exists but policy/fallback blocked it" before
+    // emitting a red failure badge. Re-query the dispatcher with a
+    // maximally-permissive synthetic policy; if it still returns null,
+    // no registered extractor's `canHandle` predicate matches this
+    // MIME under any policy — this is the `unsupported_type` case
+    // (informational, not a pipeline failure). Reuses
+    // `pickExtractor` unchanged; no dispatch.ts surface edit.
+    const permissivePolicy = MAXIMALLY_PERMISSIVE_POLICY_FOR_DISPATCH_PROBE;
+    const permissiveDispatch = pickExtractor(input, permissivePolicy);
+    if (!permissiveDispatch) {
+      await markRunUnsupportedInternal({
+        runId: run.id,
+        knowledgeObjectId: run.knowledgeObjectId,
+        projectId: run.projectId,
+        mimeType: input.mimeType,
+      });
+      return;
+    }
+
+    // An extractor exists for this MIME, but the real policy (or its
+    // fallback shape) blocked it. Differentiate the failure by why.
     let code: ExtractionFailureCode;
     let message: string;
     if (policy.source === "default_fallback") {
@@ -724,6 +772,86 @@ async function markRunFailedInternal(args: {
     state: "imported",
     hasExtractionOutput: false,
     lastExtractionError: { code: args.error.code },
+  });
+}
+
+// Spec 143 §12 FU-019 — terminal "no extractor for this MIME under
+// any policy" disposition. Unlike `markRunFailedInternal`, this does
+// NOT revert the object to `imported` with a red error code. The run
+// row's `error.code = "unsupported_type"` carries the audit-trail
+// reason; the object's surface state is `unsupported_type` with
+// `lastExtractionError = null` so the dashboard renders informational,
+// not red (done-when (c)).
+//
+// The orphan-imported sweeper (`orphanSweeper.ts:110-115`) narrows its
+// candidate WHERE clause to `state = 'imported' AND createdAt < cutoff`,
+// so rows that land in `unsupported_type` are excluded by construction
+// — see done-when (d) closure rationale in §12 FU-019.
+async function markRunUnsupportedInternal(args: {
+  runId: string;
+  knowledgeObjectId: string;
+  projectId: string;
+  mimeType: string;
+}): Promise<void> {
+  const completedAt = new Date();
+  const error: StoredExtractionError = {
+    code: "unsupported_type",
+    message: `no extractor registered for mime ${args.mimeType} under any policy`,
+    extractorKind: null,
+    attemptedAt: completedAt.toISOString(),
+  };
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(knowledgeExtractionRuns)
+      .set({
+        status: "failed",
+        completedAt,
+        error,
+      })
+      .where(eq(knowledgeExtractionRuns.id, args.runId));
+
+    // Advance the object to `unsupported_type` only from a pre-terminal
+    // state — mirror `markRunFailedInternal`'s guard so a manual
+    // transition or a successful subsequent run does not get clobbered.
+    const [obj] = await tx
+      .select({
+        id: knowledgeObjects.id,
+        state: knowledgeObjects.state,
+      })
+      .from(knowledgeObjects)
+      .where(eq(knowledgeObjects.id, args.knowledgeObjectId))
+      .limit(1);
+
+    if (obj && (obj.state === "extracting" || obj.state === "imported")) {
+      await tx
+        .update(knowledgeObjects)
+        .set({
+          state: "unsupported_type",
+          lastExtractionError: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(knowledgeObjects.id, obj.id));
+    }
+
+    await tx.insert(auditLog).values({
+      actorUserId: SYSTEM_USER_ID,
+      action: KNOWLEDGE_UNSUPPORTED_TYPE,
+      targetType: "knowledge_object",
+      targetId: args.knowledgeObjectId,
+      metadata: {
+        runId: args.runId,
+        mimeType: args.mimeType,
+        projectId: args.projectId,
+      },
+    });
+  });
+
+  await broadcastObjectUpdated(args.projectId, {
+    objectId: args.knowledgeObjectId,
+    state: "unsupported_type",
+    hasExtractionOutput: false,
+    lastExtractionError: null,
   });
 }
 

@@ -23,10 +23,18 @@ export const KNOWLEDGE_EXTRACTION_RESOLVED =
 // "orphan_sweep_class_b"` so dashboards see all confirms uniformly.
 export const KNOWLEDGE_UPLOAD_ORPHANED =
   "knowledge.upload_orphaned" as const;
+// Spec 143 §12 FU-019 — emitted when the worker classifies an
+// extraction run as `unsupported_type` because no registered
+// extractor's `canHandle` predicate matches the MIME under any
+// policy. Distinct from `knowledge.extraction_failed` (which lights
+// the red dashboard badge); this action is informational.
+export const KNOWLEDGE_UNSUPPORTED_TYPE =
+  "knowledge.unsupported_type" as const;
 
 export type KnowledgeExtractionAuditAction =
   | typeof KNOWLEDGE_EXTRACTED
   | typeof KNOWLEDGE_EXTRACTION_FAILED
   | typeof KNOWLEDGE_EXTRACTION_RETRY_REQUESTED
   | typeof KNOWLEDGE_EXTRACTION_RESOLVED
-  | typeof KNOWLEDGE_UPLOAD_ORPHANED;
+  | typeof KNOWLEDGE_UPLOAD_ORPHANED
+  | typeof KNOWLEDGE_UNSUPPORTED_TYPE;

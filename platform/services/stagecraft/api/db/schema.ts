@@ -511,6 +511,11 @@ export const knowledgeObjectStateEnum = pgEnum("knowledge_object_state", [
   "extracted",
   "classified",
   "available",
+  // Spec 143 §12 FU-019 — terminal informational state for rows whose
+  // MIME type has no registered extractor under any policy. Worker
+  // transitions to this state instead of leaving the row in `imported`
+  // with a `policy_pending` / `extractor_not_implemented` red badge.
+  "unsupported_type",
 ]);
 
 export const sourceConnectors = pgTable("source_connectors", {

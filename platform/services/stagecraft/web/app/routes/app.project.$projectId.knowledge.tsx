@@ -42,7 +42,7 @@ export async function loader({
   };
 }
 
-const STATES = ["all", "imported", "extracting", "extracted", "classified", "available"] as const;
+const STATES = ["all", "imported", "extracting", "extracted", "classified", "available", "unsupported_type"] as const;
 
 const STATE_COLORS: Record<string, string> = {
   imported: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
@@ -50,6 +50,9 @@ const STATE_COLORS: Record<string, string> = {
   extracted: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   classified: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
   available: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  // Spec 143 §12 FU-019 — informational tint (slate/gray, matching the
+  // `imported` neutral aesthetic, not the red of `lastExtractionError`).
+  unsupported_type: "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300",
 };
 
 export default function KnowledgeBrowser() {
