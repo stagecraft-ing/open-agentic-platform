@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1aab1efd026032b434edf1aad98b2d0e3469afe0e7d7220ec7fbc802af55662c",
+    "contentHash": "a88046c38f8ea7356d1d6ffe94085a0c451a9a0fac74dc7ef3eafd61ba6b5cb1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4671,6 +4671,14 @@
           "115"
         ],
         "implementingPaths": [
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
           {
             "path": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml",
             "source": "spec-implements"
