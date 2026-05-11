@@ -20,6 +20,11 @@ implements:
   - path: platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts
   - path: platform/services/stagecraft/api/knowledge/knowledge.ts
   - path: platform/services/stagecraft/api/knowledge/auditActions.ts
+  - path: platform/services/stagecraft/api/knowledge/extractionCore.ts  # FU-019 — dispatch-null permissive-policy re-probe + `markRunUnsupportedInternal` helper at lines 448-501. Co-claimed with specs 077/080/087/115/119 (existing claimants); spec 130 FR-001 any-claimant rule applies. Backfilled 2026-05-11 — spec 143's `amends: 115` does NOT pass-through to non-spec.md paths (spec 133 amend-pathway fires only for `specs/<id>/spec.md` paths), so the explicit `implements:` entry is required.
+  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx  # FU-019 — slate informational `unsupported_type` badge on the knowledge detail page. Co-claimed with specs 077/080/087/115/119. Backfilled 2026-05-11.
+  - path: platform/services/stagecraft/api/db/schema.ts  # FU-019 — `unsupported_type` enum value appended to knowledge object state taxonomy (schema.ts:508-519). Co-claimed with specs 077/080/087/114/119/139/142 (existing claimants); spec 130 FR-001 any-claimant rule clears either edit. Backfilled 2026-05-11 — implements: entry was omitted from f14d5ab when FU-019 closed; coupling gate exit-1 surfaced the gap at FU-024 pickup.
+  - path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql  # FU-019 — adds `unsupported_type` to the knowledge_object_state enum. Backfilled 2026-05-11 (see schema.ts entry above for rationale).
+  - path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql  # FU-019 — drops `unsupported_type` enum value on rollback. Backfilled 2026-05-11.
   - path: platform/services/stagecraft/api/knowledge/orphanSweeper.ts
   - path: platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts
   - path: platform/services/stagecraft/api/knowledge/scheduler.ts
@@ -4556,4 +4561,90 @@ is updated to record: FU-019 closed at 2026-05-11
 ~18:30 UTC; `unsupported_type` enum + dispatch
 restructure + dashboard badge + orphan-sweeper rationale
 landed. FU-019 drops from outstanding.
+
+**FU-019 implements: backfill, 2026-05-11 — coupling-gate
+discipline correction.**
+
+At FU-024 pickup the local coupling gate
+(`make ci-fast-spec-coupling`, mirroring CI workflow
+`.github/workflows/ci-spec-code-coupling.yml`) exited
+non-zero against the cumulative `origin/main...HEAD`
+diff. Five FU-019 paths landed in commit f14d5ab without
+matching `implements:` entries on spec 143:
+
+- `platform/services/stagecraft/api/knowledge/extractionCore.ts`
+- `platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx`
+- `platform/services/stagecraft/api/db/schema.ts`
+- `platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql`
+- `platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql`
+
+The paths were owned in narrative (FU-019 closure entry
+above references `extractionCore.ts:448-501`, the
+migration files, and `schema.ts:508-519` directly) but
+the formal `implements:` list was not updated when FU-019
+closed.
+
+*Spec 133 amend-pathway scope correction (recorded for
+future reference).* An initial reading of the failure
+assumed spec 143's `amends: 115` would clear
+`extractionCore.ts` and `knowledge.$id.tsx` (both
+claimed by 115 via 115's `implements:` list) through
+spec 133's amends-aware rule. Reading the gate
+implementation
+(`tools/spec-code-coupling-check/src/lib.rs:300-302`,
+`legitimate_owners`) corrected the model: spec 133's
+`amends:` and `amendmentRecord:` source classes fire
+ONLY when the violated path is itself a
+`specs/<id>/spec.md` path. They expand the set of
+specs whose spec.md edit can clear another spec.md
+path; they do NOT pass-through to arbitrary code paths
+in the amended spec's `implements:` list. For code
+paths claimed by spec X's `implements:`, only X's own
+spec.md edit (or another co-claimant's spec.md edit)
+clears the path per spec 130 FR-001. The corollary:
+when an amending spec edits the amended spec's code
+files, the amending spec must explicitly list those
+code paths in its own `implements:` (which is what
+spec 143 already does for `extractionWorker.ts` at
+the head of `implements:`, with a comment noting the
+amends-aware-gate context — that comment is correctly
+descriptive of WHY the entry exists, not a substitute
+for the entry itself).
+
+*Resolution.* Five lines added to `implements:` adjacent
+to `auditActions.ts` (where the other knowledge-pipeline
+paths live), each carrying an inline comment naming
+FU-019, the f14d5ab origin, the existing claimant set,
+and the 2026-05-11 backfill date. Coupling gate re-runs
+to exit 0. This is a
+housekeeping correction, not new design: the paths were
+spec 143's authoring work all along; only the
+machine-readable declaration was missing.
+
+*Discipline finding (process gap, not tooling gap).* The
+prior FU-019 session's handover claimed the coupling
+gate ran clean. The gate's exit code is correctly wired
+end-to-end (`make ci-fast-spec-coupling` propagates via
+`status=$$?; exit $$status`; CI workflow runs the same
+binary). The likely cause is the pipe-eats-exit-code
+trap: running the bare binary as `./tools/.../spec-code-coupling-check
+2>&1 | head -N` reads the pipe terminator's exit (0),
+not the binary's. The fix at the discipline layer is to
+either invoke `make ci-fast-spec-coupling` (which
+propagates correctly) or capture the exit via
+`>/dev/null; echo $?` before piping for inspection.
+Filing this as a candidate feedback memory under
+"exit-code-pipe-trap on validation gates" so future
+handovers don't repeat it.
+
+*Why filed as a separate commit, not folded into FU-024.*
+Audit-trail discoverability: a reader following the
+FU-019 thread from f14d5ab should be able to reach the
+backfill commit directly without traversing FU-024's
+narrative. The backfill is a correction to f14d5ab's
+implicit contract; FU-024 is a separate piece of
+defence-in-depth work. Folding them would couple two
+distinct audit threads. The backfill commit message
+references f14d5ab explicitly so the audit chain is
+discoverable from either commit.
 

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "eedad4fe777da8ee405171708b17f1728805811bc49f4fd5a82947ff910fcf5c",
+    "contentHash": "1aab1efd026032b434edf1aad98b2d0e3469afe0e7d7220ec7fbc802af55662c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4724,7 +4724,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts",
             "source": "spec-implements"
           },
           {
@@ -4793,6 +4809,10 @@
           },
           {
             "path": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx",
             "source": "spec-implements"
           },
           {
