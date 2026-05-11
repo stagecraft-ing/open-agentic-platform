@@ -41,3 +41,16 @@ persistence:
   enabled: true
   size: 10Gi
   storageClass: hcloud-volumes
+
+# Spec 145 S3 backup config for Hetzner Object Storage. The chart's
+# deployment.yaml gates backup env projection on `if and .Values.backup.endpoint
+# .Values.backup.bucket` — without endpoint+bucket set per-env, the four
+# DEPLOYD_BACKUP_* env vars never project and the cron task degrades to the
+# dev-fallback ENC_KEYS path. The four backup secret keys (S3 access/secret +
+# cryptr keyring + active key id) are populated out-of-band in the existing
+# `deployd-api-secrets` Secret per `secrets.provider: "k8s"` + `create: false`;
+# see docs/runbooks/deployd-api-durability.md §1.3 Flow A.
+backup:
+  endpoint: "https://nbg1.your-objectstorage.com"
+  bucket: "oap-deployd-backups-prod"
+  region: "nbg1"
