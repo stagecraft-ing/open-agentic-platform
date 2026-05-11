@@ -1,9 +1,9 @@
 # OAP ↔ GoA Whitepaper Alignment Audit
 
-Generated: 2026-05-07 (initial audit) · Updated: 2026-05-07 (pre-disclosure hardening pass).
+Generated: 2026-05-07 (initial audit) · Updated: 2026-05-07 (pre-disclosure hardening pass) · Updated: 2026-05-11 (pre-disclosure refresh pass).
 Whitepaper version: 1.2 (May 2026) — *Modernizing at Speed: An AI-First Approach to Addressing Technical Debt in Government*, Janak Alford, Deputy Minister of Technology and Innovation.
 Whitepaper anchor copy reviewed: `/tmp/whitepaper.txt` (textutil conversion of `_tmp/Whitepaper.docx`, 918 lines). Whitepaper itself is restricted-distribution and is not tracked in this repository (`_tmp/` is in `.gitignore`); this audit document quotes only short anchor phrases (≤15 words each) sufficient to locate the referenced sections.
-OAP commit at initial audit: `ac6c4fd1804c15d8feb0650a08269ccd6efe376e` (branch `main`, clean working tree). Post-pass commit: pending; this document is updated under the pre-disclosure pass before the final commit lands.
+OAP commit at initial audit: `ac6c4fd1804c15d8feb0650a08269ccd6efe376e` (branch `main`, clean working tree). Pre-disclosure hardening pass commit: `52fc6962` (`chore(pre-disclosure): expand ASI 2026 coverage 6/10 → 7/10 with provenance`). Pre-disclosure refresh pass: HEAD `972d2ea8`, branch `main`, clean working tree.
 
 ## Pre-disclosure hardening pass — record (2026-05-07)
 
@@ -16,6 +16,22 @@ The audit was followed by a focused pass before disclosure. Changes that landed 
 5. **CI gates.** `make ci` (fast loop, spec 135) green end-to-end after the pass: 1013 Rust tests pass, 382 stagecraft tests pass, spec-coupling gate clean, compliance-report regenerated.
 
 Tasks 4–6 of the pre-disclosure plan (strategic-tier rollup, dim. 12 product gating sizing check, dim. 11 footnote resolution) are NOT part of this commit; they require additional user judgment and were left for a follow-up pass.
+
+## Pre-disclosure refresh pass — record (2026-05-11)
+
+Refresh pass applied four days after the 2026-05-07 hardening pass, before disclosure. The 2026-05-07 record above is preserved; this section captures only what moved between then and now.
+
+1. **Spec count refresh: 143 → 147.** Four new specs landed since the initial audit (specs 143–146 + driver follow-ups). Lifecycle counts (governed read, `registry-consumer status-report --json --nonzero-only`): **138 approved, 5 draft, 4 superseded** — same approved count as the initial audit; four new specs all entered as `draft` (143–146) joining the pre-existing 137 draft. Net: corpus grew without weakening approval ratio at the approved-count level; denominator updated wherever cited.
+2. **Codebase-index numbers refreshed.** Layer 1: still 18 producer-plane crates totalling 77,467 LOC (unchanged). Layer 2: **136 mapped specs (was 132), 27 amendment relationships (was 25), 7 orphaned specs, 5 untraced paths**. Content hash rotated to `ae320cc76caa83a79d8bdf668871e9983ae0cd9bb6751e8a07a676dec7f42a93` (regen-of-day; this value drifts on every `make registry` so a precise rendering is illustrative only).
+3. **`implements:` path bindings refreshed.** 100 specs / 368 paths (audit) → **102 specs / 429 paths** (current). Growth concentrated in the new draft specs; coupling gate semantics unchanged.
+4. **Producer-plane >1000-LOC files: 10 → 9.** The audit's prose claimed 10 files while listing 9; the current `find crates -name '*.rs'` count matches the listed 9. Single-file reduction since 2026-05-07 (one file dropped under the 1000-line bar); the existing nine offender names are unchanged in identity and rank. Desktop count unchanged at 14.
+5. **Code-path line citations resynced.** `crates/factory-engine/src/governance_certificate.rs` line ranges shifted by 1–14 lines as the file evolved (certificate type 24–43 → 23–44; StageRecord 94–103 → 95–103; ProofChainSummary 147–150 → 147–154; `compute_certificate_hash` 293–311 → 297–308; `generate_certificate` 315–427 → 316–409). Symbols and semantics unchanged; ranges updated for honesty.
+6. **README citations checked.** Lines 28–35 (SBOM), 122–134 (trust fabric), 152–163 (license), 219–246 / 234–246 (try-it + verify-certificate tamper example) — all still pointing at the same content. Only README diff since `ac6c4fd1` is the spec-count badge (142 → 147).
+7. **ASI coverage holds at 7/10.** Same control set (ASI01, 03, 04, 05, 07, 09, 10), same spec citations per control. No regression. The path beyond 7/10 remains gated on framework-data completeness (post-disclosure closure #1), with one externally-sourced research artifact that may offer canonical control names — surfaced separately for user judgment rather than incorporated in this pass.
+8. **Whitepaper-anchor discipline reverified.** Every per-dimension callout and the tail appendix were re-counted: all verbatim phrases are ≤15 words. Section references re-checked against `_tmp/Whitepaper.docx` (lines 453, 467/471/475, 479/483, 509/513, 525/529, 535/543, 567 (§21), 575 (§22), 603 (§25), 886 (§B.6)) — all anchors valid.
+9. **CI / known issues.** No re-run of `make ci` in this pass; the 2026-05-07 disposition for the pre-existing `CARGO_BIN_EXE_<bin>` flake stands. `make registry` exits 0 on HEAD.
+
+What this pass did NOT change: dimension status enums, headline strengths/gaps, the unrealized-wins framing, the upstream-dependency boundary table, or the recommended closures lists. Architectural claims are unchanged; only quantitative anchors and citation ranges were refreshed.
 
 ## Known issues at time of disclosure
 
@@ -41,13 +57,13 @@ Headline strengths (with evidence):
 
 1. **Producer — auditability of compression is a first-class artifact** (dim. 4, 5). Governance certificate (spec 102, `crates/factory-engine/src/governance_certificate.rs`) is self-authenticating: `certificateHash = SHA-256(canonical_json with certificateHash="")`. `make verify-certificate` exits 1 on tamper with a specific `artifact-hash mismatch` diagnostic. The verifier (`crates/factory-engine/src/bin/verify_certificate.rs`) is a sister binary that does not trust the producing system. Satisfies §13 and §25 more concretely than the whitepaper's own description.
 
-2. **Producer — spec-driven discipline is PR-time enforced, not prose-asserted** (dim. 6). 138/143 specs `approved`; 100 specs declare 368 `implements:` paths; the spec-code coupling gate (`tools/spec-code-coupling-check`, spec 127 amended by 130, 133) fails CI when a claimed path changes without its owning spec changing.
+2. **Producer — spec-driven discipline is PR-time enforced, not prose-asserted** (dim. 6). 138/147 specs `approved` (same 138-approved count as 2026-05-07; corpus grew by four new drafts); 102 specs declare 429 `implements:` paths; the spec-code coupling gate (`tools/spec-code-coupling-check`, spec 127 amended by 130, 133) fails CI when a claimed path changes without its owning spec changing.
 
 3. **Product — produced application has no OAP runtime dependency** (dim. 11). Certificate verifiable without OAP installed; four adapters target conventional stacks. The disclosure-grade answer to "what happens if you leave" is "the produced project keeps running and the certificate stays verifiable."
 
 Headline gaps (with effort-to-close):
 
-1. **Producer — module-size discipline broken in load-bearing files** (dim. 10). 10 Rust files >1000 LOC including `crates/orchestrator/src/lib.rs` (3,081); 14 desktop files >1000 LOC including `apps/desktop/src-tauri/src/commands/factory.rs` (3,112). Effort: **medium** (file-by-file split, no architectural change).
+1. **Producer — module-size discipline broken in load-bearing files** (dim. 10). 9 Rust files >1000 LOC including `crates/orchestrator/src/lib.rs` (3,081); 14 desktop files >1000 LOC including `apps/desktop/src-tauri/src/commands/factory.rs` (3,112). Effort: **medium** (file-by-file split, no architectural change).
 
 2. **Product — competitive evaluation foundation exists, leaderboard does not** (dim. 9). Adapters/Contracts/Processes split is in place; the runner that would drive multiple adapters against the same Build Spec is missing. Effort: **medium**.
 
@@ -59,7 +75,7 @@ Headline gaps (with effort-to-close):
 
 OAP is two systems sharing a repository.
 
-The **producer** is OAP-the-platform: 18 Rust crates (77,467 LOC), 25 npm packages, the Tauri OPC desktop, and the `platform/services/stagecraft/` Encore.ts service. Its construction is governed by the spec spine in `specs/` (143 specs as of 2026-05-07) and by five constitution-anchored policy rules (CONST-001 through CONST-005). The producer's daily-development loop is `make ci` (~5 min, spec 135), and pre-merge parity is `make ci-strict`. When you read this codebase as a *system*, you are reading OAP-the-platform.
+The **producer** is OAP-the-platform: 18 Rust crates (77,467 LOC), 25 npm packages, the Tauri OPC desktop, and the `platform/services/stagecraft/` Encore.ts service. Its construction is governed by the spec spine in `specs/` (147 specs as of 2026-05-11) and by five constitution-anchored policy rules (CONST-001 through CONST-005). The producer's daily-development loop is `make ci` (~5 min, spec 135), and pre-merge parity is `make ci-strict`. When you read this codebase as a *system*, you are reading OAP-the-platform.
 
 The **product** is whatever OAP's factory generates when it runs a pipeline for a stakeholder's project. The factory pipeline is two-phase: a sequential process phase (`s0-preflight` through `s5-ui-specification`, with a checkpoint after each, freezing a SHA-256-hashed Build Spec at the s5 gate) followed by a fan-out scaffolding phase (`s6a–s6g`, with adapter-specific compile/test/lint/typecheck verification after each step). Spec 074 frames the factory as transforming "business documents into working software"; spec 075 specifies the workflow engine; spec 102 specifies the governance certificate that every run terminates with.
 
@@ -78,7 +94,7 @@ Because of (d), every product-side dimension below has a "boundary" reconciliati
 
 **Whitepaper anchor (Part IV §12).** Four-tier estate model: raw, structural, capability, strategic.
 
-**Producer status: PARTIAL** (demoted from `MET` on the skeptical second pass — see reconciliation below). Three observable tiers map cleanly onto the whitepaper's four. Raw: `specs/NNN-slug/spec.md` markdown plus `Cargo.toml`'s `[package.metadata.oap].spec` and `package.json`'s `"oap": {"spec": ...}` declarations. Structural: `build/spec-registry/registry.json` (compiler-emitted, deterministic) and `build/codebase-index/index.json` (spec-to-code mapping over 60 inventory entries). Capability: `build/codebase-index/CODEBASE-INDEX.md` (132 mapped specs, 25 amendment relationships) and `registry-consumer compliance-report --framework owasp-asi-2026 --json`. The fourth tier — the whitepaper's "strategic intent … the tier at which deputy ministers and ministers reason" — has no producer-plane analogue at portfolio level. The governance certificate is the closest artefact but it is per-run, not per-portfolio; spec frontmatter (`kind`, `risk`, `status`, amends/supersedes graph) carries strategic-intent fragments but is not aggregated into a queryable strategic-intent view.
+**Producer status: PARTIAL** (demoted from `MET` on the skeptical second pass — see reconciliation below). Three observable tiers map cleanly onto the whitepaper's four. Raw: `specs/NNN-slug/spec.md` markdown plus `Cargo.toml`'s `[package.metadata.oap].spec` and `package.json`'s `"oap": {"spec": ...}` declarations. Structural: `build/spec-registry/registry.json` (compiler-emitted, deterministic) and `build/codebase-index/index.json` (spec-to-code mapping over 60 inventory entries). Capability: `build/codebase-index/CODEBASE-INDEX.md` (136 mapped specs, 27 amendment relationships) and `registry-consumer compliance-report --framework owasp-asi-2026 --json`. The fourth tier — the whitepaper's "strategic intent … the tier at which deputy ministers and ministers reason" — has no producer-plane analogue at portfolio level. The governance certificate is the closest artefact but it is per-run, not per-portfolio; spec frontmatter (`kind`, `risk`, `status`, amends/supersedes graph) carries strategic-intent fragments but is not aggregated into a queryable strategic-intent view.
 
 **Product status: MET.** Per the factory pipeline: stakeholder docs (`crates/factory-contracts/src/stakeholder_docs.rs:40`, anchored sections by `<KIND>-<NNN>` IDs) are raw, `ExtractionOutput` (`crates/factory-contracts/src/knowledge.rs:19`) is structural, the frozen `BuildSpec` (`crates/factory-contracts/src/build_spec.rs:16–44`) is the capability contract, and per-stage `PipelineState` records (`crates/factory-contracts/src/pipeline_state.rs:19–33`) plus the run-terminating governance certificate constitute the strategic tier.
 
@@ -96,11 +112,11 @@ Because of (d), every product-side dimension below has a "boundary" reconciliati
 
 **Whitepaper anchor (Part IV §13).** Compression upward: summarisation across tiers must preserve provenance links; "apparent loss that is actually a broken link is a defect".
 
-**Producer status: MET.** Spec markdown → registry.json compression is deterministic (golden-file checks, spec 000 invariant V-004); `build-meta.json` carries non-deterministic wall-clock metadata only; codebase-indexer maintains content hashes (`build/codebase-index/CODEBASE-INDEX.md` line 4: `Content hash: 186e7cb422212f6de71611c2433aedfbe15f907e079518dd6c6128336dc077e1`) so a broken provenance link surfaces as a hash drift in CI rather than as silent loss. Compliance-report compresses spec-level compliance frontmatter into framework views (`registry-consumer compliance-report --framework owasp-asi-2026 --json` returned 6 control-to-spec mappings).
+**Producer status: MET.** Spec markdown → registry.json compression is deterministic (golden-file checks, spec 000 invariant V-004); `build-meta.json` carries non-deterministic wall-clock metadata only; codebase-indexer maintains content hashes (`build/codebase-index/CODEBASE-INDEX.md` line 4 carries a `Content hash: <SHA-256>` rendered on every regen — value at this pass: `ae320cc76caa83a79d8bdf668871e9983ae0cd9bb6751e8a07a676dec7f42a93`, illustrative only since the hash rotates per regen) so a broken provenance link surfaces as a hash drift in CI rather than as silent loss. Compliance-report compresses spec-level compliance frontmatter into framework views (`registry-consumer compliance-report --framework owasp-asi-2026 --json` returns 7 control-to-spec mappings after the 2026-05-07 hardening pass).
 
 **Product status: MET.** `requirements_hash` (SHA-256 of input requirements docs, `crates/factory-engine/src/governance_certificate.rs:59`) binds upward to the certificate; per-stage `artifact_hashes: BTreeMap<String, String>` (FR-005, line 94–103 of governance_certificate.rs) preserves the lower-tier evidence; the proof chain summary (`record_count`, `first_record_hash`, `last_record_hash`, `chainIntegrity`) records every policy decision made during compression.
 
-**Evidence.** spec 102 FR-004, FR-005, FR-008; `tools/codebase-indexer/` content-hash machinery; `crates/factory-engine/src/governance_certificate.rs:147–150` (`ProofChainSummary`); spec 121 (claim provenance enforcement) Quality Gate `QG-13_ExternalProvenance`.
+**Evidence.** spec 102 FR-004, FR-005, FR-008; `tools/codebase-indexer/` content-hash machinery; `crates/factory-engine/src/governance_certificate.rs:147–154` (`ProofChainSummary`); spec 121 (claim provenance enforcement) Quality Gate `QG-13_ExternalProvenance`.
 
 **Gap or unrealized win.** **Unrealized win:** every compression step in OAP carries either a content hash, a SHA-256 artefact hash, or a proof chain link. The whitepaper §13 only requires that the *operations* be observable; OAP makes the *artefacts* hash-anchored, which is strictly stronger.
 
@@ -114,7 +130,7 @@ Because of (d), every product-side dimension below has a "boundary" reconciliati
 
 **Whitepaper anchor (Part IV §13).** Decompression downward: strategic decisions elaborated through capabilities, workflows, implementations, into running code.
 
-**Producer status: MET.** Each spec's `implements:` block enumerates the code paths it decompresses into (368 paths across 100 specs). The spec-code coupling gate (`tools/spec-code-coupling-check`, spec 127, amended by 130 and 133) fails CI when a path changes without its owning spec changing — the decompression mapping is enforced at PR time, not at design review. The amends-aware variant (spec 133) lets a code change cite an amending spec, preserving accuracy when designs evolve.
+**Producer status: MET.** Each spec's `implements:` block enumerates the code paths it decompresses into (429 paths across 102 specs). The spec-code coupling gate (`tools/spec-code-coupling-check`, spec 127, amended by 130 and 133) fails CI when a path changes without its owning spec changing — the decompression mapping is enforced at PR time, not at design review. The amends-aware variant (spec 133) lets a code change cite an amending spec, preserving accuracy when designs evolve.
 
 **Product status: MET.** Build Spec → manifest → per-stage execution → produced project files. `generate_scaffold_manifest(build_spec, ...)` (spec 075 FR-003) takes the frozen Build Spec and emits the Phase 2 manifest; each scaffold step's adapter `feature_verify` command (compile, test, lint, typecheck) checks downward fidelity at the moment of decompression.
 
@@ -145,7 +161,7 @@ AI agents are confined to the orchestration role (planning, drafting, summarisat
 
 **Product status: MET.** The factory pipeline freezes the Build Spec at s5 (SHA-256 hash recorded in `PipelineState.build_spec.hash`), and per-stage artefact hashes are captured by the certificate. Phase 2 scaffold generation (`s6a–s6g`) uses LLM agents and is *not* byte-for-byte reproducible across runs — but it is checkpointed by deterministic verification gates (compile/test/lint/typecheck/security) and a deterministic certificate. This is the whitepaper's exact split: probabilistic composition, deterministic execution and verification.
 
-**Evidence.** `crates/factory-engine/src/governance_certificate.rs:293–311` (`compute_certificate_hash`); `Makefile` targets `make verify-certificate` (exit 0 on clean, exit 1 on tamper); spec 102 FR-007, FR-008; spec 075 FR-005 (post-step verification hooks).
+**Evidence.** `crates/factory-engine/src/governance_certificate.rs:297–308` (`compute_certificate_hash`); `Makefile` targets `make verify-certificate` (exit 0 on clean, exit 1 on tamper); spec 102 FR-007, FR-008; spec 075 FR-005 (post-step verification hooks).
 
 **Gap or unrealized win.** **Unrealized win — boundary as feature:** the upstream `goa-software-factory` and `aim-vue-node` template determine the *content* of probabilistic generation, but OAP's deterministic harness around them (Build Spec freeze, artefact hashing, gate verification, certificate self-authentication) means non-determinism in those upstreams cannot leak into the audit chain. OAP achieves determinism *over* upstream artefacts it does not own. This is a stronger architectural property than owning the whole stack would be.
 
@@ -159,11 +175,11 @@ AI agents are confined to the orchestration role (planning, drafting, summarisat
 
 **Whitepaper anchor (Part IV §13, Part VI §25).** Compression and decompression as first-class artefacts: which agent did what, what was preserved, what was discarded, how outputs trace to sources.
 
-**Producer status: MET.** The codebase index records spec→code mapping (132 mapped specs); spec-compiler emits `build-meta.json` recording compiler version and wall-clock; policy-kernel produces a `ProofRecord` per evaluation (`crates/policy-kernel/src/lib.rs`, 792 LOC); the certificate's proof-chain summary binds first/last record hashes and chain integrity. *Which agent did what* is queryable through the audit log table in `platform/services/stagecraft/api/db/schema.ts`.
+**Producer status: MET.** The codebase index records spec→code mapping (136 mapped specs); spec-compiler emits `build-meta.json` recording compiler version and wall-clock; policy-kernel produces a `ProofRecord` per evaluation (`crates/policy-kernel/src/lib.rs`, 792 LOC); the certificate's proof-chain summary binds first/last record hashes and chain integrity. *Which agent did what* is queryable through the audit log table in `platform/services/stagecraft/api/db/schema.ts`.
 
 **Product status: PARTIAL.** What was *preserved* is recorded (artefact hashes per stage, FR-005). What was *discarded* is not first-class. Whitepaper §B.6 (Git Insights Ministry's preservation audit) names this property explicitly: each build specification carries a "preservation audit" listing capabilities folded forward and capabilities discarded. OAP's certificate has no equivalent preservation-audit field. The Quality Gate `QG-13_ExternalProvenance` (spec 121) checks claim provenance but does not produce a preservation-loss list.
 
-**Evidence.** `crates/factory-engine/src/governance_certificate.rs:24–43` (certificate type), `94–103` (StageRecord); spec 121 §QG-13; `crates/factory-engine/src/stages/quality_gates.rs` (842 LOC). Counter-evidence for product: no field named `preservationAudit`, `discardedCapabilities`, or similar in the certificate Rust types.
+**Evidence.** `crates/factory-engine/src/governance_certificate.rs:23–44` (certificate type), `95–103` (StageRecord); spec 121 §QG-13; `crates/factory-engine/src/stages/quality_gates.rs` (842 LOC). Counter-evidence for product: no field named `preservationAudit`, `discardedCapabilities`, or similar in the certificate Rust types.
 
 **Gap or unrealized win.** A `preservationAudit` section on the certificate (per stage: stakeholder anchors consumed, anchors discarded with reason) would close the §B.6 gap.
 
@@ -177,11 +193,11 @@ AI agents are confined to the orchestration role (planning, drafting, summarisat
 
 **Whitepaper anchor (Part V §16).** Pronghorn is "spec driven by design": "the specification is the contract", agents work to it, output is checked against it. Aligned with Part III's Garage model.
 
-**Producer status: EXCEEDS.** 138 of 143 specs are at lifecycle `approved`; the constitution mandates spec-first development (Principle III); the spec-code coupling gate fails CI on drift. Spec-lint default-fail-on-warn (spec 128), amends-aware coupling (spec 133), constitutional invariant freeze (spec 132), and the adversarial-prompt-refusal rule (`.claude/rules/adversarial-prompt-refusal.md`, spec 131, CONST-005) collectively make the spec spine more rigorous than the whitepaper's description: the whitepaper says agents work to the spec; OAP additionally refuses prompts that would engineer drift between spec and code.
+**Producer status: EXCEEDS.** 138 of 147 specs are at lifecycle `approved`; the constitution mandates spec-first development (Principle III); the spec-code coupling gate fails CI on drift. Spec-lint default-fail-on-warn (spec 128), amends-aware coupling (spec 133), constitutional invariant freeze (spec 132), and the adversarial-prompt-refusal rule (`.claude/rules/adversarial-prompt-refusal.md`, spec 131, CONST-005) collectively make the spec spine more rigorous than the whitepaper's description: the whitepaper says agents work to the spec; OAP additionally refuses prompts that would engineer drift between spec and code.
 
 **Product status: MET via different means.** Factory inputs are stakeholder docs (`StakeholderDoc` with anchored sections, `crates/factory-contracts/src/stakeholder_docs.rs:40`) plus extraction output (`ExtractionOutput`, schema version 1.0.0), not human-authored specs. The frozen Build Spec at s5 plays the spec-as-contract role: it is hashed, approved, and the agents in s6 work to it. The whitepaper §16 does not require the spec to be human-authored — Pronghorn itself "generate[s] draft specifications from conversations with business users" (§17). OAP's intent matches.
 
-**Evidence.** `registry-consumer status-report --json --nonzero-only` (138 approved, 1 draft, 4 superseded); `tools/spec-code-coupling-check/`; spec 074 FR-003 (Build Spec validation); spec 075 FR-002 (process manifest from business doc paths); spec 102 FR-003 (`buildSpec` field in certificate).
+**Evidence.** `registry-consumer status-report --json --nonzero-only` (138 approved, 5 draft, 4 superseded); `tools/spec-code-coupling-check/`; spec 074 FR-003 (Build Spec validation); spec 075 FR-002 (process manifest from business doc paths); spec 102 FR-003 (`buildSpec` field in certificate).
 
 **Gap or unrealized win.** **Unrealized win:** OAP's spec-code coupling gate makes spec-driven discipline *enforced* on the producer. The product-plane equivalent would be a coupling gate from frozen Build Spec to produced files (which manifest_gen.rs already implements; the gate-equivalent is the s6 verification harness).
 
@@ -213,7 +229,7 @@ AI agents are confined to the orchestration role (planning, drafting, summarisat
 
 **Whitepaper anchor (Part V §19, Part VI §25).** Velocity = integrated, queryable record of every action by every agent and human; the artefact AG and IPC require for their work.
 
-**Producer status: MET.** The codebase index produces a queryable spec-to-code map (132 mapped specs, 25 amendment relationships, 20 CI workflows traced); `registry-consumer status-report` and `compliance-report` give framework-aligned views; CODEBASE-INDEX.md is regenerated on each `make registry`. Every governed read goes through a consumer binary (spec 103); ad-hoc parsing of `build/**/*.json` is a workflow violation per `.claude/rules/governed-artifact-reads.md`. The audit log table (`platform/services/stagecraft/api/db/schema.ts`) plus the proof chain in policy-kernel together cover "every action taken … by every agent and every human" for actions mediated by the platform.
+**Producer status: MET.** The codebase index produces a queryable spec-to-code map (136 mapped specs, 27 amendment relationships, 20 CI workflows traced); `registry-consumer status-report` and `compliance-report` give framework-aligned views; CODEBASE-INDEX.md is regenerated on each `make registry`. Every governed read goes through a consumer binary (spec 103); ad-hoc parsing of `build/**/*.json` is a workflow violation per `.claude/rules/governed-artifact-reads.md`. The audit log table (`platform/services/stagecraft/api/db/schema.ts`) plus the proof chain in policy-kernel together cover "every action taken … by every agent and every human" for actions mediated by the platform.
 
 **Product status: MET.** Per-run governance certificate carries `intent` (requirements hash, spec ID, spec hash), `buildSpec` (hash + approval record), `stages` (per-stage status, artifact hashes, gate results), `verification` (compile/test/lint/typecheck/security), `proofChain` (record count, first/last hash, integrity), `traceability` (FR-027 maps generated files to governing spec requirements), and `certificateHash` (self-authenticating). `verify-certificate` is the AG/IPC's independent verifier per FR-007.
 
@@ -251,7 +267,7 @@ AI agents are confined to the orchestration role (planning, drafting, summarisat
 
 **Producer status: PARTIAL.** Distribution across the producer's Rust source is honest about this:
 
-- 18 crates totalling 77,467 LOC; 10 files exceed 1,000 LOC, 33 files in the 500–1,000 range.
+- 18 crates totalling 77,467 LOC; 9 files exceed 1,000 LOC, 33 files in the 500–1,000 range.
 - Largest offenders: `crates/orchestrator/src/lib.rs` (3,081 LOC), `crates/agent/src/prompt/compaction.rs` (1,505), `crates/factory-engine/src/stages/stage_cd_comparator.rs` (1,426), `crates/orchestrator/src/sqlite_state.rs` (1,307), `crates/factory-engine/src/manifest_gen.rs` (1,206), `crates/provenance-validator/src/validator.rs` (1,200), `crates/factory-contracts/src/build_spec.rs` (1,056), `crates/orchestrator/src/claude_executor.rs` (1,047), `crates/factory-engine/src/migration/stakeholder_docs.rs` (1,041).
 - Desktop is worse: 14 files >1,000 LOC, including `apps/desktop/src-tauri/src/commands/factory.rs` (3,112), `apps/desktop/src/components/ToolWidgets.tsx` (3,000), `apps/desktop/src-tauri/src/commands/claude.rs` (2,951), `apps/desktop/src-tauri/src/commands/agents.rs` (2,589).
 
@@ -313,7 +329,7 @@ The smaller crates (skill-factory 1,227 LOC across the crate; tool-registry 1,11
 
 **Effort to close further: small** for ASI02/06/08 *if* the canonical control definitions are folded into framework data and a content review of remaining specs confirms a defensible mapping exists. **Medium** for product-plane per-certificate ASI gating.
 
-**Reconciliation.** Both planes `PARTIAL`. Producer is at 7/10 honestly; the path to 9/10 is gated on framework-data closure, not on more frontmatter edits.
+**Reconciliation.** Both planes `PARTIAL`. Producer is at 7/10 honestly; the path to 9/10 is gated on framework-data closure, not on more frontmatter edits. The audit's current ASI control names derive from spec 102 §"Phase D" and `docs/launch/gaps.md`; an external research artifact at `_tmp/compass_artifact_wf-...md` may provide canonical OWASP names (see "Framework-data closure — external research artifact available" under post-disclosure closures), adoption deferred to post-disclosure verification.
 
 ---
 
@@ -378,21 +394,35 @@ Medium-to-large items, ordered by impact:
 6. **Cross-run aggregate audit report** (dim. 8). `factory-audit-report` consumer over the substrate. Medium.
 7. **Per-product file-level spec-code traceability** (dim. 6 product, "unrealized win 3"). Extends the producer's coupling discipline into produced projects. Large; most architecturally significant.
 
+### Framework-data closure — external research artifact available
+
+The user holds an external research artifact at `_tmp/compass_artifact_wf-f1ff0eeb-dc39-4a22-b69b-262e5f799823_text_markdown.md` (gitignored; not tracked) that appears to carry canonical OWASP ASI 2026 control names. It enumerates five controls inline — `Agent Goal Hijack (ASI01), Tool Misuse (ASI02), Identity & Privilege Abuse (ASI03), Agentic Supply Chain (ASI04), and so on through ASI10 Rogue Agents` — sourced to the "OWASP GenAI Security Project release" of 2025-12-09. The artifact's provenance to OWASP has not been independently verified in this audit pass: the OWASP source document itself is not embedded or quoted at length, and no per-control definitions are present in the artifact.
+
+Three observations make this a load-bearing post-disclosure item rather than a current edit:
+
+1. **Naming may shift, but control content is unchanged.** The audit's existing seven mapped controls were chosen by reviewing the *behavioural content* of each cited spec (e.g., spec 047 governance-control-plane → goal-hijack-class control; spec 116 supply-chain gates → supply-chain-class control). CONST-005 applies: refuse to chase names that have not been verified against the canonical OWASP framework. The seven existing mappings remain defensible on content even if the name strings shift on verification.
+2. **Discrepancies if compass names are canonical.** Compass calls ASI03 "Identity & Privilege Abuse" (audit: "Privilege Escalation"), ASI04 "Agentic Supply Chain" (audit: "supply-chain compromise"), ASI10 "Rogue Agents" (audit: "Agent Behavior Drift"). The compass also names ASI02 ("Tool Misuse") — which is currently unmapped in this audit.
+3. **ASI06 and ASI08 are not named in the compass.** Closure remains contingent on a canonical source, not on adopting the compass wholesale.
+
+**Closure.** Verify the compass artifact's provenance against the actual OWASP ASI 2026 publication (or the OWASP GenAI Security Project release of 2025-12-09 it cites). If provenance is validated: adopt compass-derived names and definitions in spec 102's framework-data file (`tools/registry-consumer/data/frameworks/owasp-asi-2026.yaml` per closure #1 above), which unblocks honest mapping of any controls compass defines (notably ASI02 against specs 067/068, behavioural fit pre-screened) and refines naming on the seven currently covered. **Effort: medium** — the compass contains names only, no per-control definitions; closure work still includes researching canonical definitions for ASI05/06/07/08/09 (and verifying compass names are themselves canonical) from the OWASP source. If a future compass-like artifact lands with per-control definitions for ASI02/06/08, the sizing drops to **small** (verify and incorporate).
+
+This closure is a refinement of closure #1 above, not a substitute for it. CONST-005 governs: do not edit any spec frontmatter from the compass alone.
+
 ## Appendix: evidence index
 
 **Specs cited (load-bearing):** 000 (bootstrap), 047 (governance-control-plane, ASI mapping), 067 (tool-definition-registry, ASI mapping), 068 (permission-runtime, ASI mapping), 069 (lifecycle-hook-runtime, ASI mapping), 074 (factory-ingestion), 075 (factory-workflow-engine), 088 (factory-upstream-sync, superseded), 091 (registry-enrichment; pre-disclosure pass golden-refresh maintenance note), 102 (governed-excellence; FR-001 to FR-040, six-control ASI baseline), 103 (governed reads), 108 (factory-as-platform-feature), 116 (supply-chain-policy-gates, ASI04 mapping), 119 (project-as-unit-of-governance), 121 (claim-provenance-enforcement; QG-13, ASI mapping), 122 (stakeholder-doc-inversion), 127/130/133 (spec-code coupling gate + amendments), 131 (adversarial-prompt-refusal, CONST-005), 139 (factory-artifact-substrate), 140 (aim-vue-node alignment).
 
-**Code paths cited:** `crates/factory-engine/src/governance_certificate.rs:24–43, 94–103, 147–150, 293–311, 315–427`; `crates/factory-engine/src/bin/verify_certificate.rs`; `crates/factory-engine/src/{stages/quality_gates.rs (842 LOC), manifest_gen.rs (1,206 LOC), verify_harness.rs}`; `crates/factory-contracts/src/{build_spec.rs:16–44, pipeline_state.rs:19–33, stakeholder_docs.rs:40, knowledge.rs:19, adapter_manifest.rs}`; `crates/orchestrator/src/lib.rs (3,081 LOC)`; `crates/policy-kernel/src/lib.rs (792 LOC)`; `tools/{spec-compiler,registry-consumer,codebase-indexer,spec-code-coupling-check}/`; `platform/services/stagecraft/api/factory/{oapNativeAdapters.ts:24–56, translator.ts (941 LOC), upstreams.ts:30–47, substrate.ts, syncWorker.ts}`; `platform/services/stagecraft/api/db/schema.ts:265 (audit_log), :466 (factory_audit_log)`.
+**Code paths cited:** `crates/factory-engine/src/governance_certificate.rs:23–44, 95–103, 147–154, 297–308, 316–409`; `crates/factory-engine/src/bin/verify_certificate.rs`; `crates/factory-engine/src/{stages/quality_gates.rs (842 LOC), manifest_gen.rs (1,206 LOC), verify_harness.rs}`; `crates/factory-contracts/src/{build_spec.rs:16–44, pipeline_state.rs:19–33, stakeholder_docs.rs:40, knowledge.rs:19, adapter_manifest.rs}`; `crates/orchestrator/src/lib.rs (3,081 LOC)`; `crates/policy-kernel/src/lib.rs (792 LOC)`; `tools/{spec-compiler,registry-consumer,codebase-indexer,spec-code-coupling-check}/`; `platform/services/stagecraft/api/factory/{oapNativeAdapters.ts:24–56, translator.ts (941 LOC), upstreams.ts:30–47, substrate.ts, syncWorker.ts}`; `platform/services/stagecraft/api/db/schema.ts:265 (audit_log), :466 (factory_audit_log)`.
 
 **Meta-files cited:** `CLAUDE.md`, `AGENTS.md`, `.specify/contract.md`, `.specify/memory/constitution.md`, `.claude/rules/{orchestrator-rules,governed-artifact-reads,adversarial-prompt-refusal}.md`, `.github/workflows/ci-spec-code-coupling.yml`, `LICENSE` (AGPL-3.0), `README.md`.
 
-**Quantitative checks performed:**
-- 18 Rust crates, 77,467 LOC; 10 files >1,000 LOC, 33 files 500–1,000 LOC.
+**Quantitative checks performed (refreshed 2026-05-11):**
+- 18 Rust crates, 77,467 LOC; **9 files >1,000 LOC** (was 10), 33 files 500–1,000 LOC.
 - 14 desktop files >1,000 LOC (largest 3,112).
-- 100 specs declare `implements:` paths totalling 368 path bindings.
-- 138/143 specs `approved`, 1 draft, 4 superseded (governed read).
-- 132/143 specs traced to code (Layer 2 of CODEBASE-INDEX.md).
-- **7/10 OWASP ASI 2026 controls covered** (governed read; was 6/10 pre-pass; ASI04 newly covered via spec 116, plus depth on the existing six controls via specs 047/067/068/069/121).
+- **102 specs declare `implements:` paths totalling 429 path bindings** (was 100 / 368).
+- **138/147 specs `approved`, 5 draft, 4 superseded** (governed read; was 138/143 with 1 draft).
+- **136/147 specs traced to code** (Layer 2 of CODEBASE-INDEX.md; was 132/143).
+- **7/10 OWASP ASI 2026 controls covered** (governed read; unchanged since 2026-05-07 hardening pass: ASI01/03/04/05/07/09/10; ASI02/06/08 still gated on framework-data closure).
 - 4 adapters registered.
 - 5 policy-kernel tiers.
 
