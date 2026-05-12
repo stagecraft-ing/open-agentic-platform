@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "abe32ca6193fc936e4d9f588fc8e2931fb039570feffed7cf1dedb6b7f4a5274",
+    "contentHash": "d81fe0b4679d4c6939eb7a02ce64c1a6148cd23fc21efa296e4dc9088de5c647",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4918,6 +4918,10 @@
           },
           {
             "path": "platform/services/deployd-api-rs/src/store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts",
             "source": "spec-implements"
           }
         ],
