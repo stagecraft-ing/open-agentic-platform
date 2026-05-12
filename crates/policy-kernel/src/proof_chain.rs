@@ -505,7 +505,7 @@ mod tests {
     #[test]
     fn tamper_anchor_fails_signature() {
         let bundle = sample_bundle_hash();
-        let mut w = ProofChainWriter::new(bundle.clone());
+        let w = ProofChainWriter::new(bundle.clone());
         let anchor = w.build_anchor("chain-002".into(), "2026-05-11T00:00:00Z".into());
 
         // Adversary edits the chain_id but cannot mint a new signature
@@ -530,7 +530,7 @@ mod tests {
     #[test]
     fn anchor_bundle_hash_mismatch_fails() {
         let bundle_a = sample_bundle_hash();
-        let mut w = ProofChainWriter::new(bundle_a.clone());
+        let w = ProofChainWriter::new(bundle_a.clone());
         let anchor = w.build_anchor("chain-003".into(), "2026-05-11T00:00:00Z".into());
 
         let bundle_b = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
