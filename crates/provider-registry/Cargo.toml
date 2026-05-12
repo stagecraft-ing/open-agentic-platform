@@ -34,8 +34,13 @@ tokio-util = { version = "0.7", features = ["rt"] }
 uuid = { version = "1", features = ["v4"] }
 
 # Optional: Bedrock
-aws-sdk-bedrockruntime = { version = "1", optional = true }
-aws-config = { version = "1", optional = true }
+#
+# default-features = false + explicit feature list excludes aws-sdk-bedrockruntime's
+# legacy `rustls` feature, which pulls aws-smithy-http-client/legacy-rustls-ring →
+# rustls 0.21 → rustls-webpki 0.101.7 (RUSTSEC-2026-0098/0099/0104). The modern
+# `default-https-client` path uses rustls 0.23 → rustls-webpki 0.103.x.
+aws-sdk-bedrockruntime = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-config = { version = "1", optional = true, default-features = false, features = ["default-https-client", "rt-tokio", "credentials-process", "sso"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
