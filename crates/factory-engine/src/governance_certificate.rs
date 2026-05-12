@@ -9,14 +9,31 @@
 //! Independently verifiable via `verify-certificate`.
 
 use crate::pipeline_state::FactoryPipelineState;
+use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use chrono::{DateTime, Utc};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::path::Path;
 
 /// Schema version for the governance certificate format.
-pub const CERTIFICATE_VERSION: &str = "1.0.0";
+///
+/// Bumped to 1.1.0 (spec 102 FR-008.1+) to mark the introduction of Ed25519
+/// signing alongside the original FR-008 self-authenticating hash. Verifiers
+/// targeting 1.0.0 fixtures still pass — the new fields are optional in the
+/// serde layer and the signature check is skipped when `signing_public_key`
+/// is empty (such certs are treated as unsigned and rejected by any
+/// HIAS-mode verification).
+pub const CERTIFICATE_VERSION: &str = "1.1.0";
+
+/// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
+/// (FR-008.1). Operator-supplied keys outside the agent's write scope.
+pub const ENV_SIGNING_KEY: &str = "OAP_SIGNING_KEY";
+
+/// Environment-variable name carrying a path to a file holding a base64-
+/// encoded 32-byte Ed25519 seed (FR-008.1). Alternative to `OAP_SIGNING_KEY`.
+pub const ENV_SIGNING_KEY_PATH: &str = "OAP_SIGNING_KEY_PATH";
 
 // ── Top-level Certificate ────────────────────────────────────────────
 
@@ -39,8 +56,57 @@ pub struct GovernanceCertificate {
     pub compliance: Option<ComplianceRecord>,
 
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
-    /// set to empty string. Any post-generation tampering is detectable.
+    /// AND `cert_signature` set to empty string. Content-binding fingerprint
+    /// inside the signed payload — not the authoritative provenance check
+    /// after spec 102 FR-008.1 (see `cert_signature`).
     pub certificate_hash: String,
+
+    /// Base64-encoded Ed25519 public key (32 bytes) — verifier checks
+    /// `cert_signature` against this. Empty for pre-1.1.0 fixtures and
+    /// unsigned certificates; HIAS-mode verifiers reject empty.
+    /// Spec 102 FR-008.2.
+    #[serde(default)]
+    pub signing_public_key: String,
+
+    /// Base64-encoded Ed25519 signature (64 bytes) over canonical JSON
+    /// of the certificate with `cert_signature` set to empty string and
+    /// `certificate_hash` populated. Spec 102 FR-008.1.
+    #[serde(default)]
+    pub cert_signature: String,
+
+    /// Trust-posture descriptor for `signing_public_key`. Spec 102 FR-008.3.
+    #[serde(default)]
+    pub signing_attestation: SigningAttestation,
+}
+
+/// Trust posture for the signing public key (spec 102 FR-008.3).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SigningAttestation {
+    pub kind: SigningAttestationKind,
+    /// Free-form note: operator email, key-rotation epoch, CI run URL, etc.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum SigningAttestationKind {
+    /// No `signing_public_key` was set — pre-1.1.0 fixture or unsigned cert.
+    /// HIAS-strict and non-strict verification both reject these once
+    /// signing material is required by the runtime.
+    #[default]
+    Unsigned,
+    /// Key generated for this run's lifetime; trust is "the run was
+    /// internally consistent." Suitable for local dev.
+    Ephemeral,
+    /// Operator-supplied key via `OAP_SIGNING_KEY` or `OAP_SIGNING_KEY_PATH`.
+    /// Trust is "the operator vouches for runs using this key."
+    Operator,
+    /// Signed by a Sigstore Fulcio-issued certificate and anchored to the
+    /// Rekor transparency log. Required by HIAS-strict. Implementation
+    /// landed in P0-3b (spec 102 FR-008.5).
+    SigstoreRekor,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -255,7 +321,10 @@ impl CertificateBuilder {
         self
     }
 
-    /// Build the certificate, computing the self-authenticating hash (FR-008).
+    /// Build the certificate, computing the self-authenticating hash (FR-008)
+    /// AND the Ed25519 signature (FR-008.1). Signing key is resolved via
+    /// `resolve_signing_material()` — operator env vars take precedence,
+    /// ephemeral fallback for local dev.
     pub fn build(self) -> GovernanceCertificate {
         let has_failure = self.stages.iter().any(|s| s.status == StageOutcome::Failed);
 
@@ -264,6 +333,9 @@ impl CertificateBuilder {
         } else {
             CertificateStatus::Complete
         };
+
+        let (signing_key, attestation) = resolve_signing_material();
+        let public_key_b64 = B64.encode(signing_key.verifying_key().to_bytes());
 
         let mut cert = GovernanceCertificate {
             certificate_version: CERTIFICATE_VERSION.into(),
@@ -280,23 +352,94 @@ impl CertificateBuilder {
             proof_chain: self.proof_chain,
             compliance: self.compliance,
             certificate_hash: String::new(),
+            signing_public_key: public_key_b64,
+            cert_signature: String::new(),
+            signing_attestation: attestation,
         };
 
-        // FR-008: self-authenticating hash.
+        // FR-008 (revised): content-binding hash. Zeros cert_hash AND
+        // cert_signature so the hash is stable across signing.
         cert.certificate_hash = compute_certificate_hash(&cert);
+
+        // FR-008.1: Ed25519 signature over canonical JSON with cert_signature
+        // zeroed and cert_hash populated. Signing happens after hashing so
+        // the signature attests both the content and its content-binding
+        // fingerprint.
+        cert.cert_signature = compute_certificate_signature(&cert, &signing_key);
         cert
     }
 }
 
-// ── Hash Computation ─────────────────────────────────────────────────
+// ── Signing-key Resolution ───────────────────────────────────────────
 
-/// Compute the self-authenticating SHA-256 hash of a certificate.
+/// Resolve the Ed25519 signing key per spec 102 FR-008.1:
+///   1. `OAP_SIGNING_KEY` env var (base64, 32-byte seed) — `Operator` kind.
+///   2. `OAP_SIGNING_KEY_PATH` env var (file path) — `Operator` kind.
+///   3. Ephemeral key generated for this run — `Ephemeral` kind.
 ///
-/// Sets `certificateHash` to empty string, serialises to canonical JSON
-/// (serde_json with BTreeMap keys already sorted), then hashes.
+/// Returns the signing key plus the attestation describing the trust
+/// posture. Malformed operator-supplied material panics — the caller
+/// should not silently fall back to ephemeral when the operator
+/// expressly attempted to supply a key (that would be a quiet downgrade).
+pub fn resolve_signing_material() -> (SigningKey, SigningAttestation) {
+    if let Ok(b64) = std::env::var(ENV_SIGNING_KEY) {
+        let seed = decode_seed(&b64).unwrap_or_else(|e| {
+            panic!("{ENV_SIGNING_KEY} is set but malformed: {e}");
+        });
+        return (
+            SigningKey::from_bytes(&seed),
+            SigningAttestation {
+                kind: SigningAttestationKind::Operator,
+                note: Some(format!("source={ENV_SIGNING_KEY}")),
+            },
+        );
+    }
+    if let Ok(path) = std::env::var(ENV_SIGNING_KEY_PATH) {
+        let contents = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            panic!("{ENV_SIGNING_KEY_PATH}={path} unreadable: {e}");
+        });
+        let seed = decode_seed(contents.trim()).unwrap_or_else(|e| {
+            panic!("{ENV_SIGNING_KEY_PATH}={path} content malformed: {e}");
+        });
+        return (
+            SigningKey::from_bytes(&seed),
+            SigningAttestation {
+                kind: SigningAttestationKind::Operator,
+                note: Some(format!("source={ENV_SIGNING_KEY_PATH}:{path}")),
+            },
+        );
+    }
+    let mut rng = rand::rngs::OsRng;
+    (
+        SigningKey::generate(&mut rng),
+        SigningAttestation {
+            kind: SigningAttestationKind::Ephemeral,
+            note: Some("auto-generated for pipeline run".into()),
+        },
+    )
+}
+
+fn decode_seed(s: &str) -> Result<[u8; 32], String> {
+    let bytes = B64.decode(s.trim()).map_err(|e| format!("base64: {e}"))?;
+    bytes
+        .try_into()
+        .map_err(|v: Vec<u8>| format!("seed length {} != 32", v.len()))
+}
+
+// ── Hash + Signature Computation ─────────────────────────────────────
+
+/// Compute the content-binding SHA-256 hash of a certificate (FR-008 revised).
+///
+/// Zeros both `certificate_hash` AND `cert_signature` so the hash is
+/// invariant under signing — the signature can be re-computed without
+/// invalidating the hash. The hash is no longer the authoritative
+/// provenance check (see `compute_certificate_signature` + FR-008.4); it
+/// remains as a content fingerprint and an accidental-corruption guard
+/// inside the signed payload.
 pub fn compute_certificate_hash(cert: &GovernanceCertificate) -> String {
     let mut cert_for_hash = cert.clone();
     cert_for_hash.certificate_hash = String::new();
+    cert_for_hash.cert_signature = String::new();
 
     // Canonical JSON: serde_json produces deterministic output for BTreeMap.
     // For Vec fields, order is preserved as inserted.
@@ -305,6 +448,58 @@ pub fn compute_certificate_hash(cert: &GovernanceCertificate) -> String {
     let mut hasher = Sha256::new();
     hasher.update(canonical.as_bytes());
     format!("{:x}", hasher.finalize())
+}
+
+/// Compute the Ed25519 signature of a certificate (FR-008.1).
+///
+/// Signs the canonical JSON of the certificate with `cert_signature` set
+/// to empty string and `certificate_hash` *populated* — the signature
+/// attests both the content and the content-binding fingerprint. Returns
+/// the base64-encoded 64-byte signature.
+pub fn compute_certificate_signature(cert: &GovernanceCertificate, key: &SigningKey) -> String {
+    let mut cert_for_sig = cert.clone();
+    cert_for_sig.cert_signature = String::new();
+    let canonical =
+        serde_json::to_string(&cert_for_sig).expect("certificate serialises to JSON for signing");
+    let sig: Signature = key.sign(canonical.as_bytes());
+    B64.encode(sig.to_bytes())
+}
+
+/// Verify the Ed25519 signature on a certificate. Returns `Err` with a
+/// specific diagnostic on failure (FR-008.4).
+fn verify_certificate_signature(cert: &GovernanceCertificate) -> Result<(), String> {
+    if cert.signing_public_key.is_empty() {
+        return Err(
+            "certificate is unsigned (signing_public_key empty) — rejected per FR-008.2".into(),
+        );
+    }
+    if cert.cert_signature.is_empty() {
+        return Err("certificate is unsigned (cert_signature empty) — rejected per FR-008.1".into());
+    }
+    let pk_bytes: [u8; 32] = B64
+        .decode(&cert.signing_public_key)
+        .map_err(|e| format!("signing_public_key base64 decode: {e}"))?
+        .try_into()
+        .map_err(|v: Vec<u8>| {
+            format!("signing_public_key length {} != 32", v.len())
+        })?;
+    let verifying_key = VerifyingKey::from_bytes(&pk_bytes)
+        .map_err(|e| format!("signing_public_key not a valid Ed25519 point: {e}"))?;
+    let sig_bytes: [u8; 64] = B64
+        .decode(&cert.cert_signature)
+        .map_err(|e| format!("cert_signature base64 decode: {e}"))?
+        .try_into()
+        .map_err(|v: Vec<u8>| format!("cert_signature length {} != 64", v.len()))?;
+    let sig = Signature::from_bytes(&sig_bytes);
+
+    let mut cert_for_sig = cert.clone();
+    cert_for_sig.cert_signature = String::new();
+    let canonical = serde_json::to_string(&cert_for_sig)
+        .map_err(|e| format!("certificate re-serialises to JSON for verification: {e}"))?;
+
+    verifying_key
+        .verify(canonical.as_bytes(), &sig)
+        .map_err(|e| format!("Ed25519 signature verification failed: {e}"))
 }
 
 // ── Generation from Pipeline State ───────────────────────────────────
@@ -443,13 +638,26 @@ pub struct VerificationResult {
 /// Verify a governance certificate by re-deriving hashes and checking integrity.
 ///
 /// FR-007: exits 0 on success, 1 on any mismatch.
+///
+/// Spec 102 FR-008.4: signature verification runs FIRST and is the
+/// authoritative provenance check. The content-binding hash check is
+/// retained but is now defence-in-depth, not the primary check.
 pub fn verify_certificate(
     cert: &GovernanceCertificate,
     artifact_dir: Option<&Path>,
 ) -> VerificationResult {
     let mut errors = Vec::new();
 
-    // 1. Verify certificate self-hash (FR-008).
+    // 0. Verify Ed25519 signature first (FR-008.4). This is the authoritative
+    //    provenance check post-amendment — a tamper-with-resign attack that
+    //    only updates the SHA-256 hash but cannot mint a valid signature
+    //    over the modified content is caught here.
+    if let Err(diagnostic) = verify_certificate_signature(cert) {
+        errors.push(diagnostic);
+    }
+
+    // 1. Verify certificate self-hash (FR-008 revised — content binding,
+    //    defence-in-depth).
     let expected_hash = compute_certificate_hash(cert);
     if cert.certificate_hash != expected_hash {
         errors.push(format!(
@@ -543,14 +751,120 @@ mod tests {
         .build_spec_hash("spec-hash")
         .build();
 
-        // Tamper with a field.
+        // Tamper with a field. The naive tamper (no resign) trips BOTH the
+        // signature check (FR-008.4 — authoritative) AND the hash check
+        // (FR-008 revised — content binding). Either is sufficient.
         let mut tampered = cert.clone();
         tampered.intent.requirements_hash = "TAMPERED".into();
-        // Don't recompute the hash — the original hash should now be wrong.
 
         let result = verify_certificate(&tampered, None);
         assert!(!result.valid);
-        assert!(result.errors[0].contains("certificate hash mismatch"));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("certificate hash mismatch")),
+            "expected hash mismatch error among: {:?}",
+            result.errors
+        );
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Ed25519 signature verification failed")),
+            "expected signature failure among: {:?}",
+            result.errors
+        );
+    }
+
+    /// HIAS finding closure: the report's load-bearing claim was that an
+    /// adversary with write access could tamper a field AND recompute the
+    /// SHA-256 hash, producing a tampered cert that still passes
+    /// `verify_certificate`. Post FR-008.1 amendment, the signature is the
+    /// authoritative provenance check — recomputing the hash without access
+    /// to the signing key cannot mint a valid signature, so the tamper is
+    /// caught at step 0 of `verify_certificate`.
+    #[test]
+    fn tamper_with_hash_resign_attack_is_caught_by_signature() {
+        let cert = CertificateBuilder::new(
+            "run-hias-001",
+            IntentRecord {
+                requirements_hash: "orig".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("spec-hash")
+        .build();
+
+        // Adversary: tamper a field, then re-mint the SHA-256 hash so the
+        // cert is internally hash-consistent. Under the pre-amendment
+        // FR-008 contract, this would have passed verification — the
+        // exact attack the HIAS readiness assessment surfaced as Critical.
+        let mut tampered = cert.clone();
+        tampered.intent.requirements_hash = "TAMPERED-BUT-RESIGNED".into();
+        tampered.certificate_hash = compute_certificate_hash(&tampered);
+
+        // Hash check alone now passes — the attack succeeded against
+        // FR-008 (revised, content-binding only).
+        let hash_only = compute_certificate_hash(&tampered);
+        assert_eq!(
+            tampered.certificate_hash, hash_only,
+            "hash-only check is no longer authoritative — this is expected"
+        );
+
+        // But the Ed25519 signature was computed by the original key over
+        // the ORIGINAL canonical bytes (cert_signature blank + original
+        // certificate_hash). The adversary lacks the signing key and
+        // cannot mint a new signature. Verification MUST fail at the
+        // signature step (FR-008.4).
+        let result = verify_certificate(&tampered, None);
+        assert!(
+            !result.valid,
+            "tamper-with-resign attack should fail signature check (FR-008.4); errors: {:?}",
+            result.errors
+        );
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Ed25519 signature verification failed")),
+            "expected Ed25519 signature failure; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// Sanity: a clean certificate verifies cleanly under signature + hash
+    /// + version checks. Regression guard against the signing path being
+    /// off-by-one with the hash path (e.g., wrong field-zeroing order).
+    #[test]
+    fn clean_certificate_verifies() {
+        let cert = CertificateBuilder::new(
+            "run-clean",
+            IntentRecord {
+                requirements_hash: "abc".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("spec")
+        .build();
+
+        // Built cert should be self-consistent.
+        assert!(!cert.signing_public_key.is_empty(), "public key set");
+        assert!(!cert.cert_signature.is_empty(), "signature set");
+        assert_eq!(
+            cert.signing_attestation.kind,
+            SigningAttestationKind::Ephemeral,
+            "test env has no OAP_SIGNING_KEY → ephemeral fallback"
+        );
+
+        let result = verify_certificate(&cert, None);
+        assert!(
+            result.valid,
+            "clean cert must verify cleanly; errors: {:?}",
+            result.errors
+        );
     }
 
     #[test]

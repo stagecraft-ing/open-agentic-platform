@@ -189,6 +189,99 @@ The `verify-certificate` command independently re-derives all hashes from source
 
 - **FR-010**: System MUST emit a `governance-certificate-generated` SSE event via the orchestrator's `LocalEventNotifier` when a certificate is successfully produced.
 
+> **Amendment 2026-05-11 — Cryptographic Provenance over Self-Hash.**
+> An external HIAS readiness assessment surfaced FR-008's `certificateHash`
+> as insufficient cryptographic provenance: a self-referential SHA-256 over
+> the certificate's own canonical JSON is tamper-evident against accidental
+> corruption but **not** against an adversary who can write the certificate
+> file. Any process with write access can modify any field, recompute the
+> hash with `certificateHash` zeroed, write the new hash back, and the
+> verifier accepts the tampered cert as valid. The reviewer-facing summary
+> is the hash-vs-signature category error: hashing is a binding (this byte
+> stream produced this digest); signing is a provenance claim (this private
+> key vouched for these bytes). FR-008 conflated the two; this amendment
+> separates them.
+>
+> The amendment is **additive** — FR-008's `certificateHash` is retained
+> as a content-binding fingerprint *inside the signed payload* (still
+> useful for content-addressing and accidental-corruption detection).
+> Authoritative provenance now lives in a new Ed25519 signature.
+>
+> - **FR-008.1** (Ed25519 signature). The governance certificate MUST
+>   carry a `cert_signature` field (base64) containing an Ed25519
+>   signature over the canonical JSON of the certificate with
+>   `cert_signature` set to empty string and `certificate_hash` already
+>   populated. The signing key is resolved at certificate-generation
+>   time from `OAP_SIGNING_KEY` (base64-encoded 32-byte seed) or
+>   `OAP_SIGNING_KEY_PATH` (file path to a base64-encoded seed); if
+>   neither is set, an ephemeral key is generated for the lifetime of
+>   the pipeline run and the certificate is marked
+>   `signing_attestation.kind: "ephemeral"` (see FR-008.3).
+>
+> - **FR-008.2** (Public-key embedding). The certificate MUST carry a
+>   `signing_public_key` field (base64, 32 bytes) so the verifier can
+>   check the signature without external key infrastructure. This makes
+>   the cert self-attesting *for the binding cert↔public_key*; the
+>   verifier's trust in the public key itself is established by the
+>   `signing_attestation` taxonomy below.
+>
+> - **FR-008.3** (Signing attestation taxonomy). The certificate MUST
+>   carry a `signing_attestation` object describing what the public key
+>   means:
+>   - `kind: "ephemeral"` — key generated for this run only; trust is
+>     "the run produced consistent claims," nothing more. Suitable for
+>     local dev. Rejected by HIAS-strict verification.
+>   - `kind: "operator"` — key supplied via `OAP_SIGNING_KEY` or
+>     `OAP_SIGNING_KEY_PATH` by an operator outside the agent's write
+>     scope. Trust is "the operator who provisioned this key vouches
+>     for runs using it." Suitable for non-CI signed environments.
+>   - `kind: "sigstore-rekor"` — anchored to the Sigstore transparency
+>     log via the CI workflow's GitHub Actions OIDC identity; trust is
+>     "an auditor can independently verify this binding without trusting
+>     OAP infrastructure." Required by HIAS-strict verification.
+>     (Implemented by a companion spec amendment — see deferred work
+>     below.)
+>
+> - **FR-008.4** (Verifier signature check). `verify_certificate` MUST
+>   verify `cert_signature` against `signing_public_key` and the
+>   canonical JSON before any other check; signature failure MUST cause
+>   `verify_certificate` to exit 1 with a specific diagnostic. The
+>   self-hash check (FR-008 original) remains but is no longer the
+>   authoritative provenance check — it is a redundant content-binding
+>   assertion.
+>
+> - **FR-008.5** (HIAS-strict mode — deferred to follow-up amendment).
+>   `verify_certificate` MUST grow a `--hias-strict` flag that rejects
+>   any certificate whose `signing_attestation.kind` is not
+>   `"sigstore-rekor"`, and additionally validates the Rekor inclusion
+>   proof. The default (non-strict) mode accepts `"ephemeral"`,
+>   `"operator"`, and `"sigstore-rekor"` certificates as cryptographically
+>   valid (subject to signature verification) but does not anchor the
+>   public key's trust externally. This FR is **scoped out of the
+>   initial Ed25519 landing** — it is the contract for a follow-up
+>   change that adds the CI workflow Sigstore step + Rekor-aware
+>   verifier. Landing the Ed25519 signing first establishes the
+>   substrate (canonical-bytes layout, signature field placement,
+>   verifier hook) that the Sigstore step layers over.
+>
+> - **FR-008.6** (Proof-chain anchor signing). The proof-chain
+>   `policy_bundle_hash` initial-record anchor has the same self-
+>   referential weakness as the original FR-008 (the chain re-derives
+>   its own hashes; an adversary who can regenerate the chain produces
+>   a consistent-looking chain with no external anchor). Spec 047's
+>   ProofChain MUST carry an Ed25519 signature over the genesis link
+>   using the same key resolution as FR-008.1, so a signed certificate
+>   anchored to a chain rooted in an unsigned bundle hash is not a
+>   shippable inconsistency. The chain-side change is contracted by an
+>   amendment to spec 047 (FR-009-1, FR-009-2) landing in the same PR.
+>
+> **Scope of the immediate landing (P0-3a).** FR-008.1, FR-008.2,
+> FR-008.3 (kinds `ephemeral` and `operator` only), FR-008.4,
+> FR-008.6, and the companion spec 047 amendment. FR-008.3
+> (`sigstore-rekor` kind) and FR-008.5 (HIAS-strict mode) are
+> contracted but unbuilt; they land in P0-3b alongside the CI workflow
+> Sigstore step.
+
 ### Phase B — Governance Plumbing Completion (FR-011 to FR-020)
 
 *Wire the policy bridge, author stage gate configs, compose evaluation paths, harden platform seams.*

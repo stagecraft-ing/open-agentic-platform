@@ -96,6 +96,41 @@ The policy compiler reuses the spec-compiler's frontmatter parsing and validatio
   - **Suspended** — all operations blocked pending human review. Assigned when severe drift detected (coherence < 0.2).
 - **FR-009**: Every policy decision (allow, deny, degrade) produces a **proof record** containing: decision ID (UUID), timestamp, policy bundle content hash, rule ID(s) consulted, input context hash, decision outcome, and a chained hash linking to the previous proof record.
 - **FR-010**: The proof chain is append-only and can be verified independently: given the chain and the policy bundle, any third party can replay decisions and confirm the chain integrity.
+
+> **Amendment 2026-05-11 — Proof-chain Anchor Signing (companion to spec 102 FR-008.6).**
+> The chain's `policy_bundle_hash` genesis link is a self-referential
+> anchor: an adversary who can regenerate the chain produces a
+> consistent-looking sequence of `record_hash`/`previous_record_hash`
+> pairs with no external trust root. Spec 102's HIAS-driven amendment
+> introduces an Ed25519 signature over the governance certificate; the
+> same finding applies one level deeper to this chain. Shipping a
+> signed certificate that vouches for a chain rooted in an unsigned
+> bundle hash is the kind of inconsistency a reviewer surfaces
+> immediately. This amendment closes that gap.
+>
+> - **FR-009.1** (Chain anchor signature). The `ProofChain` (and the
+>   builder that constructs it) MUST carry a `genesis_signature` field
+>   (base64 Ed25519 signature) over the canonical-JSON serialisation
+>   of `{ chain_id, policy_bundle_hash, genesis_timestamp }` — the
+>   trio identifying the chain's starting point. The signing key
+>   resolution is shared with spec 102 FR-008.1 (`OAP_SIGNING_KEY` /
+>   `OAP_SIGNING_KEY_PATH` / ephemeral fallback).
+>
+> - **FR-009.2** (Anchor verification). The proof-chain verifier
+>   (`verify_proof_chain` in `policy-kernel/src/bin/`) MUST verify the
+>   `genesis_signature` against the chain's embedded
+>   `genesis_public_key` (FR-009.3) before walking the per-record
+>   hash chain. Signature failure MUST cause verification to exit 1
+>   with a specific diagnostic distinguishing "chain genesis is
+>   unsigned" from "chain genesis signature is invalid."
+>
+> - **FR-009.3** (Anchor public-key embedding). The chain MUST carry
+>   a `genesis_public_key` (base64, 32 bytes) and a
+>   `genesis_attestation` taxonomy field mirroring spec 102 FR-008.3
+>   (`ephemeral` | `operator` | `sigstore-rekor`). HIAS-strict
+>   verification (deferred companion to spec 102 FR-008.5) MUST reject
+>   chains whose `genesis_attestation.kind` is not `"sigstore-rekor"`.
+
 - **FR-011**: The policy compiler validates all policy source files and reports errors using a violation code scheme consistent with the spec-compiler (V-series codes).
 
 ### Non-functional
