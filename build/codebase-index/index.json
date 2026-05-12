@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d3f878d613ebf785c6da82390bc610a8171d028caf9fc393131d8914bb7f8eb9",
+    "contentHash": "2e8c459820f419ddc7cefddce9be2c97c8ba3fa74757c0450febc9c4bf153403",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -470,11 +470,14 @@
       ],
       "externalDeps": [
         "async-trait",
+        "base64",
         "chrono",
         "clap",
         "dirs",
+        "ed25519-dalek",
         "infer",
         "jsonschema",
+        "rand",
         "regex",
         "reqwest",
         "serde",
@@ -619,11 +622,14 @@
         "src/bin/verify_proof_chain.rs"
       ],
       "externalDeps": [
+        "base64",
         "chrono",
         "dirs",
+        "ed25519-dalek",
         "glob",
         "hex",
         "notify",
+        "rand",
         "regex",
         "serde",
         "serde_json",

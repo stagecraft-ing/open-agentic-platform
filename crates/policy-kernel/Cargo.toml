@@ -18,11 +18,17 @@ default = ["native"]
 native = ["dep:notify"]
 
 [dependencies]
+# Spec 047 FR-009.1 — Ed25519 signing for proof-chain genesis anchor.
+# Companion to factory-engine's spec 102 FR-008.1 cert signing; same key
+# resolution semantics for a coherent provenance story.
+base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
 glob = "0.3"
 hex = "0.4"
 notify = { version = "8", optional = true }
+rand = "0.8"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

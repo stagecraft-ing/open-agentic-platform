@@ -29,6 +29,11 @@ urlencoding = "2"
 infer = "0.19"
 uuid = { version = "1", features = ["v4", "serde"] }
 sha2 = "0.10"
+# Spec 102 FR-008.1 — Ed25519 signing for governance certificates.
+# `rand_core` 0.6 matches ed25519-dalek 2's expected RNG interface.
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+base64 = "0.22"
 jsonschema = "0.46"
 regex = "1"
 walkdir = "2"
