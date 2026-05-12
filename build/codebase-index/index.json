@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2e8c459820f419ddc7cefddce9be2c97c8ba3fa74757c0450febc9c4bf153403",
+    "contentHash": "79ee788a84f4f066834c5b3ef4619bb25f9d6818d01f600c618c8880e4c7afc1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -47,10 +47,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"145-deployd-durability\" declares implements path \"docs/runbooks/deployd-api-durability.md\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
