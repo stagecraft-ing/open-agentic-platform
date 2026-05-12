@@ -37,11 +37,14 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              rm -rf /var/lib/deployd/data/*
-              exec /usr/local/bin/deployd-api
+          # No command/args wrapper — falls back to the image's default
+          # `CMD ["deployd-api"]` (Dockerfile L12). Spec 145 §2.2 Option B:
+          # the previous boot-scrub wiped the Hiqlite data subtree on every
+          # pod restart even when persistence.enabled, destroying the
+          # deployd audit trail. The cd84f1e9 stale-lock workaround that
+          # motivated the wider scrub was a hiqlite-pre-0.13 issue addressed
+          # upstream; hiqlite 0.13.1 manages its lock file internally on
+          # first-boot. Static guards: spec145-deployd-scrub.config.test.ts.
           ports:
             - containerPort: 8080
           env:

@@ -29,6 +29,7 @@ implements:
   - path: platform/services/deployd-api-rs/src/store.rs
   - path: platform/services/deployd-api-rs/src/config.rs
   - path: docs/runbooks/deployd-api-durability.md
+  - path: platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts
 summary: >
   The `deployments` and `deployment_events` tables in deployd-api-rs's
   Hiqlite store are the audit trail of who deployed what, when, with
@@ -255,6 +256,30 @@ A in a follow-up commit before merging.
 the now-populated PVC; confirm `deployments` and `deployment_events`
 rowsets unchanged, and that Hiqlite first-boot completes without
 manual intervention.
+
+**Rationale — partial landing ahead of the full chain (2026-05-11).**
+An external HIAS readiness assessment surfaced the `rm -rf
+/var/lib/deployd/data/*` boot scrub as a Critical/High finding: the
+wipe destroys the deployd audit trail (`deployments` and
+`deployment_events` rowsets) on every pod restart even when
+`persistence.enabled: true` mounts a PVC at `/var/lib/deployd` — the
+PVC survives but its contents do not, which is the worst-of-both
+outcome (durable from K8s's perspective, ephemeral from the
+application's). The §2.2 Option-B landing — removing the
+`command`/`args` wrapper so the container falls back to the image's
+default entrypoint — is being applied ahead of §2.1 (PVC flip), §2.3
+(Cargo features), and §2.4 (restore-on-startup). This is a partial
+implementation of the four-coupled-fixes contract this spec
+otherwise lands as a unit: removing the destructive scrub closes the
+immediate audit-trail loss on the actively-shipping Hetzner deploy
+while the rest of the durability chain is sequenced. Spec status
+remains `draft` and `implementation: pending` to reflect that §2.1,
+§2.3, §2.4 are still owed. Self-disclosure pattern: future readers
+should see that this section landed first because it was the only
+self-contained safety fix in the chain — not because the chain itself
+was reordered. The drift between the spec's "lands as one unit"
+framing in the summary and this partial-landing reality is
+deliberate and audited.
 
 ### 2.3 Cargo — enable `backup`, `s3`, `auto-heal`; env-translation layer
 
