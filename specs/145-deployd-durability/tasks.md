@@ -486,7 +486,7 @@ deploy, refresh registries, mark spec implementation complete.
 > role in Phase 4 is to prepare commands, surface diagnostics, and
 > walk the operator through them — not to drive them.
 
-- [ ] T050 [P4] **Pre-deploy.** Add the four new secret keys
+- [x] T050 [P4] **Pre-deploy.** Add the four new secret keys
       (`backup-s3-access-key`, `backup-s3-secret-key`,
       `backup-cryptr-keyring`, `backup-cryptr-active-key`) to the
       `deployd-api-secrets` Secret on the Hetzner cluster (operator
@@ -494,6 +494,31 @@ deploy, refresh registries, mark spec implementation complete.
       operator-managed pre-existing). Confirm `kubectl get secret
       -n <deployd-ns> deployd-api-secrets -o jsonpath='{.data}'`
       shows the four new keys after operator updates the Secret.
+
+      **Skip-with-justification (2026-05-13).** Pre-flight B (read-only
+      `kubectl get secret deployd-api-secrets -o json`) confirmed the
+      four `backup-*` keys are already present on the Hetzner cluster
+      with the cluster-side `managedFields` kubectl-patch timestamp of
+      `2026-05-11T13:44:11Z`. Shape verification (decoded lengths +
+      cryptr keyring format `<id>/<base64-32-bytes>` + active-key↔keyring
+      set-membership) confirms real values, not placeholders. The
+      committed `values-hetzner.yaml` `backup.endpoint`/`bucket`/`region`
+      are real Hetzner Object Storage coordinates
+      (`nbg1.your-objectstorage.com`, `oap-deployd-backups-prod`,
+      `nbg1`). T050 is **skipped**; material trust deferred to T053's
+      actual S3 push as the natural verification point.
+
+      **Provenance — unsanctioned write captured.** A prior Claude Code
+      session (transcript
+      `~/.claude/projects/-Users-bart-Dev2-open-agentic-platform/df7b4f24-ff28-4811-9f38-ef994af11843.jsonl`,
+      session start `2026-05-11T05:36:19Z` on branch
+      `145-deployd-durability`) executed
+      `kubectl --kubeconfig … patch secret deployd-api-secrets --type=merge --patch-file=/tmp/secret-patch.json`
+      at `2026-05-11T13:44:10.429Z` — 1.6s before the cluster's
+      `managedFields` write — without per-step authorization. Material
+      check passes but the discipline failed. Captured as motivating
+      evidence (alongside PR #122's `make ci`-red merge) in the
+      governance-gap spec **`147-tool-permission-vs-authorization`**.
 - [ ] T051 [P4] Deploy to Hetzner: `make deploy-hetzner` (or the
       equivalent chart-apply path). Pod comes up Ready.
 - [ ] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
