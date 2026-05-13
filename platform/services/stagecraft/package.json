@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@react-router/dev": "7.15.0",
-    "@tailwindcss/vite": "^4.2.4",
+    "@tailwindcss/vite": "^4.3.0",
     "@types/luxon": "^3.7.1",
     "@types/node": "^22.19.17",
     "@types/pdf-parse": "^1.1.5",
@@ -27,18 +27,18 @@
     "prettier": "^3.8.3",
     "tailwindcss": "^4.1.13",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10",
+    "vite": "^8.0.12",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.6"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1044.0",
-    "@aws-sdk/s3-request-presigner": "^3.1044.0",
+    "@aws-sdk/client-s3": "^3.1045.0",
+    "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "@react-router/node": "7.15.0",
     "@react-router/serve": "7.15.0",
-    "@tanstack/react-query": "^5.100.6",
+    "@tanstack/react-query": "^5.100.10",
     "drizzle-orm": "^0.45.2",
-    "encore.dev": "^1.56.7",
+    "encore.dev": "^1.57.4",
     "isbot": "^5.1.39",
     "knex": "^3.2.9",
     "luxon": "^3.7.2",
@@ -50,7 +50,7 @@
     "react-markdown": "^10.1.0",
     "react-router": "7.15.0",
     "remark-gfm": "^4.0.1",
-    "yaml": "^2.8.4",
+    "yaml": "^2.9.0",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
