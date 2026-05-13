@@ -31,7 +31,7 @@ unicode-normalization = "0.1"
 # Test-only deps. `chrono` is needed for fixture timestamps; `tempfile`
 # for the read-only audit test.
 [dev-dependencies]
-toml = "0.8"
+toml = "1.1"
 chrono = { version = "0.4", features = ["serde"] }
 tempfile = "3"
 
