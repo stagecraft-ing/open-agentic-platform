@@ -534,7 +534,7 @@ deploy, refresh registries, mark spec implementation complete.
       `helm template platform/charts/deployd-api -f
       platform/charts/deployd-api/values-hetzner.yaml` renders
       cleanly (re-confirmed against the post-PR working tree).
-- [ ] T058 [P4] **AC-9.** `make ci` (warm) → exit 0.
+- [x] T058 [P4] **AC-9.** `make ci` (warm) → exit 0.
 - [x] T059 [P4] **AC-8.**
       `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
       → no warnings against spec 145's `implements:` list.
