@@ -836,7 +836,7 @@ mod tests {
 
     /// Sanity: a clean certificate verifies cleanly under signature + hash
     /// + version checks. Regression guard against the signing path being
-    /// off-by-one with the hash path (e.g., wrong field-zeroing order).
+    ///   off-by-one with the hash path (e.g., wrong field-zeroing order).
     #[test]
     fn clean_certificate_verifies() {
         let cert = CertificateBuilder::new(
