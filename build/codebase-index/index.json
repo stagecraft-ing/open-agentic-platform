@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2e8c459820f419ddc7cefddce9be2c97c8ba3fa74757c0450febc9c4bf153403",
+    "contentHash": "7e7c388a016858f920c0f9053f7202414336eabc75029e3ca569c46eb9f42891",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4950,6 +4950,30 @@
           }
         ],
         "specId": "146-deployd-api-memory-hardening",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "104",
+          "131",
+          "134",
+          "135"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/rules",
+            "source": "spec-implements"
+          },
+          {
+            "path": "AGENTS.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/ci-parity-check/src",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "147-tool-permission-vs-authorization",
         "specStatus": "draft"
       }
     ],
