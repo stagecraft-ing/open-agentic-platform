@@ -36,7 +36,7 @@
     "@google/generative-ai": "^0.24.1",
     "@opc/claude-code-bridge": "workspace:*",
     "@opc/permission-system": "workspace:*",
-    "openai": "^4.104.0"
+    "openai": "^6.37.0"
   },
   "oap": {
     "spec": "042-multi-provider-agent-registry"
