@@ -20,7 +20,7 @@ summary: |
   implements claims, resolving spec 130 OQ-1. Introduces governance-lifecycle
   fields (`supersedes`, `superseded_by`, `retirement_rationale`) that
   retire the prose-scan workarounds W-002 and W-003.
-amends: ["000", "128"]
+amends: ["000", "128", "001", "006", "101", "132", "133"]
 amends_sections: []
 compliance:
   - framework: owasp-asi-2026
@@ -42,6 +42,19 @@ Spec 147 classifies itself per the grammar it introduces:
 table this amendment establishes, this is the precise
 self-description. Precedent specs 119 and 132 (both `kind:
 governance`) are not reclassified — see §Out of scope.
+
+The `amends:` list is `["000", "128", "001", "006", "101", "132",
+"133"]`. The spec/code coupling gate (spec 127, amended by 130/133)
+surfaces each tool surface that 147 modifies as a real amendment of
+the spec that owns it: 001 (spec-compiler, gains V-012..V-019), 006
+(spec-lint, gains W-130/131/132 and the severity-tier registration
+mechanism that spec 128 §7 governs), 101 (codebase-index, gains the
+`primary` flag and bumps the index schema 1.3.0 → 1.4.0), 132 (the
+registry schema 1.4.0 surface that 132 froze, now bumped to 1.5.0
+with new field declarations), and 133 (the index schema 1.3.0
+surface that 133 extended, now extended further). These specs all
+gain `amended:` / `amendment_record:` frontmatter and a body
+callout per spec 119's convention.
 
 **Commitment 1 — Optionality.** Every new universal frontmatter field
 introduced by this amendment (`kind` as enum, `shape`, `category`,

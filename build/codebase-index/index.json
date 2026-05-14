@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4cd9f2a8887ca35aed420ece2570fef2c76c8b630cfe0d31ee0e4dde9358726b",
+    "contentHash": "5e27ddcd94f8a9b534a7989e077fd597680a704781a57f24d5a2c290b17dd089",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1542,6 +1542,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_compiler",
@@ -1598,7 +1599,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "128-spec-lint-default-fail-on-warn",
+        "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_lint",
@@ -2755,6 +2756,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "dependsOn": [
           "000",
           "001",
@@ -4134,6 +4136,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "amends": [
           "000-bootstrap-spec-system"
         ],
@@ -4155,6 +4158,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "dependsOn": [
           "119",
           "127",
@@ -4956,7 +4960,12 @@
       {
         "amends": [
           "000-bootstrap-spec-system",
-          "128-spec-lint-default-fail-on-warn"
+          "128-spec-lint-default-fail-on-warn",
+          "001-spec-compiler-mvp",
+          "006-conformance-lint-mvp",
+          "101-codebase-index-mvp",
+          "132-constitutional-invariant-freeze",
+          "133-amends-aware-coupling-gate"
         ],
         "implementingPaths": [],
         "specId": "147-spec-kind-grammar",
