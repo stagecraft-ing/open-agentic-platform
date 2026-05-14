@@ -11,7 +11,12 @@ use serde::{Deserialize, Serialize};
 /// `amendmentRecord` string surface the spec 119 amendment protocol so
 /// the spec/code coupling gate can recognise amender→amended edits as
 /// valid coupling alongside `implements:`).
-pub const SCHEMA_VERSION: &str = "1.3.0";
+/// Bumped to 1.4.0 in spec 147 (ImplementingPath extended with optional
+/// `primary` boolean. Surfaces per-claim primary ownership for paths
+/// declared via the new `implements:` list-item shape; downgrades to
+/// the any-one-claimant heuristic when absent, preserving backward
+/// compatibility with paths not yet annotated).
+pub const SCHEMA_VERSION: &str = "1.4.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -113,6 +118,14 @@ pub struct ImplementingPath {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<TraceSource>,
+    /// Spec 147 — true when this path is the primary owner of the
+    /// claim. Omitted when the spec did not annotate the item with
+    /// `primary: true`. Spec 147 V-016 enforces corpus-wide uniqueness
+    /// (at most one spec declares primary for any given path); when
+    /// the flag is absent across all claimants, downstream consumers
+    /// fall back to spec 130's any-one-claimant heuristic.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
