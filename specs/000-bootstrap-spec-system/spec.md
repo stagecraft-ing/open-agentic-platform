@@ -6,8 +6,8 @@ status: approved
 implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
-amended: "2026-05-02"
-amendment_record: "132-constitutional-invariant-freeze"
+amended: "2026-05-13"
+amendment_record: "147-spec-kind-grammar"
 unamendable:
    - "V-001"
    - "V-002"
@@ -36,6 +36,9 @@ summary: >
    Amended by spec 132 (2026-05-02) to declare an `unamendable` list of frozen
    anchors and back it with V-011 in the spec compiler. The unamendable list
    in this frontmatter is the authoritative freeze surface.
+   Amended by spec 147 (2026-05-13) to promote `kind` to a validated enum, introduce per-kind
+   structural grammar (`shape`, `category`, capability/registry/profile kinds), and add
+   governance-lifecycle frontmatter fields.
 ---
 
 # Feature Specification: Bootstrap spec system

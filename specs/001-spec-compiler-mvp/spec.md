@@ -10,10 +10,16 @@ closed: "2026-03-22"
 authors:
   - "open-agentic-platform"
 language: en
+amended: "2026-05-13"
+amendment_record: "147-spec-kind-grammar"
 summary: >
   Implement the first spec compiler: scan specs/, validate markdown + frontmatter,
   emit deterministic registry.json and ephemeral build-meta.json per Feature 000
   schemas; enforce V-001–V-004; golden tests for determinism.
+  Amended by spec 147 (2026-05-13) to extend the compiler with the kind-grammar
+  validation surface: KNOWN_KEYS extension, V-012..V-019 (warning severity in
+  Phase 1), VALID_KINDS enum, SHAPE_TABLE reservation, and `implements:` scalar/list
+  serialization. SPEC_VERSION bumps 1.4.0 → 1.5.0.
 ---
 
 # Feature Specification: Spec compiler MVP

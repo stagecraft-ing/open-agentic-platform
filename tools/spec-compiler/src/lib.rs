@@ -19,13 +19,21 @@ fn hex_lower(bytes: &[u8]) -> String {
 }
 
 const COMPILER_ID: &str = "open-agentic-spec-compiler";
-/// Schema version. 1.4.0 adds (spec 132) the `unamendable` and
-/// `amends_sections` frontmatter fields plus the V-011 violation
-/// (amends_sections ∩ unamendable ≠ ∅). Tooling-only — spec 000's
-/// frontmatter does not yet declare any `unamendable` anchors; the
-/// proposed amendment is staged in /tmp/spec_000_proposed_amendment.diff
-/// for human review.
-const SPEC_VERSION: &str = "1.4.0";
+/// Schema version. 1.5.0 (spec 147) promotes `kind` to a closed enum,
+/// adds the `shape` / `category` universal dimensions, introduces
+/// per-kind structural fields for `kind: capability | registry | profile`
+/// (`provides`, `composition`, `selector`, `member_contract`, `identity`,
+/// `selects`, etc.), serializes `implements:` to registry output with
+/// scalar/list shape disambiguation, and adds governance-lifecycle
+/// fields (`supersedes`, `superseded_by`, `retirement_rationale`).
+/// Validation invariants V-012..V-019 fire at warning severity in
+/// Phase 1; promotion to error severity is governed by separate
+/// phase-gated amendments per spec 147 §Migration.
+///
+/// 1.4.0 (spec 132) added the `unamendable` and `amends_sections`
+/// frontmatter fields plus the V-011 violation (amends_sections ∩
+/// unamendable ≠ ∅).
+const SPEC_VERSION: &str = "1.5.0";
 
 /// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
 const KNOWN_KEYS: &[&str] = &[
@@ -48,10 +56,73 @@ const KNOWN_KEYS: &[&str] = &[
     "amends",
     "amends_sections",
     "unamendable",
+    // Spec 147 — universal dimensions and governance lifecycle.
+    "shape",
+    "category",
+    "supersedes",
+    "superseded_by",
+    "retirement_rationale",
+    // Spec 147 — per-kind structural fields (kind: capability / registry / profile).
+    "provides",
+    "composition",
+    "selectable_by",
+    "selector",
+    "default",
+    "production_forbidden",
+    "member_contract",
+    "identity",
+    "selects",
+    "policy",
 ];
 
 /// Valid values for the `risk` frontmatter field.
 const VALID_RISK_LEVELS: &[&str] = &["low", "medium", "high", "critical"];
+
+/// Spec 147 — valid values for the `kind` frontmatter field (V-012).
+/// 13 empirical kinds drawn from the corpus + 3 new kinds introduced
+/// by spec 147 (`capability`, `registry`, `profile`).
+const VALID_KINDS: &[&str] = &[
+    "platform",
+    "platform-delivery",
+    "governance",
+    "product",
+    "amendment",
+    "tooling",
+    "desktop",
+    "process",
+    "ui",
+    "architecture",
+    "constitutional-bootstrap",
+    "migration",
+    "product-consolidation",
+    "capability",
+    "registry",
+    "profile",
+];
+
+/// Spec 147 — declared `(kind, shape)` table. Reserved for downstream
+/// consumers: spec-lint emits W-131 against entries outside this table.
+/// V-013's web-snippet linkage check string-matches on `"web-snippet"`
+/// directly rather than via this table so the rule is local-readable.
+#[allow(dead_code)]
+const SHAPE_TABLE: &[(&str, &[&str])] = &[
+    (
+        "capability",
+        &["driver", "module", "web-snippet", "middleware-stack"],
+    ),
+    (
+        "amendment",
+        &[
+            "field-addition",
+            "field-modification",
+            "mechanism-add",
+            "mechanism-modification",
+            "bug-fix",
+            "retirement-record",
+            "consolidation",
+        ],
+    ),
+];
 
 #[derive(Debug)]
 pub enum CompileError {
@@ -208,6 +279,150 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let amends_sections = optional_string_list(fm, "amends_sections").unwrap_or_default();
         let unamendable = optional_string_list(fm, "unamendable").unwrap_or_default();
 
+        // ── Spec 147 — universal dimensions + governance lifecycle ──
+        let shape = optional_str(fm, "shape");
+        let category = optional_string_list(fm, "category");
+        let supersedes = optional_string_list(fm, "supersedes");
+        let superseded_by = optional_str(fm, "superseded_by");
+        let retirement_rationale = fm.get("retirement_rationale").and_then(yaml_to_json);
+        // ── Spec 147 — per-kind structural fields ──
+        let implements = parse_implements(fm);
+        let provides = fm.get("provides").and_then(yaml_to_json);
+        let selectable_by = optional_str(fm, "selectable_by");
+        let composition = fm.get("composition").and_then(yaml_to_json);
+        let selector = optional_str(fm, "selector");
+        let default_value = optional_str(fm, "default");
+        let production_forbidden = optional_string_list(fm, "production_forbidden");
+        let member_contract = optional_str(fm, "member_contract");
+        let identity = fm.get("identity").and_then(yaml_to_json);
+        let selects = fm.get("selects").and_then(yaml_to_json);
+        let policy = fm.get("policy").and_then(yaml_to_json);
+
+        // ── V-012 (Spec 147): kind enum membership ──
+        if let Some(ref k) = kind {
+            if !VALID_KINDS.contains(&k.as_str()) {
+                violations.push(Violation {
+                    code: "V-012".to_string(),
+                    severity: "warning".to_string(),
+                    message: format!(
+                        "kind value {k:?} is not in the declared enum; expected one of: {}",
+                        VALID_KINDS.join(", ")
+                    ),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+            }
+        }
+
+        // ── V-013 (Spec 147): per-kind required fields ──
+        // V-013 is silent on kind: amendment per spec 147 §V-013 prose:
+        // amendment required-fields are governed by spec 119's amendment
+        // convention (`amends:`, `amends_sections:`), not by per-kind
+        // structural validation.
+        if let Some(ref k) = kind {
+            match k.as_str() {
+                "capability" => {
+                    let missing = collect_capability_missing(
+                        &implements,
+                        &provides,
+                        &composition,
+                        shape.as_deref(),
+                    );
+                    for m in &missing {
+                        violations.push(Violation {
+                            code: "V-013".to_string(),
+                            severity: "warning".to_string(),
+                            message: format!(
+                                "kind=capability requires {m}; spec 147 §V-013 governs the required-field set"
+                            ),
+                            path: Some(normalize_repo_path(repo_root, spec_path)),
+                        });
+                    }
+                }
+                "registry" => {
+                    if selector.is_none() {
+                        violations.push(Violation {
+                            code: "V-013".to_string(),
+                            severity: "warning".to_string(),
+                            message: "kind=registry requires `selector:`".to_string(),
+                            path: Some(normalize_repo_path(repo_root, spec_path)),
+                        });
+                    }
+                    if member_contract.is_none() {
+                        violations.push(Violation {
+                            code: "V-013".to_string(),
+                            severity: "warning".to_string(),
+                            message: "kind=registry requires `member_contract:`".to_string(),
+                            path: Some(normalize_repo_path(repo_root, spec_path)),
+                        });
+                    }
+                }
+                "profile" => {
+                    if identity.is_none() {
+                        violations.push(Violation {
+                            code: "V-013".to_string(),
+                            severity: "warning".to_string(),
+                            message: "kind=profile requires `identity:`".to_string(),
+                            path: Some(normalize_repo_path(repo_root, spec_path)),
+                        });
+                    }
+                    if selects.is_none() {
+                        violations.push(Violation {
+                            code: "V-013".to_string(),
+                            severity: "warning".to_string(),
+                            message: "kind=profile requires `selects:`".to_string(),
+                            path: Some(normalize_repo_path(repo_root, spec_path)),
+                        });
+                    }
+                    if !composition_has_requires(&composition) {
+                        violations.push(Violation {
+                            code: "V-013".to_string(),
+                            severity: "warning".to_string(),
+                            message: "kind=profile requires `composition.requires:`".to_string(),
+                            path: Some(normalize_repo_path(repo_root, spec_path)),
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // ── V-014 (Spec 147): implements shape consistency ──
+        // Scalar form is valid only for kind: capability. List form is
+        // valid for every other kind (or no kind).
+        if let Some(ref imp) = implements {
+            let is_scalar = imp.is_string();
+            let is_list = imp.is_array();
+            let kind_is_capability = kind.as_deref() == Some("capability");
+            if is_scalar && !kind_is_capability {
+                violations.push(Violation {
+                    code: "V-014".to_string(),
+                    severity: "warning".to_string(),
+                    message: format!(
+                        "implements: scalar form is reserved for kind=capability; this spec declares kind={:?}",
+                        kind.as_deref().unwrap_or("(none)")
+                    ),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+            } else if !is_scalar && !is_list {
+                violations.push(Violation {
+                    code: "V-014".to_string(),
+                    severity: "warning".to_string(),
+                    message: "implements: must be a scalar string (kind=capability) or a list of {path, primary?} items".to_string(),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+            }
+        }
+
+        // ── V-018 (Spec 147): retirement_rationale presence when status=retired ──
+        if status == "retired" && retirement_rationale.is_none() {
+            violations.push(Violation {
+                code: "V-018".to_string(),
+                severity: "warning".to_string(),
+                message: "status=retired requires `retirement_rationale:` frontmatter".to_string(),
+                path: Some(normalize_repo_path(repo_root, spec_path)),
+            });
+        }
+
         let headings = extract_headings(&body, &title);
 
         features.push(FeatureRecord {
@@ -230,6 +445,22 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             risk,
             implementation,
             compliance,
+            shape,
+            category,
+            supersedes,
+            superseded_by,
+            retirement_rationale,
+            implements,
+            provides,
+            selectable_by,
+            composition,
+            selector,
+            default: default_value,
+            production_forbidden,
+            member_contract,
+            identity,
+            selects,
+            policy,
             extra_frontmatter: extra,
         });
     }
@@ -302,6 +533,237 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
                                  amending an unamendable section requires retiring the spec (status: superseded) and \
                                  replacing it with a successor",
                                 f.id, section, amended.id, amended.id
+                            ),
+                            path: Some(f.spec_path.clone()),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Spec 147 — cross-spec validators (V-015, V-016, V-017, V-019) ──
+    //
+    // These follow the V-011 pattern: build an id-prefix index once,
+    // then iterate features and emit warnings against the corpus. All
+    // four are at warning severity in Phase 1; promotion to error
+    // severity ships in separately-funded follow-on amendments per
+    // spec 147 §Migration.
+    {
+        let mut by_id: BTreeMap<String, &FeatureRecord> = BTreeMap::new();
+        for f in &features {
+            by_id.insert(f.id.clone(), f);
+            if let Some((prefix, _)) = f.id.split_once('-') {
+                if prefix.len() == 3 && prefix.chars().all(|c| c.is_ascii_digit()) {
+                    by_id.entry(prefix.to_string()).or_insert(f);
+                }
+            }
+        }
+        let resolve = |id: &str| -> Option<&FeatureRecord> { by_id.get(id).copied() };
+
+        // ── V-015: capability/registry link integrity (+ selectable_by equality) ──
+        for f in &features {
+            if f.kind.as_deref() != Some("capability") {
+                continue;
+            }
+            let Some(Value::String(target_id)) = f.implements.as_ref() else {
+                continue; // V-013/V-014 already covered missing or wrong shape
+            };
+            let Some(target) = resolve(target_id) else {
+                violations.push(Violation {
+                    code: "V-015".to_string(),
+                    severity: "warning".to_string(),
+                    message: format!(
+                        "kind=capability implements {target_id:?}, which does not resolve to an existing spec id"
+                    ),
+                    path: Some(f.spec_path.clone()),
+                });
+                continue;
+            };
+            if target.kind.as_deref() != Some("registry") {
+                violations.push(Violation {
+                    code: "V-015".to_string(),
+                    severity: "warning".to_string(),
+                    message: format!(
+                        "kind=capability implements {target_id:?}, whose kind={:?} (must be kind=registry)",
+                        target.kind.as_deref().unwrap_or("(none)")
+                    ),
+                    path: Some(f.spec_path.clone()),
+                });
+                continue;
+            }
+            if let (Some(sb), Some(sel)) = (f.selectable_by.as_deref(), target.selector.as_deref()) {
+                if sb != sel {
+                    violations.push(Violation {
+                        code: "V-015".to_string(),
+                        severity: "warning".to_string(),
+                        message: format!(
+                            "capability declares selectable_by={sb:?} but target registry {target_id:?} declares selector={sel:?}; values must match"
+                        ),
+                        path: Some(f.spec_path.clone()),
+                    });
+                }
+            }
+        }
+
+        // ── V-016: corpus-wide primary-flag uniqueness ──
+        // For any given path appearing under any spec's `implements:` list,
+        // at most one spec across the corpus may declare `primary: true`
+        // for it. Resolves spec 130 OQ-1 by making primary ownership a
+        // typed, corpus-wide question with a deterministic answer.
+        {
+            let mut primary_owners: BTreeMap<String, Vec<String>> = BTreeMap::new();
+            for f in &features {
+                let Some(Value::Array(items)) = f.implements.as_ref() else {
+                    continue;
+                };
+                for item in items {
+                    let Some(obj) = item.as_object() else {
+                        continue;
+                    };
+                    let Some(path) = obj.get("path").and_then(|p| p.as_str()) else {
+                        continue;
+                    };
+                    let is_primary = obj
+                        .get("primary")
+                        .and_then(|p| p.as_bool())
+                        .unwrap_or(false);
+                    if is_primary {
+                        primary_owners
+                            .entry(path.to_string())
+                            .or_default()
+                            .push(f.id.clone());
+                    }
+                }
+            }
+            for (path, owners) in &primary_owners {
+                if owners.len() > 1 {
+                    let mut sorted_owners = owners.clone();
+                    sorted_owners.sort();
+                    let joined = sorted_owners.join(", ");
+                    for owner_id in &sorted_owners {
+                        let owner_spec = match resolve(owner_id) {
+                            Some(o) => o,
+                            None => continue,
+                        };
+                        violations.push(Violation {
+                            code: "V-016".to_string(),
+                            severity: "warning".to_string(),
+                            message: format!(
+                                "path {path:?} has primary: true declared by multiple specs ({joined}); spec 147 V-016 requires at most one corpus-wide primary owner per path"
+                            ),
+                            path: Some(owner_spec.spec_path.clone()),
+                        });
+                    }
+                }
+            }
+        }
+
+        // ── V-017: profile selects-target validity ──
+        for f in &features {
+            if f.kind.as_deref() != Some("profile") {
+                continue;
+            }
+            let Some(Value::Object(map)) = f.selects.as_ref() else {
+                continue;
+            };
+            for (registry_id, cap_value) in map {
+                let cap_id = match cap_value.as_str() {
+                    Some(s) => s,
+                    None => {
+                        violations.push(Violation {
+                            code: "V-017".to_string(),
+                            severity: "warning".to_string(),
+                            message: format!(
+                                "profile selects[{registry_id:?}] must be a spec id string"
+                            ),
+                            path: Some(f.spec_path.clone()),
+                        });
+                        continue;
+                    }
+                };
+                let registry_spec = resolve(registry_id);
+                let cap_spec = resolve(cap_id);
+                let registry_ok = registry_spec
+                    .map(|r| r.kind.as_deref() == Some("registry"))
+                    .unwrap_or(false);
+                let cap_ok = cap_spec
+                    .map(|c| c.kind.as_deref() == Some("capability"))
+                    .unwrap_or(false);
+                if !registry_ok {
+                    violations.push(Violation {
+                        code: "V-017".to_string(),
+                        severity: "warning".to_string(),
+                        message: format!(
+                            "profile selects key {registry_id:?} does not resolve to a kind=registry spec"
+                        ),
+                        path: Some(f.spec_path.clone()),
+                    });
+                    continue;
+                }
+                if !cap_ok {
+                    violations.push(Violation {
+                        code: "V-017".to_string(),
+                        severity: "warning".to_string(),
+                        message: format!(
+                            "profile selects[{registry_id:?}] = {cap_id:?} does not resolve to a kind=capability spec"
+                        ),
+                        path: Some(f.spec_path.clone()),
+                    });
+                    continue;
+                }
+                // Verify the capability implements the registry it's being
+                // selected for (its implements: scalar matches the registry id
+                // or its 3-digit prefix).
+                let cap = cap_spec.expect("cap_ok implies Some");
+                let cap_target = cap
+                    .implements
+                    .as_ref()
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let registry_prefix = registry_id
+                    .split_once('-')
+                    .map(|(p, _)| p)
+                    .unwrap_or(registry_id);
+                let target_prefix = cap_target
+                    .split_once('-')
+                    .map(|(p, _)| p)
+                    .unwrap_or(cap_target);
+                let matches = cap_target == registry_id
+                    || cap_target == registry_prefix
+                    || target_prefix == registry_prefix;
+                if !matches {
+                    violations.push(Violation {
+                        code: "V-017".to_string(),
+                        severity: "warning".to_string(),
+                        message: format!(
+                            "profile selects[{registry_id:?}] = {cap_id:?}, but that capability implements {cap_target:?} (must implement the selected registry)"
+                        ),
+                        path: Some(f.spec_path.clone()),
+                    });
+                }
+            }
+        }
+
+        // ── V-019: supersession back-link presence and resolution ──
+        for f in &features {
+            if f.status != "superseded" {
+                continue;
+            }
+            match f.superseded_by.as_deref() {
+                None => violations.push(Violation {
+                    code: "V-019".to_string(),
+                    severity: "warning".to_string(),
+                    message: "status=superseded requires `superseded_by:` frontmatter".to_string(),
+                    path: Some(f.spec_path.clone()),
+                }),
+                Some(target_id) => {
+                    if resolve(target_id).is_none() {
+                        violations.push(Violation {
+                            code: "V-019".to_string(),
+                            severity: "warning".to_string(),
+                            message: format!(
+                                "superseded_by {target_id:?} does not resolve to an existing spec id"
                             ),
                             path: Some(f.spec_path.clone()),
                         });
@@ -398,6 +860,49 @@ struct FeatureRecord {
     /// rejected.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     unamendable: Vec<String>,
+    // ── Spec 147 — kind-grammar universal dimensions ────────────────
+    /// Optional kind-refinement; validated against `SHAPE_TABLE`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    shape: Option<String>,
+    /// Optional cross-cutting tags.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    category: Option<Vec<String>>,
+    /// Optional list of spec ids this spec replaces.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    supersedes: Option<Vec<String>>,
+    /// Optional successor id; required by V-019 when status=superseded.
+    #[serde(rename = "supersededBy", skip_serializing_if = "Option::is_none")]
+    superseded_by: Option<String>,
+    /// Optional structured retirement record; required by V-018 when status=retired.
+    #[serde(rename = "retirementRationale", skip_serializing_if = "Option::is_none")]
+    retirement_rationale: Option<Value>,
+    // ── Spec 147 — implements promotion (serialized; shape disambiguated) ──
+    /// Either a scalar registry-id (kind=capability) or a list of code-path claims.
+    /// V-014 enforces shape consistency; V-015 enforces registry resolution;
+    /// V-016 enforces corpus-wide `primary:` uniqueness.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    implements: Option<Value>,
+    // ── Spec 147 — capability/registry/profile per-kind structure ───
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provides: Option<Value>,
+    #[serde(rename = "selectableBy", skip_serializing_if = "Option::is_none")]
+    selectable_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    composition: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    selector: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<String>,
+    #[serde(rename = "productionForbidden", skip_serializing_if = "Option::is_none")]
+    production_forbidden: Option<Vec<String>>,
+    #[serde(rename = "memberContract", skip_serializing_if = "Option::is_none")]
+    member_contract: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    identity: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    selects: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    policy: Option<Value>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }
@@ -1038,6 +1543,106 @@ fn extra_frontmatter(
     } else {
         Ok(Some(extra))
     }
+}
+
+/// Spec 147 — return the list of missing required fields for a
+/// `kind: capability` spec. Implements V-013's capability path including
+/// the web-snippet shape linkage (capability + shape: web-snippet
+/// requires at least one `provides.registrations[].kind: web-snippet`).
+fn collect_capability_missing(
+    implements: &Option<Value>,
+    provides: &Option<Value>,
+    composition: &Option<Value>,
+    shape: Option<&str>,
+) -> Vec<String> {
+    let mut missing: Vec<String> = Vec::new();
+    if implements.is_none() {
+        missing.push("`implements:` (registry-id scalar)".into());
+    }
+    if provides.is_none() {
+        missing.push("`provides:`".into());
+    }
+    if !composition_has_requires(composition) {
+        missing.push("`composition.requires:`".into());
+    }
+    if shape == Some("web-snippet")
+        && !provides_has_registration_kind(provides, "web-snippet")
+    {
+        missing.push(
+            "at least one `provides.registrations[].kind: web-snippet` when shape=web-snippet"
+                .into(),
+        );
+    }
+    missing
+}
+
+/// True when `composition.requires` exists and is a non-empty array.
+fn composition_has_requires(composition: &Option<Value>) -> bool {
+    composition
+        .as_ref()
+        .and_then(|c| c.get("requires"))
+        .and_then(|r| r.as_array())
+        .map(|a| !a.is_empty())
+        .unwrap_or(false)
+}
+
+/// True when `provides.registrations[]` contains an entry with `kind == target`.
+fn provides_has_registration_kind(provides: &Option<Value>, target: &str) -> bool {
+    let Some(p) = provides else {
+        return false;
+    };
+    let Some(regs) = p.get("registrations").and_then(|r| r.as_array()) else {
+        return false;
+    };
+    regs.iter().any(|r| {
+        r.get("kind").and_then(|k| k.as_str()) == Some(target)
+    })
+}
+
+/// Spec 147 — recursive YAML → JSON conversion for nested frontmatter
+/// fields (`provides`, `composition`, `identity`, `retirement_rationale`,
+/// `implements` list form, `selects`, `policy`). Unlike `yaml_scalar_to_json`
+/// this descends into mappings and heterogeneous sequences. Returns
+/// `None` if a value can't be represented (e.g. tagged YAML).
+fn yaml_to_json(v: &serde_yaml::Value) -> Option<Value> {
+    match v {
+        serde_yaml::Value::Null => Some(Value::Null),
+        serde_yaml::Value::Bool(b) => Some(Value::Bool(*b)),
+        serde_yaml::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                return Some(Value::Number(i.into()));
+            }
+            if let Some(u) = n.as_u64() {
+                return Some(Value::Number(u.into()));
+            }
+            let f = n.as_f64()?;
+            serde_json::Number::from_f64(f).map(Value::Number)
+        }
+        serde_yaml::Value::String(s) => Some(Value::String(s.clone())),
+        serde_yaml::Value::Sequence(seq) => {
+            let mut arr = Vec::with_capacity(seq.len());
+            for x in seq {
+                arr.push(yaml_to_json(x)?);
+            }
+            Some(Value::Array(arr))
+        }
+        serde_yaml::Value::Mapping(map) => {
+            let mut obj = Map::new();
+            for (k, val) in map {
+                let key = k.as_str()?.to_string();
+                obj.insert(key, yaml_to_json(val)?);
+            }
+            Some(Value::Object(obj))
+        }
+        serde_yaml::Value::Tagged(_) => None,
+    }
+}
+
+/// Spec 147 — parse the optional `implements:` field, preserving scalar
+/// vs list distinction. Scalar form is reserved for `kind: capability`
+/// (V-014); list form carries `{path, primary?}` items.
+fn parse_implements(m: &serde_yaml::Mapping) -> Option<Value> {
+    yaml_to_json(m.get("implements")?)
 }
 
 fn yaml_scalar_to_json(v: &serde_yaml::Value) -> Option<Value> {

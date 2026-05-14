@@ -5,6 +5,8 @@ title: "Constitutional invariant freeze — `unamendable` anchors and V-011"
 status: approved
 implementation: complete
 amends: ["000"]
+amended: "2026-05-13"
+amendment_record: "147-spec-kind-grammar"
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
@@ -29,6 +31,10 @@ summary: >
   proposed amendment is staged in
   `/tmp/spec_000_proposed_amendment.diff` for human review and
   application.
+  Amended by spec 147 (2026-05-13) to bump the registry schema 1.4.0 → 1.5.0
+  with the kind-grammar field declarations. Spec 132's `unamendable` list
+  remains untouched (V-006..V-010 reserved range is not populated by 147 per
+  Commitment 2; V-012..V-019 occupy the next free slots).
 ---
 
 # 132 — Constitutional invariant freeze

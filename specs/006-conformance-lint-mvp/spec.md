@@ -4,8 +4,8 @@ title: "Conformance lint (optional workflow warnings)"
 feature_branch: "006-conformance-lint-mvp"
 status: approved
 implementation: complete
-amended: "2026-05-02"
-amendment_record: "128-spec-lint-default-fail-on-warn"
+amended: "2026-05-13"
+amendment_record: "147-spec-kind-grammar"
 kind: platform
 created: "2026-03-22"
 authors:
@@ -15,6 +15,12 @@ summary: >
   Non-blocking conformance checks for the 003–005 authored protocol: warning codes,
   heuristics for lifecycle and execution hygiene, and a spec-lint tool that never
   substitutes for Feature 001 structural validation or registry truth.
+  Amended by spec 128 (2026-05-02) to ratify the `--fail-on-warn` strict posture
+  for OAP's CI invocation.
+  Amended by spec 147 (2026-05-13) to register W-130/W-131/W-132 against the new
+  kind-grammar surface and to add a registration-site `severity` field on Warning
+  (warning/info tiers) per spec 128 §7. Info-tier diagnostics emit alongside
+  warning-tier but are exempt from `--fail-on-warn`.
 ---
 
 # Feature Specification: Conformance lint

@@ -6,12 +6,18 @@ implementation: complete
 owner: bart
 created: "2026-04-14"
 kind: tooling
+amended: "2026-05-13"
+amendment_record: "147-spec-kind-grammar"
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
   and spec frontmatter, and emits a governed build/codebase-index/index.json artifact.
   Provides four-layer structural inventory: crate/package inventory, spec-to-code
   traceability, factory adapter coverage, and tool/infrastructure catalog. Follows the
   same compiler-emits-artifact pattern established by spec-compiler (001).
+  Amended by spec 147 (2026-05-13) to surface the `primary: bool` flag on
+  ImplementingPath (sourced from the new `implements:` list-item shape introduced by
+  147) and to bump the index schema 1.3.0 → 1.4.0. Consumers that don't recognise the
+  flag fall back to spec 130's any-one-claimant heuristic.
 depends_on:
   - "000"  # bootstrap-spec-system (artifact pattern)
   - "001"  # spec-compiler-mvp (registry pattern)

@@ -487,6 +487,7 @@ mod tests {
                     path: (*p).to_string(),
                     name: None,
                     source: Some(TraceSource::SpecImplements),
+                    primary: None,
                 })
                 .collect(),
         });
@@ -611,6 +612,7 @@ mod tests {
                 path: "crates/tool-registry".to_string(),
                 name: None,
                 source: Some(TraceSource::SpecImplements),
+                primary: None,
             }],
         });
         // Two paths, each with a single distinct claimant. Both fire.
@@ -644,6 +646,7 @@ mod tests {
                 path: "crates/orchestrator".to_string(),
                 name: None,
                 source: Some(TraceSource::SpecImplements),
+                primary: None,
             }],
         });
         // Diff edits an orchestrator file but only ONE of the two claimant
@@ -677,6 +680,7 @@ mod tests {
                     path: "crates/orchestrator".to_string(),
                     name: None,
                     source: Some(TraceSource::SpecImplements),
+                    primary: None,
                 }],
             });
         }
