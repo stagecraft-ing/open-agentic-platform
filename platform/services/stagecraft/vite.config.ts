@@ -100,6 +100,9 @@ export default defineConfig({
       // Spec 142 — migration 38 effect test reads information_schema and
       // round-trips a synthetic adapter id through `scaffold_jobs`; live db.
       "**/db/migrations/38_factory_id_columns_to_text.test.ts",
+      // Spec 137 Phase 1 — migration 40 CHECK + CASCADE test mutates live
+      // `environments` + `environment_access_gates*` tables.
+      "**/db/migrations/40_environment_access_gates.test.ts",
       // Spec 140 Phase 2 — scaffold scheduler resolver test queries the
       // live `factory_upstreams` table.
       "**/projects/scaffold/scheduler.test.ts",

@@ -238,6 +238,61 @@ export const environments = pgTable("environments", {
 });
 
 // ---------------------------------------------------------------------------
+// Environment Access Gates (spec 137 Phase 1)
+// ---------------------------------------------------------------------------
+//
+// 1:1 with `environments`. Migration 40 wires up the FK + CASCADE plus
+// three CHECK constraints (enabled-requires-ref, federated-provider
+// allowed values, federated pair consistency). Allowlist entries live in
+// the sibling table below.
+
+export const environmentAccessGates = pgTable("environment_access_gates", {
+  environmentId: uuid("environment_id").primaryKey(),
+  enabled: boolean("enabled").notNull().default(false),
+  rauthyClientRef: text("rauthy_client_ref"),
+  loginMethodMagicLink: boolean("login_method_magic_link")
+    .notNull()
+    .default(true),
+  loginMethodFederatedProvider: text("login_method_federated_provider"),
+  loginMethodFederatedProviderClientRef: text(
+    "login_method_federated_provider_client_ref",
+  ),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const environmentAccessGateAllowlistEmails = pgTable(
+  "environment_access_gate_allowlist_emails",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    environmentId: uuid("environment_id").notNull(),
+    kind: text("kind").notNull(),
+    value: text("value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("environment_access_gate_allowlist_emails_env_idx").on(
+      t.environmentId,
+      t.kind,
+    ),
+  ],
+);
+
+export type EnvironmentAccessGate = typeof environmentAccessGates.$inferSelect;
+export type EnvironmentAccessGateInsert =
+  typeof environmentAccessGates.$inferInsert;
+export type EnvironmentAccessGateAllowlistEmail =
+  typeof environmentAccessGateAllowlistEmails.$inferSelect;
+export type EnvironmentAccessGateAllowlistEmailInsert =
+  typeof environmentAccessGateAllowlistEmails.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Project Members
 // ---------------------------------------------------------------------------
 

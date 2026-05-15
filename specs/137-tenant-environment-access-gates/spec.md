@@ -1,8 +1,9 @@
 ---
 id: "137-tenant-environment-access-gates"
 title: "Tenant environment access gates — passwordless OIDC via Rauthy"
-status: draft
-implementation: pending
+status: approved
+implementation: pending  # Phase 0 closed 2026-05-15: clarifications-resolved.md companion ships 5/6 decisions locked; T003 Rauthy admin smoke confirmed (a)/(b)/(c) PASS, (d) deferred to Phase 3. Spec amended pre-implementation to replace non-existent `password_login_enabled` field with `flows_enabled` mechanism (T003 evidence). Phase 1+ (schema + API CRUD + Rauthy provisioning + deployd-api renderer + UI + lifecycle) is now unblocked.
+approved: "2026-05-15"
 owner: bart
 created: "2026-05-04"
 kind: platform
@@ -10,7 +11,23 @@ risk: medium
 depends_on:
   - "136"  # tenant-hello as reference; gates are added per-environment
   - "087"  # unified-workspace-architecture (environments are stagecraft entities)
-implements: []
+implements:
+  # Phase 1 — schema migration (T010–T014)
+  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql
+  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts
+  - path: platform/services/stagecraft/api/db/schema.ts  # adds environmentAccessGates + environmentAccessGateAllowlistEmails tables + four exported types. Co-claimed with many existing claimants on schema.ts; spec 130 FR-001 any-claimant rule applies.
+  - path: platform/services/stagecraft/vite.config.ts  # registers migration 40 test under the encore-test-only exclude list (live-db mutation gate). Co-claimed with existing test-exclusion claimants.
+  # Phase 2 — Stagecraft API CRUD (T020–T025)
+  - path: platform/services/stagecraft/api/environments/accessGates.ts
+  - path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts  # pure helpers extracted per the cloneAvailabilityHelpers pattern so vitest can drive them without the Encore native runtime
+  - path: platform/services/stagecraft/api/environments/accessGates.test.ts
+  - path: platform/services/stagecraft/api/environments/encore.service.ts  # registers the new Encore service so the four endpoints are discovered at startup
+  # Phase 3 — Rauthy admin client provisioning (T030–T034)
+  - path: platform/services/stagecraft/api/auth/rauthyAdminClients.ts  # network-bound wrapper around POST/PUT/DELETE /auth/v1/clients + idempotent provision/deprovision domain operations
+  - path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts  # pure helpers (FR-004 invariant, payload construction, deterministic client id)
+  - path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts  # 14 passing vitest tests covering pure helpers + provision/deprovision against a stub fetch — exercises the four T003 contract assumptions
+  - path: platform/services/stagecraft/test/__mocks__/encore-auth.ts  # drive-by alignment of mock AuthData.userID casing with Encore-generated shape so future handlers can't fall into the lowercase-userId footgun. Co-claimed with specs 077/080/087 (existing claimants); spec 130 any-claimant rule applies.
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.
@@ -149,15 +166,27 @@ access_gate:
 ```
 
 Rauthy clients created per gated environment carry:
-- `redirect_uri`: the oauth2-proxy callback for that environment's
-  hostname.
-- `allowed_origins`: the tenant hostname(s).
+- `redirect_uris`: the oauth2-proxy callback for that environment's
+  hostname (Rauthy 0.35 field is a plural array, not scalar).
+- `allowed_origins`: the tenant hostname(s) (web-origin allowlist).
 - `scopes`: `openid email profile` only — no app-specific claims.
-- `enabled_login_flows`: subset of `{magic_link, federated}` matching
-  the env's `login_methods` config.
-- `password_login_enabled`: **false**, hard-coded across every tenant
-  gate client. This is the load-bearing constraint that keeps the
-  platform out of password handling.
+- `flows_enabled`: subset of `{authorization_code}` (plus
+  `refresh_token` if long-lived sessions are wanted). **`"password"`
+  is never present in this array.** This is the load-bearing
+  constraint that keeps the platform out of password handling.
+
+  *Empirical correction (T003, 2026-05-15).* Earlier drafts of this
+  spec listed a `password_login_enabled: false` scalar field. The
+  Rauthy 0.35 admin API probe in
+  [`execution/rauthy-admin-smoke.md`](./execution/rauthy-admin-smoke.md)
+  confirmed no such field exists on the client record (14-field
+  schema captured verbatim). Password login is controlled via
+  `flows_enabled`, omitting `"password"`. The load-bearing intent
+  (platform never sees passwords) is preserved verbatim; the
+  mechanism is the array, not a scalar flag. Pre-implementation
+  spec amendment per the
+  `feedback_pre_implementation_spec_amendments` discipline:
+  amend FIRST, implement against amended spec.
 
 Rauthy Auth Providers (the upstream IdPs) are configured at the Rauthy
 deployment level, not per tenant. A tenant gate references an Auth
@@ -186,6 +215,11 @@ binding the upstream identity to a tenant-scoped Rauthy session.
   partial-success states roll back.
 - **FR-004** Tenant gate Rauthy clients refuse password authentication.
   Magic link and/or federated upstream IdP are the only completion paths.
+  *Mechanism:* `flows_enabled` array on the Rauthy client never
+  contains `"password"`. (Earlier drafts referenced a
+  `password_login_enabled: false` scalar; T003 empirical smoke
+  confirmed Rauthy 0.35 has no such field — see §"Access-gate
+  contract" for the corrected mechanism.)
 - **FR-005** Allowlist enforcement is two-layered: Rauthy refuses login
   for users not in its directory or not authorized by the Auth Provider
   rules; oauth2-proxy validates `allowed_emails` / `allowed_domains` on
@@ -225,8 +259,9 @@ binding the upstream identity to a tenant-scoped Rauthy session.
   Google" option at Rauthy in addition to magic link; the email
   allowlist still applies to the Google-issued identity.
 - A tenant Rauthy client returns an explicit error if a password login
-  is attempted via the API — `password_login_enabled: false` is
-  honored end-to-end.
+  is attempted via the API — `flows_enabled` does not include
+  `"password"`, so Rauthy refuses the grant type. The platform never
+  receives a password.
 - Toggling `enabled: false` removes the oauth2-proxy and Rauthy client,
   the tenant Ingress reverts to direct exposure, and the tenant
   workload was not restarted.
@@ -294,3 +329,35 @@ binding the upstream identity to a tenant-scoped Rauthy session.
   this spec.
 - Passkey / WebAuthn as a third login method. Out of scope by directive;
   enabling it later is an additive change to `login_methods`.
+
+### Open question — dual-renderer for Phase 4? *(filed 2026-05-15)*
+
+Phase 4 (deployd-api K8s renderer) has a fork: hand-rolled kube-rs
+vs. Helm overlay. The session of 2026-05-15 selected **Option B —
+Helm overlay**, gated on spec 136 Phase 2.b completing first
+(`plan.md` §Phase 4 cross-cutting note; tasks.md T046).
+
+**Pondered alongside that decision:** is the hand-rolled kube-rs
+path *also* worth shipping as a secondary mode, for cases where
+Helm isn't available or appropriate (e.g., air-gapped clusters,
+custom-CD paths, debug-without-Helm scenarios)?
+
+**Disposition (deferred to post-Phase-4-landing review).** Ship
+Option B first as the canonical renderer. Revisit dual-renderer
+support only if a concrete use case surfaces that the Helm overlay
+cannot serve. Reasoning:
+
+- Two renderers = two surfaces to keep in sync (config shape, test
+  fixtures, error paths). Drift is the default; coherence is the
+  exception.
+- The current cluster-of-record (Hetzner) runs Helm; no air-gapped
+  or Helm-less deployment target is on the roadmap.
+- Adding a kube-rs fallback now would code-and-test surface that
+  no consumer demands; YAGNI applies.
+- If the use case does surface, the kube-rs path becomes a
+  follow-up spec amending 137, not a parallel implementation in
+  the same PR.
+
+Spec 136 closure unblocks Phase 4 (Option B). The kube-rs question
+re-opens only if Phase 4's first concrete consumer encounters a
+Helm-incompatible scenario.

@@ -5,7 +5,12 @@
 // endpoint handlers that actually call it are exercised via `encore test`.
 
 export interface AuthData {
-  userId?: string;
+  // Match the real Encore-generated `AuthData` shape (userID, not
+  // userId). The lowercase variant historically lived here and let
+  // handlers that mistakenly typed `auth.userId` pass bare vitest
+  // while failing `encore build docker` + tsc in CI. Aligning to
+  // Encore's casing closes that footgun.
+  userID?: string;
   workspaceId?: string;
   [key: string]: unknown;
 }

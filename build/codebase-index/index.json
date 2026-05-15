@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c8301545650469a9ab9a931aaba56afb4ec8c03dbcc7a71b142ddd6f46120e77",
+    "contentHash": "aabb371431f1edbd8b4d8ec4c28ec21abd31934cd3f8e3326e408e987f329f05",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4263,6 +4263,68 @@
         "specStatus": "approved"
       },
       {
+        "dependsOn": [
+          "087",
+          "136"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGates.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGates.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGatesHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/__mocks__/encore-auth.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "137-tenant-environment-access-gates",
+        "specStatus": "approved"
+      },
+      {
         "amends": [
           "112-factory-project-lifecycle"
         ],
@@ -4858,7 +4920,7 @@
           }
         ],
         "specId": "144-hiqlite-default-features",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -4959,7 +5021,7 @@
           }
         ],
         "specId": "146-deployd-api-memory-hardening",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [
@@ -4982,8 +5044,7 @@
       "081-factory-test-hydration",
       "086-open-source-launch",
       "088-factory-upstream-sync",
-      "100-post-convergence-remediation",
-      "137-tenant-environment-access-gates"
+      "100-post-convergence-remediation"
     ],
     "untracedCode": [
       "grammars/tree-sitter-c",

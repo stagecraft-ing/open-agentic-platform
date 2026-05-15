@@ -2,7 +2,7 @@
 id: "144-hiqlite-default-features"
 slug: hiqlite-default-features
 title: "Hiqlite default-features hygiene — stop unifying upstream defaults across the crates workspace"
-status: draft
+status: approved
 implementation: complete
 owner: bart
 created: "2026-05-10"
