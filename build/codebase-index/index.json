@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "aabb371431f1edbd8b4d8ec4c28ec21abd31934cd3f8e3326e408e987f329f05",
+    "contentHash": "92cfee6f70f3dfc217800c84a4c49957a166499229bab043c9b506b3fd62c9c6",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4243,7 +4243,39 @@
         ],
         "implementingPaths": [
           {
+            "path": ".github/workflows/cd-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/charts/tenant-hello",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/Dockerfile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/helm.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/k8s.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/routes.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/CLAUDE.md",
             "source": "spec-implements"
           },
           {

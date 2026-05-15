@@ -47,6 +47,48 @@ SQL files live in `api/db/migrations/`, run by `scripts/migrate.mjs` as a Helm `
 
 For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, middleware, validation, etc.), see [`docs/encore-ts-reference.md`](docs/encore-ts-reference.md).
 
+## Chart selection and deploy wire contract (spec 136)
+
+Tenant deploys go through stagecraft → `deployd-api-rs`, which since spec 136
+Phase 2.b drives Kubernetes via `helm upgrade --install` rather than raw
+kube-rs object construction. The chart that gets applied is resolved on the
+stagecraft side by a pure selector and passed across the wire by name.
+
+- `api/deploy/chartSelector.ts` — pure function `selectChart({shape})` returns
+  `{chart, version}` from `CHART_REGISTRY`. Unknown shapes throw — there is no
+  silent fallback chart. Today the only registered shape is `"tenant-hello"`
+  → `{ chart: "tenant-hello", version: "0.1.0" }`, which corresponds to the
+  Helm chart at `platform/charts/tenant-hello/`. Adding a shape means landing
+  a chart under `platform/charts/<shape>/`, embedding its files in
+  `platform/services/deployd-api-rs/src/helm.rs` via `include_str!`, and
+  appending the registry entry here.
+- `api/deploy/chartSelector.test.ts` — vitest unit suite covering the
+  positive path, the throw-on-unknown-shape contract, and `listShapes()`.
+
+### deployd-api-rs wire shape
+
+The Rust orchestrator's `POST /v1/deployments` (`platform/services/deployd-api-rs/src/routes.rs`)
+accepts two optional fields that flow directly from `selectChart`:
+
+```jsonc
+{
+  // ...existing fields (tenant_id, app_id, env_id, release_sha, artifact_ref, lane, ...)
+  "chart": "tenant-hello",        // optional; default "tenant-hello"
+  "chart_version": "0.1.0"        // optional; advisory — bundled chart is image-pinned
+}
+```
+
+`deployd-api` materialises the requested chart from its embedded chart bytes,
+builds a JSON values file (`image.repository`/`image.tag` from `artifact_ref`,
+`fullnameOverride` from `app_slug || app_id`, `ingress.host` from the first
+entry in `desired_routes`), and shells `helm upgrade --install --wait`. When
+no Kubernetes cluster is reachable (local dev) the route short-circuits to
+the same record-only `ROLLED_OUT` path that existed before.
+
+Spec 136 Phase 3 (negative-path C-clause violations against a live cluster)
+and the Phase 4 lifecycle flip are still gated on cluster validation — they
+intentionally do NOT ride with this PR.
+
 ## Factory project scaffold
 
 Project creation and import live under `api/projects/`:
