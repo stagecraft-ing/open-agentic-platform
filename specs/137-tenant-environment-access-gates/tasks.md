@@ -7,14 +7,19 @@
 
 ## Phase 0 — Resolve clarifications & lock the gate contract *(this PR; gates approval)*
 
-- [ ] T001 Decide §Clarification 1 (oauth2-proxy topology). Recommend
+- [x] T001 Decide §Clarification 1 (oauth2-proxy topology). Recommend
   per-env Deployment with explicit "revisit when pod count exceeds N"
   exit criterion. Document in spec.md or
   `clarifications-resolved.md` companion.
-- [ ] T002 Decide §Clarification 2 (schema shape). Recommend dedicated
+  (Locked 2026-05-15 in `clarifications-resolved.md` §Decision 1:
+  per-env Deployment; revisit at 50 gated envs.)
+- [x] T002 Decide §Clarification 2 (schema shape). Recommend dedicated
   `environment_access_gates` table + sibling
   `environment_access_gate_allowlist_emails`. Pin FK + cascade
   behaviour.
+  (Locked 2026-05-15 in `clarifications-resolved.md` §Decision 2:
+  two sibling tables; CASCADE on environment delete; FIPS-safe
+  case-insensitive uniqueness via `lower(value)` index, not `citext`.)
 - [ ] T003 Decide §Clarification 3 (Rauthy admin API contract).
   Smoke against the running Rauthy instance to confirm:
   (a) admin API tolerates one client per gated env at expected scale,
@@ -22,21 +27,35 @@
   (c) toggling `password_login_enabled` is a PATCH, not a recreate,
   (d) Auth Provider id reference shape on client creation. Capture
   evidence path under `execution/rauthy-admin-smoke.md`.
-- [ ] T004 Decide §Clarification 4 (hostname stability). Pick the
+  (OPEN — cluster access required; blocks Phase 3 only. Phases 1+2
+  may proceed against default assumptions per
+  `clarifications-resolved.md` §Decision 3.)
+- [x] T004 Decide §Clarification 4 (hostname stability). Pick the
   canonical pattern (e.g.
   `<env-slug>.<project-slug>.<org-slug>.tenants.<base>`); document the
   `redirect_uri` shape that follows.
-- [ ] T005 Decide §Clarification 5 (user → Rauthy mapping). Pin
+  (Locked 2026-05-15 in `clarifications-resolved.md` §Decision 4:
+  four-label pattern; per-org wildcard cert (`*.<org-slug>.tenants.<base>`)
+  as the cert-provisioning shape.)
+- [x] T005 Decide §Clarification 5 (user → Rauthy mapping). Pin
   auto-provision + magic-link defaults; document allowlist-removal
   semantics (revoke vs leave-orphaned) and user-already-exists
   collision handling.
-- [ ] T006 Decide §Clarification 6 (Auth Providers UX). Confirm
+  (Locked 2026-05-15 in `clarifications-resolved.md` §Decision 5:
+  auto-provision on magic-link allowlist add; do not auto-delete on
+  removal; collision-handling depends on T003 (c) confirmation.)
+- [x] T006 Decide §Clarification 6 (Auth Providers UX). Confirm
   Rauthy admin UI is the v1 surface; surface a stagecraft follow-up
   spec id for future ergonomic work.
+  (Locked 2026-05-15 in `clarifications-resolved.md` §Decision 6:
+  Rauthy admin UI for v1; stagecraft surfaces a read-only dropdown
+  via `GET /auth/v1/auth_providers`.)
 - [ ] T007 Reviewer pass on the contract + clarifications; flip
   `status: draft → approved` in spec.md frontmatter. Add
   `approved: <date>` field. No code changes under FR-001..FR-010
   before this lands.
+  (OPEN — gated on T003 evidence. Decisions 1/2/4/5/6 are
+  pre-locked; status flip held until the empirical contract lands.)
 
 **Checkpoint:** Phase 0 closes when T007 ships. Phases 1+ are blocked
 behind this checkpoint per Principle III.
