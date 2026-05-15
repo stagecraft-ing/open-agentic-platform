@@ -543,7 +543,7 @@ deploy, refresh registries, mark spec implementation complete.
       check passes but the discipline failed. Captured as motivating
       evidence (alongside PR #122's `make ci`-red merge) in the
       governance-gap spec **`147-tool-permission-vs-authorization`**.
-- [ ] T051 [P4] **Deploy to Hetzner via CD (FU-002 ownership).**
+- [x] T051 [P4] **Deploy to Hetzner via CD (FU-002 ownership).**
       `setup.sh:377-392` (spec 143 §12 L-003 / FU-002) is explicit
       that CD owns the deployd-api helm release; the workflow is
       `.github/workflows/cd-deployd-api-rs.yml` (chart-path
@@ -567,11 +567,11 @@ deploy, refresh registries, mark spec implementation complete.
       and
       `kubectl -n deployd-system get deployment deployd-api -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"\n"}{end}' | grep DEPLOYD_BACKUP`.
       Pod Ready and PVC bound.
-- [ ] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
+- [x] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
       row in `deployments` and a known row in `deployment_events`.
       `kubectl delete pod -n <ns> deployd-api-...`. Wait for
       replacement Ready. Re-query — both rows present.
-- [ ] T053 [P4] **AC-3 — cron snapshot emission.** Wait one cron
+- [x] T053 [P4] **AC-3 — cron snapshot emission.** Wait one cron
       cycle per the configured `HQL_BACKUP_CRON` (default
       `"0 0 */6 * * *"` = next 6-hour boundary). Verify a new
       object appears in S3 at the configured prefix matching
@@ -580,7 +580,7 @@ deploy, refresh registries, mark spec implementation complete.
       object with the cryptr key id from `ENC_KEY_ACTIVE` on a
       workstation as a smoke check (cryptr CLI: `cryptr decrypt
       --key <id>:<base64-32-bytes> <object>`).
-- [ ] T054 [P4] **AC-2 — fresh-PVC restore (operator-driven).**
+- [x] T054 [P4] **AC-2 — fresh-PVC restore (operator-driven).**
       With AC-3 confirmed, capture the latest S3 snapshot key
       (e.g. `backup_node_1_1715347200.sqlite`). Then:
       `kubectl delete pvc -n <ns> <pvc-name>`,
@@ -595,7 +595,7 @@ deploy, refresh registries, mark spec implementation complete.
       HQL_BACKUP_RESTORE-` so the next pod restart does not re-wipe.
       Confirm a subsequent pod restart (no PVC deletion) does NOT
       trigger restore (steady-state path).
-- [ ] T055 [P4] **AC-4 — scrub no longer deletes data.** Pod restart
+- [x] T055 [P4] **AC-4 — scrub no longer deletes data.** Pod restart
       against the (now repopulated) PVC. Confirm `deployments` and
       `deployment_events` rowsets unchanged.
 - [x] T056 [P4] **AC-5.** Re-run
@@ -625,7 +625,7 @@ deploy, refresh registries, mark spec implementation complete.
       (Rauthy 0.35 audience reflection caught by AC-2). Coupling
       check green against 16 paths; registry-consumer show confirms
       the flip.
-- [ ] T062 [P4] Open PR. Title:
+- [x] T062 [P4] Open PR. Title:
       `feat(spec-145): deployd-api durability chain — PVC + scrub-narrow + s3 backup + restore-on-startup`.
 
 **Phase 4 exit:** AC-1 through AC-9 in `spec.md` §3.3 pass; PR open.
