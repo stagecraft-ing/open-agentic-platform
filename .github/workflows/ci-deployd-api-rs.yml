@@ -30,6 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # Spec 136 Phase 2.b: helm runner tests exercise `helm template`
+      # against the embedded chart. Without helm on PATH the relevant
+      # tests no-op (eprintln + early return); installing it here means
+      # they actually assert.
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+
       - name: CI deployd-api-rs
         uses: ./.github/actions/rust-ci
         with:

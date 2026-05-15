@@ -9,6 +9,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::auth;
+use crate::helm::{self, HelmRunner, InstallRequest};
 use crate::k8s;
 use crate::store::{self, AppState, Deployment};
 
@@ -27,6 +28,13 @@ pub struct DeploymentRequest {
     pub app_slug: Option<String>,
     pub env_slug: Option<String>,
     pub desired_routes: Option<Vec<RouteSpec>>,
+    /// Chart name resolved by stagecraft's chartSelector (spec 136 Phase 2).
+    /// Optional for backwards compatibility — defaults to "tenant-hello",
+    /// the only registered shape today.
+    pub chart: Option<String>,
+    /// Chart version, mirrors the chartSelector output. Currently advisory:
+    /// the chart bundled into deployd-api is pinned by the image build.
+    pub chart_version: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -99,18 +107,24 @@ pub async fn create_deployment(
         })
         .unwrap_or_default();
 
+    let chart = body.chart.clone().unwrap_or_else(|| "tenant-hello".into());
+    let chart_version = body
+        .chart_version
+        .clone()
+        .unwrap_or_else(|| "0.1.0".into());
+
     let deployment = Deployment {
         deployment_id: deployment_id.clone(),
         deployment_key,
         tenant_id: body.tenant_id,
-        app_id: body.app_id,
-        env_id: body.env_id,
+        app_id: body.app_id.clone(),
+        env_id: body.env_id.clone(),
         release_sha: body.release_sha,
-        artifact_ref: body.artifact_ref,
+        artifact_ref: body.artifact_ref.clone(),
         lane: body.lane.clone(),
         status: "PENDING".to_string(),
-        app_slug: body.app_slug,
-        env_slug: body.env_slug,
+        app_slug: body.app_slug.clone(),
+        env_slug: body.env_slug.clone(),
         desired_routes: body
             .desired_routes
             .as_ref()
@@ -128,7 +142,7 @@ pub async fn create_deployment(
     }
     let _ = store::add_event(&state.client, &deployment_id, "requested", None).await;
 
-    // Parse routes for K8s ingress
+    // Parse routes into (host, path) pairs for the Helm values builder.
     let route_pairs: Vec<(String, String)> = body
         .desired_routes
         .as_ref()
@@ -145,42 +159,68 @@ pub async fn create_deployment(
         })
         .unwrap_or_default();
 
-    // Attempt real K8s deployment; fall back to record-only if no cluster available.
-    let (final_status, final_endpoints) = match k8s::try_connect().await {
-        Ok(k8s_client) => {
+    let release_name = body
+        .app_slug
+        .clone()
+        .unwrap_or_else(|| body.app_id.clone());
+    let namespace = format!("{}-{}", body.app_id, body.env_id);
+
+    // Probe the cluster first. When no cluster is reachable (local dev,
+    // record-only deployments), short-circuit to ROLLED_OUT without
+    // shelling helm. When the cluster IS reachable, drive helm against
+    // the chart resolved upstream by stagecraft's chartSelector.
+    let (final_status, final_endpoints) = match k8s::probe_cluster().await {
+        Ok(()) => {
             let _ = store::update_status(&state.client, &deployment_id, "DEPLOYING").await;
             let _ = store::add_event(
                 &state.client,
                 &deployment_id,
                 "deploying",
-                Some("creating K8s resources"),
+                Some(&format!("applying chart {chart} ({chart_version})")),
             )
             .await;
 
-            match k8s::deploy(&k8s_client, &deployment, &route_pairs).await {
-                Ok(k8s_endpoints) => {
+            let values = helm::build_values(&body.artifact_ref, &release_name, &route_pairs);
+            let req = InstallRequest {
+                chart: chart.clone(),
+                namespace: namespace.clone(),
+                release: release_name.clone(),
+                values,
+            };
+            let runner = HelmRunner::from_env();
+            match tokio::task::spawn_blocking(move || runner.install(&req)).await {
+                Ok(Ok(result)) => {
                     let _ = store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
                     let _ = store::add_event(
                         &state.client,
                         &deployment_id,
                         "rolled_out",
-                        Some("K8s resources created"),
+                        Some(&format!(
+                            "helm release {}/{} revision {} status {}",
+                            result.namespace, result.release, result.revision, result.status
+                        )),
                     )
                     .await;
-                    let ep = if k8s_endpoints.is_empty() {
-                        endpoints.clone()
-                    } else {
-                        k8s_endpoints
-                    };
-                    ("ROLLED_OUT".to_string(), ep)
+                    ("ROLLED_OUT".to_string(), endpoints.clone())
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
                     let _ = store::add_event(
                         &state.client,
                         &deployment_id,
                         "failed",
-                        Some(&format!("K8s deploy failed: {e}")),
+                        Some(&format!("helm install failed: {e}")),
+                    )
+                    .await;
+                    ("FAILED".to_string(), endpoints.clone())
+                }
+                Err(join_err) => {
+                    let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
+                    let _ = store::add_event(
+                        &state.client,
+                        &deployment_id,
+                        "failed",
+                        Some(&format!("helm task join error: {join_err}")),
                     )
                     .await;
                     ("FAILED".to_string(), endpoints.clone())
@@ -188,7 +228,6 @@ pub async fn create_deployment(
             }
         }
         Err(_) => {
-            // No K8s cluster reachable — record-only mode
             let _ = store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
             let _ = store::add_event(
                 &state.client,
@@ -208,6 +247,8 @@ pub async fn create_deployment(
             "status": final_status,
             "endpoints": final_endpoints,
             "logs_pointer": format!("/v1/deployments/{}/logs", deployment_id),
+            "chart": chart,
+            "chart_version": chart_version,
         })),
     )
 }
@@ -319,11 +360,21 @@ pub async fn delete_deployment(
         _ => return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))),
     };
 
-    // Attempt K8s resource cleanup
-    if let Ok(k8s_client) = k8s::try_connect().await
-        && let Err(e) = k8s::destroy(&k8s_client, &deployment.app_id, &deployment.env_id).await
-    {
-        tracing::warn!("K8s cleanup failed for {release_id}: {e}");
+    // Best-effort helm uninstall; ignore failure to keep delete idempotent.
+    if k8s::probe_cluster().await.is_ok() {
+        let namespace = format!("{}-{}", deployment.app_id, deployment.env_id);
+        let release = deployment
+            .app_slug
+            .clone()
+            .unwrap_or_else(|| deployment.app_id.clone());
+        let runner = HelmRunner::from_env();
+        let result =
+            tokio::task::spawn_blocking(move || runner.uninstall(&namespace, &release)).await;
+        match result {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => tracing::warn!("helm uninstall failed for {release_id}: {e}"),
+            Err(join_err) => tracing::warn!("helm task join error for {release_id}: {join_err}"),
+        }
     }
 
     let _ = store::update_status(&state.client, &release_id, "DESTROYED").await;

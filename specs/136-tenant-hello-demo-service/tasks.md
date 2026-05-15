@@ -75,28 +75,51 @@ the C-clause obligations.
   is the first registered shape; unknown shapes throw rather than
   silently fall back. Unit test under `chartSelector.test.ts`
   (3 tests, all passing). **Done 2026-05-06.**
-- [ ] T021 Stagecraft API surface change documented inline in the
-  service's CLAUDE.md.
-- [ ] T022 `deployd-api-rs` deploy invocation accepts the resolved chart
-  name from stagecraft and applies it via Helm. **Deferred to
-  Phase 2.b follow-up** — the orchestrator currently builds raw K8s
-  objects via kube-rs (`platform/services/deployd-api-rs/src/k8s.rs`).
-  Switching to Helm-driven application is a substantial refactor:
-  decide between shelling `helm` CLI vs a Rust Helm library, ship
-  chart files into the deployd-api image (or pull from a chart
-  registry), map deployment-request fields to Helm values, and
-  rework status reporting to track Helm release state. Not session-
-  scoped and needs cluster validation. Tracked separately so this
-  PR can land Phase 1 + chartSelector without holding on the
-  refactor.
-- [ ] T023 End-to-end happy path — depends on T022 + a live cluster.
-  Captured under `execution/verification.md` when run.
+- [x] T021 Stagecraft API surface change documented inline in the
+  service's CLAUDE.md. **Done 2026-05-15** —
+  `platform/services/stagecraft/CLAUDE.md` gains a "Chart selection
+  and deploy wire contract (spec 136)" section that pins the
+  `chartSelector` semantics (pure function, throw-on-unknown shape),
+  the `deployd-api-rs` `POST /v1/deployments` wire shape (`chart` /
+  `chart_version` fields, mapping from `artifact_ref` /
+  `desired_routes` / slugs to Helm values), and the local-dev
+  record-only fallback.
+- [x] T022 `deployd-api-rs` deploy invocation accepts the resolved
+  chart name from stagecraft and applies it via Helm.
+  **Done 2026-05-15.** Approach decisions taken in this PR:
+  * **Shell out to `helm` CLI** rather than introducing a Rust Helm
+    library — keeps the dep surface small and matches platform-wide
+    Helm semantics (chart hooks, `--wait`, release tracking via
+    `helm status`). The Dockerfile bundles `helm` v3.16.4 in the
+    runtime image.
+  * **Embed chart bytes via `include_str!`** rather than mounting a
+    chart-root ConfigMap or pulling from a chart registry — the
+    binary is self-contained, and the same bytes that compile into
+    the image are the bytes tests render against. Adding a new chart
+    means appending a `match` arm in `platform/services/deployd-api-rs/src/helm.rs`
+    plus the embedded `include_str!` consts.
+  * **Broaden the Docker build context to `platform/`** (one-line
+    change in `.github/workflows/cd-deployd-api-rs.yml`) so the
+    `include_str!` relative paths from `src/helm.rs` reach the
+    chart sources at compile time.
+  * **Keep the kube-rs cluster probe** in `k8s.rs::probe_cluster`
+    so local dev without a cluster still short-circuits to
+    `ROLLED_OUT` (record-only) — the same UX the previous code path
+    offered. The raw K8s object construction is gone; the probe is
+    the only kube-rs surface remaining.
+  * **Tests** (`helm::tests`) exercise the values builder (pure),
+    chart materialisation (filesystem), and `helm template` against
+    the embedded chart with and without ingress (binary). The CI
+    workflow installs `helm` via `azure/setup-helm` so the template
+    tests assert rather than no-op.
+- [ ] T023 End-to-end happy path — depends on a live cluster.
+  Captured under `execution/verification.md` when run. Still
+  deferred at this PR boundary: nothing about the orchestrator is
+  cluster-validated in this session.
 
-**Checkpoint:** SC-002 first half (positive path) is evidenced.
-Phase 2 is **partially complete** at this PR boundary: the chart
-exists, stagecraft can resolve a chart name per project, but
-deployd-api still builds raw K8s objects. Phase 2.b (T022) is the
-remaining gate before SC-002 can be evidenced.
+**Checkpoint:** Phase 2 code is complete. SC-002 positive path
+remains gated on T023 (live-cluster validation) — that gate has not
+moved.
 
 ---
 

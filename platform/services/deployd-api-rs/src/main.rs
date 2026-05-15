@@ -8,6 +8,7 @@ use tracing_subscriber::EnvFilter;
 
 mod auth;
 mod config;
+mod helm;
 mod k8s;
 mod routes;
 mod store;
