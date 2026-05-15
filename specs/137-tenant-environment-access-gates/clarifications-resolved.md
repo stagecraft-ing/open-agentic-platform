@@ -6,11 +6,14 @@
 > Principle III, no code under FR-001..FR-010 lands before this
 > document closes.
 
-**Status:** Partial. Decisions 1, 2, 4, 5, 6 are locked from spec
-analysis and engineering judgement and are immediately load-bearing
-for Phases 1–6. Decision 3 (Rauthy admin API contract) requires
-empirical smoke against the running Rauthy instance and remains open
-under T003.
+**Status:** Closed (2026-05-15). All six clarifications resolved.
+Decision 3 (Rauthy admin API contract) closed by the T003 empirical
+smoke; Decision 5 collision-handling clause amended in light of
+the smoke's reference-schema readback (no `password_login_enabled`
+field exists in Rauthy 0.35). Spec.md §"Access-gate contract" +
+FR-004 amended pre-implementation. Spec lifecycle:
+`status: draft → approved`, `approved: "2026-05-15"`. Phases 1–6
+unblocked.
 
 ---
 
@@ -84,33 +87,52 @@ Deployment + ClusterIP Service in the deployment's namespace).
 
 ---
 
-## Decision 3 — Rauthy admin API contract: **OPEN; requires empirical smoke**
+## Decision 3 — Rauthy admin API contract: **Locked (empirical, 2026-05-15)**
 
-**Not yet locked.** The contract assumptions land in T003 against
-the running Rauthy instance:
+Smoke evidence: [`execution/rauthy-admin-smoke.md`](./execution/rauthy-admin-smoke.md)
++ raw JSON in [`execution/rauthy-admin-smoke.json`](./execution/rauthy-admin-smoke.json).
+Executed inside `stagecraft-api` pod against
+`http://rauthy.rauthy-system.svc.cluster.local:8080` (external admin
+access blocked by `PROXY_MODE=true` + `TRUSTED_PROXIES` — admin
+calls must originate from the pod CIDR or trusted Cloudflare CIDRs).
 
-| Assumption | Confirm by |
-|---|---|
-| (a) Admin API tolerates ≥10 clients per namespace | `for i in 1..10: POST /auth/v1/clients` cycle; observe stable response times |
-| (b) `DELETE /auth/v1/clients/{id}` returns 204 and the client is gone | Round-trip create→delete→get-404 |
-| (c) `password_login_enabled` is a PATCHable field (not recreate-only) | `PATCH /auth/v1/clients/{id}` with `{password_login_enabled: false}` then `GET` |
-| (d) `auth_provider_id` reference on client creation is supported and references shared Auth Providers cleanly | Create two clients pointing at the same Auth Provider; both list it in their config |
+| Assumption | Result | Notes |
+|---|---|---|
+| (a) Admin API tolerates ≥10 clients | **PASS** | 10 clients created sequentially; 2–3ms steady-state, 59ms first-call (JIT warmup). Per-env topology + 10-env year-one estimate well within tolerance. |
+| (b) `DELETE /auth/v1/clients/{id}` is clean | **PASS** | DELETE returns **200** (not 204 as initially assumed); immediate GET returns `404 NotFound "no rows returned"`. |
+| (c) Toggling password disable is non-destructive | **PASS via PUT** | But the field doesn't exist as described — see correction below. |
+| (d) `auth_provider_id` on client creation | **N/A — deferred to Phase 3** | Zero upstream providers configured in this Rauthy at smoke time. Reference-schema readback on the live `stagecraft-server` client also showed **no** `auth_provider_id` / `provider_id` field, suggesting upstream IdP choice may happen at login time (via the providers list at OIDC authorize) rather than per-client binding. Phase 3 confirms or amends when the first provider lands. |
 
-**Evidence path.**
-`execution/rauthy-admin-smoke.md` (to be authored in T003). The
-smoke runs against `rauthy.platform.svc.cluster.local` (or the
-external hostname depending on where the smoke is executed) and
-captures request/response pairs verbatim.
+### Empirical correction — Rauthy 0.35 client schema
 
-**Cluster access required.** This decision blocks Phase 3 (Rauthy
-admin client + provisioning). It does NOT block Phase 1 (schema)
-or Phase 2 (API CRUD), since those layers store the descriptor
-without yet touching Rauthy. Phase 1 + 2 may proceed against the
-default assumptions; Phase 3 work is gated on the smoke
-confirming (a)–(d) or surfacing a counter-finding that reshapes
-the contract.
+The 14-field client record (read verbatim from the live
+`stagecraft-server` client):
 
-**Maps to:** `plan.md` Phase 3 (T030–T034).
+```
+access_token_alg        access_token_lifetime    auth_code_lifetime
+challenges              confidential             default_scopes
+enabled                 flows_enabled            force_mfa
+id                      id_token_alg             name
+redirect_uris           scopes
+```
+
+**There is no `password_login_enabled` field.** Password login is
+controlled via the `flows_enabled` array — a client with
+`flows_enabled: ["authorization_code"]` (omitting `"password"`)
+cannot complete a password grant. This propagates to Decision 5
+(below) and to spec.md §"Access-gate contract" + FR-004, which
+have been amended pre-implementation.
+
+### Update verb
+
+**PUT, not PATCH.** Rauthy 0.35 admin client updates use full-object
+PUT (`PUT /auth/v1/clients/{id}` with the complete client object in
+the body). There is no PATCH endpoint. Round-tripping `flows_enabled`
+through two PUTs (add `"password"`, then remove it) both returned
+status 200 with the GET-readback reflecting the change immediately.
+
+**Maps to:** `plan.md` Phase 3 (T030–T034). Phase 3 (d) verification
+rolls into the first-provider PR.
 
 ---
 
@@ -191,11 +213,24 @@ derivation).
   "purge this user from Rauthy" admin action separately
   (not in scope for this spec — file as follow-up spec).
 - **User-already-exists collision:** Rauthy upsert is idempotent
-  on `(email, password_login_enabled: false)`. If the user already
-  exists in Rauthy with `password_login_enabled: true`, stagecraft
-  flips the field via PATCH and emits an audit row
-  `rauthy.user.password_login_disabled` recording the
-  flip. (Confirmed in Decision 3 (c) once T003 lands.)
+  on email. **Important correction (T003 empirical):** Rauthy
+  0.35's user record has no `password_login_enabled` scalar (the
+  field exists on neither user nor client records). Password
+  control on **clients** is `flows_enabled` array; password control
+  on **users** is handled differently (a Rauthy user's
+  authentication options are determined by the configured
+  password / passkey / magic-link state on the user record, not
+  a single boolean). Collision handling: if a Rauthy user already
+  exists with a password set, stagecraft does NOT modify the
+  user's password state — the gate's password-free property is
+  enforced at the **client** layer (`flows_enabled` omits
+  `"password"` on the gate client), so even a password-bearing
+  user account cannot complete a password grant against the gate
+  client. Stagecraft emits a `rauthy.user.tenant_gate_added`
+  audit row recording that the user was added to a gate
+  allowlist without touching their identity record. Per-user
+  Rauthy migration (e.g., scrub password material from existing
+  users) is out of scope; it's a separate spec.
 - **Domain allowlist entries:** do NOT auto-provision Rauthy users
   on domain entry creation — the universe is unbounded. Magic-link
   login from a domain-allowlisted email triggers Rauthy's
@@ -237,20 +272,16 @@ dropdown shows the Rauthy-configured list).
 
 ---
 
-## Status field updates *(deferred until T003 lands)*
+## Status field updates *(closed 2026-05-15)*
 
-Per `plan.md` Phase 0 §"Phase 0 deliverables": `status: draft →
-approved` flips when Phase 0 closes. This document represents 5/6
-clarifications locked; flipping the status before T003 lands would
-ship a half-locked contract under approved status. The status flip
-is held until T003 surfaces the Rauthy admin smoke evidence (or
-amends Decisions 5's collision-handling clause if (c) returns a
-counter-finding).
-
-**Trigger for status flip:** T003 evidence lands under
-`execution/rauthy-admin-smoke.md`, T007 confirms or amends the
-above five decisions in light of T003 findings, then status:
-draft → approved in a dedicated commit.
+`spec.md` frontmatter: `status: draft → approved`, `approved:
+"2026-05-15"`. T003 evidence landed under
+`execution/rauthy-admin-smoke.md`; Decision 5 collision-handling
+clause amended in light of the reference-schema readback
+(`flows_enabled` mechanism, no `password_login_enabled` field on
+client or user record); spec.md §"Access-gate contract" + FR-004
+amended pre-implementation to use the correct mechanism. Phase 1
+(schema migration) is now unblocked.
 
 ## Cross-spec coherence
 
