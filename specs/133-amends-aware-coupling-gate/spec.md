@@ -8,6 +8,8 @@ owner: bart
 created: "2026-05-03"
 approved: "2026-05-04"
 closed: "2026-05-04"
+amended: "2026-05-13"
+amendment_record: "147-spec-kind-grammar"
 kind: governance
 risk: low
 depends_on:
@@ -28,6 +30,11 @@ summary: >
   the gate to honour `amends:` as a valid coupling alongside `implements:`,
   closing a class of false positives that surfaced on 2026-05-02 when spec
   132's amendment to spec 000 forced waivers on every subsequent commit.
+  Amended by spec 147 (2026-05-13) to extend the codebase-index schema
+  1.3.0 → 1.4.0 with the optional `primary: boolean` field on
+  ImplementingPath. The gate's amends-aware semantics are unchanged;
+  spec-code-coupling-check test fixtures gain `primary: None` as a downstream
+  type cascade from the codebase-indexer schema bump.
 ---
 
 # 133 — Amends-Aware Spec/Code Coupling Gate

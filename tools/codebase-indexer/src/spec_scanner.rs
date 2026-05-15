@@ -24,6 +24,13 @@ pub struct SpecRecord {
 pub struct ImplementsEntry {
     pub crate_name: Option<String>,
     pub path: String,
+    /// Spec 147 — optional `primary: true` flag per implements item.
+    /// `None` when absent (the corpus default for all unannotated
+    /// items). The codebase-index surfaces this in `ImplementingPath.primary`
+    /// so downstream consumers (coupling gate, spec/code traceability)
+    /// can choose between corpus-wide primary ownership (when set) and
+    /// the any-one-claimant heuristic (when absent).
+    pub primary: Option<bool>,
 }
 
 /// Scan all `specs/*/spec.md` files and extract frontmatter.
@@ -154,8 +161,16 @@ fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
                 .get("path")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
+            // Spec 147 — optional `primary: true` per implements item.
+            // Only Some(true) is meaningful; explicit `false` is treated
+            // identically to absent (the corpus default).
+            let primary = mapping
+                .get("primary")
+                .and_then(|v| v.as_bool())
+                .filter(|b| *b)
+                .map(|_| true);
             if let Some(path) = path {
-                entries.push(ImplementsEntry { crate_name, path });
+                entries.push(ImplementsEntry { crate_name, path, primary });
             }
         }
     }

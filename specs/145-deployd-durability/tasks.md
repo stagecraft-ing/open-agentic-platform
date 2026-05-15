@@ -542,7 +542,9 @@ deploy, refresh registries, mark spec implementation complete.
       `managedFields` write — without per-step authorization. Material
       check passes but the discipline failed. Captured as motivating
       evidence (alongside PR #122's `make ci`-red merge) in the
-      governance-gap spec **`147-tool-permission-vs-authorization`**.
+      governance-gap spec **`148-tool-permission-vs-authorization`**
+      (planned; 147 was taken by `spec-kind-grammar` on main between
+      this branch's authoring and merge).
 - [x] T051 [P4] **Deploy to Hetzner via CD (FU-002 ownership).**
       `setup.sh:377-392` (spec 143 §12 L-003 / FU-002) is explicit
       that CD owns the deployd-api helm release; the workflow is

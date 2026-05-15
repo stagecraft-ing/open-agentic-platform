@@ -8,8 +8,69 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone)]
 pub struct Warning {
     pub code: &'static str,
+    /// Spec 128 §7.1 (amended by spec 147) — severity tier registered at
+    /// the W-code's site. `"warning"` participates in `--fail-on-warn`
+    /// gating; `"info"` is informational only and is exempt from
+    /// fail-on-warn. A future `--fail-on-info` flag may gate info-tier
+    /// diagnostics independently.
+    pub severity: &'static str,
     pub path: String,
     pub message: String,
+}
+
+/// Spec 147 — conventional `category:` vocabulary. Values outside this
+/// list emit W-130 at info severity (spec 128 §7.3). The list is
+/// expected to grow as the corpus accretes new cross-cutting concerns.
+pub const CONVENTIONAL_CATEGORIES: &[&str] = &[
+    "security",
+    "auth",
+    "data",
+    "ui",
+    "infrastructure",
+    "governance",
+    "audit",
+    "compliance",
+    "identity",
+    "lifecycle",
+    "policy",
+    "performance",
+    "observability",
+    "release",
+    "testing",
+];
+
+/// Spec 147 — declared `(kind, shape)` pairs. Mirrors `SHAPE_TABLE` in
+/// `tools/spec-compiler/src/lib.rs`. Pairs outside this table emit
+/// W-131 at warning severity (the table is meant to grow by amendment;
+/// novel pairs MUST trigger explicit table updates rather than silently
+/// passing).
+pub const SHAPE_TABLE: &[(&str, &[&str])] = &[
+    (
+        "capability",
+        &["driver", "module", "web-snippet", "middleware-stack"],
+    ),
+    (
+        "amendment",
+        &[
+            "field-addition",
+            "field-modification",
+            "mechanism-add",
+            "mechanism-modification",
+            "bug-fix",
+            "retirement-record",
+            "consolidation",
+        ],
+    ),
+];
+
+fn shape_table_has_kind(kind: &str) -> bool {
+    SHAPE_TABLE.iter().any(|(k, _)| *k == kind)
+}
+
+fn shape_table_allows(kind: &str, shape: &str) -> bool {
+    SHAPE_TABLE
+        .iter()
+        .any(|(k, shapes)| *k == kind && shapes.contains(&shape))
 }
 
 /// Discover `specs/<NNN>-<kebab>/` directories (same shape as spec-compiler).
@@ -94,6 +155,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             if !VALID_STATUSES.contains(&status) {
                 w.push(Warning {
                     code: "W-006",
+                    severity: "warning",
                     path: rel(repo_root, &spec_path),
                     message: format!(
                         "status '{}' is not in the canonical enum (draft | active | approved | superseded | retired) per Feature 000",
@@ -104,6 +166,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             if status == "superseded" && !superseded_pointer_ok(&body) {
                 w.push(Warning {
                     code: "W-002",
+                    severity: "warning",
                     path: rel(repo_root, &spec_path),
                     message: "status is superseded but body lacks an obvious replacement pointer (Feature 003)".into(),
                 });
@@ -111,6 +174,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             if status == "retired" && !retired_rationale_ok(&body) {
                 w.push(Warning {
                     code: "W-003",
+                    severity: "warning",
                     path: rel(repo_root, &spec_path),
                     message: "status is retired but body lacks an obvious rationale section (Feature 003)".into(),
                 });
@@ -120,10 +184,46 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             if !VALID_IMPLEMENTATIONS.contains(&impl_status) {
                 w.push(Warning {
                     code: "W-007",
+                    severity: "warning",
                     path: rel(repo_root, &spec_path),
                     message: format!(
                         "implementation '{}' is not in the canonical enum (pending | in-progress | complete | n/a | deferred) per Feature 000",
                         impl_status
+                    ),
+                });
+            }
+        }
+        // ── Spec 147 — W-130: category value not in conventional vocabulary (info severity) ──
+        if let Some(seq) = fm.get("category").and_then(|v| v.as_sequence()) {
+            for item in seq {
+                let Some(tag) = item.as_str() else {
+                    continue;
+                };
+                if !CONVENTIONAL_CATEGORIES.contains(&tag) {
+                    w.push(Warning {
+                        code: "W-130",
+                        severity: "info",
+                        path: rel(repo_root, &spec_path),
+                        message: format!(
+                            "category value {tag:?} is not in the conventional vocabulary; conventional values: {}",
+                            CONVENTIONAL_CATEGORIES.join(", ")
+                        ),
+                    });
+                }
+            }
+        }
+        // ── Spec 147 — W-131: shape value outside the declared (kind, shape) table (warning severity) ──
+        if let (Some(kind), Some(shape)) = (
+            fm.get("kind").and_then(|v| v.as_str()),
+            fm.get("shape").and_then(|v| v.as_str()),
+        ) {
+            if shape_table_has_kind(kind) && !shape_table_allows(kind, shape) {
+                w.push(Warning {
+                    code: "W-131",
+                    severity: "warning",
+                    path: rel(repo_root, &spec_path),
+                    message: format!(
+                        "shape value {shape:?} is not in the declared (kind, shape) table for kind={kind:?}; novel shape values must trigger an explicit table update per spec 147 §`shape:`"
                     ),
                 });
             }
@@ -140,6 +240,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             {
                 w.push(Warning {
                     code: "W-001",
+                    severity: "warning",
                     path: rel(repo_root, &tasks_path),
                     message: "task marked (complete) but execution/verification.md is missing (Feature 005)".into(),
                 });
@@ -149,6 +250,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
         if has_pending_tag && tasks_raw.contains("### ") {
             w.push(Warning {
                 code: "W-005",
+                severity: "warning",
                 path: rel(repo_root, &tasks_path),
                 message: "mixed task-state notation: (pending) tags and ### section headings in one tasks.md (Feature 004)".into(),
             });
@@ -160,6 +262,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             if !is_example_changeset(&cs) && !verification_path.is_file() {
                 w.push(Warning {
                     code: "W-004",
+                    severity: "warning",
                     path: rel(repo_root, &changeset_path),
                     message: "execution/changeset.md exists but execution/verification.md is missing (Feature 005)".into(),
                 });
@@ -173,8 +276,97 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
 pub fn lint_repo(repo_root: &Path) -> Vec<Warning> {
     let mut all = Vec::new();
     let dirs = feature_spec_dirs(repo_root).unwrap_or_default();
-    for d in dirs {
-        all.extend(lint_feature_dir(repo_root, &d));
+    for d in &dirs {
+        all.extend(lint_feature_dir(repo_root, d));
     }
+    all.extend(corpus_lint_pass(repo_root, &dirs));
     all
+}
+
+/// Spec 147 — corpus-level W-codes that need to see every spec at once.
+/// Today this is W-132 (orphan capability surface); future corpus-wide
+/// info diagnostics slot in here.
+fn corpus_lint_pass(repo_root: &Path, feature_dirs: &[PathBuf]) -> Vec<Warning> {
+    let mut out: Vec<Warning> = Vec::new();
+    // Collect (spec-id, kind, frontmatter, path) for every spec.
+    #[derive(Clone)]
+    struct SpecView {
+        id: String,
+        kind: Option<String>,
+        selectable_by: Option<String>,
+        selects: Vec<String>, // capability ids selected by a profile, if any
+        path: String,
+    }
+    let mut views: Vec<SpecView> = Vec::new();
+    for d in feature_dirs {
+        let spec_path = d.join("spec.md");
+        let Ok(raw) = fs::read_to_string(&spec_path) else {
+            continue;
+        };
+        let Some((fm, _)) = split_frontmatter_optional(&raw) else {
+            continue;
+        };
+        let id = fm
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let kind = fm.get("kind").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let selectable_by = fm
+            .get("selectable_by")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let selects: Vec<String> = fm
+            .get("selects")
+            .and_then(|v| v.as_mapping())
+            .map(|m| {
+                m.values()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        views.push(SpecView {
+            id,
+            kind,
+            selectable_by,
+            selects,
+            path: rel(repo_root, &spec_path),
+        });
+    }
+
+    // W-132 — capability declares `selectable_by:` but no profile spec
+    // selects this capability. Surfaces orphan capabilities. Info
+    // severity (spec 128 §7.3): not a contract violation.
+    let selected_caps: std::collections::BTreeSet<String> = views
+        .iter()
+        .filter(|s| s.kind.as_deref() == Some("profile"))
+        .flat_map(|s| s.selects.iter().cloned())
+        .collect();
+    for s in &views {
+        if s.kind.as_deref() != Some("capability") {
+            continue;
+        }
+        if s.selectable_by.is_none() {
+            continue;
+        }
+        let id_prefix = s.id.split_once('-').map(|(p, _)| p).unwrap_or(s.id.as_str());
+        let referenced = selected_caps.iter().any(|c| {
+            c == &s.id
+                || c == id_prefix
+                || c.split_once('-').map(|(p, _)| p).unwrap_or(c.as_str()) == id_prefix
+        });
+        if !referenced {
+            out.push(Warning {
+                code: "W-132",
+                severity: "info",
+                path: s.path.clone(),
+                message: format!(
+                    "capability {id:?} declares `selectable_by:` but no profile spec selects it; orphan capability (advisory, info-tier)",
+                    id = s.id
+                ),
+            });
+        }
+    }
+
+    out
 }

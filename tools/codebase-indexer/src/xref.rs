@@ -61,6 +61,7 @@ pub fn build_traceability(
                 path: imp.path.clone(),
                 name: imp.crate_name.clone(),
                 source: Some(TraceSource::SpecImplements),
+                primary: imp.primary,
             });
         }
 
@@ -96,6 +97,7 @@ pub fn build_traceability(
                     path: pkg.path.clone(),
                     name: Some(pkg.name.clone()),
                     source: Some(TraceSource::CargoMetadataCrate),
+                    primary: None,
                 });
             }
         }
@@ -122,6 +124,7 @@ pub fn build_traceability(
                 path: file_path.clone(),
                 name: None,
                 source: Some(TraceSource::CommentHeader),
+                primary: None,
             });
         }
     }

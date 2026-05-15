@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e7d35dd8179f0116979641e7c5c2b40edc72d78a0019e980c7e1e76eededa0bd",
+    "contentHash": "c8301545650469a9ab9a931aaba56afb4ec8c03dbcc7a71b142ddd6f46120e77",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1522,11 +1522,11 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "1.3.0",
+  "schemaVersion": "1.4.0",
   "traceability": {
     "mappings": [
       {
-        "amendmentRecord": "132-constitutional-invariant-freeze",
+        "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
             "name": "open_agentic_frontmatter",
@@ -1538,6 +1538,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_compiler",
@@ -1594,7 +1595,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "128-spec-lint-default-fail-on-warn",
+        "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_lint",
@@ -2751,6 +2752,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "dependsOn": [
           "000",
           "001",
@@ -4051,6 +4053,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "amends": [
           "006-conformance-lint-mvp"
         ],
@@ -4129,6 +4132,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "amends": [
           "000-bootstrap-spec-system"
         ],
@@ -4150,6 +4154,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "147-spec-kind-grammar",
         "dependsOn": [
           "119",
           "127",
@@ -4954,6 +4959,20 @@
           }
         ],
         "specId": "146-deployd-api-memory-hardening",
+        "specStatus": "draft"
+      },
+      {
+        "amends": [
+          "000-bootstrap-spec-system",
+          "128-spec-lint-default-fail-on-warn",
+          "001-spec-compiler-mvp",
+          "006-conformance-lint-mvp",
+          "101-codebase-index-mvp",
+          "132-constitutional-invariant-freeze",
+          "133-amends-aware-coupling-gate"
+        ],
+        "implementingPaths": [],
+        "specId": "147-spec-kind-grammar",
         "specStatus": "draft"
       }
     ],
