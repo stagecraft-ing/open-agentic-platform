@@ -208,21 +208,65 @@ descriptor end-to-end without touching deployd-api yet.
 
 ## Phase 3 — Rauthy admin client + provisioning
 
-- [ ] T030 `api/integrations/rauthy/adminClient.ts` — typed wrapper
+- [x] T030 `api/integrations/rauthy/adminClient.ts` — typed wrapper
   around Rauthy admin API endpoints used by the provisioning path.
   Configurable base URL + admin token via existing OIDC M2M secret
   surface.
-- [ ] T031 `provisionTenantGateClient({environmentId, descriptor})`
+  (Landed 2026-05-15 at `api/auth/rauthyAdminClients.ts` — path
+  amended from `api/integrations/rauthy/` to `api/auth/` to keep all
+  Rauthy-touching code in one directory alongside the existing
+  `api/auth/rauthy.ts`. Reuses `rauthyUrl` + `buildRauthyAdminAuth`
+  from rauthy.ts. Four low-level verbs: getRauthyClient,
+  createRauthyClient, putRauthyClient, deleteRauthyClient. All
+  fetch-injectable for vitest.)
+- [x] T031 `provisionTenantGateClient({environmentId, descriptor})`
   — idempotent create-or-update; sets
   `password_login_enabled: false` hard-coded; writes returned
   `client_id` to `environment_access_gates.rauthy_client_ref`.
-- [ ] T032 `deprovisionTenantGateClient({environmentId})` — DELETE
+  (Landed 2026-05-15. **Mechanism amended per T003 empirical:**
+  Rauthy 0.35 has NO `password_login_enabled` field; FR-004's
+  intent is enforced via `flows_enabled: ["authorization_code"]`
+  (never includes `"password"`). The `assertNoPasswordFlow` guard
+  fires inside both create + put paths so a future hand-built
+  payload cannot bypass the invariant. Deterministic client id
+  via `tenantGateClientId(envId)` = `tenant-gate-<envId>`. Wired
+  into `putAccessGate` — caller no longer passes
+  `rauthyClientRef`; stagecraft auto-provisions on enable, returns
+  the client_id, and persists it.)
+- [x] T032 `deprovisionTenantGateClient({environmentId})` — DELETE
   the Rauthy client; resets the descriptor row to `enabled = false`.
-- [ ] T033 Vitest coverage with a stub Rauthy admin server. Cover
+  (Landed 2026-05-15. Idempotent: DELETE → 200 returns
+  `{ existed: true }`; DELETE → 404 returns `{ existed: false }`
+  (per T003 — Rauthy DELETE returns 200, not 204). Wired into
+  `putAccessGate`: DB-first ordering (DB always wins for the
+  descriptor's own state); Rauthy delete is best-effort, failures
+  logged as `rauthy.tenant_gate.client.deprovision_failed_post_disable`.)
+- [x] T033 Vitest coverage with a stub Rauthy admin server. Cover
   the four contract assumptions confirmed in T003.
-- [ ] T034 [P] FR-008 propagation hook: changes to the user directory
+  (Landed 2026-05-15 as `rauthyAdminClients.test.ts` — 14 passing
+  tests. Pure-helper coverage: tenantGateClientId,
+  tenantGateRedirectUri, buildTenantGateClientPayload (4 cases),
+  assertNoPasswordFlow (2 cases). Stub-fetch integration:
+  (a) GET-then-POST creates new client, (b) GET-then-PUT updates
+  existing (no PATCH path), (c) DELETE 200/404 idempotent + 5xx
+  throws, (d) FR-004 invariant — POST body never contains
+  `"password"` in flows_enabled.)
+- [x] T034 [P] FR-008 propagation hook: changes to the user directory
   / Auth Provider rules don't restart tenant workloads. Implement as
   a Rauthy-side rule, no deployd-api work needed.
+  (Landed 2026-05-15. The Rauthy-side rule is inherent: provisioning
+  a Rauthy user via `POST /auth/v1/users` (existing
+  `provisionRauthyUser` in `api/auth/rauthy.ts`) does NOT trigger
+  any deployd-api callback or oauth2-proxy restart — the user
+  record materialises in Rauthy and becomes available on next
+  login. Wired into `addAllowlistEntry`: when `kind=email` AND the
+  descriptor has `loginMethodMagicLink=true`, the handler calls
+  `provisionRauthyUser({email, name})` after the DB insert.
+  Failure is logged but does NOT roll back the allowlist row —
+  the operator's intent is honoured; Rauthy user state is
+  reconcilable on first login attempt. `kind=domain` entries skip
+  provisioning (domain users materialise on first federated
+  login per Decision 5).)
 
 **Checkpoint:** Stagecraft can provision and tear down a Rauthy
 client per gated env without touching the K8s deployment.

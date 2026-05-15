@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a88c4c22e9195f3c220eb72095cc14e0a192ab1c701bf2964bbef5b64ff9e020",
+    "contentHash": "4623611901f522e2cae1d2f2a3a07d72f4261ec70cd2022fe6eab5d4b5dc2dd8",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4268,6 +4268,18 @@
           "136"
         ],
         "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts",
+            "source": "spec-implements"
+          },
           {
             "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql",
             "source": "spec-implements"

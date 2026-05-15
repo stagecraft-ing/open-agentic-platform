@@ -15,6 +15,7 @@
 // scope §"Email allowlist UX for non-administrators" gets its own spec.
 
 import { api, APIError } from "encore.dev/api";
+import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
@@ -26,6 +27,12 @@ import {
   projects,
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
+import { provisionRauthyUser } from "../auth/rauthy";
+import {
+  deprovisionTenantGateClient,
+  provisionTenantGateClient,
+  tenantGateClientId,
+} from "../auth/rauthyAdminClients";
 import {
   ALLOWLIST_KINDS,
   assertNoPasswordFields,
@@ -201,7 +208,6 @@ export const getAccessGate = api(
 export interface PutAccessGateRequest {
   environmentId: string;
   enabled: boolean;
-  rauthyClientRef?: string | null;
   loginMethodMagicLink?: boolean;
   loginMethodFederatedProvider?: FederatedProvider | null;
   loginMethodFederatedProviderClientRef?: string | null;
@@ -234,18 +240,54 @@ export const putAccessGate = api(
         req.loginMethodFederatedProvider,
         req.loginMethodFederatedProviderClientRef,
       );
-    // Enabled requires a Rauthy client ref. The DB CHECK also enforces
-    // this; surfacing it here avoids the round-trip on the common
-    // mistake of toggling enabled before Phase 3's Rauthy provisioning
-    // hooks land.
-    if (req.enabled && !req.rauthyClientRef) {
-      throw APIError.failedPrecondition(
-        "enabling the gate requires rauthyClientRef (Rauthy client provisioning lands in Phase 3)",
-      );
-    }
 
     const magicLink = req.loginMethodMagicLink ?? true;
     const now = new Date();
+
+    // Load current state so we can decide what to do in Rauthy. The
+    // descriptor is 1:1 keyed on environment_id; absence means
+    // "currently disabled."
+    const [current] = await db
+      .select()
+      .from(environmentAccessGates)
+      .where(eq(environmentAccessGates.environmentId, env.id))
+      .limit(1);
+    const wasEnabled = current?.enabled === true;
+
+    // ---- Rauthy reconciliation (Phase 3 wiring) -------------------------
+    // The descriptor row's `rauthy_client_ref` is the source of truth for
+    // whether a Rauthy client exists. Three branches:
+    //
+    //   1. enable (false → true) OR descriptor edit (true → true):
+    //      provisionTenantGateClient (idempotent create-or-update).
+    //   2. disable (true → false): deprovisionTenantGateClient
+    //      (best-effort — DB always wins for the descriptor's own state).
+    //   3. no-op (false → false): no Rauthy work.
+    //
+    // The hostname here is a placeholder; Phase 4 (deployd-api K8s
+    // renderer) re-provisions the client with the real ingress hostname
+    // at deploy time. The PUT is idempotent, so the Phase 4 update
+    // overlays cleanly without recreating the client.
+    let rauthyClientRef: string | null = current?.rauthyClientRef ?? null;
+    if (req.enabled) {
+      const clientId = tenantGateClientId(env.id);
+      try {
+        await provisionTenantGateClient({
+          clientId,
+          name: `Tenant Gate · ${env.id}`,
+          tenantHostname: `${env.id}.tenants.placeholder.example.com`,
+          magicLinkEnabled: magicLink,
+          federatedProvider: fedProvider,
+        });
+        rauthyClientRef = clientId;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw APIError.unavailable(
+          `Rauthy admin call failed; gate not enabled: ${msg}`,
+        );
+      }
+    }
+    // ---------------------------------------------------------------------
 
     // Upsert via ON CONFLICT — the descriptor is 1:1 keyed on
     // environment_id so this resolves to insert-or-update on the same
@@ -255,7 +297,7 @@ export const putAccessGate = api(
       .values({
         environmentId: env.id,
         enabled: req.enabled,
-        rauthyClientRef: req.rauthyClientRef ?? null,
+        rauthyClientRef: req.enabled ? rauthyClientRef : null,
         loginMethodMagicLink: magicLink,
         loginMethodFederatedProvider: fedProvider,
         loginMethodFederatedProviderClientRef: fedRef,
@@ -266,7 +308,7 @@ export const putAccessGate = api(
         target: environmentAccessGates.environmentId,
         set: {
           enabled: req.enabled,
-          rauthyClientRef: req.rauthyClientRef ?? null,
+          rauthyClientRef: req.enabled ? rauthyClientRef : null,
           loginMethodMagicLink: magicLink,
           loginMethodFederatedProvider: fedProvider,
           loginMethodFederatedProviderClientRef: fedRef,
@@ -274,6 +316,23 @@ export const putAccessGate = api(
         },
       })
       .returning();
+
+    // After the DB write, deprovision Rauthy if we transitioned to
+    // disabled. Order matters: DB first so the descriptor reflects the
+    // requested state even if Rauthy deprovision fails. An orphan
+    // Rauthy client is reconcilable by a later admin pass; a DB row
+    // claiming "enabled with a now-invalid client_ref" is not.
+    if (wasEnabled && !req.enabled && current?.rauthyClientRef) {
+      try {
+        await deprovisionTenantGateClient(current.rauthyClientRef);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        log.warn(
+          "rauthy.tenant_gate.client.deprovision_failed_post_disable",
+          { clientId: current.rauthyClientRef, error: msg },
+        );
+      }
+    }
 
     const row = inserted[0]!;
     await emitAudit(
@@ -284,7 +343,7 @@ export const putAccessGate = api(
       env.id,
       {
         enabled: req.enabled,
-        rauthyClientRef: req.rauthyClientRef ?? null,
+        rauthyClientRef: req.enabled ? rauthyClientRef : null,
         loginMethodMagicLink: magicLink,
         loginMethodFederatedProvider: fedProvider,
       },
@@ -375,6 +434,39 @@ export const addAllowlistEntry = api(
     }
 
     const row = inserted[0]!;
+
+    // FR-008 / clarifications-resolved §Decision 5 — auto-provision a
+    // Rauthy user when:
+    //   * the entry is an email (not a domain — domains materialise on
+    //     first federated login per Rauthy's silent-link path), AND
+    //   * the descriptor has magic_link enabled (no provisioning when
+    //     only federated is configured).
+    // Failure is logged but does NOT roll back the allowlist row —
+    // Rauthy user provisioning is best-effort; an absent user surfaces
+    // on first login attempt rather than at descriptor edit time, and
+    // the allowlist row remains accurate to the operator's intent.
+    if (req.kind === "email") {
+      const [descriptor] = await db
+        .select({
+          loginMethodMagicLink: environmentAccessGates.loginMethodMagicLink,
+        })
+        .from(environmentAccessGates)
+        .where(eq(environmentAccessGates.environmentId, env.id))
+        .limit(1);
+      if (descriptor?.loginMethodMagicLink) {
+        try {
+          await provisionRauthyUser({ email: normalised, name: normalised });
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          log.warn("rauthy.tenant_gate.user.provision_failed", {
+            email: normalised,
+            environmentId: env.id,
+            error: msg,
+          });
+        }
+      }
+    }
+
     await emitAudit(
       auth.userId,
       "tenant.gate.allowlist.added",

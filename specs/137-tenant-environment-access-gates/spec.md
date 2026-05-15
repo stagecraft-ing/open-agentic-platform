@@ -23,6 +23,10 @@ implements:
   - path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts  # pure helpers extracted per the cloneAvailabilityHelpers pattern so vitest can drive them without the Encore native runtime
   - path: platform/services/stagecraft/api/environments/accessGates.test.ts
   - path: platform/services/stagecraft/api/environments/encore.service.ts  # registers the new Encore service so the four endpoints are discovered at startup
+  # Phase 3 — Rauthy admin client provisioning (T030–T034)
+  - path: platform/services/stagecraft/api/auth/rauthyAdminClients.ts  # network-bound wrapper around POST/PUT/DELETE /auth/v1/clients + idempotent provision/deprovision domain operations
+  - path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts  # pure helpers (FR-004 invariant, payload construction, deterministic client id)
+  - path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts  # 14 passing vitest tests covering pure helpers + provision/deprovision against a stub fetch — exercises the four T003 contract assumptions
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.
