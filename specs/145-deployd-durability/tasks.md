@@ -519,8 +519,30 @@ deploy, refresh registries, mark spec implementation complete.
       check passes but the discipline failed. Captured as motivating
       evidence (alongside PR #122's `make ci`-red merge) in the
       governance-gap spec **`147-tool-permission-vs-authorization`**.
-- [ ] T051 [P4] Deploy to Hetzner: `make deploy-hetzner` (or the
-      equivalent chart-apply path). Pod comes up Ready.
+- [ ] T051 [P4] **Deploy to Hetzner via CD (FU-002 ownership).**
+      `setup.sh:377-392` (spec 143 §12 L-003 / FU-002) is explicit
+      that CD owns the deployd-api helm release; the workflow is
+      `.github/workflows/cd-deployd-api-rs.yml` (chart-path
+      `platform/charts/deployd-api`, values files `values.yaml,values-hetzner.yaml`).
+      The deploy gate is `github.event_name == 'push' ||
+      github.event.inputs.deploy == 'true'` — no main-only ref check
+      — so `workflow_dispatch` against the spec branch works and
+      lets AC validation (T052–T055) run pre-merge, keeping single-PR
+      closure (frontmatter flip T061 in same PR as chart edits).
+      `make deploy-hetzner` is **not** a real Makefile target (was
+      mis-referenced in the original tasks.md draft); the actual
+      sequence is:
+      ```bash
+      git push -u origin 145-deployd-durability
+      gh workflow run cd-deployd-api-rs.yml --ref 145-deployd-durability -f deploy=true
+      gh run watch
+      ```
+      After CD green, confirm the pod is on the new sha-tag and the
+      live deployment env block contains `DEPLOYD_BACKUP_*` entries:
+      `kubectl -n deployd-system get deployment deployd-api -o jsonpath='{.spec.template.spec.containers[0].image}'`
+      and
+      `kubectl -n deployd-system get deployment deployd-api -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"\n"}{end}' | grep DEPLOYD_BACKUP`.
+      Pod Ready and PVC bound.
 - [ ] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
       row in `deployments` and a known row in `deployment_events`.
       `kubectl delete pod -n <ns> deployd-api-...`. Wait for
