@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7c9446ffab3c0958e0bb96077f23b78a22cc631d57cf3ce1715953162e9baf02",
+    "contentHash": "a88c4c22e9195f3c220eb72095cc14e0a192ab1c701bf2964bbef5b64ff9e020",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4282,6 +4282,22 @@
           },
           {
             "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGates.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGates.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGatesHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/encore.service.ts",
             "source": "spec-implements"
           },
           {

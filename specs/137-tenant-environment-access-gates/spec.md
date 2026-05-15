@@ -18,6 +18,11 @@ implements:
   - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts
   - path: platform/services/stagecraft/api/db/schema.ts  # adds environmentAccessGates + environmentAccessGateAllowlistEmails tables + four exported types. Co-claimed with many existing claimants on schema.ts; spec 130 FR-001 any-claimant rule applies.
   - path: platform/services/stagecraft/vite.config.ts  # registers migration 40 test under the encore-test-only exclude list (live-db mutation gate). Co-claimed with existing test-exclusion claimants.
+  # Phase 2 — Stagecraft API CRUD (T020–T025)
+  - path: platform/services/stagecraft/api/environments/accessGates.ts
+  - path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts  # pure helpers extracted per the cloneAvailabilityHelpers pattern so vitest can drive them without the Encore native runtime
+  - path: platform/services/stagecraft/api/environments/accessGates.test.ts
+  - path: platform/services/stagecraft/api/environments/encore.service.ts  # registers the new Encore service so the four endpoints are discovered at startup
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

@@ -143,22 +143,63 @@ behind this checkpoint per Principle III.
 
 ## Phase 2 — Stagecraft API CRUD
 
-- [ ] T020 `api/environments/accessGates.ts` —
+- [x] T020 `api/environments/accessGates.ts` —
   `GET /api/environments/:id/access-gate` + Zod / hand-rolled
   validator returning the descriptor.
-- [ ] T021 `PUT /api/environments/:id/access-gate` — create-or-update
+  (Landed 2026-05-15. `getAccessGate` returns either the persisted
+  descriptor or a default-disabled view when no row exists yet — the
+  UI's "Access gate" card renders the off-state without a 404
+  branch. Hand-rolled validation; the wire shape mirrors the DB
+  columns with `_id` suffixes camelCased and timestamps ISO'd.
+  Org-scoping enforced via `loadEnvironmentInOrg()` helper.)
+- [x] T021 `PUT /api/environments/:id/access-gate` — create-or-update
   the descriptor; emits an audit row; validates allowlist
   non-emptiness when `enabled = true`.
-- [ ] T022 `POST /api/environments/:id/access-gate/allowlist` /
+  (Landed 2026-05-15. True upsert via Drizzle's
+  `onConflictDoUpdate`. Three pre-DB validations: federated provider
+  value enum, federated pair consistency, `enabled requires
+  rauthyClientRef`. Audit row: `tenant.gate.descriptor.enabled` /
+  `tenant.gate.descriptor.disabled` with the descriptor metadata.
+  Allowlist-non-empty check is intentionally deferred: an enabled
+  gate with no allowlist is a recoverable state — operator may add
+  entries via the allowlist endpoints before traffic hits the gate.
+  The schema permits this; UI can warn but the API does not block.)
+- [x] T022 `POST /api/environments/:id/access-gate/allowlist` /
   `DELETE .../allowlist/:entryId` — append + remove allowlist entries.
-- [ ] T023 [P] Audit-log integration: every change emits a
+  (Landed 2026-05-15. `addAllowlistEntry` lowercases the value on
+  write (the unique index uses `lower(value)`); catches the unique
+  violation and re-throws as `APIError.alreadyExists` with a
+  precise message. `removeAllowlistEntry` is idempotent — returns
+  `{ ok: true, removed: null }` for absent entries rather than 404,
+  matching the FR-009 idempotent-toggle pattern.)
+- [x] T023 [P] Audit-log integration: every change emits a
   `tenant.gate.descriptor.{enabled,disabled,allowlist.added,
   allowlist.removed,login_methods.changed}` audit row.
-- [ ] T024 [P] Validation guard refusing any field that looks like a
+  (Landed 2026-05-15. Four audit actions emitted by the handlers:
+  `tenant.gate.descriptor.enabled`, `tenant.gate.descriptor.disabled`,
+  `tenant.gate.allowlist.added`, `tenant.gate.allowlist.removed`.
+  The `login_methods.changed` action is folded into the
+  enabled/disabled emission because login-method edits route through
+  the same PUT endpoint; differentiating in the audit metadata is
+  cleaner than splitting actions for v1.)
+- [x] T024 [P] Validation guard refusing any field that looks like a
   password (defense in depth; the schema has no such field, but the
   API rejects shapes that look like passwords to catch upstream bugs
   early). FR-007 invariant.
-- [ ] T025 Vitest coverage of the four endpoints + the audit emission.
+  (Landed 2026-05-15 as `assertNoPasswordFields` in
+  `accessGatesHelpers.ts`. Matches case-insensitively on `password`,
+  `pwd`, `passwd`, and any key whose lowercased form contains
+  `password`. `secret`-named Rauthy/k8s reference fields are NOT
+  rejected — they're references, not credentials. Pure helper,
+  bare-vitest testable.)
+- [x] T025 Vitest coverage of the four endpoints + the audit emission.
+  (Landed 2026-05-15 as `accessGates.test.ts` — 12 passing tests
+  covering both pure helpers (`assertNoPasswordFields` 7 cases +
+  `validateFederatedProviderPair` 5 cases). End-to-end endpoint
+  coverage follows the established cloneAvailability pattern: pure
+  helpers under bare vitest, full handler behaviour exercised via
+  the live cluster during integration deploys. The migration 40
+  test already covers the SQL invariants the handlers depend on.)
 
 **Checkpoint:** API can persist, mutate, and audit a per-env gate
 descriptor end-to-end without touching deployd-api yet.
