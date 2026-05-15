@@ -25,7 +25,20 @@ async fn main() -> Result<()> {
         std::env::var("DEPLOYD_DATA_DIR").unwrap_or_else(|_| "/var/lib/deployd/data".into());
     std::fs::create_dir_all(&data_dir)
         .with_context(|| format!("failed to create data dir: {data_dir}"))?;
+
+    if let Ok(restore) = std::env::var("HQL_BACKUP_RESTORE") {
+        tracing::warn!(
+            source = %restore,
+            "HQL_BACKUP_RESTORE is set — hiqlite will WIPE the data dir and restore from this snapshot. \
+             Per the spec 145 runbook, UNSET this env var (kubectl set env deployment/deployd-api HQL_BACKUP_RESTORE-) \
+             after the restore succeeds so subsequent pod restarts do not re-wipe."
+        );
+    }
+
+    tracing::info!(data_dir = %data_dir, "initialising hiqlite store");
     let client = store::init_db(&data_dir).await?;
+    tracing::info!("hiqlite store ready");
+
     let state = Arc::new(store::AppState {
         client,
         config: cfg.clone(),

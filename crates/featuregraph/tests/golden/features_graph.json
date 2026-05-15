@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:417affb8293603f2b095cc63e1eb9ec96ff6bb57baa39418e292477e972e1bc4",
+  "graph_fingerprint": "sha256:14196d0408fd86024df81510934e725800a6c3c8e5cec65437061a6fb03decbb",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2767,8 +2767,8 @@
       "feature_id": "145-deployd-durability",
       "title": "deployd-api durability chain — PVC + scrub-narrowing + Hiqlite backup/s3 + restore-on-startup",
       "spec_path": "specs/145-deployd-durability/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",

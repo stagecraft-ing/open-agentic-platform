@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5e27ddcd94f8a9b534a7989e077fd597680a704781a57f24d5a2c290b17dd089",
+    "contentHash": "c8301545650469a9ab9a931aaba56afb4ec8c03dbcc7a71b142ddd6f46120e77",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -47,10 +47,6 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"145-deployd-durability\" declares implements path \"docs/runbooks/deployd-api-durability.md\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -4872,6 +4868,10 @@
         ],
         "implementingPaths": [
           {
+            "path": ".github/workflows/cd-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": "docs/runbooks/deployd-api-durability.md",
             "source": "spec-implements"
           },
@@ -4920,6 +4920,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/deployd-api-rs/src/auth.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/deployd-api-rs/src/config.rs",
             "source": "spec-implements"
           },
@@ -4937,7 +4941,7 @@
           }
         ],
         "specId": "145-deployd-durability",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

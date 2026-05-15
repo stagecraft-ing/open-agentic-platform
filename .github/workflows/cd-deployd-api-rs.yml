@@ -106,7 +106,6 @@ jobs:
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }}
             --set "ingress.host=deploy.${{ secrets.DOMAIN }}"
             --set "oidc.endpoint=https://auth.${{ secrets.DOMAIN }}"
-            --set "oidc.audience=https://deploy.${{ secrets.DOMAIN }}"
           app-label: deployd-api
           kubeconfig-b64: ${{ secrets.KUBECONFIG_HETZNER }}
           ghcr-pat: ${{ secrets.GHCR_PAT }}

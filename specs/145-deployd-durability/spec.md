@@ -2,8 +2,9 @@
 id: "145-deployd-durability"
 slug: deployd-durability
 title: "deployd-api durability chain — PVC + scrub-narrowing + Hiqlite backup/s3 + restore-on-startup"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
+closed: "2026-05-15"
 owner: bart
 created: "2026-05-10"
 kind: platform-delivery
@@ -28,7 +29,22 @@ implements:
   - path: platform/services/deployd-api-rs/src/main.rs
   - path: platform/services/deployd-api-rs/src/store.rs
   - path: platform/services/deployd-api-rs/src/config.rs
+  # Amended 2026-05-15 during T052 live AC-1 validation: the jsonwebtoken
+  # 9→10 dependabot bump (04aa8f73) left two latent regressions on the JWT
+  # verify path (missing aws_lc_rs feature on the crate; stricter mixed-
+  # family algorithm check in v10 decoding.rs:342). Both fixes land on
+  # auth.rs as part of spec 145 closure — the spec's AC-1/AC-2 exercise
+  # the auth path end-to-end so it inherits the validator's hardening.
+  - path: platform/services/deployd-api-rs/src/auth.rs
   - path: docs/runbooks/deployd-api-durability.md
+  # Amended 2026-05-15 during T054 live AC-2 validation: Rauthy 0.35's
+  # client_credentials flow reflects client_id as the aud claim
+  # verbatim. The CD workflow's `--set oidc.audience=https://deploy.<domain>`
+  # override is removed so the chart-side value (`stagecraft-m2m`) governs;
+  # without this, deployd-api rejects every live M2M token with
+  # InvalidAudience. Spec 143 §12 L-006 is the companion default-scopes-is-
+  # load-bearing lesson on the Rauthy side.
+  - path: .github/workflows/cd-deployd-api-rs.yml
   - path: platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts
 summary: >
   The `deployments` and `deployment_events` tables in deployd-api-rs's
@@ -142,7 +158,7 @@ Concretely, when this session lands §2.4 (restore-on-startup):
 2. **Decide absorb-vs-fork on WAL-pressure-aware scheduling.** If
    restore-on-startup itself drives non-trivial allocation under
    the 1Gi floor (e.g., decrypting a multi-MB snapshot in-memory),
-   this session decides whether to:
+   this session captures the data and decides whether to:
    - **Absorb** — raise the cgroup default in spec 146 (amend
      §2.1 with budget math for the restore-decrypt allocation), or
    - **Fork** — file a follow-up spec on
@@ -370,13 +386,13 @@ through `.Values.secrets.provider`:
 
 | `provider` | Projection template | Operator action |
 |---|---|---|
-| `eso` | `templates/external-secret.yaml` | Add three keys to `secrets.keys` (per-env override or chart default); ESO fetches from upstream secret store. |
-| `csi-azure` | `templates/secretproviderclass.yaml` | Add three keys to `secretsMount.objects`; SPC mounts from Azure Key Vault. |
-| `k8s` | `templates/secrets-k8s.yaml` (only renders when `secrets.create: true`) — or operator-managed pre-existing Secret when `secrets.create: false` | Operator pre-creates `deployd-api-secrets` with the three keys, OR sets `secrets.data.*` in values for chart-create flow. |
+| `eso` | `templates/external-secret.yaml` | Add four keys to `secrets.keys` (per-env override or chart default); ESO fetches from upstream secret store. |
+| `csi-azure` | `templates/secretproviderclass.yaml` | Add four keys to `secretsMount.objects`; SPC mounts from Azure Key Vault. |
+| `k8s` | `templates/secrets-k8s.yaml` (only renders when `secrets.create: true`) — or operator-managed pre-existing Secret when `secrets.create: false` | Operator pre-creates `deployd-api-secrets` with the four keys, OR sets `secrets.data.*` in values for chart-create flow. |
 
 The currently-shipping Hetzner deploy uses `provider: "k8s"` with
 `create: false` — operator pre-creates the Secret out-of-band and
-adds the three new BackupConfig keys to it manually. The chart's
+adds the four new BackupConfig keys to it manually. The chart's
 `envFrom: secretRef: deployd-api-secrets, optional: true`
 (`templates/deployment.yaml:59-62`) loads whatever the operator
 populated, regardless of provider.
@@ -384,11 +400,17 @@ populated, regardless of provider.
 `templates/external-secret.yaml` IS in this spec's `implements:`
 list — its template-rendered surface gains a parallel `range` block
 for the new backup keys (so ESO operators get them by default).
-`secretproviderclass.yaml` and `secrets-k8s.yaml` are NOT in
-`implements:` (the SPC and k8s-create-true paths use the existing
-`.Values.secretsMount.objects` and `.Values.secrets.data` extension
-points; no new template surface is required). The runbook in §2.5
-documents the operator-side procedure for all three providers.
+The new `range` is gated by `{{- if and .Values.backup.endpoint
+.Values.backup.bucket }}` for **symmetric opt-in semantics with the
+Deployment env block** — when an operator has not enabled backup
+(endpoint+bucket unset), the ExternalSecret data block carries only
+the pre-existing non-backup entries, mirroring the env-block
+suppression. `secretproviderclass.yaml` and `secrets-k8s.yaml` are
+NOT in `implements:` (the SPC and k8s-create-true paths use the
+existing `.Values.secretsMount.objects` and `.Values.secrets.data`
+extension points; no new template surface is required). The runbook
+in §2.5 documents the operator-side procedure for all three
+providers.
 
 ### 2.4 Restore — operator-driven DR mode
 
@@ -512,8 +534,12 @@ Documents:
   `platform/services/deployd-api-rs/src/config.rs` exposes a typed
   `BackupConfig` struct that reads operator-facing `DEPLOYD_BACKUP_*`
   env vars (S3 endpoint URL, bucket, region, path-style flag, access
-  key id, secret access key, optional path prefix, cryptr keyring,
-  cryptr active-key id, cron schedule string, retention/keep-days)
+  key id, secret access key, cryptr keyring, cryptr active-key id,
+  cron schedule string, retention/keep-days — Phase 1 finding F6
+  dropped the `path_prefix` field after `~/.cargo/registry/src/.../
+  hiqlite-0.13.1/src/s3.rs:45-76` review confirmed
+  `S3Config::try_from_env` reads no path-prefix env var and
+  `backup-cron` lists from bucket root unconditionally)
   and exposes `apply_to_hql_env()` which writes the equivalent
   `HQL_*` env vars Hiqlite consumes. `BackupConfig::from_env()` returns
   `Ok(None)` when the operator has not opted in (no `DEPLOYD_BACKUP_*`

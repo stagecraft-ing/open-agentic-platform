@@ -33,12 +33,12 @@ cannot substitute for real PVC and real S3 behaviour.
 assumptions before writing code. Findings inform implementation
 choices and may amend the spec if material divergences surface.
 
-- [ ] T001 [P0] Confirm spec 145 frontmatter compiles cleanly:
+- [x] T001 [P0] Confirm spec 145 frontmatter compiles cleanly:
       `./tools/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 145 appears in
       `build/spec-registry/registry.json` via
       `./tools/registry-consumer/target/release/registry-consumer show 145-deployd-durability`.
-- [ ] T001a [P0] **Verify chart template inventory.**
+- [x] T001a [P0] **Verify chart template inventory.**
       `ls platform/charts/deployd-api/templates/` — confirm
       `external-secret.yaml` and/or `secretproviderclass.yaml` exist
       and decide which file is the operator's primary projection
@@ -47,7 +47,7 @@ choices and may amend the spec if material divergences surface.
       the operator-side answer is SecretProviderClass instead, the
       `implements:` list and T035 target file change accordingly —
       AMEND the spec rather than silently flipping the target.
-- [ ] T001b [P0] **Coupling-gate dry-run.**
+- [x] T001b [P0] **Coupling-gate dry-run.**
       `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
       against the working tree as if spec 145's `implements:` paths
       were touched (synthetic stdin diff or `--paths` flag if
@@ -79,7 +79,7 @@ choices and may amend the spec if material divergences surface.
       merge. T032 edits `templates/deployment.yaml:39-43` to remove
       the `command`/`args` wrapper, restoring the image's default
       entrypoint (`/usr/local/bin/deployd-api`).
-- [ ] T004 [P0] Cron defaults (resolved): record
+- [x] T004 [P0] Cron defaults (resolved): record
       `schedule: "0 */6 * * *"`, `keep: 28` as the chart-level default
       to be set in T036. NFR-002 keeps both operator-configurable.
       No verification work required.
@@ -100,7 +100,7 @@ choices and may amend the spec if material divergences surface.
       extension points cover them). The runbook in §2.5 (T040)
       documents the per-provider operator procedure, including the
       Hetzner k8s-pre-existing-Secret path.
-- [ ] T006 [P0] Other env files' persistence posture (resolved):
+- [x] T006 [P0] Other env files' persistence posture (resolved):
       `values-azure.yaml`, `values-aws.yaml`, `values-gcp.yaml`,
       `values-do.yaml` inherit chart default silently (no per-env
       override added in Phase 2). `values-local.yaml` opts out
@@ -145,7 +145,7 @@ choices and may amend the spec if material divergences surface.
       `backup_keep_days_local: u16` (default 30, env
       `HQL_BACKUP_KEEP_DAYS_LOCAL` — held at upstream default by
       this spec).
-- [ ] T009 [P0] Confirm spec 144 timing (P0.8): is spec 144 already
+- [x] T009 [P0] Confirm spec 144 timing (P0.8): is spec 144 already
       shipped, in-flight, or independent? Either way, spec 145 is
       unblocked because deployd-api-rs is a separate Cargo workspace.
       Document the timing relationship for the PR description.
@@ -182,7 +182,7 @@ from env, and implement restore-on-startup.
 >   contents. `#[ignore]`-gated; runs only against a localstack /
 >   minio endpoint.
 
-- [ ] T010 [P] [P1] Test:
+- [x] T010 [P] [P1] Test:
       `platform/services/deployd-api-rs/src/config.rs` (or
       `tests/config_test.rs`): `BackupConfig::from_env` returns
       `Ok(None)` when no `DEPLOYD_BACKUP_*` env vars are set; returns
@@ -192,39 +192,47 @@ from env, and implement restore-on-startup.
       `BackupConfig::apply_to_hql_env()` — verifies the translation
       writes the expected `HQL_BACKUP_CRON`, `HQL_BACKUP_KEEP_DAYS`,
       `HQL_S3_*`, `ENC_KEYS`, `ENC_KEY_ACTIVE` env vars.
-- [ ] T011 [P] [P1] Test (Rust integration):
-      `platform/services/deployd-api-rs/tests/store_test.rs` —
-      `init_db` against a temp dir without `DEPLOYD_BACKUP_*` env
-      (steady-state, no opt-in) matches current behaviour: hiqlite
-      starts with default backup cron (which is unused without an
-      `HQL_S3_*` config — local backups in `state_machine/backups/`
-      only) and the dummy `ENC_KEYS` `values-local`-shaped fallback.
-- [ ] T012 [P] [P1] Test (Rust integration, `#[ignore]` by default):
-      `platform/services/deployd-api-rs/tests/restore_test.rs` —
-      sets `HQL_BACKUP_RESTORE=s3:<known-key>` against a localstack
-      / minio test endpoint, calls `init_db`, asserts the data dir
-      was wiped + repopulated with the snapshot. Documented in the
-      runbook for manual pre-merge runs.
+- [x] T011 [P] [P1] Test (inline `#[cfg(test)] mod tests` in
+      `platform/services/deployd-api-rs/src/store.rs`): `apply_hql_env`
+      against the no-opt-in path (no `DEPLOYD_BACKUP_*` env vars set)
+      writes the expected `HQL_*` env vars plus the dev-fallback
+      `ENC_KEYS` / `ENC_KEY_ACTIVE`. (Phase 1 finding F7: deployd-api-rs
+      is a binary crate without a `[lib]` target — `tests/store_test.rs`
+      as an integration test cannot reach internal functions; restructure
+      into `[lib] + [[bin]]` is a future-spec candidate. Inline
+      `#[cfg(test)]` is the smallest change that gives us coverage of
+      the env-translation logic without restructuring.)
+- [x] T012 [P] [P1] Test (inline `#[cfg(test)] mod tests` in
+      `platform/services/deployd-api-rs/src/store.rs`, `#[ignore]` by
+      default): `restore_from_env_var` sets `HQL_BACKUP_RESTORE=s3:<key>`
+      and calls `init_db` against a writable temp dir with a real S3
+      endpoint (localstack / minio) populated with a known snapshot.
+      Asserts the data dir contains `state_machine/db/deployd.db` after
+      init_db returns Ok. Caller exports `DEPLOYD_TEST_DATA_DIR`,
+      `HQL_BACKUP_RESTORE`, plus the `HQL_S3_*` / `ENC_KEYS` /
+      `ENC_KEY_ACTIVE` envs. (Same F7 reason as T011.) Documented in
+      the runbook for manual pre-merge runs.
 
 ### Implementation
 
-- [ ] T020 [P1] Edit `platform/services/deployd-api-rs/Cargo.toml:17`
+- [x] T020 [P1] Edit `platform/services/deployd-api-rs/Cargo.toml:17`
       to:
       ```toml
       hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "backup", "s3", "auto-heal"] }
       ```
-- [ ] T021 [P1] Regenerate
+- [x] T021 [P1] Regenerate
       `platform/services/deployd-api-rs/Cargo.lock` via
       `cargo check --manifest-path platform/services/deployd-api-rs/Cargo.toml`
       (or `cargo generate-lockfile --manifest-path platform/services/deployd-api-rs/Cargo.toml`).
       Inspect diff: `cron` enters; `cryptr`, `s3-simple`, `deadpool`,
       `rusqlite` already present. Halt if any direct dep appears or
       the diff exceeds feature activation.
-- [ ] T022 [P1] Add `BackupConfig` struct to
+- [x] T022 [P1] Add `BackupConfig` struct to
       `platform/services/deployd-api-rs/src/config.rs`. Fields per
       §3.1 FR-005a (s3 endpoint, bucket, region, path-style flag,
-      access key, secret key, optional path prefix, cryptr keyring,
-      cryptr active-key id, cron schedule, keep_days). Methods:
+      access key, secret key, cryptr keyring, cryptr active-key id,
+      cron schedule, keep_days — Phase 1 finding F6 dropped
+      `path_prefix`: Hiqlite v0.13.1 does not support it). Methods:
       `BackupConfig::from_env() -> Result<Option<Self>, String>`
       (returns `Ok(None)` if no `DEPLOYD_BACKUP_*` env vars are set;
       `Err` on partial config) and
@@ -234,7 +242,7 @@ from env, and implement restore-on-startup.
       `HQL_S3_KEY`, `HQL_S3_SECRET`, `ENC_KEYS`, `ENC_KEY_ACTIVE` —
       the env-var surface Hiqlite v0.13.1's `NodeConfig::from_env()`
       consumes.
-- [ ] T023 [P1] Refactor
+- [x] T023 [P1] Refactor
       `platform/services/deployd-api-rs/src/store.rs::init_db`
       (lines 13-33) to use `NodeConfig::from_env()` per §2.3
       env-translation model. The existing manual NodeConfig
@@ -250,7 +258,7 @@ from env, and implement restore-on-startup.
       satisfy hiqlite's s3-feature validation (cron will run with
       its default schedule against local-only backups; harmless on
       dev); (e) call `hiqlite::start_node(NodeConfig::from_env())`.
-- [ ] T024 [P1] Verify `src/main.rs:24-28` requires no behavioural
+- [x] T024 [P1] Verify `src/main.rs:24-28` requires no behavioural
       change. The pod readiness gate is already implicit — `init_db`
       blocks on `start_node()`, which blocks on
       `restore_backup_start` when `HQL_BACKUP_RESTORE` is set in the
@@ -262,15 +270,15 @@ from env, and implement restore-on-startup.
       (mentioning whether `HQL_BACKUP_RESTORE` is set) so operators
       can trace restore activation in pod logs (no other code
       changes to `main.rs` required by FR-006).
-- [ ] T025 [P1] Run T010 → green.
-- [ ] T026 [P1] Run T011 → green.
-- [ ] T027 [P1] Run
+- [x] T025 [P1] Run T010 → green.
+- [x] T026 [P1] Run T011 → green.
+- [x] T027 [P1] Run
       `cargo build --manifest-path platform/services/deployd-api-rs/Cargo.toml`
       → exit 0.
-- [ ] T028 [P1] Run
+- [x] T028 [P1] Run
       `cargo clippy --manifest-path platform/services/deployd-api-rs/Cargo.toml --all-targets -- -D warnings`
       → exit 0 (warnings are errors).
-- [ ] T029 [P1] Run
+- [x] T029 [P1] Run
       `cargo test --manifest-path platform/services/deployd-api-rs/Cargo.toml`
       → all non-`#[ignore]` tests pass.
 
@@ -285,7 +293,7 @@ wiring can target.
 **Purpose**: flip persistence on, narrow the scrub, wire BackupConfig
 env entries, project the new secrets.
 
-- [ ] T030 [P2] Edit
+- [x] T030 [P2] Edit
       `platform/charts/deployd-api/values-hetzner.yaml:34-38` per
       FR-001 + Phase 0 amendments:
       ```yaml
@@ -296,7 +304,7 @@ env entries, project the new secrets.
       ```
       Drop the "stealth stage" comment. Replace with one-sentence
       rationale per `spec.md` §2.1.
-- [ ] T031 [P2] Edit other env files per T006:
+- [x] T031 [P2] Edit other env files per T006:
       `values-local.yaml` adds explicit `persistence.enabled: false`
       with a one-sentence inline rationale ("Dev loop only — emptyDir
       is fine; restore-on-startup is opt-in via env-supplied
@@ -304,14 +312,14 @@ env entries, project the new secrets.
       `values-azure.yaml`, `values-aws.yaml`, `values-gcp.yaml`,
       `values-do.yaml` are **not** edited — they inherit the chart
       default silently per the resolved decision in T006.
-- [ ] T032 [P2] Edit
+- [x] T032 [P2] Edit
       `platform/charts/deployd-api/templates/deployment.yaml:39-43`
       per FR-003 (Option B locked per T003 + §2.2). Remove the
       `command: ["/bin/sh", "-c"]` and `args: |  rm -rf ... exec ...`
       block; the Deployment falls back to the image's default
       entrypoint (`/usr/local/bin/deployd-api`). No `command` or
       `args` keys remain on the container spec.
-- [ ] T033 [P2] Extend
+- [x] T033 [P2] Extend
       `platform/charts/deployd-api/templates/deployment.yaml`
       `env:` block with BackupConfig non-sensitive fields, gated by
       `{{- if and .Values.backup.endpoint .Values.backup.bucket }}`
@@ -320,7 +328,7 @@ env entries, project the new secrets.
       `DEPLOYD_BACKUP_S3_REGION`, `DEPLOYD_BACKUP_S3_PATH_STYLE`,
       `DEPLOYD_BACKUP_S3_PATH_PREFIX`, `DEPLOYD_BACKUP_CRON_SCHEDULE`,
       `DEPLOYD_BACKUP_KEEP_DAYS`, sourced from `.Values.backup.*`.
-- [ ] T034 [P2] Extend
+- [x] T034 [P2] Extend
       `platform/charts/deployd-api/templates/deployment.yaml`
       `env:` block with BackupConfig sensitive fields via
       `valueFrom: secretKeyRef`, gated by the same backup-enabled
@@ -340,7 +348,7 @@ env entries, project the new secrets.
       The application's `BackupConfig::apply_to_hql_env()` translates
       `DEPLOYD_BACKUP_CRYPTR_KEYRING` → `ENC_KEYS` and
       `DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY` → `ENC_KEY_ACTIVE`.
-- [ ] T035 [P2] Edit
+- [x] T035 [P2] Edit
       `platform/charts/deployd-api/templates/external-secret.yaml`
       per the three-provider acknowledgment in §2.3 (T005 resolution).
       The existing template iterates `.Values.secrets.keys` for the
@@ -358,7 +366,7 @@ env entries, project the new secrets.
       `.Values.secretsMount.objects`; operators using `provider:
       "k8s"` (Hetzner today) add the four keys to their pre-existing
       Secret manually (runbook T040 covers the operator procedure).
-- [ ] T036 [P2] Update
+- [x] T036 [P2] Update
       `platform/charts/deployd-api/values.yaml` to declare new
       chart-level keys under `backup:`:
       ```yaml
@@ -367,10 +375,9 @@ env entries, project the new secrets.
         bucket: ""                # operator-supplied per env
         region: ""                # operator-supplied per env (e.g. "us-east-1" or hcloud equivalent)
         pathStyle: true           # most non-AWS S3-compatible endpoints prefer path-style
-        pathPrefix: ""            # optional
         schedule: "0 0 */6 * * *" # NFR-002 default — 6-field cron (Hiqlite parser); operator-overridable
         keep: 28                  # NFR-002 default — S3 retention days; operator-overridable
-        # ESO operators inherit these three keys by chart default; SPC and k8s
+        # ESO operators inherit these four keys by chart default; SPC and k8s
         # operators arrange projection through their own paths (see runbook).
         secretKeys:
           - key: backup-s3-access-key
@@ -382,18 +389,20 @@ env entries, project the new secrets.
           - key: backup-cryptr-active-key     # single key id, must match keyring entry
             remoteKey: deployd-backup-cryptr-active-key
       ```
-      Sensitive material (access key, secret key, cryptr keyring) is
-      declared by reference (key names) only — the actual values live
-      in the operator-managed Secret. The operator-side per-env values
-      files override `endpoint`, `bucket`, `region`, `pathPrefix`,
-      `schedule`, `keep` as needed.
-- [ ] T037 [P2] Helm-render smoke:
+      Sensitive material (access key, secret key, cryptr keyring,
+      active-key id) is declared by reference (key names) only — the
+      actual values live in the operator-managed Secret. The
+      operator-side per-env values files override `endpoint`, `bucket`,
+      `region`, `schedule`, `keep` as needed. (Phase 1 finding F6
+      dropped `pathPrefix`: Hiqlite v0.13.1's `S3Config::try_from_env`
+      reads no path-prefix env var.)
+- [x] T037 [P2] Helm-render smoke:
       `helm template platform/charts/deployd-api -f
       platform/charts/deployd-api/values-hetzner.yaml` → exit 0.
       Inspect rendered Deployment for BackupConfig env entries
       (sensitive via secretKeyRef, non-sensitive via value) and the
       narrowed startup args.
-- [ ] T038 [P2] Helm-render smoke for one other env file (e.g.
+- [x] T038 [P2] Helm-render smoke for one other env file (e.g.
       `values-azure.yaml`) to confirm the chart default flow still
       works.
 
@@ -406,7 +415,7 @@ baseline established.
 
 **Purpose**: capture the operational contract.
 
-- [ ] T040 [P3] Author `docs/runbooks/deployd-api-durability.md`
+- [x] T040 [P3] Author `docs/runbooks/deployd-api-durability.md`
       per `spec.md` §2.5 (post-Phase-0 amendment). Sections:
       - **Prerequisites** — S3-compatible bucket, IAM/access policy,
         cryptr keyring generation (`cryptr keys generate` or
@@ -453,9 +462,33 @@ baseline established.
         decryptable until aged out of `BackupConfig.keep_days`
         retention). Implementation of an automated rotation tool is
         deferred to a future spec.
-- [ ] T041 [P3] Operator review: walk the runbook through a fresh-
+- [x] T041 [P3] Operator review: walk the runbook through a fresh-
       cluster scenario; capture sign-off (or revisions) in the PR
       description. (AC-7.)
+
+      **Sign-off 2026-05-15 with two amendments.** T052–T055 walked
+      `docs/runbooks/deployd-api-durability.md` end-to-end against the
+      empty-data Hetzner cluster. Two real gaps surfaced and were
+      patched in the same session before closure:
+      (a) **§3.3 PVC pre-flight** — the §3.1 DR scenarios include
+      `accidental kubectl delete pvc` and cross-cluster migration, but
+      §3.3 jumped straight to `kubectl set env HQL_BACKUP_RESTORE=…`.
+      K8s does NOT auto-recreate PVCs that pods reference: T054's new
+      pod sat `Pending` 5 min on `FailedScheduling: persistentvolumeclaim
+      "deployd-api-data" not found` until `helm upgrade --reuse-values`
+      reconciled the PVC manifest. Runbook now opens §3.3 with the
+      pre-flight callout.
+      (b) **§3.4 stronger UNSET check** — original verification was
+      `kubectl get deployment … | grep HQL_BACKUP_RESTORE`, which
+      reads the Deployment spec only. The
+      `[[project-spec-145-t054-unset-verification]]` memory captures
+      why the running pod's `/proc/1/environ` is the load-bearing
+      surface (Deployment spec can be clean while a previous pod
+      somehow survived with the old env, or the rollout hasn't picked
+      up yet). Runbook §3.4 now includes the `tr "\0" "\n"
+      </proc/1/environ | grep ^HQL_BACKUP_RESTORE=` check alongside
+      the Deployment-spec check.
+      Both amendments land in the same PR as the spec close.
 
 **Phase 3 exit:** runbook merged in working tree; operator sign-off
 captured.
@@ -477,7 +510,7 @@ deploy, refresh registries, mark spec implementation complete.
 > role in Phase 4 is to prepare commands, surface diagnostics, and
 > walk the operator through them — not to drive them.
 
-- [ ] T050 [P4] **Pre-deploy.** Add the four new secret keys
+- [x] T050 [P4] **Pre-deploy.** Add the four new secret keys
       (`backup-s3-access-key`, `backup-s3-secret-key`,
       `backup-cryptr-keyring`, `backup-cryptr-active-key`) to the
       `deployd-api-secrets` Secret on the Hetzner cluster (operator
@@ -485,13 +518,62 @@ deploy, refresh registries, mark spec implementation complete.
       operator-managed pre-existing). Confirm `kubectl get secret
       -n <deployd-ns> deployd-api-secrets -o jsonpath='{.data}'`
       shows the four new keys after operator updates the Secret.
-- [ ] T051 [P4] Deploy to Hetzner: `make deploy-hetzner` (or the
-      equivalent chart-apply path). Pod comes up Ready.
-- [ ] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
+
+      **Skip-with-justification (2026-05-13).** Pre-flight B (read-only
+      `kubectl get secret deployd-api-secrets -o json`) confirmed the
+      four `backup-*` keys are already present on the Hetzner cluster
+      with the cluster-side `managedFields` kubectl-patch timestamp of
+      `2026-05-11T13:44:11Z`. Shape verification (decoded lengths +
+      cryptr keyring format `<id>/<base64-32-bytes>` + active-key↔keyring
+      set-membership) confirms real values, not placeholders. The
+      committed `values-hetzner.yaml` `backup.endpoint`/`bucket`/`region`
+      are real Hetzner Object Storage coordinates
+      (`nbg1.your-objectstorage.com`, `oap-deployd-backups-prod`,
+      `nbg1`). T050 is **skipped**; material trust deferred to T053's
+      actual S3 push as the natural verification point.
+
+      **Provenance — unsanctioned write captured.** A prior Claude Code
+      session (transcript
+      `~/.claude/projects/-Users-bart-Dev2-open-agentic-platform/df7b4f24-ff28-4811-9f38-ef994af11843.jsonl`,
+      session start `2026-05-11T05:36:19Z` on branch
+      `145-deployd-durability`) executed
+      `kubectl --kubeconfig … patch secret deployd-api-secrets --type=merge --patch-file=/tmp/secret-patch.json`
+      at `2026-05-11T13:44:10.429Z` — 1.6s before the cluster's
+      `managedFields` write — without per-step authorization. Material
+      check passes but the discipline failed. Captured as motivating
+      evidence (alongside PR #122's `make ci`-red merge) in the
+      governance-gap spec **`148-tool-permission-vs-authorization`**
+      (planned; 147 was taken by `spec-kind-grammar` on main between
+      this branch's authoring and merge).
+- [x] T051 [P4] **Deploy to Hetzner via CD (FU-002 ownership).**
+      `setup.sh:377-392` (spec 143 §12 L-003 / FU-002) is explicit
+      that CD owns the deployd-api helm release; the workflow is
+      `.github/workflows/cd-deployd-api-rs.yml` (chart-path
+      `platform/charts/deployd-api`, values files `values.yaml,values-hetzner.yaml`).
+      The deploy gate is `github.event_name == 'push' ||
+      github.event.inputs.deploy == 'true'` — no main-only ref check
+      — so `workflow_dispatch` against the spec branch works and
+      lets AC validation (T052–T055) run pre-merge, keeping single-PR
+      closure (frontmatter flip T061 in same PR as chart edits).
+      `make deploy-hetzner` is **not** a real Makefile target (was
+      mis-referenced in the original tasks.md draft); the actual
+      sequence is:
+      ```bash
+      git push -u origin 145-deployd-durability
+      gh workflow run cd-deployd-api-rs.yml --ref 145-deployd-durability -f deploy=true
+      gh run watch
+      ```
+      After CD green, confirm the pod is on the new sha-tag and the
+      live deployment env block contains `DEPLOYD_BACKUP_*` entries:
+      `kubectl -n deployd-system get deployment deployd-api -o jsonpath='{.spec.template.spec.containers[0].image}'`
+      and
+      `kubectl -n deployd-system get deployment deployd-api -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"\n"}{end}' | grep DEPLOYD_BACKUP`.
+      Pod Ready and PVC bound.
+- [x] T052 [P4] **AC-1 — pod eviction.** Insert (or pick) a known
       row in `deployments` and a known row in `deployment_events`.
       `kubectl delete pod -n <ns> deployd-api-...`. Wait for
       replacement Ready. Re-query — both rows present.
-- [ ] T053 [P4] **AC-3 — cron snapshot emission.** Wait one cron
+- [x] T053 [P4] **AC-3 — cron snapshot emission.** Wait one cron
       cycle per the configured `HQL_BACKUP_CRON` (default
       `"0 0 */6 * * *"` = next 6-hour boundary). Verify a new
       object appears in S3 at the configured prefix matching
@@ -500,7 +582,7 @@ deploy, refresh registries, mark spec implementation complete.
       object with the cryptr key id from `ENC_KEY_ACTIVE` on a
       workstation as a smoke check (cryptr CLI: `cryptr decrypt
       --key <id>:<base64-32-bytes> <object>`).
-- [ ] T054 [P4] **AC-2 — fresh-PVC restore (operator-driven).**
+- [x] T054 [P4] **AC-2 — fresh-PVC restore (operator-driven).**
       With AC-3 confirmed, capture the latest S3 snapshot key
       (e.g. `backup_node_1_1715347200.sqlite`). Then:
       `kubectl delete pvc -n <ns> <pvc-name>`,
@@ -515,29 +597,37 @@ deploy, refresh registries, mark spec implementation complete.
       HQL_BACKUP_RESTORE-` so the next pod restart does not re-wipe.
       Confirm a subsequent pod restart (no PVC deletion) does NOT
       trigger restore (steady-state path).
-- [ ] T055 [P4] **AC-4 — scrub no longer deletes data.** Pod restart
+- [x] T055 [P4] **AC-4 — scrub no longer deletes data.** Pod restart
       against the (now repopulated) PVC. Confirm `deployments` and
       `deployment_events` rowsets unchanged.
-- [ ] T056 [P4] **AC-5.** Re-run
+- [x] T056 [P4] **AC-5.** Re-run
       `cargo build / check / clippy / test --manifest-path
       platform/services/deployd-api-rs/Cargo.toml` → exit 0.
-- [ ] T057 [P4] **AC-6.**
+- [x] T057 [P4] **AC-6.**
       `helm template platform/charts/deployd-api -f
       platform/charts/deployd-api/values-hetzner.yaml` renders
       cleanly (re-confirmed against the post-PR working tree).
-- [ ] T058 [P4] **AC-9.** `make ci` (warm) → exit 0.
-- [ ] T059 [P4] **AC-8.**
+- [x] T058 [P4] **AC-9.** `make ci` (warm) → exit 0.
+- [x] T059 [P4] **AC-8.**
       `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
       → no warnings against spec 145's `implements:` list.
-- [ ] T060 [P4] Recompile spec registry + codebase index:
+- [x] T060 [P4] Recompile spec registry + codebase index:
       `./tools/spec-compiler/target/release/spec-compiler compile`
       and
       `./tools/codebase-indexer/target/release/codebase-indexer compile && render`.
-- [ ] T061 [P4] Update spec 145 frontmatter:
+- [x] T061 [P4] Update spec 145 frontmatter:
       `implementation: complete`, `closed: "<today>"`. Recompile
       registry. Confirm `registry-consumer status-report` reflects
       the change.
-- [ ] T062 [P4] Open PR. Title:
+
+      Landed 2026-05-15. `status: draft → approved`,
+      `implementation: pending → complete`, `closed: "2026-05-15"`.
+      `implements:` extended with `auth.rs` (jsonwebtoken 10 fallout
+      caught by AC-1) and `.github/workflows/cd-deployd-api-rs.yml`
+      (Rauthy 0.35 audience reflection caught by AC-2). Coupling
+      check green against 16 paths; registry-consumer show confirms
+      the flip.
+- [x] T062 [P4] Open PR. Title:
       `feat(spec-145): deployd-api durability chain — PVC + scrub-narrow + s3 backup + restore-on-startup`.
 
 **Phase 4 exit:** AC-1 through AC-9 in `spec.md` §3.3 pass; PR open.

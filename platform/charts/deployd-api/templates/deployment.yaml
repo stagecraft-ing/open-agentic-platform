@@ -60,6 +60,46 @@ spec:
               value: {{ .Values.oidc.audience | quote }}
             - name: DEPLOYD_REQUIRED_SCOPE
               value: {{ .Values.requiredScope | quote }}
+            {{- if and .Values.backup.endpoint .Values.backup.bucket }}
+            # Spec 145 backup config — non-sensitive (FR-005a translation layer
+            # reads these DEPLOYD_BACKUP_* env vars in deployd-api-rs/src/config.rs).
+            - name: DEPLOYD_BACKUP_S3_ENDPOINT
+              value: {{ .Values.backup.endpoint | quote }}
+            - name: DEPLOYD_BACKUP_S3_BUCKET
+              value: {{ .Values.backup.bucket | quote }}
+            - name: DEPLOYD_BACKUP_S3_REGION
+              value: {{ .Values.backup.region | quote }}
+            - name: DEPLOYD_BACKUP_S3_PATH_STYLE
+              value: {{ .Values.backup.pathStyle | quote }}
+            - name: DEPLOYD_BACKUP_CRON_SCHEDULE
+              value: {{ .Values.backup.schedule | quote }}
+            - name: DEPLOYD_BACKUP_KEEP_DAYS
+              value: {{ .Values.backup.keep | quote }}
+            # Spec 145 backup config — sensitive (operator-managed Secret).
+            # Provider-dependent projection: `eso` populates via external-secret.yaml;
+            # `csi-azure` via secretproviderclass.yaml; `k8s` (Hetzner) via
+            # operator-managed pre-existing Secret.
+            - name: DEPLOYD_BACKUP_S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: deployd-api-secrets
+                  key: backup-s3-access-key
+            - name: DEPLOYD_BACKUP_S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: deployd-api-secrets
+                  key: backup-s3-secret-key
+            - name: DEPLOYD_BACKUP_CRYPTR_KEYRING
+              valueFrom:
+                secretKeyRef:
+                  name: deployd-api-secrets
+                  key: backup-cryptr-keyring
+            - name: DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: deployd-api-secrets
+                  key: backup-cryptr-active-key
+            {{- end }}
           envFrom:
             - secretRef:
                 name: deployd-api-secrets

@@ -33,6 +33,31 @@ persistence:
   size: 1Gi
   storageClass: ""
 
+# Spec 145: deployd-api durability chain. Backup is opt-in — operators set
+# `endpoint` and `bucket` (and per-provider secret keys) to enable encrypted
+# S3 snapshots. Chart defaults below are safe (no projection without endpoint+
+# bucket); per-env values files override. NFR-002 defaults: 6-hour cron,
+# 28-day S3 retention. See docs/runbooks/deployd-api-durability.md.
+backup:
+  endpoint: ""              # operator-supplied per env (e.g. https://<hcloud-s3-region>.your-objectstorage.com)
+  bucket: ""                # operator-supplied per env
+  region: ""                # operator-supplied per env (e.g. "us-east-1" or hcloud equivalent)
+  pathStyle: true           # most non-AWS S3-compatible endpoints prefer path-style
+  schedule: "0 0 */6 * * *" # NFR-002 default — 6-field cron (Hiqlite parser); operator-overridable
+  keep: 28                  # NFR-002 default — S3 retention days; operator-overridable
+  # ESO operators inherit these four keys by chart default; SPC operators
+  # add them to .Values.secretsMount.objects; k8s-provider operators
+  # populate the pre-existing Secret manually (see runbook).
+  secretKeys:
+    - key: backup-s3-access-key
+      remoteKey: deployd-backup-s3-access-key
+    - key: backup-s3-secret-key
+      remoteKey: deployd-backup-s3-secret-key
+    - key: backup-cryptr-keyring        # multi-line value: <id>/<base64-32> per line
+      remoteKey: deployd-backup-cryptr-keyring
+    - key: backup-cryptr-active-key     # single key id, must match keyring entry
+      remoteKey: deployd-backup-cryptr-active-key
+
 secrets:
   enabled: true
   provider: "k8s"  # "k8s" | "eso" | "csi-azure"
