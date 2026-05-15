@@ -27,6 +27,7 @@ implements:
   - path: platform/services/stagecraft/api/auth/rauthyAdminClients.ts  # network-bound wrapper around POST/PUT/DELETE /auth/v1/clients + idempotent provision/deprovision domain operations
   - path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts  # pure helpers (FR-004 invariant, payload construction, deterministic client id)
   - path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts  # 14 passing vitest tests covering pure helpers + provision/deprovision against a stub fetch — exercises the four T003 contract assumptions
+  - path: platform/services/stagecraft/test/__mocks__/encore-auth.ts  # drive-by alignment of mock AuthData.userID casing with Encore-generated shape so future handlers can't fall into the lowercase-userId footgun. Co-claimed with specs 077/080/087 (existing claimants); spec 130 any-claimant rule applies.
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

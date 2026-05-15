@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "66504c19b342a61f100df3fc485f9fc335a522b79b4feaf100d8d130d4ad0094",
+    "contentHash": "aabb371431f1edbd8b4d8ec4c28ec21abd31934cd3f8e3326e408e987f329f05",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4310,6 +4310,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/environments/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/__mocks__/encore-auth.ts",
             "source": "spec-implements"
           },
           {
