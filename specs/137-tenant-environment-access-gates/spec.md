@@ -328,3 +328,35 @@ binding the upstream identity to a tenant-scoped Rauthy session.
   this spec.
 - Passkey / WebAuthn as a third login method. Out of scope by directive;
   enabling it later is an additive change to `login_methods`.
+
+### Open question — dual-renderer for Phase 4? *(filed 2026-05-15)*
+
+Phase 4 (deployd-api K8s renderer) has a fork: hand-rolled kube-rs
+vs. Helm overlay. The session of 2026-05-15 selected **Option B —
+Helm overlay**, gated on spec 136 Phase 2.b completing first
+(`plan.md` §Phase 4 cross-cutting note; tasks.md T046).
+
+**Pondered alongside that decision:** is the hand-rolled kube-rs
+path *also* worth shipping as a secondary mode, for cases where
+Helm isn't available or appropriate (e.g., air-gapped clusters,
+custom-CD paths, debug-without-Helm scenarios)?
+
+**Disposition (deferred to post-Phase-4-landing review).** Ship
+Option B first as the canonical renderer. Revisit dual-renderer
+support only if a concrete use case surfaces that the Helm overlay
+cannot serve. Reasoning:
+
+- Two renderers = two surfaces to keep in sync (config shape, test
+  fixtures, error paths). Drift is the default; coherence is the
+  exception.
+- The current cluster-of-record (Hetzner) runs Helm; no air-gapped
+  or Helm-less deployment target is on the roadmap.
+- Adding a kube-rs fallback now would code-and-test surface that
+  no consumer demands; YAGNI applies.
+- If the use case does surface, the kube-rs path becomes a
+  follow-up spec amending 137, not a parallel implementation in
+  the same PR.
+
+Spec 136 closure unblocks Phase 4 (Option B). The kube-rs question
+re-opens only if Phase 4's first concrete consumer encounters a
+Helm-incompatible scenario.
