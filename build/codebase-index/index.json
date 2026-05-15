@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c8301545650469a9ab9a931aaba56afb4ec8c03dbcc7a71b142ddd6f46120e77",
+    "contentHash": "2e8293aced41162ad311747311355423de4ec3447ea5e9680a7df71f26a9b525",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4858,7 +4858,7 @@
           }
         ],
         "specId": "144-hiqlite-default-features",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -4959,7 +4959,7 @@
           }
         ],
         "specId": "146-deployd-api-memory-hardening",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [

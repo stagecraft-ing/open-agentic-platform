@@ -8,7 +8,7 @@ kind: amendment
 shape: mechanism-add
 risk: high
 owner: "open-agentic-platform"
-implementation: pending
+implementation: in-progress  # Phase 1 landed (f3ce6d1e spec-compiler V-012..V-019 + registry schema 1.5.0; 6d88179d spec-lint W-130/131/132 + severity tiers; 221d2c77 codebase-indexer primary flag + index schema 1.4.0; 20df53d2 spec 000/128 amendment records; 28d6af23 amends-list expansion). Outstanding: Phase 2 (28-spec kind backfill + V-012 → error), Phase 3 (capability/registry/profile proving-ground specs, AC-007), Phase 4 (W-002/W-003 prose-scan retirement + V-018/V-019 → error, AC-005), plus AC-006 (registry-consumer --kind/--shape/--category filters) and AC-008 (featuregraph consumes implements: from registry).
 summary: |
   Third amendment to spec 000. Promotes `kind` from inert metadata to a
   validated enum. Adds `shape` (kind-refinement) and `category` (cross-cutting

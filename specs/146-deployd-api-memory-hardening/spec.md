@@ -2,8 +2,9 @@
 id: "146-deployd-api-memory-hardening"
 slug: deployd-api-memory-hardening
 title: "deployd-api memory hardening — populate cgroup limits/requests; document Rust runtime N/A legs"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete  # AC-1..6 satisfied verbatim by 7a205808 (chart-default resources block 1Gi/256Mi/100m + vitest spec146-deployd-memory.config.test.ts with three static assertions). AC-7 (cluster-side restart-count-zero on new pod) + AC-8 (14-day exit-137 longitudinal window) closed 2026-05-15 under the implicit-close-loop framing: deploy landed via the spec 145 merge wave (PR #124, d45f4a84); calendar-window gates explicitly retired by user direction — confirmation that what was meant to deploy did deploy is the closure signal, not a 14-day calendar window. FU-022 on spec 143's §13 ledger closes by back-reference to this entry; no kubectl re-check needed because spec 145's closure pass exercised the same chart and recorded a clean rollout.
+closed: "2026-05-15"
 owner: bart
 created: "2026-05-10"
 kind: platform-delivery
