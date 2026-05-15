@@ -336,7 +336,7 @@ export const putAccessGate = api(
 
     const row = inserted[0]!;
     await emitAudit(
-      auth.userId,
+      auth.userID,
       req.enabled
         ? "tenant.gate.descriptor.enabled"
         : "tenant.gate.descriptor.disabled",
@@ -468,7 +468,7 @@ export const addAllowlistEntry = api(
     }
 
     await emitAudit(
-      auth.userId,
+      auth.userID,
       "tenant.gate.allowlist.added",
       env.id,
       { kind: req.kind, value: normalised, entryId: row.id },
@@ -535,7 +535,7 @@ export const removeAllowlistEntry = api(
 
     const row = deleted[0]!;
     await emitAudit(
-      auth.userId,
+      auth.userID,
       "tenant.gate.allowlist.removed",
       env.id,
       { kind: row.kind, value: row.value, entryId: row.id },
