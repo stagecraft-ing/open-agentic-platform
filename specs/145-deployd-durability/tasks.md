@@ -462,9 +462,33 @@ baseline established.
         decryptable until aged out of `BackupConfig.keep_days`
         retention). Implementation of an automated rotation tool is
         deferred to a future spec.
-- [ ] T041 [P3] Operator review: walk the runbook through a fresh-
+- [x] T041 [P3] Operator review: walk the runbook through a fresh-
       cluster scenario; capture sign-off (or revisions) in the PR
       description. (AC-7.)
+
+      **Sign-off 2026-05-15 with two amendments.** T052–T055 walked
+      `docs/runbooks/deployd-api-durability.md` end-to-end against the
+      empty-data Hetzner cluster. Two real gaps surfaced and were
+      patched in the same session before closure:
+      (a) **§3.3 PVC pre-flight** — the §3.1 DR scenarios include
+      `accidental kubectl delete pvc` and cross-cluster migration, but
+      §3.3 jumped straight to `kubectl set env HQL_BACKUP_RESTORE=…`.
+      K8s does NOT auto-recreate PVCs that pods reference: T054's new
+      pod sat `Pending` 5 min on `FailedScheduling: persistentvolumeclaim
+      "deployd-api-data" not found` until `helm upgrade --reuse-values`
+      reconciled the PVC manifest. Runbook now opens §3.3 with the
+      pre-flight callout.
+      (b) **§3.4 stronger UNSET check** — original verification was
+      `kubectl get deployment … | grep HQL_BACKUP_RESTORE`, which
+      reads the Deployment spec only. The
+      `[[project-spec-145-t054-unset-verification]]` memory captures
+      why the running pod's `/proc/1/environ` is the load-bearing
+      surface (Deployment spec can be clean while a previous pod
+      somehow survived with the old env, or the rollout hasn't picked
+      up yet). Runbook §3.4 now includes the `tr "\0" "\n"
+      </proc/1/environ | grep ^HQL_BACKUP_RESTORE=` check alongside
+      the Deployment-spec check.
+      Both amendments land in the same PR as the spec close.
 
 **Phase 3 exit:** runbook merged in working tree; operator sign-off
 captured.
@@ -589,10 +613,18 @@ deploy, refresh registries, mark spec implementation complete.
       `./tools/spec-compiler/target/release/spec-compiler compile`
       and
       `./tools/codebase-indexer/target/release/codebase-indexer compile && render`.
-- [ ] T061 [P4] Update spec 145 frontmatter:
+- [x] T061 [P4] Update spec 145 frontmatter:
       `implementation: complete`, `closed: "<today>"`. Recompile
       registry. Confirm `registry-consumer status-report` reflects
       the change.
+
+      Landed 2026-05-15. `status: draft → approved`,
+      `implementation: pending → complete`, `closed: "2026-05-15"`.
+      `implements:` extended with `auth.rs` (jsonwebtoken 10 fallout
+      caught by AC-1) and `.github/workflows/cd-deployd-api-rs.yml`
+      (Rauthy 0.35 audience reflection caught by AC-2). Coupling
+      check green against 16 paths; registry-consumer show confirms
+      the flip.
 - [ ] T062 [P4] Open PR. Title:
       `feat(spec-145): deployd-api durability chain — PVC + scrub-narrow + s3 backup + restore-on-startup`.
 

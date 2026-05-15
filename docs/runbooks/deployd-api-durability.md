@@ -388,6 +388,18 @@ mc ls --recursive <alias>/<bucket> | grep backup_node_ | sort | tail -1
 
 ### 3.3 Trigger the restore
 
+> **Pre-flight: if your DR scenario deleted the PVC, recreate it first.**
+> §3.1's "accidental `kubectl delete pvc`" and "cross-cluster migration"
+> paths leave the cluster with no PVC for the new pod to attach. K8s
+> does NOT auto-recreate PVCs that pods reference — the new pod will
+> sit `Pending` indefinitely with `FailedScheduling: persistentvolumeclaim
+> "deployd-api-data" not found`. Run `helm upgrade deployd-api
+> platform/charts/deployd-api -n <ns> --reuse-values` (or
+> `kubectl apply -f` the PVC manifest) BEFORE the env-set step below so
+> the PVC is re-provisioned. The voluntary-PVC-replacement path (§3.1
+> first bullet) typically handles this for you because the new PVC is
+> already defined in the chart for the new size/class.
+
 ```bash
 # Set the env var on the existing Deployment — Recreate strategy will
 # terminate the current pod and start a new one with the new env.
@@ -441,8 +453,17 @@ is Ready and you've sanity-checked the data:
 kubectl set env deployment/deployd-api -n <ns> HQL_BACKUP_RESTORE-
 # the trailing - removes the env var.
 
-# Confirm:
-kubectl get deployment deployd-api -n <ns> -o yaml | grep -A1 HQL_BACKUP_RESTORE || echo "(unset — good)"
+# Confirm at the Deployment-spec level:
+kubectl get deployment deployd-api -n <ns> -o yaml | grep -A1 HQL_BACKUP_RESTORE || echo "(absent from Deployment spec — good)"
+
+# STRONGER CHECK — confirm on the running pod's process env. The
+# Deployment spec can be clean while a previous pod (somehow) survived
+# with the old env, or the rollout hasn't picked up yet. Verify against
+# /proc/1/environ on the actual serving pod:
+POD=$(kubectl get pod -n <ns> -l app=deployd-api -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n <ns> "$POD" -- sh -c \
+  'tr "\0" "\n" </proc/1/environ | grep -E "^HQL_BACKUP_RESTORE=" \
+   || echo "(/proc/1/environ has no HQL_BACKUP_RESTORE — verified)"'
 ```
 
 The Deployment will roll the pod again (because `env:` changed); the

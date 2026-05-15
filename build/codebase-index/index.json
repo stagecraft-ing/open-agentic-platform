@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "79ee788a84f4f066834c5b3ef4619bb25f9d6818d01f600c618c8880e4c7afc1",
+    "contentHash": "e7d35dd8179f0116979641e7c5c2b40edc72d78a0019e980c7e1e76eededa0bd",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4863,6 +4863,10 @@
         ],
         "implementingPaths": [
           {
+            "path": ".github/workflows/cd-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": "docs/runbooks/deployd-api-durability.md",
             "source": "spec-implements"
           },
@@ -4911,6 +4915,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/deployd-api-rs/src/auth.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/deployd-api-rs/src/config.rs",
             "source": "spec-implements"
           },
@@ -4928,7 +4936,7 @@
           }
         ],
         "specId": "145-deployd-durability",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

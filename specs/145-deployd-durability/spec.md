@@ -2,8 +2,9 @@
 id: "145-deployd-durability"
 slug: deployd-durability
 title: "deployd-api durability chain — PVC + scrub-narrowing + Hiqlite backup/s3 + restore-on-startup"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
+closed: "2026-05-15"
 owner: bart
 created: "2026-05-10"
 kind: platform-delivery
@@ -28,7 +29,22 @@ implements:
   - path: platform/services/deployd-api-rs/src/main.rs
   - path: platform/services/deployd-api-rs/src/store.rs
   - path: platform/services/deployd-api-rs/src/config.rs
+  # Amended 2026-05-15 during T052 live AC-1 validation: the jsonwebtoken
+  # 9→10 dependabot bump (04aa8f73) left two latent regressions on the JWT
+  # verify path (missing aws_lc_rs feature on the crate; stricter mixed-
+  # family algorithm check in v10 decoding.rs:342). Both fixes land on
+  # auth.rs as part of spec 145 closure — the spec's AC-1/AC-2 exercise
+  # the auth path end-to-end so it inherits the validator's hardening.
+  - path: platform/services/deployd-api-rs/src/auth.rs
   - path: docs/runbooks/deployd-api-durability.md
+  # Amended 2026-05-15 during T054 live AC-2 validation: Rauthy 0.35's
+  # client_credentials flow reflects client_id as the aud claim
+  # verbatim. The CD workflow's `--set oidc.audience=https://deploy.<domain>`
+  # override is removed so the chart-side value (`stagecraft-m2m`) governs;
+  # without this, deployd-api rejects every live M2M token with
+  # InvalidAudience. Spec 143 §12 L-006 is the companion default-scopes-is-
+  # load-bearing lesson on the Rauthy side.
+  - path: .github/workflows/cd-deployd-api-rs.yml
   - path: platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts
 summary: >
   The `deployments` and `deployment_events` tables in deployd-api-rs's
