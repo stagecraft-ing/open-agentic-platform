@@ -80,23 +80,62 @@ behind this checkpoint per Principle III.
 
 ## Phase 1 — Schema migration
 
-- [ ] T010 Author
+- [x] T010 Author
   `platform/services/stagecraft/api/db/migrations/3X_environment_access_gates.up.sql`:
   `environment_access_gates` table with `(environment_id PK, enabled,
   rauthy_client_ref, login_method_*, created_at, updated_at)` +
   CHECK constraint enforcing non-null Rauthy fields when
   `enabled = true`.
-- [ ] T011 [P] Author sibling
+  (Landed 2026-05-15 as
+  `platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql`.
+  Prefix 40 is the next free slot after migration 39. Three CHECK
+  constraints land: `enabled_requires_ref`,
+  `federated_provider_values` (closed set `{google, microsoft, github,
+  generic_oidc}`), `federated_pair_consistent` (both NULL or both
+  set). 1:1 with environments via `environment_id PRIMARY KEY
+  REFERENCES environments(id) ON DELETE CASCADE`. Validated against
+  live Postgres in a BEGIN…ROLLBACK transaction; up SQL syntax-clean.)
+- [x] T011 [P] Author sibling
   `environment_access_gate_allowlist_emails` table:
   `(id PK, environment_id FK, kind ENUM('email','domain'), value text,
   created_at)` + unique index on `(environment_id, kind, value)`.
-- [ ] T012 [P] Author down migration that drops both tables.
-- [ ] T013 Drizzle schema additions in
+  (Landed 2026-05-15 in the same migration file. `id UUID DEFAULT
+  gen_random_uuid()` (matches codebase convention; tasks.md's
+  `bigserial` recommendation overridden to keep PK type uniform).
+  `kind` is a CHECK constraint rather than pgEnum — keeps schema.ts
+  Drizzle declaration simple; promote to pgEnum in a future migration
+  if the surface stabilises. Unique index: `(environment_id, kind,
+  lower(value))` — case-insensitive without `citext` (FIPS-mode
+  Postgres rejects citext per `reference_hetzner_postgres_fips`).
+  Secondary index on `(environment_id, kind)` for the post-auth
+  callback lookup path.)
+- [x] T012 [P] Author down migration that drops both tables.
+  (Landed 2026-05-15 as
+  `40_environment_access_gates.down.sql`. Validated against live
+  Postgres — both tables drop cleanly. CASCADE handles dependent
+  indexes/constraints implicitly.)
+- [x] T013 Drizzle schema additions in
   `platform/services/stagecraft/api/db/schema.ts`. Type-export the new
   shapes for the API layer.
-- [ ] T014 Migration test (`encore test`) covering up/down idempotency
+  (Landed 2026-05-15. New tables
+  `environmentAccessGates` + `environmentAccessGateAllowlistEmails`
+  plus four exported types (`EnvironmentAccessGate`,
+  `EnvironmentAccessGateInsert`, `EnvironmentAccessGateAllowlistEmail`,
+  `EnvironmentAccessGateAllowlistEmailInsert`). FK + CHECK constraints
+  live in the SQL migration, not in Drizzle declarations — matches
+  the codebase convention for the rest of the schema. `npx tsc
+  --noEmit` clean.)
+- [x] T014 Migration test (`encore test`) covering up/down idempotency
   and the CHECK constraint behaviour. Mirror migration 36/37 fixture
   shape.
+  (Landed 2026-05-15 as
+  `40_environment_access_gates.test.ts`. 8 test cases covering all
+  three CHECK constraints (positive + negative paths for each), the
+  allowlist `kind_values` CHECK, case-insensitive uniqueness via
+  `lower(value)`, and `ON DELETE CASCADE` from `environments` →
+  both gate tables. Registered in `vite.config.ts` exclude list for
+  `encore test`-only execution since it mutates live `environments`
+  rows.)
 
 **Checkpoint:** Schema migration lands cleanly + tests pass.
 

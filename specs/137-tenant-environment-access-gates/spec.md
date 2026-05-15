@@ -11,7 +11,13 @@ risk: medium
 depends_on:
   - "136"  # tenant-hello as reference; gates are added per-environment
   - "087"  # unified-workspace-architecture (environments are stagecraft entities)
-implements: []
+implements:
+  # Phase 1 — schema migration (T010–T014)
+  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql
+  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql
+  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts
+  - path: platform/services/stagecraft/api/db/schema.ts  # adds environmentAccessGates + environmentAccessGateAllowlistEmails tables + four exported types. Co-claimed with many existing claimants on schema.ts; spec 130 FR-001 any-claimant rule applies.
+  - path: platform/services/stagecraft/vite.config.ts  # registers migration 40 test under the encore-test-only exclude list (live-db mutation gate). Co-claimed with existing test-exclusion claimants.
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

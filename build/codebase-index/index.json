@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a2efd0f2ce3fca9b95d5ab0fbb774f85f3ccbc1499296807789cfd5cdc8cbc52",
+    "contentHash": "7c9446ffab3c0958e0bb96077f23b78a22cc631d57cf3ce1715953162e9baf02",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4263,6 +4263,36 @@
         "specStatus": "approved"
       },
       {
+        "dependsOn": [
+          "087",
+          "136"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "137-tenant-environment-access-gates",
+        "specStatus": "approved"
+      },
+      {
         "amends": [
           "112-factory-project-lifecycle"
         ],
@@ -4982,8 +5012,7 @@
       "081-factory-test-hydration",
       "086-open-source-launch",
       "088-factory-upstream-sync",
-      "100-post-convergence-remediation",
-      "137-tenant-environment-access-gates"
+      "100-post-convergence-remediation"
     ],
     "untracedCode": [
       "grammars/tree-sitter-c",
