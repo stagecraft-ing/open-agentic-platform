@@ -55,10 +55,17 @@ pub async fn verify_jwt(
         .map_err(|e| anyhow!("Failed to build decoding key from JWK: {e}"))?;
 
     // Accept both RS256 and EdDSA — Rauthy signs with Ed25519 by default, but
-    // RSA keeps working for any rotated/legacy tokens still in flight. `decode`
-    // enforces that the token's header alg is in this allowlist.
-    let mut validation = Validation::new(Algorithm::EdDSA);
-    validation.algorithms = vec![Algorithm::RS256, Algorithm::EdDSA];
+    // RSA keeps working for any rotated/legacy tokens still in flight. The
+    // header's declared alg drives the verifier; jsonwebtoken 10.x rejects
+    // when validation.algorithms contains entries of mixed families relative
+    // to the active verifier (decoding.rs:342), so we narrow to the header's
+    // alg here after gating it against the cross-family allowlist.
+    let allowed = [Algorithm::RS256, Algorithm::EdDSA];
+    if !allowed.contains(&header.alg) {
+        return Err(anyhow!("Unsupported JWT alg: {:?}", header.alg));
+    }
+    let mut validation = Validation::new(header.alg);
+    validation.algorithms = vec![header.alg];
     validation.set_audience(&[audience]);
     validation.set_issuer(&[&issuer]);
     validation.validate_exp = true;

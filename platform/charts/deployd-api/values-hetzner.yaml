@@ -26,10 +26,17 @@ secrets:
   create: false
 
 oidc:
-  # Injected by setup.sh via --set from $DOMAIN
+  # Injected by CD workflow via --set from $DOMAIN (becomes https://auth.<domain>)
   endpoint: ""
-  # Injected by setup.sh via --set from $DOMAIN
-  audience: ""
+  # The Rauthy client_id we authenticate as. Rauthy 0.35's client_credentials
+  # flow mints aud=<client_id> verbatim (no per-client audience override, no
+  # honour for RFC 8707 resource= at token-time). DEPLOYD_AUDIENCE is the
+  # validator: it MUST equal what Rauthy puts in the JWT's aud claim, which is
+  # the client_id of whichever M2M client called the token endpoint
+  # (`stagecraft-m2m` today; future deployd-cli client would set this to
+  # itself). Spec 143 §12 L-006 captures the Default-Scopes-is-load-bearing
+  # quirk; this is the audience-side companion to that lesson.
+  audience: "stagecraft-m2m"
 
 requiredScope: "deployd:deploy"
 
