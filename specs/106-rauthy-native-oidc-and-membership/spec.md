@@ -635,6 +635,23 @@ remains unavailable and the setup script `warn`s explicitly. The
 `.env.example` documents the Gmail App Password flow as the canonical
 quick-start.
 
+*Hetzner egress finding (2026-05-17).* The first cluster apply of
+this amendment crashed Rauthy at startup with
+`lettre::transport::smtp::Error { kind: Connection, source:
+Os { code: 101, kind: NetworkUnreachable } }` against
+`smtp.gmail.com:465`. An egress probe from a worker pod (busybox
+`nc -vz smtp.gmail.com 465` vs `587`) confirmed: **Hetzner Cloud
+blocks outbound TCP on port 465** (implicit-TLS / SMTPS), while
+port 587 (STARTTLS submission) is reachable. The fix is mechanical
+— `.env.example` defaults `SMTP_PORT=587` with a warning paragraph,
+and `setup.sh` refuses to wire SMTP when `SMTP_PORT=465` (hard
+`warn` + skip, so Rauthy stays healthy instead of crash-looping
+against the unreachable host). Gmail SMTP at 587 with STARTTLS is
+functionally equivalent to 465 for this use case. Operators on
+other cloud providers should verify outbound 465 reachability on
+first apply (`nc -vz smtp.<provider> 465` from inside the cluster)
+before overriding the default.
+
 ### 12.2 Google upstream — manual via Rauthy admin UI (v1)
 
 The Rauthy 0.35 admin API supports programmatic Auth Provider
