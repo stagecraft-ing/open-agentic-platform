@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "582eaa84b92cd9f2fcbba03268665bce66f983f40e869461c870e583f2f165f0",
+    "contentHash": "1edd9663f9f99aec01beba95b1b7250ce08191c00734ba3f6d204e2e290a0f24",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -2910,6 +2910,14 @@
         "implementingPaths": [
           {
             "path": "platform/charts/rauthy",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
             "source": "spec-implements"
           },
           {

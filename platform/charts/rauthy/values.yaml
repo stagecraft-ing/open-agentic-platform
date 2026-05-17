@@ -59,6 +59,22 @@ access:
   # tokens are valid from `iat` onwards.
   disableRefreshTokenNbf: true
 
+# Spec 106 amendment (2026-05-17) — SMTP for Rauthy's built-in
+# passwordless magic-link login. Required for spec 137 FR-005 / FR-008
+# magic-link evidence (E2/E3). Disabled by default; enable by setting
+# `smtp.enabled=true` and creating the K8s Secret named in
+# `existingSecret` with keys `from`, `url`, `port`, `username`,
+# `password`. Optionally `connection` (`tls` | `starttls`) and
+# `danger_insecure` (`true` | `false`).
+#
+# The Hetzner setup.sh creates `rauthy-smtp-secret` from .env values
+# when `SMTP_USERNAME` is present and flips `smtp.enabled=true` on the
+# helm upgrade. Other deployment paths can mount their own Secret of
+# the same shape.
+smtp:
+  enabled: false
+  existingSecret: "rauthy-smtp-secret"
+
 resources:
   requests:
     cpu: 50m

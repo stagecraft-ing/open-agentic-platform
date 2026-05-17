@@ -3,7 +3,9 @@ id: "106-rauthy-native-oidc-and-membership"
 title: "Rauthy-Native OIDC + Layered Membership Resolution (App Installation + PAT)"
 feature_branch: "feat/106-rauthy-native-oidc-and-membership"
 status: approved
-implementation: complete
+implementation: complete  # Core (GitHub upstream + layered membership) shipped; amended 2026-05-17 to add Rauthy SMTP env-var support and document manual Google upstream registration for spec 137 FR-005/FR-008 evidence path.
+amended: "2026-05-17"
+amendment_record: "self-amends — §9 (2026-05-17) extends the Rauthy chart with SMTP env-var wire-up and surfaces the manual Google Auth Provider registration step in setup.sh's Phase 1 output. Both are infra-side prerequisites for spec 137 Phase 6 evidence (E2/E3 magic-link, E4 federated Google)."
 owner: bart
 created: "2026-04-17"
 kind: platform
@@ -15,6 +17,14 @@ code_aliases: ["RAUTHY_OIDC_NATIVE", "A2C_MEMBERSHIP"]
 implements:
   - path: platform/services/stagecraft/api/auth
   - path: platform/charts/rauthy
+  # Amendment 2026-05-17 — Rauthy SMTP env-var wire-up (templates/statefulset.yaml
+  # + values.yaml) and Hetzner setup.sh integration (rauthy-smtp-secret
+  # creation + `--set smtp.enabled=true` overlay + Phase-1 instruction
+  # output for manual Google Auth Provider registration). Required by
+  # spec 137 Phase 6 evidence paths E2/E3 (magic-link) and E4 (federated
+  # Google). See §9 below.
+  - path: platform/infra/hetzner/setup.sh
+  - path: platform/infra/hetzner/.env.example
 summary: >
   Close the implementation gap between spec 080's design and what actually
   shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP,
@@ -584,3 +594,88 @@ webhooks are a fast-path for revocation. The webhook handler lives in
   not enforce minimum scopes here beyond what GitHub returns. Any unmet
   scope shows up as a 403/404 at call time and converts to an actionable
   UI error.
+
+## 12. Amendment 2026-05-17 — Rauthy SMTP + federated upstream for tenant gates
+
+Spec 137 Phase 6 evidence (E2 magic-link, E3 allowlist denial, E4
+federated Google login) requires two Rauthy capabilities the original
+spec 106 implementation didn't surface in the deployment substrate:
+
+1. **SMTP** so Rauthy can mail magic-link tokens (Rauthy's built-in
+   passwordless login). Required for E2/E3.
+2. **A Google upstream Auth Provider** so Rauthy can delegate
+   authentication to Google for tenant gates that opt into federated
+   login. Required for E4.
+
+Both are configuration-time concerns at the Rauthy layer; both fit
+under spec 106's existing charter ("Rauthy owns the session"; FR-002
+governs upstream IDP wiring).
+
+### 12.1 SMTP — wired via Helm + setup.sh
+
+`platform/charts/rauthy` now exposes a `smtp` block in its values:
+
+```yaml
+smtp:
+  enabled: false
+  existingSecret: "rauthy-smtp-secret"
+```
+
+When `smtp.enabled: true`, the statefulset binds seven SMTP env vars
+from the named Secret: `from`, `url`, `port`, `username`, `password`
+(required) and `connection`, `danger_insecure` (optional — Rauthy
+picks sensible defaults). The chart never embeds plaintext SMTP
+config; the operator owns the Secret.
+
+`platform/infra/hetzner/setup.sh` materialises that Secret from
+`.env` values when `SMTP_USERNAME` is present in the loaded
+environment, then layers `--set smtp.enabled=true` onto the helm
+upgrade. Empty `SMTP_USERNAME` is the legacy path — magic-link login
+remains unavailable and the setup script `warn`s explicitly. The
+`.env.example` documents the Gmail App Password flow as the canonical
+quick-start.
+
+### 12.2 Google upstream — manual via Rauthy admin UI (v1)
+
+The Rauthy 0.35 admin API supports programmatic Auth Provider
+creation, but the POST schema needs typed-helper smoke against the
+running instance (mirroring spec 137 T003 for `/clients`). v1 of this
+amendment defers that auto-provisioning step and instead surfaces the
+manual registration steps in `setup.sh`'s Phase 1 instruction output:
+
+```
+Create the Google OAuth client at https://console.cloud.google.com/auth/clients
+and register the provider in Rauthy admin UI at
+https://auth.<domain>/auth/v1/admin/providers:
+  - Type:      Google
+  - Issuer:    https://accounts.google.com
+  - Client ID / Secret: from .env GOOGLE_UPSTREAM_CLIENT_ID/_SECRET
+  - Callback:  https://auth.<domain>/auth/v1/providers/callback
+```
+
+The `.env.example` carries `GOOGLE_UPSTREAM_CLIENT_ID` /
+`GOOGLE_UPSTREAM_CLIENT_SECRET` as documented manual fills — they're
+loaded into setup.sh's env but consumed only by the manual
+instruction step in v1. A spec 106 follow-up will add a typed
+Rauthy admin client (mirroring `rauthyAdminClients.ts` for tenant
+gate clients in spec 137 Phase 3) and idempotent `POST/PUT
+/auth/v1/providers` to setup.sh's Phase 2.
+
+### 12.3 Why this is the right home
+
+The SMTP wire-up and the Google upstream are infra-side
+*configuration* of the Rauthy primitive spec 106 already owns. They
+are not new specs:
+
+- Spec 106 §3.2 fixes the Rauthy chart as the canonical identity
+  surface; SMTP is a chart-time toggle on that same surface.
+- Spec 106 §4 (FR-002) declares "GitHub becomes a Rauthy upstream
+  Auth Provider"; the Google upstream is the same mechanism with a
+  different provider type.
+- Spec 137 is a *consumer* — it expects "passwordless OIDC via Rauthy"
+  to be available without re-specifying what that means inside
+  Rauthy.
+
+Per `feedback_pre_implementation_spec_amendments` discipline: amend
+spec 106 first (here), then point spec 137 Phase 6 evidence at the
+amended capabilities.
