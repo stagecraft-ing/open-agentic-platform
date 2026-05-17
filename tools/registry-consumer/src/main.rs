@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
-    DEFAULT_REGISTRY_REL_PATH, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
+    DEFAULT_REGISTRY_REL_PATH, FeatureFilter, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
     authoritative_or_allow_invalid, features_sorted, filter_features, find_feature_by_id,
     load_registry, serialize_json_compact_or_pretty, status_report,
 };
@@ -37,6 +37,15 @@ enum Command {
         implementation: Option<String>,
         #[arg(long)]
         id_prefix: Option<String>,
+        /// Filter by `kind:` frontmatter value (exact match; spec 147 AC-006)
+        #[arg(long)]
+        kind: Option<String>,
+        /// Filter by `shape:` frontmatter value (exact match; spec 147 AC-006)
+        #[arg(long)]
+        shape: Option<String>,
+        /// Filter by `category:` list membership (exact match against any list entry; spec 147 AC-006)
+        #[arg(long)]
+        category: Option<String>,
         /// Emit filtered features as a JSON array (pretty-printed)
         #[arg(long, conflicts_with_all = ["compact", "ids_only"])]
         json: bool,
@@ -123,6 +132,9 @@ fn main() -> ExitCode {
             status,
             implementation,
             id_prefix,
+            kind,
+            shape,
+            category,
             json,
             compact,
             ids_only,
@@ -133,9 +145,14 @@ fn main() -> ExitCode {
             };
             let filtered = filter_features(
                 sorted,
-                status.as_deref(),
-                id_prefix.as_deref(),
-                implementation.as_deref(),
+                FeatureFilter {
+                    status: status.as_deref(),
+                    id_prefix: id_prefix.as_deref(),
+                    implementation: implementation.as_deref(),
+                    kind: kind.as_deref(),
+                    shape: shape.as_deref(),
+                    category: category.as_deref(),
+                },
             );
             if json || compact {
                 if let Err(code) = print_json_or_exit(&filtered, compact) {
