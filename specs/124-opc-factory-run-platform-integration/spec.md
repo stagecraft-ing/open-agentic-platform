@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-05-01"
 approved: "2026-05-01"
+kind: platform
 risk: high
 summary: >
   Closes the spec 108 §7.1 punt and §7.4 deferral. OPC stops reading

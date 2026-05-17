@@ -77,32 +77,62 @@ pub fn features_sorted(v: &Value) -> Result<Vec<Value>, &'static str> {
     Ok(out)
 }
 
-/// Apply `--status`, `--implementation` (exact), and `--id-prefix` (prefix on `id`) filters.
-pub fn filter_features(
-    features: Vec<Value>,
-    status: Option<&str>,
-    id_prefix: Option<&str>,
-    implementation: Option<&str>,
-) -> Vec<Value> {
+/// Filter criteria passed to [`filter_features`]. All fields are exact-match
+/// (or prefix-match for [`Self::id_prefix`]); `category` membership-tests the
+/// filter value against the feature's `category[]` list.
+#[derive(Default, Clone, Copy)]
+pub struct FeatureFilter<'a> {
+    pub status: Option<&'a str>,
+    pub id_prefix: Option<&'a str>,
+    pub implementation: Option<&'a str>,
+    pub kind: Option<&'a str>,
+    pub shape: Option<&'a str>,
+    pub category: Option<&'a str>,
+}
+
+/// Apply [`FeatureFilter`] to a feature list. All set filters must match (AND).
+pub fn filter_features(features: Vec<Value>, filter: FeatureFilter<'_>) -> Vec<Value> {
     features
         .into_iter()
         .filter(|f| {
-            if let Some(s) = status {
+            if let Some(s) = filter.status {
                 match f.get("status").and_then(|x| x.as_str()) {
                     Some(st) if st == s => {}
                     _ => return false,
                 }
             }
-            if let Some(prefix) = id_prefix {
+            if let Some(prefix) = filter.id_prefix {
                 match f.get("id").and_then(|x| x.as_str()) {
                     Some(id) if id.starts_with(prefix) => {}
                     _ => return false,
                 }
             }
-            if let Some(imp) = implementation {
+            if let Some(imp) = filter.implementation {
                 match f.get("implementation").and_then(|x| x.as_str()) {
                     Some(i) if i == imp => {}
                     _ => return false,
+                }
+            }
+            if let Some(k) = filter.kind {
+                match f.get("kind").and_then(|x| x.as_str()) {
+                    Some(ki) if ki == k => {}
+                    _ => return false,
+                }
+            }
+            if let Some(sh) = filter.shape {
+                match f.get("shape").and_then(|x| x.as_str()) {
+                    Some(s) if s == sh => {}
+                    _ => return false,
+                }
+            }
+            if let Some(cat) = filter.category {
+                let matched = f
+                    .get("category")
+                    .and_then(|x| x.as_array())
+                    .map(|arr| arr.iter().any(|v| v.as_str() == Some(cat)))
+                    .unwrap_or(false);
+                if !matched {
+                    return false;
                 }
             }
             true
@@ -211,5 +241,64 @@ mod serialize_tests {
             serialize_json_compact_or_pretty(&v, false).unwrap(),
             serde_json::to_string_pretty(&v).unwrap()
         );
+    }
+}
+
+#[cfg(test)]
+mod filter_tests {
+    use super::{FeatureFilter, filter_features};
+    use serde_json::json;
+
+    fn corpus() -> Vec<serde_json::Value> {
+        vec![
+            json!({"id":"148-r","kind":"registry","category":["auth","identity"]}),
+            json!({"id":"149-c","kind":"capability","shape":"driver","category":["auth","security"]}),
+            json!({"id":"150-p","kind":"profile","category":["identity","policy"]}),
+            json!({"id":"100-x","kind":"platform"}),
+        ]
+    }
+
+    fn ids(v: &[serde_json::Value]) -> Vec<&str> {
+        v.iter().map(|f| f["id"].as_str().unwrap()).collect()
+    }
+
+    #[test]
+    fn kind_filter_exact_match() {
+        let out = filter_features(corpus(), FeatureFilter { kind: Some("registry"), ..Default::default() });
+        assert_eq!(ids(&out), vec!["148-r"]);
+    }
+
+    #[test]
+    fn shape_filter_exact_match() {
+        let out = filter_features(corpus(), FeatureFilter { shape: Some("driver"), ..Default::default() });
+        assert_eq!(ids(&out), vec!["149-c"]);
+    }
+
+    #[test]
+    fn category_filter_matches_any_list_entry() {
+        let out = filter_features(corpus(), FeatureFilter { category: Some("auth"), ..Default::default() });
+        assert_eq!(ids(&out), vec!["148-r", "149-c"]);
+    }
+
+    #[test]
+    fn category_filter_skips_features_without_category() {
+        let out = filter_features(corpus(), FeatureFilter { category: Some("identity"), ..Default::default() });
+        // 148 and 150 carry "identity"; 100-x has no category list, must be excluded.
+        assert_eq!(ids(&out), vec!["148-r", "150-p"]);
+    }
+
+    #[test]
+    fn filters_compose_with_and_semantics() {
+        let out = filter_features(
+            corpus(),
+            FeatureFilter { kind: Some("capability"), category: Some("auth"), ..Default::default() },
+        );
+        assert_eq!(ids(&out), vec!["149-c"]);
+        // Disjoint filters return empty.
+        let out = filter_features(
+            corpus(),
+            FeatureFilter { kind: Some("capability"), category: Some("policy"), ..Default::default() },
+        );
+        assert!(out.is_empty());
     }
 }

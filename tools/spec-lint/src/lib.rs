@@ -1,7 +1,6 @@
 //! Optional conformance warnings (Feature 006) — does not replace spec-compiler validation.
 
 use open_agentic_frontmatter::split_frontmatter_optional;
-use regex::Regex;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -99,25 +98,6 @@ fn is_feature_dir_name(name: &str) -> bool {
     b.len() >= 5 && b[..3].iter().all(|c| c.is_ascii_digit()) && b[3] == b'-'
 }
 
-fn superseded_pointer_ok(body: &str) -> bool {
-    let lower = body.to_lowercase();
-    lower.contains("superseded by")
-        || lower.contains("## supersession")
-        || lower.contains("replacement feature")
-        || Regex::new(r"`[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*`")
-            .unwrap()
-            .is_match(body)
-}
-
-fn retired_rationale_ok(body: &str) -> bool {
-    let lower = body.to_lowercase();
-    lower.contains("## retirement")
-        || lower.contains("**retired**")
-        || lower.contains("rationale")
-        || lower.contains("withdrawn")
-        || lower.contains("retired (")
-}
-
 fn is_example_changeset(content: &str) -> bool {
     let head: String = content.chars().take(4096).collect();
     let lower = head.to_lowercase();
@@ -150,7 +130,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
     const VALID_IMPLEMENTATIONS: &[&str] =
         &["pending", "in-progress", "complete", "n/a", "deferred"];
 
-    if let Some((fm, body)) = split_frontmatter_optional(&spec_raw) {
+    if let Some((fm, _body)) = split_frontmatter_optional(&spec_raw) {
         if let Some(status) = fm.get("status").and_then(|v| v.as_str()) {
             if !VALID_STATUSES.contains(&status) {
                 w.push(Warning {
@@ -163,20 +143,26 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                     ),
                 });
             }
-            if status == "superseded" && !superseded_pointer_ok(&body) {
+            // W-002 / W-003 — spec 147 Phase 4 rewired these from prose
+            // scans on the body to frontmatter-presence checks. The
+            // governance-lifecycle fields (`superseded_by`,
+            // `retirement_rationale`) are now KNOWN_KEYS in the spec
+            // compiler and carry typed authority; the lint surface
+            // checks that authors actually filled them in.
+            if status == "superseded" && fm.get("superseded_by").is_none() {
                 w.push(Warning {
                     code: "W-002",
                     severity: "warning",
                     path: rel(repo_root, &spec_path),
-                    message: "status is superseded but body lacks an obvious replacement pointer (Feature 003)".into(),
+                    message: "status is superseded but frontmatter is missing `superseded_by:` (spec 147 governance-lifecycle fields)".into(),
                 });
             }
-            if status == "retired" && !retired_rationale_ok(&body) {
+            if status == "retired" && fm.get("retirement_rationale").is_none() {
                 w.push(Warning {
                     code: "W-003",
                     severity: "warning",
                     path: rel(repo_root, &spec_path),
-                    message: "status is retired but body lacks an obvious rationale section (Feature 003)".into(),
+                    message: "status is retired but frontmatter is missing `retirement_rationale:` (spec 147 governance-lifecycle fields)".into(),
                 });
             }
         }

@@ -25,6 +25,7 @@ depends_on:
   - "078"  # platform-completion-plan
   - "080"  # github-identity-onboarding
   - "082"  # artifact-integrity-platform-hardening
+kind: architecture
 risk: high
 ---
 

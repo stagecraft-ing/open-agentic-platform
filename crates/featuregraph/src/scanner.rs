@@ -484,6 +484,7 @@ mod tests {
             depends_on: vec![],
             owner: None,
             risk: None,
+            implements: None,
         };
         let e = FeatureEntry::from_registry_record(&r);
         assert_eq!(e.aliases, vec!["FEATUREGRAPH_REGISTRY"]);
@@ -501,6 +502,7 @@ mod tests {
             depends_on: vec!["033".into(), "068".into()],
             owner: Some("bart".into()),
             risk: Some("high".into()),
+            implements: None,
         };
         let e = FeatureEntry::from_registry_record(&r);
         assert_eq!(e.depends_on, vec!["033", "068"]);

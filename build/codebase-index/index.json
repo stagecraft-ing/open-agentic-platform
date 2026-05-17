@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "75f0a6ebfe053dddee23a5b8431d2b9308326eb3334986081c5f3b390f208ef8",
+    "contentHash": "9f6c199183385d270b24ba64fb199ee3518f74e65cd98526124aa310e7959f45",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1487,7 +1487,6 @@
       ],
       "externalDeps": [
         "clap",
-        "regex",
         "serde_yaml"
       ],
       "internalDeps": [
@@ -5067,7 +5066,7 @@
         ],
         "implementingPaths": [],
         "specId": "147-spec-kind-grammar",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -5076,7 +5075,10 @@
       "081-factory-test-hydration",
       "086-open-source-launch",
       "088-factory-upstream-sync",
-      "100-post-convergence-remediation"
+      "100-post-convergence-remediation",
+      "148-auth-driver-registry",
+      "149-saml-auth-driver",
+      "150-example-tenant-profile"
     ],
     "untracedCode": [
       "grammars/tree-sitter-c",

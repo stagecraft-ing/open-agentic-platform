@@ -13,6 +13,7 @@ depends_on:
   - "091"  # registry-enrichment (dependsOn, owner, risk fields)
   - "092"  # workspace-runtime-threading (workspace_id everywhere)
 code_aliases: ["SPEC_PREFLIGHT"]
+kind: governance
 risk: high
 implements:
   - path: crates/policy-kernel

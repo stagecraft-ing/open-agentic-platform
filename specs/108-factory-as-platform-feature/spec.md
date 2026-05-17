@@ -9,6 +9,7 @@ created: "2026-04-20"
 approved: "2026-05-01"
 amended: "2026-05-05"
 amendment_record: "139"
+kind: platform
 summary: >
   Removes the repo-rooted `factory/` directory and reimplements adapters,
   contracts, processes, and upstream-map configuration as first-class entities

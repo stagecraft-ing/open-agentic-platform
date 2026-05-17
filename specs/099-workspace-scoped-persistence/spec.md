@@ -7,6 +7,7 @@ owner: bart
 created: "2026-04-11"
 amended: "2026-04-29"
 amendment_record: "119"
+kind: platform
 risk: medium
 depends_on:
   - "092"

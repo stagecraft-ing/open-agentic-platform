@@ -27,8 +27,15 @@ const COMPILER_ID: &str = "open-agentic-spec-compiler";
 /// scalar/list shape disambiguation, and adds governance-lifecycle
 /// fields (`supersedes`, `superseded_by`, `retirement_rationale`).
 /// Validation invariants V-012..V-019 fire at warning severity in
-/// Phase 1; promotion to error severity is governed by separate
-/// phase-gated amendments per spec 147 §Migration.
+/// Phase 1. Spec 147 phase-gates severity promotions:
+///   - V-012 → error in Phase 2 (corpus-wide `kind:` backfill).
+///   - V-018, V-019 → error in Phase 4 (governance-lifecycle fields
+///     are now KNOWN_KEYS in the registry, and the 4 superseded
+///     specs already carry valid `superseded_by:` pointers).
+///   - V-013..V-017 remain at warning severity; their promotion to
+///     error severity is the subject of a separately-funded
+///     follow-on amendment after the contract is exercised against
+///     unforeseen cases.
 ///
 /// 1.4.0 (spec 132) added the `unamendable` and `amends_sections`
 /// frontmatter fields plus the V-011 violation (amends_sections ∩
@@ -299,11 +306,13 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let policy = fm.get("policy").and_then(yaml_to_json);
 
         // ── V-012 (Spec 147): kind enum membership ──
+        // Promoted to error severity in Phase 2 after corpus-wide
+        // `kind:` backfill (spec 147 §Migration Phase 2).
         if let Some(ref k) = kind {
             if !VALID_KINDS.contains(&k.as_str()) {
                 violations.push(Violation {
                     code: "V-012".to_string(),
-                    severity: "warning".to_string(),
+                    severity: "error".to_string(),
                     message: format!(
                         "kind value {k:?} is not in the declared enum; expected one of: {}",
                         VALID_KINDS.join(", ")
@@ -414,10 +423,13 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         }
 
         // ── V-018 (Spec 147): retirement_rationale presence when status=retired ──
+        // Promoted to error severity in Phase 4 — `retirement_rationale:`
+        // is now a KNOWN_KEY top-level field, and any spec carrying
+        // `status: retired` must declare it.
         if status == "retired" && retirement_rationale.is_none() {
             violations.push(Violation {
                 code: "V-018".to_string(),
-                severity: "warning".to_string(),
+                severity: "error".to_string(),
                 message: "status=retired requires `retirement_rationale:` frontmatter".to_string(),
                 path: Some(normalize_repo_path(repo_root, spec_path)),
             });
@@ -545,10 +557,12 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
     // ── Spec 147 — cross-spec validators (V-015, V-016, V-017, V-019) ──
     //
     // These follow the V-011 pattern: build an id-prefix index once,
-    // then iterate features and emit warnings against the corpus. All
-    // four are at warning severity in Phase 1; promotion to error
-    // severity ships in separately-funded follow-on amendments per
-    // spec 147 §Migration.
+    // then iterate features and emit diagnostics against the corpus.
+    // V-015, V-016, V-017 are at warning severity in Phase 1 (and
+    // remain so until a follow-on amendment exercises the new-kind
+    // contract). V-019 was promoted to error severity in Phase 4
+    // per spec 147 §Migration (the 4 superseded specs already carry
+    // valid `superseded_by:` pointers).
     {
         let mut by_id: BTreeMap<String, &FeatureRecord> = BTreeMap::new();
         for f in &features {
@@ -746,6 +760,11 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         }
 
         // ── V-019: supersession back-link presence and resolution ──
+        // Promoted to error severity in Phase 4 — the 4 superseded specs
+        // (038, 040, 044, 088) already declare valid `superseded_by:`
+        // pointers, and `superseded_by:` is now a KNOWN_KEY top-level
+        // field. Any new spec carrying `status: superseded` must declare
+        // it and the value must resolve to a corpus spec id.
         for f in &features {
             if f.status != "superseded" {
                 continue;
@@ -753,7 +772,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             match f.superseded_by.as_deref() {
                 None => violations.push(Violation {
                     code: "V-019".to_string(),
-                    severity: "warning".to_string(),
+                    severity: "error".to_string(),
                     message: "status=superseded requires `superseded_by:` frontmatter".to_string(),
                     path: Some(f.spec_path.clone()),
                 }),
@@ -761,7 +780,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
                     if resolve(target_id).is_none() {
                         violations.push(Violation {
                             code: "V-019".to_string(),
-                            severity: "warning".to_string(),
+                            severity: "error".to_string(),
                             message: format!(
                                 "superseded_by {target_id:?} does not resolve to an existing spec id"
                             ),

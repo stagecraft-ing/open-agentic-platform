@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-01"
 approved: "2026-05-01"
 amended: "2026-05-01"
+kind: governance
 risk: medium
 summary: >
   Restores the `make ci-schema-parity` gate after commit `b6859d3` removed

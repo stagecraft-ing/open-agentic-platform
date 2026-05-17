@@ -6,17 +6,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn registry_consumer_exe() -> PathBuf {
-    if let Some(e) = std::env::var_os("CARGO_BIN_EXE_registry_consumer") {
-        return PathBuf::from(e);
-    }
-    #[cfg(windows)]
-    {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/registry-consumer.exe")
-    }
-    #[cfg(not(windows))]
-    {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/registry-consumer")
-    }
+    // Cargo sets `CARGO_BIN_EXE_<name>` at compile time of the integration
+    // test, pointing to the freshly-built binary for the current cargo
+    // profile (debug or release). Resolving at compile time avoids
+    // accidentally running a stale `target/debug/registry-consumer` left
+    // over from an earlier build when `cargo test --release` is invoked.
+    PathBuf::from(env!("CARGO_BIN_EXE_registry-consumer"))
 }
 
 fn write_registry(path: &Path, v: &serde_json::Value) {
