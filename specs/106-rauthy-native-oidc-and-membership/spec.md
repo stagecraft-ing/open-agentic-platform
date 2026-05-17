@@ -22,9 +22,16 @@ implements:
   # creation + `--set smtp.enabled=true` overlay + Phase-1 instruction
   # output for manual Google Auth Provider registration). Required by
   # spec 137 Phase 6 evidence paths E2/E3 (magic-link) and E4 (federated
-  # Google). See §9 below.
+  # Google). See §12.1 below.
   - path: platform/infra/hetzner/setup.sh
   - path: platform/infra/hetzner/.env.example
+  # Amendment 2026-05-17 §12.4 — wildcard tenant cert via cert-manager
+  # Cloudflare DNS-01. ClusterIssuer + Certificate manifests applied
+  # via setup.sh; companion infra prereq to §12.1 SMTP for spec 137
+  # Phase 6 evidence (Rauthy redirect_uri on tenant hostnames needs
+  # HTTPS, hence wildcard cert).
+  - path: platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml
+  - path: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
 summary: >
   Close the implementation gap between spec 080's design and what actually
   shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP,
@@ -696,3 +703,62 @@ are not new specs:
 Per `feedback_pre_implementation_spec_amendments` discipline: amend
 spec 106 first (here), then point spec 137 Phase 6 evidence at the
 amended capabilities.
+
+### 12.4 Wildcard tenant cert — `*.tenants.<base>` via cert-manager DNS-01
+
+Companion infrastructure to §12.1 SMTP, landed in the same 2026-05-17
+amendment cycle. Spec 137 Phase 6 magic-link / federated-Google
+evidence paths require Rauthy `redirect_uri`s on tenant hostnames to
+be HTTPS — which means TLS termination at the tenant Ingress, which
+means a cert for each tenant hostname.
+
+**Selected path: single shared wildcard cert + DNS-01.**
+
+* `platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml`
+  — a second ClusterIssuer alongside the existing HTTP-01
+  `letsencrypt-prod`. Uses cert-manager's Cloudflare DNS-01 solver
+  with an API token (`Zone.DNS:Edit` on the platform's zone only,
+  no broader scope). Selector pins it to the `tenants.${DOMAIN}`
+  zone so it never competes with HTTP-01 for the platform's own
+  hostnames.
+* `platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml`
+  — `Certificate` resource for `*.tenants.${DOMAIN}` + the apex
+  `tenants.${DOMAIN}` (so a future shared landing page works
+  alongside per-tenant hostnames). ECDSA P-256, 90-day duration,
+  `rotationPolicy: Always` so renewals always generate a fresh key.
+* `setup.sh` materialises `cloudflare-api-token` Secret in the
+  `cert-manager` namespace from `$CLOUDFLARE_DNS_API_TOKEN`,
+  envsubst-applies both manifests, and waits up to 5m for the
+  Certificate to reach `Ready=True`. Operators without the API
+  token see an explicit `warn` and tenant TLS stays unavailable
+  (HTTP-01 keeps working for the rest of the platform); no silent
+  partial-success state.
+
+**Hostname-pattern coupling.** A one-label wildcard
+(`*.tenants.<base>`) covers `<X>.tenants.<base>`, not
+`<env>.<project>.<org>.tenants.<base>`. Spec 137 Decision 4 was
+amended in lockstep with this work to flatten the tenant hostname
+to a single label (`<env-slug>-<project-slug>-<org-slug>.tenants.<base>`,
+hyphens not dots). The flattened label still encodes the (org,
+project, env) triple uniquely; per-org cert isolation is a
+recoverable future amendment if needed.
+
+**First-apply evidence (dev cluster, 2026-05-17):**
+
+```
+$ kubectl -n cert-manager get certificate tenants-wildcard
+NAME               READY   SECRET                 ISSUER                              STATUS  AGE
+tenants-wildcard   True    tenants-wildcard-tls   letsencrypt-prod-dns01-cloudflare   ...     2m43s
+```
+
+ACME round-trip (DNS-01 TXT challenge against Cloudflare → Let's
+Encrypt validation → cert issuance) completed in ~2m43s. The cert +
+its `tenants-wildcard-tls` Secret now live in the `cert-manager`
+namespace.
+
+**Replication to tenant namespaces.** Tenant Ingresses reference TLS
+Secrets in their own namespace. The replication mechanism (deployd-api
+code that clones the wildcard Secret into the tenant ns at deploy
+time, OR a reflector-style controller) is a spec 137 Phase 4
+follow-up. This amendment lands the cert itself; the consumer-side
+path is the next gate.

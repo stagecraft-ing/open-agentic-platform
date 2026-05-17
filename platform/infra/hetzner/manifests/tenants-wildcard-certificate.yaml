@@ -1,0 +1,42 @@
+# Spec 137 evidence prereq — wildcard TLS cert for tenant Ingresses.
+#
+# A single wildcard cert covering `*.tenants.${DOMAIN}` + the apex
+# `tenants.${DOMAIN}`. Both SANs are issued together so a tenant
+# Ingress (one-label-deep host) and a future shared landing page on the
+# apex both share the same cert lifecycle.
+#
+# Wildcard scope caveat (RFC 6125 / Let's Encrypt limits): one wildcard
+# label only. `dev.tenants.${DOMAIN}` ✅, `dev.project1.tenants.${DOMAIN}` ✗.
+# Spec 137 Decision 4's hostname pattern is therefore flattened to one
+# label after `.tenants.`, e.g. `<env-slug>-<project-slug>-<org-slug>`
+# (hyphens, not dots). See spec 137 §12 amendment.
+#
+# Replication: this cert + its Secret live in `cert-manager` namespace.
+# Tenant Ingresses (in per-app namespaces) need a copy of this Secret
+# to terminate TLS. v1 path: a stagecraft + deployd-api follow-up
+# reads this Secret and clones it into the tenant namespace at deploy
+# time (or uses cert-manager's `--enable-certificate-owner-ref` +
+# kubernetes-reflector annotations). The replication mechanism is
+# explicitly out of scope for this PR — landing the cert itself is the
+# unlock.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tenants-wildcard
+  namespace: cert-manager
+  labels:
+    oap.spec: "137-tenant-environment-access-gates"
+spec:
+  secretName: tenants-wildcard-tls
+  duration: 2160h    # 90 days (Let's Encrypt default)
+  renewBefore: 360h  # 15 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  dnsNames:
+    - "*.tenants.${DOMAIN}"
+    - "tenants.${DOMAIN}"
+  issuerRef:
+    name: letsencrypt-prod-dns01-cloudflare
+    kind: ClusterIssuer
