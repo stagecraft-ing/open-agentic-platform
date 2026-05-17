@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "69747dead90f249919cfb3b7175f7e145ae021b960747e37529df657ac116f28",
+    "contentHash": "5d168f6c1b1e69460ee91297519a094a31fdac74728c9a4f329e98d3b2d2cf13",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4246,7 +4246,15 @@
             "source": "spec-implements"
           },
           {
+            "path": ".github/workflows/cd-tenant-hello.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": ".github/workflows/ci-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-tenant-hello.yml",
             "source": "spec-implements"
           },
           {
@@ -5126,6 +5134,13 @@
       ]
     },
     {
+      "path": ".github/workflows/cd-tenant-hello.yml",
+      "source": "header",
+      "specs": [
+        "136-tenant-hello-demo-service"
+      ]
+    },
+    {
       "path": ".github/workflows/ci-axiomregent.yml",
       "source": "header",
       "specs": [
@@ -5211,6 +5226,13 @@
       "source": "header",
       "specs": [
         "116-supply-chain-policy-gates"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci-tenant-hello.yml",
+      "source": "header",
+      "specs": [
+        "136-tenant-hello-demo-service"
       ]
     },
     {

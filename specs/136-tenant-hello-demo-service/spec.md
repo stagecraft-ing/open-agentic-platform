@@ -29,6 +29,13 @@ implements:
   - path: platform/services/deployd-api-rs/Dockerfile
   - path: .github/workflows/cd-deployd-api-rs.yml
   - path: .github/workflows/ci-deployd-api-rs.yml
+  # tenant-hello image publishing — the chart's image.repository default points
+  # nowhere by design (see `platform/charts/tenant-hello/values.yaml`); the CD
+  # workflow makes the reference fixture actually deployable. The CI companion
+  # is the PR-time Dockerfile + chart-lint gate that prevents image-build
+  # regressions from landing on main unobserved.
+  - path: .github/workflows/cd-tenant-hello.yml
+  - path: .github/workflows/ci-tenant-hello.yml
 summary: >
   Document `platform/services/tenant-hello` as the deliberately-minimal
   reference of what a project codebase looks like when stagecraft is
