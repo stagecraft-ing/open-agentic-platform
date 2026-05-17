@@ -2,10 +2,11 @@
 id: "136-tenant-hello-demo-service"
 title: "Tenant-hello — stagecraft-deployable tenant reference service"
 status: approved
-implementation: in-progress
+implementation: complete  # Phase 0 (T001–T005) and Phase 1 (T010–T017) landed 2026-05-06; Phase 2 code (T020–T022) landed 2026-05-15. T023 happy path + T030/T031 negative-path passes ran on the Hetzner K3s dev cluster 2026-05-17 against `cd-tenant-hello.yml` workflow_dispatch run 25987117916 (image source = main @ b3c0ddcf). Evidence: `execution/verification.md`. SC-002 both halves evidenced — positive (running pod, /healthz → 200) and negative (three C-clause violation passes each producing a localised failure: read-only-fs mkdir error for C-001, probe HTTP 404 for C-002, probe connection-refused for C-003).
 owner: bart
 created: "2026-05-04"
 approved: "2026-05-06"
+completed: "2026-05-17"
 kind: platform
 risk: low
 depends_on:
