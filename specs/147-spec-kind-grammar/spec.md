@@ -1,14 +1,15 @@
 ---
 id: "147-spec-kind-grammar"
 title: "Spec-kind grammar: typed kinds, shape and category dimensions, governance-lifecycle fields, and primary-owner promotion"
-status: draft
+status: approved
 created: "2026-05-13"
+approved: "2026-05-17"
 authors: ["open-agentic-platform"]
 kind: amendment
 shape: mechanism-add
 risk: high
 owner: "open-agentic-platform"
-implementation: in-progress  # Phase 1 landed (f3ce6d1e spec-compiler V-012..V-019 + registry schema 1.5.0; 6d88179d spec-lint W-130/131/132 + severity tiers; 221d2c77 codebase-indexer primary flag + index schema 1.4.0; 20df53d2 spec 000/128 amendment records; 28d6af23 amends-list expansion). Phase 2 landed (28-spec kind backfill across 087, 088, 089, 090, 091, 092, 093, 094, 095, 096, 097, 098, 099, 100, 108, 109, 110, 111, 112, 113, 115, 120, 121, 122, 123, 124, 125, 126 + V-012 → error in spec-compiler; corpus now 148 specs, all with valid `kind:`). Phase 3 landed (proving-ground triplet: 148-auth-driver-registry + 149-saml-auth-driver + 150-example-tenant-profile, exercising V-013/V-014/V-015/V-017 cleanly at warning severity; AC-006 — registry-consumer --kind/--shape/--category filters + tests; AC-008 — featuregraph consumes implements: from registry.json via load_from_registry + typed ImplementsField). Outstanding: Phase 4 (W-002/W-003 prose-scan retirement + V-018/V-019 → error, AC-005).
+implementation: complete  # Phase 1 landed (f3ce6d1e spec-compiler V-012..V-019 + registry schema 1.5.0; 6d88179d spec-lint W-130/131/132 + severity tiers; 221d2c77 codebase-indexer primary flag + index schema 1.4.0; 20df53d2 spec 000/128 amendment records; 28d6af23 amends-list expansion). Phase 2 landed (28-spec kind backfill across 087, 088, 089, 090, 091, 092, 093, 094, 095, 096, 097, 098, 099, 100, 108, 109, 110, 111, 112, 113, 115, 120, 121, 122, 123, 124, 125, 126 + V-012 → error in spec-compiler; corpus now 148 specs, all with valid `kind:`). Phase 3 landed (proving-ground triplet: 148-auth-driver-registry + 149-saml-auth-driver + 150-example-tenant-profile, exercising V-013/V-014/V-015/V-017 cleanly at warning severity; AC-006 — registry-consumer --kind/--shape/--category filters + tests; AC-008 — featuregraph consumes implements: from registry.json via load_from_registry + typed ImplementsField). Phase 4 landed (W-002/W-003 rewired from prose scans to frontmatter-presence checks against `superseded_by:` / `retirement_rationale:`; prose-scan helpers removed from spec-lint; V-018 and V-019 promoted to error severity in spec-compiler — the 4 superseded specs already carry valid `superseded_by:` pointers via Phase 1's KNOWN_KEYS routing; spec-compiler integration tests migrated from stale-prone `target/debug/spec-compiler` fallback to `env!("CARGO_BIN_EXE_spec-compiler")` resolution).
 summary: |
   Third amendment to spec 000. Promotes `kind` from inert metadata to a
   validated enum. Adds `shape` (kind-refinement) and `category` (cross-cutting

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:550459c97d257177b4311d53a174f355eb755904f944c3bcf9da3ed150b11b50",
+  "graph_fingerprint": "sha256:15ca2c6d7cf649cb2b389eb888f7c782bdb91532aa92705dce983d830c802868",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2802,8 +2802,8 @@
       "feature_id": "147-spec-kind-grammar",
       "title": "Spec-kind grammar: typed kinds, shape and category dimensions, governance-lifecycle fields, and primary-owner promotion",
       "spec_path": "specs/147-spec-kind-grammar/spec.md",
-      "status": "draft",
-      "implementation": "in-progress",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "high",
       "owner": "open-agentic-platform",
       "group": "",

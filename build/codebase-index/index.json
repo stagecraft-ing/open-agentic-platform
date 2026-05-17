@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6d814abb715abc93d9c9162c6822cc8b01331e40b0b608dff1a9d03932a7298b",
+    "contentHash": "9f6c199183385d270b24ba64fb199ee3518f74e65cd98526124aa310e7959f45",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1487,7 +1487,6 @@
       ],
       "externalDeps": [
         "clap",
-        "regex",
         "serde_yaml"
       ],
       "internalDeps": [
@@ -5067,7 +5066,7 @@
         ],
         "implementingPaths": [],
         "specId": "147-spec-kind-grammar",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

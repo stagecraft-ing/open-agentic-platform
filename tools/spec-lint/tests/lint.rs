@@ -31,7 +31,9 @@ No replacement here.
 }
 
 #[test]
-fn w002_superseded_with_backtick_id_ok() {
+fn w002_superseded_with_frontmatter_pointer_ok() {
+    // Spec 147 Phase 4: W-002 now checks frontmatter `superseded_by:`
+    // rather than scanning the body for a backtick spec-id pointer.
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
     let feat = root.join("specs/099-w2-ok");
@@ -42,10 +44,11 @@ fn w002_superseded_with_backtick_id_ok() {
 id: "099-w2-ok"
 title: "t"
 status: superseded
+superseded_by: "010-other-feature"
 created: "2026-03-22"
 summary: "x"
 ---
-Superseded by `010-other-feature`.
+# Body
 "#,
     )
     .unwrap();
@@ -53,6 +56,63 @@ Superseded by `010-other-feature`.
 
     let w = lint_feature_dir(root, &feat);
     assert!(!w.iter().any(|x| x.code == "W-002"));
+}
+
+#[test]
+fn w003_retired_with_frontmatter_rationale_ok() {
+    // Spec 147 Phase 4: W-003 now checks frontmatter
+    // `retirement_rationale:` rather than scanning the body.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-w3-ok");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-w3-ok"
+title: "t"
+status: retired
+retirement_rationale:
+  reason: obsolete
+  summary: "feature absorbed into newer spec"
+created: "2026-03-22"
+summary: "x"
+---
+# Body
+"#,
+    )
+    .unwrap();
+    fs::write(feat.join("tasks.md"), "# T\n").unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(!w.iter().any(|x| x.code == "W-003"));
+}
+
+#[test]
+fn w003_retired_without_frontmatter_rationale_fires() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-w3-test");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-w3-test"
+title: "t"
+status: retired
+created: "2026-03-22"
+summary: "x"
+---
+# Body — has retirement rationale in prose, but no frontmatter field.
+
+This spec is retired because of obsolescence.
+"#,
+    )
+    .unwrap();
+    fs::write(feat.join("tasks.md"), "# T\n").unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(w.iter().any(|x| x.code == "W-003"));
 }
 
 #[test]
