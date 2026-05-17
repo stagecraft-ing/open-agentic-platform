@@ -202,22 +202,35 @@ kubectl create secret generic deployd-api-secrets \
 # When SMTP_USERNAME is set in .env, materialise `rauthy-smtp-secret` and
 # enable the chart's `smtp.enabled=true` overlay. The chart's statefulset
 # pulls SMTP_FROM/URL/PORT/USERNAME/PASSWORD from this Secret.
+#
+# **Hetzner Cloud blocks outbound TCP on port 465** (implicit-TLS / SMTPS),
+# confirmed empirically 2026-05-17 against smtp.gmail.com. Port 587 with
+# STARTTLS is reachable and is the supported default. Setting SMTP_PORT=465
+# yields a hard `warn` here because Rauthy will crash-loop at startup on
+# the SMTP connection probe (mailer.rs panics after retry exhaustion).
 # ---------------------------------------------------------------------------
 RAUTHY_SMTP_HELM_ARGS=()
 if [ -n "${SMTP_USERNAME:-}" ]; then
-  info "Creating rauthy-smtp-secret (SMTP_USERNAME=${SMTP_USERNAME})..."
-  kubectl create secret generic rauthy-smtp-secret \
-    --namespace rauthy-system \
-    --from-literal=from="${SMTP_FROM:-Rauthy <rauthy@${DOMAIN}>}" \
-    --from-literal=url="${SMTP_URL:-}" \
-    --from-literal=port="${SMTP_PORT:-465}" \
-    --from-literal=username="$SMTP_USERNAME" \
-    --from-literal=password="${SMTP_PASSWORD:-}" \
-    --from-literal=connection="${SMTP_CONNECTION:-}" \
-    --from-literal=danger_insecure="${SMTP_DANGER_INSECURE:-false}" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  RAUTHY_SMTP_HELM_ARGS+=(--set "smtp.enabled=true")
-  ok "SMTP enabled — Rauthy will send magic-link emails via $SMTP_URL"
+  SMTP_PORT_RESOLVED="${SMTP_PORT:-587}"
+  if [ "$SMTP_PORT_RESOLVED" = "465" ]; then
+    warn "SMTP_PORT=465 is blocked on Hetzner outbound — Rauthy will crash at startup."
+    warn "  Override with SMTP_PORT=587 (STARTTLS submission) in .env, then re-run setup.sh."
+    warn "  Skipping SMTP wire-up to keep Rauthy healthy."
+  else
+    info "Creating rauthy-smtp-secret (SMTP_USERNAME=${SMTP_USERNAME}, SMTP_PORT=${SMTP_PORT_RESOLVED})..."
+    kubectl create secret generic rauthy-smtp-secret \
+      --namespace rauthy-system \
+      --from-literal=from="${SMTP_FROM:-Rauthy <rauthy@${DOMAIN}>}" \
+      --from-literal=url="${SMTP_URL:-}" \
+      --from-literal=port="$SMTP_PORT_RESOLVED" \
+      --from-literal=username="$SMTP_USERNAME" \
+      --from-literal=password="${SMTP_PASSWORD:-}" \
+      --from-literal=connection="${SMTP_CONNECTION:-}" \
+      --from-literal=danger_insecure="${SMTP_DANGER_INSECURE:-false}" \
+      --dry-run=client -o yaml | kubectl apply -f -
+    RAUTHY_SMTP_HELM_ARGS+=(--set "smtp.enabled=true")
+    ok "SMTP enabled — Rauthy will send magic-link emails via $SMTP_URL:$SMTP_PORT_RESOLVED"
+  fi
 else
   warn "SMTP_USERNAME not set in .env — Rauthy magic-link login will be unavailable"
 fi
