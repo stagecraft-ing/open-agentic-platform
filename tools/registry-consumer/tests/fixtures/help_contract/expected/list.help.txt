@@ -9,6 +9,12 @@ Options:
           Filter by implementation lifecycle status [possible values: pending, in-progress, complete, n/a, deferred]
       --id-prefix <ID_PREFIX>
           
+      --kind <KIND>
+          Filter by `kind:` frontmatter value (exact match; spec 147 AC-006)
+      --shape <SHAPE>
+          Filter by `shape:` frontmatter value (exact match; spec 147 AC-006)
+      --category <CATEGORY>
+          Filter by `category:` list membership (exact match against any list entry; spec 147 AC-006)
       --json
           Emit filtered features as a JSON array (pretty-printed)
       --compact
