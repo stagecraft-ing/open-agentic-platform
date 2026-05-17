@@ -112,43 +112,80 @@ the C-clause obligations.
     the embedded chart with and without ingress (binary). The CI
     workflow installs `helm` via `azure/setup-helm` so the template
     tests assert rather than no-op.
-- [ ] T023 End-to-end happy path — depends on a live cluster.
-  Captured under `execution/verification.md` when run. Still
-  deferred at this PR boundary: nothing about the orchestrator is
-  cluster-validated in this session.
+- [x] T023 End-to-end happy path — depends on a live cluster.
+  **Done 2026-05-17.** Image source: `cd-tenant-hello.yml`
+  workflow_dispatch run 25987117916 (added in this same PR cycle to
+  unblock T023 — the tenant-hello chart's `image.repository` default
+  points nowhere by design, so the chart could not be deployed
+  without first publishing the image to GHCR). `helm install` of
+  `platform/charts/tenant-hello` against the Hetzner K3s dev cluster
+  reached `1/1 Running` under `helm --wait`; `/healthz` returned
+  `ok` HTTP 200 and `/` returned the JSON-root response over a
+  port-forward. Full transcript in `execution/verification.md`
+  §"T023 — End-to-end happy path".
 
 **Checkpoint:** Phase 2 code is complete. SC-002 positive path
-remains gated on T023 (live-cluster validation) — that gate has not
-moved.
+evidenced 2026-05-17 (`execution/verification.md` §T023).
 
 ---
 
 ## Phase 3 — Negative-path validation
 
-- [ ] T030 Pick one C-clause to violate per pass. Recommended order:
-  C-002 first (omit `/healthz` — surfaces the readiness-probe failure
-  shape most cleanly), then C-003 (hard-code a port), then C-001
-  (privileged Dockerfile build step).
-- [ ] T031 For each violation, run the deploy pipeline; assert the
-  failure is **localised** (cites the C-clause and the offending
-  artifact path) rather than a generic platform crash. Record each
-  failure in `execution/verification.md`.
+- [x] T030 Pick one C-clause to violate per pass. **Done 2026-05-17.**
+  Three passes ran: C-001 (`nginx:alpine`, default root user +
+  writable-rootfs expectations), C-002
+  (`nginxinc/nginx-unprivileged:alpine`, non-root but no `/healthz`
+  route), C-003 (`hashicorp/http-echo`, ignores `PORT` env). Stock
+  images chosen over hand-authored "broken-tenant" variants to keep
+  the negative-path harness reproducible from any clone.
+- [x] T031 For each violation, run the deploy pipeline; assert the
+  failure is **localised**. **Done 2026-05-17.** Per-pass evidence
+  in `execution/verification.md` §"T030/T031 — Negative-path
+  validation":
+    * **C-001 pass** — container logs cite
+      `mkdir() "/var/cache/nginx/client_temp" failed (30: Read-only
+      file system)`; chart's `runAsUser=10001` +
+      `readOnlyRootFilesystem=true` is the enforcement edge that
+      catches the privileged-image expectation.
+    * **C-002 pass** — kubelet events cite
+      `Readiness probe failed: HTTP probe failed with statuscode: 404`
+      with the `/healthz` path in the event message; chart's
+      probe target on `/healthz` is the enforcement edge.
+    * **C-003 pass** — kubelet events cite
+      `Get "http://<pod-ip>:9090/healthz": dial tcp ... connect:
+      connection refused`; chart's `PORT` env injection + probe
+      port-targeting is the enforcement edge.
+  Each failure leaves a cleanly-uninstallable failed release; no
+  generic platform crash, no orphan resources after
+  `helm uninstall`.
 
-**Checkpoint:** SC-002 second half (negative path) is evidenced.
+**Checkpoint:** SC-002 second half evidenced 2026-05-17
+(`execution/verification.md` §"Negative-path summary").
 
 ---
 
-## Phase 4 — Status flip *(separate PR)*
+## Phase 4 — Status flip *(this PR)*
 
-- [ ] T040 Amend `spec.md` frontmatter:
-  `implementation: in-progress → complete`,
-  `status: draft → approved`, add `approved:`/`completed:` dates.
-- [ ] T041 Add a delivery-record section under §"Clarifications" or
-  in a `delivery-record.md` companion citing the verification artifact
-  paths.
-- [ ] T042 Confirm spec-code coupling gate (specs 127/130/133) is happy
-  with the lifecycle flip — i.e. the PR also touches code paths bound
-  to spec 136, so the amender→amended evidence is present.
+- [x] T040 Amend `spec.md` frontmatter. **Done 2026-05-17.**
+  `implementation: in-progress → complete` with the per-phase
+  landing note inline; `completed: "2026-05-17"` added.
+  `status` is already `approved` (flipped at end of Phase 0,
+  2026-05-06) and intentionally not re-flipped — T040's original
+  `status: draft → approved` reference is stale from when the spec
+  was first authored.
+- [x] T041 Delivery record. **Done 2026-05-17.** Inline in the
+  `implementation:` frontmatter line plus the full transcript at
+  `execution/verification.md`, modelling spec 137's
+  `execution/rauthy-admin-smoke.md` pattern. No separate
+  `delivery-record.md` companion — the frontmatter note + the
+  verification artifact carry the same information.
+- [x] T042 Spec-code coupling gate. **Done 2026-05-17.** The PR
+  that flips the lifecycle also adds
+  `.github/workflows/cd-tenant-hello.yml` +
+  `.github/workflows/ci-tenant-hello.yml` (registered under
+  `implements:` in the same edit) and the
+  `execution/verification.md` evidence file; `make pr-prep`
+  reports the coupling gate clean.
 
 **Checkpoint:** spec 136 is closed.
 
