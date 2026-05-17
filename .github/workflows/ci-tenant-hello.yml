@@ -1,0 +1,67 @@
+# Spec: 136-tenant-hello-demo-service
+#
+# CI for tenant-hello: PR-time Dockerfile + chart lint validation.
+# Mirrors the same context the CD workflow uses so build regressions
+# surface at PR review time rather than after merge.
+
+name: CI tenant-hello
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/services/tenant-hello/**'
+      - 'platform/charts/tenant-hello/**'
+      - '.github/workflows/ci-tenant-hello.yml'
+  pull_request:
+    paths:
+      - 'platform/services/tenant-hello/**'
+      - 'platform/charts/tenant-hello/**'
+      - '.github/workflows/ci-tenant-hello.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    name: docker build
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+
+      - name: Build (no push)
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        with:
+          context: platform/services/tenant-hello
+          file: platform/services/tenant-hello/Dockerfile
+          push: false
+          load: true
+          tags: tenant-hello:pr-${{ github.event.pull_request.number || 'main' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  chart-lint:
+    runs-on: ubuntu-latest
+    name: helm lint
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+
+      - name: helm lint
+        run: helm lint platform/charts/tenant-hello/
+
+      - name: helm template (default values)
+        run: helm template tenant-hello-ci platform/charts/tenant-hello/ > /tmp/render-default.yaml
+
+      - name: helm template (ingress enabled)
+        run: helm template tenant-hello-ci platform/charts/tenant-hello/ --set ingress.enabled=true --set ingress.host=example.tenant.test > /tmp/render-ingress.yaml

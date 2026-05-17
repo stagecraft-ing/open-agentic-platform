@@ -3,7 +3,7 @@ id: "141-aim-vue-node-source-id-template-name-alignment"
 slug: aim-vue-node-source-id-template-name-alignment
 title: "Align aim-vue-node scaffold_source_id with template.json::templateName"
 status: approved
-implementation: in-progress
+implementation: complete  # Single-commit amendment landed (0494c36b feat(spec-141): align aim-vue-node scaffold_source_id with template.json::templateName). AC-1 (`oapNativeAdapters.ts:53` literal is `"aim-vue-node"`), AC-2 (migration 37 updates migration-36 substrate row `scaffold_source_id` to `aim-vue-node`), AC-3 (migration 37 inserts sibling `factory_upstreams` row keyed `(org_id, 'aim-vue-node')` from the legacy `legacy-template-mixed` row), AC-5 (no production code path or non-migration-36 test asserts the pre-amendment literal; remaining occurrences are migration-37 SQL WHERE filters, migration-37 test setup commentary, and one inline comment in `oapNativeAdapters.ts:52`) verified from checkout. AC-4 (the `aim-vue-node — needs scaffold source registered` banner on `/app/projects/new` is gone) confirmed on dev cluster 2026-05-17 via the Create Project page rendering `aim-vue-node @ 5cb4921bb80f` cleanly in the Factory Adapter dropdown.
 owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
