@@ -7,6 +7,7 @@ implementation: complete
 amended: "2026-05-01"
 owner: bart
 created: "2026-04-30"
+kind: governance
 risk: critical
 summary: >
   Reclassify `requirements/client/project_charter.md` and

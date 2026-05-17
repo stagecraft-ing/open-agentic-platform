@@ -7,6 +7,7 @@ superseded_by: "108"
 implementation: complete
 owner: bart
 created: "2026-04-10"
+kind: process
 summary: >
   Defines the protocol, mapping manifest, and tooling for translating updates
   from upstream repositories (goa-software-factory, template) into OAP's

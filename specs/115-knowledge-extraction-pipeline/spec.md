@@ -8,6 +8,7 @@ owner: bart
 created: "2026-04-27"
 amended: "2026-05-08"
 amendment_record: "143-presigned-upload-public-endpoint"
+kind: platform
 risk: high
 summary: >
   Replaces the manual click-through `imported → extracting → extracted` state

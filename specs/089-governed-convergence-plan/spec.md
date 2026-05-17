@@ -15,6 +15,7 @@ depends_on:
   - "087"  # unified-workspace-architecture
   - "080"  # github-identity-onboarding
 code_aliases: ["GOVERNED_CONVERGENCE"]
+kind: process
 risk: critical
 ---
 

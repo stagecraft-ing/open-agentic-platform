@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-05-01"
 approved: "2026-05-01"
+kind: desktop
 risk: low
 summary: >
   Closes spec 123 T073, which was a no-op because the desktop AgentPicker

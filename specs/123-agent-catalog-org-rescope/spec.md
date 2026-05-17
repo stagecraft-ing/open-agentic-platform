@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-01"
 amended: "2026-05-05"
 amendment_record: "139"
+kind: governance
 risk: high
 depends_on:
   - "042"  # multi-provider-agent-registry

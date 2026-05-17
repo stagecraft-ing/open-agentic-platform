@@ -5,6 +5,7 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-12"
+kind: process
 risk: high
 depends_on:
   - "089"

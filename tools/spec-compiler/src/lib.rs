@@ -27,8 +27,9 @@ const COMPILER_ID: &str = "open-agentic-spec-compiler";
 /// scalar/list shape disambiguation, and adds governance-lifecycle
 /// fields (`supersedes`, `superseded_by`, `retirement_rationale`).
 /// Validation invariants V-012..V-019 fire at warning severity in
-/// Phase 1; promotion to error severity is governed by separate
-/// phase-gated amendments per spec 147 §Migration.
+/// Phase 1; V-012 promotes to error in Phase 2 (after corpus-wide
+/// `kind:` backfill); V-013..V-019 promotion to error severity is
+/// governed by separate phase-gated amendments per spec 147 §Migration.
 ///
 /// 1.4.0 (spec 132) added the `unamendable` and `amends_sections`
 /// frontmatter fields plus the V-011 violation (amends_sections ∩
@@ -299,11 +300,13 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let policy = fm.get("policy").and_then(yaml_to_json);
 
         // ── V-012 (Spec 147): kind enum membership ──
+        // Promoted to error severity in Phase 2 after corpus-wide
+        // `kind:` backfill (spec 147 §Migration Phase 2).
         if let Some(ref k) = kind {
             if !VALID_KINDS.contains(&k.as_str()) {
                 violations.push(Violation {
                     code: "V-012".to_string(),
-                    severity: "warning".to_string(),
+                    severity: "error".to_string(),
                     message: format!(
                         "kind value {k:?} is not in the declared enum; expected one of: {}",
                         VALID_KINDS.join(", ")
