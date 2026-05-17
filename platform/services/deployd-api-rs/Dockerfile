@@ -16,13 +16,16 @@ FROM debian:bookworm-slim
 
 ARG HELM_VERSION=v3.16.4
 
+# `tar` is already present in bookworm-slim (essential dpkg dependency);
+# adding it to apt-get install confuses the resolver, and purging it would
+# break dpkg itself. Stream the tarball through curl|tar instead.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl tar \
-    && curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" -o /tmp/helm.tgz \
-    && tar xzf /tmp/helm.tgz -C /tmp \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+        | tar xz -C /tmp \
     && install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm \
-    && rm -rf /tmp/helm.tgz /tmp/linux-amd64 \
-    && apt-get purge -y curl tar \
+    && rm -rf /tmp/linux-amd64 \
+    && apt-get purge -y curl \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -ms /bin/sh deployd
