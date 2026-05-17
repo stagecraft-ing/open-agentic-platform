@@ -357,21 +357,52 @@ Phase 6 (E2E evidence) are the remaining gates.
 
 ## Phase 5 — Stagecraft UI
 
-- [ ] T050 Per-environment "Access gate" card on the project's
-  environment page. Toggle on/off; binds to `PUT /access-gate`.
-- [ ] T051 [P] Allowlist editor: add/remove email + domain entries;
-  binds to `POST` / `DELETE /allowlist`.
-- [ ] T052 [P] Login-method picker: magic link toggle +
-  federated provider dropdown (Google / Microsoft / GitHub /
-  generic OIDC); displays the configured Auth Provider list from
-  Rauthy.
-- [ ] T053 "Continue with..." preview surface so admins see what
-  the tenant's end users will land on.
-- [ ] T054 [P] Empty-state UX when `enabled = false`: explanatory
-  copy with a one-click "enable" call-to-action.
+- [x] T050 Per-environment "Access gate" card. **Done 2026-05-17.**
+  New per-env detail route
+  `web/app/routes/app.project.$projectId.deploys.$envId.tsx`. The
+  existing `deploys` list page now wraps each env tile in a `<Link>`
+  to the detail page (cleanest fit — no need for a separate "env
+  settings" sub-route since the gate IS the per-env settings surface
+  in v1). Form submits route through the same `action()` handler with
+  `intent=gate.save`; binds to `PUT /api/environments/:envId/access-gate`
+  via the new server-side helper `putAccessGate` in
+  `lib/projects-api.server.ts`.
+- [x] T051 [P] Allowlist editor. **Done 2026-05-17.** Inline section
+  under the gate card, visible only when `enabled = true`. Add form is
+  a `<fetcher.Form>` with `intent=allowlist.add` + `kind` (email/domain)
+  + `value`; per-row Remove button is `intent=allowlist.remove` with
+  `entryId`. Both bind to the server helpers
+  `addAllowlistEntry` / `removeAllowlistEntry`. Empty list shows an
+  inline italicised note explaining the "no allowlist → Rauthy-only
+  filter" semantics so the operator isn't confused by a blank table.
+- [x] T052 [P] Login-method picker. **Done 2026-05-17.** Inside the
+  gate card's enabled view: a `<fieldset>` with the magic-link
+  checkbox (defaults to checked) and a `<select>` for the federated
+  provider (Google / Microsoft Entra / GitHub / Generic OIDC), plus a
+  text input for the `loginMethodFederatedProviderClientRef` (the
+  Auth Provider id in Rauthy). All three fields submit with
+  `intent=gate.save`. Per spec 137 Decision 6, the dropdown lists the
+  closed enum directly; a future enhancement could populate it from
+  `GET /auth/v1/auth_providers` so operators only see currently-
+  configured upstreams.
+- [x] T053 "Continue with..." preview surface. **Done 2026-05-17.**
+  `LoginPreview` component renders an end-user-preview block under the
+  gate card showing the buttons Rauthy will actually present
+  (`Email me a sign-in link`, `Continue with <provider>`). Hostname is
+  a synthetic placeholder (`<env-name>.<project-id>.tenants.{org}`)
+  pending the spec 137 Decision 4 hostname-templating wire-up — once
+  deployd-api round-trips the resolved hostname back to stagecraft, the
+  preview can show the real one.
+- [x] T054 [P] Empty-state UX when `enabled = false`. **Done 2026-05-17.**
+  `EmptyStateCallout` component: explanatory paragraph plus a single
+  "Enable gate" button that flips the hidden `enabled` input to `true`
+  and `requestSubmit()`s the same gate.save form. Other UI (login
+  methods, allowlist, preview) is hidden in the disabled state to
+  keep the empty-state visually quiet.
 
 **Checkpoint:** Admins can manage the per-env gate from stagecraft
-without leaving the project view.
+without leaving the project view. Phase 5 landed via the
+`137-phase-5-stagecraft-ui` PR.
 
 ---
 
