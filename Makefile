@@ -11,7 +11,7 @@
 .PHONY: setup dev dev-platform dev-all stop \
         axiomregent axiomregent-all fetch-axiomregent fetch-axiomregent-check \
         registry spec-compile spec-tools \
-        index index-check index-render \
+        index index-check index-render pr-prep \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
         build-certificate verify-certificate \
@@ -139,6 +139,26 @@ fetch-axiomregent-check:
 ## Recompile spec registry + codebase index in one step (102 FR-026).
 registry: spec-compile index ci-schema-parity
 	@echo "==> Registry and index recompiled."
+
+## Pre-PR / pre-commit prep. Regenerates the codebase index (catches the
+## hash drift the staleness check fires on) and runs the spec-code
+## coupling gate against origin/main. Run before `git commit` on PRs so
+## the corresponding CI check passes first try.
+##
+## Index inputs (see tools/codebase-indexer/src/lib.rs `collect_input_files`):
+##   Cargo.toml, workspace + tool Cargo.tomls, package.json, pnpm-workspace.yaml,
+##   specs/*/spec.md, factory/adapters/*/manifest.yaml,
+##   factory/process/stages/*, .claude/{agents,commands,rules}/**/*.md,
+##   schemas/*.json, .github/workflows/*.yml — i.e. most of what you'd
+##   normally edit in a non-trivial PR.
+pr-prep: index ci-fast-spec-coupling
+	@echo ""
+	@echo "==> pr-prep: codebase-index refreshed, coupling gate clean."
+	@if ! git diff --quiet build/codebase-index/index.json 2>/dev/null; then \
+	  echo ""; \
+	  echo "  ⚠  build/codebase-index/index.json drifted — stage it:"; \
+	  echo "       git add build/codebase-index/index.json"; \
+	fi
 
 spec-compile:
 	./tools/spec-compiler/target/release/spec-compiler compile
@@ -808,6 +828,9 @@ help:
 	@echo "  make index                Recompile codebase index"
 	@echo "  make index-check          Check if index is stale"
 	@echo "  make index-render         Render CODEBASE-INDEX.md from index"
+	@echo ""
+	@echo "PR prep:"
+	@echo "  make pr-prep              Refresh codebase index + run coupling gate (run before commit)"
 	@echo ""
 	@echo "agent-frontmatter (ts-rs mirror, spec 111):"
 	@echo "  make agent-frontmatter-ts     Regenerate the TS bindings (write-through)"

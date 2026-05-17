@@ -79,7 +79,23 @@ make dev-platform # stagecraft + deployd-api in background
 make ci           # parallel local validation (~5 min warm) — daily dev loop (spec 135)
 make ci-strict    # full parity mirror (~90 min) — pre-merge / parity-investigation
 make registry     # recompile spec registry + codebase index
+make pr-prep      # pre-commit refresh: regenerate codebase index + run coupling gate
 ```
+
+### `make pr-prep` — pre-PR / pre-commit gate
+
+Run `make pr-prep` before `git commit` on a PR. It rebuilds the codebase index and runs the spec-code coupling gate against `origin/main` — the same two checks that fail first in CI when forgotten.
+
+The codebase index hashes more than `spec.md`. Its inputs (see `tools/codebase-indexer/src/lib.rs::collect_input_files`) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `factory/adapters/*/manifest.yaml`, `factory/process/stages/*`, `.claude/{agents,commands,rules}/**/*.md`, `schemas/*.json`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `build/codebase-index/index.json` fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
+
+If repeated forgetting is a problem, opt into the strict pre-commit hook:
+
+```bash
+git config core.hooksPath .githooks   # enable
+git config --unset core.hooksPath     # disable
+```
+
+`.githooks/pre-commit` refuses commits when the index is stale and prints the exact fix. It is opt-in (not configured by default) because it adds friction every commit, not just PR-final commits.
 
 ```bash
 # Compile specs
