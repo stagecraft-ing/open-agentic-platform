@@ -15,16 +15,21 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 ARG HELM_VERSION=v3.16.4
+# TARGETARCH is populated by BuildKit from --platform (e.g. amd64, arm64)
+# and falls back to the host arch when --platform is omitted. Declaring the
+# ARG inside this stage brings it into scope for the RUN below; the helm
+# release tarball follows the same `amd64` / `arm64` naming.
+ARG TARGETARCH
 
 # `tar` is already present in bookworm-slim (essential dpkg dependency);
 # adding it to apt-get install confuses the resolver, and purging it would
 # break dpkg itself. Stream the tarball through curl|tar instead.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
-    && curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+    && curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz" \
         | tar xz -C /tmp \
-    && install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm \
-    && rm -rf /tmp/linux-amd64 \
+    && install -m 0755 "/tmp/linux-${TARGETARCH}/helm" /usr/local/bin/helm \
+    && rm -rf "/tmp/linux-${TARGETARCH}" \
     && apt-get purge -y curl \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
