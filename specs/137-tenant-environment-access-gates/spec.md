@@ -2,7 +2,7 @@
 id: "137-tenant-environment-access-gates"
 title: "Tenant environment access gates — passwordless OIDC via Rauthy"
 status: approved
-implementation: pending  # Phase 0 closed 2026-05-15: clarifications-resolved.md companion ships 5/6 decisions locked; T003 Rauthy admin smoke confirmed (a)/(b)/(c) PASS, (d) deferred to Phase 3. Spec amended pre-implementation to replace non-existent `password_login_enabled` field with `flows_enabled` mechanism (T003 evidence). Phase 1+ (schema + API CRUD + Rauthy provisioning + deployd-api renderer + UI + lifecycle) is now unblocked.
+implementation: in-progress  # Phase 0 closed 2026-05-15 (5/6 clarifications locked + T003 Rauthy admin smoke). Phase 1 (schema migration: tables environmentAccessGates + environmentAccessGateAllowlistEmails with 3 CHECK constraints and FIPS-safe lower(value) uniqueness), Phase 2 (CRUD endpoints + audit hooks + assertNoPasswordFields guard), Phase 3 (Rauthy admin client wrapper + provisionTenantGateClient + idempotent deprovision; flows_enabled mechanism replaces non-existent password_login_enabled scalar) all landed 2026-05-15. Phase 4 (deployd-api Helm overlay) landed 2026-05-17 — new oauth2-proxy-gate chart embedded via include_str! per spec 136 Phase 2.b pattern; AccessGateDescriptor wire shape on DeploymentRequest; install_with_gate / uninstall_with_gate orchestration with FR-003 atomicity (tenant rolls back if gate install fails); tenant chart Ingress renders nginx auth-url/auth-signin annotations conditionally on gate.enabled; reconcile-on-off-transition cleans up stale gate releases. Phase 5 (stagecraft UI: T050–T054) and Phase 6 (E1–E6 evidence + lifecycle flip) remain.
 approved: "2026-05-15"
 owner: bart
 created: "2026-05-04"
@@ -28,6 +28,15 @@ implements:
   - path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts  # pure helpers (FR-004 invariant, payload construction, deterministic client id)
   - path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts  # 14 passing vitest tests covering pure helpers + provision/deprovision against a stub fetch — exercises the four T003 contract assumptions
   - path: platform/services/stagecraft/test/__mocks__/encore-auth.ts  # drive-by alignment of mock AuthData.userID casing with Encore-generated shape so future handlers can't fall into the lowercase-userId footgun. Co-claimed with specs 077/080/087 (existing claimants); spec 130 any-claimant rule applies.
+  # Phase 4 — deployd-api gate-overlay (T040–T046). Per the §"Open question"
+  # disposition (2026-05-15) Helm overlay is the canonical renderer; spec 136
+  # Phase 2.b prerequisite landed 2026-05-17 (#147/#148) so the chart-overlay
+  # path is the implementation here, not hand-rolled kube-rs objects.
+  - path: platform/charts/oauth2-proxy-gate  # new chart: per-environment passwordless OIDC gate. 8 templates (Chart.yaml, values.yaml, _helpers.tpl, deployment, service, ingress, secret, configmap, serviceaccount).
+  - path: platform/charts/tenant-hello/values.yaml  # adds `gate.enabled` / `gate.proxyServiceName` / `gate.proxyServicePort` block. Co-claimed with spec 136 (existing primary owner per [package.metadata.oap]); spec 130 any-claimant rule applies.
+  - path: platform/charts/tenant-hello/templates/ingress.yaml  # conditional auth-url/auth-signin/auth-response-headers annotations on the tenant Ingress when `.Values.gate.enabled`. Co-claimed with spec 136.
+  - path: platform/services/deployd-api-rs/src/helm.rs  # AccessGateDescriptor struct (FR-001 wire shape), build_gate_values, gate_release_name (`<tenant>-gate`), install_with_gate (FR-003 atomicity — rolls back tenant on gate failure), uninstall_with_gate (paired teardown), oauth2-proxy-gate chart embedded via include_str! mirroring the spec 136 pattern. Co-claimed with specs 073/136.
+  - path: platform/services/deployd-api-rs/src/routes.rs  # DeploymentRequest gains `access_gate: Option<AccessGateDescriptor>` (T040); create_deployment dispatches to install_with_gate when enabled or to install + best-effort gate teardown when disabled (T045 reconcile semantics for the off-transition); delete_deployment uses uninstall_with_gate universally (T044). Co-claimed with specs 073/136.
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

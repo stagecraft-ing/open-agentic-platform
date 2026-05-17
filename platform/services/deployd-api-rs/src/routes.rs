@@ -9,7 +9,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::auth;
-use crate::helm::{self, HelmRunner, InstallRequest};
+use crate::helm::{self, AccessGateDescriptor, HelmRunner, InstallRequest};
 use crate::k8s;
 use crate::store::{self, AppState, Deployment};
 
@@ -35,6 +35,13 @@ pub struct DeploymentRequest {
     /// Chart version, mirrors the chartSelector output. Currently advisory:
     /// the chart bundled into deployd-api is pinned by the image build.
     pub chart_version: Option<String>,
+    /// Spec 137 — per-environment access-gate descriptor. When `Some` with
+    /// `enabled: true`, the tenant chart renders auth-url annotations and
+    /// the oauth2-proxy-gate chart is installed alongside via
+    /// [`HelmRunner::install_with_gate`]. Absent or `enabled: false` flows
+    /// through as a direct-exposure tenant deploy (existing behaviour).
+    #[serde(default)]
+    pub access_gate: Option<AccessGateDescriptor>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -180,15 +187,70 @@ pub async fn create_deployment(
             )
             .await;
 
-            let values = helm::build_values(&body.artifact_ref, &release_name, &route_pairs);
-            let req = InstallRequest {
+            // Spec 137 — if the request carries an enabled access-gate
+            // descriptor, drive the dual-release install. Otherwise the
+            // single-release path (existing spec 136 behaviour).
+            let gate_active = body
+                .access_gate
+                .as_ref()
+                .map(|g| g.enabled)
+                .unwrap_or(false);
+            let values = helm::build_values(
+                &body.artifact_ref,
+                &release_name,
+                &route_pairs,
+                body.access_gate.as_ref(),
+            );
+            let tenant_req = InstallRequest {
                 chart: chart.clone(),
                 namespace: namespace.clone(),
                 release: release_name.clone(),
                 values,
             };
             let runner = HelmRunner::from_env();
-            match tokio::task::spawn_blocking(move || runner.install(&req)).await {
+            let access_gate = body.access_gate.clone();
+            let tenant_release_for_gate = release_name.clone();
+            let first_host = route_pairs
+                .first()
+                .map(|(h, _)| h.clone())
+                .unwrap_or_default();
+            // Spec 137 T045 / FR-009: reconcile flows. When the descriptor
+            // toggles enabled true → false (or remains false on a re-deploy
+            // of a previously-gated tenant), we must also uninstall any
+            // surviving gate release so the tenant Ingress doesn't keep
+            // dangling auth-url annotations pointing at a torn-down Service.
+            //
+            // `helm uninstall` treats "release not found" as success, so the
+            // !gate_active branch's gate-cleanup is a no-op when no prior
+            // gate existed — safe to invoke unconditionally.
+            let namespace_for_gate_cleanup = namespace.clone();
+            let release_for_gate_cleanup = release_name.clone();
+            let install_outcome = tokio::task::spawn_blocking(move || {
+                if gate_active {
+                    let descriptor = access_gate.expect("gate_active implies access_gate.is_some");
+                    let gate_values = helm::build_gate_values(
+                        &descriptor,
+                        &tenant_release_for_gate,
+                        &first_host,
+                    );
+                    runner.install_with_gate(&tenant_req, "oauth2-proxy-gate", gate_values)
+                } else {
+                    let tenant_result = runner.install(&tenant_req)?;
+                    // Best-effort gate teardown for the off-transition. Log
+                    // but don't fail the deploy: a stale gate is a leak but
+                    // not a correctness break for the tenant traffic path
+                    // (the tenant Ingress no longer references it).
+                    let gate_release = helm::gate_release_name(&release_for_gate_cleanup);
+                    if let Err(e) = runner.uninstall(&namespace_for_gate_cleanup, &gate_release) {
+                        tracing::warn!(
+                            "gate teardown on off-transition failed for {gate_release}: {e}"
+                        );
+                    }
+                    Ok(tenant_result)
+                }
+            })
+            .await;
+            match install_outcome {
                 Ok(Ok(result)) => {
                     let _ = store::update_status(&state.client, &deployment_id, "ROLLED_OUT").await;
                     let _ = store::add_event(
@@ -361,6 +423,11 @@ pub async fn delete_deployment(
     };
 
     // Best-effort helm uninstall; ignore failure to keep delete idempotent.
+    // Spec 137 — `uninstall_with_gate` is the universal teardown: it removes
+    // the gate release first (no-op if no gate was installed for this
+    // deployment) and then the tenant. Both halves treat "release not found"
+    // as success, so the call is correct whether the deployment had a gate or
+    // not — no per-deployment branch needed.
     if k8s::probe_cluster().await.is_ok() {
         let namespace = format!("{}-{}", deployment.app_id, deployment.env_id);
         let release = deployment
@@ -368,8 +435,10 @@ pub async fn delete_deployment(
             .clone()
             .unwrap_or_else(|| deployment.app_id.clone());
         let runner = HelmRunner::from_env();
-        let result =
-            tokio::task::spawn_blocking(move || runner.uninstall(&namespace, &release)).await;
+        let result = tokio::task::spawn_blocking(move || {
+            runner.uninstall_with_gate(&namespace, &release)
+        })
+        .await;
         match result {
             Ok(Ok(())) => {}
             Ok(Err(e)) => tracing::warn!("helm uninstall failed for {release_id}: {e}"),

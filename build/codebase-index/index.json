@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c6ba9a8cdf8ca1478790c25aa0554b76b599950f8c3091412a39e09193c859a3",
+    "contentHash": "667f1602622d949b636314af46788daf75aa2938f4dde6cbd92e59b08ea158c4",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4307,6 +4307,26 @@
           "136"
         ],
         "implementingPaths": [
+          {
+            "path": "platform/charts/oauth2-proxy-gate",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/tenant-hello/templates/ingress.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/tenant-hello/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/helm.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/routes.rs",
+            "source": "spec-implements"
+          },
           {
             "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts",
             "source": "spec-implements"

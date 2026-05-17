@@ -36,12 +36,24 @@ ingress:
   className: nginx
   host: ""
   annotations: {}
-  # Spec 137 will add `auth-url` / `auth-signin` annotations here when
-  # the per-environment access gate is enabled. This chart leaves the
-  # annotation map open for that future overlay.
   tls:
     enabled: false
     secretName: ""
+
+# Spec 137 — per-environment access gate. When `gate.enabled` is true,
+# the tenant Ingress emits `nginx.ingress.kubernetes.io/auth-url` and
+# `auth-signin` annotations chaining to the per-environment oauth2-proxy
+# rendered by the `oauth2-proxy-gate` chart in the same namespace. The
+# gate's Service name is the second piece deployd-api supplies at
+# install time; the path mounted by the gate's own Ingress is
+# `/oauth2/*` on the tenant host.
+gate:
+  enabled: false
+  # ClusterIP service name rendered by the oauth2-proxy-gate chart.
+  # Required when gate.enabled is true. Resolved DNS shape:
+  # http://<proxyServiceName>.<release-namespace>.svc.cluster.local:4180/oauth2/auth
+  proxyServiceName: ""
+  proxyServicePort: 4180
 
 serviceAccount:
   # Bind a dedicated SA per release. No extra permissions; the chart

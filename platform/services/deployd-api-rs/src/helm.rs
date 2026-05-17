@@ -19,6 +19,7 @@
 //! tests assert against. Spec 136 Phase 3 (negative-path validation
 //! against a live cluster) remains a follow-up.
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::ffi::OsString;
 use std::fs;
@@ -44,6 +45,26 @@ const TENANT_HELLO_INGRESS_YAML: &str =
     include_str!("../../../charts/tenant-hello/templates/ingress.yaml");
 const TENANT_HELLO_SA_YAML: &str =
     include_str!("../../../charts/tenant-hello/templates/serviceaccount.yaml");
+
+// Spec 137 — oauth2-proxy-gate chart (per-environment passwordless OIDC gate).
+const OAUTH2_PROXY_GATE_CHART_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/Chart.yaml");
+const OAUTH2_PROXY_GATE_VALUES_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/values.yaml");
+const OAUTH2_PROXY_GATE_HELPERS_TPL: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/_helpers.tpl");
+const OAUTH2_PROXY_GATE_DEPLOYMENT_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/deployment.yaml");
+const OAUTH2_PROXY_GATE_SERVICE_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/service.yaml");
+const OAUTH2_PROXY_GATE_INGRESS_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/ingress.yaml");
+const OAUTH2_PROXY_GATE_SECRET_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/secret.yaml");
+const OAUTH2_PROXY_GATE_CONFIGMAP_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/configmap.yaml");
+const OAUTH2_PROXY_GATE_SA_YAML: &str =
+    include_str!("../../../charts/oauth2-proxy-gate/templates/serviceaccount.yaml");
 
 #[derive(Debug)]
 pub enum HelmError {
@@ -224,6 +245,57 @@ impl HelmRunner {
         })
     }
 
+    /// Spec 137 — atomic dual-release install: tenant chart + per-environment
+    /// oauth2-proxy gate. Implements FR-003's "all three created atomically;
+    /// partial-success states roll back" by installing the tenant first and
+    /// then the gate. If the gate install fails, the tenant is rolled back so
+    /// callers never observe a tenant exposed without its declared gate.
+    ///
+    /// `tenant_req.values` MUST already carry the gate-side annotations
+    /// (`gate.enabled` / `gate.proxyServiceName`) — those come from
+    /// [`build_values`] with a non-`None` descriptor.
+    pub fn install_with_gate(
+        &self,
+        tenant_req: &InstallRequest,
+        gate_chart: &str,
+        gate_values: Value,
+    ) -> Result<InstallResult, HelmError> {
+        let tenant_result = self.install(tenant_req)?;
+        let gate_req = InstallRequest {
+            chart: gate_chart.to_string(),
+            namespace: tenant_req.namespace.clone(),
+            release: gate_release_name(&tenant_req.release),
+            values: gate_values,
+        };
+        match self.install(&gate_req) {
+            Ok(_) => Ok(tenant_result),
+            Err(gate_err) => {
+                // Roll back tenant on gate failure. Best-effort uninstall —
+                // surface the original gate error regardless of uninstall
+                // outcome since that's the load-bearing diagnostic for the
+                // operator. The leak risk is bounded: a partial tenant
+                // release without its gate is the exact state FR-003 forbids,
+                // so we attempt cleanup before surfacing.
+                let _ = self.uninstall(&tenant_req.namespace, &tenant_req.release);
+                Err(gate_err)
+            }
+        }
+    }
+
+    /// Spec 137 — paired uninstall. Removes the gate release first so the
+    /// tenant doesn't briefly remain exposed without its declared gate, then
+    /// the tenant. Both halves are "release not found"-tolerant (per
+    /// [`Self::uninstall`]) so retried deletes are idempotent.
+    pub fn uninstall_with_gate(
+        &self,
+        namespace: &str,
+        tenant_release: &str,
+    ) -> Result<(), HelmError> {
+        let gate = gate_release_name(tenant_release);
+        self.uninstall(namespace, &gate)?;
+        self.uninstall(namespace, tenant_release)
+    }
+
     /// Run `helm template` against an embedded chart. Used by tests as a
     /// pure-render smoke that never touches a cluster.
     #[allow(dead_code)]
@@ -272,10 +344,18 @@ impl HelmRunner {
 ///     get predictable, slug-driven names.
 ///   * `ingress` enables when at least one route is supplied, taking
 ///     the first route's host. The chart's path is hardcoded `/`.
+///   * `gate.enabled` / `gate.proxyServiceName` are populated when a
+///     non-`None` [`AccessGateDescriptor`] is supplied. The proxy
+///     service name is derived deterministically from the tenant
+///     release name (see [`gate_release_name`]) so the tenant Ingress
+///     and the gate Service resolve to a matching pair at install
+///     time. The tenant `Ingress` template renders the
+///     `nginx.ingress.kubernetes.io/auth-url` annotation accordingly.
 pub fn build_values(
     artifact_ref: &str,
     fullname_override: &str,
     routes: &[(String, String)],
+    gate: Option<&AccessGateDescriptor>,
 ) -> Value {
     let (repository, tag) = split_artifact_ref(artifact_ref);
     let mut values = serde_json::json!({
@@ -291,7 +371,116 @@ pub fn build_values(
             "host": host,
         });
     }
+    if let Some(g) = gate.filter(|g| g.enabled) {
+        values["gate"] = serde_json::json!({
+            "enabled": true,
+            "proxyServiceName": gate_release_name(fullname_override),
+            "proxyServicePort": g.proxy_service_port(),
+        });
+    }
     values
+}
+
+// ---------------------------------------------------------------------------
+// Spec 137 — access-gate descriptor + dual-release orchestration.
+// ---------------------------------------------------------------------------
+
+/// Per-environment access-gate descriptor. Spec 137 §"Access-gate contract".
+/// Threaded through `DeploymentRequest.access_gate` from stagecraft;
+/// stagecraft owns Rauthy client provisioning (Phase 3) and supplies the
+/// `rauthy_*` material plus the cookie secret in the request body.
+///
+/// `enabled = false` flows through as if no descriptor was supplied — the
+/// tenant Ingress renders without auth annotations and no gate release is
+/// installed. The shape is kept stable across true/false so toggling is
+/// a single-call reconcile rather than a schema change.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct AccessGateDescriptor {
+    pub enabled: bool,
+    /// Issuer URL of the Rauthy instance. Required when `enabled`. Example:
+    /// `https://auth.stagecraft.ing`.
+    #[serde(default)]
+    pub rauthy_issuer_url: String,
+    /// Rauthy client_id allocated by `provisionTenantGateClient` in stagecraft.
+    /// Required when `enabled`.
+    #[serde(default)]
+    pub rauthy_client_id: String,
+    /// Plaintext Rauthy client secret. Required when `enabled`. Stored in the
+    /// rendered K8s Secret (`templates/secret.yaml`) under `client-secret`.
+    /// Never persisted by deployd-api outside the cluster Secret.
+    #[serde(default)]
+    pub rauthy_client_secret: String,
+    /// Random cookie secret (32 bytes base64). Required when `enabled`.
+    /// Generated and persisted by stagecraft per spec 137 T043; deployd-api
+    /// does NOT generate this.
+    #[serde(default)]
+    pub cookie_secret: String,
+    /// Defense-in-depth allowlist. Empty lists yield a Rauthy-only gate.
+    #[serde(default)]
+    pub allowed_emails: Vec<String>,
+    #[serde(default)]
+    pub allowed_domains: Vec<String>,
+    /// TLS secret name for the per-org wildcard cert (per spec 137
+    /// Decision 4). Required when the deployment has an `ingress.tls`
+    /// enabled tenant route.
+    #[serde(default)]
+    pub tls_secret_name: String,
+    /// Optional. Defaults to 4180 (oauth2-proxy upstream default).
+    #[serde(default)]
+    pub proxy_service_port: Option<u16>,
+}
+
+impl AccessGateDescriptor {
+    pub fn proxy_service_port(&self) -> u16 {
+        self.proxy_service_port.unwrap_or(4180)
+    }
+}
+
+/// Derive the gate release name from the tenant release name. Stable so
+/// reconcile flows can address both releases without storing the gate name
+/// out of band.
+pub fn gate_release_name(tenant_release: &str) -> String {
+    // Truncate to leave room for `-gate` suffix within Helm's 53-char limit.
+    let max_base = 53usize.saturating_sub("-gate".len());
+    let base: String = tenant_release.chars().take(max_base).collect();
+    format!("{base}-gate")
+}
+
+/// Translate the descriptor + tenant routing context into the
+/// `oauth2-proxy-gate` chart's values JSON.
+///
+/// `tenant_host` should match the first route's host (the same host the
+/// tenant Ingress claims). `tenant_release` is the parent release name —
+/// used as the gate's `fullnameOverride` base so resource names are
+/// predictable.
+pub fn build_gate_values(
+    descriptor: &AccessGateDescriptor,
+    tenant_release: &str,
+    tenant_host: &str,
+) -> Value {
+    serde_json::json!({
+        "fullnameOverride": gate_release_name(tenant_release),
+        "tenant": {
+            "host": tenant_host,
+            "tlsSecretName": descriptor.tls_secret_name,
+        },
+        "rauthy": {
+            "issuerUrl": descriptor.rauthy_issuer_url,
+            "clientId": descriptor.rauthy_client_id,
+            "clientSecret": descriptor.rauthy_client_secret,
+            "cookieSecret": descriptor.cookie_secret,
+            "scopes": "openid email profile",
+        },
+        "allowlist": {
+            "emails": descriptor.allowed_emails,
+            "domains": descriptor.allowed_domains,
+        },
+        "service": {
+            "type": "ClusterIP",
+            "port": descriptor.proxy_service_port(),
+        },
+    })
 }
 
 fn split_artifact_ref(artifact_ref: &str) -> (String, String) {
@@ -325,6 +514,17 @@ fn write_chart(name: &str, dir: &Path) -> Result<(), HelmError> {
             ("templates/ingress.yaml", TENANT_HELLO_INGRESS_YAML),
             ("templates/serviceaccount.yaml", TENANT_HELLO_SA_YAML),
         ],
+        "oauth2-proxy-gate" => &[
+            ("Chart.yaml", OAUTH2_PROXY_GATE_CHART_YAML),
+            ("values.yaml", OAUTH2_PROXY_GATE_VALUES_YAML),
+            ("templates/_helpers.tpl", OAUTH2_PROXY_GATE_HELPERS_TPL),
+            ("templates/deployment.yaml", OAUTH2_PROXY_GATE_DEPLOYMENT_YAML),
+            ("templates/service.yaml", OAUTH2_PROXY_GATE_SERVICE_YAML),
+            ("templates/ingress.yaml", OAUTH2_PROXY_GATE_INGRESS_YAML),
+            ("templates/secret.yaml", OAUTH2_PROXY_GATE_SECRET_YAML),
+            ("templates/configmap.yaml", OAUTH2_PROXY_GATE_CONFIGMAP_YAML),
+            ("templates/serviceaccount.yaml", OAUTH2_PROXY_GATE_SA_YAML),
+        ],
         other => return Err(HelmError::UnknownChart(other.to_string())),
     };
     fs::create_dir_all(dir.join("templates")).map_err(|e| HelmError::Io(e.to_string()))?;
@@ -354,16 +554,18 @@ mod tests {
             "ghcr.io/org/tenant-hello:v1.2.3",
             "myapp-prod",
             &[],
+            None,
         );
         assert_eq!(v["image"]["repository"], "ghcr.io/org/tenant-hello");
         assert_eq!(v["image"]["tag"], "v1.2.3");
         assert_eq!(v["fullnameOverride"], "myapp-prod");
         assert!(v.get("ingress").is_none(), "no routes ⇒ no ingress block");
+        assert!(v.get("gate").is_none(), "no descriptor ⇒ no gate block");
     }
 
     #[test]
     fn build_values_handles_tagless_image_ref() {
-        let v = build_values("ghcr.io/org/tenant-hello", "myapp-prod", &[]);
+        let v = build_values("ghcr.io/org/tenant-hello", "myapp-prod", &[], None);
         assert_eq!(v["image"]["repository"], "ghcr.io/org/tenant-hello");
         assert_eq!(v["image"]["tag"], "latest");
     }
@@ -374,9 +576,198 @@ mod tests {
             "ghcr.io/org/tenant-hello:v1",
             "myapp-prod",
             &[("tenant-hello.example.com".into(), "/".into())],
+            None,
         );
         assert_eq!(v["ingress"]["enabled"], true);
         assert_eq!(v["ingress"]["host"], "tenant-hello.example.com");
+    }
+
+    // ---------------------------------------------------------------------
+    // Spec 137 — access-gate descriptor + dual-release orchestration tests.
+    // ---------------------------------------------------------------------
+
+    fn sample_descriptor(enabled: bool) -> AccessGateDescriptor {
+        AccessGateDescriptor {
+            enabled,
+            rauthy_issuer_url: "https://auth.stagecraft.ing".into(),
+            rauthy_client_id: "tenant-gate-env-abc".into(),
+            rauthy_client_secret: "rauthy-secret-xyz".into(),
+            cookie_secret: "0123456789abcdef0123456789abcdef".into(),
+            allowed_emails: vec!["alice@acme.com".into()],
+            allowed_domains: vec!["acme.com".into()],
+            tls_secret_name: "acme-wildcard-tls".into(),
+            proxy_service_port: None,
+        }
+    }
+
+    #[test]
+    fn gate_release_name_appends_suffix_and_truncates() {
+        assert_eq!(gate_release_name("myapp"), "myapp-gate");
+        // Long base must stay within Helm's 53-char limit including the
+        // `-gate` suffix.
+        let long = "a".repeat(80);
+        let name = gate_release_name(&long);
+        assert!(name.ends_with("-gate"));
+        assert!(name.len() <= 53);
+    }
+
+    #[test]
+    fn build_values_skips_gate_block_when_descriptor_disabled() {
+        let d = sample_descriptor(false);
+        let v = build_values(
+            "ghcr.io/org/tenant-hello:v1",
+            "myapp-prod",
+            &[("acme.tenants.test".into(), "/".into())],
+            Some(&d),
+        );
+        assert!(
+            v.get("gate").is_none(),
+            "disabled descriptor should not emit gate block"
+        );
+    }
+
+    #[test]
+    fn build_values_emits_gate_block_when_descriptor_enabled() {
+        let d = sample_descriptor(true);
+        let v = build_values(
+            "ghcr.io/org/tenant-hello:v1",
+            "myapp-prod",
+            &[("acme.tenants.test".into(), "/".into())],
+            Some(&d),
+        );
+        assert_eq!(v["gate"]["enabled"], true);
+        assert_eq!(v["gate"]["proxyServiceName"], "myapp-prod-gate");
+        assert_eq!(v["gate"]["proxyServicePort"], 4180);
+    }
+
+    #[test]
+    fn build_gate_values_maps_descriptor_to_chart_shape() {
+        let d = sample_descriptor(true);
+        let v = build_gate_values(&d, "myapp-prod", "acme.tenants.test");
+        assert_eq!(v["fullnameOverride"], "myapp-prod-gate");
+        assert_eq!(v["tenant"]["host"], "acme.tenants.test");
+        assert_eq!(v["tenant"]["tlsSecretName"], "acme-wildcard-tls");
+        assert_eq!(v["rauthy"]["issuerUrl"], "https://auth.stagecraft.ing");
+        assert_eq!(v["rauthy"]["clientId"], "tenant-gate-env-abc");
+        assert_eq!(v["rauthy"]["clientSecret"], "rauthy-secret-xyz");
+        assert_eq!(v["rauthy"]["cookieSecret"], "0123456789abcdef0123456789abcdef");
+        assert_eq!(v["allowlist"]["emails"][0], "alice@acme.com");
+        assert_eq!(v["allowlist"]["domains"][0], "acme.com");
+        assert_eq!(v["service"]["port"], 4180);
+    }
+
+    #[test]
+    fn descriptor_deserialises_from_stagecraft_wire_shape() {
+        let raw = r#"{
+            "enabled": true,
+            "rauthy_issuer_url": "https://auth.stagecraft.ing",
+            "rauthy_client_id": "tenant-gate-env-1",
+            "rauthy_client_secret": "s",
+            "cookie_secret": "c",
+            "allowed_emails": ["a@b.com"],
+            "allowed_domains": ["b.com"],
+            "tls_secret_name": "tls",
+            "proxy_service_port": 4180
+        }"#;
+        let d: AccessGateDescriptor = serde_json::from_str(raw).unwrap();
+        assert!(d.enabled);
+        assert_eq!(d.proxy_service_port(), 4180);
+    }
+
+    #[test]
+    fn descriptor_proxy_port_defaults_to_4180_when_absent() {
+        let raw = r#"{ "enabled": false }"#;
+        let d: AccessGateDescriptor = serde_json::from_str(raw).unwrap();
+        assert!(!d.enabled);
+        assert_eq!(d.proxy_service_port(), 4180);
+        // All other fields default to empty strings / empty vecs.
+        assert!(d.allowed_emails.is_empty());
+    }
+
+    #[test]
+    fn template_renders_oauth2_proxy_gate_with_required_values() {
+        if !helm_available() {
+            eprintln!("skipping: helm binary not in PATH");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        let descriptor = sample_descriptor(true);
+        let req = InstallRequest {
+            chart: "oauth2-proxy-gate".into(),
+            namespace: "myapp-prod".into(),
+            release: gate_release_name("myapp"),
+            values: build_gate_values(&descriptor, "myapp", "acme.tenants.test"),
+        };
+        let rendered = runner.template(&req).expect("helm template should succeed");
+        assert!(rendered.contains("kind: Deployment"));
+        assert!(rendered.contains("kind: Service"));
+        assert!(rendered.contains("kind: Secret"));
+        assert!(rendered.contains("kind: ConfigMap"), "ConfigMap rendered because allowlist.emails present");
+        assert!(rendered.contains("kind: Ingress"));
+        assert!(
+            rendered.contains("oap.spec: \"137-tenant-environment-access-gates\""),
+            "spec 137 provenance label"
+        );
+        assert!(
+            rendered.contains("--oidc-issuer-url=https://auth.stagecraft.ing"),
+            "Rauthy issuer URL flows into oauth2-proxy args"
+        );
+        assert!(
+            rendered.contains("--client-id=tenant-gate-env-abc"),
+            "client id flows into oauth2-proxy args"
+        );
+        assert!(
+            rendered.contains("--client-secret-file=/secrets/client-secret"),
+            "secret material read from file, not argv (no leak via `ps`)"
+        );
+        // The plaintext secret is correctly present in the rendered K8s
+        // Secret (that's where it must go). It must NOT appear as part of a
+        // command-line argument — `ps`-visible argv is the leak path we
+        // defend against. The shape we forbid is `--<anything>=<secret>`.
+        let secret_in_argv = format!("=rauthy-secret-xyz");
+        assert!(
+            !rendered.contains(&secret_in_argv),
+            "client secret value must not appear after `=` in any flag (it would leak via `ps`)"
+        );
+        // FR-004 invariant — `password` never appears in the Deployment
+        // template (in argv, env, or volume mounts). Rauthy's flows_enabled
+        // is the primary enforcement; this is the belt-and-suspenders check
+        // against accidental future arg drift in this chart.
+        let deployment_section = rendered
+            .split("# Source:")
+            .find(|s| s.contains("templates/deployment.yaml"))
+            .expect("Deployment section present in rendered output");
+        assert!(
+            !deployment_section.to_lowercase().contains("password"),
+            "no `password` token may appear in the gate Deployment manifest"
+        );
+    }
+
+    #[test]
+    fn template_oauth2_gate_skips_configmap_when_no_emails_allowlist() {
+        if !helm_available() {
+            eprintln!("skipping: helm binary not in PATH");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        let mut descriptor = sample_descriptor(true);
+        descriptor.allowed_emails.clear();
+        let req = InstallRequest {
+            chart: "oauth2-proxy-gate".into(),
+            namespace: "myapp-prod".into(),
+            release: gate_release_name("myapp"),
+            values: build_gate_values(&descriptor, "myapp", "acme.tenants.test"),
+        };
+        let rendered = runner.template(&req).expect("helm template should succeed");
+        assert!(
+            !rendered.contains("kind: ConfigMap"),
+            "ConfigMap should be absent when allowlist.emails is empty"
+        );
+        // Domains-only allowlist surfaces via repeated `--email-domain=` args.
+        assert!(
+            rendered.contains("--email-domain=acme.com"),
+            "domain allowlist flows into args"
+        );
     }
 
     #[test]
@@ -424,6 +815,7 @@ mod tests {
                 "ghcr.io/org/tenant-hello:v1.2.3",
                 "myapp-prod",
                 &[],
+                None,
             ),
         };
         let rendered = runner.template(&req).expect("helm template should succeed");
@@ -467,6 +859,7 @@ mod tests {
                 "ghcr.io/org/tenant-hello:v1",
                 "myapp-prod",
                 &[("hello.example.com".into(), "/".into())],
+                None,
             ),
         };
         let rendered = runner.template(&req).expect("helm template should succeed");
