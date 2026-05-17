@@ -197,6 +197,31 @@ kubectl create secret generic deployd-api-secrets \
   --from-literal=HIQLITE_SECRET_API="$HIQLITE_SECRET_API" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# ---------------------------------------------------------------------------
+# Spec 106 amendment (2026-05-17) — optional SMTP for Rauthy magic-link.
+# When SMTP_USERNAME is set in .env, materialise `rauthy-smtp-secret` and
+# enable the chart's `smtp.enabled=true` overlay. The chart's statefulset
+# pulls SMTP_FROM/URL/PORT/USERNAME/PASSWORD from this Secret.
+# ---------------------------------------------------------------------------
+RAUTHY_SMTP_HELM_ARGS=()
+if [ -n "${SMTP_USERNAME:-}" ]; then
+  info "Creating rauthy-smtp-secret (SMTP_USERNAME=${SMTP_USERNAME})..."
+  kubectl create secret generic rauthy-smtp-secret \
+    --namespace rauthy-system \
+    --from-literal=from="${SMTP_FROM:-Rauthy <rauthy@${DOMAIN}>}" \
+    --from-literal=url="${SMTP_URL:-}" \
+    --from-literal=port="${SMTP_PORT:-465}" \
+    --from-literal=username="$SMTP_USERNAME" \
+    --from-literal=password="${SMTP_PASSWORD:-}" \
+    --from-literal=connection="${SMTP_CONNECTION:-}" \
+    --from-literal=danger_insecure="${SMTP_DANGER_INSECURE:-false}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  RAUTHY_SMTP_HELM_ARGS+=(--set "smtp.enabled=true")
+  ok "SMTP enabled — Rauthy will send magic-link emails via $SMTP_URL"
+else
+  warn "SMTP_USERNAME not set in .env — Rauthy magic-link login will be unavailable"
+fi
+
 info "Deploying Rauthy..."
 helm upgrade --install rauthy "$CHARTS_ROOT/rauthy" \
   --namespace rauthy-system \
@@ -205,6 +230,7 @@ helm upgrade --install rauthy "$CHARTS_ROOT/rauthy" \
   --set "ingress.host=auth.${DOMAIN}" \
   --set "oidc.issuer=https://auth.${DOMAIN}/auth/v1/" \
   --set "bootstrap.adminEmail=admin@${DOMAIN}" \
+  "${RAUTHY_SMTP_HELM_ARGS[@]}" \
   --wait --timeout 300s
 
 # ---------------------------------------------------------------------------
@@ -269,6 +295,20 @@ if [ "$PHASE2_READY" = false ]; then
   echo "     (GITHUB_UPSTREAM_CLIENT_ID/_SECRET, spec 106)"
   echo "        - Homepage: https://auth.${DOMAIN}"
   echo "        - Callback: https://auth.${DOMAIN}/auth/v1/providers/callback"
+  echo "  3a. (Optional, spec 137 federated upstream) Google upstream Auth Provider"
+  echo "     for tenant gates. Create the Google OAuth client at"
+  echo "     https://console.cloud.google.com/auth/clients and store the"
+  echo "     credentials in .env as GOOGLE_UPSTREAM_CLIENT_ID/_SECRET."
+  echo "     Then register the provider in Rauthy admin UI:"
+  echo "        - URL:       https://auth.${DOMAIN}/auth/v1/admin/providers"
+  echo "        - Type:      Google"
+  echo "        - Issuer:    https://accounts.google.com"
+  echo "        - Client ID: \$GOOGLE_UPSTREAM_CLIENT_ID"
+  echo "        - Secret:    \$GOOGLE_UPSTREAM_CLIENT_SECRET"
+  echo "        - Callback:  https://auth.${DOMAIN}/auth/v1/providers/callback"
+  echo "     (Auto-provisioning the provider via the admin API is tracked as"
+  echo "      a spec 106 follow-up; the .env values are loaded but currently"
+  echo "      surfaced only as this manual instruction.)"
   echo "  4. Create GitHub App at https://github.com/settings/apps/new"
   echo "     - Webhook URL: https://${DOMAIN}/api/github/webhook"
   echo "     - Webhook secret: $GITHUB_WEBHOOK_SECRET"

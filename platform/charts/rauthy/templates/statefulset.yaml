@@ -133,6 +133,51 @@ spec:
             - name: HQL_SECRET_API
               value: {{ .Values.api.secret | quote }}
             {{- end }}
+            {{- if .Values.smtp.enabled }}
+            # Spec 106 amendment (2026-05-17) — SMTP env vars sourced
+            # from the `rauthy-smtp-secret`. Required for Rauthy's
+            # passwordless magic-link login (spec 137 FR-005 / FR-008
+            # evidence path). `connection` and `danger_insecure` keys
+            # are optional: Rauthy picks defaults (TLS on port 465,
+            # STARTTLS otherwise; danger_insecure defaults false).
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: from
+            - name: SMTP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: url
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: port
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: username
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: password
+            - name: SMTP_CONNECTION
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: connection
+                  optional: true
+            - name: SMTP_DANGER_INSECURE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: danger_insecure
+                  optional: true
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /auth/v1/health
