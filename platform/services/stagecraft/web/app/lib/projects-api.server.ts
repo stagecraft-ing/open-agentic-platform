@@ -604,3 +604,83 @@ export async function listProjectMembers(
     members: any[];
   }>;
 }
+
+// -------------------------------------------------------------------------
+// Spec 137 — per-environment access gates (Phase 5 UI client helpers).
+//
+// Wire shapes mirror `api/environments/accessGates.ts`. The `any` shapes
+// are kept loose here for the same reason the rest of this file uses
+// `any` for response bodies — Encore's generated types aren't threaded
+// into the SSR layer; the route loader narrows the shape at consumption.
+// -------------------------------------------------------------------------
+
+export type FederatedProvider = "google" | "microsoft" | "github" | "generic_oidc";
+
+export interface AccessGateAllowlistEntry {
+  id: string;
+  kind: "email" | "domain";
+  value: string;
+  createdAt: string;
+}
+
+export interface AccessGateRead {
+  environmentId: string;
+  enabled: boolean;
+  rauthyClientRef: string | null;
+  loginMethodMagicLink: boolean;
+  loginMethodFederatedProvider: FederatedProvider | null;
+  loginMethodFederatedProviderClientRef: string | null;
+  createdAt: string;
+  updatedAt: string;
+  allowlist: AccessGateAllowlistEntry[];
+}
+
+export async function getAccessGate(request: Request, envId: string) {
+  return apiFetch(
+    request,
+    `/api/environments/${envId}/access-gate`,
+  ) as Promise<AccessGateRead>;
+}
+
+export async function putAccessGate(
+  request: Request,
+  envId: string,
+  data: {
+    enabled: boolean;
+    loginMethodMagicLink?: boolean;
+    loginMethodFederatedProvider?: FederatedProvider | null;
+    loginMethodFederatedProviderClientRef?: string | null;
+  },
+) {
+  return apiFetch(request, `/api/environments/${envId}/access-gate`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }) as Promise<AccessGateRead>;
+}
+
+export async function addAllowlistEntry(
+  request: Request,
+  envId: string,
+  data: { kind: "email" | "domain"; value: string },
+) {
+  return apiFetch(
+    request,
+    `/api/environments/${envId}/access-gate/allowlist`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  ) as Promise<AccessGateAllowlistEntry>;
+}
+
+export async function removeAllowlistEntry(
+  request: Request,
+  envId: string,
+  entryId: string,
+) {
+  return apiFetch(
+    request,
+    `/api/environments/${envId}/access-gate/allowlist/${entryId}`,
+    { method: "DELETE" },
+  ) as Promise<{ ok: true; removed: AccessGateAllowlistEntry | null }>;
+}

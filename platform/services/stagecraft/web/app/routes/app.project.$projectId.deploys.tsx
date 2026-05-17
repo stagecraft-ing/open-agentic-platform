@@ -1,4 +1,4 @@
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import { listEnvironments } from "../lib/projects-api.server";
 
@@ -43,6 +43,7 @@ const ENV_KIND_COLORS: Record<string, string> = {
 
 export default function DeployStatus() {
   const { environments } = useLoaderData() as { environments: EnvironmentRow[] };
+  const { projectId } = useParams() as { projectId: string };
 
   return (
     <div className="space-y-6">
@@ -63,7 +64,11 @@ export default function DeployStatus() {
             <div className="flex items-center gap-2 flex-wrap">
               {sortEnvsByKind(environments).map((env, i, arr) => (
                 <div key={env.id} className="flex items-center gap-2">
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 min-w-[140px]">
+                  <Link
+                    to={`/app/project/${projectId}/deploys/${env.id}`}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 min-w-[140px] hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                    aria-label={`Open ${env.name} environment settings`}
+                  >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {env.name}
@@ -89,7 +94,7 @@ export default function DeployStatus() {
                         ns: {env.k8sNamespace}
                       </p>
                     )}
-                  </div>
+                  </Link>
 
                   {i < arr.length - 1 && (
                     <svg

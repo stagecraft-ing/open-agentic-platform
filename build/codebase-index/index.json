@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "667f1602622d949b636314af46788daf75aa2938f4dde6cbd92e59b08ea158c4",
+    "contentHash": "582eaa84b92cd9f2fcbba03268665bce66f983f40e869461c870e583f2f165f0",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4377,6 +4377,18 @@
           },
           {
             "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx",
             "source": "spec-implements"
           }
         ],
