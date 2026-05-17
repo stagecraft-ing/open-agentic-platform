@@ -275,32 +275,83 @@ client per gated env without touching the K8s deployment.
 
 ## Phase 4 — deployd-api K8s renderer additions
 
-- [ ] T040 `deployd-api-rs/src/routes.rs`: extend
+- [x] T040 `deployd-api-rs/src/routes.rs`: extend
   `DeploymentRequest` with optional `access_gate:
-  Option<AccessGateDescriptor>`. Add Rust struct mirroring the
-  TS schema.
-- [ ] T041 `deployd-api-rs/src/k8s.rs`: when descriptor is
-  `Some(g)` with `g.enabled == true`, render an `oauth2-proxy`
-  Deployment + ClusterIP Service in the deployment's namespace.
-  Image pinned, single replica per env, resource limits per tier.
-- [ ] T042 [P] Wire `nginx.ingress.kubernetes.io/auth-url` /
-  `auth-signin` annotations on the tenant Ingress, pointing at the
-  per-env oauth2-proxy Service.
-- [ ] T043 [P] Render a K8s Secret carrying oauth2-proxy cookie
-  secret + Rauthy client secret. Secret data sourced from a
-  stagecraft-managed secret; deployd-api does NOT generate cookie
-  secrets itself.
-- [ ] T044 DELETE path tears down both oauth2-proxy resources and
-  the Rauthy client (via stagecraft callback for the latter).
-- [ ] T045 Reconcile path: toggle and login-method edits without
-  restarting tenant pods (FR-009, FR-010). Add state machine + tests.
-- [ ] T046 [P] Cross-cutting check: if spec 136 Phase 2.b (Helm
-  migration) lands first, refactor T041–T043 onto a Helm overlay
-  instead of hand-rolled K8s objects. Track as a Phase 4 follow-up,
-  not a blocker.
+  Option<AccessGateDescriptor>`. **Done 2026-05-17.** Struct lives in
+  `helm.rs` (closer to where chart values are constructed; reduces
+  cross-module coupling) and is re-exported through the routes
+  import. 9 fields: `enabled`, `rauthy_issuer_url`, `rauthy_client_id`,
+  `rauthy_client_secret`, `cookie_secret`, `allowed_emails`,
+  `allowed_domains`, `tls_secret_name`, optional
+  `proxy_service_port` (defaults 4180). `#[serde(rename_all =
+  "snake_case")]` mirrors the TS wire shape exactly.
+- [x] T041 Render an oauth2-proxy Deployment + ClusterIP Service per
+  gated environment. **Done 2026-05-17 via T046's Helm-overlay path.**
+  New `platform/charts/oauth2-proxy-gate/` chart, embedded into
+  `helm.rs` via `include_str!` mirroring the spec 136 pattern. 8
+  templates (Chart.yaml, values.yaml, _helpers.tpl, deployment,
+  service, ingress, secret, configmap, serviceaccount). Image pinned
+  to `quay.io/oauth2-proxy/oauth2-proxy:v7.7.0`; single replica per
+  env; non-root + readOnlyRootFilesystem securityContext; resource
+  requests/limits sized for a low-traffic auth-proxy.
+- [x] T042 [P] Wire `nginx.ingress.kubernetes.io/auth-url` /
+  `auth-signin` annotations on the tenant Ingress. **Done 2026-05-17.**
+  `platform/charts/tenant-hello/templates/ingress.yaml` gains a
+  conditional annotation block (rendered when `.Values.gate.enabled`)
+  including `auth-url`, `auth-signin`, and `auth-response-headers`
+  (forwards `X-Auth-Request-User/Email/Preferred-Username` to the
+  tenant). Annotations block itself is omitted when neither
+  `gate.enabled` nor `ingress.annotations` is set, so default renders
+  stay clean.
+- [x] T043 [P] Render a K8s Secret with cookie + client secret.
+  **Done 2026-05-17.** `templates/secret.yaml` is an Opaque Secret with
+  `cookie-secret` and `client-secret` keys. Both flow in via
+  `--cookie-secret-file=/secrets/cookie-secret` /
+  `--client-secret-file=/secrets/client-secret` flags so the
+  plaintext never appears in argv (verified by unit test —
+  `template_renders_oauth2_proxy_gate_with_required_values` asserts
+  no `=<secret>` substring in the rendered output). The chart's
+  `required` template gate refuses to render without both fields, so
+  a misshapen descriptor fails at helm-template time, not at the
+  pod-start boundary. Deployd-api does NOT generate the cookie secret
+  (FR-008 / T043 invariant) — it flows from `descriptor.cookie_secret`
+  populated by stagecraft Phase 3 code.
+- [x] T044 DELETE path tears down both. **Done 2026-05-17.**
+  `routes.rs::delete_deployment` now calls `uninstall_with_gate`
+  unconditionally; `helm uninstall`'s "release not found" tolerance
+  makes the call correct whether the deployment had a gate or not.
+  The Rauthy client deprovision is stagecraft's responsibility per
+  spec 137 Phase 3 / T032 (`deprovisionTenantGateClient`); deployd-api
+  only owns the K8s side.
+- [x] T045 Reconcile path: toggle without restarting tenant pods.
+  **Done 2026-05-17.** Mechanism is intentionally lightweight: every
+  `POST /v1/deployments` is a `helm upgrade --install`; the tenant
+  Deployment's pod-template hash is unchanged when only Ingress
+  annotations change, so off→on transitions add auth-url without
+  rolling pods, and on→off transitions remove the auth-url cleanly.
+  Off-transition gate teardown is best-effort and runs after the
+  tenant install succeeds (`tracing::warn!` on failure; tenant
+  traffic path is correct — the Ingress no longer references the
+  Service — even if a leaked Deployment lingers transiently). FR-010
+  login-method edits flow through the same `helm upgrade --install`
+  against the gate chart with updated values; the
+  oauth2-proxy Deployment restarts (annotation
+  `oap.gate/secret-revision` flips when Secret contents change),
+  which is one pod, not the tenant workload. A dedicated reconcile
+  endpoint can be added later if explicit observability is wanted,
+  but the upgrade-driven path satisfies the FR-009/FR-010 surface as
+  written.
+- [x] T046 [P] Cross-cutting Helm overlay refactor. **Done 2026-05-17.**
+  Selected as the canonical path (vs hand-rolled kube-rs) per the
+  §"Open question" disposition. Spec 136 Phase 2.b prerequisite
+  landed via PRs #147 / #148 immediately before this PR.
 
 **Checkpoint:** End-to-end deploy of a gated env produces:
-oauth2-proxy live, tenant Ingress chained, Rauthy client provisioned.
+oauth2-proxy live (chart renders Deployment + Service + Secret +
+Ingress + optional ConfigMap), tenant Ingress chained via
+auth-url/auth-signin annotations, Rauthy client provisioned (by
+stagecraft Phase 3 before deployd-api is called). Phase 5 (UI) and
+Phase 6 (E2E evidence) are the remaining gates.
 
 ---
 

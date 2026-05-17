@@ -1,0 +1,129 @@
+# Spec: 137-tenant-environment-access-gates
+#
+# Default values for the oauth2-proxy-gate chart. Deployd-api overlays
+# tenant-specific values at install time. The chart's defaults render
+# a no-op gate (no host, no secrets) — `helm install` with defaults
+# is only useful for `helm template` smoke; production paths flow
+# through deployd-api's value builder.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Tenant binding — every gate is for exactly one tenant Ingress.
+tenant:
+  # The Ingress host the proxy chains in front of (e.g.
+  # dev.acme.tenants.stagecraft.ing). Required.
+  host: ""
+  # Per-org wildcard cert secret name (per spec 137 Decision 4).
+  # Required when ingress.tls.enabled is true.
+  tlsSecretName: ""
+
+# Rauthy OIDC binding — populated by stagecraft's
+# `provisionTenantGateClient` output (spec 137 Phase 3 / T031).
+rauthy:
+  issuerUrl: ""          # e.g. https://auth.stagecraft.ing
+  clientId: ""           # tenant-gate-<env-id>
+  # clientSecret + cookieSecret are read from the rendered K8s Secret
+  # (see templates/secret.yaml). Plaintext flows from deployd-api into
+  # the rendered Secret at install time and is never written to disk
+  # outside the cluster.
+  clientSecret: ""
+  scopes: "openid email profile"
+  # Stored on the gate Secret as COOKIE_SECRET. Stagecraft generates
+  # this once per environment and persists it
+  # (per spec 137 T043: deployd-api does NOT generate cookie secrets).
+  cookieSecret: ""
+
+# Allowlist — defense in depth at the oauth2-proxy callback layer
+# (spec 137 FR-005). Rauthy enforces the primary identity check; this
+# block is the post-auth email/domain filter.
+allowlist:
+  emails: []      # case-insensitive exact match (e.g. ["alice@acme.com"])
+  domains: []     # email-suffix match (e.g. ["acme.com"])
+
+# Login-method configuration. The proxy doesn't directly enforce these —
+# they shape the Rauthy client's flows_enabled and ui_options at
+# provisioning time. Captured here for traceability + future re-render.
+loginMethods:
+  magicLink: true
+  federated:
+    # null when federated login is disabled.
+    provider: ""           # "google" | "microsoft" | "github" | "generic_oidc"
+    providerClientRef: ""  # Auth Provider id in Rauthy
+
+# oauth2-proxy image pin.
+image:
+  repository: quay.io/oauth2-proxy/oauth2-proxy
+  tag: v7.7.0
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# ClusterIP only — the gate is reached by ingress-nginx through the
+# tenant Ingress's auth-url annotation; never directly from outside.
+service:
+  type: ClusterIP
+  port: 4180
+
+# Spec 137: ingress on the tenant host for the OAuth callback path.
+# The proxy mounts at /oauth2/* on the tenant's own hostname; the
+# tenant Deployment serves everything else. ingress-nginx routes
+# /oauth2/* here and the rest of the host to the tenant Service via
+# the tenant chart's own Ingress.
+ingress:
+  enabled: true
+  className: nginx
+  path: /oauth2
+  annotations: {}
+  tls:
+    enabled: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# oauth2-proxy hits `/ping` on itself for the liveness/readiness probe.
+readinessProbe:
+  httpGet:
+    path: /ping
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+livenessProbe:
+  httpGet:
+    path: /ping
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podLabels: {}
+podAnnotations: {}

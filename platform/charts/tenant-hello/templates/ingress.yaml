@@ -5,9 +5,19 @@ metadata:
   name: {{ include "tenant-hello.fullname" . }}
   labels:
     {{- include "tenant-hello.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- if or .Values.gate.enabled .Values.ingress.annotations }}
   annotations:
+    {{- /* Spec 137 — chain to the per-env oauth2-proxy gate when enabled.
+           Rendered first so user-supplied .Values.ingress.annotations can
+           override (e.g. for upstream-CDN auth shapes). */ -}}
+    {{- if .Values.gate.enabled }}
+    nginx.ingress.kubernetes.io/auth-url: "http://{{ required "gate.proxyServiceName is required when gate.enabled is true" .Values.gate.proxyServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.gate.proxyServicePort }}/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username"
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
