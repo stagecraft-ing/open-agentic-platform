@@ -174,3 +174,14 @@ moved.
   not a separate test framework.
 - Avoid skipping T005. The reviewer pass is the lone defence against
   the C-clauses being weakened on contact with chart values.
+
+### Operational gates added post-PR #141
+
+- **PR-time Dockerfile validation** (`.github/workflows/ci-deployd-api-rs.yml`
+  `docker-build` job). The Phase 2.b PR #141 introduced an apt-resolver
+  regression that only surfaced in the post-merge `cd-deployd-api-rs` run
+  (helm install layer failed to install `tar` against bookworm-slim where
+  it is already a dpkg-essential). Hotfix landed in PR #142; the
+  preventative gate runs `docker buildx build --load` against the same
+  context the CD workflow uses, so the next regression of that class
+  fails at PR review time instead of after main-merge.
