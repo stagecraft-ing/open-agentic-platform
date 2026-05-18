@@ -5,14 +5,16 @@ matches the six-field schema declared in `spec.md` §Clarifications.
 
 Phase 0 closure criteria (per spec.md §"Why this spec is filed as `draft`"):
 
-- (a) Every §Decision below matches the six-field schema — **landed
-  in this commit**.
+- (a) Every §Decision below matches the six-field schema — **landed**.
 - (b) SC-003 empirical bootstrap baseline measured and recorded in
   `execution/dr-baseline.md` — **pending operator action**.
 - (c) Any placeholder pin (e.g. Clarification #9's password-manager
-  vault path if substituted) committed to spec body verbatim —
-  **§Decision 9 records the v1 1Password commit; substitution pending
-  operator confirmation if different**.
+  vault path) committed to spec body verbatim — **landed**: the
+  Bitwarden multi-recipient model is committed verbatim in spec.md
+  §Clarification 9 (replaces the round-3 1Password recommendation),
+  with the architectural upgrade (multi-recipient SOPS, two keys
+  minimum, either decrypts) folded into C-005 + FR-005 + R-002 +
+  SC-003.
 
 When all three land, the spec lifecycle flips to `status: approved`
 and plan.md + tasks.md follow in a sibling PR.
@@ -336,53 +338,76 @@ rollback is per-PR with no cascading impact.
 
 ### §Decision 9 — sops-key-custody
 
-**Decision:** Five sub-decisions pinned for SOPS key custody, quoted
-verbatim from spec.md §Clarification 9:
+**Decision:** Multi-recipient SOPS model with two named recipients
+(laptop + Bitwarden-stored backup). Quoted verbatim from the locked
+pin in spec.md §Clarification 9: *"Custody: operator-host
+`~/.config/sops/age/keys.txt` (mode 0600) + Bitwarden vault `OAP`,
+item `sops-age-hetzner-prod-recovery`, attachment `keys.txt`.
+`.sops.yaml` recipients list includes both public keys; either private
+key can decrypt. Multi-operator custody remains out of scope v1 per
+the named future spec."*
 
-- **(a) Pre-bootstrap location:** operator-host filesystem at
-  `~/.config/sops/age/keys.txt` (mode `0600`, operator-only).
-- **(b) Backup custody location:** **1Password — vault
-  `OAP / Cluster Keys`, item `sops-age-hetzner-prod`, attachment
-  `keys.txt`**. If the operator-of-record uses Bitwarden or a
-  different password manager, this pin records the substitution with
-  vault + item path verbatim. **Substitution pending operator
-  confirmation before Phase 0 actually closes** — see Phase 0 criterion
-  (c) at top of this document.
-- **(c) Post-bootstrap location:** `sops-age` Secret in `flux-system`
-  namespace on the live cluster (Flux's convention); runtime form,
-  not a third copy of authority.
-- **(d) Rotation:** OUT OF SCOPE v1; future spec "SOPS key rotation
-  tooling" adds `make rotate-sops-key` that automates the re-encryption
-  sweep. v1 compromise-recovery path is "fresh cluster + manual
-  re-encryption sweep" (~1-day operation).
-- **(e) Single-operator model:** v1 assumes single operator-of-record.
-  Multi-operator custody (recipients list + offboarding contract) is
-  a future spec "multi-operator SOPS custody."
+The five sub-decisions decompose as: (a) mechanism — multi-recipient
+SOPS with minimum two recipients (v1 commits to exactly two);
+(b) named custody locations — operator-host laptop key at
+`~/.config/sops/age/keys.txt` (mode `0600`) + backup at Bitwarden
+vault `OAP`, item `sops-age-hetzner-prod-recovery`, attachment
+`keys.txt`; (c) cluster runtime form — `sops-age` Secret in
+`flux-system` namespace holds the laptop private key (the backup key
+never touches the cluster under normal operation; it's purely
+operator-side DR); (d) rotation — OUT OF SCOPE v1, but the
+multi-recipient mechanism is in place so the future tooling spec is
+cheaper (partial rotation = recipient-list edit + `sops updatekeys`
+sweep, with the unchanged recipient providing continuity);
+(e) multi-operator custody — OUT OF SCOPE v1, future spec
+"multi-operator SOPS custody" extends the same `.sops.yaml` recipients
+list with one pubkey per operator + offboarding contract.
 
 **Alternatives considered:**
+- 1Password (round-3 recommendation) — superseded by Bitwarden in
+  this pin. Bitwarden's free tier covers attachment storage; clean
+  upgrade path from LastPass for the operator-of-record.
+- Single-key + two custodial copies (round-3 model) — superseded by
+  multi-recipient SOPS. Two independent recipients are
+  architecturally stronger than two copies of one key: partial
+  rotation is possible (rotate one recipient without touching the
+  other), and total-key-loss requires losing BOTH custodies, a
+  smaller failure surface.
 - Hardware key with `age-plugin-yubikey` — adds hardware dependency;
-  v1 does not need that level of attestation.
+  v1 does not need that level of attestation. Future-spec
+  consideration if regulatory attestation demands it.
 - Cloud KMS (Hetzner-hosted? AWS KMS via boundary instance?) — adds
   external KMS dependency; doesn't satisfy C-001 (single source of
-  truth in git) without a delegation layer that complicates the model.
+  truth in git) without a delegation layer that complicates the
+  model.
 - HashiCorp Vault — operates Vault in addition to Flux; adds a second
   long-lived stateful service to the platform stack. Out of proportion
   to v1's surface.
 - Plain age key in git encrypted by repo-deploy-key — re-creates the
-  bootstrap-secret problem at the deploy-key level without solving it.
+  bootstrap-secret problem at the deploy-key level without solving
+  it.
 
-**Rationale:** One custody decision (one named primary location + one
-named backup) at smaller surface than N per-purpose credentials; the
-bootstrap-secret problem is bounded to a single age key whose loss has
-a bounded ~1-day manual recovery path.
+**Rationale:** Two independent recipients (laptop daily-use +
+Bitwarden DR backup) bound the worst-case key-loss surface
+meaningfully smaller than the round-3 single-key model: total-key-loss
+requires losing BOTH custody locations simultaneously, not just one.
+The multi-recipient mechanism (declared via `.sops.yaml` recipients
+list) is the same mechanism that future multi-operator custody
+(sub-decision e) and future rotation tooling (sub-decision d) will
+build on — v1 puts the platform on the path without committing to
+the full surface.
 
-**Consequences:** If the v1 age key is compromised, recovery is a
-~1-day manual sweep (fresh cluster + re-encrypt every Secret). If
-multi-operator becomes needed, a future spec adds a recipients list
-and offboarding contract — until then, single-operator-only. If KMS
-becomes needed (e.g. for regulatory attestation), a future spec
-migrates; until then, operator-host + password-manager combo is the
-v1 commit.
+**Consequences:** Single-key loss is recoverable from the other
+recipient without rebuilding the cluster (operator pulls backup from
+Bitwarden, applies as new `sops-age` Secret, optionally rotates the
+lost pubkey out of `.sops.yaml`). Total-key-loss (both recipients
+simultaneously) recovery = fresh cluster + manual re-encryption
+sweep (~1-hour op, meaningfully smaller than the round-3 single-key
+1-day estimate because the multi-recipient mechanism + `sops
+updatekeys` is already in place — re-keying is a sweep, not a
+re-architect). Future rotation spec ships `make rotate-sops-key`;
+future multi-operator spec extends the recipient set. KMS migration
+remains a future spec.
 
 **Review:** `single-author-self-pinned`
 
@@ -393,20 +418,16 @@ v1 commit.
 ## Phase 0 outstanding items
 
 - **(b) SC-003 empirical baseline** — requires running the four-step
-  DR sequence (SOPS restore → terraform/setup.sh → `flux bootstrap`
-  → reconcile) against a throwaway Hetzner cluster and recording
-  per-step timings in `execution/dr-baseline.md`. Operator action;
-  cannot be performed in-session.
-- **(c) Password-manager vault path substitution** — §Decision 9(b)
-  records 1Password vault `OAP / Cluster Keys`, item
-  `sops-age-hetzner-prod` as the v1 commit. If the operator-of-record
-  uses a different password manager, this pin amends in-place with
-  the actual vault + item path before Phase 0 closes.
+  DR sequence (SOPS recipient-key restore → terraform/setup.sh →
+  `flux bootstrap` → reconcile) against a throwaway Hetzner cluster
+  and recording per-step timings in `execution/dr-baseline.md`.
+  Operator action; cannot be performed in-session.
 - **Single-author-self-pinned cert-pipeline surfacing** — per
   §Decision schema, the cert pipeline (spec 102) MUST surface
   `single-author-self-pinned` distinctly. If spec 102 has not added
   the surfacing by Phase 0 close, a stub follow-up filed against
-  spec 102 is acceptable Phase 0 evidence (per spec.md schema preamble).
+  spec 102 is acceptable Phase 0 evidence (per spec.md schema
+  preamble).
 
 When all three outstanding items land, the spec lifecycle flips to
 `status: approved` (with `approved: <date>` frontmatter) and plan.md

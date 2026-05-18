@@ -229,13 +229,16 @@ Constraints on the contract:
   and is not equivalent to cluster credentials. Adding cluster-admin
   kubeconfig to GitHub Actions for ad-hoc apply remains explicitly
   prohibited by this contract.
-- **C-005 (SOPS key custody is named, not implicit):** The age private
-  key used to decrypt SOPS-encrypted Secrets MUST be custodied at a
-  named location pinned in Clarification #9 — never in git, never in
-  CI, never in a developer chat. The location is the contract;
-  "wherever the operator put it" is not acceptable. Disaster recovery
-  presupposes the key is recoverable from its named custody, not from
-  cluster state (which is the thing being recovered).
+- **C-005 (SOPS key custody is named, not implicit):** Every age
+  private key listed as a recipient in `.sops.yaml` MUST be custodied
+  at a named location pinned in Clarification #9 — never in git, never
+  in CI, never in a developer chat. The recipient set is the contract;
+  "wherever the operator put it" is not acceptable for any recipient.
+  Multi-recipient SOPS is the v1 model: at least two recipients
+  (operator-host laptop key + Bitwarden-stored backup key); either
+  private key can decrypt. Disaster recovery presupposes at least one
+  recipient's private key is recoverable from its named custody, not
+  from cluster state (which is the thing being recovered).
 
 ## Functional Requirements *(MVP)*
 
@@ -266,11 +269,15 @@ Constraints on the contract:
   does not depend on Image Automation or on any app-service migration
   (Phase 2 lands reflector + cert annotations only).
 - **FR-005:** Per-purpose Secrets MUST materialise via SOPS-encrypted
-  manifests under `platform/gitops/`. The age private key MUST be
-  custodied per C-005 + Clarification #9 (named location, two custodial
-  copies, never in git or CI); at runtime it materialises as the
-  `sops-age` Secret in `flux-system` namespace. `kubectl create secret`
-  MUST NOT appear in setup.sh or post-create.sh after Phase 5 lands.
+  manifests under `platform/gitops/`. The age private keys MUST be
+  custodied per C-005 + Clarification #9 (multi-recipient model with
+  at least two named recipients — operator-host laptop key and
+  Bitwarden-stored backup key — and a checked-in `.sops.yaml` declaring
+  both public keys); at runtime at least one of the recipients'
+  private keys materialises as the `sops-age` Secret in `flux-system`
+  namespace, allowing `kustomize-controller` to decrypt at apply time.
+  `kubectl create secret` MUST NOT appear in setup.sh or post-create.sh
+  after Phase 5 lands.
 - **FR-006:** Flux drift detection MUST emit cluster events for every
   reconciliation; Prometheus metrics MUST expose reconciliation success
   rate, drift count, and last-reconcile-time per resource. Stagecraft
@@ -342,11 +349,14 @@ Constraints on the contract:
   second cluster can be bootstrapped from scratch via the runbook in
   under 30 minutes of operator wall-clock time, arriving at a converged
   state matching the declared gitops tree. The 30-minute budget
-  explicitly INCLUDES four steps: (a) SOPS age-key restoration from
-  custody per Clarification #9 (open password manager → export
-  `keys.txt` → place at `~/.config/sops/age/keys.txt`), (b) terraform /
-  `setup.sh` cluster create, (c) `flux bootstrap`, (d) cluster
-  convergence to declared state.
+  explicitly INCLUDES four steps: (a) at least one SOPS recipient
+  private key available on the bootstrap operator's machine per
+  Clarification #9 (the laptop key is the expected default; if the
+  laptop is unavailable, the operator pulls the backup key from
+  Bitwarden — `OAP / sops-age-hetzner-prod-recovery / keys.txt` — and
+  places at `~/.config/sops/age/keys.txt`), (b) terraform / `setup.sh`
+  cluster create, (c) `flux bootstrap`, (d) cluster convergence to
+  declared state.
 
   **The 30-minute number is aspirational, not measured.** Phase 0
   closure requires an empirical baseline: run the four-step sequence
@@ -727,60 +737,104 @@ not decisions.
    SOPS path being solid). Each migration is one PR; setup.sh shrinks
    monotonically.
 
-9. **SOPS key custody — three load-bearing sub-questions:**
+9. **SOPS key custody — multi-recipient model, five load-bearing
+   sub-decisions:**
 
-   **(a) Custody locations (named, not categorised) — single-operator
-   model in v1.**
-   Recommend two named locations, pinned by name in
-   `clarifications-resolved.md` at Phase 0:
-   - *Pre-bootstrap location:* operator-host filesystem at
-     `~/.config/sops/age/keys.txt` on the bootstrap operator's machine.
-     File mode `0600`, ownership operator-only.
-   - *Backup custody location:* **1Password — vault `OAP / Cluster
-     Keys`, item `sops-age-hetzner-prod`, attachment `keys.txt`** as the
-     v1 commit. If the actual operator-of-record uses Bitwarden or a
-     different password manager, the Phase 0 pin records the
-     substitution with vault + item path. "Operator's existing password
-     manager" without a vault path is NOT a valid pin — the cert pipeline
-     ingests a string, not a category.
-   - *Post-bootstrap location:* `sops-age` Secret in `flux-system`
-     namespace on the live cluster (Flux's convention); not a third
-     copy of authority, just the runtime form.
+   **Locked pin (verbatim):** *"Custody: operator-host
+   `~/.config/sops/age/keys.txt` (mode 0600) + Bitwarden vault `OAP`,
+   item `sops-age-hetzner-prod-recovery`, attachment `keys.txt`.
+   `.sops.yaml` recipients list includes both public keys; either
+   private key can decrypt. Multi-operator custody remains out of scope
+   v1 per the named future spec."*
 
-   **Multi-operator custody is explicitly out of scope for v1.** v1
-   assumes a single operator-of-record. When OAP eventually has
-   multiple platform operators, the custody model needs to grow a
-   `.sops.yaml` recipients list (one age public key per operator) and
-   an offboarding contract (when an operator leaves, their public key
-   is removed from the recipients list AND every SOPS-encrypted Secret
-   in the gitops tree is re-encrypted to exclude them — a non-trivial
-   sweep). That work is a future spec ("multi-operator SOPS custody"),
-   not v1. Naming this here so the gap is explicit rather than
-   ambient.
+   **(a) Mechanism — multi-recipient SOPS (minimum two recipients,
+   v1 commits to exactly two).**
+   `.sops.yaml` declares both public keys as recipients. age supports
+   multi-recipient natively: every encrypted file carries N wrapped
+   data-encryption-keys, one per recipient pubkey; either private key
+   decrypts. This is architecturally stronger than "two copies of one
+   key" — the two keys are independent recipients, not custodial
+   duplicates, which means partial rotation (rotate one key, leave the
+   other) is possible without losing decryption continuity. The future
+   rotation-tooling spec (sub-decision (d)) is cheaper as a result:
+   rotation becomes a recipient-list edit + re-encrypt sweep, with
+   the unchanged recipient providing continuity throughout.
 
-   **(b) Rotation contract — out of scope for v1.**
-   age key rotation requires re-encrypting every SOPS-encrypted Secret
-   manifest in the gitops tree (age does not support key rotation
-   in-place; the file must be decrypted with the old key and
-   re-encrypted with the new). Building tooling for that is a
-   non-trivial undertaking. v1 commits to "the v1 key is the v1 key;
-   rotation is an explicit follow-up spec." If the key is compromised
-   during v1's lifetime, the recovery path is: re-create cluster with
-   fresh key + re-encrypt the gitops tree by hand in a single PR. That
-   is a 1-day operation, acceptable as the v1 fallback. A future
-   spec ("SOPS key rotation tooling") will add `make rotate-sops-key`
-   that automates the re-encryption sweep.
+   **(b) Named custody locations — Bitwarden, not 1Password, not
+   "operator's password manager."**
+   - *Laptop (daily-use) private key:* operator-host filesystem at
+     `~/.config/sops/age/keys.txt`. File mode `0600`, ownership
+     operator-only. This is the key the operator uses for `sops edit`
+     and the key whose private form lives in the cluster's `sops-age`
+     Secret (sub-decision (c) below).
+   - *Backup (recovery) private key:* **Bitwarden vault `OAP`, item
+     `sops-age-hetzner-prod-recovery`, attachment `keys.txt`**.
+     Held purely as operator-side DR; never used day-to-day. If the
+     laptop key is lost (device failure, key compromise), the
+     operator imports the backup key from Bitwarden, applies it as
+     the new `sops-age` Secret in-cluster, and (optionally) rotates
+     the laptop key out of `.sops.yaml` to revoke the lost one.
+   - *`.sops.yaml` recipients list:* checked-in at repo root (or under
+     `platform/gitops/`), declares both public keys verbatim. Adding
+     or removing a recipient is a PR edit; CODEOWNERS gates the file.
 
-   **(c) Recovery boundary — included in SC-003's 30-min budget,
-   explicitly.** SC-003's "fresh cluster in <30min" MUST include:
-   pre-bootstrap key restoration from custody (operator opens
-   1Password → exports keys.txt → places at
-   `~/.config/sops/age/keys.txt`), terraform/setup.sh cluster create,
-   `flux bootstrap`, and cluster convergence. If SOPS restoration
-   alone takes more than ~5 minutes (i.e. the 1Password vault is
-   unreachable, MFA is offline, hardware key is missing), the custody
-   choice in (a) is wrong and surfaces. SC-003 is amended below to
-   make this explicit.
+   Bitwarden chosen over 1Password as the operator's working
+   password-manager-of-record; clean upgrade path from LastPass and
+   free tier covers the attachment-storage requirement. Substitution
+   from the earlier 1Password recommendation is committed verbatim in
+   this clarification per Phase 0 criterion (c).
+
+   **(c) Cluster runtime form — `sops-age` Secret holds the laptop
+   private key.**
+   At bootstrap time the operator pastes the laptop private key
+   contents into the cluster as the `sops-age` Secret in `flux-system`
+   namespace (Flux's convention). Flux's `kustomize-controller` reads
+   it for SOPS decryption at apply time. The backup private key NEVER
+   touches the cluster under normal operation — it lives in Bitwarden
+   as pure DR. If the laptop key is lost, the operator pulls the
+   backup key from Bitwarden and re-applies it as the new `sops-age`
+   Secret on the running cluster (no re-bootstrap needed; Flux picks
+   up the new key on next reconcile). The `.sops.yaml` recipients
+   list is unchanged in this flow because both pubkeys remain valid.
+
+   **(d) Rotation policy — out of scope for v1, but mechanism is
+   already in place.**
+   v1 does NOT ship key-rotation tooling. The future spec
+   ("SOPS key rotation tooling") adds `make rotate-sops-key` that
+   automates the recipient-list edit + tree-wide re-encryption sweep.
+   v1 compromise-recovery path: if the laptop key is compromised, the
+   operator manually edits `.sops.yaml` to remove the compromised
+   pubkey + add a fresh laptop pubkey, runs `sops updatekeys` against
+   every encrypted file, and updates the cluster's `sops-age` Secret —
+   all without touching the backup key. Tree size today is small
+   enough that this is a 1-hour operation, not the 1-day operation
+   single-recipient rotation would have been. The mechanism (multi-
+   recipient + `sops updatekeys`) is already in place; the v1 gap is
+   tooling, not architecture.
+
+   **(e) Multi-operator custody — out of scope for v1, named future
+   spec.**
+   v1 assumes a single operator-of-record. The two recipients are
+   that operator's keys (daily + backup), not multi-operator. When
+   OAP eventually has multiple platform operators, the custody model
+   extends the same `.sops.yaml` recipients list with one additional
+   pubkey per operator + an offboarding contract (when an operator
+   leaves, their pubkey is removed AND the tree is re-encrypted to
+   exclude them via `sops updatekeys` — same mechanism, different
+   trigger). That work is a future spec ("multi-operator SOPS
+   custody"), not v1. Multi-recipient v1 puts the platform on the
+   path; the future spec just expands the recipient set.
+
+   **Recovery boundary — included in SC-003's 30-min budget.**
+   SC-003's "fresh cluster in <30min" MUST include the time to
+   restore at least one recipient private key from custody. The 5-min
+   sub-threshold applies to either key path: if the laptop key is
+   already on the bootstrap operator's machine (the expected
+   default), restoration is free; if the laptop is unavailable and
+   the operator must pull from Bitwarden, the 5-min threshold
+   measures the Bitwarden-unlock-and-extract path. Exceeding ~5 min
+   on the Bitwarden path surfaces the custody choice as needing
+   revisit. SC-003 amended above to make this explicit.
 
 ## Risks
 
@@ -791,15 +845,20 @@ not decisions.
   pin to a known-good version; the disaster recovery runbook covers
   Flux re-bootstrap.
 - **R-002 (SOPS key custody — named in Clarification #9, not mitigated
-  here):** The age private key is the cluster's master decryption key.
-  If lost, all SOPS-encrypted Secrets become inaccessible (existing
-  values continue to work since Flux already decrypted them, but
-  rotation breaks). The custody location is a load-bearing contract
-  decision pinned in Clarification #9 + C-005 — it cannot be a
-  Risks-section mitigation. R-002 records the consequence only and
-  points at the contract clause for resolution. A future spec may move
-  the age key to a managed KMS or hardware-attested key; v1 commits to
-  operator-host + password-manager two-copy custody per Clarification #9.
+  here):** The age private keys are the cluster's decryption surface.
+  If ALL recipients' private keys are lost, all SOPS-encrypted Secrets
+  become inaccessible (existing values continue to work since Flux
+  already decrypted them, but rotation breaks). The multi-recipient
+  v1 model means SINGLE-key loss is recoverable from the other
+  recipient — total-key-loss requires losing both the laptop key and
+  the Bitwarden backup, which is a meaningfully smaller failure
+  surface than the previous single-key model would have had. The
+  custody locations are load-bearing contract decisions pinned in
+  Clarification #9 + C-005 — they cannot be a Risks-section
+  mitigation. R-002 records the consequence only and points at the
+  contract clauses for resolution. A future spec may move recipients
+  to a managed KMS or hardware-attested keys; v1 commits to
+  operator-host laptop + Bitwarden-stored backup per Clarification #9.
 - **R-003 (migration mid-state operational risk):** While Phases 3–5
   are in flight, some concerns are managed by Flux and some by
   setup.sh. A re-run of setup.sh during this window would conflict
