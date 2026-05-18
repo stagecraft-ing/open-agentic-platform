@@ -1670,14 +1670,18 @@ once (cert-manager + ingress-nginx HelmReleases + two ClusterIssuers).
 Phase 4 (rauthy chart to Flux) is the next migration — identity-
 critical, maintenance window.
 
-**Pattern observation (durable for Phase 4):** the `.v2` helm release
-revision is the helm-controller signature of "adopted an existing
-release written by the helm CLI." It is the expected outcome of a
-correctly-identity-preserving cutover. Operators reading
-`helm list -A` post-Phase-N will see `<release>.v<N+1>` for every
-release Flux has adopted — that's the visual confirmation, not a
-cause for alarm. The chart contents didn't change; helm just
-recorded the upgrade transaction.
+**Pattern observation (durable for Phase 4):** the `.v<existing+1>`
+helm release revision is the helm-controller signature of "adopted an
+existing release written by the helm CLI." It is the expected outcome
+of a correctly-identity-preserving cutover. The Phase 2 + Phase 3
+adopted releases all happened to land at `.v2` because their imperative
+ancestors had been installed once and never upgraded — the `+1` was
+`(1 → 2)`. Phase 4's rauthy adoption (below) lands at `.v81` because
+rauthy's imperative ancestor had been upgraded 80 times across the
+40d StatefulSet lifetime; helm-controller's bookkeeping increment is
+the same `+1`, just from a higher starting point. The durable formula
+is `existing_revision + 1`, not `phase_number + 1`. The chart contents
+didn't change; helm just recorded the upgrade transaction.
 
 ### Phase 4 — rauthy chart to Flux (T-019/T-020/T-021)
 
@@ -1797,3 +1801,124 @@ Once verified, this section gets an "operational landing (<date>)"
 sub-section mirroring the Phase 2 / Phase 3 closure pattern. Phase 5
 (drift detection + DR runbook) is the next phase after Phase 4
 operational landing.
+
+### Phase 4 operational landing (2026-05-18)
+
+PR #168 merged 2026-05-18. Flux's `flux-system` GitRepository picked
+up the merge commit (`3977dc48b11df1e92ff357cd4b5ba5d4f035d280`)
+within the 1-minute poll interval; helm-controller adopted the
+existing `rauthy` release in-place. The cutover was a no-op on the
+underlying StatefulSet — pod AGE 22h preserved through the adoption
+(predates the cutover by ~22h, post-dates the Phase 3 cutover
+window), Certificate AGE 40d preserved, Ingress AGE 40d preserved.
+
+**In-cluster state (verified against the production cluster
+2026-05-18 ~23:15 UTC, 71s after the HelmRelease became Ready):**
+
+- `GitRepository flux-system`: reconciled at
+  `main@sha1:3977dc48b11df1e92ff357cd4b5ba5d4f035d280` (the #168
+  merge commit).
+- `HelmRelease rauthy` (namespace `rauthy-system`): READY=True,
+  status `"Helm upgrade succeeded for release rauthy-system/rauthy.v81
+  with chart rauthy@0.1.0+3977dc48b11d"`. The `+3977dc48b11d` suffix
+  is helm-controller's convention for git-sourced charts (the chart's
+  base `version: 0.1.0` from `Chart.yaml` gets the source commit SHA
+  appended; the rendered manifests are identical to the
+  pre-Phase-4 imperative apply).
+- **Helm history reveals the existing-revision context** (`helm
+  history rauthy -n rauthy-system --max 3`):
+
+  | Rev | Updated (UTC) | Status | Chart | Description |
+  |---|---|---|---|---|
+  | 79 | 2026-05-17 16:52 | failed | `rauthy-0.1.0` | `Upgrade "rauthy" failed: resource StatefulSet/rauthy-system/rauthy not ready` |
+  | 80 | 2026-05-17 18:25 | failed | `rauthy-0.1.0` | same failure mode |
+  | 81 | 2026-05-18 23:14 | **deployed** | `rauthy-0.1.0+3977dc48b11d` | Upgrade complete |
+
+  The two failed imperative re-runs at v79 + v80 (recent setup.sh
+  iterations during the spec 106 §12.1 SMTP work in PRs #152 / #155 /
+  #156) had left rauthy in a "helm-bookkeeping says failed; pod is
+  Running anyway" state. Flux's adoption upgrade (v81) is the first
+  successful helm transaction on the release in over a day — Phase 4
+  not only preserved state, it *cleaned the bookkeeping* that the
+  prior imperative path had failed to commit.
+- **StatefulSet preserved** (`kubectl -n rauthy-system get sts`):
+  - `rauthy`: READY=1/1, AGE 40d, IMAGE `ghcr.io/sebadob/rauthy:0.35.0`.
+- **Pod preserved** (`kubectl -n rauthy-system get pods`):
+  - `rauthy-0`: 1/1 Running, RESTARTS=0, AGE 22h (predates the
+    cutover by ~22h — adoption did not roll the pod).
+- **Certificate preserved** (`kubectl -n rauthy-system get cert`):
+  - `rauthy-tls`: READY=True, SECRET `rauthy-tls`, AGE 40d.
+- **Ingress preserved** (`kubectl -n rauthy-system get ingress`):
+  - `rauthy`: CLASS=nginx, HOST `auth.stagecraft.ing`, AGE 40d.
+- **Secrets present** (cross-namespace dependencies the HelmRelease
+  mounts): `rauthy-secrets` (AGE 40d, 5 keys), `rauthy-smtp-secret`
+  (AGE 25h, 8 keys). Both stay imperative until spec 153 SOPS-
+  migrates them.
+
+**Live values match the HelmRelease verbatim** (`helm get values
+rauthy -n rauthy-system`):
+
+```
+bootstrap:
+  adminEmail: admin@stagecraft.ing
+ingress:
+  host: auth.stagecraft.ing
+oidc:
+  issuer: https://auth.stagecraft.ing/auth/v1/
+persistence:
+  size: 2Gi
+proxyMode: true
+replicas: 1
+smtp:
+  enabled: true
+trustedProxies:
+  - 10.244.0.0/16
+  - 173.245.48.0/20
+  - 103.21.244.0/22
+  ... (full Cloudflare IPv4 ranges as inlined)
+```
+
+**End-to-end validation:**
+
+- `curl -sS -o /dev/null -w "%{http_code}" https://auth.stagecraft.ing/auth/v1/health`
+  → **200**. The health endpoint responds through the full chain:
+  Cloudflare edge → Hetzner node hostPort → ingress-nginx (Phase 3
+  Flux-reconciled) → rauthy Service → rauthy-0 pod. Every link in
+  this path is now Flux-reconciled except the rauthy-secrets +
+  rauthy-smtp-secret materialisation (spec 153 deferral).
+
+**Imperative-path absence (final state):**
+
+```
+$ grep -nE 'helm upgrade --install rauthy\b' \
+    platform/infra/hetzner/setup.sh platform/Makefile
+platform/infra/hetzner/setup.sh:270:# `helm upgrade --install rauthy` block retired here. The `rauthy-secrets`
+platform/infra/hetzner/setup.sh:348:# The previous `helm upgrade --install rauthy ...` invocation retired
+platform/Makefile:128:# The previous `helm upgrade --install rauthy ...` invocation retired
+```
+
+Three hits, all explanatory removal-rationale comments. No live code
+invokes `helm upgrade --install rauthy` from any operator-side path.
+
+**Phase 4 done-when status: SATISFIED.** All success criteria green;
+the in-tree chart adoption pattern works (HelmRelease referencing
+`./platform/charts/rauthy` via `GitRepository flux-system` with
+`reconcileStrategy: Revision`). The pattern generalises to the spec
+152 app-chart migrations ahead.
+
+**Pattern correction recorded:** the `.v<N+1>` observation in the
+preceding Phase 3 section was originally framed as `phase_number +
+1`. Rauthy's `.v81` adoption disconfirms that read; the durable
+formula is `existing_helm_revision + 1`. Phase 2 + 3 happened to land
+on `.v2` because their imperative ancestors had been installed exactly
+once; rauthy's ancestor had 80 prior upgrades. The Phase 3 narrative
+above carries the corrected formula in the same PR that lands this
+section (single-author self-pinned amendment per spec 102 FU-001's
+pattern).
+
+**Phase 5 (drift detection + DR runbook + final setup.sh shrink) is
+the next surface.** Some of Phase 5's `setup.sh < 100 lines` target
+(SC-002) depends on spec 153's SOPS migration retiring the remaining
+`kubectl create secret` blocks; the Phase 5 work that doesn't depend
+on 153 can proceed independently (T-022 drift detection, T-023 DR
+runbook).
