@@ -12,7 +12,18 @@ depends_on:
   - "087"  # unified-workspace-architecture (stagecraft is the operator surface; this defines how its operator actions reach the cluster)
   - "143"  # presigned-upload-public-endpoint (FU-008 names the setup.sh-monolith seam this spec retires)
 code_aliases: ["GITOPS_RECONCILIATION"]
-implements: []  # populated as phases land
+implements:
+  # Phase 1 prep — bootstrap scaffold + operator prereqs.
+  # Foundation only; chart-migration phases (2-4) add their own gitops
+  # files; cluster.yaml k3s_version bump pairs atomically with `flux
+  # bootstrap` in T-007's PR per dr-baseline F4; per-purpose Secret
+  # manifests defer to spec 153.
+  - path: platform/gitops/clusters/hetzner-prod/README.md
+  - path: platform/gitops/clusters/hetzner-prod/infrastructure/README.md
+  - path: platform/gitops/clusters/hetzner-prod/manifests/README.md
+  - path: platform/gitops/clusters/hetzner-prod/secrets/README.md
+  - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header comment only
+  - path: DEVELOPERS.md                         # operator prereq table
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -1012,3 +1023,63 @@ subset (FR-001/002/003-narrowed/005-Flux-runtime-only/006/007/008/009/010);
 FR-004 and the per-purpose application of FR-005 lift verbatim into
 152 and 153's spec bodies when those siblings are filed (filing
 protocol in plan.md).
+
+## Phase 1 prep landed (2026-05-18)
+
+Foundation-only edits — no FR closures, no Flux running in production
+yet. This section records the bootstrap-scaffold landing so the
+`implements:` block above is anchored to a narrative entry rather than
+floating as a list of paths.
+
+**What landed:**
+
+- `platform/infra/hetzner/setup.sh` — header comment updated (T-001) to
+  document the prerequisites surface and forward-link to DEVELOPERS.md
+  §"Hetzner GitOps operator (spec 151)". The pre-flight enforcement
+  (`for cmd in kubectl helm hetzner-k3s ...`) is NOT tightened in this
+  PR: extending it to require `flux`, `sops`, `age` before T-007 has
+  any consumer for those tools would break current operators. T-007's
+  PR adds them to pre-flight at the same time it wires
+  `flux bootstrap`.
+- `platform/gitops/clusters/hetzner-prod/` — directory scaffold for
+  the declared state tree (T-004). Three subdirectories with
+  explanatory READMEs: `infrastructure/` (Phase 2–4 HelmReleases),
+  `manifests/` (raw K8s resources), `secrets/` (placeholder; spec 153
+  owns the per-purpose Secret migration). `flux-system/` is
+  intentionally absent — `flux bootstrap` creates its content on T-007.
+- `DEVELOPERS.md` — new "Hetzner GitOps operator (spec 151)" subsection
+  under Prerequisites. Lists the four CLIs (`hetzner-k3s`, `flux`,
+  `sops`, `age`) with brew install lines and a one-liner. Records the
+  k3s ↔ Flux version pair as the operator-facing pin and points at the
+  top-level gitops tree README as the durable source of truth.
+
+**What did NOT land:**
+
+- T-002 (the canonical Flux version-pin manifest) — owned by `flux
+  bootstrap` itself; the bootstrap-generated `flux-system/
+  gotk-components.yaml` is where the version is canonically recorded in
+  the cluster tree. The DEVELOPERS.md + gitops-tree-README entries are
+  the human-readable mirror, not the source of truth.
+- T-003 (`cluster.yaml` `k3s_version` bump from `v1.31.4+k3s1` to
+  `v1.33.11+k3s1`) — dr-baseline.md §F4 specifies "same PR as the one
+  that lands `flux bootstrap`". Pairing the bump with T-007 keeps the
+  cluster shape and the Flux runtime atomically aligned: if Phase 1
+  prep merged with the bump alone, an operator-initiated cluster
+  recreation between this PR and T-007's PR would land a Flux-less
+  v1.33 cluster with no in-tree GitOps reconciler. T-003 moves to
+  T-007's PR.
+- T-005, T-006 — operator-host laptop age keypair + Bitwarden-stored
+  backup keypair. Key generation has real-world side effects
+  (`~/.config/sops/age/keys.txt` written, Bitwarden vault item created);
+  scheduled for an interactive operator session, not a code PR. The
+  resulting `.sops.yaml` at repo root will land alongside.
+- T-007 — `setup.sh` shrink + `flux bootstrap github` invocation.
+  Requires operator-side execution against the production cluster;
+  scheduled for the maintenance window that lands the Phase 2
+  reflector + wildcard-cert annotations (the original "why now" trigger
+  per spec 137 Phase 6).
+
+**Phase 1 done-when status:** still pending. The done-when criterion
+in tasks.md ("`kubectl get pods -n flux-system` shows six controllers
+Ready") is closed by T-007 against a real cluster; Phase 1 prep is the
+file-only precondition for that step, not its completion.

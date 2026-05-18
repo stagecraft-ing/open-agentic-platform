@@ -8,6 +8,12 @@
 #   3. Fill in GitHub + OIDC values in .env
 #   4. ./setup.sh                              # Phase 2: full platform
 #
+# Prerequisites: kubectl, helm, hetzner-k3s (current pre-flight set).
+#                Spec 151 Phase 1 closure (T-007) will add flux, sops, age to
+#                the pre-flight when the bootstrap step migrates here. Full
+#                operator prereq table: DEVELOPERS.md §"Hetzner GitOps
+#                operator (spec 151)".
+#
 # Flags:
 #   --clean   Destroy existing cluster, remove kubeconfig and auto-generated
 #             secrets from .env, then start fresh from Phase 1.

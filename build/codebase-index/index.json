@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "631166a73346eafe6db6d84c4bde838f5e456c62439ad10fabb56bffdfba9480",
+    "contentHash": "38a1f48ff523925e771aa28c6642d1b04798a24fd2fa1a7a34daa3724f2a018f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5151,6 +5151,40 @@
         "implementingPaths": [],
         "specId": "147-spec-kind-grammar",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "143"
+        ],
+        "implementingPaths": [
+          {
+            "path": "DEVELOPERS.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/secrets/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "151-declarative-cluster-reconciliation",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -5162,8 +5196,7 @@
       "100-post-convergence-remediation",
       "148-auth-driver-registry",
       "149-saml-auth-driver",
-      "150-example-tenant-profile",
-      "151-declarative-cluster-reconciliation"
+      "150-example-tenant-profile"
     ],
     "untracedCode": [
       "grammars/tree-sitter-c",
