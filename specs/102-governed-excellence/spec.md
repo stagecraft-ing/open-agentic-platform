@@ -652,3 +652,88 @@ Items still open within spec 102 after this closure:
 - **Phase B / C / D requirements** (FR-011 onward) remain partially
   wired; their closure is tracked by the per-FR success criteria above
   and by the convergence-plan specs (089, 100).
+
+## Follow-ups
+
+Follow-up tracker (parking lot):
+
+- **FU-001 — Surface `single-author-self-pinned` review class
+  distinctly in emitted governance artifacts.** Spec 151's
+  clarifications-resolved.md schema introduces a `Review:` field on
+  every pinned §Decision with one of three values:
+  `single-author-self-pinned`, `external-reviewer`, or
+  `multi-party-review`. Spec 151 §Clarifications preamble
+  "Downstream-treatment contract" requires the governance certificate
+  pipeline (this spec, 102) to surface `single-author-self-pinned`
+  *distinctly* in emitted artifacts — either as a flagged field in the
+  certificate JSON or as a separate evidence class — so downstream
+  consumers (auditors, compliance frameworks consuming the
+  certificate, future SaaS governance front-ends) do not read a
+  self-pinned decision as equivalent to an externally-reviewed pin.
+  Self-pinning is a legitimate state for a single-author project; the
+  certificate must not claim social proof it does not have.
+
+  *Concrete scope (subject to re-validation against source at
+  implementation time per the FU-stub-template-revalidation memory):*
+  - Extend the governance certificate JSON Schema (FR-002 — once it
+    lands as an explicit artifact at
+    `factory/contract/schemas/governance-certificate.schema.json` —
+    or the de-facto serde shape until then) to carry a per-decision
+    `reviewClass` field with the three enumerated values from spec
+    151's schema (`single-author-self-pinned`, `external-reviewer`,
+    `multi-party-review`).
+  - When the pipeline ingests a spec's `clarifications-resolved.md`
+    file (if/when that ingestion lands; today the cert pipeline
+    primarily walks `registry.json` + run artifacts, not per-spec
+    clarifications), `reviewClass` values MUST be propagated verbatim
+    from the source `Review:` field, never inferred.
+  - The verifier (`make verify-certificate`) MUST treat
+    `single-author-self-pinned` as a flagged class — either by
+    counting them in a separate evidence-class bucket in the verify
+    output or by emitting a structured advisory diagnostic on the
+    verify path (non-fatal, informational). The verifier MUST NOT
+    silently aggregate self-pinned and externally-reviewed decisions
+    into a single "pinned" count.
+  - Downstream consumers of the certificate (OPC desktop, stagecraft
+    governance UI, OWASP ASI compliance-report renderer) MUST be able
+    to filter or sort by `reviewClass` without re-parsing source spec
+    files. The certificate is the canonical surface; the field exists
+    so downstream is not forced to reach back to source.
+
+  *Why this is a spec 102 follow-up rather than a spec 151
+  deliverable:* spec 151 defines the requirement (clarifications-
+  resolved.md `Review:` field with three values, downstream-treatment
+  contract); spec 102 owns the certificate pipeline and the verifier.
+  Implementing the differential surfacing is mechanical once spec
+  102 picks it up; landing it in spec 151 would mean spec 151 ships
+  a pipeline change in addition to its declarative-reconciliation
+  surface, which violates the spec/code-coupling separation.
+
+  *Provisional done-when (re-validate at implementation):*
+  (a) `factory/contract/schemas/governance-certificate.schema.json`
+  (or the de-facto serde shape, whichever is canonical at
+  implementation time) carries a `reviewClass` field on the
+  per-decision shape with the three-value enum;
+  (b) `make verify-certificate` surfaces self-pinned decisions
+  distinctly (counted separately or flagged via informational
+  advisory) — verifier exit code unchanged for self-pinned (which is
+  a legitimate state, not a failure);
+  (c) at least one consumer of the certificate (registry-consumer
+  `compliance-report` is the obvious first; OPC desktop's certificate
+  surface is acceptable as alternative) renders the `reviewClass`
+  field visibly so the differential is reachable end-to-end;
+  (d) spec 151's clarifications-resolved.md is the first artifact
+  consumed end-to-end (currently nine `single-author-self-pinned`
+  decisions) — verified by running the verifier against the spec 151
+  Phase 0 artifact set.
+
+  *Cross-reference:* spec 151 §Clarifications preamble (six-field
+  schema, specifically the `Review:` field's downstream-treatment
+  contract clause) is the originating requirement. Spec 151 Phase 0
+  closes by reference to this FU stub existing as named, per spec
+  151's schema-preamble clause: "If spec 102 has not added the
+  surfacing by spec 151's Phase 0 close, a stub follow-up filed
+  against spec 102 is acceptable evidence — the requirement is
+  named, not silently assumed."
+
+  *Filed:* 2026-05-17 by bart, against spec 151 Phase 0 closure.
