@@ -174,6 +174,46 @@ info "Bootstrapping infrastructure..."
 "$SCRIPT_DIR/post-create.sh"
 
 # ---------------------------------------------------------------------------
+# Spec 106 amendment (2026-05-17) — wildcard cert for tenant hostnames.
+# When CLOUDFLARE_DNS_API_TOKEN is set, create the cert-manager
+# Cloudflare-token Secret + apply the DNS-01 ClusterIssuer + the
+# *.tenants.${DOMAIN} Certificate. cert-manager handles the renewal
+# loop. Without the token, the existing HTTP-01 ClusterIssuer keeps
+# handling stagecraft/deployd/rauthy/minio (it can't do wildcards), and
+# tenant ingresses remain TLS-uncoverable until the operator provides
+# the token.
+# ---------------------------------------------------------------------------
+if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
+  info "Creating cloudflare-api-token secret in cert-manager namespace..."
+  kubectl create secret generic cloudflare-api-token \
+    --namespace cert-manager \
+    --from-literal=api-token="$CLOUDFLARE_DNS_API_TOKEN" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  info "Applying tenants wildcard ClusterIssuer + Certificate..."
+  for manifest in "$SCRIPT_DIR/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml" \
+                  "$SCRIPT_DIR/manifests/tenants-wildcard-certificate.yaml"; do
+    envsubst < "$manifest" | kubectl apply -f -
+  done
+
+  info "Waiting for tenants-wildcard cert to reach Ready=True (up to 5m)..."
+  if kubectl -n cert-manager wait --for=condition=Ready certificate/tenants-wildcard --timeout=300s; then
+    ok "Wildcard tenant cert issued"
+  else
+    warn "Wildcard tenant cert did not reach Ready within 5m. Check:"
+    warn "  kubectl -n cert-manager describe certificate tenants-wildcard"
+    warn "  kubectl -n cert-manager get challenges,orders,certificaterequests"
+    warn "  Common causes: Cloudflare token lacks Zone.DNS:Edit on the zone,"
+    warn "  or zone selector mismatch (issuer.solvers[0].selector.dnsZones must match)."
+  fi
+else
+  warn "CLOUDFLARE_DNS_API_TOKEN not set — skipping wildcard tenant cert."
+  warn "  Spec 137 magic-link / federated-login evidence (E2/E3/E4) requires"
+  warn "  TLS on tenant ingress hostnames. Set CLOUDFLARE_DNS_API_TOKEN in"
+  warn "  .env and re-run setup.sh, or follow .env.example for the token shape."
+fi
+
+# ---------------------------------------------------------------------------
 # Phase 1: Create K8s secrets + deploy Rauthy
 # ---------------------------------------------------------------------------
 CHARTS_ROOT="$PLATFORM_ROOT/charts"

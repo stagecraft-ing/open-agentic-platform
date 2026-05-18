@@ -136,52 +136,69 @@ rolls into the first-provider PR.
 
 ---
 
-## Decision 4 — Hostname stability: **`<env-slug>.<project-slug>.<org-slug>.tenants.<base>`**
+## Decision 4 — Hostname stability: **`<env-project-org-slug>.tenants.<base>`** *(amended 2026-05-17)*
 
-**Locked.** Tenant environment hostnames follow the four-label
-pattern:
+**Locked (amended).** Tenant environment hostnames follow a **single
+flattened label** under `.tenants.<base>`:
 
 ```
-<env-slug>.<project-slug>.<org-slug>.tenants.<base-domain>
+<env-slug>-<project-slug>-<org-slug>.tenants.<base-domain>
 ```
 
-Example: `staging.checkout.acme.tenants.platform.example.com`.
+Example: `staging-checkout-acme.tenants.platform.example.com`.
 
 **Rationale.**
 
 - Stable input to `redirect_uri` on Rauthy clients — toggling the
   gate on/off does not change the hostname, so the Rauthy client
   does not need re-registration on toggle (FR-009).
-- Four-label structure unambiguously identifies (org, project, env)
-  triple from the hostname alone — useful for ingress-nginx host
-  routing, oauth2-proxy cookie-domain scoping (`.<base-domain>`
-  scope works for any tenant), and audit-log enrichment.
+- The flattened label still uniquely encodes the (org, project,
+  env) triple — useful for ingress-nginx host routing, oauth2-proxy
+  cookie-domain scoping (`.<base-domain>` scope works for any
+  tenant), and audit-log enrichment.
 - `tenants.<base>` segregates tenant hostnames from platform
   hostnames (`stagecraft.<base>`, `rauthy.<base>`, etc.), giving a
   cookie-domain boundary and a clear DNS / wildcard-cert zone for
   tenants.
 
-**Wildcard cert implication.** A single `*.tenants.<base>` cert
-covers every tenant env — but the four-label depth requires a
-two-level wildcard (`*.*.*.tenants.<base>`), which is NOT supported
-by standard X.509 wildcards. Two viable paths:
+**Wildcard cert path (lands the original Decision 4's intent).** A
+single shared `*.tenants.<base>` wildcard cert covers every flattened
+tenant hostname — one cert, one cert-manager Certificate resource,
+trivial renewal. cert-manager + Let's Encrypt DNS-01 via the
+Cloudflare solver issues + renews automatically (`platform/infra/
+hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml` +
+`tenants-wildcard-certificate.yaml`; spec 106 §12.1 amendment).
 
-- **Option A — per-org wildcard cert** (`*.<org-slug>.tenants.<base>`,
-  one cert per org). Practical: ~1 cert per onboarded org, signed
-  via Let's Encrypt or platform CA. Manageable scale.
-- **Option B — per-tenant cert** (`<env-slug>.<project-slug>.<org-slug>.tenants.<base>`,
-  one cert per env). cert-manager + Let's Encrypt handles this
-  fine at small N but stresses LE rate limits past ~50 envs.
+**History (why amended 2026-05-17).** The original
+Decision 4 picked Option A (per-org wildcard
+`*.<org-slug>.tenants.<base>`) with a four-label hostname pattern
+`<env-slug>.<project-slug>.<org-slug>.tenants.<base>`. That
+combination has a latent depth mismatch — a wildcard cert
+`*.<org-slug>.tenants.<base>` covers `<X>.<org-slug>.tenants.<base>`
+(one label deep from `*`), but the planned hostname is
+`<env>.<project>.<org-slug>.tenants.<base>` (two labels deep). X.509
+wildcards do not support multi-label expansion. The wildcard +
+hostname pattern would never have been consistent as authored.
 
-**Selected.** Option A (per-org wildcard cert). cert-manager
-provisions `*.<org-slug>.tenants.<base>` on org creation in
-stagecraft; deployd-api consumes the cert by reference, no
-per-deployment cert work. Falls back to Option B if a tenant
-requests a custom hostname outside the `tenants.<base>` zone (out
-of scope for this spec).
+The flattened-label amendment lands the original intent (one
+cert covers all tenants in a zone, stable redirect-URI shape)
+without violating wildcard-cert rules. Per-org cert isolation —
+which has a small security argument (limit blast radius if one
+cert key is exposed) — is recoverable as a future amendment:
+move from the single shared cert to one cert per org by introducing
+`*.<org-slug>.tenants.<base>` certs and matching the flattened
+label per-org. Out of scope for the spec 137 evidence path.
+
+**Cert replication.** The wildcard cert + its `tenants-wildcard-tls`
+Secret live in the `cert-manager` namespace; tenant Ingresses live
+in per-app namespaces. The replication mechanism (deployd-api code
+that clones the Secret into the tenant ns at deploy time, OR a
+reflector-style controller) is a spec 137 Phase 4 follow-up — a
+single shared wildcard cert is the unlock here, the consumer-side
+path is the next gate.
 
 **Maps to:** `plan.md` Phase 4 (T041, T042 — ingress annotation
-shape uses the four-label hostname for cookie-domain + redirect-URI
+shape uses the flattened hostname for cookie-domain + redirect-URI
 derivation).
 
 ---

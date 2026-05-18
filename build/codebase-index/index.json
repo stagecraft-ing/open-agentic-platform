@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "bc54a54af0138a63dc84df709f245b2b769cc56ccd09a40a2c94f92bdda18096",
+    "contentHash": "c7ceda3673a8db98d56c75d555a84de33dcf3f30b9ad8cd110d7e1a53bd96972",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -2914,6 +2914,14 @@
           },
           {
             "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
             "source": "spec-implements"
           },
           {
