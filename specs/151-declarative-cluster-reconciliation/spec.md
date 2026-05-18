@@ -997,11 +997,18 @@ The two plan-time options:
   FU-003 retirement). Each sibling lands independently; spec 151
   closes as soon as its narrower scope holds.
 
-This decision is **explicitly deferred to plan.md**. The spec body
-captures the full contract surface so the decision can be made with
-full information; whether plan.md splits the implementation across
-sibling specs or sequences it under spec 151 is a phasing question,
-not a contract question. The contracts (M-001/M-002/M-003, C-001..C-005,
-FR-001..FR-010, SC-001..SC-007) apply regardless of how the
-implementation phases. The split-decision rationale will be recorded
-in plan.md when it lands.
+This decision was **explicitly deferred to plan.md** and **pinned
+2026-05-18 by bart: split into three sibling specs** (this spec
+narrowed to Flux + bootstrap + operational charts; provisional spec
+152 carries Clarification #5's eight sub-pins + chart-contract + CD
+git-write; provisional spec 153 carries SOPS per-purpose Secret
+migration that closes spec 143 FU-008 + FU-003). The three-reason
+rationale and per-sibling scope boundaries are recorded in
+[`plan.md`](./plan.md). The contracts (M-001/M-002/M-003,
+C-001..C-005, FR-001..FR-010, SC-001..SC-007) apply regardless of
+the split — siblings inherit the contract surface, they don't
+re-decide it. Spec 151's own implementation scope is the narrowed
+subset (FR-001/002/003-narrowed/005-Flux-runtime-only/006/007/008/009/010);
+FR-004 and the per-purpose application of FR-005 lift verbatim into
+152 and 153's spec bodies when those siblings are filed (filing
+protocol in plan.md).
