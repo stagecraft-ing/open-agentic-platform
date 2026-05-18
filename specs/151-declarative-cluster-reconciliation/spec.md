@@ -23,6 +23,7 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/manifests/README.md
   - path: platform/gitops/clusters/hetzner-prod/secrets/README.md
   - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header + T-007 pre-flight + bootstrap rewrite
+  - path: platform/infra/hetzner/.env.example   # co-claimant w/ 072/106/143; T-007 (A) follow-up — GITHUB_TOKEN slot mirroring setup.sh pre-flight
   - path: platform/infra/hetzner/cluster.yaml   # T-007 / dr-baseline F4 — k3s_version bump pairs atomically with `flux bootstrap`
   - path: .sops.yaml                            # T-005 + T-006 — multi-recipient SOPS config (operator-host + Bitwarden DR)
   - path: tools/spec-compiler/src/lib.rs        # V-004 exemption for .sops.yaml (causal — co-claimant w/ 001)
@@ -1162,3 +1163,70 @@ entry per the same pattern as the prep section above.
 done-when (`kubectl get pods -n flux-system` showing four default
 controllers Ready + `flux-system/sops-age` Secret present and readable
 by `kustomize-controller`) opens on T-007 (B) execution.
+
+## Phase 1 closure operational landing (2026-05-18)
+
+The operational closure executed in a single 48-minute window
+(13:00–13:48 UTC, on `main` post-#161). T-007 (B0) and T-007 (B)
+landed; Phase 1 done-when verified end-to-end against the production
+cluster. This section mirrors the "code landed" pattern above so the
+narrative anchors the in-cluster reality the `implements:` block now
+points at.
+
+**What landed in-cluster:**
+
+- **K3s in-place upgrade** (T-007 (B0)): `v1.31.4+k3s1` →
+  `v1.33.11+k3s1` via `hetzner-k3s upgrade --new-k3s-version
+  v1.33.11+k3s1` + Rancher system-upgrade-controller Plans. Both
+  nodes rolled in ~11 min. Required step (not optional cluster.yaml
+  drift): per dr-baseline.md §F4 amendment, `flux check --pre` is a
+  hard gate inside `flux bootstrap` and aborts on K8s <1.33 against
+  Flux 2.8.7. Operator-side workaround applied during this window:
+  `hetzner-k3s` reads `cluster.yaml`'s `k3s_version` as the
+  cluster's "current" version (not the live cluster) — because the
+  code PR (#161) already bumped `cluster.yaml` to `v1.33.11+k3s1`,
+  the operator temporarily reverted that field on the workstation
+  for the duration of the `hetzner-k3s upgrade` invocation, then
+  restored. See agent memory `hetzner-k3s-upgrade-comparator` for
+  the durable note; recorded in tasks.md under T-007 (B0).
+- **Flux v2.8.7 bootstrap** (T-007 (B)): `flux bootstrap github
+  --owner=stagecraft-ing --repo=open-agentic-platform --branch=main
+  --path=platform/gitops/clusters/hetzner-prod --personal=false
+  --network-policy=true`. First attempt failed 422 at deploy-key
+  creation — `stagecraft-ing` org default-disables deploy keys
+  (dr-baseline.md §F6). Org admin enabled the toggle (Settings →
+  Repository policies → Deploy keys); re-run succeeded idempotently
+  on the already-pushed components. The bootstrap pushed two
+  commits to remote `main`: `52b28cbe` (gotk-components.yaml) and
+  `a3d0096b` (gotk-sync.yaml + kustomization.yaml).
+- **`flux-system/sops-age` Secret**: applied with the operator-host
+  age private key via `kubectl create secret generic sops-age
+  --namespace=flux-system --from-file=age.agekey=
+  ~/.config/sops/age/keys.txt`. The in-cluster SOPS decryption
+  path is live; spec 153's per-purpose encrypted manifests will
+  reconcile cleanly when filed.
+
+**Done-when verification (against the live cluster at 2026-05-18T13:48Z):**
+
+- `kubectl get pods -n flux-system` — four default controllers
+  Ready: `source-controller`, `kustomize-controller`,
+  `helm-controller`, `notification-controller`. Image controllers
+  intentionally absent per plan.md split (spec 152 surface).
+- `kubectl -n flux-system get secret sops-age -o jsonpath='{.type}'`
+  → `Opaque`; `data.age.agekey` present.
+- `flux get sources git flux-system` — reconciled at
+  `main@sha1:a3d0096b`.
+
+**Findings sharpened during this window:**
+
+- F4 amended in dr-baseline.md — the pre-check is a hard gate
+  inside `flux bootstrap`, not a soft warning. K3s in-place upgrade
+  is a REQUIRED operator step; sequenced as T-007 (B0) in tasks.md.
+- F6 added to dr-baseline.md — `stagecraft-ing` org default-disables
+  deploy keys; first-time bootstrap fails 422 unless the org-level
+  toggle is enabled (path taken 2026-05-18) or `--token-auth` is
+  used (in-cluster long-lived PAT trade-off).
+
+**Phase 1 done-when status: SATISFIED.** Phase 2 (T-008–T-013 —
+reflector + spec 137 wildcard-cert annotations as first
+Flux-reconciled migrations) is unblocked.

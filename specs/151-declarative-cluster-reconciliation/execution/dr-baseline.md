@@ -206,6 +206,29 @@ support. Recommended: bump k3s to the latest 1.33.x at the same time
 spec 151 lands the `flux bootstrap` step — both edits live in
 cluster.yaml / setup.sh, so they go in the same PR.
 
+**Amendment (2026-05-18, post-Phase-1 operational landing).** The
+Phase 0 wording above was imprecise. `flux check --pre` is a **hard
+gate inside `flux bootstrap`**, not a soft warning: the bootstrap
+subcommand invokes `check --pre` first and aborts non-zero on
+version mismatch before it reaches the manifest-apply step. The
+Phase 0 baseline ran the install-only `flux install` path (not
+`flux bootstrap`), which is why manifest apply was observed to
+succeed despite the warning — the install-only path does NOT run
+the pre-check. Operational consequence: **the K3s in-place upgrade
+to ≥1.33 is a REQUIRED operator step before `flux bootstrap`**, not
+merely a `cluster.yaml` declarative pin. The upgrade itself runs
+via `hetzner-k3s upgrade --new-k3s-version` + Rancher
+system-upgrade-controller Plans against the live cluster (~11 min
+for the OAP master+worker pair, 2026-05-18). It is sequenced in
+tasks.md as T-007 (B0), between the code-side scaffold (T-007 (A),
+PR #161) and the operator-driven `flux bootstrap` (T-007 (B)). See
+also: hetzner-k3s reads `cluster.yaml`'s `k3s_version` as the
+cluster's "current" version, not the live cluster — bumping
+`cluster.yaml` on `main` BEFORE running the in-place upgrade
+requires a temporary operator-workstation revert during the
+`hetzner-k3s upgrade` invocation (durable note in agent memory
+`hetzner-k3s-upgrade-comparator`).
+
 **Finding F5 (master-only + `CriticalAddonsOnly` taint).** hetzner-k3s
 configures master nodes with the `CriticalAddonsOnly: true` taint by
 default; Flux's deployment specs do NOT include a matching toleration
@@ -221,6 +244,39 @@ ready, not at the master-ready point. **Resolution path:** the spec
 worker is Ready BEFORE running `flux bootstrap`". A `kubectl wait
 --for=condition=Ready node --selector=!node-role.kubernetes.io/master
 --timeout=10m` gate between steps b and c is the mechanical answer.
+
+**Finding F6 (org-level deploy-key default-disable; 2026-05-18,
+post-Phase-1 operational landing).** `flux bootstrap github` against
+a non-personal repository creates a repo-scoped deploy key on first
+invocation (so `source-controller` can pull from the gitops path).
+The `stagecraft-ing` organisation default-disables deploy keys at
+the org level (Settings → Repository policies → Deploy keys), so the
+first-time bootstrap against any repo under the org fails with HTTP
+422 `Deploy keys are disabled` at the deploy-key creation step. Two
+resolution paths, both verified during the 2026-05-18 operator
+window:
+
+1. **Org-admin enables deploy keys at the org level.** Settings →
+   Repository policies → Deploy keys → toggle. The flux bootstrap
+   subcommand is idempotent on the already-pushed components, so
+   the operator can re-run the same invocation after the org-level
+   toggle flips and bootstrap completes cleanly. This is the path
+   taken on 2026-05-18; the toggle was enabled to unblock and left
+   enabled (durable note in agent memory `stagecraft-ing-org-policies`).
+2. **`flux bootstrap --token-auth`.** Bypasses deploy-key creation
+   by storing the operator's PAT as a Kubernetes Secret in
+   `flux-system`. Trade-off: the PAT lives in-cluster as
+   long-lived auth material; rotation becomes an operator burden
+   the deploy-key path does not have. Documented as the fallback
+   when org policy cannot be toggled (downstream tenant deploys,
+   non-admin operators).
+
+**Resolution path:** DR runbook must call out the org-policy
+prerequisite explicitly so the first-time bootstrap is not the
+moment an operator discovers the toggle. setup.sh's pre-flight
+already enforces `GITHUB_TOKEN`; extending the pre-flight to probe
+deploy-key creation rights against the GitHub API is feasible but
+not currently implemented.
 
 ### Step (c) threshold check (informational — no SC-003 numeric threshold)
 
@@ -283,12 +339,22 @@ findings F1–F5 for plan.md / Phase-1 implementation pickup.
 - **F4** — Flux 2.8.7 vs cluster k3s v1.31.4: pre-check warns (Flux
   expects K8s ≥1.33). Manifest apply still works; load-bearing for
   Stage 2 / future Flux upgrades. Bump k3s to 1.33.x in the same PR
-  that lands `flux bootstrap` for production.
+  that lands `flux bootstrap` for production. **Amended 2026-05-18:**
+  the pre-check is a HARD GATE inside `flux bootstrap`, not a soft
+  warning — the K3s in-place upgrade is a required operator step
+  before bootstrap (sequenced as T-007 (B0)).
 - **F5** — Master `CriticalAddonsOnly: true` taint blocks Flux
   controller scheduling in a master-only cluster. In production
   (worker pool present) this is invisible. DR runbook MUST gate the
   `flux bootstrap` step on `kubectl wait` for at least one
   non-master node Ready.
+- **F6** (added 2026-05-18) — `stagecraft-ing` org default-disables
+  deploy keys at the org level. First-time `flux bootstrap github`
+  against any repo under the org fails 422 at deploy-key creation.
+  Resolutions: (a) org-admin enables Settings → Repository policies
+  → Deploy keys (path taken 2026-05-18; bootstrap is idempotent on
+  re-run after the toggle); (b) `flux bootstrap --token-auth`
+  (in-cluster long-lived PAT trade-off).
 
 ---
 

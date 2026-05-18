@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "95cac667b2494b1505bf8a97639eac24a8e76b75209b3dea14ffb744c0e44eae",
+    "contentHash": "68b865e1133952c948053ca4569b309016226496feeb5e99018f3ea03d12b836",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5180,6 +5180,10 @@
           },
           {
             "path": "platform/gitops/clusters/hetzner-prod/secrets/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
             "source": "spec-implements"
           },
           {
