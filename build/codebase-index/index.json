@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "688a7a0afad2e96efd77930b439587cd57fd7217656fda2ff9f839c25889d698",
+    "contentHash": "f1fdd7283d287a46f00b2123bfcd584af32bf2b2284c0d48ffb0efdf12bcbac9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5236,6 +5236,10 @@
           },
           {
             "path": "specs/137-tenant-environment-access-gates/tasks.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/151-declarative-cluster-reconciliation/execution/drift-detection.md",
             "source": "spec-implements"
           },
           {
