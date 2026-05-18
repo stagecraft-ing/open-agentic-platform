@@ -1,4 +1,4 @@
-# Spec 137 evidence prereq — wildcard TLS cert for tenant Ingresses.
+# Spec 137 — wildcard TLS cert for tenant Ingresses.
 #
 # A single wildcard cert covering `*.tenants.${DOMAIN}` + the apex
 # `tenants.${DOMAIN}`. Both SANs are issued together so a tenant
@@ -11,14 +11,17 @@
 # label after `.tenants.`, e.g. `<env-slug>-<project-slug>-<org-slug>`
 # (hyphens, not dots). See spec 137 §12 amendment.
 #
-# Replication: this cert + its Secret live in `cert-manager` namespace.
-# Tenant Ingresses (in per-app namespaces) need a copy of this Secret
-# to terminate TLS. v1 path: a stagecraft + deployd-api follow-up
-# reads this Secret and clones it into the tenant namespace at deploy
-# time (or uses cert-manager's `--enable-certificate-owner-ref` +
-# kubernetes-reflector annotations). The replication mechanism is
-# explicitly out of scope for this PR — landing the cert itself is the
-# unlock.
+# Replication (spec 137 Phase 4↔5 integration amendment, 2026-05-17):
+# `spec.secretTemplate.annotations` carries kubernetes-reflector
+# annotations. cert-manager propagates the secretTemplate verbatim onto
+# the generated `tenants-wildcard-tls` Secret. Reflector then clones the
+# Secret into every namespace matching `reflection-auto-namespaces`
+# (currently the `.+` catch-all — every namespace gets a copy). Tenant
+# Ingresses (rendered by deployd-api in per-app namespaces) reference
+# `secretName: tenants-wildcard-tls` and find the replicated Secret in
+# their own namespace at TLS-terminate time. No stagecraft side-write,
+# no deployd-api kube-rs hand-rolled clone — the cluster takes care of
+# replication declaratively.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -40,3 +43,17 @@ spec:
   issuerRef:
     name: letsencrypt-prod-dns01-cloudflare
     kind: ClusterIssuer
+  # kubernetes-reflector annotations propagated onto the generated
+  # `tenants-wildcard-tls` Secret. See header comment for the full
+  # replication explanation.
+  secretTemplate:
+    annotations:
+      # Source-side: allow this Secret to be reflected.
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      # Catch-all auto-clone into every namespace. Tenant namespaces
+      # are created on-demand by deployd-api at deploy time; reflector
+      # picks them up and clones the Secret without a per-namespace
+      # admin pass. If a tighter scope is needed later (e.g. only
+      # namespaces labelled `oap.tenant=true`), narrow the regex here.
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: ".+"

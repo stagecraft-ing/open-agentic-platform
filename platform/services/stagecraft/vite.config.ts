@@ -103,6 +103,9 @@ export default defineConfig({
       // Spec 137 Phase 1 — migration 40 CHECK + CASCADE test mutates live
       // `environments` + `environment_access_gates*` tables.
       "**/db/migrations/40_environment_access_gates.test.ts",
+      // Spec 137 Phase 4↔5 integration — migration 41 deploy-descriptor
+      // secrets CHECK test mutates live `environment_access_gates`.
+      "**/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts",
       // Spec 140 Phase 2 — scaffold scheduler resolver test queries the
       // live `factory_upstreams` table.
       "**/projects/scaffold/scheduler.test.ts",

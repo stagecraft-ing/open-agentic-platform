@@ -250,6 +250,15 @@ export const environmentAccessGates = pgTable("environment_access_gates", {
   environmentId: uuid("environment_id").primaryKey(),
   enabled: boolean("enabled").notNull().default(false),
   rauthyClientRef: text("rauthy_client_ref"),
+  // Spec 137 migration 41 — deploy descriptor secrets. Required when
+  // `enabled = true` (CHECK enabled_requires_secrets). NULL when the
+  // descriptor is in its off-state. Plaintext at rest; KMS-backed
+  // encryption is a follow-up spec (plan.md risk register, amended PR).
+  rauthyClientSecret: text("rauthy_client_secret"),
+  cookieSecret: text("cookie_secret"),
+  tlsSecretName: text("tls_secret_name")
+    .notNull()
+    .default("tenants-wildcard-tls"),
   loginMethodMagicLink: boolean("login_method_magic_link")
     .notNull()
     .default(true),

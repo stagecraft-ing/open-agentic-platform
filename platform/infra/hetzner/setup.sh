@@ -174,6 +174,29 @@ info "Bootstrapping infrastructure..."
 "$SCRIPT_DIR/post-create.sh"
 
 # ---------------------------------------------------------------------------
+# Spec 137 Phase 4↔5 integration — kubernetes-reflector for wildcard
+# cert replication into tenant namespaces.
+#
+# The `tenants-wildcard-tls` Secret created by cert-manager (next block)
+# lives in `cert-manager` namespace. Tenant Ingresses (rendered by
+# deployd-api in per-app namespaces) need a local copy of that Secret to
+# terminate TLS. emberstack/kubernetes-reflector watches Secrets with
+# reflector annotations and clones them into matching namespaces — no
+# stagecraft/deployd-api code path required.
+#
+# Idempotent: `helm upgrade --install` reapplies if anything changed.
+# Pin chart to avoid surprise upgrades; bumping is a deliberate edit.
+# ---------------------------------------------------------------------------
+info "Installing kubernetes-reflector for wildcard cert replication..."
+helm repo add emberstack https://emberstack.github.io/helm-charts >/dev/null 2>&1 || true
+helm repo update >/dev/null
+helm upgrade --install reflector emberstack/reflector \
+  --namespace kube-system \
+  --version 9.1.6 \
+  --wait --timeout 5m
+ok "kubernetes-reflector installed"
+
+# ---------------------------------------------------------------------------
 # Spec 106 amendment (2026-05-17) — wildcard cert for tenant hostnames.
 # When CLOUDFLARE_DNS_API_TOKEN is set, create the cert-manager
 # Cloudflare-token Secret + apply the DNS-01 ClusterIssuer + the
@@ -182,6 +205,13 @@ info "Bootstrapping infrastructure..."
 # handling stagecraft/deployd/rauthy/minio (it can't do wildcards), and
 # tenant ingresses remain TLS-uncoverable until the operator provides
 # the token.
+#
+# Spec 137 amendment (2026-05-17) — the Certificate manifest carries
+# reflector annotations on its `spec.secretTemplate`. cert-manager
+# propagates those to the generated `tenants-wildcard-tls` Secret, which
+# reflector then clones into every namespace matching the
+# `reflection-auto-namespaces` regex. Phase 4 tenant deploys mount the
+# replicated Secret directly without a stagecraft side-write.
 # ---------------------------------------------------------------------------
 if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
   info "Creating cloudflare-api-token secret in cert-manager namespace..."

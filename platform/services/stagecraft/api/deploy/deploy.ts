@@ -1,6 +1,8 @@
 import { api } from "encore.dev/api";
+import log from "encore.dev/log";
 import { readSecretFromDir } from "./secrets";
 import { getCachedDeploydAuthHeader } from "./oidcM2m";
+import { loadDeployDescriptorForEnv } from "../environments/accessGatesDeploy";
 
 // Hand-rolled validator for the `/v1/deployments` raw body. zod is
 // avoided here because Encore.ts's TS parser walks zod 4's `.d.cts`
@@ -12,6 +14,10 @@ const DEPLOYD_URL =
 const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ?? "";
 const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
+// Spec 137 — Rauthy issuer URL passed through to deployd-api so the
+// rendered oauth2-proxy points at our identity provider. Distinct from
+// OIDC_ENDPOINT (which is the M2M token endpoint used to call deployd-api).
+const RAUTHY_ISSUER_URL = process.env.RAUTHY_ISSUER_URL ?? "";
 
 interface DesiredRoute {
   host?: string;
@@ -241,6 +247,52 @@ export const createDeployment = api.raw(
       }
     }
 
+    // Spec 137 Phase 4↔5 integration — load the per-env access-gate
+    // descriptor and forward as `access_gate` to deployd-api. The
+    // descriptor lives in stagecraft Postgres; deployd-api only sees the
+    // rendered wire shape. Absent descriptor (no gate ever configured)
+    // produces `null`, which deployd-api treats identically to
+    // `enabled: false` (no auth-url annotation, no gate release).
+    //
+    // RAUTHY_ISSUER_URL is required when any tenant in this cluster
+    // wants an enabled gate; gate-disabled deploys can flow through even
+    // when it's missing (we surface the env var only when we actually
+    // emit a non-null access_gate).
+    let access_gate: Awaited<ReturnType<typeof loadDeployDescriptorForEnv>> = null;
+    try {
+      access_gate = await loadDeployDescriptorForEnv(
+        data.env_id,
+        RAUTHY_ISSUER_URL,
+      );
+      if (access_gate?.enabled && !RAUTHY_ISSUER_URL) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "application/json");
+        res.end(
+          JSON.stringify({
+            error: "missing_config",
+            message:
+              "RAUTHY_ISSUER_URL is required when a tenant access gate is enabled",
+          }),
+        );
+        return;
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      log.error("deploy.access_gate.load_failed", {
+        envId: data.env_id,
+        error: msg,
+      });
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          error: "access_gate_load_failed",
+          message: msg,
+        }),
+      );
+      return;
+    }
+
     try {
       const authHeader = await getDeploydAuthHeader();
       const resp = await fetch(`${DEPLOYD_URL}/v1/deployments`, {
@@ -260,6 +312,7 @@ export const createDeployment = api.raw(
           lane: data.lane,
           config_refs: data.config_refs,
           desired_routes: data.desired_routes,
+          access_gate,
         }),
       });
 
