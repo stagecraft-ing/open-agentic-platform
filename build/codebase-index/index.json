@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "38a1f48ff523925e771aa28c6642d1b04798a24fd2fa1a7a34daa3724f2a018f",
+    "contentHash": "0853ea6d57a858350ac92a3f7edd470e7c3ccc82fbf4cdf3d371ccb55224ce52",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5159,6 +5159,10 @@
         ],
         "implementingPaths": [
           {
+            "path": ".sops.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "DEVELOPERS.md",
             "source": "spec-implements"
           },
@@ -5176,6 +5180,10 @@
           },
           {
             "path": "platform/gitops/clusters/hetzner-prod/secrets/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/cluster.yaml",
             "source": "spec-implements"
           },
           {

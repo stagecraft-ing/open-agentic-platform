@@ -51,11 +51,13 @@ sequencing.
   cluster-mutation step from this section (helm installs, kubectl
   applies — they move into `infrastructure/`).
 
-**Phase 1 done-when:** `kubectl get pods -n flux-system` shows six
-controllers Ready (assuming `--components-extra` includes
-image-{reflector,automation}-controller — verify whether 151
-includes them or defers to 152). SOPS-age Secret present and
-readable.
+**Phase 1 done-when:** `kubectl get pods -n flux-system` shows the
+four default controllers Ready (`source-controller`,
+`kustomize-controller`, `helm-controller`, `notification-controller`).
+Image controllers (`image-reflector-controller`,
+`image-automation-controller`) defer to spec 152 per plan.md split;
+T-007 does NOT pass `--components-extra`. SOPS-age Secret present
+and readable by `kustomize-controller`.
 
 ---
 

@@ -8,10 +8,8 @@
 #   3. Fill in GitHub + OIDC values in .env
 #   4. ./setup.sh                              # Phase 2: full platform
 #
-# Prerequisites: kubectl, helm, hetzner-k3s (current pre-flight set).
-#                Spec 151 Phase 1 closure (T-007) will add flux, sops, age to
-#                the pre-flight when the bootstrap step migrates here. Full
-#                operator prereq table: DEVELOPERS.md §"Hetzner GitOps
+# Prerequisites: kubectl, helm, hetzner-k3s, flux, sops, age. Full operator
+#                prereq table + version pins: DEVELOPERS.md §"Hetzner GitOps
 #                operator (spec 151)".
 #
 # Flags:
@@ -150,10 +148,18 @@ fi
 # Pre-flight checks
 # ---------------------------------------------------------------------------
 info "Pre-flight checks..."
-for cmd in kubectl helm hetzner-k3s; do
+for cmd in kubectl helm hetzner-k3s flux sops age; do
   command -v "$cmd" >/dev/null 2>&1 || err "$cmd not found. Install it first."
 done
 ok "All tools present"
+
+# Spec 151 §Clarification 9 — the laptop age private key materialises as the
+# `flux-system/sops-age` Secret during `flux bootstrap`. Refuse to proceed
+# if the operator key is missing; the cluster's `kustomize-controller` will
+# crash-loop on encrypted-Secret decryption without it.
+SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+[ -f "$SOPS_AGE_KEY_FILE" ] || err "operator-host age key not found at $SOPS_AGE_KEY_FILE (spec 151 §Clarification 9). Generate with: age-keygen -o $SOPS_AGE_KEY_FILE && chmod 0600 $SOPS_AGE_KEY_FILE"
+[ -n "${GITHUB_TOKEN:-}" ] || err "GITHUB_TOKEN not set (needed by 'flux bootstrap github'). Export a fine-grained PAT with Contents:read+write on stagecraft-ing/open-agentic-platform."
 
 # ---------------------------------------------------------------------------
 # Phase 1: Create K3s cluster (idempotent)
@@ -169,14 +175,52 @@ fi
 
 export KUBECONFIG="$KUBECONFIG_PATH"
 
-info "Waiting for nodes..."
-kubectl wait --for=condition=Ready nodes --all --timeout=300s
-ok "All nodes ready"
+# Spec 151 dr-baseline F5 — the k3s master carries `CriticalAddonsOnly: true`
+# and Flux controller deployments don't tolerate it. Gate `flux bootstrap`
+# on at least one non-master node Ready. With workers present in production
+# this is invisible; the explicit wait is the defensive line for fresh-DR
+# rebootstrap when worker placement is still pending.
+info "Waiting for at least one non-master node Ready..."
+kubectl wait --for=condition=Ready node -l '!node-role.kubernetes.io/master' --timeout=10m
+ok "Non-master node ready"
 
 # ---------------------------------------------------------------------------
-# Phase 1: Bootstrap infrastructure
+# Spec 151 Phase 1 — Flux v2 GitOps bootstrap.
+#
+# `flux bootstrap github` is idempotent: on a fresh cluster it commits a
+# `flux-system/` Kustomization to the gitops path, installs the four
+# controllers (source / kustomize / helm / notification), and creates the
+# in-cluster GitRepository that Flux uses to reconcile itself. On an
+# already-bootstrapped cluster it no-ops. Image controllers (image-reflector
+# / image-automation) defer to spec 152 — narrowed 151 ships the four
+# defaults only.
+#
+# The SOPS-age Secret holds the laptop private key (spec 151 §Clarification
+# 9 (c)). `kustomize-controller` reads it for decryption at apply time.
+# Applied as `--from-file` so the file mode stays operator-private on disk
+# while the Secret carries the raw bytes.
 # ---------------------------------------------------------------------------
-info "Bootstrapping infrastructure..."
+info "Bootstrapping Flux v2..."
+flux bootstrap github \
+  --owner=stagecraft-ing \
+  --repo=open-agentic-platform \
+  --branch=main \
+  --path=platform/gitops/clusters/hetzner-prod \
+  --personal=false \
+  --network-policy=true
+
+info "Applying flux-system/sops-age Secret (laptop key)..."
+kubectl create secret generic sops-age \
+  --namespace=flux-system \
+  --from-file=age.agekey="$SOPS_AGE_KEY_FILE" \
+  --dry-run=client -o yaml | kubectl apply -f -
+ok "Flux v2 bootstrapped + SOPS-age Secret present"
+
+# ---------------------------------------------------------------------------
+# Phase 1: Bootstrap infrastructure (legacy path — retires phase by phase
+# as spec 151 Phases 2-4 migrate each chart into platform/gitops/...).
+# ---------------------------------------------------------------------------
+info "Bootstrapping infrastructure (pre-Flux phase-out path)..."
 "$SCRIPT_DIR/post-create.sh"
 
 # ---------------------------------------------------------------------------
