@@ -338,18 +338,31 @@ Constraints on the contract:
 - **SC-002:** `platform/infra/hetzner/setup.sh` line count drops from
   the current ≈400 to under 100 lines, covering only bootstrap. The
   reduction is verified by `wc -l` at spec closure.
-- **SC-003:** A second cluster can be bootstrapped from scratch via
-  the runbook in under 30 minutes of operator wall-clock time,
-  arriving at a converged state matching the declared gitops tree.
-  The 30-minute budget explicitly INCLUDES: (a) SOPS age-key
-  restoration from custody per Clarification #9 (open password
-  manager → export `keys.txt` → place at
-  `~/.config/sops/age/keys.txt`), (b) terraform / `setup.sh`
-  cluster create, (c) `flux bootstrap`, (d) cluster convergence to
-  declared state. If SOPS restoration alone exceeds ~5 minutes, the
-  custody choice in Clarification #9 surfaces as needing revisit.
-  Evidence: timed disaster-recovery exercise on a throwaway cluster,
-  recorded in `execution/disaster-recovery.md` with per-step timings.
+- **SC-003 (aspirational pending Phase 0 empirical baseline):** A
+  second cluster can be bootstrapped from scratch via the runbook in
+  under 30 minutes of operator wall-clock time, arriving at a converged
+  state matching the declared gitops tree. The 30-minute budget
+  explicitly INCLUDES four steps: (a) SOPS age-key restoration from
+  custody per Clarification #9 (open password manager → export
+  `keys.txt` → place at `~/.config/sops/age/keys.txt`), (b) terraform /
+  `setup.sh` cluster create, (c) `flux bootstrap`, (d) cluster
+  convergence to declared state.
+
+  **The 30-minute number is aspirational, not measured.** Phase 0
+  closure requires an empirical baseline: run the four-step sequence
+  against a throwaway Hetzner cluster, record per-step timing in
+  `execution/dr-baseline.md`, and either confirm the 30-minute budget
+  holds or amend SC-003 with the measured number. If SOPS restoration
+  alone exceeds ~5 minutes, the custody choice in Clarification #9
+  surfaces as needing revisit. If terraform / setup.sh alone exceeds
+  ~20 minutes, the bootstrap is too coupled to the imperative script
+  and the FR-003 shrink target needs revisit. The number-without-
+  evidence shape is exactly the gap the cert pipeline is meant to
+  catch; SC-003 names the gap rather than letting it stand.
+
+  Evidence (post-Phase-0): timed disaster-recovery exercise on a
+  throwaway cluster recorded in `execution/disaster-recovery.md` with
+  per-step timings, cross-checked against the Phase 0 baseline.
 - **SC-004:** No `kubectl create secret`, `helm upgrade --install`, or
   `kubectl apply -f` invocations remain in `setup.sh` /
   `post-create.sh` for runtime cluster state. Verified by grep at spec
@@ -387,21 +400,31 @@ Constraints on the contract:
 ## Clarifications
 
 The clarifications below are real open decisions; each is load-bearing.
-Phase 0 closes when each decision is **pinned in
-`clarifications-resolved.md` against the structured schema below.**
-A thumbs-up reaction on GitHub does not close a clarification; an
-unstructured one-line "accepted" does not close one either. The
-governance certificate pipeline ingests this file; the schema is what
-makes "rationale" non-trivially verifiable rather than file-exists-with-
-N-entries.
+Phase 0 closes when **all three** are satisfied: (a) every §Decision in
+`clarifications-resolved.md` matches the six-field schema below, (b)
+the SC-003 empirical fresh-cluster bootstrap baseline has been measured
+and recorded in `execution/dr-baseline.md`, and (c) any §Decision that
+requires the operator to substitute a placeholder (e.g. Clarification
+#9's password-manager vault path) has had the substitution committed
+to the spec body verbatim. A thumbs-up reaction on GitHub does not
+close a clarification; an unstructured "accepted" does not close one
+either. The governance certificate pipeline ingests this file; the
+schema is what makes "rationale" non-trivially verifiable rather than
+file-exists-with-N-entries.
 
-**`clarifications-resolved.md` schema (every §Decision entry):**
+**`clarifications-resolved.md` schema (every §Decision entry, all six
+fields required):**
 
 ```markdown
 ### §Decision N — <kebab-case slug matching the clarification topic>
 
-**Decision:** <the pinned outcome in 1–2 sentences; must be testable
-or implementable — "use Flux v2" is testable, "good GitOps" is not>
+**Decision:** <quote the spec's pinned text verbatim — after Phase 0
+closes, the spec body's "Recommend X" lines are rewritten to "Pinned:
+X" and this field quotes that text exactly, OR references the spec
+line by stable anchor (e.g. `§Clarification N`). Free paraphrase is
+NOT allowed — it invites drift between spec body and resolved-md, a
+class of bug the cert pipeline cannot detect without the structural
+link>
 
 **Alternatives considered:** <bulleted list of the alternatives the
 clarification surfaced; for each, one line on why it lost. "None" is
@@ -418,11 +441,19 @@ change. This is the cert pipeline's tamper-detection surface — if a
 later decision contradicts this consequence, the conflict surfaces
 empirically>
 
+**Review:** <one of `single-author-self-pinned`, `external-reviewer`,
+`multi-party-review` — this field exists so the cert pipeline does
+NOT conflate self-pinning with multi-party review. Self-pinning is a
+legitimate state for a single-author project; the pipeline emits the
+review class as-is and the artifact does not claim social proof it
+does not have. If `external-reviewer` or `multi-party-review`, list
+the reviewer handles inline>
+
 **Pinned:** <YYYY-MM-DD by <name-or-handle>>
 ```
 
 The schema is enforced at Phase 0 close: a `clarifications-resolved.md`
-that is missing any of the five required fields for any §Decision is
+that is missing any of the six required fields for any §Decision is
 not a valid pin set, and Phase 0 is not closed. A future spec may add
 an automated linter for this schema; the MVP enforcement is reviewer
 discipline against the schema printed above.
@@ -478,28 +509,99 @@ not decisions.
      directly against the cluster. That is a second helm client; under
      Flux this is the dual-writer fight.
    - **v1 CD flow (per-service migration in Phase 5):** CD builds and
-     pushes the image to GHCR (unchanged), then commits the new
-     `image.tag` value into the relevant HelmRelease values file under
+     pushes the image to GHCR first, then commits the new `image.tag`
+     value into the relevant HelmRelease values file under
      `platform/gitops/clusters/hetzner-prod/` and pushes to main. Flux's
      `source-controller` picks up the commit (with a webhook receiver
      to avoid the default 1-min polling delay), `helm-controller`
      reconciles the HelmRelease, the Deployment rolls naturally.
+   - **Failure-mode ordering (push image first, then commit):** if
+     image-push succeeds and the commit fails, the GHCR tag is orphaned
+     but harmless (next CD invocation writes a new SHA tag; GHCR's
+     retention garbage-collects untagged-but-orphaned tags). If the
+     commit lands before GHCR replicates the new tag (rare race),
+     `helm-controller` hits `ImagePullBackOff` briefly until the image
+     appears; no manual recovery required.
    - **Conflict on concurrent CDs:** if two services build at the same
      time and both push to main, GitHub's branch-protection serialises;
      the second push rebases or retries. The values file write is a
      single-line edit so merge conflicts are not expected; if they
      occur, the CD job retries with rebase.
-   - **Multi-container / init containers:** the HelmRelease values
-     carries one key per container (`image.main.tag`, `image.init.x.tag`,
-     etc.); CD updates only the key for the container it built. The
-     chart template references the values keys explicitly. No central
-     "path list" is maintained because there is no `driftDetection.ignore`
-     to template — image fields are Flux-owned-via-values, full stop.
-   - **CI/CD permissions:** the CD GitHub Actions job needs a fine-scoped
-     PAT (or a GitHub App token) with `contents: write` on this repo,
-     scoped via CODEOWNERS or branch protection to the values files
-     only. The cluster kubeconfig that today's CD uses for `helm upgrade`
-     can be revoked at migration time per service.
+   - **Chart-contract for image values shape (CD's reading surface):**
+     every OAP application chart MUST expose its image values under a
+     uniform shape, declared in a `cd-managed-images.yaml` companion
+     file at the chart root. Format:
+
+     ```yaml
+     # platform/charts/<service>/cd-managed-images.yaml
+     images:
+       - container: <container-name-in-deployment-template>
+         values_path: image.tag                # path CD writes
+         repository_path: image.repository     # informational, not bumped by CD
+     ```
+
+     Multi-container charts add one `images:` entry per container with
+     distinct `values_path` keys (e.g. `image.main.tag`,
+     `image.sidecar.tag`); init containers if CD-built are listed
+     identically. CD's git-write step reads this manifest, finds the
+     entry for the container it just built, and updates the named
+     `values_path` in the HelmRelease values. Charts WITHOUT this
+     companion file are NOT CD-managed (operator pins the tag manually,
+     e.g. `rauthy` which is third-party-versioned at `0.35.0`). This
+     contract centralises the path knowledge in the chart that owns
+     it, not in per-service CD scripts.
+   - **First-image-deploy baseline (per-service migration PR's
+     responsibility):** when a HelmRelease for service X first lands in
+     git, its `image.tag` MUST be pinned to the SHA of the image
+     currently running in the cluster at migration time (read from
+     `kubectl get deployment <X> -o jsonpath='...'` and pasted into
+     the HelmRelease). Empty tags fail helm; sentinel tags like
+     `:bootstrap` fail image-pull. CD's first run after migration
+     replaces this with the next-built SHA. The migration PR's
+     `implements:` block claims both the HelmRelease and the CD
+     workflow file, so the spec/code coupling gate catches a HelmRelease
+     landing without its CD workflow update.
+   - **Per-service migration atomicity (constraint, not convention):**
+     the PR that lands a HelmRelease for service X MUST also update
+     `.github/workflows/cd-<X>.yml` to remove the `helm upgrade --install`
+     block and replace it with the git-write step, in the SAME commit.
+     Landing a HelmRelease for service X without updating its CD
+     workflow guarantees a dual-writer fight (Flux reconciles to the
+     HelmRelease values, CD imperatively overwrites them, Flux reverts
+     on next reconcile loop). Reviewer MUST refuse a HelmRelease-only
+     PR for a CD-managed service; the spec/code coupling gate enforces
+     it structurally via the migration PR's `implements:` claiming both
+     paths.
+   - **Rollback semantics (break-glass, not routine):** routine
+     rollback is `git revert` on the offending commit; CD picks up the
+     revert and rolls pods back. `helm rollback` and `kubectl rollout
+     undo` are NOT prohibited but are break-glass — when paging an
+     operator at 3am, the operator may invoke them to restore service
+     immediately. Within 24h, the operator MUST land a follow-up PR
+     that either (a) reverts the offending commit (codifying the
+     rollback in git) or (b) restores the original state by re-applying
+     the intended values. Until the follow-up PR lands, Flux's drift
+     detection actively surfaces the divergence in cluster events.
+     This honours C-001 (single source of truth in git) without
+     pretending 3am-emergency operations don't exist.
+   - **Commit signing for CD-bot commits — explicitly out of scope v1,
+     not silently traded:** the CD GitHub Actions job commits to main
+     as `github-actions[bot]` (via the default `GITHUB_TOKEN` for
+     `contents: write` on `platform/gitops/clusters/<cluster>/**/values.yaml`,
+     scoped via CODEOWNERS or branch protection). These commits are
+     NOT signed. Spec 116 does not currently require commit signing
+     (verified against spec 116 §3 in-scope list); adding signed CD
+     commits would require a dedicated bot identity with key custody
+     analogous to C-005. That is named here as a known gap, addressed
+     by a future spec (likely a spec 116 amendment or a sibling
+     supply-chain spec). v1 explicitly accepts unsigned CD commits to
+     `platform/gitops/values/**` paths; the trade-off is recorded, not
+     silent.
+   - **CI/CD permissions:** the CD GitHub Actions job needs
+     `contents: write` on this repo, scoped via CODEOWNERS or branch
+     protection to the gitops values files only. The cluster kubeconfig
+     that today's CD uses for `helm upgrade` can be revoked at
+     migration time per service.
    - **Why this over `driftDetection.ignore`:** ignore-paths model the
      image field as "shared ownership" between Flux and CD, which is a
      latent dual-writer with a polite truce. Git-write makes the image
@@ -543,7 +645,8 @@ not decisions.
 
 9. **SOPS key custody — three load-bearing sub-questions:**
 
-   **(a) Custody locations (named, not categorised).**
+   **(a) Custody locations (named, not categorised) — single-operator
+   model in v1.**
    Recommend two named locations, pinned by name in
    `clarifications-resolved.md` at Phase 0:
    - *Pre-bootstrap location:* operator-host filesystem at
@@ -559,6 +662,17 @@ not decisions.
    - *Post-bootstrap location:* `sops-age` Secret in `flux-system`
      namespace on the live cluster (Flux's convention); not a third
      copy of authority, just the runtime form.
+
+   **Multi-operator custody is explicitly out of scope for v1.** v1
+   assumes a single operator-of-record. When OAP eventually has
+   multiple platform operators, the custody model needs to grow a
+   `.sops.yaml` recipients list (one age public key per operator) and
+   an offboarding contract (when an operator leaves, their public key
+   is removed from the recipients list AND every SOPS-encrypted Secret
+   in the gitops tree is re-encrypted to exclude them — a non-trivial
+   sweep). That work is a future spec ("multi-operator SOPS custody"),
+   not v1. Naming this here so the gap is explicit rather than
+   ambient.
 
    **(b) Rotation contract — out of scope for v1.**
    age key rotation requires re-encrypting every SOPS-encrypted Secret
@@ -662,11 +776,15 @@ not decisions.
 
 The 9 clarifications above are load-bearing decisions that benefit from
 one reviewer pass before lock-in. The recommendations are starting
-points; Phase 0 closes when each is pinned in `clarifications-resolved.md`
-against the five-field schema in the Clarifications preamble (Decision /
-Alternatives considered / Rationale / Consequences / Pinned). A
-recommendation accepted verbatim still requires the four other fields;
-pinning is not a GitHub reaction and "accepted" alone is not a rationale.
-Until Phase 0 closes, the `platform/gitops/` directory and the Flux
-installation MUST NOT be created — the spec's body drives the
-implementation, not the other way around (CONST-005).
+points; Phase 0 closes when ALL of the following land: (a) every
+§Decision in `clarifications-resolved.md` matches the six-field schema
+in the Clarifications preamble (Decision verbatim / Alternatives
+considered / Rationale / Consequences / Review / Pinned), (b) the
+SC-003 empirical bootstrap baseline is measured and recorded in
+`execution/dr-baseline.md`, (c) any placeholder pin (e.g. Clarification
+#9's password-manager vault path if substituted) is committed to the
+spec body verbatim. A recommendation accepted verbatim still requires
+the five other fields; pinning is not a GitHub reaction and "accepted"
+alone is not a rationale. Until Phase 0 closes, the `platform/gitops/`
+directory and the Flux installation MUST NOT be created — the spec's
+body drives the implementation, not the other way around (CONST-005).
