@@ -137,9 +137,21 @@ spec:
             # Spec 106 amendment (2026-05-17) — SMTP env vars sourced
             # from the `rauthy-smtp-secret`. Required for Rauthy's
             # passwordless magic-link login (spec 137 FR-005 / FR-008
-            # evidence path). `connection` and `danger_insecure` keys
-            # are optional: Rauthy picks defaults (TLS on port 465,
-            # STARTTLS otherwise; danger_insecure defaults false).
+            # evidence path).
+            #
+            # First-apply finding (2026-05-17 §12.4 follow-up): the env
+            # var that controls TLS negotiation is `SMTP_STARTTLS_ONLY`,
+            # not `SMTP_CONNECTION` (which Rauthy 0.35 does not define).
+            # On port 587 against Gmail, Rauthy's default "try implicit
+            # TLS first" path fails the handshake with
+            # `InvalidMessage(InvalidContentType)` because the server
+            # speaks plaintext until STARTTLS upgrade. Setting
+            # `SMTP_STARTTLS_ONLY=true` skips the implicit-TLS attempt
+            # and the connection negotiates cleanly.
+            #
+            # `starttls_only` and `danger_insecure` are optional keys
+            # (Rauthy defaults: STARTTLS for non-465 ports,
+            # danger_insecure=false).
             - name: SMTP_FROM
               valueFrom:
                 secretKeyRef:
@@ -165,11 +177,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.smtp.existingSecret }}
                   key: password
-            - name: SMTP_CONNECTION
+            - name: SMTP_STARTTLS_ONLY
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.smtp.existingSecret }}
-                  key: connection
+                  key: starttls_only
                   optional: true
             - name: SMTP_DANGER_INSECURE
               valueFrom:
