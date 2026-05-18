@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7627691dd5afd1dec7d7a6bb2bb8183c2028ef84ba62a30c4f380ecbfd2f5f62",
+    "contentHash": "b6013330f8411b4a2002f00d8cf060b26bb49ec4ba67aeb8b3bca72adfb13549",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -47,6 +47,10 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"151-declarative-cluster-reconciliation\" declares implements path \"platform/charts/rauthy/values-hetzner.yaml\" which is not a known package, adapter, or existing file/directory"
       }
     ]
   },
@@ -5167,6 +5171,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/rauthy/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/gitops/clusters/hetzner-prod/README.md",
             "source": "spec-implements"
           },
@@ -5180,6 +5192,10 @@
           },
           {
             "path": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml",
             "source": "spec-implements"
           },
           {

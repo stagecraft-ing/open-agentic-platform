@@ -46,6 +46,14 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml        # T-017 — HelmRepository + HelmRelease (ingress-nginx 4.15.1, DaemonSet + hostPort + ClusterIP svc)
   - path: platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml  # T-015 — letsencrypt-prod (HTTP-01) + letsencrypt-prod-dns01-cloudflare (DNS-01); co-claimant w/ 106 on the DNS-01 issuer per spec 130 primary-owner heuristic
   - path: platform/infra/hetzner/post-create.sh                                          # T-016 + T-018 — strikes for cert-manager + ingress-nginx + HTTP-01 ClusterIssuer; dormant Hetzner-DNS path preserved
+  # Phase 4 — rauthy chart to Flux. Identity-critical; cutover lands in a
+  # maintenance window. helm-controller adopts the existing in-place
+  # `rauthy` release (`<release>.v2` adoption pattern from Phase 3).
+  # rauthy-secrets + rauthy-smtp-secret materialisation stays imperative
+  # in setup.sh until spec 153 SOPS-migrates them.
+  - path: platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml  # T-019 — HelmRelease (in-tree chart via GitRepository source, hetzner-prod values inlined, smtp.enabled=true)
+  - path: platform/charts/rauthy/values-hetzner.yaml                        # T-019 — deletion; hetzner-prod overrides moved inline into the HelmRelease
+  - path: platform/Makefile                                                 # T-021 follow-on — strip the rauthy block from `deploy-hetzner` to eliminate the dual-writer hazard against Flux
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -1670,3 +1678,122 @@ correctly-identity-preserving cutover. Operators reading
 release Flux has adopted — that's the visual confirmation, not a
 cause for alarm. The chart contents didn't change; helm just
 recorded the upgrade transaction.
+
+### Phase 4 — rauthy chart to Flux (T-019/T-020/T-021)
+
+Identity-critical: rauthy is the OIDC identity provider for stagecraft,
+deployd-api, and every tenant magic-link / federated-login flow. The
+cutover lands in a maintenance window per T-020. The Phase 2 + Phase 3
+zero-downtime adoption pattern (helm-controller assumes ownership of an
+existing release in-place, generates a `.v2` revision, leaves the
+rendered manifests identical) applies here unchanged — but the blast
+radius of a misstep is higher than for reflector / cert-manager /
+ingress-nginx, so the cutover is scheduled rather than opportunistic.
+
+**Chart sourcing — first in-tree chart under Flux.** Phases 2 + 3 all
+referenced remote `HelmRepository` sources (emberstack, jetstack,
+kubernetes/ingress-nginx). Rauthy's chart lives in-tree at
+`platform/charts/rauthy/`, so the HelmRelease references the
+cluster's bootstrap `GitRepository flux-system` directly:
+
+```yaml
+chart:
+  spec:
+    chart: ./platform/charts/rauthy
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+      namespace: flux-system
+    reconcileStrategy: Revision   # any git commit touching the chart triggers reconcile
+```
+
+This is the canonical pattern for in-tree charts under Flux. The
+`reconcileStrategy: Revision` ensures chart template edits land
+without requiring a `Chart.yaml` version bump (the in-tree chart pins
+`version: 0.1.0` and historically rarely bumps; `appVersion` plus
+values are the live signal). Future in-tree charts (the spec 152
+app-chart migration ahead) reuse this pattern.
+
+**Values inlining (vs values-hetzner.yaml file).** The pre-Phase-4
+deployment composed values from THREE sources: the chart's `values.yaml`
+(defaults), `platform/charts/rauthy/values-hetzner.yaml` (Hetzner-prod
+overrides — replicas=1, proxyMode=true, Cloudflare trustedProxies,
+persistence.size=2Gi), and three `--set` overrides from `setup.sh`
+(`ingress.host`, `oidc.issuer`, `bootstrap.adminEmail` — all DOMAIN-pinned),
+plus a conditional `--set smtp.enabled=true` when SMTP_USERNAME was in
+.env. The HelmRelease inlines the Hetzner-prod overrides and the
+DOMAIN-pinned overrides directly under `spec.values` (the chart's own
+`values.yaml` is helm's default, so it is loaded automatically by
+helm-controller and doesn't need to be re-listed). The Hetzner-prod
+domain (`stagecraft.ing`) is hardcoded for the same reason
+`tenants-wildcard-certificate.yaml` hardcodes it: the manifest lives
+under `clusters/hetzner-prod/`, the gitops-tree convention is
+cluster-specific. `values-hetzner.yaml` is deleted in the same PR
+since it has no remaining consumers (the parallel `make deploy-hetzner`
+rauthy block retires in the same PR).
+
+**SMTP hardcoded `enabled: true`.** Spec 106 §12.1 amendments (PRs #152,
+#155, #156) wired SMTP into production. With Phase 4 the chart values
+move into static gitops YAML, which cannot be conditional on operator
+.env presence. So `smtp.enabled: true` is hardcoded in the HelmRelease,
+matching the production reality. `setup.sh` still materialises
+`rauthy-smtp-secret` from .env (spec 153 SOPS-migrates it later); the
+operator MUST confirm the Secret exists before Flux's first reconcile,
+or rauthy crash-loops trying to mount a non-existent Secret. `setup.sh`'s
+warning when SMTP_USERNAME is absent now names this crash-loop risk
+explicitly rather than the previous "magic-link login unavailable"
+soft-warning.
+
+**Dual-writer hazard cleanup.** Two imperative-rauthy paths retired in
+this PR:
+
+- `setup.sh` line ~339-348: the `helm upgrade --install rauthy ...`
+  block. The `RAUTHY_SMTP_HELM_ARGS` plumbing retires alongside.
+- `platform/Makefile` `deploy-hetzner` target: the parallel
+  `helm upgrade --install rauthy ...` block (stagecraft + deployd-api
+  blocks stay imperative until spec 152's migration).
+
+Both paths would dual-writer-fight with Flux's HelmRelease ownership
+once the cutover lands. Eliminating them in the same PR is the
+Phase 2 / Phase 3 cleanup-ownership pattern (FR-008 clause) applied
+to rauthy.
+
+**Cutover sequence (operator-driven, maintenance window):**
+
+1. Confirm `rauthy-secrets` and `rauthy-smtp-secret` exist in
+   `rauthy-system` namespace (`kubectl get secret -n rauthy-system`).
+   Phase 4 does not touch Secret materialisation.
+2. Land the PR. Flux's `flux-system` Kustomization picks up the new
+   `infrastructure/rauthy.yaml` within the 1-minute GitRepository poll
+   interval.
+3. `helm-controller` reads the HelmRelease, finds the existing
+   `rauthy` release in `rauthy-system`, and adopts it in-place. Expect
+   `helm list -A | grep rauthy` to show `rauthy.v2` (Phase 3 adoption
+   pattern).
+4. Validate end-to-end: load `https://auth.stagecraft.ing/auth/v1/`
+   (admin login form), trigger a magic-link from the stagecraft
+   sign-in flow (exercises the rauthy-smtp-secret mount + SMTP
+   submission path), confirm the OIDC token-exchange round-trip from
+   stagecraft completes.
+
+**Phase 4 done-when:** when the next flux-system Kustomization
+reconciliation cycle picks up the new gitops file and the cluster
+state stabilises:
+
+- `kubectl -n rauthy-system get helmrelease rauthy` → READY=True.
+- `helm list -n rauthy-system | grep rauthy` → revision `v2` (or
+  higher if subsequent reconciles fire), chart `rauthy-0.1.0`.
+- `kubectl -n rauthy-system get statefulset rauthy` → DESIRED=1,
+  CURRENT=1, READY=1, AGE preserved (no pod roll — value diff is
+  identical to the pre-Phase-4 imperative-apply state).
+- `kubectl -n rauthy-system get certificate rauthy-tls` → still
+  READY=True, AGE unchanged.
+- OIDC login flow (stagecraft → rauthy → callback → stagecraft) still
+  works end-to-end; magic-link flow still delivers email.
+- `grep -nE 'helm upgrade --install rauthy\b' platform/infra/hetzner/setup.sh platform/Makefile`
+  → no matches (only comment hits explaining the retirement).
+
+Once verified, this section gets an "operational landing (<date>)"
+sub-section mirroring the Phase 2 / Phase 3 closure pattern. Phase 5
+(drift detection + DR runbook) is the next phase after Phase 4
+operational landing.
