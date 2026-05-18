@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1606b8cdd5cd9a448353af75e8e693a2e33b5d267b2f4eb39380d883e7dac14c",
+    "contentHash": "f7d2a99ad14e8748307bafa8a25f5860d92e32a08980d1a54281ce361dd8be18",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5162,7 +5162,8 @@
       "100-post-convergence-remediation",
       "148-auth-driver-registry",
       "149-saml-auth-driver",
-      "150-example-tenant-profile"
+      "150-example-tenant-profile",
+      "151-declarative-cluster-reconciliation"
     ],
     "untracedCode": [
       "grammars/tree-sitter-c",
