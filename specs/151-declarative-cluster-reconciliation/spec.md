@@ -1,7 +1,8 @@
 ---
 id: "151-declarative-cluster-reconciliation"
 title: "Declarative cluster reconciliation — GitOps for cluster-side state via Flux v2"
-status: draft
+status: approved
+approved: "2026-05-18"
 implementation: pending
 owner: bart
 created: "2026-05-17"
@@ -30,7 +31,7 @@ summary: >
 
 **Feature Branch**: `151-declarative-cluster-reconciliation`
 **Created**: 2026-05-17
-**Status**: Draft
+**Status**: Approved (2026-05-18)
 **Input**: When PR #157 added a Helm install (`kubernetes-reflector`) and a
 Certificate-manifest annotation change, neither reached the cluster on
 merge — the canonical path is "re-run setup.sh," a monolith that interleaves
@@ -345,51 +346,80 @@ Constraints on the contract:
 - **SC-002:** `platform/infra/hetzner/setup.sh` line count drops from
   the current ≈400 to under 100 lines, covering only bootstrap. The
   reduction is verified by `wc -l` at spec closure.
-- **SC-003 (aspirational pending Phase 0 empirical baseline):** A
-  second cluster can be bootstrapped from scratch via the runbook in
-  under 30 minutes of operator wall-clock time, arriving at a converged
-  state matching the declared gitops tree. The 30-minute budget
-  explicitly INCLUDES four steps: (a) at least one SOPS recipient
-  private key available on the bootstrap operator's machine per
-  Clarification #9 (the laptop key is the expected default; if the
-  laptop is unavailable, the operator pulls the backup key from
-  Bitwarden — `OAP / sops-age-hetzner-prod-recovery / keys.txt` — and
-  places at `~/.config/sops/age/keys.txt`), (b) terraform / `setup.sh`
-  cluster create, (c) `flux bootstrap`, (d) cluster convergence to
-  declared state.
+- **SC-003 (aspirational pending Phase 0 partial baseline + post-
+  implementation end-state measurement):** A second cluster can be
+  bootstrapped from scratch via the runbook in under 30 minutes of
+  operator wall-clock time, arriving at a converged state matching the
+  declared gitops tree. The 30-minute budget explicitly INCLUDES four
+  steps: (a) at least one SOPS recipient private key available on the
+  bootstrap operator's machine per Clarification #9 (the laptop key is
+  the expected default; if the laptop is unavailable, the operator
+  pulls the backup key from Bitwarden — `OAP /
+  sops-age-hetzner-prod-recovery / keys.txt` — and places at
+  `~/.config/sops/age/keys.txt`), (b) terraform / `setup.sh` cluster
+  create, (c) `flux bootstrap`, (d) cluster convergence to declared
+  state.
 
-  **The 30-minute number is aspirational, not measured.** Phase 0
-  closure requires an empirical baseline: run the four-step sequence
-  against a throwaway Hetzner cluster, record per-step timing in
-  `execution/dr-baseline.md`, and either confirm the 30-minute budget
-  holds or amend SC-003 against the **baseline-vs-target policy**
-  below. If SOPS restoration alone exceeds ~5 minutes, the custody
-  choice in Clarification #9 surfaces as needing revisit. If terraform
-  / setup.sh alone exceeds ~20 minutes, the bootstrap is too coupled
-  to the imperative script and the FR-003 shrink target needs revisit.
-  The number-without-evidence shape is exactly the gap the cert
-  pipeline is meant to catch; SC-003 names the gap rather than letting
-  it stand.
+  **The 30-minute number is aspirational, not measured.** Closing the
+  evidence gap is a two-stage measurement, because step (d) cannot
+  exist before this spec is implemented (there is no `platform/gitops/`
+  tree to converge to at Phase 0). The two stages:
 
-  **Baseline-vs-target policy (pinned, prevents Phase 0 stalling on
-  a number argument):** if the empirical baseline is at or below the
-  30-minute target, SC-003 closes verbatim. If it exceeds the target,
-  the spec body MUST amend SC-003 in the same commit that records the
-  baseline, with all three of: (a) the measured number, (b) the
-  identified dominant cost (e.g. "terraform/Hetzner provisioning at
-  ~25min"), and (c) a sentence on the future-shrink path or its
-  explicit absence (e.g. "no v1 path to shrink; deferred to a future
-  spec exploring per-cloud provisioning alternatives"). Silent
-  acceptance of a larger number ("baseline replaces target without
-  rationale") is NOT acceptable — that is the cert pipeline's gap
-  closure, not its blank check. Blocking on shrinking back to 30
-  without rationale is ALSO not acceptable — it stalls Phase 0 on a
-  number argument the spec body should resolve. The amendment-with-
-  rationale path is the disciplined middle and the pinned policy.
+  **Stage 1 — Phase 0 partial baseline (feasibility check, not an
+  end-state measurement):** Measure steps (a), (b), and (c) against a
+  throwaway Hetzner cluster. Step (d) is structurally NOT measurable
+  at Phase 0 because the declared gitops tree does not yet exist; a
+  `flux bootstrap` with no manifests to reconcile completes once the
+  controllers are healthy. The partial baseline therefore measures the
+  **bootstrap-shape feasibility** (the path is real, the tooling
+  resolves, the SOPS restore is operational), not the **end-state
+  30-min budget**. The numbers it produces are NOT a verdict on
+  whether SC-003 holds end-to-end — they are inputs to the per-step
+  threshold checks below. Specifically:
+  - If SOPS restoration (step a) alone exceeds ~5 minutes, the custody
+    choice in Clarification #9 surfaces as needing revisit.
+  - If terraform / setup.sh (step b) alone exceeds ~20 minutes, the
+    bootstrap is too coupled to the imperative script and the FR-003
+    shrink target needs revisit.
+  - `flux bootstrap` (step c) feasibility is measured as
+    install-only (no gitops tree to reconcile at Phase 0); the
+    per-step number records the controller-set install time, not
+    convergence time.
 
-  Evidence (post-Phase-0): timed disaster-recovery exercise on a
-  throwaway cluster recorded in `execution/disaster-recovery.md` with
-  per-step timings, cross-checked against the Phase 0 baseline.
+  Recorded in `execution/dr-baseline.md`. Phase 0 closure depends on
+  the partial baseline existing and being readable; it does NOT depend
+  on the partial baseline matching the 30-min budget (which it
+  structurally cannot, because step d is absent).
+
+  **Stage 2 — post-implementation end-state DR exercise:** Once the
+  declarative gitops tree exists and Flux reconciles a non-empty
+  declared state (Phases 1–5 implementation), the full four-step
+  sequence is re-measured against a throwaway cluster and recorded in
+  `execution/disaster-recovery.md`. This is the measurement that
+  confirms or refutes the 30-min budget; the Phase 0 partial baseline
+  is what its per-step timings are cross-checked against to detect
+  drift between the bootstrap path's feasibility (Phase 0) and its
+  end-state behavior (post-implementation).
+
+  **Baseline-vs-target policy (applies to Stage 2's end-state
+  measurement, not Stage 1's partial):** if the Stage 2 measurement is
+  at or below the 30-minute target, SC-003 closes verbatim. If it
+  exceeds the target, the spec body MUST amend SC-003 in the same
+  commit that records the Stage 2 measurement, with all three of:
+  (a) the measured number, (b) the identified dominant cost (e.g.
+  "terraform/Hetzner provisioning at ~25min"), and (c) a sentence on
+  the future-shrink path or its explicit absence (e.g. "no v1 path to
+  shrink; deferred to a future spec exploring per-cloud provisioning
+  alternatives"). Silent acceptance of a larger number ("baseline
+  replaces target without rationale") is NOT acceptable — that is the
+  cert pipeline's gap closure, not its blank check. Blocking on
+  shrinking back to 30 without rationale is ALSO not acceptable — it
+  stalls closure on a number argument the spec body should resolve.
+  The amendment-with-rationale path is the disciplined middle and the
+  pinned policy. The policy does NOT apply to the Stage 1 partial
+  because the partial cannot measure the 30-min budget by construction
+  (step d is absent); Stage 1 either records the per-step thresholds
+  cleanly or triggers the named per-step revisit clauses above.
 - **SC-004:** No `kubectl create secret`, `helm upgrade --install`, or
   `kubectl apply -f` invocations remain in `setup.sh` /
   `post-create.sh` for runtime cluster state. Verified by grep at spec
@@ -429,8 +459,9 @@ Constraints on the contract:
 The clarifications below are real open decisions; each is load-bearing.
 Phase 0 closes when **all three** are satisfied: (a) every §Decision in
 `clarifications-resolved.md` matches the six-field schema below, (b)
-the SC-003 empirical fresh-cluster bootstrap baseline has been measured
-and recorded in `execution/dr-baseline.md`, and (c) any §Decision that
+the SC-003 **Stage 1 partial baseline** (feasibility check on steps a,
+b, c; step d structurally deferred to Stage 2) has been measured and
+recorded in `execution/dr-baseline.md`, and (c) any §Decision that
 requires the operator to substitute a placeholder (e.g. Clarification
 #9's password-manager vault path) has had the substitution committed
 to the spec body verbatim. A thumbs-up reaction on GitHub does not
@@ -923,10 +954,12 @@ points; Phase 0 closes when ALL of the following land: (a) every
 §Decision in `clarifications-resolved.md` matches the six-field schema
 in the Clarifications preamble (Decision verbatim / Alternatives
 considered / Rationale / Consequences / Review / Pinned), (b) the
-SC-003 empirical bootstrap baseline is measured and recorded in
-`execution/dr-baseline.md`, (c) any placeholder pin (e.g. Clarification
-#9's password-manager vault path if substituted) is committed to the
-spec body verbatim. A recommendation accepted verbatim still requires
+SC-003 **Stage 1 partial baseline** (steps a + b + c only; step d is
+structurally deferred to the post-implementation Stage 2 DR exercise
+because the gitops tree does not exist at Phase 0) is measured and
+recorded in `execution/dr-baseline.md`, (c) any placeholder pin (e.g.
+Clarification #9's password-manager vault path if substituted) is
+committed to the spec body verbatim. A recommendation accepted verbatim still requires
 the five other fields; pinning is not a GitHub reaction and "accepted"
 alone is not a rationale. Until Phase 0 closes, the `platform/gitops/`
 directory and the Flux installation MUST NOT be created — the spec's

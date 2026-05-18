@@ -6,8 +6,16 @@ matches the six-field schema declared in `spec.md` §Clarifications.
 Phase 0 closure criteria (per spec.md §"Why this spec is filed as `draft`"):
 
 - (a) Every §Decision below matches the six-field schema — **landed**.
-- (b) SC-003 empirical bootstrap baseline measured and recorded in
-  `execution/dr-baseline.md` — **pending operator action**.
+- (b) SC-003 **Stage 1 partial baseline** measured and recorded in
+  `execution/dr-baseline.md` — **landed 2026-05-17**. Stage 1 measures
+  steps (a) SOPS recipient restoration, (b) cluster create, and
+  (c) `flux bootstrap` install-only; step (d) cluster convergence to
+  declared state is structurally deferred to Stage 2 (post-
+  implementation DR exercise in `execution/disaster-recovery.md`)
+  because the `platform/gitops/` declared tree does not exist at
+  Phase 0. The Stage 1 partial is a feasibility check against the
+  per-step thresholds in SC-003, not a measurement of the 30-min
+  end-state budget.
 - (c) Any placeholder pin (e.g. Clarification #9's password-manager
   vault path) committed to spec body verbatim — **landed**: the
   Bitwarden multi-recipient model is committed verbatim in spec.md
@@ -415,20 +423,31 @@ remains a future spec.
 
 ---
 
-## Phase 0 outstanding items
+## Phase 0 closure (2026-05-18)
 
-- **(b) SC-003 empirical baseline** — requires running the four-step
-  DR sequence (SOPS recipient-key restore → terraform/setup.sh →
-  `flux bootstrap` → reconcile) against a throwaway Hetzner cluster
-  and recording per-step timings in `execution/dr-baseline.md`.
-  Operator action; cannot be performed in-session.
-- **Single-author-self-pinned cert-pipeline surfacing** — per
-  §Decision schema, the cert pipeline (spec 102) MUST surface
-  `single-author-self-pinned` distinctly. If spec 102 has not added
-  the surfacing by Phase 0 close, a stub follow-up filed against
-  spec 102 is acceptable Phase 0 evidence (per spec.md schema
-  preamble).
+All Phase 0 outstanding items landed:
 
-When all three outstanding items land, the spec lifecycle flips to
-`status: approved` (with `approved: <date>` frontmatter) and plan.md
-+ tasks.md follow in a sibling PR.
+- **(b) SC-003 Stage 1 partial baseline** — recorded in
+  `execution/dr-baseline.md`. Steps (a) SOPS CLI roundtrip, (b)
+  cluster create (master-ready 124s on fsn1 retry), and (c) `flux
+  install` manifest-apply (<15s) all measured against a throwaway
+  `oap-dr-baseline-throwaway` cluster created and torn down within
+  the session. Findings F1–F5 surfaced for Phase 1+ implementation
+  and Stage 2 end-state pickup; per-step thresholds where measurable
+  cleared with substantial headroom (master-ready 2 min vs ≤20 min
+  threshold). Step (d) cluster convergence is structurally deferred
+  to Stage 2 per the amended SC-003.
+
+- **Single-author-self-pinned cert-pipeline surfacing follow-up** —
+  filed as `specs/102-governed-excellence/spec.md` §Follow-ups
+  FU-001 (2026-05-17). The surfacing requirement is named in spec
+  102, not silently assumed. Implementation belongs to spec 102's
+  pipeline; spec 151's Phase 0 closure depends on the stub existing,
+  not on the implementation having landed (per the §Clarifications
+  schema preamble's downstream-treatment-contract clause).
+
+Spec lifecycle: `status: approved + approved: 2026-05-18` landed in
+the same commit that records this closure. Phases 1–5
+implementation, including the plan.md / tasks.md split decision
+captured in spec.md §"Implementation scope — a plan-time decision",
+follow in a sibling PR.
