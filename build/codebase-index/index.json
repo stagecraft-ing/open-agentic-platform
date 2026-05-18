@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0853ea6d57a858350ac92a3f7edd470e7c3ccc82fbf4cdf3d371ccb55224ce52",
+    "contentHash": "95cac667b2494b1505bf8a97639eac24a8e76b75209b3dea14ffb744c0e44eae",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5188,6 +5188,14 @@
           },
           {
             "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/tests/v004_consolidation_excludes.rs",
             "source": "spec-implements"
           }
         ],

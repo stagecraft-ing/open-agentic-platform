@@ -25,6 +25,8 @@ implements:
   - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header + T-007 pre-flight + bootstrap rewrite
   - path: platform/infra/hetzner/cluster.yaml   # T-007 / dr-baseline F4 — k3s_version bump pairs atomically with `flux bootstrap`
   - path: .sops.yaml                            # T-005 + T-006 — multi-recipient SOPS config (operator-host + Bitwarden DR)
+  - path: tools/spec-compiler/src/lib.rs        # V-004 exemption for .sops.yaml (causal — co-claimant w/ 001)
+  - path: tools/spec-compiler/tests/v004_consolidation_excludes.rs  # V-004 exemption test
   - path: DEVELOPERS.md                         # operator prereq table
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
@@ -1107,6 +1109,15 @@ entry per the same pattern as the prep section above.
   runtime mechanism; spec 153 lands the encrypted manifests).
   Multi-recipient roundtrip verified locally against both pubkeys
   before commit.
+- `tools/spec-compiler/src/lib.rs` — V-004 (no standalone authored
+  YAML) exemption arm extended to include `.sops.yaml` at repo root.
+  Spec 000's invariant targets parallel spec registries as authored
+  truth; `.sops.yaml` is the SOPS CLI's own tool-format config file,
+  consumed by an external binary — same class as `pnpm-workspace.yaml`
+  and `pnpm-lock.yaml` already exempt. Rationale recorded inline on
+  `v004_yaml_scan_exempt` and back-referenced to plan.md §"Constitution
+  check". Covered by a new test (`root_sops_yaml_does_not_trigger_v004`)
+  in `tools/spec-compiler/tests/v004_consolidation_excludes.rs`.
 - `platform/infra/hetzner/cluster.yaml` — `k3s_version` bumped from
   `v1.31.4+k3s1` to `v1.33.11+k3s1` per dr-baseline.md §F4. Pairs
   atomically with the `flux bootstrap` invocation in setup.sh.
