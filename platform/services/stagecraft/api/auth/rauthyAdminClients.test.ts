@@ -171,14 +171,17 @@ const SPEC = {
 } as const;
 
 describe("provisionTenantGateClient", () => {
-  test("(a) creates a new client via POST when GET returns 404", async () => {
+  test("(a) creates a new client via POST when GET returns 404 + captures secret", async () => {
     const calls: RecordedCall[] = [];
     const fetchImpl = makeStubFetch(
       {
         "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1": {
           status: 404,
         },
-        "POST http://rauthy.test/auth/v1/clients": { status: 200 },
+        "POST http://rauthy.test/auth/v1/clients": {
+          status: 200,
+          body: { id: "tenant-gate-env-1", secret: "freshly-minted-secret" },
+        },
       },
       calls,
     );
@@ -191,6 +194,7 @@ describe("provisionTenantGateClient", () => {
     expect(result).toEqual({
       clientId: "tenant-gate-env-1",
       action: "created",
+      clientSecret: "freshly-minted-secret",
     });
     expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1",
@@ -208,7 +212,47 @@ describe("provisionTenantGateClient", () => {
     );
   });
 
-  test("(b) updates an existing client via PUT (NOT PATCH)", async () => {
+  test("(a') accepts `client_secret` field as alternative to `secret`", async () => {
+    const calls: RecordedCall[] = [];
+    const fetchImpl = makeStubFetch(
+      {
+        "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1": {
+          status: 404,
+        },
+        "POST http://rauthy.test/auth/v1/clients": {
+          status: 200,
+          body: { id: "tenant-gate-env-1", client_secret: "alt-shape-secret" },
+        },
+      },
+      calls,
+    );
+    const result = await provisionTenantGateClient(SPEC, {
+      ...ADMIN_CTX,
+      fetchImpl,
+    });
+    expect(result.clientSecret).toBe("alt-shape-secret");
+  });
+
+  test("(a'') throws fail-loud when POST response omits secret", async () => {
+    const calls: RecordedCall[] = [];
+    const fetchImpl = makeStubFetch(
+      {
+        "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1": {
+          status: 404,
+        },
+        "POST http://rauthy.test/auth/v1/clients": {
+          status: 200,
+          body: { id: "tenant-gate-env-1" /* no secret */ },
+        },
+      },
+      calls,
+    );
+    await expect(
+      provisionTenantGateClient(SPEC, { ...ADMIN_CTX, fetchImpl }),
+    ).rejects.toThrow(/no client secret/i);
+  });
+
+  test("(b) updates an existing client via PUT (NOT PATCH) and returns clientSecret: null", async () => {
     const calls: RecordedCall[] = [];
     const existing = {
       id: "tenant-gate-env-1",
@@ -236,6 +280,7 @@ describe("provisionTenantGateClient", () => {
     expect(result).toEqual({
       clientId: "tenant-gate-env-1",
       action: "updated",
+      clientSecret: null,
     });
     expect(calls.map((c) => c.method)).toEqual(["GET", "PUT"]);
     // No PATCH was sent (Rauthy 0.35 has no PATCH endpoint per T003)
@@ -326,7 +371,10 @@ describe("FR-004 invariant — guard fires before network", () => {
           "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1": {
             status: 404,
           },
-          "POST http://rauthy.test/auth/v1/clients": { status: 200 },
+          "POST http://rauthy.test/auth/v1/clients": {
+            status: 200,
+            body: { id: "tenant-gate-env-1", secret: "fr-004-test-secret" },
+          },
         },
         calls,
       ),

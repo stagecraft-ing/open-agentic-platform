@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "49b718e4b2ea6c3e74496c5c9956651ef1a8529baae81ad1b2a3c73722ca4dea",
+    "contentHash": "1606b8cdd5cd9a448353af75e8e693a2e33b5d267b2f4eb39380d883e7dac14c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4336,6 +4336,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/deployd-api-rs/src/helm.rs",
             "source": "spec-implements"
           },
@@ -4368,7 +4376,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/deploy.ts",
             "source": "spec-implements"
           },
           {
@@ -4377,6 +4401,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/environments/accessGates.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGatesDeploy.ts",
             "source": "spec-implements"
           },
           {

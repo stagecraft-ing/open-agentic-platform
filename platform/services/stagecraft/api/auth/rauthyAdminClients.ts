@@ -72,10 +72,23 @@ export async function getRauthyClient(
   return (await resp.json()) as RauthyClientPayload;
 }
 
+/**
+ * POST /auth/v1/clients. Returns the freshly-minted client's secret —
+ * Rauthy issues the confidential-client secret exactly once at create
+ * time and never exposes it on GET (T003 readback, 14-field schema).
+ * Stagecraft must capture it here or lose it.
+ *
+ * Defensive shape parsing: Rauthy 0.35's POST response body is parsed
+ * once and the secret extracted from `secret` or `client_secret`
+ * (whichever is present). If neither field is present, this throws —
+ * the deploy descriptor cannot be assembled without it and silent
+ * fallback would surface as a useless oauth2-proxy that 401s every
+ * request. Fail loud at the boundary.
+ */
 export async function createRauthyClient(
   payload: RauthyClientPayload,
   opts?: AdminCallOptions,
-): Promise<void> {
+): Promise<{ clientSecret: string }> {
   assertNoPasswordFlow(payload);
   const { baseUrl, auth, fetchImpl } = resolveAdminContext(opts);
   const resp = await fetchImpl(`${baseUrl}/auth/v1/clients`, {
@@ -91,6 +104,38 @@ export async function createRauthyClient(
     const body = await resp.text();
     throw new Error(`createRauthyClient ${payload.id} failed: ${resp.status} ${body.slice(0, 400)}`);
   }
+  // Rauthy 0.35 returns the created client in the response body. The
+  // secret may live under either `secret` or `client_secret` depending
+  // on the version's serialiser conventions — accept either, demand
+  // one, never silently default.
+  let body: unknown;
+  try {
+    body = await resp.json();
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `createRauthyClient ${payload.id} returned non-JSON body: ${msg}`,
+    );
+  }
+  const secret = extractClientSecret(body);
+  if (!secret) {
+    throw new Error(
+      `createRauthyClient ${payload.id} succeeded but response contained no client secret ` +
+        `(expected 'secret' or 'client_secret' field). Rauthy admin contract drift — ` +
+        `re-run T003 smoke against this Rauthy version to capture the new shape.`,
+    );
+  }
+  return { clientSecret: secret };
+}
+
+function extractClientSecret(body: unknown): string | null {
+  if (!body || typeof body !== "object") return null;
+  const obj = body as Record<string, unknown>;
+  const candidates = [obj.secret, obj.client_secret, obj.clientSecret];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.length > 0) return c;
+  }
+  return null;
 }
 
 export async function putRauthyClient(
@@ -142,6 +187,15 @@ export interface ProvisionResult {
   clientId: string;
   /** `created` on first provision, `updated` on subsequent runs against an existing client. */
   action: "created" | "updated";
+  /**
+   * Non-null on `action === "created"` only. Rauthy issues the
+   * confidential-client secret once at POST time and never on GET; the
+   * caller MUST persist it (descriptor row) to be able to assemble the
+   * deploy descriptor on subsequent calls. On `"updated"`, the existing
+   * secret remains valid — the caller keeps its previously-persisted
+   * value.
+   */
+  clientSecret: string | null;
 }
 
 /**
@@ -169,13 +223,13 @@ export async function provisionTenantGateClient(
   const payload = buildTenantGateClientPayload(spec);
   const existing = await getRauthyClient(spec.clientId, opts);
   if (existing === null) {
-    await createRauthyClient(payload, opts);
+    const { clientSecret } = await createRauthyClient(payload, opts);
     log.info("rauthy.tenant_gate.client.created", { clientId: spec.clientId });
-    return { clientId: spec.clientId, action: "created" };
+    return { clientId: spec.clientId, action: "created", clientSecret };
   }
   await putRauthyClient(payload, opts);
   log.info("rauthy.tenant_gate.client.updated", { clientId: spec.clientId });
-  return { clientId: spec.clientId, action: "updated" };
+  return { clientId: spec.clientId, action: "updated", clientSecret: null };
 }
 
 /**

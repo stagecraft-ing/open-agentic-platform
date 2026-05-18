@@ -406,6 +406,63 @@ without leaving the project view. Phase 5 landed via the
 
 ---
 
+## Phase 4↔5 integration — descriptor wire-through *(2026-05-17)*
+
+Phases 4 and 5 landed independently (#149 / #150). The integration
+between them — schema for deploy-time secrets, stagecraft caller path
+that forwards the descriptor to deployd-api, cluster-level cert
+replication — is the unlock for Phase 6 evidence.
+
+- [x] T070 Migration 41 — add `rauthy_client_secret`, `cookie_secret`,
+  `tls_secret_name` columns to `environment_access_gates` with a CHECK
+  enforcing both secrets NOT NULL when `enabled = true`. Up + down +
+  vitest under `encore test` exclusion (mutates live rows). Plan.md
+  Risk register amended in same PR to surface the FR-007 reasoning
+  (these are infrastructure credentials, not user secrets).
+- [x] T071 `rauthyAdminClients.ts` — `createRauthyClient` parses the
+  Rauthy admin POST response and extracts the client secret (accepts
+  `secret` OR `client_secret` field, throws fail-loud if neither).
+  `provisionTenantGateClient` returns
+  `{ clientId, action, clientSecret: string | null }`; non-null only
+  on `action='created'` because Rauthy 0.35 admin GET never returns
+  the secret (T003 readback) and PUT does not rotate.
+- [x] T072 `accessGates.ts` `putAccessGate` — on enable, capture
+  `clientSecret` from the provision result + generate
+  `cookieSecret` (32 bytes base64) on first-enable + reuse stored
+  values on subsequent updates (sessions survive `helm upgrade`).
+  Persists to migration 41 columns. Optional `tlsSecretName` override
+  on the request body.
+- [x] T073 `accessGatesDeploy.ts` (NEW) — server-only helper
+  `loadDeployDescriptorForEnv(envId, rauthyIssuerUrl)` that assembles
+  the deployd-api `AccessGateDescriptor` wire shape from the
+  descriptor row + sibling allowlist rows. Isolated from the
+  public-facing `accessGates.ts` so the secret-reading code path is
+  reviewable in one file.
+- [x] T074 `deploy.ts` caller wire-through — `createDeployment` calls
+  `loadDeployDescriptorForEnv` and forwards the value as `access_gate`
+  on the `POST /v1/deployments` request to deployd-api. `null` for
+  envs with no descriptor (no gate ever configured); typed
+  `{enabled:false, ...}` flows for disabled gates. Requires
+  `RAUTHY_ISSUER_URL` env when any tenant has an enabled gate;
+  500-fast otherwise (clearer than silently emitting empty issuer).
+- [x] T075 kubernetes-reflector install — `platform/infra/hetzner/
+  setup.sh` adds `helm upgrade --install reflector
+  emberstack/reflector` pinned to chart version `9.1.6`. Idempotent.
+- [x] T076 Wildcard cert replication annotations —
+  `platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml`
+  carries `spec.secretTemplate.annotations` with reflector
+  `reflection-allowed` + `reflection-auto-enabled` +
+  `reflection-auto-namespaces: ".+"`. cert-manager propagates the
+  annotations onto the generated Secret; reflector clones it into
+  every namespace. Tenant Ingresses reference the local copy.
+
+**Checkpoint:** stagecraft → deployd-api end-to-end carries the gate
+descriptor; cluster has all the moving parts in place for a live
+gate. Phase 6 evidence (E1–E6) becomes runnable against a deployed
+tenant once this PR merges and CD lands.
+
+---
+
 ## Phase 6 — End-to-end + lifecycle flip
 
 - [ ] T060 Evidence E1 — `enabled=false` env: direct exposure
