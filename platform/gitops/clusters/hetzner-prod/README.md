@@ -6,16 +6,14 @@ This tree is the declared state for the OAP Hetzner production cluster (`oap-het
 
 ## Version pair (operator-facing pin)
 
-**Phase 1 prep state (this PR):**
-
-| Component | Current pin | Target for T-007 closure |
+| Component | Current pin | Source of truth |
 |---|---|---|
-| K3s | `v1.31.4+k3s1` | `v1.33.11+k3s1` (latest stable 1.33.x as of 2026-05-18) |
-| Flux v2 | not bootstrapped | `v2.8.7` |
+| K3s | `v1.33.11+k3s1` | [`platform/infra/hetzner/cluster.yaml`](../../../infra/hetzner/cluster.yaml) `k3s_version` |
+| Flux v2 | `v2.8.7` | Operator workstation `flux` CLI (controllers track CLI version at bootstrap) |
 
-`cluster.yaml`'s `k3s_version` lives at the current pin; the bump pairs atomically with `flux bootstrap` in T-007's PR per [spec 151 `execution/dr-baseline.md` §F4](../../../../specs/151-declarative-cluster-reconciliation/execution/dr-baseline.md) — landing the bump alone would risk an operator-initiated cluster recreation between PRs producing a Flux-less v1.33 cluster.
+The K3s + Flux pair is intentionally tracked here as the operator-facing pin because the two MUST move atomically per [spec 151 `execution/dr-baseline.md` §F4](../../../../specs/151-declarative-cluster-reconciliation/execution/dr-baseline.md): Flux 2.8.7 expects K8s ≥ 1.33, and landing the K3s bump alone would risk an operator-initiated cluster recreation producing a Flux-less v1.33 cluster.
 
-Bumping either side post-T-007: open a PR that updates the matching edits and re-runs the DR Stage 2 exercise (spec 151 SC-003).
+Bumping either side: open a PR that updates the matching edit and re-runs the DR Stage 2 exercise (spec 151 SC-003).
 
 ## Layout
 
@@ -42,7 +40,8 @@ Per spec 151 §Clarification 6, the v1 layout is **flat single-cluster**, not th
 
 | Phase | Tasks | What lands here |
 |---|---|---|
-| 1 (this PR) | T-001…T-004 (scaffold only) | Directory README placeholders; `flux-system/` deferred to T-007 |
+| 1 prep | T-001…T-004 | Directory READMEs + setup.sh forward-link |
+| 1 closure | T-005…T-007 | `.sops.yaml` at repo root; `setup.sh` bootstrap rewrite (Flux bootstrap + sops-age Secret); `flux-system/` populated by `flux bootstrap` on first run |
 | 2 | T-008…T-013 | `infrastructure/reflector.yaml` + `manifests/tenants-wildcard-certificate.yaml` (unblocks spec 137 Phase 6) |
 | 3 | T-014…T-018 | `infrastructure/cert-manager.yaml`, `manifests/cert-manager-clusterissuers.yaml`, `infrastructure/ingress-nginx.yaml` |
 | 4 | T-019…T-021 | `infrastructure/rauthy.yaml` |

@@ -22,7 +22,11 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/infrastructure/README.md
   - path: platform/gitops/clusters/hetzner-prod/manifests/README.md
   - path: platform/gitops/clusters/hetzner-prod/secrets/README.md
-  - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header comment only
+  - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header + T-007 pre-flight + bootstrap rewrite
+  - path: platform/infra/hetzner/cluster.yaml   # T-007 / dr-baseline F4 — k3s_version bump pairs atomically with `flux bootstrap`
+  - path: .sops.yaml                            # T-005 + T-006 — multi-recipient SOPS config (operator-host + Bitwarden DR)
+  - path: tools/spec-compiler/src/lib.rs        # V-004 exemption for .sops.yaml (causal — co-claimant w/ 001)
+  - path: tools/spec-compiler/tests/v004_consolidation_excludes.rs  # V-004 exemption test
   - path: DEVELOPERS.md                         # operator prereq table
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
@@ -1080,6 +1084,81 @@ floating as a list of paths.
   per spec 137 Phase 6).
 
 **Phase 1 done-when status:** still pending. The done-when criterion
-in tasks.md ("`kubectl get pods -n flux-system` shows six controllers
-Ready") is closed by T-007 against a real cluster; Phase 1 prep is the
-file-only precondition for that step, not its completion.
+in tasks.md ("`kubectl get pods -n flux-system` shows the four default
+controllers Ready") is closed by T-007 (B) against a real cluster;
+Phase 1 prep is the file-only precondition for that step, not its
+completion.
+
+## Phase 1 closure code landed (2026-05-18)
+
+The Phase 1 closure splits naturally in two: the **code PR** (T-005 +
+T-006 + T-007 (A) — file edits) lands first; the **live bootstrap**
+(T-007 (B) — `flux bootstrap github` + `sops-age` Secret apply against
+the production cluster) executes in the operator window that pairs
+with Phase 2's reflector + wildcard-cert migration. Recording the code
+landing here keeps the `implements:` block anchored to a narrative
+entry per the same pattern as the prep section above.
+
+**What landed in this PR:**
+
+- `.sops.yaml` at repo root — multi-recipient SOPS configuration per
+  §Clarification 9. Operator-host laptop pubkey + Bitwarden-stored DR
+  pubkey both declared; `encrypted_regex` scoped to `(data|stringData)`
+  so Secret metadata stays diff-readable; `path_regex` scoped to
+  `platform/gitops/clusters/hetzner-prod/secrets/` (spec 151 ships the
+  runtime mechanism; spec 153 lands the encrypted manifests).
+  Multi-recipient roundtrip verified locally against both pubkeys
+  before commit.
+- `tools/spec-compiler/src/lib.rs` — V-004 (no standalone authored
+  YAML) exemption arm extended to include `.sops.yaml` at repo root.
+  Spec 000's invariant targets parallel spec registries as authored
+  truth; `.sops.yaml` is the SOPS CLI's own tool-format config file,
+  consumed by an external binary — same class as `pnpm-workspace.yaml`
+  and `pnpm-lock.yaml` already exempt. Rationale recorded inline on
+  `v004_yaml_scan_exempt` and back-referenced to plan.md §"Constitution
+  check". Covered by a new test (`root_sops_yaml_does_not_trigger_v004`)
+  in `tools/spec-compiler/tests/v004_consolidation_excludes.rs`.
+- `platform/infra/hetzner/cluster.yaml` — `k3s_version` bumped from
+  `v1.31.4+k3s1` to `v1.33.11+k3s1` per dr-baseline.md §F4. Pairs
+  atomically with the `flux bootstrap` invocation in setup.sh.
+- `platform/infra/hetzner/setup.sh` — bootstrap-section rewrite (T-007).
+  Pre-flight extended to require `flux`, `sops`, `age`, the operator-
+  host SOPS-age key file, and `GITHUB_TOKEN`. Node-Ready wait narrowed
+  from `nodes --all --timeout=300s` to `node -l
+  '!node-role.kubernetes.io/master' --timeout=10m` per dr-baseline.md
+  §F5 (k3s master's `CriticalAddonsOnly` taint blocks Flux controller
+  scheduling — gating on a worker node Ready is the load-bearing wait).
+  `flux bootstrap github --owner=stagecraft-ing
+  --repo=open-agentic-platform --branch=main
+  --path=platform/gitops/clusters/hetzner-prod --personal=false
+  --network-policy=true` invoked between cluster creation and
+  post-create.sh; `sops-age` Secret applied immediately after with the
+  operator-host private key via `--from-file=age.agekey=`. The
+  post-create.sh call is intentionally preserved as the legacy
+  phase-out path — Phase 3 strips ingress-nginx + cert-manager out of
+  it as their HelmReleases land; setup.sh shrinkage continues
+  monotonically per FR-003.
+- `platform/gitops/clusters/hetzner-prod/README.md` — version-pin
+  table flattened to a single "Current pin" column reflecting the new
+  state; Phase-mapping table extended to distinguish "Phase 1 prep"
+  (PR #160) from "Phase 1 closure" (this PR).
+- `specs/151-declarative-cluster-reconciliation/tasks.md` — Phase 1
+  done-when amended from "six controllers Ready" to "the four default
+  controllers Ready", with explicit pin that T-007 does NOT pass
+  `--components-extra`. Image controllers
+  (`image-reflector-controller`, `image-automation-controller`) defer
+  to spec 152 per plan.md split.
+
+**What did NOT land:**
+
+- T-007 (B) — live `flux bootstrap` execution against the production
+  cluster. Scheduled for the operator window that lands Phase 2's
+  reflector + wildcard-cert migration (the original "why now" trigger
+  per spec 137 Phase 6). Until B executes, the production cluster runs
+  with no in-tree GitOps reconciler; this PR is the precondition, not
+  the closure.
+
+**Phase 1 done-when status:** code precondition met; operational
+done-when (`kubectl get pods -n flux-system` showing four default
+controllers Ready + `flux-system/sops-age` Secret present and readable
+by `kustomize-controller`) opens on T-007 (B) execution.

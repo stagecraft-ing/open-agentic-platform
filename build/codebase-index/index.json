@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "38a1f48ff523925e771aa28c6642d1b04798a24fd2fa1a7a34daa3724f2a018f",
+    "contentHash": "95cac667b2494b1505bf8a97639eac24a8e76b75209b3dea14ffb744c0e44eae",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5159,6 +5159,10 @@
         ],
         "implementingPaths": [
           {
+            "path": ".sops.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "DEVELOPERS.md",
             "source": "spec-implements"
           },
@@ -5179,7 +5183,19 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/infra/hetzner/cluster.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/tests/v004_consolidation_excludes.rs",
             "source": "spec-implements"
           }
         ],

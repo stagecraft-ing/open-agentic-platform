@@ -1174,9 +1174,11 @@ fn yaml_violations(repo_root: &Path, violations: &mut Vec<Violation>) {
     }
 }
 
-/// Lockfiles and workspace manifests at the repository root (e.g. pnpm) are not
-/// "standalone authored YAML" in the sense of V-004; they are package-manager output
-/// or workspace glue, not parallel spec registries.
+/// Lockfiles, workspace manifests, and tool config files at the repository root (e.g.
+/// pnpm, SOPS) are not "standalone authored YAML" in the sense of V-004; they are
+/// package-manager output, workspace glue, or tool-format config consumed by an
+/// external CLI, not parallel spec registries. Spec 151 plan.md §"Constitution check"
+/// records the rationale for `.sops.yaml` in particular.
 fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
     // Files inside `.factory/` directories are indexed by factory scanning (074 FR-007).
     for ancestor in p.ancestors() {
@@ -1195,7 +1197,10 @@ fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
     let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
         return false;
     };
-    matches!(name, "pnpm-workspace.yaml" | "pnpm-lock.yaml")
+    matches!(
+        name,
+        "pnpm-workspace.yaml" | "pnpm-lock.yaml" | ".sops.yaml"
+    )
 }
 
 // ── Factory Build Spec discovery (074 FR-007) ───────────────────────────────
