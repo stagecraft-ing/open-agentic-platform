@@ -123,11 +123,12 @@ bootstrap-hetzner:
 	$(HETZNER_ROOT)/setup.sh
 
 deploy-hetzner:
-	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install rauthy $(CHARTS_ROOT)/rauthy \
-		--namespace rauthy-system \
-		-f $(CHARTS_ROOT)/rauthy/values.yaml \
-		-f $(CHARTS_ROOT)/rauthy/values-hetzner.yaml \
-		--wait --timeout 300s
+	# Spec 151 Phase 4 — rauthy moved to Flux
+	# (`platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml`).
+	# The previous `helm upgrade --install rauthy ...` invocation retired
+	# here to eliminate the dual-writer hazard against the HelmRelease.
+	# stagecraft + deployd-api blocks below stay imperative until spec 152
+	# migrates them.
 	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install stagecraft $(CHARTS_ROOT)/stagecraft \
 		--namespace stagecraft-system \
 		-f $(CHARTS_ROOT)/stagecraft/values.yaml \

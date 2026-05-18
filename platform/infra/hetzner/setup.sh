@@ -4,7 +4,7 @@
 # =============================================================================
 # Usage:
 #   1. cp .env.example .env && $EDITOR .env   # set HCLOUD_TOKEN
-#   2. ./setup.sh                              # Phase 1: cluster + rauthy
+#   2. ./setup.sh                              # Phase 1: cluster + secrets (Flux reconciles rauthy)
 #   3. Fill in GitHub + OIDC values in .env
 #   4. ./setup.sh                              # Phase 2: full platform
 #
@@ -264,7 +264,12 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Phase 1: Create K8s secrets + deploy Rauthy
+# Phase 1: Materialise K8s Secrets that Flux's HelmReleases reference.
+#
+# rauthy itself moved to Flux per spec 151 Phase 4 — the imperative
+# `helm upgrade --install rauthy` block retired here. The `rauthy-secrets`
+# and `rauthy-smtp-secret` materialisations stay imperative until spec 153
+# SOPS-migrates them.
 # ---------------------------------------------------------------------------
 CHARTS_ROOT="$PLATFORM_ROOT/charts"
 
@@ -288,10 +293,13 @@ kubectl create secret generic deployd-api-secrets \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # ---------------------------------------------------------------------------
-# Spec 106 amendment (2026-05-17) — optional SMTP for Rauthy magic-link.
-# When SMTP_USERNAME is set in .env, materialise `rauthy-smtp-secret` and
-# enable the chart's `smtp.enabled=true` overlay. The chart's statefulset
-# pulls SMTP_FROM/URL/PORT/USERNAME/PASSWORD from this Secret.
+# Spec 106 amendment (2026-05-17) — SMTP for Rauthy magic-link.
+# When SMTP_USERNAME is set in .env, materialise `rauthy-smtp-secret`.
+# Flux's rauthy HelmRelease has `smtp.enabled: true` hardcoded
+# (`platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml`),
+# so the StatefulSet will crash-loop on first reconcile if this Secret
+# is absent. The chart's statefulset pulls
+# SMTP_FROM/URL/PORT/USERNAME/PASSWORD from this Secret.
 #
 # **Hetzner Cloud blocks outbound TCP on port 465** (implicit-TLS / SMTPS),
 # confirmed empirically 2026-05-17 against smtp.gmail.com. Port 587 with
@@ -299,13 +307,12 @@ kubectl create secret generic deployd-api-secrets \
 # yields a hard `warn` here because Rauthy will crash-loop at startup on
 # the SMTP connection probe (mailer.rs panics after retry exhaustion).
 # ---------------------------------------------------------------------------
-RAUTHY_SMTP_HELM_ARGS=()
 if [ -n "${SMTP_USERNAME:-}" ]; then
   SMTP_PORT_RESOLVED="${SMTP_PORT:-587}"
   if [ "$SMTP_PORT_RESOLVED" = "465" ]; then
     warn "SMTP_PORT=465 is blocked on Hetzner outbound — Rauthy will crash at startup."
     warn "  Override with SMTP_PORT=587 (STARTTLS submission) in .env, then re-run setup.sh."
-    warn "  Skipping SMTP wire-up to keep Rauthy healthy."
+    warn "  Skipping rauthy-smtp-secret materialisation; rauthy HelmRelease will crash-loop until fixed."
   else
     # Default starttls_only=true when port is 587 (STARTTLS submission).
     # Rauthy 0.35's mailer defaults to "try implicit TLS first, fall back
@@ -329,23 +336,18 @@ if [ -n "${SMTP_USERNAME:-}" ]; then
       --from-literal=starttls_only="$STARTTLS_ONLY_RESOLVED" \
       --from-literal=danger_insecure="${SMTP_DANGER_INSECURE:-false}" \
       --dry-run=client -o yaml | kubectl apply -f -
-    RAUTHY_SMTP_HELM_ARGS+=(--set "smtp.enabled=true")
-    ok "SMTP enabled — Rauthy will send magic-link emails via $SMTP_URL:$SMTP_PORT_RESOLVED"
+    ok "rauthy-smtp-secret materialised — Flux's rauthy HelmRelease will mount it via $SMTP_URL:$SMTP_PORT_RESOLVED"
   fi
 else
-  warn "SMTP_USERNAME not set in .env — Rauthy magic-link login will be unavailable"
+  warn "SMTP_USERNAME not set in .env — Rauthy magic-link login unavailable"
+  warn "  Flux's rauthy HelmRelease pins smtp.enabled=true; the StatefulSet will crash-loop until rauthy-smtp-secret exists."
 fi
 
-info "Deploying Rauthy..."
-helm upgrade --install rauthy "$CHARTS_ROOT/rauthy" \
-  --namespace rauthy-system \
-  -f "$CHARTS_ROOT/rauthy/values.yaml" \
-  -f "$CHARTS_ROOT/rauthy/values-hetzner.yaml" \
-  --set "ingress.host=auth.${DOMAIN}" \
-  --set "oidc.issuer=https://auth.${DOMAIN}/auth/v1/" \
-  --set "bootstrap.adminEmail=admin@${DOMAIN}" \
-  "${RAUTHY_SMTP_HELM_ARGS[@]}" \
-  --wait --timeout 300s
+# Spec 151 Phase 4 — rauthy chart now reconciled by Flux via
+# `platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml`.
+# The previous `helm upgrade --install rauthy ...` invocation retired
+# here. `rauthy-secrets` + `rauthy-smtp-secret` (above) stay imperative
+# until spec 153 SOPS-migrates them.
 
 # ---------------------------------------------------------------------------
 # Show Node IP + DNS instructions
