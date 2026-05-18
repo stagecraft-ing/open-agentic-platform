@@ -1585,3 +1585,88 @@ record. The dormant-code removal doesn't invalidate L-005; it
 acts on the lesson L-005 already captured. Spec 151 records the
 removal because the imperative-cleanup ownership lives here (per
 FR-008); spec 143's narrative remains accurate as-of-its-writing.
+
+### Phase 3 operational landing (2026-05-18)
+
+PR #165 merged 2026-05-18; PR #166 (Hetzner DNS dormant-path cleanup)
+merged shortly after; the operator ran `helm uninstall
+cert-manager-webhook-hetzner -n cert-manager`. Phase 3's cutover
+applied the Phase 2 zero-downtime pattern at scale: two helm releases
+adopted in place + two ClusterIssuers adopted in place + the
+downstream Phase 2 wildcard Certificate untouched + every existing
+platform Certificate untouched.
+
+**In-cluster state (verified against the production cluster
+2026-05-18, post-#166 + post-`helm uninstall`):**
+
+- `GitRepository flux-system`: reconciled at
+  `main@sha1:0442b5804731c25ecb8729b06b6d0311d4a63443` (the #166
+  merge commit).
+- `HelmRelease cert-manager` (namespace `cert-manager`): READY=True,
+  status `"Helm upgrade succeeded for release
+  cert-manager/cert-manager.v2 with chart cert-manager@v1.19.3"`.
+  The `.v2` suffix is helm-controller's record of taking over from
+  the imperative `helm CLI` install (which was `.v1`); the upgrade
+  was a no-op on the underlying resources (values matched).
+- `HelmRelease ingress-nginx` (namespace `ingress-nginx`):
+  READY=True, status `"Helm upgrade succeeded for release
+  ingress-nginx/ingress-nginx.v2 with chart ingress-nginx@4.15.1"`.
+  Same `.v2` adoption pattern.
+- `ClusterIssuer letsencrypt-prod`: READY=True, status `"The ACME
+  account was registered with the ACME server"`, AGE **40d** —
+  unchanged. cert-manager treated the Flux-applied object as the
+  same one it has managed since the original imperative apply; no
+  ACME re-registration.
+- `ClusterIssuer letsencrypt-prod-dns01-cloudflare`: READY=True,
+  AGE **22h** — also unchanged (it was created by Phase 2's
+  setup.sh apply 22h prior; Phase 3 just re-asserted ownership).
+- **Pod ages confirm zero-downtime cutover:**
+  - `cert-manager-5b4798f47c-bbhc5`: AGE 40d, 0 restarts
+  - `cert-manager-cainjector-5fc564b897-tghsg`: 40d, 0 restarts
+  - `cert-manager-webhook-6fb68cfb5b-rbvnc`: 40d, 0 restarts
+    (note: cert-manager's own admission webhook, NOT the now-
+    removed cert-manager-webhook-hetzner)
+  - `ingress-nginx-controller-xkvz6`: 40d, 0 restarts
+- **Certificate state preserved across the cutover** (none re-
+  issued; AGE = original creation time):
+
+  | Certificate | Namespace | AGE | Status |
+  |---|---|---|---|
+  | `stagecraft-tls` | stagecraft-system | 39d | Ready |
+  | `rauthy-tls` | rauthy-system | 40d | Ready |
+  | `deployd-api-tls` | deployd-system | 29d | Ready |
+  | `minio-tls` | stagecraft-system | 10d | Ready |
+  | `tenants-wildcard` | cert-manager | 22h | Ready |
+- **Hetzner DNS webhook removed:** `kubectl -n cert-manager get
+  pods` no longer lists `cert-manager-webhook-hetzner-*`. No
+  downstream consumer impacted (the webhook served the
+  never-existed `letsencrypt-dns01` ClusterIssuer; no certificate
+  was on its issuance path).
+
+**Imperative-path absence (final state):**
+
+```
+$ grep -nE 'helm upgrade --install (cert-manager|ingress-nginx)\b|kind: ClusterIssuer|webhook-hetzner|HCLOUD_DNS' \
+    platform/infra/hetzner/post-create.sh platform/infra/hetzner/setup.sh
+platform/infra/hetzner/post-create.sh:42:# The `cert-manager-webhook-hetzner` chart + the dormant `letsencrypt-
+```
+
+The single remaining hit is the explanatory removal-rationale
+comment authored in PR #166 — no live code references the Hetzner
+DNS path or invokes any of the three cert-manager / ingress-nginx
+imperative install paths.
+
+**Phase 3 done-when status: SATISFIED.** All success criteria green;
+the cutover pattern from Phase 2 scaled cleanly to four resources at
+once (cert-manager + ingress-nginx HelmReleases + two ClusterIssuers).
+Phase 4 (rauthy chart to Flux) is the next migration — identity-
+critical, maintenance window.
+
+**Pattern observation (durable for Phase 4):** the `.v2` helm release
+revision is the helm-controller signature of "adopted an existing
+release written by the helm CLI." It is the expected outcome of a
+correctly-identity-preserving cutover. Operators reading
+`helm list -A` post-Phase-N will see `<release>.v<N+1>` for every
+release Flux has adopted — that's the visual confirmation, not a
+cause for alarm. The chart contents didn't change; helm just
+recorded the upgrade transaction.
