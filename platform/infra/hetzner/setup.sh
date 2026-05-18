@@ -224,44 +224,25 @@ info "Bootstrapping infrastructure (pre-Flux phase-out path)..."
 "$SCRIPT_DIR/post-create.sh"
 
 # ---------------------------------------------------------------------------
-# Spec 137 Phase 4↔5 integration — kubernetes-reflector for wildcard
-# cert replication into tenant namespaces.
-#
-# The `tenants-wildcard-tls` Secret created by cert-manager (next block)
-# lives in `cert-manager` namespace. Tenant Ingresses (rendered by
-# deployd-api in per-app namespaces) need a local copy of that Secret to
-# terminate TLS. emberstack/kubernetes-reflector watches Secrets with
-# reflector annotations and clones them into matching namespaces — no
-# stagecraft/deployd-api code path required.
-#
-# Idempotent: `helm upgrade --install` reapplies if anything changed.
-# Pin chart to avoid surprise upgrades; bumping is a deliberate edit.
+# Spec 151 Phase 2 (2026-05-18) — kubernetes-reflector is now Flux-
+# reconciled via `platform/gitops/clusters/hetzner-prod/infrastructure/
+# reflector.yaml`. The imperative `helm upgrade --install reflector`
+# block that lived here is retired. Flux's `helm-controller` installs
+# the chart on first reconciliation of the gitops tree; setup.sh no
+# longer touches reflector.
 # ---------------------------------------------------------------------------
-info "Installing kubernetes-reflector for wildcard cert replication..."
-helm repo add emberstack https://emberstack.github.io/helm-charts >/dev/null 2>&1 || true
-helm repo update >/dev/null
-helm upgrade --install reflector emberstack/reflector \
-  --namespace kube-system \
-  --version 9.1.6 \
-  --wait --timeout 5m
-ok "kubernetes-reflector installed"
 
 # ---------------------------------------------------------------------------
-# Spec 106 amendment (2026-05-17) — wildcard cert for tenant hostnames.
-# When CLOUDFLARE_DNS_API_TOKEN is set, create the cert-manager
-# Cloudflare-token Secret + apply the DNS-01 ClusterIssuer + the
-# *.tenants.${DOMAIN} Certificate. cert-manager handles the renewal
-# loop. Without the token, the existing HTTP-01 ClusterIssuer keeps
-# handling stagecraft/deployd/rauthy/minio (it can't do wildcards), and
-# tenant ingresses remain TLS-uncoverable until the operator provides
-# the token.
-#
-# Spec 137 amendment (2026-05-17) — the Certificate manifest carries
-# reflector annotations on its `spec.secretTemplate`. cert-manager
-# propagates those to the generated `tenants-wildcard-tls` Secret, which
-# reflector then clones into every namespace matching the
-# `reflection-auto-namespaces` regex. Phase 4 tenant deploys mount the
-# replicated Secret directly without a stagecraft side-write.
+# Spec 106 amendment (2026-05-17) + spec 151 Phase 2 (2026-05-18) —
+# wildcard cert wiring is now split: the DNS-01 ClusterIssuer + the
+# Cloudflare-token Secret remain imperative here (Phase 3 cert-manager
+# migration will absorb them), and the Certificate itself is Flux-
+# reconciled via `platform/gitops/clusters/hetzner-prod/manifests/
+# tenants-wildcard-certificate.yaml`. Without the Cloudflare token
+# this block no-ops; the HTTP-01 ClusterIssuer keeps handling
+# stagecraft/deployd/rauthy/minio (it can't do wildcards), and the
+# Flux-reconciled Certificate stays Pending until the operator
+# provides the token + re-runs setup.sh.
 # ---------------------------------------------------------------------------
 if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
   info "Creating cloudflare-api-token secret in cert-manager namespace..."
@@ -270,27 +251,16 @@ if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
     --from-literal=api-token="$CLOUDFLARE_DNS_API_TOKEN" \
     --dry-run=client -o yaml | kubectl apply -f -
 
-  info "Applying tenants wildcard ClusterIssuer + Certificate..."
-  for manifest in "$SCRIPT_DIR/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml" \
-                  "$SCRIPT_DIR/manifests/tenants-wildcard-certificate.yaml"; do
-    envsubst < "$manifest" | kubectl apply -f -
-  done
-
-  info "Waiting for tenants-wildcard cert to reach Ready=True (up to 5m)..."
-  if kubectl -n cert-manager wait --for=condition=Ready certificate/tenants-wildcard --timeout=300s; then
-    ok "Wildcard tenant cert issued"
-  else
-    warn "Wildcard tenant cert did not reach Ready within 5m. Check:"
-    warn "  kubectl -n cert-manager describe certificate tenants-wildcard"
-    warn "  kubectl -n cert-manager get challenges,orders,certificaterequests"
-    warn "  Common causes: Cloudflare token lacks Zone.DNS:Edit on the zone,"
-    warn "  or zone selector mismatch (issuer.solvers[0].selector.dnsZones must match)."
-  fi
+  info "Applying tenants wildcard ClusterIssuer (Certificate is Flux-reconciled)..."
+  envsubst < "$SCRIPT_DIR/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml" \
+    | kubectl apply -f -
+  ok "DNS-01 ClusterIssuer applied; Flux will reconcile tenants-wildcard Certificate."
 else
-  warn "CLOUDFLARE_DNS_API_TOKEN not set — skipping wildcard tenant cert."
+  warn "CLOUDFLARE_DNS_API_TOKEN not set — skipping DNS-01 ClusterIssuer."
   warn "  Spec 137 magic-link / federated-login evidence (E2/E3/E4) requires"
-  warn "  TLS on tenant ingress hostnames. Set CLOUDFLARE_DNS_API_TOKEN in"
-  warn "  .env and re-run setup.sh, or follow .env.example for the token shape."
+  warn "  TLS on tenant ingress hostnames. The Flux-reconciled wildcard"
+  warn "  Certificate will stay Pending until the operator sets"
+  warn "  CLOUDFLARE_DNS_API_TOKEN in .env and re-runs setup.sh."
 fi
 
 # ---------------------------------------------------------------------------
