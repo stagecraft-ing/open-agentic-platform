@@ -352,13 +352,30 @@ Constraints on the contract:
   closure requires an empirical baseline: run the four-step sequence
   against a throwaway Hetzner cluster, record per-step timing in
   `execution/dr-baseline.md`, and either confirm the 30-minute budget
-  holds or amend SC-003 with the measured number. If SOPS restoration
-  alone exceeds ~5 minutes, the custody choice in Clarification #9
-  surfaces as needing revisit. If terraform / setup.sh alone exceeds
-  ~20 minutes, the bootstrap is too coupled to the imperative script
-  and the FR-003 shrink target needs revisit. The number-without-
-  evidence shape is exactly the gap the cert pipeline is meant to
-  catch; SC-003 names the gap rather than letting it stand.
+  holds or amend SC-003 against the **baseline-vs-target policy**
+  below. If SOPS restoration alone exceeds ~5 minutes, the custody
+  choice in Clarification #9 surfaces as needing revisit. If terraform
+  / setup.sh alone exceeds ~20 minutes, the bootstrap is too coupled
+  to the imperative script and the FR-003 shrink target needs revisit.
+  The number-without-evidence shape is exactly the gap the cert
+  pipeline is meant to catch; SC-003 names the gap rather than letting
+  it stand.
+
+  **Baseline-vs-target policy (pinned, prevents Phase 0 stalling on
+  a number argument):** if the empirical baseline is at or below the
+  30-minute target, SC-003 closes verbatim. If it exceeds the target,
+  the spec body MUST amend SC-003 in the same commit that records the
+  baseline, with all three of: (a) the measured number, (b) the
+  identified dominant cost (e.g. "terraform/Hetzner provisioning at
+  ~25min"), and (c) a sentence on the future-shrink path or its
+  explicit absence (e.g. "no v1 path to shrink; deferred to a future
+  spec exploring per-cloud provisioning alternatives"). Silent
+  acceptance of a larger number ("baseline replaces target without
+  rationale") is NOT acceptable — that is the cert pipeline's gap
+  closure, not its blank check. Blocking on shrinking back to 30
+  without rationale is ALSO not acceptable — it stalls Phase 0 on a
+  number argument the spec body should resolve. The amendment-with-
+  rationale path is the disciplined middle and the pinned policy.
 
   Evidence (post-Phase-0): timed disaster-recovery exercise on a
   throwaway cluster recorded in `execution/disaster-recovery.md` with
@@ -447,7 +464,17 @@ NOT conflate self-pinning with multi-party review. Self-pinning is a
 legitimate state for a single-author project; the pipeline emits the
 review class as-is and the artifact does not claim social proof it
 does not have. If `external-reviewer` or `multi-party-review`, list
-the reviewer handles inline>
+the reviewer handles inline. **Downstream-treatment contract:** the
+governance certificate pipeline (spec 102) MUST surface
+`single-author-self-pinned` distinctly in emitted artifacts —
+either as a flagged field in the certificate JSON, or as a separate
+evidence class — so downstream consumers do not read it as equivalent
+to externally-reviewed pins. Implementing this differential surfacing
+is a spec 102 amendment, not a spec 151 deliverable; spec 151 names
+the requirement (this clause) and spec 102 implements it. If spec 102
+has not added the surfacing by spec 151's Phase 0 close, a stub
+follow-up filed against spec 102 is acceptable evidence — the
+requirement is named, not silently assumed>
 
 **Pinned:** <YYYY-MM-DD by <name-or-handle>>
 ```
@@ -530,26 +557,48 @@ not decisions.
    - **Chart-contract for image values shape (CD's reading surface):**
      every OAP application chart MUST expose its image values under a
      uniform shape, declared in a `cd-managed-images.yaml` companion
-     file at the chart root. Format:
+     file at the chart root. Pinned schema, with worked example:
 
      ```yaml
      # platform/charts/<service>/cd-managed-images.yaml
+     #
+     # CD-managed images contract (spec 151 Clarification #5 sub-pin i).
+     # Every entry names one container that CD builds. CD's git-write
+     # step reads this file, finds the entry matching the container it
+     # just built, and updates the named `values_path` in the
+     # HelmRelease's `spec.values` block. Charts without this file are
+     # NOT CD-managed (operator pins tags manually).
      images:
-       - container: <container-name-in-deployment-template>
-         values_path: image.tag                # path CD writes
-         repository_path: image.repository     # informational, not bumped by CD
+       - container: stagecraft               # required: container name in Deployment template
+         values_path: image.tag              # required: dotted YAML key CD writes
+         repository_path: image.repository   # informational; CD never bumps repository
+         init: false                         # optional, default false; marks init containers
      ```
 
-     Multi-container charts add one `images:` entry per container with
-     distinct `values_path` keys (e.g. `image.main.tag`,
-     `image.sidecar.tag`); init containers if CD-built are listed
-     identically. CD's git-write step reads this manifest, finds the
-     entry for the container it just built, and updates the named
-     `values_path` in the HelmRelease values. Charts WITHOUT this
-     companion file are NOT CD-managed (operator pins the tag manually,
-     e.g. `rauthy` which is third-party-versioned at `0.35.0`). This
-     contract centralises the path knowledge in the chart that owns
-     it, not in per-service CD scripts.
+     Schema invariants:
+     - `container` (string, required) — MUST match a `name:` field in
+       the chart's Deployment template's `spec.template.spec.containers`
+       or `initContainers` array. CD matches on this to find its entry.
+     - `values_path` (string, required) — dotted YAML key path into the
+       HelmRelease's `spec.values`. CD writes the new image SHA tag to
+       this key on every build.
+     - `repository_path` (string, optional) — informational. CD does
+       NOT bump the repository on builds (image repository is a chart-
+       contract concern, not a CD-bump concern).
+     - `init` (boolean, optional, default `false`) — marks init
+       containers. CD does not currently treat init containers
+       differently, but the flag is reserved so future tooling
+       (e.g. an automated check enforcing all init-container builds
+       go through a fixture pipeline) has a stable surface.
+
+     Multi-container charts add one entry per container with distinct
+     `values_path` keys (e.g. `image.main.tag`, `image.sidecar.tag`).
+     Charts WITHOUT this file are NOT CD-managed (operator pins the
+     tag manually, e.g. `rauthy` which is third-party-versioned at
+     `0.35.0`). This contract centralises path knowledge in the chart
+     that owns it, not in per-service CD scripts. Schema lives in the
+     spec body (the snippet above is the authoritative shape); the
+     first chart migration in Phase 5 establishes the working example.
    - **First-image-deploy baseline (per-service migration PR's
      responsibility):** when a HelmRelease for service X first lands in
      git, its `image.tag` MUST be pinned to the SHA of the image
@@ -557,21 +606,56 @@ not decisions.
      `kubectl get deployment <X> -o jsonpath='...'` and pasted into
      the HelmRelease). Empty tags fail helm; sentinel tags like
      `:bootstrap` fail image-pull. CD's first run after migration
-     replaces this with the next-built SHA. The migration PR's
-     `implements:` block claims both the HelmRelease and the CD
-     workflow file, so the spec/code coupling gate catches a HelmRelease
-     landing without its CD workflow update.
-   - **Per-service migration atomicity (constraint, not convention):**
-     the PR that lands a HelmRelease for service X MUST also update
+     replaces this with the next-built SHA.
+   - **Per-service migration atomicity — enforcement is layered, not
+     a single hand-wave "gate":**
+     The PR that lands a HelmRelease for service X MUST also update
      `.github/workflows/cd-<X>.yml` to remove the `helm upgrade --install`
      block and replace it with the git-write step, in the SAME commit.
      Landing a HelmRelease for service X without updating its CD
      workflow guarantees a dual-writer fight (Flux reconciles to the
      HelmRelease values, CD imperatively overwrites them, Flux reverts
-     on next reconcile loop). Reviewer MUST refuse a HelmRelease-only
-     PR for a CD-managed service; the spec/code coupling gate enforces
-     it structurally via the migration PR's `implements:` claiming both
-     paths.
+     on next reconcile loop). The enforcement is structural in two
+     layers:
+
+     **(1) First-claim enforcement — reviewer + CODEOWNERS at migration
+     PR time.** The migration PR's `implements:` block (in
+     `specs/151-declarative-cluster-reconciliation/spec.md`) adds
+     claims for BOTH `platform/gitops/clusters/hetzner-prod/<X>-helmrelease.yaml`
+     AND `.github/workflows/cd-<X>.yml`. The PR description's
+     verification step asserts both claims are present. CODEOWNERS for
+     `platform/gitops/clusters/**` and `.github/workflows/cd-*.yml`
+     overlap on the spec 151 owner, so the migration PR cannot land
+     without a review that catches an incomplete claim. The spec/code
+     coupling gate (spec 127, `tools/spec-code-coupling-check/`,
+     CI workflow `.github/workflows/ci-spec-code-coupling.yml`) does
+     NOT directly catch a missing claim at first-claim time — it fires
+     on *touched paths claimed by some spec*; if a path is unclaimed
+     and untouched, the gate has nothing to inspect.
+
+     **(2) Post-migration enforcement — coupling gate fires structurally.**
+     Once the migration PR has landed and both paths are claimed in
+     spec 151's `implements:`, any subsequent PR that touches ONLY one
+     of the two paths (e.g. updates the HelmRelease without touching
+     `cd-<X>.yml`) triggers the coupling gate: a claimed-path is in
+     the diff but the spec.md is not. The PR must either modify
+     `spec.md` to remove the orphaned claim (an explicit decision to
+     un-couple, reviewable) or include the paired path in the diff.
+     The structural enforcement is real *after* the migration PR
+     correctly claims both paths.
+
+     **(3) Future hardening (named, not v1):** a sibling check in
+     `ci-spec-code-coupling.yml` that fails when a PR touches
+     `platform/gitops/clusters/<cluster>/<service>-helmrelease.yaml`
+     without `.github/workflows/cd-<service>.yml` (or vice versa) at
+     first-claim time would close layer (1)'s discipline-dependence.
+     Adding this check is a future spec-151 amendment (Phase 5+) or a
+     spec 127 sibling-rule; not v1. Documented here so the gap is
+     named, not silently assumed away.
+
+     Reviewer MUST refuse a HelmRelease-only PR for a CD-managed
+     service; the layered enforcement above is the structural backbone,
+     not a substitute for the reviewer's first-line discipline.
    - **Rollback semantics (break-glass, not routine):** routine
      rollback is `git revert` on the offending commit; CD picks up the
      revert and rolls pods back. `helm rollback` and `kubectl rollout
@@ -788,3 +872,44 @@ the five other fields; pinning is not a GitHub reaction and "accepted"
 alone is not a rationale. Until Phase 0 closes, the `platform/gitops/`
 directory and the Flux installation MUST NOT be created — the spec's
 body drives the implementation, not the other way around (CONST-005).
+
+## Implementation scope — a plan-time decision
+
+This spec's surface has grown across review rounds: from one
+clarification to nine, with Clarification #5 carrying eight sub-pins,
+plus a new contract clause (C-005), new closure gates, and a structured
+schema for `clarifications-resolved.md`. Each addition closes a real
+seam; the growth is a feature, not bloat. But the implementation
+surface — Flux bootstrap → operational chart migrations → app-chart
+migrations with the new chart-contract + CD git-write flow → SOPS
+per-purpose Secrets → drift detection + DR validation — is now large
+enough that plan.md must make a deliberate decision about how to phase
+or split it.
+
+The two plan-time options:
+
+- **Single-spec sequenced implementation.** Phases 0–6 (or however many)
+  land under spec 151's banner, ordered carefully so load-bearing
+  dependencies hold: Flux MUST exist before HelmReleases; the
+  chart-contract (sub-pin i) MUST exist before the first per-service
+  migration; SOPS bootstrap MUST exist before any per-purpose Secret
+  migrates. The phasing itself becomes the risk surface — a stalled
+  Phase 3 blocks Phase 4.
+- **Split into sibling specs.** Spec 151 narrows to Flux + bootstrap
+  + operational chart migrations (reflector, cert-manager,
+  ingress-nginx, rauthy) and unblocks spec 137 Phase 6. A sibling
+  spec (provisionally 151b — "declarative app-chart migration") takes
+  on Clarification #5's eight sub-pins, the chart-contract, the
+  per-service atomicity rules, and the CD git-write flow. A second
+  sibling (151c) handles SOPS per-purpose Secret migration (FU-008 /
+  FU-003 retirement). Each sibling lands independently; spec 151
+  closes as soon as its narrower scope holds.
+
+This decision is **explicitly deferred to plan.md**. The spec body
+captures the full contract surface so the decision can be made with
+full information; whether plan.md splits the implementation across
+sibling specs or sequences it under spec 151 is a phasing question,
+not a contract question. The contracts (M-001/M-002/M-003, C-001..C-005,
+FR-001..FR-010, SC-001..SC-007) apply regardless of how the
+implementation phases. The split-decision rationale will be recorded
+in plan.md when it lands.
