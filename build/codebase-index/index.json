@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "68b865e1133952c948053ca4569b309016226496feeb5e99018f3ea03d12b836",
+    "contentHash": "42cf773f84277391b7f1a3b10b82f3a032aeca44faf1a43087fac43abbd82fa2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5175,7 +5175,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/gitops/clusters/hetzner-prod/manifests/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml",
             "source": "spec-implements"
           },
           {
@@ -5192,6 +5200,10 @@
           },
           {
             "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/137-tenant-environment-access-gates/tasks.md",
             "source": "spec-implements"
           },
           {

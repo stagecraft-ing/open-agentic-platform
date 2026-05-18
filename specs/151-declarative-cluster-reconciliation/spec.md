@@ -22,13 +22,19 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/infrastructure/README.md
   - path: platform/gitops/clusters/hetzner-prod/manifests/README.md
   - path: platform/gitops/clusters/hetzner-prod/secrets/README.md
-  - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header + T-007 pre-flight + bootstrap rewrite
+  - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header + T-007 pre-flight + bootstrap rewrite + Phase 2 reflector/cert strikes
   - path: platform/infra/hetzner/.env.example   # co-claimant w/ 072/106/143; T-007 (A) follow-up — GITHUB_TOKEN slot mirroring setup.sh pre-flight
   - path: platform/infra/hetzner/cluster.yaml   # T-007 / dr-baseline F4 — k3s_version bump pairs atomically with `flux bootstrap`
   - path: .sops.yaml                            # T-005 + T-006 — multi-recipient SOPS config (operator-host + Bitwarden DR)
   - path: tools/spec-compiler/src/lib.rs        # V-004 exemption for .sops.yaml (causal — co-claimant w/ 001)
   - path: tools/spec-compiler/tests/v004_consolidation_excludes.rs  # V-004 exemption test
   - path: DEVELOPERS.md                         # operator prereq table
+  # Phase 2 — reflector + spec 137 wildcard-cert annotations as the first
+  # Flux-reconciled migrations under the gitops tree. Unblocks spec 137
+  # Phase 6 evidence collection (E1–E6).
+  - path: platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml      # T-008 — HelmRepository + HelmRelease for emberstack/reflector 9.1.6 (operational parity w/ setup.sh's removed block)
+  - path: platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml  # T-009 — cert-manager Certificate w/ reflector secretTemplate annotations; co-claimant w/ 106/137 (existing claimants on the imperative ancestor); spec 130 any-claimant rule applies
+  - path: specs/137-tenant-environment-access-gates/tasks.md                       # T-011 — T075/T076 annotated w/ the Phase 2 migration; spec 137's tasks list records the new Flux-reconciled ownership
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -1230,3 +1236,91 @@ points at.
 **Phase 1 done-when status: SATISFIED.** Phase 2 (T-008–T-013 —
 reflector + spec 137 wildcard-cert annotations as first
 Flux-reconciled migrations) is unblocked.
+
+## Phase 2 — reflector + wildcard-cert annotations (T-008–T-013)
+
+**Status:** code landed in this PR; the gitops tree now carries the
+first Flux-reconciled chart + the first cert-manager Certificate.
+Operational landing follows on the next reconciliation cycle (the
+flux-system Kustomization reconciles every 10 min per the
+gotk-sync.yaml `interval` setting; the next push to `main` triggers
+the GitRepository to refetch immediately).
+
+**What landed in this PR:**
+
+- `platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml`
+  (T-008) — HelmRepository for `emberstack/helm-charts` +
+  HelmRelease for `reflector` chart `9.1.6`, namespace
+  `kube-system`. Operational parity: same chart, same version, same
+  namespace, default values — only the install mechanism shifts
+  from `helm upgrade --install` to helm-controller reconciliation.
+  No `dependsOn` against cert-manager: reflector watches core/v1
+  Secret objects and registers no CRDs of its own.
+- `platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml`
+  (T-009) — `cert-manager.io/v1` Certificate covering
+  `*.tenants.stagecraft.ing` + the apex `tenants.stagecraft.ing`.
+  ECDSA P-256, 90-day duration, 15-day renewal window.
+  `spec.secretTemplate.annotations` carries reflector
+  `reflection-allowed` + `reflection-auto-enabled` +
+  `reflection-auto-namespaces: ".+"`; cert-manager propagates
+  those onto the generated `tenants-wildcard-tls` Secret;
+  reflector clones the Secret into every namespace. Domain is
+  hardcoded (`stagecraft.ing`) because the tree under
+  `clusters/hetzner-prod/` is cluster-specific by convention;
+  multi-cluster parity (if/when needed) refactors to Flux's
+  `postBuild.substituteFrom` ConfigMap pattern.
+- `platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml`
+  CRD-ordering (T-010) — interim resolution per tasks.md T-010 with
+  no wrapping `Kustomization`: cert-manager is materialised by
+  `post-create.sh` BEFORE Flux's first Certificate reconciliation,
+  and Flux retries on transient apply failure, so convergence is
+  robust during the Phase-2-to-Phase-3 window without an explicit
+  `dependsOn`. When Phase 3 lands cert-manager as a Flux-reconciled
+  HelmRelease, that PR adds the wrapping Kustomization with
+  `dependsOn: [cert-manager]` for explicit CRD-before-CR ordering
+  per spec 151 §R-004.
+- `platform/infra/hetzner/setup.sh` (T-011 strike) — the imperative
+  `helm upgrade --install reflector` block (L226-247 pre-edit) and
+  the imperative `kubectl apply tenants-wildcard-certificate.yaml`
+  line (inside the for-loop at L274-277 pre-edit) are retired,
+  with phase-out comments referencing the gitops counterparts. The
+  DNS-01 ClusterIssuer apply (and the cloudflare-api-token Secret)
+  remain imperative — those are Phase 3 cert-manager territory
+  and absorb into gitops when cert-manager itself migrates.
+- `specs/137-tenant-environment-access-gates/tasks.md` (T-011 +
+  T-012) — T075 + T076 annotated with the Phase 2 migration trail;
+  spec 137 records the new Flux-reconciled ownership of both the
+  reflector chart and the wildcard cert manifest in its own tasks
+  list. This is the spec-side cross-check required by FR-008.
+
+**What did NOT land in this PR (Phase 2 follow-ups):**
+
+- T-013 — spec 137 Phase 6 evidence collection (E1–E6) is unblocked
+  by this PR but executes independently against the deployed
+  tenant. Phase 6 closure is a spec 137 PR, not a 151 PR.
+- The imperative manifest file at
+  `platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml`
+  is no longer applied by setup.sh but remains in-tree as a
+  reference. A follow-up cleanup PR can delete it once specs 106
+  and 137 amender-edits are coordinated (the file is claimed by
+  both). Not a Phase 2 blocker.
+
+**Phase 2 done-when:** when the next flux-system Kustomization
+reconciliation cycle (≤10 min) picks up these new gitops files and
+both resources reach Ready:
+
+- `kubectl -n flux-system get helmrelease reflector` → READY=True.
+- `kubectl -n kube-system get pods -l app.kubernetes.io/name=reflector`
+  → at least one pod Ready.
+- `kubectl -n cert-manager get certificate tenants-wildcard` →
+  READY=True (or already Ready if it was issued by the previous
+  imperative apply; cert-manager treats the Flux-reconciled
+  resource as the same object by name).
+- `kubectl get secret tenants-wildcard-tls -A` → present in the
+  `cert-manager` namespace + cloned into every other namespace
+  per reflector's catch-all regex.
+- `grep -E 'helm upgrade --install reflector|kubectl apply.*tenants-wildcard-certificate'
+  platform/infra/hetzner/setup.sh` → no matches.
+
+Once verified, this section gets an "operational landing
+(<date>)" sub-section mirroring the Phase 1 closure pattern.

@@ -445,16 +445,29 @@ replication — is the unlock for Phase 6 evidence.
   `{enabled:false, ...}` flows for disabled gates. Requires
   `RAUTHY_ISSUER_URL` env when any tenant has an enabled gate;
   500-fast otherwise (clearer than silently emitting empty issuer).
-- [x] T075 kubernetes-reflector install — `platform/infra/hetzner/
-  setup.sh` adds `helm upgrade --install reflector
-  emberstack/reflector` pinned to chart version `9.1.6`. Idempotent.
+- [x] T075 kubernetes-reflector install — originally landed as an
+  imperative `helm upgrade --install reflector emberstack/reflector`
+  in `platform/infra/hetzner/setup.sh` pinned to chart version
+  `9.1.6`. **Migrated 2026-05-18 (spec 151 Phase 2):** the chart is
+  now Flux-reconciled via `platform/gitops/clusters/hetzner-prod/
+  infrastructure/reflector.yaml` (HelmRepository + HelmRelease,
+  same version, default values, operational parity preserved). The
+  setup.sh block is retired in the same PR per spec 151 FR-008's
+  cleanup-ownership clause.
 - [x] T076 Wildcard cert replication annotations —
-  `platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml`
-  carries `spec.secretTemplate.annotations` with reflector
+  `spec.secretTemplate.annotations` carries reflector
   `reflection-allowed` + `reflection-auto-enabled` +
   `reflection-auto-namespaces: ".+"`. cert-manager propagates the
   annotations onto the generated Secret; reflector clones it into
   every namespace. Tenant Ingresses reference the local copy.
+  **Migrated 2026-05-18 (spec 151 Phase 2):** the canonical
+  manifest now lives at `platform/gitops/clusters/hetzner-prod/
+  manifests/tenants-wildcard-certificate.yaml`; the imperative
+  ancestor at `platform/infra/hetzner/manifests/
+  tenants-wildcard-certificate.yaml` is retired and no longer
+  applied by setup.sh (the file remains in-tree as an interim
+  reference until a follow-up cleanup removes it with co-claimant
+  amender edits on specs 106/137).
 
 **Checkpoint:** stagecraft → deployd-api end-to-end carries the gate
 descriptor; cluster has all the moving parts in place for a live
