@@ -54,6 +54,11 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml  # T-019 — HelmRelease (in-tree chart via GitRepository source, hetzner-prod values inlined, smtp.enabled=true)
   - path: platform/charts/rauthy/values-hetzner.yaml                        # T-019 — deletion; hetzner-prod overrides moved inline into the HelmRelease
   - path: platform/Makefile                                                 # T-021 follow-on — strip the rauthy block from `deploy-hetzner` to eliminate the dual-writer hazard against Flux
+  # Phase 5 — drift detection (T-022). Documents the Flux event +
+  # Prometheus metric surface that SC-005 + FR-006 measure against,
+  # plus the SC-005 live-test recipe. Live test evidence collection
+  # follows in a separate operator-confirmed session.
+  - path: specs/151-declarative-cluster-reconciliation/execution/drift-detection.md  # T-022 — mechanism + metric inventory + Flux event taxonomy + SC-005 test recipe (live evidence pending)
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -1922,3 +1927,70 @@ the next surface.** Some of Phase 5's `setup.sh < 100 lines` target
 `kubectl create secret` blocks; the Phase 5 work that doesn't depend
 on 153 can proceed independently (T-022 drift detection, T-023 DR
 runbook).
+
+### Phase 5 — drift detection documentation (T-022, 2026-05-18)
+
+`execution/drift-detection.md` authored as the T-022 deliverable.
+The doc closes the documentation half of SC-005 + FR-006; the
+live-evidence half (the SC-005 drift-revert demonstration) is queued
+for the next operator-confirmed session.
+
+**What landed:**
+
+- **Mechanism explanation** — the per-controller drift surface and
+  correction model. Key finding: kustomize-controller eagerly
+  re-applies its manifests every 10m (so drift on
+  Kustomization-owned objects — including the HelmRelease CRs
+  themselves, raw Certificates, ClusterIssuers — reverts within
+  10m). helm-controller, by default, does NOT revert drift on
+  chart-rendered resources (Deployment, StatefulSet, etc); it only
+  diffs against the rendered helm manifest on its interval. The
+  asymmetry is deliberate (helm's release storage decides what's
+  "the chart"), not a Flux bug.
+- **Cadence inventory** — GitRepository poll 1m, Kustomization
+  reconcile 10m, all four HelmRelease intervals 1h. A commit on
+  main becomes a Kustomization-resource cluster change within
+  `1m + 10m`; a chart-resource change within `1m + 10m + (up to 1h)`.
+- **Flux event taxonomy** — `GitOperationSucceeded`,
+  `ReconciliationSucceeded`, `Progressing`, `HelmChartCreated`,
+  `ChartPackageSucceeded`, `UpgradeSucceeded`, plus the alertable
+  `*Failed` variants. `kubectl get events --field-selector
+  type=Warning` is the load-bearing operator surface; a
+  continuously-healthy Flux installation emits no warnings.
+- **Prometheus metric inventory** — three `gotk_*` families
+  (`gotk_reconcile_duration_seconds`, `gotk_token_cached_items`,
+  `gotk_token_cache_evictions_total`) plus the five
+  `controller_runtime_reconcile_*` families from kubebuilder
+  (total / errors / time / timeouts / panics). Sample live values
+  captured 2026-05-18 ~23:30 UTC. Flux v2.8.7 removed the per-
+  condition `gotk_reconcile_condition` + `gotk_suspend_status`
+  metrics that v2.7 exposed; the substitute Prometheus queries are
+  recorded in the doc.
+- **driftDetection state (current)** — none of the four
+  HelmReleases set `spec.driftDetection.mode: Enabled`. Manual edits
+  to chart-rendered resources are NOT reverted by helm-controller.
+  Enabling driftDetection is a deliberate behavior change with
+  tradeoffs (chart-vs-webhook resource churn risk); deferred to a
+  follow-up spec rather than folded into 151 closure.
+- **SC-005 live-test recipe** — pinned: a benign annotation on
+  the `reflector` HelmRelease CR (kustomize-controller-managed,
+  lowest blast radius); `flux reconcile kustomization flux-system
+  --with-source` to force immediate reconcile; expected wall-clock
+  revert in <30s. The recipe is operator-runnable from the doc.
+
+**What did NOT land** (pending T-022 closure as a separate event):
+
+- Live SC-005 evidence (the actual annotate + reconcile + verify-
+  reverted run). The `kubectl annotate` step is a production-
+  cluster write; per `feedback_capability_vs_authorization` it
+  requires per-step operator confirmation. Authored doc carries
+  the placeholder; the next operator-confirmed session fills in
+  the timestamps + event log + command outputs.
+
+**Phase 5 T-022 done-when status: doc deliverable SATISFIED;
+SC-005 live-evidence PENDING.** Phase 5's other open tasks
+(T-023 DR runbook, T-024 SC-003 measurement, T-025 dr-baseline
+F1/F2 resolution, T-026 setup.sh final shrink) are independent of
+T-022 documentation and proceed on their own gating (operator
+session + fresh throwaway cluster for T-023/T-024/T-025; spec
+153 for T-026).
