@@ -34,12 +34,16 @@ merge — the canonical path is "re-run setup.sh," a monolith that interleaves
 cluster create, helm installs, kubectl creates, secret materialisation,
 stagecraft rollouts, and GitHub Actions sync. Re-running it has known
 side effects (FU-009 CronJob clobber, force-roll of stagecraft-api).
-Spec 143 FU-008 already named this as Hit #2 of 4 on the same structural
-seam. The fix is not "decompose setup.sh into smaller imperative scripts"
-— that just makes a smaller monolith. The fix is to invert the dependency:
-cluster mutations depend on declarative state in git, and an in-cluster
-controller reconciles continuously. PR-merge → cluster-converged becomes
-the loop, not "PR-merge → operator re-runs script."
+Spec 143 §12 (FU-008) names the setup.sh-monolith seam pattern this spec
+retires. Three named hits on that pattern share the same structural cause —
+FU-008 (stagecraft sweeper credentials), FU-003 factory credentials,
+FU-003 audit credentials — and all retire through this spec's M-002
+contract for declarative cluster state. The fix is not "decompose setup.sh
+into smaller imperative scripts" — that just makes a smaller monolith.
+The fix is to invert the dependency: cluster mutations depend on
+declarative state in git, and an in-cluster controller reconciles
+continuously. PR-merge → cluster-converged becomes the loop, not
+"PR-merge → operator re-runs script."
 
 ## Purpose and charter
 
@@ -197,6 +201,13 @@ Constraints on the contract:
   scoped per-service kubeconfigs already in CI). Adding cluster-admin
   kubeconfig to GitHub Actions for ad-hoc apply is explicitly
   prohibited by this contract.
+- **C-005 (SOPS key custody is named, not implicit):** The age private
+  key used to decrypt SOPS-encrypted Secrets MUST be custodied at a
+  named location pinned in Clarification #9 — never in git, never in
+  CI, never in a developer chat. The location is the contract;
+  "wherever the operator put it" is not acceptable. Disaster recovery
+  presupposes the key is recoverable from its named custody, not from
+  cluster state (which is the thing being recovered).
 
 ## Functional Requirements *(MVP)*
 
@@ -219,10 +230,11 @@ Constraints on the contract:
   in ways that change the image-tag rollout path. Spec 137 Phase 6
   closure does not depend on Image Automation.
 - **FR-005:** Per-purpose Secrets MUST materialise via SOPS-encrypted
-  manifests under `platform/gitops/`. The age private key MUST be held
-  in `flux-system` namespace at bootstrap time and not stored in git
-  in any form. `kubectl create secret` MUST NOT appear in setup.sh or
-  post-create.sh after Phase 5 lands.
+  manifests under `platform/gitops/`. The age private key MUST be
+  custodied per C-005 + Clarification #9 (named location, two custodial
+  copies, never in git or CI); at runtime it materialises as the
+  `sops-age` Secret in `flux-system` namespace. `kubectl create secret`
+  MUST NOT appear in setup.sh or post-create.sh after Phase 5 lands.
 - **FR-006:** Flux drift detection MUST emit cluster events for every
   reconciliation; Prometheus metrics MUST expose reconciliation success
   rate, drift count, and last-reconcile-time per resource. Stagecraft
@@ -233,16 +245,39 @@ Constraints on the contract:
   MUST be exercised at least once before this spec closes.
 - **FR-008:** The reflector Helm release and the spec 137 wildcard-cert
   annotations MUST be the first migrations under the new tree (Phase 2).
-  This unblocks spec 137 Phase 6 evidence collection.
+  This unblocks spec 137 Phase 6 evidence collection. **Slippage path:**
+  the default path is no fallback — spec 137 Phase 6 waits for spec 151
+  Phase 2. If Phase 0–2 slippage exceeds two sessions AND external
+  pressure to close spec 137 is non-trivial, the documented escape is a
+  one-time imperative `helm upgrade --install reflector` +
+  `kubectl apply -f tenants-wildcard-certificate.yaml` invocation
+  captured as migration debt in
+  `specs/137-tenant-environment-access-gates/execution/verification.md`
+  — explicitly NOT in `platform/infra/hetzner/setup.sh`, which would
+  poison this spec's declarative invariant. Phase 2 then adopts the
+  manually-applied state on first reconcile (Flux's `helm-controller`
+  adopts existing releases by name; cert-manager re-applies the
+  Certificate annotations idempotently). The fallback exists so spec
+  137 closure is not held hostage to spec 151's timeline indefinitely;
+  the trip-wire framing (two-session slippage + external pressure)
+  ensures it is not the default.
 - **FR-009:** Migration of existing cluster state into gitops MUST be
   incremental — one PR per concern (cert-manager, ingress-nginx, rauthy,
   stagecraft chart, deployd-api chart, tenant-hello chart, per-purpose
   Secrets). Each PR MUST be independently mergeable and the cluster
   MUST remain operational after each merge.
-- **FR-010:** Multi-cluster support MUST be achievable by adding a new
-  `platform/gitops/clusters/<cluster>/` overlay without modifying the
-  base manifests. Spec 072 (multi-cloud-k8s-portability) benefits from
-  this without itself being a precondition.
+- **FR-010:** v1 lands one cluster (`platform/gitops/clusters/hetzner-prod/`)
+  as a flat tree — no `base/` + `overlays/` split. Adding overlay
+  machinery before a second concrete cluster exists is premature
+  abstraction the OAP discipline rejects elsewhere; v1 builds for the
+  one cluster we operate. The flat tree MUST NOT preclude a future
+  overlay model: file naming, manifest organisation, and
+  `Kustomization` scope MUST be compatible with introducing a shared
+  `base/` tree later without a wholesale rewrite. Adding the overlay
+  machinery itself is deferred until spec 072
+  (multi-cloud-k8s-portability) brings a concrete second cluster
+  target. Spec 072 benefits from this spec without itself being a
+  precondition.
 
 ## Success Criteria
 
@@ -294,17 +329,34 @@ Constraints on the contract:
 
 ## Clarifications
 
-The clarifications below are real open decisions; each is load-bearing
-and Phase 0 closes when all are pinned. Recommended answers are recorded
-inline as starting points for reviewer discussion, not as decisions.
+The clarifications below are real open decisions; each is load-bearing.
+Phase 0 closes when each decision is **pinned in
+`clarifications-resolved.md` with a one-line rationale** — accepting a
+recommendation verbatim still requires recording "accepted because
+<why>" in the rationale line. A thumbs-up reaction on GitHub does not
+close a clarification; the rationale must be committed to the spec
+directory alongside the spec body. This mirrors spec 137's Phase 0
+cadence and gives the governance certificate pipeline an artifact to
+ingest, not a claim without evidence.
+
+Recommended answers below are starting points for reviewer discussion,
+not decisions.
 
 ### Session 2026-05-17
 
 1. **Reconciliation tool: Flux v2 vs Argo CD vs other?** Recommend
-   **Flux v2**: lighter-weight, Helm-native (HelmRelease is a first-class
-   CRD), no dashboard server to operate, aligns with our minimal-binary
-   aesthetic. Argo CD is heavier, multi-tenant-oriented, and would add a
-   UI surface that overlaps stagecraft's role. Other tools (Rancher Fleet,
+   **Flux v2** for one constitutional reason and a small set of
+   tiebreakers. *Constitutional reason:* Spec 087 establishes
+   stagecraft as the platform's operator surface. Argo CD ships a
+   first-class operator dashboard that would create a competing
+   operator surface for cluster state — operators would face two
+   surfaces (stagecraft for tenant + governance, Argo for cluster)
+   instead of one. Flux v2 has no operator UI; its interface is
+   controller-set + cluster events + Prometheus metrics, leaving
+   stagecraft as the single operator surface per spec 087.
+   *Tiebreakers:* lighter-weight runtime, Helm-native (HelmRelease
+   is a first-class CRD), no dashboard server to operate, aligns
+   with our minimal-binary aesthetic. Other tools (Rancher Fleet,
    Werf) are off the table — not enough adoption / CNCF momentum.
 2. **Secrets approach: SOPS vs Sealed Secrets vs External Secrets Operator?**
    Recommend **SOPS with age**: git-native, no in-cluster controller
@@ -326,19 +378,42 @@ inline as starting points for reviewer discussion, not as decisions.
    creation. Terraform-installed Flux would couple Flux lifecycle to
    terraform state (over-coupling). setup.sh wrapper-with-helm-install
    re-implements `flux bootstrap` worse.
-5. **App image CD relationship: keep imperative `kubectl rollout restart`
-   vs Flux Image Automation?** Recommend **keep imperative for v1**.
-   Image rollouts are a tight inner loop where image-tag-per-commit
-   immutability + a CD workflow that restarts is faster and simpler
-   than Flux image-automation-controller pulling tag updates. Migrating
-   to Flux image automation is a future spec if multi-cluster makes the
-   current pattern brittle.
-6. **Multi-cluster topology: Kustomize overlays vs per-cluster
-   directories vs per-cluster branches?** Recommend **Kustomize overlays
-   under `platform/gitops/clusters/<cluster>/`** with a shared base tree.
-   Per-cluster directories duplicate; per-cluster branches diverge over
-   time. Overlays let cluster-specific values (domain, replicas, region)
-   override the base without forking.
+5. **App image CD relationship: pin the field-ownership boundary, not
+   just the policy.** Recommend **keep imperative `kubectl rollout
+   restart` for v1, with a field-level exclusion declared on every
+   Flux HelmRelease that owns an app Deployment.** The race the
+   policy alone does not resolve: if a HelmRelease renders a
+   Deployment with `image.tag: <chart-default>` and CD's
+   `kubectl set image` writes a fresh tag, Flux's next reconciliation
+   would revert the tag. The boundary mechanism — pinned, not deferred:
+   every HelmRelease for a CD-managed Deployment carries
+   `spec.driftDetection.ignore` with the path
+   `/spec/template/spec/containers/0/image` (and `containers/1/image`
+   etc. for multi-container pods) excluded from drift correction.
+   Flux owns the rest of the Deployment spec (resources, replicas,
+   env, volumes, probes); CD owns the `image` field exclusively. This
+   is the v1 contention contract, recorded in plan.md as the standard
+   HelmRelease template for app charts. Migrating to Flux
+   `image-reflector-controller` + `image-automation-controller` (where
+   the image field becomes Flux-owned via ImagePolicy CRDs writing
+   commits back to the gitops tree) is a separate future spec; until
+   it lands, the ignore-path is the contract.
+6. **Multi-cluster topology: defer overlay machinery until a second
+   cluster exists.** Recommend **flat single-cluster v1**:
+   `platform/gitops/clusters/hetzner-prod/` holds the full declared
+   state directly, no `base/` + `overlays/` split. Kustomize is still
+   the renderer (Flux's `Kustomization` CR) but with a flat tree.
+   Building overlay machinery before a second cluster exists is the
+   premature abstraction the OAP discipline rejects elsewhere — three
+   similar lines is better than a speculative abstraction. When spec
+   072 (multi-cloud-k8s-portability) brings a concrete second target
+   (AWS / GCP / DO), that is when the `base/` extraction lands,
+   driven by an actual second instance with real differences to
+   capture (domain, replicas, region, provider-specific values). The
+   v1 flat tree MUST be structured so the future extraction is
+   mechanical — kustomize-compatible file naming, single
+   `Kustomization` per cluster, no implicit dependencies between
+   manifest files — but the extraction itself is deferred.
 7. **Drift surfacing: cluster events + Prometheus only vs stagecraft UI
    vs Slack/PagerDuty?** Recommend **cluster events + Prometheus for v1**.
    These are the Flux defaults and require no additional integration.
@@ -353,6 +428,28 @@ inline as starting points for reviewer discussion, not as decisions.
    SOPS path being solid). Each migration is one PR; setup.sh shrinks
    monotonically.
 
+9. **SOPS key custody: where does the age key live, before and after
+   Flux bootstrap?** This is the bootstrap-secret problem at a smaller
+   surface — one master decryption key instead of N per-purpose
+   credentials. The custody location is a contract decision (C-005),
+   not a Risks-section mitigation. Recommend **operator-host
+   filesystem at `~/.config/sops/age/keys.txt` as the canonical
+   pre-bootstrap location, with a mandatory second copy in an
+   operator-controlled password manager (1Password / Bitwarden /
+   equivalent) before the key encrypts any Secret.** After
+   `flux bootstrap`, the key materialises as the `sops-age` Kubernetes
+   Secret in `flux-system` namespace (Flux's convention); Flux's
+   `kustomize-controller` reads it for SOPS decryption at apply time.
+   Disaster-recovery sequence: re-create cluster → kubectl apply the
+   operator-host key as the `sops-age` Secret → `flux bootstrap` →
+   cluster converges. The contract is "named location, two custodial
+   copies, never in git or CI"; the specific location is the
+   recommendation. Tighter options (hardware key via
+   `age-plugin-yubikey`, cloud KMS, HashiCorp Vault) are future
+   considerations addressed by a separate spec, not v1. The
+   operator-host + password-manager combination is the explicit v1
+   commit; if a reviewer disagrees, this clarification reopens.
+
 ## Risks
 
 - **R-001 (Flux as new SPOF):** Flux itself becomes critical
@@ -361,14 +458,16 @@ inline as starting points for reviewer discussion, not as decisions.
   battle-tested in production at large scale (CNCF graduated 2024-04);
   pin to a known-good version; the disaster recovery runbook covers
   Flux re-bootstrap.
-- **R-002 (SOPS key custody):** The age private key in `flux-system`
-  is the cluster's master decryption key. If lost, all SOPS-encrypted
-  Secrets become inaccessible (existing values continue to work since
-  Flux already decrypted them, but rotation breaks). Mitigation: the
-  age key is also stored in a separate operator-controlled
-  vault/keychain at bootstrap; FR-007 disaster recovery exercises the
-  re-bootstrap path. A future spec may move to a managed KMS for the
-  age key.
+- **R-002 (SOPS key custody — named in Clarification #9, not mitigated
+  here):** The age private key is the cluster's master decryption key.
+  If lost, all SOPS-encrypted Secrets become inaccessible (existing
+  values continue to work since Flux already decrypted them, but
+  rotation breaks). The custody location is a load-bearing contract
+  decision pinned in Clarification #9 + C-005 — it cannot be a
+  Risks-section mitigation. R-002 records the consequence only and
+  points at the contract clause for resolution. A future spec may move
+  the age key to a managed KMS or hardware-attested key; v1 commits to
+  operator-host + password-manager two-copy custody per Clarification #9.
 - **R-003 (migration mid-state operational risk):** While Phases 3–5
   are in flight, some concerns are managed by Flux and some by
   setup.sh. A re-run of setup.sh during this window would conflict
@@ -380,21 +479,31 @@ inline as starting points for reviewer discussion, not as decisions.
   CRD-before-CR ordering must be respected. Mitigation: Kustomization
   `dependsOn` and HelmRelease ordering primitives handle this; the
   Phase 3 cert-manager migration exercises the pattern first.
-- **R-005 (spec 137 timing):** This spec exists in part to unblock
-  spec 137 Phase 6. If Phases 0–2 here take longer than expected,
-  spec 137 evidence is delayed. Mitigation: Phase 2 is intentionally
-  scoped narrowly (reflector + cert annotations only — the two
-  spec 137 deltas) so the unblock is concrete and bounded; full
-  migration continues in parallel without blocking 137.
+- **R-005 (spec 137 timing — mutual dependency):** The binding between
+  spec 151 and spec 137 goes both directions: 151 Phase 2 unblocks 137
+  Phase 6, but if 151 Phase 0–2 slips, 137 stalls. Mitigation: Phase 2
+  is intentionally scoped narrowly (reflector + cert annotations only
+  — the two spec 137 deltas) so the unblock is concrete and bounded.
+  FR-008 names the documented slippage path (one-time imperative apply,
+  recorded as migration debt in spec 137's `execution/verification.md`,
+  NOT in setup.sh) for the case where 151's timeline runs long under
+  external pressure. The default path is no fallback; the fallback is
+  trip-wire-bounded (two-session slippage + external pressure) so it
+  is not the default. Full migration of other concerns continues in
+  parallel without blocking 137.
 
 ## Cross-references
 
 - **Spec 087 (unified-workspace-architecture):** Stagecraft is the
   operator surface; this spec defines how stagecraft's operator
   actions (and PRs from any author) reach the cluster.
-- **Spec 143 (presigned-upload-public-endpoint) FU-008:** This spec
-  is the structural fix that retires the FU-008 seam. SC-006 here
-  satisfies FU-008's intent.
+- **Spec 143 (presigned-upload-public-endpoint) §12 FU-008 + FU-003:**
+  This spec is the structural fix that retires the setup.sh-monolith
+  seam pattern (named explicitly in FU-008 and recurring in FU-003
+  factory + audit credentials). SC-006 here satisfies FU-008's intent.
+  Spec 143 §12's separate Rauthy-seam (L-005/L-006) is a different
+  class — protocol-generality-vs-empirical-behavior — and is NOT
+  addressed by this spec.
 - **Spec 137 (tenant-environment-access-gates):** Phase 6 evidence
   collection is unblocked by this spec's Phase 2.
 - **Spec 105 (scripts-to-binaries-migration):** Same lineage — moving
@@ -413,10 +522,11 @@ inline as starting points for reviewer discussion, not as decisions.
 
 ## Why this spec is filed as `draft`
 
-The 8 clarifications above are load-bearing decisions that benefit from
+The 9 clarifications above are load-bearing decisions that benefit from
 one reviewer pass before lock-in. The recommendations are starting
-points; Phase 0 closes when each is pinned (or amended with an
-empirically-validated alternative). Until Phase 0 closes, the
-`platform/gitops/` directory and the Flux installation MUST NOT be
-created — the spec's body drives the implementation, not the other
-way around (CONST-005).
+points; Phase 0 closes when each is pinned in `clarifications-resolved.md`
+with a one-line rationale (accepting a recommendation verbatim still
+requires recording the rationale; pinning is not a GitHub reaction).
+Until Phase 0 closes, the `platform/gitops/` directory and the Flux
+installation MUST NOT be created — the spec's body drives the
+implementation, not the other way around (CONST-005).
