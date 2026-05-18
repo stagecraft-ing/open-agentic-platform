@@ -1457,14 +1457,17 @@ downtime, no certificate re-issuance, no ACME re-registration.
     line removed (~14 lines).
   - HTTP-01 `letsencrypt-prod` ClusterIssuer heredoc removed (~28
     lines).
-  - **Retained**: the dormant `letsencrypt-dns01` (Hetzner DNS
-    webhook) ClusterIssuer block + the `cert-manager-webhook-hetzner`
-    helm install. Both gated on `HCLOUD_DNS_API_TOKEN` which is
-    unset by design (spec 143 §4.7 L-005 relaxed the strict DNS-01
-    mandate; authoritative DNS is at Cloudflare, not Hetzner DNS).
-    Migrating a dormant gated resource to gitops would change its
-    semantics from conditional to always-applied; not worth it for
-    a fallback path that has never been activated in production.
+
+  Phase 3 originally **preserved** the dormant
+  `cert-manager-webhook-hetzner` install + the dormant
+  `letsencrypt-dns01` ClusterIssuer heredoc, framing them as
+  "fallback for a future DNS migration." That framing was wrong:
+  Hetzner DNS holds no zone for `stagecraft.ing`, authoritative
+  nameservers are at Cloudflare (`leo.ns.cloudflare.com` /
+  `rosalie.ns.cloudflare.com`), and the DNS-01 validation chain
+  would fail twice over (no zone for the webhook to write into;
+  Let's Encrypt queries Cloudflare anyway). A Phase 3 follow-up
+  cleanup PR removes both blocks. See the follow-up section below.
 - `platform/infra/hetzner/setup.sh` (T-016 follow-on) — the DNS-01
   cloudflare ClusterIssuer apply block from Phase 2's leftovers is
   retired. The `cloudflare-api-token` Secret create stays imperative
@@ -1508,7 +1511,77 @@ state stabilises:
   rauthy, minio) remain Ready under `letsencrypt-prod`; no
   renewals triggered by the cutover.
 - `grep -E 'helm upgrade --install (cert-manager|ingress-nginx)\b|kind: ClusterIssuer' platform/infra/hetzner/post-create.sh`
-  → only the dormant Hetzner-DNS block matches (intentional).
+  → no matches (after the follow-up cleanup below removes the
+  dormant Hetzner-DNS block).
 
 Once verified, this section gets an "operational landing (<date>)"
 sub-section mirroring the Phase 1 / Phase 2 closure pattern.
+
+### Phase 3 follow-up — remove Hetzner DNS dormant path (2026-05-18)
+
+Phase 3's initial framing preserved the `cert-manager-webhook-hetzner`
+chart install + the `letsencrypt-dns01` ClusterIssuer heredoc in
+`post-create.sh` as a "dormant fallback for future DNS migration."
+That framing was speculative scaffolding for a switch from
+Cloudflare to Hetzner DNS that has no plan and would lose
+Cloudflare's proxy / WAF / Email Routing. More structurally: the
+dormant code was not just unused, it was **structurally non-functional
+in this deployment**. The DNS-01 validation chain breaks in two
+places:
+
+1. The webhook would call Hetzner DNS Console API
+   (`https://dns.hetzner.com/api/v1`) to write the
+   `_acme-challenge.<host>` TXT record — but Hetzner DNS holds
+   **no zone** for `stagecraft.ing` (verified empirically:
+   Hetzner Console → DNS shows "You don't have any DNS zones
+   yet"). The API call would return zone-not-found.
+2. Even if the zone existed and the TXT record were written, Let's
+   Encrypt's validator queries the **authoritative** nameservers
+   for `stagecraft.ing` — which are `leo.ns.cloudflare.com` and
+   `rosalie.ns.cloudflare.com` per the registry's NS records. The
+   TXT record written into a non-authoritative provider is
+   invisible to the validator; the challenge times out.
+
+The dormant code was speculative copy-paste from a Hetzner-only
+tutorial that pre-dated the project's commitment to Cloudflare-as-
+authoritative-DNS. Resurrection path is real but expensive: revert
+the Phase-3-follow-up strikes AND migrate `stagecraft.ing`'s
+registrar NS records from Cloudflare to Hetzner. The migration is
+out of scope for any current plan; capturing it here as the
+explicit "resurrection cost" rather than implicit "fallback
+available" framing.
+
+**Cleanup this PR lands:**
+
+- Strikes the `cert-manager-webhook-hetzner` `helm upgrade --install`
+  block + its `SKIP_HETZNER_DNS_WEBHOOK` gate from
+  `post-create.sh`.
+- Strikes the `letsencrypt-dns01` ClusterIssuer heredoc + its
+  `HCLOUD_DNS_API_TOKEN` gate from `post-create.sh`.
+- Updates the MinIO block's stale comment in `post-create.sh` (line
+  numbers + dormant-block references no longer valid).
+- Updates `cert-manager-clusterissuers.yaml`'s "dormant alternates"
+  header to record the removal rationale instead of the false
+  "preserved for future" framing.
+- Spec 151 Phase 3 narrative (above) amended to match.
+
+**Operator step required at merge time:** uninstall the
+running-but-useless webhook chart from the live cluster:
+
+```
+helm uninstall cert-manager-webhook-hetzner -n cert-manager
+```
+
+The chart currently runs a pod (`cert-manager-webhook-hetzner-*`)
+that consumes resources for no functional benefit — uninstalling
+reclaims that pod. No downstream consumer references it (the
+`letsencrypt-dns01` ClusterIssuer it served has never existed in
+the cluster because `HCLOUD_DNS_API_TOKEN` was always unset).
+
+**Why this isn't a spec 143 amendment:** spec 143 §4.7 L-005 (the
+"don't infer authoritative DNS from cluster-provider identity"
+lesson) is a structural observation that stands as historical
+record. The dormant-code removal doesn't invalidate L-005; it
+acts on the lesson L-005 already captured. Spec 151 records the
+removal because the imperative-cleanup ownership lives here (per
+FR-008); spec 143's narrative remains accurate as-of-its-writing.

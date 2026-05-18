@@ -21,16 +21,17 @@
 #      Until the Secret exists, cert-manager marks the ClusterIssuer
 #      Ready=False; it auto-recovers when the Secret arrives.
 #
-# Dormant alternates (NOT migrated, intentionally):
-#
-#   - `letsencrypt-dns01` (Hetzner DNS webhook) — gated on
-#     `HCLOUD_DNS_API_TOKEN` which is unset by design (spec 143 §4.7
-#     L-005 relaxed the strict DNS-01 mandate; authoritative DNS lives
-#     at Cloudflare, not Hetzner DNS). The Hetzner webhook chart +
-#     this ClusterIssuer stay in `post-create.sh` as the dormant
-#     fallback path; re-activate by setting the env var. Migrating a
-#     dormant resource to gitops would change its semantics from
-#     gated-conditional to always-applied.
+# Hetzner DNS path removed (spec 151 Phase 3 follow-up cleanup,
+# 2026-05-18). The `cert-manager-webhook-hetzner` chart + the
+# `letsencrypt-dns01` ClusterIssuer that previously lived dormant in
+# `post-create.sh` were never functional in this deployment:
+# `stagecraft.ing`'s authoritative nameservers are at Cloudflare, no
+# Hetzner DNS zone exists for the domain, and the DNS-01 validation
+# chain would fail at the webhook's API call (no zone) and at Let's
+# Encrypt's query (Cloudflare is authoritative, doesn't have the TXT
+# record the webhook wrote elsewhere). Cloudflare is the committed
+# authoritative DNS / edge provider; any migration away from it is a
+# major architectural change with no current plan.
 #
 # Cutover identity (zero-downtime pattern from Phase 2):
 #

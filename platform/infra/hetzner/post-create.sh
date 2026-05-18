@@ -22,10 +22,10 @@ export KUBECONFIG="$KUBECONFIG_PATH"
 info()  { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
 err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
-# --- ingress-nginx + cert-manager + HTTP-01 ClusterIssuer ---
-# Spec 151 Phase 3 (2026-05-18) — both charts and the HTTP-01
-# ClusterIssuer (`letsencrypt-prod`) are Flux-reconciled via the
-# gitops tree:
+# --- ingress-nginx + cert-manager + ClusterIssuers ---
+# Spec 151 Phase 3 (2026-05-18) — both charts and both active
+# ClusterIssuers (`letsencrypt-prod` HTTP-01 + `letsencrypt-prod-dns01-
+# cloudflare` DNS-01) are Flux-reconciled via the gitops tree:
 #
 #   platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml
 #   platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml
@@ -34,107 +34,30 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 # Issuer selection policy (decided 2026-05-08, spec 143 step 7):
 #   - letsencrypt-prod (HTTP-01) is the DEFAULT for platform hosts
 #     (stagecraft.${DOMAIN}, auth.${DOMAIN}, deploy.${DOMAIN},
-#     minio.${DOMAIN}). Now declared in the gitops tree alongside
-#     letsencrypt-prod-dns01-cloudflare (which serves the wildcard
-#     tenant cert per spec 137 Phase 4↔5).
-#   - letsencrypt-dns01 (Hetzner DNS webhook) remains a dormant
-#     fallback (gated on HCLOUD_DNS_API_TOKEN, unset by design); the
-#     webhook chart + ClusterIssuer block below preserve that path.
+#     minio.${DOMAIN}).
+#   - letsencrypt-prod-dns01-cloudflare (DNS-01) serves the wildcard
+#     tenant cert per spec 137 Phase 4↔5.
+#
+# Hetzner DNS removed (spec 151 Phase 3 follow-up cleanup, 2026-05-18):
+# The `cert-manager-webhook-hetzner` chart + the dormant `letsencrypt-
+# dns01` ClusterIssuer that previously lived here have been removed.
+# They were never functional in this deployment — `stagecraft.ing`'s
+# authoritative nameservers are at Cloudflare (`leo.ns.cloudflare.com`
+# / `rosalie.ns.cloudflare.com`), Hetzner DNS holds no zone for the
+# domain, and the DNS-01 validation chain would always fail at the
+# webhook's API call (no zone) and at Let's Encrypt's query
+# (Cloudflare doesn't have the TXT record the webhook wrote
+# elsewhere). The "future fallback" framing dressed up structural
+# lock-in to Cloudflare-as-authoritative-DNS as optional flexibility
+# it wasn't. Resurrection path: revert this PR's strikes AND migrate
+# `stagecraft.ing` authoritative DNS from Cloudflare to Hetzner DNS
+# (out of scope for any current plan; would lose Cloudflare proxy /
+# WAF / Email Routing).
 #
 # When adding a new ingress, copy the cert-manager.io/cluster-issuer
 # annotation from a similar existing ingress; if you find yourself
 # guessing, document the choice in the new ingress's PR rather than
 # assuming.
-
-# --- ClusterIssuer (DNS-01 via Hetzner DNS) — DORMANT FALLBACK ---
-#
-# Spec 143 §4.7 (amendment, 2026-05-08, L-005) relaxed FR-008's
-# strict DNS-01 mandate. Authoritative DNS for stagecraft.ing is at
-# Cloudflare (not Hetzner DNS), so this block stays dormant — it is
-# gated on HCLOUD_DNS_API_TOKEN, which is unset by design. The
-# spec-143 MinIO ingress now uses HTTP-01 via the letsencrypt-prod
-# ClusterIssuer above (lines 87-104).
-#
-# This block is preserved (not deleted) so a future migration of
-# authoritative DNS to a provider with a cert-manager webhook
-# (Hetzner DNS, Cloudflare DNS-01 solver, Route 53, etc.) can
-# re-activate it without resurrecting deleted code. The original
-# DNS-01 rationale (wildcard certs, ingress-bootstrap-order
-# avoidance) still holds for any future host that needs them.
-#
-# Prerequisites (one-time per cluster, NOT idempotent on every deploy):
-#
-#   (a) cert-manager-webhook-hetzner installed in cert-manager
-#       namespace. Installed below (idempotent helm upgrade --install);
-#       skip with SKIP_HETZNER_DNS_WEBHOOK=1 if the cluster has it
-#       installed via another mechanism.
-#
-#   (b) HCLOUD_DNS_API_TOKEN set in .env. Generate at:
-#         https://dns.hetzner.com/settings/api-token
-#       Stored as a Kubernetes Secret in cert-manager namespace.
-#
-#   (c) DNS A record minio.${DOMAIN} → <cluster ingress IP>
-#       MUST be created before the MinIO ingress in step 6 starts
-#       requesting certificates. No DNS IaC exists for Hetzner DNS in
-#       this repo (DNS is currently click-ops); the runbook step is:
-#
-#         Hetzner Cloud Console → DNS → ${DOMAIN} → Add record
-#           Type: A
-#           Name: minio
-#           Value: $(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-#           TTL: 60
-#
-#       Without this record, browser uploads still fail end-to-end
-#       even after step 6 lands — the browser cannot resolve
-#       minio.${DOMAIN}, and cert-manager cannot validate the
-#       challenge response. Step 8 (e2e validation) verifies this.
-
-if [ "${SKIP_HETZNER_DNS_WEBHOOK:-0}" != "1" ]; then
-  if helm status cert-manager-webhook-hetzner -n cert-manager >/dev/null 2>&1; then
-    info "cert-manager-webhook-hetzner already installed, skipping"
-  else
-    info "Installing cert-manager-webhook-hetzner..."
-    helm upgrade --install cert-manager-webhook-hetzner cert-manager-webhook-hetzner \
-      --repo https://vadimkim.github.io/cert-manager-webhook-hetzner \
-      --namespace cert-manager \
-      --wait --timeout 180s
-  fi
-fi
-
-if [ -n "${HCLOUD_DNS_API_TOKEN:-}" ]; then
-  info "Seeding hetzner-dns-secret for DNS-01 challenge..."
-  kubectl create secret generic hetzner-dns-secret \
-    --namespace cert-manager \
-    --from-literal=api-key="$HCLOUD_DNS_API_TOKEN" \
-    --dry-run=client -o yaml | kubectl apply -f -
-
-  info "Creating Let's Encrypt DNS-01 ClusterIssuer..."
-  cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-dns01
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: ${LETSENCRYPT_EMAIL}
-    privateKeySecretRef:
-      name: letsencrypt-dns01
-    solvers:
-      - dns01:
-          webhook:
-            groupName: acme.${DOMAIN}
-            solverName: hetzner
-            config:
-              secretName: hetzner-dns-secret
-              zoneName: ${DOMAIN}
-              apiUrl: https://dns.hetzner.com/api/v1
-EOF
-else
-  info "HCLOUD_DNS_API_TOKEN not set — skipping letsencrypt-dns01 ClusterIssuer"
-  info "  Set HCLOUD_DNS_API_TOKEN in .env and re-run post-create.sh to enable"
-  info "  the DNS-01 challenge required by spec 143 (MinIO public ingress)."
-fi
 
 # --- Namespaces ---
 info "Creating namespaces..."
@@ -292,17 +215,20 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
   # to match — uploadLimits.ts has the propagation comment pointing
   # back here.
   #
-  # Cluster-issuer: letsencrypt-prod (HTTP-01 via the nginx solver) is
-  # provisioned at lines 87-104 above and is the default issuer for
-  # *.${DOMAIN} hosts. Spec 143 §4.7 (amendment, 2026-05-08, L-005)
-  # relaxed FR-008 from a strict DNS-01 mandate to "DNS-01 only when
-  # the authoritative DNS provider supports a cert-manager webhook
-  # AND wildcard/DNS-only validation is needed; HTTP-01 acceptable
-  # for single-host non-wildcard certs once the parent domain's
-  # ingress is routing." `stagecraft.ing` is fronted by Cloudflare
-  # (not Hetzner DNS), so the dns01 ClusterIssuer block at lines
-  # 106-188 stays dormant (gated on HCLOUD_DNS_API_TOKEN) until/unless
-  # authoritative DNS migrates to a webhook-supported provider.
+  # Cluster-issuer: `letsencrypt-prod` (HTTP-01 via the nginx solver)
+  # is Flux-reconciled via `platform/gitops/clusters/hetzner-prod/
+  # manifests/cert-manager-clusterissuers.yaml` and is the default
+  # issuer for `*.${DOMAIN}` platform hosts. Spec 143 §4.7
+  # (amendment, 2026-05-08, L-005) relaxed FR-008 from a strict
+  # DNS-01 mandate to "DNS-01 only when the authoritative DNS
+  # provider supports a cert-manager webhook AND wildcard/DNS-only
+  # validation is needed; HTTP-01 acceptable for single-host
+  # non-wildcard certs once the parent domain's ingress is routing."
+  # `stagecraft.ing` is fronted by Cloudflare; the wildcard tenant
+  # cert (spec 137 / spec 106) uses the Cloudflare DNS-01 issuer
+  # (`letsencrypt-prod-dns01-cloudflare`); the Hetzner DNS path
+  # was removed in the spec 151 Phase 3 follow-up cleanup as
+  # never-functional given Cloudflare-authoritative DNS.
   helm upgrade --install minio minio/minio \
     --namespace stagecraft-system \
     --set rootUser="$MINIO_ROOT_USER" \
