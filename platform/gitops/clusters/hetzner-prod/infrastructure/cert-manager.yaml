@@ -1,0 +1,82 @@
+# Spec 151 Phase 3 — cert-manager HelmRelease (T-014).
+#
+# Replaces the imperative `helm upgrade --install cert-manager` block
+# in `platform/infra/hetzner/post-create.sh`. Operational parity: same
+# chart, same version, same namespace, same `crds.enabled=true` flag —
+# only the install mechanism shifts from imperative to helm-controller.
+#
+# Cutover identity (zero-downtime pattern from Phase 2):
+#
+#   release name + namespace = `cert-manager` / `cert-manager`
+#   chart version            = `v1.19.3` (matches post-create.sh's pin)
+#   values                   = { crds.enabled: true }
+#
+# helm-controller adopts the existing release in-place. CRDs already
+# exist in the cluster from the prior imperative install (labelled
+# `app.kubernetes.io/managed-by: Helm`); the chart's CRD resources
+# update them as standard helm-managed resources. No CRD churn.
+#
+# CRD dependency for downstream resources: cert-manager.io/v1
+# Certificates + ClusterIssuers depend on the cert-manager CRDs being
+# present. The wildcard Certificate (Phase 2,
+# `../manifests/tenants-wildcard-certificate.yaml`) and the
+# ClusterIssuers (Phase 3, `../manifests/cert-manager-clusterissuers.yaml`)
+# both consume those CRDs. During the Phase-3-to-fresh-cluster window:
+#
+#   - Current cluster (cutover): CRDs already present, no race.
+#   - Fresh cluster (DR / SC-003 Stage 2): Flux retries on transient
+#     apply failure during the ~30-60s window cert-manager's CRDs are
+#     installing. Convergence is robust per the Phase 2 retry pattern
+#     (spec.md §"Phase 2 — reflector + wildcard-cert annotations" /
+#     T-010 interim).
+#
+# A wrapping Flux Kustomization with `dependsOn: [cert-manager]` for
+# the manifests/ directory is intentionally deferred — Phase 5's
+# drift-detection + DR runbook (T-022/T-023) measures whether the
+# retry-pattern's convergence cost stays inside the SC-003 30-min
+# budget. If not, a follow-up adds the dependsOn machinery at that
+# point with a measured rationale.
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: jetstack
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://charts.jetstack.io
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: cert-manager
+      # Pinned to match the imperative install in post-create.sh. Bumps
+      # are deliberate edits in their own PRs and re-validate against
+      # the CRD-schema-evolution rules cert-manager publishes per minor.
+      version: "v1.19.3"
+      sourceRef:
+        kind: HelmRepository
+        name: jetstack
+        namespace: flux-system
+      interval: 24h
+  install:
+    timeout: 5m
+    remediation:
+      retries: 3
+  upgrade:
+    timeout: 5m
+    remediation:
+      retries: 3
+  values:
+    # Matches post-create.sh's `--set crds.enabled=true`. cert-manager
+    # v1.19+ inlines CRD resources in the chart's regular templates
+    # when this flag is set (vs the older `crds/` subdir mechanism);
+    # helm-controller handles them as ordinary chart resources.
+    crds:
+      enabled: true

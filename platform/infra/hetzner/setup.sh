@@ -233,16 +233,20 @@ info "Bootstrapping infrastructure (pre-Flux phase-out path)..."
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Spec 106 amendment (2026-05-17) + spec 151 Phase 2 (2026-05-18) —
-# wildcard cert wiring is now split: the DNS-01 ClusterIssuer + the
-# Cloudflare-token Secret remain imperative here (Phase 3 cert-manager
-# migration will absorb them), and the Certificate itself is Flux-
-# reconciled via `platform/gitops/clusters/hetzner-prod/manifests/
-# tenants-wildcard-certificate.yaml`. Without the Cloudflare token
-# this block no-ops; the HTTP-01 ClusterIssuer keeps handling
-# stagecraft/deployd/rauthy/minio (it can't do wildcards), and the
-# Flux-reconciled Certificate stays Pending until the operator
-# provides the token + re-runs setup.sh.
+# Spec 151 Phase 3 (2026-05-18) — DNS-01 cloudflare ClusterIssuer is
+# now Flux-reconciled via `platform/gitops/clusters/hetzner-prod/
+# manifests/cert-manager-clusterissuers.yaml`. Only the
+# `cloudflare-api-token` Secret materialisation stays imperative here
+# (it carries CLOUDFLARE_DNS_API_TOKEN from .env into the cluster);
+# spec 153 will move it to a SOPS-encrypted per-purpose Secret under
+# the gitops tree.
+#
+# Without the Cloudflare token, this block no-ops; cert-manager marks
+# the Flux-reconciled DNS-01 ClusterIssuer Ready=False until the
+# Secret arrives, and the wildcard tenant Certificate stays Pending.
+# The HTTP-01 ClusterIssuer (also Flux-reconciled) keeps handling
+# stagecraft/deployd/rauthy/minio Ingresses — those don't need
+# wildcards.
 # ---------------------------------------------------------------------------
 if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
   info "Creating cloudflare-api-token secret in cert-manager namespace..."
@@ -250,16 +254,12 @@ if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
     --namespace cert-manager \
     --from-literal=api-token="$CLOUDFLARE_DNS_API_TOKEN" \
     --dry-run=client -o yaml | kubectl apply -f -
-
-  info "Applying tenants wildcard ClusterIssuer (Certificate is Flux-reconciled)..."
-  envsubst < "$SCRIPT_DIR/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml" \
-    | kubectl apply -f -
-  ok "DNS-01 ClusterIssuer applied; Flux will reconcile tenants-wildcard Certificate."
+  ok "cloudflare-api-token Secret applied; Flux reconciles the DNS-01 ClusterIssuer."
 else
-  warn "CLOUDFLARE_DNS_API_TOKEN not set — skipping DNS-01 ClusterIssuer."
+  warn "CLOUDFLARE_DNS_API_TOKEN not set — DNS-01 ClusterIssuer will stay Ready=False."
   warn "  Spec 137 magic-link / federated-login evidence (E2/E3/E4) requires"
-  warn "  TLS on tenant ingress hostnames. The Flux-reconciled wildcard"
-  warn "  Certificate will stay Pending until the operator sets"
+  warn "  TLS on tenant ingress hostnames via the wildcard cert. The Flux-"
+  warn "  reconciled Certificate stays Pending until the operator sets"
   warn "  CLOUDFLARE_DNS_API_TOKEN in .env and re-runs setup.sh."
 fi
 

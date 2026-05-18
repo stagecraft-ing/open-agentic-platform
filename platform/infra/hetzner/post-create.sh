@@ -22,86 +22,29 @@ export KUBECONFIG="$KUBECONFIG_PATH"
 info()  { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
 err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
-# --- Install ingress-nginx (idempotent) ---
-if helm status ingress-nginx -n ingress-nginx >/dev/null 2>&1; then
-  info "ingress-nginx already installed, skipping"
-else
-  info "Installing ingress-nginx..."
-  helm upgrade --install ingress-nginx ingress-nginx \
-    --repo https://kubernetes.github.io/ingress-nginx \
-    --namespace ingress-nginx --create-namespace \
-    --set controller.kind=DaemonSet \
-    --set controller.hostPort.enabled=true \
-    --set controller.service.type=ClusterIP \
-    --set controller.config.use-forwarded-headers='"true"' \
-    --set controller.config.compute-full-forwarded-for='"true"' \
-    --wait --timeout 180s
-fi
-
-# --- Install cert-manager (idempotent) ---
-if helm status cert-manager -n cert-manager >/dev/null 2>&1; then
-  info "cert-manager already installed, skipping"
-else
-  info "Installing cert-manager..."
-  helm upgrade --install cert-manager cert-manager \
-    --repo https://charts.jetstack.io \
-    --namespace cert-manager --create-namespace \
-    --version v1.19.3 \
-    --set crds.enabled=true \
-    --wait --timeout 180s
-fi
-
-kubectl wait --for=condition=Available deployment/cert-manager-webhook \
-  -n cert-manager --timeout=120s
-
-# --- ClusterIssuer (HTTP-01) ---
-# Default issuer for all platform hosts (stagecraft.${DOMAIN},
-# auth.${DOMAIN}, deploy.${DOMAIN}). HTTP-01 challenge resolves via the
-# nginx ingress, which is fine for hosts whose A records point at the
-# cluster IP.
+# --- ingress-nginx + cert-manager + HTTP-01 ClusterIssuer ---
+# Spec 151 Phase 3 (2026-05-18) — both charts and the HTTP-01
+# ClusterIssuer (`letsencrypt-prod`) are Flux-reconciled via the
+# gitops tree:
+#
+#   platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml
+#   platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml
+#   platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml
 #
 # Issuer selection policy (decided 2026-05-08, spec 143 step 7):
-#
-#   - letsencrypt-prod (HTTP-01) is the DEFAULT for new ingresses,
-#     including any future apex subdomain (foo.${DOMAIN}). Stagecraft,
-#     Rauthy, deployd-api all keep this issuer.
-#
-#   - letsencrypt-dns01 (DNS-01 via Hetzner webhook) is reserved for
-#     ingresses that NEED DNS-01 specifically. Today that's the spec-143
-#     MinIO public ingress (minio.${DOMAIN}); the rationale recorded
-#     there generalises to "high-renewal-cost outages preferred to be
-#     avoided" (e.g. anything where a 90-day cert failure would block
-#     end-user data flow). For new public hosts that don't fit that
-#     bill, prefer letsencrypt-prod (simpler, no DNS API token
-#     dependency).
-#
-#   - Wildcard certs (when the platform grows past three public
-#     subdomains and the per-host cert ceremony becomes load-bearing)
-#     will live on letsencrypt-dns01 — HTTP-01 cannot solve wildcards.
-#     That promotion is its own decision, not made today.
+#   - letsencrypt-prod (HTTP-01) is the DEFAULT for platform hosts
+#     (stagecraft.${DOMAIN}, auth.${DOMAIN}, deploy.${DOMAIN},
+#     minio.${DOMAIN}). Now declared in the gitops tree alongside
+#     letsencrypt-prod-dns01-cloudflare (which serves the wildcard
+#     tenant cert per spec 137 Phase 4↔5).
+#   - letsencrypt-dns01 (Hetzner DNS webhook) remains a dormant
+#     fallback (gated on HCLOUD_DNS_API_TOKEN, unset by design); the
+#     webhook chart + ClusterIssuer block below preserve that path.
 #
 # When adding a new ingress, copy the cert-manager.io/cluster-issuer
 # annotation from a similar existing ingress; if you find yourself
 # guessing, document the choice in the new ingress's PR rather than
 # assuming.
-info "Creating Let's Encrypt HTTP-01 ClusterIssuer..."
-LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@example.com}"
-cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: ${LETSENCRYPT_EMAIL}
-    privateKeySecretRef:
-      name: letsencrypt-prod
-    solvers:
-      - http01:
-          ingress:
-            class: nginx
-EOF
 
 # --- ClusterIssuer (DNS-01 via Hetzner DNS) — DORMANT FALLBACK ---
 #

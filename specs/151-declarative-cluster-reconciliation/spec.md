@@ -35,6 +35,17 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml      # T-008 — HelmRepository + HelmRelease for emberstack/reflector 9.1.6 (operational parity w/ setup.sh's removed block)
   - path: platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml  # T-009 — cert-manager Certificate w/ reflector secretTemplate annotations; co-claimant w/ 106/137 (existing claimants on the imperative ancestor); spec 130 any-claimant rule applies
   - path: specs/137-tenant-environment-access-gates/tasks.md                       # T-011 — T075/T076 annotated w/ the Phase 2 migration; spec 137's tasks list records the new Flux-reconciled ownership
+  # Phase 3 — cert-manager + ingress-nginx + ClusterIssuers migrate to Flux.
+  # Identity-preserving cutover (Phase 2 pattern): helm-controller adopts
+  # the existing helm releases; cert-manager treats the gitops ClusterIssuers
+  # as the same-named objects (no ACME re-registration, no cert re-issuance).
+  # Hetzner DNS webhook + dormant `letsencrypt-dns01` ClusterIssuer stay in
+  # post-create.sh as the gated dormant fallback (HCLOUD_DNS_API_TOKEN unset
+  # by design; migrating dormant resources to gitops would change semantics).
+  - path: platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml         # T-014 — HelmRepository (jetstack) + HelmRelease (cert-manager v1.19.3, crds.enabled=true)
+  - path: platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml        # T-017 — HelmRepository + HelmRelease (ingress-nginx 4.15.1, DaemonSet + hostPort + ClusterIP svc)
+  - path: platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml  # T-015 — letsencrypt-prod (HTTP-01) + letsencrypt-prod-dns01-cloudflare (DNS-01); co-claimant w/ 106 on the DNS-01 issuer per spec 130 primary-owner heuristic
+  - path: platform/infra/hetzner/post-create.sh                                          # T-016 + T-018 — strikes for cert-manager + ingress-nginx + HTTP-01 ClusterIssuer; dormant Hetzner-DNS path preserved
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -1400,3 +1411,104 @@ requires, now under declarative reconciliation. Phase 3 (T-014–T-018
   pattern for Phase 3's cert-manager + ClusterIssuer migration
   too: shape the gitops manifests so the resource identities
   match what setup.sh applied, and the cutover is a no-op.
+
+## Phase 3 — cert-manager + ingress-nginx + ClusterIssuers (T-014–T-018)
+
+**Status:** code landed in this PR; helm-controller adopts the two
+in-cluster helm releases (`cert-manager` and `ingress-nginx`) and
+cert-manager picks up the gitops ClusterIssuers as the same-named
+objects it already manages. Per the Phase 2 cutover pattern: zero
+downtime, no certificate re-issuance, no ACME re-registration.
+
+**What landed in this PR:**
+
+- `platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml`
+  (T-014) — HelmRepository for `charts.jetstack.io` + HelmRelease for
+  `cert-manager` chart `v1.19.3` in namespace `cert-manager`.
+  `values.crds.enabled=true` matches post-create.sh's `--set
+  crds.enabled=true` so the chart's inlined CRD resources adopt the
+  pre-existing CRDs without churn. helm-controller picks up the
+  existing release in place because the release name + namespace
+  match.
+- `platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml`
+  (T-017) — HelmRepository for `kubernetes.github.io/ingress-nginx` +
+  HelmRelease for `ingress-nginx` chart `4.15.1` in namespace
+  `ingress-nginx`. Five values preserved verbatim from post-create.sh:
+  `controller.kind=DaemonSet`, `controller.hostPort.enabled=true`,
+  `controller.service.type=ClusterIP`, `controller.config.use-forwarded-headers="true"`,
+  `controller.config.compute-full-forwarded-for="true"`. The
+  hostPort-DaemonSet shape is Hetzner-specific (apex DNS A-records
+  point at node IPs directly; no external LoadBalancer Service).
+- `platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml`
+  (T-015) — `letsencrypt-prod` (HTTP-01 via nginx) and
+  `letsencrypt-prod-dns01-cloudflare` (DNS-01 via Cloudflare). Same
+  metadata.name as the live objects; cert-manager treats them as the
+  same ClusterIssuers it already manages. ACME account state
+  (`privateKeySecretRef`) is keyed off the ClusterIssuer name +
+  Secret reference; both persist across cutover. Co-ownership note
+  on the DNS-01 issuer: spec 106 was the original primary owner
+  (PR #155); spec 151 migrates the file to gitops but spec 106
+  retains primary ownership per spec 130 heuristic.
+- `platform/infra/hetzner/post-create.sh` (T-016 + T-018) — strikes:
+  - `helm upgrade --install ingress-nginx` block removed (~14
+    lines).
+  - `helm upgrade --install cert-manager` block + the `kubectl
+    wait --for=condition=Available deployment/cert-manager-webhook`
+    line removed (~14 lines).
+  - HTTP-01 `letsencrypt-prod` ClusterIssuer heredoc removed (~28
+    lines).
+  - **Retained**: the dormant `letsencrypt-dns01` (Hetzner DNS
+    webhook) ClusterIssuer block + the `cert-manager-webhook-hetzner`
+    helm install. Both gated on `HCLOUD_DNS_API_TOKEN` which is
+    unset by design (spec 143 §4.7 L-005 relaxed the strict DNS-01
+    mandate; authoritative DNS is at Cloudflare, not Hetzner DNS).
+    Migrating a dormant gated resource to gitops would change its
+    semantics from conditional to always-applied; not worth it for
+    a fallback path that has never been activated in production.
+- `platform/infra/hetzner/setup.sh` (T-016 follow-on) — the DNS-01
+  cloudflare ClusterIssuer apply block from Phase 2's leftovers is
+  retired. The `cloudflare-api-token` Secret create stays imperative
+  (it carries `$CLOUDFLARE_DNS_API_TOKEN` from .env into the
+  cluster; SOPS migration is spec 153 territory).
+
+**What did NOT land in this PR (Phase 3 follow-ups):**
+
+- The Phase 2 deferred T-010 work (wrapping Flux Kustomization with
+  `dependsOn: [cert-manager]` for the wildcard Certificate and the
+  ClusterIssuers) — still deferred. The Phase 2 retry-on-failure
+  pattern (cert-manager retries when CRDs / Secrets / solvers
+  arrive) handles convergence for both cutover and fresh-cluster
+  scenarios. Phase 5's drift-detection + DR runbook (T-022/T-023)
+  measures the retry-cycle cost against the SC-003 30-min budget;
+  if it overruns, the wrapping-Kustomization machinery is added
+  then with a measured rationale.
+- The imperative-manifest cleanup
+  (`platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml`
+  from Phase 2 + `platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml`
+  from Phase 3) — both files are no longer applied by setup.sh but
+  remain in-tree as interim references. A follow-up cleanup PR
+  deletes them once specs 106 + 137 amender-edits are coordinated.
+- The `cloudflare-api-token` Secret migration to SOPS — spec 153
+  territory.
+- Phase 4 (rauthy chart to Flux) — identity-critical, maintenance
+  window.
+
+**Phase 3 done-when:** when the next flux-system Kustomization
+reconciliation cycle picks up these new gitops files and the cluster
+state stabilises:
+
+- `kubectl -n cert-manager get helmrelease cert-manager` → READY=True.
+- `kubectl -n ingress-nginx get helmrelease ingress-nginx` → READY=True.
+- `kubectl get clusterissuer letsencrypt-prod letsencrypt-prod-dns01-cloudflare`
+  → both READY=True (existing ACME account state preserved).
+- `kubectl -n cert-manager get certificate tenants-wildcard` → still
+  READY=True, AGE unchanged (no re-issuance — Phase 2's cutover
+  pattern repeated).
+- Existing platform ingress Certificates (stagecraft, deployd,
+  rauthy, minio) remain Ready under `letsencrypt-prod`; no
+  renewals triggered by the cutover.
+- `grep -E 'helm upgrade --install (cert-manager|ingress-nginx)\b|kind: ClusterIssuer' platform/infra/hetzner/post-create.sh`
+  → only the dormant Hetzner-DNS block matches (intentional).
+
+Once verified, this section gets an "operational landing (<date>)"
+sub-section mirroring the Phase 1 / Phase 2 closure pattern.

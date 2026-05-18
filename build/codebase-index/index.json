@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d9978140964732436e163b8f0def948ccd515949c30c439975d9f5ff57c03e50",
+    "contentHash": "b7a1d3c328250b62548bcf5800446f9adfef132cf2bc5610077fbabd525c7f29",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5175,11 +5175,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml",
             "source": "spec-implements"
           },
           {
             "path": "platform/gitops/clusters/hetzner-prod/manifests/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml",
             "source": "spec-implements"
           },
           {
@@ -5196,6 +5208,10 @@
           },
           {
             "path": "platform/infra/hetzner/cluster.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/post-create.sh",
             "source": "spec-implements"
           },
           {
