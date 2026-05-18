@@ -257,7 +257,18 @@ if [ -n "${SMTP_USERNAME:-}" ]; then
     warn "  Override with SMTP_PORT=587 (STARTTLS submission) in .env, then re-run setup.sh."
     warn "  Skipping SMTP wire-up to keep Rauthy healthy."
   else
-    info "Creating rauthy-smtp-secret (SMTP_USERNAME=${SMTP_USERNAME}, SMTP_PORT=${SMTP_PORT_RESOLVED})..."
+    # Default starttls_only=true when port is 587 (STARTTLS submission).
+    # Rauthy 0.35's mailer defaults to "try implicit TLS first, fall back
+    # to STARTTLS" but the fallback doesn't trigger on every error shape
+    # (e.g. Gmail's plaintext-banner-then-STARTTLS-upgrade returns
+    # `InvalidMessage(InvalidContentType)` from the implicit-TLS handshake,
+    # bypassing the fallback). Setting SMTP_STARTTLS_ONLY=true is the
+    # documented way to make Rauthy negotiate STARTTLS from the start.
+    STARTTLS_ONLY_RESOLVED="${SMTP_STARTTLS_ONLY:-}"
+    if [ -z "$STARTTLS_ONLY_RESOLVED" ] && [ "$SMTP_PORT_RESOLVED" = "587" ]; then
+      STARTTLS_ONLY_RESOLVED="true"
+    fi
+    info "Creating rauthy-smtp-secret (SMTP_USERNAME=${SMTP_USERNAME}, SMTP_PORT=${SMTP_PORT_RESOLVED}, STARTTLS_ONLY=${STARTTLS_ONLY_RESOLVED:-<default>})..."
     kubectl create secret generic rauthy-smtp-secret \
       --namespace rauthy-system \
       --from-literal=from="${SMTP_FROM:-Rauthy <rauthy@${DOMAIN}>}" \
@@ -265,7 +276,7 @@ if [ -n "${SMTP_USERNAME:-}" ]; then
       --from-literal=port="$SMTP_PORT_RESOLVED" \
       --from-literal=username="$SMTP_USERNAME" \
       --from-literal=password="${SMTP_PASSWORD:-}" \
-      --from-literal=connection="${SMTP_CONNECTION:-}" \
+      --from-literal=starttls_only="$STARTTLS_ONLY_RESOLVED" \
       --from-literal=danger_insecure="${SMTP_DANGER_INSECURE:-false}" \
       --dry-run=client -o yaml | kubectl apply -f -
     RAUTHY_SMTP_HELM_ARGS+=(--set "smtp.enabled=true")

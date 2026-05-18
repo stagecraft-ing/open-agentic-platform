@@ -642,6 +642,22 @@ remains unavailable and the setup script `warn`s explicitly. The
 `.env.example` documents the Gmail App Password flow as the canonical
 quick-start.
 
+*Rauthy 0.35 env-var correction (2026-05-17, second-apply finding).*
+The chart edit initially mapped a `SMTP_CONNECTION` env var that does
+not exist in Rauthy 0.35. The actual control for "force STARTTLS
+instead of attempting implicit TLS first" is `SMTP_STARTTLS_ONLY=true`
+(per the Rauthy 0.35 `config.toml` reference). With the wrong env var
+name, Rauthy fell through to its default "try implicit TLS first"
+path and the TLS handshake against `smtp.gmail.com:587` failed with
+`InvalidMessage(InvalidContentType)` — because Gmail's port 587
+endpoint speaks plaintext until the STARTTLS upgrade, so the implicit
+TLS handshake bytes get parsed as garbled SMTP commands. The chart
+template is corrected to source `SMTP_STARTTLS_ONLY` from a
+`starttls_only` key in the Secret; `setup.sh` defaults that key to
+`true` when `SMTP_PORT=587`. The downstream visible Rauthy log line is
+"Successfully connected via STARTTLS smtp_url=smtp.gmail.com" once
+the right env var lands.
+
 *Hetzner egress finding (2026-05-17).* The first cluster apply of
 this amendment crashed Rauthy at startup with
 `lettre::transport::smtp::Error { kind: Connection, source:
