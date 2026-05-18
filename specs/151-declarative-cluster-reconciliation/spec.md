@@ -1324,3 +1324,79 @@ both resources reach Ready:
 
 Once verified, this section gets an "operational landing
 (<date>)" sub-section mirroring the Phase 1 closure pattern.
+
+### Phase 2 operational landing (2026-05-18)
+
+PR #163 merged 2026-05-18; the flux-system Kustomization's next
+reconciliation cycle picked up the new gitops files immediately. The
+HelmRepository fetched the chart, helm-controller installed the
+release, and kustomize-controller applied the Certificate — all
+within ~90s of GitRepository refresh.
+
+**In-cluster state (verified against the production cluster
+2026-05-18, post-#163 reconcile):**
+
+- `GitRepository flux-system`: reconciled at
+  `main@sha1:7f7c68a9abe07a1c23217829fdfca2b909289ac6` (the #163
+  merge commit) — Flux's source-of-truth is the merged tree.
+- `HelmRepository emberstack` (namespace `flux-system`): READY=True,
+  stored artifact pinned to
+  `sha256:91cee52a0fafcad3b402cb350f31b9bdd50cf59921d364b9beb75af5b5bfc06f`.
+  Re-fetch interval `24h` per the manifest.
+- `HelmRelease reflector` (namespace `kube-system`): READY=True,
+  installed `reflector.v1` with chart `reflector@9.1.6`. Install
+  wall-clock from GitRepository refresh: ~92s (HelmRepository fetch +
+  helm-controller install + pod start).
+- `Pod reflector-8b778cb-lzp55` (namespace `kube-system`): 1/1
+  Running, no restarts.
+- `Certificate tenants-wildcard` (namespace `cert-manager`):
+  READY=True, validity 2026-05-17T22:55:26Z → 2026-08-15T22:55:25Z,
+  AGE 20h. **The Certificate object was NOT re-issued by Flux's
+  reconciliation** — cert-manager treats the Flux-reconciled resource
+  as the same named object the imperative setup.sh apply created
+  ~20h prior. Flux took ownership of the manifest server-side; the
+  `tenants-wildcard-tls` Secret persists unchanged, and reflector's
+  ~20h-old replicated copies remain valid. This is the desired
+  cutover behaviour: zero downtime for downstream tenant Ingresses.
+- `Secret tenants-wildcard-tls` (kubernetes.io/tls, 2 data keys):
+  present in `cert-manager` (source, AGE 20h) + cloned by reflector
+  into 10 additional namespaces (`default`, `deployd-system`,
+  `flux-system`, `ingress-nginx`, `kube-node-lease`, `kube-public`,
+  `kube-system`, `rauthy-system`, `stagecraft-system`,
+  `system-upgrade`). Clones AGE ~107s — refreshed by reflector when
+  the source's reflector annotations were re-asserted by Flux's
+  apply. Catch-all `reflection-auto-namespaces: ".+"` regex
+  working as documented.
+
+**Imperative-path absence (FR-008 cleanup-ownership verification):**
+
+```
+$ grep -E 'helm upgrade --install reflector|kubectl apply.*tenants-wildcard-certificate' platform/infra/hetzner/setup.sh
+(no matches)
+```
+
+The DNS-01 ClusterIssuer apply + cloudflare-api-token Secret create
+remain imperative — those are Phase 3 cert-manager territory.
+
+**Phase 2 done-when status: SATISFIED.** All four criteria green:
+HelmRelease Ready, pod Running, Certificate Ready, Secret replicated.
+Spec 137 Phase 6 evidence collection (E1–E6) is unblocked — the
+cluster carries the full set of moving parts the evidence path
+requires, now under declarative reconciliation. Phase 3 (T-014–T-018
+— cert-manager + ingress-nginx) is the next migration.
+
+**Operational notes captured during this window:**
+
+- helm-controller install wall-clock (HelmRepository fetch through
+  pod Ready) was ~92s — well inside any meaningful SC-003 bracket
+  for a single chart migration. cert-manager's expected install
+  cost in Phase 3 is similar (single chart, no CRD-install hooks
+  on reflector to compare against, but cert-manager's CRD install
+  is documented as ~30s).
+- The Certificate cutover from imperative to declarative is a
+  zero-downtime no-op when the manifest's `metadata.name +
+  metadata.namespace` matches — cert-manager simply absorbs the
+  Flux-managed spec without re-issuing. This is the durable
+  pattern for Phase 3's cert-manager + ClusterIssuer migration
+  too: shape the gitops manifests so the resource identities
+  match what setup.sh applied, and the cutover is a no-op.
