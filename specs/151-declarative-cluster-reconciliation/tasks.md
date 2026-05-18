@@ -49,7 +49,40 @@ sequencing.
   dr-baseline F5) → `flux bootstrap github --owner=... --repo=... --
   path=platform/gitops/clusters/hetzner-prod`. Strip every other
   cluster-mutation step from this section (helm installs, kubectl
-  applies — they move into `infrastructure/`).
+  applies — they move into `infrastructure/`). Splits into three
+  sequenced sub-tasks:
+  - **T-007 (A) — code-side scaffold (mergeable without operator
+    action).** `setup.sh` shrink, `cluster.yaml` `k3s_version` bump
+    to ≥1.33, `.sops.yaml` multi-recipient config, `flux`/`sops`/
+    `age` pre-flight, `GITHUB_TOKEN` pre-flight. **Landed PR #161**
+    (2026-05-18, `d2e1b8fc`).
+  - **T-007 (B0) — in-place K3s upgrade (operator-driven, runs
+    BEFORE bootstrap).** `hetzner-k3s upgrade --new-k3s-version
+    <pin>` + Rancher system-upgrade-controller Plans against the
+    live cluster. Required by dr-baseline F4 amendment (the Flux
+    pre-check is a hard gate inside `flux bootstrap`, not a soft
+    warning). **Workaround when the code-side bump (T-007 (A))
+    landed on `main` before this step runs:** `hetzner-k3s` reads
+    `cluster.yaml`'s `k3s_version` as the cluster's "current"
+    version (not the live cluster), so a `main` already bumped to
+    the target version makes the upgrade comparator think the
+    cluster is already on-target. Mitigation: on the operator
+    workstation only, temporarily revert `cluster.yaml`'s
+    `k3s_version` to the live cluster's version for the duration
+    of `hetzner-k3s upgrade --new-k3s-version <target>`; restore
+    `main`-state immediately after. Do NOT commit the revert. See
+    agent memory `hetzner-k3s-upgrade-comparator` for the durable
+    note.
+  - **T-007 (B) — operator runs `flux bootstrap`.** `flux bootstrap
+    github --owner=... --repo=... --branch=main --path=platform/
+    gitops/clusters/hetzner-prod --personal=false
+    --network-policy=true` against the upgraded cluster. Apply
+    `flux-system/sops-age` Secret immediately after with the
+    operator-host age private key (`kubectl create secret generic
+    sops-age -n flux-system --from-file=age.agekey=
+    ~/.config/sops/age/keys.txt`). First-time invocation may fail
+    422 at deploy-key creation if the org default-disables deploy
+    keys — see dr-baseline F6.
 
 **Phase 1 done-when:** `kubectl get pods -n flux-system` shows the
 four default controllers Ready (`source-controller`,
