@@ -19,18 +19,53 @@ Bumping either side: open a PR that updates the matching edit and re-runs the DR
 
 ```
 platform/gitops/clusters/hetzner-prod/
-├── README.md                  (this file — version pin + tree map)
-├── flux-system/               (omitted from VCS until `flux bootstrap`
-│                               creates gotk-components.yaml + gotk-sync.yaml
-│                               + kustomization.yaml on T-007)
-├── infrastructure/            (operational HelmReleases — spec 151 Phases 2–4)
-├── manifests/                 (raw Kubernetes manifests — Certificates,
-│                               ClusterIssuers, namespace bootstraps)
-└── secrets/                   (SOPS-encrypted Secret manifests — placeholder
-                                until spec 153 lands FR-005 end-to-end)
+├── README.md                          (this file — version pin + tree map)
+├── kustomization.yaml                 (root kustomize bundle — explicit
+│                                       resources list; resolves spec 151
+│                                       Finding F8 by forcing structural
+│                                       ordering instead of auto-recursive
+│                                       single-batch apply)
+├── infrastructure-kustomization.yaml  (Flux Kustomization CR for the
+│                                       infrastructure/ tier; healthCheck
+│                                       on cert-manager HelmRelease)
+├── manifests-kustomization.yaml       (Flux Kustomization CR for the
+│                                       manifests/ tier; dependsOn:
+│                                       infrastructure, wait: true)
+├── flux-system/                       (bootstrap-managed —
+│                                       gotk-components.yaml + gotk-sync.yaml
+│                                       + kustomization.yaml from
+│                                       `flux bootstrap`)
+├── infrastructure/                    (operational HelmReleases — spec 151
+│                                       Phases 2–4; reconciled via
+│                                       Flux Kustomization "infrastructure")
+├── manifests/                         (raw Kubernetes manifests —
+│                                       Certificates, ClusterIssuers,
+│                                       namespace bootstraps; reconciled via
+│                                       Flux Kustomization "manifests")
+└── secrets/                           (SOPS-encrypted Secret manifests —
+                                        placeholder until spec 153 lands
+                                        FR-005 end-to-end)
 ```
 
-The `flux-system/` directory is intentionally absent from the initial scaffold. `flux bootstrap github --owner=stagecraft-ing --repo=open-agentic-platform --path=platform/gitops/clusters/hetzner-prod` populates it itself on first bootstrap; pre-creating it would conflict with the bootstrap-generated kustomization.
+The `flux-system/` directory is intentionally absent from the initial scaffold. `flux bootstrap github --owner=stagecraft-ing --repository=open-agentic-platform --path=platform/gitops/clusters/hetzner-prod` populates it itself on first bootstrap; pre-creating it would conflict with the bootstrap-generated kustomization.
+
+### Reconciliation topology
+
+```
+flux-system/flux-system  (root, from gotk-sync.yaml, path: ./platform/gitops/clusters/hetzner-prod)
+  applies kustomization.yaml → flux-system/* + 2 sub-Kustomizations
+       │
+       ├── flux-system/infrastructure  (path: ./infrastructure)
+       │     healthChecks: HelmRelease/cert-manager
+       │     applies: HelmRepository jetstack, ingress-nginx, stakater, rauthy
+       │              HelmRelease  cert-manager, ingress-nginx, reflector, rauthy
+       │
+       └── flux-system/manifests        (path: ./manifests; dependsOn: infrastructure; wait: true)
+             applies: ClusterIssuer letsencrypt-prod (+ letsencrypt-staging)
+                      Certificate tenants-wildcard
+```
+
+The dependsOn chain enforces "cert-manager HelmRelease Ready ⇒ then Certificate / ClusterIssuer dry-run runs". On a bare cluster this is the difference between converging in ~5 min and never converging at all (the F8 failure mode).
 
 ## Single-cluster v1 shape
 
