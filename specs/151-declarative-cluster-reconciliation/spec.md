@@ -1978,19 +1978,50 @@ for the next operator-confirmed session.
   --with-source` to force immediate reconcile; expected wall-clock
   revert in <30s. The recipe is operator-runnable from the doc.
 
-**What did NOT land** (pending T-022 closure as a separate event):
+**Phase 5 T-022 done-when status: doc deliverable SATISFIED.**
+The SC-005 live evidence half also landed in the same Phase 5
+sprint (next sub-section).
 
-- Live SC-005 evidence (the actual annotate + reconcile + verify-
-  reverted run). The `kubectl annotate` step is a production-
-  cluster write; per `feedback_capability_vs_authorization` it
-  requires per-step operator confirmation. Authored doc carries
-  the placeholder; the next operator-confirmed session fills in
-  the timestamps + event log + command outputs.
+### Phase 5 — SC-005 live evidence (2026-05-18)
 
-**Phase 5 T-022 done-when status: doc deliverable SATISFIED;
-SC-005 live-evidence PENDING.** Phase 5's other open tasks
-(T-023 DR runbook, T-024 SC-003 measurement, T-025 dr-baseline
-F1/F2 resolution, T-026 setup.sh final shrink) are independent of
-T-022 documentation and proceed on their own gating (operator
-session + fresh throwaway cluster for T-023/T-024/T-025; spec
-153 for T-026).
+The drift-revert test ran 2026-05-18 23:41:47 UTC against the
+production cluster on `main@sha1:4814b86ffee0` (PR #170's merge
+commit). Operator pre-approved the test in-session; results captured
+into `execution/drift-detection.md` §"SC-005 live evidence
+(2026-05-18)".
+
+**Result: SATISFIED in 8 seconds wall-clock.**
+
+The test followed the recipe pinned in T-022's documentation:
+
+- Target: a benign annotation on the `reflector` HelmRelease CR
+  (kustomize-controller-managed, lowest blast radius).
+- Procedure: `kubectl annotate helmrelease reflector
+  drift-test.spec-151=<ts> --overwrite` → verify present → `flux
+  reconcile kustomization flux-system --with-source` → verify
+  absent.
+- Wall-clock: 8 seconds (T0 → T1 epoch-second delta).
+- The matching kustomize-controller event was `Progressing —
+  HelmRelease/kube-system/reflector configured` — the empirical
+  fingerprint of drift correction. `configured` is the verb
+  kustomize-controller emits when a per-object change had to be
+  applied during a reconcile cycle (vs steady-state reconciles
+  which emit only `ReconciliationSucceeded` with no per-object
+  events).
+
+**Side observation captured in the doc:** the reconcile also
+triggered `rauthy.v83` to upgrade because the GitRepository
+revision change (`313bd2e0` → `4814b86f`) re-packages every
+HelmRelease whose chart uses `reconcileStrategy: Revision` (rauthy
+is the only one currently). The chart contents didn't differ from
+v82; helm history accumulates a revision per upstream commit. This
+is the designed behavior of `Revision` strategy (vs `ChartVersion`
+which would require manual `Chart.yaml` bumps). Recorded as
+operational expectation, not a defect.
+
+**Phase 5 T-022 done-when status (final): SATISFIED across both
+doc and live evidence.** Phase 5's other open tasks (T-023 DR
+runbook, T-024 SC-003 measurement, T-025 dr-baseline F1/F2
+resolution, T-026 setup.sh final shrink) are independent of T-022
+and proceed on their own gating (operator session + fresh throwaway
+cluster for T-023/T-024/T-025; spec 153 for T-026).
