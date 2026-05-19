@@ -101,17 +101,26 @@ input. Each is tagged with its W-unit and the file/risk it affects.
 - `crates/featuregraph/tests/golden.rs::test_golden_graph` was
   already failing on `main` HEAD `b41c02e7` (verified via
   `git stash && cargo test ...`). The golden file's
-  `graph_fingerprint = febf01350aa6...` but the live spec corpus
-  computes `15ca2c6d...` — drift in the spec corpus, not in W-05.
-  W-05 commit body documents this and verifies actual fingerprint
-  pre- and post-W-05 matches (`15ca2c6d...` unchanged); impl_files()
-  semantics ARE byte-preserved as the plan required. Reviewer:
-  refresh the golden in a follow-up `chore(featuregraph):
-  refresh golden` PR.
+  `graph_fingerprint = 15ca2c6d...` but the live spec corpus
+  computes `febf01350aa6...` — drift in the spec corpus, not in
+  W-05. W-05 commit body documents this and verifies the
+  *scanner-produced* fingerprint pre- and post-W-05 matches
+  (`febf01350aa6...` unchanged); impl_files() semantics ARE
+  byte-preserved as the plan required. Reviewer: refresh the
+  golden in a follow-up `chore(featuregraph): refresh golden` PR.
+
+  **Correction (Cut D Fix 5):** the original prose above
+  inverted the golden-vs-scanner fingerprint labels. The
+  substantive claim (pre-existing on main, byte-preserved by
+  W-05) is unchanged; only the labels were swapped. See
+  `docs/analysis/spec-spine-cut-d-verification.md` §Notes 1 and
+  the W-05 commit-body corrigendum at
+  `docs/analysis/spec-spine-cut-d-run-report-corrigendum.md`.
 
 ### W-06c — `compliance` retained in KNOWN_KEYS
 
-- The plan's literal instruction was to drop `compliance` from
+- Deviation from plan letter; refined factoring documented in-code.
+  The plan's literal instruction was to drop `compliance` from
   `KNOWN_KEYS` in shared-types. Implementing it caused
   `spec-compiler compile` to fail on the live corpus with 8 V-002
   errors (compliance is a complex YAML mapping that
@@ -119,8 +128,10 @@ input. Each is tagged with its W-unit and the file/risk it affects.
   compliance field in registry.json output) was already satisfied
   by removing the `FeatureRecord.compliance` field. KNOWN_KEYS is
   now factored as a "permitted frontmatter" allowlist distinct from
-  "fields spec-compiler emits". Re-added `"compliance"` to
-  KNOWN_KEYS with a doc comment explaining the new factoring.
+  "fields spec-compiler emits" — a defensible refinement of the
+  plan's mechanism that preserves the plan's intent. Re-added
+  `"compliance"` to KNOWN_KEYS with a doc comment explaining the
+  new factoring.
 
 ### W-06b — top_level help fixture regenerated
 
@@ -169,8 +180,8 @@ input. Each is tagged with its W-unit and the file/risk it affects.
   can be added without changing the `ValidationWarning` enum.
 - W-10 hook is **not yet wired** to `generate_certificate` /
   `verify_certificate` callers — threading `repo_root` through the
-  factory-engine binaries (`factory-harness`, `factory-run`,
-  `build-certificate`) is a follow-up. The public helpers stand
+  factory-engine binaries (`factory-run`, `build-certificate`,
+  `verify-certificate`) is a follow-up. The public helpers stand
   alone with a unit-test suite proving correctness.
 
 ### CI workflow scope decisions
@@ -226,12 +237,15 @@ this PR can land independently because the helpers stand alone.
 ## Three changes most likely to need reviewer attention
 
 1. **`tools/shared/spec-types/src/lib.rs:75-115` — `KNOWN_KEYS`
-   contains `compliance`.** Plan's literal instruction was to drop
-   it (W-06c). Live corpus has 8 specs with `compliance:` frontmatter
-   that the trimmed list rejects. The W-06c commit body justifies
-   the deviation: KNOWN_KEYS is now a "permitted frontmatter"
-   allowlist (distinct from "fields emitted by spec-compiler"). If
-   the reviewer wants stricter posture, the alternative is to widen
+   contains `compliance`.** Deviation from the plan letter; the
+   realised factoring is documented in-code. The plan's literal
+   instruction was to drop it (W-06c). Live corpus has 8 specs
+   with `compliance:` frontmatter that the trimmed list rejects.
+   The W-06c commit body justifies the refinement: KNOWN_KEYS is
+   now a "permitted frontmatter" allowlist (distinct from "fields
+   emitted by spec-compiler") — a defensible factoring of two
+   different concerns the plan had conflated. If the reviewer
+   wants stricter posture, the alternative is to widen
    `extra_frontmatter`'s `yaml_scalar_to_json` helper to descend
    into mappings/sequences-of-objects — a separate change.
 
@@ -249,11 +263,11 @@ this PR can land independently because the helpers stand alone.
 3. **`crates/factory-engine/src/governance_certificate.rs:
    validate_spec_id_resolution` not wired to callers.** W-10 commit
    body documents the deferred wiring. Three binaries
-   (`factory-harness`, `factory-run`, `build-certificate`) need
-   `repo_root` threaded through their cert-generation paths; the
-   per-caller cost is ~5 LoC but crosses crate boundaries.
-   Helpers are public + tested + ready to wire; reviewer can land
-   the wiring in a small follow-up PR.
+   (`factory-run`, `build-certificate`, `verify-certificate`) need
+   `repo_root` threaded through their cert-generation/verification
+   paths; the per-caller cost is ~5 LoC but crosses crate
+   boundaries. Helpers are public + tested + ready to wire;
+   reviewer can land the wiring in a small follow-up PR.
 
 ## State of CI artifacts in this branch
 
