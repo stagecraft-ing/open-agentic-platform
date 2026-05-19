@@ -21,7 +21,7 @@ fn create_test_workspace() -> TempDir {
     std::fs::create_dir_all(&registry_dir).unwrap();
     std::fs::write(
         registry_dir.join("registry.json"),
-        r#"{"features":[{"id":"test-feature","title":"Test Feature","specPath":"specs/test/spec.md","status":"active","codeAliases":[]}]}"#,
+        r#"{"specVersion":"1.5.0","features":[{"id":"test-feature","title":"Test Feature","specPath":"specs/test/spec.md","status":"active","codeAliases":[]}]}"#,
     )
     .unwrap();
     // Create a dummy source file so features.impact has something to scan
