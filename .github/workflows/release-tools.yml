@@ -2,7 +2,7 @@
 # Spec: 117-release-artifact-attestations
 #
 # Release standalone CLI tools alongside the desktop app.
-# Attaches spec-compiler, registry-consumer, spec-lint, policy-compiler, and
+# Attaches spec-compiler, registry-consumer, spec-lint, and
 # codebase-indexer binaries to the same GitHub Release created by
 # release-desktop.yml.
 #
@@ -113,8 +113,11 @@ jobs:
       - name: Build spec-lint
         run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-lint/Cargo.toml
 
-      - name: Build policy-compiler
-        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/policy-compiler/Cargo.toml
+      # Cut D W-09: policy-compiler dropped from the release bundle.
+      # It remains an OAP-internal tool built+tested in
+      # spec-conformance.yml; external consumers should build it from
+      # source via `cargo build --release --manifest-path
+      # tools/policy-compiler/Cargo.toml`.
 
       - name: Build codebase-indexer
         run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/codebase-indexer/Cargo.toml
@@ -140,7 +143,7 @@ jobs:
           # named after each tool's [[bin]] name (which is preserved
           # across Cut D W-04's crate rename), not its [package] name.
           # `registry-consumer` ships from crate `open_agentic_spec_registry_reader`.
-          for tool in spec-compiler registry-consumer spec-lint policy-compiler codebase-indexer; do
+          for tool in spec-compiler registry-consumer spec-lint codebase-indexer; do
             # Each tool has its own target dir under its manifest path
             SRC="tools/${tool}/target/${TARGET}/release/${tool}${EXT}"
             DEST="dist/${tool}-${TARGET}${EXT}"
