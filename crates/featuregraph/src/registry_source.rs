@@ -4,107 +4,68 @@
 
 //! Load feature manifest entries from **`build/spec-registry/registry.json`**
 //! (spec-compiler output) for the featuregraph scanner.
+//!
+//! Cut D W-05 deletes the local `CompiledRegistry` /
+//! `RegistryFeatureRecord` duplicates and consumes the typed-reader
+//! library introduced in W-03 (crate
+//! `open_agentic_spec_registry_reader`). The thin adapters here keep
+//! the byte-preserved semantics of `impl_files()` while the typed
+//! reader becomes the single sanctioned site that parses
+//! `registry.json` (spec 103).
 
 use crate::graph::FeatureNode;
-use serde::Deserialize;
+use open_agentic_spec_registry_reader as srr;
 use std::collections::HashMap;
 use std::path::Path;
 
-/// Root shape emitted by `tools/spec-compiler` (minimal fields for scanning).
-#[derive(Debug, Deserialize)]
-pub struct CompiledRegistry {
-    pub features: Vec<RegistryFeatureRecord>,
-}
+/// Adapter alias for the typed Feature record. Featuregraph used to
+/// hold its own `RegistryFeatureRecord` declaration; that duplicate is
+/// gone in W-05.
+pub type RegistryFeatureRecord = srr::Feature;
 
-/// Item under `implements:` list form: `{path, primary?}` per spec 147.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-pub struct ImplementsItem {
-    pub path: String,
-    #[serde(default)]
-    pub primary: Option<bool>,
-}
+/// Re-export of the typed `implements:` enum from spec_registry_reader.
+/// Kept under the local name for callers; `paths()` mirrors the old
+/// `impl_files()` semantics (scalar form contributes nothing, list
+/// form returns the inner `path:` strings).
+pub use srr::ImplementsField;
 
-/// Spec 147 — `implements:` field shape. Scalar form is valid only for
-/// `kind: capability` and carries a target registry spec id (NOT a file
-/// path); list form is valid for any kind and carries code-path claims.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum ImplementsField {
-    Scalar(String),
-    Items(Vec<ImplementsItem>),
-}
-
-impl ImplementsField {
-    /// Return the file-path claims under list form. Scalar form (capability
-    /// → registry spec-id reference) contributes nothing to file-path
-    /// traceability and returns an empty vec.
-    pub fn impl_files(&self) -> Vec<String> {
-        match self {
-            ImplementsField::Scalar(_) => Vec::new(),
-            ImplementsField::Items(items) => items.iter().map(|i| i.path.clone()).collect(),
-        }
-    }
-}
-
-/// One feature row in the compiled registry (`features[]`).
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-pub struct RegistryFeatureRecord {
-    pub id: String,
-    pub title: String,
-    #[serde(rename = "specPath")]
-    pub spec_path: String,
-    pub status: String,
-    #[serde(default)]
-    pub implementation: Option<String>,
-    #[serde(rename = "codeAliases", default)]
-    pub code_aliases: Vec<String>,
-    #[serde(rename = "dependsOn", default)]
-    pub depends_on: Vec<String>,
-    #[serde(default)]
-    pub owner: Option<String>,
-    #[serde(default)]
-    pub risk: Option<String>,
-    /// Spec 147 — promoted from `extraFrontmatter` to a top-level field.
-    #[serde(default)]
-    pub implements: Option<ImplementsField>,
-}
-
-/// Parse `registry.json` and return feature records (sorted by id for determinism).
-pub fn load_registry_records(path: &Path) -> anyhow::Result<Vec<RegistryFeatureRecord>> {
-    let bytes = std::fs::read(path)?;
-    let reg: CompiledRegistry = serde_json::from_slice(&bytes)?;
-    let mut features = reg.features;
+/// Parse `registry.json` and return feature records (sorted by id for
+/// determinism). Internally delegates to `srr::load`; errors map to
+/// `anyhow::Error` to keep the existing call sites unchanged.
+pub fn load_registry_records(path: &Path) -> anyhow::Result<Vec<srr::Feature>> {
+    let registry = srr::load(path).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let mut features = registry.features;
     features.sort_by(|a, b| a.id.cmp(&b.id));
     Ok(features)
 }
 
 /// Spec 147 AC-008 — build `FeatureNode` entries directly from
-/// `registry.json`, reading `implements:` from the registry (no longer
-/// dependent on `codebase-index/index.json` for the spec-to-code join).
+/// `registry.json`, reading `implements:` from the typed registry.
 ///
 /// Returns a map of `spec_id → FeatureNode` with `impl_files` populated
-/// from each spec's `implements:` list-form items. Scalar `implements:`
-/// (capability → registry spec-id) contributes nothing to `impl_files`
-/// — those claims are spec-to-spec references, not code paths.
+/// from each spec's `implements:` list-form items via the typed
+/// reader's `paths()` helper. Scalar `implements:` (capability →
+/// registry spec-id) contributes nothing to `impl_files` — those
+/// claims are spec-to-spec references, not code paths.
 pub fn load_from_registry(path: &Path) -> Result<HashMap<String, FeatureNode>, String> {
     let records = load_registry_records(path).map_err(|e| format!("{e}"))?;
     let mut nodes = HashMap::with_capacity(records.len());
     for rec in records {
-        let impl_files = rec
+        let impl_files: Vec<String> = rec
             .implements
             .as_ref()
-            .map(|i| i.impl_files())
+            .map(|i| i.paths().into_iter().map(String::from).collect())
             .unwrap_or_default();
         let node = FeatureNode {
             feature_id: rec.id.clone(),
-            title: rec.title,
-            spec_path: rec.spec_path,
-            status: rec.status,
-            implementation: rec.implementation.unwrap_or_default(),
+            title: rec.title.clone().unwrap_or_default(),
+            spec_path: rec.spec_path.clone().unwrap_or_default(),
+            status: rec.status.clone().unwrap_or_default(),
+            implementation: rec.implementation.clone().unwrap_or_default(),
             governance: String::new(),
-            owner: rec.owner.unwrap_or_default(),
+            owner: rec.owner.clone().unwrap_or_default(),
             group: String::new(),
-            depends_on: rec.depends_on,
+            depends_on: rec.depends_on.clone(),
             impl_files,
             test_files: Vec::new(),
             violations: Vec::new(),
@@ -120,56 +81,67 @@ mod tests {
     use std::io::Write;
     use tempfile::tempdir;
 
+    /// Helper: emit a `specVersion: "1.5.0"` fixture. The typed reader
+    /// dispatches on the 1.x family; pre-W-05 fixtures lacking the
+    /// field decoded under featuregraph's own permissive parser and
+    /// now need the explicit version. (Same fixture corpus
+    /// semantics — only the schema-version is made explicit.)
+    fn write_fixture(path: &std::path::PathBuf, body: &str) {
+        std::fs::File::create(path)
+            .unwrap()
+            .write_all(body.as_bytes())
+            .unwrap();
+    }
+
     #[test]
     fn parses_minimal_registry_json() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "specVersion": "1.1.0",
-            "features": [
-                {
-                    "id": "002-registry-consumer-mvp",
-                    "title": "Registry consumer MVP",
-                    "specPath": "specs/002-registry-consumer-mvp/spec.md",
-                    "status": "draft",
-                    "summary": "x",
-                    "kind": "platform",
-                    "created": "2026-03-22",
-                    "authors": ["open-agentic-platform"]
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "002-registry-consumer-mvp",
+                        "title": "Registry consumer MVP",
+                        "specPath": "specs/002-registry-consumer-mvp/spec.md",
+                        "status": "draft",
+                        "summary": "x",
+                        "kind": "platform",
+                        "created": "2026-03-22",
+                        "authors": ["open-agentic-platform"]
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].id, "002-registry-consumer-mvp");
         assert_eq!(
-            records[0].spec_path,
-            "specs/002-registry-consumer-mvp/spec.md"
+            records[0].spec_path.as_deref(),
+            Some("specs/002-registry-consumer-mvp/spec.md")
         );
-        assert_eq!(records[0].status, "draft");
+        assert_eq!(records[0].status.as_deref(), Some("draft"));
     }
 
     #[test]
     fn sorts_by_id() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {"id":"b","title":"","specPath":"specs/b/spec.md","status":"draft"},
-                {"id":"a","title":"","specPath":"specs/a/spec.md","status":"draft"}
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {"id":"b","title":"","specPath":"specs/b/spec.md","status":"draft"},
+                    {"id":"a","title":"","specPath":"specs/a/spec.md","status":"draft"}
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records[0].id, "a");
@@ -180,26 +152,25 @@ mod tests {
     fn parses_code_aliases_from_registry() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "specVersion": "1.1.0",
-            "features": [
-                {
-                    "id": "034-featuregraph-registry-scanner-fix",
-                    "title": "t",
-                    "specPath": "specs/034-featuregraph-registry-scanner-fix/spec.md",
-                    "status": "active",
-                    "summary": "x",
-                    "created": "2026-03-29",
-                    "sectionHeadings": [],
-                    "codeAliases": ["FEATUREGRAPH_REGISTRY", "GOVERNANCE_ENGINE"]
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "034-featuregraph-registry-scanner-fix",
+                        "title": "t",
+                        "specPath": "specs/034-featuregraph-registry-scanner-fix/spec.md",
+                        "status": "active",
+                        "summary": "x",
+                        "created": "2026-03-29",
+                        "sectionHeadings": [],
+                        "codeAliases": ["FEATUREGRAPH_REGISTRY", "GOVERNANCE_ENGINE"]
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert_eq!(
@@ -215,22 +186,22 @@ mod tests {
     fn sc091_1_parses_depends_on() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "091-test",
-                    "title": "t",
-                    "specPath": "specs/091/spec.md",
-                    "status": "active",
-                    "dependsOn": ["dep-a", "dep-b"]
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "091-test",
+                        "title": "t",
+                        "specPath": "specs/091/spec.md",
+                        "status": "active",
+                        "dependsOn": ["dep-a", "dep-b"]
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records[0].depends_on, vec!["dep-a", "dep-b"]);
@@ -240,22 +211,22 @@ mod tests {
     fn sc091_1_parses_owner() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "091-owner",
-                    "title": "t",
-                    "specPath": "specs/091/spec.md",
-                    "status": "active",
-                    "owner": "platform-team"
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "091-owner",
+                        "title": "t",
+                        "specPath": "specs/091/spec.md",
+                        "status": "active",
+                        "owner": "platform-team"
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records[0].owner.as_deref(), Some("platform-team"));
@@ -265,22 +236,22 @@ mod tests {
     fn sc091_1_parses_risk() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "091-risk",
-                    "title": "t",
-                    "specPath": "specs/091/spec.md",
-                    "status": "active",
-                    "risk": "high"
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "091-risk",
+                        "title": "t",
+                        "specPath": "specs/091/spec.md",
+                        "status": "active",
+                        "risk": "high"
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert_eq!(records[0].risk.as_deref(), Some("high"));
@@ -290,21 +261,21 @@ mod tests {
     fn sc091_2_missing_enriched_fields_default() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "091-minimal",
-                    "title": "t",
-                    "specPath": "specs/091/spec.md",
-                    "status": "draft"
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "091-minimal",
+                        "title": "t",
+                        "specPath": "specs/091/spec.md",
+                        "status": "draft"
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
 
         let records = load_registry_records(&path).unwrap();
         assert!(records[0].depends_on.is_empty());
@@ -316,30 +287,30 @@ mod tests {
     fn parses_implements_list_form() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "127-spec-code-coupling-gate",
-                    "title": "t",
-                    "specPath": "specs/127/spec.md",
-                    "status": "approved",
-                    "implements": [
-                        {"path": "tools/spec-code-coupling-check"},
-                        {"path": "Makefile", "primary": true}
-                    ]
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "127-spec-code-coupling-gate",
+                        "title": "t",
+                        "specPath": "specs/127/spec.md",
+                        "status": "approved",
+                        "implements": [
+                            {"path": "tools/spec-code-coupling-check"},
+                            {"path": "Makefile", "primary": true}
+                        ]
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
         let records = load_registry_records(&path).unwrap();
         let imp = records[0].implements.as_ref().expect("implements present");
         assert_eq!(
-            imp.impl_files(),
-            vec!["tools/spec-code-coupling-check".to_string(), "Makefile".to_string()]
+            imp.paths(),
+            vec!["tools/spec-code-coupling-check", "Makefile"]
         );
     }
 
@@ -347,60 +318,60 @@ mod tests {
     fn parses_implements_scalar_form_as_no_files() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "149-saml-auth-driver",
-                    "title": "t",
-                    "specPath": "specs/149/spec.md",
-                    "status": "draft",
-                    "implements": "148-auth-driver-registry"
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "149-saml-auth-driver",
+                        "title": "t",
+                        "specPath": "specs/149/spec.md",
+                        "status": "draft",
+                        "implements": "148-auth-driver-registry"
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
         let records = load_registry_records(&path).unwrap();
         let imp = records[0].implements.as_ref().expect("implements present");
         assert!(matches!(imp, ImplementsField::Scalar(_)));
-        assert!(imp.impl_files().is_empty());
+        assert!(imp.paths().is_empty());
     }
 
     #[test]
     fn load_from_registry_builds_feature_nodes_with_impl_files() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
-        let json = r#"{
-            "features": [
-                {
-                    "id": "127-spec-code-coupling-gate",
-                    "title": "Spec/Code Coupling Gate",
-                    "specPath": "specs/127/spec.md",
-                    "status": "approved",
-                    "implementation": "complete",
-                    "owner": "bart",
-                    "implements": [
-                        {"path": "tools/spec-code-coupling-check"},
-                        {"path": "Makefile"}
-                    ]
-                },
-                {
-                    "id": "149-saml-auth-driver",
-                    "title": "SAML auth driver",
-                    "specPath": "specs/149/spec.md",
-                    "status": "draft",
-                    "implements": "148-auth-driver-registry"
-                }
-            ],
-            "validation": { "passed": true, "violations": [] }
-        }"#;
-        std::fs::File::create(&path)
-            .unwrap()
-            .write_all(json.as_bytes())
-            .unwrap();
+        write_fixture(
+            &path,
+            r#"{
+                "specVersion": "1.5.0",
+                "features": [
+                    {
+                        "id": "127-spec-code-coupling-gate",
+                        "title": "Spec/Code Coupling Gate",
+                        "specPath": "specs/127/spec.md",
+                        "status": "approved",
+                        "implementation": "complete",
+                        "owner": "bart",
+                        "implements": [
+                            {"path": "tools/spec-code-coupling-check"},
+                            {"path": "Makefile"}
+                        ]
+                    },
+                    {
+                        "id": "149-saml-auth-driver",
+                        "title": "SAML auth driver",
+                        "specPath": "specs/149/spec.md",
+                        "status": "draft",
+                        "implements": "148-auth-driver-registry"
+                    }
+                ],
+                "validation": { "passed": true, "violations": [] }
+            }"#,
+        );
         let nodes = load_from_registry(&path).unwrap();
         let n127 = nodes.get("127-spec-code-coupling-gate").expect("127 present");
         assert_eq!(

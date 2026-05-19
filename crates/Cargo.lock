@@ -2524,6 +2524,7 @@ dependencies = [
  "anyhow",
  "hex",
  "ignore",
+ "open_agentic_spec_registry_reader",
  "regex",
  "serde",
  "serde_json",
@@ -4457,6 +4458,15 @@ dependencies = [
  "serde_yaml",
  "sha2 0.10.9",
  "tempfile",
+]
+
+[[package]]
+name = "open_agentic_spec_registry_reader"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -158,13 +158,13 @@ impl FeatureEntry {
     fn from_registry_record(r: &crate::registry_source::RegistryFeatureRecord) -> Self {
         Self {
             id: r.id.clone(),
-            title: r.title.clone(),
-            spec: r.spec_path.clone(),
+            title: r.title.clone().unwrap_or_default(),
+            spec: r.spec_path.clone().unwrap_or_default(),
             governance: r.risk.clone().unwrap_or_default(),
             owner: r.owner.clone().unwrap_or_default(),
             group: String::new(),
             depends_on: r.depends_on.clone(),
-            status: r.status.clone(),
+            status: r.status.clone().unwrap_or_default(),
             implementation: r.implementation.clone(),
             aliases: r.code_aliases.clone(),
         }
@@ -474,36 +474,39 @@ mod tests {
 
     #[test]
     fn registry_code_aliases_populate_feature_entry() {
-        let r = crate::registry_source::RegistryFeatureRecord {
-            id: "034-featuregraph-registry-scanner-fix".into(),
-            title: "t".into(),
-            spec_path: "specs/034-featuregraph-registry-scanner-fix/spec.md".into(),
-            status: "approved".into(),
-            implementation: Some("complete".into()),
-            code_aliases: vec!["FEATUREGRAPH_REGISTRY".into()],
-            depends_on: vec![],
-            owner: None,
-            risk: None,
-            implements: None,
-        };
+        // RegistryFeatureRecord is now srr::Feature (W-05); construct
+        // via JSON parse so the literal stays compact across the
+        // larger field set.
+        let r: crate::registry_source::RegistryFeatureRecord = serde_json::from_value(
+            serde_json::json!({
+                "id": "034-featuregraph-registry-scanner-fix",
+                "title": "t",
+                "specPath": "specs/034-featuregraph-registry-scanner-fix/spec.md",
+                "status": "approved",
+                "implementation": "complete",
+                "codeAliases": ["FEATUREGRAPH_REGISTRY"]
+            }),
+        )
+        .expect("decode feature record");
         let e = FeatureEntry::from_registry_record(&r);
         assert_eq!(e.aliases, vec!["FEATUREGRAPH_REGISTRY"]);
     }
 
     #[test]
     fn registry_enriched_fields_populate_feature_entry() {
-        let r = crate::registry_source::RegistryFeatureRecord {
-            id: "087-unified-workspace-architecture".into(),
-            title: "Unified Workspace Architecture".into(),
-            spec_path: "specs/087-unified-workspace-architecture/spec.md".into(),
-            status: "approved".into(),
-            implementation: Some("in-progress".into()),
-            code_aliases: vec![],
-            depends_on: vec!["033".into(), "068".into()],
-            owner: Some("bart".into()),
-            risk: Some("high".into()),
-            implements: None,
-        };
+        let r: crate::registry_source::RegistryFeatureRecord = serde_json::from_value(
+            serde_json::json!({
+                "id": "087-unified-workspace-architecture",
+                "title": "Unified Workspace Architecture",
+                "specPath": "specs/087-unified-workspace-architecture/spec.md",
+                "status": "approved",
+                "implementation": "in-progress",
+                "dependsOn": ["033", "068"],
+                "owner": "bart",
+                "risk": "high"
+            }),
+        )
+        .expect("decode feature record");
         let e = FeatureEntry::from_registry_record(&r);
         assert_eq!(e.depends_on, vec!["033", "068"]);
         assert_eq!(e.owner, "bart");

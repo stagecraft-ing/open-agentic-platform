@@ -342,15 +342,15 @@ pub enum ImplementsField {
 }
 
 impl ImplementsField {
-    /// Best-effort extraction of implementation path references. Walks
-    /// the field, pulling string entries directly and `path:` fields
-    /// from object entries. Returns an empty Vec if the field carries
-    /// only non-path content (e.g. a `Scalar(spec-id)` reference;
-    /// callers can match the enum directly when they need to
-    /// distinguish).
+    /// Best-effort extraction of implementation **path** references.
+    /// Walks the list form, pulling bare string entries directly and
+    /// `path:` fields from object entries. The scalar form carries a
+    /// target spec-id (NOT a file path; see spec 147 §`implements:`),
+    /// so it contributes an empty Vec. Callers needing the spec-id
+    /// should use [`Self::as_scalar`].
     pub fn paths(&self) -> Vec<&str> {
         match self {
-            ImplementsField::Scalar(s) => vec![s.as_str()],
+            ImplementsField::Scalar(_) => Vec::new(),
             ImplementsField::List(items) => items
                 .iter()
                 .filter_map(|v| v.as_str().or_else(|| v.get("path").and_then(|x| x.as_str())))
@@ -358,9 +358,13 @@ impl ImplementsField {
         }
     }
 
-    /// Backwards-compatible alias used by W-03's typed tests.
-    pub fn as_slice(&self) -> Vec<&str> {
-        self.paths()
+    /// Return the spec-id reference when this field carries the
+    /// scalar form, or `None` for list form.
+    pub fn as_scalar(&self) -> Option<&str> {
+        match self {
+            ImplementsField::Scalar(s) => Some(s.as_str()),
+            ImplementsField::List(_) => None,
+        }
     }
 }
 
@@ -744,10 +748,13 @@ mod typed_tests {
         write_fixture(&p, fixture_15());
         let r = load(&p).unwrap();
         let a = r.find_by_id("001-a").unwrap();
+        // Scalar form is a spec-id reference (spec 147), not a file path.
         match &a.implements {
             Some(ImplementsField::Scalar(s)) => assert_eq!(s, "src/a.rs"),
             other => panic!("expected Scalar, got {other:?}"),
         }
+        assert_eq!(a.implements.as_ref().unwrap().as_scalar(), Some("src/a.rs"));
+        assert!(a.implements.as_ref().unwrap().paths().is_empty());
         let b = r.find_by_id("002-b").unwrap();
         match &b.implements {
             Some(ImplementsField::List(v)) => {
@@ -757,6 +764,7 @@ mod typed_tests {
             other => panic!("expected List, got {other:?}"),
         }
         assert_eq!(b.implements.as_ref().unwrap().paths(), vec!["src/b1.rs", "src/b2.rs"]);
+        assert!(b.implements.as_ref().unwrap().as_scalar().is_none());
     }
 
     #[test]
