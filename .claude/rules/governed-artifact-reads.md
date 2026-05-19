@@ -12,7 +12,8 @@ Compiled artifacts under `build/**` MUST be read by orchestrated workflows throu
 
 | Artifact | Consumer | Common subcommands |
 |----------|----------|---------------------|
-| `build/spec-registry/registry.json` | `registry-consumer` | `list`, `list --ids-only`, `list --json`, `show`, `status-report --json`, `compliance-report` |
+| `build/spec-registry/registry.json` | `registry-consumer` | `list`, `list --ids-only`, `list --json`, `show`, `status-report --json` |
+| `build/spec-registry/registry-oap.json` | `oap-registry-enrich` | `enrich` (default), `compliance-report` (moved from registry-consumer in Cut D W-06b) |
 | `build/codebase-index/index.json` | `codebase-indexer` | `compile`, `check`, `render` |
 | `build/codebase-index/CODEBASE-INDEX.md` | read directly (already a governed human-shaped view) | — |
 

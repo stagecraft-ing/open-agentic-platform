@@ -198,11 +198,13 @@ make setup
 # Builds spec compiler + codebase indexer, compiles the registry,
 # fetches the axiomregent sidecar binary.
 
-./tools/registry-consumer/target/release/registry-consumer \
+./tools/oap-registry-enrich/target/release/oap-registry-enrich \
     compliance-report --framework owasp-asi-2026 --json
 # Emits the ASI-control-to-spec mapping. This is the traceability
 # artifact: structured, deterministic, and reproducible from the
-# compiled registry.
+# compiled registry. (Moved from registry-consumer in Cut D W-06b;
+# compliance is an OAP-specific overlay rather than a generic
+# spec-spine concept.)
 
 ./tools/registry-consumer/target/release/registry-consumer \
     status-report --json --nonzero-only
@@ -277,7 +279,9 @@ today vs. what is staged and what is roadmap, by spec ID.
 - **Codebase index** — spec-to-code traceability for every crate and
   package ([spec 101](specs/101-codebase-index-mvp/spec.md)).
 - **OWASP ASI 2026 compliance map** — six controls (ASI01, 03, 05, 07,
-  09, 10) map to spec 102 today via `registry-consumer compliance-report`.
+  09, 10) map to spec 102 today via `oap-registry-enrich compliance-report`
+  (moved from `registry-consumer` in Cut D W-06b; the spec-spine
+  `registry-consumer` no longer carries OAP-specific overlays).
 - **Governance certificate — live emission** ([spec 102](specs/102-governed-excellence/spec.md))
   — every `factory-run` writes `governance-certificate.json` under the
   run directory at termination (success or halt), binding requirements
