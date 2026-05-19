@@ -2,11 +2,11 @@ use featuregraph::enrichment::enrich_features_with_metrics;
 use featuregraph::preflight::compute_blast_radius;
 use featuregraph::scanner::Scanner;
 use featuregraph::tools::FeatureGraphTools;
+use open_agentic_spec_registry_reader as srr;
 use serde::Serialize;
 use serde_json::{Value, json};
 use specta::Type;
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 use tauri::command;
 use xray::scan_target;
@@ -255,30 +255,25 @@ fn resolve_repo_root(input: &str) -> PathBuf {
 }
 
 fn read_registry_summary(path: &PathBuf) -> Result<Value, String> {
-    let raw = fs::read_to_string(path).map_err(|e| format!("Failed reading registry: {e}"))?;
-    let parsed: Value =
-        serde_json::from_str(&raw).map_err(|e| format!("Failed parsing registry JSON: {e}"))?;
+    // Cut D W-12: typed-reader consumer. No more ad-hoc Value parsing —
+    // spec 103's "consumer-binary exception" applies once per artifact
+    // (the spec_registry_reader::load entry point in tools/registry-
+    // consumer).
+    let registry = srr::load(path).map_err(|e| match e {
+        srr::RegistryError::Io(err) => format!("Failed reading registry: {err}"),
+        srr::RegistryError::Json(err) => format!("Failed parsing registry JSON: {err}"),
+        srr::RegistryError::UnknownSchemaVersion(v) => {
+            format!("Unsupported registry specVersion: {v}")
+        }
+        srr::RegistryError::MissingFeaturesArray => "Registry missing features array".to_string(),
+    })?;
 
-    let features = parsed
-        .get("features")
-        .and_then(Value::as_array)
-        .ok_or_else(|| "Registry missing features array".to_string())?;
-    let validation = parsed
-        .get("validation")
-        .and_then(Value::as_object)
-        .ok_or_else(|| "Registry missing validation object".to_string())?;
-
-    let validation_passed = validation
-        .get("passed")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
+    let validation_passed = registry.validation.passed;
+    let violations_count = registry.validation.violations.len();
 
     let mut status_counts = serde_json::Map::new();
-    for feature in features {
-        let status = feature
-            .get("status")
-            .and_then(Value::as_str)
-            .unwrap_or("unknown");
+    for f in &registry.features {
+        let status = f.status.as_deref().unwrap_or("unknown");
         let prev = status_counts
             .get(status)
             .and_then(Value::as_u64)
@@ -286,44 +281,23 @@ fn read_registry_summary(path: &PathBuf) -> Result<Value, String> {
         status_counts.insert(status.to_string(), Value::from(prev + 1));
     }
 
-    let violations_count = validation
-        .get("violations")
-        .and_then(Value::as_array)
-        .map(|items| items.len())
-        .unwrap_or(0);
-
     let mut feature_summaries = Vec::new();
-    for feature in features {
-        let Some(obj) = feature.as_object() else {
+    for f in &registry.features {
+        let Some(spec_path) = f.spec_path.as_deref() else {
             continue;
         };
-        let id = obj
-            .get("id")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_string();
-        let title = obj
-            .get("title")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_string();
-        let spec_path = obj
-            .get("specPath")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_string();
         if spec_path.is_empty() {
             continue;
         }
         feature_summaries.push(json!({
-            "id": id,
-            "title": title,
+            "id": f.id,
+            "title": f.title.as_deref().unwrap_or(""),
             "specPath": spec_path,
         }));
     }
 
     Ok(json!({
-        "featureCount": features.len(),
+        "featureCount": registry.features.len(),
         "validationPassed": validation_passed,
         "violationsCount": violations_count,
         "statusCounts": status_counts,
@@ -344,6 +318,7 @@ mod tests {
         writeln!(
             file,
             r#"{{
+  "specVersion":"1.5.0",
   "features":[
     {{"id":"001","status":"active","title":"A","specPath":"specs/001-a/spec.md"}},
     {{"id":"002","status":"active","title":"B","specPath":"specs/002-b/spec.md"}},
@@ -371,7 +346,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let path = dir.path().join("registry.json");
         let mut file = std::fs::File::create(&path).expect("file");
-        writeln!(file, r#"{{"validation":{{"passed":true}}}}"#).expect("write");
+        writeln!(file, r#"{{"specVersion":"1.5.0","validation":{{"passed":true}}}}"#).expect("write");
 
         let err = read_registry_summary(&path).expect_err("expected error");
         assert!(err.contains("features array"));

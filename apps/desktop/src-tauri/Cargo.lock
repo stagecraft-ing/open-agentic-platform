@@ -2138,6 +2138,7 @@ dependencies = [
  "anyhow",
  "hex",
  "ignore",
+ "open_agentic_spec_registry_reader",
  "regex",
  "serde",
  "serde_json",
@@ -4793,6 +4794,7 @@ dependencies = [
  "log",
  "objc",
  "open_agentic_policy_kernel",
+ "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
  "provider-registry",
@@ -4874,6 +4876,15 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "open_agentic_spec_registry_reader"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
