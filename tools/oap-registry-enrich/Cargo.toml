@@ -1,0 +1,31 @@
+[package]
+name = "open_agentic_registry_enrich"
+publish = false   # OAP-internal CI artifact; never shipped via release-tools.yml
+version = "0.1.0"
+edition = "2024"
+description = "OAP-side enricher: reads spec-spine registry.json + walks OAP-specific corpus, emits registry-oap.json with factoryProjects + per-feature compliance"
+rust-version = "1.85"
+
+[[bin]]
+name = "oap-registry-enrich"
+path = "src/main.rs"
+
+[lib]
+name = "open_agentic_registry_enrich"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+open_agentic_spec_registry_reader = { path = "../registry-consumer" }
+open_agentic_spec_types = { path = "../shared/spec-types" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.11"
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[package.metadata.oap]
+spec = "102-governed-excellence"

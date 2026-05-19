@@ -137,8 +137,16 @@ fetch-axiomregent-check:
 # ============================================================
 
 ## Recompile spec registry + codebase index in one step (102 FR-026).
-registry: spec-compile index ci-schema-parity
+registry: spec-compile oap-registry-enrich index ci-schema-parity
 	@echo "==> Registry and index recompiled."
+
+## Cut D W-06a: emit build/spec-registry/registry-oap.json from the
+## generic registry.json + spec corpus + .factory/build-spec.yaml walk
+## (specs 074 / 102). OAP-internal CI artifact; never shipped via
+## release-tools.yml.
+oap-registry-enrich:
+	cargo build --release --manifest-path tools/oap-registry-enrich/Cargo.toml
+	./tools/oap-registry-enrich/target/release/oap-registry-enrich
 
 ## Pre-PR / pre-commit prep. Regenerates the codebase index (catches the
 ## hash drift the staleness check fires on) and runs the spec-code

@@ -49,6 +49,12 @@ jobs:
       - name: Emit registry (smoke)
         run: ./tools/spec-compiler/target/release/spec-compiler compile
 
+      - name: Build oap-registry-enrich (Cut D W-06a)
+        run: cargo build --release --manifest-path tools/oap-registry-enrich/Cargo.toml
+
+      - name: Emit registry-oap.json (OAP-specific overlay)
+        run: ./tools/oap-registry-enrich/target/release/oap-registry-enrich
+
       - name: Tests (golden, schema conformance, exit codes)
         run: cargo test --manifest-path tools/spec-compiler/Cargo.toml
 
