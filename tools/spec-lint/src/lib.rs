@@ -1,6 +1,6 @@
 //! Optional conformance warnings (Feature 006) — does not replace spec-compiler validation.
 
-use open_agentic_spec_types::split_frontmatter_optional;
+use open_agentic_spec_types::{CONVENTIONAL_CATEGORIES, SHAPE_TABLE, split_frontmatter_optional};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,51 +16,6 @@ pub struct Warning {
     pub path: String,
     pub message: String,
 }
-
-/// Spec 147 — conventional `category:` vocabulary. Values outside this
-/// list emit W-130 at info severity (spec 128 §7.3). The list is
-/// expected to grow as the corpus accretes new cross-cutting concerns.
-pub const CONVENTIONAL_CATEGORIES: &[&str] = &[
-    "security",
-    "auth",
-    "data",
-    "ui",
-    "infrastructure",
-    "governance",
-    "audit",
-    "compliance",
-    "identity",
-    "lifecycle",
-    "policy",
-    "performance",
-    "observability",
-    "release",
-    "testing",
-];
-
-/// Spec 147 — declared `(kind, shape)` pairs. Mirrors `SHAPE_TABLE` in
-/// `tools/spec-compiler/src/lib.rs`. Pairs outside this table emit
-/// W-131 at warning severity (the table is meant to grow by amendment;
-/// novel pairs MUST trigger explicit table updates rather than silently
-/// passing).
-pub const SHAPE_TABLE: &[(&str, &[&str])] = &[
-    (
-        "capability",
-        &["driver", "module", "web-snippet", "middleware-stack"],
-    ),
-    (
-        "amendment",
-        &[
-            "field-addition",
-            "field-modification",
-            "mechanism-add",
-            "mechanism-modification",
-            "bug-fix",
-            "retirement-record",
-            "consolidation",
-        ],
-    ),
-];
 
 fn shape_table_has_kind(kind: &str) -> bool {
     SHAPE_TABLE.iter().any(|(k, _)| *k == kind)

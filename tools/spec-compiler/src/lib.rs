@@ -1,6 +1,8 @@
 //! Library for compiling `specs/*/spec.md` into Feature 000 registry JSON.
 
-use open_agentic_spec_types::{FrontmatterError, split_frontmatter_required};
+use open_agentic_spec_types::{
+    FrontmatterError, KNOWN_KEYS, VALID_KINDS, VALID_RISK_LEVELS, split_frontmatter_required,
+};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
@@ -41,95 +43,6 @@ const COMPILER_ID: &str = "open-agentic-spec-compiler";
 /// frontmatter fields plus the V-011 violation (amends_sections ∩
 /// unamendable ≠ ∅).
 const SPEC_VERSION: &str = "1.5.0";
-
-/// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
-const KNOWN_KEYS: &[&str] = &[
-    "id",
-    "title",
-    "status",
-    "created",
-    "summary",
-    "authors",
-    "kind",
-    "feature_branch",
-    "code_aliases",
-    "depends_on",
-    "owner",
-    "risk",
-    "implementation",
-    "implements",
-    "compliance",
-    // Spec 132 — unamendable invariants.
-    "amends",
-    "amends_sections",
-    "unamendable",
-    // Spec 147 — universal dimensions and governance lifecycle.
-    "shape",
-    "category",
-    "supersedes",
-    "superseded_by",
-    "retirement_rationale",
-    // Spec 147 — per-kind structural fields (kind: capability / registry / profile).
-    "provides",
-    "composition",
-    "selectable_by",
-    "selector",
-    "default",
-    "production_forbidden",
-    "member_contract",
-    "identity",
-    "selects",
-    "policy",
-];
-
-/// Valid values for the `risk` frontmatter field.
-const VALID_RISK_LEVELS: &[&str] = &["low", "medium", "high", "critical"];
-
-/// Spec 147 — valid values for the `kind` frontmatter field (V-012).
-/// 13 empirical kinds drawn from the corpus + 3 new kinds introduced
-/// by spec 147 (`capability`, `registry`, `profile`).
-const VALID_KINDS: &[&str] = &[
-    "platform",
-    "platform-delivery",
-    "governance",
-    "product",
-    "amendment",
-    "tooling",
-    "desktop",
-    "process",
-    "ui",
-    "architecture",
-    "constitutional-bootstrap",
-    "migration",
-    "product-consolidation",
-    "capability",
-    "registry",
-    "profile",
-];
-
-/// Spec 147 — declared `(kind, shape)` table. Reserved for downstream
-/// consumers: spec-lint emits W-131 against entries outside this table.
-/// V-013's web-snippet linkage check string-matches on `"web-snippet"`
-/// directly rather than via this table so the rule is local-readable.
-#[allow(dead_code)]
-const SHAPE_TABLE: &[(&str, &[&str])] = &[
-    (
-        "capability",
-        &["driver", "module", "web-snippet", "middleware-stack"],
-    ),
-    (
-        "amendment",
-        &[
-            "field-addition",
-            "field-modification",
-            "mechanism-add",
-            "mechanism-modification",
-            "bug-fix",
-            "retirement-record",
-            "consolidation",
-        ],
-    ),
-];
 
 #[derive(Debug)]
 pub enum CompileError {
