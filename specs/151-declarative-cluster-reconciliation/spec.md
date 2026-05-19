@@ -400,8 +400,9 @@ Constraints on the contract:
   steps: (a) at least one SOPS recipient private key available on the
   bootstrap operator's machine per Clarification #9 (the laptop key is
   the expected default; if the laptop is unavailable, the operator
-  pulls the backup key from Bitwarden — `OAP /
-  sops-age-hetzner-prod-recovery / keys.txt` — and places at
+  pulls the backup key from the Bitwarden `OAP` organization's
+  `sops-age-hetzner-prod-recovery` item (notes field — amended
+  2026-05-18, see §Clarification 9 (b)) and places at
   `~/.config/sops/age/keys.txt`), (b) terraform / `setup.sh` cluster
   create, (c) `flux bootstrap`, (d) cluster convergence to declared
   state.
@@ -818,11 +819,13 @@ not decisions.
    sub-decisions:**
 
    **Locked pin (verbatim):** *"Custody: operator-host
-   `~/.config/sops/age/keys.txt` (mode 0600) + Bitwarden vault `OAP`,
-   item `sops-age-hetzner-prod-recovery`, attachment `keys.txt`.
+   `~/.config/sops/age/keys.txt` (mode 0600) + Bitwarden `OAP`
+   organization, item `sops-age-hetzner-prod-recovery`, notes field.
    `.sops.yaml` recipients list includes both public keys; either
    private key can decrypt. Multi-operator custody remains out of scope
-   v1 per the named future spec."*
+   v1 per the named future spec."* **Amended 2026-05-18 (Phase 5 F1
+   measurement)**: "attachment `keys.txt`" → "notes field"; see
+   §Clarification 9 (b) amendment block below for rationale.
 
    **(a) Mechanism — multi-recipient SOPS (minimum two recipients,
    v1 commits to exactly two).**
@@ -844,8 +847,8 @@ not decisions.
      operator-only. This is the key the operator uses for `sops edit`
      and the key whose private form lives in the cluster's `sops-age`
      Secret (sub-decision (c) below).
-   - *Backup (recovery) private key:* **Bitwarden vault `OAP`, item
-     `sops-age-hetzner-prod-recovery`, attachment `keys.txt`**.
+   - *Backup (recovery) private key:* **Bitwarden `OAP` organization,
+     item `sops-age-hetzner-prod-recovery`, notes field**.
      Held purely as operator-side DR; never used day-to-day. If the
      laptop key is lost (device failure, key compromise), the
      operator imports the backup key from Bitwarden, applies it as
@@ -856,10 +859,31 @@ not decisions.
      or removing a recipient is a PR edit; CODEOWNERS gates the file.
 
    Bitwarden chosen over 1Password as the operator's working
-   password-manager-of-record; clean upgrade path from LastPass and
-   free tier covers the attachment-storage requirement. Substitution
-   from the earlier 1Password recommendation is committed verbatim in
-   this clarification per Phase 0 criterion (c).
+   password-manager-of-record; clean upgrade path from LastPass.
+   Substitution from the earlier 1Password recommendation is committed
+   verbatim in this clarification per Phase 0 criterion (c).
+
+   **Amended 2026-05-18 (Phase 5 F1 measurement).** The original
+   clarification text said "free tier covers the attachment-storage
+   requirement"; that was factually wrong — Bitwarden's free tier does
+   NOT support attachments (paid Premium plan required). The custody
+   shape uses the item's **notes field** instead, which the free tier
+   supports without length restriction. The age secret-key file
+   (3 lines: `# created` header + `# public key` header +
+   `AGE-SECRET-KEY-1...`, ~188 bytes) pastes cleanly into the notes
+   field with no information loss vs the attachment path, equivalent
+   vault-encrypted-at-rest security, and faster operator copy during
+   DR (one click vs download-then-read). F1 measured end-to-end at
+   ≤35s wall-clock (well inside the 5-min threshold) on 2026-05-18;
+   see [`execution/dr-baseline.md`](./execution/dr-baseline.md) F1
+   closure block. The session also demonstrated an emergent recovery
+   property the original §FR-007 didn't claim: the cluster's
+   `flux-system/sops-age` Secret can be read back via `kubectl get
+   secret … -o jsonpath` to recover whichever private key it holds —
+   the cluster acts as a third de-facto recipient store complementing
+   the operator-host laptop key + Bitwarden backup pair. Real-world
+   validated 2026-05-18 when a workstation stash/restore bug lost the
+   laptop key from disk; cluster-pull recovered it cleanly.
 
    **(c) Cluster runtime form — `sops-age` Secret holds the laptop
    private key.**

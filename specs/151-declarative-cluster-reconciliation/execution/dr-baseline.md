@@ -23,17 +23,18 @@ the 30-min end-state SC-003 budget. The per-step threshold checks below
 
 ## Step (a) — SOPS recipient restoration (sub-step + workflow)
 
-**Pinned model:** spec.md §Clarification 9. Multi-recipient SOPS with two
-named recipients (operator-host laptop + Bitwarden vault `OAP`, item
-`sops-age-hetzner-prod-recovery`, attachment `keys.txt`). The recipient
+**Pinned model:** spec.md §Clarification 9 (amended 2026-05-18,
+attachment → notes field). Multi-recipient SOPS with two named
+recipients (operator-host laptop + Bitwarden `OAP` organization,
+item `sops-age-hetzner-prod-recovery`, notes field). The recipient
 private key lands at `~/.config/sops/age/keys.txt` (mode 0600).
 
 **Two sub-stages within step (a):**
 
 1. **Bitwarden-unlock + extract** (human-action) — the operator opens
-   Bitwarden, unlocks the vault, locates the `OAP` /
-   `sops-age-hetzner-prod-recovery` item, downloads the `keys.txt`
-   attachment, writes to `~/.config/sops/age/keys.txt`, chmods 0600.
+   Bitwarden, unlocks the vault, locates the `OAP` organization's
+   `sops-age-hetzner-prod-recovery` item, copies the notes-field
+   content to `~/.config/sops/age/keys.txt`, chmods 0600.
 2. **CLI round-trip** (mechanical) — once the key file is on disk,
    `age` / `sops` decrypt is sub-second.
 
@@ -58,10 +59,48 @@ private key lands at `~/.config/sops/age/keys.txt` (mode 0600).
 **Finding F1.** The Bitwarden-unlock-and-extract sub-step is the
 dominant cost of step (a), and it is NOT exercised in this baseline.
 Stage 2 (post-implementation DR exercise) MUST measure the Bitwarden
-flow end-to-end against the real `OAP /
-sops-age-hetzner-prod-recovery` item to confirm the 5-min threshold.
+flow end-to-end against the real `OAP` organization
+`sops-age-hetzner-prod-recovery` item to confirm the 5-min threshold.
 The CLI portion is mechanically fast; the human-action portion is the
 threshold-relevant surface.
+
+**Amendment (2026-05-18, Stage 2 measurement — F1 closes verbatim).**
+F1 measured end-to-end against the real `bd954307-a326-4376-a8ed-b44e00985759`
+item at ≤35 seconds wall-clock — well inside the 5-min threshold
+(≥8× headroom). Measurement covered the realistic operator cold-start
+path: Bitwarden master-password unlock, `bw list items` lookup, `bw
+get item | jq -r .notes` extraction, file write, `chmod 0600`. Three
+sub-findings closed alongside F1:
+
+1. **Custody shape correction.** The Phase 0 spec assumption was
+   "attachment `keys.txt`"; reality is "notes field" because the
+   Bitwarden free tier does NOT support attachments (Premium plan
+   required). spec.md §Clarification 9 (b) amended in the same
+   commit. No security difference — both are vault-encrypted at rest
+   — and the notes path is marginally faster (one-click copy vs
+   download-then-read).
+2. **Cluster as emergent third recovery surface.** Mid-session, a
+   stash/restore bug in the runbook's step (a) commands lost the
+   laptop key from operator disk. Recovery via `kubectl -n
+   flux-system get secret sops-age -o jsonpath='{.data.age\.agekey}'
+   | base64 -d` restored recipient #1 cleanly; the cluster's
+   `sops-age` Secret holds whichever private key Flux bootstrap
+   used, and that Secret is readable by the operator's kubeconfig.
+   This is a stronger DR property than FR-007 explicitly claims —
+   the cluster is itself a recipient store, complementing the
+   operator-laptop + Bitwarden pair. Worth recording as an emergent
+   FR-007 enrichment without amending the spec (the property is
+   consistent with multi-recipient SOPS and doesn't change the
+   spec's contract).
+3. **Runbook stash-pattern bug.** `mv keys.txt → keys.txt.session-stash`
+   silently clobbers `.session-stash` if a previous run left it
+   populated. The Stage 2 runbook
+   (`execution/disaster-recovery.md`) replaces this with a
+   timestamp-suffix pattern (`keys.txt.stash-$(date +%s)`) so each
+   stash file is uniquely named and a previous-run residue cannot be
+   overwritten. The session that surfaced this incident was itself
+   the validation of the cluster-recovery-surface property in
+   sub-finding (2).
 
 ---
 
@@ -379,8 +418,9 @@ Stage 2 (recorded in `execution/disaster-recovery.md` after Phases
 1–5 land) MUST:
 
 1. Measure step (a)'s Bitwarden-unlock-and-extract sub-step end-to-end
-   on the real `OAP / sops-age-hetzner-prod-recovery` vault item
-   (closes F1).
+   on the real `OAP` organization `sops-age-hetzner-prod-recovery`
+   vault item, notes field (closes F1). **Closed 2026-05-18** — see
+   F1 Amendment block above; ≤35s wall-clock measured.
 2. Run step (b) against a fresh DC at implementation time; the cx43
    capacity weather of 2026-05-17/18 may have lifted, or may have
    become a chronic constraint requiring instance_type revisit (F2
