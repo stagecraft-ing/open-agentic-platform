@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "644ade5df9a6b9ff78898556d7713a4cf6d1d18d5fc6ea39adb5ac579600e5c4",
+    "contentHash": "8408b933dbf6728e7bcbbc6685c12ea157ce66182368459240e6a0fba6285e43",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1334,6 +1334,7 @@
       "externalDeps": [
         "chrono",
         "clap",
+        "jsonschema",
         "serde",
         "serde_json",
         "serde_yaml",

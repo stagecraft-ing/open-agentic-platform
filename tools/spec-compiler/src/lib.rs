@@ -1,5 +1,7 @@
 //! Library for compiling `specs/*/spec.md` into Feature 000 registry JSON.
 
+pub mod schema;
+
 use open_agentic_spec_types::{
     FrontmatterError, KNOWN_KEYS, VALID_KINDS, VALID_RISK_LEVELS, split_frontmatter_required,
 };
@@ -58,6 +60,7 @@ pub enum CompileError {
     Json(serde_json::Error),
     MissingFrontmatter { path: PathBuf },
     InvalidFrontmatter { path: PathBuf, msg: String },
+    Schema(String),
 }
 
 impl From<std::io::Error> for CompileError {
@@ -90,6 +93,7 @@ impl std::fmt::Display for CompileError {
             CompileError::InvalidFrontmatter { path, msg } => {
                 write!(f, "{}: {msg}", path.display())
             }
+            CompileError::Schema(msg) => write!(f, "{msg}"),
         }
     }
 }
@@ -174,7 +178,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let feature_branch = optional_str(fm, "feature_branch");
         let depends_on = optional_string_list(fm, "depends_on");
         let owner = optional_str(fm, "owner");
-        let risk = optional_str(fm, "risk");
+        let mut risk = optional_str(fm, "risk");
         let implementation = optional_str(fm, "implementation");
         if let Some(ref r) = risk {
             if !VALID_RISK_LEVELS.contains(&r.as_str()) {
@@ -186,6 +190,10 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
                     ),
                     path: Some(normalize_repo_path(repo_root, spec_path)),
                 });
+                // Omit invalid value from the registry so the artifact stays
+                // schema-conformant; the V-007 violation is the source of
+                // truth for the rejection.
+                risk = None;
             }
         }
         let extra = extra_frontmatter(repo_root, fm, spec_path, &mut violations)?;
@@ -728,6 +736,14 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     let registry_json = canonical_json_bytes(&registry_value)?;
 
+    // Self-validate registry.json against the embedded Feature 000
+    // schema before surfacing the output. Closes the asymmetric
+    // self-validation gap with codebase-indexer; schemas are baked
+    // into the binary (see src/schema.rs).
+    if let Err(msg) = schema::validate_registry_against_schema(&registry_json) {
+        return Err(CompileError::Schema(msg));
+    }
+
     let built_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     let build_meta = json!({
         "builtAt": built_at,
@@ -735,6 +751,10 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         "compilerVersion": compiler_version,
     });
     let build_meta_json = canonical_json_bytes(&build_meta)?;
+
+    if let Err(msg) = schema::validate_build_meta_against_schema(&build_meta_json) {
+        return Err(CompileError::Schema(msg));
+    }
 
     Ok(CompileOutput {
         registry_json,
