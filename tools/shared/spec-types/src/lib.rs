@@ -61,6 +61,17 @@ pub fn split_frontmatter_optional(raw: &str) -> Option<(Value, String)> {
 // ─────────────────────────────────────────────────────────────────────
 
 /// Known frontmatter keys consumed into normalized fields (remainder → extraFrontmatter).
+///
+/// Cut D W-06c: `compliance` retained in this allowlist but NO LONGER
+/// emitted by spec-compiler (the FeatureRecord.compliance field was
+/// removed in W-06c). The OAP-side enricher (oap-registry-enrich) is
+/// the canonical reader of `compliance:` and emits it to
+/// registry-oap.json. Keeping the key in KNOWN_KEYS prevents V-002
+/// errors when the spec corpus carries `compliance:` frontmatter that
+/// extra_frontmatter would otherwise reject as an unsupported complex
+/// type. (KNOWN_KEYS is a "permitted frontmatter" allowlist, not a
+/// "fields emitted by spec-compiler" list — the two were aligned
+/// before W-06c.)
 pub const KNOWN_KEYS: &[&str] = &[
     "id",
     "title",

@@ -25,8 +25,12 @@ enum Command {
     Enrich,
     /// Generate compliance framework-to-spec mapping (spec 102 FR-025).
     /// Moved from `registry-consumer compliance-report` in Cut D W-06b.
+    /// Post-W-06c the default registry path is the enriched
+    /// `registry-oap.json` (compliance is no longer emitted by
+    /// spec-compiler into the generic `registry.json`).
     ComplianceReport {
-        /// Path to the spec-spine registry.json (default: build/spec-registry/registry.json)
+        /// Path to the enriched registry-oap.json (default:
+        /// build/spec-registry/registry-oap.json)
         #[arg(long = "registry-path", value_name = "PATH")]
         registry_path: Option<PathBuf>,
         /// Filter to a specific framework identifier (e.g. "owasp-asi-2026")
@@ -65,7 +69,7 @@ fn main() -> ExitCode {
             json,
         } => {
             let path = registry_path
-                .unwrap_or_else(|| repo_root.join("build/spec-registry/registry.json"));
+                .unwrap_or_else(|| repo_root.join("build/spec-registry/registry-oap.json"));
             let registry = match srr::load(&path) {
                 Ok(r) => r,
                 Err(e) => {

@@ -406,8 +406,12 @@ impl From<serde_json::Error> for RegistryError {
 
 /// Read a `registry.json` from disk into a typed [`Registry`].
 ///
-/// Peeks at `specVersion` to dispatch. Today only the 1.x family is
-/// recognized; future major bumps add explicit dispatch arms.
+/// Peeks at `specVersion` to dispatch. Recognizes the 1.x family (pre-
+/// Cut D and contract-test fixtures) and the 2.x family (post-W-06c,
+/// after spec-compiler trims `factoryProjects` and per-feature
+/// `compliance`). The structural Registry/Feature types are
+/// shape-compatible across both: 2.x just leaves the OAP overlay
+/// fields empty (handled by `#[serde(default)]`).
 pub fn load(path: &Path) -> Result<Registry, RegistryError> {
     let raw = std::fs::read_to_string(path)?;
     let v: Value = serde_json::from_str(&raw)?;
@@ -416,15 +420,19 @@ pub fn load(path: &Path) -> Result<Registry, RegistryError> {
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string();
-    if version.starts_with("1.") {
-        return schema_v1::parse(v, version);
+    if version.starts_with("1.") || version.starts_with("2.") {
+        return schema_v1_v2::parse(v, version);
     }
     Err(RegistryError::UnknownSchemaVersion(version))
 }
 
-mod schema_v1 {
-    //! Schema 1.x dispatch arm. Today registry.json ships as 1.5.0; the
-    //! contract test fixtures use 1.0.0. Both decode through this arm.
+mod schema_v1_v2 {
+    //! Combined 1.x/2.x dispatch arm. registry.json ships as 1.5.0
+    //! pre-W-06c, 2.0.0 post-W-06c; the structural shape of the
+    //! Registry/Feature types is unchanged (the schema 2.0 bump
+    //! removes `factoryProjects` + per-feature `compliance:` which
+    //! are already `Option`/`#[serde(default)]` in the typed reader,
+    //! so the same deserializer covers both).
     use super::*;
 
     pub(super) fn parse(v: Value, version: String) -> Result<Registry, RegistryError> {
