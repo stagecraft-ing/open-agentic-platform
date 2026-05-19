@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_consumer::{
-    DEFAULT_REGISTRY_REL_PATH, FeatureFilter, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
-    authoritative_or_allow_invalid, features_sorted, filter_features, find_feature_by_id,
-    load_registry, serialize_json_compact_or_pretty, status_report,
+    DEFAULT_REGISTRY_REL_PATH, Feature, FeatureFilter, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
+    Registry, RegistryError, load, serialize_json_compact_or_pretty,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -118,12 +117,26 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let path = cli.registry_path.unwrap_or_else(default_registry_path);
 
-    let registry = match load_registry(&path) {
-        Ok(v) => v,
-        Err(e) => return exit_with_prefixed_message(3, format_args!("{}: {e}", path.display())),
+    let registry: Registry = match load(&path) {
+        Ok(r) => r,
+        Err(RegistryError::Io(e)) => {
+            return exit_with_prefixed_message(3, format_args!("{}: {e}", path.display()));
+        }
+        Err(RegistryError::Json(e)) => {
+            return exit_with_prefixed_message(3, format_args!("{}: {e}", path.display()));
+        }
+        Err(RegistryError::UnknownSchemaVersion(v)) => {
+            return exit_with_prefixed_message(
+                3,
+                format_args!("{}: unsupported registry specVersion: {v}", path.display()),
+            );
+        }
+        Err(RegistryError::MissingFeaturesArray) => {
+            return exit_with_prefixed_message(3, "missing features array");
+        }
     };
 
-    if let Err(msg) = authoritative_or_allow_invalid(&registry, cli.allow_invalid) {
+    if let Err(msg) = registry.authoritative_or_allow_invalid(cli.allow_invalid) {
         return exit_with_prefixed_message(1, msg);
     }
 
@@ -139,23 +152,17 @@ fn main() -> ExitCode {
             compact,
             ids_only,
         } => {
-            let sorted = match features_sorted(&registry) {
-                Ok(f) => f,
-                Err(msg) => return exit_with_prefixed_message(3, msg),
-            };
-            let filtered = filter_features(
-                sorted,
-                FeatureFilter {
-                    status: status.as_deref(),
-                    id_prefix: id_prefix.as_deref(),
-                    implementation: implementation.as_deref(),
-                    kind: kind.as_deref(),
-                    shape: shape.as_deref(),
-                    category: category.as_deref(),
-                },
-            );
+            let filtered = registry.filter(FeatureFilter {
+                status: status.as_deref(),
+                id_prefix: id_prefix.as_deref(),
+                implementation: implementation.as_deref(),
+                kind: kind.as_deref(),
+                shape: shape.as_deref(),
+                category: category.as_deref(),
+            });
             if json || compact {
-                if let Err(code) = print_json_or_exit(&filtered, compact) {
+                let raws: Vec<&serde_json::Value> = filtered.iter().map(|f| &f.raw).collect();
+                if let Err(code) = print_json_or_exit(&raws, compact) {
                     return code;
                 }
                 return ExitCode::SUCCESS;
@@ -171,9 +178,9 @@ fn main() -> ExitCode {
             feature_id,
             json: _json,
             compact,
-        } => match find_feature_by_id(&registry, &feature_id) {
-            Some(rec) => {
-                if let Err(code) = print_json_or_exit(&rec, compact) {
+        } => match registry.find_by_id(&feature_id) {
+            Some(f) => {
+                if let Err(code) = print_json_or_exit(&f.raw, compact) {
                     return code;
                 }
                 ExitCode::SUCCESS
@@ -183,32 +190,28 @@ fn main() -> ExitCode {
             }
         },
         Command::ComplianceReport { framework, json } => {
-            let sorted = match features_sorted(&registry) {
-                Ok(f) => f,
-                Err(msg) => return exit_with_prefixed_message(3, msg),
-            };
             // Build a map of control → vec of spec IDs that declare coverage.
             let mut control_map: std::collections::BTreeMap<String, Vec<String>> =
                 std::collections::BTreeMap::new();
-            for f in &sorted {
-                let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
-                if let Some(compliance) = f.get("compliance").and_then(|v| v.as_array()) {
-                    for entry in compliance {
-                        let fw = entry
-                            .get("framework")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("");
-                        if let Some(ref filter) = framework {
-                            if fw != filter.as_str() {
-                                continue;
-                            }
+            for f in registry.features_sorted() {
+                let Some(compliance) = f.compliance.as_ref().and_then(|v| v.as_array()) else {
+                    continue;
+                };
+                for entry in compliance {
+                    let fw = entry
+                        .get("framework")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if let Some(ref filter) = framework {
+                        if fw != filter.as_str() {
+                            continue;
                         }
-                        if let Some(controls) = entry.get("controls").and_then(|v| v.as_array()) {
-                            for c in controls {
-                                if let Some(ctrl) = c.as_str() {
-                                    let key = format!("{fw}/{ctrl}");
-                                    control_map.entry(key).or_default().push(id.to_string());
-                                }
+                    }
+                    if let Some(controls) = entry.get("controls").and_then(|v| v.as_array()) {
+                        for c in controls {
+                            if let Some(ctrl) = c.as_str() {
+                                let key = format!("{fw}/{ctrl}");
+                                control_map.entry(key).or_default().push(f.id.clone());
                             }
                         }
                     }
@@ -247,10 +250,7 @@ fn main() -> ExitCode {
             nonzero_only,
             status,
         } => {
-            let mut report = match status_report(&registry) {
-                Ok(r) => r,
-                Err(msg) => return exit_with_prefixed_message(3, msg),
-            };
+            let mut report = registry.status_report();
             if let Some(status) = status {
                 report.retain(|(row_status, _, _)| row_status == &status);
             }
@@ -288,23 +288,22 @@ fn main() -> ExitCode {
     }
 }
 
-fn print_list_table(features: &[serde_json::Value]) {
+fn print_list_table(features: &[&Feature]) {
     // id (max ~40), status (8), title — simple fixed layout
     println!("{:<44} {:<10} title", "id", "status");
     for f in features {
-        let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
-        let status = f.get("status").and_then(|x| x.as_str()).unwrap_or("?");
-        let title = f.get("title").and_then(|x| x.as_str()).unwrap_or("?");
+        let id = f.id.as_str();
+        let status = f.status.as_deref().unwrap_or("?");
+        let title = f.title.as_deref().unwrap_or("?");
         let id_disp = truncate(id, 43);
         let title_disp = truncate(title, 72);
         println!("{:<44} {:<10} {}", id_disp, status, title_disp);
     }
 }
 
-fn print_list_ids(features: &[serde_json::Value]) {
+fn print_list_ids(features: &[&Feature]) {
     for f in features {
-        let id = f.get("id").and_then(|x| x.as_str()).unwrap_or("?");
-        println!("{id}");
+        println!("{}", f.id);
     }
 }
 
