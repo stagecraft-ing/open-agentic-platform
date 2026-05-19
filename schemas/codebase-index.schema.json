@@ -2,15 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-agentic-platform.local/schemas/codebase-index.schema.json",
   "title": "Open Agentic Platform — compiled codebase index (spec 101)",
-  "description": "Four-layer structural inventory: crate/package inventory, spec-to-code traceability, factory adapter coverage, tool/infrastructure catalog.",
+  "description": "Generic structural inventory (Cut D W-07c): Layer 1 crate/package inventory + Layer 2 spec-to-code traceability + diagnostics. OAP-specific layers (factory adapters, infrastructure, workflow traceability) live in codebase-index-oap.schema.json, emitted by oap-code-index-enrich.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "build", "inventory", "traceability", "factory", "infrastructure", "diagnostics"],
+  "required": ["schemaVersion", "build", "inventory", "traceability", "diagnostics"],
   "properties": {
     "schemaVersion": {
       "type": "string",
-      "const": "1.4.0",
-      "description": "Schema version. 1.4.0 (spec 147) extends ImplementingPath with an optional `primary` boolean. Surfaces per-claim primary ownership from the new `implements:` list-item shape; corpus-wide uniqueness is enforced by V-016 in the spec-compiler. Consumers that don't recognise the flag fall back to the any-one-claimant heuristic (spec 130). 1.3.0 (spec 133) extended traceMapping with `amends` and `amendmentRecord`."
+      "const": "2.0.0",
+      "description": "Schema version. Cut D W-07c bump to 2.0.0: Layer 3-5 fields (factory, infrastructure, workflowTraceability) removed from the generic index and lifted to the OAP enricher's index-oap.json. 1.4.0 (spec 147) extended ImplementingPath with an optional `primary` boolean; 1.3.0 (spec 133) extended traceMapping with `amends` and `amendmentRecord`."
     },
     "build": {
       "type": "object",
@@ -64,39 +64,6 @@
         }
       }
     },
-    "factory": {
-      "description": "Layer 3: Factory adapter inventory.",
-      "type": "array",
-      "items": { "$ref": "#/$defs/adapterRecord" }
-    },
-    "infrastructure": {
-      "description": "Layer 4: Tool and infrastructure inventory.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["tools", "agents", "commands", "rules", "schemas"],
-      "properties": {
-        "tools": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/toolEntry" }
-        },
-        "agents": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/namedEntry" }
-        },
-        "commands": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/namedEntry" }
-        },
-        "rules": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/namedEntry" }
-        },
-        "schemas": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/namedEntry" }
-        }
-      }
-    },
     "diagnostics": {
       "description": "Indexer warnings and errors.",
       "type": "object",
@@ -112,11 +79,6 @@
           "items": { "$ref": "#/$defs/diagnostic" }
         }
       }
-    },
-    "workflowTraceability": {
-      "description": "Layer 5: workflow-to-spec traceability (spec 118). Optional.",
-      "type": "array",
-      "items": { "$ref": "#/$defs/workflowTrace" }
     }
   },
   "$defs": {
@@ -152,57 +114,51 @@
         "entryPoints": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
-          "description": "Primary entry files (src/lib.rs, src/main.rs, index.ts, etc)."
+          "description": "Targets emitted by the manifest (e.g. lib, bin names)."
         },
         "internalDeps": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
-          "description": "Names of other packages in this repo that this package depends on."
+          "description": "Path-resolved internal dependencies (workspace neighbours, file-protocol packages)."
         },
         "externalDeps": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
-          "description": "Names of external dependencies."
+          "description": "External dependency package names (no version pins)."
         },
         "specRef": {
           "type": "string",
-          "description": "Spec ID from [package.metadata.oap].spec or package.json oap.spec."
+          "description": "spec id declared in [package.metadata.oap].spec (Cargo) or top-level \"oap.spec\" (npm)."
         }
       }
     },
     "traceMapping": {
-      "description": "A single spec-to-code mapping.",
+      "description": "Spec-to-code mapping with sorted implementing paths.",
       "type": "object",
       "additionalProperties": false,
       "required": ["specId", "implementingPaths"],
       "properties": {
         "specId": {
           "type": "string",
-          "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$",
-          "description": "Spec ID from frontmatter."
+          "minLength": 1
         },
         "specStatus": {
           "type": "string",
-          "enum": ["draft", "approved", "active", "superseded", "retired"],
-          "description": "Current spec lifecycle status."
+          "description": "Spec lifecycle status (draft / approved / superseded / retired)."
         },
         "dependsOn": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
-          "description": "Spec IDs this spec depends on (from frontmatter depends_on)."
+          "items": { "type": "string" },
+          "description": "Optional list of spec ids this spec depends on."
         },
         "amends": {
           "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$"
-          },
-          "description": "Spec 133: full spec ids this spec amends in place via the spec 119 protocol. Short-form `amends: [\"000\"]` from frontmatter is resolved to the full id at index-build time."
+          "items": { "type": "string" },
+          "description": "Spec 133 — spec ids amended by this spec via the spec 119 protocol."
         },
         "amendmentRecord": {
           "type": "string",
-          "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$",
-          "description": "Spec 133: full spec id of the amendment record applied to this spec (the reverse-link, set on the amended spec's frontmatter as `amendment_record:`). Resolved from short-form at index-build time."
+          "description": "Spec 133 — the amender spec id from the amended spec's `amendment_record:` frontmatter (reverse link)."
         },
         "implementingPaths": {
           "type": "array",
@@ -213,8 +169,7 @@
             "properties": {
               "path": {
                 "type": "string",
-                "minLength": 1,
-                "description": "Repo-relative path to implementing crate/package."
+                "minLength": 1
               },
               "name": {
                 "type": "string",
@@ -229,101 +184,15 @@
                   "comment-header",
                   "multiple"
                 ],
-                "description": "How the mapping was discovered. spec-implements: spec frontmatter `implements:`. cargo-metadata-crate: `[package.metadata.oap].spec` in the crate's Cargo.toml. cargo-metadata-module: reserved for future per-target metadata. comment-header: `// Spec: specs/NNN-slug/spec.md` at file root (spec 129). multiple: 2+ sources independently asserted the same (spec, path)."
+                "description": "How the mapping was discovered."
               },
               "primary": {
                 "type": "boolean",
-                "description": "Spec 147 — true when this path is the primary owner of the claim per the new `implements:` list-item shape. Omitted when the spec did not annotate the item. V-016 in the spec-compiler enforces corpus-wide uniqueness; consumers that don't recognise the flag fall back to spec 130's any-one-claimant heuristic."
+                "description": "Spec 147 — true when this path is the primary owner of the claim per the new `implements:` list-item shape."
               }
             }
           },
           "description": "Code locations implementing this spec."
-        }
-      }
-    },
-    "adapterRecord": {
-      "description": "A factory adapter.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "path"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "path": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Repo-relative path."
-        },
-        "targetStack": {
-          "type": "string",
-          "description": "Technology stack this adapter targets (e.g. aim-vue-node, next-prisma)."
-        },
-        "phaseCoverage": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z0-9]{2}-[a-z][a-z0-9-]*$"
-          },
-          "description": "Global pipeline stages from factory/process/stages/. Numbered stages use a 2-digit prefix (00-pre-flight..06-adapter-handoff); conditional stages use a 2-letter prefix (e.g. cd-client-documentation)."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Human-readable name from adapter manifest display_name."
-        },
-        "version": {
-          "type": "string",
-          "description": "Adapter version from manifest."
-        },
-        "stackLanguage": {
-          "type": "string",
-          "description": "Primary language from manifest stack.language (e.g. typescript, rust)."
-        },
-        "stackRuntime": {
-          "type": "string",
-          "description": "Runtime from manifest stack.runtime (e.g. node-22, tokio)."
-        }
-      }
-    },
-    "toolEntry": {
-      "description": "A CLI tool in tools/.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "path"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "path": {
-          "type": "string",
-          "minLength": 1
-        },
-        "binaries": {
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 },
-          "description": "Binary target names from Cargo.toml."
-        }
-      }
-    },
-    "namedEntry": {
-      "description": "A named filesystem entry with path.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "path"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "path": {
-          "type": "string",
-          "minLength": 1
-        },
-        "description": {
-          "type": "string",
-          "description": "Brief description extracted from frontmatter or file header."
         }
       }
     },
@@ -345,29 +214,6 @@
         "path": {
           "type": "string",
           "description": "Repo-relative path related to the diagnostic."
-        }
-      }
-    },
-    "workflowTrace": {
-      "description": "A single .github/workflows/*.yml file paired with the spec(s) it implements (spec 118).",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["path", "source"],
-      "properties": {
-        "path": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Repo-relative path to the workflow file."
-        },
-        "specs": {
-          "type": "array",
-          "description": "Spec ids declared via `# Spec: NNN-slug` header or via the allowlist.",
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "source": {
-          "type": "string",
-          "enum": ["header", "allowlist", "unmapped"],
-          "description": "Where the spec id came from. `unmapped` emits diagnostic I-105."
         }
       }
     }

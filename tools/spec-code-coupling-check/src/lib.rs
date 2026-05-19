@@ -455,11 +455,14 @@ fn push_owner_class(buf: &mut String, label: &str, members: &BTreeSet<String>) {
 mod tests {
     use super::*;
     use open_agentic_codebase_indexer::types::{
-        BuildInfo, Diagnostics, ImplementingPath, Infrastructure, TraceMapping, TraceSource,
-        Traceability,
+        BuildInfo, Diagnostics, ImplementingPath, TraceMapping, TraceSource, Traceability,
     };
 
     fn empty_index() -> CodebaseIndex {
+        // Cut D W-07c: CodebaseIndex no longer carries Layer 3-5
+        // fields. The coupling gate only ever needed Layer 1-2
+        // anyway (spec_code_coupling_check uses `traceability.mappings`
+        // exclusively).
         CodebaseIndex {
             schema_version: SCHEMA_VERSION.to_string(),
             build: BuildInfo {
@@ -474,15 +477,6 @@ mod tests {
                 orphaned_specs: Vec::new(),
                 untraced_code: Vec::new(),
             },
-            factory: Vec::new(),
-            infrastructure: Infrastructure {
-                tools: Vec::new(),
-                agents: Vec::new(),
-                commands: Vec::new(),
-                rules: Vec::new(),
-                schemas: Vec::new(),
-            },
-            workflow_traceability: Vec::new(),
             diagnostics: Diagnostics {
                 warnings: Vec::new(),
                 errors: Vec::new(),

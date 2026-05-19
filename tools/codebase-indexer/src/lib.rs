@@ -1,14 +1,11 @@
 //! Library for compiling the codebase index per specs/101-codebase-index-mvp.
 
 pub mod comment_scanner;
-pub mod factory;
 pub mod hash;
-pub mod infra;
 pub mod manifest;
 pub mod schema;
 pub mod spec_scanner;
 pub mod types;
-pub mod workflows;
 pub mod xref;
 
 use serde_json::{Map, Value, json};
@@ -59,10 +56,13 @@ impl std::fmt::Display for IndexError {
     }
 }
 
-/// Diagnostic codes that fail `check`. Non-blocking warnings (e.g. I-101)
-/// stay as informational entries in the index. Spec 118 §8 step 3
-/// promotes I-105 to blocking once main reaches zero warnings.
-const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &["I-105"];
+/// Diagnostic codes that fail `check`. Non-blocking warnings (e.g.
+/// I-101) stay as informational entries in the index. Cut D W-07c:
+/// I-105 (workflow-without-spec-header) moved to the OAP enricher
+/// — the generic indexer no longer carries any blocking diagnostic
+/// codes. The const stays for forward-compat; new codes can be added
+/// here when needed.
+const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &[];
 
 impl std::error::Error for IndexError {}
 
@@ -108,9 +108,11 @@ impl From<serde_json::Error> for IndexReaderError {
 /// Read a `codebase-index.json` from disk into a typed
 /// [`types::CodebaseIndex`].
 ///
-/// Peeks at `schemaVersion` to dispatch. Today only the 1.x family is
-/// recognized (`schema_v1` module). W-07c bumps to 2.0.0 with its own
-/// dispatch arm.
+/// Peeks at `schemaVersion` to dispatch. Recognizes the 1.x family
+/// (pre-W-07c) and the 2.x family (post-W-07c, Layer 3-5 lifted out
+/// to oap-code-index-enrich). Both decode through the same
+/// `schema_v1_v2` arm because `serde(default)` handles the absent
+/// fields — extra fields are ignored by serde.
 pub fn load(path: &Path) -> Result<CodebaseIndex, IndexReaderError> {
     let raw = fs::read_to_string(path)?;
     let v: Value = serde_json::from_str(&raw)?;
@@ -119,16 +121,19 @@ pub fn load(path: &Path) -> Result<CodebaseIndex, IndexReaderError> {
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string();
-    if version.starts_with("1.") {
-        return schema_v1::parse(v);
+    if version.starts_with("1.") || version.starts_with("2.") {
+        return schema_v1_v2::parse(v);
     }
     Err(IndexReaderError::UnknownSchemaVersion(version))
 }
 
-mod schema_v1 {
-    //! Schema 1.x dispatch arm. The crate's own `types::CodebaseIndex`
-    //! is the deserialization shape — additivity within the 1.x family
-    //! is handled by serde's default field handling.
+mod schema_v1_v2 {
+    //! Schema 1.x + 2.x dispatch arm. The crate's own
+    //! `types::CodebaseIndex` is the deserialization shape; the 2.x
+    //! bump removed Layer 3-5 fields (factory, infrastructure,
+    //! workflowTraceability) from the typed view, so a 1.x index
+    //! with those fields still decodes (serde silently ignores
+    //! unknown fields) and a 2.x index without them decodes too.
     use super::*;
 
     pub(super) fn parse(v: Value) -> Result<CodebaseIndex, IndexReaderError> {
@@ -208,14 +213,15 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     // Sort packages by path for determinism
     packages.sort_by(|a, b| a.path.cmp(&b.path));
 
-    // ── Layer 3: Factory adapters (before xref so adapter paths are ─────
-    // ── available for implements-path validation) ────────────────────────
-
-    let (factory_adapters, factory_diags) = factory::scan_adapters(repo_root);
-    all_diagnostics.extend(factory_diags);
-
-    let adapter_paths: std::collections::BTreeSet<String> =
-        factory_adapters.iter().map(|a| a.path.clone()).collect();
+    // Cut D W-07c: factory adapter / infrastructure / workflow
+    // scanning moved to tools/oap-code-index-enrich (Layers 3-5).
+    // xref still accepts an `extra_known_paths` argument for
+    // implements-path validation; the OAP enricher's index-oap.json
+    // overlays Layers 3-5 separately. Adapter paths on disk fall
+    // through to the existing-file validation branch in xref so
+    // implements claims targeting factory/adapters/* continue to
+    // resolve.
+    let adapter_paths: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
 
     // ── Layer 2: Spec scanning + traceability ────────────────────────────
 
@@ -245,15 +251,10 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     );
     all_diagnostics.extend(xref_diags);
 
-    // ── Layer 4: Infrastructure ──────────────────────────────────────────
-
-    let infrastructure = infra::scan_infrastructure(repo_root);
-
-    // ── Layer 5: Workflow-to-spec traceability (spec 118) ────────────────
-
-    let wf_scan = workflows::scan_workflows(repo_root);
-    all_diagnostics.extend(wf_scan.diagnostics);
-    let workflow_traceability = wf_scan.traces;
+    // Cut D W-07c: Layer 4 (infrastructure) + Layer 5 (workflow
+    // traceability) emission moved to tools/oap-code-index-enrich.
+    // Layer 5's I-105 diagnostic now fires from the OAP enricher
+    // instead of the generic indexer.
 
     // ── Collect input files for content hash ─────────────────────────────
 
@@ -288,9 +289,6 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
         },
         inventory: packages,
         traceability,
-        factory: factory_adapters,
-        infrastructure,
-        workflow_traceability,
         diagnostics: Diagnostics { warnings, errors },
     };
 

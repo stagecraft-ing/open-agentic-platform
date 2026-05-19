@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dcd6745bcfe399ca0edd82a49f0f62fd7de4c650ab8d761e8b63f045fcbe005a",
+    "contentHash": "b27b668a94ab2ed2638f03a245053d0ad49ffbca2c5587d23c4a80cbfc38a397",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -51,191 +51,6 @@
       {
         "code": "I-101",
         "message": "spec \"151-declarative-cluster-reconciliation\" declares implements path \"platform/charts/rauthy/values-hetzner.yaml\" which is not a known package, adapter, or existing file/directory"
-      }
-    ]
-  },
-  "factory": [],
-  "infrastructure": {
-    "agents": [
-      {
-        "description": "Use this agent to plan and decompose tasks, validate implementation approaches against the spec spine, and produce structured work plans. Triggered when asked to plan, design, decompose, or architect a change — or before starting any complex feature.",
-        "name": "architect",
-        "path": ".claude/agents/architect.md"
-      },
-      {
-        "description": "Encore.ts framework specialist for stagecraft service development",
-        "name": "encore-expert",
-        "path": ".claude/agents/encore-expert.md"
-      },
-      {
-        "description": "Use this agent to investigate the codebase, gather context, trace dependencies, and answer questions about how things work. Triggered when asked to explore, search, trace, find, or explain existing code or architecture.",
-        "name": "explorer",
-        "path": ".claude/agents/explorer.md"
-      },
-      {
-        "description": "Use this agent to execute focused code changes from an existing plan. Triggered when asked to implement, apply, code, build, or write changes — especially when a plan or spec already exists.",
-        "name": "implementer",
-        "path": ".claude/agents/implementer.md"
-      },
-      {
-        "description": "Use this agent to review code changes for bugs, security issues, performance problems, and spec compliance. Triggered after implementation, or when asked to review, audit, or check recent changes.",
-        "name": "reviewer",
-        "path": ".claude/agents/reviewer.md"
-      }
-    ],
-    "commands": [
-      {
-        "description": "Run dead code and duplicate detection, get categorized cleanup recommendations",
-        "name": "cleanup",
-        "path": ".claude/commands/cleanup.md"
-      },
-      {
-        "description": "Multi-aspect code review using parallel sub-agents with adaptive agent selection",
-        "name": "code-review",
-        "path": ".claude/commands/code-review.md"
-      },
-      {
-        "description": "Create a git commit with an impact-focused conventional commit message",
-        "name": "commit",
-        "path": ".claude/commands/commit.md"
-      },
-      {
-        "description": "Execute a plan file step-by-step with progress tracking and phase checkpoints",
-        "name": "implement-plan",
-        "path": ".claude/commands/implement-plan.md"
-      },
-      {
-        "description": "Initialize an open-agentic-platform session by loading core repository context, recent activity, and memory before implementation work begins.",
-        "name": "init",
-        "path": ".claude/commands/init.md"
-      },
-      {
-        "description": "Modularize large CLAUDE.md files with path-scoped rules and doc extraction",
-        "name": "refactor-claude-md",
-        "path": ".claude/commands/refactor-claude-md.md"
-      },
-      {
-        "description": "Deep research with parallel sub-agents, query classification, and filesystem artifact passing",
-        "name": "research",
-        "path": ".claude/commands/research.md"
-      },
-      {
-        "description": "Review all changes in the current branch with structured read-only analysis across risk, quality, and platform compatibility dimensions.",
-        "name": "review-branch",
-        "path": ".claude/commands/review-branch.md"
-      },
-      {
-        "description": "One-time contributor setup — run `make setup` and verify governed reads work end-to-end so `/init` can report lifecycle and structural counts.",
-        "name": "setup",
-        "path": ".claude/commands/setup.md"
-      },
-      {
-        "description": "Run the local fast CI loop (`make ci`) and automatically fix discovered issues using concurrent agents",
-        "name": "validate-and-fix",
-        "path": ".claude/commands/validate-and-fix.md"
-      }
-    ],
-    "rules": [
-      {
-        "name": "adversarial-prompt-refusal",
-        "path": ".claude/rules/adversarial-prompt-refusal.md"
-      },
-      {
-        "name": "governed-artifact-reads",
-        "path": ".claude/rules/governed-artifact-reads.md"
-      },
-      {
-        "name": "orchestrator-rules",
-        "path": ".claude/rules/orchestrator-rules.md"
-      }
-    ],
-    "schemas": [
-      {
-        "description": "Unified Agent and Skill Frontmatter (spec 054)",
-        "name": "agent-frontmatter.schema",
-        "path": "schemas/agent-frontmatter.schema.json"
-      },
-      {
-        "description": "Open Agentic Platform — compiled codebase index (spec 101)",
-        "name": "codebase-index.schema",
-        "path": "schemas/codebase-index.schema.json"
-      },
-      {
-        "description": "OAP skill definition frontmatter",
-        "name": "skill-frontmatter.schema",
-        "path": "schemas/skill-frontmatter.schema.json"
-      }
-    ],
-    "tools": [
-      {
-        "binaries": [
-          "adapter-scopes-compiler"
-        ],
-        "name": "adapter-scopes-compiler",
-        "path": "tools/adapter-scopes-compiler"
-      },
-      {
-        "binaries": [
-          "assumption-cascade-check"
-        ],
-        "name": "assumption-cascade-check",
-        "path": "tools/assumption-cascade-check"
-      },
-      {
-        "binaries": [
-          "ci-parity-check"
-        ],
-        "name": "ci-parity-check",
-        "path": "tools/ci-parity-check"
-      },
-      {
-        "binaries": [
-          "codebase-indexer"
-        ],
-        "name": "codebase-indexer",
-        "path": "tools/codebase-indexer"
-      },
-      {
-        "binaries": [
-          "policy-compiler"
-        ],
-        "name": "policy-compiler",
-        "path": "tools/policy-compiler"
-      },
-      {
-        "binaries": [
-          "registry-consumer"
-        ],
-        "name": "registry-consumer",
-        "path": "tools/registry-consumer"
-      },
-      {
-        "binaries": [
-          "spec-code-coupling-check"
-        ],
-        "name": "spec-code-coupling-check",
-        "path": "tools/spec-code-coupling-check"
-      },
-      {
-        "binaries": [
-          "spec-compiler"
-        ],
-        "name": "spec-compiler",
-        "path": "tools/spec-compiler"
-      },
-      {
-        "binaries": [
-          "spec-lint"
-        ],
-        "name": "spec-lint",
-        "path": "tools/spec-lint"
-      },
-      {
-        "binaries": [
-          "stakeholder-doc-lint"
-        ],
-        "name": "stakeholder-doc-lint",
-        "path": "tools/stakeholder-doc-lint"
       }
     ]
   },
@@ -572,6 +387,7 @@
         "thiserror"
       ],
       "internalDeps": [
+        "open_agentic_spec_registry_reader",
         "xray"
       ],
       "kind": "rust-lib",
@@ -1375,12 +1191,60 @@
         "walkdir"
       ],
       "internalDeps": [
-        "open_agentic_frontmatter"
+        "open_agentic_spec_types"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_codebase_indexer",
       "path": "tools/codebase-indexer",
       "specRef": "101-codebase-index-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "toml",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_codebase_indexer",
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_code_index_enrich",
+      "path": "tools/oap-code-index-enrich",
+      "specRef": "101-codebase-index-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_spec_registry_reader",
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_registry_enrich",
+      "path": "tools/oap-registry-enrich",
+      "specRef": "102-governed-excellence",
       "version": "0.1.0"
     },
     {
@@ -1400,8 +1264,8 @@
         "walkdir"
       ],
       "internalDeps": [
-        "open_agentic_frontmatter",
-        "open_agentic_policy_kernel"
+        "open_agentic_policy_kernel",
+        "open_agentic_spec_types"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_policy_compiler",
@@ -1421,7 +1285,7 @@
         "serde_json"
       ],
       "kind": "rust-lib-bin",
-      "name": "open_agentic_registry_consumer",
+      "name": "open_agentic_spec_registry_reader",
       "path": "tools/registry-consumer",
       "specRef": "002-registry-consumer-mvp",
       "version": "0.1.0"
@@ -1432,11 +1296,12 @@
         "src/lib.rs"
       ],
       "externalDeps": [
+        "serde",
         "serde_yaml"
       ],
       "kind": "rust-lib",
-      "name": "open_agentic_frontmatter",
-      "path": "tools/shared/frontmatter",
+      "name": "open_agentic_spec_types",
+      "path": "tools/shared/spec-types",
       "specRef": "000-bootstrap-spec-system",
       "version": "0.1.0"
     },
@@ -1475,7 +1340,7 @@
         "walkdir"
       ],
       "internalDeps": [
-        "open_agentic_frontmatter"
+        "open_agentic_spec_types"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_spec_compiler",
@@ -1494,7 +1359,7 @@
         "serde_yaml"
       ],
       "internalDeps": [
-        "open_agentic_frontmatter"
+        "open_agentic_spec_types"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_spec_lint",
@@ -1525,15 +1390,15 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "1.4.0",
+  "schemaVersion": "2.0.0",
   "traceability": {
     "mappings": [
       {
         "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
-            "name": "open_agentic_frontmatter",
-            "path": "tools/shared/frontmatter",
+            "name": "open_agentic_spec_types",
+            "path": "tools/shared/spec-types",
             "source": "cargo-metadata-crate"
           }
         ],
@@ -1555,7 +1420,7 @@
       {
         "implementingPaths": [
           {
-            "name": "open_agentic_registry_consumer",
+            "name": "open_agentic_spec_registry_reader",
             "path": "tools/registry-consumer",
             "source": "cargo-metadata-crate"
           }
@@ -2766,6 +2631,11 @@
             "name": "open_agentic_codebase_indexer",
             "path": "tools/codebase-indexer",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "name": "open_agentic_code_index_enrich",
+            "path": "tools/oap-code-index-enrich",
+            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "101-codebase-index-mvp",
@@ -2829,6 +2699,11 @@
           {
             "path": "crates/tool-registry/src/policy_bridge.rs",
             "source": "comment-header"
+          },
+          {
+            "name": "open_agentic_registry_enrich",
+            "path": "tools/oap-registry-enrich",
+            "source": "cargo-metadata-crate"
           },
           {
             "path": "tools/spec-compiler",
@@ -5293,179 +5168,5 @@
       "grammars/tree-sitter-rust",
       "grammars/tree-sitter-typescript"
     ]
-  },
-  "workflowTraceability": [
-    {
-      "path": ".github/workflows/ai-changelog.yml",
-      "source": "header",
-      "specs": [
-        "085-remote-control-cli"
-      ]
-    },
-    {
-      "path": ".github/workflows/ai-pr-review.yml",
-      "source": "header",
-      "specs": [
-        "085-remote-control-cli"
-      ]
-    },
-    {
-      "path": ".github/workflows/build-axiomregent.yml",
-      "source": "header",
-      "specs": [
-        "037-cross-platform-axiomregent"
-      ]
-    },
-    {
-      "path": ".github/workflows/cd-deployd-api-rs.yml",
-      "source": "header",
-      "specs": [
-        "078-platform-completion-plan"
-      ]
-    },
-    {
-      "path": ".github/workflows/cd-stagecraft.yml",
-      "source": "header",
-      "specs": [
-        "077-stagecraft-factory-api",
-        "078-platform-completion-plan"
-      ]
-    },
-    {
-      "path": ".github/workflows/cd-tenant-hello.yml",
-      "source": "header",
-      "specs": [
-        "136-tenant-hello-demo-service"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-axiomregent.yml",
-      "source": "header",
-      "specs": [
-        "033-axiomregent-activation",
-        "073-axiomregent-unification",
-        "135-fast-ci-as-default"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-codebase-index.yml",
-      "source": "header",
-      "specs": [
-        "101-codebase-index-mvp",
-        "103-init-protocol-governed-reads"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-crates.yml",
-      "source": "header",
-      "specs": [
-        "067-tool-definition-registry",
-        "071-skill-command-factory",
-        "075-factory-workflow-engine",
-        "054-agent-frontmatter-schema",
-        "042-multi-provider-agent-registry",
-        "135-fast-ci-as-default"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-deployd-api-rs.yml",
-      "source": "header",
-      "specs": [
-        "078-platform-completion-plan"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-desktop.yml",
-      "source": "header",
-      "specs": [
-        "037-cross-platform-axiomregent",
-        "086-open-source-launch"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-orchestrator.yml",
-      "source": "header",
-      "specs": [
-        "004-spec-to-execution-bridge-mvp",
-        "044-multi-agent-orchestration"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-parity.yml",
-      "source": "header",
-      "specs": [
-        "104-makefile-ci-parity-contract"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-policy-kernel.yml",
-      "source": "header",
-      "specs": [
-        "047-governance-control-plane"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-spec-code-coupling.yml",
-      "source": "header",
-      "specs": [
-        "127-spec-code-coupling-gate"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-stagecraft.yml",
-      "source": "header",
-      "specs": [
-        "077-stagecraft-factory-api",
-        "087-unified-workspace-architecture"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-supply-chain.yml",
-      "source": "header",
-      "specs": [
-        "116-supply-chain-policy-gates"
-      ]
-    },
-    {
-      "path": ".github/workflows/ci-tenant-hello.yml",
-      "source": "header",
-      "specs": [
-        "136-tenant-hello-demo-service"
-      ]
-    },
-    {
-      "path": ".github/workflows/release-axiomregent.yml",
-      "source": "header",
-      "specs": [
-        "037-cross-platform-axiomregent",
-        "117-release-artifact-attestations"
-      ]
-    },
-    {
-      "path": ".github/workflows/release-desktop.yml",
-      "source": "header",
-      "specs": [
-        "037-cross-platform-axiomregent",
-        "086-open-source-launch",
-        "117-release-artifact-attestations"
-      ]
-    },
-    {
-      "path": ".github/workflows/release-tools.yml",
-      "source": "header",
-      "specs": [
-        "086-open-source-launch",
-        "117-release-artifact-attestations"
-      ]
-    },
-    {
-      "path": ".github/workflows/spec-conformance.yml",
-      "source": "header",
-      "specs": [
-        "001-spec-compiler-mvp",
-        "002-registry-consumer-mvp",
-        "006-conformance-lint-mvp"
-      ]
-    }
-  ]
+  }
 }

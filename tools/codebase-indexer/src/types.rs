@@ -16,7 +16,14 @@ use serde::{Deserialize, Serialize};
 /// declared via the new `implements:` list-item shape; downgrades to
 /// the any-one-claimant heuristic when absent, preserving backward
 /// compatibility with paths not yet annotated).
-pub const SCHEMA_VERSION: &str = "1.4.0";
+/// Schema version. Cut D W-07c: bumped to 2.0.0 with the lift of
+/// Layers 3-5 (factory adapters, infrastructure inventory, workflow
+/// traceability) out of the generic indexer and into
+/// `tools/oap-code-index-enrich`. The generic schema is now Layer
+/// 1 (crate/package inventory) + Layer 2 (spec-to-code traceability)
+/// only. Consumers needing Layers 3-5 read `index-oap.json` from the
+/// OAP enricher, validated by `schemas/codebase-index-oap.schema.json`.
+pub const SCHEMA_VERSION: &str = "2.0.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -28,12 +35,6 @@ pub struct CodebaseIndex {
     pub build: BuildInfo,
     pub inventory: Vec<PackageRecord>,
     pub traceability: Traceability,
-    pub factory: Vec<AdapterRecord>,
-    pub infrastructure: Infrastructure,
-    /// Spec 118 — workflow-to-spec traceability (Layer 5).
-    /// Optional during the schema 1.1 rollout; consumers tolerate absence.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub workflow_traceability: Vec<WorkflowTrace>,
     pub diagnostics: Diagnostics,
 }
 
@@ -149,75 +150,11 @@ pub enum TraceSource {
     Multiple,
 }
 
-// ── Layer 3: Factory Adapter Inventory ──────────────────────────────────────
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AdapterRecord {
-    pub name: String,
-    pub path: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_stack: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phase_coverage: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub display_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub version: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stack_language: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stack_runtime: Option<String>,
-}
-
-// ── Layer 4: Tool & Infrastructure Inventory ────────────────────────────────
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Infrastructure {
-    pub tools: Vec<ToolEntry>,
-    pub agents: Vec<NamedEntry>,
-    pub commands: Vec<NamedEntry>,
-    pub rules: Vec<NamedEntry>,
-    pub schemas: Vec<NamedEntry>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ToolEntry {
-    pub name: String,
-    pub path: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub binaries: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NamedEntry {
-    pub name: String,
-    pub path: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-}
-
-// ── Layer 5: Workflow-to-Spec Traceability (spec 118) ───────────────────────
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct WorkflowTrace {
-    pub path: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub specs: Vec<String>,
-    pub source: WorkflowTraceSource,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub enum WorkflowTraceSource {
-    Header,
-    Allowlist,
-    Unmapped,
-}
+// Cut D W-07c: Layer 3 (AdapterRecord), Layer 4 (Infrastructure /
+// ToolEntry / NamedEntry), and Layer 5 (WorkflowTrace /
+// WorkflowTraceSource) types lifted to
+// `tools/oap-code-index-enrich/src/types.rs`. The generic schema is
+// now Layer 1+2 only.
 
 // ── Diagnostics ─────────────────────────────────────────────────────────────
 
