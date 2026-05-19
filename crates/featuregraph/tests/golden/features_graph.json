@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:15ca2c6d7cf649cb2b389eb888f7c782bdb91532aa92705dce983d830c802868",
+  "graph_fingerprint": "sha256:febf01350aa6bcafe421aa95fbb36df6fe6ca0fb4ed52da82a05d1551e96ed43",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2610,7 +2610,7 @@
       "title": "Tenant-hello — stagecraft-deployable tenant reference service",
       "spec_path": "specs/136-tenant-hello-demo-service/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
@@ -2627,7 +2627,7 @@
       "title": "Tenant environment access gates — passwordless OIDC via Rauthy",
       "spec_path": "specs/137-tenant-environment-access-gates/spec.md",
       "status": "approved",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -2702,7 +2702,7 @@
       "title": "Align aim-vue-node scaffold_source_id with template.json::templateName",
       "spec_path": "specs/141-aim-vue-node-source-id-template-name-alignment/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
@@ -2850,6 +2850,23 @@
       "owner": "open-agentic-platform",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "151-declarative-cluster-reconciliation",
+      "title": "Declarative cluster reconciliation — GitOps for cluster-side state via Flux v2",
+      "spec_path": "specs/151-declarative-cluster-reconciliation/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "143"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
