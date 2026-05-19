@@ -211,7 +211,7 @@ make setup
 # Lifecycle inventory across the 142-spec corpus.
 # 137 approved, 1 draft, 4 superseded.
 
-./tools/codebase-indexer/target/release/codebase-indexer render
+./tools/oap-code-index-enrich/target/release/oap-code-index-enrich render
 cat build/codebase-index/CODEBASE-INDEX.md
 # Renders the spec-to-code map. The 'Spec' column is the
 # traceability surface for every Rust crate and npm package.

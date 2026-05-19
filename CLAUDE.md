@@ -114,7 +114,7 @@ cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
 ./tools/codebase-indexer/target/release/codebase-indexer compile  # emit index.json
 ./tools/codebase-indexer/target/release/codebase-indexer check    # staleness check
-./tools/codebase-indexer/target/release/codebase-indexer render   # emit CODEBASE-INDEX.md
+./tools/oap-code-index-enrich/target/release/oap-code-index-enrich render   # emit CODEBASE-INDEX.md (Cut D W-07b moved this out of codebase-indexer)
 
 # Compile policies
 cargo build --release --manifest-path tools/policy-compiler/Cargo.toml

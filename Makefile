@@ -291,8 +291,11 @@ index: $(CODEBASE_INDEXER_BIN)
 index-check: $(CODEBASE_INDEXER_BIN)
 	./$(CODEBASE_INDEXER_BIN) check
 
-index-render: $(CODEBASE_INDEXER_BIN)
-	./$(CODEBASE_INDEXER_BIN) render
+## Cut D W-07b: render moved from codebase-indexer to oap-code-index-enrich.
+## Requires index-oap.json (produced by `make oap-code-index-enrich`).
+index-render:
+	cargo build --release --manifest-path tools/oap-code-index-enrich/Cargo.toml
+	./tools/oap-code-index-enrich/target/release/oap-code-index-enrich render
 
 # ============================================================
 # Adapter Scopes (removed in spec 108 — see factory_adapters table)

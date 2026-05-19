@@ -19,6 +19,7 @@ use serde_json::{Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub mod render;
 pub mod scanners {
     pub mod factory;
     pub mod infra;

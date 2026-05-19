@@ -5,7 +5,6 @@ pub mod factory;
 pub mod hash;
 pub mod infra;
 pub mod manifest;
-pub mod render;
 pub mod schema;
 pub mod spec_scanner;
 pub mod types;
@@ -419,16 +418,10 @@ pub fn dump_inputs(repo_root: &Path) -> Result<(), IndexError> {
     Ok(())
 }
 
-/// Render CODEBASE-INDEX.md from existing index.json.
-pub fn render_to_file(repo_root: &Path) -> Result<(), IndexError> {
-    let index_path = repo_root.join("build/codebase-index/index.json");
-    let raw = fs::read_to_string(&index_path)?;
-    let index: CodebaseIndex = serde_json::from_str(&raw)?;
-    let markdown = render::render_markdown(&index);
-    let out_path = repo_root.join("build/codebase-index/CODEBASE-INDEX.md");
-    fs::write(out_path, markdown)?;
-    Ok(())
-}
+// Cut D W-07b: render_to_file + render module moved to
+// `tools/oap-code-index-enrich`. CODEBASE-INDEX.md is an OAP-specific
+// artifact rendered from `index-oap.json` — the generic indexer no
+// longer owns the markdown surface.
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 

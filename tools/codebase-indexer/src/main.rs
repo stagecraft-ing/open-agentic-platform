@@ -20,12 +20,6 @@ enum Command {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
-    /// Render CODEBASE-INDEX.md from existing index.json
-    Render {
-        /// Repository root (default: current directory)
-        #[arg(long)]
-        repo: Option<PathBuf>,
-    },
     /// Check if index.json is stale vs current tree
     Check {
         /// Repository root (default: current directory)
@@ -54,16 +48,6 @@ fn main() {
                         open_agentic_codebase_indexer::IndexError::Schema(_) => 1,
                         _ => 3,
                     }
-                }
-            }
-        }
-        Command::Render { repo } => {
-            let root = repo.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
-            match open_agentic_codebase_indexer::render_to_file(&root) {
-                Ok(()) => 0,
-                Err(e) => {
-                    eprintln!("codebase-indexer: {e}");
-                    3
                 }
             }
         }
