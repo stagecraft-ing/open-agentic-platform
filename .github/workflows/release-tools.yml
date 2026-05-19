@@ -136,6 +136,10 @@ jobs:
           EXT="${{ steps.ext.outputs.ext }}"
           TARGET="${{ matrix.target }}"
 
+          # Binary-name → artifact-name invariant: release artifacts are
+          # named after each tool's [[bin]] name (which is preserved
+          # across Cut D W-04's crate rename), not its [package] name.
+          # `registry-consumer` ships from crate `open_agentic_spec_registry_reader`.
           for tool in spec-compiler registry-consumer spec-lint policy-compiler codebase-indexer; do
             # Each tool has its own target dir under its manifest path
             SRC="tools/${tool}/target/${TARGET}/release/${tool}${EXT}"

@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use open_agentic_registry_consumer::{
+use open_agentic_spec_registry_reader::{
     DEFAULT_REGISTRY_REL_PATH, Feature, FeatureFilter, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
     Registry, RegistryError, load, serialize_json_compact_or_pretty,
 };
