@@ -67,6 +67,77 @@ const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &["I-105"];
 
 impl std::error::Error for IndexError {}
 
+// ── Typed-reader API (Cut D W-11, mirror of registry-consumer W-03) ─────────
+
+/// Errors returned by the typed reader entry point [`load`]. Separate
+/// from [`IndexError`] so consumers (e.g. spec-code-coupling-check)
+/// can distinguish "compile failed" from "deserialization failed" /
+/// "schema version we don't recognize".
+#[derive(Debug)]
+pub enum IndexReaderError {
+    Io(std::io::Error),
+    Json(serde_json::Error),
+    UnknownSchemaVersion(String),
+}
+
+impl std::fmt::Display for IndexReaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IndexReaderError::Io(e) => write!(f, "{e}"),
+            IndexReaderError::Json(e) => write!(f, "{e}"),
+            IndexReaderError::UnknownSchemaVersion(v) => {
+                write!(f, "unsupported codebase-index schemaVersion: {v}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for IndexReaderError {}
+
+impl From<std::io::Error> for IndexReaderError {
+    fn from(e: std::io::Error) -> Self {
+        IndexReaderError::Io(e)
+    }
+}
+
+impl From<serde_json::Error> for IndexReaderError {
+    fn from(e: serde_json::Error) -> Self {
+        IndexReaderError::Json(e)
+    }
+}
+
+/// Read a `codebase-index.json` from disk into a typed
+/// [`types::CodebaseIndex`].
+///
+/// Peeks at `schemaVersion` to dispatch. Today only the 1.x family is
+/// recognized (`schema_v1` module). W-07c bumps to 2.0.0 with its own
+/// dispatch arm.
+pub fn load(path: &Path) -> Result<CodebaseIndex, IndexReaderError> {
+    let raw = fs::read_to_string(path)?;
+    let v: Value = serde_json::from_str(&raw)?;
+    let version = v
+        .get("schemaVersion")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
+    if version.starts_with("1.") {
+        return schema_v1::parse(v);
+    }
+    Err(IndexReaderError::UnknownSchemaVersion(version))
+}
+
+mod schema_v1 {
+    //! Schema 1.x dispatch arm. The crate's own `types::CodebaseIndex`
+    //! is the deserialization shape — additivity within the 1.x family
+    //! is handled by serde's default field handling.
+    use super::*;
+
+    pub(super) fn parse(v: Value) -> Result<CodebaseIndex, IndexReaderError> {
+        let index: CodebaseIndex = serde_json::from_value(v)?;
+        Ok(index)
+    }
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /// Result of a compile: index JSON bytes (deterministic) + build-meta JSON bytes (ephemeral).
@@ -517,4 +588,102 @@ fn normalize_repo_path(repo_root: &Path, path: &Path) -> String {
         .unwrap_or(path)
         .to_string_lossy()
         .replace('\\', "/")
+}
+
+#[cfg(test)]
+mod typed_reader_tests {
+    use super::*;
+
+    fn minimal_fixture() -> String {
+        // schemaVersion explicit; the rest is the minimum required by
+        // CodebaseIndex's required (non-default) fields.
+        format!(
+            r#"{{
+                "schemaVersion": "{SCHEMA_VERSION}",
+                "build": {{
+                    "indexerId": "codebase-indexer",
+                    "indexerVersion": "0.1.0",
+                    "repoRoot": "/tmp/x",
+                    "contentHash": "0"
+                }},
+                "inventory": [],
+                "traceability": {{ "mappings": [], "orphanedSpecs": [], "untracedCode": [] }},
+                "factory": [],
+                "infrastructure": {{ "tools": [], "agents": [], "commands": [], "rules": [], "schemas": [] }},
+                "diagnostics": {{ "warnings": [], "errors": [] }}
+            }}"#
+        )
+    }
+
+    fn write_fixture(body: &str) -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("index.json");
+        fs::write(&p, body).unwrap();
+        (dir, p)
+    }
+
+    #[test]
+    fn load_accepts_current_schema_version() {
+        let (_d, p) = write_fixture(&minimal_fixture());
+        let idx = load(&p).expect("load typed index");
+        assert_eq!(idx.schema_version, SCHEMA_VERSION);
+        assert!(idx.inventory.is_empty());
+        assert!(idx.traceability.mappings.is_empty());
+    }
+
+    #[test]
+    fn load_rejects_unknown_schema_version() {
+        let body = minimal_fixture().replace(SCHEMA_VERSION, "9.9.9");
+        let (_d, p) = write_fixture(&body);
+        match load(&p) {
+            Ok(_) => panic!("unknown schema must reject"),
+            Err(IndexReaderError::UnknownSchemaVersion(_)) => {}
+            Err(other) => panic!("expected UnknownSchemaVersion, got {other}"),
+        }
+    }
+
+    #[test]
+    fn load_decodes_traceability_mappings() {
+        let body = format!(
+            r#"{{
+                "schemaVersion": "{SCHEMA_VERSION}",
+                "build": {{ "indexerId": "x", "indexerVersion": "0", "repoRoot": ".", "contentHash": "0" }},
+                "inventory": [],
+                "traceability": {{
+                    "mappings": [
+                        {{
+                            "specId": "127-spec-code-coupling-gate",
+                            "implementingPaths": [
+                                {{ "path": "tools/spec-code-coupling-check" }},
+                                {{ "path": "Makefile", "primary": true }}
+                            ]
+                        }}
+                    ],
+                    "orphanedSpecs": [],
+                    "untracedCode": []
+                }},
+                "factory": [],
+                "infrastructure": {{ "tools": [], "agents": [], "commands": [], "rules": [], "schemas": [] }},
+                "diagnostics": {{ "warnings": [], "errors": [] }}
+            }}"#
+        );
+        let (_d, p) = write_fixture(&body);
+        let idx = load(&p).unwrap();
+        assert_eq!(idx.traceability.mappings.len(), 1);
+        let m = &idx.traceability.mappings[0];
+        assert_eq!(m.spec_id, "127-spec-code-coupling-gate");
+        assert_eq!(m.implementing_paths.len(), 2);
+        assert_eq!(m.implementing_paths[0].path, "tools/spec-code-coupling-check");
+        assert_eq!(m.implementing_paths[1].primary, Some(true));
+    }
+
+    #[test]
+    fn load_surfaces_io_errors_for_missing_file() {
+        let path = std::path::PathBuf::from("/nonexistent/path/index.json");
+        match load(&path) {
+            Ok(_) => panic!("missing file must fail"),
+            Err(IndexReaderError::Io(_)) => {}
+            Err(other) => panic!("expected Io, got {other}"),
+        }
+    }
 }

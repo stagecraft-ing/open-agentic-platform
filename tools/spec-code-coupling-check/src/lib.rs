@@ -7,6 +7,7 @@
 //! self-test are documented in spec 127 §4.
 
 use open_agentic_codebase_indexer::types::{CodebaseIndex, SCHEMA_VERSION};
+use open_agentic_codebase_indexer::{IndexReaderError, load as load_codebase_index};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
@@ -162,15 +163,31 @@ pub fn parse_waiver(body: &str) -> Option<String> {
 
 /// Load and version-check the codebase index. Returns the same typed
 /// `CodebaseIndex` the indexer produces — no ad-hoc parsing.
+///
+/// Cut D W-11: delegates to the producer crate's typed-reader
+/// (`open_agentic_codebase_indexer::load`), which performs the
+/// `schemaVersion` dispatch and produces a typed CodebaseIndex. The
+/// post-load major-version guard remains here so the gate's own
+/// `SCHEMA_VERSION` is the source of truth for what the gate's
+/// matching logic understands; an index emitted from a future major
+/// that the typed reader accepts but the gate hasn't been updated to
+/// handle would still fail here with a recovery message naming the
+/// rebuild commands.
 pub fn load_index(path: &Path) -> Result<CodebaseIndex, String> {
-    let bytes = std::fs::read(path)
-        .map_err(|e| format!("read {}: {e}", path.display()))?;
-    let index: CodebaseIndex = serde_json::from_slice(&bytes)
-        .map_err(|e| format!("parse {}: {e}", path.display()))?;
+    let index = load_codebase_index(path).map_err(|e| match e {
+        IndexReaderError::Io(err) => format!("read {}: {err}", path.display()),
+        IndexReaderError::Json(err) => format!("parse {}: {err}", path.display()),
+        IndexReaderError::UnknownSchemaVersion(v) => format!(
+            "schema version mismatch: index reports {v} but gate built against {SCHEMA_VERSION}; \
+             run `cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml` \
+             then `./tools/codebase-indexer/target/release/codebase-indexer compile`"
+        ),
+    })?;
 
-    // Major-version compat: index `1.x` is consumed by the gate; minor bumps
-    // are additive (per spec 118). Hard error on a major-version mismatch so
-    // schema drift surfaces at run time as well as build time.
+    // Major-version compat (post-typed-load): the typed reader's
+    // `schema_v1` arm accepts any 1.x. The gate's matching logic is
+    // tied to its own `SCHEMA_VERSION` at build time — if the index
+    // ships a different major, surface the recovery commands.
     let actual_major = index
         .schema_version
         .split('.')
