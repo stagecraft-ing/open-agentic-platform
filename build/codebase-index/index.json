@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b27b668a94ab2ed2638f03a245053d0ad49ffbca2c5587d23c4a80cbfc38a397",
+    "contentHash": "644ade5df9a6b9ff78898556d7713a4cf6d1d18d5fc6ea39adb5ac579600e5c4",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -310,6 +310,7 @@
         "artifact-extract",
         "factory-contracts",
         "open_agentic_policy_kernel",
+        "open_agentic_spec_registry_reader",
         "orchestrator",
         "provenance-validator",
         "standards-loader"
