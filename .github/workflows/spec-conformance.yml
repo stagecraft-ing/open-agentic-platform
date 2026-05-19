@@ -97,6 +97,12 @@ jobs:
       - name: Emit codebase index (smoke)
         run: ./tools/codebase-indexer/target/release/codebase-indexer compile
 
+      - name: Build oap-code-index-enrich (Cut D W-07a)
+        run: cargo build --release --manifest-path tools/oap-code-index-enrich/Cargo.toml
+
+      - name: Emit index-oap.json (OAP-specific overlay)
+        run: ./tools/oap-code-index-enrich/target/release/oap-code-index-enrich
+
       - name: Codebase index tests
         run: cargo test --manifest-path tools/codebase-indexer/Cargo.toml
 
