@@ -467,6 +467,40 @@ Constraints on the contract:
   because the partial cannot measure the 30-min budget by construction
   (step d is absent); Stage 1 either records the per-step thresholds
   cleanly or triggers the named per-step revisit clauses above.
+
+  **Amendment (2026-05-19, Stage 2 measurement — partial).** SC-003's
+  30-min budget for the four-step bare-cluster DR sequence was
+  measured against a throwaway Hetzner cluster on 2026-05-19. Steps
+  (a) + (b) + (c) closed verbatim in **664 s combined** (well inside
+  the 1800 s budget for the parts that ran). Step (d) was structurally
+  blocked by **Finding F8** recorded in
+  `execution/disaster-recovery.md`: the bare-cluster Flux-only
+  reconciliation cannot converge with the current gitops shape —
+  kustomize-controller's auto-generated recursive Kustomization fails
+  server-side-apply dry-run on the `tenants-wildcard-certificate`
+  Certificate (no `cert-manager.io/v1` CRD yet) and aborts before the
+  cert-manager HelmRelease is applied, so cert-manager never installs.
+  The retry-pattern claim in `infrastructure/cert-manager.yaml`
+  ("Convergence is robust per the Phase 2 retry pattern") is
+  falsified; the deferred `dependsOn` machinery anticipated by the
+  same file's comment IS required. **Dominant cost: design — not
+  time.** F8 has a named, scoped resolution (split into
+  `Kustomization/infrastructure` + `Kustomization/manifests` with
+  `dependsOn`), filed as a follow-up PR before
+  `implementation: complete` flips. **Future-shrink path:** F8
+  follow-up lands the dependsOn split + re-runs Stage 2 DR against
+  the new shape; the re-run measurement either closes SC-003 verbatim
+  (expected — steps a+b+c already at 664 s, step d budgeted ~5 min)
+  or triggers a further amendment with its own rationale. Spec 151
+  `implementation: complete` is gated on the F8 follow-up's clean
+  Stage 2 re-run, not this partial measurement. **Related operational
+  finding:** F7 captures that the Stage 2 runbook's choice of
+  `--path=platform/gitops/clusters/hetzner-prod` (matching production)
+  rotated production's deploy key as a side effect; the F8 follow-up
+  PR will also switch the runbook to a throwaway-specific path to
+  eliminate the cross-environment impact window. Full evidence:
+  `execution/disaster-recovery.md` §"SC-003 verdict", §"Finding F8",
+  §Step (c) F7 block.
 - **SC-004:** No `kubectl create secret`, `helm upgrade --install`, or
   `kubectl apply -f` invocations remain in `setup.sh` /
   `post-create.sh` for runtime cluster state. Verified by grep at spec
