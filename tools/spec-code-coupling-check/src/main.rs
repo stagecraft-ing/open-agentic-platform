@@ -1,7 +1,9 @@
 //! `spec-code-coupling-check` binary entrypoint (spec 127).
 
 use clap::Parser;
-use open_agentic_spec_code_coupling_check::{check_coupling, load_index, render};
+use open_agentic_spec_code_coupling_check::{
+    BypassConfig, check_coupling_with_bypass, load_index, render,
+};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::process::{Command, ExitCode};
@@ -40,6 +42,13 @@ struct Cli {
     /// resolved from --repo).
     #[arg(long)]
     index: Option<PathBuf>,
+
+    /// Path to a newline-delimited bypass-prefix file (Cut D W-08).
+    /// Lines starting with `#` are comments; blanks are ignored.
+    /// Without this flag, the gate operates fail-closed: every diff
+    /// path must be claimed by some spec's implements: list.
+    #[arg(long = "bypass-prefix-file")]
+    bypass_prefix_file: Option<PathBuf>,
 }
 
 fn main() -> ExitCode {
@@ -72,7 +81,21 @@ fn main() -> ExitCode {
         }
     };
 
-    let outcome = check_coupling(&index, &diff_paths, &pr_body);
+    let bypass = match &cli.bypass_prefix_file {
+        Some(path) => match BypassConfig::from_file(path) {
+            Ok(cfg) => cfg,
+            Err(e) => {
+                eprintln!(
+                    "spec-code-coupling-check: read --bypass-prefix-file {}: {e}",
+                    path.display()
+                );
+                return ExitCode::from(2);
+            }
+        },
+        None => BypassConfig::default(),
+    };
+
+    let outcome = check_coupling_with_bypass(&index, &diff_paths, &pr_body, &bypass);
     let rendered = render(&outcome);
     if !rendered.is_empty() {
         // Stdout for clean run summaries; stderr for failure blocks so

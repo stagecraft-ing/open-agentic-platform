@@ -1,0 +1,34 @@
+# spec-code-coupling-check bypass list (Cut D W-08; spec 127 follow-up).
+#
+# One prefix per line. Trailing `/` matches the prefix as a directory;
+# no trailing `/` matches the path exactly. Lines starting with `#` are
+# comments; blank lines are ignored.
+#
+# Pre-W-08 this list lived as `BYPASS_PREFIXES` inside the gate source.
+# Externalising it makes the surface visible to reviewers in PR diffs
+# and easier to audit. Adding an entry here is the equivalent of
+# adding a coupling-rule exemption — every entry needs an owner in
+# the file's git blame.
+#
+# Notably **NOT** bypassed:
+#   - `Makefile`       — claimed by specs 104, 105, 116, 127.
+#   - `AGENTS.md`      — claimed by spec 103.
+#   - `crates/`, `tools/`, `apps/`, `packages/`, `platform/services/`
+#                      — first-class code paths.
+
+# Orthogonal scaffolding: CI metadata governed by spec 118's `# Spec:`
+# header convention, not by this diff-based gate.
+.github/
+
+# Documentation tree.
+docs/
+
+# Root-level repo metadata files.
+README.md
+CLAUDE.md
+DEVELOPERS.md
+LICENSE
+CHANGELOG.md
+CODEOWNERS
+.gitignore
+.gitattributes

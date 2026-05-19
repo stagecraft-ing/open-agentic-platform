@@ -54,4 +54,5 @@ jobs:
           body_file="$(mktemp)"
           printf '%s' "${PR_BODY:-}" > "$body_file"
           ./tools/spec-code-coupling-check/target/release/spec-code-coupling-check \
-              --base "$BASE_SHA" --head "$HEAD_SHA" --pr-body "$body_file"
+              --base "$BASE_SHA" --head "$HEAD_SHA" --pr-body "$body_file" \
+              --bypass-prefix-file .github/spec-coupling-bypass.txt

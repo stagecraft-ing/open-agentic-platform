@@ -11,28 +11,14 @@ use open_agentic_codebase_indexer::{IndexReaderError, load as load_codebase_inde
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-/// Path prefixes that never owe a spec edit. Limited to genuinely
-/// orthogonal scaffolding: process docs, GitHub Actions metadata
-/// (workflows are governed by spec 118's `# Spec:` header convention,
-/// orthogonal to this diff-based check), and repo-metadata files.
-///
-/// Notably **NOT** bypassed:
-/// - `Makefile` — claimed by specs 104, 105, 116, 127; changes route
-///   through whichever owners are affected.
-/// - `AGENTS.md` — claimed by spec 103; changes must amend that spec.
-/// - `crates/`, `tools/`, `apps/`, `packages/`, `platform/services/`.
-pub const BYPASS_PREFIXES: &[&str] = &[
-    ".github/",
-    "docs/",
-    "README.md",
-    "CLAUDE.md",
-    "DEVELOPERS.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "CODEOWNERS",
-    ".gitignore",
-    ".gitattributes",
-];
+/// Built-in bypass-prefix default. Cut D W-08 (spec 127 follow-up):
+/// the hardcoded list was OAP-shaped (`.github/`, `docs/`, etc.) and
+/// is now empty (fail-closed). The OAP-specific allowlist lives at
+/// `.github/spec-coupling-bypass.txt` and is loaded at runtime via
+/// `--bypass-prefix-file`. Callers without the flag operate
+/// strictly: every diff path must be claimed (per the spec 127
+/// invariant) unless explicitly bypassed.
+pub const BYPASS_PREFIXES: &[&str] = &[];
 
 /// Case-sensitive PR-body waiver keyword. Spec 127 FR-005.
 pub const WAIVER_KEYWORD: &str = "Spec-Drift-Waiver:";
@@ -119,9 +105,12 @@ impl Outcome {
     }
 }
 
-/// True if `path` is exempt from coupling enforcement.
-pub fn is_bypass(path: &str) -> bool {
-    BYPASS_PREFIXES.iter().any(|prefix| {
+/// True if `path` is exempt from coupling enforcement against the
+/// supplied prefix list. Cut D W-08: callers pass an explicit slice
+/// (`BypassConfig::prefixes` or `BYPASS_PREFIXES` for legacy paths)
+/// so the bypass surface is data, not source code.
+pub fn is_bypass_against(path: &str, prefixes: &[&str]) -> bool {
+    prefixes.iter().any(|prefix| {
         if prefix.ends_with('/') {
             path.starts_with(prefix)
         } else {
@@ -129,6 +118,46 @@ pub fn is_bypass(path: &str) -> bool {
             path == *prefix || path == format!("{prefix}/")
         }
     })
+}
+
+/// Backwards-compatible: bypass against the (now empty) built-in
+/// default. Returns false for every path post-W-08.
+pub fn is_bypass(path: &str) -> bool {
+    is_bypass_against(path, BYPASS_PREFIXES)
+}
+
+/// Runtime bypass configuration loaded from `--bypass-prefix-file`
+/// (Cut D W-08). The file contains one prefix per line; lines
+/// starting with `#` are comments; blank lines are ignored.
+#[derive(Debug, Clone, Default)]
+pub struct BypassConfig {
+    pub prefixes: Vec<String>,
+}
+
+impl BypassConfig {
+    /// Load from a newline-delimited file. Returns an error if the
+    /// file cannot be read; missing files are NOT a fatal — callers
+    /// can choose to fail-closed (empty BypassConfig) or surface the
+    /// error.
+    pub fn from_file(path: &Path) -> Result<Self, std::io::Error> {
+        let raw = std::fs::read_to_string(path)?;
+        Ok(Self::from_str(&raw))
+    }
+
+    pub fn from_str(raw: &str) -> Self {
+        let prefixes = raw
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .map(String::from)
+            .collect();
+        Self { prefixes }
+    }
+
+    pub fn matches(&self, path: &str) -> bool {
+        let slice: Vec<&str> = self.prefixes.iter().map(String::as_str).collect();
+        is_bypass_against(path, &slice)
+    }
 }
 
 /// Slash-anchored prefix match: `claim` is a path declared in `implements:`,
@@ -250,6 +279,18 @@ pub fn check_coupling(
     diff_paths: &BTreeSet<String>,
     pr_body: &str,
 ) -> Outcome {
+    check_coupling_with_bypass(index, diff_paths, pr_body, &BypassConfig::default())
+}
+
+/// Cut D W-08 entry point: caller-supplied bypass list. The
+/// [`BypassConfig`] is loaded from `--bypass-prefix-file` (or empty
+/// if absent — fail-closed by default).
+pub fn check_coupling_with_bypass(
+    index: &CodebaseIndex,
+    diff_paths: &BTreeSet<String>,
+    pr_body: &str,
+    bypass: &BypassConfig,
+) -> Outcome {
     let waiver_reason = parse_waiver(pr_body);
     let claim_index = build_claim_index(index);
 
@@ -257,7 +298,7 @@ pub fn check_coupling(
     // every legitimate owner across the three source classes.
     let mut path_owners: BTreeMap<String, OwnerSet> = BTreeMap::new();
     for path in diff_paths {
-        if is_bypass(path) {
+        if bypass.matches(path) {
             continue;
         }
         let owners = legitimate_owners(path, &claim_index, index);
@@ -510,18 +551,28 @@ mod tests {
     }
 
     #[test]
-    fn bypass_recognises_workflow_and_docs_and_root_md() {
-        assert!(is_bypass(".github/workflows/foo.yml"));
-        assert!(is_bypass("docs/ARCHITECTURE.md"));
-        assert!(is_bypass("README.md"));
-        assert!(is_bypass("CLAUDE.md"));
-        assert!(is_bypass("LICENSE"));
-        assert!(!is_bypass("crates/orchestrator/src/lib.rs"));
-        assert!(!is_bypass("specs/044-multi-agent-orchestration/spec.md"));
-        // Critical: Makefile and AGENTS.md are claimed by specs and MUST
-        // route through the gate.
+    fn bypass_default_is_fail_closed_after_w08() {
+        // Cut D W-08: the hardcoded BYPASS_PREFIXES list is empty by
+        // default. Every path falls through to the coupling rule
+        // unless explicitly bypassed via --bypass-prefix-file.
+        assert!(!is_bypass(".github/workflows/foo.yml"));
+        assert!(!is_bypass("docs/ARCHITECTURE.md"));
+        assert!(!is_bypass("README.md"));
         assert!(!is_bypass("Makefile"));
         assert!(!is_bypass("AGENTS.md"));
+    }
+
+    #[test]
+    fn bypass_config_loaded_from_string_matches() {
+        let cfg = BypassConfig::from_str(
+            "# comments are ignored\n\n.github/\ndocs/\nREADME.md\n",
+        );
+        assert_eq!(cfg.prefixes.len(), 3);
+        assert!(cfg.matches(".github/workflows/foo.yml"));
+        assert!(cfg.matches("docs/ARCHITECTURE.md"));
+        assert!(cfg.matches("README.md"));
+        assert!(!cfg.matches("Makefile"));
+        assert!(!cfg.matches("crates/orchestrator/src/lib.rs"));
     }
 
     #[test]
