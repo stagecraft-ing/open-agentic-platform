@@ -59,6 +59,13 @@ implements:
   # plus the SC-005 live-test recipe. Live test evidence collection
   # follows in a separate operator-confirmed session.
   - path: specs/151-declarative-cluster-reconciliation/execution/drift-detection.md  # T-022 — mechanism + metric inventory + Flux event taxonomy + SC-005 test recipe (live evidence pending)
+  # F8 follow-up (2026-05-19) — deferred dependsOn machinery anticipated
+  # by infrastructure/cert-manager.yaml's now-falsified retry-pattern claim.
+  # Bare-cluster bootstrap order: root kustomization.yaml explicit-resources
+  # → infrastructure (healthCheck cert-manager) → manifests (dependsOn).
+  - path: platform/gitops/clusters/hetzner-prod/kustomization.yaml                   # F8 — root kustomize bundle replacing the auto-recursive single-batch apply
+  - path: platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml    # F8 — Flux Kustomization for ./infrastructure with healthCheck on cert-manager HelmRelease
+  - path: platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml         # F8 — Flux Kustomization for ./manifests with dependsOn: infrastructure, wait: true
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -501,6 +508,31 @@ Constraints on the contract:
   eliminate the cross-environment impact window. Full evidence:
   `execution/disaster-recovery.md` §"SC-003 verdict", §"Finding F8",
   §Step (c) F7 block.
+
+  **F8 follow-up implementation (2026-05-19, code landed; DR re-run
+  pending).** The deferred dependsOn machinery is implemented in:
+  - `platform/gitops/clusters/hetzner-prod/kustomization.yaml` (NEW
+    root, explicit `resources` list — replaces the auto-recursive
+    single-batch apply that triggered F8).
+  - `platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml`
+    (NEW Flux Kustomization for the infrastructure tier; selective
+    `healthChecks: [HelmRelease/cert-manager]` so the rauthy
+    bare-cluster-failure does not block the chain).
+  - `platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml`
+    (NEW Flux Kustomization for the manifests tier;
+    `dependsOn: [infrastructure]`, `wait: true` — Certificate /
+    ClusterIssuer dry-run only runs after cert-manager Ready).
+  - `platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml`
+    inline comment refreshed: the original "retry-pattern is robust"
+    claim is marked falsified; the dependsOn-machinery anchor it
+    deferred to now exists alongside.
+
+  F8 closure itself remains gated on the Stage 2 DR re-run against
+  the new gitops shape, ideally after F7 future-prevention closes
+  (distinct `--path` for throwaway bootstraps, so the re-run does
+  NOT collide with production's deploy key). The
+  `implementation: complete` flip waits on that re-run AND T-026
+  setup.sh shrink AND F7 future-prevention closure.
 - **SC-004:** No `kubectl create secret`, `helm upgrade --install`, or
   `kubectl apply -f` invocations remain in `setup.sh` /
   `post-create.sh` for runtime cluster state. Verified by grep at spec

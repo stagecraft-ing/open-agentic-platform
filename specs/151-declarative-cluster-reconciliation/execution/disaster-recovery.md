@@ -452,25 +452,32 @@ in-place. The Stage 2 DR exercise deliberately skips the imperative
 pre-installs (per spec 151 §FR-003's setup.sh shrink target), which
 exposes the bare-cluster-only failure mode F8 captures.
 
-**Resolution path (F8 follow-up — gates `implementation: complete`).**
-A separate PR splits the apply order via Flux Kustomization
-`dependsOn`. Sketch:
+**Resolution path (F8 follow-up — code landed; Stage 2 re-run pending).**
+The split is implemented in `platform/gitops/clusters/hetzner-prod/`:
 
-- `platform/gitops/clusters/hetzner-prod/kustomization.yaml` (root)
-  lists `flux-system/` and a new `infrastructure-kustomizations.yaml`
-  that declares Flux Kustomization CRs.
-- `Kustomization/infrastructure` with `path:
-  ./platform/gitops/clusters/hetzner-prod/infrastructure` and `wait:
-  true` — applies HelmReleases (cert-manager → CRDs land →
-  ingress-nginx, reflector, etc).
-- `Kustomization/manifests` with `path:
-  ./platform/gitops/clusters/hetzner-prod/manifests`, `dependsOn:
-  [{name: infrastructure}]`, `wait: true` — applies Certificate +
-  ClusterIssuer after cert-manager is Ready.
+- `kustomization.yaml` (NEW root) — explicit `resources` list:
+  `flux-system`, `infrastructure-kustomization.yaml`,
+  `manifests-kustomization.yaml`. Replaces the auto-recursive
+  single-batch apply that triggered F8.
+- `infrastructure-kustomization.yaml` — Flux Kustomization for
+  `./infrastructure` with selective
+  `healthChecks: [HelmRelease/cert-manager]` (NOT `wait: true` —
+  rauthy's bare-cluster-failure must not block the chain).
+- `manifests-kustomization.yaml` — Flux Kustomization for
+  `./manifests` with `dependsOn: [{name: infrastructure, namespace:
+  flux-system}]` and `wait: true`. Certificate + ClusterIssuer
+  dry-run only runs after cert-manager is Ready.
+- `infrastructure/cert-manager.yaml` inline comment refreshed to
+  retire the falsified "retry-pattern is robust" claim and point
+  forward to the new dependsOn anchors.
 
-The split honours the spec's staged plan; the F8 follow-up PR carries
-its own measured rationale (this section) and the re-run of Stage 2
-DR against the new shape before `implementation: complete` flips.
+The new shape honours the spec's staged plan. Stage 2 DR re-run
+against the new gitops shape is **deferred to a future operator
+window** — ideally after the F7 future-prevention follow-up lands,
+so the re-run uses a distinct `--path` argument and does not
+collide with production's deploy key. `implementation: complete`
+remains gated on the re-run's clean Stage 2 measurement, T-026
+setup.sh shrink, AND F7 future-prevention closure.
 
 ---
 
@@ -713,7 +720,7 @@ clauses (tasks.md §"Phase 5 done-when") are evaluated:
 | F5 resolution recorded (workers Ready → controllers Ready) | This document §Step (c) | ✓ |
 | F6 resolution recorded (org-toggle ON, no `--token-auth` fallback needed) | This document §Step (c) | ✓ |
 | F7 follow-up filed (deploy-key rotation hazard) | This document §Step (c) F7 block; mitigation applied in-session; future-prevention follow-up open | filed, gated on follow-up PR |
-| F8 follow-up filed (dependsOn machinery — bare-cluster convergence) | This document §Step (d) F8 block + SC-003 amendment | filed, gates `implementation: complete` |
+| F8 follow-up code landed (dependsOn machinery — bare-cluster convergence) | This document §"Resolution path" + new `kustomization.yaml` / `infrastructure-kustomization.yaml` / `manifests-kustomization.yaml` files in `platform/gitops/clusters/hetzner-prod/` | code landed (2026-05-19); Stage 2 re-run pending; gates `implementation: complete` |
 | Spec 151 frontmatter `implementation: complete` | Same commit as T-026 shrink AND clean Stage 2 DR re-run after F8 follow-up lands | **pending F8 follow-up** |
 
 The spec 151 → 152 gate (plan.md) opens for spec 152 implementation

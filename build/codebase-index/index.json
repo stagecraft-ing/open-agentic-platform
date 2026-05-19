@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "42dccd4ccab2f28de4dea731e99c50d207bc165fc05d974d97316323e1eef0b0",
+    "contentHash": "d7cfd02e440973bed867be27718915ad4a11f7f6ff2e308997c5b775e3ac76c0",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5183,6 +5183,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/gitops/clusters/hetzner-prod/infrastructure/README.md",
             "source": "spec-implements"
           },
@@ -5200,6 +5204,14 @@
           },
           {
             "path": "platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml",
             "source": "spec-implements"
           },
           {

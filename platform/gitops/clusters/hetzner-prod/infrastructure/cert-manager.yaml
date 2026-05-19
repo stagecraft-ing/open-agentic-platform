@@ -21,21 +21,28 @@
 # present. The wildcard Certificate (Phase 2,
 # `../manifests/tenants-wildcard-certificate.yaml`) and the
 # ClusterIssuers (Phase 3, `../manifests/cert-manager-clusterissuers.yaml`)
-# both consume those CRDs. During the Phase-3-to-fresh-cluster window:
+# both consume those CRDs. Ordering is now enforced structurally via
+# Flux Kustomization dependsOn (spec 151 Finding F8 follow-up):
 #
 #   - Current cluster (cutover): CRDs already present, no race.
-#   - Fresh cluster (DR / SC-003 Stage 2): Flux retries on transient
-#     apply failure during the ~30-60s window cert-manager's CRDs are
-#     installing. Convergence is robust per the Phase 2 retry pattern
-#     (spec.md §"Phase 2 — reflector + wildcard-cert annotations" /
-#     T-010 interim).
+#   - Fresh cluster (DR / SC-003 Stage 2): the `manifests` Flux
+#     Kustomization (`../manifests-kustomization.yaml`) does not
+#     reconcile until the `infrastructure` Flux Kustomization
+#     (`../infrastructure-kustomization.yaml`) is Ready, gated by a
+#     healthCheck on THIS HelmRelease. Certificate / ClusterIssuer
+#     dry-run only runs after cert-manager has installed its CRDs.
 #
-# A wrapping Flux Kustomization with `dependsOn: [cert-manager]` for
-# the manifests/ directory is intentionally deferred — Phase 5's
-# drift-detection + DR runbook (T-022/T-023) measures whether the
-# retry-pattern's convergence cost stays inside the SC-003 30-min
-# budget. If not, a follow-up adds the dependsOn machinery at that
-# point with a measured rationale.
+# This replaces the original Phase 3 "retry-pattern is robust" claim,
+# which spec 151 §T-023 falsified during the 2026-05-19 Stage 2 DR
+# exercise: Flux's Kustomization-level dry-run failure aborts the
+# HelmRelease apply when downstream Certificate manifests are in the
+# same auto-recursive batch, so cert-manager never installs and the
+# retry loops forever. Finding F8 in
+# `specs/151-declarative-cluster-reconciliation/execution/disaster-recovery.md`
+# captures the falsifying measurement; the dependsOn machinery that
+# this file's deferred-follow-up comment anticipated now exists in
+# `../infrastructure-kustomization.yaml` + `../manifests-kustomization.yaml`
+# + `../kustomization.yaml`.
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
