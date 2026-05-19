@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d7cfd02e440973bed867be27718915ad4a11f7f6ff2e308997c5b775e3ac76c0",
+    "contentHash": "dcd6745bcfe399ca0edd82a49f0f62fd7de4c650ab8d761e8b63f045fcbe005a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5176,6 +5176,14 @@
           },
           {
             "path": "platform/charts/rauthy/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-dr-stage2/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml",
             "source": "spec-implements"
           },
           {
