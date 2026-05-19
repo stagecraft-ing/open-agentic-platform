@@ -11,6 +11,7 @@
 
 use clap::Parser;
 use factory_engine::governance_certificate::{GovernanceCertificate, verify_certificate};
+use factory_engine::{validate_spec_id_resolution, write_validation_warnings};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -25,6 +26,12 @@ struct Cli {
     /// Optional directory containing stage artifacts for hash re-derivation.
     #[arg(long)]
     artifact_dir: Option<PathBuf>,
+
+    /// Repository root used to locate `build/spec-registry/registry.json`
+    /// for `intent.spec_id` resolution validation (Cut D W-10 / spec 102 G-2).
+    /// Defaults to the current working directory.
+    #[arg(long)]
+    repo_root: Option<PathBuf>,
 }
 
 fn main() {
@@ -47,6 +54,25 @@ fn main() {
     };
 
     let result = verify_certificate(&cert, cli.artifact_dir.as_deref());
+
+    let repo_root = cli
+        .repo_root
+        .clone()
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    let warnings = validate_spec_id_resolution(&cert, &repo_root);
+    match write_validation_warnings(&warnings, &cli.certificate) {
+        Ok(Some(p)) => eprintln!(
+            "validation warnings written: {} ({} warning(s))",
+            p.display(),
+            warnings.len()
+        ),
+        Ok(None) => {}
+        Err(e) => eprintln!(
+            "warning: failed to write validation warnings next to {}: {e}",
+            cli.certificate.display()
+        ),
+    }
 
     if result.valid {
         eprintln!(

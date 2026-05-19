@@ -8,6 +8,7 @@ use clap::Parser;
 use factory_engine::{
     FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryPipelineState,
     FactoryStandardsResolver, generate_certificate, persist_certificate,
+    validate_spec_id_resolution, write_validation_warnings,
 };
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
@@ -47,6 +48,7 @@ fn emit_certificate(
     run_id: Uuid,
     pipeline_state: &FactoryPipelineState,
     requirements_hash: &str,
+    repo_root: &std::path::Path,
 ) {
     let run_dir = am.run_dir(run_id);
     let cert = generate_certificate(pipeline_state, requirements_hash, &run_dir, None);
@@ -60,6 +62,20 @@ fn emit_certificate(
         ),
         Err(e) => eprintln!(
             "Warning: failed to persist governance certificate at {}: {e}",
+            cert_path.display()
+        ),
+    }
+
+    let warnings = validate_spec_id_resolution(&cert, repo_root);
+    match write_validation_warnings(&warnings, &cert_path) {
+        Ok(Some(p)) => eprintln!(
+            "Validation warnings emitted: {} ({} warning(s))",
+            p.display(),
+            warnings.len()
+        ),
+        Ok(None) => {}
+        Err(e) => eprintln!(
+            "Warning: failed to write validation warnings next to {}: {e}",
             cert_path.display()
         ),
     }
@@ -164,6 +180,12 @@ struct Cli {
     /// always uses the typed path; only set this for ad-hoc invocations.
     #[arg(long, default_value_t = false)]
     no_pipeline_extract: bool,
+
+    /// Repository root used to locate `build/spec-registry/registry.json`
+    /// for `intent.spec_id` resolution validation (Cut D W-10 / spec 102 G-2).
+    /// Defaults to the current working directory.
+    #[arg(long)]
+    repo_root: Option<PathBuf>,
 }
 
 /// Adapts FactoryAgentBridge to the orchestrator's AgentPromptLookup trait.
@@ -375,6 +397,13 @@ async fn main() -> ExitCode {
     // Hash the requirements documents once (spec 102 FR-003 — intent.requirementsHash).
     let requirements_hash = compute_requirements_hash(&cli.business_docs);
 
+    // Repository root for spec-id resolution validation (Cut D W-10 / spec 102 G-2).
+    let repo_root = cli
+        .repo_root
+        .clone()
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+
     // Set up artifact manager under the project directory.
     let artifact_dir = project_path.join(".factory").join("runs");
     let am = ArtifactManager::new(&artifact_dir);
@@ -480,7 +509,7 @@ async fn main() -> ExitCode {
             eprintln!("\nPhase 1 dispatch failed: {e}");
             eprintln!("To resume, re-run with: --resume {run_id}");
             pipeline_state.mark_failed();
-            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
+            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
             return ExitCode::FAILURE;
         }
     };
@@ -503,7 +532,7 @@ async fn main() -> ExitCode {
     if !build_spec_path.exists() {
         eprintln!("Build Spec not found at {}", build_spec_path.display());
         pipeline_state.mark_failed();
-        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
+        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
         return ExitCode::FAILURE;
     }
 
@@ -518,7 +547,7 @@ async fn main() -> ExitCode {
         Err(e) => {
             eprintln!("Phase transition failed: {e}");
             pipeline_state.mark_failed();
-            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
+            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
             return ExitCode::FAILURE;
         }
     };
@@ -538,7 +567,7 @@ async fn main() -> ExitCode {
     {
         eprintln!("Failed to materialize Phase 2 run directory: {e}");
         pipeline_state.mark_failed();
-        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
+        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
         return ExitCode::FAILURE;
     }
 
@@ -592,7 +621,7 @@ async fn main() -> ExitCode {
             eprintln!("\nPhase 2 dispatch failed: {e}");
             eprintln!("To resume, re-run with: --resume {run_id}");
             pipeline_state.mark_failed();
-            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
+            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
             return ExitCode::FAILURE;
         }
     };
@@ -627,7 +656,7 @@ async fn main() -> ExitCode {
 
     // Spec 102 FR-003 / FR-009 — emit governance certificate at the end of
     // every successful pipeline run.
-    emit_certificate(&am, run_id, &pipeline_state, &requirements_hash);
+    emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
 
     ExitCode::SUCCESS
 }

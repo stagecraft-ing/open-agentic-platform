@@ -22,7 +22,7 @@
 use clap::Parser;
 use factory_engine::{
     FactoryPipelineState, generate_certificate, governance_certificate::sha256_file,
-    persist_certificate,
+    persist_certificate, validate_spec_id_resolution, write_validation_warnings,
 };
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
@@ -55,6 +55,12 @@ struct Cli {
     /// `<run-dir>/governance-certificate.json`.
     #[arg(long)]
     out: Option<PathBuf>,
+
+    /// Repository root used to locate `build/spec-registry/registry.json`
+    /// for `intent.spec_id` resolution validation (Cut D W-10 / spec 102 G-2).
+    /// Defaults to the current working directory.
+    #[arg(long)]
+    repo_root: Option<PathBuf>,
 }
 
 fn main() {
@@ -130,4 +136,23 @@ fn main() {
         cert.stages.len(),
         &cert.certificate_hash[..16]
     );
+
+    let repo_root = cli
+        .repo_root
+        .clone()
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    let warnings = validate_spec_id_resolution(&cert, &repo_root);
+    match write_validation_warnings(&warnings, &cert_path) {
+        Ok(Some(p)) => eprintln!(
+            "validation warnings written: {} ({} warning(s))",
+            p.display(),
+            warnings.len()
+        ),
+        Ok(None) => {}
+        Err(e) => eprintln!(
+            "warning: failed to write validation warnings next to {}: {e}",
+            cert_path.display()
+        ),
+    }
 }
