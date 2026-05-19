@@ -66,6 +66,13 @@ implements:
   - path: platform/gitops/clusters/hetzner-prod/kustomization.yaml                   # F8 — root kustomize bundle replacing the auto-recursive single-batch apply
   - path: platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml    # F8 — Flux Kustomization for ./infrastructure with healthCheck on cert-manager HelmRelease
   - path: platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml         # F8 — Flux Kustomization for ./manifests with dependsOn: infrastructure, wait: true
+  # F7 future-prevention (2026-05-19) — distinct bootstrap path for the Stage 2
+  # DR throwaway cluster, so its `flux bootstrap` cannot rotate production's
+  # GitHub deploy key as a side effect. Sibling tree under platform/gitops/clusters/
+  # imports the production tree's Kustomization CRs via relative path — no
+  # YAML duplication; only the bootstrap-distinct entry point lives here.
+  - path: platform/gitops/clusters/hetzner-dr-stage2/README.md                       # F7 future-prevention — scope, rationale, runbook integration
+  - path: platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml              # F7 future-prevention — root kustomize bundle (imports ../hetzner-prod Kustomization CRs)
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -528,11 +535,31 @@ Constraints on the contract:
     deferred to now exists alongside.
 
   F8 closure itself remains gated on the Stage 2 DR re-run against
-  the new gitops shape, ideally after F7 future-prevention closes
-  (distinct `--path` for throwaway bootstraps, so the re-run does
-  NOT collide with production's deploy key). The
+  the new gitops shape. The re-run can now proceed safely against the
+  distinct throwaway path landed by F7 future-prevention (below) and
+  will NOT collide with production's deploy key. The
   `implementation: complete` flip waits on that re-run AND T-026
-  setup.sh shrink AND F7 future-prevention closure.
+  setup.sh shrink.
+
+  **F7 future-prevention (2026-05-19, landed — distinct throwaway
+  path).** The Stage 2 DR runbook now bootstraps against
+  `--path=platform/gitops/clusters/hetzner-dr-stage2` (sibling tree
+  under `platform/gitops/clusters/`) instead of production's
+  `--path=platform/gitops/clusters/hetzner-prod`. flux bootstrap
+  generates the deploy-key title as
+  `flux-system-<branch>-flux-system-<path>`, so distinct paths produce
+  distinct titles and the throwaway bootstrap cannot rotate
+  production's deploy key as a side effect. The throwaway tree
+  reconciles the SAME content production reconciles —
+  `hetzner-dr-stage2/kustomization.yaml` imports
+  `../hetzner-prod/infrastructure-kustomization.yaml` and
+  `../hetzner-prod/manifests-kustomization.yaml` via relative path; no
+  duplicated YAML. The F8 dependsOn machinery is inherited by
+  reference. The bootstrap-managed `flux-system/` subdirectory is
+  created on first DR cycle's `flux bootstrap` invocation; subsequent
+  DR cycles re-use the existing entry point (idempotent flux
+  bootstrap). The cross-environment hazard window F7 captured is
+  now structurally eliminated.
 - **SC-004:** No `kubectl create secret`, `helm upgrade --install`, or
   `kubectl apply -f` invocations remain in `setup.sh` /
   `post-create.sh` for runtime cluster state. Verified by grep at spec

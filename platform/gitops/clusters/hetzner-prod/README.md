@@ -92,6 +92,10 @@ Application HelmReleases (stagecraft, deployd-api, tenant-hello) land in spec 15
 4. PR the change. Flux's CI gate (spec 116 `cargo-deny` / `pnpm audit` / `npm audit` family does **not** cover Kubernetes manifests; a Kustomize-build gate is queued as a future hardening — see spec 151 §future-hardening once filed).
 5. After merge, `flux reconcile kustomization <name> --with-source` on the operator workstation to short-circuit the reconcile interval.
 
+## Sibling: `hetzner-dr-stage2/`
+
+The sibling tree at [`../hetzner-dr-stage2/`](../hetzner-dr-stage2/) is the bootstrap entry point for spec 151 SC-003 Stage 2 disaster-recovery exercises. It exists solely to give the throwaway bootstrap a distinct `flux bootstrap --path` argument, so its GitHub deploy-key title cannot collide with this tree's (spec 151 Finding F7 future-prevention). The DR cluster reconciles the SAME content this cluster does — `hetzner-dr-stage2/kustomization.yaml` imports `infrastructure-kustomization.yaml` and `manifests-kustomization.yaml` from this directory via relative path; no YAML is duplicated.
+
 ## Out of scope
 
 - `flux-system/` content (owned by `flux bootstrap`).

@@ -228,10 +228,16 @@ the fresh cluster create, and Flux 2.8.7's hard pre-check inside
 ## Step (c) — `flux bootstrap` (CLOSES F5, F6 prerequisite re-confirmed)
 
 **Mechanism:** the same `flux bootstrap github` invocation that
-`platform/infra/hetzner/setup.sh` lines 204-210 use — but against
-the throwaway cluster, with `--owner=stagecraft-ing
---repo=open-agentic-platform --branch=main
---path=platform/gitops/clusters/hetzner-prod`.
+`platform/infra/hetzner/setup.sh` uses — but with a **distinct path
+argument**: `--path=platform/gitops/clusters/hetzner-dr-stage2`
+instead of production's `--path=platform/gitops/clusters/hetzner-prod`.
+This is the spec 151 Finding F7 future-prevention fix (PR #175): the
+deploy-key title flux bootstrap generates is `flux-system-<branch>-flux-system-<path>`, so distinct paths produce distinct titles and the
+throwaway bootstrap can no longer rotate production's deploy key as a
+side effect. The throwaway tree reconciles the same content production
+does — `hetzner-dr-stage2/kustomization.yaml` imports production's
+Flux Kustomization CRs via relative path; see
+`platform/gitops/clusters/hetzner-dr-stage2/README.md`.
 
 The setup.sh wait-for-worker-Ready gate (F5 mechanical answer,
 setup.sh:184) is the same kubectl-wait that step (b) closes on. Step
@@ -241,12 +247,15 @@ setup.sh:184) is the same kubectl-wait that step (b) closes on. Step
 # 1. START CLOCK
 date -u +%s > /tmp/dr-stage2-step-c-start
 
-# 2. Bootstrap Flux against the populated gitops tree
+# 2. Bootstrap Flux against the throwaway-distinct gitops path.
+#    The `--path=...hetzner-dr-stage2` value is the F7 fix — distinct
+#    from production's `--path=...hetzner-prod`, so the deploy-key
+#    title doesn't collide with production's on GitHub.
 flux bootstrap github \
   --owner=stagecraft-ing \
-  --repo=open-agentic-platform \
+  --repository=open-agentic-platform \
   --branch=main \
-  --path=platform/gitops/clusters/hetzner-prod \
+  --path=platform/gitops/clusters/hetzner-dr-stage2 \
   --personal=false \
   --network-policy=true \
   2>&1 | tee c-bootstrap.log
@@ -329,12 +338,28 @@ verified by `kubectl -n flux-system get gitrepositories` reporting
 (same public half as the deleted `151869855`, restoring the
 pre-session state).
 
-**Future-prevention follow-up.** Two equally-valid resolutions for F7
-exist; the F7 follow-up PR will pick one:
-1. **Distinct path for throwaway bootstraps** — `--path=platform/gitops/clusters/hetzner-dr-stage2` so the deploy-key title never collides with production. Preferred because it eliminates the production-impact window entirely. Requires a `platform/gitops/clusters/hetzner-dr-stage2/` tree (could just be a symlink or a minimal manifest).
-2. **Document the surgical mitigation as a mandatory post-teardown step** — encode the `gh api POST/DELETE` mitigation in the runbook + setup.sh's DR teardown path. Cheaper to implement but leaves the production-impact window in place.
+**Future-prevention resolved (PR #175 — F7 future-prevention).** Two
+resolutions were considered; option (1) landed because it eliminates
+the production-impact window entirely:
 
-Filed as F7 follow-up (separate PR before `implementation: complete`).
+1. **Distinct path for throwaway bootstraps** ✓ — DR runbook now uses
+   `--path=platform/gitops/clusters/hetzner-dr-stage2` (sibling tree
+   under `platform/gitops/clusters/`). flux bootstrap generates the
+   deploy-key title as `flux-system-<branch>-flux-system-<path>`, so
+   distinct paths produce distinct titles and the throwaway bootstrap
+   cannot rotate production's deploy key as a side effect. The
+   throwaway tree reconciles the same content production reconciles —
+   `hetzner-dr-stage2/kustomization.yaml` imports production's
+   `infrastructure-kustomization.yaml` and `manifests-kustomization.yaml`
+   via relative path; no YAML duplication. See
+   [`platform/gitops/clusters/hetzner-dr-stage2/README.md`](../../../platform/gitops/clusters/hetzner-dr-stage2/README.md).
+2. **Document the surgical mitigation as a mandatory post-teardown step** — rejected as the long-term resolution. The runbook
+   §Teardown still describes the surgical `gh api POST/DELETE` path
+   as the operator-recovery path for ANY future deploy-key incident
+   (e.g. operator workstation corruption), but it is no longer a
+   mandatory step of the DR runbook itself.
+
+F7 future-prevention closes with PR #175.
 
 ---
 
@@ -719,7 +744,7 @@ clauses (tasks.md §"Phase 5 done-when") are evaluated:
 | F4 resolution recorded (k3s ≥1.33 + flux pre-check) | This document §Step (b.1) | ✓ |
 | F5 resolution recorded (workers Ready → controllers Ready) | This document §Step (c) | ✓ |
 | F6 resolution recorded (org-toggle ON, no `--token-auth` fallback needed) | This document §Step (c) | ✓ |
-| F7 follow-up filed (deploy-key rotation hazard) | This document §Step (c) F7 block; mitigation applied in-session; future-prevention follow-up open | filed, gated on follow-up PR |
+| F7 future-prevention landed (deploy-key rotation hazard eliminated) | This document §Step (c) F7 block; in-session surgical mitigation applied (#173); distinct-path future-prevention landed (#175 — `hetzner-dr-stage2/` sibling tree + runbook re-pointed) | ✓ |
 | F8 follow-up code landed (dependsOn machinery — bare-cluster convergence) | This document §"Resolution path" + new `kustomization.yaml` / `infrastructure-kustomization.yaml` / `manifests-kustomization.yaml` files in `platform/gitops/clusters/hetzner-prod/` | code landed (2026-05-19); Stage 2 re-run pending; gates `implementation: complete` |
 | Spec 151 frontmatter `implementation: complete` | Same commit as T-026 shrink AND clean Stage 2 DR re-run after F8 follow-up lands | **pending F8 follow-up** |
 
