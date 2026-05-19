@@ -1,7 +1,7 @@
 //! Tool and infrastructure scanner (Layer 4).
 
 use crate::types::{Infrastructure, NamedEntry, ToolEntry};
-use open_agentic_frontmatter::split_frontmatter_optional;
+use open_agentic_spec_types::split_frontmatter_optional;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;

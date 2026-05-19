@@ -1,5 +1,5 @@
 use chrono::{SecondsFormat, Utc};
-use open_agentic_frontmatter::split_frontmatter_optional;
+use open_agentic_spec_types::split_frontmatter_optional;
 pub use open_agentic_policy_kernel::PolicyRule;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};

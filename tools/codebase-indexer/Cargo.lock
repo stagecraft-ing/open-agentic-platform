@@ -742,7 +742,7 @@ dependencies = [
  "chrono",
  "clap",
  "jsonschema",
- "open_agentic_frontmatter",
+ "open_agentic_spec_types",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -753,9 +753,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "open_agentic_frontmatter"
+name = "open_agentic_spec_types"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "serde_yaml",
 ]
 

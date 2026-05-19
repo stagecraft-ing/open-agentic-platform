@@ -1,6 +1,6 @@
 //! Library for compiling `specs/*/spec.md` into Feature 000 registry JSON.
 
-use open_agentic_frontmatter::{FrontmatterError, split_frontmatter_required};
+use open_agentic_spec_types::{FrontmatterError, split_frontmatter_required};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};

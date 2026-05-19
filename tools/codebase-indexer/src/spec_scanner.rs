@@ -1,6 +1,6 @@
 //! Spec frontmatter reader (Layer 2 input).
 
-use open_agentic_frontmatter::split_frontmatter_required;
+use open_agentic_spec_types::split_frontmatter_required;
 use std::fs;
 use std::path::{Path, PathBuf};
 

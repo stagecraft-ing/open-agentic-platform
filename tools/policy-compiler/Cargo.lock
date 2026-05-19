@@ -796,13 +796,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
-name = "open_agentic_frontmatter"
-version = "0.1.0"
-dependencies = [
- "serde_yaml",
-]
-
-[[package]]
 name = "open_agentic_policy_compiler"
 version = "0.1.0"
 dependencies = [
@@ -810,8 +803,8 @@ dependencies = [
  "clap",
  "criterion",
  "hex",
- "open_agentic_frontmatter",
  "open_agentic_policy_kernel",
+ "open_agentic_spec_types",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -836,6 +829,14 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "open_agentic_spec_types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_yaml",
 ]
 
 [[package]]
