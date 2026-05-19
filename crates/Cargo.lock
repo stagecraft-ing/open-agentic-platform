@@ -2354,6 +2354,7 @@ dependencies = [
  "infer",
  "jsonschema 0.46.3",
  "open_agentic_policy_kernel",
+ "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
  "rand 0.8.6",
