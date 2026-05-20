@@ -18,9 +18,11 @@ fn indexer_exe() -> PathBuf {
 }
 
 /// Mirror the real repo into a tempdir via symlinks so each test owns its
-/// own `build/` output without contending on the real repo's index.json.
-/// `build/` and `target/` are skipped — those are per-test scratch space
-/// (`build/`) or irrelevant build output (`target/`).
+/// own `.derived/` output without contending on the real repo's index.json.
+/// `.derived/` and `target/` are skipped — those are per-test scratch space
+/// (`.derived/`) or irrelevant build output (`target/`). The `build/`
+/// holdover is retained defensively for any straggler tooling that still
+/// writes there.
 fn mirror_repo() -> tempfile::TempDir {
     let tmp = tempfile::TempDir::new().expect("create tempdir");
     let real = repo_root();
@@ -28,7 +30,7 @@ fn mirror_repo() -> tempfile::TempDir {
     for ent in entries.flatten() {
         let name = ent.file_name();
         let name_str = name.to_string_lossy();
-        if name_str == "build" || name_str == "target" {
+        if name_str == ".derived" || name_str == "build" || name_str == "target" {
             continue;
         }
         let src = ent.path();
