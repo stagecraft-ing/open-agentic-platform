@@ -37,13 +37,13 @@ jobs:
           toolchain: '1.95.0'
 
       - name: Build codebase-indexer
-        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 
       - name: Compile codebase-index
         run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
 
       - name: Build spec-code-coupling-check
-        run: cargo build --release --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-spine/spec-code-coupling-check/target
 
       - name: Run spec-code-coupling-check
         env:

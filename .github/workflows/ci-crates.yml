@@ -5,10 +5,11 @@
 # Spec: 042-multi-provider-agent-registry
 # Spec: 135-fast-ci-as-default
 #
-# CI for the `crates/` workspace. Spec 135 FR-05 collapsed the previous
+# CI for the root Cargo workspace. Spec 135 FR-05 collapsed the previous
 # 7-element matrix into a single workspace job: `cargo --workspace
-# --manifest-path crates/Cargo.toml` validates all 18 workspace members
-# in one pass, closing the ghost-crate gap on the GitHub side.
+# --manifest-path Cargo.toml` validates every workspace member
+# (crates/*, tools/spec-spine/*, tools/oap/*, tools/shared/*) in one
+# pass, closing the ghost-crate gap on the GitHub side.
 
 name: CI crates
 
@@ -16,10 +17,20 @@ on:
   push:
     branches: [main]
     paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - 'crates/**'
+      - 'tools/spec-spine/**'
+      - 'tools/oap/**'
+      - 'tools/shared/**'
   pull_request:
     paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - 'crates/**'
+      - 'tools/spec-spine/**'
+      - 'tools/oap/**'
+      - 'tools/shared/**'
   workflow_dispatch:
 
 permissions:
@@ -40,7 +51,7 @@ jobs:
       - name: CI crates workspace
         uses: ./.github/actions/rust-ci
         with:
-          manifest-path: crates/Cargo.toml
+          manifest-path: Cargo.toml
           workspace: 'true'
           cache-shared-key: ci-crates-workspace
 

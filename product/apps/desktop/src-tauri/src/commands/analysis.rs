@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use specta::Type;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::command;
 use xray::scan_target;
 
@@ -254,7 +254,7 @@ fn resolve_repo_root(input: &str) -> PathBuf {
     PathBuf::from(trimmed)
 }
 
-fn read_registry_summary(path: &PathBuf) -> Result<Value, String> {
+fn read_registry_summary(path: &Path) -> Result<Value, String> {
     // Cut D W-12: typed-reader consumer. No more ad-hoc Value parsing —
     // spec 103's "consumer-binary exception" applies once per artifact
     // (the spec_registry_reader::load entry point in tools/registry-

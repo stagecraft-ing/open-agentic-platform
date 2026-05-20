@@ -36,7 +36,7 @@ jobs:
           manifest-path: tools/oap/ci-parity-check/Cargo.toml
 
       - name: Build ci-parity-check
-        run: cargo build --release --manifest-path tools/oap/ci-parity-check/Cargo.toml
+        run: cargo build --release --manifest-path tools/oap/ci-parity-check/Cargo.toml --target-dir tools/oap/ci-parity-check/target
 
       - name: Drift check (workflow -> Makefile)
         run: ./tools/oap/ci-parity-check/target/release/ci-parity-check

@@ -45,14 +45,14 @@ runs:
     - name: Cache Rust build (stagecraft helpers)
       uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
       with:
-        workspaces: crates
+        workspaces: .
         shared-key: stagecraft-helpers
 
     - name: Build Rust helpers
       shell: bash
       run: |
         cargo build --release \
-          --manifest-path crates/Cargo.toml \
+          --manifest-path Cargo.toml \
           -p artifact-extract \
           -p factory-project-detect
 
@@ -64,8 +64,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        cp ${{ github.workspace }}/crates/target/release/artifact-extract       ./artifact-extract
-        cp ${{ github.workspace }}/crates/target/release/factory-project-detect ./factory-project-detect
+        cp ${{ github.workspace }}/target/release/artifact-extract       ./artifact-extract
+        cp ${{ github.workspace }}/target/release/factory-project-detect ./factory-project-detect
 
     - name: Build runtime base image
       shell: bash

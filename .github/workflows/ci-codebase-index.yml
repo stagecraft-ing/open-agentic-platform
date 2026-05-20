@@ -54,7 +54,7 @@ jobs:
           cache-shared-key: codebase-indexer
 
       - name: Compile codebase-indexer release binary
-        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 
       - name: Staleness check (committed artifact)
         run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check

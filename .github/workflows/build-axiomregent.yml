@@ -69,7 +69,7 @@ jobs:
       - name: Copy binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          cp crates/target/${{ matrix.target }}/release/axiomregent product/apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          cp target/${{ matrix.target }}/release/axiomregent product/apps/desktop/src-tauri/binaries/${{ matrix.binary }}
           strip product/apps/desktop/src-tauri/binaries/${{ matrix.binary }} || true
           ls -lh product/apps/desktop/src-tauri/binaries/${{ matrix.binary }}
 
@@ -128,7 +128,7 @@ jobs:
 
       - name: Copy binary
         run: |
-          cp crates/target/aarch64-unknown-linux-gnu/release/axiomregent product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release/axiomregent product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
           ls -lh product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload binary
