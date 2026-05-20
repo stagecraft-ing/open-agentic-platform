@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f81ca323eb6348587fd2240f030728bcb1ebf00db84fa0c382a8150ad073cfe2",
+    "contentHash": "970fc757e4a0199cd7ae3dd9273c6cc5c1eb3ab4cbdd36375bd4885836631833",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -95,6 +95,10 @@
       {
         "code": "I-101",
         "message": "spec \"086-open-source-launch\" declares implements path \"CODE_OF_CONDUCT.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"CONTRIBUTING.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",

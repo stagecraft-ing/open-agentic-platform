@@ -1178,7 +1178,7 @@ floating as a list of paths.
 **What landed:**
 
 - `platform/infra/hetzner/setup.sh` — header comment updated (T-001) to
-  document the prerequisites surface and forward-link to DEVELOPERS.md
+  document the prerequisites surface and forward-link to docs/DEVELOPERS.md
   §"Hetzner GitOps operator (spec 151)". The pre-flight enforcement
   (`for cmd in kubectl helm hetzner-k3s ...`) is NOT tightened in this
   PR: extending it to require `flux`, `sops`, `age` before T-007 has
@@ -1191,7 +1191,7 @@ floating as a list of paths.
   `manifests/` (raw K8s resources), `secrets/` (placeholder; spec 153
   owns the per-purpose Secret migration). `flux-system/` is
   intentionally absent — `flux bootstrap` creates its content on T-007.
-- `DEVELOPERS.md` — new "Hetzner GitOps operator (spec 151)" subsection
+- `docs/DEVELOPERS.md` — new "Hetzner GitOps operator (spec 151)" subsection
   under Prerequisites. Lists the four CLIs (`hetzner-k3s`, `flux`,
   `sops`, `age`) with brew install lines and a one-liner. Records the
   k3s ↔ Flux version pair as the operator-facing pin and points at the
@@ -1202,7 +1202,7 @@ floating as a list of paths.
 - T-002 (the canonical Flux version-pin manifest) — owned by `flux
   bootstrap` itself; the bootstrap-generated `flux-system/
   gotk-components.yaml` is where the version is canonically recorded in
-  the cluster tree. The DEVELOPERS.md + gitops-tree-README entries are
+  the cluster tree. The docs/DEVELOPERS.md + gitops-tree-README entries are
   the human-readable mirror, not the source of truth.
 - T-003 (`cluster.yaml` `k3s_version` bump from `v1.31.4+k3s1` to
   `v1.33.11+k3s1`) — dr-baseline.md §F4 specifies "same PR as the one

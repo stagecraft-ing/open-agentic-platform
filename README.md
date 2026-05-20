@@ -352,6 +352,6 @@ today vs. what is staged and what is roadmap, by spec ID.
 | `.claude/` | Agent and command definitions used by the development environment. See `CLAUDE.md` and `AGENTS.md`. |
 
 Full setup, prerequisites, and platform-service development:
-[`DEVELOPERS.md`](DEVELOPERS.md). Repository conventions and architectural
+[`docs/DEVELOPERS.md`](docs/DEVELOPERS.md). Repository conventions and architectural
 rules: [`CLAUDE.md`](CLAUDE.md). Compiler architecture and registry
 contract: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

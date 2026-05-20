@@ -80,7 +80,7 @@ release surface in one pass.
 - **Every release asset has an SBOM.** A `*.cdx.json` (CycloneDX) sibling
   per artifact lists every crate and version. For the desktop installer,
   the SBOM includes the bundled sidecar binaries' contents.
-- **Verification is documentable.** A `RELEASE-VERIFICATION.md` doc at repo
+- **Verification is documentable.** A `docs/RELEASE-VERIFICATION.md` doc at repo
   root explains the verification flow:
   `gh attestation verify <file> --repo <repo>`.
 - **No new Makefile target.** Attestations are CI-only — they are produced
@@ -101,7 +101,7 @@ release surface in one pass.
   per-installer file (DMG, AppImage, NSIS).
 - `release-tools.yml`: SBOM + provenance per archive (`oap-tools-*.tar.gz`,
   `oap-tools-*.zip`).
-- `RELEASE-VERIFICATION.md` documenting the verification commands.
+- `docs/RELEASE-VERIFICATION.md` documenting the verification commands.
 - `ci-parity-check` allowlist update for the attestation step names so the
   parity gate doesn't flag them as missing-from-Makefile.
 
@@ -312,7 +312,7 @@ the Sigstore Rekor log).
 
 - **Risk:** A consumer running an older `gh` CLI without `gh attestation
   verify` cannot validate.
-  **Mitigation:** RELEASE-VERIFICATION.md documents both `gh` and direct
+  **Mitigation:** docs/RELEASE-VERIFICATION.md documents both `gh` and direct
   `cosign verify-blob` paths. The `gh` requirement is `>= 2.50`.
 
 ## 8. Sequencing With M8 (release-tools workflow_run trigger)

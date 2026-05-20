@@ -9,7 +9,7 @@
 #   4. ./setup.sh                              # Phase 2: full platform
 #
 # Prerequisites: kubectl, helm, hetzner-k3s, flux, sops, age. Full operator
-#                prereq table + version pins: DEVELOPERS.md §"Hetzner GitOps
+#                prereq table + version pins: docs/DEVELOPERS.md §"Hetzner GitOps
 #                operator (spec 151)".
 #
 # Flags:
