@@ -1348,6 +1348,20 @@ fn extra_frontmatter(
             message: "extraFrontmatter exceeds maxProperties (8)".into(),
             path: Some(normalize_repo_path(repo_root, path)),
         });
+        // Producer-side enforcement (Epic 2 I12, per operator decision
+        // #7): truncate to the alphabetically-first 8 entries so the
+        // emitted registry remains schema-conformant. The violation
+        // above is the source-of-truth signal; truncation is the
+        // emission-shape fix that follows the V-007 precedent.
+        // BTreeMap iteration order is lexicographic, mirroring the
+        // canonical sort the spec-compiler applies elsewhere.
+        let mut kept: Map<String, Value> = Map::new();
+        let mut sorted: Vec<(String, Value)> = extra.into_iter().collect();
+        sorted.sort_by(|a, b| a.0.cmp(&b.0));
+        for (k, v) in sorted.into_iter().take(8) {
+            kept.insert(k, v);
+        }
+        extra = kept;
     }
     if extra.is_empty() {
         Ok(None)
