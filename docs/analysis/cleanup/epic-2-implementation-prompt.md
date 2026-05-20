@@ -8,8 +8,10 @@ each ending in zero, one, or more commits. The phases are pre-planned
 in `docs/analysis/cleanup/implementation-manifest.md` (synthesized
 from the 10 discovery audits produced by Epic 1) and have been
 reconciled against the post-activation section-scoped coupling gate
-in commit `131392ff`. This prompt sets the meta-rules; the manifest
-is the per-phase mechanical contract.
+in commit `131392ff`, with the relationship-graph field set locked
+by the v3 revision against spec 130 §1's eight-field model and the
+indexer's `spec_scanner.rs` read surface. This prompt sets the
+meta-rules; the manifest is the per-phase mechanical contract.
 
 **Read first, in order:**
 
@@ -48,41 +50,53 @@ Where they conflict, halt and surface.
 - Not a chance to re-litigate the manifest. If a phase's manifest
   entry seems wrong, halt and surface; do not silently deviate.
 - Not a chance to re-curate relationship-graph annotations beyond
-  mechanical path-string updates. Relationship-graph semantics
-  (`establishes:`, `extends:`, `refines:`, `amends:`, `co_authority:`,
-  any other path-bearing fields surfaced during I0) were locked by
-  the activation commit `131392ff`; Epic 2 preserves them.
+  mechanical path-string updates. Relationship-graph semantics were
+  locked by the activation commit `131392ff` and the spec 130
+  eight-field model; Epic 2 preserves them.
 
 ## Post-activation field model (orientation)
 
-This block exists so the agent reads Epic 2 with the correct mental
-model of where path references live post-activation. It is descriptive,
-not prescriptive — I0 enumerates the actual corpus state authoritatively.
+This block is descriptive, not prescriptive. The I0 enumeration
+produces the definitive corpus state. This orientation reflects the
+locked state as of v3.
 
-Pre-activation, list-form `implements:` carried path arrays. The
-activation excised list-form `implements:` (V-014 errors on it) and
-migrated path claims to the relationship-graph fields:
+Spec 130 §1 enumerates the eight relationship-graph fields:
 
-| Field | Carries | Authority shape |
+> Eight frontmatter fields — establishes, extends, refines,
+> supersedes, amends, co_authority, constrains, origin — encode
+> how specs relate to code and to each other.
+
+Of those eight, the corpus actually carries paths in six. The
+remaining two (`amends`, `origin`) are spec-ID lists or metadata.
+
+The indexer (`tools/codebase-indexer/src/spec_scanner.rs:142–215`)
+reads four of the six path-bearing fields into `implementing_paths`,
+which the coupling gate consumes. The other two are path-bearing in
+the spec model but are not yet wired into the gate — they require
+manual corpus-consistency checks.
+
+| Field | Shape | Enforcement |
 |---|---|---|
-| `establishes:` | paths arrays | whole-file |
-| `extends:` | paths arrays | whole-file |
-| `refines:` | paths arrays | whole-file |
-| `amends:` | paths arrays | whole-file |
-| `co_authority:` | path + section | section-aware |
-| `constrains:` | enumerate at I0; may or may not carry paths | tbd |
-| `implements:` | scalar spec-ID pointer only (e.g., `implements: "148-..."`) | n/a — no paths to sweep |
+| `establishes:` | flat path strings | **gate-enforced** (whole-file) |
+| `extends:` | `{paths: [...]}` items | **gate-enforced** (whole-file) |
+| `refines:` | `{paths: [...]}` items | **gate-enforced** (whole-file) |
+| `co_authority:` | `{paths, section, with_specs}` | **gate-enforced** (section-aware) |
+| `supersedes:` | `{spec, scope, paths}` (scope: partial carries paths; scope: full is ID-only desugaring) | **corpus-consistency only** (not in `implementing_paths`) |
+| `constrains:` | `{kind: invariant-freeze}` carries paths; `{kind: delivery-sequencing / sequencing-plan}` carries target_specs (out of scope for path sweeps) | **corpus-consistency only** (not in `implementing_paths`) |
+| `amends:` | spec-ID list only | not path-bearing |
+| `origin:` | `{retroactive: true, ...}` metadata | not path-bearing |
 
-Path-string updates during Epic 2 sweep **all path-bearing
-relationship-graph fields**, not just `co_authority:`. D4 was
-authored pre-activation against list-form `implements:`; I0
-reconciles by enumerating the relationship-graph fields and
-producing an append-only appendix.
+**Gate-enforced fields** fail `make pr-prep` on stale references.
+**Corpus-consistency fields** do not — a missed sweep leaves stale
+paths in the spec corpus without triggering a test or gate failure.
+Both categories must be swept at each move phase; both categories
+must be verified at each move phase; only one category fails loud
+if you miss it.
 
-Section anchors exist only on `co_authority:` (path + section pairs).
-The other path-bearing fields are whole-file. Cross-phase rule 9
-(section-anchor resolution failure) therefore applies only to
-`co_authority:`.
+The I0 enumeration is the source of truth for which fields actually
+appear in the corpus at execution time; the table above is the
+hypothesis the I0 step verifies against spec 130 and
+`spec_scanner.rs`.
 
 ## Pre-conditions
 
@@ -121,11 +135,6 @@ If any precondition fails, halt and surface.
 
 ## Operator decisions (fill in before firing this prompt)
 
-Epic 1 and the post-activation reconciliation surfaced the following
-open questions. The operator resolves each before Epic 2 fires; the
-agent reads these resolutions and proceeds accordingly. Recommended
-defaults are provided where the discovery audits made one explicit.
-
 | # | Decision | Discovery ref | Recommended default | **Operator resolution** |
 |---|---|---|---|-------------------------|
 | 1 | `apps/desktop/src-tauri/` Cargo workspace isolation | D2 OQ-1, D3 | Keep `src-tauri/` as a standalone workspace (preserves SQLite isolation, Tauri build idioms); I1 consolidates everything *except* `src-tauri/` | `correct`               |
@@ -141,7 +150,7 @@ defaults are provided where the discovery audits made one explicit.
 | 11 | Spec 151 dangling `co_authority:` references (the two surfaced during activation `131392ff`) | Activation summary | Defer to post-cleanup. Expected W-codes during Epic 2; not corrected in scope. Agent treats them as baseline noise. | `correct`               |
 | 12 | G-2 spec_id validation work | Memory: "G-2 decoupled, small downstream change once typed reader exists" | Defer to post-cleanup. Out of Epic 2 scope. | `correct`               |
 | 13 | `co_authority:` section-anchor resolution after I3 constitution.md graduation | New (post-activation) | Verify post-move with `spec-code-coupling-check --base origin/main --head HEAD` over the I3 diff range; if any anchor fails to resolve after the byte-identical `git mv`, the cause is a path-string mismatch (not anchor drift) — fix in the same I3 commit | `correct`               |
-| 14 | Relationship-graph field enumeration scope for I0 + per-phase sweeps | I0 in-flight discovery (post-activation) | Sweep all path-bearing relationship-graph fields surfaced by I0 enumeration, not just `co_authority:`. Starting hypothesis: `establishes:`, `extends:`, `refines:`, `amends:`, `co_authority:`; verify `constrains:` (and any other field surfaced) at I0 enumeration. I0 produces the definitive list as an append-only appendix to D4 | `correct`               |
+| 14 | Relationship-graph field path-bearing scope for I0 + per-phase sweeps | I0 enumeration discovery (v3 lock-in) | Lock the 6-field path-bearing set: `establishes`, `extends`, `refines`, `co_authority` (gate-enforced); `supersedes`, `constrains` (corpus-consistency only, not in `implementing_paths`). `amends`, `origin` are enumerated-but-not-path-bearing. Authority: spec 130 §1 eight-field model; `tools/codebase-indexer/src/spec_scanner.rs:142-215` for the gate-enforced subset | `correct`               |
 
 If any `<pending>` remains when Epic 2 fires, halt immediately and
 surface — do not infer.
@@ -173,20 +182,25 @@ These are restated from the master plan and are non-negotiable:
    preserved throughout. Within a phase the agent may temporarily
    reference moved paths during in-flight edits, but the phase's
    final commit must leave `/init` clean.
-4. **Section-scoped coupling gate at every commit.** Code moves land
-   together with **all relationship-graph reference updates** in the
-   same commit. The gate as of commit `131392ff` enforces authority
-   via the relationship-graph fields (`establishes:`, `extends:`,
-   `refines:`, `amends:`, `co_authority:`, and any other path-bearing
-   field surfaced by the I0 enumeration). `co_authority:` adds
-   section-aware enforcement on top of whole-file. A path moved
-   without its corresponding relationship-graph references being
-   updated will fail the gate on the next file touch that hits
-   that path or section. The I0 appendix to D4 enumerates the
-   per-phase relationship-graph reference updates. `make pr-prep`
-   succeeds at every commit (modulo the two known Spec 151 W-codes
-   per pre-conditions). No "I'll fix the spec refs in the next
-   commit" — consult D4 + the I0 appendix before committing.
+4. **Section-scoped coupling gate + corpus consistency at every
+   commit.** Code moves land together with **all six locked
+   relationship-graph reference updates** (per decision #14) in the
+   same commit:
+    - **Gate-enforced** (`establishes`, `extends`, `refines`,
+      `co_authority`): `make pr-prep` fails loud if missed.
+      `co_authority:` adds section-aware enforcement on top of
+      whole-file.
+    - **Corpus-consistency only** (`supersedes`, `constrains`):
+      `make pr-prep` does NOT fail on missed sweeps. The phase
+      verification gate adds an explicit grep-based cross-check
+      (below).
+
+   A path moved without all six fields being updated leaves either
+   a gate failure (gate-enforced) or silent corpus rot
+   (corpus-consistency). The I0 appendix to D4 enumerates the
+   per-phase updates for both categories. No "I'll fix the spec
+   refs in the next commit" — consult D4 + the I0 appendix before
+   committing.
 5. **Spec 103 governed-artifact-reads observed.** No ad-hoc parsing
    of `build/**` (or `.derived/**` post-I9). Consumer binaries
    (`codebase-indexer check`, `registry-consumer ...`) only. If a
@@ -213,6 +227,20 @@ cargo test --workspace                        # must pass
 make pr-prep                                  # must pass (section-scoped gate + spec 103 gate; two known Spec 151 W-codes are baseline)
 ```
 
+**Corpus-consistency cross-check** for any phase whose move-set
+overlaps `supersedes:` or `constrains:` targets per the I0 appendix:
+
+```
+git grep -nE "^(supersedes|constrains):" specs/*/spec.md
+```
+
+Then verify (manually or via a small awk/jq pipeline) that no entry
+still references a pre-move path from the phase's move set. If any
+entry does, the sweep was incomplete — halt at the failing commit,
+amend with the missed update, re-verify. The end-of-phase report
+records the check result as `Corpus-consistency check
+(supersedes/constrains): PASS` or `FAIL`.
+
 For phases that touch the daily-driver protocol (I10) or the consumer
 binaries (I4, I5, I9), additionally:
 
@@ -234,12 +262,11 @@ Throughout all phases:
 
 1. **Read the relevant audit before touching a path.** D4 + the I0
    appendix say which specs' relationship-graph rows update in
-   which I-phase. D6 says which workflows and which Makefile lines.
-   D1 catalogues every path reference. If a phase's manifest entry
-   diverges from the audits, halt and surface.
-2. **`git mv`, not `cp` + `rm`.** Path moves preserve history; the
-   reviewer (and the operator) can `git log --follow` through the
-   cleanup.
+   which I-phase, distinguishing gate-enforced from
+   corpus-consistency fields. D6 says which workflows and which
+   Makefile lines. D1 catalogues every path reference. If a phase's
+   manifest entry diverges from the audits, halt and surface.
+2. **`git mv`, not `cp` + `rm`.** Path moves preserve history.
 3. **Update references in the same commit as the move.** A move-only
    commit followed by a fix-refs commit leaves an in-between state
    where `cargo build` or `/init` is broken. Forbidden.
@@ -250,38 +277,41 @@ Throughout all phases:
     - `docs(cleanup): ...` for I0 (inventory refresh appendix, if it
       lands a commit).
     - The first line ≤ 72 chars; body explains *what* and *why*; cite
-      the discovery doc that drove the change (e.g., "Per
-      D5/schema-duplication-audit.md §Group X").
+      the discovery doc that drove the change.
 5. **No autonomous resolution of new ambiguity.** If during a phase
    you discover a reference, file, or dependency that the audits
    missed, halt. Do not heuristically guess where it belongs.
 6. **No "improvements" to anything touched.** If you move a file and
-   notice a stale comment, leave it. Stale comments are tracked as
-   follow-up; this branch is for structural restructure only.
-7. **`platform/` is read-only.** Master plan §Locked target layout
-   keeps platform/ internal structure unchanged. The only allowed
-   touches to platform/ are reference-updates inside files
-   (e.g., a doc that mentions a moved path) — never file moves,
-   never directory restructure.
-8. **The 9 audit docs themselves are append-only.** If, during a
-   phase, you discover a reference D1 missed, add a "Discovered in
-   I-phase execution" appendix to the relevant audit doc in the same
-   commit. Do not silently update the audit's main tables. I0's
-   appendix to D4 is created via the same append-only mechanism.
+   notice a stale comment, leave it.
+7. **`platform/` is read-only.** The only allowed touches to
+   `platform/` are reference-updates inside files — never file
+   moves, never directory restructure. (Note: `supersedes:`
+   references pointing into `platform/` from non-platform specs do
+   not require sweeps because the platform targets don't move.)
+8. **The 9 audit docs themselves are append-only.** I0's appendix
+   to D4 is created via the same append-only mechanism. If a phase
+   discovers a reference D1 missed, append to the relevant audit
+   doc in the same commit.
 9. **Section-anchor resolution failure halts.** If after a `git mv`
    (in I3, I5, I6, I7, or I9) the section-aware gate reports a
    `co_authority:` annotation whose `path:` resolves to the new
    location but whose `section:` anchor no longer resolves inside
    the file, halt. (Section anchors exist only on `co_authority:`;
    the other relationship-graph fields are whole-file and this rule
-   does not apply to them.) The expected cause is one of:
+   does not apply to them.) Expected causes:
    (a) the move was accompanied by an unintended content edit
    (forbidden by invariant 6),
    (b) the section anchor was already broken pre-move (a
-   Spec 151–class baseline issue — append to D4's I0 refresh
-   appendix and surface; do not "fix" the annotation in scope), or
+   Spec 151–class baseline issue — append to the I0 appendix and
+   surface; do not "fix" the annotation in scope), or
    (c) the parser for that path-type drifted (escalate to operator;
    do not improvise a parser fix in Epic 2 scope).
+10. **Corpus-consistency sweep miss is a failure even if `make
+    pr-prep` passes.** Per invariant 4 — `supersedes:` and
+    `constrains:` are not gate-enforced. A missed sweep is silent
+    rot. The end-of-phase corpus-consistency cross-check (above) is
+    the catch; honour its FAIL exactly as you honour a `make
+    pr-prep` FAIL.
 
 ## Reporting protocol
 
@@ -302,16 +332,19 @@ At the end of each phase:
 === Phase I<N> complete ===
 Commits landed: <hashes>
 Files touched: <count>
-Relationship-graph refs updated: establishes=<n>, extends=<n>,
-  refines=<n>, amends=<n>, co_authority=<n>, <other>=<n>
+Relationship-graph refs updated (gate-enforced):
+  establishes=<n>, extends=<n>, refines=<n>, co_authority=<n>
+Relationship-graph refs updated (corpus-consistency):
+  supersedes=<n>, constrains=<n>
 Verification gate: PASS
+Corpus-consistency check (supersedes/constrains): PASS
 Trip-wires encountered: <none | list>
 Audit-doc appendices added: <none | list>
 ```
 
-Omit zero-count fields from the relationship-graph line. If no
-relationship-graph fields were touched in the phase (e.g., I1, I2),
-state `Relationship-graph refs updated: none`.
+Omit zero-count fields. If no relationship-graph refs were touched
+(e.g., I1, I2), state `Relationship-graph refs updated: none` and
+`Corpus-consistency check: N/A`.
 
 If a trip-wire halts the phase mid-execution:
 
@@ -335,59 +368,75 @@ attempt corrective improvisation.
 D4 (`spec-implements-inventory.md`) was authored 2026-05-19, before
 the side-quest activation. The activation (commit `131392ff`)
 migrated path claims from list-form `implements:` to the
-relationship-graph fields. V-014 now errors on list-form
-`implements:` stragglers; scalar `implements: "<spec-id>"` survives
+relationship-graph fields. Scalar `implements: "<spec-id>"` survives
 as a parent-spec pointer that carries no paths.
 
-Two gaps result, both reconciled in I0:
-
-1. **Shape gap.** D4's tables reference list-form `- path:` entries
-   under `implements:`. Those entries no longer exist verbatim. The
-   same path strings now live under relationship-graph fields in
-   the same specs.
-2. **Coverage gap.** D4 does not enumerate the relationship-graph
-   fields. Per operator decision #14, the post-activation
-   load-bearing surface for path references is the full set of
-   path-bearing relationship-graph fields. I0 enumerates this set
-   authoritatively against the corpus.
+Per operator decision #14, the post-activation load-bearing path
+surface comprises six fields locked at I0 (four gate-enforced, two
+corpus-consistency only). I0 produces the definitive corpus
+enumeration as an append-only appendix to D4.
 
 ## Discovery reference
 
 D4 (`spec-implements-inventory.md`), activation commit `131392ff`,
-operator decision #14.
+spec 130 §1 (eight-field model),
+`tools/codebase-indexer/src/spec_scanner.rs:142-215` (gate-enforced
+subset), operator decision #14.
 
 ## Operations
 
-1. Enumerate the relationship-graph field surface against
-   post-activation HEAD. Starting hypothesis: `establishes:`,
-   `extends:`, `refines:`, `amends:`, `co_authority:`. Verify
-   `constrains:` and any other path-bearing field by reading
-   `tools/spec-compiler/src/lib.rs` around line 247–250 (the
-   compiler's relationship-graph source-field list) and
-   cross-checking against `git grep -nE "^(establishes|extends|refines|amends|co_authority|constrains):" specs/*/spec.md`.
+1. Verify the locked field set against authoritative sources:
+    - Read `tools/codebase-indexer/src/spec_scanner.rs:142-215`;
+      confirm it reads exactly `establishes`, `extends`, `refines`,
+      `co_authority` into `implementing_paths`. If it reads a fifth
+      field, halt — the gate-enforcement set has drifted from
+      decision #14 and needs operator review.
+    - Read `specs/130-*/spec.md` §1; confirm it enumerates exactly
+      the eight fields named in §Post-activation field model. If
+      spec 130 enumerates a ninth field, halt — the spec model has
+      drifted.
 
-   Lock the final field list at the top of the I0 appendix
-   (described below). The list is the definitive scope for I3–I9
-   sweeps.
+2. Enumerate corpus state for each of the eight spec 130 fields:
 
-2. For each enumerated field, extract every `(spec, line, path,
-   [section])` tuple. For `co_authority:` entries, include the
-   `section:` value; for the other path-bearing fields, omit.
+   ```
+   git grep -nE "^(establishes|extends|refines|supersedes|amends|co_authority|constrains|origin):" specs/*/spec.md
+   ```
 
-3. Cross-reference each tuple against D1 Groups A–O (the same
-   path-group taxonomy D4 uses). Classify by I-phase per the master
-   plan.
+   For each match, extract `(spec, line, field, [path], [section])`
+   tuples. For fields where the value is structured
+   (`{spec, scope, paths}` etc.), parse the YAML to extract path
+   values. For ID-only fields (`amends`, `origin`, scope: full
+   `supersedes`), confirm no path values present.
 
-4. Append to D4 under three new headings (append-only; do not
+3. Cross-reference each path-bearing tuple against D1 Groups A–O.
+   Classify by I-phase per the master plan.
+
+4. Append to D4 under these new headings (append-only; do not
    rewrite D4's main tables):
+
+   ```
+   ## relationship-graph fields locked at I0
+   ```
+
+   Single bulleted list with two sub-sections:
+    - `### Gate-enforced (in implementing_paths)`: `establishes`,
+      `extends`, `refines`, `co_authority`.
+    - `### Corpus-consistency only (not in implementing_paths)`:
+      `supersedes` (paths in scope: partial), `constrains` (paths
+      in kind: invariant-freeze).
+    - `### Enumerated but not path-bearing`: `amends`, `origin`.
+
+   Cite spec 130 §1 and `spec_scanner.rs:142-215` as the
+   authorities. I3–I9 reference this list verbatim.
 
    ```
    ## I0 refresh corrections (post-activation reconciliation)
    ```
 
    For any D4 row whose underlying entry no longer resolves to a
-   real line (the shape gap). May be empty if D4's rows are
-   accidentally still resolvable.
+   real line (the shape gap from the list-form → relationship-graph
+   migration). May be empty if D4's rows accidentally still
+   resolve.
 
    ```
    ## relationship-graph reference enumeration (Epic 2 in-scope)
@@ -395,58 +444,48 @@ operator decision #14.
 
    The full enumerated set from step 2, scoped to entries whose
    `path:` matches a moving target (D1 Groups A–O). Columns:
-   `spec | line | field | path | section | I-phase`.
-
-   ```
-   ## relationship-graph fields locked at I0
-   ```
-
-   A single bulleted list of the field names that I0 enumerated.
-   I3–I9 sweeps reference this list verbatim.
+   `spec | line | field | path | section | I-phase |
+   enforcement`. The `enforcement` column carries `gate-enforced`
+   or `corpus-consistency`.
 
 5. Commit `docs(cleanup): I0 inventory refresh appendix to D4` if
-   any of the three headings carries content. If all three are
-   empty (corpus shape exactly matches D4 + only `implements:` is
-   path-bearing — very unlikely post-activation), skip the commit
-   and note in the I0 completion report that no appendix was
-   needed.
+   any of the three appendix headings carries content. If all three
+   are empty (very unlikely post-activation), skip the commit and
+   note in the I0 completion report.
 
 ## Verification
 
 - `git status` clean post-commit.
 - `make pr-prep` clean modulo the two known Spec 151 W-codes.
 - `cargo test --workspace` unchanged (no code touched).
-- The `relationship-graph fields locked at I0` list contains, at
-  minimum, every field for which the I0 enumeration found at least
-  one path entry. If a field is in the starting hypothesis but the
-  enumeration finds no path entries (e.g., `constrains:` is
-  spec-ID-only), it is listed under a sub-heading
-  `## relationship-graph fields enumerated but not path-bearing` for
-  documentation completeness.
+- The `relationship-graph fields locked at I0` list matches
+  decision #14 exactly: four gate-enforced, two corpus-consistency,
+  two not-path-bearing.
 
 ## Trip-wires
 
-- If the enumeration surfaces a path-bearing relationship-graph
-  field that was not in the starting hypothesis (i.e., a sixth or
-  seventh field): halt, surface. This indicates the field model
-  has drifted from operator decision #14's starting hypothesis;
-  operator confirms before I3 begins.
+- If `spec_scanner.rs:142-215` reads a fifth field into
+  `implementing_paths` that decision #14 didn't anticipate: halt.
+  Gate-enforcement set has drifted.
+- If spec 130 §1 enumerates a ninth field or fails to enumerate
+  one of the eight named in §Post-activation field model: halt.
+  Spec model has drifted.
+- If the enumeration surfaces a corpus path entry under a field
+  not in the locked six (e.g., paths appear under `amends:`):
+  halt. Operator confirms whether the field promotes to
+  path-bearing or whether the corpus entry is malformed.
 - If the enumeration surfaces a relationship-graph reference whose
-  target I-phase is ambiguous (e.g., a path that crosses two
-  groups): halt. Do not heuristic-classify.
+  target I-phase is ambiguous: halt. Do not heuristic-classify.
 - If the enumeration surfaces a relationship-graph reference whose
   `path:` points at a path **not** catalogued in any D1 group:
-  halt. This is a coverage gap in D1 that needs operator review.
+  halt. Coverage gap in D1 needs operator review.
 - If `git grep` surfaces list-form `implements:` entries (which
-  V-014 should have prevented from existing): halt. The activation
-  either did not fully migrate the corpus or the gate has
-  regressed.
+  V-014 should reject): halt. Activation did not fully migrate or
+  the gate has regressed.
 
 ## Commit
 
 `docs(cleanup): I0 inventory refresh appendix to D4`
-(or no commit if all three appendix headings are empty — very
-unlikely).
 
 ---
 
@@ -469,8 +508,7 @@ declares a workspace covering all Rust members **except**
 
 ## Discovery reference
 
-D2 (`cargo-workspace-inventory.md`) — all manifests, all path-deps,
-all lockfile locations.
+D2 (`cargo-workspace-inventory.md`).
 
 ## Operations
 
@@ -494,22 +532,18 @@ all lockfile locations.
 - `cargo build --workspace --release`
 - `cargo test --workspace`
 - `cargo build` from `apps/desktop/src-tauri/` succeeds independently
-  (standalone workspace preserved)
 - `cargo build` from `platform/services/deployd-api-rs/` succeeds
   independently
 - `make pr-prep`
 - Workflows referencing `manifest-path crates/<x>/Cargo.toml` or
-  `manifest-path tools/<x>/Cargo.toml` continue to work (manifest-path
-  invocations are workspace-compatible)
+  `manifest-path tools/<x>/Cargo.toml` continue to work
+- Corpus-consistency check: N/A (no relationship-graph refs touched)
 
 ## Trip-wires
 
-- If two members declare incompatible versions of the same direct
-  dep (e.g., `serde = 1.0.150` in one, `serde = 1.0.200` in another)
-  and the workspace cannot unify without breaking a public API:
-  halt, surface, operator decides which version becomes canonical.
-- If a member's tests pass standalone but fail under the unified
-  workspace (transitive feature unification): halt, surface.
+- Incompatible dep versions across members: halt, operator decides.
+- Member tests pass standalone but fail under unified workspace:
+  halt, surface.
 
 ## Commit
 
@@ -522,10 +556,7 @@ all lockfile locations.
 ## Scope
 
 Create the empty directory structure for the target layout. No file
-moves yet. This phase exists to make I3–I9's `git mv` operations
-land cleanly into pre-existing destination dirs (which makes diffs
-readable and avoids "directory created as a side effect of move"
-noise).
+moves yet.
 
 ## Discovery reference
 
@@ -551,24 +582,20 @@ Master plan §Locked target layout.
     - `.derived/spec-registry/`
     - `.derived/codebase-index/`
     - `.derived/schema-parity/`
-2. Update `.gitignore` to add `.derived/` (entire tree gitignored —
-   it replaces `build/`'s ignored content). Leave the I9 cutover of
-   the existing `build/` paths to I9; for I2, both `build/` and
-   `.derived/` are gitignored, but only `.derived/` carries the
-   `.gitkeep` placeholders.
+2. Update `.gitignore` to add `.derived/`.
 
 ## Verification
 
-- `git status` shows only the new directory placeholders + .gitignore
-  diff.
-- `cargo test --workspace` unchanged from I1 (skeleton creation does
-  not affect Rust build).
+- `git status` shows only the new directory placeholders +
+  `.gitignore` diff.
+- `cargo test --workspace` unchanged.
 - `make pr-prep` clean.
+- Corpus-consistency check: N/A.
 
 ## Trip-wires
 
-None expected. If `.gitignore` already contains conflicting `.derived/`
-or `build/` rules, halt and surface.
+If `.gitignore` already contains conflicting `.derived/` or `build/`
+rules, halt and surface.
 
 ## Commit
 
@@ -580,71 +607,72 @@ or `build/` rules, halt and surface.
 
 ## Scope
 
-`.specify/` Spec Kit content is graduated to `standards/spec/`.
-Specifically:
+`.specify/` Spec Kit content is graduated to `standards/spec/`:
 
 - `.specify/memory/constitution.md` → `standards/spec/constitution.md`
 - `.specify/contract` (file) → `standards/spec/contract.md`
 - `.specify/templates/` → `standards/spec/templates/`
 - New placeholder files: `standards/spec/spec-format.md`,
-  `standards/spec/semver-policy.md` (both with TODO content per
-  master plan §Out of scope).
+  `standards/spec/semver-policy.md`.
 
-`.specify/scripts/` is *not* moved here; it's evaluated for deletion
-in I13. `.specify/init-options` is evaluated in I13.
+`.specify/scripts/` and `.specify/init-options` are evaluated in I13.
 
 ## Discovery reference
 
-D1 Group A (`.specify/` paths), D4 Group A, I0 appendix
-"relationship-graph reference enumeration (Epic 2 in-scope)"
-Group A rows.
+D1 Group A, D4 Group A, I0 appendix "relationship-graph reference
+enumeration" Group A rows.
 
 ## Operations
 
 1. `git mv .specify/memory/constitution.md standards/spec/constitution.md`
 2. `git mv .specify/contract standards/spec/contract.md`
 3. `git mv .specify/templates standards/spec/templates`
-4. Create `standards/spec/spec-format.md` and `standards/spec/semver-policy.md`
-   with TODO bodies.
+4. Create `standards/spec/spec-format.md` and
+   `standards/spec/semver-policy.md` with TODO bodies.
 5. Update every reference catalogued in D1 Group A (code-import,
    path-literal, doc-prose, spec-implements, gitignore-rule
-   categories — all in scope here except those marked for I10 protocol
-   alignment, which I10 handles).
-6. **Sweep all relationship-graph references per the I0 appendix,
-   Group A rows.** For every field listed in `relationship-graph
-   fields locked at I0` whose entries point at `.specify/...`,
-   update `path:` values to `standards/spec/...` in the same commit.
-   Section anchors on `co_authority:` entries are byte-identical
-   post-`git mv`; do not adjust the `section:` values.
+   categories — all in scope here except those marked for I10
+   protocol alignment).
+6. **Sweep all six locked relationship-graph fields per the I0
+   appendix, Group A rows.** Both gate-enforced (`establishes`,
+   `extends`, `refines`, `co_authority`) and corpus-consistency
+   (`supersedes`, `constrains`) updates land in the same commit.
+   For every entry whose `path:` is `.specify/...`, update to
+   `standards/spec/...`. Section anchors on `co_authority:`
+   entries are byte-identical post-`git mv`; do not adjust.
 7. **Per operator decision #13**: after the commit, run
    `spec-code-coupling-check --base origin/main --head HEAD` over
    the I3 diff. If any `co_authority:` annotation reports a
-   resolution failure, the cause is a path-string mismatch (not
-   anchor drift) — amend the commit to fix the path string in the
-   same phase. If anchor itself fails to resolve, this triggers
-   cross-phase rule 9 (halt).
+   resolution failure, the cause is a path-string mismatch — amend
+   the commit. Anchor-resolution failures trigger cross-phase rule
+   9 (halt).
+8. Run the corpus-consistency cross-check (see Verification gate):
+
+   ```
+   git grep -nE "^(supersedes|constrains):" specs/*/spec.md
+   ```
+
+   Confirm no entry still references a pre-move `.specify/...`
+   path. FAIL halts per cross-phase rule 10.
 
 ## Verification
 
 - `cargo test --workspace`
 - `make pr-prep`
 - `/init` resolves the new `standards/spec/constitution.md` path
-  (caveat: if `/init` also reads `.specify/contract` via init.md,
-  that's an I10 concern and may show transient — surface if so).
 - `spec-code-coupling-check --base origin/main --head HEAD` clean
   modulo the two known Spec 151 W-codes.
+- Corpus-consistency check (supersedes/constrains): PASS.
 
 ## Trip-wires
 
-- If a path-literal in production Rust code reads `.specify/contract`
-  and the post-cleanup path isn't substitutable (e.g., binary file
-  embedded via `include_str!` at compile time and the offset matters):
-  halt, surface.
-- If a spec's relationship-graph row references a `.specify/` path
-  that the I0 appendix missed: halt, surface, file an appendix to
-  D1 / the I0 appendix.
-- Cross-phase rule 9 (section-anchor resolution failure) applies
-  to `co_authority:` entries.
+- `include_str!` of `.specify/contract` with offset-sensitive
+  content: halt.
+- Relationship-graph row referencing a `.specify/` path that the
+  I0 appendix missed: halt, append to the I0 appendix.
+- Cross-phase rule 9 applies to `co_authority:` entries.
+- Cross-phase rule 10 applies to `supersedes:` / `constrains:`
+  entries.
 
 ## Commit
 
@@ -656,80 +684,57 @@ Group A rows.
 
 ## Scope
 
-All authored schemas (the ones humans write, not the ones generators
-produce) move to `standards/schemas/<group>/` per the master plan
-§Locked target layout. The duplicate identified in D5 is resolved
-per operator decision #3.
+All authored schemas move to `standards/schemas/<group>/` per master
+plan. Duplicate identified in D5 resolved per decision #3.
 
 ## Discovery reference
 
-- D5 (`schema-duplication-audit.md`) — every authored schema with
-  its current location and target location.
-- D1 Groups B, D, E, F — reference paths.
-- D4 + I0 appendix Groups B, D, E, F — spec coupling references.
+D5, D1 Groups B/D/E/F, D4 + I0 appendix Groups B/D/E/F.
 
 ## Operations
 
-For each authored schema:
-
-1. `git mv` the schema file to its `standards/schemas/<group>/`
+1. `git mv` each authored schema to its `standards/schemas/<group>/`
    destination.
-2. Update every `include_str!("...")` referencing the schema. Updates
-   are atomic per crate (do all of one crate's includes in one commit
-   if multiple, so the crate is never half-broken). If multiple
-   crates' includes are mutually independent, batch into a single
-   commit per the manifest.
+2. Update every `include_str!("...")` referencing the schema.
+   Atomic per crate.
 3. Update every JSON Schema `$ref` between schemas that crossed
    directories.
-4. Update runtime file-reads (the loaders in `standards-loader/`,
+4. Update runtime file-reads (loaders in `standards-loader/`,
    `agent-frontmatter/`, etc.) to the new paths.
-5. Resolve the standard.schema.json / coding-standard.schema.json
-   duplicate per operator decision #3: keep
-   `packages/yaml-standards-schema/schema/standard.schema.json` (which
-   I7 later moves into `product/packages/...`); delete
-   `standards/schema/standard.schema.json`; update all refs to
-   `standards/schemas/coding/standard.schema.json` to point at the
-   kept npm-side copy (or, if the kept copy is also being re-co-located
-   into `standards/schemas/coding/`, harmonize via a single canonical
-   path — operator decision #3 should specify which).
-6. Address `crates/agent/src/schemas/` per operator decision #4 — if
-   delete: `git rm` the directory and any dead references; if move:
-   `git mv` into `standards/schemas/agent/`.
-7. **Sweep all relationship-graph references per the I0 appendix,
-   Groups B / D / E / F rows.** For every field listed in
-   `relationship-graph fields locked at I0` whose entries point at
-   the moving schemas, update `path:` values to
-   `standards/schemas/<group>/...`. Section anchors inside JSON
-   schemas are uncommon; if any `co_authority:` annotation has a
-   `section:` for a schema, surface for operator review (likely an
-   annotation error).
+5. Resolve standard.schema.json duplicate per decision #3.
+6. Address `crates/agent/src/schemas/` per decision #4.
+7. **Sweep all six locked relationship-graph fields per the I0
+   appendix, Groups B / D / E / F rows.** Gate-enforced and
+   corpus-consistency updates land together. Note: I0 surfaced
+   `constrains:` entries in specs 130/132 pointing at
+   `specs/000-bootstrap-spec-system/contracts/registry.schema.json`
+   — these update to `standards/schemas/spec-spine/registry.schema.json`
+   in this commit. (Specific spec/path tuples are in the I0
+   appendix; this prose is for orientation.)
+8. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
-- `cargo build --workspace --release` — every `include_str!` resolves.
-- `cargo test --workspace` — every schema-using test passes (schema
-  bodies are byte-identical to pre-move, so JSON content matches).
-- `make pr-prep`
-- Schema-parity gate (`make ci-schema-parity` or
-  `schema-parity-check`) — clean.
+- `cargo build --workspace --release` — every `include_str!`
+  resolves.
+- `cargo test --workspace`.
+- `make pr-prep`.
+- Schema-parity gate clean.
+- Corpus-consistency check (supersedes/constrains): PASS.
 
 ## Trip-wires
 
-- An `include_str!` in a non-Cargo build script: halt, surface (these
-  are build.rs files; their relative paths are sensitive).
-- A JSON Schema `$ref` using a relative path that crossed a directory
-  boundary in a way the audit missed: halt, surface.
-- If `crates/agent/src/schemas/` turns out to be referenced by a
-  consumer not catalogued in D5: halt, do not delete; surface for
-  operator re-decision.
-- Cross-phase rule 9 applies to any `co_authority:` annotations
-  in scope.
+- `include_str!` in build.rs: halt.
+- JSON Schema `$ref` crossing a boundary the audit missed: halt.
+- `crates/agent/src/schemas/` referenced by a consumer D5 missed:
+  halt.
+- Cross-phase rules 9 and 10 apply.
 
 ## Commit
 
 `refactor(cleanup): consolidate authored schemas under standards/schemas/`
 
-(May split into per-crate sub-commits if the manifest specifies.)
+(May split per-crate.)
 
 ---
 
@@ -737,88 +742,61 @@ For each authored schema:
 
 ## Scope
 
-`tools/` subdivides into four subtrees per the master plan §Locked
-target layout:
+`tools/` subdivides per master plan:
 
 - `tools/spec-spine/` — spec-compiler, registry-consumer,
   codebase-indexer, spec-lint, spec-code-coupling-check
-- `tools/shared/` — already exists (spec-types); reaffirmed
+- `tools/shared/` — spec-types
 - `tools/oap/` — oap-registry-enrich, oap-code-index-enrich,
-  policy-compiler, adapter-scopes-compiler, assumption-cascade-check,
-  ci-parity-check, schema-parity-check, stakeholder-doc-lint
-- `tools/vendor/` — placeholder for I6's grammar move
-
-The bin/scripts under `tools/spec-compiler/scripts/bash/` (or
-equivalent) co-move into `tools/spec-spine/scripts/bash/`.
+  policy-compiler, adapter-scopes-compiler,
+  assumption-cascade-check, ci-parity-check, schema-parity-check,
+  stakeholder-doc-lint
+- `tools/vendor/` — placeholder for I6
 
 ## Discovery reference
 
-- D1 Groups G, H, I.
-- D2 — Cargo workspace path-deps (I1 already neutralized these by
-  hoisting to workspace deps, but verify).
-- D6 — workflow + Makefile updates per phase.
-- D4 + I0 appendix Groups G, H — spec coupling references.
+D1 Groups G/H/I, D2, D6, D4 + I0 appendix Groups G/H.
 
 ## Operations
 
-1. For each spec-spine tool (5): `git mv tools/<tool>
-   tools/spec-spine/<tool>`. Update root `Cargo.toml` workspace member
-   paths.
-2. For each OAP tool (8): `git mv tools/<tool> tools/oap/<tool>`.
-   Update root `Cargo.toml` workspace member paths.
-3. `tools/shared/spec-types/` is already at target; verify no path
-   change needed.
-4. Update every reference per D1 Groups G + H, and every workflow
-    + Makefile line per D6's I5 manifest (~52 workflow lines +
-      ~80 Makefile lines).
-5. Update `tools/ci-parity-check/src/lib.rs:592` hardcoded path
-   (`./tools/adapter-scopes-compiler/...` →
-   `./tools/oap/adapter-scopes-compiler/...`).
-6. Per operator decision #8: keep `manifest-path tools/<group>/<tool>/Cargo.toml`
-   style in Makefile and workflow invocations.
-7. **Sweep all relationship-graph references per the I0 appendix,
-   Groups G + H rows.** For every field listed in
-   `relationship-graph fields locked at I0` whose entries point at
-   `tools/<tool>/...`, update `path:` values to
-   `tools/spec-spine/<tool>/...` or `tools/oap/<tool>/...` per
-   operator decision #9.
+1. For each spec-spine tool: `git mv tools/<tool>
+   tools/spec-spine/<tool>`. Update root `Cargo.toml`.
+2. For each OAP tool: `git mv tools/<tool> tools/oap/<tool>`.
+   Update root `Cargo.toml`.
+3. `tools/shared/spec-types/` already at target.
+4. Update every reference per D1 Groups G + H, every workflow +
+   Makefile line per D6's I5 manifest.
+5. Update `tools/ci-parity-check/src/lib.rs:592` hardcoded path.
+6. Per decision #8: keep `manifest-path tools/<group>/<tool>/Cargo.toml`
+   style.
+7. **Sweep all six locked relationship-graph fields per the I0
+   appendix, Groups G + H rows.** Per decision #9 for the
+   spec-spine/OAP split.
+8. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
-- `cargo build --workspace --release`
-- `cargo test --workspace`
-- Build a spec-spine tool standalone: `cargo build --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --release`
-- Build an OAP tool standalone:
-  `cargo build --manifest-path tools/oap/policy-compiler/Cargo.toml --release`
-- `make spec-compile` runs the compiler at its new path
-- `make registry` end-to-end clean (registry produced via
-  spec-compiler at new path, enriched via oap-registry-enrich at new
-  path)
-- `make pr-prep`
-- `/init` resolves new tool paths
+- `cargo build --workspace --release`.
+- `cargo test --workspace`.
+- Standalone tool builds (spec-spine + OAP) per manifest-path.
+- `make spec-compile`, `make registry` end-to-end clean.
+- `make pr-prep`.
+- `/init` resolves new tool paths.
+- Corpus-consistency check (supersedes/constrains): PASS.
 
 ## Trip-wires
 
-- Tool-category misclassification (a tool the operator considers
-  spec-spine but the master plan places under OAP, or vice versa):
-  surface against operator decision #9 — the master plan
-  categorisation is canonical here. If a tool isn't in either list,
-  halt.
-- A workflow file containing a tool path that D6 didn't catalogue:
-  halt, surface, append to D6.
-- The stale `Makefile:584` ref to `tools/shared/frontmatter/Cargo.toml`
-  (D6 surfaced): remove as part of this phase (the file does not
-  exist; the line is dead).
-- Cross-phase rule 9 applies to any `co_authority:` annotations
-  in scope.
+- Tool category mismatch: master plan §Locked target layout is
+  canonical; halt if a tool isn't in either list.
+- Workflow tool path missed by D6: halt, append.
+- Stale `Makefile:584` ref: remove in this phase.
+- Cross-phase rules 9 and 10 apply.
 
 ## Commit
 
 `refactor(cleanup): subdivide tools/ into spec-spine, shared, oap, vendor`
 
-May land as two commits if the manifest separates
-spec-spine moves from OAP moves; prefer one commit if `cargo test
---workspace` passes after each move-batch.
+May split spec-spine vs OAP if manifest specifies.
 
 ---
 
@@ -826,41 +804,33 @@ spec-spine moves from OAP moves; prefer one commit if `cargo test
 
 ## Scope
 
-`grammars/tree-sitter-*` directories move to `tools/vendor/grammars/`.
-Five grammars: c, javascript, python, rust, typescript.
+`grammars/tree-sitter-*` → `tools/vendor/grammars/`.
 
 ## Discovery reference
 
-D1 Group J — grammars references. I0 appendix Group J —
-relationship-graph references (expected to be sparse or empty;
-grammars are vendored third-party content).
+D1 Group J, I0 appendix Group J (expected sparse).
 
 ## Operations
 
-1. `git mv grammars tools/vendor/grammars`
-2. Update axiomregent's `build.rs` (or the binding crate's path
-   refs) to point at `tools/vendor/grammars/...`.
-3. Update any docs referencing `grammars/`.
-4. **Sweep all relationship-graph references per the I0 appendix,
-   Group J rows.** Expected to be zero or near-zero; if present,
-   update `path:` values from `grammars/...` to
-   `tools/vendor/grammars/...`.
+1. `git mv grammars tools/vendor/grammars`.
+2. Update axiomregent's `build.rs` paths.
+3. Update docs referencing `grammars/`.
+4. **Sweep all six locked relationship-graph fields per the I0
+   appendix, Group J rows.** Expected near-zero.
+5. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
-- `cargo build --workspace --release` — the axiomregent binding
-  build picks up the new path.
-- `cargo test --workspace`
-- `make pr-prep`
+- `cargo build --workspace --release`.
+- `cargo test --workspace`.
+- `make pr-prep`.
+- Corpus-consistency check: PASS.
 
 ## Trip-wires
 
-- If a tree-sitter binding crate has hardcoded relative paths from
-  its build.rs that don't survive the depth change: halt, surface.
-- If `build-axiomregent.yml` workflow has a path-glob the audit
-  missed: halt, surface.
-- Cross-phase rule 9 applies to any `co_authority:` annotations
-  in scope.
+- tree-sitter binding crate hardcoded relative paths: halt.
+- `build-axiomregent.yml` path-glob missed: halt.
+- Cross-phase rules 9 and 10 apply.
 
 ## Commit
 
@@ -872,93 +842,69 @@ grammars are vendored third-party content).
 
 ## Scope
 
-`apps/desktop/`, `packages/*` (22 packages), and the four root npm
-files (`package.json`, `package-lock.json`, `pnpm-workspace.yaml`,
-`pnpm-lock.yaml`) move under `product/`.
+`apps/desktop/`, `packages/*`, root npm files → `product/`.
 
 ## Discovery reference
 
-- D1 Groups K, L, M.
-- D3 (`typescript-workspace-inventory.md`) — full TS workspace
-  topology, workspace:* deps, runtime path-literals.
-- D6 — workflow + Makefile updates (~65 workflow + ~25 Makefile lines).
-- D4 + I0 appendix Groups K, L, M — spec coupling references.
+D1 Groups K/L/M, D3, D6, D4 + I0 appendix Groups K/L/M.
 
 ## Operations
 
-1. `git mv apps/desktop product/apps/desktop`
+1. `git mv apps/desktop product/apps/desktop`.
 2. For each of the 22 packages: `git mv packages/<name>
-   product/packages/<name>`. (May batch via shell loop; the actual
-   `git mv` calls are individual.)
-3. Move root npm files: `git mv package.json product/package.json`,
-   same for `package-lock.json`, `pnpm-workspace.yaml`,
-   `pnpm-lock.yaml`.
-4. Update `pnpm-workspace.yaml` globs: `apps/*` → `apps/*` (scoped
-   under product/ — see operator decision #5), `packages/*` →
-   `packages/*` (likewise).
-5. Update `apps/desktop/src-tauri/Cargo.toml` path-deps: deepen by
-   one level (`../../../crates/...` → `../../../../crates/...`),
-   **unless** I1's workspace consolidation already neutralized these
-   via `workspace = true` — in which case the path deepening is
-   eliminated entirely (preferred).
+   product/packages/<name>`.
+3. Move root npm files into `product/`.
+4. Update `pnpm-workspace.yaml` globs.
+5. Update `apps/desktop/src-tauri/Cargo.toml` path-deps (eliminate
+   if `workspace = true` from I1 neutralized them).
 6. Update `apps/desktop/src-tauri/src/commands/claude.rs:154-161,1200`
-   to read sidecar from `product/packages/provider-registry/dist/node-sidecar.js`.
+   sidecar path.
 7. Update `apps/desktop/vite.config.ts:18` comment.
 8. **Update `tools/spec-spine/codebase-indexer/src/lib.rs:446-447`
    and `manifest.rs:377-378`** to read
-   `product/pnpm-workspace.yaml` (per operator decision #5). This is
-   the single load-bearing code change of I7 — must land in the same
-   commit as the npm file moves.
-9. Update workflow trigger globs (`apps/**` → `product/apps/**`,
-   `packages/**` → `product/packages/**`) across ci-codebase-index.yml,
+   `product/pnpm-workspace.yaml` (decision #5). Same commit as the
+   npm moves.
+9. Update workflow trigger globs across ci-codebase-index.yml,
    ci-desktop.yml, build-axiomregent.yml, release-desktop.yml,
-   ci-supply-chain.yml — per D6's I7 manifest.
-10. Update Makefile recipes (ci-desktop, ci-fast-desktop, clean) per
-    D6's I7 manifest.
-11. `make registry` regenerates the registry; codebase-indexer
-    regenerates the index; both auto-rebase to the new paths.
-12. **Sweep all relationship-graph references per the I0 appendix,
-    Groups K / L / M rows.** For every field listed in
-    `relationship-graph fields locked at I0` whose entries point at
-    `apps/...` or `packages/...`, update `path:` values to
-    `product/apps/...` and `product/packages/...`.
+   ci-supply-chain.yml.
+10. Update Makefile recipes per D6's I7 manifest.
+11. `make registry` and codebase-indexer regenerate; both
+    auto-rebase to new paths.
+12. **Sweep all six locked relationship-graph fields per the I0
+    appendix, Groups K / L / M rows.** Note: I0 surfaced `supersedes:`
+    entries in spec 073 pointing at
+    `apps/desktop/src-tauri/src/commands/{titor,search}.rs` — these
+    update to `product/apps/desktop/src-tauri/src/commands/...` in
+    this commit. (Specific tuples in the I0 appendix.)
+13. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
-- `cargo build --workspace --release`
-- `cargo build --manifest-path product/apps/desktop/src-tauri/Cargo.toml`
-- `cargo test --workspace`
-- `(cd product && pnpm install)` — workspace install resolves
-- `(cd product && pnpm --filter @opc/desktop build)` — Tauri build
-  resolves the sidecar at its new path
-- `make registry` clean
-- `make pr-prep`
-- `/init` resolves new product/ paths
+- `cargo build --workspace --release`.
+- `cargo build --manifest-path product/apps/desktop/src-tauri/Cargo.toml`.
+- `cargo test --workspace`.
+- `(cd product && pnpm install)`.
+- `(cd product && pnpm --filter @opc/desktop build)`.
+- `make registry` clean.
+- `make pr-prep`.
+- `/init` resolves new product/ paths.
+- Corpus-consistency check (supersedes/constrains): PASS.
 
 ## Trip-wires
 
-- If `apps/desktop/tsconfig.json` (or any tsconfig under packages)
-  carries a `paths:` mapping reaching across the moving boundary:
-  halt, surface, append to D3.
-- If `codebase-indexer`'s loader at lines 446-447 fails to find
-  `product/pnpm-workspace.yaml` due to a working-directory assumption:
-  halt, surface.
-- If the featuregraph golden fixture
-  (`crates/featuregraph/tests/golden/features_graph.json`) diverges
-  on regenerate: halt; this typically indicates a path-literal still
-  pointing at the old location.
-- Cross-phase rule 9 applies to any `co_authority:` annotations
-  in scope.
+- tsconfig `paths:` mapping crossing the boundary: halt.
+- `codebase-indexer` loader fails to find
+  `product/pnpm-workspace.yaml`: halt.
+- featuregraph golden fixture diverges on regenerate: halt.
+- Cross-phase rules 9 and 10 apply.
 
 ## Commit
 
 `refactor(cleanup): consolidate end-user product layer under product/`
 
-I7 is the largest single move; consider splitting into
-(a) `move apps/desktop and packages/* under product/`,
-(b) `move root npm workspace files under product/ and update loaders`
-if the diff is too large to review atomically. Both halves verify
-independently.
+May split into (a) `move apps/desktop and packages/* under
+product/`, (b) `move root npm workspace files under product/ and
+update loaders`.
 
 ---
 
@@ -966,14 +912,9 @@ independently.
 
 ## Scope
 
-Three loose top-level docs move into `docs/`:
-
 - `DEVELOPERS.md` → `docs/DEVELOPERS.md`
 - `CONTRIBUTING.md` → `docs/CONTRIBUTING.md`
 - `RELEASE-VERIFICATION.md` → `docs/RELEASE-VERIFICATION.md`
-
-`README.md`, `LICENSE`, `CLAUDE.md`, `AGENTS.md` stay at root
-(master plan §Locked target layout).
 
 ## Discovery reference
 
@@ -981,27 +922,23 @@ D1 Group N, I0 appendix Group N.
 
 ## Operations
 
-1. `git mv DEVELOPERS.md docs/DEVELOPERS.md`
-2. `git mv CONTRIBUTING.md docs/CONTRIBUTING.md`
-3. `git mv RELEASE-VERIFICATION.md docs/RELEASE-VERIFICATION.md`
-4. Update every reference per D1 Group N.
-5. Update GitHub repo settings? — No. The repo's README links
-   directly to the docs/ paths; GitHub auto-resolves CONTRIBUTING.md
-   in `.github/` or `docs/` (the docs/ location is GitHub-aware).
-6. **Sweep all relationship-graph references per the I0 appendix,
-   Group N rows.** Expected to be sparse (these are top-level docs,
-   not spec authority surfaces); if present, update accordingly.
+1. `git mv` each of the three docs.
+2. Update every reference per D1 Group N.
+3. **Sweep all six locked relationship-graph fields per the I0
+   appendix, Group N rows.** Expected sparse.
+4. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
-- `git status` clean post-commit.
-- `make pr-prep`
-- `/init` (which doesn't reference these directly) clean.
+- `git status` clean.
+- `make pr-prep`.
+- `/init` clean.
+- Corpus-consistency check: PASS.
 
 ## Trip-wires
 
-None expected. Cross-phase rule 9 applies if any `co_authority:`
-annotation lands in scope.
+- None expected. Cross-phase rules 9 and 10 apply if any
+  relationship-graph annotation in scope.
 
 ## Commit
 
@@ -1013,69 +950,47 @@ annotation lands in scope.
 
 ## Scope
 
-The gitignored generated-artifacts directory renames from `build/` to
-`.derived/`. Affects three subtrees:
-
-- `build/spec-registry/` → `.derived/spec-registry/`
-- `build/codebase-index/` → `.derived/codebase-index/`
-- `build/schema-parity/` → `.derived/schema-parity/`
+Gitignored generated-artifacts dir rename. Consumer-side update only.
 
 ## Discovery reference
 
-D1 Group O, D6 (workflow + Makefile updates), I0 appendix Group O.
+D1 Group O, D6, I0 appendix Group O.
 
 ## Operations
 
-1. The directories themselves are gitignored — there's nothing to
-   `git mv`. The rename is at the consumer side: every reference to
-   `build/spec-registry/`, `build/codebase-index/`,
-   `build/schema-parity/` updates to `.derived/...`.
-2. Update `Makefile` `pr-prep` recipe (lines 174–177), `clean` recipe
-   (lines 824–826), all `##` comments referring to these paths.
-3. Update workflows: `spec-conformance.yml` trigger globs (lines 18,
-   23), `ci-codebase-index.yml` (lines 21, 25, 30, 34 — both trigger
-   and path-literal in step body), `ci-spec-code-coupling.yml` (line 5
-   doc comment + any runtime ref).
-4. Update `.claude/commands/init.md` line 30 raw path-literal —
-   replace `cat build/codebase-index/index.json` (or equivalent)
-   with `codebase-indexer check` (consumer binary call). This is
-   D-2.2's spec-103 violation fix; it's the I9 piece, while D-2.2's
-   protocol-language piece lands in I10.
-5. Run `make registry` and `make index` after the cutover so the
-   `.derived/` tree is regenerated. The `.gitignore` (updated in I2)
-   already covers `.derived/`.
-6. Remove `build/` from `.gitignore` if it was distinct; otherwise
-   leave gitignore as updated in I2 (`.derived/` only).
-7. Clean up any stale `build/` tree on the working copy (`rm -rf build/`
-   locally — not a commit operation since the tree is gitignored).
-8. **Sweep all relationship-graph references per the I0 appendix,
-   Group O rows.** Note: relationship-graph fields typically do not
-   point inside generated artifacts (authority targets authored
-   files), so this sweep is expected to surface zero changes. If
-   it surfaces any, halt and surface for operator review.
+1. Update every reference to `build/spec-registry/`,
+   `build/codebase-index/`, `build/schema-parity/` → `.derived/...`.
+2. Update Makefile `pr-prep` and `clean` recipes; comments.
+3. Update workflows: spec-conformance.yml, ci-codebase-index.yml,
+   ci-spec-code-coupling.yml.
+4. Update `.claude/commands/init.md` line 30 raw path-literal → use
+   `codebase-indexer check` consumer binary (closes D-2.2 spec-103
+   violation file-level).
+5. Run `make registry` + `make index` to regenerate `.derived/`.
+6. Remove `build/` from `.gitignore` if distinct; otherwise leave
+   as updated in I2.
+7. `rm -rf build/` locally.
+8. **Sweep all six locked relationship-graph fields per the I0
+   appendix, Group O rows.** Expected zero (authority targets
+   authored files, not generated artifacts). Halt if any surface.
+9. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
-- `cargo build --workspace --release`
-- `cargo test --workspace`
-- `make registry` regenerates into `.derived/spec-registry/`
-- `make index` regenerates into `.derived/codebase-index/`
-- `make pr-prep` — coupling gate succeeds because spec 127 now reads
-  `.derived/codebase-index/index.json` (or via consumer binary).
-- `/init` runs and reads codebase-index via `codebase-indexer check`
-  (the consumer-binary route, per spec 103).
+- `cargo build --workspace --release`.
+- `cargo test --workspace`.
+- `make registry` regenerates into `.derived/spec-registry/`.
+- `make index` regenerates into `.derived/codebase-index/`.
+- `make pr-prep`.
+- `/init` reads codebase-index via `codebase-indexer check`.
+- Corpus-consistency check (supersedes/constrains): PASS.
 
 ## Trip-wires
 
-- If `codebase-indexer check` doesn't expose the data that `init.md`
-  needs (e.g., it only emits a stale-or-fresh signal, no payload):
-  halt, surface. D8 may need to expand the codebase-indexer's
-  read-API as part of the render-path resolution; this would need to
-  land before I9.
-- A workflow with a trigger glob mentioning `build/...` that D6 missed:
+- `codebase-indexer check` doesn't expose data init.md needs:
   halt, surface.
-- Cross-phase rule 9 applies to any `co_authority:` annotations
-  in scope.
+- Workflow trigger glob `build/...` D6 missed: halt.
+- Cross-phase rules 9 and 10 apply.
 
 ## Commit
 
@@ -1087,58 +1002,45 @@ D1 Group O, D6 (workflow + Makefile updates), I0 appendix Group O.
 
 ## Scope
 
-The 11 D-2.* drift items from the `/init` trace resolve. AGENTS.md
-becomes the canonical "New Sessions" protocol. init.md becomes a
-thin executor. CLAUDE.md back-references. governed-artifact-reads.md
-clarification aligns with the consumer-binary pattern post-I9.
+11 D-2.* drift items from the `/init` trace resolve. AGENTS.md
+canonical; init.md thin executor; CLAUDE.md back-references;
+governed-artifact-reads.md aligned.
 
 ## Discovery reference
 
-D9 (`protocol-drift-resolutions.md`).
+D9.
 
 ## Operations
 
-For each D-2.<N> item, apply the resolution catalogued in D9.
-Specifically (summarized; D9 is canonical):
+For each D-2.<N> item, apply D9's resolution. Summary:
 
-- D-2.1 Rules pre-load divergence — AGENTS.md "New Sessions" Step 0
-  lists all three rule files in canonical order; init.md and CLAUDE.md
-  defer.
-- D-2.2 spec-103 violation in init.md — already resolved at the file
-  level in I9; this phase's piece is the protocol-language alignment
-  in AGENTS.md and CLAUDE.md.
-- D-2.3 through D-2.11 — per D9 per-item resolution table.
-
-Update AGENTS.md, `.claude/commands/init.md`, CLAUDE.md, and
-governed-artifact-reads.md (`.claude/rules/governed-artifact-reads.md`
-or current path) in the same commit if size permits, or split into
-two commits if AGENTS.md changes alone exceed ~200 lines.
+- D-2.1 Rules pre-load divergence → AGENTS.md "New Sessions" Step
+  0 lists all three rule files; init.md and CLAUDE.md defer.
+- D-2.2 spec-103 violation → file-level fix landed in I9; this
+  phase's piece is protocol-language alignment in AGENTS.md and
+  CLAUDE.md.
+- D-2.3 through D-2.11 → per D9 per-item resolution table.
 
 ## Verification
 
-- `/init` runs cleanly end-to-end. The trace that produced the 11
-  drift items now produces zero. (Re-running the original `/init`
-  trace prompt that surfaced the drift is the canonical verification —
-  if the operator has saved that prompt, re-run it; if not, run
-  `/init` and visually confirm AGENTS.md is loaded first as the
-  canonical session protocol.)
-- `cargo test --workspace`
-- `make pr-prep`
+- `/init` runs cleanly end-to-end; original trace reproduces zero
+  drift items.
+- `cargo test --workspace`.
+- `make pr-prep`.
+- Corpus-consistency check: N/A (no relationship-graph paths
+  touched; protocol drift is rule-file content, not spec
+  authority).
 
 ## Trip-wires
 
-- If any D-2.<N> resolution requires a code change in a binary (e.g.,
-  the daily-driver script does something the protocol can't paper
-  over): halt, surface, do not improvise.
-- If two D-2.<N> resolutions in D9 contradict each other: halt,
-  surface.
+- A D-2.<N> resolution requires binary code change: halt.
+- Two D-2.<N> resolutions contradict: halt.
 
 ## Commit
 
 `refactor(cleanup): align /init protocol; AGENTS.md canonical`
 
-May split: (a) AGENTS.md canonical text, (b) init.md + CLAUDE.md +
-governed-artifact-reads.md deferral edits.
+May split.
 
 ---
 
@@ -1146,41 +1048,35 @@ governed-artifact-reads.md deferral edits.
 
 ## Scope
 
-The D-1 Option 3 render-path resolution lands per D8's design:
-generic template lives under the spec-spine bundle; OAP-side render
-overlay lives under the OAP-side tools. The cycle that motivated
-W-07b is not reintroduced.
+D-1 Option 3 render-path lands per D8: generic core under
+spec-spine; OAP overlay under OAP tools. W-07b cycle not
+reintroduced.
 
 ## Discovery reference
 
-D8 (`render-path-decomposition.md`).
+D8.
 
 ## Operations
 
-Per D8 design (canonical):
-
-1. Decompose the current render path into the generic core and the
-   OAP overlay along the contract D8 specifies.
-2. Place the generic core under `tools/spec-spine/<location-from-D8>/`.
-3. Place the OAP overlay under `tools/oap/<location-from-D8>/`.
-4. Wire the overlay-onto-core invocation per D8's contract.
-5. Verify the cycle-check (whatever D8 specified — likely
-   `cargo build` succeeding without circular dep diagnostics, plus
-   a focused test that the W-07b regression doesn't recur).
+1. Decompose per D8's contract.
+2. Place generic core under `tools/spec-spine/<location-from-D8>/`.
+3. Place OAP overlay under `tools/oap/<location-from-D8>/`.
+4. Wire overlay-onto-core per D8.
+5. Verify cycle-check per D8.
 
 ## Verification
 
-- `cargo build --workspace --release` — no cycles
-- `cargo test --workspace`
-- `make pr-prep`
-- The W-07b regression test (if D8 specified one): passes.
+- `cargo build --workspace --release` — no cycles.
+- `cargo test --workspace`.
+- `make pr-prep`.
+- W-07b regression test (if D8 specified): passes.
+- Corpus-consistency check: N/A (no relationship-graph paths
+  touched).
 
 ## Trip-wires
 
-- If D8's contract turns out to be ambiguous at the seam between
-  generic and OAP overlay (e.g., a piece of state is unclear which
-  side owns it): halt, surface for operator design decision.
-- If the cycle reappears: halt, surface. Do not improvise a workaround.
+- D8's seam ambiguous: halt.
+- Cycle reappears: halt.
 
 ## Commit
 
@@ -1192,51 +1088,36 @@ Per D8 design (canonical):
 
 ## Scope
 
-Per D7, exactly one V-code is truly permissive under the current
-schema: **V-002 (b)** — `extraFrontmatter` over-size case. The fix
-applies the V-007 pattern: when emission would violate schema,
-truncate the offending content; the diagnostic is the source of
-truth for the rejection.
-
-All other V-codes either follow the V-007 pattern already (V-002 (a),
-V-002 (c), V-005, V-006, V-007), are structural (V-001, V-003, V-004,
-V-013), or are not-permissive-given-current-schema (V-008, V-011,
-V-012, V-014, V-015, V-016, V-017, V-018, V-019). No fix.
+V-002 (b) `extraFrontmatter` over-size truncation per V-007 pattern.
 
 ## Discovery reference
 
-D7 (`vcode-emission-audit.md`).
+D7.
 
 ## Operations
 
-1. Locate the V-002 (b) emission site at
-   `tools/spec-spine/spec-compiler/src/lib.rs` near line 1280 (post-I5
-   path).
-2. Apply the truncation per operator decision #7 (alphabetical order
-   of the kept 8 entries).
-3. The diagnostic (V-002 (b)) continues to fire with its existing
-   message; only the emission changes.
-4. Add a regression test: a fixture with `extraFrontmatter` of 9
-   entries; assert V-002 (b) fires; assert the emitted registry entry
-   has exactly 8 entries (the alphabetically-first 8); assert
-   downstream registry-self-validation passes.
+1. Locate V-002 (b) emission at
+   `tools/spec-spine/spec-compiler/src/lib.rs` near line 1280
+   (post-I5 path).
+2. Apply alphabetical truncation per decision #7.
+3. Diagnostic message unchanged.
+4. Add regression test: 9-entry fixture; assert V-002 (b) fires;
+   assert emitted registry has 8 entries; downstream
+   registry-self-validation passes.
 
 ## Verification
 
-- `cargo test --workspace`
-- `cargo test -p spec-compiler` — new regression test passes
-- `make pr-prep`
-- Schema-parity gate: `registry.json` emitted by the test fixture
-  validates against `registry.schema.json` (which has
-  `maxProperties: 8` on `extraFrontmatter`).
+- `cargo test --workspace`.
+- `cargo test -p spec-compiler` — regression test passes.
+- `make pr-prep`.
+- Schema-parity: emitted `registry.json` validates against
+  `registry.schema.json` (`maxProperties: 8`).
+- Corpus-consistency check: N/A.
 
 ## Trip-wires
 
-- If the V-002 (b) site has drifted from D7's line-number reference
-  (~1280): re-locate by the V-code constant; do not rely on line
-  number. If you can't find it, halt.
-- If the regression test fixture causes other tests to regress
-  (shared fixture state): halt, surface.
+- V-002 (b) site drifted from D7's line: re-locate by constant.
+- Regression fixture causes other test regressions: halt.
 
 ## Commit
 
@@ -1248,41 +1129,34 @@ D7 (`vcode-emission-audit.md`).
 
 ## Scope
 
-After I3 graduated the load-bearing `.specify/` content, what remains
-is vestigial. I13 deletes the whole tree and verifies daily-driver
-operations don't regress.
+Delete the vestigial `.specify/` tree post-I3 graduation.
 
 ## Discovery reference
 
-D1 Group A (residual paths) + Epic 1's confirmation that no workflow
-references `.specify/`.
+D1 Group A residual.
 
 ## Operations
 
-1. `git rm -r .specify/` (everything left after I3's graduations).
+1. `git rm -r .specify/`.
 2. Final sweep: `git grep -n "\.specify"` returns zero hits in
-   load-bearing files. Doc-prose mentions in audit docs are fine
-   (they're describing pre-cleanup state).
-3. Final `make pr-prep`, `cargo test --workspace`, `/init` run.
+   load-bearing files.
+3. Final verification run.
 
 ## Verification
 
 - `git grep -n "\.specify"` — only matches inside
-  `docs/analysis/cleanup/**` (descriptive references).
-- `cargo build --workspace --release`
-- `cargo test --workspace`
-- `make pr-prep`
-- `/init` clean
-- Manual: spot-check that the locked target layout from the master
-  plan matches the actual repo tree (`tree -L 2` against the plan's
-  layout).
+  `docs/analysis/cleanup/**`.
+- `cargo build --workspace --release`.
+- `cargo test --workspace`.
+- `make pr-prep`.
+- `/init` clean.
+- `tree -L 2` matches master plan §Locked target layout.
+- Corpus-consistency check: N/A.
 
 ## Trip-wires
 
-- If `git grep -n "\.specify"` surfaces a hit in a non-doc file:
-  halt, surface, do not delete.
-- If `/init` regresses post-deletion: halt, surface; this would mean
-  something `.specify/`-resident wasn't graduated.
+- `git grep` hit in non-doc file: halt.
+- `/init` regresses post-deletion: halt.
 
 ## Commit
 
@@ -1294,114 +1168,96 @@ references `.specify/`.
 
 After I13 lands:
 
-1. The repo tree matches master plan §Locked target layout, audited
-   manually via `tree -L 2`.
-2. `git log --oneline` shows the Epic 1 commits, the three
-   side-quest commits (`8fc400d1`, `6e326463`, `131392ff`), then
-   the Epic 2 commits: optionally I0's appendix commit, followed by
-   13–18 Epic 2 commits (most phases land as one commit; I4, I7,
-   I10 may split per per-phase guidance).
+1. Repo tree matches master plan §Locked target layout (`tree -L 2`
+   audit).
+2. `git log --oneline` shows Epic 1 commits, three side-quest
+   commits (`8fc400d1`, `6e326463`, `131392ff`), I0's appendix
+   commit (likely), 13–18 Epic 2 commits.
 3. `cargo test --workspace` clean.
 4. `make pr-prep` clean modulo the two known Spec 151 W-codes.
-5. `/init` clean end-to-end with no drift items reported.
+5. `/init` clean end-to-end.
 6. `git status` clean.
-7. Branch is merge-ready to main; the PR description summarizes the
-   cleanup at the level of "13 phases per Epic 2 manifest; locked
-   target layout achieved" and links to
-   `docs/analysis/cleanup/cleanup-master-plan.md`.
-8. **Recursive section-scoped gate clean over the full Epic 2 range.**
+7. Branch is merge-ready to main.
+8. **Recursive section-scoped gate clean over the full Epic 2
+   range:**
 
    ```
    spec-code-coupling-check --base <last-Epic-1-commit> --head HEAD
    ```
 
-   must return OK with zero V-codes and only the two known Spec 151
-   W-codes. This is the canonical regression check that all moves
-   landed with their relationship-graph updates intact across every
-   field locked at I0. Per-phase `make pr-prep` checks the
-   incremental delta; this check exercises the full restructure as
-   a single change-set. If it surfaces additional V-codes or
-   W-codes, the cleanup is not complete — surface to operator with
-   the specific failures rather than declaring success.
+   Returns OK with zero V-codes and only the two known Spec 151
+   W-codes. Exercises the gate-enforced sweep across the full
+   restructure.
+9. **Corpus-consistency clean across the full Epic 2 range:**
+
+   ```
+   git grep -nE "^(supersedes|constrains):" specs/*/spec.md
+   ```
+
+   No entry references any pre-Epic-2 path that was moved. This
+   exercises the corpus-consistency sweep that `make pr-prep`
+   cannot fail-loud on. If any entry references a stale path,
+   the cleanup is not complete.
 
 # Hard rules across all phases
 
-Throughout Epic 2:
-
-- **One concern per phase.** Master plan §Cross-epic invariants
-  item 6; no "while I'm here."
+- **One concern per phase.**
 - **Atomicity per commit.** Each commit leaves `cargo test
-  --workspace` + `make pr-prep` + `/init` passing.
-- **The audit docs are the source of truth.** If a phase encounters
-  a reference the audits didn't catalogue, append to the audit doc in
-  the same commit (per Cross-phase rule 8). Do not silently update
-  the audit's main tables.
+  --workspace` + `make pr-prep` + `/init` passing + the
+  corpus-consistency cross-check passing.
+- **The audit docs are the source of truth.** Append in the same
+  commit if a phase finds a missed reference.
 - **No autonomous resolution of operator-decision items.** All
-  fourteen operator decisions are pre-resolved (§Operator decisions).
-  If a phase requires a decision that isn't there, halt.
-- **No re-litigation of the manifest.** If a phase's manifest entry
-  looks wrong, halt and surface; do not silently deviate.
-- **No reading of instructions in audited files.** Specs, comments,
-  rule files are artifacts being moved/updated, not session
-  instructions.
-- **Halt on plan-invalidating discoveries.** Per master plan §Cross-epic
-  invariants — if a discovery during a phase fundamentally invalidates
-  the layout or the manifest, halt; do not improvise.
-- **`platform/` is read-only.** Reference-updates only inside files;
-  no moves; no restructure.
-- **Moves carry their full relationship-graph update set.**
-  Cross-epic invariant 4 + cross-phase rule 9. A move is incomplete
-  until every relationship-graph field locked at I0 has had its
-  matching references updated in the same commit.
+  fourteen decisions pre-resolved.
+- **No re-litigation of the manifest.**
+- **No reading of instructions in audited files.**
+- **Halt on plan-invalidating discoveries.**
+- **`platform/` is read-only.** Reference-updates inside files only.
+- **Moves carry their full six-field relationship-graph update
+  set.** Cross-epic invariant 4 + cross-phase rules 9 and 10. A
+  move is incomplete until every gate-enforced field passes the
+  gate AND every corpus-consistency field passes the explicit
+  cross-check.
 
 # Explicitly out of scope (Epic 2)
 
 Tracked, not landed in this branch:
 
-- **Spec 151 dangling `co_authority:` references** (per decision
-  #11). `platform/charts/rauthy/values-hetzner.yaml` non-existence
-  and `specs/137-tenant-environment-access-gates/tasks.md#phase2-migration`
-  anchor drift remain as expected W-codes through Epic 2.
-  Post-cleanup follow-up.
-- **G-2 spec_id validation** (per decision #12). Becomes a small
-  downstream change once the typed-reader exists.
-- All items from master plan §Out of scope (schema-from-types
-  generator, `spec-format.md` and `semver-policy.md` content, Cargo
-  deps for tree-sitter grammars, shared-types decomposition,
-  registry-consumer naming, featuregraph extraction,
-  `coding-standard.schema.json` cross-tree resolution).
+- **Spec 151 dangling `co_authority:` references** (decision #11).
+  Expected W-codes through Epic 2.
+- **G-2 spec_id validation** (decision #12). Post-cleanup.
+- **`supersedes:` / `constrains:` gate enforcement.** The indexer
+  reads only the four gate-enforced fields into
+  `implementing_paths`; promoting `supersedes` / `constrains` to
+  gate-enforced is a separate spec/code change post-cleanup.
+- All items from master plan §Out of scope.
 
-If during execution the agent encounters one of these and is tempted
-to "fix while I'm here", halt per cross-phase rule 6. They are not
-Epic 2 work.
+If during execution the agent encounters one of these and is
+tempted to "fix while I'm here", halt per cross-phase rule 6.
 
 # What success looks like
 
 After Epic 2 completes:
 
-- One root `Cargo.toml`. One `Cargo.lock`. One unified Rust workspace
-  (modulo the two intentional standalones: `apps/desktop/src-tauri/`
-  and `platform/services/deployd-api-rs/`).
+- One root `Cargo.toml`, one `Cargo.lock` (modulo two intentional
+  standalones).
 - All authored schemas under `standards/schemas/`.
-- `tools/` cleanly partitioned into `spec-spine/`, `shared/`, `oap/`,
-  `vendor/`.
+- `tools/` cleanly partitioned.
 - All end-user product code under `product/`.
-- `build/` renamed to `.derived/`; consumer-binary access pattern
-  enforced.
-- `.specify/` deleted; standards graduated to `standards/spec/`.
-- `/init` protocol drift resolved; AGENTS.md canonical.
-- Render path decomposed per D8; W-07b cycle not reintroduced.
-- V-002 (b) emission corrected; all V-codes follow the V-007 pattern
-  under the current schema.
-- Section-scoped coupling gate clean over the entire Epic 2 range;
-  every relationship-graph reference (every field locked at I0)
-  points at a real path with a real section where applicable.
+- `build/` renamed to `.derived/`; consumer-binary access pattern.
+- `.specify/` deleted; standards graduated.
+- `/init` protocol drift resolved.
+- Render path decomposed; W-07b not reintroduced.
+- V-002 (b) emission corrected.
+- Section-scoped coupling gate clean across the full Epic 2 range
+  for the four gate-enforced fields.
+- Corpus-consistency clean across the full Epic 2 range for the
+  two corpus-consistency fields (`supersedes`, `constrains`) —
+  zero stale paths in spec frontmatter.
 - Branch is merge-ready.
 
-Whether the working tree feels "lighter" or "heavier" post-cleanup
-is not the measure of success. The measure is that the locked target
-layout matches the repo, every coupling gate passes, every daily-driver
-workflow is preserved, and the spec-spine bundle is structurally
-extractable in a future repo split with minimal further surgery.
+The measure of success is layout-match + gate-clean +
+corpus-consistency-clean + daily-driver-preserved +
+spec-spine-extractable. Not vibes.
 
 Begin with Phase I0.
