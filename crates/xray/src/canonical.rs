@@ -5,7 +5,7 @@
 
 use crate::schema::XrayIndex;
 use anyhow::{Context, Result};
-use serde_json::{Map, Value};
+use canonical_json::canonicalize_value;
 
 /// Serializes the index to **Canonical JSON** (object keys sorted lexicographically, no extra whitespace).
 ///
@@ -14,10 +14,9 @@ use serde_json::{Map, Value};
 /// - Arrays MUST already be deterministically ordered by the caller/spec (e.g., files sorted by path).
 /// - Output MUST be compact (no pretty-print / no whitespace variance).
 ///
-/// Notes:
-/// - `serde_json` will emit struct fields in struct declaration order, and map keys in map iteration order.
-/// - Using `BTreeMap` helps, but does not guarantee recursive key ordering for *all* nested objects.
-/// - Therefore we canonicalize by converting to `serde_json::Value` and recursively sorting object keys.
+/// Key sorting is delegated to [`canonical_json::canonicalize_value`], the
+/// shared workspace helper that encodes the explicit-ordering principle at
+/// the serialization boundary.
 pub fn to_canonical_json(index: &XrayIndex) -> Result<Vec<u8>> {
     // Enforce invariants before serialization
     validate_invariants(index)?;
@@ -25,29 +24,6 @@ pub fn to_canonical_json(index: &XrayIndex) -> Result<Vec<u8>> {
     let value = serde_json::to_value(index).context("Failed to convert index to JSON value")?;
     let canon = canonicalize_value(value);
     serde_json::to_vec(&canon).context("Failed to serialize canonical JSON")
-}
-
-fn canonicalize_value(v: Value) -> Value {
-    match v {
-        Value::Object(map) => canonicalize_object(map),
-        Value::Array(arr) => Value::Array(arr.into_iter().map(canonicalize_value).collect()),
-        other => other,
-    }
-}
-
-fn canonicalize_object(map: Map<String, Value>) -> Value {
-    // Collect into a Vec to handle sorting without re-lookup
-    let mut entries: Vec<(String, Value)> = map.into_iter().collect();
-
-    // Sort keys lexicographically.
-    entries.sort_by(|a, b| a.0.cmp(&b.0));
-
-    let mut out = Map::new();
-    for (k, v) in entries {
-        out.insert(k, canonicalize_value(v));
-    }
-
-    Value::Object(out)
 }
 
 /// Validates that the index is sorted correctly and adheres to invariants.
